@@ -8,9 +8,14 @@ const zlib = require('node:zlib');
 
 const CHECKPOINT_FILE = 'YANCE_SOURCE_CHECKPOINT.json';
 const UAT_TAG = 'architecture-round12-round13-final-governance-windows-uat-20260727';
+const GIT_LFS_VERSION_LINE = 'version https://git-lfs.github.com/spec/v1';
+
+function sha256Buffer(buffer) {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+}
 
 function sha256File(file) {
-  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  return sha256Buffer(fs.readFileSync(file));
 }
 
 function git(root, args) {
@@ -153,6 +158,45 @@ function readGitBlobs(repoRoot, objectIds) {
   return blobs;
 }
 
+function parseGitLfsPointer(blob) {
+  if (!Buffer.isBuffer(blob) || blob.length > 4096) return null;
+  const text = blob.toString('utf8');
+  if (!text.startsWith(`${GIT_LFS_VERSION_LINE}\n`) && !text.startsWith(`${GIT_LFS_VERSION_LINE}\r\n`)) return null;
+  const lines = text.replace(/\r?\n$/u, '').split(/\r?\n/u);
+  if (lines[0] !== GIT_LFS_VERSION_LINE) throw new Error('malformed Git LFS pointer version');
+  const oidLines = lines.filter(line => /^oid sha256:[0-9a-f]{64}$/u.test(line));
+  const sizeLines = lines.filter(line => /^size [0-9]+$/u.test(line));
+  if (oidLines.length !== 1 || sizeLines.length !== 1) throw new Error('malformed Git LFS pointer identity');
+  const oidSha256 = oidLines[0].slice('oid sha256:'.length);
+  const size = Number(sizeLines[0].slice('size '.length));
+  if (!Number.isSafeInteger(size) || size < 0) throw new Error('malformed Git LFS pointer size');
+  return { oidSha256, size };
+}
+
+function resolveTrackedPayloadData(repoRoot, entry, gitBlob) {
+  if (!Buffer.isBuffer(gitBlob)) throw new Error(`missing Git blob bytes: ${entry.file}`);
+  const pointer = parseGitLfsPointer(gitBlob);
+  if (!pointer) return gitBlob;
+
+  const safeFile = assertSafeArchivePath(entry.file);
+  const worktreePath = path.join(repoRoot, ...safeFile.split('/'));
+  if (!fs.existsSync(worktreePath) || !fs.statSync(worktreePath).isFile()) {
+    throw new Error(`Git LFS object is not materialized in the worktree: ${safeFile}`);
+  }
+  const materialized = fs.readFileSync(worktreePath);
+  if (parseGitLfsPointer(materialized)) {
+    throw new Error(`Git LFS object is not materialized in the worktree: ${safeFile}`);
+  }
+  if (materialized.length !== pointer.size) {
+    throw new Error(`Git LFS size mismatch for ${safeFile}: expected=${pointer.size} actual=${materialized.length}`);
+  }
+  const actualSha256 = sha256Buffer(materialized);
+  if (actualSha256 !== pointer.oidSha256) {
+    throw new Error(`Git LFS SHA-256 mismatch for ${safeFile}: expected=${pointer.oidSha256} actual=${actualSha256}`);
+  }
+  return materialized;
+}
+
 function createZipArchive(outputPath, entries) {
   const localParts = [];
   const centralParts = [];
@@ -222,7 +266,11 @@ function createIdentityBoundArchive(repoRoot, payloadPath, checkpoint) {
   const blobs = readGitBlobs(repoRoot, treeEntries.map(entry => entry.object));
   const entries = treeEntries
     .filter(entry => entry.file !== CHECKPOINT_FILE)
-    .map(entry => ({ file: entry.file, mode: entry.mode, data: blobs.get(entry.object) }));
+    .map(entry => ({
+      file: entry.file,
+      mode: entry.mode,
+      data: resolveTrackedPayloadData(repoRoot, entry, blobs.get(entry.object)),
+    }));
   entries.push({ file: CHECKPOINT_FILE, mode: '100644', data: Buffer.from(checkpoint, 'utf8') });
   entries.sort((left, right) => Buffer.from(left.file).compare(Buffer.from(right.file)));
   createZipArchive(payloadPath, entries);
@@ -344,6 +392,9 @@ module.exports = {
   createZipArchive,
   listHeadBlobs,
   listZipEntryNames,
+  parseGitLfsPointer,
   readGitBlobs,
+  resolveTrackedPayloadData,
+  sha256Buffer,
   sha256File,
 };

@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-14T11:55:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELECTRON-OFFICIAL-RELEASE-CUSTODY-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Agent Lightning PR #362 exact head 30d4178cf6cc6d535b8baa9e9a38110ccacf5bb7 has GREEN Linux, ACV2, WP-A, shared regressions and CodeRabbit checks, while Stage 6.4.5.9 run 31770185550 fails in wp0-route before WP0 at Establish exact base-owned route policy with exit 128 after checkout and exact diff-range resolution. The Stage workflow creates a detached full base worktree; current main tracks both the pinned Electron v39.8.5 Windows archive and rcedit through Git LFS. A full worktree therefore invokes LFS smudge for unrelated binary custody and is structurally unsafe when the repository LFS budget is exhausted. Merely setting lfs:false or GIT_LFS_SKIP_SMUDGE would move or mask the same failure and is prohibited. This successor authorizes two coupled root repairs: (1) preserve base-owned WP0 routing while replacing full base worktree materialization with an exact-base minimal Git-object export containing only the trusted route selector dependencies, executed against the candidate repository object database; and (2) retire Yance Git-LFS custody for the exact Electron v39.8.5 win32-x64 archive, materializing that same official asset from the upstream electron/electron v39.8.5 GitHub Release and failing closed on pinned asset identity, byte size and SHA-256. The existing rcedit LFS custody remains unchanged and outside scope.",
+  "base": {
+    "branch": "main",
+    "commit": "bf81065880a8f3a1ddf4df3b6f0bcd856f3b25ed"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "requiredFirstParent": "bf81065880a8f3a1ddf4df3b6f0bcd856f3b25ed",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "causalRedEvidence": {
+    "pullRequest": 362,
+    "exactHead": "30d4178cf6cc6d535b8baa9e9a38110ccacf5bb7",
+    "trustedMainAtFailure": "bf81065880a8f3a1ddf4df3b6f0bcd856f3b25ed",
+    "stageRun": 31770185550,
+    "job": "wp0-route",
+    "failedStep": "Establish exact base-owned route policy",
+    "exitCode": 128,
+    "checkoutStep": "GREEN",
+    "exactDiffRangeStep": "GREEN",
+    "downstreamWp0": "NOT_REACHED",
+    "observedRepositoryCondition": "GitHub LFS budget exceeded",
+    "rootCause": "The workflow performs git worktree add --detach for the whole exact base. Git worktree checkout applies repository LFS filters independently of actions/checkout lfs:false, so unrelated tracked LFS binaries are smudged before routing.",
+    "secondObjectProof": {
+      "path": "vendor/rcedit/rcedit-v2.0.0-x64.exe",
+      "lfsOidSha256": "3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a",
+      "sizeBytes": 1360384,
+      "significance": "Deleting only the Electron LFS rule would leave another real LFS pointer reachable by the same full-worktree smudge path."
+    }
+  },
+  "upstreamElectronAuthority": {
+    "repository": "electron/electron",
+    "releaseTag": "v39.8.5",
+    "assetName": "electron-v39.8.5-win32-x64.zip",
+    "assetId": 382512506,
+    "sizeBytes": 136644393,
+    "sha256": "d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34",
+    "officialReleaseApiDigest": "sha256:d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34",
+    "existingYanceLfsPointerOidSha256": "d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34",
+    "existingYanceLfsPointerSizeBytes": 136644393,
+    "identityConclusion": "The upstream official Release asset and current Yance LFS pointer bind the same bytes by SHA-256 and size; this package changes custody, not Electron version or binary identity."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-electron-official-release-custody-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-electron-official-release-custody-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "bedda0f5564337fd1f274c49177d685d4f1682d891694b22f1a5246f4ed7d9b5",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "fix/v21-electron-official-release-custody-v1",
+    "allowedChangedPaths": [
+      ".gitattributes",
+      ".gitignore",
+      ".github/workflows/reviewed-candidate-a6.yml",
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "release/electron-distribution-trust.json",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/layered-ci/wp0-routing.test.js",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/runtime-delivery/round12-13-windows-uat-package.test.js",
+      "tests/wp0/evidence-source-binding.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "vendor/electron/electron-v39.8.5-win32-x64.zip"
+    ],
+    "approvedChangedFileCount": 13,
+    "approvedChangedFileSetSha256": "89fb76a5061efc3cb001b2aee86c7179f4538ef40fa05f6a18e18dad46b7d4bc",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/reviewed-candidate-a6.yml",
+        ".github/workflows/stage-6459-wp0-gates.yml",
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 3,
+      "approvedWorkflowPathSetSha256": "bfcb46205b312c668a32d4300016b6fbe45c06e5998a9d1ca7d5674d6f59c1c3"
+    },
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "rceditCustodyModificationAllowed": false,
+    "electronVersionModificationAllowed": false,
+    "electronExpectedHashModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "tests/layered-ci/wp0-routing.test.js",
+        "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 4,
+      "productionCodeChanged": false,
+      "preExistingRemoteCausalRedAuthority": "Stage 6.4.5.9 run 31770185550 wp0-route / Establish exact base-owned route policy",
+      "postTestCommitExpectation": "The exact implementation head remains remotely RED until the production repair removes full base worktree materialization; direct contract tests must additionally RED on the still-current Git-LFS Electron custody and Product Final materializer."
+    }
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_OSS_AND_UPSTREAM_NATIVE_CUSTODY",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "upstream-native-plus-git-object-export",
+    "reviewedCandidates": [
+      {
+        "name": "electron/electron official GitHub Release v39.8.5 asset",
+        "source": "electron/electron releases/tag/v39.8.5",
+        "license": "MIT",
+        "adoptionMode": "upstream-native",
+        "fit": "FIT",
+        "reason": "The official Release already distributes the exact pinned win32-x64 archive. The GitHub Release API reports the same 136644393-byte size and SHA-256 as Yance's existing LFS pointer, so no rebuild, mirror or binary-authority change is needed."
+      },
+      {
+        "name": "Git exact-object export",
+        "source": "git/git built-in git archive plus existing repository object database",
+        "license": "GPL-2.0-only",
+        "adoptionMode": "mature-oss-existing-toolchain",
+        "fit": "FIT",
+        "reason": "Stage needs only the base-owned route selector, its local JS dependencies and routing policy. Exporting those exact paths from BASE_SHA avoids checkout filters entirely while preserving base-owned authority and the candidate repo's exact Git diff range."
+      },
+      {
+        "name": "@electron/get",
+        "source": "electron/get",
+        "license": "MIT",
+        "adoptionMode": "official-oss-downloader",
+        "fit": "FIT_BUT_NOT_SELECTED",
+        "reason": "It is mature official Electron OSS, but adopting it here would introduce package-resolution/lockfile surface solely to fetch one already identity-pinned public Release asset. Direct upstream Release custody with platform-native HTTP plus independent hash/size verification is thinner."
+      },
+      {
+        "name": "Git LFS Electron custody",
+        "source": "git-lfs/git-lfs existing Yance vendor/electron pattern",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "GAP",
+        "reason": "The exact Stage RED demonstrates that repository LFS budget and checkout-filter behavior now couple unrelated policy routing to binary custody. Keeping Electron in LFS preserves the failed dependency."
+      },
+      {
+        "name": "lfs:false, GIT_LFS_SKIP_SMUDGE, retries, mirrors or new Yance cache/downloader",
+        "source": "workarounds or new infrastructure",
+        "license": "not applicable because rejected",
+        "adoptionMode": "rejected",
+        "fit": "REJECT",
+        "reason": "These either mask the smudge trigger, move failure to the next LFS object, preserve live availability fragility, introduce a new authority, or create bespoke infrastructure contrary to V2.1 OSS-first policy."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire Yance Git-LFS custody for vendor/electron/electron-v39.8.5-win32-x64.zip and delete that tracked pointer from the implementation branch.",
+      "Retire the vendor/electron/*.zip LFS attribute without changing vendor/rcedit/*.exe LFS custody.",
+      "Retire the .gitignore exception that makes vendor/electron ZIPs source-visible; runtime materialization belongs under runner temporary storage.",
+      "Retire Stage full-base worktree materialization for route-policy lookup; export only the exact base-owned route selector dependency set from BASE_SHA.",
+      "Retire Electron-targeted git lfs pull/install/pointer checks from Stage, Reviewed Candidate A6 and Product Final; replace them with official Release materialization followed by pinned size/SHA-256 verification.",
+      "Avoid lfs:false/GIT_LFS_SKIP_SMUDGE as the repair mechanism, retry/fallback downloads, alternate mirrors, Electron rebuilds, checksum rewrites, version changes, new caches or new Yance download infrastructure.",
+      "Keep rcedit Git-LFS custody and its existing hash/version authority unchanged."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "Stage base-owned routing must remain controlled by BASE_SHA, but the workflow must not use git worktree add, checkout or any other full-tree materialization to obtain the trusted route selector.",
+    "The base-owned route selector export must contain only explicitly enumerated route-selector dependencies from BASE_SHA, and execution must still compute the changed-file diff from exact BASE_SHA to exact HEAD_SHA using the candidate repository object database.",
+    "The implementation must not add GIT_LFS_SKIP_SMUDGE, lfs:false or equivalent smudge suppression as the causal repair for the Stage route-policy step.",
+    "vendor/electron/electron-v39.8.5-win32-x64.zip must be removed from Git tracking, vendor/electron/*.zip must no longer be Git-LFS tracked, and vendor/rcedit/*.exe LFS tracking must remain unchanged.",
+    "release/electron-distribution-trust.json must remain the Yance trust authority and must bind official electron/electron release v39.8.5, asset electron-v39.8.5-win32-x64.zip, size 136644393 and SHA-256 d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34.",
+    "Stage, Reviewed Candidate A6 and Product Final must materialize the Electron archive from the official electron/electron v39.8.5 GitHub Release into runner-temporary storage and independently verify exact size and SHA-256 before use.",
+    "No consumer may use an alternate Electron mirror, fallback URL, mutable latest release, version range, unverified cache hit or checksum rewrite.",
+    "The generic Round12/13 Git-LFS payload resolver may remain for other tracked LFS assets, but tests must stop using an Electron path as the example authority for generic LFS custody.",
+    "All formal release, publish, production-use and ready-for-promotion flags remain false."
+  ],
+  "parallelBranchPolicy": {
+    "pullRequest289": {
+      "stateAtAuthorization": "OPEN_STALE_BASE",
+      "actualCurrentChangedPath": "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "overlapsImplementationScope": true,
+      "rule": "Do not implement this successor on PR #289 or cherry-pick its stale head. Authorization must ordinary-merge first. The successor implementation starts from that fresh main merge commit; PR #289 must then be refreshed/forward-integrated and conflicts resolved under its own authority."
+    }
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "lfsFalseAsRepair": true,
+    "gitLfsSkipSmudgeAsRepair": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "alternateElectronMirror": true,
+    "electronVersionChange": true,
+    "electronExpectedHashRewrite": true,
+    "electronSourceRebuild": true,
+    "rceditCustodyChange": true,
+    "newYanceDownloader": true,
+    "newYanceCache": true,
+    "newDependency": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "productRuntimeModification": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "delegatedExecutionAuthorized": true,
+    "authorizationMergeRequiresOwnerApproval": true,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}

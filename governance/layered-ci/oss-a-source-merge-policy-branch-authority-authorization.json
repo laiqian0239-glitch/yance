@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OSS_A_SOURCE_MERGE_POLICY_BRANCH_AUTHORITY_REPAIR_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-06T15:45:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-A",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #82 causal RED proved that the permanent WP0 branch gate rejects the separately authorized governance/oss-a-source-merge-policy branch before the new policy contract can run. The existing open-source registry intentionally permits only one product implementation branch per work package, so the governance policy branch must be authorized through a trusted-main delegated governance authority rather than a second OSS-A registry entry, a hard-coded branch whitelist or a renamed branch workaround.",
+  "base": {
+    "branch": "main",
+    "commit": "fac7d298f182043f4ecc6e41a780248ce3a03132"
+  },
+  "evidence": {
+    "sourcePullRequest": 82,
+    "sourceExactHead": "85a1ccf64994b3daeed18968123966941f6bc61e",
+    "stageWp0RunId": 31088364202,
+    "stageWp0ProductJobId": 92573226946,
+    "reasonCode": "WP0_REJECTED_STAGE_TARGET_DENIED",
+    "rejectedBranch": "governance/oss-a-source-merge-policy",
+    "existingOpenSourceRegistryPath": "governance/open-source-acceleration/open-source-work-package-registry.json",
+    "existingProductBranch": "oss/a-supply-chain-foundation",
+    "sourceMergePolicyAuthorizationPath": "governance/layered-ci/oss-a-source-merge-authorization.json",
+    "sourceMergePolicyAuthorizationMergeCommit": "fac7d298f182043f4ecc6e41a780248ce3a03132",
+    "sourceMergePolicyAuthorizationMergeFirstParent": "ad195d8497ec61fbe3387c606692110f5645fba0",
+    "sourceMergePolicyAuthorizationReviewedHead": "f50590181e19cdc134c35d91ae9421af5b532ce8",
+    "sourceMergePolicyAuthorizationBlobSha": "99ee3e5243d07fed5cea6661cb6ad82123771bc8"
+  },
+  "authorizationBranch": {
+    "name": "governance/oss-a-source-merge-policy-branch-authority",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-a-source-merge-policy-branch-authority-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/oss-a-source-merge-policy-branch-authority",
+    "requiredBase": "the exact ordinary main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "registryModificationAllowed": false,
+    "productImplementationReceiptModificationAllowed": false,
+    "hardCodedBranchWhitelistAllowed": false,
+    "directoryAutoDiscoveryAllowed": false
+  },
+  "requiredDesign": {
+    "authoritySource": "TRUSTED_MAIN_AUTHORIZATION_MERGE",
+    "candidateOwnedAuthorizationMayNotSelfAuthorize": true,
+    "exactAuthorizationPathsOnly": true,
+    "authorizationIntroductionMergeMustBeTwoParent": true,
+    "authorizationIntroductionParentsMustMatchEvidence": true,
+    "authorizationBlobAtIntroductionMergeMustMatchEvidence": true,
+    "trustedPolicyHeadMustDescendFromIntroductionMerge": true,
+    "branchMustEqualAuthorizationImplementationBranch": true,
+    "authorizationImplementationScopeMustMatchCountAndDigest": true,
+    "productionAndPromotionClosureMustRemainFalse": true,
+    "existingProductBranchAuthorityMustRemainUnchanged": true,
+    "arbitraryGovernanceBranchesMustFailClosed": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The exact governance/oss-a-source-merge-policy branch is denied on base main before the repair",
+    "A trusted-main authorization introduced by the exact ordinary merge with the exact parents and blob authorizes only its declared implementation branch",
+    "Wrong introduction merge, parent order, reviewed authorization Head, blob, document type, status, branch, path count, path digest or governance closure fails closed",
+    "Changing the authorization file only in the evaluated candidate cannot self-authorize a branch",
+    "Adding a second OSS-A entry to the open-source work-package registry remains forbidden",
+    "An arbitrary governance branch remains denied",
+    "The existing oss/a-supply-chain-foundation product branch continues to use only its sealed registry authorization and receipt"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes Stage WP0, Layered CI and ACV2",
+    "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
+    "Authorization PR merges to main through an ordinary two-parent merge commit",
+    "Implementation branch starts from that exact authorization merge commit",
+    "Failure-first tests prove the exact source-merge policy branch is denied and all drift cases fail closed",
+    "implementationBranchPolicy gains one reusable trusted-main delegated-governance authorization validator",
+    "The validator reads only exact configured authorization paths from the trusted policy root and verifies the introduction merge graph and blob",
+    "No branch prefix, governance directory wildcard or registry duplicate is introduced",
+    "Implementation exact Head passes permanent WP0, Layered CI, ACV2 and independent review",
+    "Implementation PR merges to main through an ordinary merge commit",
+    "The new main is ordinarily merged into PR #82, whose original three-path policy scope and RED evidence remain unchanged"
+  ],
+  "prohibitions": {
+    "booleanSemantics": "TRUE_MEANS_FORBIDDEN",
+    "temporaryBranchRename": true,
+    "branchPrefixWhitelist": true,
+    "governanceDirectoryWildcard": true,
+    "duplicateOssARegistryEntry": true,
+    "candidateOwnedSelfAuthorization": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directModificationOfPr67": true,
+    "sourceMergeAuthorization": true,
+    "productionUse": true,
+    "formalRelease": true,
+    "publish": true,
+    "readyForPromotion": true,
+    "automaticNextWorkPackageAuthorization": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "pr67MustRemainDraft": true,
+    "pr82MustRemainDraftUntilRepairMerged": true,
+    "sourceMergeAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "readyForPromotion": false,
+    "automaticNextWorkPackageAuthorization": false
+  }
+}

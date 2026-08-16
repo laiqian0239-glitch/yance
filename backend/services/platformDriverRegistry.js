@@ -2,7 +2,7 @@
 
 const whatsapp = require('./whatsappAdapter');
 const telegram = require('./telegramAdapter');
-const facebook = require('./facebookAdapter');
+const facebookChatwoot = require('./facebookChatwootMatrixBridge');
 const facebookPersonalIdentity = require('./facebookPersonalIdentityAdapter');
 const facebookPersonalMessenger = require('./facebookPersonalMessengerExperimentalAdapter');
 
@@ -85,26 +85,22 @@ const drivers = Object.freeze({
   }),
   facebook: Object.freeze({
     platform: 'facebook',
-    adapter: facebook,
-    resolveAccountKey(account) { return clean(account?.id); },
-    credentialState() { return null; },
-    status(account) { return facebook.status(account.id); },
-    credentialReady(_account, secret = {}) { return Boolean(secret.pageId && secret.cloudAccountId && secret.workerBaseUrl && secret.deviceId && secret.devicePrivateKeyPkcs8); },
-    async connect(account, options = {}) { return facebook.connect(account, options); },
-    async disconnect(account, options = {}) { assertSignalActive(options.signal, 'FACEBOOK_DISCONNECT_ABORTED'); const result = await facebook.disconnect(account.id, options.logout === true, account, options); assertSignalActive(options.signal, 'FACEBOOK_DISCONNECT_ABORTED'); return result; },
-    async sync(account, options = {}) { return facebook.sync(account, options); },
-    externalTarget(value) { return clean(value).replace(/^facebook:/i, ''); },
-    adapterAccountId(account, requestedId = '') { return clean(account?.id || requestedId); },
-    async sendText(context, input) { return facebook.sendText(context.account, context.target, input.text, { localMessageId: input.localMessageId, sessionKey: input.sessionKey, quoted: input.quoted, localProjectionOwnedByQueue: input.localProjectionOwnedByQueue === true, signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async sendMedia(context, input) { return facebook.sendMedia(context.account, context.target, input); },
-    async sendPresence(context, input) { return facebook.sendPresence(context.account, context.target, input.state, { signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async markRead(context, input = {}) { return facebook.markRead(context.account, context.target, { signal: input.signal, executionGeneration: input.executionGeneration }); },
-    verifyWebhook(mode, token, challenge, accounts) { return facebook.verifyWebhook(mode, token, challenge, accounts); },
-    verifyWebhookSignature(rawBody, signature, accounts, body) { return facebook.verifyWebhookSignature(rawBody, signature, accounts, body); },
-    async handleWebhook(body, accounts) { return facebook.handleWebhook(body, accounts); }
+    adapter: facebookChatwoot,
+    resolveAccountKey(account) { return facebookChatwoot.resolveAccountKey(account); },
+    credentialState(account) { return facebookChatwoot.credentialState(account); },
+    status(account) { return facebookChatwoot.status(account); },
+    credentialReady(account) { return facebookChatwoot.credentialReady(account); },
+    async connect(account, options = {}) { return facebookChatwoot.connect(account, options); },
+    async disconnect(account, options = {}) { assertSignalActive(options.signal, 'FACEBOOK_DISCONNECT_ABORTED'); const result = await facebookChatwoot.disconnect(account, options); assertSignalActive(options.signal, 'FACEBOOK_DISCONNECT_ABORTED'); return result; },
+    async sync(account, options = {}) { return facebookChatwoot.sync(account, options); },
+    externalTarget(value) { return facebookChatwoot.externalTarget(value); },
+    adapterAccountId(account, requestedId = '') { return facebookChatwoot.adapterAccountId(account, requestedId); },
+    async sendText(context, input) { return facebookChatwoot.sendText(context, input); },
+    async sendMedia(context, input) { return facebookChatwoot.sendMedia(context, input); },
+    async sendPresence(context, input) { return facebookChatwoot.sendPresence(context, input); },
+    async markRead(context, input = {}) { return facebookChatwoot.markRead(context, input); }
   })
 });
-
 
 const driverById = Object.freeze({
   'whatsapp-web-multidevice': Object.freeze({
@@ -121,9 +117,10 @@ const driverById = Object.freeze({
   }),
   'facebook-page-official': Object.freeze({
     ...drivers.facebook,
+    adapter: facebookChatwoot,
     driverId: 'facebook-page-official', accountKind: 'page', official: true,
     supportLevel: 'production', messagingSupported: true, riskDisclosureRequired: false,
-    isolationModel: 'page-account-worker'
+    isolationModel: 'chatwoot-facebook-page-sidecar'
   }),
   'facebook-personal-identity-official': Object.freeze({
     platform: 'facebook', adapter: facebookPersonalIdentity,

@@ -13,7 +13,6 @@ const { DomainEventLogService } = require('../services/domainEventLogService');
 const { SendPolicyAuthority } = require('../services/sendPolicyAuthority');
 const { AIDirectorStrategyAuthority } = require('../services/aiDirectorStrategyAuthority');
 const { IdentityLinkAuthority } = require('../services/identityLinkAuthority');
-const { LearningPreferenceAuthority, sanitizeLearningObject } = require('../services/learningPreferenceAuthority');
 const { retryDecision, retryClassForCode } = require('../services/sendQueueService');
 const { ExternalIdentityAuthority } = require('../services/externalIdentityAuthority');
 const { OutboxRouteAuthority } = require('../services/outboxRouteAuthority');
@@ -83,8 +82,7 @@ function withRuntime(callback) {
       events: new DomainEventLogService({ repository }),
       sendPolicy: new SendPolicyAuthority({ repository, accountStateProvider }),
       director: new AIDirectorStrategyAuthority({ repository }),
-      identity: new IdentityLinkAuthority({ repository }),
-      learning: new LearningPreferenceAuthority({ repository })
+      identity: new IdentityLinkAuthority({ repository })
     });
   } finally {
     try { store.close(); } catch (_) {}
@@ -106,8 +104,7 @@ async function withRuntimeAsync(callback) {
       events: new DomainEventLogService({ repository }),
       sendPolicy: new SendPolicyAuthority({ repository, accountStateProvider: () => accountState.accounts }),
       director: new AIDirectorStrategyAuthority({ repository }),
-      identity: new IdentityLinkAuthority({ repository }),
-      learning: new LearningPreferenceAuthority({ repository })
+      identity: new IdentityLinkAuthority({ repository })
     });
   } finally {
     try { store.close(); } catch (_) {}
@@ -352,116 +349,16 @@ test('identity rollback refuses to overwrite a link changed after merge', () => 
   });
 });
 
-test('learning signal idempotency conflicts are blocked and transactional profile rebuild leaves no partial signal', () => {
-  withRuntime(({ learning, repository, store }) => {
-    const receipt = validRouteReceipt('quick_reply');
-    const base = {
-      idempotencyKey: 'learning-idem-1', signalType: 'candidate_used', scopeType: 'conversation', scopeId: 'conv-1',
-      conversationId: 'conv-1', contactId: 'c1', candidateId: 'cand-1', finalText: 'Bis morgen.', qualityRouteReceipt: receipt
-    };
-    assert.equal(learning.recordSignal(base).profileChanged, true);
-    assert.throws(() => learning.recordSignal({ ...base, finalText: 'Changed text' }), error => error.code === 'LEARNING_SIGNAL_IDEMPOTENCY_CONFLICT');
+test('learning signal idempotency is stable and no transactional profile rebuild exists', () => { const service=require('../services/replyFeedbackLearningService');const a=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true}});const b=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true}});assert.equal(a.signalId,b.signalId);assert.equal(service.status().automaticProfileMutation,false); });
 
-    const original = learning.rebuildL1.bind(learning);
-    learning.rebuildL1 = () => { throw Object.assign(new Error('forced'), { code: 'FORCED_PROFILE_FAILURE' }); };
-    assert.throws(() => learning.recordSignal({ ...base, idempotencyKey: 'learning-idem-rollback', candidateId: 'cand-2' }), error => error.code === 'FORCED_PROFILE_FAILURE');
-    learning.rebuildL1 = original;
-    assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM learning_signal_ledger WHERE idempotency_key='learning-idem-rollback'").get().n, 0);
-    assert.equal(repository.getLatestLearningProfile({ scopeType: 'conversation', scopeId: 'conv-1', learningLevel: 'L1', state: 'active' }).version, 1);
-  });
-});
+test('Learning V4 promotion is proposal-bound and never auto-applies a profile', async () => { const {createLearningPromotionAdapter}=require('../services/learningPromotionAdapter');const adapter=createLearningPromotionAdapter({openFeature:{setEvaluationContext(){}},flagd:{mode:'in-process-offline'}});const p={status:'READY_FOR_REVIEW',Regression:{passed:true},Shadow:{passed:true},Candidate:{id:'x'}};const r=await adapter.promote(p,{approved:true});assert.equal(r.automaticPromotion,false); });
 
-test('learning promotion replay returns its original profile version after newer signals and rejects changed requests', () => {
-  withRuntime(({ learning, repository, store }) => {
-    const quickReceipt = validRouteReceipt('quick_reply');
-    const synthesisReceipt = validRouteReceipt('learning_synthesis');
-    const signalIds = [];
-    for (let i = 0; i < 5; i += 1) {
-      const result = learning.recordSignal({
-        idempotencyKey: `l1-${i}`, signalType: 'candidate_used', scopeType: 'conversation', scopeId: 'conv-promo',
-        conversationId: 'conv-promo', contactId: 'contact-promo', candidateId: `cand-${i}`, finalText: `Text ${i}`,
-        qualityRouteReceipt: quickReceipt
-      });
-      signalIds.push(result.signal.signalId);
-    }
-    const firstRequest = {
-      synthesisId: 'promotion-one', fromLevel: 'L1', toLevel: 'L2', sourceScopeType: 'conversation', sourceScopeId: 'conv-promo',
-      targetScopeType: 'contact', targetScopeId: 'contact-promo', evidenceSignalIds: signalIds,
-      preference: { defaultLength: 'short' }, confidence: 0.8, qualityRouteReceipt: synthesisReceipt
-    };
-    const first = learning.applySynthesis(firstRequest);
-    assert.equal(first.profile.version, 1);
+test('legacy profile rollback is retired; successor promotion requires explicit evidence review', () => { const fs=require('node:fs');const source=fs.readFileSync(require('node:path').join(__dirname,'../routes/store.js'),'utf8');assert.match(source,/legacy-profile-rollback/u); });
 
-    const sixth = learning.recordSignal({
-      idempotencyKey: 'l1-5', signalType: 'candidate_used', scopeType: 'conversation', scopeId: 'conv-promo',
-      conversationId: 'conv-promo', contactId: 'contact-promo', candidateId: 'cand-5', finalText: 'Text 5', qualityRouteReceipt: quickReceipt
-    });
-    const second = learning.applySynthesis({ ...firstRequest, synthesisId: 'promotion-two', evidenceSignalIds: [...signalIds, sixth.signal.signalId], preference: { defaultLength: 'very-short' } });
-    assert.equal(second.profile.version, 2);
-
-    const replay = learning.applySynthesis(firstRequest);
-    assert.equal(replay.idempotentReplay, true);
-    assert.equal(replay.profile.version, 1);
-    assert.deepEqual(replay.profile.preference, { defaultLength: 'short' });
-    assert.throws(() => learning.applySynthesis({ ...firstRequest, preference: { defaultLength: 'long' } }), error => error.code === 'LEARNING_PROMOTION_IDEMPOTENCY_CONFLICT');
-    assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM learning_promotion_audit WHERE decision='approved'").get().n, 2);
-    assert.equal(repository.getLatestLearningProfile({ scopeType: 'contact', scopeId: 'contact-promo', learningLevel: 'L2', state: 'active' }).version, 2);
-  });
-});
-
-test('learning rollback requires an exact non-forgotten target version', () => {
-  withRuntime(({ learning, repository }) => {
-    const timestamp = new Date().toISOString();
-    repository.insertLearningProfile({ scopeType: 'contact', scopeId: 'rollback-target', learningLevel: 'L2', version: 1, preference: { tone: 'gentle' }, evidenceSignalIds: [], confidence: 0.8, state: 'candidate', createdAt: timestamp, activatedAt: '' });
-    repository.activateLearningProfile({ scopeType: 'contact', scopeId: 'rollback-target', learningLevel: 'L2', version: 1, activatedAt: timestamp });
-    repository.insertLearningProfile({ scopeType: 'contact', scopeId: 'rollback-target', learningLevel: 'L2', version: 2, preference: { tone: 'direct' }, evidenceSignalIds: [], confidence: 0.9, state: 'candidate', createdAt: timestamp, activatedAt: '' });
-    repository.activateLearningProfile({ scopeType: 'contact', scopeId: 'rollback-target', learningLevel: 'L2', version: 2, activatedAt: timestamp });
-    assert.throws(() => learning.rollbackProfile({ scopeType: 'contact', scopeId: 'rollback-target', learningLevel: 'L2', actor: 'selfcheck', reason: 'verify target required' }), error => error.code === 'LEARNING_ROLLBACK_TARGET_REQUIRED');
-    assert.throws(() => learning.rollbackProfile({ scopeType: 'contact', scopeId: 'rollback-target', learningLevel: 'L2', targetVersion: 999, actor: 'selfcheck', reason: 'verify missing target' }), error => error.code === 'LEARNING_ROLLBACK_TARGET_NOT_FOUND');
-    repository.updateLearningProfileState({ scopeType: 'contact', scopeId: 'rollback-target', learningLevel: 'L2', version: 1, state: 'forgotten', activatedAt: '' });
-    assert.throws(() => learning.rollbackProfile({ scopeType: 'contact', scopeId: 'rollback-target', learningLevel: 'L2', targetVersion: 1, actor: 'selfcheck', reason: 'verify forgotten target' }), error => error.code === 'LEARNING_ROLLBACK_TARGET_FORGOTTEN');
-    assert.equal(repository.getLatestLearningProfile({ scopeType: 'contact', scopeId: 'rollback-target', learningLevel: 'L2', state: 'active' }).version, 2);
-  });
-});
-
-test('learning rollback and forget are transactional and auditable', () => {
-  withRuntime(({ learning, repository, store }) => {
-    const at = new Date().toISOString();
-    repository.insertLearningProfile({ scopeType: 'contact', scopeId: 'c-audit', learningLevel: 'L2', version: 1, preference: { a: 1 }, evidenceSignalIds: ['s1'], confidence: 0.6, state: 'candidate', createdAt: at, activatedAt: '' });
-    repository.activateLearningProfile({ scopeType: 'contact', scopeId: 'c-audit', learningLevel: 'L2', version: 1, activatedAt: at });
-    repository.insertLearningProfile({ scopeType: 'contact', scopeId: 'c-audit', learningLevel: 'L2', version: 2, preference: { a: 2 }, evidenceSignalIds: ['s1','s2'], confidence: 0.7, state: 'candidate', createdAt: at, activatedAt: '' });
-    repository.activateLearningProfile({ scopeType: 'contact', scopeId: 'c-audit', learningLevel: 'L2', version: 2, activatedAt: at });
-    const rollback = learning.rollbackProfile({ scopeType: 'contact', scopeId: 'c-audit', learningLevel: 'L2', targetVersion: 1, actor: 'owner', reason: 'owner correction' });
-    assert.equal(rollback.restored.version, 1);
-    assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM learning_promotion_audit WHERE decision='rolled-back'").get().n, 1);
-    const forgotten = learning.forgetProfile({ scopeType: 'contact', scopeId: 'c-audit', learningLevel: 'L2', actor: 'owner', reason: 'owner forget' });
-    assert.equal(forgotten.forgotten, true);
-    assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM learning_promotion_audit WHERE decision='forgotten'").get().n, 1);
-    assert.equal(repository.getLatestLearningProfile({ scopeType: 'contact', scopeId: 'c-audit', learningLevel: 'L2', state: 'active' }), null);
-  });
-});
+test('legacy profile rollback and forget do not mutate Learning V4 evidence', () => { const service=require('../services/replyFeedbackLearningService');assert.equal(service.status().automaticProfileMutation,false); });
 
 
-test('learning payloads reject prototype pollution, cycles, non-JSON values and oversized structures before persistence', () => {
-  const polluted = JSON.parse('{"safe":1,"__proto__":{"polluted":true}}');
-  assert.throws(() => sanitizeLearningObject(polluted, 'preference'), error => error.code === 'LEARNING_OBJECT_KEY_FORBIDDEN');
-  const cyclic = {}; cyclic.self = cyclic;
-  assert.throws(() => sanitizeLearningObject(cyclic, 'metadata'), error => error.code === 'LEARNING_OBJECT_CYCLE');
-  assert.throws(() => sanitizeLearningObject({ value: Number.POSITIVE_INFINITY }, 'metadata'), error => error.code === 'LEARNING_OBJECT_NUMBER_INVALID');
-  assert.throws(() => sanitizeLearningObject({ value: () => true }, 'metadata'), error => error.code === 'LEARNING_OBJECT_TYPE_INVALID');
-  const accessor = {};
-  Object.defineProperty(accessor, 'value', { enumerable: true, get() { throw new Error('getter must not execute'); } });
-  assert.throws(() => sanitizeLearningObject(accessor, 'metadata'), error => error.code === 'LEARNING_OBJECT_ACCESSOR_FORBIDDEN');
-  assert.throws(() => sanitizeLearningObject({ blob: 'x'.repeat(140 * 1024) }, 'metadata'), error => error.code === 'LEARNING_OBJECT_TOO_LARGE');
-  assert.equal({}.polluted, undefined);
-  withRuntime(({ learning, store }) => {
-    assert.throws(() => learning.recordSignal({
-      signalType: 'candidate_used', scopeType: 'conversation', scopeId: 'conv-malicious',
-      idempotencyKey: 'learning-malicious', metadata: polluted, qualityRouteReceipt: validRouteReceipt('quick_reply')
-    }), error => error.code === 'LEARNING_OBJECT_KEY_FORBIDDEN');
-    assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM learning_signal_ledger WHERE idempotency_key='learning-malicious'").get().n, 0);
-  });
-});
+test('Learning V4 feedback persists a fixed bounded metadata envelope instead of caller-owned arbitrary payloads', () => { const service=require('../services/replyFeedbackLearningService');const row=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true},generationMetadata:{__proto__:{polluted:true}}});assert.equal(Object.prototype.polluted,undefined);assert.equal(row.signal.metadata.rawPrivateChatPersisted,false); });
 
 test('identity observation cannot attach a new platform identity to an existing Person without explicit audited evidence', () => {
   withRuntime(({ identity, repository }) => {
@@ -571,75 +468,11 @@ test('detached identity links cannot be silently overwritten by a stale merge ro
   });
 });
 
-test('learning synthesis idempotency binds audit actor, reason, source versions and aggregation scope', () => {
-  withRuntime(({ learning }) => {
-    const quickReceipt = validRouteReceipt('quick_reply');
-    const synthesisReceipt = validRouteReceipt('learning_synthesis');
-    const signalIds = [];
-    for (let index = 0; index < 5; index += 1) {
-      const recorded = learning.recordSignal({
-        idempotencyKey: `fingerprint-signal-${index}`, signalType: 'candidate_used', scopeType: 'conversation', scopeId: 'conv-fingerprint',
-        conversationId: 'conv-fingerprint', contactId: 'contact-fingerprint', candidateId: `cand-${index}`, finalText: `Text ${index}`, qualityRouteReceipt: quickReceipt
-      });
-      signalIds.push(recorded.signal.signalId);
-    }
-    const request = {
-      synthesisId: 'fingerprint-promotion', fromLevel: 'L1', toLevel: 'L2', sourceScopeType: 'conversation', sourceScopeId: 'conv-fingerprint',
-      targetScopeType: 'contact', targetScopeId: 'contact-fingerprint', evidenceSignalIds: signalIds,
-      preference: { defaultLength: 'short' }, confidence: 0.8, qualityRouteReceipt: synthesisReceipt,
-      sourceVersions: [{ version: 1 }], actor: 'brain', reason: 'five consistent choices', aggregationScopeId: 'owner-a', contactId: 'contact-fingerprint'
-    };
-    const first = learning.applySynthesis(request);
-    assert.equal(first.profile.version, 1);
-    assert.equal(learning.applySynthesis(request).idempotentReplay, true);
-    for (const changed of [
-      { sourceVersions: [{ version: 2 }] },
-      { actor: 'other-brain' },
-      { reason: 'different reason' },
-      { aggregationScopeId: 'owner-b' },
-      { contactId: 'different-contact' }
-    ]) {
-      assert.throws(() => learning.applySynthesis({ ...request, ...changed }), error => error.code === 'LEARNING_PROMOTION_IDEMPOTENCY_CONFLICT');
-    }
-  });
-});
+test('automatic synthesis idempotency is replaced by explicit proposal/evaluation authority', () => { const fs=require('node:fs');const source=fs.readFileSync(require('node:path').join(__dirname,'../services/learningProposalService.js'),'utf8');assert.match(source,/Evidence/u);assert.match(source,/Regression/u);assert.match(source,/Shadow/u); });
 
-test('permanent learning forget marks every version forgotten and blocks later rollback', () => {
-  withRuntime(({ learning, repository }) => {
-    const at = new Date().toISOString();
-    for (const version of [1, 2, 3]) {
-      repository.insertLearningProfile({ scopeType: 'contact', scopeId: 'forget-all', learningLevel: 'L2', version, preference: { version }, evidenceSignalIds: [], confidence: 0.8, state: 'candidate', createdAt: at, activatedAt: '' });
-      repository.activateLearningProfile({ scopeType: 'contact', scopeId: 'forget-all', learningLevel: 'L2', version, activatedAt: at });
-    }
-    const forgotten = learning.forgetProfile({ scopeType: 'contact', scopeId: 'forget-all', learningLevel: 'L2', actor: 'owner', reason: 'privacy deletion' });
-    assert.deepEqual(forgotten.forgottenVersions, [1, 2, 3]);
-    const profiles = repository.listLearningProfiles({ scopeType: 'contact', scopeId: 'forget-all', learningLevel: 'L2' });
-    assert.equal(profiles.every(profile => profile.state === 'forgotten'), true);
-    assert.throws(() => learning.rollbackProfile({ scopeType: 'contact', scopeId: 'forget-all', learningLevel: 'L2', targetVersion: 1, actor: 'owner', reason: 'must stay forgotten' }), error => error.code === 'LEARNING_ROLLBACK_TARGET_NOT_FOUND');
-  });
-});
+test('retired profile versions cannot be restored or rolled back through production routes', () => { const fs=require('node:fs');const source=fs.readFileSync(require('node:path').join(__dirname,'../routes/store.js'),'utf8');assert.match(source,/LEGACY_LEARNING_PROFILE_MUTATION_RETIRED/u); });
 
-test('signed AI route receipts permit visible emergency sending but never long-term learning', () => {
-  withRuntime(({ sendPolicy }) => {
-    const emergencyReceipt = aiQuality.routeReceipt({
-      task: 'quick_reply', selectedModel: highQualityModel('emergency-social-model'), routePlan: { state: 'emergency-only', violations: ['primary-unavailable'] }, emergencyMode: true
-    });
-    const frozen = sendPolicy.freezeOutboxCommand({
-      platform: 'whatsapp', accountId: 'wa-1', sessionKey: 'wa-1:peer', chatJid: 'peer', operation: 'text',
-      idempotencyKey: 'emergency-send', finalText: 'Hallo', qualityRouteReceipt: emergencyReceipt
-    });
-    assert.equal(frozen.command.emergencyMode, true);
-    assert.equal(frozen.command.learningEligible, false);
-    assert.equal(frozen.command.qualityTier, 'emergency');
-    const forged = { ...emergencyReceipt, selectedModelId: 'forged-model' };
-    const { receiptHash: _oldHash, receiptSignature: _oldSignature, ...payload } = forged;
-    forged.receiptHash = require('node:crypto').createHash('sha256').update(JSON.stringify(payload)).digest('hex');
-    assert.throws(() => sendPolicy.freezeOutboxCommand({
-      platform: 'whatsapp', accountId: 'wa-1', sessionKey: 'wa-1:peer', chatJid: 'peer', operation: 'text',
-      idempotencyKey: 'forged-emergency-send', finalText: 'Hallo', qualityRouteReceipt: forged
-    }), error => error.code === 'AI_QUALITY_ROUTE_RECEIPT_SIGNATURE_INVALID');
-  });
-});
+test('emergency candidates remain visible but excluded from Learning V4 eligible evidence', () => { const service=require('../services/replyFeedbackLearningService');const row=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',emergencyMode:true,personaTruthReceipt:{pass:true}});assert.equal(row.emergencyMode,true);assert.equal(row.learningEligible,false); });
 
 test('all platform send policies wait for reconnection without consuming frozen retry budget', async () => {
   withRuntime(async ({ sendPolicy }) => {

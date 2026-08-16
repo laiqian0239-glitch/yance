@@ -1,0 +1,21 @@
+# Yance Presence service profile; execution authority remains CyberVerse.
+profile: yance-presence-avatar-p0-v1-v3
+upstream:
+  repository: Lynpoint/CyberVerse
+  commit: 459abae601411d191a1f4c99fe55b60d59e59305
+service:
+  endpoint: http://127.0.0.1:8081
+  require_explicit_external_endpoint: true
+  require_https_for_external_endpoint: true
+pipeline:
+  streaming_mode: livekit
+  default_mode: standard
+  avatar_model: flash_head
+  external_audio_ingress: /api/v1/sessions/{session_id}/external-audio
+security:
+  livekit_participant_token_authority: cyberverse
+  yance_livekit_jwt_signing: forbidden
+  renderer_livekit_api_secret: forbidden
+packaging:
+  bundle_cyberverse_gpu_runtime_in_electron: false
+  bundle_avatar_weights_in_electron: false

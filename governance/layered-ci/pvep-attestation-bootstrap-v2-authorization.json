@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "PVEP-ATTESTATION-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Replace PVEP candidate-controlled/self-authenticated evidence generation with a base-owned verifier and GitHub Artifact Attestations backed by in-toto/DSSE and Sigstore. This is the minimal OSS-backed bootstrap required to repair PR #100 security review P0/P1 without introducing a second Yance signing or trust-root lifecycle.",
+  "base": {
+    "branch": "main",
+    "commit": "65c26e13b45a3da7841adb792ac5b8f04ef63739"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/pvep-attestation-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/pvep-attestation-bootstrap-v2-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "governance/pvep-attestation-bootstrap-authorized",
+    "allowedChangedPaths": [
+      ".github/workflows/pvep-attested-evidence.yml",
+      "governance/verification/third-party/actions-attest-v4.2.2.json",
+      "tests/verification/pvep-trusted-runner-contract.test.js",
+      "tools/verification/pvep-trusted-runner.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "bccc8c37d679cf53a3fe4f1de89adb80910aeb5486eb9fa5a171b2c3dae7c2cf",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/pvep-attested-evidence.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "d9ac43d2be34c73b966fd7a18d41d1c0c9be3688676687a6fa2b34499d6a6beb"
+    }
+  },
+  "upstreamPins": [
+    {
+      "repository": "actions/attest",
+      "release": "v4.2.2",
+      "commit": "1e69f48acb82d1966a394da916b4c1698aa569d6",
+      "license": "MIT",
+      "role": "GitHub Artifact Attestations using in-toto/DSSE and Sigstore identity/trust infrastructure"
+    }
+  ],
+  "requiredSecurityProperties": [
+    "pull_request_target supplies the workflow definition from trusted base rather than candidate Head",
+    "Linux and Windows candidate execution jobs have contents-read only and no OIDC or attestation write permission",
+    "trusted runner code and command-set definitions are loaded from exact trusted base commit",
+    "candidate Head is used only as untrusted workload",
+    "OIDC and attestations write permission exist only in a separate job that never checks out or executes candidate code",
+    "final predicate is derived from GitHub job success plus trusted-base command-set digests and binds exact base/head",
+    "verification enforces repository, signer workflow, signer digest, source digest, source ref, predicate type and GitHub-hosted runner"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

@@ -16,9 +16,6 @@ env:
   BASELINE_ANCHOR_COMMIT: 570823e722f6db475066d6ef80ba900ac5c6cb39
   BASELINE_ANCHOR_PATH: governance/rejected-baselines/stage-6.4.5.8.json
   BASELINE_ANCHOR_BLOB: 6a5ffc68e76baf6a477668c6c2faf61934e94720
-  ELECTRON_LFS_PATH: vendor/electron/electron-v39.8.5-win32-x64.zip
-  ELECTRON_LFS_OID: d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34
-  ELECTRON_LFS_SIZE: '136644393'
 
 jobs:
   wp0-route:
@@ -27,6 +24,8 @@ jobs:
     timeout-minutes: 6
     outputs:
       route: ${{ steps.route.outputs.route }}
+      base: ${{ steps.range.outputs.base }}
+      head: ${{ steps.range.outputs.head }}
     steps:
       - name: Checkout pull-request merge or pushed branch history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -35,27 +34,83 @@ jobs:
           fetch-tags: false
           lfs: false
           persist-credentials: false
+      - name: Resolve exact event diff range
+        id: range
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          case "${EVENT_NAME}" in
+            pull_request)
+              BASE_SHA="${PULL_REQUEST_BASE_SHA}"
+              HEAD_SHA="${PULL_REQUEST_HEAD_SHA}"
+              ;;
+            push)
+              BASE_SHA="${PUSH_BASE_SHA}"
+              HEAD_SHA="${PUSH_HEAD_SHA}"
+              ;;
+            *)
+              echo "unsupported WP0 event: ${EVENT_NAME}" >&2
+              exit 1
+              ;;
+          esac
+          [[ "${BASE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          test "${BASE_SHA}" != "0000000000000000000000000000000000000000"
+          git cat-file -e "${BASE_SHA}^{commit}"
+          git cat-file -e "${HEAD_SHA}^{commit}"
+          git merge-base --is-ancestor "${BASE_SHA}" "${HEAD_SHA}"
+          printf 'base=%s\n' "${BASE_SHA}" >> "${GITHUB_OUTPUT}"
+          printf 'head=%s\n' "${HEAD_SHA}" >> "${GITHUB_OUTPUT}"
+      - name: Establish exact base-owned route policy
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.range.outputs.base }}
+          TRUSTED_ROUTE_POLICY_ROOT: ${{ runner.temp }}/yance-wp0-trusted-route
+        run: |
+          set -euo pipefail
+          rm -rf "${TRUSTED_ROUTE_POLICY_ROOT}"
+          mkdir -p "${TRUSTED_ROUTE_POLICY_ROOT}"
+          git archive --format=tar "${BASE_SHA}" -- \
+            tools/layered-ci/select-wp0-route.js \
+            tools/layered-ci/wp0-routing.js \
+            tools/layered-ci/cli-support.js \
+            governance/layered-ci/wp0-routing-policy.json \
+            | tar -xf - -C "${TRUSTED_ROUTE_POLICY_ROOT}"
+          for repo_path in \
+            tools/layered-ci/select-wp0-route.js \
+            tools/layered-ci/wp0-routing.js \
+            tools/layered-ci/cli-support.js \
+            governance/layered-ci/wp0-routing-policy.json
+          do
+            expected_blob="$(git rev-parse "${BASE_SHA}:${repo_path}")"
+            actual_blob="$(git hash-object "${TRUSTED_ROUTE_POLICY_ROOT}/${repo_path}")"
+            test "${actual_blob}" = "${expected_blob}"
+          done
+          git_dir="$(git rev-parse --absolute-git-dir)"
+          printf 'gitdir: %s\n' "${git_dir}" > "${TRUSTED_ROUTE_POLICY_ROOT}/.git"
+          git -C "${TRUSTED_ROUTE_POLICY_ROOT}" cat-file -e "${BASE_SHA}^{commit}"
+          printf 'TRUSTED_ROUTE_POLICY_ROOT=%s\n' "${TRUSTED_ROUTE_POLICY_ROOT}" >> "${GITHUB_ENV}"
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Resolve trusted diff range
-        id: range
-        uses: ./.github/actions/resolve-diff-range
-        with:
-          event-name: ${{ github.event_name }}
-          pull-request-base-sha: ${{ github.event.pull_request.base.sha }}
-          pull-request-head-sha: ${{ github.event.pull_request.head.sha }}
-          push-base-sha: ${{ github.event.before }}
-          push-head-sha: ${{ github.sha }}
-      - name: Classify protected WP0 route
+      - name: Classify protected WP0 route from base-owned policy
         id: route
         shell: bash
         env:
           BASE_SHA: ${{ steps.range.outputs.base }}
           HEAD_SHA: ${{ steps.range.outputs.head }}
-        run: node tools/layered-ci/select-wp0-route.js --base "${BASE_SHA}" --head "${HEAD_SHA}"
+        run: >-
+          node "${TRUSTED_ROUTE_POLICY_ROOT}/tools/layered-ci/select-wp0-route.js"
+          --base "${BASE_SHA}"
+          --head "${HEAD_SHA}"
 
   wp0-product:
     name: wp0-product
@@ -63,6 +118,9 @@ jobs:
     needs: wp0-route
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      TRUSTED_POLICY_SHA: ${{ needs.wp0-route.outputs.base }}
+      YANCE_EVALUATED_REPOSITORY_ROOT: ${{ github.workspace }}
     steps:
       - name: Checkout reviewed product source head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -71,30 +129,70 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
-      - name: Establish trusted branch and archive anchor refs
+          persist-credentials: false
+      - name: Establish exact candidate and base-owned policy roots
         shell: bash
+        env:
+          TRUSTED_POLICY_ROOT: ${{ runner.temp }}/yance-wp0-trusted-policy
         run: |
           set -euo pipefail
-          git fetch --no-tags --force origin "main:refs/remotes/origin/main"
-          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          git cat-file -e "${TRUSTED_POLICY_SHA}^{commit}"
+          test "$(git rev-parse "${TRUSTED_POLICY_SHA}^{commit}")" = "${TRUSTED_POLICY_SHA}"
+          git merge-base --is-ancestor "${TRUSTED_POLICY_SHA}" "${REVIEWED_HEAD_SHA}"
           git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
           git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${REVIEWED_HEAD_SHA}"
           test "$(git rev-parse "${BASELINE_ANCHOR_COMMIT}:${BASELINE_ANCHOR_PATH}")" = "${BASELINE_ANCHOR_BLOB}"
           git switch --force-create "${IMPLEMENTATION_BRANCH}" "${REVIEWED_HEAD_SHA}"
+          test "$(git rev-parse HEAD)" = "${REVIEWED_HEAD_SHA}"
           test "$(git rev-parse HEAD)" = "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})"
+          rm -rf "${TRUSTED_POLICY_ROOT}"
+          git worktree prune
+          git worktree add --detach --no-checkout "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"
+          git -C "${TRUSTED_POLICY_ROOT}" sparse-checkout init --cone
+          git -C "${TRUSTED_POLICY_ROOT}" sparse-checkout set tools/wp0 shared/release governance
+          git -C "${TRUSTED_POLICY_ROOT}" reset --hard "${TRUSTED_POLICY_SHA}"
+          test "$(git -C "${TRUSTED_POLICY_ROOT}" rev-parse HEAD)" = "${TRUSTED_POLICY_SHA}"
+          test -f "${TRUSTED_POLICY_ROOT}/tools/wp0/verify-gate.js"
+          test -f "${TRUSTED_POLICY_ROOT}/shared/release/implementationBranchPolicy.js"
+          test -d "${TRUSTED_POLICY_ROOT}/governance"
+          test ! -e "${TRUSTED_POLICY_ROOT}/vendor/electron/electron-v39.8.5-win32-x64.zip"
+          printf 'TRUSTED_POLICY_ROOT=%s\n' "${TRUSTED_POLICY_ROOT}" >> "${GITHUB_ENV}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Fetch and verify trusted Electron LFS object
+      - name: Materialize and verify official Electron Release asset
         shell: bash
+        env:
+          ELECTRON_TRUST_PATH: release/electron-distribution-trust.json
         run: |
           set -euo pipefail
-          git lfs install --local
-          git lfs pull origin --include="${ELECTRON_LFS_PATH}" --exclude=""
-          echo "${ELECTRON_LFS_OID}  ${ELECTRON_LFS_PATH}" | sha256sum --check --strict
-          test "$(stat --format='%s' "${ELECTRON_LFS_PATH}")" = "${ELECTRON_LFS_SIZE}"
+          mapfile -t electron_trust < <(node - <<'NODE'
+          const fs = require('node:fs');
+          const trust = JSON.parse(fs.readFileSync(process.env.ELECTRON_TRUST_PATH, 'utf8'));
+          const archive = trust.archives?.['win32-x64'];
+          const expectedUrl = 'https://github.com/electron/electron/releases/download/v39.8.5/electron-v39.8.5-win32-x64.zip';
+          if (trust.electronVersion !== '39.8.5'
+            || archive?.fileName !== 'electron-v39.8.5-win32-x64.zip'
+            || archive?.sha256 !== 'd75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34'
+            || archive?.sizeBytes !== 136644393
+            || archive?.sourceRepository !== 'electron/electron'
+            || archive?.releaseTag !== 'v39.8.5'
+            || archive?.assetId !== 382512506
+            || archive?.downloadUrl !== expectedUrl) {
+            throw new Error('Electron official Release trust authority mismatch');
+          }
+          process.stdout.write([archive.downloadUrl, archive.sha256, String(archive.sizeBytes), archive.fileName].join('\n') + '\n');
+          NODE
+          )
+          test "${#electron_trust[@]}" -eq 4
+          electron_archive="${RUNNER_TEMP}/${electron_trust[3]}"
+          rm -f "${electron_archive}"
+          curl --fail --location --proto '=https' --tlsv1.2 --output "${electron_archive}" "${electron_trust[0]}"
+          echo "${electron_trust[1]}  ${electron_archive}" | sha256sum --check --strict
+          test "$(stat --format='%s' "${electron_archive}")" = "${electron_trust[2]}"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Install locked dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -110,8 +208,46 @@ jobs:
           tests/runtime-delivery/fix6f-source-uat-isolation.test.js
       - name: Validate repository protocol descriptor
         run: node tools/protocol/validate-v3-protocols.js
-      - name: Run executable local-equivalent WP0 gate
-        run: npm run verify:wp0:gate -- --branch "${IMPLEMENTATION_BRANCH}"
+      - name: Run base-owned executable WP0 gate
+        run: >-
+          node "${TRUSTED_POLICY_ROOT}/tools/wp0/verify-gate.js"
+          --branch "${IMPLEMENTATION_BRANCH}"
+
+  wp0-product-documentation:
+    name: wp0-product-documentation
+    if: ${{ needs.wp0-route.outputs.route == 'PRODUCT_DOCUMENTATION_WP0' }}
+    needs: wp0-route
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout reviewed product documentation head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.REVIEWED_HEAD_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify exact non-executable product documentation diff
+        env:
+          BASE_SHA: ${{ needs.wp0-route.outputs.base }}
+          HEAD_SHA: ${{ needs.wp0-route.outputs.head }}
+        run: node tools/layered-ci/verify-product-documentation.js --base "${BASE_SHA}" --head "${HEAD_SHA}"
+      - name: Run documentation routing contracts
+        run: >-
+          node --test --test-concurrency=1
+          tests/layered-ci/cli-support.test.js
+          tests/layered-ci/product-documentation.test.js
+          tests/layered-ci/wp0-routing.test.js
+      - name: Run staged-secret scanner regressions
+        run: npm run test:security-scan
+      - name: Validate repository protocol descriptor
+        run: node tools/protocol/validate-v3-protocols.js
 
   wp0-governance:
     name: wp0-governance
@@ -135,6 +271,14 @@ jobs:
           package-manager-cache: false
       - name: Run layered governance contracts
         run: node --test --test-concurrency=1 tests/layered-ci/*.test.js
+      - name: Run generic open-source authorization contracts
+        run: node --test --test-concurrency=1 tests/wp0/open-source-work-package-authorization.test.js
+      - name: Run implementation branch policy contract
+        run: node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js
+      - name: Run base-owned evaluated repository root contract
+        run: node --test --test-concurrency=1 tests/wp0/base-owned-evaluated-repository-root.test.js
+      - name: Enforce OSS-first development admission
+        run: node --test --test-concurrency=1 tests/wp0/oss-first-development-policy.test.js
       - name: Run independent review contract
         run: node --test --test-concurrency=1 tests/independent-review/chatgpt-review-contract.test.js
       - name: Run staged-secret scanner regressions
@@ -148,6 +292,7 @@ jobs:
     needs:
       - wp0-route
       - wp0-product
+      - wp0-product-documentation
       - wp0-governance
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -158,6 +303,7 @@ jobs:
           ROUTE: ${{ needs.wp0-route.outputs.route }}
           ROUTE_RESULT: ${{ needs.wp0-route.result }}
           PRODUCT_RESULT: ${{ needs.wp0-product.result }}
+          DOCUMENTATION_RESULT: ${{ needs.wp0-product-documentation.result }}
           GOVERNANCE_RESULT: ${{ needs.wp0-governance.result }}
         run: |
           set -euo pipefail
@@ -165,10 +311,17 @@ jobs:
           case "${ROUTE}" in
             PRODUCT_WP0)
               test "${PRODUCT_RESULT}" = "success"
+              test "${DOCUMENTATION_RESULT}" = "skipped"
+              test "${GOVERNANCE_RESULT}" = "skipped"
+              ;;
+            PRODUCT_DOCUMENTATION_WP0)
+              test "${PRODUCT_RESULT}" = "skipped"
+              test "${DOCUMENTATION_RESULT}" = "success"
               test "${GOVERNANCE_RESULT}" = "skipped"
               ;;
             GOVERNANCE_WP0)
               test "${PRODUCT_RESULT}" = "skipped"
+              test "${DOCUMENTATION_RESULT}" = "skipped"
               test "${GOVERNANCE_RESULT}" = "success"
               ;;
             *)

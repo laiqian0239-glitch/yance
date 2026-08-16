@@ -1,7 +1,12 @@
 {
   "schemaVersion": 1,
   "documentType": "YANCE_LAYERED_CI_RISK_POLICY",
-  "levels": ["L0", "L1", "L2", "L3"],
+  "levels": [
+    "L0",
+    "L1",
+    "L2",
+    "L3"
+  ],
   "defaultCodeLevel": "L1",
   "documentationExactPaths": [
     "README.md"
@@ -20,8 +25,21 @@
     "tools/"
   ],
   "l2ExactPaths": [
+    ".gitattributes",
+    ".gitignore",
+    "THIRD_PARTY_NOTICES.md",
+    "integration/element-module/src/YanceWorkspace.tsx",
+    "integration/element-module/src/index.tsx",
+    "integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
+    "integration/element-module/src/product-experience/ProductExperienceShell.css",
+    "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+    "integration/element-module/src/product-experience/experienceProjection.ts",
+    "integration/element-module/src/product-experience/experienceTypes.ts",
+    "package-lock.json",
     "package.json",
-    "package-lock.json"
+    "release/electron-distribution-trust.json",
+    "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
+    "vendor/electron/electron-v39.8.5-win32-x64.zip"
   ],
   "l2Prefixes": [
     ".github/",
@@ -34,6 +52,7 @@
     "electron/",
     "governance/",
     "shared/release/",
+    "third_party/",
     "tools/layered-ci/",
     "tools/wp0/"
   ],

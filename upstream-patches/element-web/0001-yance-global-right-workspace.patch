@@ -1,0 +1,125 @@
+diff --git a/apps/web/src/components/structures/RightPanel.tsx b/apps/web/src/components/structures/RightPanel.tsx
+index 24c1655..558f315 100644
+--- a/apps/web/src/components/structures/RightPanel.tsx
++++ b/apps/web/src/components/structures/RightPanel.tsx
+@@ -34,6 +34,7 @@ import { Action } from "../../dispatcher/actions";
+ import { type XOR } from "../../@types/common";
+ import ExtensionsCard from "../views/right_panel/ExtensionsCard";
+ import MemberListView from "../views/rooms/MemberList/MemberListView";
++import { ModuleApi } from "../../modules/Api";
+ 
+ interface BaseProps {
+     overwriteCard?: IRightPanelCard; // used to display a custom card and ignoring the RightPanelStore (used for UserView)
+@@ -279,8 +280,13 @@ export default class RightPanel extends React.Component<Props, IState> {
+                 break;
+         }
+ 
++        const globalRightPanelRenderer = this.props.overwriteCard
++            ? undefined
++            : ModuleApi.instance.customComponents.globalRightPanelRenderer;
++
+         return (
+             <aside className="mx_RightPanel" id="mx_RightPanel" data-testid="right-panel">
++                {globalRightPanelRenderer?.()}
+                 {card}
+             </aside>
+         );
+diff --git a/apps/web/src/modules/customComponentApi.ts b/apps/web/src/modules/customComponentApi.ts
+index a6ead66..7e8d52d 100644
+--- a/apps/web/src/modules/customComponentApi.ts
++++ b/apps/web/src/modules/customComponentApi.ts
+@@ -19,9 +19,13 @@ import type {
+     CustomLoginRenderFunction,
+     CustomComposerPreviewRenderFunction,
+     CustomComposerPreviewComponentProps,
++    CustomGlobalRightPanelRenderFunction,
+ } from "@element-hq/element-web-module-api";
+ import type React from "react";
+ 
++import RightPanelStore from "../stores/right-panel/RightPanelStore";
++import { RightPanelPhases } from "../stores/right-panel/RightPanelStorePhases";
++
+ type EventTypeOrFilter = Parameters<ICustomComponentsApi["registerMessageRenderer"]>[0];
+ type ComposerPreviewFilterFn = Parameters<ICustomComponentsApi["registerComposerPreview"]>[0];
+ 
+@@ -75,6 +79,23 @@ export class CustomComponentsApi implements ICustomComponentsApi {
+ 
+     private readonly registeredMessageRenderers: EventRenderer[] = [];
+     private readonly registeredComposerPreviewRenderers: ComposerPreviewRenderer[] = [];
++    private _globalRightPanelRenderer?: CustomGlobalRightPanelRenderFunction;
++
++    public get globalRightPanelRenderer(): CustomGlobalRightPanelRenderFunction | undefined {
++        return this._globalRightPanelRenderer;
++    }
++
++    public registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction): void {
++        this._globalRightPanelRenderer = renderer;
++    }
++
++    public openGlobalRightPanel(): void {
++        if (RightPanelStore.instance.currentCard.phase === null) {
++            RightPanelStore.instance.setCard({ phase: RightPanelPhases.RoomSummary });
++            return;
++        }
++        RightPanelStore.instance.show(null);
++    }
+ 
+     public registerMessageRenderer(
+         eventTypeOrFilter: EventTypeOrFilter,
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+index 6557e89ac2949b6d6b46f991ebb4d64085f74d35..bc4d73cc52e516be949a6a756d9e7227055c9ad4 100644
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -150,10 +150,12 @@ export type Container = "top" | "right" | "center";
+ 
+ // @alpha
+ export interface CustomComponentsApi {
++    openGlobalRightPanel(): void;
+     registerComposerPreview(filterFn: (composerText: string, roomId: string) => boolean, renderer: CustomComposerPreviewRenderFunction): void;
++    registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction): void;
+     registerLoginComponent(renderer: CustomLoginRenderFunction): void;
+     registerMessageRenderer(eventTypeOrFilter: string | ((mxEvent: MatrixEvent) => boolean), renderer: CustomMessageRenderFunction, hints?: CustomMessageRenderHints): void;
+     registerRoomPreviewBar(renderer: CustomRoomPreviewBarRenderFunction): void;
+ }
+ 
+ // @alpha
+@@ -169,8 +171,11 @@ export type CustomComposerPreviewComponentProps = {
+ 
+ // @alpha
+ export type CustomComposerPreviewRenderFunction = ExtendablePropsRenderFunction<CustomComposerPreviewComponentProps>;
+ 
+ // @alpha
++export type CustomGlobalRightPanelRenderFunction = () => JSX.Element;
++
++// @alpha
+ export interface CustomisationsApi {
+     registerShouldShowComponent(fn: (this: void, component: UIComponent) => boolean | void): void;
+ }
+diff --git a/packages/module-api/src/api/custom-components.ts b/packages/module-api/src/api/custom-components.ts
+index 5ca2be0..6b2c96f 100644
+--- a/packages/module-api/src/api/custom-components.ts
++++ b/packages/module-api/src/api/custom-components.ts
+@@ -190,11 +190,23 @@ export type CustomComposerPreviewComponentProps = {
+  */
+ export type CustomComposerPreviewRenderFunction = ExtendablePropsRenderFunction<CustomComposerPreviewComponentProps>;
+ 
++/**
++ * Function used to render the persistent global right panel workspace.
++ * @alpha Subject to change.
++ */
++export type CustomGlobalRightPanelRenderFunction = () => JSX.Element;
++
+ /**
+  * API for inserting custom components into Element.
+  * @alpha Subject to change.
+  */
+ export interface CustomComponentsApi {
++    /** Open Element's existing right-panel shell for the registered global workspace. */
++    openGlobalRightPanel(): void;
++
++    /** Register a renderer for the persistent global right-panel workspace. */
++    registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction): void;
++
+     /**
+      * Register a renderer for a message type in the timeline.
+      *

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "runtime": "chatwoot-facebook-page",
+  "chatwoot": {
+    "repository": "https://github.com/chatwoot/chatwoot.git",
+    "version": "v4.16.2",
+    "commit": "70e284a044f00326725f65f703162745371075ec",
+    "license": "MIT",
+    "adoptionMode": "sidecar-service",
+    "protocolAuthority": "facebook-page-official"
+  },
+  "matrix": {
+    "conversationAuthority": "existing Matrix/Element runtime",
+    "bindingEventType": "com.yance.multibridge.binding",
+    "bindingStateKey": "facebook_ads",
+    "bindingPersistence": "matrix-room-state-only"
+  },
+  "identity": {
+    "accountInstancePrefix": "facebook_ads:",
+    "oneFacebookInboxPerPageIdentity": true
+  },
+  "webhook": {
+    "signatureHeader": "X-Chatwoot-Signature",
+    "timestampHeader": "X-Chatwoot-Timestamp",
+    "signatureAlgorithm": "HMAC-SHA256",
+    "signedBytes": "<timestamp>.<raw_body>",
+    "freshnessSeconds": 300,
+    "verifyBeforeParse": true
+  },
+  "evidence": {
+    "readinessArtifactSha256": "9808015d8e6a0626ea0a69750f114a237a5ccd371f5d68d8af62769006fb1e7f",
+    "staticTests": "73/73 GREEN",
+    "validate": "GREEN",
+    "policyScan": "GREEN",
+    "realAccountEvidencePresent": false,
+    "sourcePackageIntegrationEligibleFlag": false,
+    "manualRealAccountMatrixRequiredBeforeSourceMerge": false
+  },
+  "authority": {
+    "chatwootOwnsFacebookPageOAuth": true,
+    "chatwootOwnsMetaTransport": true,
+    "matrixOwnsConversationState": true,
+    "noSecondConversationDatabase": true,
+    "noYanceRetryQueue": true,
+    "noDirectMetaGraphClient": true,
+    "legacyYancePageWorkerTransportRetired": true,
+    "facebookPersonalIdentityPreserved": true,
+    "facebookPersonalMessengerPreserved": true
+  },
+  "claims": {
+    "productionReleaseAuthorized": false,
+    "realAccountCapabilityVerified": false,
+    "skippedManualEvidenceMayBeRepresentedAsGreen": false
+  }
+}

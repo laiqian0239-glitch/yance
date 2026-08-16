@@ -7,6 +7,7 @@ const { stableId } = require('../lib/r32SqliteStore');
 const { singleton: defaultRepository } = require('../repositories/platformCoreRepository');
 const { canonical, sha256 } = require('./domainEventLogService');
 const aiQualityRouteAuthority = require('./aiQualityRouteAuthority');
+const modelBrainRuntime = require('./modelBrainRuntime');
 const { capabilityIdForCommand } = require('./platformDeliveryAuthority');
 
 const AUTHORITY = 'SendPolicyAuthority';
@@ -24,6 +25,46 @@ function now() { return new Date().toISOString(); }
 function error(code, message, status = 409, details = {}) { return Object.assign(new Error(message), { code, status, ...details }); }
 function capabilityIdFor(input = {}) {
   return capabilityIdForCommand(input);
+}
+function objectValue(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+function isModelGenerated(input = {}) {
+  const source = clean(input.replySource).toLowerCase();
+  if (source === 'manual') return false;
+  if (['local_model', 'model', 'ai', 'model_brain', 'model-brain'].includes(source)) return true;
+  return Boolean(clean(input.modelId) || Object.keys(objectValue(input.modelBrainExecutionEvidence)).length);
+}
+function modelBrainEvidenceDecision(input = {}, { required = false, modelId = '' } = {}) {
+  const supplied = objectValue(input.modelBrainExecutionEvidence);
+  if (!Object.keys(supplied).length) {
+    return Object.freeze({
+      valid: false,
+      reasonCode: required ? 'MODEL_BRAIN_EXECUTION_EVIDENCE_REQUIRED' : 'MODEL_BRAIN_EVIDENCE_NOT_REQUIRED',
+      evidence: Object.freeze({}),
+      sha256: ''
+    });
+  }
+  const requiredText = ['requestId', 'logicalModel', 'selectedModel', 'provider', 'status'];
+  if (requiredText.some(key => !clean(supplied[key])) || clean(supplied.status).toLowerCase() !== 'ok') {
+    return Object.freeze({ valid: false, reasonCode: 'MODEL_BRAIN_EXECUTION_EVIDENCE_INVALID', evidence: Object.freeze({}), sha256: '' });
+  }
+  const evidence = modelBrainRuntime.safeEvidence(supplied);
+  const expectedModel = clean(modelId);
+  if (expectedModel && clean(evidence.selectedModel) !== expectedModel) {
+    return Object.freeze({
+      valid: false,
+      reasonCode: 'MODEL_BRAIN_EXECUTION_EVIDENCE_MODEL_MISMATCH',
+      evidence,
+      sha256: sha256(evidence)
+    });
+  }
+  return Object.freeze({
+    valid: true,
+    reasonCode: 'MODEL_BRAIN_EXECUTION_EVIDENCE_VERIFIED',
+    evidence,
+    sha256: sha256(evidence)
+  });
 }
 
 function policyDocument() {
@@ -182,37 +223,51 @@ class SendPolicyAuthority {
     const resolved = this.resolve({ ...input, platform, accountId, operation, kind: input.kind });
     const finalTextSha256 = finalText ? sha256(finalText) : '';
     const approvalReceiptId = clean(input.approvalReceiptId) || stableId('send-approval', [idempotencyKey, finalTextSha256]);
-    const suppliedRouteReceipt = input.qualityRouteReceipt && typeof input.qualityRouteReceipt === 'object' && !Array.isArray(input.qualityRouteReceipt)
-      ? input.qualityRouteReceipt
-      : {};
+    const suppliedRouteReceipt = objectValue(input.qualityRouteReceipt);
+    const modelGenerated = isModelGenerated(input);
+    const modelEvidence = modelBrainEvidenceDecision(input, { required: modelGenerated, modelId: clean(input.modelId) });
     let routeReceipt = suppliedRouteReceipt;
     let learningEligible = false;
     let emergencyMode = input.emergencyMode === true;
-    let qualityTier = emergencyMode ? 'emergency' : 'manual';
+    let qualityTier = modelGenerated ? 'model-brain' : (emergencyMode ? 'emergency' : 'manual');
+
+    // Historical signed receipts remain verifiable for already-issued records, but
+    // they never substitute for current Model Brain execution evidence.
     if (Object.keys(suppliedRouteReceipt).length) {
       try {
         const task = clean(suppliedRouteReceipt.task) || 'quick_reply';
         const verifiedRoute = aiQualityRouteAuthority.verifyRouteReceipt(suppliedRouteReceipt, {
           task, requireLearningEligible: false, allowEmergency: true, enforceMinimumTier: false
         });
-        qualityTier = verifiedRoute.qualityTier;
-        emergencyMode = verifiedRoute.emergencyMode === true;
-        let routeLearningEligible = false;
-        try {
-          aiQualityRouteAuthority.verifyRouteReceipt(suppliedRouteReceipt, { task });
-          routeLearningEligible = true;
-        } catch (eligibilityError) {
-          const allowed = new Set([
-            'AI_QUALITY_ROUTE_RECEIPT_EMERGENCY_NOT_ALLOWED',
-            'AI_QUALITY_ROUTE_RECEIPT_LEARNING_INELIGIBLE',
-            'AI_QUALITY_ROUTE_RECEIPT_TIER_INSUFFICIENT'
-          ]);
-          if (!allowed.has(clean(eligibilityError.code))) throw eligibilityError;
+        if (!modelGenerated) {
+          qualityTier = verifiedRoute.qualityTier;
+          emergencyMode = verifiedRoute.emergencyMode === true;
+          let routeLearningEligible = false;
+          try {
+            aiQualityRouteAuthority.verifyRouteReceipt(suppliedRouteReceipt, { task });
+            routeLearningEligible = true;
+          } catch (eligibilityError) {
+            const allowed = new Set([
+              'AI_QUALITY_ROUTE_RECEIPT_EMERGENCY_NOT_ALLOWED',
+              'AI_QUALITY_ROUTE_RECEIPT_LEARNING_INELIGIBLE',
+              'AI_QUALITY_ROUTE_RECEIPT_TIER_INSUFFICIENT'
+            ]);
+            if (!allowed.has(clean(eligibilityError.code))) throw eligibilityError;
+          }
+          learningEligible = input.learningEligible !== false && routeLearningEligible && !emergencyMode;
         }
-        learningEligible = input.learningEligible !== false && routeLearningEligible && !emergencyMode;
       } catch (cause) {
-        throw error(clean(cause.code) || 'AI_QUALITY_ROUTE_RECEIPT_INVALID', '外发命令携带了无法验证的 AI 质量路由回执；任何兼容或强制标志都不能绕过。', 409, { cause: clean(cause.message) });
+        throw error(clean(cause.code) || 'AI_QUALITY_ROUTE_RECEIPT_INVALID', '外发命令携带了无法验证的历史 AI 执行回执；任何兼容或强制标志都不能绕过。', 409, { cause: clean(cause.message) });
       }
+    }
+
+    if (modelGenerated) {
+      learningEligible = input.learningEligible !== false && modelEvidence.valid && !emergencyMode;
+      qualityTier = 'model-brain';
+    } else if (!Object.keys(suppliedRouteReceipt).length) {
+      // Manual sends remain valid without fabricated model evidence, but they are
+      // not promoted as model-generated learning evidence.
+      learningEligible = false;
     }
     if (emergencyMode) {
       qualityTier = 'emergency';
@@ -246,10 +301,17 @@ class SendPolicyAuthority {
       sendPolicyVersion: resolved.policy.policyVersion,
       sendPolicySha256: resolved.policySha256,
       capabilitySnapshotId: resolved.capabilitySnapshot.snapshotId,
+      replySource: clean(input.replySource),
+      replyTask: clean(input.replyTask),
+      modelId: clean(input.modelId),
       qualityTier,
       emergencyMode,
       learningEligible,
       qualityRouteReceipt: routeReceipt,
+      modelBrainExecutionEvidence: modelEvidence.evidence,
+      modelBrainEvidenceValid: modelEvidence.valid,
+      modelBrainEvidenceReasonCode: modelEvidence.reasonCode,
+      modelBrainEvidenceSha256: modelEvidence.sha256,
       contentFrozen: true,
       retranslateOnRetry: false
     };
@@ -268,7 +330,11 @@ class SendPolicyAuthority {
         finalTextSha256,
         targetLanguage: command.targetLanguage,
         learningEligible: command.learningEligible,
-        qualityRouteReceipt: command.qualityRouteReceipt
+        qualityRouteReceipt: command.qualityRouteReceipt,
+        modelBrainExecutionEvidence: command.modelBrainExecutionEvidence,
+        modelBrainEvidenceValid: command.modelBrainEvidenceValid,
+        modelBrainEvidenceReasonCode: command.modelBrainEvidenceReasonCode,
+        modelBrainEvidenceSha256: command.modelBrainEvidenceSha256
       },
       capabilitySnapshot: resolved.capabilitySnapshot
     };
@@ -365,4 +431,7 @@ class SendPolicyAuthority {
 }
 
 const singleton = new SendPolicyAuthority();
-module.exports = { AUTHORITY, SCHEMA_VERSION, POLICY_VERSION, PLATFORM_POLICY, SendPolicyAuthority, singleton, capabilityIdFor, policyDocument };
+module.exports = {
+  AUTHORITY, SCHEMA_VERSION, POLICY_VERSION, PLATFORM_POLICY, SendPolicyAuthority, singleton,
+  capabilityIdFor, policyDocument, modelBrainEvidenceDecision, isModelGenerated
+};

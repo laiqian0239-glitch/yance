@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-15T23:38:42+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-MATERIALIZATION-ROOT-CLOSURE-V11",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh post-V10 Product Final validation proves V10 fixed Element root React runtime ownership and exposes two successor REDs in the same ownership-root family with different leaf owners. Product Final run 31893870659 at exact Product candidate 9c95ee2f10f798898bae883c94be9b4eb6562e0d has Matrix UAT GREEN. Frozen Element job 95034061355 completes strict frozen pnpm install and nx build, then lint:types fails because governed assistant-ui/tool-ui source physically hosted under the pinned Element root vendor path cannot resolve direct root @types/react and zod ownership even though modules/yance already owns the exact frozen identities @types/react 19.2.17 (^19.2.10) and zod 4.4.3. Desktop UAT job 95034061400 completes materialization through final trusted desktop sealing, where the existing WP7 native scanner misclassifies the official Setuptools 84.0.0 multi-architecture cli/gui launcher family in the sealed Learning runtime: x86/arm64 launchers are treated as UNQUALIFIED_TARGET_LOAD_PATH and fail the x64 machine rule while the exact x64 launcher passes. V11 permits only direct Element-root ownership using the already-frozen identities and a narrow extension of the existing mature-OSS target-classification seam for the exact upstream Setuptools launcher family. It forbids deleting or pruning upstream assets, global filename whitelists, skip/ignore behavior, dependency-resolution bypasses, new package identities, Product behavior changes, workflow changes, Learning runtime content changes, tool-ui byte changes or new Yance infrastructure.",
+  "base": {
+    "branch": "main",
+    "commit": "093c404c63cb5b6b2d638e2c96ce45e259ccacfa"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "093c404c63cb5b6b2d638e2c96ce45e259ccacfa",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "predecessorEvidence": {
+    "v10AuthorizationPath": "governance/layered-ci/v21-product-final-materialization-root-closure-v10-authorization.json",
+    "v10ImplementationPullRequest": 422,
+    "v10ImplementationMerge": "093c404c63cb5b6b2d638e2c96ce45e259ccacfa",
+    "v10FinalImplementationHeadBeforeMerge": "b22f3a7a8c1027a05a0e12fbbe8ff395e3113c38",
+    "productPullRequest": 387,
+    "productExactHead": "9c95ee2f10f798898bae883c94be9b4eb6562e0d",
+    "productFinalValidationRun": 31893870659,
+    "frozenElementReproducibilityJob": 95034061355,
+    "materializedDesktopUatJob": 95034061400,
+    "materializedMatrixUatJob": 95034061393,
+    "matrixUatResult": "GREEN",
+    "elementFrozenInstallResult": "GREEN: supply-chain policy and frozen lock install complete",
+    "elementBuildResult": "GREEN: nx build yance-element-module completes",
+    "elementFirstFailingCommand": "nx run yance-element-module:lint:types",
+    "elementRootCause": "Physical Element-root vendor sources resolve React runtime at root but lack direct root @types/react and zod ownership; modules/yance sibling ownership cannot satisfy imports originating from vendor/assistant-ui-tool-ui.",
+    "desktopFirstCausalFailure": "WP7_NATIVE_BINARY_SCAN_FAILED in final trusted desktop seal: six official Setuptools x86/arm64 cli/gui launchers are misclassified as UNQUALIFIED_TARGET_LOAD_PATH and then fail WP7_NATIVE_MACHINE_NOT_X64.",
+    "sameRootClassification": "SAME_OWNERSHIP_ROOT_FAMILY_DIFFERENT_LEAF_OWNER_AND_MANIFESTATION"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-materialization-root-closure-v11-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-materialization-root-closure-v11-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9fb3f0b134549442595358b9e405387514716556eb2d695abf7315b377e82f03",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-materialization-root-closure-v11",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+      "tests/wp7/native-binary-scan.test.js",
+      "tools/wp7/verify-native-binaries.js",
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "54af6a51da6063fefdfecbab06f851de7da2e9bcc5b9f11147904e2717b4764a",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+        "tests/wp7/native-binary-scan.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "693d40ff86547eebbc26750eccb6f533033cc94b9fc3c0377dc1217f8ae03a36",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "expectedFailures": [
+        "The canonical 0011 replay does not yet give the physical Element root direct @types/react ^19.2.10 -> 19.2.17 and zod 4.4.3 ownership required by governed vendor/assistant-ui-tool-ui lint:types.",
+        "The WP7 native scanner does not yet classify the exact official Setuptools cli/gui foreign-architecture launcher variants under the sealed Learning runtime as upstream inert foreign variants while preserving x64 target-loadable fail-closed validation."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "newDependencyIdentityOrVersionAllowed": false,
+    "repositoryPackageManifestModificationAllowed": false,
+    "repositoryLockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "learningRuntimeContentModificationAllowed": false,
+    "learningAdapterModificationAllowed": false,
+    "matrixBootstrapModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "assistantUiToolUiModificationAllowed": false,
+    "elementDependencyPatchModificationAllowed": true,
+    "wp7NativeScannerModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "elementRootDependencyOwnership": {
+    "patchPath": "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
+    "requiredPatchedPaths": [
+      "package.json",
+      "pnpm-lock.yaml"
+    ],
+    "currentPackagePatchOldBlob": "5c39e9896b15a604a2203c1b506568f018f2c981",
+    "currentPackagePatchNewBlob": "30f49fb0767d05587ee1f95b9cca90602627dfbe",
+    "currentLockPatchOldBlob": "f13b569df10a63311d7bba874c452b568617e5d0",
+    "currentLockPatchNewBlob": "3e350e21b3ed88cd1933d2d26e95dd5a1ea49f0e",
+    "preserveExistingRootDependencies": {
+      "react": {
+        "specifier": "catalog:",
+        "resolvedVersion": "19.2.7"
+      },
+      "lucide-react": {
+        "specifier": "0.563.0",
+        "resolvedVersion": "0.563.0(react@19.2.7)"
+      }
+    },
+    "reuseExistingIdentities": {
+      "@types/react": {
+        "specifier": "^19.2.10",
+        "resolvedVersion": "19.2.17",
+        "existingOwner": "modules/yance"
+      },
+      "zod": {
+        "specifier": "4.4.3",
+        "resolvedVersion": "4.4.3",
+        "existingOwner": "modules/yance"
+      }
+    },
+    "requiredBehavior": [
+      "Add @types/react ^19.2.10 and zod 4.4.3 as direct pinned Element-root devDependencies because governed assistant-ui/tool-ui sources physically live under that root vendor boundary.",
+      "Add matching root pnpm importer bindings resolving @types/react to 19.2.17 and zod to 4.4.3 using already-present frozen identities; introduce no new package identity/version.",
+      "Preserve V10 root React 19.2.7, V9 root lucide-react 0.563.0 and all existing modules/yance dependency identities exactly.",
+      "Keep ordinary canonical 0011 git apply semantics and frozen pnpm installation.",
+      "Keep governed assistant-ui/tool-ui bytes, LearningToolUiAdapter, Matrix bootstrap, workflows and Product behavior unchanged."
+    ],
+    "forbiddenBehavior": [
+      "Do not add TypeScript path aliases, NODE_PATH, hoist overrides, symlink injection, skipLibCheck, type suppression, externalization, unfrozen install or live dependency installation.",
+      "Do not edit assistant-ui/tool-ui sources or LearningToolUiAdapter to conceal missing package-boundary ownership.",
+      "Do not introduce a new @types/react or zod identity/version or new dependency-resolution infrastructure."
+    ]
+  },
+  "setuptoolsLauncherClassification": {
+    "scannerPath": "tools/wp7/verify-native-binaries.js",
+    "testPath": "tests/wp7/native-binary-scan.test.js",
+    "upstreamPackage": "setuptools",
+    "upstreamVersion": "84.0.0",
+    "runtimeRoot": "resources/learning-runtime/venv/Lib/site-packages/setuptools",
+    "exactLauncherArchitectureMap": {
+      "cli.exe": "ia32",
+      "cli-32.exe": "ia32",
+      "cli-64.exe": "x64",
+      "cli-arm64.exe": "arm64",
+      "gui.exe": "ia32",
+      "gui-32.exe": "ia32",
+      "gui-64.exe": "x64",
+      "gui-arm64.exe": "arm64"
+    },
+    "requiredBehavior": [
+      "Extend the existing mature-OSS Windows launcher target-classification seam rather than adding a parallel scanner.",
+      "For win32/x64, classify exact Setuptools x86 and arm64 launchers under the exact Learning runtime Setuptools package root as UPSTREAM_INERT_FOREIGN_VARIANT.",
+      "Classify exact Setuptools x64 launchers as UPSTREAM_TARGET_LOADABLE and continue enforcing x64 PE machine validation fail-closed.",
+      "Keep deceptive near-matches, unknown filenames and paths outside the exact governed package root unqualified and fail-closed.",
+      "Preserve deterministic reporting including inertForeignVariantCount and targetLoadableFileCount."
+    ],
+    "forbiddenBehavior": [
+      "Do not delete, strip or prune official Setuptools launcher assets from the sealed Learning runtime.",
+      "Do not add a global filename whitelist, hash-only bypass, ignore rule or blanket site-packages exemption.",
+      "Do not weaken WP7_NATIVE_MACHINE_NOT_X64 for target-loadable binaries or change Learning dependency contents."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_ELEMENT_FROZEN_IDENTITIES_AND_EXISTING_WP7_MATURE_OSS_TARGET_CLASSIFIER",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "@types/react 19.2.17 through existing Element/Yance frozen closure",
+        "source": "existing modules/yance lock importer under pinned element-hq/element-web source",
+        "license": "MIT",
+        "adoptionMode": "reuse-existing-frozen-identity-at-physical-root",
+        "fit": "FIT",
+        "reason": "The type identity already exists in the frozen closure; the defect is direct ownership at the physical vendor-source root."
+      },
+      {
+        "name": "zod 4.4.3 through existing Element/Yance frozen closure",
+        "source": "existing modules/yance lock importer",
+        "license": "MIT",
+        "adoptionMode": "reuse-existing-frozen-identity-at-physical-root",
+        "fit": "FIT",
+        "reason": "The schema runtime/type identity already exists; no new package/version is needed."
+      },
+      {
+        "name": "Setuptools 84.0.0 official multi-architecture Windows launcher family",
+        "source": "pypa/setuptools v84.0.0 and existing pinned Learning uv.lock",
+        "license": "MIT",
+        "adoptionMode": "preserve-upstream-assets-and-classify-target-applicability",
+        "fit": "FIT",
+        "reason": "The package intentionally ships cli/gui launchers for multiple Windows architectures; target applicability should be classified, not assets deleted."
+      },
+      {
+        "name": "Existing WP7 native mature-OSS target classifier",
+        "source": "tools/wp7/verify-native-binaries.js plus existing node-pty/distlib classification tests",
+        "license": "repository-existing",
+        "adoptionMode": "extend-existing-seam",
+        "fit": "FIT",
+        "reason": "The current scanner already has the required upstream target-loadable versus inert-foreign-variant abstraction."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second native scanner, package broker, dependency proxy or resolver.",
+      "Do not delete Setuptools multi-architecture launcher assets or weaken native validation.",
+      "Do not use filename-only global whitelists, skip/ignore flags, skipLibCheck, aliases, NODE_PATH, hoisting, symlinks, externalization or live/unfrozen installs.",
+      "Do not modify Product behavior, Learning runtime contents/business logic, assistant-ui/tool-ui bytes, Matrix bootstrap or workflows."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "fresh failure-first tests prove both missing Element root ownership and Setuptools launcher misclassification before implementation",
+      "first post-RED implementation commit carries exactly one required Head/Run/Conclusion trailer set",
+      "root @types/react and zod use existing frozen identities only",
+      "Setuptools classification is constrained to exact upstream launcher family and exact governed Learning package root",
+      "x64 target-loadable Setuptools launchers remain fail-closed on PE machine validation",
+      "no deletion/pruning, global whitelist, skip behavior, dependency bypass, tool-ui byte change, Learning runtime content change, workflow change, Product behavior change or new Yance infrastructure"
+    ]
+  },
+  "verification": {
+    "mandatory": [
+      "fresh authorization-branch Stage 6.4.5.9 WP0 Architecture Gates GREEN before authorization merge",
+      "fresh authorization-branch ACV2 GREEN before authorization merge",
+      "fresh authorization-branch Layered CI GREEN before authorization merge",
+      "after ordinary authorization merge, exact two-test failure-first commit on fix/v21-product-final-materialization-root-closure-v11",
+      "fresh causal Stage RED with implementation-branch-policy itself GREEN",
+      "first post-RED implementation commit with exact required failure-first evidence trailers",
+      "fresh exact-head targeted Element ownership and WP7 native classification tests GREEN",
+      "fresh exact-head Stage GREEN",
+      "fresh exact-head ACV2 GREEN",
+      "fresh exact-head Layered CI GREEN",
+      "fresh exact-head independent review with zero P0/P1 findings",
+      "after ordinary V11 merge and ordinary-forward into product/v21-product-experience-bilingual-search-translation-task-ux-p0, fresh Product Final GREEN including two clean frozen Element materializations/build/typechecks, materialized desktop UAT with sealed Learning runtime, and materialized Matrix UAT remaining GREEN"
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "delegatedExecutionAuthorizedAfterMerge": true
+  }
+}

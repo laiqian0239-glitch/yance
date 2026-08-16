@@ -13,7 +13,7 @@ const { canonicalBuffer: nativeBinaryCanonicalBuffer, verifyNativeBinaries } = r
 const { validateProductionRuntimeSourceDependencies } = require('./runtime-source-dependency-closure');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const PROJECT_ROOTS = Object.freeze(['backend', 'frontend', 'shared', 'electron', 'diagnostics', 'release']);
+const PROJECT_ROOTS = Object.freeze(['backend', 'shared', 'electron', 'diagnostics', 'release', 'assets', 'vendor/sillytavern/1.18.0']);
 const PROJECT_FILES = Object.freeze(['package.json', 'package-lock.json', 'installer/installedIdentityReceipt.js']);
 const CONTROLLED_METADATA_PATHS = new Set([
   'resources/payload-files.json',
@@ -150,8 +150,10 @@ function reviewedProjectEntries(repoRoot, sourceCommit) {
     if (!match) continue;
     const sourcePath = normalize(match[3]);
     if (sourcePath.startsWith('backend/tests/')) continue;
-    const top = sourcePath.split('/')[0];
-    if (!PROJECT_ROOTS.includes(top) && !PROJECT_FILES.includes(sourcePath)) continue;
+    const insideProjectRoot = PROJECT_ROOTS.some(
+      root => sourcePath === root || sourcePath.startsWith(`${root}/`)
+    );
+    if (!insideProjectRoot && !PROJECT_FILES.includes(sourcePath)) continue;
     metadata.push({ sourcePath, payloadPath: `resources/app/${sourcePath}`, mode: match[1], blob: match[2] });
   }
   const blobs = readGitBlobsBatch(repoRoot, metadata.map((row) => row.blob));

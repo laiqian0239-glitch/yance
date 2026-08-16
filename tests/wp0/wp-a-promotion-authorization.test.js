@@ -2,6 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const authorizationDocument = require('../../governance/architecture-closure-v2/wp-a-promotion-authorization.json');
 const {
@@ -10,6 +12,10 @@ const {
   validateAuthorization,
   validatePromotionEvidence
 } = require('../../tools/architecture-closure-v2/verify-wp-a-promotion-authorization');
+
+const ROOT = path.resolve(__dirname, '..', '..');
+const HISTORICAL_WORKFLOW = path.join(ROOT, '.github', 'workflows', 'wp-a-promotion-authorization.yml');
+const CURRENT_OWNER_WORKFLOW = path.join(ROOT, '.github', 'workflows', 'wp-a-post-merge-validation.yml');
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -76,7 +82,26 @@ function fixture() {
   };
 }
 
-test('promotion authorization remains merge-activated and fail closed before merge', () => {
+test('historical WP-A promotion workflow is retired while current post-merge validation owns readiness', () => {
+  assert.equal(
+    fs.existsSync(HISTORICAL_WORKFLOW),
+    false,
+    'historical PR #5 promotion workflow must not remain a current Actions authority'
+  );
+  assert.equal(fs.existsSync(CURRENT_OWNER_WORKFLOW), true);
+  const text = fs.readFileSync(CURRENT_OWNER_WORKFLOW, 'utf8');
+  assert.match(text, /WP-A Main Post-Merge Validation/u);
+  assert.match(text, /Verify exact integration identity and governance/u);
+  assert.match(text, /source-closure-scan\.js --wp A/u);
+  assert.match(text, /ubuntu-latest/u);
+  assert.match(text, /windows-latest/u);
+  assert.match(text, /readyForPromotion=true/u);
+  assert.match(text, /formalRelease=false/u);
+  assert.match(text, /publish=false/u);
+  assert.match(text, /wpBAuthorized=false/u);
+});
+
+test('historical promotion authorization evidence remains merge-activated and fail closed before merge', () => {
   assert.equal(validateAuthorization(authorizationDocument), true);
   assert.equal(authorizationDocument.status, 'APPROVED_PENDING_MERGE');
   assert.equal(authorizationDocument.governance.readyForPromotion, false);
@@ -85,7 +110,7 @@ test('promotion authorization remains merge-activated and fail closed before mer
   assert.equal(authorizationDocument.activation.afterActivation.publish, false);
 });
 
-test('exact candidate and governance-only promotion evidence passes', () => {
+test('historical exact candidate and governance-only promotion evidence remains verifiable', () => {
   const result = validatePromotionEvidence(fixture());
   assert.equal(result.ok, true);
   assert.equal(result.activation, 'MERGE_TO_MAIN_REQUIRED');

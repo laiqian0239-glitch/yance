@@ -18,17 +18,9 @@
       "readers": [
         "backend/services/contextAwareReplyBrain.js",
         "backend/routes/store.js",
-        "frontend/js/r32-store-client.js",
         "backend/store/commands/registerAiReplyCommands.js"
       ],
-      "requiredStates": [
-        "unknown",
-        "observed",
-        "user_locked",
-        "conflicted",
-        "validated",
-        "blocked_mismatch"
-      ],
+      "requiredStates": ["unknown", "observed", "user_locked", "conflicted", "validated", "blocked_mismatch"],
       "rootCauseRisks": [
         "最新入站语言、人工锁定和陈旧画像优先级不一致",
         "候选生成、审批、改写和发送前使用不同语言判断",
@@ -38,8 +30,7 @@
         "backend/services/contactLanguageAuthority.js",
         "backend/services/replyLanguageAuthority.js",
         "backend/services/contextAwareReplyBrain.js",
-        "backend/routes/store.js",
-        "frontend/js/r32-store-client.js"
+        "backend/routes/store.js"
       ]
     },
     {
@@ -50,17 +41,9 @@
       "storage": "r32_messages translation fields + translation job registry",
       "readers": [
         "backend/routes/store.js",
-        "frontend/js/r32-ui-runtime.js",
-        "frontend/js/r32-persona-runtime.js"
+        "backend/services/socialAnalysisPresentationService.js"
       ],
-      "requiredStates": [
-        "not_requested",
-        "pending",
-        "success",
-        "failed",
-        "cancelled",
-        "superseded"
-      ],
+      "requiredStates": ["not_requested", "pending", "success", "failed", "cancelled", "superseded"],
       "rootCauseRisks": [
         "会话译文与客户档案/关系投影分裂",
         "待生成状态未被成功译文收敛"
@@ -69,8 +52,7 @@
         "backend/services/messageTranslationService.js",
         "backend/services/bilingualUnderstandingService.js",
         "backend/routes/store.js",
-        "frontend/js/r32-ui-runtime.js",
-        "frontend/js/r32-persona-runtime.js"
+        "backend/services/socialAnalysisPresentationService.js"
       ]
     },
     {
@@ -82,19 +64,10 @@
       "readers": [
         "backend/services/modelStatusService.js",
         "backend/services/aiGateway.js",
-        "backend/services/systemCenterService.js",
-        "frontend/r32-system-center.js"
+        "backend/services/systemCenterService.js"
       ],
       "requiredStates": [
-        "UNCONFIGURED",
-        "CREDENTIAL_REQUIRED",
-        "VERIFYING",
-        "CONFIGURED_UNVERIFIED",
-        "VERIFIED_NOT_CALLED",
-        "AVAILABLE",
-        "DEGRADED_WITH_FALLBACK",
-        "TEMPORARILY_BLOCKED",
-        "UNAVAILABLE"
+        "UNCONFIGURED", "CREDENTIAL_REQUIRED", "VERIFYING", "CONFIGURED_UNVERIFIED", "VERIFIED_NOT_CALLED", "AVAILABLE", "DEGRADED_WITH_FALLBACK", "TEMPORARILY_BLOCKED", "UNAVAILABLE"
       ],
       "rootCauseRisks": [
         "资格、路由、当前失败和最后成功由不同投影解释",
@@ -106,8 +79,7 @@
         "backend/services/modelStatusProjection.js",
         "backend/services/modelStatusService.js",
         "backend/services/aiGateway.js",
-        "frontend/js/r32-ai-workbench-runtime.js",
-        "frontend/r32-system-center.js"
+        "backend/services/systemCenterService.js"
       ]
     },
     {
@@ -118,16 +90,10 @@
       "storage": "customer_profile_evidence unique projection + canonical customer_profiles source document",
       "readers": [
         "backend/routes/store.js",
-        "frontend/js/r32-ui-runtime.js",
-        "frontend/js/r32-persona-runtime.js"
+        "backend/services/socialAnalysisPresentationService.js",
+        "integration/element-module/src/product-experience/PeopleSurface.tsx"
       ],
-      "requiredStates": [
-        "empty",
-        "collecting",
-        "ready",
-        "stale",
-        "rebuild_required"
-      ],
+      "requiredStates": ["empty", "collecting", "ready", "stale", "rebuild_required"],
       "rootCauseRisks": [
         "同一证据重复写入",
         "会话已有译文但档案仍待中文理解"
@@ -137,73 +103,70 @@
         "backend/services/socialAnalysisPresentationService.js",
         "backend/repositories/workspaceRepository.js",
         "backend/lib/r32SqliteStore.js",
-        "frontend/js/r32-ui-runtime.js",
-        "frontend/js/r32-persona-runtime.js"
+        "integration/element-module/src/product-experience/PeopleSurface.tsx"
       ]
     },
     {
       "id": "relationshipProjection",
-      "authority": "RelationshipProjectionAuthority",
-      "currentImplementation": "backend/services/relationshipProjectionAuthority.js + backend/repositories/workspaceRepository.js",
-      "singleWriter": "RelationshipProjectionAuthority is the only relationship status/summary/stage/next projector; source transactions write insights, social state, signals and timeline events",
-      "storage": "relationship_insights + customer_social_state + relationship_state_signals + relationship_timeline_events; UI receives one derived authority projection",
+      "authority": "RelationshipProjectionAuthority (Graphiti/Neo4j inference authority)",
+      "currentImplementation": "backend/services/relationshipProjectionAuthority.js + backend/services/relationshipKeyNodeService.js + backend/store/relationshipKeyNodeRepository.js + backend/repositories/workspaceRepository.js",
+      "singleWriter": "Graphiti/Neo4j relationship facts enter through RelationshipKeyNodeService/Repository as the sole relationship inference writer with episode provenance and idempotent edge identity; explicit user annotations retain user ownership; relationship_insights remains a distinct ai_analysis source; RelationshipProjectionAuthority only projects those authorities or truthful pending/empty state and never infers from customer_social_state, relationship_state_signals or message counts.",
+      "storage": "relationship_timeline_events stores Graphiti inference plus explicit user annotations; relationship_insights stores distinct ai_analysis; customer_social_state and relationship_state_signals remain non-authoritative observability data and cannot synthesize Product relationship inference",
       "readers": [
         "backend/services/workspaceService.js",
         "backend/routes/workspace.js",
-        "frontend/js/r32-ui-runtime.js"
+        "integration/element-module/src/product-experience/experienceProjection.ts",
+        "integration/element-module/src/product-experience/RelationshipWorld.tsx"
       ],
-      "requiredStates": [
-        "empty",
-        "pending_translation",
-        "pending_analysis",
-        "ready",
-        "stale",
-        "rebuild_required"
-      ],
+      "requiredStates": ["empty", "pending_translation", "pending_analysis", "ready", "stale", "rebuild_required"],
       "rootCauseRisks": [
-        "同一消息重复生成关系事件",
-        "有效节点存在但摘要长期待分析",
-        "前端分别读取 AI insight 与 StoreManager 后自行覆盖关系结论"
+        "Graphiti 缺席时不得由本地 social/signals/messages 合成关系阶段、风险、机会或下一步建议",
+        "Graphiti 刷新不得覆盖显式 user annotation 的所有权和确认语义",
+        "ai_analysis 必须与 Graphiti AI inference 保持 epistemic distinction，且不得吸收本地规则输出",
+        "账号、会话与 canonical contact scope 不得串写或串读关系投影"
       ],
       "sourceReferences": [
         "backend/services/relationshipProjectionAuthority.js",
+        "backend/services/relationshipKeyNodeService.js",
+        "backend/store/relationshipKeyNodeRepository.js",
         "backend/repositories/workspaceRepository.js",
         "backend/services/workspaceService.js",
-        "frontend/js/r32-ui-runtime.js"
+        "integration/element-module/src/product-experience/experienceProjection.ts",
+        "integration/element-module/src/product-experience/RelationshipWorld.tsx"
       ]
     },
     {
       "id": "learningLifecycle",
-      "authority": "LearningLifecycleAuthority",
-      "currentImplementation": "backend/services/replyLearningScopeAuthority.js",
-      "singleWriter": "reply learning event and scope transaction",
-      "storage": "ai_reply_learning_scopes + versions + evidence",
+      "authority": "LearningV4ImmutableSignalLedger",
+      "currentImplementation": "backend/services/replyFeedbackLearningService.js + backend/services/learningOutcomeAttributionService.js + backend/services/learningDataPolicy.js + backend/services/learningEvidenceBridge.js + backend/repositories/platformCoreRepository.js",
+      "singleWriter": "Learning V4 uses one immutable learning_signal_ledger authority: replyFeedbackLearningService appends transaction-bound candidate feedback signals, learningOutcomeAttributionService appends permanently false-eligible raw outcome observations, and Learning-approved Langfuse evidence governs later trainable use.",
+      "storage": "learning_signal_ledger + Learning-approved Langfuse evidence; no mutable reply-learning scope authority",
       "readers": [
-        "backend/services/replyFeedbackLearningService.js",
         "backend/services/contextAwareReplyBrain.js",
-        "frontend/js/r32-phase1-governance-runtime.js",
-        "frontend/js/r32-ui-runtime.js"
+        "backend/services/learningOutcomeAttributionService.js",
+        "backend/services/learningEvidenceBridge.js"
       ],
       "requiredStates": [
-        "generated",
-        "accepted",
-        "edited",
-        "rejected",
-        "sent",
-        "send_failed",
-        "learned",
-        "rolled_back",
-        "forgotten"
+        "candidate_sent",
+        "candidate_rejected",
+        "policy_outcome_observed",
+        "scored",
+        "shadowed",
+        "promoted",
+        "rolled_back"
       ],
       "rootCauseRisks": [
-        "候选按钮不可见导致生命周期无法人工确认",
-        "生成事件被误当学习成功"
+        "不可变候选与结果证据被误当成可原地修改的学习状态",
+        "原始 outcome 被错误提升为 learningEligible",
+        "退役 reply-learning scope authority 被重新当成正式真相源"
       ],
       "sourceReferences": [
-        "backend/services/replyLearningScopeAuthority.js",
         "backend/services/replyFeedbackLearningService.js",
-        "frontend/js/r32-phase1-governance-runtime.js",
-        "frontend/js/r32-ui-runtime.js"
+        "backend/services/learningOutcomeAttributionService.js",
+        "backend/services/learningDataPolicy.js",
+        "backend/services/learningEvidenceBridge.js",
+        "backend/repositories/platformCoreRepository.js",
+        "backend/services/contextAwareReplyBrain.js"
       ]
     },
     {
@@ -211,18 +174,9 @@
       "authority": "SystemHealthAuthority",
       "currentImplementation": "backend/services/systemHealthAuthority.js + backend/services/systemCenterService.js",
       "singleWriter": "SystemHealthAuthority aggregates bounded runtime logs and projects one health state/score; systemCenterService only supplies probes, integrity and runtime facts",
-      "storage": "derived runtime projection with bounded active/recent/historical error aggregates; no UI-local health truth",
-      "readers": [
-        "backend/routes/system.js",
-        "frontend/r32-system-center.js"
-      ],
-      "requiredStates": [
-        "healthy",
-        "degraded",
-        "blocked",
-        "recovering",
-        "unknown"
-      ],
+      "storage": "derived runtime projection with bounded active/recent/historical error aggregates; no renderer-local health truth",
+      "readers": ["backend/routes/system.js"],
+      "requiredStates": ["healthy", "degraded", "blocked", "recovering", "unknown"],
       "rootCauseRisks": [
         "健康 100 与当前错误并存",
         "陈旧失败永久污染或当前失败被掩盖"
@@ -230,8 +184,7 @@
       "sourceReferences": [
         "backend/services/systemHealthAuthority.js",
         "backend/services/systemCenterService.js",
-        "backend/routes/system.js",
-        "frontend/r32-system-center.js"
+        "backend/routes/system.js"
       ]
     },
     {
@@ -240,28 +193,15 @@
       "currentImplementation": "backend/services/accountDiagnosticPolicy.js + account manager runtime",
       "singleWriter": "account runtime/diagnostic reconciliation",
       "storage": "r32_accounts runtime projection and diagnostic results",
-      "readers": [
-        "backend/services/systemCenterService.js",
-        "frontend/r32-account-center.js",
-        "frontend/r32-system-center.js"
-      ],
-      "requiredStates": [
-        "disconnected",
-        "connecting",
-        "connected",
-        "degraded",
-        "reauth_required",
-        "blocked"
-      ],
+      "readers": ["backend/services/systemCenterService.js"],
+      "requiredStates": ["disconnected", "connecting", "connected", "degraded", "reauth_required", "blocked"],
       "rootCauseRisks": [
         "已连接与等待真实连接确认同时显示",
         "诊断和账号中心使用不同快照"
       ],
       "sourceReferences": [
         "backend/services/accountDiagnosticPolicy.js",
-        "backend/services/systemCenterService.js",
-        "frontend/r32-account-center.js",
-        "frontend/r32-system-center.js"
+        "backend/services/systemCenterService.js"
       ]
     },
     {
@@ -273,18 +213,9 @@
       "readers": [
         "backend/services/avatarService.js",
         "backend/services/whatsappHistoryMediaRecovery.js",
-        "backend/services/systemCenterService.js",
-        "frontend/r32-system-center.js"
+        "backend/services/systemCenterService.js"
       ],
-      "requiredStates": [
-        "PENDING",
-        "RUNNING",
-        "SUCCEEDED",
-        "RETRY_WAIT",
-        "FAILED_FINAL",
-        "CANCELLED",
-        "SUPERSEDED"
-      ],
+      "requiredStates": ["PENDING", "RUNNING", "SUCCEEDED", "RETRY_WAIT", "FAILED_FINAL", "CANCELLED", "SUPERSEDED"],
       "rootCauseRisks": [
         "进程重启后丢失内存锁并重复执行",
         "相同失败每次刷新都重新记录",
@@ -296,76 +227,59 @@
         "backend/services/avatarService.js",
         "backend/services/whatsappHistoryMediaRecovery.js",
         "backend/lib/r32SqliteStore.js",
-        "backend/services/systemHealthAuthority.js",
-        "frontend/r32-system-center.js"
+        "backend/services/systemHealthAuthority.js"
       ]
     },
     {
       "id": "notificationSound",
       "authority": "NotificationSoundAuthority",
       "currentImplementation": "shared/notificationSoundCatalog.js + backend/services/notificationPolicy.js + electron/SoundNotificationService.js",
-      "singleWriter": "NotificationSoundAuthority owns the selectable catalog and event-to-setting mapping; notificationPolicy persists settings and SoundNotificationService only plays the selected authority pattern",
-      "storage": "notification-settings SQLite document with catalog ids; catalog labels and mappings are versioned source authority",
+      "singleWriter": "NotificationSoundAuthority owns the official Yance Classic catalog and event-to-setting mapping; notificationPolicy persists settings and SoundNotificationService only plays the selected authority pattern",
+      "storage": "notification-settings SQLite document with catalog ids; user custom UUID sounds remain separate user-owned assets",
       "readers": [
         "backend/routes/system.js",
         "backend/services/systemCenterService.js",
         "electron/SoundNotificationService.js",
-        "frontend/r32-system-center.js",
-        "frontend/r32-settings-recovery.js"
+        "electron/sound-player.js"
       ],
-      "requiredStates": [
-        "enabled",
-        "disabled",
-        "selected",
-        "previewing",
-        "played",
-        "failed"
-      ],
+      "requiredStates": ["enabled", "disabled", "selected", "previewing", "played", "failed"],
       "rootCauseRisks": [
-        "底层存在多套声音但正式页面没有选择入口",
-        "前端、后端和Electron各自维护不同声音目录",
-        "同一配置在多个正式页面形成平行写入入口"
+        "前端、后端和 Electron 各自维护不同声音目录",
+        "同一配置在多个正式页面形成平行写入入口",
+        "来源不明的品牌音效被误当正式内置分发资产"
       ],
       "sourceReferences": [
         "shared/notificationSoundCatalog.js",
         "backend/services/notificationPolicy.js",
         "backend/routes/system.js",
         "electron/SoundNotificationService.js",
-        "frontend/r32-system-center.js",
-        "frontend/r32-settings-recovery.js"
+        "electron/sound-player.js",
+        "governance/notification-sound-kenney-interface-sounds-20260816.json"
       ]
     },
     {
       "id": "businessPresentation",
       "authority": "BusinessPresentationAuthority",
-      "currentImplementation": "frontend/js/r32-business-presentation-authority.js + formal business renderers",
-      "singleWriter": "BusinessPresentationAuthority is the only formal business label and identity-summary projector; exact technical identities remain unchanged in routing/storage and are shown only inside explicit technical details",
-      "storage": "source-versioned presentation catalog; no mutation of platform identity or business data",
+      "currentImplementation": "backend/services/socialAnalysisPresentationService.js + integration/element-module/src/product-experience/experienceProjection.ts + Element Product renderers",
+      "singleWriter": "Backend presentation services project localized business meaning while the Element Product projection adapts authoritative data for the sole Product renderer; routing/storage technical identities remain unchanged and are not re-authored by the UI",
+      "storage": "authoritative backend business data plus source-versioned Element Product projection; no legacy frontend presentation authority",
       "readers": [
-        "frontend/js/r32-ui-runtime.js",
-        "frontend/js/r32-contact-safe-renderers.js",
-        "frontend/js/r32-ai-workbench-runtime.js",
-        "frontend/r32-account-center.js"
+        "integration/element-module/src/product-experience/PeopleSurface.tsx",
+        "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+        "integration/element-module/src/product-experience/ProductExperienceShell.tsx"
       ],
-      "requiredStates": [
-        "business_summary",
-        "localized_label",
-        "masked_identity",
-        "technical_details",
-        "routing_identity_unchanged"
-      ],
+      "requiredStates": ["business_summary", "localized_label", "masked_identity", "technical_details", "routing_identity_unchanged"],
       "rootCauseRisks": [
-        "正式中文页面直接显示 declining/new/calm_natural 等内部枚举",
-        "业务卡片直接显示 JID、UUID、消息哈希和内部会话 ID",
+        "正式页面直接显示内部枚举",
+        "业务卡片直接显示底层技术身份",
         "为了隐藏技术 ID 误改底层发送路由身份"
       ],
       "sourceReferences": [
-        "frontend/js/r32-business-presentation-authority.js",
-        "frontend/js/r32-ui-runtime.js",
-        "frontend/js/r32-contact-safe-renderers.js",
-        "frontend/js/r32-ai-workbench-runtime.js",
-        "frontend/r32-account-center.js",
-        "frontend/r32-business-presentation.css"
+        "backend/services/socialAnalysisPresentationService.js",
+        "integration/element-module/src/product-experience/experienceProjection.ts",
+        "integration/element-module/src/product-experience/PeopleSurface.tsx",
+        "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+        "integration/element-module/src/product-experience/ProductExperienceShell.tsx"
       ]
     }
   ],
@@ -374,6 +288,7 @@
     "UI 不得自行组合多个布尔字段产生业务状态",
     "写入者必须在数据库事务或明确的原子状态转换中工作",
     "跨平台客户档案关联不得合并底层会话、草稿、翻译、学习和发送路由",
-    "姓名和头像不得成为身份关联或合并依据"
+    "姓名和头像不得成为身份关联或合并依据",
+    "Element 是唯一 Product renderer；legacy frontend 只能作为历史源码存在，不得再被列为当前 reader 或 authority"
   ]
 }

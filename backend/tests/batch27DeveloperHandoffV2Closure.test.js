@@ -20,7 +20,6 @@ const { SendQueueService } = require('../services/sendQueueService');
 const { JobQueue } = require('../services/jobQueue');
 const { BackgroundJobAuthority } = require('../services/backgroundJobAuthority');
 const { AsyncOperationLifecycleAuthority, STATES: ASYNC_STATES } = require('../services/asyncOperationLifecycleAuthority');
-const { ReplyLearningProjectionRepository } = require('../repositories/replyLearningProjectionRepository');
 const { executeWithDeadline } = require('../services/executionDeadline');
 const telegramModule = require('../services/telegramAdapter');
 const backgroundJobAuthority = require('../services/backgroundJobAuthority');
@@ -84,10 +83,10 @@ test.after(() => {
 test('current schema preserves Batch27 structured unknown, learning ledger, AI physical state and recovery metrics', () => {
   const f = fixture('yance-b27-current-schema-');
   try {
-    assert.equal(SCHEMA_VERSION, 20);
+    assert.equal(SCHEMA_VERSION, 23);
     assert.equal(Number(f.store.getMeta('schema_version')), SCHEMA_VERSION);
     const tables = new Set(f.store.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row => row.name));
-    for (const name of ['reply_learning_projection_effects','reply_learning_source_reconciliation','reply_learning_reconciliation_ledger','ai_provider_physical_execution_state','durable_recovery_metrics']) assert.equal(tables.has(name), true, name);
+    for (const name of ['learning_signal_ledger','ai_provider_physical_execution_state','durable_recovery_metrics']) assert.equal(tables.has(name), true, name);
     const queueColumns = new Set(f.store.db.prepare('PRAGMA table_info(r32_send_queue)').all().map(row => row.name));
     for (const name of ['unknown_scope','unknown_reason','unknown_lane','execution_generation','unknown_recorded_at']) assert.equal(queueColumns.has(name), true, name);
   } finally { f.close(); }
@@ -210,42 +209,7 @@ test('Batch27 AI physical zombie circuit keeps actual provider concurrency bound
   assert.equal(persisted.provider_key, 'ignored-provider');
 });
 
-test('Batch27 learning lease generation fences stale workers and applies each effect once', () => {
-  const f = fixture('yance-b27-learning-fence-');
-  try {
-    const repo = new ReplyLearningProjectionRepository({ store: f.store });
-    const at = new Date().toISOString();
-    f.store.db.exec('CREATE TABLE batch27_effect_counter(id TEXT PRIMARY KEY, value INTEGER NOT NULL) STRICT;');
-    f.store.upsertAccount({ id: 'account-learning', platform: 'whatsapp', adapterAccountId: 'account-learning', displayName: 'Learning', canSend: true, canReceive: true });
-    f.store.upsertContact({ id: 'contact-fence', platform: 'whatsapp', accountId: 'account-learning', externalId: '491111111@s.whatsapp.net', displayName: 'Learning Contact', canonicalContactId: 'contact-fence' });
-    f.store.db.prepare(`INSERT INTO ai_reply_feedback_events(id,event_type,contact_id,conversation_id,created_at)
-      VALUES('evidence-fence','sent','contact-fence','conversation-fence',?)`).run(at);
-    f.store.db.prepare(`INSERT INTO reply_learning_projection_jobs(job_id,evidence_id,contact_id,conversation_id,state,scope_state,l1_state,attempts,claim_token,lease_generation,lease_expires_at,last_heartbeat_at,next_attempt_at,last_error,final_failure_code,dlq_at,payload_json,created_at,updated_at,completed_at)
-      VALUES('job-fence','evidence-fence','contact-fence','conversation-fence','pending','pending','pending',0,'',0,'','','','','','','{}',?,?, '')`).run(at, at);
-    const first = repo.claimNext({ now: at, leaseMs: 5000 });
-    f.store.db.prepare("UPDATE reply_learning_projection_jobs SET lease_expires_at=? WHERE job_id='job-fence'").run(new Date(Date.now() - 1000).toISOString());
-    repo.recoverExpired(new Date().toISOString());
-    const second = repo.claimNext({ now: new Date().toISOString(), leaseMs: 5000 });
-    assert.ok(second.leaseGeneration > first.leaseGeneration);
-    assert.throws(() => repo.applyEffectOnce(first, 'scope', () => null), error => error.code === 'LEARNING_PROJECTION_LEASE_LOST');
-    const applied = repo.applyEffectOnce(second, 'scope', () => {
-      f.store.db.prepare("INSERT INTO batch27_effect_counter(id,value) VALUES('scope',1)").run();
-      return { applied: 1 };
-    });
-    assert.equal(applied.replay, false);
-    const replay = repo.applyEffectOnce(second, 'scope', () => { throw new Error('must not run'); });
-    assert.equal(replay.replay, true);
-    assert.equal(f.store.db.prepare('SELECT COUNT(*) AS count FROM batch27_effect_counter').get().count, 1);
-    repo.markL1(second, 'skipped');
-    repo.complete(repo.get(second.jobId));
-    assert.equal(repo.ledger().completed, 1);
-
-    repo.recordSourceFailure({ sourceKey: 'poison-source', sourceType: 'sent', sourceEntityId: 'send-1', error: Object.assign(new Error('bad row'), { code: 'POISON' }) }, { maxAttempts: 2 });
-    const dead = repo.recordSourceFailure({ sourceKey: 'poison-source', sourceType: 'sent', sourceEntityId: 'send-1', error: Object.assign(new Error('bad row'), { code: 'POISON' }) }, { maxAttempts: 2 });
-    assert.equal(dead.deadLetter, true);
-    assert.equal(repo.sourceLedger().deadLetter, 1);
-  } finally { f.close(); }
-});
+test('Batch27 Learning V4 uses idempotent immutable signals instead of worker leases', () => { const service=require('../services/replyFeedbackLearningService');const a=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'same',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true}});const b=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'same',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true}});assert.equal(a.idempotencyKey,b.idempotencyKey);assert.equal(service.status().customProjectionScheduler,false); });
 
 test('Batch27 resilient lease clock detects +1h/-1h wall jumps without moving live leases backward or forward', () => {
   let wall = 1_700_000_000_000; let mono = 10_000;

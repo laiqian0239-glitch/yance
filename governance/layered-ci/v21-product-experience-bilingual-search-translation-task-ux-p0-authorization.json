@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-BILINGUAL-SEARCH-TRANSLATION-TASK-UX-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close the remaining Product Experience Phase-1 message-level bilingual search/navigation and translation progress/cancel/retry UX gap by composing already-landed Store search, MessageTranslationService + AsyncOperationLifecycleAuthority, the existing Electron R32 Store bridge/preload boundary, pinned Element Web public navigation API, and existing Product Experience interaction/token authorities. No second search index, translation queue, task registry, Matrix timeline/composer, navigation router, design-system runtime, dependency, workflow, or general-purpose Yance infrastructure is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "e97dc3278ea5db06145fc6e11e553a605b30193d"
+  },
+  "designAuthority": {
+    "pullRequest": 385,
+    "path": "docs/superpowers/specs/2026-08-15-yance-v21-product-experience-bilingual-search-translation-task-ux-design.md",
+    "mergeCommit": "e97dc3278ea5db06145fc6e11e553a605b30193d"
+  },
+  "implementationPlan": {
+    "pullRequest": 385,
+    "path": "docs/superpowers/plans/2026-08-15-yance-v21-product-experience-bilingual-search-translation-task-ux.md",
+    "mergeCommit": "e97dc3278ea5db06145fc6e11e553a605b30193d"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "e97dc3278ea5db06145fc6e11e553a605b30193d",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-bilingual-search-translation-task-ux-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-bilingual-search-translation-task-ux-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "f765bce5863d8962079d454214d9f8aa0ea4f27c56c933b35c027be8955e3bd4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "futureProductBootstrapPaths": [
+    "integration/element-module/src/product-experience/BilingualSearchPanel.tsx"
+  ],
+  "futureProductBootstrapPathCount": 1,
+  "futureProductBootstrapPathSetSha256": "7d91c576be6f3f48bb401a88aa52fa328c01f576b6759c182c154a790a10fc6a",
+  "implementation": {
+    "branch": "product/v21-product-experience-bilingual-search-translation-task-ux-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "docs/uat/V21_PRODUCT_EXPERIENCE_BILINGUAL_SEARCH_TRANSLATION_TASK_UX_P0_UAT.md",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "implementation/product-experience-phase1-status.json",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js"
+    ],
+    "approvedChangedFileCount": 13,
+    "approvedChangedFileSetSha256": "44a5abd95604e9b8a9017e2fecd2df792960e86b01896b4fd037ad4590cb7eae",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "33264769a780b00416f2f31665c0578cd885d7d2921ea5bc7bd969c19eba6234",
+      "productionCodeChanged": false,
+      "expectedMissingCapabilities": [
+        "exact PRODUCT_WP0 route for integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
+        "Product Shell desktop bridge projection for existing workspace search",
+        "Product Shell desktop bridge projection for existing durable translation jobs",
+        "bilingual search result surface with original and persisted Chinese evidence",
+        "truthful queued-running-progress-cancel-retry terminal translation job UX",
+        "public Element navigation injection with explicit unresolved-navigation behavior"
+      ]
+    },
+    "newDependencyAllowed": false,
+    "dependencyControlPaths": [],
+    "dependencyControlPathCount": 0,
+    "packageManifestModificationAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "ossFit": {
+    "decision": "Use already-adopted mature OSS and repository seams end-to-end. Element Web public Module Navigation API owns room/permalink navigation; existing R32 Store search owns message lookup; existing MessageTranslationService + AsyncOperationLifecycleAuthority owns translation job lifecycle; existing R32 Store Electron bridge/preload owns privileged desktop transport; existing Base UI/Motion/Product Shell tokens own accessible interaction and motion. Yance adds only thin Product composition, exact adapters, and one exact PRODUCT_WP0 route for the new Product component.",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Element Web Module Navigation API v1.12.25",
+        "source": "element-hq/element-web@a2a996ae50d802878bf48e4bbf3730004bdcc55c packages/module-api/src/api/navigation.ts",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Pinned Product shell dependency already exposes public openRoom() and toMatrixToLink(); no Yance navigation router or private Element DOM/store access is needed."
+      },
+      {
+        "name": "Existing R32 Store workspace search",
+        "source": "backend/routes/store.js + backend/lib/r32SqliteStore.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already returns contacts/messages and searches persisted original/Chinese message evidence; no second index or semantic-search engine is needed for this P0."
+      },
+      {
+        "name": "Existing MessageTranslationService + AsyncOperationLifecycleAuthority",
+        "source": "backend/services/messageTranslationService.js + backend/services/asyncOperationLifecycleAuthority.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns durable queued/running/success/failed/cancelled lifecycle, progress, cancellation, retry, stale-result rejection and message writeback."
+      },
+      {
+        "name": "Existing Electron R32 Store bridge and context-isolated preload",
+        "source": "electron/r32StoreBridge.js + electron/preload.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing privileged transport boundary can add exact endpoint adapters without a generic IPC or renderer-side HTTP authority."
+      },
+      {
+        "name": "Existing Base UI + Motion Product Experience interaction layer",
+        "source": "@base-ui/react@1.7.0 + motion@12.42.2 already pinned by V21 Product Experience Shell",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns accessible interaction primitives and state-transition mechanics; the new panel reuses existing Product Shell tokens and reduced-motion policy."
+      },
+      {
+        "name": "Legacy R32StoreClient search/translation methods",
+        "source": "frontend/js/r32-store-client.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "Useful as the landed HTTP contract reference, but importing its renderer-direct HTTP client into the Element context would duplicate the existing context-isolated desktop bridge boundary."
+      }
+    ],
+    "retireOrAvoid": [
+      "second message search index, semantic search engine or local Product cache authority",
+      "second translation queue, task registry, task database or lifecycle state machine",
+      "generic arbitrary-URL Electron bridge or raw ipcRenderer exposure",
+      "renderer-direct privileged local API client inside Element Product Experience",
+      "private Element timeline/composer DOM selectors or private application-store imports",
+      "fabricated Matrix room/event IDs derived from provider chat/session identifiers",
+      "broad integration/ or product-experience/ routing prefixes instead of one exact Product path",
+      "second Matrix timeline/composer/navigation router",
+      "new Product design system, token runtime, modal framework or animation engine",
+      "new translation model/provider or automatic bulk-translation engine",
+      "new dependency, workflow, database migration or general-purpose Yance infrastructure"
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "architectureRules": {
+    "elementMatrixOwnsTimelineComposerNavigation": true,
+    "storeSearchAuthorityReused": true,
+    "messageTranslationLifecycleAuthorityReused": true,
+    "electronContextIsolationPreserved": true,
+    "rendererDirectPrivilegedHttpForbidden": true,
+    "privateElementSelectorOrStoreAccessForbidden": true,
+    "fabricatedMatrixIdentityForbidden": true,
+    "unresolvedNavigationMustRemainExplicit": true,
+    "backgroundProgressMustNotStealFocus": true,
+    "pollingMustStopAtTerminalOrUnmount": true,
+    "pollingMustBeBoundedToSelectedActiveJob": true,
+    "jobTransportFailureMustKeepLastAuthoritativeSnapshot": true,
+    "originalMessageRemainsPrimaryEvidence": true,
+    "persistedChineseTranslationIsExplicitSecondaryEvidence": true,
+    "reducedMotionRequired": true,
+    "keyboardAccessibilityRequired": true,
+    "visibleFocusRequired": true,
+    "ariaLiveAsyncStatusRequired": true,
+    "fullProductVisualConsistencyRequired": true,
+    "existingProductShellTokenNamespaceRequired": "--yance-*",
+    "newTopLevelDesignTokenNamespaceForbidden": true,
+    "futureWholeProductUxPolishMustNotRequireAuthorityBoundaryRewrite": true,
+    "autonomousSendingForbidden": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "duplicate authority or infrastructure",
+      "IPC privilege expansion",
+      "unbounded polling or leaked timers",
+      "stale translation job/result claims",
+      "private Element navigation",
+      "fabricated Matrix identifiers",
+      "focus theft or timeline/composer remount regression",
+      "translation evidence hierarchy",
+      "reduced motion and keyboard accessibility",
+      "async error/cancel/retry recovery",
+      "Product visual-token divergence"
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}

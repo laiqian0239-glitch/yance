@@ -64,6 +64,20 @@ function inferNativeTargetFromPath(relativePath) {
   if (prebuild) return { platform: normalizePlatformToken(prebuild[1]), platformVariant: prebuild[1], architectures: prebuild[2].split('+').map((arch) => arch === 'ia32' ? 'x86' : arch), source: 'prebuilds-directory' };
   const packageTarget = normalized.match(/\/node_modules\/@[^/]+\/[^/]*(win32|linux|linuxmusl|darwin)-(x64|ia32|arm64)(?:\/|$)/);
   if (packageTarget) return { platform: normalizePlatformToken(packageTarget[1]), platformVariant: packageTarget[1], architectures: [packageTarget[2] === 'ia32' ? 'x86' : packageTarget[2]], source: 'platform-qualified-package' };
+  const nodePtyConpty = normalized.match(/\/node_modules\/node-pty\/third_party\/conpty\/[^/]+\/win10-(x64|arm64)\/(openconsole\.exe|conpty\.dll)$/);
+  if (nodePtyConpty) return { platform: 'win32', platformVariant: `win10-${nodePtyConpty[1]}`, architectures: [nodePtyConpty[1]], source: 'node-pty-conpty-directory' };
+  const distlibLauncher = normalized.match(/\/pip\/_vendor\/distlib\/(t32|t64|t64-arm|w32|w64|w64-arm)\.exe$/);
+  if (distlibLauncher) {
+    const launcher = distlibLauncher[1];
+    const architecture = launcher.endsWith('32') ? 'x86' : launcher.endsWith('-arm') ? 'arm64' : 'x64';
+    return { platform: 'win32', platformVariant: 'win32', architectures: [architecture], source: 'distlib-launcher-resource' };
+  }
+  const setuptoolsLauncher = normalized.match(/^resources\/learning-runtime\/venv\/lib\/site-packages\/setuptools\/(cli|gui)(?:-(32|64|arm64))?\.exe$/);
+  if (setuptoolsLauncher) {
+    const variant = setuptoolsLauncher[2] || '32';
+    const architecture = variant === '64' ? 'x64' : variant === 'arm64' ? 'arm64' : 'x86';
+    return { platform: 'win32', platformVariant: 'win32', architectures: [architecture], source: 'setuptools-launcher-resource' };
+  }
   return null;
 }
 function detectedFormat(buffer) {

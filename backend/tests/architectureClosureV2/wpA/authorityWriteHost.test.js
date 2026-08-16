@@ -156,8 +156,8 @@ test('fresh bootstrap and Schema 20 upgrade preserve the complete WP-A object se
       host = authority.acquireAuthorityWriteHost({ dbPath, instanceId: `host-${mode}` });
       broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
       const store = broker.open();
-      assert.equal(store.getMeta('schema_version'), 23);
-      assert.equal(store.getMeta('schemaVersion'), 23);
+      assert.equal(store.getMeta('schema_version'), SCHEMA_VERSION);
+      assert.equal(store.getMeta('schemaVersion'), SCHEMA_VERSION);
       const names = tableNames(store.db);
       for (const name of required) assert.equal(names.has(name), true, `${mode}:${name}`);
       const baseMigration = store.db.prepare("SELECT status,checksum,target_schema_version FROM r32_schema_migrations WHERE migration_id='021_architecture_closure_v2_wp_a'").get();
@@ -172,6 +172,10 @@ test('fresh bootstrap and Schema 20 upgrade preserve the complete WP-A object se
       assert.equal(wpBMigration?.status, 'completed');
       assert.equal(wpBMigration?.target_schema_version, 23);
       assert.match(String(wpBMigration?.checksum || ''), /^[a-f0-9]{64}$/);
+      const projectionJobMigration = store.db.prepare("SELECT status,checksum,target_schema_version FROM r32_schema_migrations WHERE migration_id='023_architecture_closure_v2_domain_event_projection_jobs_canonical'").get();
+      assert.equal(projectionJobMigration?.status, 'completed');
+      assert.equal(projectionJobMigration?.target_schema_version, 23);
+      assert.match(String(projectionJobMigration?.checksum || ''), /^[a-f0-9]{64}$/);
     } finally {
       try { broker?.close(); } catch (_) {}
       try { host?.close(); } catch (_) {}

@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-VOICE-BRAIN-P0-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main successor reconciliation of Voice Brain P0 after Product Experience Shell P0 and delegated failure-first topology V3 ordinary-merged. Preserve ProductExperienceShell as the sole YanceWorkspace authority, mechanically inherit the already-proven V1 Voice implementation where fresh main did not touch the path, and compose the modular VoiceWorkspace only through the Product shell RelationshipOverlayHost voice seam.",
+  "base": {
+    "branch": "main",
+    "commit": "7657c56ad3fc704287dba30dcb64620b0e0a984d"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "7657c56ad3fc704287dba30dcb64620b0e0a984d",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-voice-brain-p0-v2-product-experience-reconciliation-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-voice-brain-p0-v2-product-experience-reconciliation-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ce29ca962757e320ad5d39665134ce8089c593ae8d91b787a04328f9c1866fdb",
+    "mustRemainSingleFile": true
+  },
+  "reconciliation": {
+    "historicalImplementationPullRequest": 211,
+    "historicalImplementationBranch": "product/v21-voice-brain-p0-v1",
+    "historicalImplementationHead": "0ef46efd62f195049640a96ba6e5fe2a1f6a6e6e",
+    "historicalChangedPathCount": 29,
+    "historicalChangedPathSetSha256": "76057909e62989e2602f38f6dbb5a431e0cd20acc9a4bab53ebc2e8c6b86f2e1",
+    "mergeBaseWithFreshMain": "788e8c431eeec62d52323d755d32fdff11703740",
+    "freshMainAheadFromMergeBase": 378,
+    "historicalVoiceAheadFromMergeBase": 31,
+    "freshMainConflictingHistoricalVoicePaths": [
+      "integration/element-module/src/YanceWorkspace.tsx"
+    ],
+    "removedHistoricalAuthorityPaths": [
+      "integration/element-module/src/YanceWorkspace.tsx"
+    ],
+    "addedFreshMainCompositionPaths": [
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx"
+    ],
+    "retainedHistoricalPathCount": 28,
+    "retainedHistoricalExactV1BlobPathCount": 27,
+    "retainedHistoricalSuccessorSemanticDeltaPaths": [
+      "tests/wp0/v21-voice-brain-ui.test.js"
+    ],
+    "unchangedHistoricalVoicePathsMustMechanicallyInheritExactV1Blobs": true,
+    "yanceWorkspaceMustRemainFreshMainBlob": true,
+    "productExperienceShellMustRemainTopLevelWorkspaceAuthority": true
+  },
+  "implementation": {
+    "branch": "product/v21-voice-brain-p0-v2-product-experience-reconciliation",
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/services/speechInstallerService.js",
+      "backend/services/transcriptionService.js",
+      "config/upstreams/v21-voice-brain-p0.json",
+      "docs/superpowers/plans/2026-08-10-yance-v21-voice-brain-p0.md",
+      "docs/superpowers/specs/2026-08-10-yance-v21-voice-brain-p0-design.md",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/voiceBrainRuntime.js",
+      "integration/element-module/src/VoiceWorkspace.css",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "runtime/voice-brain/cosyvoice/generate_runtime_sbom.py",
+      "runtime/voice-brain/cosyvoice/pyproject.toml",
+      "runtime/voice-brain/cosyvoice/uv.lock",
+      "runtime/voice-brain/cosyvoice/yance_cosyvoice_entrypoint.py",
+      "runtime/voice-brain/sensevoice/runtime-manifest.json",
+      "tests/wp0/v21-voice-brain-authority-cutover.test.js",
+      "tests/wp0/v21-voice-brain-p0.test.js",
+      "tests/wp0/v21-voice-brain-ui.test.js",
+      "tests/wp0/v21-voice-brain-windows-runtime.test.js",
+      "third_party/licenses/cosyvoice-Apache-2.0.txt",
+      "third_party/licenses/cosyvoice3-model-Apache-2.0.txt",
+      "third_party/licenses/funasr-model-license.txt",
+      "third_party/licenses/onnxruntime-MIT.txt",
+      "third_party/licenses/pytorch-BSD-3-Clause.txt",
+      "third_party/licenses/sensevoice-MIT.txt",
+      "tools/voice-brain/build-windows-runtime.ps1"
+    ],
+    "approvedChangedFileCount": 29,
+    "approvedChangedFileSetSha256": "856371a29f11a6a8ebaf75a2646742133e7199922ee046a88a928cd33bd48c8f",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-voice-brain-authority-cutover.test.js",
+        "tests/wp0/v21-voice-brain-p0.test.js",
+        "tests/wp0/v21-voice-brain-ui.test.js",
+        "tests/wp0/v21-voice-brain-windows-runtime.test.js"
+      ],
+      "approvedChangedFileCount": 4,
+      "approvedChangedFileSetSha256": "c3789bfd85a9eff02deab2b76a38d894b3cd41f748f9c2692634b24ba646418f",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "composition": {
+    "topLevelAuthority": "integration/element-module/src/YanceWorkspace.tsx -> ProductExperienceShell",
+    "voiceSeam": "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+    "requiredFlow": "ProductExperienceShell -> RelationshipOverlayHost -> VoiceWorkspace",
+    "placeholderMustBeReplacedByVoiceWorkspace": true,
+    "legacyVoiceCapabilityDashboardRestorationForbidden": true,
+    "secondVoiceOverlayOrSecondProductShellForbidden": true
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_VOICE_OSS_AND_EXISTING_REPOSITORY_SEAMS_WITHOUT_NEW_GENERAL_PURPOSE_INFRASTRUCTURE",
+    "matureOssAvailable": true,
+    "reviewedCandidates": [
+      {
+        "name": "CosyVoice",
+        "source": "QwenAudio/CosyVoice@074ca6dc9e80a2f424f1f74b48bdd7d3fea531cc",
+        "license": "Apache-2.0",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Exact pinned upstream source and model materialization already own TTS, zero-shot voice cloning, and cross-lingual speech; Yance only supplies a thin product/process adapter and must not reimplement CosyVoice or Matcha-TTS algorithms."
+      },
+      {
+        "name": "SenseVoice",
+        "source": "QwenAudio/SenseVoice@73ccdd3577db37e92dbf22a4a9fc323b038cf13b release runtime-llamacpp-v0.1.9",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Exact pinned upstream Windows x64 AVX2 runtime and sealed model already own local ASR and language detection; legacy Yance Whisper ASR routing and installation authority must stay retired."
+      }
+    ],
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "retireOrAvoid": [
+      "Retire legacy Yance Whisper ASR, model discovery, CLI, installer, and fallback authority; CosyVoice's upstream Whisper dependency is permitted only for prompt-audio mel extraction.",
+      "Avoid any second Yance STT, TTS, voice-cloning engine, generic speech runtime framework, database, HTTP/WebSocket service, runtime state machine, downloader, cache, materializer, installer, or package-manager framework.",
+      "Reuse the existing send-media-stream and channel send authority; forbid a Voice-specific send queue, outbox, or final-send framework.",
+      "Reuse the existing sealed Python/uv build-time runtime authority and exact pre-acquired supplies; forbid runtime network materialization and user-machine native/dependency builds."
+    ],
+    "matureOssMandatory": true,
+    "senseVoiceOwnsAsrAndLanguageDetection": true,
+    "cosyVoiceOwnsTtsAndVoiceCloning": true,
+    "legacyWhisperAuthorityMustRemainRetired": true,
+    "duplicateYanceSpeechInfrastructureForbidden": true,
+    "existingUniqueSendMediaAuthorityOnly": true,
+    "runtimeNetworkMaterializationForbidden": true
+  },
+  "parallelOverlap": {
+    "learningPullRequest": 223,
+    "learningCurrentExecutableDiffOverlapPaths": [],
+    "learningCurrentExecutableDiffOverlapCount": 0,
+    "learningAuthorizedFutureSharedRootsAfterYanceWorkspaceRemoval": [
+      "THIRD_PARTY_NOTICES.md",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js"
+    ],
+    "learningAuthorizedFutureSharedRootCount": 4,
+    "learningMustReconcileAfterVoiceOrdinaryMerge": true,
+    "personaPullRequest": 139,
+    "personaExactOverlapPaths": [
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "personaExactOverlapCount": 1,
+    "freshMainRecheckRequiredBeforeAuthorizationMerge": true,
+    "freshMainRecheckRequiredBeforeImplementationMerge": true
+  },
+  "verification": {
+    "mandatory": [
+      "Stage",
+      "Layered",
+      "ACV2",
+      "Voice Windows",
+      "applicable Product gates"
+    ],
+    "independentExactHeadReviewRequired": true,
+    "zeroUnresolvedP0P1Required": true,
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}

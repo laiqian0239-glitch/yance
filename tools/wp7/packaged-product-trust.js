@@ -44,12 +44,15 @@ function platformKey(platform = process.platform, arch = process.arch) {
   return `${platform}-${arch}`;
 }
 
-function loadTrust(repoRoot = REPO_ROOT, platform = process.platform, arch = process.arch) {
+function loadTrust(repoRoot = REPO_ROOT, platform = process.platform, arch = process.arch, electronNpmPackageRoot = null) {
   const root = path.resolve(repoRoot);
   const trustPath = path.join(root, 'release', 'electron-distribution-trust.json');
   const lockPath = path.join(root, 'package-lock.json');
-  const electronPackagePath = path.join(root, 'node_modules', 'electron', 'package.json');
-  const checksumsPath = path.join(root, 'node_modules', 'electron', 'checksums.json');
+  const electronPackageRoot = electronNpmPackageRoot
+    ? path.resolve(electronNpmPackageRoot)
+    : path.join(root, 'node_modules', 'electron');
+  const electronPackagePath = path.join(electronPackageRoot, 'package.json');
+  const checksumsPath = path.join(electronPackageRoot, 'checksums.json');
   for (const [filePath, label] of [[trustPath, 'tracked trust document'], [lockPath, 'package lock'], [electronPackagePath, 'Electron npm package metadata'], [checksumsPath, 'Electron npm checksums']]) {
     if (!fs.existsSync(filePath)) fail('WP7_PACKAGED_ELECTRON_TRUST_INPUT_MISSING', `${label} is missing`, { filePath });
   }
@@ -176,7 +179,6 @@ function electronDistributionRecords(zipPath) {
   }).sort((a, b) => Buffer.from(a.path).compare(Buffer.from(b.path)));
 }
 
-
 function normalizedElectronPayloadMode(statMode, platform = process.platform) {
   const rawMode = Number(statMode) & 0o777;
   if (platform === 'win32') {
@@ -242,7 +244,7 @@ function compareElectronDistributionTree(options = {}) {
     'resources/platform-auth.sha256',
     'resources/evidence/native-binary-scan.json'
   ]);
-  const allowedAddition = (relative) => relative.startsWith('resources/app/') || relative.startsWith('resources/runtime/node22/') || metadata.has(relative);
+  const allowedAddition = (relative) => relative.startsWith('resources/app/') || relative.startsWith('resources/runtime/node22/') || relative.startsWith('resources/parlant-runtime/') || relative.startsWith('resources/learning-runtime/') || metadata.has(relative);
   const missing = official.filter((row) => !actual.has(row.payloadPath)).map((row) => row.payloadPath);
   const mismatched = official.filter((row) => {
     if (!actual.has(row.payloadPath)) return false;
@@ -273,7 +275,7 @@ function compareElectronDistributionTree(options = {}) {
   if (missing.length || mismatched.length || modeMismatched.length || extra.length) fail('WP7_ELECTRON_DISTRIBUTION_TREE_TRUST_NOT_ENFORCED', 'packaged Electron runtime tree content and unixMode are not an exact projection of the trusted release archive plus explicit product additions', { missing, mismatched, modeMismatched, extra });
   const distributionTreeSha256 = sha256Buffer(Buffer.from(official.map((row) => `${row.payloadPath}\0${row.sizeBytes}\0${row.sha256}\0${Number(row.unixMode || 0).toString(8).padStart(6, '0')}\n`).join(''), 'utf8'));
   if (options.expectedDistributionTreeSha256 && options.expectedDistributionTreeSha256 !== distributionTreeSha256) fail('WP7_ELECTRON_DISTRIBUTION_TREE_IDENTITY_MISMATCH', 'Electron distribution tree hash including unixMode differs from the bound release identity', { expected: options.expectedDistributionTreeSha256, actual: distributionTreeSha256 });
-  return Object.freeze({ archiveFileCount: official.length, modeBoundFileCount: official.filter((row) => Number(row.unixMode || 0) !== 0).length, distributionTreeSha256, records: official.map(({ payloadPath, ...row }) => ({ ...row, payloadPath })), allowedProductAdditions: ['resources/app/**', 'resources/runtime/node22/**', ...metadata] });
+  return Object.freeze({ archiveFileCount: official.length, modeBoundFileCount: official.filter((row) => Number(row.unixMode || 0) !== 0).length, distributionTreeSha256, records: official.map(({ payloadPath, ...row }) => ({ ...row, payloadPath })), allowedProductAdditions: ['resources/app/**', 'resources/runtime/node22/**', 'resources/parlant-runtime/**', 'resources/learning-runtime/**', ...metadata] });
 }
 
 function verifyElectronDistributionTree(options = {}) {
@@ -300,7 +302,7 @@ function verifyTrustedProductExecutable(options = {}) {
   const repoRoot = path.resolve(options.repoRoot || REPO_ROOT);
   const platform = options.platform || process.platform;
   const arch = options.arch || process.arch;
-  const trust = loadTrust(repoRoot, platform, arch);
+  const trust = loadTrust(repoRoot, platform, arch, options.electronNpmPackageRoot);
   const archivePath = assertRegularFile(options.electronArchivePath, 'WP7_PACKAGED_ELECTRON_ARCHIVE_REQUIRED', 'official Electron release archive');
   if (path.basename(archivePath) !== trust.archive.fileName) {
     fail('WP7_PACKAGED_ELECTRON_EXECUTABLE_TRUST_NOT_ENFORCED', 'Electron archive filename does not match the pinned release input', { expected: trust.archive.fileName, actual: path.basename(archivePath) });

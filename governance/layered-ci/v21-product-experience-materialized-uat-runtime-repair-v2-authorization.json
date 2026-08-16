@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T03:30:00Z",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-MATERIALIZED-UAT-RUNTIME-REPAIR-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Corrected post-merge repair authority for the first real Product Experience materialized-UAT run. Desktop evidence remains unchanged: Product Final Validation run 31552327885 / job 93977477858 proved Node 22.23.1 Builder-host npm is the official bundled 10.9.8 while Yance packageManager remains npm@10.9.2, so trusted-CI production dependency materialization must explicitly execute repository npm@10.9.2 without mutating or pretending that Builder-host npm is 10.9.2. Matrix evidence is corrected after failure-first PR #294 disproved the V1 patch-working-tree rewrite model. Ubuntu job 93977477959 on Git 2.54.0 clones exact Element a2a996ae50d802878bf48e4bbf3730004bdcc55c and fails the unchanged strict 0001 git apply --check at packages/module-api/element-web-module-api.api.md:150, while Windows control job 93977478016 on the same Product Head runs the unchanged bootstrap twice through all Element patches, frozen install, build and typecheck successfully. Exact upstream API-report blob 6557e89ac2949b6d6b46f991ebb4d64085f74d35 contains CRLF bytes and exact Yance 0001 is the already-reviewed ordinary textual portability patch from PR #245. An isolated Git fixture reproduces the Linux failure with CRLF target plus LF textual patch and proves that process-scoped Git config core.autocrlf=true makes the unchanged strict git apply --check succeed without rewriting the target, rewriting the patch, adding git-apply flags, or persisting repository/global config. The V2 repair therefore scopes Git's native process environment only to the single trusted-Linux node tools/matrix/bootstrap.js process tree, proves ambient core.autocrlf state is identical before and after, and otherwise keeps bootstrap, all Element patch blobs, exact Element pin, Docker build, and git-clean gates unchanged. No new Yance EOL normalizer or package manager is authorized.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-experience-materialized-uat-runtime-repair-authorization.json",
+    "implementationBranch": "fix/v21-product-experience-materialized-uat-runtime-repair",
+    "reason": "V1 correctly captured the Desktop npm authority RED but incorrectly modeled the Matrix RED as requiring CRLF materialization of Yance patch working-tree files. PR #294 Head 6213b9c8af1cde06fc04d7442074e707a7cf2526 remains immutable tests-only causal-RED evidence, but no production/workflow implementation may proceed from V1."
+  },
+  "invalidPredecessor": {
+    "authorizationPullRequest": 293,
+    "authorizationMergeCommit": "e7f61a6e00d29f8d2c2951abb754b975b1c479d2",
+    "implementationPullRequest": 294,
+    "implementationHead": "6213b9c8af1cde06fc04d7442074e707a7cf2526",
+    "failureFirstRun": 31559872332,
+    "failureFirstJob": 93999882848,
+    "failureFirstShape": "48 WP0 files: 47 GREEN, only materialized-UAT RED; materialized-UAT 7 tests: 5 pass / 2 fail",
+    "disposition": "EVIDENCE_ONLY_DO_NOT_IMPLEMENT"
+  },
+  "repairEvidence": {
+    "productPullRequest": 229,
+    "productHead": "04d8647a00c63bc61dfb448d7c8df54e15504364",
+    "productFinalValidationRun": 31552327885,
+    "desktopJob": 93977477858,
+    "matrixJob": 93977477959,
+    "windowsControlJob": 93977478016,
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "elementApiReportBlob": "6557e89ac2949b6d6b46f991ebb4d64085f74d35",
+    "historicalWindowsWorktreeHash": "f35692a30aa25b17302ef862a929e9dd0bcd97e2",
+    "existing0001PortabilityAuthorization": "governance/layered-ci/v21-product-experience-p0-element-0001-api-report-authorization.json",
+    "existing0001PortabilityImplementationPullRequest": 245,
+    "ubuntuFirstRealError": "error: patch failed: packages/module-api/element-web-module-api.api.md:150; error: packages/module-api/element-web-module-api.api.md: patch does not apply",
+    "windowsControl": "unchanged tools/matrix/bootstrap.js runs twice and crosses 0001, 0002, 0003, module copy, 0011, 0012, frozen install, module build and lint:types"
+  },
+  "base": {
+    "branch": "main",
+    "commit": "e7f61a6e00d29f8d2c2951abb754b975b1c479d2"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "requiredFirstParent": "e7f61a6e00d29f8d2c2951abb754b975b1c479d2",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-materialized-uat-runtime-repair-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-materialized-uat-runtime-repair-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "647ced9d43ebf775e7ae6c9390a21d9d32e6abdf923dd7e518e7e2a7c6cc1106",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-materialized-uat-runtime-repair-v2",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "875aeb1a441fb650e6395812cc7e9db99e155c60f97a6a384adc4f9900aa2139",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "genericRuntimeDeliveryModificationAllowed": false,
+    "matrixBootstrapModificationAllowed": false,
+    "elementPatchModificationAllowed": false,
+    "wp7ImplementationModificationAllowed": false,
+    "actionRegistryModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
+    }
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_NPM_AND_GIT_PROCESS_SCOPED_AUTHORITIES",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "npm CLI exact repository package-manager authority",
+        "source": "package.json packageManager npm@10.9.2, executed explicitly from trusted CI with npm exec --yes --package=npm@10.9.2 -- npm ci",
+        "license": "Artistic-2.0",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Node 22.23.1 correctly carries bundled Builder-host npm 10.9.8 while Yance dependency semantics remain npm@10.9.2. Exact npm exec preserves that already-merged authority separation without mutating the host installation or deferring dependency resolution to the user machine."
+      },
+      {
+        "name": "Git process-scoped configuration environment",
+        "source": "Git GIT_CONFIG_COUNT/GIT_CONFIG_KEY_0/GIT_CONFIG_VALUE_0 runtime configuration inherited only by the trusted-Linux Matrix bootstrap process tree",
+        "license": "GPL-2.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "An isolated real Git fixture reproduces the CRLF-target/LF-text-patch Linux strict-apply failure and shows that process-scoped core.autocrlf=true lets unchanged ordinary git apply --check succeed without rewriting patch bytes, target bytes, repository config, global config, or bootstrap semantics. The environment dies with the bootstrap process and ambient config is proven identical before and after."
+      },
+      {
+        "name": "Existing strict Matrix bootstrap and reviewed Element textual patches",
+        "source": "tools/matrix/bootstrap.js plus upstream-patches/element-web/0001, 0002, 0003, 0010, 0011 and 0012 at exact Product source",
+        "license": "existing reviewed repository/upstream closure",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Windows Task 9 proves the existing unchanged sequence is executable and the historical 0001 portability work already converted the generated API-report hunk from a binary delta to an ordinary textual patch. This repair changes only the Linux Git process semantics around that already-reviewed bootstrap."
+      },
+      {
+        "name": "Patch-byte rewrite, target-file rewrite, git apply relaxation, bootstrap modification, or new Yance EOL normalizer",
+        "source": "hypothetical workaround/new infrastructure",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "Those options either contradict exact source authority, weaken fail-closed replay, duplicate mature Git semantics, or would expand scope into frozen Matrix/Element implementation. They are forbidden."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire the workflow assertion that Builder-host npm must equal repository npm 10.9.2.",
+      "Retire V1's proposed CRLF checkout or rewrite of Yance Element patch working-tree files.",
+      "Avoid changing setup-node or installing npm 10.9.2 globally/local-to-repository as a host mutation.",
+      "Avoid persistent git config --global, --local, or config-file mutation for core.autocrlf.",
+      "Avoid git -c core.autocrlf=true checkout or any patch/target byte rewrite.",
+      "Avoid git apply --ignore-whitespace, --ignore-space-change, --reject, --3way, --recount, --unidiff-zero, or fuzzy application.",
+      "Avoid modifying tools/matrix/bootstrap.js or any upstream-patches/element-web patch.",
+      "Avoid package.json, package-lock.json, Product runtime/UI, WP7 implementation, Matrix bootstrap, Element patch, or Action registry changes."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "runtimeRepairContract": {
+    "desktop": {
+      "builderHostNode": "22.23.1",
+      "builderHostBundledNpmObserved": "10.9.8",
+      "repositoryPackageManagerAuthority": "npm@10.9.2",
+      "productionDependencyCommandMustExplicitlySelectRepositoryAuthority": true,
+      "hostNpmMutationForbidden": true
+    },
+    "matrix": {
+      "runner": "ubuntu-latest",
+      "bootstrapCommand": "node tools/matrix/bootstrap.js",
+      "processScopedGitConfig": {
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": "core.autocrlf",
+        "GIT_CONFIG_VALUE_0": "true"
+      },
+      "persistentGitConfigMutationForbidden": true,
+      "patchWorkingTreeRewriteForbidden": true,
+      "targetWorkingTreeRewriteForbidden": true,
+      "strictGitApplyFlagsRemainUnchanged": true,
+      "ambientConfigBeforeAfterIdentityRequired": true
+    }
+  },
+  "mandatoryFailureFirstContracts": [
+    "On the exact V2 authorization-merge baseline, the first implementation commit changes only tests/wp0/v21-product-experience-materialized-uat.test.js and Stage must RED causally because Product Final Validation still asserts Builder-host npm 10.9.2, directly executes ambient npm.cmd ci, and lacks process-scoped Git configuration around the trusted-Linux Matrix bootstrap.",
+    "The permanent desktop contract must require Node 22.23.1 while forbidding any assertion that Builder-host npm equals 10.9.2; production dependency materialization must explicitly execute npm@10.9.2 through npm exec and may not use ambient npm ci.",
+    "The permanent Matrix contract must capture the ambient core.autocrlf configuration before bootstrap, invoke only node tools/matrix/bootstrap.js under GIT_CONFIG_COUNT=1, GIT_CONFIG_KEY_0=core.autocrlf and GIT_CONFIG_VALUE_0=true, capture ambient core.autocrlf again after bootstrap outside that environment, and fail if before and after differ.",
+    "The Matrix repair must not checkout, rewrite, normalize, or otherwise modify any Yance Element patch file or pinned Element target file. Root git-clean after deleting services/matrix/.runtime remains mandatory.",
+    "The repair must leave tools/matrix/bootstrap.js and all upstream-patches/element-web blobs unchanged so ordinary strict git apply --check followed by git apply remains the replay authority. No whitespace/reject/three-way/recount/unidiff/fuzzy options are allowed.",
+    "The existing Windows Task 9 control semantics remain unchanged and must still pass after forward merge.",
+    "No package manifest, lockfile, Product runtime/UI, generic source-UAT framework, Matrix bootstrap implementation, Element patch, WP7 implementation, or third-party Action registry change is authorized."
+  ],
+  "handoffBackToProduct": {
+    "productPullRequest": 229,
+    "productBranch": "product/v21-product-experience-shell-p0",
+    "productHeadAtAuthorization": "04d8647a00c63bc61dfb448d7c8df54e15504364",
+    "rule": "After the V2 repair ordinary-merges to main, ordinary-forward fresh main into Product without rebase, cherry-pick, force push, squash, or history rewrite. Fresh Product Final Validation must prove Windows Task 9 remains GREEN, Desktop crosses Builder-host identity into materialization, Matrix crosses strict 0001 replay into Docker build/save, and both sealed same-identity artifacts upload before real Windows UAT. Final PR #229 integration merge remains an explicit owner boundary."
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "rootDependencyChange": true,
+    "rootLockRegeneration": true,
+    "productRuntimeModification": true,
+    "genericSourceUatModification": true,
+    "matrixBootstrapModification": true,
+    "elementPatchModification": true,
+    "patchByteRewrite": true,
+    "targetByteRewrite": true,
+    "persistentGitAutocrlfMutation": true,
+    "gitApplyRelaxation": true,
+    "newYanceEolNormalizer": true,
+    "releasePublishing": true,
+    "formalRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}

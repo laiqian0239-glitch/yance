@@ -1,0 +1,765 @@
+From 459abae601411d191a1f4c99fe55b60d59e59305 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] server: share avatar AV driver for external AudioChunk ingress
+
+Keep CyberVerse as the sole avatar/lip-sync/AV pacing/LiveKit publisher while
+allowing already-synthesized AudioChunk streams to enter the same internal AV
+driver used by standard TTS. The ingress is session scoped, sequence checked,
+fail-closed, and torn down with the CyberVerse session. Yance gains no WebRTC,
+JWT-signing, avatar, lip-sync, resampling, or AV-pacing authority.
+---
+diff --git a/server/internal/api/router.go b/server/internal/api/router.go
+index 047a1a8..5f3f900 100644
+--- a/server/internal/api/router.go
++++ b/server/internal/api/router.go
+@@ -80,6 +80,7 @@ func (r *Router) registerRoutes() {
+ 	r.mux.HandleFunc("POST /api/v1/sessions", r.handleCreateSession)
+ 	r.mux.HandleFunc("DELETE /api/v1/sessions/{id}", r.handleDeleteSession)
+ 	r.mux.HandleFunc("POST /api/v1/sessions/{id}/message", r.handleSendMessage)
++	r.mux.HandleFunc("POST /api/v1/sessions/{id}/external-audio", r.handleExternalAvatarAudio)
+ 	r.mux.HandleFunc("GET /api/v1/sessions/{id}/tasks", r.handleListSessionTasks)
+ 	r.mux.HandleFunc("GET /api/v1/sessions", r.handleListSessions)
+ 	r.mux.HandleFunc("GET /api/v1/tasks/{task_id}", r.handleGetTask)
+diff --git a/server/internal/api/handlers.go b/server/internal/api/handlers.go
+index 5c60f3f..1598f77 100644
+--- a/server/internal/api/handlers.go
++++ b/server/internal/api/handlers.go
+@@ -2,6 +2,7 @@ package api
+
+ import (
+ 	"context"
++	"encoding/base64"
+ 	"encoding/json"
+ 	"errors"
+ 	"log"
+@@ -14,5 +15,6 @@ import (
+ 	"github.com/cyberverse/server/internal/config"
+ 	"github.com/cyberverse/server/internal/livekit"
+ 	"github.com/cyberverse/server/internal/orchestrator"
++	"github.com/cyberverse/server/internal/pb"
+ 	"github.com/cyberverse/server/internal/ws"
+ )
+@@ -51,6 +53,17 @@ type SendMessageRequest struct {
+ 	Text string `json:"text"`
+ }
+
++type ExternalAvatarAudioRequest struct {
++	ReplyID     string `json:"reply_id"`
++	Sequence    uint64 `json:"sequence"`
++	DataBase64  string `json:"data_base64"`
++	SampleRate  int32  `json:"sample_rate"`
++	Channels    int32  `json:"channels"`
++	Format      string `json:"format"`
++	IsFinal     bool   `json:"is_final"`
++	TimestampMS int64  `json:"timestamp_ms"`
++}
++
+ type ErrorResponse struct {
+ 	Error string `json:"error"`
+ }
+@@ -519,6 +532,7 @@ func (r *Router) handleDeleteSession(w http.ResponseWriter, req *http.Request) {
+
+ 	// Teardown orchestrator resources
+ 	if r.orch != nil {
++		r.orch.StopExternalAvatarAudio(id)
+ 		if err := r.orch.TeardownSession(id); err != nil {
+ 			log.Printf("Failed to teardown session %s: %v", id, err)
+ 		}
+@@ -559,6 +573,51 @@ func (r *Router) handleSendMessage(w http.ResponseWriter, req *http.Request) {
+ 	writeJSON(w, http.StatusAccepted, map[string]string{"status": "queued"})
+ }
+
++func (r *Router) handleExternalAvatarAudio(w http.ResponseWriter, req *http.Request) {
++	id := req.PathValue("id")
++	session, err := r.sessionMgr.Get(id)
++	if err != nil {
++		writeJSON(w, http.StatusNotFound, ErrorResponse{Error: err.Error()})
++		return
++	}
++	if !r.authorizeKanshanSessionAccess(w, req, session) {
++		return
++	}
++	if r.orch == nil {
++		writeJSON(w, http.StatusServiceUnavailable, ErrorResponse{Error: "orchestrator unavailable"})
++		return
++	}
++
++	var body ExternalAvatarAudioRequest
++	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
++		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "invalid JSON: " + err.Error()})
++		return
++	}
++	data, err := base64.StdEncoding.DecodeString(strings.TrimSpace(body.DataBase64))
++	format := strings.ToLower(strings.TrimSpace(body.Format))
++	if err != nil || len(data) == 0 || body.SampleRate <= 0 || body.Channels <= 0 || (format != "s16le" && format != "float32") {
++		writeJSON(w, http.StatusBadRequest, ErrorResponse{Error: "invalid external audio chunk"})
++		return
++	}
++	chunk := &pb.AudioChunk{
++		Data:        data,
++		SampleRate:  body.SampleRate,
++		Channels:    body.Channels,
++		Format:      format,
++		IsFinal:     body.IsFinal,
++		TimestampMs: body.TimestampMS,
++	}
++	if err := r.orch.HandleExternalAvatarAudioChunk(req.Context(), id, strings.TrimSpace(body.ReplyID), body.Sequence, chunk); err != nil {
++		writeJSON(w, http.StatusConflict, ErrorResponse{Error: err.Error()})
++		return
++	}
++	writeJSON(w, http.StatusAccepted, map[string]any{
++		"accepted": true,
++		"sequence": body.Sequence,
++		"is_final": body.IsFinal,
++	})
++}
++
+ func (r *Router) handleListSessions(w http.ResponseWriter, req *http.Request) {
+ 	sessions := r.sessionMgr.List()
+ 	type sessionInfo struct {
+diff --git a/server/internal/orchestrator/orchestrator.go b/server/internal/orchestrator/orchestrator.go
+index 342937c..0000000 100644
+--- a/server/internal/orchestrator/orchestrator.go
++++ b/server/internal/orchestrator/orchestrator.go
+@@ -678,5 +678,7 @@ type Orchestrator struct {
+ 	silentRuntimes map[string]*silentAvatarRuntime
+ 	xunfeiSessions map[string]xunfeiAvatarRuntime
+ 	viduSessions   map[string]viduSessionRuntime
++	externalAudioMu sync.Mutex
++	externalAudio   map[string]map[string]*externalAvatarAudioStream
+ 	mu             sync.RWMutex
+ }
+@@ -691,6 +693,7 @@ func New(inferenceClient inference.InferenceService, hub *ws.Hub, sessionMgr *Se
+ 		silentRuntimes: make(map[string]*silentAvatarRuntime),
+ 		xunfeiSessions: make(map[string]xunfeiAvatarRuntime),
+ 		viduSessions:   make(map[string]viduSessionRuntime),
++		externalAudio:   make(map[string]map[string]*externalAvatarAudioStream),
+ 		recorder:       recorder,
+ 	}
+ 	if len(pipelineCfg) > 0 {
+@@ -3130,168 +3130,65 @@ func (o *Orchestrator) runStandardPipeline(ctx context.Context, session *Session, sessionID string, pipelineSeq uint64, turnSeq uint64) {
+ 	}
+
+-	// 4. Start Avatar stream
+-	stdSyncBuf := newVoiceAVSyncBuffer(voiceMaxPCMBufferSamples)
+-	avatarAudioCh := make(chan *pb.AudioChunk, 8)
+-	go func() {
+-		defer close(avatarAudioCh)
+-		for {
+-			select {
+-			case <-ctx.Done():
+-				return
+-			case chunk, ok := <-ttsAudioCh:
+-				if !ok {
+-					return
+-				}
+-				// Avatar decodes AudioChunk.Format itself; browser audio and
+-				// recordings need signed 16-bit PCM.
+-				pcm, pcmSampleRate := audioChunkToPCM16(chunk)
+-				if len(pcm) > 0 {
+-					appendRecAudio(pcm, pcmSampleRate)
+-					if dropped := stdSyncBuf.appendPCM(pcm, pcmSampleRate); dropped > 0 {
+-						bufferedSamples, _, _, _ := stdSyncBuf.snapshot()
+-						log.Printf("std sync buffer overflow for session %s: dropped=%d bytes, buffered_samples=%d", sessionID, dropped, bufferedSamples)
+-					}
+-				}
+-				// Forward original audio to avatar. Browser audio is published
+-				// later as part of the same paced AV segment as the video.
+-				select {
+-				case avatarAudioCh <- chunk:
+-				case <-ctx.Done():
+-					return
+-				}
+-			case err, ok := <-ttsErrCh:
+-				if !ok {
+-					ttsErrCh = nil
+-					continue
+-				}
+-				if err == nil {
+-					continue
+-				}
+-				log.Printf("TTS stream error for session %s: %v", sessionID, err)
+-				o.broadcastError(sessionID, "Speech synthesis failed")
+-				return
+-			}
+-		}
+-	}()
+-
+-	// Delay speaking status until first video frame arrives (avoids frozen-frame stall on frontend).
+-	speakingBroadcasted := false
+-
+-	// Serialize with concurrent avatar operations (see runVoiceLLMPipeline comment).
+-	o.avatarMu.Lock()
+-	avatarCtx := inference.WithTraceContext(ctx, inference.TraceContext{SessionID: sessionID})
+-	videoCh, videoErrCh := o.inference.GenerateAvatarStream(avatarCtx, avatarAudioCh)
+-
+-	// 5. Publish paced AV segments. The standard/Qwen chain receives audio
+-	// before video, so PCM is buffered and sliced to match each video segment.
+-	var (
+-		segVideo        []byte
+-		segFrames       int
+-		segWidth        int
+-		segHeight       int
+-		segFPS          int
+-		segCount        int
+-		segSeq          int64
+-		segMediaStartMS int64
+-		firstFrameSent  bool
+-	)
+-	flushStdSeg := func(isFinalSeg bool) {
+-		if segCount == 0 {
+-			return
+-		}
+-		segSeq++
+-		segDurationMS := durationMSForVideo(segFrames, segFPS)
+-		if peer := lookupStdPeer(); peer != nil {
+-			segPCM, outSamples, wantSamples, bufferedSamplesAfterTake := stdSyncBuf.takeSegmentPCM(segFrames, segFPS, isFinalSeg)
+-			_, _, _, sampleRate := stdSyncBuf.snapshot()
+-			if sampleRate <= 0 {
+-				sampleRate = 16000
+-			}
+-			if segSeq == 1 && outSamples < wantSamples {
+-				bufferedSamples, _, _, _ := stdSyncBuf.snapshot()
+-				log.Printf("std av drift for session %s: out_samples=%d want_samples=%d frames=%d fps=%d buffered_samples=%d",
+-					sessionID, outSamples, wantSamples, segFrames, segFPS, bufferedSamples)
+-			}
+-			if isFinalSeg && bufferedSamplesAfterTake > 0 {
+-				log.Printf("std av strict trim tail session=%s: trimmed_samples=%d", sessionID, bufferedSamplesAfterTake)
+-			}
+-			raw := &mediapeer.RawAVSegment{
+-				TraceLabel:   voiceTraceLabel(sessionID, turnSeq, "standard", "", segSeq),
+-				Epoch:        turnSeq,
+-				SegmentSeq:   segSeq,
+-				MediaStartMS: segMediaStartMS,
+-				DurationMS:   segDurationMS,
+-				RGB:          segVideo,
+-				PCM:          segPCM,
+-				SampleRate:   sampleRate,
+-				Width:        segWidth,
+-				Height:       segHeight,
+-				FPS:          segFPS,
+-				NumFrames:    segFrames,
+-			}
+-			if err := peer.SendAVSegment(raw); err != nil {
+-				log.Printf("std av SendAVSegment failed session=%s: %v", sessionID, err)
+-			}
+-		}
+-		segMediaStartMS += segDurationMS
+-		segVideo = nil
+-		segFrames = 0
+-		segCount = 0
+-	}
+-
+-	for {
+-		select {
+-		case <-ctx.Done():
+-			flushStdSeg(false)
+-			finishRec()
+-			o.avatarMu.Unlock()
+-			return
+-		case chunk, ok := <-videoCh:
+-			if !ok {
+-				flushStdSeg(true)
+-				finishRec()
+-				if err := <-videoErrCh; err != nil {
+-					log.Printf("Avatar stream error for session %s: %v", sessionID, err)
+-					o.broadcastError(sessionID, "Avatar generation failed")
+-				}
+-				if ctx.Err() == nil {
+-					if peer := lookupStdPeer(); peer != nil {
+-						peer.WaitAVDrain(10 * time.Second)
+-					}
+-				}
+-				o.avatarMu.Unlock()
+-				return
+-			}
+-			nf := int(chunk.GetNumFrames())
+-			if nf <= 0 && int(chunk.GetWidth())*int(chunk.GetHeight())*3 > 0 {
+-				nf = len(chunk.GetData()) / (int(chunk.GetWidth()) * int(chunk.GetHeight()) * 3)
+-			}
+-			fps := int(chunk.GetFps())
+-			if fps <= 0 {
+-				fps = 25
+-			}
+-			if !firstFrameSent {
+-				firstFrameSent = true
+-				log.Printf("TTFF std pipeline session=%s first_video_chunk=%.3fs", sessionID, time.Since(pipelineStart).Seconds())
+-				if !speakingBroadcasted {
+-					speakingBroadcasted = true
+-					session.SetState(StateSpeaking)
+-					o.broadcastStatus(sessionID, "speaking")
+-				}
+-			}
+-			beginRec(int(chunk.GetWidth()), int(chunk.GetHeight()), fps)
+-			writeRecVideo(chunk.GetData())
+-			segVideo = append(segVideo, chunk.GetData()...)
+-			segFrames += nf
+-			segWidth = int(chunk.GetWidth())
+-			segHeight = int(chunk.GetHeight())
+-			segFPS = fps
+-			segCount++
+-			if segCount >= stdChunksPerSegment || chunk.GetIsFinal() {
+-				flushStdSeg(chunk.GetIsFinal())
+-			}
+-		}
+-	}
++	// 4. Feed standard TTS audio into the one CyberVerse avatar AV driver.
++	// The shared driver owns avatar inference, AV sync, segment pacing and
++	// MediaPeer publication; this pipeline keeps only standard-turn callbacks.
++	avatarAudioCh := make(chan *pb.AudioChunk, 8)
++	go func() {
++		defer close(avatarAudioCh)
++		for {
++			select {
++			case <-ctx.Done():
++				return
++			case chunk, ok := <-ttsAudioCh:
++				if !ok {
++					return
++				}
++				select {
++				case avatarAudioCh <- chunk:
++				case <-ctx.Done():
++					return
++				}
++			case err, ok := <-ttsErrCh:
++				if !ok {
++					ttsErrCh = nil
++					continue
++				}
++				if err == nil {
++					continue
++				}
++				log.Printf("TTS stream error for session %s: %v", sessionID, err)
++				o.broadcastError(sessionID, "Speech synthesis failed")
++				return
++			}
++		}
++	}()
++
++	err := o.runAvatarAVDriver(ctx, sessionID, avatarAudioCh, avatarAVDriverOptions{
++		Epoch:         turnSeq,
++		FlushOnCancel: true,
++		TraceLabel: func(segSeq int64) string {
++			return voiceTraceLabel(sessionID, turnSeq, "standard", "", segSeq)
++		},
++		OnAudio: appendRecAudio,
++		OnFirstVideo: func(width, height, fps int) {
++			log.Printf("TTFF std pipeline session=%s first_video_chunk=%.3fs", sessionID, time.Since(pipelineStart).Seconds())
++			session.SetState(StateSpeaking)
++			o.broadcastStatus(sessionID, "speaking")
++			beginRec(width, height, fps)
++		},
++		OnVideoChunk: writeRecVideo,
++		OnPeerSendError: func(err error) {
++			log.Printf("std av SendAVSegment failed session=%s: %v", sessionID, err)
++		},
++	})
++	finishRec()
++	if err != nil {
++		if errors.Is(err, context.Canceled) || ctx.Err() != nil {
++			return
++		}
++		log.Printf("Avatar stream error for session %s: %v", sessionID, err)
++		o.broadcastError(sessionID, "Avatar generation failed")
++	}
+ }
+
+ // HandleAudioStream processes incoming user audio through the session's pipeline.
+diff --git a/server/internal/orchestrator/external_avatar_audio.go b/server/internal/orchestrator/external_avatar_audio.go
+new file mode 100644
+index 0000000..3e5abd3
+--- /dev/null
++++ b/server/internal/orchestrator/external_avatar_audio.go
+@@ -0,0 +1,390 @@
++package orchestrator
++
++import (
++	"context"
++	"errors"
++	"fmt"
++	"strings"
++	"time"
++
++	"github.com/cyberverse/server/internal/inference"
++	"github.com/cyberverse/server/internal/mediapeer"
++	"github.com/cyberverse/server/internal/pb"
++)
++
++// externalAvatarAudioStream is intentionally an internal CyberVerse session
++// primitive. It does not expose transport, token-signing, lip-sync, or avatar
++// state to the embedding application.
++type externalAvatarAudioStream struct {
++	replyID      string
++	nextSequence uint64
++	input        chan *pb.AudioChunk
++	cancel       context.CancelFunc
++	done         chan error
++	closed       bool
++}
++
++// avatarAVDriverOptions carries lifecycle-only callbacks into the one
++// CyberVerse-owned avatar AV driver. The driver itself remains authoritative
++// for avatar inference, AV sync, pacing and MediaPeer publication.
++type avatarAVDriverOptions struct {
++	Epoch               uint64
++	RequirePeer         bool
++	FailOnPeerSendError bool
++	FlushOnCancel       bool
++	TraceLabel          func(int64) string
++	OnAudio             func([]byte, int)
++	OnFirstVideo        func(int, int, int)
++	OnVideoChunk        func([]byte)
++	OnPeerSendError     func(error)
++}
++
++func cloneExternalAudioChunk(chunk *pb.AudioChunk) *pb.AudioChunk {
++	if chunk == nil {
++		return nil
++	}
++	return &pb.AudioChunk{
++		Data:        append([]byte(nil), chunk.GetData()...),
++		SampleRate:  chunk.GetSampleRate(),
++		Channels:    chunk.GetChannels(),
++		Format:      chunk.GetFormat(),
++		IsFinal:     chunk.GetIsFinal(),
++		TimestampMs: chunk.GetTimestampMs(),
++	}
++}
++
++func (o *Orchestrator) avatarMediaPeer(sessionID string) mediapeer.MediaPeer {
++	o.mu.RLock()
++	defer o.mu.RUnlock()
++	return o.peers[sessionID]
++}
++
++// runAvatarAVDriver is the single non-silent CyberVerse AudioChunk -> avatar ->
++// paced RawAVSegment driver shared by standard TTS and external audio ingress.
++// Callers can observe audio/video lifecycle for recording/status only; they do
++// not own avatar inference, AV synchronization, pacing, or publication.
++func (o *Orchestrator) runAvatarAVDriver(ctx context.Context, sessionID string, input <-chan *pb.AudioChunk, options avatarAVDriverOptions) error {
++	if o == nil || o.inference == nil {
++		return errors.New("inference service is not configured")
++	}
++	if options.RequirePeer && o.avatarMediaPeer(sessionID) == nil {
++		return errors.New("media peer not found")
++	}
++
++	driverCtx, cancel := context.WithCancel(ctx)
++	defer cancel()
++
++	syncBuf := newVoiceAVSyncBuffer(voiceMaxPCMBufferSamples)
++	avatarInput := make(chan *pb.AudioChunk, 8)
++	feedDone := make(chan error, 1)
++	go func() {
++		defer close(avatarInput)
++		for {
++			select {
++			case <-driverCtx.Done():
++				feedDone <- driverCtx.Err()
++				return
++			case chunk, ok := <-input:
++				if !ok {
++					feedDone <- nil
++					return
++				}
++				pcm, sampleRate := audioChunkToPCM16(chunk)
++				if len(pcm) > 0 {
++					if options.OnAudio != nil {
++						options.OnAudio(pcm, sampleRate)
++					}
++					if dropped := syncBuf.appendPCM(pcm, sampleRate); dropped > 0 {
++						bufferedSamples, _, _, _ := syncBuf.snapshot()
++						log.Printf("avatar AV sync buffer overflow for session %s: dropped=%d bytes, buffered_samples=%d", sessionID, dropped, bufferedSamples)
++					}
++				}
++				select {
++				case avatarInput <- chunk:
++				case <-driverCtx.Done():
++					feedDone <- driverCtx.Err()
++					return
++				}
++			}
++		}
++	}()
++
++	o.avatarMu.Lock()
++	defer o.avatarMu.Unlock()
++	avatarCtx := inference.WithTraceContext(driverCtx, inference.TraceContext{SessionID: sessionID})
++	videoCh, videoErrCh := o.inference.GenerateAvatarStream(avatarCtx, avatarInput)
++
++	var (
++		segVideo        []byte
++		segFrames       int
++		segWidth        int
++		segHeight       int
++		segFPS          int
++		segCount        int
++		segSeq          int64
++		segMediaStartMS int64
++		firstFrameSent  bool
++	)
++	flush := func(isFinalSeg bool) error {
++		if segCount == 0 {
++			return nil
++		}
++		segSeq++
++		segDurationMS := durationMSForVideo(segFrames, segFPS)
++		if peer := o.avatarMediaPeer(sessionID); peer != nil {
++			segPCM, outSamples, wantSamples, bufferedSamplesAfterTake := syncBuf.takeSegmentPCM(segFrames, segFPS, isFinalSeg)
++			_, _, _, sampleRate := syncBuf.snapshot()
++			if sampleRate <= 0 {
++				sampleRate = 16000
++			}
++			if segSeq == 1 && outSamples < wantSamples {
++				bufferedSamples, _, _, _ := syncBuf.snapshot()
++				log.Printf("avatar AV drift for session %s: out_samples=%d want_samples=%d frames=%d fps=%d buffered_samples=%d",
++					sessionID, outSamples, wantSamples, segFrames, segFPS, bufferedSamples)
++			}
++			if isFinalSeg && bufferedSamplesAfterTake > 0 {
++				log.Printf("avatar AV strict trim tail session=%s: trimmed_samples=%d", sessionID, bufferedSamplesAfterTake)
++			}
++			traceLabel := ""
++			if options.TraceLabel != nil {
++				traceLabel = options.TraceLabel(segSeq)
++			}
++			raw := &mediapeer.RawAVSegment{
++				TraceLabel:   traceLabel,
++				Epoch:        options.Epoch,
++				SegmentSeq:   segSeq,
++				MediaStartMS: segMediaStartMS,
++				DurationMS:   segDurationMS,
++				RGB:          segVideo,
++				PCM:          segPCM,
++				SampleRate:   sampleRate,
++				Width:        segWidth,
++				Height:       segHeight,
++				FPS:          segFPS,
++				NumFrames:    segFrames,
++			}
++			if err := peer.SendAVSegment(raw); err != nil {
++				if options.FailOnPeerSendError {
++					return err
++				}
++				if options.OnPeerSendError != nil {
++					options.OnPeerSendError(err)
++				}
++			}
++		} else if options.RequirePeer {
++			return errors.New("media peer not found")
++		}
++		segMediaStartMS += segDurationMS
++		segVideo = nil
++		segFrames = 0
++		segCount = 0
++		return nil
++	}
++
++	for {
++		select {
++		case <-driverCtx.Done():
++			if options.FlushOnCancel {
++				if err := flush(false); err != nil {
++					return err
++				}
++			}
++			return driverCtx.Err()
++		case chunk, ok := <-videoCh:
++			if !ok {
++				if err := flush(true); err != nil {
++					return err
++				}
++				if err := <-videoErrCh; err != nil {
++					return err
++				}
++				cancel()
++				if feedErr := <-feedDone; feedErr != nil && !errors.Is(feedErr, context.Canceled) {
++					return feedErr
++				}
++				if ctx.Err() == nil {
++					if peer := o.avatarMediaPeer(sessionID); peer != nil {
++						peer.WaitAVDrain(10 * time.Second)
++					}
++				}
++				return nil
++			}
++			nf := int(chunk.GetNumFrames())
++			width, height := int(chunk.GetWidth()), int(chunk.GetHeight())
++			if nf <= 0 && width*height*3 > 0 {
++				nf = len(chunk.GetData()) / (width * height * 3)
++			}
++			fps := int(chunk.GetFps())
++			if fps <= 0 {
++				fps = 25
++			}
++			if !firstFrameSent {
++				firstFrameSent = true
++				if options.OnFirstVideo != nil {
++					options.OnFirstVideo(width, height, fps)
++				}
++			}
++			if options.OnVideoChunk != nil {
++				options.OnVideoChunk(chunk.GetData())
++			}
++			segVideo = append(segVideo, chunk.GetData()...)
++			segFrames += nf
++			segWidth = width
++			segHeight = height
++			segFPS = fps
++			segCount++
++			if segCount >= stdChunksPerSegment || chunk.GetIsFinal() {
++				if err := flush(chunk.GetIsFinal()); err != nil {
++					return err
++				}
++			}
++		}
++	}
++}
++
++// HandleExternalAvatarAudioChunk accepts already-synthesized audio while
++// preserving CyberVerse as the avatar/AV/LiveKit authority. Each reply starts
++// at sequence zero and subsequent chunks for that reply must be strictly
++// contiguous. Multiple finalized replies may drain concurrently at the
++// session level; avatarMu inside runAvatarAVDriver serializes avatar authority.
++func (o *Orchestrator) HandleExternalAvatarAudioChunk(ctx context.Context, sessionID, replyID string, sequence uint64, chunk *pb.AudioChunk) error {
++	if o == nil || o.inference == nil {
++		return errors.New("inference service is not configured")
++	}
++	if o.streamingMode != "livekit" {
++		return errors.New("external avatar audio requires CyberVerse livekit streaming mode")
++	}
++	if _, err := o.sessionMgr.Get(sessionID); err != nil {
++		return err
++	}
++	if !o.AvatarEnabled() {
++		return errors.New("avatar inference is disabled")
++	}
++	replyID = strings.TrimSpace(replyID)
++	if replyID == "" {
++		return errors.New("external audio reply id is required")
++	}
++	if chunk == nil || len(chunk.GetData()) == 0 || chunk.GetSampleRate() <= 0 || chunk.GetChannels() <= 0 {
++		return errors.New("invalid external audio chunk")
++	}
++	format := strings.ToLower(strings.TrimSpace(chunk.GetFormat()))
++	if format != "s16le" && format != "float32" {
++		return fmt.Errorf("unsupported external audio format %q", format)
++	}
++
++	o.externalAudioMu.Lock()
++	sessionStreams := o.externalAudio[sessionID]
++	if sessionStreams == nil {
++		sessionStreams = make(map[string]*externalAvatarAudioStream)
++		o.externalAudio[sessionID] = sessionStreams
++	}
++	stream := sessionStreams[replyID]
++	if stream == nil {
++		if sequence != 0 {
++			o.externalAudioMu.Unlock()
++			return errors.New("external audio stream must start at sequence zero")
++		}
++		streamCtx, cancel := context.WithCancel(context.Background())
++		stream = &externalAvatarAudioStream{
++			replyID: replyID,
++			input:   make(chan *pb.AudioChunk, 8),
++			cancel:  cancel,
++			done:    make(chan error, 1),
++		}
++		sessionStreams[replyID] = stream
++		go func(s *externalAvatarAudioStream, streamReplyID string) {
++			err := o.runExternalAvatarAudioStream(streamCtx, sessionID, streamReplyID, s.input)
++			s.done <- err
++			close(s.done)
++			o.externalAudioMu.Lock()
++			if streams := o.externalAudio[sessionID]; streams != nil && streams[streamReplyID] == s {
++				delete(streams, streamReplyID)
++				if len(streams) == 0 {
++					delete(o.externalAudio, sessionID)
++				}
++			}
++			o.externalAudioMu.Unlock()
++		}(stream, replyID)
++	}
++	if stream.closed {
++		o.externalAudioMu.Unlock()
++		return errors.New("external audio stream is already final")
++	}
++	if sequence != stream.nextSequence {
++		o.externalAudioMu.Unlock()
++		return fmt.Errorf("external audio sequence mismatch: got %d want %d", sequence, stream.nextSequence)
++	}
++	stream.nextSequence++
++	copyChunk := cloneExternalAudioChunk(chunk)
++	final := copyChunk.GetIsFinal()
++	if final {
++		stream.closed = true
++	}
++	o.externalAudioMu.Unlock()
++
++	select {
++	case stream.input <- copyChunk:
++	case err := <-stream.done:
++		if err == nil {
++			return errors.New("external avatar audio stream closed")
++		}
++		return err
++	case <-ctx.Done():
++		return ctx.Err()
++	}
++	if final {
++		close(stream.input)
++	}
++	return nil
++}
++
++// StopExternalAvatarAudio is called by CyberVerse session deletion before the
++// existing TeardownSession path. It cancels every reply stream for the session,
++// is idempotent, and bounds the combined drain wait.
++func (o *Orchestrator) StopExternalAvatarAudio(sessionID string) {
++	if o == nil {
++		return
++	}
++	o.externalAudioMu.Lock()
++	sessionStreams := o.externalAudio[sessionID]
++	delete(o.externalAudio, sessionID)
++	streams := make([]*externalAvatarAudioStream, 0, len(sessionStreams))
++	for _, stream := range sessionStreams {
++		stream.closed = true
++		streams = append(streams, stream)
++	}
++	o.externalAudioMu.Unlock()
++	if len(streams) == 0 {
++		return
++	}
++	for _, stream := range streams {
++		stream.cancel()
++	}
++	timer := time.NewTimer(3 * time.Second)
++	defer timer.Stop()
++	for _, stream := range streams {
++		select {
++		case <-stream.done:
++		case <-timer.C:
++			return
++		}
++	}
++}
++
++// runExternalAvatarAudioStream delegates to the exact same CyberVerse avatar
++// AV driver as standard TTS. External ingress owns only session/reply ordering.
++func (o *Orchestrator) runExternalAvatarAudioStream(ctx context.Context, sessionID, replyID string, input <-chan *pb.AudioChunk) error {
++	return o.runAvatarAVDriver(ctx, sessionID, input, avatarAVDriverOptions{
++		RequirePeer:         true,
++		FailOnPeerSendError: true,
++		TraceLabel: func(segSeq int64) string {
++			return voiceTraceLabel(sessionID, 0, replyID, "", segSeq)
++		},
++		OnFirstVideo: func(_, _, _ int) {
++			if session, err := o.sessionMgr.Get(sessionID); err == nil {
++				session.SetState(StateSpeaking)
++				o.broadcastStatus(sessionID, "speaking")
++			}
++		},
++	})
++}
+-- 
+2.45.2

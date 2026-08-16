@@ -21,10 +21,11 @@ const PAYLOAD_EXCLUDED_PATHS = new Set([
 ]);
 const RUNTIME_PAYLOAD_ALLOWLIST = Object.freeze([
   { source: 'backend', destination: 'backend', excludedPrefixes: ['tests/'] },
-  { source: 'frontend', destination: 'frontend', excludedPrefixes: [] },
+  { source: 'assets', destination: 'assets', excludedPrefixes: [] },
   { source: 'shared', destination: 'shared', excludedPrefixes: [] },
   { source: 'electron', destination: 'electron_runtime', excludedPrefixes: [] },
-  { source: 'diagnostics', destination: 'diagnostics', excludedPrefixes: [] }
+  { source: 'diagnostics', destination: 'diagnostics', excludedPrefixes: [] },
+  { source: 'vendor/sillytavern/1.18.0', destination: 'vendor/sillytavern/1.18.0', excludedPrefixes: [] }
 ]);
 const FORBIDDEN_RUNTIME_SEGMENTS = Object.freeze([
   'tests/', 'evidence/', 'verification/', 'tools/', 'installer/', 'installers/',
@@ -184,7 +185,7 @@ function isReleaseIdentityScanCandidate(relativePath) {
   if (normalized === 'package.json') return true;
   if (normalized === 'release/release-source.json') return false;
   if (RELEASE_IDENTITY_SCAN_EXCLUDED_PREFIXES.some(prefix => normalized.startsWith(prefix))) return false;
-  if (/(^|\/)(evidence|verification|fixtures?|test-fixtures|dist|build|release-output|staging|node_modules)(\/|$)/i.test(normalized)) return false;
+  if (/(^|\/)tests(\/|$)/i.test(normalized)) return false;
   const isRootSource = !normalized.includes('/');
   if (!isRootSource && !RELEASE_IDENTITY_SCAN_ROOTS.some(prefix => normalized.startsWith(prefix))) return false;
   return RELEASE_IDENTITY_SCAN_EXTENSIONS.has(path.extname(normalized).toLowerCase());

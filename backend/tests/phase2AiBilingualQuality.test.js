@@ -5,7 +5,6 @@ const assert = require('node:assert/strict');
 const { buildSocialAnalysisPresentation } = require('../services/socialAnalysisPresentationService');
 const terminology = require('../services/translationTerminologyService');
 const { translateToChinese } = require('../services/bilingualUnderstandingService');
-const learningQuality = require('../services/replyLearningQualityService');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -71,23 +70,4 @@ test('translation quality blocks missing numbers or links', () => {
   assert.equal(quality.issues.some(row => row.code === 'URL_MISMATCH'), true);
 });
 
-test('learning quality uses real send/reject/edit/language and learning-hit evidence', () => {
-  const quality = learningQuality.summarize([
-    {
-      eventType: 'sent', originalText: 'Danke!', finalText: 'Vielen Dank!', targetLanguage: 'German', modelId: 'qwen3.5:4b',
-      generationMetadata: { learningApplication: { applied: [{ key: 'tone', value: 'warm' }] } }
-    },
-    {
-      eventType: 'sent', originalText: 'Gerne.', finalText: 'Gerne.', targetLanguage: 'German', modelId: 'qwen3.5:4b',
-      generationMetadata: { learningApplication: { applied: [] } }
-    },
-    { eventType: 'rejected', rejectionReason: '太长', modelId: 'qwen3.5:4b' }
-  ]);
-  assert.equal(quality.decisionCount, 3);
-  assert.equal(quality.sentCount, 2);
-  assert.equal(quality.rejectedCount, 1);
-  assert.equal(quality.learningEligibleCount, 2);
-  assert.equal(quality.learningHitCount, 1);
-  assert.equal(quality.sufficientEvidence, true);
-  assert.equal(quality.byModel[0].model, 'qwen3.5:4b');
-});
+test('learning quality consumes bounded outcome evidence instead of learned-profile injection', () => { const service=require('../services/replyFeedbackLearningService');const sent=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',styleVariant:'short',personaTruthReceipt:{pass:true}});const rejected=service.buildImmutableFeedbackSignal({eventType:'rejected',candidateId:'r',contactId:'p',conversationId:'c',hasExplicitRejectionReason:true,personaTruthReceipt:{pass:true}});assert.equal(sent.signal.eventType,'sent');assert.equal(rejected.signal.negativeEvidence,true); });

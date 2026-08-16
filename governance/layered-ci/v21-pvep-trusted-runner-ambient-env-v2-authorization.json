@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PVEP-TRUSTED-RUNNER-AMBIENT-ENV-HARDENING-P0-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Replace the ineffective V1 authorization lineage with a fresh exact-main authorization for the existing PVEP trusted-runner hardening. PR #204 proved that V1 never became implementation authority because PR #202 declared base b1c2ab865a64821956f7f25cb822db61b320e96e while its actual ordinary merge first parent was dfcf813e10d4bdbe49fa9018ec2334a0654ac8a3. The generic delegated-governance evaluator requires exact first-parent equality. This V2 authorization permits the same bottom-layer repair only: deterministic trusted child environment isolation plus safe digest-only failure diagnostics. It does not authorize policy weakening, workflow changes, dependency changes, retries, timeout relaxation, shell execution, candidate overrides, or a new verification framework.",
+  "base": {
+    "branch": "main",
+    "commit": "be18cb5668297237de5d590140fa2776938c6983"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-pvep-trusted-runner-ambient-env-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-pvep-trusted-runner-ambient-env-v2-authorization.json"
+    ],
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-pvep-trusted-runner-ambient-env-v2",
+    "allowedChangedPaths": [
+      "tests/verification/pvep-trusted-runner-contract.test.js",
+      "tools/verification/pvep-trusted-runner.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "92ca188edf8203e81c5d7b93f2877b7b8cff3656a55cdfc96902d28df1cb0b8c",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "firstCommitMustBeTestOnly": true,
+    "firstCommitAllowedChangedPaths": [
+      "tests/verification/pvep-trusted-runner-contract.test.js"
+    ],
+    "firstCommitChangedFileSetSha256": "049263a7af5af21a32d8aebd41feaff233f191d8f1733ae9122cf2a785abfde5"
+  },
+  "ossFit": {
+    "disposition": "EXISTING_PVEP_HARDENING_NO_NEW_INFRASTRUCTURE",
+    "newYanceFrameworkAuthorized": false,
+    "newThirdPartyDependencyRequired": false,
+    "basis": "The repair is limited to the already-authorized PVEP base-owned runner and its contract tests, using Node.js core child_process and environment primitives. No replacement verifier, runner framework, signing system, command executor, or dependency is introduced."
+  },
+  "v1LineageDisposition": {
+    "authorizationPullRequest": 202,
+    "authorizationPath": "governance/layered-ci/v21-pvep-trusted-runner-ambient-env-authorization.json",
+    "declaredBaseCommit": "b1c2ab865a64821956f7f25cb822db61b320e96e",
+    "actualMergeCommit": "6e377d25e0555f3ea8d80eff6ec59f7c5b4b290a",
+    "actualMergeFirstParent": "dfcf813e10d4bdbe49fa9018ec2334a0654ac8a3",
+    "implementationPullRequest": 204,
+    "implementationDisposition": "CLOSED_UNMERGED_INVALID_AUTHORITY_LINEAGE",
+    "supersessionDeclarationUsed": false,
+    "reasonSupersessionIsNotUsed": "The V1 authorization is not an effective delegated-governance record, and the existing supersession graph requires an effective target record. V2 therefore uses a distinct authorization path and distinct implementation branch rather than declaring an invalid supersession edge."
+  },
+  "requiredGenericCapability": {
+    "name": "deterministicTrustedCommandEnvironmentAndFailureEvidence",
+    "requirements": [
+      "Base-owned command execution must not inherit ambient Node process-control variables such as NODE_OPTIONS or NODE_PATH.",
+      "The child environment must be constructed from an explicit minimal cross-platform allowlist required for executable discovery and temporary-directory operation; arbitrary repository, workflow, runner, and secret environment variables must not flow through by default.",
+      "Environment key matching must account for Windows case-insensitive environment semantics.",
+      "The trusted command set remains the sole authority for executable, argv, expected exit code, generated roots, and artifact declarations.",
+      "A failed child command must still produce the existing evidence JSON with verificationStatus VERIFIED_FAIL before the runner exits nonzero.",
+      "Failure diagnostics written to stderr must be machine-verifiable and safe: include commandId, expected/observed exit code, signal or spawn error code, and stdout/stderr digests, but never raw child stdout/stderr or environment values.",
+      "Workspace Head and dirty-worktree fail-closed checks remain unchanged.",
+      "No retry, timeout relaxation, ignored failure, fallback command, shell execution, or candidate-controlled override is permitted."
+    ]
+  },
+  "failureFirst": {
+    "requiredCausalRed": [
+      "The first V2 implementation commit changes only tests/verification/pvep-trusted-runner-contract.test.js.",
+      "A running trusted runner with hostile ambient NODE_OPTIONS, NODE_PATH, and an arbitrary ambient variable must demonstrate that current child execution inherits those controls or variables before the product repair is added.",
+      "A deliberately failing trusted child must demonstrate the absence of safe structured child-failure diagnostics while preserving fail evidence before the product repair is added."
+    ],
+    "requiredGreen": [
+      "The same trusted command passes when the parent process contains hostile or invalid NODE_OPTIONS and NODE_PATH because those variables are not inherited by the child.",
+      "Arbitrary ambient variables and secret-like variables are absent from the child environment unless explicitly allowlisted as platform-critical.",
+      "A deliberate child exit failure remains fail-closed and emits safe structured diagnostics with no raw stdout or stderr.",
+      "Existing base-owned runner, exact-Head, workspace cleanliness, trusted command-set ownership, evidence digest, and subject binding tests remain GREEN on Linux and Windows."
+    ]
+  },
+  "requiredSequence": [
+    "authorization exact Head passes required governance, Stage, Layered, ACV2, PVEP, and cross-platform checks plus independent review",
+    "immediately before authorization merge, live main must still equal base.commit exactly; zero-path-overlap drift is not sufficient",
+    "authorization ordinary two-parent merges with parent[0] exactly equal to base.commit",
+    "create fix/v21-pvep-trusted-runner-ambient-env-v2 from that exact authorization merge commit",
+    "first implementation commit changes only tests/verification/pvep-trusted-runner-contract.test.js and proves the ambient-environment and safe-diagnostic REDs",
+    "repair tools/verification/pvep-trusted-runner.js without changing command sets, workflows, dependencies, or governance policy",
+    "seal exact-Head Linux and Windows verification plus repository gates and independent review",
+    "stop at implementation final merge boundary for explicit merge authorization",
+    "after the root repair is trusted-main code, revalidate PR #192 against the fresh trusted base without weakening or bypassing PVEP"
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  }
+}

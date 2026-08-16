@@ -11,6 +11,11 @@ const mediaPipeline = require('./mediaPipeline');
 const { deepFreeze } = require('../lib/deepFreeze');
 const { PATHS } = require('../config');
 
+const SENSEVOICE_AUTHORITY = 'SenseVoice';
+const SENSEVOICE_EXECUTABLE = process.platform === 'win32' ? 'llama-funasr-sensevoice.exe' : 'llama-funasr-sensevoice';
+const SENSEVOICE_MODEL = 'sense-voice-small-q8_0.gguf';
+const SENSEVOICE_LANGUAGE = /<\|(zh|en|yue|ja|ko|nospeech)\|>/iu;
+
 function tokenizeCommand(command) {
   const parts = String(command || '').match(/(?:[^\s"]+|"[^"]*")+/g) || [];
   return parts.map(part => part.replace(/^"|"$/g, ''));
@@ -23,7 +28,7 @@ function runCommand(command, args, timeoutMs = 180000) {
     let stderr = '';
     const timer = setTimeout(() => {
       child.kill('SIGKILL');
-      reject(Object.assign(new Error('语音转写超时'), { code: 'TRANSCRIPTION_TIMEOUT' }));
+      reject(Object.assign(new Error('语音处理超时'), { code: 'TRANSCRIPTION_TIMEOUT' }));
     }, timeoutMs);
     child.stdout.on('data', chunk => { stdout += String(chunk); });
     child.stderr.on('data', chunk => { stderr += String(chunk); });
@@ -33,7 +38,7 @@ function runCommand(command, args, timeoutMs = 180000) {
     });
     child.on('close', code => {
       clearTimeout(timer);
-      if (code !== 0) return reject(Object.assign(new Error(stderr.trim() || `转写命令退出码 ${code}`), { code: 'TRANSCRIPTION_COMMAND_FAILED' }));
+      if (code !== 0) return reject(Object.assign(new Error(stderr.trim() || `语音处理命令退出码 ${code}`), { code: 'TRANSCRIPTION_COMMAND_FAILED' }));
       resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
     });
   });
@@ -53,21 +58,6 @@ function firstExisting(paths = []) {
 }
 
 function sourceRoot() { return path.resolve(__dirname, '..', '..'); }
-
-function discoverModel() {
-  const configured = String(process.env.YANCE_WHISPER_MODEL || '').trim();
-  const candidates = [
-    configured,
-    path.join(PATHS.models, 'whisper', 'ggml-base.bin'),
-    path.join(PATHS.models, 'whisper', 'ggml-small.bin'),
-    path.join(PATHS.models, 'ggml-base.bin'),
-    path.join(sourceRoot(), 'tools', 'whisper', 'ggml-base.bin'),
-    path.join(sourceRoot(), 'tools', 'whisper', 'models', 'ggml-base.bin'),
-    path.join(process.cwd(), 'tools', 'whisper', 'ggml-base.bin'),
-    path.join(process.cwd(), 'tools', 'whisper', 'models', 'ggml-base.bin')
-  ].filter(Boolean);
-  return firstExisting(candidates);
-}
 
 function cleanupTemporaryDirectory(directory, operation) {
   if (!directory) return;
@@ -90,201 +80,169 @@ function cleanupTemporaryDirectory(directory, operation) {
 
 function discoverFfmpeg() {
   const candidates = [
-    path.join(PATHS.models, 'whisper', 'ffmpeg.exe'),
     path.join(PATHS.root, 'tools', 'ffmpeg', 'ffmpeg.exe'),
     path.join(PATHS.root, 'tools', 'ffmpeg.exe'),
-    path.join(process.cwd(), 'tools', 'ffmpeg', 'ffmpeg.exe'),
-    path.join(process.cwd(), 'tools', 'ffmpeg.exe')
+    path.join(sourceRoot(), 'tools', 'ffmpeg', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'),
+    path.join(process.cwd(), 'tools', 'ffmpeg', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
   ];
   return firstExisting(candidates) || executableOnPath(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
 }
 
-function discoverEngine() {
-  const configured = String(process.env.YANCE_WHISPER_COMMAND || '').trim();
-  if (configured) return { kind: 'template', commandLine: configured, source: 'YANCE_WHISPER_COMMAND' };
+function voiceRuntimeRoots() {
+  const configured = String(process.env.YANCE_VOICE_BRAIN_RUNTIME_DIR || '').trim();
+  return [
+    configured,
+    path.join(PATHS.root, 'runtime', 'voice-brain'),
+    path.join(PATHS.models, 'voice-brain'),
+    path.join(sourceRoot(), 'runtime', 'voice-brain'),
+    path.join(process.cwd(), 'runtime', 'voice-brain')
+  ].filter(Boolean).map(value => path.resolve(value));
+}
 
-  const localCandidates = [
-    path.join(PATHS.models, 'whisper', 'whisper-cli.exe'),
-    path.join(PATHS.models, 'whisper', 'main.exe'),
-    path.join(PATHS.root, 'tools', 'whisper', 'whisper-cli.exe'),
-    path.join(PATHS.root, 'tools', 'whisper', 'main.exe'),
-    path.join(sourceRoot(), 'tools', 'whisper', 'whisper-cli.exe'),
-    path.join(sourceRoot(), 'tools', 'whisper', 'main.exe'),
-    path.join(process.cwd(), 'tools', 'whisper', 'whisper-cli.exe'),
-    path.join(process.cwd(), 'tools', 'whisper', 'main.exe')
-  ];
-  const whisperCpp = firstExisting(localCandidates) || executableOnPath(process.platform === 'win32' ? 'whisper-cli.exe' : 'whisper-cli') || executableOnPath(process.platform === 'win32' ? 'main.exe' : 'whisper-cpp');
-  if (whisperCpp) {
-    const model = discoverModel();
-    return { kind: 'whisper-cpp', command: whisperCpp, model, ready: Boolean(model), source: 'auto-discovery', reasonCode: model ? '' : 'TRANSCRIPTION_MODEL_NOT_CONFIGURED' };
+function resolveSenseVoiceLayout() {
+  const executableCandidates = [];
+  const modelCandidates = [];
+  for (const root of voiceRuntimeRoots()) {
+    executableCandidates.push(
+      path.join(root, 'sensevoice', 'bin', SENSEVOICE_EXECUTABLE),
+      path.join(root, 'sensevoice', SENSEVOICE_EXECUTABLE),
+      path.join(root, 'bin', SENSEVOICE_EXECUTABLE)
+    );
+    modelCandidates.push(
+      path.join(root, 'sensevoice', 'models', SENSEVOICE_MODEL),
+      path.join(root, 'sensevoice', SENSEVOICE_MODEL),
+      path.join(root, 'models', SENSEVOICE_MODEL)
+    );
   }
-
-  const pythonWhisper = executableOnPath(process.platform === 'win32' ? 'whisper.exe' : 'whisper');
-  if (pythonWhisper) return { kind: 'openai-whisper-cli', command: pythonWhisper, source: 'PATH' };
-  return null;
+  const executable = firstExisting(executableCandidates);
+  const model = firstExisting(modelCandidates);
+  return Object.freeze({
+    authority: SENSEVOICE_AUTHORITY,
+    executable,
+    model,
+    available: Boolean(executable && model),
+    reasonCode: !executable ? 'SENSEVOICE_RUNTIME_MISSING' : !model ? 'SENSEVOICE_MODEL_MISSING' : ''
+  });
 }
 
 function engineStatus() {
-  const engine = discoverEngine();
+  const runtime = resolveSenseVoiceLayout();
   const ffmpeg = discoverFfmpeg();
-  if (!engine) {
-    return {
-      available: false,
-      kind: '',
-      source: '',
-      command: '',
-      model: '',
-      audioConverterAvailable: Boolean(ffmpeg),
-      audioConverter: ffmpeg || '',
-      reasonCode: 'TRANSCRIPTION_ENGINE_NOT_CONFIGURED',
-      installSupported: process.platform === 'win32',
-      whatsappAudioReady: false
-    };
-  }
-  if (engine.kind === 'whisper-cpp' && !engine.model) {
-    return {
-      available: false,
-      kind: engine.kind,
-      source: engine.source,
-      command: engine.command || '',
-      model: '',
-      audioConverterAvailable: Boolean(ffmpeg),
-      audioConverter: ffmpeg || '',
-      reasonCode: 'TRANSCRIPTION_MODEL_NOT_CONFIGURED',
-      installSupported: process.platform === 'win32',
-      whatsappAudioReady: false
-    };
-  }
-  return {
-    available: true,
-    kind: engine.kind,
-    source: engine.source,
-    command: engine.command || tokenizeCommand(engine.commandLine)[0] || '',
-    model: engine.model || '',
+  return Object.freeze({
+    available: runtime.available,
+    kind: 'sensevoice',
+    authority: SENSEVOICE_AUTHORITY,
+    source: 'sealed-runtime',
+    command: runtime.executable || '',
+    model: runtime.model || '',
     audioConverterAvailable: Boolean(ffmpeg),
     audioConverter: ffmpeg || '',
-    installSupported: process.platform === 'win32',
-    whatsappAudioReady: engine.kind === 'template' || Boolean(ffmpeg)
-  };
+    reasonCode: runtime.reasonCode,
+    installSupported: false,
+    sealedRuntimeRequired: true,
+    whatsappAudioReady: runtime.available && Boolean(ffmpeg)
+  });
 }
 
-async function executeEngine(engine, full, language) {
-  if (engine.kind === 'template') {
-    const parts = tokenizeCommand(engine.commandLine);
-    const command = parts.shift();
-    const args = parts.map(part => part.replaceAll('{file}', full).replaceAll('{language}', language));
-    if (!args.some(arg => arg.includes(full))) args.push(full);
-    const result = await runCommand(command, args);
-    return { transcript: result.stdout, command };
-  }
+function parseSenseVoiceOutput(output, requestedLanguage) {
+  const raw = String(output || '').trim();
+  const languageMatch = raw.match(SENSEVOICE_LANGUAGE);
+  const detectedLanguage = languageMatch ? String(languageMatch[1]).toLowerCase() : '';
+  const transcript = raw.replace(/<\|[^|>]+\|>/gu, '').trim();
+  return Object.freeze({
+    transcript,
+    detectedLanguage: detectedLanguage && detectedLanguage !== 'nospeech' ? detectedLanguage : '',
+    language: detectedLanguage && detectedLanguage !== 'nospeech' ? detectedLanguage : requestedLanguage
+  });
+}
 
-  if (engine.kind === 'whisper-cpp') {
-    const extension = path.extname(full).toLowerCase();
-    let inputFile = full;
-    let conversionDir = '';
-    if (extension !== '.wav') {
-      const ffmpeg = discoverFfmpeg();
-      if (!ffmpeg) {
-        const error = new Error('当前语音是 WhatsApp OGG/Opus 格式，但未检测到 ffmpeg，无法转换为 whisper.cpp 可读取的 WAV。');
-        error.code = 'AUDIO_CONVERTER_NOT_CONFIGURED';
-        throw error;
-      }
-      const tempRoot = PATHS.tmp || os.tmpdir();
-      fs.mkdirSync(tempRoot, { recursive: true });
-      conversionDir = fs.mkdtempSync(path.join(tempRoot, 'yance-audio-convert-'));
-      inputFile = path.join(conversionDir, 'input-16khz-mono.wav');
-      try {
-        await runCommand(ffmpeg, ['-nostdin', '-y', '-i', full, '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', inputFile], 120000);
-      } catch (error) {
-        cleanupTemporaryDirectory(conversionDir, 'transcription.convert.rollback');
-        const wrapped = new Error(`WhatsApp 语音转换失败：${error.message}`);
-        wrapped.code = 'AUDIO_CONVERSION_FAILED';
-        throw wrapped;
-      }
-    }
-    try {
-      const args = ['-m', engine.model, '-f', inputFile, '-l', language === 'auto' ? 'auto' : language, '-nt'];
-      const result = await runCommand(engine.command, args);
-      return { transcript: result.stdout, command: engine.command };
-    } finally {
-      if (conversionDir) cleanupTemporaryDirectory(conversionDir, 'transcription.convert.finalize');
-    }
+async function prepareSenseVoiceInput(full) {
+  const ffmpeg = discoverFfmpeg();
+  if (!ffmpeg && path.extname(full).toLowerCase() === '.wav') return { inputFile: full, conversionDir: '' };
+  if (!ffmpeg) {
+    const error = new Error('SenseVoice requires a 16 kHz mono PCM WAV input and FFmpeg is unavailable for conversion.');
+    error.code = 'AUDIO_CONVERTER_NOT_CONFIGURED';
+    error.status = 409;
+    throw error;
   }
+  const tempRoot = PATHS.tmp || os.tmpdir();
+  fs.mkdirSync(tempRoot, { recursive: true });
+  const conversionDir = fs.mkdtempSync(path.join(tempRoot, 'yance-sensevoice-'));
+  const inputFile = path.join(conversionDir, 'input-16khz-mono.wav');
+  try {
+    await runCommand(ffmpeg, ['-nostdin', '-y', '-i', full, '-vn', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', inputFile], 120000);
+    return { inputFile, conversionDir };
+  } catch (error) {
+    cleanupTemporaryDirectory(conversionDir, 'sensevoice.convert.rollback');
+    const wrapped = new Error(`SenseVoice audio conversion failed: ${error.message}`);
+    wrapped.code = 'AUDIO_CONVERSION_FAILED';
+    throw wrapped;
+  }
+}
 
-  if (engine.kind === 'openai-whisper-cli') {
-    const tempRoot = PATHS.tmp || os.tmpdir();
-    fs.mkdirSync(tempRoot, { recursive: true });
-    const outputDir = fs.mkdtempSync(path.join(tempRoot, 'yance-whisper-'));
-    try {
-      const args = [full, '--output_dir', outputDir, '--output_format', 'txt'];
-      if (language && language !== 'auto') args.push('--language', language);
-      const result = await runCommand(engine.command, args);
-      const expected = path.join(outputDir, `${path.parse(full).name}.txt`);
-      const transcript = fs.existsSync(expected) ? fs.readFileSync(expected, 'utf8').trim() : result.stdout;
-      return { transcript, command: engine.command };
-    } finally {
-      cleanupTemporaryDirectory(outputDir, 'transcription.whisper-output.finalize');
-    }
-  }
-  throw Object.assign(new Error('不支持的语音转写引擎'), { code: 'TRANSCRIPTION_ENGINE_UNSUPPORTED' });
+async function runSenseVoice(runtime, inputFile) {
+  const result = await runCommand(runtime.executable, ['-m', runtime.model, '-a', inputFile, '--keep-tags']);
+  return result.stdout;
 }
 
 async function executeTranscriptionPhysical({ filePath, language = 'auto', translateToChinese = true }) {
   const full = path.resolve(String(filePath || ''));
   if (!fs.existsSync(full) || !fs.statSync(full).isFile()) throw Object.assign(new Error('语音文件尚未恢复到本地'), { code: 'AUDIO_FILE_NOT_FOUND' });
-  const engine = discoverEngine();
-  if (!engine) {
-    const error = new Error('未检测到本地 Whisper 转写引擎。点击“语音转写”后可自动安装，或设置 YANCE_WHISPER_COMMAND。');
-    error.code = 'TRANSCRIPTION_ENGINE_NOT_CONFIGURED';
-    error.status = 409;
-    error.details = { searched: ['YANCE_WHISPER_COMMAND', 'models/whisper/whisper-cli.exe', 'tools/whisper/whisper-cli.exe', 'whisper-cli', 'whisper'] };
-    throw error;
-  }
-  if (engine.kind === 'whisper-cpp' && !engine.model) {
-    const error = new Error('检测到 Whisper 引擎，但没有多语言模型。点击“语音转写”后可自动补齐模型。');
-    error.code = 'TRANSCRIPTION_MODEL_NOT_CONFIGURED';
+  const runtime = resolveSenseVoiceLayout();
+  if (!runtime.available) {
+    const error = new Error('SenseVoice sealed runtime or model is unavailable. Provision the verified Voice Brain runtime before transcription.');
+    error.code = runtime.reasonCode || 'SENSEVOICE_RUNTIME_MISSING';
     error.status = 409;
     throw error;
   }
-  if (['whisper-cpp', 'openai-whisper-cli'].includes(engine.kind) && path.extname(full).toLowerCase() !== '.wav' && !discoverFfmpeg()) {
-    const error = new Error('当前 WhatsApp 语音需要 FFmpeg 转换后才能转写。点击“语音转写”可自动安装。');
-    error.code = 'AUDIO_CONVERTER_NOT_CONFIGURED';
-    error.status = 409;
-    throw error;
-  }
+
   const started = Date.now();
-  const result = await executeEngine(engine, full, language);
-  const transcript = String(result.transcript || '').trim();
-  if (!transcript) throw Object.assign(new Error('转写引擎没有返回文字'), { code: 'TRANSCRIPTION_EMPTY' });
-  let chinese = '';
-  if (translateToChinese && transcript) {
-    try {
-      const translated = await aiGateway.execute({
-        task: 'translation',
-        messages: [
-          { role: 'system', content: '把语音转写准确翻译成中文，只输出中文译文，不补充事实。' },
-          { role: 'user', content: transcript }
-        ],
-        options: { maxTokens: 1200, temperature: 0.1 }
-      });
-      chinese = translated.text;
-    } catch (error) {
-      logger.warn('speech', 'translation-failed', { filePath: full, error: error.message });
+  const prepared = await prepareSenseVoiceInput(full);
+  try {
+    const parsed = parseSenseVoiceOutput(await runSenseVoice(runtime, prepared.inputFile), language);
+    if (!parsed.transcript) throw Object.assign(new Error('SenseVoice did not return transcript text.'), { code: 'TRANSCRIPTION_EMPTY' });
+
+    let chinese = '';
+    if (translateToChinese && parsed.transcript) {
+      try {
+        const translated = await aiGateway.execute({
+          task: 'translation',
+          messages: [
+            { role: 'system', content: '把语音转写准确翻译成中文，只输出中文译文，不补充事实。' },
+            { role: 'user', content: parsed.transcript }
+          ],
+          options: { maxTokens: 1200, temperature: 0.1 }
+        });
+        chinese = translated.text;
+      } catch (error) {
+        logger.warn('speech', 'translation-failed', { filePath: full, error: error.message });
+      }
     }
+
+    const payload = {
+      ok: true,
+      transcript: parsed.transcript,
+      chinese,
+      language: parsed.language || language,
+      detectedLanguage: parsed.detectedLanguage,
+      confidence: null,
+      durationMs: Date.now() - started,
+      engine: runtime.executable,
+      engineKind: 'sensevoice',
+      engineSource: 'sealed-runtime',
+      authority: SENSEVOICE_AUTHORITY
+    };
+    logger.info('speech', 'transcription-complete', {
+      filePath: full,
+      durationMs: payload.durationMs,
+      chars: payload.transcript.length,
+      engineKind: payload.engineKind,
+      detectedLanguage: payload.detectedLanguage
+    });
+    return payload;
+  } finally {
+    if (prepared.conversionDir) cleanupTemporaryDirectory(prepared.conversionDir, 'sensevoice.convert.finalize');
   }
-  const payload = {
-    ok: true,
-    transcript,
-    chinese,
-    language,
-    confidence: null,
-    durationMs: Date.now() - started,
-    engine: result.command,
-    engineKind: engine.kind,
-    engineSource: engine.source
-  };
-  logger.info('speech', 'transcription-complete', { filePath: full, durationMs: payload.durationMs, chars: transcript.length, engineKind: engine.kind });
-  return payload;
 }
 
 function transcriptionError(code, message, details = {}) {
@@ -386,11 +344,10 @@ module.exports = {
   publicTranscriptionCommand,
   runCommand,
   tokenizeCommand,
-  discoverEngine,
-  discoverModel,
   discoverFfmpeg,
   engineStatus,
   executableOnPath,
-  executeEngine,
-  sourceRoot
+  sourceRoot,
+  resolveSenseVoiceLayout,
+  parseSenseVoiceOutput
 };

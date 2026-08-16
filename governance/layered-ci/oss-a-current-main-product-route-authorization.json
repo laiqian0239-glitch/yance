@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_OSS_A_CURRENT_MAIN_PRODUCT_ROUTE_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-06T12:42:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "OSS-A",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #67 exact-Head verification after merging the approved global supply-chain security baseline proved that permanent WP0 correctly uses the base-owned main routing policy, but that policy does not yet recognize the eight checked-in OSS-A supply-chain inventory paths. The candidate policy cannot authorize its own route, so an exact current-main bootstrap is required.",
+  "base": {
+    "branch": "main",
+    "commit": "21a6d79489d5a2570c2d6b05354a99373edec7df"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresExactHeadGreen": true,
+    "requiresIndependentAllowMerge": true,
+    "requiresOrdinaryMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true
+  },
+  "evidence": {
+    "sourcePullRequest": 67,
+    "sourceExactHead": "e8e5c491067ec5932741a172af9d3ab4ae6612ad",
+    "stageWp0Run": 31077815700,
+    "stageWp0RouteJob": 92539599052,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "third_party/github-actions-lock.json",
+      "third_party/licenses/actions-checkout-MIT.txt",
+      "third_party/licenses/actions-setup-node-MIT.txt",
+      "third_party/licenses/actions-upload-artifact-MIT.txt",
+      "third_party/licenses/baileys-MIT.txt",
+      "third_party/provenance.json",
+      "third_party/sbom.cdx.json"
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/oss-a-current-main-product-route-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/oss-a-current-main-product-route-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/oss-a-current-main-product-route-bootstrap",
+    "requiredBase": "the exact main merge commit containing this authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d0bf4c9815a9d6a8ba8045d37741c4799a69a6b065e5332506f42f1703e9f887",
+    "route": "PRODUCT_WP0",
+    "exactBootstrapOnly": true,
+    "productPrefixExpansionAllowed": false,
+    "runtimeProductBehaviorChanged": false,
+    "newDependencyAllowed": false
+  },
+  "bootstrapPaths": [
+    "THIRD_PARTY_NOTICES.md",
+    "third_party/github-actions-lock.json",
+    "third_party/licenses/actions-checkout-MIT.txt",
+    "third_party/licenses/actions-setup-node-MIT.txt",
+    "third_party/licenses/actions-upload-artifact-MIT.txt",
+    "third_party/licenses/baileys-MIT.txt",
+    "third_party/provenance.json",
+    "third_party/sbom.cdx.json"
+  ],
+  "candidatePreservation": {
+    "candidateBranch": "oss/a-supply-chain-foundation",
+    "candidatePolicyMustRetainGeneralThirdPartyPrefix": true,
+    "candidatePolicyPathMustRemainInSealedScope": true,
+    "candidateTestPathMustRemainInSealedScope": true,
+    "candidateReceiptMustRebindToNewMainBeforeReverification": true,
+    "candidateApprovedChangedFileCountMustRemain": 23,
+    "candidateApprovedChangedFileSetSha256MustRemain": "fb99d7c9b090a0c8b92b5655c401b80f0e0674c6e6f5725bad8264c9ec19a175"
+  },
+  "mandatoryFailureFirstContracts": [
+    "The current-main routing policy reports WP0_ROUTE_UNKNOWN_PATH for the exact eight bootstrap paths before implementation",
+    "After implementation all eight bootstrap paths select PRODUCT_WP0",
+    "The current-main bootstrap uses only productExactPaths and does not add third_party/ to productPrefixes",
+    "Unknown and malformed repository paths continue to fail closed",
+    "Governance and product-documentation route precedence remains unchanged",
+    "No candidate receipt, candidate implementation file, workflow, risk policy, Action pin, dependency, SBOM or provenance byte changes occur in this implementation PR"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes all applicable governance gates",
+    "Independent review returns ALLOW_MERGE with zero P0 and P1 findings",
+    "Authorization PR merges to main by ordinary merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "A test-only commit records causal RED for the eight exact paths before policy implementation",
+    "Only the eight exact bootstrap paths are added to productExactPaths",
+    "Implementation exact Head passes Layered CI, permanent WP0, ACV2 and independent review",
+    "Implementation PR merges to main by ordinary merge",
+    "The resulting main is merged normally into PR #67 while preserving the candidate general third_party/ prefix and both sealed candidate paths",
+    "The PR #67 receipt is rebound to the new exact main and the 23-path scope digest is reverified",
+    "PR #67 exact Head is reverified through permanent WP0, Layered CI, OSS Provenance, ACV2 and independent review"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directCandidateSelfAuthorization": true,
+    "candidateScopeReduction": true,
+    "productionUse": true,
+    "formalRelease": true,
+    "publish": true,
+    "automaticNextWorkPackageAuthorization": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "pr67MustRemainDraft": true,
+    "readyForPromotion": false
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T14:39:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-P0-ELEMENT-NX-CRLF-PATCH-CANONICALITY",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor root-structure work package for the stable real Windows Product Task 9 RED after replay-context PR #259. Product exact Head 8c67ecd4f00c76528b2be6c6fe90b7d895c76253 fails ordinary git apply --check on pinned Element pnpm-lock.yaml:16388 in both the original Windows job 93708360800 and independent rerun job 93713963468. Exact pinned source at that hunk matches the patch context, so another local context-line repair is not justified. The 0003 patch originated as hand-shaped reduced hunks and still contains non-canonical physical old-coordinate order in pnpm-lock.yaml, including an old-line 10785 hunk before old-line 8328. This package replaces incremental hunk-metadata patching with a canonical unified-diff structure while freezing the already-authorized Nx 23.1.0 to 23.1.1 mutation set. The first experiment is failure-first enforcement of canonical per-file hunk order; the Windows Task 9 rerun remains the authority for whether this removes the replay failure.",
+  "base": {
+    "branch": "main",
+    "commit": "e921cbfc0233082b3b25e4312998bece7b0fefb9"
+  },
+  "evidence": {
+    "productPullRequest": 229,
+    "productExactHead": "8c67ecd4f00c76528b2be6c6fe90b7d895c76253",
+    "productChangedFileCount": 30,
+    "task9Run": 31469133390,
+    "task9OriginalJob": 93708360800,
+    "task9RerunJob": 93713963468,
+    "task9OriginalFirstRealError": "git apply --check upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch fails at pnpm-lock.yaml:16388 during iteration-1 materialization",
+    "task9RerunFirstRealError": "git apply --check upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch fails again at pnpm-lock.yaml:16388 during iteration-1 materialization",
+    "windowsGit": "2.55.0.windows.3",
+    "elementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "elementPackageJsonBlob": "1458c14e3e59f6fa7c948b5ffb7de4404c1cb5f5",
+    "elementPnpmLockBlob": "7e1974c8c30a7f92bdd89bf3562fbb74979e1dbc",
+    "targetNxVersion": "23.1.1",
+    "nxUpstreamFixCommit": "b8dca5e4f9315b989d0c2f7a336868ecd91a36fa",
+    "elementUpstreamAdoptionCommit": "27f0347668494711ae25466b3d81434a65011df6",
+    "priorReplayContextAuthorizationPullRequest": 258,
+    "priorReplayContextImplementationPullRequest": 259,
+    "observedNonCanonicalOldCoordinateOrder": "pnpm-lock.yaml old-line 10785 hunk physically precedes old-line 8328 hunk",
+    "historicalNxParserStatus": "NOT_RETESTED_AFTER_CURRENT_REPLAY_RED",
+    "lintTypesStatus": "UNKNOWN"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-p0-element-nx-crlf-patch-canonicality-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-p0-element-nx-crlf-patch-canonicality-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2840ca3dbe3c01bd528a4b8172793ec0f5aa7db610d5392bbe379b4d3effc09d",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-p0-element-nx-crlf-patch-canonicality",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "70d565a39dfbeded19b6ad1bded3e07f0753f74533f33cc437e3dc4557f5027c",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "e263649043e2a16c14cd790c10125a5e2cec4aaf727a3d64e68fea92481159dd",
+      "productionCodeChanged": false
+    },
+    "bootstrapModificationAllowed": false,
+    "elementPinModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "elementLockRegenerationAllowed": false,
+    "patchMutationSetModificationAllowed": false,
+    "canonicalHunkReorderingAllowed": true,
+    "canonicalHunkHeaderNormalizationAllowed": true,
+    "exactPinnedSourceContextNormalizationAllowed": true,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit must change only tests/wp0/v21-element-workspace-contract.test.js and must RED against the merged 0003 patch because every file section must present unified-diff hunks in strictly increasing old-file coordinate order.",
+    "The production repair must preserve the exact package.json and pnpm-lock.yaml pinned old blob index identities and the exact authorized Nx 23.1.0 to 23.1.1 added/deleted mutation lines and multiplicity. Mutation lines may move only together with their complete hunk block as required to restore canonical old-coordinate order.",
+    "The initial production experiment should perform the minimum structural canonicalization necessary to restore strict per-file hunk order; it must not broaden into dependency regeneration, Element pin drift, bootstrap behavior changes or workflow changes.",
+    "If additional hunk header or unchanged context normalization becomes necessary, it must be derived exactly from pinned Element a2a996ae50d802878bf48e4bbf3730004bdcc55c and must not change the mutation set.",
+    "tools/matrix/bootstrap.js remains frozen and must preserve 0001 -> 0002 -> 0003 -> module copy -> 0011 -> 0012 using ordinary git apply --check followed by git apply.",
+    "A subsequent real Windows Product Task 9 must prove whether canonical replay crosses the current pnpm-lock.yaml:16388 failure before frozen install. Only actual execution may reclassify the historical Nx multi-document parser status or lint:types status."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "gitApplyThreeWay": true,
+    "gitApplyReject": true,
+    "gitApplyRecount": true,
+    "gitApplyUnidiffZero": true,
+    "gitApplyIgnoreWhitespace": true,
+    "fuzzyPatch": true,
+    "lineEndingRewrite": true,
+    "gitAutocrlfManipulation": true,
+    "lockDocumentMarkerRemoval": true,
+    "customYamlParser": true,
+    "nxPluginDisable": true,
+    "elementPinChange": true,
+    "pnpmVersionDrift": true,
+    "elementLockRegeneration": true,
+    "unrelatedElementDependencyDrift": true,
+    "bootstrapModification": true,
+    "productSourceModification": true,
+    "workflowModification": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}

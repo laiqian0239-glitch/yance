@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-15T20:10:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-MATERIALIZATION-ROOT-CLOSURE-V10",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh exact-head Product Final validation of Product PR #387 at 5de339aaec3214a3a6604d39e9842d30e69847e5 proves the V9 Element root lucide-react ownership repair and Learning runtime closure are effective, then exposes one remaining strict package-boundary defect in the same already-governed assistant-ui/tool-ui build seam. Product Final run 31887452589, frozen-element-reproducibility job 95018722505, completes the pinned Element frozen pnpm install with root lucide-react 0.563.0 present, then the ordinary yance-element-module Vite/Rolldown build fails to resolve react/jsx-runtime from vendor/assistant-ui-tool-ui/v2026.2.13/approval-card/approval-card.tsx. The governed tool-ui sources physically live under the pinned Element root vendor path and consume React/JSX runtime as well as lucide-react; the pinned Element root package boundary does not directly own React, while the existing Element catalog and modules/yance lock importer already resolve React 19.2.7. V10 therefore permits only the exact successor root ownership repair: reuse the existing Element catalog React identity in the root package manifest and matching frozen root lock importer, while preserving the V9 lucide ownership, modules/yance identities, strict pnpm semantics, governed tool-ui bytes, Learning adapter, bootstrap overlay, workflows and Product behavior unchanged. No alias, externalization, NODE_PATH, hoist override, symlink, unfrozen/live install, new dependency identity/version or new Yance infrastructure is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "4ac88cd9d98671549899c4fa9fdc6f38e93f51ac"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "4ac88cd9d98671549899c4fa9fdc6f38e93f51ac",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "predecessorEvidence": {
+    "v9AuthorizationPath": "governance/layered-ci/v21-product-final-materialization-root-closure-v9-authorization.json",
+    "v9ImplementationPullRequest": 416,
+    "v9ImplementationMerge": "4ac88cd9d98671549899c4fa9fdc6f38e93f51ac",
+    "v9FinalImplementationHeadBeforeMerge": "2cd6c30447a90435d8e656f4c7fd715d2f1c5332",
+    "v9ElementRootPackageBlob": "cc851b489e59de80b4203ce25f8c21fcfd1a2feb",
+    "v9ElementRootLockBlob": "8de5fb61fa96fe9b2de206f58a112db22a9111bc",
+    "v9RootLucideDependency": "lucide-react@0.563.0",
+    "productPullRequest": 387,
+    "productExactHead": "5de339aaec3214a3a6604d39e9842d30e69847e5",
+    "productFinalValidationRun": 31887452589,
+    "frozenElementReproducibilityJob": 95018722505,
+    "frozenInstallResult": "GREEN: lockfile passes supply-chain policy, is frozen/up-to-date, and installs root lucide-react 0.563.0 before build",
+    "failedBuild": "pnpm --dir <pinned-element-root> exec nx build yance-element-module",
+    "unresolvedImport": "react/jsx-runtime",
+    "importer": "vendor/assistant-ui-tool-ui/v2026.2.13/approval-card/approval-card.tsx",
+    "failure": "Vite/Rolldown failed to resolve react/jsx-runtime from the governed tool-ui source physically hosted under the Element root vendor path",
+    "learningRuntimeEvidence": "The same Product Final run successfully completes Materialize presealed Learning Windows runtime in trusted CI, proving the V9 Learning root closure is not the current defect."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-materialization-root-closure-v10-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-materialization-root-closure-v10-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "44a98dbdd8dc9efa0f1b1076097fa3b98d0e789a4203219dc464f5b4b953ba7e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-materialization-root-closure-v10",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "8316cd1788674321fc19a22a12af5903df7d13eb3eee9ac6e5aca6d2cd936dce",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js",
+        "tests/wp0/v21-product-experience-shell-dependencies.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "96e8573a411b88e320a16300c878c173dc5568f92bfabf8e61264a0324670af7",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "expectedFailures": [
+        "The canonical 0011 replay does not yet declare React at the Element root package boundary that physically hosts governed assistant-ui/tool-ui source.",
+        "The canonical 0011 root pnpm importer does not yet bind the existing Element catalog React identity to frozen React 19.2.7."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "repositoryPackageManifestModificationAllowed": false,
+    "repositoryLockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "learningAdapterModificationAllowed": false,
+    "matrixBootstrapModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "assistantUiToolUiModificationAllowed": false,
+    "elementDependencyPatchModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "elementRootDependencyOwnership": {
+    "patchPath": "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
+    "requiredPatchedPaths": [
+      "package.json",
+      "pnpm-lock.yaml"
+    ],
+    "currentPackagePatchOldBlob": "5c39e9896b15a604a2203c1b506568f018f2c981",
+    "currentPackagePatchNewBlob": "cc851b489e59de80b4203ce25f8c21fcfd1a2feb",
+    "currentLockPatchOldBlob": "f13b569df10a63311d7bba874c452b568617e5d0",
+    "currentLockPatchNewBlob": "8de5fb61fa96fe9b2de206f58a112db22a9111bc",
+    "existingLucide": {
+      "name": "lucide-react",
+      "rootSpecifier": "0.563.0",
+      "frozenVersion": "0.563.0(react@19.2.7)",
+      "mustRemainUnchanged": true
+    },
+    "existingReact": {
+      "name": "react",
+      "catalogSpecifier": "catalog:",
+      "catalogResolvedVersion": "19.2.7",
+      "modulesYanceSpecifier": ">=18",
+      "modulesYanceResolvedVersion": "19.2.7",
+      "newIdentityOrVersion": false
+    },
+    "requiredBehavior": [
+      "Preserve the V9 Element root lucide-react 0.563.0 manifest ownership and matching root lock importer exactly.",
+      "Extend the same ordinary canonical 0011 replay so pinned Element root package.json devDependencies declares react using the existing Element catalog authority as react: catalog:.",
+      "Extend the matching root pnpm importer so react has specifier catalog: and frozen version 19.2.7.",
+      "Preserve the existing modules/yance React >=18 -> 19.2.7 and lucide-react 0.563.0 identities and all existing lock closure.",
+      "Keep the exact post-0003 lock preimage f13b569df10a63311d7bba874c452b568617e5d0 and ordinary git apply --check then git apply semantics.",
+      "Keep governed assistant-ui/tool-ui v2026.2.13 bytes, LearningToolUiAdapter, tools/matrix/bootstrap.js, all workflows and Product source unchanged."
+    ],
+    "forbiddenBehavior": [
+      "Do not externalize react, react/jsx-runtime or tool-ui from Vite/Rolldown.",
+      "Do not add Vite aliases, NODE_PATH, shamefully-hoist, public-hoist-pattern, symlink injection, peer-resolution weakening, unfrozen install or live package installation.",
+      "Do not copy or fork assistant-ui/tool-ui again and do not edit its imports merely to bypass the physical package boundary.",
+      "Do not introduce a new React identity/version, package proxy, dependency broker, resolver or other general-purpose Yance infrastructure."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_ELEMENT_CATALOG_AND_STRICT_PNPM_PACKAGE_BOUNDARY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "React 19.2.7 through pinned Element catalog",
+        "source": "element-hq/element-web@a2a996ae50d802878bf48e4bbf3730004bdcc55c pnpm catalog plus existing frozen lock closure",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "React 19.2.7 is already the exact frozen Element/Yance runtime identity. The defect is only that the physical Element root host of governed tool-ui lacks direct ownership."
+      },
+      {
+        "name": "pnpm 11.5.2 strict workspace/package-boundary resolution",
+        "source": "existing pinned Element package-manager authority",
+        "license": "MIT",
+        "adoptionMode": "preserve-existing-toolchain-semantics",
+        "fit": "FIT",
+        "reason": "Correct the manifest/lock ownership at the package boundary instead of bypassing strict resolution."
+      },
+      {
+        "name": "assistant-ui/tool-ui v2026.2.13",
+        "source": "assistant-ui/tool-ui@ee6389647e997f8637c21187f3e49c2db6cde3a5",
+        "license": "MIT",
+        "adoptionMode": "existing-governed-vendored-OSS-source",
+        "fit": "FIT",
+        "reason": "The governed source is already correct and materialized. It explicitly consumes React and JSX runtime from the physical host package boundary."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not use the Rolldown error suggestion to externalize react/jsx-runtime.",
+      "Do not use aliases, NODE_PATH, hoisting, symlinks, peer weakening, unfrozen/live installs or a second tool-ui materialization location.",
+      "Do not modify Product behavior, Learning business logic, Element ModuleLoader, Matrix bootstrap overlay or any workflow.",
+      "Do not add a new dependency identity/version or new Yance dependency-resolution infrastructure."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "fresh failure-first tests specifically prove missing root React ownership before implementation",
+      "first post-RED implementation commit carries exactly one required Head/Run/Conclusion trailer set",
+      "React ownership uses the existing Element catalog and frozen 19.2.7 identity rather than a new range/version",
+      "V9 root lucide ownership and modules/yance React/lucide identities remain intact",
+      "strict pnpm and ordinary git-apply semantics remain intact",
+      "no alias, externalization, hoist, NODE_PATH, symlink, live install, tool-ui byte change, Learning adapter change, bootstrap change, workflow change, Product change or new Yance infrastructure"
+    ]
+  },
+  "verification": {
+    "mandatory": [
+      "fresh authorization-branch Stage 6.4.5.9 WP0 Architecture Gates GREEN before authorization merge",
+      "fresh authorization-branch ACV2 GREEN before authorization merge",
+      "fresh authorization-branch Layered CI GREEN before authorization merge",
+      "after ordinary authorization merge, exact two-test failure-first commit on fix/v21-product-final-materialization-root-closure-v10",
+      "fresh causal Stage RED with implementation-branch-policy itself GREEN",
+      "first post-RED implementation commit with exact required failure-first evidence trailers",
+      "fresh exact-head Stage GREEN",
+      "fresh exact-head ACV2 GREEN",
+      "fresh exact-head Layered CI GREEN",
+      "fresh exact-head independent review with zero P0/P1 findings",
+      "after ordinary V10 merge and ordinary-forward into product/v21-product-experience-bilingual-search-translation-task-ux-p0, fresh Product Final GREEN including two clean frozen Element materializations/builds, materialized desktop UAT with sealed Learning runtime and materialized Matrix UAT"
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "delegatedExecutionAuthorizedAfterMerge": true
+  }
+}

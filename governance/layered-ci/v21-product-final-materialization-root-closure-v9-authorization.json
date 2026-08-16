@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-15T19:32:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-MATERIALIZATION-ROOT-CLOSURE-V9",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "V9 is a clean execution successor to V8. V8 authorization correctly resolved the stale lock-only governance contradiction, but its implementation branch was contaminated before failure-first by an accidental unrelated file commit. The repository rules forbid force-reset, history rewrite, or pretending that commit did not exist. V9 therefore preserves the exact V8 five-file implementation scope, three-test failure-first contract, Learning sealed-runtime repair, and Element root lucide-react 0.563.0 ownership repair, while requiring a fresh independent implementation branch from the V9 authorization merge commit. No product scope, package identity, runtime, bootstrap mechanism, or infrastructure is added.",
+  "base": {
+    "branch": "main",
+    "commit": "8e5b503f6f0811d7deb771731bd9073552b7c539"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "8e5b503f6f0811d7deb771731bd9073552b7c539",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "predecessorEvidence": {
+    "v8AuthorizationPullRequest": 414,
+    "v8AuthorizationMerge": "8e5b503f6f0811d7deb771731bd9073552b7c539",
+    "v8AuthorizationStageRun": 31885094069,
+    "v8AuthorizationLayeredRun": 31885094143,
+    "v8AuthorizationAcv2Run": 31885094057,
+    "v8InvalidImplementationBranch": "fix/v21-product-final-materialization-root-closure-v8",
+    "v8InvalidFirstImplementationCommit": "e02adba138e41f2aa3103a27f8ad7620adb9ebff",
+    "v8InvalidFirstCommitReason": "Accidental unrelated __discard_never_commit__ file was created before failure-first; the branch is permanently ineligible under the merged V8 first-commit contract.",
+    "v7ImplementationPullRequest": 413,
+    "v7FailureFirstHead": "0bb9cd603e5295c41458f4d50e303f98c414fc7b",
+    "v7PostRedLearningHead": "8dc1f9a3f1b8c90c395f3b3722217e8229f215fc",
+    "v7FreshStageRun": 31883655439,
+    "v7FreshLayeredRun": 31883655505,
+    "v7FreshAcv2Run": 31883655463,
+    "rootContractConflictResolvedByV8": "The obsolete 0011 lock-only test is superseded by an atomic Element root package.json plus pnpm-lock.yaml ownership contract while exact post-0003 lock preimage and strict ordinary git apply semantics remain mandatory."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-materialization-root-closure-v9-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-materialization-root-closure-v9-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9891b3596350a5af4a9b45467f201781476c7b8e521d7dce7ce208ba6177b341",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-materialization-root-closure-v9",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "bdb7ac1151fa6cce0812741cd44b499d5986095bc6f03d91f16793e17714ac77",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "tests/wp0/v21-element-workspace-contract.test.js",
+        "tests/wp0/v21-product-experience-shell-dependencies.test.js"
+      ],
+      "approvedChangedFileCount": 3,
+      "approvedChangedFileSetSha256": "7cc61fdb385306c48fbded6b11caf3322357cf3e8bf0fc0a6e2e0b4e4fb4b8fe",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "expectedFailures": [
+        "Product Final lacks sealed Learning runtime materialization and exact --learning-runtime pass-through on trusted main.",
+        "Element Product dependency replay does not establish root package ownership for lucide-react 0.563.0.",
+        "The superseded lock-only contract is replaced by a root package.json plus pnpm-lock.yaml atomic replay contract and therefore fails against trusted main until implementation."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "learningAdapterModificationAllowed": false,
+    "wp7ImplementationModificationAllowed": false,
+    "matrixBootstrapModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "elementDependencyPatchModificationAllowed": true,
+    "elementDependencyOwnershipPolicy": {
+      "patchPath": "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
+      "existingDependencyName": "lucide-react",
+      "existingDependencyVersion": "0.563.0",
+      "newPackageIdentityAllowed": false,
+      "requiredPatchedPaths": ["package.json", "pnpm-lock.yaml"],
+      "requiredBehavior": [
+        "Preserve the existing modules/yance lucide-react 0.563.0 dependency identity.",
+        "Use one ordinary canonical Product dependency replay that mutates the Element root package.json and matching root lock importer together.",
+        "The Element root package boundary that physically contains vendor/assistant-ui-tool-ui/v2026.2.13 must declare exact lucide-react 0.563.0 ownership and the root pnpm importer must resolve the same identity against React 19.2.7.",
+        "Keep assistant-ui/tool-ui vendored bytes unchanged, LearningToolUiAdapter unchanged, and tools/matrix/bootstrap.js unchanged.",
+        "No Vite alias, externalization, NODE_PATH, hoist override, symlink workaround, unfrozen install, live install, or dependency-version drift is allowed."
+      ]
+    },
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "learningRuntimeClosure": {
+    "existingMaterializer": "tools/learning-growth/build-windows-runtime.ps1",
+    "existingConsumer": "tools/wp7/create-pre-review-trusted-product.js",
+    "requiredBehavior": [
+      "Reuse the existing sealed Learning Windows runtime builder already present in the repository; do not invent a second Learning runtime builder.",
+      "Materialize and validate runtime-seal.json before the Product Final desktop trusted-product build.",
+      "Pass the exact materialized root through the existing --learning-runtime contract together with the existing Parlant runtime root.",
+      "Do not make WP7 Learning runtime optional and do not weaken WP7_LEARNING_RUNTIME_REQUIRED."
+    ],
+    "forbiddenBehavior": [
+      "No skip flag, optional fallback, fake runtime root, empty seal, live downloader, retry mirror, alternate runtime, or validation weakening."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_MATURE_OSS_AND_REPOSITORY_SEAMS_WITHOUT_NEW_INFRASTRUCTURE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Learning sealed-runtime builder",
+        "source": "tools/learning-growth/build-windows-runtime.ps1 plus the already governed Learning OSS runtime",
+        "license": "same-repository composition of previously reviewed OSS",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already authoritative repository code; Product Final only lacks orchestration and pass-through."
+      },
+      {
+        "name": "assistant-ui/tool-ui v2026.2.13",
+        "source": "assistant-ui/tool-ui@ee6389647e997f8637c21187f3e49c2db6cde3a5",
+        "license": "MIT",
+        "adoptionMode": "existing governed vendored OSS source",
+        "fit": "FIT",
+        "reason": "Already selected, byte-sealed and materialized by V6; the defect is only host dependency ownership."
+      },
+      {
+        "name": "lucide-react 0.563.0",
+        "source": "existing dependency identity already present in integration/element-module/package.json and 0011",
+        "license": "ISC/MIT",
+        "adoptionMode": "reuse exact existing dependency identity",
+        "fit": "FIT",
+        "reason": "No new package/version is introduced; strict resolution needs the physical host boundary to own the dependency it consumes."
+      },
+      {
+        "name": "pnpm 11.5.2 strict package-boundary resolution",
+        "source": "existing pinned Element package-manager authority",
+        "license": "existing toolchain",
+        "adoptionMode": "preserve existing package-manager semantics",
+        "fit": "FIT",
+        "reason": "Correct ownership rather than bypassing strict resolution."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire only the obsolete assertion that 0011 must remain lock-only; retain exact post-0003 lock preimage authority and ordinary git apply semantics.",
+      "Do not reuse, reset, rewrite, or force-push the contaminated V8 implementation branch.",
+      "Do not modify #387 product behavior or broaden its frozen scope.",
+      "Do not weaken Product Final, WP7 Learning runtime requirements, frozen pnpm installation, reproducibility checks, or post-0003 lock identity.",
+      "Do not use Vite alias/externalization, NODE_PATH, shamefully-hoist, public-hoist-pattern, symlink injection, live dependency install, cache/mirror/retry, or another temporary dependency-resolution bypass.",
+      "Do not introduce a new Yance runtime materializer, dependency broker, package proxy, or general-purpose infrastructure."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "the three-test first commit is the first commit on a fresh V9 implementation branch and produces fresh causal RED",
+      "the first post-RED implementation commit carries exactly one required Head/Run/Conclusion trailer set",
+      "the stale lock-only test is changed only to reflect the proven physical Element root ownership requirement, not weakened generally",
+      "Product Final reuses the existing Learning sealed-runtime builder and WP7 required-input contract without weakening either",
+      "0011 is an ordinary package.json plus pnpm-lock.yaml replay that reuses exact lucide-react 0.563.0 and preserves the post-0003 lock preimage",
+      "no new package identity, bootstrap mechanism, Learning adapter change, product behavior change, hoisting/alias bypass, validation weakening, history rewrite, or new Yance infrastructure"
+    ]
+  },
+  "verification": {
+    "mandatory": [
+      "fresh authorization-branch Stage 6.4.5.9 WP0 Architecture Gates GREEN before authorization merge",
+      "fresh authorization-branch ACV2 GREEN before authorization merge",
+      "fresh authorization-branch Layered CI GREEN before authorization merge",
+      "after ordinary authorization merge, exact three-test failure-first commit on the unique V9 implementation branch",
+      "fresh causal Stage RED with implementation-branch-policy itself GREEN",
+      "first post-RED implementation commit with exact required failure-first evidence trailers",
+      "fresh exact-head Stage GREEN",
+      "fresh exact-head Product Experience Final Validation GREEN including desktop trusted bundle and frozen Element reproducibility",
+      "fresh exact-head independent review with zero P0/P1 findings"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

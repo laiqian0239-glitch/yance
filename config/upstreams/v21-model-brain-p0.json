@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "workPackage": "V21-MODEL-BRAIN-P0-V3",
+  "component": "LiteLLM base SDK",
+  "repository": "https://github.com/BerriAI/litellm",
+  "release": "v1.95.0",
+  "commit": "72a4a55f43ea7266de589f005d0d33624fe5d555",
+  "commitTree": "98627d729e47b181cebb6ae8afe60201bbd56993",
+  "mitCorePath": "litellm/",
+  "mitCoreTree": "cb54d17e6ce0a0ad98c992f9642957faa998bbca",
+  "rootLicenseBlob": "3bfef5bae9b48c334acf426d5b7f21bc1913aab9",
+  "uvLockBlob": "08d10667fb1fde67211a74ad1d4c747c0fb84cf3",
+  "license": "MIT",
+  "python": ">=3.10,<3.15",
+  "adoption": ["Router", "strict tag filtering", "ComplexityRouter", "retry/fallback", "usage/cost evidence"],
+  "excludedOpenCore": ["enterprise/", "litellm-proxy-extras/", "gateway/", "proxy server"],
+  "runtimeRule": "sealed offline SDK runtime; no LiteLLM Proxy or enterprise distribution"
+}

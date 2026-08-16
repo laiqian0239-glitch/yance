@@ -8,10 +8,14 @@ const {
   REBUILD_BRANCH_PATTERN_SOURCE,
   canonicalStageBranch,
   isAuthorizedImplementationBranch,
+  evaluateDelegatedGovernanceAuthorizationProposal,
   authorizedImplementationBranchDescription
 } = require('../../shared/release/implementationBranchPolicy');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const TRUSTED_POLICY_ROOT = path.resolve(__dirname, '..', '..');
+const REPO_ROOT = process.env.YANCE_EVALUATED_REPOSITORY_ROOT
+  ? path.resolve(process.env.YANCE_EVALUATED_REPOSITORY_ROOT)
+  : TRUSTED_POLICY_ROOT;
 const RELEASE_SOURCE_PATH = path.join(REPO_ROOT, 'release', 'release-source.json');
 const POLICY_PATH = path.join(REPO_ROOT, 'governance', 'stage-policy.json');
 const REJECTED_BASELINE_PATH = path.join(REPO_ROOT, 'governance', 'rejected-baselines', 'stage-6.4.5.8.json');
@@ -24,6 +28,17 @@ const EXPECTED_BASELINE_ANCHOR_PATH = 'governance/rejected-baselines/stage-6.4.5
 const EXPECTED_BASELINE_ANCHOR_BLOB = '6a5ffc68e76baf6a477668c6c2faf61934e94720';
 const APPROVED_REFERENCE_ONLY_AUTHORITIES = new Map([
   ['independent_audit_delivery', 'REFERENCE_ONLY_AUDIT_DELIVERY']
+]);
+const APPROVED_SUPPLY_CHAIN_EVIDENCE_PATHS = new Set([
+  'THIRD_PARTY_NOTICES.md',
+  'release/production-dependency-binding.json',
+  'third_party/github-actions-lock.json',
+  'third_party/licenses/actions-checkout-MIT.txt',
+  'third_party/licenses/actions-setup-node-MIT.txt',
+  'third_party/licenses/actions-upload-artifact-MIT.txt',
+  'third_party/licenses/baileys-MIT.txt',
+  'third_party/provenance.json',
+  'third_party/sbom.cdx.json'
 ]);
 const PROTECTED_ACTIVE_AUTHORITY_PATHS = Object.freeze([
   '.github',
@@ -117,11 +132,14 @@ function sha256File(filePath) {
 }
 
 function git(args, options = {}) {
-  return execFileSync('git', args, {
+  const output = execFileSync('git', args, {
     cwd: options.cwd || REPO_ROOT,
-    encoding: 'utf8',
+    encoding: Object.prototype.hasOwnProperty.call(options, 'encoding')
+      ? options.encoding
+      : 'utf8',
     stdio: options.stdio || ['ignore', 'pipe', 'pipe']
-  }).trim();
+  });
+  return Buffer.isBuffer(output) || options.trim === false ? output : output.trim();
 }
 
 function currentCommit() {
@@ -163,6 +181,7 @@ function isScanCandidate(relativePath) {
 function classifyScanPath(relativePath, scopePolicy = readJson(REPOSITORY_SCOPE_POLICY_PATH)) {
   const normalized = normalizeRepositoryRelativePath(relativePath, 'relativePath');
   const lower = normalized.toLowerCase();
+  if (APPROVED_SUPPLY_CHAIN_EVIDENCE_PATHS.has(normalized)) return 'SUPPLY_CHAIN_EVIDENCE';
   if (lower.startsWith('governance/')) return 'POLICY_REFERENCE';
   if (lower.startsWith('tests/wp0/')) return 'TEST_FIXTURE_OR_ASSERTION';
   if (lower.startsWith('tools/wp0/')) return 'WP0_GATE_IMPLEMENTATION';
@@ -370,7 +389,48 @@ function checkRuntimeTargetGate(options = {}) {
   const errors = [];
   if (targetStage === REJECTED_STAGE) errors.push('target stage 6.4.5.8 is permanently rejected for runtime, build, package, and release changes');
   if (targetStage !== CURRENT_STAGE) errors.push(`target stage must be ${CURRENT_STAGE}`);
-  if (!isAuthorizedImplementationBranch(branch, CURRENT_STAGE) && !detachedEvidenceAllowed) errors.push(`implementation branch must be ${authorizedImplementationBranchDescription(CURRENT_STAGE)}; detached HEAD is allowed only for evidence generated at the exact checked-out commit`);
+
+  const requestedImplementationBranchOptions = options.implementationBranchOptions || {};
+  const evaluatedHead = Object.prototype.hasOwnProperty.call(requestedImplementationBranchOptions, 'evaluatedHead')
+    ? requestedImplementationBranchOptions.evaluatedHead
+    : currentCommit();
+  const evaluatedRepositoryRoot = Object.prototype.hasOwnProperty.call(requestedImplementationBranchOptions, 'evaluatedRepositoryRoot')
+    ? requestedImplementationBranchOptions.evaluatedRepositoryRoot
+    : REPO_ROOT;
+  const delegatedGovernanceOptions = requestedImplementationBranchOptions.delegatedGovernance || {};
+  const genericDelegatedGovernanceOptions = delegatedGovernanceOptions.generic || {};
+  const implementationBranchOptions = {
+    evaluatedHead,
+    evaluatedRepositoryRoot,
+    ...requestedImplementationBranchOptions,
+    delegatedGovernance: {
+      ...delegatedGovernanceOptions,
+      generic: {
+        evaluatedHead,
+        evaluatedRepositoryRoot,
+        ...genericDelegatedGovernanceOptions
+      }
+    }
+  };
+  const implementationAuthorized = isAuthorizedImplementationBranch(
+    branch,
+    CURRENT_STAGE,
+    implementationBranchOptions
+  );
+  let authorizationProposalTransport = null;
+  if (!implementationAuthorized && !detachedEvidenceAllowed) {
+    const explicitProposal = options.authorizationProposal;
+    const proposalOptions = { ...(explicitProposal || {}), branch };
+    delete proposalOptions.changedFiles;
+    if (Object.prototype.hasOwnProperty.call(options, 'changedFiles')) {
+      proposalOptions.changedFiles = changedFiles;
+    }
+    authorizationProposalTransport = evaluateDelegatedGovernanceAuthorizationProposal(proposalOptions);
+  }
+  const proposalTransportAllowed = authorizationProposalTransport?.pass === true;
+  if (!implementationAuthorized && !proposalTransportAllowed && !detachedEvidenceAllowed) {
+    errors.push(`implementation branch must be ${authorizedImplementationBranchDescription(CURRENT_STAGE)}; detached HEAD is allowed only for evidence generated at the exact checked-out commit; a single-file non-effective delegated-governance authorization proposal may use authorization-proposal transport`);
+  }
   return {
     pass: errors.length === 0,
     reasonCode: errors.length ? 'WP0_REJECTED_STAGE_TARGET_DENIED' : null,
@@ -378,6 +438,11 @@ function checkRuntimeTargetGate(options = {}) {
     targetStage,
     branch,
     detachedEvidenceAllowed,
+    authorizationProposalReasonCode: authorizationProposalTransport?.reasonCode ?? null,
+    authorityMode: implementationAuthorized
+      ? 'IMPLEMENTATION_AUTHORITY'
+      : (proposalTransportAllowed ? authorizationProposalTransport.mode : null),
+    implementationAuthorityGranted: implementationAuthorized,
     changedFileCount: changedFiles.length,
     runtimeChangedFileCount: runtimeChangedFiles.length,
     runtimeChangedFiles
@@ -607,6 +672,7 @@ function writeJson(filePath, value) {
 }
 
 module.exports = {
+  TRUSTED_POLICY_ROOT,
   REPO_ROOT,
   POLICY_PATH,
   REJECTED_BASELINE_PATH,

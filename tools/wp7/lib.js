@@ -353,6 +353,145 @@ function copyTree(sourceRoot, destinationRoot, options = {}) {
     else throw new Wp7Error('WP1_PAYLOAD_PATH_INVALID', 'unsupported file type in final runtime payload', { source });
   }
 }
+function presealedParlantRuntimeRecords(runtimeRoot) {
+  const root = path.resolve(runtimeRoot);
+  if (!fs.existsSync(root)) throw new Wp7Error('WP7_PARLANT_RUNTIME_REQUIRED', 'presealed Parlant runtime input is missing', { runtimeRoot: root });
+  const rootStat = fs.lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Wp7Error('WP7_PARLANT_RUNTIME_INVALID', 'presealed Parlant runtime must be a real non-symlink directory', { runtimeRoot: root });
+  const records = [];
+  function visit(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const absolute = path.join(directory, entry.name);
+      if (entry.isSymbolicLink()) throw new Wp7Error('WP7_PARLANT_RUNTIME_SYMLINK_REJECTED', 'symlinks are forbidden in the presealed Parlant runtime', { path: absolute });
+      if (entry.isDirectory()) visit(absolute);
+      else if (entry.isFile()) {
+        if (entry.name === 'runtime-seal.json') continue;
+        const relative = path.relative(root, absolute).split(path.sep).join('/');
+        const stat = fs.statSync(absolute);
+        records.push(Object.freeze({ path: relative, sizeBytes: stat.size, sha256: sha256File(absolute) }));
+      } else throw new Wp7Error('WP7_PARLANT_RUNTIME_INVALID', 'unsupported file type in presealed Parlant runtime', { path: absolute });
+    }
+  }
+  visit(root);
+  return Object.freeze(wp1.canonicalizePayloadRecords(records));
+}
+function validatePresealedParlantRuntime(runtimeRoot) {
+  const root = path.resolve(runtimeRoot);
+  const required = [
+    'runtime-seal.json',
+    'runtime-sbom.cdx.json',
+    'yance_parlant_server.py',
+    'python/python.exe',
+    'venv/Scripts/python.exe'
+  ];
+  for (const relative of required) {
+    const absolute = path.join(root, ...relative.split('/'));
+    if (!fs.existsSync(absolute)) throw new Wp7Error('WP7_PARLANT_RUNTIME_INVALID', 'presealed Parlant runtime is missing a required file', { relative });
+    const stat = fs.lstatSync(absolute);
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Wp7Error('WP7_PARLANT_RUNTIME_INVALID', 'presealed Parlant runtime required path must be a regular non-symlink file', { relative });
+  }
+  let seal;
+  try { seal = JSON.parse(fs.readFileSync(path.join(root, 'runtime-seal.json'), 'utf8')); }
+  catch (error) { throw new Wp7Error('WP7_PARLANT_RUNTIME_SEAL_INVALID', 'presealed Parlant runtime seal is not valid JSON', { message: error.message }); }
+  if (seal.schemaVersion !== 1 || seal.documentType !== 'YANCE_PARLANT_WINDOWS_RUNTIME_SEAL') throw new Wp7Error('WP7_PARLANT_RUNTIME_SEAL_INVALID', 'presealed Parlant runtime seal identity is invalid');
+  if (!seal.runtime || !Number.isInteger(seal.runtime.fileCount) || seal.runtime.fileCount <= 0 || !SHA256_RE.test(String(seal.runtime.treeSha256 || '')) || !SHA256_RE.test(String(seal.runtime.sbomSha256 || ''))) {
+    throw new Wp7Error('WP7_PARLANT_RUNTIME_SEAL_INVALID', 'presealed Parlant runtime seal runtime identity is invalid');
+  }
+  if (seal.runtime.dependencyResolution !== 'build-time-only' || seal.runtime.networkResolutionAtRuntime !== false) {
+    throw new Wp7Error('WP7_PARLANT_RUNTIME_SEAL_INVALID', 'presealed Parlant runtime must prohibit runtime dependency resolution and runtime network resolution');
+  }
+  const records = presealedParlantRuntimeRecords(root);
+  const canonical = Buffer.from(records.map((row) => `${row.path}|${row.sizeBytes}|${row.sha256}\n`).join(''), 'utf8');
+  const treeSha256 = sha256Buffer(canonical);
+  if (records.length !== seal.runtime.fileCount || treeSha256 !== seal.runtime.treeSha256) {
+    throw new Wp7Error('WP7_PARLANT_RUNTIME_TREE_MISMATCH', 'presealed Parlant runtime tree does not match its runtime seal', { expectedFileCount: seal.runtime.fileCount, actualFileCount: records.length, expectedTreeSha256: seal.runtime.treeSha256, actualTreeSha256: treeSha256 });
+  }
+  const sbomSha256 = sha256File(path.join(root, 'runtime-sbom.cdx.json'));
+  if (sbomSha256 !== seal.runtime.sbomSha256) throw new Wp7Error('WP7_PARLANT_RUNTIME_SBOM_MISMATCH', 'presealed Parlant runtime SBOM does not match its runtime seal', { expected: seal.runtime.sbomSha256, actual: sbomSha256 });
+  return Object.freeze({ root: fs.realpathSync(root), fileCount: records.length, treeSha256, sbomSha256, sealSha256: sha256File(path.join(root, 'runtime-seal.json')), seal });
+}
+function copyPresealedParlantRuntime(sourceRoot, resourcesRoot) {
+  const source = validatePresealedParlantRuntime(sourceRoot);
+  const destinationRoot = path.join(path.resolve(resourcesRoot), 'parlant-runtime');
+  if (fs.existsSync(destinationRoot)) throw new Wp7Error('WP7_PARLANT_RUNTIME_DESTINATION_NOT_EMPTY', 'Parlant runtime destination must not already exist', { destinationRoot });
+  copyTree(source.root, destinationRoot, { missingReason: 'WP7_PARLANT_RUNTIME_REQUIRED' });
+  const copied = validatePresealedParlantRuntime(destinationRoot);
+  if (copied.fileCount !== source.fileCount || copied.treeSha256 !== source.treeSha256 || copied.sbomSha256 !== source.sbomSha256 || copied.sealSha256 !== source.sealSha256) {
+    throw new Wp7Error('WP7_PARLANT_RUNTIME_COPY_MISMATCH', 'copied Parlant runtime differs from the presealed source', { source, copied });
+  }
+  return Object.freeze({ ...copied, relativeRoot: 'resources/parlant-runtime' });
+}
+function presealedLearningRuntimeRecords(runtimeRoot) {
+  const root = path.resolve(runtimeRoot);
+  if (!fs.existsSync(root)) throw new Wp7Error('WP7_LEARNING_RUNTIME_REQUIRED', 'presealed Learning runtime input is missing', { runtimeRoot: root });
+  const rootStat = fs.lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Wp7Error('WP7_LEARNING_RUNTIME_INVALID', 'presealed Learning runtime must be a real non-symlink directory', { runtimeRoot: root });
+  const records = [];
+  function visit(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const absolute = path.join(directory, entry.name);
+      if (entry.isSymbolicLink()) throw new Wp7Error('WP7_LEARNING_RUNTIME_SYMLINK_REJECTED', 'symlinks are forbidden in the presealed Learning runtime', { path: absolute });
+      if (entry.isDirectory()) visit(absolute);
+      else if (entry.isFile()) {
+        const relative = path.relative(root, absolute).split(path.sep).join('/');
+        if (relative === 'runtime-seal.json') continue;
+        const stat = fs.statSync(absolute);
+        records.push(Object.freeze({ path: relative, sizeBytes: stat.size, sha256: sha256File(absolute) }));
+      } else throw new Wp7Error('WP7_LEARNING_RUNTIME_INVALID', 'unsupported file type in presealed Learning runtime', { path: absolute });
+    }
+  }
+  visit(root);
+  return Object.freeze(wp1.canonicalizePayloadRecords(records));
+}
+function validatePresealedLearningRuntime(runtimeRoot) {
+  const root = path.resolve(runtimeRoot);
+  const required = [
+    'runtime-seal.json',
+    'runtime-sbom.cdx.json',
+    'learning_entrypoint.py',
+    'python/python.exe',
+    'venv/Scripts/python.exe'
+  ];
+  for (const relative of required) {
+    const absolute = path.join(root, ...relative.split('/'));
+    if (!fs.existsSync(absolute)) throw new Wp7Error('WP7_LEARNING_RUNTIME_INVALID', 'presealed Learning runtime is missing a required file', { relative });
+    const stat = fs.lstatSync(absolute);
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Wp7Error('WP7_LEARNING_RUNTIME_INVALID', 'presealed Learning runtime required path must be a regular non-symlink file', { relative });
+  }
+  let seal;
+  try { seal = JSON.parse(fs.readFileSync(path.join(root, 'runtime-seal.json'), 'utf8')); }
+  catch (error) { throw new Wp7Error('WP7_LEARNING_RUNTIME_SEAL_INVALID', 'presealed Learning runtime seal is not valid JSON', { message: error.message }); }
+  if (seal.schemaVersion !== 1 || seal.documentType !== 'YANCE_LEARNING_WINDOWS_RUNTIME_SEAL') throw new Wp7Error('WP7_LEARNING_RUNTIME_SEAL_INVALID', 'presealed Learning runtime seal identity is invalid');
+  if (seal.learningPolicy?.learner !== 'Vowpal Wabbit' || seal.learningPolicy?.version !== '9.11.2' || seal.learningPolicy?.commit !== '122bae254a5b8bc2b774d13b33d53e6dbc2cfba7' || seal.learningPolicy?.exploration !== false || seal.learningPolicy?.textGeneration !== false) {
+    throw new Wp7Error('WP7_LEARNING_RUNTIME_SEAL_INVALID', 'presealed Learning runtime policy identity is invalid');
+  }
+  if (!seal.runtime || !Number.isInteger(seal.runtime.fileCount) || seal.runtime.fileCount <= 0 || !SHA256_RE.test(String(seal.runtime.treeSha256 || '')) || !SHA256_RE.test(String(seal.runtime.sbomSha256 || ''))) {
+    throw new Wp7Error('WP7_LEARNING_RUNTIME_SEAL_INVALID', 'presealed Learning runtime seal runtime identity is invalid');
+  }
+  if (seal.runtime.dependencyResolution !== 'build-time-only' || seal.runtime.networkResolutionAtRuntime !== false || seal.runtime.buildToolsShipped !== false) {
+    throw new Wp7Error('WP7_LEARNING_RUNTIME_SEAL_INVALID', 'presealed Learning runtime must prohibit runtime dependency resolution/network and exclude build tools');
+  }
+  const records = presealedLearningRuntimeRecords(root);
+  const canonical = Buffer.from(records.map((row) => `${row.path}|${row.sizeBytes}|${row.sha256}\n`).join(''), 'utf8');
+  const treeSha256 = sha256Buffer(canonical);
+  if (records.length !== seal.runtime.fileCount || treeSha256 !== seal.runtime.treeSha256) {
+    throw new Wp7Error('WP7_LEARNING_RUNTIME_TREE_MISMATCH', 'presealed Learning runtime tree does not match its runtime seal', { expectedFileCount: seal.runtime.fileCount, actualFileCount: records.length, expectedTreeSha256: seal.runtime.treeSha256, actualTreeSha256: treeSha256 });
+  }
+  const sbomSha256 = sha256File(path.join(root, 'runtime-sbom.cdx.json'));
+  if (sbomSha256 !== seal.runtime.sbomSha256) throw new Wp7Error('WP7_LEARNING_RUNTIME_SBOM_MISMATCH', 'presealed Learning runtime SBOM does not match its runtime seal', { expected: seal.runtime.sbomSha256, actual: sbomSha256 });
+  return Object.freeze({ root: fs.realpathSync(root), fileCount: records.length, treeSha256, sbomSha256, sealSha256: sha256File(path.join(root, 'runtime-seal.json')), seal });
+}
+function copyPresealedLearningRuntime(sourceRoot, resourcesRoot) {
+  const source = validatePresealedLearningRuntime(sourceRoot);
+  const destinationRoot = path.join(path.resolve(resourcesRoot), 'learning-runtime');
+  if (fs.existsSync(destinationRoot)) throw new Wp7Error('WP7_LEARNING_RUNTIME_DESTINATION_NOT_EMPTY', 'Learning runtime destination must not already exist', { destinationRoot });
+  copyTree(source.root, destinationRoot, { missingReason: 'WP7_LEARNING_RUNTIME_REQUIRED' });
+  const copied = validatePresealedLearningRuntime(destinationRoot);
+  if (copied.fileCount !== source.fileCount || copied.treeSha256 !== source.treeSha256 || copied.sbomSha256 !== source.sbomSha256 || copied.sealSha256 !== source.sealSha256) {
+    throw new Wp7Error('WP7_LEARNING_RUNTIME_COPY_MISMATCH', 'copied Learning runtime differs from the presealed source', { source, copied });
+  }
+  return Object.freeze({ ...copied, relativeRoot: 'resources/learning-runtime' });
+}
 function copyProductionDependencyTree(sourceRoot, destinationRoot) {
   const excludedGeneratedBinDirectories = [];
   const sourceBase = path.resolve(sourceRoot);
@@ -486,7 +625,7 @@ function assembleWindowsApplication(options = {}) {
   }
   const appRoot = path.join(payloadRoot, 'resources', 'app');
   fs.mkdirSync(appRoot, { recursive: true });
-  for (const rootName of ['backend', 'frontend', 'shared', 'electron', 'diagnostics', 'release']) {
+  for (const rootName of ['backend', 'shared', 'electron', 'diagnostics', 'release', 'assets', 'vendor/sillytavern/1.18.0']) {
     copyTree(path.join(repoRoot, rootName), path.join(appRoot, rootName), { excludeNames: rootName === 'backend' ? ['tests'] : [] });
   }
   for (const file of ['package.json', 'package-lock.json', 'installer/installedIdentityReceipt.js']) {
@@ -520,6 +659,12 @@ function assembleWindowsApplication(options = {}) {
     destinationRoot: path.join(payloadRoot, 'resources', 'runtime', 'node22'),
     platform: targetPlatform
   });
+  const parlantRuntime = options.parlantRuntimeSource
+    ? copyPresealedParlantRuntime(options.parlantRuntimeSource, path.join(payloadRoot, 'resources'))
+    : null;
+  const learningRuntime = options.learningRuntimeSource
+    ? copyPresealedLearningRuntime(options.learningRuntimeSource, path.join(payloadRoot, 'resources'))
+    : null;
   return {
     status: 'PASS',
     payloadRoot,
@@ -528,6 +673,8 @@ function assembleWindowsApplication(options = {}) {
     targetPlatform,
     targetArch,
     nodeRuntime,
+    parlantRuntime,
+    learningRuntime,
     productionDependencyCanonicalization
   };
 }
@@ -558,7 +705,9 @@ function buildFinalWindowsPayload(options = {}) {
     testRceditRunner: options.testRceditRunner,
     targetPlatform,
     targetArch,
-    trustedNodeExecutable: options.trustedNodeExecutable
+    trustedNodeExecutable: options.trustedNodeExecutable,
+    parlantRuntimeSource: options.parlantRuntimeSource,
+    learningRuntimeSource: options.learningRuntimeSource
   });
   const sourceClosure = validateReviewedApplicationSourceClosure(payloadRoot, repoRoot, identity.sourceCommit, { platform: targetPlatform });
   const dependencies = verifyProductionDependencyClosure({ repoRoot, appRoot: runtime.appRoot, sourceCommit: identity.sourceCommit, platform: targetPlatform, arch: targetArch });
@@ -841,7 +990,7 @@ function validateEvidenceCommon(document, options = {}) {
     for (const field of ['releaseManifestSha256', 'applicationPayloadSha256', 'applicationPayloadFilesystemIdentitySha256', 'payloadFilesSha256', 'productionDependencyBindingSha256', 'productionDependencyPackageGraphSha256', 'productionDependencyFileTreeSha256', 'productionDependencyModeTreeSha256', 'productionDependencyDirectoryModeTreeSha256', 'gitPayloadModeTreeSha256', 'electronDistributionTreeSha256', 'nodeRuntimeExecutableSha256', 'nodeRuntimeTreeSha256', 'nativeBinaryScanSha256', 'installerSha256', 'completeProjectSourceTreeSha256']) if (!SHA256_RE.test(document[field])) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', `invalid SHA256 field ${field}`);
     for (const field of ['productionDependencyPackageCount', 'productionDependencyFileCount', 'productionDependencyModeRecordCount', 'productionDependencyDirectoryCount', 'productionDependencyDirectoryModeRecordCount', 'gitPayloadModeRecordCount', 'electronDistributionFileCount', 'nodeRuntimeFileCount', 'nativeBinaryFileCount']) if (!Number.isInteger(document[field]) || document[field] <= 0) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', `invalid positive count field ${field}`);
     if (!Number.isInteger(document.electronDistributionModeBoundFileCount) || document.electronDistributionModeBoundFileCount < 0 || document.electronDistributionModeBoundFileCount > document.electronDistributionFileCount) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid Electron mode-bound file count');
-    if (document.nodeRuntimeVersion !== '22.16.0') throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid reviewed Node runtime version');
+    if (document.nodeRuntimeVersion !== '22.23.1') throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid reviewed Node runtime version');
     if (!/^runtime\/node22\/(?:node|node\.exe)$/.test(document.nodeRuntimeExecutablePath)) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid Node runtime executable path');
     if (document.nativeBinaryFailureCount !== 0 || !['linux', 'win32'].includes(document.nativeBinaryTargetPlatform) || document.nativeBinaryTargetArch !== 'x64') throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid native binary scan identity');
     if (!Number.isInteger(document.nodeRuntimeModeBoundFileCount) || document.nodeRuntimeModeBoundFileCount < 1 || document.nodeRuntimeModeBoundFileCount > document.nodeRuntimeFileCount) throw new Wp7Error('WP7_ACCEPTANCE_EVIDENCE_SCHEMA_INVALID', 'invalid Node runtime mode-bound file count');
@@ -1205,7 +1354,9 @@ function buildAuthorizedFinalWindowsInstaller(options = {}) {
       testRceditRunner: options.testRceditRunner,
       platformAuthConfigPath: options.platformAuthConfigPath,
       platformAuthHashPath: options.platformAuthHashPath,
-      requirePlatformAuth: options.requirePlatformAuth === true
+      requirePlatformAuth: options.requirePlatformAuth === true,
+      parlantRuntimeSource: options.parlantRuntimeSource,
+      learningRuntimeSource: options.learningRuntimeSource
     });
     if (typeof options.afterPayloadHook === 'function') options.afterPayloadHook({ repoRoot, frozenRoot: frozen.frozenRoot, stagingRoot, identity, built });
     assertSourceStillFrozen(repoRoot, identity, frozen.frozenRoot, frozenContent);
@@ -1407,7 +1558,9 @@ module.exports = {
   createDetachedFrozenSource, assertSourceStillFrozen, trackedWorkingTreeSha256, completeProjectSourceTreeSha256,
   readReleaseSource, verifyRuntimeProtocolConvergence,
   ensureDirectoryEmpty, acquireExclusiveLease, assertCanonicalPayloadPath, assertNoWp1Reuse, buildSessionId,
-  writePreReviewInstallerFixture, readPreReviewInstallerFixture, copyTree, copyProductionDependencyTree, installReleasePlatformAuth, assembleWindowsApplication, buildFinalWindowsPayload, buildManifestAndPayload, buildPreReviewFixture,
+  writePreReviewInstallerFixture, readPreReviewInstallerFixture, copyTree, presealedParlantRuntimeRecords, validatePresealedParlantRuntime, copyPresealedParlantRuntime,
+  presealedLearningRuntimeRecords, validatePresealedLearningRuntime, copyPresealedLearningRuntime,
+  copyProductionDependencyTree, installReleasePlatformAuth, assembleWindowsApplication, buildFinalWindowsPayload, buildManifestAndPayload, buildPreReviewFixture,
   assertSessionSealed, validateBuildIdentity, validateRiskRegister, validateDeferredScope, validateEvidenceReferences,
   validateEvidenceCommon, validateCrossFileIdentity, validateCleanInstallEvidence, validateBootFailureDiagnostics,
   validateAcceptanceMapping, validatePhaseModel, verifyRequiredTestImplementations, validateWorkstreamTraceability, validateAllGovernance,

@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-13T12:40:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BASE-OWNED-WP0-GOVERNANCE-CLASSIFICATION-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #339 produced fresh causal RED proving that combining trusted-main route classification and immediate execution coverage in one prerequisite is cyclic: before the split-root implementation is trusted, the dedicated test cannot be executed successfully; before the dedicated test path is governance-owned, the split-root implementation routes to PRODUCT_WP0 and the old base-owned executable cannot validate its successor. The bottom-level prerequisite is therefore only the trusted routing classification change. It uses the governanceBootstrapPaths capability merged by #337 to add exactly tests/wp0/base-owned-evaluated-repository-root.test.js to governanceExactPaths. No workflow execution change is made here. After this exact classification reaches trusted main, a separately authorized atomic implementation can combine tools/wp0/lib.js, the dedicated split-root test, and its exact GOVERNANCE_WP0 execution step without self-bootstrap or route escalation.",
+  "base": {
+    "branch": "main",
+    "commit": "d3139f6f89aa341d10f130f31aa26365870b4fa2"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_ROUTING_SSOT_AND_GOVERNANCE_BOOTSTRAP_GUARD",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "selfBuiltEquivalentFrameworkAllowed": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP0 routing policy SSOT",
+        "source": "governance/layered-ci/wp0-routing-policy.json",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The missing capability is one exact-path ownership classification; adding a single governanceExactPaths entry is smaller and safer than any prefix, wildcard, route, workflow, or new policy engine."
+      },
+      {
+        "name": "Existing delegated governance route-bootstrap semantic guard",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "PR #337 already provides exact/count/SHA256-closed governanceBootstrapPaths semantics for precisely this trusted-main classification transition."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add or modify workflow execution in this prerequisite.",
+      "Do not add a governance prefix or wildcard.",
+      "Do not execute the dedicated split-root test before the implementation fix is atomically present.",
+      "Do not route through a canonical rebuild branch or candidate-owned trust authority."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-base-owned-wp0-governance-classification-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-base-owned-wp0-governance-classification-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "003be36b1aeadda860d7dc48694ebde2b197069d1f0315cf3fb3841084848cf6",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-base-owned-wp0-governance-classification-p0",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d0bf4c9815a9d6a8ba8045d37741c4799a69a6b065e5332506f42f1703e9f887",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/wp0-routing.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "0d247b29f8085396a9c5a15b92b23441cb4594a45081d7c79686e1e7e3265b8b",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "workflowModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "governanceBootstrapPaths": [
+    "tests/wp0/base-owned-evaluated-repository-root.test.js"
+  ],
+  "governanceBootstrapPathCount": 1,
+  "governanceBootstrapPathSetSha256": "8cc961e6cc1bce434a2e91706625ba36052370913945558b2aa3519fea439189",
+  "classificationContract": {
+    "exactAddedGovernancePath": "tests/wp0/base-owned-evaluated-repository-root.test.js",
+    "pairedExistingGovernancePath": "tools/wp0/lib.js",
+    "expectedRouteAfterRepair": "GOVERNANCE_WP0",
+    "governancePrefixMutationForbidden": true,
+    "productRouteMutationForbidden": true,
+    "mixedChangesEscalateToProductMustRemainTrue": true,
+    "unknownPathFailsClosedMustRemainTrue": true,
+    "workflowModificationForbidden": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only tests/layered-ci/wp0-routing.test.js and proves that tools/wp0/lib.js plus tests/wp0/base-owned-evaluated-repository-root.test.js does not yet select GOVERNANCE_WP0 under the current trusted routing policy.",
+    "The GREEN repair adds only tests/wp0/base-owned-evaluated-repository-root.test.js to governanceExactPaths.",
+    "No workflow file changes in this prerequisite and the dedicated split-root test is not executed here.",
+    "All existing product, documentation, mixed-change, unknown-path, fail-closed, security and routing semantics remain unchanged."
+  ],
+  "verification": {
+    "mandatory": [
+      "fresh tests/layered-ci/wp0-routing.test.js causal RED then GREEN",
+      "Stage GOVERNANCE_WP0 exact implementation Head",
+      "Layered CI and ACV2 exact implementation Head",
+      "ordinary two-parent implementation merge and post-merge GREEN"
+    ],
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "workflowModification": true,
+    "candidateSelfAuthorization": true,
+    "newWp0Route": true,
+    "newWorkflow": true,
+    "broadGovernancePrefix": true,
+    "wildcardAuthorization": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}

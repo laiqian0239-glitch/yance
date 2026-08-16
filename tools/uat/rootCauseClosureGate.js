@@ -146,21 +146,20 @@ function runGate(repoRoot = path.resolve(__dirname, '..', '..')) {
     blockingGates: replyLanguageClosure.blockingGates
   });
 
-  const componentCssPath = path.join(repoRoot, 'frontend', 'r32-component-readability.css');
-  const frontendIndexPath = path.join(repoRoot, 'frontend', 'index.html');
+  const componentCssPath = path.join(repoRoot, 'integration', 'element-module', 'src', 'product-experience', 'ProductExperienceShell.css');
+  const productShellPath = path.join(repoRoot, 'integration', 'element-module', 'src', 'product-experience', 'ProductExperienceShell.tsx');
   const componentCss = fs.existsSync(componentCssPath) ? fs.readFileSync(componentCssPath, 'utf8') : '';
-  const frontendIndex = fs.existsSync(frontendIndexPath) ? fs.readFileSync(frontendIndexPath, 'utf8') : '';
+  const productShellSource = fs.existsSync(productShellPath) ? fs.readFileSync(productShellPath, 'utf8') : '';
   const componentReadabilityReady = Boolean(
     componentReadabilityClosure.status === 'UNIT_BEHAVIOR_PASS'
     && componentReadabilityClosure.windowsRenderStatus === 'PENDING'
-    && /\.candidate-actions/u.test(componentCss)
-    && /\.profile-actions/u.test(componentCss)
-    && /\.micro-tune button/u.test(componentCss)
-    && /\.candidate-trust/u.test(componentCss)
-    && /background:var\(--rc-action-surface\)!important/u.test(componentCss)
-    && /color:var\(--rc-action-text\)!important/u.test(componentCss)
-    && frontendIndex.indexOf('/r32-component-readability.css') > frontendIndex.indexOf('id="dating-fast-reply-learning-v1"')
-    && frontendIndex.indexOf('/r32-theme-authority.css') > frontendIndex.indexOf('/r32-component-readability.css')
+    && /\.yance-assistant-actions button/u.test(componentCss)
+    && /\.yance-person-copy/u.test(componentCss)
+    && /min-width:\s*0/u.test(componentCss)
+    && /overflow:\s*auto/u.test(componentCss)
+    && /<PeopleSurface/u.test(productShellSource)
+    && /<RelationshipWorld/u.test(productShellSource)
+    && /<LearningWorkspace/u.test(productShellSource)
   );
   if (!componentReadabilityReady) openBlockers.push({ id: 'P1_COMPONENT_READABILITY_AUTHORITY_INCOMPLETE', file: 'governance/root-cause-closure/component-readability-closure.json' });
   add('known-root-cause:component-readability-authority-ready', componentReadabilityReady, {
@@ -210,42 +209,59 @@ function runGate(repoRoot = path.resolve(__dirname, '..', '..')) {
   const relationshipAuthoritySource = fs.existsSync(relationshipAuthorityPath) ? fs.readFileSync(relationshipAuthorityPath, 'utf8') : '';
   const workspaceRepositorySource = fs.readFileSync(path.join(repoRoot, 'backend', 'repositories', 'workspaceRepository.js'), 'utf8');
   const workspaceServiceSource = fs.readFileSync(path.join(repoRoot, 'backend', 'services', 'workspaceService.js'), 'utf8');
-  const uiRuntimeSource = fs.readFileSync(path.join(repoRoot, 'frontend', 'js', 'r32-ui-runtime.js'), 'utf8');
+  const productExperienceProjectionSource = fs.readFileSync(path.join(repoRoot, 'integration', 'element-module', 'src', 'product-experience', 'experienceProjection.ts'), 'utf8');
+  const relationshipWorldSource = fs.readFileSync(path.join(repoRoot, 'integration', 'element-module', 'src', 'product-experience', 'RelationshipWorld.tsx'), 'utf8');
   const relationshipStateAuthorityReady = Boolean(
     relationshipStateClosure.status === 'REAL_DB_REPLAY_PASS'
     && relationshipStateClosure.windowsRenderStatus === 'PENDING'
     && /const STATES = Object\.freeze/u.test(relationshipAuthoritySource)
     && /function projectFromStore/u.test(relationshipAuthoritySource)
-    && /social_rule_projection/u.test(relationshipAuthoritySource)
     && /relationshipProjectionAuthority\.projectFromStore/u.test(workspaceRepositorySource)
     && /authorityTrajectory/u.test(workspaceServiceSource)
-    && !/summary:`当前关系势能/u.test(uiRuntimeSource)
-    && !/profileText\(p\.next,'等待真实分析。'\)/u.test(uiRuntimeSource)
+    && /loadRelationshipProjections/u.test(productExperienceProjectionSource)
+    && /storeSnapshot\(\{ domains: \["customers"\] \}\)/u.test(productExperienceProjectionSource)
+    && /export function RelationshipWorld/u.test(relationshipWorldSource)
+  );
+  const relationshipStateGraphitiOnlyReady = Boolean(
+    relationshipStateAuthorityReady
+    && /graphiti_temporal_inference/u.test(relationshipAuthoritySource)
+    && /user_annotation/u.test(relationshipAuthoritySource)
+    && /source = 'ai_analysis'/u.test(relationshipAuthoritySource)
+    && /source = 'empty'/u.test(relationshipAuthoritySource)
+    && !/function ruleProjection/u.test(relationshipAuthoritySource)
+    && !/legacy_projection/u.test(relationshipAuthoritySource)
+    && !/social_rule_projection/u.test(relationshipAuthoritySource)
+    && !/message_baseline/u.test(relationshipAuthoritySource)
   );
   if (!relationshipStateAuthorityReady) openBlockers.push({ id: 'P1_RELATIONSHIP_STATE_AUTHORITY_INCOMPLETE', file: 'governance/root-cause-closure/relationship-state-authority-closure.json' });
+  if (!relationshipStateGraphitiOnlyReady) openBlockers.push({ id: 'P1_RELATIONSHIP_STATE_GRAPHITI_AUTHORITY_INCOMPLETE', file: 'backend/services/relationshipProjectionAuthority.js' });
   add('known-root-cause:relationship-state-authority-ready', relationshipStateAuthorityReady, {
     status: relationshipStateClosure.status,
     windowsRenderStatus: relationshipStateClosure.windowsRenderStatus,
     defectIds: relationshipStateClosure.defectIds
+  });
+  add('known-root-cause:relationship-state-graphiti-only-ready', relationshipStateGraphitiOnlyReady, {
+    inferenceAuthority: 'Graphiti/Neo4j',
+    timelineAuthority: 'graphiti_temporal_inference',
+    explicitUserAnnotationsPreserved: true,
+    aiAnalysisRemainsDistinct: true,
+    localFallbackAuthorityRetired: relationshipStateGraphitiOnlyReady
   });
 
   const modelRuntimeAuthorityPath = path.join(repoRoot, 'backend', 'services', 'modelRuntimeAuthority.js');
   const modelRuntimeAuthoritySource = fs.existsSync(modelRuntimeAuthorityPath) ? fs.readFileSync(modelRuntimeAuthorityPath, 'utf8') : '';
   const modelRegistrySource = fs.readFileSync(path.join(repoRoot, 'backend', 'services', 'modelRegistry.js'), 'utf8');
   const modelProjectionSource = fs.readFileSync(path.join(repoRoot, 'backend', 'services', 'modelStatusProjection.js'), 'utf8');
-  const aiWorkbenchSource = fs.readFileSync(path.join(repoRoot, 'frontend', 'js', 'r32-ai-workbench-runtime.js'), 'utf8');
   const modelRuntimeAuthorityReady = Boolean(
     modelRuntimeClosure.status === 'REAL_DB_REPLAY_PASS'
     && modelRuntimeClosure.windowsRenderStatus === 'PENDING'
     && /const STATES = Object\.freeze/u.test(modelRuntimeAuthoritySource)
     && /DEGRADED_WITH_FALLBACK/u.test(modelRuntimeAuthoritySource)
-    && /lastQualificationAttemptStatus/u.test(modelRegistrySource)
+    && /lastQualificationTest/u.test(modelRegistrySource)
     && /lastInvocationStatus/u.test(modelRegistrySource)
-    && /authority: 'ModelRuntimeAuthority'/u.test(modelProjectionSource)
-    && /runtimeStateLabel/u.test(aiWorkbenchSource)
-    && /技术详情/u.test(aiWorkbenchSource)
-    && !/尚未实际成功调用/u.test(aiWorkbenchSource)
-    && !/可参与路由/u.test(aiWorkbenchSource)
+    && /authority: 'Model Brain \/ LiteLLM'/u.test(modelProjectionSource)
+    && /taskReadiness/u.test(modelProjectionSource)
+    && /replyBrain/u.test(modelProjectionSource)
   );
   if (!modelRuntimeAuthorityReady) openBlockers.push({ id: 'P1_MODEL_RUNTIME_AUTHORITY_INCOMPLETE', file: 'governance/root-cause-closure/model-runtime-authority-closure.json' });
   add('known-root-cause:model-runtime-authority-ready', modelRuntimeAuthorityReady, {
@@ -258,7 +274,6 @@ function runGate(repoRoot = path.resolve(__dirname, '..', '..')) {
   const systemHealthAuthorityPath = path.join(repoRoot, 'backend', 'services', 'systemHealthAuthority.js');
   const systemHealthAuthoritySource = fs.existsSync(systemHealthAuthorityPath) ? fs.readFileSync(systemHealthAuthorityPath, 'utf8') : '';
   const systemCenterSource = fs.readFileSync(path.join(repoRoot, 'backend', 'services', 'systemCenterService.js'), 'utf8');
-  const systemCenterUiSource = fs.readFileSync(path.join(repoRoot, 'frontend', 'r32-system-center.js'), 'utf8');
   const systemHealthAuthorityReady = Boolean(
     systemHealthClosure.status === 'UNIT_BEHAVIOR_PASS'
     && systemHealthClosure.windowsRenderStatus === 'PENDING'
@@ -267,8 +282,6 @@ function runGate(repoRoot = path.resolve(__dirname, '..', '..')) {
     && /function projectHealth\(/u.test(systemHealthAuthoritySource)
     && /activeErrorAggregates/u.test(systemHealthAuthoritySource)
     && /systemHealthAuthority\.projectLogs/u.test(systemCenterSource)
-    && /logAggregateCard/u.test(systemCenterUiSource)
-    && !/JSON\.stringify\(log\.detail/u.test(systemCenterUiSource)
   );
   if (!systemHealthAuthorityReady) openBlockers.push({ id: 'P1_SYSTEM_HEALTH_AUTHORITY_INCOMPLETE', file: 'governance/root-cause-closure/system-health-authority-closure.json' });
   add('known-root-cause:system-health-authority-ready', systemHealthAuthorityReady, {
@@ -294,7 +307,6 @@ function runGate(repoRoot = path.resolve(__dirname, '..', '..')) {
     && /backgroundJobs\.begin/u.test(mediaRecoverySource)
     && /interruptedBackgroundJobs/u.test(serverSource)
     && /backgroundJobs: backgroundJobSummary/u.test(systemCenterSource)
-    && /renderBackgroundJobs/u.test(systemCenterUiSource)
   );
   if (!backgroundJobAuthorityReady) openBlockers.push({ id: 'P1_BACKGROUND_JOB_AUTHORITY_INCOMPLETE', file: 'governance/root-cause-closure/background-job-authority-closure.json' });
   add('known-root-cause:background-job-authority-ready', backgroundJobAuthorityReady, {
@@ -313,7 +325,6 @@ function runGate(repoRoot = path.resolve(__dirname, '..', '..')) {
     && /function backupCoveragePresentation/u.test(dataProtectionAuthoritySource)
     && /sizeLabel/u.test(dataProtectionAuthoritySource)
     && /dataProtectionAuthority\.projectDataRoot/u.test(systemCenterSource)
-    && /root\.sizeLabel \|\| fmtBytes/u.test(systemCenterUiSource)
     && !/files, label: bytes\(total\)/u.test(systemCenterSource)
   );
   if (!dataProtectionReady) openBlockers.push({ id: 'P1_DATA_PROTECTION_PRESENTATION_INCOMPLETE', file: 'governance/root-cause-closure/data-protection-presentation-closure.json' });
@@ -328,19 +339,18 @@ function runGate(repoRoot = path.resolve(__dirname, '..', '..')) {
   const notificationSoundAuthoritySource = fs.existsSync(notificationSoundAuthorityPath) ? fs.readFileSync(notificationSoundAuthorityPath, 'utf8') : '';
   const notificationPolicySource = fs.readFileSync(path.join(repoRoot, 'backend', 'services', 'notificationPolicy.js'), 'utf8');
   const electronSoundSource = fs.readFileSync(path.join(repoRoot, 'electron', 'SoundNotificationService.js'), 'utf8');
-  const settingsRecoverySource = fs.readFileSync(path.join(repoRoot, 'frontend', 'r32-settings-recovery.js'), 'utf8');
+  const soundPlayerSource = fs.readFileSync(path.join(repoRoot, 'electron', 'sound-player.js'), 'utf8');
   const notificationSoundReady = Boolean(
     notificationSoundClosure.status === 'UNIT_BEHAVIOR_PASS'
     && notificationSoundClosure.windowsRenderStatus === 'PENDING'
     && /NotificationSoundAuthority/u.test(notificationSoundAuthoritySource)
+    && /Yance Classic/u.test(notificationSoundAuthoritySource)
     && /EVENT_SOUND_OPTIONS/u.test(notificationSoundAuthoritySource)
+    && !/notificationSoundLibrary\.json/u.test(notificationSoundAuthoritySource)
     && /soundCatalog/u.test(notificationPolicySource)
     && /shared\/notificationSoundCatalog/u.test(electronSoundSource)
-    && /notificationSoundCatalog\(\)\.events\.map/u.test(systemCenterUiSource)
-    && /data-sc-action="preview-sound"/u.test(systemCenterUiSource)
-    && /open-system-notifications/u.test(settingsRecoverySource)
-    && !/data-action="save-notify"/u.test(settingsRecoverySource)
-    && !/const SOUND_OPTIONS=/u.test(settingsRecoverySource)
+    && /\.\/assets\/sounds\//u.test(soundPlayerSource)
+    && !/frontend\/assets\/sounds/u.test(soundPlayerSource)
   );
   if (!notificationSoundReady) openBlockers.push({ id: 'P2_NOTIFICATION_SOUND_AUTHORITY_INCOMPLETE', file: 'governance/root-cause-closure/notification-sound-authority-closure.json' });
   add('known-root-cause:notification-sound-authority-ready', notificationSoundReady, {
@@ -349,22 +359,21 @@ function runGate(repoRoot = path.resolve(__dirname, '..', '..')) {
     defectIds: notificationSoundClosure.defectIds
   });
 
-  const businessPresentationAuthorityPath = path.join(repoRoot, 'frontend', 'js', 'r32-business-presentation-authority.js');
+  const businessPresentationAuthorityPath = path.join(repoRoot, 'backend', 'services', 'socialAnalysisPresentationService.js');
   const businessPresentationAuthoritySource = fs.existsSync(businessPresentationAuthorityPath) ? fs.readFileSync(businessPresentationAuthorityPath, 'utf8') : '';
-  const contactRendererSource = fs.readFileSync(path.join(repoRoot, 'frontend', 'js', 'r32-contact-safe-renderers.js'), 'utf8');
-  const accountCenterSource = fs.readFileSync(path.join(repoRoot, 'frontend', 'r32-account-center.js'), 'utf8');
+  const productProjectionSource = fs.readFileSync(path.join(repoRoot, 'integration', 'element-module', 'src', 'product-experience', 'experienceProjection.ts'), 'utf8');
+  const peopleSurfaceSource = fs.readFileSync(path.join(repoRoot, 'integration', 'element-module', 'src', 'product-experience', 'PeopleSurface.tsx'), 'utf8');
+  const relationshipWorldPresentationSource = fs.readFileSync(path.join(repoRoot, 'integration', 'element-module', 'src', 'product-experience', 'RelationshipWorld.tsx'), 'utf8');
   const businessPresentationReady = Boolean(
     businessPresentationClosure.status === 'UNIT_BEHAVIOR_PASS'
     && businessPresentationClosure.windowsRenderStatus === 'PENDING'
-    && /BusinessPresentationAuthority/u.test(businessPresentationAuthoritySource)
-    && /relationshipStage/u.test(businessPresentationAuthoritySource)
-    && /calm_natural/u.test(businessPresentationAuthoritySource)
-    && /function businessIdentity/u.test(businessPresentationAuthoritySource)
-    && /查看技术身份/u.test(contactRendererSource)
-    && /ac32-technical-details/u.test(accountCenterSource)
-    && /businessLabel\('source',m\.source/u.test(aiWorkbenchSource)
-    && /businessLabel\('relationshipStage',t\.stage/u.test(uiRuntimeSource)
-    && /targetIdentity:target/u.test(uiRuntimeSource)
+    && /buildSocialAnalysisPresentation/u.test(businessPresentationAuthoritySource)
+    && /buildRelationshipPresentation/u.test(businessPresentationAuthoritySource)
+    && /localizedScalar/u.test(businessPresentationAuthoritySource)
+    && /loadRelationshipProjections/u.test(productProjectionSource)
+    && /export function PeopleSurface/u.test(peopleSurfaceSource)
+    && /relationship\.name/u.test(peopleSurfaceSource)
+    && /export function RelationshipWorld/u.test(relationshipWorldPresentationSource)
   );
   if (!businessPresentationReady) openBlockers.push({ id: 'P2_BUSINESS_PRESENTATION_AUTHORITY_INCOMPLETE', file: 'governance/root-cause-closure/business-presentation-authority-closure.json' });
   add('known-root-cause:business-presentation-authority-ready', businessPresentationReady, {

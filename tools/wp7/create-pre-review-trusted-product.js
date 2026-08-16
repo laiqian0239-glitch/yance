@@ -16,13 +16,21 @@ const { verifyTrustedProductExecutable, sha256File } = require('./packaged-produ
 const { createDeterministicTarGzip } = require('./deterministic-tar-gzip');
 const RELEASE_SOURCE = require('../../release/release-source.json');
 
+const EXPECTED_ARCHIVE_IMPLEMENTATION = 'NODE_TAR_PAX_GZIP_V1';
+const EXPECTED_ARCHIVE_TOOL_PACKAGE = 'tar';
+const EXPECTED_ARCHIVE_TOOL_VERSION = '7.5.22';
+
 const ENV_BY_ARGUMENT = Object.freeze({
   '--repo-root': 'WP7_REPO_ROOT',
   '--electron-archive': 'WP7_ELECTRON_RELEASE_ARCHIVE',
   '--electron-dist': 'WP7_ELECTRON_DISTRIBUTION_ROOT',
+  '--electron-npm-package-root': 'WP7_ELECTRON_NPM_PACKAGE_ROOT',
   '--production-node-modules': 'WP7_PRODUCTION_NODE_MODULES',
   '--trusted-node-executable': 'WP7_TRUSTED_NODE_EXECUTABLE',
+  '--parlant-runtime': 'WP7_PARLANT_RUNTIME_ROOT',
+  '--learning-runtime': 'WP7_LEARNING_RUNTIME_ROOT',
   '--rcedit-path': 'WP7_RCEDIT_PATH',
+  '--archive-tool-node-modules': 'WP7_ARCHIVE_TOOL_NODE_MODULES',
   '--platform-auth-config': 'WP7_PLATFORM_AUTH_CONFIG_PATH',
   '--platform-auth-sha256': 'WP7_PLATFORM_AUTH_CONFIG_SHA256_PATH',
   '--output-dir': 'WP7_PRE_REVIEW_PRODUCT_OUTPUT',
@@ -84,6 +92,7 @@ function resolveBuildInputs(options = {}) {
   const targetPlatform = argumentValue('--target-platform', { ...options, fallback: 'win32' });
   const targetArch = argumentValue('--target-arch', { ...options, fallback: 'x64' });
   const allowNonWindowsReviewFixture = booleanArgument('--allow-non-windows-review-fixture', { ...options, envName: 'WP7_ALLOW_NON_WINDOWS_REVIEW_FIXTURE' });
+  const electronNpmPackageRootValue = argumentValue('--electron-npm-package-root', options);
   if (targetPlatform !== 'win32' || targetArch !== 'x64') {
     fail('WP7_WINDOWS_FINAL_BUILD_REQUIRED', 'pre-review trusted product builder is bound to the Windows x64 release target', { targetPlatform, targetArch });
   }
@@ -96,9 +105,13 @@ function resolveBuildInputs(options = {}) {
     outputRoot,
     electronArchivePath: assertRegular(argumentValue('--electron-archive', options), 'WP7_OFFICIAL_ELECTRON_ARCHIVE_REQUIRED', 'official Electron archive'),
     electronDist: assertDirectory(argumentValue('--electron-dist', options), 'WP7_OFFICIAL_ELECTRON_DISTRIBUTION_REQUIRED', 'official Electron extracted distribution'),
+    electronNpmPackageRoot: electronNpmPackageRootValue ? assertDirectory(electronNpmPackageRootValue, 'WP7_PACKAGED_ELECTRON_TRUST_INPUT_MISSING', 'isolated Electron npm package root') : null,
     productionNodeModulesSource: assertDirectory(argumentValue('--production-node-modules', options), 'WP7_PRODUCTION_DEPENDENCY_DIRECTORY_TREE_MISMATCH', 'reviewed production node_modules'),
     trustedNodeExecutable: assertRegular(argumentValue('--trusted-node-executable', options), 'WP7_NODE_RUNTIME_EXECUTABLE_MISSING', 'trusted Node executable'),
+    parlantRuntimeSource: assertDirectory(argumentValue('--parlant-runtime', options), 'WP7_PARLANT_RUNTIME_REQUIRED', 'presealed Parlant runtime'),
+    learningRuntimeSource: assertDirectory(argumentValue('--learning-runtime', options), 'WP7_LEARNING_RUNTIME_REQUIRED', 'presealed Learning runtime'),
     rceditPath: assertRegular(argumentValue('--rcedit-path', options), 'WP7_RCEDIT_EXECUTABLE_REQUIRED', 'trusted rcedit executable'),
+    archiveToolNodeModules: assertDirectory(argumentValue('--archive-tool-node-modules', options), 'WP7_PRE_REVIEW_TRUSTED_PRODUCT_ARCHIVE_FAILED', 'isolated archive OSS node_modules'),
     platformAuthConfigPath: argumentValue('--platform-auth-config', options) ? assertRegular(argumentValue('--platform-auth-config', options), 'WP7_PLATFORM_AUTH_RELEASE_CONFIG_MISSING', 'sealed platform auth configuration') : null,
     platformAuthHashPath: argumentValue('--platform-auth-sha256', options) ? assertRegular(argumentValue('--platform-auth-sha256', options), 'WP7_PLATFORM_AUTH_RELEASE_CONFIG_MISSING', 'platform auth detached SHA-256') : null,
     requirePlatformAuth: booleanArgument('--require-platform-auth', { ...options, envName: 'WP7_REQUIRE_PLATFORM_AUTH' }),
@@ -109,14 +122,21 @@ function resolveBuildInputs(options = {}) {
     allowNonWindowsReviewFixture
   });
 }
-function archiveProduct(stagingRoot, archivePath, timestamp, targetPlatform) {
-  return createDeterministicTarGzip({ sourceRoot: stagingRoot, entryRoot: 'application-payload', outputPath: archivePath, timestamp, targetPlatform });
+function archiveProduct(stagingRoot, archivePath, timestamp, targetPlatform, archiveToolNodeModules) {
+  return createDeterministicTarGzip({
+    sourceRoot: stagingRoot,
+    entryRoot: 'application-payload',
+    outputPath: archivePath,
+    timestamp,
+    targetPlatform,
+    archiveToolNodeModules
+  });
 }
 function run(options = {}) {
   const inputs = resolveBuildInputs(options);
   const {
-    repoRoot, outputRoot, electronArchivePath, electronDist, productionNodeModulesSource,
-    trustedNodeExecutable, rceditPath, platformAuthConfigPath, platformAuthHashPath, requirePlatformAuth,
+    repoRoot, outputRoot, electronArchivePath, electronDist, electronNpmPackageRoot, productionNodeModulesSource,
+    trustedNodeExecutable, parlantRuntimeSource, learningRuntimeSource, rceditPath, archiveToolNodeModules, platformAuthConfigPath, platformAuthHashPath, requirePlatformAuth,
     buildTimestampUtc, buildSessionId, targetPlatform, targetArch, allowNonWindowsReviewFixture
   } = inputs;
   if (!/^[0-9a-f]{16,64}$/.test(buildSessionId)) fail('WP7_PRE_REVIEW_BUILD_SESSION_ID_INVALID', 'build session ID must be 16-64 lowercase hexadecimal characters', { buildSessionId });
@@ -135,6 +155,8 @@ function run(options = {}) {
     productionNodeModulesSource,
     electronDist,
     trustedNodeExecutable,
+    parlantRuntimeSource,
+    learningRuntimeSource,
     electronArchivePath,
     rceditPath,
     platformAuthConfigPath,
@@ -147,13 +169,21 @@ function run(options = {}) {
   });
   const closure = validateApplicationPayloadClosure(built.payloadRoot, built.resourcesRoot, { repoRoot, platform: targetPlatform, arch: targetArch });
   const productExecutable = path.join(built.payloadRoot, targetPlatform === 'win32' ? RELEASE_SOURCE.executableName : path.parse(RELEASE_SOURCE.executableName).name);
-  const trust = verifyTrustedProductExecutable({ repoRoot, electronArchivePath, electronDist, productExecutablePath: productExecutable, payloadRoot: built.payloadRoot, platform: targetPlatform, arch: targetArch });
+  const trust = verifyTrustedProductExecutable({ repoRoot, electronArchivePath, electronDist, electronNpmPackageRoot, productExecutablePath: productExecutable, payloadRoot: built.payloadRoot, platform: targetPlatform, arch: targetArch });
   if (built.manifest.artifactClass !== PRE_REVIEW_ARTIFACT_CLASS || built.manifest.finalReleaseEvidence !== false || closure.identity.artifactClass !== PRE_REVIEW_ARTIFACT_CLASS || closure.identity.finalReleaseEvidence !== false) {
     fail('WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_INVALID', 'trusted product was not assembled as PRE_REVIEW_ONLY');
   }
   const archiveName = `Yance_Stage6_4_5_9_WP7_PreReview_Trusted_Product_${identity.sourceCommit.slice(0, 12)}.tar.gz`;
   const archivePath = path.join(outputRoot, archiveName);
-  const archive = archiveProduct(stagingRoot, archivePath, buildTimestampUtc, targetPlatform);
+  const archive = archiveProduct(stagingRoot, archivePath, buildTimestampUtc, targetPlatform, archiveToolNodeModules);
+  if (archive.implementation !== EXPECTED_ARCHIVE_IMPLEMENTATION || archive.archiveToolPackage !== EXPECTED_ARCHIVE_TOOL_PACKAGE || archive.archiveToolVersion !== EXPECTED_ARCHIVE_TOOL_VERSION) {
+    fail('WP7_PRE_REVIEW_TRUSTED_PRODUCT_ARCHIVE_FAILED', 'trusted-product archive implementation identity mismatch', {
+      expectedImplementation: EXPECTED_ARCHIVE_IMPLEMENTATION,
+      actualImplementation: archive.implementation,
+      expectedArchiveTool: `${EXPECTED_ARCHIVE_TOOL_PACKAGE}@${EXPECTED_ARCHIVE_TOOL_VERSION}`,
+      actualArchiveTool: `${archive.archiveToolPackage || ''}@${archive.archiveToolVersion || ''}`
+    });
+  }
   const buildDocument = {
     schemaVersion: 2,
     documentType: 'WP7_PRE_REVIEW_TRUSTED_PRODUCT_BUILD',
@@ -173,7 +203,9 @@ function run(options = {}) {
     arch: targetArch,
     hostPlatform: process.platform,
     hostArch: process.arch,
-    archiveImplementation: 'NODE_USTAR_STREAM_GZIP_V2',
+    archiveImplementation: archive.implementation,
+    archiveToolPackage: archive.archiveToolPackage,
+    archiveToolVersion: archive.archiveToolVersion,
     archiveEntryCount: archive.entryCount,
     electronVersion: trust.electronVersion,
     electronReleaseArchiveFileName: path.basename(electronArchivePath),
@@ -208,6 +240,14 @@ function run(options = {}) {
     nodeRuntimeExecutableSha256: closure.nodeRuntime.executableSha256,
     nodeRuntimeTreeSha256: closure.nodeRuntime.runtimeTreeSha256,
     nodeRuntimeFileCount: closure.nodeRuntime.fileCount,
+    parlantRuntimeRelativePath: 'application-payload/resources/parlant-runtime',
+    parlantRuntimeSealSha256: built.runtime.parlantRuntime.sealSha256,
+    parlantRuntimeTreeSha256: built.runtime.parlantRuntime.treeSha256,
+    parlantRuntimeFileCount: built.runtime.parlantRuntime.fileCount,
+    learningRuntimeRelativePath: 'application-payload/resources/learning-runtime',
+    learningRuntimeSealSha256: built.runtime.learningRuntime.sealSha256,
+    learningRuntimeTreeSha256: built.runtime.learningRuntime.treeSha256,
+    learningRuntimeFileCount: built.runtime.learningRuntime.fileCount,
     nativeBinaryScanSha256: closure.nativeBinaryScanSha256,
     nativeBinaryFileCount: closure.nativeBinaryScan.fileCount,
     nativeBinaryFailureCount: closure.nativeBinaryScan.failureCount,

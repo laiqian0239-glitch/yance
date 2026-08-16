@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const {
   REPO_ROOT,
+  ALLOWED_BRANCH,
   EXPECTED_BASELINE_PROVENANCE_COMMIT,
   EXPECTED_BASELINE_ANCHOR_COMMIT,
   EXPECTED_BASELINE_ANCHOR_PATH,
@@ -14,9 +15,16 @@ const {
   verifyRejectedBaselineAnchor
 } = require('../../tools/wp0/lib');
 
-test('freeze-rejected-baseline.test', () => {
-  const result = checkFreezePolicy();
+test('freeze-rejected-baseline.test evaluates the frozen policy on its canonical authorized branch', () => {
+  const result = checkFreezePolicy({ branch: ALLOWED_BRANCH, changedFiles: [] });
   assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.details.runtimeTargetGate.branch, ALLOWED_BRANCH);
+});
+
+test('current caller branch cannot change the canonical freeze-policy result', () => {
+  const denied = checkFreezePolicy({ branch: 'feature/unreviewed-release', changedFiles: [] });
+  assert.equal(denied.pass, false);
+  assert.equal(denied.reasonCode, 'WP0_REJECTED_STAGE_TARGET_DENIED');
 });
 
 test('portable repository archive anchor preserves the rejected baseline decision', () => {

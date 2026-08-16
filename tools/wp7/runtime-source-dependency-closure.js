@@ -9,7 +9,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
-const RUNTIME_ROOTS = Object.freeze(['backend', 'shared', 'electron', 'diagnostics', 'release']);
+const RUNTIME_ROOTS = Object.freeze([
+  'backend',
+  'shared',
+  'electron',
+  'diagnostics',
+  'release',
+  'vendor/sillytavern/1.18.0'
+]);
 const RUNTIME_FILES = Object.freeze(['installer/installedIdentityReceipt.js']);
 const FORBIDDEN_TOP_LEVEL_ROOTS = Object.freeze(['tools', 'tests', 'evidence', 'implementation', 'governance']);
 const SOURCE_EXTENSIONS = new Set(['.js', '.cjs', '.mjs']);
@@ -34,8 +41,8 @@ function isInside(root, candidate) {
 function isPackagedRuntimePath(relativePath) {
   const normalized = normalize(relativePath);
   if (RUNTIME_FILES.includes(normalized)) return true;
-  const top = normalized.split('/')[0];
-  return RUNTIME_ROOTS.includes(top) && !normalized.startsWith('backend/tests/');
+  return RUNTIME_ROOTS.some(root => normalized === root || normalized.startsWith(`${root}/`))
+    && !normalized.startsWith('backend/tests/');
 }
 
 function walkRuntimeSources(repoRoot) {

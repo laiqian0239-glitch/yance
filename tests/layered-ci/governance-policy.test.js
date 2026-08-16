@@ -116,6 +116,19 @@ test('runtime, SQLite, workflows, WP0 and package changes escalate to L2', () =>
   }
 });
 
+test('Electron custody and source-control authority paths escalate to L2', () => {
+  for (const file of [
+    '.gitattributes',
+    '.gitignore',
+    'release/electron-distribution-trust.json',
+    'vendor/electron/electron-v39.8.5-win32-x64.zip'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, file);
+    assert.equal(result.requiredLevel, 'L2', file);
+  }
+});
+
 test('nested dependency manifests always escalate to L2', () => {
   for (const file of [
     'packages/desktop/package.json',
@@ -145,4 +158,43 @@ test('syntactically valid but unclassified paths fail closed', () => {
   assert.equal(result.pass, false);
   assert.equal(result.reasonCode, 'CI_UNKNOWN_PATH');
   assert.deepEqual(result.unknownPaths, ['unclassified/new-gate.js']);
+});
+
+test('checked-in supply-chain inventories always escalate to L2', () => {
+  for (const file of [
+    'THIRD_PARTY_NOTICES.md',
+    'third_party/github-actions-lock.json',
+    'third_party/licenses/actions-checkout-MIT.txt',
+    'third_party/provenance.json',
+    'third_party/sbom.cdx.json'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, file);
+    assert.equal(result.requiredLevel, 'L2', file);
+  }
+});
+
+test('bilingual Product integration paths are classified at exact L2 risk', () => {
+  for (const file of [
+    'integration/element-module/src/YanceWorkspace.tsx',
+    'integration/element-module/src/index.tsx',
+    'integration/element-module/src/product-experience/BilingualSearchPanel.tsx',
+    'integration/element-module/src/product-experience/ProductExperienceShell.css',
+    'integration/element-module/src/product-experience/ProductExperienceShell.tsx',
+    'integration/element-module/src/product-experience/experienceProjection.ts',
+    'integration/element-module/src/product-experience/experienceTypes.ts'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, file);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'EXACT', file);
+  }
+});
+
+test('Product final Element dependency patch is classified at exact L2 risk', () => {
+  const file = 'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch';
+  const result = classifyChangedFiles(risk, [file]);
+  assert.equal(result.pass, true, file);
+  assert.equal(result.requiredLevel, 'L2', file);
+  assert.equal(result.reasons[0].type, 'EXACT', file);
 });

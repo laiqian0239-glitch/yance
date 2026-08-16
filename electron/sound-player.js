@@ -1,17 +1,13 @@
 'use strict';
 const audio = document.getElementById('messageSound');
 const SOUND_FILES = Object.freeze({
-  'message-in': 'yance-message.wav',
-  'message-soft': 'yance-message-soft.wav',
-  'message-crystal': 'yance-message-crystal.wav',
-  'message-chime': 'yance-message-chime.wav',
-  'message-pulse': 'yance-message-pulse.wav',
-  'message-sent': 'yance-message-sent.wav',
-  'send-failed': 'yance-send-failed.wav',
-  'contact-online': 'yance-contact-online.wav',
-  'contact-offline': 'yance-contact-offline.wav',
-  'task-complete': 'yance-task-complete.wav',
-  'warning-low': 'yance-warning-low.wav'
+  'message-in': 'yance-classic-message-in.wav',
+  'message-sent': 'yance-classic-message-sent.wav',
+  'send-failed': 'yance-classic-send-failed.wav',
+  'contact-online': 'yance-classic-contact-online.wav',
+  'contact-offline': 'yance-classic-contact-offline.wav',
+  'task-complete': 'yance-classic-task-complete.wav',
+  'warning-low': 'yance-classic-warning-low.wav'
 });
 let lastPlayedAt = 0;
 function normalizedPattern(value) {
@@ -22,8 +18,7 @@ function normalizedPattern(value) {
   if (pattern === 'online') return 'contact-online';
   if (pattern === 'offline') return 'contact-offline';
   if (/^custom-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(pattern)) return pattern;
-  if (SOUND_FILES[pattern]) return pattern;
-  return /^[a-z0-9][a-z0-9-]{1,95}$/.test(pattern) ? pattern : 'message-in';
+  return SOUND_FILES[pattern] ? pattern : 'message-in';
 }
 window.yanceSound.onPlay(async payload => {
   const started = performance.now();
@@ -38,7 +33,7 @@ window.yanceSound.onPlay(async payload => {
     const pattern = normalizedPattern(payload.pattern);
     const custom = pattern.startsWith('custom-');
     const fallbackFile = SOUND_FILES[pattern] || '';
-    const source = String(payload.source || '') || (custom || !fallbackFile ? '' : `../frontend/assets/sounds/${fallbackFile}`);
+    const source = String(payload.source || '') || (custom || !fallbackFile ? '' : `./assets/sounds/${fallbackFile}`);
     if (!source) throw new Error('notification-sound-file-missing');
     if (custom && !source.startsWith('file:')) throw new Error('custom-notification-sound-source-rejected');
     audio.pause();

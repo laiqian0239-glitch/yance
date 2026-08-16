@@ -10,6 +10,12 @@ const { DatabaseSync } = require('node:sqlite');
 const legacy = require('./r32SqliteStoreEngineLegacy');
 const { createCompactSnapshotTarget } = require('../migrations/migrationSnapshotManifest');
 const { applyArchitectureClosureV2WpA } = require('../migrations/architectureClosureV2WpA');
+const {
+  applyArchitectureClosureV2DomainEventProjectionJobsCanonical,
+  isArchitectureClosureV2DomainEventProjectionJobsCanonicalApplied,
+  ensureArchitectureClosureV2WpABaseForSchema23Reentry,
+  TARGET_SCHEMA_VERSION: ACV2_DOMAIN_EVENT_PROJECTION_JOBS_CANONICAL_SCHEMA_VERSION
+} = require('../migrations/architectureClosureV2DomainEventProjectionJobsCanonical');
 const { ensureCanonicalProjectionReceiptSchema } = require('../migrations/projectionReceiptSchemaAuthority');
 const {
   acquireAuthorityWriteHost,
@@ -19,7 +25,7 @@ const {
 const { claimOwnership, SqliteOwnershipError } = require('./sqliteOwnership');
 const { SqliteTransactionCoordinator } = require('../store/sqliteTransactionCoordinator');
 
-const SCHEMA_VERSION = legacy.SCHEMA_VERSION;
+const SCHEMA_VERSION = Math.max(legacy.SCHEMA_VERSION, ACV2_DOMAIN_EVENT_PROJECTION_JOBS_CANONICAL_SCHEMA_VERSION);
 const LEGACY_ENGINE_PROTOTYPE = legacy.R32SqliteStoreOperations.prototype;
 
 function nowIso() {
@@ -366,7 +372,12 @@ R32SqliteStore.prototype.prepareSchemaMigrationBackup = function prepareSchemaMi
 };
 R32SqliteStore.prototype.ensureSchema = function ensureSchema() {
   LEGACY_ENGINE_PROTOTYPE.ensureSchema.call(this);
-  applyArchitectureClosureV2WpA(this.db);
+  if (isArchitectureClosureV2DomainEventProjectionJobsCanonicalApplied(this.db)) {
+    ensureArchitectureClosureV2WpABaseForSchema23Reentry(this.db);
+  } else {
+    applyArchitectureClosureV2WpA(this.db);
+  }
+  applyArchitectureClosureV2DomainEventProjectionJobsCanonical(this.db);
   ensureCanonicalProjectionReceiptSchema(this.db);
 };
 R32SqliteStore.prototype.governSchemaVersion = function governSchemaVersionMethod(preflight) {

@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-14T20:24:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "ACV2-DOMAIN-EVENT-PROJECTION-JOBS-CANONICAL-MIGRATION-CLOSURE-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close the newly discovered base-owned Architecture Closure V2 migration defect before resuming Learned Policy PR #372. The durable domain_event_projection_jobs table is still used for restart-safe projection recovery, but its historical Schema 16 definition remains foreign-keyed to legacy domain_events while ACV2 makes canonical_event_headers the sole canonical event ledger. Historical migration IDs must not be rewritten. This independent authorization therefore permits one new forward-only canonical migration, its R32 migration registration, and one causal test-only regression path. PR #372 remains frozen at its existing test-only Head until this closure ordinary-merges to trusted main.",
+  "base": {
+    "branch": "main",
+    "commit": "915c487784d991e5c683daa6e167950f310b9a47",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "causalDefect": {
+    "legacyMigrationPath": "backend/migrations/batch24StateTransactionConsistency.js",
+    "legacyMigrationId": "016_batch24_state_transaction_consistency",
+    "legacyTable": "domain_event_projection_jobs",
+    "legacyForeignKeyTarget": "domain_events(event_id)",
+    "canonicalEventAuthorityPath": "backend/services/canonicalEventLedgerAuthority.js",
+    "canonicalEventTable": "canonical_event_headers",
+    "currentAcv2BaseMigrationPath": "backend/migrations/architectureClosureV2WpA.js",
+    "currentAcv2IntegrityMigrationPath": "backend/migrations/architectureClosureV2WpAIntegrity.js",
+    "currentSupportedSchemaVersion": 22,
+    "requiredForwardTargetSchemaVersion": 23,
+    "historicalMigrationRewriteAllowed": false,
+    "durableProjectionJobDeletionAllowed": false,
+    "runtimeProjectionWorkerChangeAllowed": false,
+    "learnedPolicyImplementationAbsorptionAllowed": false
+  },
+  "learnedPolicyIsolation": {
+    "pullRequest": 372,
+    "branch": "product/v21-learning-policy-p1-decision-outcome-closed-loop-v1",
+    "frozenHead": "fb1beeb0e39ad4d6263f71b4c995eb5ec663e6e2",
+    "frozenHeadMustRemainUnmodifiedUntilClosureMerge": true,
+    "closureMustBecomeBaseOwnedBeforeSuccessorReconciliation": true,
+    "cherryPickClosureIntoLearnedPolicy": false,
+    "rebaseLearnedPolicy": false
+  },
+  "authorizationBranch": {
+    "name": "governance/acv2-domain-event-projection-jobs-canonical-migration-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/acv2-domain-event-projection-jobs-canonical-migration-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "bbf1a654a7efdd01767cadcac73206dd2e966d25b724cc4e0493a1f7eb4d1685",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Apply the repository normalizeChangedFiles contract: require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/acv2-domain-event-projection-jobs-canonical-migration-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/lib/r32SqliteStore.js",
+      "backend/migrations/architectureClosureV2DomainEventProjectionJobsCanonical.js",
+      "backend/tests/architectureClosureV2/wpA/domainEventProjectionJobsCanonicalMigration.test.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "001a5da8b5de2f1a740c5ad796301b58fd6101f81ec6d1ca878196d9bad07945",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "backend/tests/architectureClosureV2/wpA/domainEventProjectionJobsCanonicalMigration.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "fc5e574cbe8a833500c725b51586804eb2ea8344dd2215b00fe934491b98dcf6",
+      "productionCodeChanged": false,
+      "expectedMissingCapabilities": [
+        "Schema 23 forward migration is registered as the current R32 schema",
+        "legacy domain_event_projection_jobs rows survive migration without state or retry metadata loss",
+        "domain_event_projection_jobs.event_id references canonical_event_headers(event_id), not legacy domain_events(event_id)",
+        "canonical projection-job claim index remains present after migration",
+        "migration is checksum-pinned, idempotent and fail-closed on orphaned job rows"
+      ]
+    },
+    "targetSchemaVersion": 23,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "projectionWorkerModificationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "migrationContract": {
+    "forwardOnly": true,
+    "idempotent": true,
+    "checksumPinned": true,
+    "registeredInR32SqliteStore": true,
+    "targetSchemaVersion": 23,
+    "table": "domain_event_projection_jobs",
+    "canonicalForeignKey": "event_id -> canonical_event_headers(event_id)",
+    "legacyForeignKeyMustBeAbsent": "event_id -> domain_events(event_id)",
+    "preserveColumns": [
+      "job_id",
+      "event_id",
+      "projector_name",
+      "state",
+      "attempts",
+      "claim_token",
+      "lease_expires_at",
+      "next_attempt_at",
+      "last_error",
+      "created_at",
+      "updated_at"
+    ],
+    "preserveStates": [
+      "pending",
+      "processing",
+      "applied",
+      "failed",
+      "quarantined"
+    ],
+    "preserveClaimIndex": "idx_domain_event_projection_jobs_claim(state,next_attempt_at,created_at)",
+    "orphanPolicy": "FAIL_CLOSED_BEFORE_TABLE_REBUILD",
+    "dataLossAllowed": false,
+    "syntheticCanonicalEventAllowed": false,
+    "legacyDomainEventMutationAllowed": false
+  },
+  "ossFit": {
+    "decision": "REUSE_MATURE_SQLITE_AND_EXISTING_REPOSITORY_MIGRATION_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "SQLite transactional table rebuild",
+        "source": "SQLite through Node.js built-in node:sqlite",
+        "license": "public-domain SQLite / Node.js existing runtime",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "SQLite's native transaction, foreign-key and table-rebuild semantics are sufficient for the canonical FK migration; no Yance migration framework is needed."
+      },
+      {
+        "name": "Existing R32 forward migration registry",
+        "source": "backend/lib/r32SqliteStore.js plus r32_schema_migrations",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns schema-version governance, backup-before-migration, ordered forward migrations and downgrade refusal."
+      },
+      {
+        "name": "Existing ACV2 canonical event ledger",
+        "source": "backend/services/canonicalEventLedgerAuthority.js and canonical_event_headers",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It is already the sole canonical event identity authority and must become the durable projection-job foreign-key target."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not edit Schema 16, 21 or 22 historical migration identities or checksums.",
+      "Do not delete domain_event_projection_jobs; restart-safe projection recovery still depends on it.",
+      "Do not add a second queue, scheduler, migration engine or event store.",
+      "Do not fabricate canonical events for orphaned legacy jobs; fail closed instead.",
+      "Do not patch DomainEventProjectionAuthority or messageRepository to mask a schema defect.",
+      "Do not place this closure directly on PR #372 or cherry-pick it into Learned Policy history."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mandatoryContracts": [
+    "Authorization ordinary-merges from exact main 915c487784d991e5c683daa6e167950f310b9a47 before implementation starts.",
+    "The first implementation commit changes exactly one test path and must fail causally because Schema 23 canonical projection-job migration is absent.",
+    "The GREEN implementation changes only the authorized migration and R32 migration registration paths in addition to the preserved RED test.",
+    "Migration must preserve every valid durable job row byte-semantically for all business columns and must not reset attempts, claims, retry timestamps, errors or state.",
+    "Migration must fail closed if any job event_id has no corresponding canonical_event_headers row; it must not repair by synthesizing canonical events or deleting jobs.",
+    "After implementation ordinary-merge, PR #372 may resume only by ordinary successor reconciliation from fresh main; no rebase, cherry-pick, force-push or history rewrite."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "testWeakening": true,
+    "historicalMigrationRewrite": true,
+    "jobDeletionAsMigration": true,
+    "syntheticCanonicalEventRepair": true,
+    "runtimeProjectionWorkerPatch": true,
+    "secondMigrationFramework": true,
+    "secondProjectionQueue": true,
+    "newDependency": true,
+    "workflowChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "cherryPick": true,
+    "rebase": true,
+    "forcePush": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "baseOwnedClosureRequiredBeforeLearnedPolicySuccessor": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

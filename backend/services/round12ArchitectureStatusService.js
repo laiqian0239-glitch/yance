@@ -6,12 +6,11 @@ const platformCapabilityAuthority = require('./platformCapabilityAuthority');
 const platformAdapters = require('./platformAdapterPorts').singleton;
 const channelAdapterRuntime = require('./channelAdapterRuntime');
 const platformDriverRegistry = require('./platformDriverRegistry');
-const aiQualityRouteAuthority = require('./aiQualityRouteAuthority');
 const { singleton: platformCoreRepository } = require('../repositories/platformCoreRepository');
 
 const AUTHORITY = 'Round12ArchitectureStatusAuthority';
-const SCHEMA_VERSION = 1;
-const QUALITY_TASKS = Object.freeze([
+const SCHEMA_VERSION = 2;
+const MODEL_BRAIN_TASKS = Object.freeze([
   'director',
   'quick_reply',
   'deep_reply',
@@ -22,26 +21,6 @@ const QUALITY_TASKS = Object.freeze([
 ]);
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
-function routeFor(routes = {}, task = '') {
-  const row = routes[task] || {};
-  return {
-    primary: clean(row.primary || row.primaryModelId),
-    fallback: clean(row.fallback || row.fallbackModelId),
-    emergency: clean(row.emergency || row.emergencyModelId),
-    allowConditional: row.allowConditional === true,
-    humanReviewRequired: row.humanReviewRequired === true,
-    allowEmergency: row.allowEmergency === true
-  };
-}
-function qualityPlans(modelState = {}) {
-  const models = Array.isArray(modelState.models) ? modelState.models : [];
-  const routes = modelState.routes || {};
-  return Object.fromEntries(QUALITY_TASKS.map(task => [task, aiQualityRouteAuthority.routePlan({
-    task,
-    route: routeFor(routes, task),
-    models
-  })]));
-}
 function safePersistenceSummary(repository) {
   try { return repository.architectureSummary(); }
   catch (error) {
@@ -52,16 +31,65 @@ function safePersistenceSummary(repository) {
     };
   }
 }
+function projectModelBrain(modelState) {
+  const current = modelState && modelState.modelBrain && modelState.taskReadiness
+    ? modelState
+    : modelStatus.project(modelState || {});
+  const models = Array.isArray(current.models) ? current.models : [];
+  const taskRows = Array.isArray(current.taskReadiness?.tasks) ? current.taskReadiness.tasks : [];
+  return {
+    authority: 'Model Brain / LiteLLM',
+    litellm: current.modelBrain?.litellm || 'LiteLLM v1.95.0',
+    runtime: {
+      health: current.modelBrain?.health || 'unavailable',
+      available: current.modelBrain?.runtimeAvailable === true,
+      complexityRouter: current.modelBrain?.complexityRouter || 'ComplexityRouter',
+      strictTagFiltering: current.modelBrain?.strictTagFiltering || { enabled: true, matchAny: false }
+    },
+    hardEligibility: {
+      dimensions: ['privacy/local-cloud', 'modality', 'language/native-register', 'context length', 'explicit provider allow/deny'],
+      local: models.filter(row => row.sourceType === 'local').length,
+      cloud: models.filter(row => row.sourceType === 'cloud').length,
+      verified: models.filter(row => row.qualification === 'verified').length,
+      total: models.length
+    },
+    logicalTasks: Object.fromEntries(taskRows.map(row => [row.task, {
+      logicalModel: row.logicalModel,
+      capabilityCount: Number(row.capabilityCount || 0),
+      ready: row.ready === true,
+      reason: clean(row.reason)
+    }])),
+    executionEvidence: current.modelBrain?.lastEvidence || null,
+    learning: {
+      state: 'production-wired',
+      l1ProductionSignalsActive: true,
+      l2PromotionGoverned: true,
+      l3PromotionGovernedAndHumanApproved: true,
+      automaticL2L3SynthesisScheduled: true,
+      synthesisHealthObservable: true,
+      l3ProposalReviewProductEntry: true,
+      rollbackAndForgetProductEntry: true,
+      l3AutoActivation: false,
+      l3HumanApprovalRequired: true
+    },
+    invariants: {
+      yancePhysicalModelRanking: false,
+      mandatoryTagsUseAndSemantics: true,
+      noAllTagsMatchFailsClosed: true,
+      physicalSelectionAuthority: 'LiteLLM Router',
+      complexityAuthority: 'LiteLLM ComplexityRouter'
+    }
+  };
+}
 function snapshot(options = {}) {
   const repository = options.repository || platformCoreRepository;
   const accountState = options.accountState || accountManager.list();
-  const modelState = options.modelState || modelStatus.read();
+  const currentModelState = options.modelState ? modelStatus.project(options.modelState) : modelStatus.read();
   const capabilities = platformCapabilityAuthority.evaluate(accountState);
-  const routes = qualityPlans(modelState);
-  const routeRows = Object.values(routes);
+  const modelBrain = projectModelBrain(currentModelState);
   return {
     schemaVersion: SCHEMA_VERSION,
-    documentType: 'YANCE_ROUND12_PLATFORM_CORE_AND_AI_QUALITY_STATUS',
+    documentType: 'YANCE_ROUND12_PLATFORM_CORE_AND_MODEL_BRAIN_STATUS',
     authority: AUTHORITY,
     generatedAt: new Date().toISOString(),
     state: 'source-and-automation-checkpoint',
@@ -69,7 +97,7 @@ function snapshot(options = {}) {
       sourceAndAutomationOnly: true,
       windowsVerified: false,
       realPlatformVerified: false,
-      realOpenRouterQualityVerified: false
+      sealedLiteLLMRuntimeVerified: false
     },
     platformCore: {
       capabilityAuthority: {
@@ -165,65 +193,8 @@ function snapshot(options = {}) {
         governanceUiSupportsPaginationAndContinuousRepair: true
       }
     },
-    aiQuality: {
-      authority: aiQualityRouteAuthority.AUTHORITY,
-      tasks: routes,
-      summary: {
-        tasks: routeRows.length,
-        ready: routeRows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.READY).length,
-        degraded: routeRows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.DEGRADED).length,
-        conditional: routeRows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.CONDITIONAL).length,
-        emergencyOnly: routeRows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.EMERGENCY_ONLY).length,
-        blocked: routeRows.filter(row => row.state === aiQualityRouteAuthority.ROUTE_STATE.BLOCKED).length
-      },
-      cutover: {
-        qualityRouteAuthority: {
-          state: 'production-wired',
-          highCapabilityPrimaryRequiredForCoreReply: true,
-          sameTierFallbackRequired: true,
-          realOpenRouterQualityVerified: false
-        },
-        emergencyMode: {
-          state: 'production-wired',
-          visibleInRouteReceipt: true,
-          excludedFromLongTermLearning: true
-        },
-        directorAndCandidates: {
-          state: 'production-wired',
-          directorStrategyVersioned: true,
-          candidatePlanVersioned: true,
-          controlledStrategyBranches: true
-        },
-        learning: {
-          state: 'production-wired',
-          l1ProductionSignalsActive: true,
-          l2PromotionGoverned: true,
-          l3PromotionGovernedAndHumanApproved: true,
-          automaticL2L3SynthesisScheduled: true,
-          synthesisHealthObservable: true,
-          l3ProposalReviewProductEntry: true,
-          rollbackAndForgetProductEntry: true,
-          l3AutoActivation: false,
-          l3HumanApprovalRequired: true
-        },
-        failureRecovery: {
-          state: 'production-wired',
-          sameTierSwitching: true,
-          reasonCodesObservable: true,
-          sameModelSchemaCorrectionRetry: true,
-          contextReductionBeforeTimeoutFallback: true,
-          sameModelReducedContextRetry: true
-        }
-      },
-      invariants: {
-        fallbackMustRemainSameTier: true,
-        emergencyModeVisibleAndLearningIsolated: true,
-        translationPoolIndependentFromSocialReplyPool: true,
-        candidatesBindDirectorPersonaMemoryAndLearningVersions: true,
-        learningHasL1L2L3Governance: true
-      }
-    }
+    modelBrain
   };
 }
 
-module.exports = { AUTHORITY, SCHEMA_VERSION, QUALITY_TASKS, routeFor, qualityPlans, snapshot };
+module.exports = { AUTHORITY, SCHEMA_VERSION, MODEL_BRAIN_TASKS, projectModelBrain, snapshot };

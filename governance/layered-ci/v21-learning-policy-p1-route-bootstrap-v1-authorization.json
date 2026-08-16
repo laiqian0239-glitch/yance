@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LEARNING-POLICY-P1-ROUTE-BOOTSTRAP-V1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main exact-route prerequisite for V21-LEARNING-POLICY-P1-DECISION-OUTCOME-CLOSED-LOOP-V1 after the Frontier Generator + Yance Learned Policy successor design ordinary-merged as trusted main bb476eed266b4b99febd436ee05a9083cb3de4f9. The selected future learner Vowpal Wabbit 9.11.2 requires one new third-party license evidence path. Existing Learning runtime/config paths are already product-routed, while third_party/ is intentionally not a broad product prefix and the exact VW license path is absent from productExactPaths. This authorization permits only the existing trusted delegated route guard to add that one literal after a test-only causal RED; it does not authorize Learned Policy product/runtime implementation.",
+  "base": {
+    "branch": "main",
+    "commit": "bb476eed266b4b99febd436ee05a9083cb3de4f9"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "historicalDisposition": {
+    "supersededReplyModelPullRequest": 367,
+    "supersededReplyModelState": "CLOSED_UNMERGED_HISTORICAL",
+    "successorDesignPullRequest": 368,
+    "successorDesignHead": "3014051168a3e6d7a2590ac2855deccb560b2977",
+    "successorDesignMergeCommit": "bb476eed266b4b99febd436ee05a9083cb3de4f9",
+    "agentLightningP1RemainsLandedAndDormant": true,
+    "localQwenReplyGeneratorProductGoalRetired": true,
+    "oldP2AuthorizationOrImplementationMayBeRevived": false
+  },
+  "evidence": {
+    "trustedRoutingPolicyPath": "governance/layered-ci/wp0-routing-policy.json",
+    "trustedRoutingPolicyBlob": "b685251ece6a59686eab52d0aaf6a8cc2ea4f0f6",
+    "trustedDelegatedBranchPolicyPath": "shared/release/implementationBranchPolicy.js",
+    "trustedDelegatedBranchPolicyBlob": "1799fdd3a807e95f6023590c1fb5560e54e2f430",
+    "unknownPathFailsClosed": true,
+    "genericRouteMutationGuardAlreadyTrusted": true,
+    "genericRouteDeclarationField": "bootstrapPaths",
+    "bootstrapPathsAbsentFromProductExactPaths": true,
+    "broadProductPrefixesExclude": [
+      "config/",
+      "runtime/",
+      "third_party/"
+    ],
+    "expectedPreBootstrapReasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "successorDesignPath": "docs/superpowers/specs/2026-08-14-yance-v21-learned-policy-architecture-design.md",
+    "successorPlanPath": "docs/superpowers/plans/2026-08-14-yance-v21-learned-policy-p1-decision-outcome.md",
+    "canonicalSerializationReusePath": "backend/services/canonicalSerialization.js",
+    "canonicalSerializationReuseRequiredByFutureProductWork": true,
+    "freshRouteFactsRevalidatedOnBase": true
+  },
+  "upstream": {
+    "repository": "VowpalWabbit/vowpal_wabbit",
+    "release": "9.11.2",
+    "commit": "122bae254a5b8bc2b774d13b33d53e6dbc2cfba7",
+    "license": "BSD-3-Clause",
+    "licensePath": "LICENSE",
+    "licenseBlobSha": "5b46f6b805e4e67a6e711d16e16eb7784feaf6b3",
+    "python": ">=3.10",
+    "futureSelectedMode": "contextual-bandit ADF; deterministic P1 production policy, no live randomized exploration",
+    "routeBootstrapImportsRuntime": false
+  },
+  "ossFit": {
+    "decision": "ADOPT_EXISTING_TRUSTED_ROUTE_GUARD",
+    "matureOssAvailable": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance delegated route mutation guard",
+        "source": "shared/release/implementationBranchPolicy.js#validateDelegatedRoutePolicyMutation + bootstrapPaths contract",
+        "license": "Yance repository existing trusted seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already enforces exact bootstrap path count/digest and rejects broad-prefix, unrelated exact-path, removal, and fail-open route mutations; no new route engine is needed."
+      },
+      {
+        "name": "Open Policy Agent",
+        "source": "open-policy-agent/opa",
+        "license": "Apache-2.0",
+        "adoptionMode": "sidecar-service",
+        "fit": "PARTIAL_FIT",
+        "reason": "Mature policy engine, but adding a second policy authority to insert one repository route literal would duplicate the existing trusted route guard and increase infrastructure."
+      },
+      {
+        "name": "Vowpal Wabbit 9.11.2",
+        "source": "VowpalWabbit/vowpal_wabbit@122bae254a5b8bc2b774d13b33d53e6dbc2cfba7",
+        "license": "BSD-3-Clause",
+        "adoptionMode": "future-existing-learning-runtime-dependency",
+        "fit": "PARTIAL_FIT",
+        "reason": "Selected future bounded strategy-policy learner, but it does not own Yance WP0 route classification; this authorization only prepares its exact license evidence route."
+      }
+    ],
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "retireOrAvoid": [
+      "Do not introduce a second Yance route or policy engine.",
+      "Do not add broad config/, runtime/, third_party/ or third_party/licenses/ product prefixes.",
+      "Do not create OPA, Cedar, Casbin or another policy sidecar for this one-literal repository route prerequisite.",
+      "Do not duplicate validateDelegatedRoutePolicyMutation; reuse the trusted bootstrapPaths guard unchanged.",
+      "Do not authorize Vowpal Wabbit runtime/dependency/lock/SBOM, DecisionRecord, OutcomeVector, policy projection, training, provider routing, promotion or rollback implementation in this route-bootstrap work package.",
+      "Do not revive the superseded local Qwen/VERL reply-generator product direction.",
+      "Do not build a Yance contextual-bandit engine."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-learning-policy-p1-route-bootstrap-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-learning-policy-p1-route-bootstrap-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "16e08f4a17ef21a7d411977f4080c305e12c02317b0a30e6db9f9f4eec3efc57",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "fix/v21-learning-policy-p1-route-bootstrap-v1",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-learning-policy-p1-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "fe75ca53ea31661f4bafd2bfbc7b9c671ea25503d4b0d2abd610e6acf2b53a01",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "productImplementationAllowed": false,
+    "learnedPolicyRuntimeImplementationAllowed": false,
+    "firstCommitMustBeTestOnly": true,
+    "firstCommitAllowedChangedPaths": [
+      "tests/layered-ci/v21-learning-policy-p1-routing.test.js"
+    ],
+    "firstCommitChangedFileSetSha256": "54c4cecf8b2c48bc19f3bb01e97ceb7528cead9d9423b229142a4631394112b8",
+    "genericRouteMutationGuardRequired": true
+  },
+  "bootstrapPaths": [
+    "third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt"
+  ],
+  "bootstrapPathCount": 1,
+  "bootstrapPathSetSha256": "6fc31360bc6d4454f8ee1adbbbfaa4356ce06f55017a44342cafc3a00b16e31d",
+  "routeGuardContract": {
+    "guardAlreadyTrusted": true,
+    "guardMustNotBeReimplementedByLearnedPolicy": true,
+    "supportedDeclarationField": "bootstrapPaths",
+    "matchingCountAndCanonicalSha256Required": true,
+    "candidateRoutingPolicyMayOnlyAddDeclaredPathsToProductExactPaths": true,
+    "productPrefixMutationForbidden": true,
+    "unrelatedProductExactPathMutationForbidden": true,
+    "routeRemovalForbidden": true,
+    "unknownPathFailsClosedWeakeningForbidden": true,
+    "governanceOrDocumentationRouteDriftForbidden": true
+  },
+  "parallelOverlap": {
+    "implementationPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-learning-policy-p1-routing.test.js"
+    ],
+    "openPullRequest20": {
+      "head": "3b03df415cdb75770d4942648deca8bed202f1ef",
+      "draft": true,
+      "exactOverlap": [
+        "governance/layered-ci/wp0-routing-policy.json"
+      ],
+      "disposition": "STALE_DRAFT_MUST_FRESH_RECONCILE_BEFORE_ANY_FUTURE_INTEGRATION"
+    },
+    "openPullRequest54": {
+      "head": "94e612d31d0fb56b9dc26ad291994d7772558722",
+      "draft": true,
+      "exactOverlap": [
+        "governance/layered-ci/wp0-routing-policy.json"
+      ],
+      "disposition": "STALE_DRAFT_MUST_FRESH_RECONCILE_BEFORE_ANY_FUTURE_INTEGRATION"
+    },
+    "openPullRequest67": {
+      "head": "0381a41fcd0ede44764bf538f59c0e096655a837",
+      "draft": true,
+      "exactOverlap": [
+        "governance/layered-ci/wp0-routing-policy.json"
+      ],
+      "disposition": "STALE_DRAFT_MUST_FRESH_RECONCILE_BEFORE_ANY_FUTURE_INTEGRATION"
+    },
+    "futureProductAuthorizationMustRecheckAllActivePullRequests": true
+  },
+  "futureProductBoundary": {
+    "status": "REQUIRED_AFTER_ROUTE_BOOTSTRAP_MERGE_NOT_PRODUCT_AUTHORITY",
+    "workPackage": "V21-LEARNING-POLICY-P1-DECISION-OUTCOME-CLOSED-LOOP-V1",
+    "candidatePathCountFromTrustedPlan": 22,
+    "candidatePathSetMayBeReusedWithoutFreshAuthorization": false,
+    "mustRevalidateCanonicalPersonAndPersonaAuthorities": true,
+    "mustReuseCanonicalSerialization": true,
+    "mustPreserveImmutableLearningLedgerEligibility": true,
+    "mustKeepRawOutcomeLearningEligibleFalse": true,
+    "mustKeepFrontierGenerationInModelBrain": true,
+    "mustRecomputeParallelOverlapAndPathDigest": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first route-bootstrap implementation commit changes only tests/layered-ci/v21-learning-policy-p1-routing.test.js and changes zero routing-policy or Learned Policy product/runtime code.",
+    "Before routing-policy implementation the exact frozen Vowpal Wabbit license path fails closed as WP0_ROUTE_UNKNOWN_PATH.",
+    "Existing trusted productExactPaths, governance precedence, product-documentation precedence and unknown-path fail-closed behavior remain unchanged.",
+    "The trusted generic delegated route-policy guard accepts only the exact bootstrapPaths declared here and rejects every semantic mutation beyond adding that one literal to productExactPaths.",
+    "After implementation third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt selects PRODUCT_WP0.",
+    "The route repair adds no config/, runtime/, third_party/ or third_party/licenses/ broad product prefix.",
+    "Adjacent unregistered Vowpal Wabbit runtime/config/license paths continue to fail closed.",
+    "No Vowpal Wabbit dependency/runtime/lock/SBOM, DecisionRecord, OutcomeVector, Learning projection, policy adapter, training, model routing, promotion, rollback or reply-model implementation is authorized by this route bootstrap."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head must pass applicable Stage, route-governance/Layered and ACV2 gates plus independent review with no unresolved P0/P1 finding.",
+    "Stop at the authorization ordinary-merge owner boundary.",
+    "At merge time re-read live main; first parent must still equal bb476eed266b4b99febd436ee05a9083cb3de4f9, otherwise close this proposal unmerged and create a fresh authorization rather than rebasing/amending/forcing it.",
+    "After explicit owner approval, ordinary-merge this authorization with the reviewed exact Head as parent[1].",
+    "Create fix/v21-learning-policy-p1-route-bootstrap-v1 from the exact effective authorization merge commit.",
+    "Create the mandatory test-only causal RED commit on tests/layered-ci/v21-learning-policy-p1-routing.test.js.",
+    "Add only the one frozen VW license bootstrap literal to productExactPaths; do not modify the existing generic route guard implementation.",
+    "Pass exact-Head Stage and all applicable architecture gates plus independent review.",
+    "Ordinary-merge the route-bootstrap implementation only if the standing routine-source authorization still applies and merge-time fresh checks remain valid.",
+    "Only after that route merge may a separate fresh V21-LEARNING-POLICY-P1-DECISION-OUTCOME-CLOSED-LOOP-V1 product authorization reconstruct and reseal the executable scope from then-current main; that new authorization is a separate owner boundary."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "squashOrRebaseMergeAllowed": false
+  }
+}

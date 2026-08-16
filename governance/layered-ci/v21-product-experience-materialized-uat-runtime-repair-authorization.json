@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T07:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-MATERIALIZED-UAT-RUNTIME-REPAIR",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Post-merge repair for the first real Product Experience materialized-UAT run on Product Head 04d8647a00c63bc61dfb448d7c8df54e15504364. The desktop materializer failed before materialization because the workflow incorrectly required Builder-host npm to equal the repository package-manager authority. Trusted Node 22.23.1 correctly supplies bundled npm 10.9.8 while package.json retains npm@10.9.2 as repository dependency-materialization authority; the repair must preserve that separation and explicitly execute npm@10.9.2 only for trusted-CI production dependency materialization. The Matrix materializer failed before Docker build because exact upstream Element blob 6557e89ac2949b6d6b46f991ebb4d64085f74d35 is CRLF while the exact Yance Element patch blobs are stored LF on Linux. The patch content and upstream preimage identity match exactly, and Windows Task 9 succeeds. The repair must use mature Git working-tree EOL materialization to present the unchanged exact patch files as CRLF on Linux before invoking the unchanged strict tools/matrix/bootstrap.js, then restore the repository working tree and require git-clean. No git-apply whitespace weakening, patch edit, bootstrap edit, dependency-manifest edit, or runtime/UI edit is authorized.",
+  "repairOf": {
+    "implementationPullRequest": 291,
+    "implementationMergeCommit": "c760f892766c15644ab0b154bce562b656d9d90f",
+    "productPullRequest": 229,
+    "productHead": "04d8647a00c63bc61dfb448d7c8df54e15504364",
+    "productFinalValidationRun": 31552327885,
+    "desktopJob": 93977477858,
+    "matrixJob": 93977477959,
+    "windowsControlJob": 93977478016
+  },
+  "base": {
+    "branch": "main",
+    "commit": "c760f892766c15644ab0b154bce562b656d9d90f"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "requiredFirstParent": "c760f892766c15644ab0b154bce562b656d9d90f",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-materialized-uat-runtime-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-materialized-uat-runtime-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-materialized-uat-runtime-repair",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "875aeb1a441fb650e6395812cc7e9db99e155c60f97a6a384adc4f9900aa2139",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "genericRuntimeDeliveryModificationAllowed": false,
+    "matrixBootstrapModificationAllowed": false,
+    "elementPatchModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
+    }
+  },
+  "ossFit": {
+    "decision": "ADOPT_MATURE_GIT_AND_NPM_AUTHORITIES_WITHIN_EXISTING_PRODUCT_WORKFLOW",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Git core.autocrlf working-tree materialization",
+        "source": "Git CLI already present on GitHub-hosted Ubuntu runners; exact repository patch paths are re-checked out with git -c core.autocrlf=true checkout -- <paths>",
+        "license": "GPL-2.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The exact upstream Element API report blob is CRLF while the exact Yance patch blobs are LF on Linux. Git can deterministically materialize the unchanged patch working-tree bytes as CRLF without changing committed patch blobs or weakening git apply --check. A normal git checkout restores canonical repository bytes after bootstrap and the existing git-clean assertion detects residue."
+      },
+      {
+        "name": "npm CLI exact repository package-manager authority",
+        "source": "package.json packageManager npm@10.9.2, executed explicitly from trusted CI through npm exec --package=npm@10.9.2",
+        "license": "Artistic-2.0",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Node 22.23.1 correctly brings bundled Builder-host npm 10.9.8, while Yance repository dependency semantics remain npm@10.9.2. Explicit execution of npm@10.9.2 preserves the already-authorized separation instead of pinning or mutating the host npm installation."
+      },
+      {
+        "name": "Existing actions/setup-node Node 22.23.1 Builder-host seam",
+        "source": "actions/setup-node exact pinned action and Node v22.23.1",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The Builder-host Node remains exact 22.23.1 and may retain its official bundled npm 10.9.8. It is not converted into repository package-manager authority and is not the packaged Node closure."
+      },
+      {
+        "name": "git apply whitespace relaxation, Element patch rewrite, Matrix bootstrap rewrite, or new Yance EOL normalizer",
+        "source": "hypothetical workaround or new Yance infrastructure",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "The exact patch and exact upstream blob identities already match. Weakening patch application or changing source authorities would hide the real working-tree EOL mismatch; Git already provides the needed deterministic materialization semantics."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire the workflow assertion that Builder-host npm must equal 10.9.2.",
+      "Avoid using Node 22.23.1 bundled npm 10.9.8 as the repository dependency-materialization authority.",
+      "Avoid changing setup-node or mutating the Builder-host npm installation to masquerade as repository authority.",
+      "Avoid git apply --ignore-whitespace, --ignore-space-change, reject-file handling, fuzzy patch application, or any test weakening.",
+      "Avoid modifying tools/matrix/bootstrap.js or any upstream-patches/element-web patch in this repair.",
+      "Avoid a new Yance EOL converter; use Git working-tree conversion and restore semantics.",
+      "Avoid package.json, package-lock.json, Product runtime/UI, WP7 implementation, Matrix bootstrap, Element patch, or Action registry changes."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "On the exact authorization-merge baseline, the first implementation commit changes only tests/wp0/v21-product-experience-materialized-uat.test.js and Stage must fail causally because Product Final Validation still requires Builder-host npm to equal 10.9.2 and directly runs ambient npm.cmd ci.",
+    "The permanent contract must require Builder-host npm 10.9.8 to remain distinct from repository npm@10.9.2 and require production dependency materialization to invoke exact npm@10.9.2 explicitly in trusted CI.",
+    "The permanent contract must require the Ubuntu Matrix job to use Git core.autocrlf working-tree checkout semantics on the exact five existing Element patch paths before the unchanged node tools/matrix/bootstrap.js call, then restore those exact paths with normal git checkout before the final git-clean assertion.",
+    "The repair must retain strict bootstrap git apply --check semantics by leaving tools/matrix/bootstrap.js and all Element patch blobs unchanged.",
+    "No package manifest, lockfile, Product runtime/UI, generic source-UAT framework, Matrix bootstrap implementation, Element patch, WP7 implementation, or third-party Action registry change is authorized."
+  ],
+  "handoffBackToProduct": {
+    "productPullRequest": 229,
+    "productBranch": "product/v21-product-experience-shell-p0",
+    "productHeadAtRepairAuthorization": "04d8647a00c63bc61dfb448d7c8df54e15504364",
+    "rule": "After this repair ordinary-merges to main, ordinary-forward fresh main into the Product branch without rebase, cherry-pick, force push, squash, or history rewrite. Re-run Product Final Validation on the fresh Product Head. The desktop and Matrix materializers must both reach sealed artifact upload with the same Product branch/commit/tree identity before real Windows UAT. Final PR #229 integration merge remains an explicit owner boundary."
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "rootDependencyChange": true,
+    "rootLockRegeneration": true,
+    "productRuntimeModification": true,
+    "genericSourceUatModification": true,
+    "matrixBootstrapModification": true,
+    "elementPatchModification": true,
+    "newYanceEolNormalizer": true,
+    "releasePublishing": true,
+    "formalRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

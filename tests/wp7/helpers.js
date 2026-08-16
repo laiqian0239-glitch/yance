@@ -61,7 +61,7 @@ function finalEvidenceDocument(overrides = {}) {
     electronDistributionTreeSha256: hash,
     electronDistributionFileCount: 1,
     electronDistributionModeBoundFileCount: 1,
-    nodeRuntimeVersion: '22.16.0',
+    nodeRuntimeVersion: '22.23.1',
     nodeRuntimeExecutablePath: 'runtime/node22/node',
     nodeRuntimeExecutableSha256: hash,
     nodeRuntimeTreeSha256: hash,
@@ -165,11 +165,12 @@ function createFakeElectronDist(root, platform = process.platform) {
   return dist;
 }
 function createFakeTrustedNodeRuntime(root) {
-  const executable = path.join(root, process.platform === 'win32' ? 'fake-node-22.16.0.exe' : 'fake-node-22.16.0');
+  const executable = path.join(root, process.platform === 'win32' ? 'fake-node-22.23.1.exe' : 'fake-node-22.23.1');
   if (process.platform === 'win32') {
+    if (process.version !== 'v22.23.1') throw new Error(`WP7 Windows trusted Node fixture requires test host v22.23.1, got ${process.version}`);
     fs.copyFileSync(process.execPath, executable);
   } else {
-    fs.writeFileSync(executable, '#!/bin/sh\nif [ "$1" = "--version" ]; then echo v22.16.0; exit 0; fi\necho fixture runtime only >&2\nexit 64\n');
+    fs.writeFileSync(executable, '#!/bin/sh\nif [ "$1" = "--version" ]; then echo v22.23.1; exit 0; fi\necho fixture runtime only >&2\nexit 64\n');
     fs.chmodSync(executable, 0o755);
   }
   return executable;
@@ -244,7 +245,6 @@ function remapPaths(value, sourceRoot, destinationRoot) {
   if (typeof value === 'string' && (value === sourceRoot || value.startsWith(`${sourceRoot}${path.sep}`))) return `${destinationRoot}${value.slice(sourceRoot.length)}`;
   return value;
 }
-
 
 function createFakeRceditRunner() {
   return ({ exePath, iconPath, versionFields }) => {

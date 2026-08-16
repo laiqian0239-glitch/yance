@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-11T00:46:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-SHELL-P0-ROUTE-BOOTSTRAP",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Product Experience implementation PR #229 exposed a base-owned WP0 routing gap. The trusted-main classifier fails closed with WP0_ROUTE_UNKNOWN_PATH for newly authorized Product Experience source paths under integration/element-module/src/product-experience/. Candidate-owned routing changes are forbidden. This work package authorizes only an exact literal product-route bootstrap for all 22 Product Experience authorized paths that are not already covered by existing product prefixes or exact paths, plus one regression contract. It does not authorize a broad integration/, config/, third_party/ or upstream-patches/ prefix.",
+  "base": {
+    "branch": "main",
+    "commit": "ae0a6b8c7c8ad10ba09c2f97d15f48085012ef87"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "ae0a6b8c7c8ad10ba09c2f97d15f48085012ef87",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "evidence": {
+    "sourcePullRequest": 229,
+    "sourceExactHead": "090b51c8582c86d8fe84e3fa9f3695b90510376e",
+    "sourceChangedFileCount": 8,
+    "stageWp0Run": 31409685261,
+    "stageWp0RouteJob": 93524464890,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPathsObservedAtSourceExactHead": [
+      "integration/element-module/src/product-experience/experiencePreferences.ts",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts"
+    ],
+    "trustedRoutingPolicyCommit": "ae0a6b8c7c8ad10ba09c2f97d15f48085012ef87"
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-shell-p0-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-shell-p0-route-bootstrap-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "89b99e36bf9c0dbec4640974e7fdaafebb42de4b42058175c42d95fff745b586",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-shell-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-product-experience-shell-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "9f210ab3528402a17c493794845b2ea4814670d0b33f5f2d49dcf5568df91739",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-experience-shell-p0-routing.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "2040dca7279f11757e3c71a3b26ee8fb38885e571c681414d32ce58d1aa415ea",
+      "productionCodeChanged": false
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "bootstrapPaths": [
+    "config/upstreams/v21-product-experience-shell-p0.json",
+    "integration/element-module/src/product-experience/PeopleSurface.tsx",
+    "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+    "integration/element-module/src/product-experience/ProductExperienceShell.css",
+    "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+    "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
+    "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+    "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+    "integration/element-module/src/product-experience/RiveRelationshipCompanion.tsx",
+    "integration/element-module/src/product-experience/assets/yance-relationship-orb.riv",
+    "integration/element-module/src/product-experience/experiencePreferences.ts",
+    "integration/element-module/src/product-experience/experienceProjection.ts",
+    "integration/element-module/src/product-experience/experienceSession.ts",
+    "integration/element-module/src/product-experience/experienceSound.ts",
+    "integration/element-module/src/product-experience/experienceTypes.ts",
+    "third_party/licenses/base-ui-MIT.txt",
+    "third_party/licenses/howler-MIT.txt",
+    "third_party/licenses/motion-MIT.txt",
+    "third_party/licenses/rive-react-MIT.txt",
+    "third_party/licenses/rive-wasm-MIT.txt",
+    "third_party/licenses/types-howler-MIT.txt",
+    "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+  ],
+  "bootstrapPathCount": 22,
+  "bootstrapPathSetSha256": "87f3c9bbe915fa0fbcadd346840878b8dae4f311394ac0622d0eb4e381ba4b81",
+  "routePolicy": {
+    "targetCollection": "productExactPaths",
+    "broadPrefixExpansionForbidden": true,
+    "schemaVersionMustRemain": 2,
+    "unknownPathFailsClosedMustRemain": true,
+    "mixedChangesEscalateToProductMustRemain": true
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 229,
+    "candidateBranch": "product/v21-product-experience-shell-p0",
+    "candidateObservedHead": "090b51c8582c86d8fe84e3fa9f3695b90510376e",
+    "candidateAuthorizedChangedFileCountMustRemain": 31,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "140c0163e8e937ccc3ed7658d15ec059d9d5cddc515448f55a0abf5b5904d76f",
+    "candidateFirstFailureHeadMustRemain": "e75d824e84111acd221896ca4de287b53018322b",
+    "candidateWorkflowModificationAllowed": false,
+    "candidateHistoryRewriteAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before route implementation, the trusted-main classifier reports WP0_ROUTE_UNKNOWN_PATH for the Product Experience exact paths not already routed by base policy.",
+    "After route implementation each of the 22 exact bootstrap paths independently selects PRODUCT_WP0.",
+    "The exact 22-path bootstrap set selects PRODUCT_WP0.",
+    "The bootstrap adds only the 22 literal paths to productExactPaths and does not add integration/, config/, third_party/ or upstream-patches/ product prefixes.",
+    "Existing Product Experience paths already covered by product prefixes or productExactPaths continue to select PRODUCT_WP0 without duplication requirements.",
+    "Unknown and malformed repository paths continue to fail closed.",
+    "Governance and product-documentation precedence remains unchanged.",
+    "No PR #229 product source/test file, dependency manifest, workflow, release policy, promotion authority, Voice #211, Learning #223, or unrelated work package is modified by this route bootstrap."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head remains one file, is based on unchanged trusted main, and passes all applicable governance gates with independent review P0=0/P1=0.",
+    "Authorization PR merges to main by ordinary two-parent merge without rebase, squash, force push or history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "A one-test-file first implementation commit proves causal route RED against the 22 exact paths before policy implementation.",
+    "Only the 22 exact bootstrap paths are added to productExactPaths.",
+    "Route implementation exact Head passes applicable Stage, Layered, ACV2 and independent review gates.",
+    "Route implementation PR merges to main by ordinary two-parent merge.",
+    "Fresh main is merged normally into Product PR #229 without rebase, amend, force push or stale-blob overwrite.",
+    "Product PR #229 continues its original 31-path authorization and its causal RED history is preserved."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "directCandidateSelfAuthorization": true,
+    "candidateScopeReduction": true,
+    "candidateScopeExpansion": true,
+    "workflowModification": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

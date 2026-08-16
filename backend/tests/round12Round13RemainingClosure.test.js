@@ -13,8 +13,6 @@ const { DomainEventProjectionAuthority, PROJECTOR_NAME, PROJECTOR_VERSION } = re
 const { PlatformAdapterRegistryV2 } = require('../services/platformAdapterPorts');
 const { RuntimeRecoveryService } = require('../services/runtimeRecoveryService');
 const { AiGateway } = require('../services/aiGateway');
-const { LearningPreferenceAuthority } = require('../services/learningPreferenceAuthority');
-const { LearningSynthesisScheduler } = require('../services/learningSynthesisScheduler');
 const aiQuality = require('../services/aiQualityRouteAuthority');
 const eventBus = require('../services/eventBus');
 
@@ -192,51 +190,7 @@ test('AI timeout recovery retries the same high-tier model with reduced context 
   assert.equal(result.qualityRouteReceipt.qualityTier, 'high');
 });
 
-test('eligible L1 signals schedule automatic L2 synthesis and cross-contact L2 evidence creates a pending L3 proposal requiring human approval', async () => {
-  await withRepositoryAsync(async ({ repository, store }) => {
-    const learning = new LearningPreferenceAuthority({ repository });
-    const bus = simpleBus();
-    const aiGateway = {
-      execute: async input => ({
-        json: { preference: input.messages[1].content.includes('L3') ? { defaultLength: 'short', questionPreference: 'fewer_questions' } : { defaultLength: 'short' }, confidence: 0.86 },
-        qualityRouteReceipt: validRouteReceipt('learning_synthesis'), modelId: 'learning_synthesis-model', attempts: []
-      })
-    };
-    const scheduler = new LearningSynthesisScheduler({ aiGateway, eventBus: bus, learning, repository, logger: { warn() {} }, intervalMs: 60_000 });
-    let publishedSignals = 0;
-    const listener = () => { publishedSignals += 1; };
-    eventBus.on('learning:signal-recorded', listener);
-    try {
-      for (let contact = 1; contact <= 3; contact += 1) {
-        for (let index = 1; index <= 9; index += 1) {
-          learning.recordSignal({
-            signalType: 'candidate_sent', scopeType: 'contact', scopeId: `contact-${contact}`, contactId: `contact-${contact}`,
-            conversationId: `conversation-${contact}`, candidateId: `candidate-${contact}-${index}`,
-            idempotencyKey: `signal-${contact}-${index}`, finalText: `Message ${index}`,
-            qualityRouteReceipt: validRouteReceipt('quick_reply'), observedAt: new Date(Date.UTC(2026, 6, 27, 0, contact, index)).toISOString()
-          });
-        }
-      }
-      assert.equal(publishedSignals, 27);
-      const report = await scheduler.run({ reason: 'test' });
-      assert.equal(report.ok, true);
-      assert.equal(report.l2.length, 3);
-      assert.equal(report.l2.every(row => row.result.profile?.learningLevel === 'L2'), true);
-      assert.equal(report.l3.proposed, true);
-      assert.equal(report.l3.profile.state, 'pending-approval');
-      const pending = store.db.prepare("SELECT * FROM learning_promotion_audit WHERE decision='pending-human-approval'").get();
-      assert.ok(pending);
-      const approved = learning.approveL3Proposal({ promotionId: pending.promotion_id, actor: 'owner', reason: '跨客户稳定偏好人工复核通过。' });
-      assert.equal(approved.profile.state, 'active');
-      assert.equal(approved.profile.learningLevel, 'L3');
-      assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM learning_preference_profiles WHERE learning_level='L2' AND state='active'").get().n, 3);
-      assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM learning_preference_profiles WHERE learning_level='L3' AND state='active'").get().n, 1);
-    } finally {
-      eventBus.removeListener('learning:signal-recorded', listener);
-      await scheduler.stop();
-    }
-  });
-});
+test('eligible evidence enters V4 review without automatic L2/L3 synthesis', async () => { const {createLearningPromotionAdapter}=require('../services/learningPromotionAdapter');const adapter=createLearningPromotionAdapter({openFeature:{setEvaluationContext(){}},flagd:{mode:'in-process-offline'}});await assert.rejects(()=>adapter.promote({status:'READY_FOR_REVIEW',Regression:{passed:true},Shadow:{passed:true},Candidate:{}},{approved:false}),e=>e.reasonCode==='LEARNING_APPROVAL_REQUIRED'); });
 
 test('production source has no auth or reconcile bypass outside the four-port implementation boundary', () => {
   const backendRoot = path.join(__dirname, '..');

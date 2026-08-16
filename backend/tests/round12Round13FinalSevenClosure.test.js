@@ -8,7 +8,6 @@ const path = require('node:path');
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { PersonContextAuthority } = require('../services/personContextAuthority');
-const { LearningSynthesisScheduler } = require('../services/learningSynthesisScheduler');
 const operationalProjector = require('../services/domainOperationalProjector');
 const runtimeEvidence = require('../services/architectureRuntimeEvidenceService');
 const aiQualityRouteAuthority = require('../services/aiQualityRouteAuthority');
@@ -16,8 +15,6 @@ const { buildSocialDecisionPacket } = require('../services/contextAwareReplyBrai
 const syncStability = require('../../frontend/js/r32-sync-stability.js');
 const workspaceRepository = require('../repositories/workspaceRepository');
 const workspaceService = require('../services/workspaceService');
-const replyLearningGovernanceService = require('../services/replyLearningGovernanceService');
-const { ReplyFeedbackRepository } = require('../repositories/replyFeedbackRepository');
 const personFeedbackMutationAuthority = require('../services/personFeedbackMutationAuthority');
 const { ExternalIdentityAuthority } = require('../services/externalIdentityAuthority');
 const { OutboxRouteAuthority } = require('../services/outboxRouteAuthority');
@@ -71,56 +68,12 @@ function insertConfirmedProfile(store, contactId, key, value, evidenceAt, confid
     .run(contactId, JSON.stringify({ [key]: value }), JSON.stringify(confirmed), evidenceAt, evidenceAt);
 }
 
-test('relationship L2 profiles are anchored to Person and consumed by subsequent social context', () => {
-  withRepository(({ store, repository }) => {
-    bindPerson({ store, repository });
-    repository.insertLearningProfile({ scopeType: 'relationship', scopeId: 'person-1', personId: 'person-1', learningLevel: 'L2', version: 1, preference: { questionPolicy: 'fewer', warmth: 0.8 }, evidenceSignalIds: ['s1','s2'], confidence: 0.9, state: 'active', createdAt: at(), activatedAt: at() });
-    const authority = new PersonContextAuthority({ repository });
-    const snapshot = authority.snapshot({ contactId: 'contact-b' });
-    assert.equal(snapshot.learning.l2.length, 1);
-    assert.equal(snapshot.learning.l2[0].person_id, 'person-1');
-    const applied = authority.applyToSocialContext({ contactId: 'contact-a', preferences: { length: 'short' }, memory: {}, relationship: {} }, 'contact-a');
-    assert.deepEqual(applied.preferences, { length: 'short', questionPolicy: 'fewer', warmth: 0.8 });
-    assert.equal(applied.feedbackLearning.personL2Profiles.length, 1);
-    assert.deepEqual(applied.relationshipLearning.effective, { questionPolicy: 'fewer', warmth: 0.8 });
-    assert.equal(applied.relationshipLearning.personId, 'person-1');
-    const packet = buildSocialDecisionPacket({
-      ...applied,
-      contextVersion: 1,
-      customer: { name: 'A', platform: 'whatsapp', accountId: 'wa-1' },
-      relationshipPotential: { relationshipStage: 'new' },
-      relationshipAnalysis: {}, emotion: {}, interaction: {}, interactionPolicy: {}, replyStrategy: {}, recentSignals: [], recentMessages: []
-    }, { id: 'm1', text: 'Hallo' }, {});
-    assert.deepEqual(packet.relationshipLearning.effective, { questionPolicy: 'fewer', warmth: 0.8 });
-  });
-});
+test('relationship learning evidence remains Person-scoped but is not injected into reply composition', () => { const fs=require('node:fs');const path=require('node:path');const source=fs.readFileSync(path.join(__dirname,'../services/contextAwareReplyBrain.js'),'utf8');assert.equal(source.includes('relationshipLearning'),false);assert.equal(source.includes('conversationL1'),false); });
 
 
-test('canonical relationship L2 wins deterministically over legacy contact L2 across every platform contact', () => {
-  withRepository(({ store, repository }) => {
-    bindPerson({ store, repository });
-    repository.insertLearningProfile({ scopeType: 'contact', scopeId: 'contact-a', personId: 'person-1', learningLevel: 'L2', version: 4, preference: { questionPolicy: 'more', warmth: 0.2 }, evidenceSignalIds: ['legacy-a'], confidence: 0.8, state: 'active', createdAt: at(3000), activatedAt: at(3000) });
-    repository.insertLearningProfile({ scopeType: 'contact', scopeId: 'contact-b', personId: 'person-1', learningLevel: 'L2', version: 5, preference: { questionPolicy: 'none', warmth: 0.1 }, evidenceSignalIds: ['legacy-b'], confidence: 0.8, state: 'active', createdAt: at(4000), activatedAt: at(4000) });
-    repository.insertLearningProfile({ scopeType: 'relationship', scopeId: 'person-1', personId: 'person-1', learningLevel: 'L2', version: 2, preference: { questionPolicy: 'fewer', warmth: 0.85 }, evidenceSignalIds: ['relationship-1','relationship-2'], confidence: 0.95, state: 'active', createdAt: at(1000), activatedAt: at(1000) });
-    const authority = new PersonContextAuthority({ repository });
-    const left = authority.applyToSocialContext({ preferences: {}, memory: {}, relationship: {} }, 'contact-a');
-    const right = authority.applyToSocialContext({ preferences: {}, memory: {}, relationship: {} }, 'contact-b');
-    assert.deepEqual(left.preferences, right.preferences);
-    assert.deepEqual(left.preferences, { questionPolicy: 'fewer', warmth: 0.85 });
-    assert.equal(left.feedbackLearning.effectivePersonL2Profiles.length, 1);
-    assert.equal(left.feedbackLearning.effectivePersonL2Profiles[0].scope_type, 'relationship');
-    assert.equal(right.feedbackLearning.effectivePersonL2Profiles[0].scope_id, 'person-1');
-  });
-});
+test('canonical Person evidence is retained without legacy L2 preference precedence in reply generation', () => { const fs=require('node:fs');const source=fs.readFileSync(require('node:path').join(__dirname,'../services/contextAwareReplyBrain.js'),'utf8');assert.doesNotMatch(source,/relationshipL2|relationshipProfileVersion/u); });
 
-test('automatic L2 synthesis targets the shared Person when multiple contacts belong to one relationship', () => {
-  withRepository(({ store, repository }) => {
-    bindPerson({ store, repository });
-    const scheduler = new LearningSynthesisScheduler({ repository, aiGateway: {}, eventBus: { on(){}, removeListener(){} }, logger: { warn(){} }, learning: {} });
-    const target = scheduler.targetForL2({ scopeType: 'relationship', scopeId: 'relationship-source' }, { eligibleSignals: [{ contactId: 'contact-a' }, { contactId: 'contact-b' }] });
-    assert.deepEqual(target, { targetScopeType: 'relationship', targetScopeId: 'person-1', contactId: 'contact-a', personId: 'person-1' });
-  });
-});
+test('automatic L2 synthesis is retired in favor of explicit V4 proposal evaluation', () => { const service=require('../services/replyFeedbackLearningService');assert.equal(service.status().customProjectionScheduler,false); });
 
 test('conflicting Person facts are stable across platform contacts and are withheld from AI facts until resolved', () => {
   withRepository(({ store, repository }) => {
@@ -252,29 +205,55 @@ test('account state events force dynamic capability refresh for the active conve
   }
 });
 
-test('remaining contact read APIs aggregate through Person authority and evidence pagination cannot claim truncated data is complete', () => {
+test('remaining contact read APIs aggregate through Person authority and Learning V4 evidence stays non-authoritative', () => {
   const routes = fs.readFileSync(path.join(__dirname, '../routes/store.js'), 'utf8');
   const exporter = fs.readFileSync(path.join(__dirname, '../../tools/uat/exportPlatformProductionEvidence.js'), 'utf8');
-  for (const route of ['/customers/:contactId/timeline','/customers/:contactId/reply-feedback','/customers/:contactId/learning-governance']) {
+
+  for (const route of [
+    '/customers/:contactId/timeline',
+    '/customers/:contactId/reply-feedback',
+    '/customers/:contactId/learning-governance'
+  ]) {
     const index = routes.indexOf(route);
     assert.notEqual(index, -1, route);
     assert.match(routes.slice(index, index + 4500), /personContextAuthority\.snapshot/u);
   }
+
   const feedbackIndex = routes.indexOf('/customers/:contactId/reply-feedback');
-  assert.match(routes.slice(feedbackIndex, feedbackIndex + 5000), /perContactFeedback/u);
-  assert.match(routes.slice(feedbackIndex, feedbackIndex + 5000), /personFeedbackProfiles/u);
+  const feedbackBlock = routes.slice(feedbackIndex, feedbackIndex + 5000);
+  assert.match(feedbackBlock, /Learning V4 immutable evidence/u);
+  assert.match(feedbackBlock, /historicalFeedbackEvents/u);
+  assert.match(feedbackBlock, /automaticProfileMutation:\s*false/u);
+
   const governanceIndex = routes.indexOf('/customers/:contactId/learning-governance');
-  assert.match(routes.slice(governanceIndex, governanceIndex + 4200), /identityGovernance/u);
-  assert.match(routes.slice(governanceIndex, governanceIndex + 4200), /effectiveRelationshipL2/u);
+  const governanceBlock = routes.slice(governanceIndex, governanceIndex + 5000);
+  assert.match(governanceBlock, /Learning V4 evidence\/proposal\/evaluation\/promotion/u);
+  assert.match(governanceBlock, /automaticPromotion:\s*false/u);
+  assert.match(governanceBlock, /reviewRequired:\s*true/u);
+
+  assert.match(routes, /legacyLearningMutationRetired/u);
+  assert.doesNotMatch(
+    routes,
+    /perContactFeedback|personFeedbackProfiles|replyLearningGovernanceService|replyLearningScopeAuthority|replyLearningSummaryService/u
+  );
+
   assert.doesNotMatch(exporter, /allPagesExported:\s*true/u);
   assert.match(exporter, /evidencePromotionAllowed/u);
   assert.match(exporter, /runtimeEvidenceRaw\.pagination\?\.allPagesExported/u);
   assert.match(exporter, /architectureReleaseBlocked:[^\n]+!governanceEvidenceComplete/u);
-  const brain = fs.readFileSync(path.join(__dirname, '../services/contextAwareReplyBrain.js'), 'utf8');
-  assert.match(brain, /relationshipLearning:\s*context\.relationshipLearning/u);
-  assert.match(brain, /relationshipL2:\s*relationshipLearning\.effective/u);
-  assert.match(brain, /relationshipProfileVersion:\s*relationshipLearning\.version/u);
-  assert.match(brain, /learningProfileVersion:\s*Math\.max/u);
+
+  const brain = fs.readFileSync(
+    path.join(__dirname, '../services/contextAwareReplyBrain.js'),
+    'utf8'
+  );
+
+  assert.equal((brain.match(/learningProfileVersion\s*:/gu) || []).length, 1);
+  assert.match(brain, /learningProfileVersion:\s*0/u);
+
+  assert.doesNotMatch(
+    brain,
+    /relationshipLearning|relationshipL2|relationshipProfileVersion|getLatestLearningProfile|replyLearningScopeAuthority|replyLearningSummaryService/u
+  );
 });
 
 test('workspace contact, profile, relationship projection and conversation reads resolve through Person authority', () => {
@@ -331,25 +310,17 @@ test('relationship insight trajectory aggregates every conversation bound to the
 });
 
 
-test('Person feedback version restore rejects ambiguous contact versions and allows an explicit source identity', () => {
-  withRepository(({ store, repository }) => {
-    bindPerson({ store, repository });
-    const insert = store.db.prepare(`
-      INSERT INTO ai_reply_feedback_profile_versions(scope_type,scope_id,version,profile_json,reason,created_at)
-      VALUES('contact',?,?,?,?,?)
-    `);
-    insert.run('contact-a', 3, JSON.stringify({ effective: { tone: { value: 'warm' } } }), 'a', at());
-    insert.run('contact-b', 3, JSON.stringify({ effective: { tone: { value: 'direct' } } }), 'b', at(1));
-    const scope = { contactId: 'contact-a', personId: 'person-1', contactIds: ['contact-a','contact-b'] };
-    const feedback = new ReplyFeedbackRepository(store);
-    assert.throws(
-      () => personFeedbackMutationAuthority.selectPersonFeedbackVersion(scope, 3, '', feedback),
-      error => error.code === 'PERSON_REPLY_FEEDBACK_VERSION_AMBIGUOUS'
-    );
-    const selected = personFeedbackMutationAuthority.selectPersonFeedbackVersion(scope, 3, 'contact-b', feedback);
-    assert.equal(selected.contactId, 'contact-b');
-    assert.equal(selected.version.profile.effective.tone.value, 'direct');
-  });
+test('Person feedback profile restore is retired rather than choosing an ambiguous hidden authority', () => { const fs=require('node:fs');const source=fs.readFileSync(require('node:path').join(__dirname,'../routes/store.js'),'utf8');assert.match(source,/LEGACY_LEARNING_PROFILE_MUTATION_RETIRED/u); });
+
+test('legacy learning governance mutation fails closed instead of falling back to another scope', () => {
+  const fs = require('node:fs');
+  const source = fs.readFileSync(
+    require('node:path').join(__dirname, '../routes/store.js'),
+    'utf8'
+  );
+
+  assert.match(source, /legacyLearningMutationRetired/u);
+  assert.doesNotMatch(source, /replyLearningGovernanceService/u);
 });
 
 test('Person profile and relationship writes converge on one profile contact while legacy non-anchor rows remain readable', () => {
@@ -375,12 +346,6 @@ test('Person profile and relationship writes converge on one profile contact whi
   });
 });
 
-test('learning governance mutation fails closed for relationship scope instead of falling back to global owner', () => {
-  assert.throws(
-    () => replyLearningGovernanceService.assertMutableScopeType('relationship'),
-    error => error.code === 'LEARNING_GOVERNANCE_SCOPE_UNSUPPORTED' && error.status === 409
-  );
-});
 
 test('new relationship key-node projections anchor to Person while existing events retain source identity', () => {
   const routes = fs.readFileSync(path.join(__dirname, '../routes/workspace.js'), 'utf8');

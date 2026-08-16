@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 const repoRoot = path.join(__dirname, '..', '..');
 const verifyGatePath = path.join(repoRoot, 'tools', 'wp0', 'verify-gate.js');
@@ -14,6 +15,28 @@ const activeAuthorityPath = path.join(repoRoot, 'shared', 'release', 'acv2Active
 const authorizationPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
 const taskScopeChainPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'wp-a-task-scope-chain.json');
 const postMergeDefectPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'wp-a-post-merge-defect-001.json');
+
+function nulPathBuffer(paths) {
+  return paths.length ? Buffer.from(`${paths.join('\0')}\0`, 'utf8') : Buffer.alloc(0);
+}
+
+function frozenTaskChainChangedFiles(chain) {
+  const activeTask = chain.tasks.find(task => task.task === chain.activeTask);
+  assert.ok(activeTask?.evidenceBranchTip, 'active task must have a frozen evidence branch tip');
+  assert.ok(activeTask?.closureReceiptPath, 'closed active task must have a closure receipt path');
+  const raw = execFileSync('git', [
+    '-c',
+    'core.quotePath=false',
+    'diff',
+    '--name-only',
+    '-z',
+    chain.parentGovernanceHead,
+    activeTask.evidenceBranchTip,
+    '--'
+  ], { cwd: repoRoot, encoding: null });
+  const codePaths = raw.toString('utf8').split('\0').filter(Boolean);
+  return [...new Set([...codePaths, activeTask.closureReceiptPath])].sort();
+}
 
 test('every executable WP0 entrypoint consumes one shared ACV2 work-package scope gate', () => {
   const verifySource = fs.readFileSync(verifyGatePath, 'utf8');
@@ -42,6 +65,8 @@ test('shared scope gate routes exact active WP-B authority while preserving immu
   assert.match(sharedSource, /status[^\n]*--porcelain/);
   assert.match(sharedSource, /core\.quotePath=false/);
   assert.match(sharedSource, /diff[\s\S]*--name-only/);
+  assert.match(sharedSource, /decodeChangedFileBuffer/);
+  assert.match(sharedSource, /['"]-z['"]/);
   assert.match(sharedSource, /merge-base[^\n]*--is-ancestor/);
   assert.match(sharedSource, /ACV2_WP_B_(?:AUTHORIZATION|SCOPE)_/);
 
@@ -56,6 +81,7 @@ test('shared scope gate routes exact active WP-B authority while preserving immu
   assert.match(legacySource, /isValidWorkPackagePostMergeDefect/);
   assert.match(legacySource, /ACV2_AUTHORIZATION_BLOB_SHA/);
   assert.match(legacySource, /ACV2_WP_A_PARENT_GOVERNANCE_HEAD/);
+  assert.match(legacySource, /evaluateAuthorizedOpenSourceWorkPackageScope/);
 
   const activeSource = fs.readFileSync(activeAuthorityPath, 'utf8');
   assert.match(activeSource, /wp-b-design-authorization\.json/);
@@ -96,7 +122,7 @@ test('detached evidence at an A8-R1 commit uses the exact post-close defect scop
     if (args[0] === 'status') return '';
     if (args[0] === 'rev-parse' && args[1] === 'HEAD') return sourceCommit;
     if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
-    if (args.includes('diff') && args.includes('--name-only')) return defect.scope.exactPaths.join('\n');
+    if (args.includes('diff') && args.includes('--name-only')) return nulPathBuffer(defect.scope.exactPaths);
     throw new Error(`unexpected git command: ${args.join(' ')}`);
   };
 
@@ -132,7 +158,7 @@ test('historical detached evidence without an A8-R1 document retains the prior A
       return '203697b36c06e0dc72c92113ef58f1a8f2394312';
     }
     if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
-    if (args.includes('diff') && args.includes('--name-only')) return '';
+    if (args.includes('diff') && args.includes('--name-only')) return Buffer.alloc(0);
     throw new Error(`unexpected git command: ${args.join(' ')}`);
   };
   const result = evaluateWorkPackageScopeForGate({
@@ -174,7 +200,7 @@ test('current WP-B detached evidence uses the exact active baseline and cannot c
     if (args[0] === 'status') return '';
     if (args[0] === 'rev-parse' && args[1] === 'HEAD') return sourceCommit;
     if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
-    if (args.includes('diff') && args.includes('--name-only')) return changedFiles.join('\n');
+    if (args.includes('diff') && args.includes('--name-only')) return nulPathBuffer(changedFiles);
     throw new Error(`unexpected git command: ${args.join(' ')}`);
   };
   const result = evaluateWorkPackageScopeForGate({
@@ -226,36 +252,30 @@ test('WP-B authorizes only the two exact WP-A regression contracts needed by Sch
   assert.equal(authority.allowedProductionPaths.includes('backend/tests/architectureClosureV2/wpA/**'), false);
 });
 
-test('active task chain evaluation reports A8 and cannot claim promotion readiness', () => {
+test('active task chain evaluation includes the frozen A8 closure receipt and cannot claim promotion readiness', () => {
   const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
+  const { workPackageChangedFilesSha256 } = require('../../shared/release/implementationBranchPolicy');
   const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
   const chain = JSON.parse(fs.readFileSync(taskScopeChainPath, 'utf8'));
-  const changedFiles = [
-    ...authorization.allowedProductionPaths,
-    ...chain.tasks.flatMap(task => task.additionalAllowedPaths)
-  ].filter((value, index, values) => values.indexOf(value) === index).sort();
-  const calls = [];
+  const activeTask = chain.tasks.find(task => task.task === chain.activeTask);
+  const changedFiles = frozenTaskChainChangedFiles(chain);
+  assert.equal(changedFiles.includes(activeTask.closureReceiptPath), true);
+  assert.equal(changedFiles.length, chain.approvedChangedFileCount);
+  assert.equal(workPackageChangedFilesSha256(changedFiles), chain.approvedChangedFileSetSha256);
   const git = args => {
-    calls.push([...args]);
     if (args[0] === 'status') return '';
     if (args[0] === 'rev-parse' && String(args[1]).startsWith('HEAD:')) {
       return '203697b36c06e0dc72c92113ef58f1a8f2394312';
     }
     if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
-    if (args.includes('diff')) return changedFiles.join('\n');
+    if (args.includes('diff')) return nulPathBuffer(changedFiles);
     throw new Error(`unexpected git command: ${args.join(' ')}`);
-  };
-  const testChain = {
-    ...chain,
-    approvedChangedFileCount: changedFiles.length,
-    approvedChangedFileSetSha256: require('../../shared/release/implementationBranchPolicy')
-      .workPackageChangedFilesSha256(changedFiles)
   };
 
   const result = evaluateWorkPackageScopeForGate({
     branch: authorization.authorizedBranch,
     authorization,
-    taskScopeChain: testChain,
+    taskScopeChain: chain,
     git
   });
   assert.equal(result.pass, true, JSON.stringify(result));
@@ -302,4 +322,28 @@ test('WP-B authority keeps exact internal engines and packaged evidence without 
   assert.equal(rejected.pass, false);
   assert.equal(rejected.reasonCode, 'ACV2_WP_B_SCOPE_VIOLATION');
   assert.deepEqual(rejected.unauthorizedPaths, adjacent.sort());
+});
+
+test('String-delimited Git path evidence fails closed after the Buffer transport upgrade', () => {
+  const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
+  const authorization = JSON.parse(fs.readFileSync(authorizationPath, 'utf8'));
+  const chain = JSON.parse(fs.readFileSync(taskScopeChainPath, 'utf8'));
+  const git = args => {
+    if (args[0] === 'status') return '';
+    if (args[0] === 'rev-parse' && String(args[1]).startsWith('HEAD:')) {
+      return '203697b36c06e0dc72c92113ef58f1a8f2394312';
+    }
+    if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
+    if (args.includes('diff')) return authorization.allowedProductionPaths.join('\n');
+    throw new Error(`unexpected git command: ${args.join(' ')}`);
+  };
+  const result = evaluateWorkPackageScopeForGate({
+    branch: authorization.authorizedBranch,
+    authorization,
+    taskScopeChain: chain,
+    git
+  });
+  assert.equal(result.pass, false);
+  assert.equal(result.reasonCode, 'ACV2_WORK_PACKAGE_SCOPE_DIFF_FAILED');
+  assert.match(result.error, /must return a Buffer/u);
 });

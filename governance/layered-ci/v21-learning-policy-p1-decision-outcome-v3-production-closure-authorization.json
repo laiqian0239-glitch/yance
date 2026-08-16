@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LEARNING-POLICY-P1-DECISION-OUTCOME-V3-PRODUCTION-CLOSURE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh successor authorization for Learned Policy P1 after final review of PR #379 found two independent blockers: its published first post-RED production commit omitted mandatory failure-first evidence trailers, making that history non-repairable without prohibited rewrite; and its production-default LearningPolicyRuntimeAdapter never resolved an explicitly promoted policy or invoked a shipped sealed VW runtime, while UAT passed only through test injection. V3 rebuilds from fresh trusted main with real OpenFeature/flagd activation, a presealed Learning Windows runtime carried by the existing WP7 trusted-product seam, and functional later-turn production consumption before frontier generation.",
+  "base": {
+    "branch": "main",
+    "commit": "a45b11db14330a64e61f933d20d92b61bbcd9d9e"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-learning-policy-p1-decision-outcome-v2-successor-authorization.json",
+    "implementationBranch": "product/v21-learning-policy-p1-decision-outcome-closed-loop-v2-successor",
+    "reason": "V2 remains immutable audit evidence but is not mergeable: first post-RED commit 98b14456cea6dba0789e8d71b2ba83b633eff72b lacks mandatory failure-first trailers, and production-default promoted-policy consumption plus shipped sealed-runtime delivery were not actually closed."
+  },
+  "supersessionEvidence": {
+    "previousAuthorizationMerge": "c5b7d23dcd6a7aafef6f1b8749369ab008606c8b",
+    "previousPullRequest": 379,
+    "previousFinalHead": "f431223dcd44e42dd7f1f81e02bd4d2f2949919c",
+    "frozenRedHead": "4d19aff5dae72b906d47276811ff8ad7b096c69d",
+    "firstPostRedProductionCommit": "98b14456cea6dba0789e8d71b2ba83b633eff72b",
+    "stageFailureRun": 31822507660,
+    "stageFailureJob": 94838935857,
+    "stageTests": 414,
+    "stagePassed": 413,
+    "stageFailed": 1,
+    "productionReviewFinding": "Production default adapter has neither active-policy resolution nor sealed VW invocation; injected UAT execution cannot prove production consumption."
+  },
+  "freshMainReconciliation": {
+    "previousAuthorizationBase": "4e74d4b2937b7e260c8b833e2758e1f9fabb9c42",
+    "currentTrustedMain": "a45b11db14330a64e61f933d20d92b61bbcd9d9e",
+    "aheadBy": 7,
+    "behindBy": 0,
+    "netChangedPaths": [
+      "governance/layered-ci/v21-delegated-npm-windows-exec-policy-authorization.json",
+      "governance/layered-ci/v21-learning-policy-p1-decision-outcome-v2-successor-authorization.json",
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/v21-delegated-dependency-policy.test.js"
+    ],
+    "overlapWithV3ImplementationPaths": [],
+    "historicalCommitReuseAsAuthorityAllowed": false
+  },
+  "ossFit": {
+    "decision": "Adopt mature OSS and already-sealed repository seams end-to-end: Vowpal Wabbit owns the bounded policy head, OpenFeature/flagd owns offline rollout evaluation, Learning Promotion owns explicit promotion/rollback, and the existing WP7 presealed-runtime trust path owns packaged runtime delivery. Yance changes are limited to thin composition, exact-pin materialization and product-specific evidence; no equivalent general-purpose infrastructure is authorized.",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Vowpal Wabbit 9.11.2",
+        "source": "VowpalWabbit/vowpal_wabbit@122bae254a5b8bc2b774d13b33d53e6dbc2cfba7",
+        "license": "BSD-3-Clause",
+        "adoptionMode": "existing-sealed-learning-runtime",
+        "fit": "FIT",
+        "reason": "Owns the bounded deterministic contextual-bandit policy head; no Yance-built bandit engine."
+      },
+      {
+        "name": "OpenFeature server SDK + flagd provider/core",
+        "source": "@openfeature/server-sdk@1.23.0 + @openfeature/flagd-provider@0.16.0 + @openfeature/flagd-core@4.0.0",
+        "license": "Apache-2.0",
+        "adoptionMode": "existing-repository-dependency",
+        "fit": "FIT",
+        "reason": "Existing frozen in-process offline local-JSON rollout evaluator; replaces a custom Yance rollout registry or daemon."
+      },
+      {
+        "name": "Existing Learning Promotion adapter",
+        "source": "backend/services/learningPromotionAdapter.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Retains Regression/Shadow/explicit Promotion/Rollback authority and is extended only to materialize upstream-native flagd rollout state."
+      },
+      {
+        "name": "Existing WP7 presealed-runtime trusted-product seam",
+        "source": "tools/wp7 existing Parlant portable-runtime closure pattern",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Reuses existing runtime seal/tree/SBOM verification and payload/native-binary trust closure instead of a second packaging system."
+      },
+      {
+        "name": "Existing Model Brain/LiteLLM",
+        "source": "trusted main Model Brain seam",
+        "license": "repository-existing/MIT upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Retains provider credentials, routing and final frontier text generation; Learned Policy selects only candidateStrategyBranch."
+      },
+      {
+        "name": "Existing DSPy + GEPA",
+        "source": "trusted main Learning runtime",
+        "license": "existing pinned OSS",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "Useful for prompt/program optimization but not the bounded per-decision contextual-bandit action head."
+      },
+      {
+        "name": "Existing Agent Lightning P1",
+        "source": "trusted main dormant Deep Training runtime",
+        "license": "MIT upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "Not required for this first online Decision→Outcome→Policy product loop and remains dormant."
+      }
+    ],
+    "retireOrAvoid": [
+      "Yance-built contextual-bandit or policy-learning engine",
+      "Yance-built policy store, active-policy registry or rollout database",
+      "flagd daemon for this P1 offline mode",
+      "second reward framework, feature store, dataset store, experiment framework or evaluator",
+      "second model gateway/router or provider credential authority",
+      "second packaging trust system or generic Yance sidecar framework",
+      "system Python, runtime pip install, runtime uv sync or runtime network dependency resolution",
+      "request-supplied active policy path, artifact hash, runtime executable or flag source",
+      "randomized live exploration in P1",
+      "rebase, amend, force-push or cherry-pick of PR #379 history as executable authority"
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "productionConsumptionClosure": {
+    "actionField": "candidateStrategyBranch",
+    "allowedActions": [
+      "natural_hook",
+      "playful_attraction",
+      "direct_advance",
+      "screen_and_advance",
+      "leave_aftertaste"
+    ],
+    "probability": 1.0,
+    "exploration": false,
+    "activeRolloutFlagKey": "yance-learning-policy-active",
+    "activeRolloutFormat": "upstream-native flagd JSON object flag carrying canonical LEARNING_ROLLOUT candidate metadata",
+    "flagSourceRoot": "YANCE_DATA_DIR Learning-owned rollout directory",
+    "artifactRoot": "YANCE_DATA_DIR Learning-owned content-addressed policy artifact directory",
+    "artifactIdentity": "Candidate.id=policy:<sha256> and Candidate.version=<sha256>; artifact bytes must hash to the same 64-hex version",
+    "requestOverrideAllowed": false,
+    "runtimeExecutableOverrideAllowed": false,
+    "noPromotedPolicyBehavior": "explicit deterministic baseline",
+    "brokenActivePolicyBehavior": "verified last-known-good from canonical rollout history when available, otherwise explicit baseline plus degradation evidence",
+    "selectionBeforeFrontierGenerationRequired": true,
+    "frontierTextAuthority": "Model Brain/LiteLLM",
+    "productionDefaultCompositionMustPass": true,
+    "uatInjectedInvokeVowpalWabbitMayCountAsClosure": false
+  },
+  "portableRuntimeClosure": {
+    "builderPath": "tools/learning-growth/build-windows-runtime.ps1",
+    "mode": "presealed Windows x64 resource built before trusted-product assembly",
+    "reusePattern": "existing Parlant presealed runtime + WP7 trusted-product integration",
+    "pythonBuildStandalone": {
+      "release": "20260807",
+      "commit": "00c8a06113f11220667c3bcf5fab1672ff9e78ef",
+      "cpythonVersion": "3.12.13",
+      "windowsX64Asset": "cpython-3.12.13+20260807-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "assetSize": 21962247,
+      "assetSha256": "18bcc65b17921806b72cdc88bcf000bf67a2c99a8fc381fe1629f2b9ba56858d"
+    },
+    "uvBuildTool": {
+      "version": "0.12.3",
+      "commit": "507230998c9541d67814b57463ac00e454ff6991",
+      "windowsX64Asset": "uv-x86_64-pc-windows-msvc.zip",
+      "assetSize": 19013455,
+      "assetSha256": "b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e"
+    },
+    "requirements": [
+      "materialize exact uv.lock without mutating repository source",
+      "runtime-seal.json binds canonical runtime tree, SBOM, CPython, uv build tool and Vowpal Wabbit 9.11.2 identity",
+      "uv executable, download cache, VCS state and build-only resolver state are absent from shipped runtime",
+      "runtime dependency/network resolution is forbidden",
+      "existing WP7 hash/filesystem/native-binary trust includes resources/learning-runtime",
+      "Windows exact-head workflow executes real sealed policy train/predict under network isolation"
+    ],
+    "formalSignedReleaseTransportAuthorized": false
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-learning-policy-p1-decision-outcome-v3-production-closure-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-learning-policy-p1-decision-outcome-v3-production-closure-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "4e68f343e6af918e00de37bf8f1e612539aa19f44f90a40376158a10fcc63753",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, discard invalid paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "product/v21-learning-policy-p1-decision-outcome-closed-loop-v3-production-closure",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-learning-policy-p1-windows.yml",
+      "THIRD_PARTY_NOTICES.md",
+      "backend/services/candidateInteractionLearningService.js",
+      "backend/services/contextAwareReplyBrain.js",
+      "backend/services/learningDeepTrainingContract.js",
+      "backend/services/learningOutcomeAttributionService.js",
+      "backend/services/learningPolicyDecisionContract.js",
+      "backend/services/learningPolicyRuntimeAdapter.js",
+      "backend/services/learningPromotionAdapter.js",
+      "backend/services/replyFeedbackLearningService.js",
+      "backend/services/storeManagerService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "config/upstreams/v21-learning-growth-brain-p0.json",
+      "runtime/learning-growth/python/learning_entrypoint.py",
+      "runtime/learning-growth/python/pyproject.toml",
+      "runtime/learning-growth/python/uv.lock",
+      "tests/wp0/v21-learning-policy-p1-decision-record.test.js",
+      "tests/wp0/v21-learning-policy-p1-outcome-binding.test.js",
+      "tests/wp0/v21-learning-policy-p1-production-consumption.test.js",
+      "tests/wp0/v21-learning-policy-p1-projection.test.js",
+      "tests/wp0/v21-learning-policy-p1-supply-chain.test.js",
+      "tests/wp0/v21-learning-policy-p1-vw-runtime.test.js",
+      "third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt",
+      "tools/learning-growth/build-windows-runtime.ps1",
+      "tools/uat/v21LearningPolicyClosedLoopEvidence.js",
+      "tools/wp7/create-pre-review-trusted-product.js",
+      "tools/wp7/lib.js",
+      "tools/wp7/packaged-product-trust.js"
+    ],
+    "approvedChangedFileCount": 28,
+    "approvedChangedFileSetSha256": "0c956d8e55cdfdf51996de3d80cd8e2df32e9b13e5323a823419e81e8c9b21bb",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-learning-policy-p1-decision-record.test.js",
+        "tests/wp0/v21-learning-policy-p1-outcome-binding.test.js",
+        "tests/wp0/v21-learning-policy-p1-production-consumption.test.js",
+        "tests/wp0/v21-learning-policy-p1-projection.test.js",
+        "tests/wp0/v21-learning-policy-p1-supply-chain.test.js",
+        "tests/wp0/v21-learning-policy-p1-vw-runtime.test.js"
+      ],
+      "approvedChangedFileCount": 6,
+      "approvedChangedFileSetSha256": "9aff346a55b16f1ae54a743daf15bb18cffc4c1471581556be1eea22acab3142",
+      "productionCodeChanged": false,
+      "historicalBlobReuseAllowedOnlyAsFreshTreeMaterialization": true,
+      "historicalCommitCherryPickAllowed": false,
+      "expectedMissingCapabilities": [
+        "production-default promoted-policy resolution from native flagd state",
+        "promotion-to-native-flagd materialization through existing Learning promotion authority",
+        "content-addressed active VW artifact resolution without request path/hash override",
+        "presealed portable Learning Windows runtime carried by existing WP7 trusted-product seam",
+        "later production turn consumes promoted bounded action before frontier generation"
+      ]
+    },
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-learning-policy-p1-windows.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "2f6b41ce7587359803fbe1f076be539a7324ad8cb71a96c782385b9326a66520"
+    },
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "pythonDependencyMaterializationAllowed": true,
+    "dependencyControlPaths": [
+      "runtime/learning-growth/python/pyproject.toml",
+      "runtime/learning-growth/python/uv.lock"
+    ],
+    "dependencyControlPathCount": 2,
+    "dependencyControlPathSetSha256": "6a33c99858dfc7d51af9a75dc4834907224196522b2b72991a1f58e606fa43c8",
+    "exactNewPythonDependency": "vowpalwabbit==9.11.2",
+    "productImplementationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "mandatoryContracts": [
+    "Authorization must ordinary-merge from exact trusted main a45b11db14330a64e61f933d20d92b61bbcd9d9e before V3 implementation starts.",
+    "PR #379 remains immutable audit evidence and must not merge, rebase, amend, force-push or become executable authority.",
+    "First V3 implementation commit changes exactly six frozen Learned Policy tests and produces fresh causal RED from the V3 authorization merge parent.",
+    "First post-RED production commit carries exact Yance-Failure-First-Red-Head, Yance-Failure-First-Red-Run and Yance-Failure-First-Red-Conclusion: failure trailers.",
+    "Production-default composition, not request/UAT dependency injection, resolves an explicitly promoted canonical policy and invokes the shipped sealed Learning/VW runtime.",
+    "Explicit Promotion materializes only upstream-native OpenFeature/flagd offline JSON; no Yance rollout registry/database/daemon is introduced.",
+    "Active artifact is content-addressed beneath Learning-owned YANCE_DATA_DIR; request path/hash/runtime overrides are forbidden.",
+    "Real Windows pre-review trusted desktop carries resources/learning-runtime through existing WP7 payload/hash/filesystem/native-binary trust closure.",
+    "No promoted policy yields explicit deterministic baseline; broken active policy uses verified last-known-good when canonically available or baseline plus degradation evidence.",
+    "Final text remains generated by Model Brain/LiteLLM; Learned Policy changes only candidateStrategyBranch with probability 1 and exploration false.",
+    "Final exact-head verification requires six Learned Policy WP0 tests, Windows sealed-runtime workflow, Stage 6.4.5.9, applicable ACV2/Layered gates, real closed-loop UAT and independent review with P0=0/P1=0."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "warningOnlyClosure": true,
+    "testWeakening": true,
+    "historyRewrite": true,
+    "cherryPickAsAuthority": true,
+    "rebase": true,
+    "forcePush": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "rootNpmManifestChange": true,
+    "rootNpmLockfileChange": true,
+    "secondBanditEngine": true,
+    "secondRewardFramework": true,
+    "secondModelGateway": true,
+    "policyStoreOrRolloutDatabase": true,
+    "genericSidecarOrPackagingFramework": true,
+    "runtimeDependencyDownload": true,
+    "requestSuppliedPolicyOrRuntimePath": true,
+    "localReplyGenerator": true,
+    "liveRandomizedExploration": true,
+    "formalRelease": true,
+    "publish": true,
+    "automaticPromotion": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "freshSuccessorRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

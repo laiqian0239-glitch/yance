@@ -21,7 +21,6 @@ const performancePolicy = require('./performancePolicy');
 const settingsRepository = require('../repositories/settingsRepository');
 const accountStore = require('./accountStore');
 const integrityIssueAggregator = require('./integrityIssueAggregator');
-const modelRoutingIntegrity = require('./modelRoutingIntegrityService');
 const sendQueue = require('./sendQueueService');
 const safeModeService = require('./safeModeService');
 const productionDiagnostics = require('./productionDiagnosticsService');
@@ -221,39 +220,73 @@ function accountSummary() {
   };
 }
 
+function modelBrainCapabilitySurface(row = {}) {
+  const capabilities = row.capabilities && typeof row.capabilities === 'object' ? row.capabilities : {};
+  const privacy = String(capabilities.privacy || '').trim();
+  return {
+    ...row,
+    modalities: Array.isArray(capabilities.modalities) ? [...capabilities.modalities] : [],
+    languages: Array.isArray(capabilities.language) ? [...capabilities.language] : [],
+    contextLength: Number(capabilities.context || 0),
+    privacy: privacy ? [privacy] : []
+  };
+}
+
 function aiSummary() {
   const state = modelStatus.read();
-  const rows = state.models || [];
+  const rows = Array.isArray(state.models) ? state.models : [];
   const summary = state.summary || {};
+  const catalog = state.catalog || {};
+  const modelBrain = state.modelBrain || {};
+  const taskReadiness = state.taskReadiness || { pass: false, tasks: [], missing: [] };
+  const evidence = modelBrain.lastEvidence && typeof modelBrain.lastEvidence === 'object' ? modelBrain.lastEvidence : null;
   const assets = directorySize(PATHS.aiAssets);
   const registryStats = directorySize(PATHS.models);
   return {
-    online: state.ollamaOnline === true,
-    endpoint: state.endpoint || '',
-    version: state.version || '',
-    scannedAt: state.scannedAt || '',
-    scanError: state.scanError || '',
-    count: Number(summary.count || 0),
-    available: Number(summary.online || 0),
-    discovered: Number(summary.discovered || 0),
+    online: modelBrain.runtimeAvailable === true,
+    ollamaOnline: catalog.ollamaOnline === true,
+    endpoint: catalog.endpoint || '',
+    version: catalog.version || '',
+    scannedAt: catalog.scannedAt || '',
+    scanError: catalog.scanError || '',
+    count: Number(summary.total || rows.length || 0),
     verified: Number(summary.verified || 0),
-    routingEligible: Number(summary.routingEligible || 0),
     experimental: Number(summary.experimental || 0),
-    failed: Number(summary.failed || 0),
-    untested: Number(summary.untested || 0),
-    routes: Number(summary.routesConfigured || 0),
-    routesPersisted: Number(summary.routesPersisted || 0),
-    routesOperational: Number(summary.routesOperational || summary.routesConfigured || 0),
-    invalidPersistedRoutes: Number(summary.invalidPersistedRoutes || 0),
-    routesTotal: Number(summary.routesTotal || 0),
-    routeHealthPercent: Number(summary.routeHealthPercent || 0),
-    used: Number(summary.used || 0),
-    totalCalls: Number(summary.totalCalls || 0),
+    local: Number(summary.local || 0),
+    cloud: Number(summary.cloud || 0),
+    modelBrain: {
+      name: 'Model Brain',
+      litellm: modelBrain.litellm || 'LiteLLM v1.95.0',
+      health: modelBrain.health || 'unavailable',
+      runtimeAvailable: modelBrain.runtimeAvailable === true,
+      complexityRouter: modelBrain.complexityRouter || 'ComplexityRouter',
+      strictTagFiltering: modelBrain.strictTagFiltering || { enabled: true, matchAny: false }
+    },
+    hardEligibility: {
+      privacy: 'privacy/local-cloud',
+      local: Number(summary.local || 0),
+      cloud: Number(summary.cloud || 0),
+      modality: ['text', 'vision', 'audio', 'video'],
+      language: 'native-register',
+      context: 'context length',
+      provider: 'explicit allow/deny'
+    },
+    taskReadiness,
+    executionEvidence: evidence ? {
+      selectedModel: evidence.selectedModel || '',
+      provider: evidence.provider || '',
+      latencyMs: Number(evidence.latencyMs || 0),
+      inputTokens: Number(evidence.inputTokens || 0),
+      outputTokens: Number(evidence.outputTokens || 0),
+      costUsd: Number(evidence.costUsd || 0),
+      retryCount: Number(evidence.retryCount || 0),
+      fallbackCount: Number(evidence.fallbackCount || 0)
+    } : null,
     lastUsedAt: rows.map(row => row.lastUsedAt).filter(Boolean).sort().at(-1) || '',
     automation: aiAutomation.status(),
-    routeIntegrity: state.routeIntegrity || { pass: true, invalidPersistedRouteCount: 0, quarantine: [] },
     source: state.source,
-    models: rows.slice(0, 20),
+    models: rows.slice(0, 20).map(modelBrainCapabilitySurface),
+    openRouter: state.openRouter || {},
     assets: {
       path: PATHS.aiAssets,
       files: assets.files,
@@ -271,7 +304,7 @@ function aiSummary() {
 function dataSummary(privacyMode) {
   const roots = [
     ['store', '核心数据与设置', PATHS.db, true],
-    ['models', '模型注册与路由', PATHS.models, true],
+    ['models', '模型目录与资格', PATHS.models, true],
     ['whatsappAuth', 'WhatsApp本地认证', PATHS.whatsappAuth, true],
     ['secure', '系统加密凭据', PATHS.secure, true],
     ['aiAssets', 'AI成果与知识资产', PATHS.aiAssets, true],
@@ -300,17 +333,15 @@ function architectureIntegritySummary(report, accounts, ai, performance) {
   const blockedAliases = rawAccounts.filter(row => ['merged', 'tombstoned', 'migrating'].includes(String(row.lifecycleState || row.lifecycle_state || '')) || row.mergedIntoId || row.merged_into_id);
   const runtimeEligibleAliases = rawAccounts.filter(row => row.platform === 'whatsapp' && row.id !== (row.canonicalAccountId || row.id) && row.paused !== true && row.autoReconnect !== false);
   const interruptedSync = settingsRepository.countInterruptedSync();
-  const routeState = modelStatus.read();
-  const routeIntegrity = routeState.routeIntegrity && typeof routeState.routeIntegrity === 'object'
-    ? routeState.routeIntegrity
-    : modelRoutingIntegrity.repairRegistryDocument({ models: routeState.models || [], routes: routeState.routes || {} }, { autoSelectVerified: false });
-  const routeQuarantine = Array.isArray(routeIntegrity.quarantine) ? routeIntegrity.quarantine : [];
   const activeAggregates = integrityIssueAggregator.listActive();
+  const modelBrainReady = ai.modelBrain?.runtimeAvailable === true;
+  const hardEligibilityReady = ai.count === 0 || ai.taskReadiness?.pass === true;
   const checks = [
     { id: 'schema-version', severity: 'critical', pass: schemaVersion >= 9, detail: `schemaVersion=${schemaVersion}, required>=9` },
     { id: 'migration-ledger', severity: 'critical', pass: Boolean(migration), detail: migration ? `已记录 ${migration.id}` : '缺少架构收口迁移记录' },
     { id: 'sqlite-persistence', severity: 'critical', pass: performance.sqlite.persistenceHealthy === true, detail: performance.sqlite.persistenceHealthy ? '设置命名空间与quick_check通过' : '设置命名空间缺失或quick_check失败' },
-    { id: 'model-routing', severity: 'critical', pass: routeIntegrity.pass !== false && routeQuarantine.length === 0, detail: routeQuarantine.length ? `${routeQuarantine.length} 条持久化模型路由不合格，运行投影虽已隔离但不能视为通过` : '持久化路由与运行路由资格一致' },
+    { id: 'model-brain', severity: 'critical', pass: modelBrainReady, detail: modelBrainReady ? `Model Brain / ${ai.modelBrain?.litellm || 'LiteLLM'} sealed runtime health=${ai.modelBrain?.health || 'healthy'}` : `Model Brain / LiteLLM sealed runtime ${ai.modelBrain?.health || 'unavailable'}` },
+    { id: 'model-brain-hard-eligibility', severity: 'high', pass: hardEligibilityReady, detail: hardEligibilityReady ? 'privacy/local/cloud/modality/language/context/provider hard eligibility ready' : `${Number(ai.taskReadiness?.missing?.length || 0)} logical tasks have no hard-qualified capability` },
     { id: 'account-runtime-aliases', severity: 'critical', pass: runtimeEligibleAliases.length === 0, detail: runtimeEligibleAliases.length ? `${runtimeEligibleAliases.length} 个别名仍可进入运行态` : '别名与迁移账号已被运行时门禁隔离' },
     { id: 'sync-checkpoints', severity: 'high', pass: Number(interruptedSync) === 0, detail: interruptedSync ? `${interruptedSync} 个同步检查点需要恢复` : '没有未完成的同步检查点' },
     { id: 'integrity-aggregates', severity: 'high', pass: activeAggregates.filter(row => ['critical','high'].includes(row.severity)).length === 0, detail: activeAggregates.length ? `${activeAggregates.length} 个聚合完整性根因处于活动状态` : '没有活动完整性根因' }
@@ -326,7 +357,7 @@ function architectureIntegritySummary(report, accounts, ai, performance) {
     highFailed: checks.filter(row => !row.pass && row.severity === 'high').length,
     aliases: { total: blockedAliases.length, runtimeEligible: runtimeEligibleAliases.length },
     interruptedSync: Number(interruptedSync),
-    invalidRoutes: routeQuarantine,
+    modelBrain: { runtimeAvailable: modelBrainReady, hardEligibilityReady },
     activeAggregates
   };
 }
@@ -382,7 +413,8 @@ function buildIssues(report, accounts, ai, backups, notifications, policy, secur
         'schema-version': '数据库结构版本不兼容',
         'migration-ledger': '数据库迁移记录不完整',
         'sqlite-persistence': 'SQLite持久化配置不完整',
-        'model-routing': 'AI模型任务路由不合格',
+        'model-brain': 'Model Brain sealed runtime 不可用',
+        'model-brain-hard-eligibility': 'Model Brain 硬资格能力不完整',
         'account-runtime-aliases': '旧账号别名仍可进入运行态',
         'sync-checkpoints': '存在未完成的同步检查点',
         'integrity-aggregates': '存在持续活动的完整性根因'
@@ -415,8 +447,8 @@ function buildIssues(report, accounts, ai, backups, notifications, policy, secur
   else if (backups.latest.valid === false) add('backup-invalid', 'critical', '最近备份完整性校验失败', backups.latest.verifyMessage, 'data', '重新验证');
   else if (backups.latestAgeHours > 36) add('backup-old', 'medium', '最近备份已超过36小时', `上次备份时间：${backups.latest.createdAt}`, 'data', '创建新备份');
   if (backups.pendingRestore) add('restore-pending', 'high', '存在等待重启执行的恢复任务', `目标恢复点：${backups.pendingRestore.backupName}`, 'data', '检查恢复计划');
-  if (!ai.online && ai.count > 0) add('ai-offline', 'medium', '本地AI服务当前离线', ai.scanError || '已登记模型暂时无法连接。', 'ai', '查看AI资产');
-  if (ai.count > 0 && ai.routingEligible === 0) add('ai-routing-unavailable', 'high', '当前没有可路由AI模型', `${ai.verified || 0}/${ai.count} 个模型已验证，但 routingEligible=0，AI不能作为在线可用能力。`, 'ai', '检查模型路由', { reasonCode: 'AI_ROUTING_ELIGIBLE_ZERO' });
+  if (ai.modelBrain?.runtimeAvailable !== true) add('model-brain-unavailable', 'high', 'Model Brain / LiteLLM runtime unavailable', `sealed runtime health=${ai.modelBrain?.health || 'unavailable'}；不会回退到旧 provider client。`, 'ai', '检查 Model Brain', { reasonCode: 'MODEL_BRAIN_RUNTIME_UNAVAILABLE' });
+  if (ai.count > 0 && ai.taskReadiness?.pass !== true) add('model-brain-hard-eligibility', 'high', 'Model Brain 硬资格能力不完整', `${Number(ai.taskReadiness?.missing?.length || 0)} 个 logical task 没有满足 privacy/local/cloud/modality/language/context/provider 约束的能力。`, 'ai', '检查硬资格', { reasonCode: 'MODEL_BRAIN_HARD_ELIGIBILITY_MISSING' });
   if (ai.count === 0) add('ai-empty', 'info', '尚未登记可用模型', '消息和账号功能不受影响，AI辅助能力暂不可用。', 'ai', '扫描模型');
   if (!notifications.enabled || notifications.paused) add('notification-paused', 'info', '消息提醒当前关闭或暂停', '后台消息仍会保存，但不会弹出桌面提醒。', 'notifications', '检查提醒设置');
   const order = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
@@ -426,10 +458,11 @@ function buildIssues(report, accounts, ai, backups, notifications, policy, secur
 }
 
 function calculateHealth(report, accounts, ai, backups, policy, secure, integrity = null, issues = [], logProjection = null, backgroundJobs = null) {
+  const healthAi = { ...ai, routingEligible: ai.modelBrain?.runtimeAvailable === true && ai.taskReadiness?.pass === true ? Math.max(1, Number(ai.verified || 0)) : 0 };
   return systemHealthAuthority.projectHealth({
     report,
     accounts,
-    ai,
+    ai: healthAi,
     backups,
     policy,
     secure,
@@ -488,7 +521,7 @@ function snapshot() {
     windowsUatAuthorizationEvidence: runtimeGovernance,
     windowsFinalPassed: false
   });
-  const history = healthHistory.record({ ...health, accountsConnected: accounts.connected, accountsAbnormal: accounts.abnormal, backupValid: backups.latest?.valid !== false, aiOnline: ai.routingEligible > 0 }).slice(0, 72);
+  const history = healthHistory.record({ ...health, accountsConnected: accounts.connected, accountsAbnormal: accounts.abnormal, backupValid: backups.latest?.valid !== false, aiOnline: ai.modelBrain?.runtimeAvailable === true && ai.taskReadiness?.pass === true }).slice(0, 72);
   return {
     ok: true,
     releaseIdentity: diagnosticsBuildIdentity(getDiagnosticsReleaseIdentity({ releaseIdentity: getBackendReleaseIdentity() })),

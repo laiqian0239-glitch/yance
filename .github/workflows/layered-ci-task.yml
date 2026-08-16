@@ -7,6 +7,11 @@ on:
         description: Exact frozen candidate commit
         required: true
         type: string
+      expected_tree:
+        description: Exact frozen candidate tree
+        required: false
+        default: ''
+        type: string
       candidate_branch:
         description: Authorized remote branch required by branch-bound WP0 suites
         required: false
@@ -25,6 +30,10 @@ on:
       candidate_sha:
         description: Exact frozen candidate commit
         required: true
+        type: string
+      expected_tree:
+        description: Exact frozen candidate tree
+        required: false
         type: string
       candidate_branch:
         description: Authorized remote branch for wp0/full_work_package
@@ -52,6 +61,7 @@ permissions:
 
 env:
   CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+  EXPECTED_TREE: ${{ inputs.expected_tree }}
   CANDIDATE_BRANCH: ${{ inputs.candidate_branch }}
   SELECTED_SUITE: ${{ inputs.suite }}
   BASELINE_ANCHOR_COMMIT: 570823e722f6db475066d6ef80ba900ac5c6cb39
@@ -88,11 +98,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "${CANDIDATE_BRANCH}" =~ ^(stage/6\.4\.5\.9-architecture-closure|rebuild/windows-release-closure-[0-9]{8}(-[A-Za-z0-9._-]+)?)$ ]]
-          git fetch --no-tags --force origin "${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
-          test "$(git rev-parse refs/remotes/origin/${CANDIDATE_BRANCH})" = "${CANDIDATE_SHA}"
-          git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
-          git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${CANDIDATE_SHA}"
+          if [[ "${CANDIDATE_BRANCH}" =~ ^(stage/6\.4\.5\.9-architecture-closure|rebuild/windows-release-closure-[0-9]{8}(-[A-Za-z0-9._-]+)?)$ ]]; then
+            git fetch --no-tags --force origin "${CANDIDATE_BRANCH}:refs/remotes/origin/${CANDIDATE_BRANCH}"
+            test "$(git rev-parse refs/remotes/origin/${CANDIDATE_BRANCH})" = "${CANDIDATE_SHA}"
+            git cat-file -e "${BASELINE_ANCHOR_COMMIT}^{commit}"
+            git merge-base --is-ancestor "${BASELINE_ANCHOR_COMMIT}" "${CANDIDATE_SHA}"
+          else
+            test '${{ inputs.required_level }}' = 'L2'
+            test "${SELECTED_SUITE}" = 'full_work_package'
+            node tools/layered-ci/verify-delegated-product-l2.js \
+              --candidate-sha "${CANDIDATE_SHA}" \
+              --candidate-branch "${CANDIDATE_BRANCH}" \
+              --expected-tree "${EXPECTED_TREE}" \
+              --required-level '${{ inputs.required_level }}' \
+              --suite "${SELECTED_SUITE}"
+          fi
 
   l1-portable-ubuntu:
     name: layered-ci-l1-portable-ubuntu
@@ -144,6 +164,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Establish authorized local branch and remove credentials
         shell: bash
         run: |
@@ -234,6 +255,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: false
           lfs: false
+          persist-credentials: false
       - name: Establish authorized local branch and remove credentials
         shell: bash
         run: |

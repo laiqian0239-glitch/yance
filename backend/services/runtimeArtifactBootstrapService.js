@@ -5,6 +5,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { PATHS } = require('../config');
 const modelRegistry = require('./modelRegistry');
+const modelBrainProjection = require('./modelBrainProjection');
+const modelBrainRuntime = require('./modelBrainRuntime');
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function stable(value) {
@@ -50,28 +52,52 @@ function releaseManifestPath(root) {
   ].filter(Boolean);
   return candidates.find(file => fs.existsSync(file)) || path.join(root, 'package.json');
 }
-function routingSnapshot(registry = modelRegistry) {
+function modelBrainSnapshot(registry = modelRegistry) {
   const state = registry?.read?.() || {};
-  const models = (Array.isArray(state.models) ? state.models : []).map(model => ({
-    id: clean(model.id),
-    provider: clean(model.provider),
-    name: clean(model.name),
-    enabled: model.enabled !== false,
-    available: model.available !== false,
-    qualification: clean(model.qualification),
-    allowedTasks: Array.isArray(model.allowedTasks) ? [...model.allowedTasks].sort() : [],
-    capabilityClass: clean(model.capabilityClass || model.catalogMetadata?.capabilityClass),
-    commercialBenchmarkScore: Number(model.commercialBenchmark?.score || model.commercialScore || 0)
-  })).sort((a, b) => a.id.localeCompare(b.id));
-  const routes = Object.fromEntries(Object.entries(state.routes && typeof state.routes === 'object' ? state.routes : {}).sort(([a], [b]) => a.localeCompare(b)).map(([task, route]) => [task, {
-    enabled: route?.enabled !== false,
-    primaryModelId: clean(route?.primaryModelId),
-    fallbackModelId: clean(route?.fallbackModelId),
-    source: clean(route?.source),
-    timeoutMs: Number(route?.timeoutMs || 0),
-    outputLimit: Number(route?.outputLimit || route?.maxOutputTokens || 0)
-  }]));
-  return { schemaVersion: 1, models, routes };
+  const runtime = modelBrainRuntime.status();
+  const models = (Array.isArray(state.models) ? state.models : [])
+    .map(model => modelBrainProjection.projectModel(model))
+    .map(model => ({
+      id: clean(model.id),
+      provider: clean(model.provider),
+      name: clean(model.name),
+      enabled: model.enabled !== false,
+      qualification: clean(model.qualification),
+      sourceType: clean(model.sourceType),
+      modalities: Array.isArray(model.capabilities?.modalities) ? [...model.capabilities.modalities].sort() : [],
+      languages: Array.isArray(model.capabilities?.language) ? [...model.capabilities.language].sort() : [],
+      contextLength: Number(model.capabilities?.context || 0),
+      privacy: clean(model.capabilities?.privacy) ? [clean(model.capabilities.privacy)] : [],
+      tags: Array.isArray(model.tags) ? [...model.tags].sort() : []
+    }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const lastEvidence = runtime.lastEvidence && typeof runtime.lastEvidence === 'object'
+    ? {
+        selectedModel: clean(runtime.lastEvidence.selectedModel),
+        provider: clean(runtime.lastEvidence.provider),
+        latencyMs: Number(runtime.lastEvidence.latencyMs || 0),
+        inputTokens: Number(runtime.lastEvidence.inputTokens || 0),
+        outputTokens: Number(runtime.lastEvidence.outputTokens || 0),
+        costUsd: Number(runtime.lastEvidence.costUsd || 0),
+        retryCount: Number(runtime.lastEvidence.retryCount || 0)
+      }
+    : null;
+  return {
+    schemaVersion: 2,
+    authority: 'Model Brain / LiteLLM',
+    litellm: 'LiteLLM v1.95.0',
+    complexityRouter: 'LiteLLM ComplexityRouter',
+    strictTagFiltering: { enabled: true, matchAny: false, semantics: 'AND', failClosed: true },
+    hardEligibility: {
+      dimensions: ['privacy/local-cloud', 'modality', 'language/native-register', 'context length', 'explicit provider allow/deny'],
+      local: models.filter(model => model.sourceType === 'local').length,
+      cloud: models.filter(model => model.sourceType === 'cloud').length,
+      verified: models.filter(model => model.qualification === 'verified').length
+    },
+    runtime: { health: clean(runtime.health) || 'unavailable', available: runtime.runtimeAvailable === true },
+    executionEvidence: lastEvidence,
+    models
+  };
 }
 
 class RuntimeArtifactBootstrapService {
@@ -101,13 +127,13 @@ class RuntimeArtifactBootstrapService {
         'backend/services/platformMessagingService.js'
       ])
     });
-    const routingManifest = writeContentAddressedJson(generatedRoot, 'ai-routing', routingSnapshot(this.modelRegistry));
+    const modelBrainManifest = writeContentAddressedJson(generatedRoot, 'ai-routing', modelBrainSnapshot(this.modelRegistry));
     return [
       { type: 'application', rootPath: releaseFile, version, releaseId, critical: true, source: 'verified-release-manifest' },
       { type: 'frontend-static', rootPath: path.join(root, 'frontend'), version, releaseId, critical: true, source: 'runtime-source' },
       { type: 'platform-adapter', rootPath: adapterManifest, version, releaseId, critical: true, source: 'generated-runtime-manifest' },
       { type: 'facebook-web-companion', rootPath: path.join(root, 'tools', 'facebook-business-suite-avatar-importer'), version, releaseId, critical: false, source: 'runtime-source' },
-      { type: 'ai-routing', rootPath: routingManifest, version, releaseId, critical: true, source: 'generated-routing-snapshot' },
+      { type: 'ai-routing', rootPath: modelBrainManifest, version, releaseId, critical: true, source: 'generated-model-brain-snapshot' },
       { type: 'persona-assets', rootPath: path.join(root, 'backend', 'persona', 'presets'), version, releaseId, critical: true, source: 'runtime-source' },
       { type: 'theme-catalog', rootPath: path.join(root, 'frontend', 'theme-catalog.json'), version, releaseId, critical: true, source: 'runtime-source' },
       { type: 'notification-sound-catalog', rootPath: path.join(root, 'frontend', 'assets', 'sounds'), version, releaseId, critical: true, source: 'runtime-source' }
@@ -148,4 +174,4 @@ class RuntimeArtifactBootstrapService {
   snapshot() { return this.lastResult; }
 }
 
-module.exports = { RuntimeArtifactBootstrapService, routingSnapshot, fileManifest, writeStableJson, writeContentAddressedJson, releaseManifestPath };
+module.exports = { RuntimeArtifactBootstrapService, modelBrainSnapshot, fileManifest, writeStableJson, writeContentAddressedJson, releaseManifestPath };

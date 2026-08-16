@@ -3,6 +3,11 @@
 const CHANNELS = Object.freeze({
   snapshot: 'store:get-snapshot',
   socialContext: 'store:get-social-context',
+  searchWorkspace: 'store:search-workspace',
+  createTranslationJob: 'store:create-translation-job',
+  getTranslationJob: 'store:get-translation-job',
+  cancelTranslationJob: 'store:cancel-translation-job',
+  retryTranslationJob: 'store:retry-translation-job',
   generateReply: 'store:generate-reply',
   cancelRequest: 'store:cancel-request',
   approveReply: 'store:approve-reply',
@@ -24,6 +29,51 @@ function clean(value) {
 
 function jsonBody(value) {
   return JSON.stringify(value || {});
+}
+
+function objectRecord(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function trustedRelationshipIntelligence(value) {
+  const bootstrap = objectRecord(value);
+  const trajectoryState = objectRecord(bootstrap.trajectoryState);
+  const projections = {};
+  for (const [rawTrajectoryId, rawTrajectory] of Object.entries(trajectoryState)) {
+    const trajectoryId = clean(rawTrajectoryId);
+    if (!trajectoryId) continue;
+    const trajectory = objectRecord(rawTrajectory);
+    const projection = objectRecord(trajectory.relationshipProjection);
+    if (projection.authorityId === 'RelationshipProjectionAuthority') {
+      projections[trajectoryId] = projection;
+    }
+  }
+  return projections;
+}
+
+function relationshipConversationIdsByContactId(value) {
+  const payload = objectRecord(value);
+  const snapshot = objectRecord(payload.snapshot || payload);
+  const conversations = objectRecord(snapshot.conversations);
+  const byContactId = objectRecord(conversations.byContactId);
+  const projection = {};
+  for (const [rawContactId, rawConversationIds] of Object.entries(byContactId)) {
+    const contactId = clean(rawContactId);
+    const conversationIds = Array.isArray(rawConversationIds)
+      ? rawConversationIds.map(clean).filter(Boolean)
+      : [];
+    if (contactId && conversationIds.length) projection[contactId] = conversationIds;
+  }
+  return projection;
+}
+
+function requiredIdentifier(value, name) {
+  const id = clean(value);
+  if (id) return id;
+  const error = new Error(`${name} is required`);
+  error.code = `${String(name || 'identifier').replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()}_REQUIRED`;
+  error.reasonCode = error.code;
+  throw error;
 }
 
 function serializeBridgeError(error) {
@@ -55,9 +105,20 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
   if (!ipcMain?.handle || typeof apiRequest !== 'function') throw new TypeError('ipcMain and apiRequest are required');
   const activeRequests = new Map();
   const handlers = {
-    [CHANNELS.snapshot]: (_event, input = {}) => {
+    [CHANNELS.snapshot]: async (_event, input = {}) => {
       const domains = Array.isArray(input.domains) ? input.domains.map(clean).filter(Boolean).join(',') : '';
-      return apiRequest(`/api/r32/store/snapshot${domains ? `?domains=${encodeURIComponent(domains)}` : ''}`);
+      const snapshotPath = `/api/r32/store/snapshot${domains ? `?domains=${encodeURIComponent(domains)}` : ''}`;
+      if (input.includeRelationshipIntelligence !== true) return apiRequest(snapshotPath);
+      const [snapshot, conversationSnapshot, bootstrap] = await Promise.all([
+        apiRequest(snapshotPath),
+        apiRequest('/api/r32/store/snapshot?domains=conversations').catch(() => null),
+        apiRequest('/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1').catch(() => null)
+      ]);
+      return {
+        ...objectRecord(snapshot),
+        relationshipConversationIdsByContactId: relationshipConversationIdsByContactId(conversationSnapshot),
+        relationshipIntelligence: trustedRelationshipIntelligence(bootstrap)
+      };
     },
     [CHANNELS.socialContext]: (_event, input = {}) => {
       const contactId = clean(input.contactId);
@@ -67,6 +128,38 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         recentMessageLimit: String(input.recentMessageLimit || 36)
       });
       return apiRequest(`/api/r32/store/customers/${encodeURIComponent(contactId)}/social-context?${query}`);
+    },
+    [CHANNELS.searchWorkspace]: (_event, input = {}) => {
+      const queryText = clean(input.query);
+      const numericLimit = input.limit == null ? 80 : Number(input.limit);
+      const limit = Math.max(1, Math.min(200, Number.isFinite(numericLimit) ? numericLimit : 80));
+      const query = new URLSearchParams({ q: queryText, limit: String(limit) });
+      return apiRequest(`/api/r32/store/search?${query}`);
+    },
+    [CHANNELS.createTranslationJob]: (_event, input = {}) => {
+      const messageId = requiredIdentifier(input.messageId, 'messageId');
+      return apiRequest(`/api/r32/store/translations/messages/${encodeURIComponent(messageId)}/jobs`, {
+        method: 'POST',
+        body: jsonBody({
+          force: input.force === true,
+          forceNew: input.forceNew === true,
+          timeoutMs: input.timeoutMs
+        })
+      });
+    },
+    [CHANNELS.getTranslationJob]: (_event, input = {}) => {
+      const jobId = requiredIdentifier(input.jobId, 'jobId');
+      return apiRequest(`/api/r32/store/translations/jobs/${encodeURIComponent(jobId)}`);
+    },
+    [CHANNELS.cancelTranslationJob]: (_event, input = {}) => {
+      const jobId = requiredIdentifier(input.jobId, 'jobId');
+      return apiRequest(`/api/r32/store/translations/jobs/${encodeURIComponent(jobId)}`, { method: 'DELETE' });
+    },
+    [CHANNELS.retryTranslationJob]: (_event, input = {}) => {
+      const jobId = requiredIdentifier(input.jobId, 'jobId');
+      return apiRequest(`/api/r32/store/translations/jobs/${encodeURIComponent(jobId)}/retry`, {
+        method: 'POST', body: jsonBody({ timeoutMs: input.timeoutMs })
+      });
     },
     [CHANNELS.generateReply]: async (event, input = {}) => {
       const requestId = clean(input.__yanceBridgeRequestId);

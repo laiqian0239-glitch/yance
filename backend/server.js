@@ -525,9 +525,12 @@ app.use('/api', (req, res) => {
   });
 });
 
-const frontendRoot = path.join(process.env.YANCE_APP_ROOT || path.join(__dirname, '..'), 'frontend');
-app.use(express.static(frontendRoot, { index: false, fallthrough: true, etag: true, maxAge: '5m' }));
-app.get('*', (_req, res) => res.sendFile(path.join(frontendRoot, 'index.html')));
+app.use((_req, res) => {
+  res.status(404).json({
+    error: 'NOT_FOUND',
+    message: '\u8bf7\u6c42\u7684\u8def\u5f84\u4e0d\u5b58\u5728'
+  });
+});
 
 app.use((error, req, res, _next) => {
   const reasonCode = error.reasonCode || error.code || 'INTERNAL_ERROR';

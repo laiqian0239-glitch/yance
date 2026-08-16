@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -9,40 +10,94 @@ const assert = require('node:assert/strict');
 const { REPO_ROOT } = require('../../tools/wp0/lib');
 
 const FIXED_TIME = '2026-07-03T00:00:00Z';
-const ELECTRON_LFS_PATH = 'vendor/electron/electron-v39.8.5-win32-x64.zip';
+const FIXTURE_BRANCH = 'rebuild/windows-release-closure-20260806-wp0-fixture';
+const RCEDIT_NATIVE_PATH = 'vendor/rcedit/rcedit-v2.0.0-x64.exe';
+const FUTURE_RCEDIT_LFS_PATH = 'vendor/rcedit/rcedit-future-unreviewed.exe';
+const RCEDIT_EXPECTED_SIZE = 1360384;
+const RCEDIT_EXPECTED_SHA256 = '3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a';
+const POST_MERGE_DEFECT_PATH = path.join(
+  REPO_ROOT,
+  'governance',
+  'architecture-closure-v2',
+  'wp-a-post-merge-defect-001.json'
+);
 const LFS_POINTER_ENV = Object.freeze({ ...process.env, GIT_LFS_SKIP_SMUDGE: '1' });
+
+function evaluatedRepositoryEnv(repo) {
+  return {
+    ...LFS_POINTER_ENV,
+    YANCE_EVALUATED_REPOSITORY_ROOT: repo
+  };
+}
 
 function git(cwd, args) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', env: LFS_POINTER_ENV }).trim();
 }
 
-function assertPointerPreserved(repo) {
-  const pointer = fs.readFileSync(path.join(repo, ELECTRON_LFS_PATH), 'utf8');
-  assert.match(pointer, /^version https:\/\/git-lfs\.github\.com\/spec\/v1\r?\n/u);
-  assert.match(pointer, /^oid sha256:d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34$/mu);
-  assert.match(pointer, /^size 136644393$/mu);
+function attributeLines(repo, targetPath) {
+  return new Set(git(repo, ['check-attr', 'filter', 'diff', 'merge', 'text', '--', targetPath]).split(/\r?\n/u));
+}
+
+function assertRceditCustody(repo) {
+  const exactAttributes = attributeLines(repo, RCEDIT_NATIVE_PATH);
+  assert.ok(exactAttributes.has(`${RCEDIT_NATIVE_PATH}: filter: unset`));
+  assert.ok(exactAttributes.has(`${RCEDIT_NATIVE_PATH}: diff: unset`));
+  assert.ok(exactAttributes.has(`${RCEDIT_NATIVE_PATH}: merge: unset`));
+  assert.ok(exactAttributes.has(`${RCEDIT_NATIVE_PATH}: text: unset`));
+
+  const futureAttributes = attributeLines(repo, FUTURE_RCEDIT_LFS_PATH);
+  assert.ok(futureAttributes.has(`${FUTURE_RCEDIT_LFS_PATH}: filter: lfs`));
+  assert.ok(futureAttributes.has(`${FUTURE_RCEDIT_LFS_PATH}: diff: lfs`));
+  assert.ok(futureAttributes.has(`${FUTURE_RCEDIT_LFS_PATH}: merge: lfs`));
+  assert.ok(futureAttributes.has(`${FUTURE_RCEDIT_LFS_PATH}: text: unset`));
+
+  const executablePath = path.join(repo, RCEDIT_NATIVE_PATH);
+  const bytes = fs.readFileSync(executablePath);
+  assert.equal(bytes.length, RCEDIT_EXPECTED_SIZE, 'reviewed rcedit must keep its exact native byte size');
+  assert.equal(
+    crypto.createHash('sha256').update(bytes).digest('hex'),
+    RCEDIT_EXPECTED_SHA256,
+    'reviewed rcedit must keep its exact upstream SHA-256'
+  );
+  assert.equal(
+    git(repo, ['hash-object', '--no-filters', '--', RCEDIT_NATIVE_PATH]),
+    git(repo, ['rev-parse', `HEAD:${RCEDIT_NATIVE_PATH}`]),
+    'reviewed rcedit worktree bytes must equal the tracked native Git blob'
+  );
 }
 
 function makeCleanClone() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp0-source-binding-'));
   const repo = path.join(root, 'repo');
   const sourceCommit = git(REPO_ROOT, ['rev-parse', 'HEAD']);
-  const sourceBranch = git(REPO_ROOT, ['branch', '--show-current']);
-  const args = ['-c', 'core.autocrlf=false', '-c', 'core.eol=lf', 'clone', '--config', 'core.autocrlf=false', '--config', 'core.eol=lf', '--quiet', '--no-local'];
-  if (sourceBranch) args.push('--branch', sourceBranch);
-  args.push(REPO_ROOT, repo);
+  const args = [
+    '-c', 'core.autocrlf=false',
+    '-c', 'core.eol=lf',
+    'clone',
+    '--config', 'core.autocrlf=false',
+    '--config', 'core.eol=lf',
+    '--quiet',
+    '--no-local',
+    REPO_ROOT,
+    repo
+  ];
   execFileSync('git', args, { encoding: 'utf8', env: LFS_POINTER_ENV });
-  if (!sourceBranch) execFileSync('git', ['checkout', '--quiet', '--detach', sourceCommit], { cwd: repo, env: LFS_POINTER_ENV });
-  assert.equal(git(repo, ['rev-parse', 'HEAD']), sourceCommit, 'WP0 evidence fixture must clone the tested HEAD');
-  assertPointerPreserved(repo);
-  return { root, repo, sourceBranch, sourceCommit };
+  execFileSync('git', ['switch', '--force-create', FIXTURE_BRANCH, sourceCommit], {
+    cwd: repo,
+    encoding: 'utf8',
+    env: LFS_POINTER_ENV
+  });
+  assert.equal(git(repo, ['rev-parse', 'HEAD']), sourceCommit, 'WP0 evidence fixture must use the tested HEAD');
+  assert.equal(git(repo, ['branch', '--show-current']), FIXTURE_BRANCH);
+  assertRceditCustody(repo);
+  return { root, repo, sourceBranch: FIXTURE_BRANCH, sourceCommit };
 }
 
 function runGenerator(repo, args = []) {
   const result = spawnSync(process.execPath, ['tools/wp0/generate-evidence.js', ...args], {
     cwd: repo,
     encoding: 'utf8',
-    env: LFS_POINTER_ENV
+    env: evaluatedRepositoryEnv(repo)
   });
   let json = null;
   try { json = JSON.parse(result.stdout); } catch { json = null; }
@@ -74,7 +129,7 @@ test('evidence generator rejects a nonexistent sourceCommit', () => {
   assert.equal(result.json?.reasonCode, 'WP0_EVIDENCE_SOURCE_COMMIT_NOT_FOUND');
 });
 
-test('evidence generator rejects a dirty worktree', () => {
+test('evidence generator rejects a dirty worktree before executing any branch gate', () => {
   const { repo } = makeCleanClone();
   const head = git(repo, ['rev-parse', 'HEAD']);
   fs.appendFileSync(path.join(repo, 'governance', 'stage-policy.json'), '\n');
@@ -84,7 +139,7 @@ test('evidence generator rejects a dirty worktree', () => {
   assert.equal(result.json?.repositoryClean, false);
 });
 
-test('correct clean HEAD records commit tree and produces byte-identical evidence in different temporary directories', () => {
+test('correct clean HEAD records commit tree and produces byte-identical evidence in isolated rebuild fixtures', () => {
   const { root, repo } = makeCleanClone();
   const head = git(repo, ['rev-parse', 'HEAD']);
   const tree = git(repo, ['rev-parse', 'HEAD^{tree}']);
@@ -99,6 +154,7 @@ test('correct clean HEAD records commit tree and produces byte-identical evidenc
   assert.equal(required.sourceCommit, head);
   assert.equal(required.sourceTree, tree);
   assert.equal(required.repositoryClean, true);
+  assert.equal(required.branch, FIXTURE_BRANCH);
   const index = JSON.parse(fs.readFileSync(path.join(outA, 'evidence-index.json'), 'utf8'));
   assert.equal(index.evidenceOutputDirectory, '.');
   assert.equal(JSON.stringify(index).includes(outA), false);
@@ -109,20 +165,22 @@ test('correct clean HEAD records commit tree and produces byte-identical evidenc
   for (const [name, bytes] of mapA) assert.deepEqual(bytes, mapB.get(name), `${name} differs across output directories`);
 });
 
-test('historical evidence succeeds only when tests and generator run inside a detached worktree at that commit', () => {
+test('historical detached evidence succeeds only at the sealed post-merge defect review head', () => {
   const { root, repo } = makeCleanClone();
-  const historical = git(repo, ['rev-parse', 'HEAD']);
-  execFileSync('git', ['config', 'user.name', 'WP0 Test'], { cwd: repo, env: LFS_POINTER_ENV });
-  execFileSync('git', ['config', 'user.email', 'wp0-test@example.invalid'], { cwd: repo, env: LFS_POINTER_ENV });
-  execFileSync('git', ['commit', '--allow-empty', '--quiet', '-m', 'temporary newer commit'], { cwd: repo, env: LFS_POINTER_ENV });
+  const defect = JSON.parse(fs.readFileSync(POST_MERGE_DEFECT_PATH, 'utf8'));
+  const historical = defect.closureReceipt.reviewedCodeHead;
+  assert.match(historical, /^[0-9a-f]{40}$/u);
   assert.notEqual(git(repo, ['rev-parse', 'HEAD']), historical);
+  git(repo, ['cat-file', '-e', `${historical}^{commit}`]);
   const worktree = path.join(root, 'historical-worktree');
   execFileSync('git', ['-c', 'core.autocrlf=false', '-c', 'core.eol=lf', 'worktree', 'add', '--quiet', '--detach', worktree, historical], {
     cwd: repo,
     encoding: 'utf8',
     env: LFS_POINTER_ENV
   });
-  assertPointerPreserved(worktree);
+  // The sealed historical review head predates rcedit custody. Current-head
+  // fixtures prove exact native rcedit custody and broad future LFS semantics;
+  // this historical contract remains focused on detached evidence identity.
   const out = path.join(root, 'historical-evidence');
   const result = runGenerator(worktree, ['--source-commit', historical, '--generated-at-utc', FIXED_TIME, '--output-dir', out]);
   assert.equal(result.status, 0, result.stdout + result.stderr);

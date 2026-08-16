@@ -47,12 +47,6 @@ function parseJson(value, fallback = {}) {
   try { return value ? JSON.parse(value) : fallback; } catch (_) { return fallback; }
 }
 
-function clamp01(value, fallback = 0) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return fallback;
-  return Math.max(0, Math.min(1, number > 1 ? number / 100 : number));
-}
-
 function timestamp(value) {
   const at = value ? new Date(value).getTime() : 0;
   return Number.isFinite(at) ? at : 0;
@@ -69,49 +63,65 @@ function normalizeStage(value, fallback = '待建立') {
 }
 
 function normalizeMomentum(value) {
-  const raw = clean(value) || 'stable';
-  return MOMENTUM_LABELS[raw] || raw;
+  const raw = clean(value);
+  return raw ? (MOMENTUM_LABELS[raw] || raw) : '';
 }
 
-function percent(value) {
-  return Math.round(clamp01(value) * 100);
+function boundedMetric(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  return Math.max(0, Math.min(100, number));
 }
 
-function presentationScalar(value, key) {
-  const text = clean(value);
+function isGraphitiInferenceRow(row = {}) {
+  const engine = clean(row.engine_version || row.engineVersion).toLowerCase();
+  const sources = parseJson(row.source_signal_ids_json || row.sourceSignalIdsJson, []);
+  return clean(row.event_type || row.eventType) === 'graphiti_inference'
+    && engine.startsWith('graphiti:')
+    && array(sources).some(value => clean(value).startsWith('graphiti:'));
+}
+
+function isManualTimelineAnnotation(row = {}) {
+  return Boolean(row.is_key_node || row.isKeyNode)
+    && clean(row.marked_by || row.markedBy).toLowerCase() === 'user';
+}
+
+function selectRelationshipTimeline(timeline = []) {
+  const rows = array(timeline);
+  const graphitiRows = rows.filter(isGraphitiInferenceRow);
+  const visibleRows = rows.filter(row => isGraphitiInferenceRow(row) || isManualTimelineAnnotation(row));
   return {
-    key,
-    sourceText: text,
-    translatedZh: '',
-    displayText: text,
-    translationStatus: text ? 'source-zh' : 'pending',
-    translationPending: !text,
-    displayOriginal: false
+    timeline: visibleRows,
+    signals: [],
+    authority: graphitiRows.length
+      ? 'graphiti_temporal_inference'
+      : visibleRows.length ? 'user_annotation' : 'empty'
   };
 }
 
-function timelinePresentationRows(timeline = [], signals = []) {
-  const eventRows = array(timeline).slice().reverse().map(row => {
+function timelinePresentationRows(timeline = []) {
+  return array(timeline).slice().reverse().map(row => {
     const title = clean(row.interpretation || row.event_type || row.eventType) || '关系状态变化';
-    const confidence = Math.round(clamp01(row.confidence, 0.5) * 100);
+    const graphitiInference = isGraphitiInferenceRow(row);
+    const manualAnnotation = isManualTimelineAnnotation(row);
+    const userConfirmedGraphitiFact = graphitiInference
+      && manualAnnotation
+      && clean(row.node_kind || row.nodeKind) === 'fact';
+    if (graphitiInference) {
+      return [
+        clean(row.confirmed_at || row.confirmedAt || row.started_at || row.startedAt),
+        title,
+        title,
+        userConfirmedGraphitiFact ? 'fact' : 'inference',
+        userConfirmedGraphitiFact ? '用户确认 · Graphiti 来源' : 'Graphiti · AI 推断 · 未评分'
+      ];
+    }
     return [
       clean(row.confirmed_at || row.confirmedAt || row.started_at || row.startedAt),
       title,
       title,
-      /declin|defens|tension|distance|avoid/u.test(clean(row.event_type || row.eventType)) ? 'risk' : 'fact',
-      `关系权威 · 置信度 ${confidence}%`
-    ];
-  });
-  if (eventRows.length) return eventRows;
-  return array(signals).slice().reverse().map(row => {
-    const title = clean(row.evidence?.summary || row.signal_type || row.signalType) || '关系信号';
-    const confidence = Math.round(clamp01(row.confidence, 0.5) * 100);
-    return [
-      clean(row.observed_at || row.observedAt),
-      title,
-      title,
-      clean(row.direction) === 'negative' ? 'risk' : 'signal',
-      `关系权威 · 置信度 ${confidence}%`
+      clean(row.node_kind || row.nodeKind) === 'inference' ? 'inference' : 'fact',
+      '用户标注'
     ];
   });
 }
@@ -190,11 +200,6 @@ function loadSource(store, contactId, conversationId) {
     : 0;
   return {
     social: socialRow ? {
-      relationship: parseJson(socialRow.relationship_json, {}),
-      emotion: parseJson(socialRow.emotion_json, {}),
-      interaction: parseJson(socialRow.interaction_json, {}),
-      strategy: parseJson(socialRow.strategy_json, {}),
-      potential: parseJson(socialRow.potential_json, {}),
       version: Number(socialRow.version || 0),
       sourceMessageId: clean(socialRow.source_message_id),
       sourceMessageAt: clean(socialRow.source_message_at),
@@ -207,65 +212,20 @@ function loadSource(store, contactId, conversationId) {
   };
 }
 
-function ruleProjection({ messages = [], social = {}, timeline = [], signals = [], fallback = {} } = {}) {
-  const potential = object(social.potential);
-  const emotion = object(social.emotion);
-  const interaction = object(social.interaction);
-  const strategy = object(social.strategy);
-  const stage = normalizeStage(potential.relationshipStage || social.relationship?.stage || fallback.stage, fallback.stage || (messages.length ? '初步了解' : '待建立'));
-  const momentum = normalizeMomentum(potential.momentum || emotion.trend || fallback.momentum);
-  const warmth = clamp01(potential.warmth ?? emotion.warmth);
-  const openness = clamp01(potential.openness ?? emotion.openness);
-  const trust = clamp01(potential.trust ?? emotion.trust);
-  const initiative = clamp01(potential.initiative ?? interaction.initiatesConversationRate);
-  const tension = clamp01(potential.tension ?? emotion.tension);
-  const nodeCount = timeline.length;
-  const signalCount = signals.length;
-  const evidenceCount = Math.max(nodeCount, signalCount);
-  const summary = evidenceCount
-    ? `已根据 ${evidenceCount} 条真实关系信号形成规则投影：当前阶段为${stage}，关系动能${momentum}；开放度 ${percent(openness)}%，主动度 ${percent(initiative)}%，风险压力 ${percent(tension)}%。`
-    : messages.length
-      ? `已根据 ${messages.length} 条真实消息形成基础关系投影：当前阶段为${stage}。尚未形成足够的稳定关系信号。`
-      : '';
-  const riskHigh = tension >= 0.45;
-  const next = riskHigh
-    ? '当前存在压力或防御信号，建议降低追问和主动频率，先回应对方已经表达的内容。'
-    : openness >= 0.55 || trust >= 0.55
-      ? `保持${clean(strategy.recommendedTone) || '自然、稳重'}的语气承接当前话题，在不越界的前提下适度深入。`
-      : '继续观察真实互动，保持自然承接，不主动拔高关系或增加联系频率。';
-  return {
-    stage,
-    momentum,
-    temperature: Math.round(((warmth + openness + trust) / 3) * 100),
-    activity: Math.min(100, messages.length * 3),
-    initiative: percent(initiative),
-    depth: percent(openness),
-    opportunity: Math.round(((warmth + openness + trust) / 3) * 100),
-    risk: percent(tension),
-    summary,
-    next,
-    opportunityText: openness >= 0.55 ? '开放度正在形成，可在保持分寸的前提下适度深入。' : '继续观察真实互动，不主动拔高关系。',
-    riskText: riskHigh ? '当前存在压力或防御信号，应降低追问和主动频率。' : '当前未见强烈负向信号，但仍需遵守互动频率策略。'
-  };
-}
-
 function project(input = {}) {
   const insight = object(input.insight);
   const messages = array(input.messages);
   const social = object(input.social);
   const timeline = array(input.timeline);
   const signals = array(input.signals);
-  const fallback = object(input.fallback);
   const pendingTranslationCount = countPendingTranslations(messages);
   const aiAnalysisCurrent = input.analysisCurrent === true;
   const aiAnalysisAvailable = aiAnalysisCurrent || input.analysisEvidenceAvailable === true;
   const aiAnalysisCommitted = input.analysisCommitted === true;
   const substantiveInsight = hasSubstantiveInsight(insight) && aiAnalysisAvailable;
   const stale = isInsightStale(insight, messages);
-  const evidenceCount = Math.max(timeline.length, signals.length);
-  const hasSocialProjection = ['relationship', 'emotion', 'interaction', 'strategy', 'potential']
-    .some(key => Object.keys(object(social[key])).length > 0);
-  const baseline = ruleProjection({ messages, social, timeline, signals, fallback });
+  const relationshipTimelineSource = selectRelationshipTimeline(timeline);
+  const evidenceCount = relationshipTimelineSource.timeline.length;
 
   let state = STATES.EMPTY;
   let source = 'empty';
@@ -274,33 +234,13 @@ function project(input = {}) {
     source = 'ai_analysis';
   } else if (pendingTranslationCount > 0 && messages.length > 0) {
     state = STATES.PENDING_TRANSLATION;
-    source = evidenceCount || hasSocialProjection ? 'social_rule_projection' : 'message_baseline';
   } else if (messages.length > 0 || evidenceCount > 0) {
     state = STATES.PENDING_ANALYSIS;
-    source = evidenceCount || hasSocialProjection ? 'social_rule_projection' : 'message_baseline';
   }
 
-  const aiStage = normalizeStage(insight.relationshipStage || insight.stage, baseline.stage);
-  const rulePresentation = substantiveInsight ? null : {
-    summary: presentationScalar(baseline.summary, 'summary'),
-    stage: presentationScalar(baseline.stage, 'relationshipStage'),
-    opportunity: presentationScalar(baseline.opportunityText, 'opportunityText'),
-    risk: presentationScalar(baseline.riskText, 'riskText'),
-    next: presentationScalar(baseline.next, 'nextAction'),
-    evidence: [],
-    events: [],
-    topics: [],
-    analysisSummary: presentationScalar('', 'analysisSummary'),
-    sourceMessageCount: messages.length,
-    analyzedThroughMessageId: '',
-    truthRules: {
-      originalIsAuthoritative: true,
-      chineseIsPresentationLayer: true,
-      pendingTranslationMustBeVisible: true,
-      inferenceIsNotFact: true,
-      ruleProjectionIsNotAiAnalysis: true
-    }
-  };
+  const aiStage = substantiveInsight
+    ? normalizeStage(insight.relationshipStage || insight.stage, '待建立')
+    : '待建立';
   const trajectory = {
     authorityId: AUTHORITY_ID,
     projectionVersion: PROJECTION_VERSION,
@@ -312,23 +252,23 @@ function project(input = {}) {
     analysisRequired: [STATES.PENDING_ANALYSIS, STATES.PENDING_TRANSLATION, STATES.STALE].includes(state),
     analysisStatusLabel: state === STATES.READY ? 'AI 分析已就绪'
       : state === STATES.STALE ? '已有新消息，关系分析待更新'
-        : state === STATES.PENDING_TRANSLATION ? '部分消息待中文理解，已显示规则投影'
-          : state === STATES.PENDING_ANALYSIS ? 'AI 分析待执行，已显示规则投影'
+        : state === STATES.PENDING_TRANSLATION ? '部分消息待中文理解，关系分析待执行'
+          : state === STATES.PENDING_ANALYSIS ? 'AI 分析待执行'
             : '尚无真实关系数据',
-    stage: substantiveInsight ? aiStage : baseline.stage,
-    summary: substantiveInsight ? clean(insight.summary) || baseline.summary : baseline.summary,
-    next: substantiveInsight ? clean(insight.nextAction || insight.next) || baseline.next : baseline.next,
-    momentum: clean(insight.momentum) || baseline.momentum,
-    temperature: substantiveInsight ? Number(insight.intimacyScore ?? insight.intimacy ?? baseline.temperature) : baseline.temperature,
-    activity: substantiveInsight ? Number(insight.activityScore ?? insight.activity ?? baseline.activity) : baseline.activity,
-    initiative: substantiveInsight ? Number(insight.initiativeScore ?? insight.initiative ?? baseline.initiative) : baseline.initiative,
-    depth: substantiveInsight ? Number(insight.depth ?? insight.dimensions?.depth ?? baseline.depth) : baseline.depth,
-    opportunity: substantiveInsight ? Number(insight.opportunityScore ?? insight.opportunity ?? baseline.opportunity) : baseline.opportunity,
-    risk: substantiveInsight ? Number(insight.riskScore ?? insight.risk ?? baseline.risk) : baseline.risk,
-    opportunityText: substantiveInsight ? clean(insight.opportunityText || insight.summary) || baseline.opportunityText : baseline.opportunityText,
-    riskText: substantiveInsight ? clean(insight.riskText || insight.hiddenNeed) || baseline.riskText : baseline.riskText,
-    events: timelinePresentationRows(timeline, signals),
-    ...(rulePresentation ? { bilingualPresentation: rulePresentation } : {})
+    stage: aiStage,
+    summary: substantiveInsight ? clean(insight.summary) : '',
+    next: substantiveInsight ? clean(insight.nextAction || insight.next) : '',
+    momentum: substantiveInsight ? normalizeMomentum(insight.momentum) : '',
+    temperature: substantiveInsight ? boundedMetric(insight.intimacyScore ?? insight.intimacy) : 0,
+    activity: substantiveInsight ? boundedMetric(insight.activityScore ?? insight.activity) : 0,
+    initiative: substantiveInsight ? boundedMetric(insight.initiativeScore ?? insight.initiative) : 0,
+    depth: substantiveInsight ? boundedMetric(insight.depth ?? insight.dimensions?.depth) : 0,
+    opportunity: substantiveInsight ? boundedMetric(insight.opportunityScore ?? insight.opportunity) : 0,
+    risk: substantiveInsight ? boundedMetric(insight.riskScore ?? insight.risk) : 0,
+    opportunityText: substantiveInsight ? clean(insight.opportunityText || insight.summary) : '',
+    riskText: substantiveInsight ? clean(insight.riskText || insight.hiddenNeed) : '',
+    timelineAuthority: relationshipTimelineSource.authority,
+    events: timelinePresentationRows(relationshipTimelineSource.timeline)
   };
 
   return {

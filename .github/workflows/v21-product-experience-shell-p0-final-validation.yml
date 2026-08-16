@@ -1,0 +1,518 @@
+name: V21 Product Experience Shell P0 Final Validation
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_BRANCH: ${{ github.event.pull_request.head.ref }}
+
+jobs:
+  frozen-element-reproducibility:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (
+        github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0' ||
+        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0'
+      )
+    runs-on: windows-latest
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+      CANDIDATE_BRANCH: ${{ github.event.pull_request.head.ref }}
+      ELEMENT_COMMIT: a2a996ae50d802878bf48e4bbf3730004bdcc55c
+      PNPM_VERSION: 11.5.2
+    steps:
+      - name: Checkout exact reviewed Product candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22.23.1'
+          package-manager-cache: false
+
+      - name: Verify exact candidate identity and local branch binding
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) { throw "candidate SHA mismatch: expected=$env:CANDIDATE_SHA actual=$actual" }
+          if ($env:CANDIDATE_BRANCH -ne $env:PRODUCT_BRANCH) { throw "unexpected candidate branch: $env:CANDIDATE_BRANCH" }
+          git switch --force-create $env:CANDIDATE_BRANCH $env:CANDIDATE_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'failed to bind exact candidate to local Product branch' }
+          if ((git rev-parse HEAD).Trim() -ne $env:CANDIDATE_SHA) { throw 'local Product branch does not point at exact candidate SHA' }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'candidate working tree must be clean before validation' }
+
+      - name: Activate exact pnpm toolchain
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          corepack enable
+          if ($LASTEXITCODE -ne 0) { throw 'corepack enable failed' }
+          corepack prepare pnpm@11.5.2 --activate
+          if ($LASTEXITCODE -ne 0) { throw 'failed to activate pnpm 11.5.2' }
+          Push-Location $env:RUNNER_TEMP
+          try { $actualPnpm = (pnpm --version).Trim() } finally { Pop-Location }
+          if ($actualPnpm -ne $env:PNPM_VERSION) { throw "pnpm version mismatch: expected=$env:PNPM_VERSION actual=$actualPnpm" }
+
+      - name: Run two clean frozen Element materializations and builds
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $results = @()
+          foreach ($iteration in 1..2) {
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue services/matrix/.runtime
+            $pnpmStore = Join-Path $env:RUNNER_TEMP "product-experience-pnpm-store-$iteration"
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $pnpmStore
+            node tools/matrix/bootstrap.js
+            if ($LASTEXITCODE -ne 0) { throw "Element materialization failed on iteration $iteration" }
+
+            $element = (Resolve-Path services/matrix/.runtime/element-web).Path
+            $actualElementCommit = (git -C $element rev-parse HEAD).Trim()
+            if ($actualElementCommit -ne $env:ELEMENT_COMMIT) { throw "Element pin mismatch on iteration ${iteration}: expected=$env:ELEMENT_COMMIT actual=$actualElementCommit" }
+            if (-not (Select-String -Path "$element\pnpm-lock.yaml" -Pattern 'modules/yance' -Quiet)) { throw "0011 Product dependency lock importer missing on iteration $iteration" }
+            if (-not (Select-String -Path "$element\apps\web\Dockerfile" -Pattern 'nx build yance-element-module' -Quiet)) { throw "0012 module delivery Docker build seam missing on iteration $iteration" }
+            if (-not (Select-String -Path "$element\apps\web\Dockerfile" -Pattern '/modules/yance/package.json' -Quiet)) { throw "0012 module manifest delivery seam missing on iteration $iteration" }
+
+            Push-Location $env:RUNNER_TEMP
+            try {
+              pnpm --dir $element install --frozen-lockfile --store-dir $pnpmStore
+              if ($LASTEXITCODE -ne 0) { throw "frozen pnpm install failed on iteration $iteration" }
+              pnpm --dir $element exec nx build yance-element-module
+              if ($LASTEXITCODE -ne 0) { throw "Yance Element module build failed on iteration $iteration" }
+              pnpm --dir $element exec nx run yance-element-module:lint:types
+              if ($LASTEXITCODE -ne 0) { throw "Yance Element module typecheck failed on iteration $iteration" }
+            } finally { Pop-Location }
+            if (-not (Test-Path "$element\modules\yance\lib\index.js")) { throw "Yance Element module output missing on iteration $iteration" }
+
+            $results += [pscustomobject]@{
+              iteration = $iteration
+              elementCommit = $actualElementCommit
+              pnpmVersion = $env:PNPM_VERSION
+              lockSha256 = (Get-FileHash "$element\pnpm-lock.yaml" -Algorithm SHA256).Hash.ToLowerInvariant()
+              packageSha256 = (Get-FileHash "$element\modules\yance\package.json" -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+          }
+
+          if ($results.Count -ne 2) { throw 'expected exactly two frozen materialization results' }
+          if ($results[0].lockSha256 -ne $results[1].lockSha256 -or $results[0].packageSha256 -ne $results[1].packageSha256) {
+            throw "reproducibility mismatch: first=$($results[0] | ConvertTo-Json -Compress) second=$($results[1] | ConvertTo-Json -Compress)"
+          }
+
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue services/matrix/.runtime
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'Task 9 validation must leave the candidate working tree clean' }
+          $candidateTree = (git rev-parse 'HEAD^{tree}').Trim()
+          Write-Host "GREEN: Task 9 reproducibility bound to $env:CANDIDATE_BRANCH / $env:CANDIDATE_SHA / $candidateTree"
+
+  materialized-desktop-uat:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (
+        github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0' ||
+        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0'
+      )
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+      CANDIDATE_BRANCH: ${{ github.event.pull_request.head.ref }}
+      NODE_ARCHIVE: node-v22.23.1-win-x64.zip
+      NODE_ARCHIVE_SHA256: 7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29
+      NODE_EXE_SHA256: f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed
+      RCEDIT_SHA256: 3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a
+    steps:
+      - name: Checkout exact reviewed Product candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+
+      - name: Set up trusted-CI Builder host Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22.23.1'
+          package-manager-cache: false
+
+      - name: Bind exact Product identity
+        id: identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((node --version).Trim() -ne 'v22.23.1') { throw "unexpected Builder-host Node: $(node --version)" }
+          $builderHostNpm = (npm --version).Trim()
+          Write-Host "Builder-host npm $builderHostNpm is bootstrap-only; repository dependency authority is npm@10.9.2"
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne $env:CANDIDATE_SHA) { throw "candidate SHA mismatch: $actual" }
+          git switch --force-create $env:CANDIDATE_BRANCH $env:CANDIDATE_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'failed to bind local Product branch' }
+          $tree = (git rev-parse 'HEAD^{tree}').Trim()
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'desktop materialization source must start clean' }
+          "tree=$tree" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Materialize and verify official Windows Electron Release asset
+        id: electron
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $trustPath = 'release/electron-distribution-trust.json'
+          $trust = Get-Content -LiteralPath $trustPath -Raw | ConvertFrom-Json
+          $archive = $trust.archives.'win32-x64'
+          $expectedUrl = 'https://github.com/electron/electron/releases/download/v39.8.5/electron-v39.8.5-win32-x64.zip'
+          if ([string]$trust.electronVersion -ne '39.8.5') { throw "unexpected Electron trust version: $($trust.electronVersion)" }
+          if (-not $archive -or [string]$archive.fileName -ne 'electron-v39.8.5-win32-x64.zip') { throw "missing exact win32-x64 Electron Release trust record: $trustPath" }
+          if ([string]$archive.sourceRepository -ne 'electron/electron') { throw "unexpected Electron source repository: $($archive.sourceRepository)" }
+          if ([string]$archive.releaseTag -ne 'v39.8.5') { throw "unexpected Electron release tag: $($archive.releaseTag)" }
+          if ([int64]$archive.assetId -ne 382512506) { throw "unexpected Electron release asset id: $($archive.assetId)" }
+          if ([string]$archive.downloadUrl -ne $expectedUrl) { throw "unexpected Electron Release URL: $($archive.downloadUrl)" }
+          if ([System.IO.Path]::GetFileName([string]$archive.fileName) -ne [string]$archive.fileName) { throw 'Electron trust fileName must be a basename' }
+
+          $expectedSha256 = ([string]$archive.sha256).ToLowerInvariant()
+          if ($expectedSha256 -ne 'd75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34') { throw "unexpected Electron trust SHA-256: $expectedSha256" }
+          if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Electron trust SHA-256 is malformed' }
+          $expectedSize = [int64]$archive.sizeBytes
+          if ($expectedSize -ne 136644393) { throw "unexpected Electron Release asset size: $expectedSize" }
+
+          $archivePath = Join-Path $env:RUNNER_TEMP ([string]$archive.fileName)
+          Remove-Item -LiteralPath $archivePath -Force -ErrorAction SilentlyContinue
+          & curl.exe --fail --location --proto '=https' --tlsv1.2 --output $archivePath ([string]$archive.downloadUrl)
+          if ($LASTEXITCODE -ne 0) { throw "official Electron Release download failed: $LASTEXITCODE" }
+
+          $actualSize = (Get-Item -LiteralPath $archivePath).Length
+          if ($actualSize -ne $expectedSize) { throw "Electron Release size mismatch: expected=$expectedSize actual=$actualSize" }
+          $actualSha256 = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) { throw "Electron Release SHA-256 mismatch: expected=$expectedSha256 actual=$actualSha256" }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'Electron Release materialization must leave the candidate working tree clean' }
+
+          $dist = Join-Path $env:RUNNER_TEMP 'product-uat-electron-dist'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $dist
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $dist
+          if (-not (Test-Path -LiteralPath (Join-Path $dist 'electron.exe') -PathType Leaf)) { throw 'official Electron distribution did not materialize electron.exe' }
+          "archive=$archivePath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "dist=$dist" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Materialize exact isolated Electron npm trust metadata
+        id: electron_npm
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $trust = Get-Content -LiteralPath 'release/electron-distribution-trust.json' -Raw | ConvertFrom-Json
+          $lock = Get-Content -LiteralPath 'package-lock.json' -Raw | ConvertFrom-Json -AsHashTable
+          $locked = $lock['packages']['node_modules/electron']
+          if (-not $locked -or -not $locked.version -or -not $locked.integrity) { throw 'package-lock Electron record is missing version/integrity' }
+          $version = [string]$locked.version
+          $expectedIntegrity = [string]$locked.integrity
+          if ($version -ne [string]$trust.electronVersion) { throw "Electron lock/trust version mismatch: lock=$version trust=$($trust.electronVersion)" }
+          if ($expectedIntegrity -ne [string]$trust.npmPackageIntegrity) { throw 'Electron lock/trust npm integrity mismatch' }
+          if ($expectedIntegrity -notmatch '^sha512-[A-Za-z0-9+/]+={0,2}$') { throw 'Electron npm package integrity must be canonical sha512 SRI' }
+          if (Test-Path -LiteralPath 'node_modules\electron') { throw 'repository-root Electron installation is forbidden for Product Final' }
+
+          $packRoot = Join-Path $env:RUNNER_TEMP 'product-uat-electron-npm-pack'
+          $extractRoot = Join-Path $env:RUNNER_TEMP 'product-uat-electron-npm-package'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $packRoot, $extractRoot
+          New-Item -ItemType Directory -Path $packRoot, $extractRoot | Out-Null
+
+          Push-Location $packRoot
+          try {
+            npm.cmd exec --yes --package=npm@10.9.2 -- npm pack "electron@$version" --ignore-scripts --json --pack-destination $packRoot | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw "trusted-CI exact npm@10.9.2 Electron npm pack failed: $LASTEXITCODE" }
+          } finally { Pop-Location }
+
+          $tarballs = @(Get-ChildItem -LiteralPath $packRoot -Filter '*.tgz' -File)
+          if ($tarballs.Count -ne 1) { throw "expected exactly one Electron npm tarball, found $($tarballs.Count)" }
+          $tarball = $tarballs[0].FullName
+          $sha512 = [System.Security.Cryptography.SHA512]::Create()
+          $stream = [System.IO.File]::OpenRead($tarball)
+          try { $hashBytes = $sha512.ComputeHash($stream) } finally { $stream.Dispose(); $sha512.Dispose() }
+          $actualIntegrity = 'sha512-' + [Convert]::ToBase64String($hashBytes)
+          if ($actualIntegrity -ne $expectedIntegrity) { throw "Electron npm tarball integrity mismatch: expected=$expectedIntegrity actual=$actualIntegrity" }
+
+          tar.exe -xzf $tarball -C $extractRoot
+          if ($LASTEXITCODE -ne 0) { throw "Electron npm tarball extraction failed: $LASTEXITCODE" }
+          $packageRoot = Join-Path $extractRoot 'package'
+          $packageJsonPath = Join-Path $packageRoot 'package.json'
+          $checksumsPath = Join-Path $packageRoot 'checksums.json'
+          if (-not (Test-Path -LiteralPath $packageJsonPath -PathType Leaf)) { throw 'isolated Electron npm package.json is missing' }
+          if (-not (Test-Path -LiteralPath $checksumsPath -PathType Leaf)) { throw 'isolated Electron npm checksums.json is missing' }
+          $packageJson = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
+          if ([string]$packageJson.name -ne 'electron' -or [string]$packageJson.version -ne $version) { throw "isolated Electron npm package identity mismatch: $($packageJson.name)@$($packageJson.version)" }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'isolated Electron npm metadata materialization must leave Product source clean' }
+          "root=$((Resolve-Path $packageRoot).Path)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Materialize reviewed Windows production dependency closure
+        id: production_deps
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP 'product-uat-production-deps'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $root
+          New-Item -ItemType Directory -Path $root | Out-Null
+          Copy-Item package.json, package-lock.json -Destination $root
+          Push-Location $root
+          try {
+            npm.cmd exec --yes --package=npm@10.9.2 -- npm ci --omit=dev --ignore-scripts --no-audit --no-fund --no-bin-links --os=win32 --cpu=x64
+            if ($LASTEXITCODE -ne 0) { throw "trusted-CI exact npm@10.9.2 production ci failed: $LASTEXITCODE" }
+          } finally { Pop-Location }
+          Remove-Item -LiteralPath (Join-Path $root 'node_modules\.package-lock.json') -Force -ErrorAction SilentlyContinue
+          if (Test-Path -LiteralPath (Join-Path $root 'node_modules\electron')) { throw 'production-only dependency closure unexpectedly contains Electron' }
+          "node_modules=$((Resolve-Path (Join-Path $root 'node_modules')).Path)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Materialize and verify packaged trusted Node 22.23.1
+        id: packaged_node
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP $env:NODE_ARCHIVE
+          Invoke-WebRequest -UseBasicParsing -Uri "https://nodejs.org/dist/v22.23.1/$($env:NODE_ARCHIVE)" -OutFile $archive
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:NODE_ARCHIVE_SHA256) { throw 'trusted Node archive SHA-256 mismatch' }
+          $root = Join-Path $env:RUNNER_TEMP 'product-uat-packaged-node'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $root
+          Expand-Archive -LiteralPath $archive -DestinationPath $root
+          $nodeExe = Get-ChildItem -LiteralPath $root -Filter node.exe -File -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $nodeExe) { throw 'trusted packaged node.exe missing' }
+          if ((Get-FileHash -LiteralPath $nodeExe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:NODE_EXE_SHA256) { throw 'trusted packaged node.exe SHA-256 mismatch' }
+          if ((& $nodeExe --version).Trim() -ne 'v22.23.1') { throw 'trusted packaged Node version mismatch' }
+          "node_exe=$nodeExe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Materialize presealed Parlant Windows runtime in trusted CI
+        id: parlant
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $output = Join-Path $env:RUNNER_TEMP 'product-uat-parlant-runtime'
+          $work = Join-Path $env:RUNNER_TEMP 'product-uat-parlant-work'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $output, $work
+          & tools/parlant/build-windows-runtime.ps1 -OutputRoot $output -SourceRoot (Resolve-Path '.').Path -WorkRoot $work
+          if ($LASTEXITCODE -ne 0) { throw "Parlant runtime materialization failed: $LASTEXITCODE" }
+          if (-not (Test-Path -LiteralPath (Join-Path $output 'runtime-seal.json') -PathType Leaf)) { throw 'Parlant runtime seal missing' }
+          "root=$output" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Materialize presealed Learning Windows runtime in trusted CI
+        id: learning
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $output = Join-Path $env:RUNNER_TEMP 'product-uat-learning-runtime'
+          $work = Join-Path $env:RUNNER_TEMP 'product-uat-learning-work'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $output, $work
+          & tools/learning-growth/build-windows-runtime.ps1 -OutputRoot $output -SourceRoot (Resolve-Path '.').Path -WorkRoot $work
+          if ($LASTEXITCODE -ne 0) { throw "Learning runtime materialization failed: $LASTEXITCODE" }
+          if (-not (Test-Path -LiteralPath (Join-Path $output 'runtime-seal.json') -PathType Leaf)) { throw 'Learning runtime seal missing' }
+          "root=$output" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Materialize exact trusted rcedit custody input
+        id: rcedit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $relativePath = 'vendor/rcedit/rcedit-v2.0.0-x64.exe'
+          $expectedSha256 = $env:RCEDIT_SHA256.ToLowerInvariant()
+          if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') { throw 'rcedit expected SHA-256 is malformed' }
+          $expectedSize = [int64]1360384
+
+          $trackedBlob = (git rev-parse "HEAD:$relativePath").Trim()
+          if ($LASTEXITCODE -ne 0 -or $trackedBlob -notmatch '^[0-9a-f]{40}$') { throw "failed to resolve tracked native Git rcedit blob: $relativePath" }
+          $worktreeBlob = (git hash-object --no-filters -- $relativePath).Trim()
+          if ($LASTEXITCODE -ne 0 -or $worktreeBlob -notmatch '^[0-9a-f]{40}$') { throw "failed to hash worktree rcedit bytes: $relativePath" }
+          if ($worktreeBlob -ne $trackedBlob) { throw "rcedit tracked/worktree blob mismatch: tracked=$trackedBlob worktree=$worktreeBlob" }
+
+          $path = (Resolve-Path $relativePath).Path
+          $actualSize = (Get-Item -LiteralPath $path).Length
+          if ($actualSize -ne $expectedSize) { throw "rcedit native Git size mismatch: expected=$expectedSize actual=$actualSize" }
+          $actualSha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualSha256 -ne $expectedSha256) { throw "rcedit v2.0.0 x64 SHA-256 mismatch: expected=$expectedSha256 actual=$actualSha256" }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'rcedit native Git verification must leave Product source clean' }
+          "path=$path" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Materialize exact isolated WP7 archive OSS toolchain
+        id: archive_oss
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP 'product-uat-archive-oss'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $root
+          New-Item -ItemType Directory -Path $root | Out-Null
+          Copy-Item -LiteralPath 'tools/wp7/archive-oss/package.json' -Destination $root
+          Copy-Item -LiteralPath 'tools/wp7/archive-oss/package-lock.json' -Destination $root
+
+          Push-Location $root
+          try {
+            npm.cmd exec --yes --package=npm@10.9.2 -- npm ci --omit=dev --ignore-scripts --no-audit --no-fund --no-bin-links
+            if ($LASTEXITCODE -ne 0) { throw "trusted-CI exact npm@10.9.2 archive OSS ci failed: $LASTEXITCODE" }
+          } finally { Pop-Location }
+
+          $nodeModules = Join-Path $root 'node_modules'
+          $tarPackagePath = Join-Path $nodeModules 'tar\package.json'
+          if (-not (Test-Path -LiteralPath $tarPackagePath -PathType Leaf)) { throw 'isolated tar package metadata is missing' }
+          $tarPackage = Get-Content -LiteralPath $tarPackagePath -Raw | ConvertFrom-Json
+          if ([string]$tarPackage.name -ne 'tar' -or [string]$tarPackage.version -ne '7.5.22') {
+            throw "isolated archive OSS identity mismatch: $($tarPackage.name)@$($tarPackage.version)"
+          }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'archive OSS materialization must leave Product source clean' }
+          "node_modules=$((Resolve-Path $nodeModules).Path)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Run real WP7 node-tar PAX long-path and determinism contract
+        shell: pwsh
+        env:
+          WP7_ARCHIVE_TOOL_NODE_MODULES: ${{ steps.archive_oss.outputs.node_modules }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node --test --test-concurrency=1 tests/wp7/deterministic-tar-gzip.test.js
+          if ($LASTEXITCODE -ne 0) { throw "WP7 real node-tar PAX archive contract failed: $LASTEXITCODE" }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'WP7 archive contract must leave Product source clean' }
+
+      - name: Build existing WP7 PRE_REVIEW_ONLY trusted desktop and seal Product bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $wp7 = Join-Path $env:RUNNER_TEMP 'product-uat-wp7'
+          $bundle = Join-Path $env:RUNNER_TEMP 'product-experience-materialized-desktop-uat'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $wp7, $bundle
+          New-Item -ItemType Directory -Path $wp7, $bundle | Out-Null
+          $commitTime = [DateTimeOffset]::Parse((git show -s --format=%cI HEAD)).UtcDateTime.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+          $session = $env:CANDIDATE_SHA.Substring(0, 32)
+          node tools/wp7/create-pre-review-trusted-product.js `
+            --repo-root (Resolve-Path '.').Path `
+            --electron-archive '${{ steps.electron.outputs.archive }}' `
+            --electron-dist '${{ steps.electron.outputs.dist }}' `
+            --electron-npm-package-root '${{ steps.electron_npm.outputs.root }}' `
+            --production-node-modules '${{ steps.production_deps.outputs.node_modules }}' `
+            --trusted-node-executable '${{ steps.packaged_node.outputs.node_exe }}' `
+            --parlant-runtime '${{ steps.parlant.outputs.root }}' `
+            --learning-runtime '${{ steps.learning.outputs.root }}' `
+            --rcedit-path '${{ steps.rcedit.outputs.path }}' `
+            --archive-tool-node-modules '${{ steps.archive_oss.outputs.node_modules }}' `
+            --output-dir $wp7 `
+            --build-timestamp-utc $commitTime `
+            --build-session-id $session `
+            --target-platform win32 `
+            --target-arch x64
+          if ($LASTEXITCODE -ne 0) { throw "existing WP7 trusted-product builder failed: $LASTEXITCODE" }
+          Copy-Item -LiteralPath (Join-Path $wp7 'WP7_PRE_REVIEW_TRUSTED_PRODUCT_BUILD.json') -Destination $bundle
+          Get-ChildItem -LiteralPath $wp7 -Filter 'Yance_Stage6_4_5_9_WP7_PreReview_Trusted_Product_*.tar.gz' -File | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $bundle }
+          Copy-Item -LiteralPath 'tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1' -Destination $bundle
+          node tools/product-experience/create-materialized-uat-candidate.js seal `
+            --root $bundle `
+            --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_DESKTOP_UAT_ONLY `
+            --candidate-branch $env:CANDIDATE_BRANCH `
+            --candidate-commit $env:CANDIDATE_SHA `
+            --candidate-tree '${{ steps.identity.outputs.tree }}'
+          if ($LASTEXITCODE -ne 0) { throw 'desktop candidate sealing failed' }
+          node tools/product-experience/create-materialized-uat-candidate.js verify `
+            --root $bundle `
+            --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_DESKTOP_UAT_ONLY `
+            --candidate-branch $env:CANDIDATE_BRANCH `
+            --candidate-commit $env:CANDIDATE_SHA `
+            --candidate-tree '${{ steps.identity.outputs.tree }}'
+          if ($LASTEXITCODE -ne 0) { throw 'desktop candidate verification failed' }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'desktop materialization must leave Product source clean' }
+
+      - name: Upload materialized desktop UAT
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Product-Experience-Materialized-Desktop-UAT-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}\product-experience-materialized-desktop-uat\**
+          if-no-files-found: error
+          retention-days: 7
+
+  materialized-matrix-uat:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (
+        github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0' ||
+        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+      CANDIDATE_BRANCH: ${{ github.event.pull_request.head.ref }}
+    steps:
+      - name: Checkout exact reviewed Product candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22.23.1'
+          package-manager-cache: false
+
+      - name: Bind exact Product identity
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test "$CANDIDATE_BRANCH" = "$PRODUCT_BRANCH"
+          git switch --force-create "$CANDIDATE_BRANCH" "$CANDIDATE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          echo "tree=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
+
+      - name: Materialize pinned Matrix sources and build exact candidate images
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf services/matrix/.runtime
+          ambient_core_autocrlf_before="$(git config --show-origin --get-all core.autocrlf || true)"
+          node tools/matrix/bootstrap.js
+          ambient_core_autocrlf_after="$(git config --show-origin --get-all core.autocrlf || true)"
+          test "$ambient_core_autocrlf_after" = "$ambient_core_autocrlf_before"
+          test -d services/matrix/.runtime/synapse
+          test -d services/matrix/.runtime/element-web
+          test -d services/matrix/.runtime/mautrix-whatsapp
+          grep -q 'nx build yance-element-module' services/matrix/.runtime/element-web/apps/web/Dockerfile
+          grep -q '/modules/yance/package.json' services/matrix/.runtime/element-web/apps/web/Dockerfile
+          docker build --file services/matrix/.runtime/synapse/docker/Dockerfile --tag "yance-product-uat-synapse:${CANDIDATE_SHA}" services/matrix/.runtime/synapse
+          docker build --file services/matrix/.runtime/element-web/apps/web/Dockerfile --tag "yance-product-uat-element:${CANDIDATE_SHA}" services/matrix/.runtime/element-web
+          docker build --tag "yance-product-uat-mautrix-whatsapp:${CANDIDATE_SHA}" services/matrix/.runtime/mautrix-whatsapp
+          docker image inspect "yance-product-uat-element:${CANDIDATE_SHA}" >/dev/null
+          echo 'GREEN: Element image built from the existing /modules/yance runtime delivery seam'
+
+      - name: Export exact Matrix images and seal image-only candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/product-experience-materialized-matrix-uat"
+          rm -rf "$bundle"
+          mkdir -p "$bundle/matrix-config/synapse" "$bundle/matrix-config/mautrix-whatsapp"
+          docker save --output "$bundle/matrix-images.tar" \
+            "yance-product-uat-synapse:${CANDIDATE_SHA}" \
+            "yance-product-uat-element:${CANDIDATE_SHA}" \
+            "yance-product-uat-mautrix-whatsapp:${CANDIDATE_SHA}"
+          cp tools/product-experience/materialized-matrix-compose.yml "$bundle/materialized-matrix-compose.yml"
+          cp config/matrix/synapse/homeserver.yaml "$bundle/matrix-config/synapse/homeserver.yaml"
+          cp config/matrix/element-config.json "$bundle/matrix-config/element-config.json"
+          cp config/matrix/mautrix-whatsapp/config.yaml "$bundle/matrix-config/mautrix-whatsapp/config.yaml"
+          node tools/product-experience/create-materialized-uat-candidate.js seal \
+            --root "$bundle" \
+            --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY \
+            --candidate-branch "$CANDIDATE_BRANCH" \
+            --candidate-commit "$CANDIDATE_SHA" \
+            --candidate-tree '${{ steps.identity.outputs.tree }}'
+          node tools/product-experience/create-materialized-uat-candidate.js verify \
+            --root "$bundle" \
+            --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY \
+            --candidate-branch "$CANDIDATE_BRANCH" \
+            --candidate-commit "$CANDIDATE_SHA" \
+            --candidate-tree '${{ steps.identity.outputs.tree }}'
+          rm -rf services/matrix/.runtime
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Upload materialized Matrix UAT
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Product-Experience-Materialized-Matrix-UAT-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/product-experience-materialized-matrix-uat/**
+          if-no-files-found: error
+          retention-days: 7

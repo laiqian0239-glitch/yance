@@ -1,0 +1,33 @@
+services:
+  synapse:
+    build:
+      context: ./.runtime/synapse
+    command: ["run"]
+    volumes:
+      - ../../config/matrix/synapse/homeserver.yaml:/data/homeserver.yaml:ro
+      - synapse-data:/data
+    ports:
+      - "127.0.0.1:8008:8008"
+
+  element:
+    build:
+      context: ./.runtime/element-web
+    volumes:
+      - ../../config/matrix/element-config.json:/app/config.json:ro
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - synapse
+
+  mautrix-whatsapp:
+    build:
+      context: ./.runtime/mautrix-whatsapp
+    volumes:
+      - ../../config/matrix/mautrix-whatsapp/config.yaml:/data/config.yaml:ro
+      - mautrix-whatsapp-data:/data
+    depends_on:
+      - synapse
+
+volumes:
+  synapse-data:
+  mautrix-whatsapp-data:

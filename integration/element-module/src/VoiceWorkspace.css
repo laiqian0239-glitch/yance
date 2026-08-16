@@ -1,0 +1,67 @@
+.yance-voice-workspace {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 16px;
+}
+.yance-voice-workspace > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.yance-voice-workspace header p,
+.yance-voice-workspace fieldset p {
+  margin: 4px 0 0;
+  opacity: .72;
+}
+.yance-voice-workspace output[data-degraded="true"] {
+  font-weight: 600;
+}
+.yance-voice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.yance-voice-workspace fieldset {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 12px;
+  padding: 14px;
+}
+.yance-voice-workspace label {
+  display: grid;
+  gap: 6px;
+}
+.yance-voice-workspace input,
+.yance-voice-workspace select,
+.yance-voice-workspace textarea,
+.yance-voice-workspace button {
+  font: inherit;
+}
+.yance-voice-workspace textarea {
+  resize: vertical;
+}
+.yance-voice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.yance-voice-workspace dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 10px;
+  margin: 0;
+}
+.yance-voice-workspace dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.yance-voice-workspace audio {
+  width: 100%;
+  margin-top: 8px;
+}

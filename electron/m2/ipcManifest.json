@@ -2803,6 +2803,1724 @@
       "currentObservation": "Renderer-scoped cancellation aborts only the matching long-running reply fetch.",
       "m2RequiredAction": "Keep request IDs scoped to event.sender and remove controller state on settle/dispose.",
       "crossModuleDependency": "Backend HTTP disconnect propagates AbortSignal through Brain, Runtime, and Provider."
+    },
+    {
+      "channel": "desktop:letta-get-state",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ready": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "ready",
+          "reasonCode"
+        ]
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LETTA_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2807
+      },
+      "rendererExposure": {
+        "api": "getLettaState",
+        "file": "electron/preload.js",
+        "line": 71
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "Read-only, data-minimized Letta readiness projection; process, socket, filesystem and raw diagnostic fields stay main-process-only.",
+      "m2RequiredAction": "Keep Letta renderer access read-only and bound to the main-process-owned runtime adapter.",
+      "crossModuleDependency": "Letta App Server process ownership remains in Electron main; renderer receives projections only."
+    },
+    {
+      "channel": "desktop:letta-list-agents",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "id",
+            "name"
+          ]
+        }
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LETTA_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2808
+      },
+      "rendererExposure": {
+        "api": "listLettaAgents",
+        "file": "electron/preload.js",
+        "line": 72
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "Read-only Letta agent identity projection limited to id and name.",
+      "m2RequiredAction": "Keep Letta renderer access read-only and bound to the main-process-owned runtime adapter.",
+      "crossModuleDependency": "Letta App Server process ownership remains in Electron main; renderer receives projections only."
+    },
+    {
+      "channel": "desktop:letta-list-conversations",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "agentId"
+        ]
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "agentId": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "id",
+            "agentId"
+          ]
+        }
+      },
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LETTA_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2812
+      },
+      "rendererExposure": {
+        "api": "listLettaConversations",
+        "file": "electron/preload.js",
+        "line": 73
+      },
+      "risk": "P1",
+      "m2Scope": true,
+      "currentObservation": "Read-only Letta conversation identity projection limited to id and agentId for one validated agent.",
+      "m2RequiredAction": "Keep Letta renderer access read-only and bound to the main-process-owned runtime adapter.",
+      "crossModuleDependency": "Letta App Server process ownership remains in Electron main; renderer receives projections only."
+    },
+    {
+      "channel": "desktop:parlant-get-relationship-goal",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PARLANT_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep relationship Goal operations contact-scoped; keep provider credentials, raw Parlant agent/session identifiers, event ingestion, candidate generation and all send authority out of renderer IPC.",
+      "crossModuleDependency": "Parlant owns Journey/session state; Yance main projects Goal controls and commits candidate text through the existing AI reply candidate authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "contactId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "goalText": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "progress": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "completed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path",
+              "completed"
+            ]
+          },
+          "reasonCode": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "available",
+          "exists",
+          "goalText",
+          "paused",
+          "progress",
+          "reasonCode"
+        ]
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2982
+      },
+      "rendererExposure": {
+        "api": "getParlantRelationshipGoal",
+        "file": "electron/preload.js",
+        "line": 74
+      },
+      "currentObservation": "Read-only minimized Goal projection. Runtime/provider failures are returned explicitly as available=false; no credential or raw Parlant identity is exposed."
+    },
+    {
+      "channel": "desktop:parlant-upsert-relationship-goal",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PARLANT_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep relationship Goal operations contact-scoped; keep provider credentials, raw Parlant agent/session identifiers, event ingestion, candidate generation and all send authority out of renderer IPC.",
+      "crossModuleDependency": "Parlant owns Journey/session state; Yance main projects Goal controls and commits candidate text through the existing AI reply candidate authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "goalText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          }
+        },
+        "required": [
+          "contactId",
+          "goalText"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "goalText": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "progress": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "completed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path",
+              "completed"
+            ]
+          },
+          "reasonCode": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "available",
+          "exists",
+          "goalText",
+          "paused",
+          "progress",
+          "reasonCode"
+        ]
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2982
+      },
+      "rendererExposure": {
+        "api": "upsertParlantRelationshipGoal",
+        "file": "electron/preload.js",
+        "line": 74
+      },
+      "currentObservation": "Creates or edits only the contact-scoped Parlant Journey; Yance does not persist a second Goal graph."
+    },
+    {
+      "channel": "desktop:parlant-delete-relationship-goal",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PARLANT_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep relationship Goal operations contact-scoped; keep provider credentials, raw Parlant agent/session identifiers, event ingestion, candidate generation and all send authority out of renderer IPC.",
+      "crossModuleDependency": "Parlant owns Journey/session state; Yance main projects Goal controls and commits candidate text through the existing AI reply candidate authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "contactId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ]
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2982
+      },
+      "rendererExposure": {
+        "api": "deleteParlantRelationshipGoal",
+        "file": "electron/preload.js",
+        "line": 74
+      },
+      "currentObservation": "Deletes the contact-scoped Parlant Journey through main-owned runtime authority."
+    },
+    {
+      "channel": "desktop:parlant-set-relationship-goal-paused",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PARLANT_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep relationship Goal operations contact-scoped; keep provider credentials, raw Parlant agent/session identifiers, event ingestion, candidate generation and all send authority out of renderer IPC.",
+      "crossModuleDependency": "Parlant owns Journey/session state; Yance main projects Goal controls and commits candidate text through the existing AI reply candidate authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "paused": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "contactId",
+          "paused"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "goalText": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "progress": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              },
+              "completed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path",
+              "completed"
+            ]
+          },
+          "reasonCode": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "available",
+          "exists",
+          "goalText",
+          "paused",
+          "progress",
+          "reasonCode"
+        ]
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 2982
+      },
+      "rendererExposure": {
+        "api": "setParlantRelationshipGoalPaused",
+        "file": "electron/preload.js",
+        "line": 74
+      },
+      "currentObservation": "Pause/resume maps to native Parlant Session manual/auto mode; renderer receives only minimized status/progress."
+    },
+    {
+      "channel": "desktop:voice-brain-health",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "getVoiceBrainHealth",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Read-only local SenseVoice/CosyVoice readiness projection; no process command, filesystem path, or raw profile sample is exposed."
+    },
+    {
+      "channel": "desktop:voice-brain-transcribe",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "language"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "translateToChinese": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "transcribeVoiceAudio",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Main owns the audio file picker; renderer cannot submit a filesystem path. Transcription delegates only to SenseVoice."
+    },
+    {
+      "channel": "desktop:voice-brain-enroll-profile",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "promptText"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "language": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "promptText": {
+            "type": "string",
+            "maxLength": 20000
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "enrollVoiceProfile",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Main owns the audio file picker; selected voice sample remains local/private and renderer receives only minimized profile metadata."
+    },
+    {
+      "channel": "desktop:voice-brain-delete-profile",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "voiceProfileId"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "voiceProfileId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "voiceProfileId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "deleteVoiceProfile",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Deletes only a validated local Voice profile through the main-owned Voice runtime."
+    },
+    {
+      "channel": "desktop:voice-brain-generate-speech",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "voiceProfileId",
+        "text"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "voiceProfileId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000
+          },
+          "language": {
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "voiceProfileId",
+          "text"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "generateVoiceSpeech",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Generates cloned speech only through the sealed CosyVoice runtime and returns a frozen minimized VoiceOutput plus bounded preview data."
+    },
+    {
+      "channel": "desktop:voice-brain-send-artifact",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "accountId",
+        "chatJid",
+        "sessionKey",
+        "audioArtifact",
+        "filename",
+        "caption"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; final send remains owned by the existing Yance media send authority.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "whatsapp",
+              "telegram",
+              "facebook"
+            ]
+          },
+          "accountId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "chatJid": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "sessionKey": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "audioArtifact": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "caption": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "platform",
+          "accountId",
+          "chatJid",
+          "audioArtifact"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "sendVoiceArtifact",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Accepts only a generated Voice artifact inside the main-owned Voice generated root and streams it to existing send-media-stream with kind=audio; no Voice outbox or send queue."
+    },
+    {
+      "channel": "desktop:media-brain-save-settings",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "immichApiKey"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media settings merge is main-process-owned so the existing CredentialVault remains the only secret authority and renderer never reads stored secrets.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "immichEndpoint": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "immichApiKey": {
+            "type": "string",
+            "maxLength": 8192
+          },
+          "clearImmichApiKey": {
+            "type": "boolean"
+          },
+          "immichAllowExternalEndpoint": {
+            "type": "boolean"
+          },
+          "comfyuiEndpoint": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "comfyuiAllowExternalEndpoint": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3292
+      },
+      "rendererExposure": {
+        "api": "saveMediaBrainSettings",
+        "file": "electron/preload.js",
+        "line": 79
+      },
+      "currentObservation": "Main merges Media endpoint settings with existing CredentialVault custody, preserves the Immich API key unless replacement or explicit clear is requested, and returns no secret material."
+    },
+    {
+      "channel": "desktop:presence-avatar-health",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PRESENCE_AVATAR_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep CyberVerse as Character/avatar/session/audio-ingress authority, LiveKit as realtime transport authority, and Electron main as the CyberVerse endpoint/session lifecycle owner; never add renderer signing or custom realtime/avatar authority.",
+      "crossModuleDependency": "Presence is a thin main-process coordinator over the adopted CyberVerse service and official LiveKit client; Voice contributes only the implementation-independent AudioChunk contract.",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3333
+      },
+      "rendererExposure": {
+        "api": "getPresenceHealth",
+        "file": "electron/preload.js",
+        "line": 78
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "currentObservation": "Read-only CyberVerse readiness and sanitized native Character projection; no LiveKit signing material is exposed."
+    },
+    {
+      "channel": "desktop:presence-avatar-create-session",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PRESENCE_AVATAR_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "characterId",
+        "livekitToken"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep CyberVerse as Character/avatar/session/audio-ingress authority, LiveKit as realtime transport authority, and Electron main as the CyberVerse endpoint/session lifecycle owner; never add renderer signing or custom realtime/avatar authority.",
+      "crossModuleDependency": "Presence is a thin main-process coordinator over the adopted CyberVerse service and official LiveKit client; Voice contributes only the implementation-independent AudioChunk contract.",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3334
+      },
+      "rendererExposure": {
+        "api": "createPresenceSession",
+        "file": "electron/preload.js",
+        "line": 79
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "characterId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "characterId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "livekitUrl": {
+            "type": "string"
+          },
+          "livekitToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId",
+          "livekitUrl",
+          "livekitToken"
+        ]
+      },
+      "currentObservation": "Creates only a real CyberVerse Character session; CyberVerse remains the sole source of session id, LiveKit URL and participant token."
+    },
+    {
+      "channel": "desktop:presence-avatar-close-session",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PRESENCE_AVATAR_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "sessionId"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep CyberVerse as Character/avatar/session/audio-ingress authority, LiveKit as realtime transport authority, and Electron main as the CyberVerse endpoint/session lifecycle owner; never add renderer signing or custom realtime/avatar authority.",
+      "crossModuleDependency": "Presence is a thin main-process coordinator over the adopted CyberVerse service and official LiveKit client; Voice contributes only the implementation-independent AudioChunk contract.",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3335
+      },
+      "rendererExposure": {
+        "api": "closePresenceSession",
+        "file": "electron/preload.js",
+        "line": 80
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "sessionId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "closed": {
+            "type": "boolean"
+          },
+          "sessionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "closed",
+          "sessionId"
+        ]
+      },
+      "currentObservation": "Closes only a tracked CyberVerse Presence session through the main-owned service adapter."
+    },
+    {
+      "channel": "desktop:presence-avatar-push-voice-audio-chunk",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_PRESENCE_AVATAR_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "sessionId",
+        "replyId",
+        "data"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep CyberVerse as Character/avatar/session/audio-ingress authority, LiveKit as realtime transport authority, and Electron main as the CyberVerse endpoint/session lifecycle owner; never add renderer signing or custom realtime/avatar authority.",
+      "crossModuleDependency": "Presence is a thin main-process coordinator over the adopted CyberVerse service and official LiveKit client; Voice contributes only the implementation-independent AudioChunk contract.",
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3336
+      },
+      "rendererExposure": {
+        "api": "pushPresenceVoiceAudioChunk",
+        "file": "electron/preload.js",
+        "line": 81
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "replyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "data": {},
+          "sampleRate": {
+            "type": "integer",
+            "minimum": 8000,
+            "maximum": 192000
+          },
+          "channels": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "s16le",
+              "float32"
+            ]
+          },
+          "isFinal": {
+            "type": "boolean"
+          },
+          "timestampMs": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "sessionId",
+          "replyId",
+          "sequence",
+          "data",
+          "sampleRate",
+          "channels",
+          "format",
+          "isFinal",
+          "timestampMs"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "isFinal": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accepted",
+          "sessionId",
+          "sequence",
+          "isFinal"
+        ]
+      },
+      "currentObservation": "Forwards validated Voice-independent AudioChunk bytes/metadata to CyberVerse external-audio unchanged; no resampling, lip sync, WebRTC or Voice implementation authority is recreated in Yance."
+    },
+    {
+      "channel": "desktop:media-brain-health",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3291
+      },
+      "rendererExposure": {
+        "api": "getMediaBrainHealth",
+        "file": "electron/preload.js",
+        "line": 78
+      },
+      "currentObservation": "Read-only upstream health/model readiness projection."
+    },
+    {
+      "channel": "desktop:media-brain-import-asset",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "bytes",
+        "base64",
+        "filename"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {},
+          "base64": {
+            "type": "string",
+            "maxLength": 150000000
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "mimeType": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "createdAt": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "modifiedAt": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3293
+      },
+      "rendererExposure": {
+        "api": "importMediaAsset",
+        "file": "electron/preload.js",
+        "line": 80
+      },
+      "currentObservation": "Imports into the sole Immich asset authority."
+    },
+    {
+      "channel": "desktop:media-brain-search-assets",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "query",
+        "personIds",
+        "albumIds"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "size": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "personIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100
+          },
+          "albumIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3294
+      },
+      "rendererExposure": {
+        "api": "searchMediaAssets",
+        "file": "electron/preload.js",
+        "line": 81
+      },
+      "currentObservation": "Delegates semantic asset search to Immich."
+    },
+    {
+      "channel": "desktop:media-brain-list-people",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "withHidden": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3295
+      },
+      "rendererExposure": {
+        "api": "listMediaPeople",
+        "file": "electron/preload.js",
+        "line": 82
+      },
+      "currentObservation": "Delegates people listing to Immich."
+    },
+    {
+      "channel": "desktop:media-brain-list-albums",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "isShared": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3296
+      },
+      "rendererExposure": {
+        "api": "listMediaAlbums",
+        "file": "electron/preload.js",
+        "line": 83
+      },
+      "currentObservation": "Delegates album listing to Immich."
+    },
+    {
+      "channel": "desktop:media-brain-get-asset-preview",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "assetId"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "size": {
+            "type": "string",
+            "enum": [
+              "preview",
+              "thumbnail"
+            ]
+          }
+        },
+        "required": [
+          "assetId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3297
+      },
+      "rendererExposure": {
+        "api": "getMediaAssetPreview",
+        "file": "electron/preload.js",
+        "line": 84
+      },
+      "currentObservation": "Retrieves an Immich-backed preview."
+    },
+    {
+      "channel": "desktop:media-brain-queue-workflow",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "prompt",
+        "negativePrompt",
+        "assetId",
+        "filename",
+        "clientId"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "edit"
+            ]
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "negativePrompt": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "checkpoint": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "assetId": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "clientId": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "seed": {
+            "type": "integer"
+          },
+          "width": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "denoise": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "prompt"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3298
+      },
+      "rendererExposure": {
+        "api": "queueMediaWorkflow",
+        "file": "electron/preload.js",
+        "line": 85
+      },
+      "currentObservation": "Generate queues a reviewed ComfyUI template; Edit accepts only an Immich asset id and main transfers that original to ComfyUI before queueing."
+    },
+    {
+      "channel": "desktop:media-brain-get-workflow-result",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "promptId"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "promptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "promptId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3328
+      },
+      "rendererExposure": {
+        "api": "getMediaWorkflowResult",
+        "file": "electron/preload.js",
+        "line": 86
+      },
+      "currentObservation": "Reads ComfyUI output as non-selectable until save-back."
+    },
+    {
+      "channel": "desktop:media-brain-save-workflow-output",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "promptId",
+        "filename"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "promptId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "mimeType": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "required": [
+          "promptId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3329
+      },
+      "rendererExposure": {
+        "api": "saveMediaWorkflowOutput",
+        "file": "electron/preload.js",
+        "line": 87
+      },
+      "currentObservation": "Re-fetches ComfyUI output in main and imports it into Immich."
+    },
+    {
+      "channel": "desktop:media-brain-send-asset",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_MEDIA_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [
+        "accountId",
+        "chatJid",
+        "assetId",
+        "sessionKey",
+        "filename",
+        "caption"
+      ],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Immich as asset/search/people/albums authority, ComfyUI as image workflow authority, existing CredentialVault as secret authority, and existing Yance send-media-stream as final send authority.",
+      "crossModuleDependency": "Media Brain is a thin main-process coordinator over pinned external OSS authorities and existing Yance final-send custody.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "whatsapp",
+              "telegram",
+              "facebook"
+            ]
+          },
+          "accountId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "chatJid": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "assetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "sessionKey": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "caption": {
+            "type": "string",
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "platform",
+          "accountId",
+          "chatJid",
+          "assetId"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 3330
+      },
+      "rendererExposure": {
+        "api": "sendMediaAsset",
+        "file": "electron/preload.js",
+        "line": 88
+      },
+      "currentObservation": "Sends only an Immich asset through the existing Yance send-media-stream authority; main derives image/video kind from the Immich original MIME type."
     }
   ],
   "outboundRendererChannels": [
@@ -3056,7 +4774,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 40,
+    "rendererToMainHandlerCount": 69,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,

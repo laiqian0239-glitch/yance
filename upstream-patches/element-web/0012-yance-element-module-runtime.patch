@@ -1,0 +1,38 @@
+From a2a996ae50d802878bf48e4bbf3730004bdcc55c Mon Sep 17 00:00:00 2001
+Subject: [PATCH] element: deliver Yance module through official runtime path
+
+Replay target: pinned Element Web v1.12.25 after
+0001-yance-global-right-workspace.patch and after integration/element-module
+has been copied to modules/yance.
+
+Element remains the runtime module authority. This patch only builds the
+existing @yance/element-module in the pinned workspace and packages its
+manifest plus lib output under /modules/yance for Element's existing Docker
+entrypoint, nginx /modules alias, SdkConfig modules list, and ModuleLoader.
+---
+ apps/web/Dockerfile | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/apps/web/Dockerfile b/apps/web/Dockerfile
+index a40bbe8..16fdff8 100644
+--- a/apps/web/Dockerfile
++++ b/apps/web/Dockerfile
+@@ -24,6 +24,7 @@ RUN --mount=type=bind,source=.git,target=/src/.git /src/scripts/docker-link-repo
+ 
+ # Build
+ COPY --link --exclude=.git --exclude=apps/web/docker . /src
++RUN pnpm exec nx build yance-element-module
+ RUN --mount=type=bind,source=.git,target=/src/.git /src/scripts/docker-package.sh
+ 
+ # Copy the config now so that we don't create another layer in the app image
+@@ -39,6 +40,8 @@ USER root
+ RUN apk add jq moreutils
+ 
+ COPY --from=builder /src/apps/web/webapp /app
++COPY --from=builder /src/modules/yance/package.json /modules/yance/package.json
++COPY --from=builder /src/modules/yance/lib /modules/yance/lib
+ 
+ # Override default nginx config. Templates in `/etc/nginx/templates` are passed
+ # through `envsubst` by the nginx docker image entry point.
+-- 
+2.45.2

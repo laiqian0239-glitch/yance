@@ -107,6 +107,12 @@ const { LegacyRuntimeCutoverGate } = require('./desktopHost/LegacyRuntimeCutover
 const { ApiV2RuntimeClient } = require('./desktopHost/ApiV2RuntimeClient');
 const { RuntimeProjectionCoordinator } = require('./desktopHost/RuntimeProjectionCoordinator');
 const { backendAuthority, stopOwnedBackend, completeElectronQuit, restartElectronApp } = require('./backendShutdownCoordinator');
+const { createLettaAgentRuntime } = require('./lettaAgentRuntime');
+const { createParlantRelationshipRuntime, createRelationshipTaskSequencer } = require('./parlantRelationshipRuntime');
+const { createGraphitiRelationshipRuntime, createNeo4jPassword } = require('./graphitiRelationshipRuntime');
+const { createMediaBrainRuntime, mergeImmichConfiguration, mergeComfyuiConfiguration } = require('./mediaBrainRuntime');
+const { createPresenceAvatarRuntime } = require('./presenceAvatarRuntime');
+const { createVoiceBrainRuntime } = require('./voiceBrainRuntime');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
 const { runInstalledRuntimeProbeApplicationEntry } = require('./wp7InstalledRuntimeProbeApplicationEntry');
@@ -181,7 +187,7 @@ function m2Guard(channel, fn) {
 function assertPrivilegedIpcEvent(event, channel) {
   if (!mainWindow || !isTrustedMainFrameIpcEvent(event, {
     webContents: mainWindow.webContents,
-    allowedOrigins: [LOCAL_FRONTEND_URL]
+    allowedOrigins: [YANCE_ELEMENT_URL]
   })) {
     const error = new Error(`Rejected privileged IPC from an untrusted frame: ${channel}`);
     error.reasonCode = 'DESKTOP_IPC_UNTRUSTED_FRAME';
@@ -316,7 +322,9 @@ function governRuntimeNativeBinariesBootCheck() {
   }
 }
 
-const LOCAL_FRONTEND_URL = `http://127.0.0.1:${Number(process.env.YANCE_PORT || 27632)}`;
+const YANCE_BACKEND_URL = `http://127.0.0.1:${Number(process.env.YANCE_PORT || 27632)}`;
+const YANCE_ELEMENT_URL = String(process.env.YANCE_ELEMENT_URL || 'http://127.0.0.1:8080').replace(/\/+$/u, '');
+const YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `${YANCE_ELEMENT_URL}/config.json`);
 const WP7_APPLICATION_PROCESS_STARTED_AT_UTC = new Date().toISOString();
 const WP7_NETWORK_OBSERVED_AT_UTC = new Date().toISOString();
 let WP7_NETWORK_ONLINE_AT_PROCESS_START = true;
@@ -399,10 +407,10 @@ function parseDesktopLaunchIntent(argv = process.argv) {
 
 const INITIAL_DESKTOP_LAUNCH_INTENT = parseDesktopLaunchIntent(process.argv);
 
-installR32LocalApiHeader({ app, session, baseURL: LOCAL_FRONTEND_URL, tokenProvider: () => currentApiSessionToken({ required: false }) });
+installR32LocalApiHeader({ app, session, baseURL: YANCE_BACKEND_URL, tokenProvider: () => currentApiSessionToken({ required: false }) });
 installR32WindowSecurity({
   app,
-  allowedNavigationOrigins: [LOCAL_FRONTEND_URL],
+  allowedNavigationOrigins: [YANCE_ELEMENT_URL],
   allowedWebviewOrigins: ['https://web.whatsapp.com', 'https://web.telegram.org', 'https://www.facebook.com', 'https://business.facebook.com'],
   allowedExternalOrigins: ['https://web.whatsapp.com', 'https://web.telegram.org', 'https://www.facebook.com', 'https://business.facebook.com'],
   allowedWebviewPreloadPaths: [path.join(__dirname, 'webview-preload.js')],
@@ -448,7 +456,7 @@ function normalizeSoundKind(pattern) {
 let soundSettingsSyncTimer = null;
 async function refreshNotificationSettings() {
   try {
-    const res = await fetch(`${LOCAL_FRONTEND_URL}/api/r32/system/notifications`);
+    const res = await fetch(`${YANCE_BACKEND_URL}/api/r32/system/notifications`);
     if (!res.ok) return;
     const data = await res.json();
     const settings = data && data.settings ? data.settings : null;
@@ -470,6 +478,600 @@ let desktopHost = null;
 let desktopCredentialApplicationCoordinator = null;
 let runtimeApiV2Client = null;
 let runtimeProjectionCoordinator = null;
+let lettaAgentRuntime = null;
+let parlantRelationshipRuntime = null;
+let graphitiRelationshipRuntime = null;
+let mediaBrainRuntime = null;
+let presenceAvatarRuntime = null;
+let voiceBrainRuntime = null;
+const parlantInboundSequencer = createRelationshipTaskSequencer();
+
+function ensureLettaAgentRuntime() {
+  if (!lettaAgentRuntime) {
+    lettaAgentRuntime = createLettaAgentRuntime({
+      nodeExecutablePath: resolveTrustedNodeRuntime(),
+      dataRoot: DATA_ROOT
+    });
+  }
+  return lettaAgentRuntime;
+}
+
+function projectLettaRendererState(state = {}) {
+  return Object.freeze({
+    ready: state.ready === true,
+    reasonCode: String(state.lastError?.reasonCode || '')
+  });
+}
+
+const PARLANT_OPENROUTER_CREDENTIAL_REF = 'model:openrouter:default';
+const GRAPHITI_OPENROUTER_CREDENTIAL_REF = PARLANT_OPENROUTER_CREDENTIAL_REF;
+const GRAPHITI_NEO4J_CREDENTIAL_REF = 'runtime:graphiti:neo4j';
+const GRAPHITI_NEO4J_CREDENTIAL_PROVISION = 'GRAPHITI_NEO4J_CREDENTIAL_PROVISION';
+
+function readGraphitiOpenRouterApiKey() {
+  const credential = vault?.get?.(GRAPHITI_OPENROUTER_CREDENTIAL_REF) || null;
+  const apiKey = String(credential?.apiKey || '').trim();
+  if (!apiKey) {
+    const error = new Error('OpenRouter credential is not configured for Graphiti relationship memory.');
+    error.reasonCode = 'DESKTOP_GRAPHITI_OPENROUTER_CREDENTIAL_MISSING';
+    throw error;
+  }
+  return apiKey;
+}
+
+function readGraphitiNeo4jPassword() {
+  const credential = vault?.get?.(GRAPHITI_NEO4J_CREDENTIAL_REF) || null;
+  const password = String(credential?.password || '').trim();
+  if (!/^[A-Za-z0-9_-]{43}$/u.test(password)) {
+    const error = new Error('Graphiti Neo4j runtime credential is missing or invalid.');
+    error.reasonCode = 'DESKTOP_GRAPHITI_NEO4J_CREDENTIAL_MISSING';
+    throw error;
+  }
+  return password;
+}
+
+async function ensureGraphitiNeo4jCredentialProvisioned(applicationLeaseToken) {
+  const existing = vault?.get?.(GRAPHITI_NEO4J_CREDENTIAL_REF) || null;
+  if (existing) {
+    const password = String(existing.password || '').trim();
+    if (!/^[A-Za-z0-9_-]{43}$/u.test(password)) {
+      const error = new Error('Persisted Graphiti Neo4j credential is malformed.');
+      error.reasonCode = 'DESKTOP_GRAPHITI_NEO4J_CREDENTIAL_INVALID';
+      throw error;
+    }
+    return { created: false, ref: GRAPHITI_NEO4J_CREDENTIAL_REF };
+  }
+  if (!vault?.available) {
+    const error = new Error('Operating-system secure credential storage is unavailable for Graphiti Neo4j.');
+    error.reasonCode = 'DESKTOP_GRAPHITI_SECURE_STORAGE_UNAVAILABLE';
+    throw error;
+  }
+  if (!desktopHost?.credentialVaultHost || !applicationLeaseToken) {
+    const error = new Error('Graphiti Neo4j credential provisioning requires the existing credential authority lease.');
+    error.reasonCode = 'DESKTOP_GRAPHITI_CREDENTIAL_AUTHORITY_UNAVAILABLE';
+    throw error;
+  }
+  const mutation = await desktopHost.credentialVaultHost.executeDesktopMutation('persist', GRAPHITI_NEO4J_CREDENTIAL_REF, {
+    password: createNeo4jPassword()
+  }, {
+    requestId: `${GRAPHITI_NEO4J_CREDENTIAL_PROVISION.toLowerCase()}:${randomUUID()}`,
+    applicationLeaseToken
+  });
+  if (mutation?.transactionState !== 'COMMITTED' || mutation?.persisted !== true) {
+    const error = new Error('Graphiti Neo4j credential did not reach a durable committed state.');
+    error.reasonCode = mutation?.reasonCode || 'DESKTOP_GRAPHITI_CREDENTIAL_PERSIST_FAILED';
+    throw error;
+  }
+  return { created: true, ref: GRAPHITI_NEO4J_CREDENTIAL_REF };
+}
+
+function ensureGraphitiRelationshipRuntime() {
+  if (!graphitiRelationshipRuntime) {
+    graphitiRelationshipRuntime = createGraphitiRelationshipRuntime({
+      resourcesPath: controlledResourcesPath(),
+      dataRoot: DATA_ROOT,
+      getOpenRouterApiKey: () => readGraphitiOpenRouterApiKey(),
+      getNeo4jPassword: () => readGraphitiNeo4jPassword()
+    });
+  }
+  return graphitiRelationshipRuntime;
+}
+
+const MEDIA_IMMICH_CREDENTIAL_REF = 'media:immich:default';
+const MEDIA_COMFYUI_CREDENTIAL_REF = 'media:comfyui:default';
+
+function readMediaConfiguration(ref, fallbackEndpoint) {
+  const credential = vault?.get?.(ref) || {};
+  return Object.freeze({
+    endpoint: String(credential.endpoint || fallbackEndpoint || '').trim(),
+    apiKey: String(credential.apiKey || '').trim(),
+    allowExternalEndpoint: credential.allowExternalEndpoint === true
+  });
+}
+
+function ensureMediaBrainRuntime() {
+  if (!mediaBrainRuntime) {
+    mediaBrainRuntime = createMediaBrainRuntime({
+      workflowDirectory: path.join(APP_ROOT, 'config', 'comfyui-workflows'),
+      getImmichConfiguration: () => readMediaConfiguration(MEDIA_IMMICH_CREDENTIAL_REF, 'http://127.0.0.1:2283'),
+      getComfyuiConfiguration: () => readMediaConfiguration(MEDIA_COMFYUI_CREDENTIAL_REF, 'http://127.0.0.1:8188')
+    });
+  }
+  return mediaBrainRuntime;
+}
+
+function ensurePresenceAvatarRuntime() {
+  if (!presenceAvatarRuntime) presenceAvatarRuntime = createPresenceAvatarRuntime();
+  return presenceAvatarRuntime;
+}
+
+function voiceRuntimeRoot() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'runtime', 'voice-brain')
+    : path.join(APP_ROOT, 'runtime', 'voice-brain');
+}
+
+function ensureVoiceBrainRuntime() {
+  if (!voiceBrainRuntime) {
+    voiceBrainRuntime = createVoiceBrainRuntime({
+      dataRoot: DATA_ROOT,
+      appRoot: packagedAppRoot(),
+      runtimeRoot: voiceRuntimeRoot()
+    });
+  }
+  return voiceBrainRuntime;
+}
+
+function voiceGeneratedRoot() {
+  return path.resolve(DATA_ROOT, 'voice-brain', 'generated');
+}
+
+function assertVoiceGeneratedArtifact(value) {
+  const artifact = path.resolve(String(value || '').trim());
+  const root = voiceGeneratedRoot();
+  let realRoot;
+  let realArtifact;
+  try {
+    realRoot = fs.realpathSync.native(root);
+    realArtifact = fs.realpathSync.native(artifact);
+  } catch (_) {
+    throw Object.assign(new Error('Voice artifact is unavailable.'), { reasonCode: 'DESKTOP_VOICE_ARTIFACT_INVALID' });
+  }
+  const relative = path.relative(realRoot, realArtifact);
+  if (!relative || relative.startsWith(`..${path.sep}`) || relative === '..' || path.isAbsolute(relative)) {
+    throw Object.assign(new Error('Voice artifact is outside the local generated-audio root.'), { reasonCode: 'DESKTOP_VOICE_ARTIFACT_OUTSIDE_ROOT' });
+  }
+  const stat = fs.lstatSync(realArtifact);
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw Object.assign(new Error('Voice artifact is not a regular local file.'), { reasonCode: 'DESKTOP_VOICE_ARTIFACT_INVALID' });
+  }
+  if (stat.size < 1 || stat.size > 64 * 1024 * 1024) {
+    throw Object.assign(new Error('Voice artifact size is invalid.'), { reasonCode: 'DESKTOP_VOICE_ARTIFACT_SIZE_INVALID' });
+  }
+  return Object.freeze({ artifact: realArtifact, stat });
+}
+
+function projectVoiceRendererOutput(output = {}) {
+  const verified = assertVoiceGeneratedArtifact(output.audioArtifact);
+  const bytes = fs.readFileSync(verified.artifact);
+  return Object.freeze({
+    ...output,
+    previewDataUrl: `data:${String(output.mimeType || 'audio/wav')};base64,${bytes.toString('base64')}`
+  });
+}
+
+function normalizeVoiceSendInput(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Voice send input must be an object.'), { reasonCode: 'DESKTOP_VOICE_SEND_INPUT_INVALID' });
+  }
+  const platform = String(input.platform || '').trim().toLowerCase();
+  const accountId = String(input.accountId || '').trim();
+  const chatJid = String(input.chatJid || '').trim();
+  if (!['whatsapp', 'telegram', 'facebook'].includes(platform)) {
+    throw Object.assign(new Error('Voice send platform is invalid.'), { reasonCode: 'DESKTOP_VOICE_SEND_PLATFORM_INVALID' });
+  }
+  if (!accountId || accountId.length > 512 || !chatJid || chatJid.length > 1024) {
+    throw Object.assign(new Error('Voice send target is invalid.'), { reasonCode: 'DESKTOP_VOICE_SEND_INPUT_INVALID' });
+  }
+  const verified = assertVoiceGeneratedArtifact(input.audioArtifact);
+  return Object.freeze({
+    platform,
+    accountId,
+    chatJid,
+    sessionKey: String(input.sessionKey || '').trim().slice(0, 1024),
+    caption: String(input.caption || '').slice(0, 10000),
+    filename: path.basename(String(input.filename || path.basename(verified.artifact) || 'yance-voice.wav')).slice(0, 240),
+    artifact: verified.artifact,
+    bytes: verified.stat.size
+  });
+}
+
+async function sendVoiceArtifactThroughExistingAuthority(input = {}) {
+  const target = normalizeVoiceSendInput(input);
+  const encodeHeader = value => encodeURIComponent(String(value || ''));
+  const response = await fetch(`${YANCE_BACKEND_URL}/api/r32/messages/${encodeURIComponent(target.platform)}/${encodeURIComponent(target.accountId)}/send-media-stream`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${currentApiSessionToken()}`,
+      Origin: YANCE_BACKEND_URL,
+      'content-type': 'audio/wav',
+      'content-length': String(target.bytes),
+      'x-yance-chat-jid': encodeHeader(target.chatJid),
+      'x-yance-session-key': encodeHeader(target.sessionKey),
+      'x-yance-media-kind': encodeHeader('audio'),
+      'x-yance-mime-type': encodeHeader('audio/wav'),
+      'x-yance-filename': encodeHeader(target.filename),
+      'x-yance-caption': encodeHeader(target.caption)
+    },
+    body: fs.createReadStream(target.artifact),
+    duplex: 'half',
+    signal: AbortSignal.timeout(120000)
+  });
+  const text = await response.text();
+  let payload = {};
+  try { payload = text ? JSON.parse(text) : {}; } catch (_) {}
+  if (!response.ok) {
+    const error = new Error(String(payload?.error?.message || payload?.message || `Existing Yance media send authority returned HTTP ${response.status}.`));
+    error.reasonCode = String(payload?.error?.code || payload?.code || `VOICE_SEND_HTTP_${response.status}`);
+    throw error;
+  }
+  return payload;
+}
+
+async function selectVoiceInputFile(title) {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    title,
+    filters: [{ name: 'Audio', extensions: ['wav', 'mp3', 'm4a', 'aac', 'ogg', 'opus', 'flac', 'webm'] }]
+  });
+  return result.canceled ? '' : String(result.filePaths?.[0] || '');
+}
+
+function mediaConfigurationChanged(current, next) {
+  return String(current?.endpoint || '') !== String(next?.endpoint || '')
+    || String(current?.apiKey || '') !== String(next?.apiKey || '')
+    || (current?.allowExternalEndpoint === true) !== (next?.allowExternalEndpoint === true);
+}
+
+async function saveMediaBrainSettings(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Media settings input must be an object.'), { reasonCode: 'DESKTOP_MEDIA_SETTINGS_INPUT_INVALID' });
+  }
+  const currentImmich = readMediaConfiguration(MEDIA_IMMICH_CREDENTIAL_REF, 'http://127.0.0.1:2283');
+  const currentComfyui = readMediaConfiguration(MEDIA_COMFYUI_CREDENTIAL_REF, 'http://127.0.0.1:8188');
+  const nextImmich = mergeImmichConfiguration(currentImmich, {
+    endpoint: input.immichEndpoint,
+    apiKey: input.immichApiKey,
+    clearApiKey: input.clearImmichApiKey === true,
+    allowExternalEndpoint: input.immichAllowExternalEndpoint === undefined ? undefined : input.immichAllowExternalEndpoint === true
+  });
+  const nextComfyui = mergeComfyuiConfiguration(currentComfyui, {
+    endpoint: input.comfyuiEndpoint,
+    allowExternalEndpoint: input.comfyuiAllowExternalEndpoint === undefined ? undefined : input.comfyuiAllowExternalEndpoint === true
+  });
+  const requestBase = `media-settings:${randomUUID()}`;
+  let immichUpdated = false;
+  let comfyuiUpdated = false;
+  if (mediaConfigurationChanged(currentImmich, nextImmich)) {
+    await applyVaultMutationWithRestart('persist', MEDIA_IMMICH_CREDENTIAL_REF, nextImmich, { requestId: `${requestBase}:immich` });
+    immichUpdated = true;
+  }
+  if (mediaConfigurationChanged(currentComfyui, nextComfyui)) {
+    await applyVaultMutationWithRestart('persist', MEDIA_COMFYUI_CREDENTIAL_REF, nextComfyui, { requestId: `${requestBase}:comfyui` });
+    comfyuiUpdated = true;
+  }
+  return Object.freeze({
+    ok: true,
+    immich: Object.freeze({ endpoint: nextImmich.endpoint, allowExternalEndpoint: nextImmich.allowExternalEndpoint, hasApiKey: Boolean(nextImmich.apiKey), updated: immichUpdated }),
+    comfyui: Object.freeze({ endpoint: nextComfyui.endpoint, allowExternalEndpoint: nextComfyui.allowExternalEndpoint, updated: comfyuiUpdated })
+  });
+}
+
+function normalizeMediaSendInput(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Media send input must be an object.'), { reasonCode: 'DESKTOP_MEDIA_SEND_INPUT_INVALID' });
+  }
+  const platform = String(input.platform || '').trim().toLowerCase();
+  const accountId = String(input.accountId || '').trim();
+  const chatJid = String(input.chatJid || '').trim();
+  const assetId = String(input.assetId || '').trim();
+  if (!['whatsapp', 'telegram', 'facebook'].includes(platform)) throw Object.assign(new Error('Media send platform is invalid.'), { reasonCode: 'DESKTOP_MEDIA_SEND_PLATFORM_INVALID' });
+  if (!accountId || accountId.length > 512 || !chatJid || chatJid.length > 1024 || !assetId || assetId.length > 512) throw Object.assign(new Error('Media send target or asset is invalid.'), { reasonCode: 'DESKTOP_MEDIA_SEND_INPUT_INVALID' });
+  return Object.freeze({
+    platform, accountId, chatJid, assetId,
+    sessionKey: String(input.sessionKey || '').trim().slice(0, 1024),
+    filename: path.basename(String(input.filename || 'yance-media')).slice(0, 240),
+    caption: String(input.caption || '').slice(0, 10000)
+  });
+}
+
+async function sendMediaAssetThroughExistingAuthority(input = {}) {
+  const target = normalizeMediaSendInput(input);
+  const original = await ensureMediaBrainRuntime().openAssetOriginalStream({ assetId: target.assetId });
+  const mimeType = String(original.mimeType || '').trim().toLowerCase();
+  const kind = mimeType.startsWith('image/') ? 'image' : mimeType.startsWith('video/') ? 'video' : '';
+  if (!kind) {
+    throw Object.assign(new Error('Immich original media type is unsupported by the Media workspace send contract.'), { reasonCode: 'DESKTOP_MEDIA_SEND_MIME_TYPE_UNSUPPORTED' });
+  }
+  const encodeHeader = value => encodeURIComponent(String(value || ''));
+  const response = await fetch(`${YANCE_BACKEND_URL}/api/r32/messages/${encodeURIComponent(target.platform)}/${encodeURIComponent(target.accountId)}/send-media-stream`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${currentApiSessionToken()}`,
+      Origin: YANCE_BACKEND_URL,
+      'content-type': original.mimeType || 'application/octet-stream',
+      'x-yance-chat-jid': encodeHeader(target.chatJid),
+      'x-yance-session-key': encodeHeader(target.sessionKey),
+      'x-yance-media-kind': encodeHeader(kind),
+      'x-yance-mime-type': encodeHeader(original.mimeType || 'application/octet-stream'),
+      'x-yance-filename': encodeHeader(target.filename),
+      'x-yance-caption': encodeHeader(target.caption)
+    },
+    body: original.body,
+    duplex: 'half',
+    signal: AbortSignal.timeout(120000)
+  });
+  const text = await response.text();
+  let payload = {};
+  try { payload = text ? JSON.parse(text) : {}; } catch (_) {}
+  if (!response.ok) {
+    const error = new Error(String(payload?.error?.message || payload?.message || `Existing Yance media send authority returned HTTP ${response.status}.`));
+    error.reasonCode = String(payload?.error?.code || payload?.code || `MEDIA_SEND_HTTP_${response.status}`);
+    throw error;
+  }
+  return payload;
+}
+
+function readParlantOpenRouterApiKey() {
+  const credential = vault?.get?.(PARLANT_OPENROUTER_CREDENTIAL_REF) || null;
+  const apiKey = String(credential?.apiKey || '').trim();
+  if (!apiKey) {
+    const error = new Error('OpenRouter credential is not configured for the relationship goal runtime.');
+    error.reasonCode = 'DESKTOP_PARLANT_OPENROUTER_CREDENTIAL_MISSING';
+    throw error;
+  }
+  return apiKey;
+}
+
+function ensureParlantRelationshipRuntime() {
+  if (!parlantRelationshipRuntime) {
+    parlantRelationshipRuntime = createParlantRelationshipRuntime({
+      resourcesPath: controlledResourcesPath(),
+      dataRoot: DATA_ROOT,
+      getOpenRouterApiKey: () => readParlantOpenRouterApiKey()
+    });
+  }
+  return parlantRelationshipRuntime;
+}
+
+function normalizeParlantGoalInput(input = {}, allowedKeys = []) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Parlant relationship goal input must be an object.'), { reasonCode: 'DESKTOP_PARLANT_INPUT_INVALID' });
+  }
+  const allowed = new Set(allowedKeys);
+  const unknownKeys = Object.keys(input).filter(key => !allowed.has(key));
+  if (unknownKeys.length) {
+    throw Object.assign(new Error('Parlant relationship goal input contains unsupported fields.'), { reasonCode: 'DESKTOP_PARLANT_INPUT_INVALID', details: { unknownKeys } });
+  }
+  const contactId = String(input.contactId || '').trim();
+  if (!contactId || contactId.length > 512) {
+    throw Object.assign(new Error('Parlant contactId must contain 1 to 512 characters.'), { reasonCode: 'DESKTOP_PARLANT_CONTACT_ID_INVALID' });
+  }
+  const normalized = { contactId };
+  if (allowed.has('goalText')) {
+    const goalText = String(input.goalText || '').trim();
+    if (!goalText || goalText.length > 4000) {
+      throw Object.assign(new Error('Relationship goal must contain 1 to 4000 characters.'), { reasonCode: 'DESKTOP_PARLANT_GOAL_INVALID' });
+    }
+    normalized.goalText = goalText;
+  }
+  if (allowed.has('paused')) normalized.paused = input.paused === true;
+  return Object.freeze(normalized);
+}
+
+function projectParlantRelationshipGoal(payload = {}) {
+  const pathProjection = Array.isArray(payload?.progress?.path)
+    ? payload.progress.path.map(value => String(value || '').slice(0, 256)).filter(Boolean).slice(-32)
+    : [];
+  return Object.freeze({
+    available: payload.available !== false,
+    exists: payload.exists === true ? true : payload.exists === false ? false : null,
+    goalText: String(payload.goalText || '').slice(0, 4000),
+    paused: payload.paused === true,
+    progress: Object.freeze({ path: Object.freeze(pathProjection), completed: payload?.progress?.completed === true }),
+    reasonCode: String(payload.reasonCode || '').slice(0, 128)
+  });
+}
+
+async function readParlantRelationshipGoalProjection(input = {}) {
+  const normalized = normalizeParlantGoalInput(input, ['contactId']);
+  try {
+    return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().readRelationshipGoal(normalized));
+  } catch (error) {
+    return projectParlantRelationshipGoal({
+      available: false,
+      exists: null,
+      reasonCode: error?.reasonCode || error?.code || 'DESKTOP_PARLANT_RUNTIME_UNAVAILABLE'
+    });
+  }
+}
+
+function projectLettaAgentIdentity(agent = {}) {
+  return Object.freeze({
+    id: String(agent?.id || '').trim().slice(0, 256),
+    name: String(agent?.name || '').trim().slice(0, 256)
+  });
+}
+
+function projectLettaConversationIdentity(conversation = {}, fallbackAgentId = '') {
+  return Object.freeze({
+    id: String(conversation?.id || '').trim().slice(0, 256),
+    agentId: String(conversation?.agentId || conversation?.agent_id || fallbackAgentId || '').trim().slice(0, 256)
+  });
+}
+
+function normalizeLettaConversationListInput(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw Object.assign(new Error('Letta conversation list input must be an object.'), { reasonCode: 'DESKTOP_LETTA_INPUT_INVALID' });
+  }
+  const unknownKeys = Object.keys(input).filter(key => !['agentId', 'limit'].includes(key));
+  if (unknownKeys.length) {
+    throw Object.assign(new Error('Letta conversation list input contains unsupported fields.'), { reasonCode: 'DESKTOP_LETTA_INPUT_INVALID', details: { unknownKeys } });
+  }
+  const agentId = String(input.agentId || '').trim();
+  if (!agentId || agentId.length > 256) {
+    throw Object.assign(new Error('Letta agentId must contain 1 to 256 characters.'), { reasonCode: 'DESKTOP_LETTA_AGENT_ID_INVALID' });
+  }
+  const limit = input.limit === undefined ? 50 : input.limit;
+  if (!Number.isInteger(limit) || limit < 1 || limit > 200) {
+    throw Object.assign(new Error('Letta conversation limit must be an integer from 1 to 200.'), { reasonCode: 'DESKTOP_LETTA_LIMIT_INVALID' });
+  }
+  return Object.freeze({ agentId, limit });
+}
+
+function lettaOwnershipPresent() {
+  const state = lettaAgentRuntime?.snapshot?.() || {};
+  return state.ready === true || Number(state.pid || 0) > 0;
+}
+
+async function stopLettaAgentRuntime() {
+  if (!lettaAgentRuntime) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
+  const before = lettaAgentRuntime.snapshot();
+  if (!before.ready && !before.pid) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
+  const stopped = await lettaAgentRuntime.stop();
+  const after = lettaAgentRuntime.snapshot();
+  if (after.ready || after.pid) {
+    const error = new Error('Letta runtime shutdown was not confirmed');
+    error.reasonCode = 'DESKTOP_LETTA_STOP_NOT_CONFIRMED';
+    error.details = { before, after, stopped };
+    throw error;
+  }
+  return { stopped: true, exitConfirmed: true, alreadyStopped: false, pid: Number(before.pid || 0), state: stopped };
+}
+
+function graphitiOwnershipPresent() {
+  const state = graphitiRelationshipRuntime?.snapshot?.() || {};
+  return state.ready === true || Number(state.graphitiPid || 0) > 0 || Number(state.neo4jPid || 0) > 0;
+}
+
+async function stopGraphitiRelationshipRuntime() {
+  if (!graphitiRelationshipRuntime) return { stopped: true, exitConfirmed: true, alreadyStopped: true, graphitiPid: 0, neo4jPid: 0 };
+  const before = graphitiRelationshipRuntime.snapshot();
+  if (!before.ready && !before.graphitiPid && !before.neo4jPid) return { stopped: true, exitConfirmed: true, alreadyStopped: true, graphitiPid: 0, neo4jPid: 0 };
+  const stopped = await graphitiRelationshipRuntime.stop();
+  const after = graphitiRelationshipRuntime.snapshot();
+  if (after.ready || after.graphitiPid || after.neo4jPid) {
+    const error = new Error('Graphiti relationship runtime shutdown was not confirmed');
+    error.reasonCode = 'DESKTOP_GRAPHITI_STOP_NOT_CONFIRMED';
+    error.details = { before, after, stopped };
+    throw error;
+  }
+  return { stopped: true, exitConfirmed: true, alreadyStopped: false, graphitiPid: Number(before.graphitiPid || 0), neo4jPid: Number(before.neo4jPid || 0), state: stopped };
+}
+
+function parlantOwnershipPresent() {
+  const state = parlantRelationshipRuntime?.snapshot?.() || {};
+  return state.ready === true || Number(state.pid || 0) > 0;
+}
+
+async function stopParlantRelationshipRuntime() {
+  if (!parlantRelationshipRuntime) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
+  const before = parlantRelationshipRuntime.snapshot();
+  if (!before.ready && !before.pid) return { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
+  const stopped = await parlantRelationshipRuntime.stop();
+  const after = parlantRelationshipRuntime.snapshot();
+  if (after.ready || after.pid) {
+    const error = new Error('Parlant relationship runtime shutdown was not confirmed');
+    error.reasonCode = 'DESKTOP_PARLANT_STOP_NOT_CONFIRMED';
+    error.details = { before, after, stopped };
+    throw error;
+  }
+  return { stopped: true, exitConfirmed: true, alreadyStopped: false, pid: Number(before.pid || 0), state: stopped };
+}
+
+function presenceAvatarOwnershipPresent() {
+  const state = presenceAvatarRuntime?.snapshot?.() || {};
+  return Number(state.activeSessionCount || 0) > 0;
+}
+
+async function stopPresenceAvatarRuntime() {
+  if (!presenceAvatarRuntime) return { stopped: true, sessionsClosed: true, alreadyStopped: true, activeSessionCount: 0 };
+  const before = presenceAvatarRuntime.snapshot();
+  if (Number(before.activeSessionCount || 0) < 1) return { stopped: true, sessionsClosed: true, alreadyStopped: true, activeSessionCount: 0 };
+  const closedSessions = await presenceAvatarRuntime.closeAllSessions();
+  const after = presenceAvatarRuntime.snapshot();
+  const failures = (Array.isArray(closedSessions) ? closedSessions : []).filter(result => result?.closed !== true);
+  if (failures.length || Number(after.activeSessionCount || 0) > 0) {
+    const error = new Error('Presence Avatar session shutdown was not confirmed');
+    error.reasonCode = 'DESKTOP_PRESENCE_AVATAR_STOP_NOT_CONFIRMED';
+    error.details = { before, after, failures };
+    throw error;
+  }
+  return {
+    stopped: true,
+    sessionsClosed: true,
+    alreadyStopped: false,
+    activeSessionCount: 0,
+    closedSessions
+  };
+}
+
+async function stopApplicationOwnedRuntimes(options = {}) {
+  let presenceStop = null;
+  let presenceError = null;
+  let lettaStop = null;
+  let lettaError = null;
+  let parlantStop = null;
+  let parlantError = null;
+  let graphitiStop = null;
+  let graphitiError = null;
+  let backendStop = null;
+  let backendError = null;
+  try { presenceStop = await stopPresenceAvatarRuntime(); } catch (error) { presenceError = error; }
+  try { lettaStop = await stopLettaAgentRuntime(); } catch (error) { lettaError = error; }
+  try { parlantStop = await stopParlantRelationshipRuntime(); } catch (error) { parlantError = error; }
+  try { graphitiStop = await stopGraphitiRelationshipRuntime(); } catch (error) { graphitiError = error; }
+  try { backendStop = await stopBackend({ forShutdown: true, reason: String(options.reason || 'application-shutdown') }); } catch (error) { backendError = error; }
+  if (presenceError || lettaError || parlantError || graphitiError || backendError) {
+    const error = new Error('Application-owned runtime shutdown was not fully confirmed');
+    error.reasonCode = presenceError?.reasonCode || lettaError?.reasonCode || parlantError?.reasonCode || graphitiError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
+    error.details = {
+      presence: presenceError ? { reasonCode: presenceError.reasonCode || '', message: presenceError.message } : presenceStop,
+      letta: lettaError ? { reasonCode: lettaError.reasonCode || '', message: lettaError.message } : lettaStop,
+      parlant: parlantError ? { reasonCode: parlantError.reasonCode || '', message: parlantError.message } : parlantStop,
+      graphiti: graphitiError ? { reasonCode: graphitiError.reasonCode || '', message: graphitiError.message } : graphitiStop,
+      backend: backendError ? { reasonCode: backendError.reasonCode || '', message: backendError.message } : backendStop
+    };
+    throw error;
+  }
+  return {
+    ...(backendStop || { stopped: true, exitConfirmed: true, alreadyStopped: true, backendPid: 0 }),
+    stopped: true,
+    exitConfirmed: true,
+    presence: presenceStop,
+    letta: lettaStop,
+    parlant: parlantStop,
+    graphiti: graphitiStop
+  };
+}
+
+function applicationRuntimeAuthoritySnapshot() {
+  const backend = authoritativeBackend().backend || {};
+  const letta = lettaAgentRuntime?.snapshot?.() || {};
+  const parlant = parlantRelationshipRuntime?.snapshot?.() || {};
+  const presence = presenceAvatarRuntime?.snapshot?.() || {};
+  const lettaOwned = letta.ready === true || Number(letta.pid || 0) > 0;
+  const parlantOwned = parlant.ready === true || Number(parlant.pid || 0) > 0;
+  const presenceOwned = Number(presence.activeSessionCount || 0) > 0;
+  return {
+    ...backend,
+    ownershipPresent: backend.ownershipPresent === true || lettaOwned || parlantOwned || presenceOwned,
+    backendPid: Number(backend.backendPid || 0),
+    letta,
+    parlant,
+    presence
+  };
+}
 
 function currentApiSessionToken(options = {}) {
   const token = desktopHost?.backendProcessHost?.getApiSessionToken?.() || '';
@@ -555,7 +1157,7 @@ function ensureWp7RendererStorageSession() {
   if (wp7ProbeRendererStorageSession) return wp7ProbeRendererStorageSession;
   wp7ProbeRendererStorageSession = createElectronRendererStorageSession({
     BrowserWindow,
-    baseUrl: LOCAL_FRONTEND_URL,
+    baseUrl: YANCE_BACKEND_URL,
     waitForReady: () => wp7ProbeBackendReadyDocument()
   });
   return wp7ProbeRendererStorageSession;
@@ -692,8 +1294,10 @@ async function completeWp7ProbeAndExit(exitCode = 0) {
   quitting = true;
   stopEventSocket();
   const receiptPath = path.join(String(process.env.WP7_PROBE_ROOT || DATA_ROOT), 'completion-receipt.json');
+  let lettaStop = { stopped: true, exitConfirmed: true, alreadyStopped: true, pid: 0 };
   let backendStop = { stopped: true, exitConfirmed: true, alreadyStopped: true, backendPid: 0 };
   try {
+    lettaStop = await stopLettaAgentRuntime();
     if (backendOwnershipPresent()) {
       const child = ownedBackendChild();
       const backendPid = Number(child?.pid || 0);
@@ -729,6 +1333,7 @@ async function completeWp7ProbeAndExit(exitCode = 0) {
       executionNonce: String(process.env.WP7_PROBE_EXECUTION_NONCE || ''),
       electronPid: process.pid,
       backendStop,
+      lettaStop,
       completedAtUtc: new Date().toISOString()
     }, null, 2)}\n`);
     exitAfterBackendShutdown = true;
@@ -828,7 +1433,7 @@ function desktopState() {
     backend: {
       ready: backendReady,
       pid: backendPid,
-      url: LOCAL_FRONTEND_URL,
+      url: YANCE_BACKEND_URL,
       eventStreamConnected: eventSocket?.readyState === WebSocket.OPEN,
       restarting: backendRestarting,
       readySource: backendReadySource,
@@ -899,7 +1504,7 @@ function localApiError(response, payload, endpoint) {
 
 async function apiRequest(endpoint, options = {}) {
   if (relaunchPending) { const error = new Error('Application relaunch is in progress'); error.reasonCode = 'DESKTOP_RELAUNCH_IN_PROGRESS'; throw error; }
-  const response = await fetch(`${LOCAL_FRONTEND_URL}${endpoint}`, {
+  const response = await fetch(`${YANCE_BACKEND_URL}${endpoint}`, {
     ...options,
     headers: {
       accept: 'application/json',
@@ -1188,9 +1793,9 @@ async function notificationIcon(payload = {}) {
         const separator = value.indexOf(',');
         buffer = Buffer.from(separator >= 0 ? value.slice(separator + 1) : '', value.slice(0, separator).includes(';base64') ? 'base64' : 'utf8');
       } else if (/^https?:\/\//i.test(value) || value.startsWith('/api/')) {
-        const url = value.startsWith('/api/') ? `${LOCAL_FRONTEND_URL}${value}` : value;
+        const url = value.startsWith('/api/') ? `${YANCE_BACKEND_URL}${value}` : value;
         const response = await fetch(url, {
-          headers: value.startsWith('/api/') ? { Authorization: `Bearer ${currentApiSessionToken()}`, Origin: LOCAL_FRONTEND_URL } : {},
+          headers: value.startsWith('/api/') ? { Authorization: `Bearer ${currentApiSessionToken()}`, Origin: YANCE_BACKEND_URL } : {},
           redirect: 'follow',
           signal: AbortSignal.timeout(10000)
         });
@@ -1236,7 +1841,7 @@ function notificationSoundPath(pattern = 'message-in') {
     return '';
   }
   const fileName = soundFileName(normalized, 'message-in');
-  const relative = path.join('frontend', 'assets', 'sounds', fileName);
+  const relative = path.join('electron', 'assets', 'sounds', fileName);
   const candidates = app.isPackaged
     ? [path.join(packagedAppRoot(), relative)]
     : [path.join(APP_ROOT, relative)];
@@ -1743,7 +2348,7 @@ function backendEnvironment(launch = {}) {
   if (explicitPlatformAuthHash || fs.existsSync(releasePlatformAuthHash)) {
     env.YANCE_PLATFORM_AUTH_CONFIG_SHA256_PATH = path.resolve(explicitPlatformAuthHash || releasePlatformAuthHash);
   }
-  env.YANCE_PORT = String(new URL(LOCAL_FRONTEND_URL).port);
+  env.YANCE_PORT = String(new URL(YANCE_BACKEND_URL).port);
   env.YANCE_AUTO_START_WHATSAPP = '0';
   for (const key of [
     'WP7_PROBE_ID',
@@ -1775,12 +2380,146 @@ function scheduleEventReconnect() {
   }, 1500);
 }
 
+function isParlantEligibleInboundMessage(message = {}) {
+  const direction = String(message.direction || '').trim().toLowerCase();
+  const speaker = String(message.speaker || message.role || '').trim().toLowerCase();
+  const contactId = String(message.contactId || '').trim();
+  const conversationId = String(message.conversationId || message.sessionKey || '').trim();
+  const text = String(message.text || message.transcript || message.translation || '').trim();
+  return Boolean(contactId && conversationId && text && direction === 'inbound' && ['peer', 'contact', 'customer'].includes(speaker));
+}
+
+async function processParlantInboundEvent(event = {}) {
+  const message = event?.payload?.message || {};
+  if (!isParlantEligibleInboundMessage(message)) return { handled: false, reasonCode: 'DESKTOP_PARLANT_EVENT_NOT_ELIGIBLE' };
+  const contactId = String(message.contactId || '').trim();
+  const conversationId = String(message.conversationId || message.sessionKey || '').trim();
+  try {
+    const runtime = ensureParlantRelationshipRuntime();
+    const goal = await runtime.readRelationshipGoal({ contactId });
+    if (goal?.exists !== true) return { handled: false, reasonCode: 'DESKTOP_PARLANT_GOAL_NOT_CONFIGURED' };
+    if (goal?.paused === true) return { handled: false, reasonCode: 'DESKTOP_PARLANT_GOAL_PAUSED' };
+    const inboundText = String(message.text || message.transcript || message.translation || '').trim();
+    const ingested = await runtime.ingestCustomerMessage({
+      contactId,
+      text: inboundText,
+      externalMessageId: String(message.externalMessageId || message.messageId || message.id || '').trim()
+    });
+    const processingTraceId = String(ingested?.traceId || '').trim();
+    if (!processingTraceId) throw Object.assign(new Error('Parlant ingest did not return a native processing trace.'), { reasonCode: 'DESKTOP_PARLANT_PROCESSING_TRACE_MISSING' });
+    const candidate = await runtime.requestReplyCandidate({
+      contactId,
+      afterOffset: Number(ingested?.nextOffset || 0),
+      processingTraceId: String(ingested?.traceId || '')
+    });
+    if (String(candidate?.traceId || '').trim() !== processingTraceId) {
+      throw Object.assign(new Error('Parlant candidate trace does not match the ingested native processing trace.'), { reasonCode: 'DESKTOP_PARLANT_CANDIDATE_TRACE_MISMATCH' });
+    }
+    const candidateText = String(candidate?.text || '').trim();
+    if (!candidateText) throw Object.assign(new Error('Parlant returned an empty relationship-goal candidate.'), { reasonCode: 'DESKTOP_PARLANT_CANDIDATE_EMPTY' });
+    const committed = await apiRequest('/api/r32/store/replies/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        contactId,
+        conversationId,
+        incomingMessage: {
+          id: String(message.externalMessageId || message.messageId || message.id || '').trim(),
+          text: inboundText,
+          type: String(message.type || message.messageType || 'text').trim(),
+          sentAt: String(message.sentAt || message.timestamp || '').trim()
+        },
+        contextMessageIds: [String(message.externalMessageId || message.messageId || message.id || '').trim()].filter(Boolean),
+        manualText: candidateText,
+        performanceMode: 'rapid',
+        source: 'parlant-journey'
+      })
+    });
+    sendToRenderer('desktop:event', {
+      type: 'parlant:relationship-goal-candidate-ready',
+      payload: { contactId, conversationId, candidateId: String(committed?.candidate?.candidateId || '') }
+    });
+    return { handled: true, candidateId: String(committed?.candidate?.candidateId || '') };
+  } catch (error) {
+    const reasonCode = String(error?.reasonCode || error?.code || 'DESKTOP_PARLANT_RUNTIME_UNAVAILABLE');
+    desktopLog('error', 'parlant-relationship-goal-degraded', { contactId, conversationId, reasonCode });
+    if (reasonCode !== 'DESKTOP_PARLANT_OPENROUTER_CREDENTIAL_MISSING') {
+      sendToRenderer('desktop:event', { type: 'parlant:relationship-goal-degraded', payload: { contactId, conversationId, reasonCode } });
+    }
+    return { handled: false, degraded: true, reasonCode };
+  }
+}
+
+function scheduleParlantInboundEvent(event = {}) {
+  const message = event?.payload?.message || {};
+  if (!isParlantEligibleInboundMessage(message)) return Promise.resolve({ handled: false, reasonCode: 'DESKTOP_PARLANT_EVENT_NOT_ELIGIBLE' });
+  const contactId = String(message.contactId || '').trim();
+  return parlantInboundSequencer.run(contactId, () => processParlantInboundEvent(event));
+}
+
+function isGraphitiEligibleInboundMessage(message = {}) {
+  const direction = String(message.direction || '').trim().toLowerCase();
+  const speaker = String(message.speaker || message.role || '').trim().toLowerCase();
+  const contactId = String(message.contactId || '').trim();
+  const conversationId = String(message.conversationId || message.sessionKey || '').trim();
+  const text = String(message.text || message.transcript || message.translation || '').trim();
+  return Boolean(contactId && conversationId && text && direction === 'inbound' && ['peer', 'contact', 'customer'].includes(speaker));
+}
+
+function mergeGraphitiFacts(...groups) {
+  const byId = new Map();
+  for (const group of groups) {
+    for (const fact of Array.isArray(group) ? group : []) {
+      const factId = String(fact?.factId || '').trim();
+      const episodeUuid = String(fact?.episodeUuid || '').trim();
+      const groupId = String(fact?.groupId || '').trim();
+      if (!factId || !episodeUuid || !groupId) continue;
+      byId.set(factId, fact);
+    }
+  }
+  return [...byId.values()];
+}
+
+async function processGraphitiInboundEvent(event = {}) {
+  const message = event?.payload?.message || {};
+  if (!isGraphitiEligibleInboundMessage(message)) return { handled: false, reasonCode: 'DESKTOP_GRAPHITI_EVENT_NOT_ELIGIBLE' };
+  const contactId = String(message.contactId || '').trim();
+  const conversationId = String(message.conversationId || message.sessionKey || '').trim();
+  const inboundText = String(message.text || message.transcript || message.translation || '').trim();
+  const externalMessageId = String(message.externalMessageId || message.messageId || message.id || '').trim();
+  const referenceTime = String(message.sentAt || message.timestamp || new Date().toISOString()).trim();
+  try {
+    const runtime = ensureGraphitiRelationshipRuntime();
+    const added = await runtime.addRelationshipEpisode({ contactId, text: inboundText, externalMessageId, referenceTime });
+    const recalled = await runtime.recallRelationshipFacts({ contactId, query: inboundText, limit: 12 });
+    const facts = mergeGraphitiFacts(added?.facts, recalled?.facts);
+    if (facts.length) {
+      await apiRequest(`/api/r32/workspace/contacts/${encodeURIComponent(contactId)}/graphiti-projection`, {
+        method: 'POST',
+        body: JSON.stringify({ conversationId, facts })
+      });
+    }
+    return { handled: true, projectedFacts: facts.length };
+  } catch (error) {
+    const reasonCode = String(error?.reasonCode || error?.code || 'DESKTOP_GRAPHITI_RUNTIME_UNAVAILABLE');
+    desktopLog('error', 'graphiti-relationship-memory-degraded', { contactId, conversationId, reasonCode });
+    sendToRenderer('desktop:event', { type: 'graphiti:relationship-memory-degraded', payload: { contactId, conversationId, reasonCode } });
+    return { handled: false, degraded: true, reasonCode };
+  }
+}
+
+function scheduleGraphitiInboundEvent(event = {}) {
+  const message = event?.payload?.message || {};
+  if (!isGraphitiEligibleInboundMessage(message)) return Promise.resolve({ handled: false, reasonCode: 'DESKTOP_GRAPHITI_EVENT_NOT_ELIGIBLE' });
+  return processGraphitiInboundEvent(event);
+}
+
 function connectEventSocket() {
   stopEventSocket();
   if (!backendReady) return;
-  const wsUrl = LOCAL_FRONTEND_URL.replace(/^http/, 'ws') + '/events';
+  const wsUrl = YANCE_BACKEND_URL.replace(/^http/, 'ws') + '/events';
   eventSocket = new WebSocket(wsUrl, {
-    headers: { Authorization: `Bearer ${currentApiSessionToken()}`, Origin: LOCAL_FRONTEND_URL }
+    headers: { Authorization: `Bearer ${currentApiSessionToken()}`, Origin: YANCE_BACKEND_URL }
   });
   m2Registry.registerEventSocket(eventSocket);
   eventSocket.on('open', () => {
@@ -1791,6 +2530,12 @@ function connectEventSocket() {
     let event;
     try { event = JSON.parse(String(buffer)); } catch (_) { return; }
     sendToRenderer('desktop:event', event);
+    if (event.type === 'message:inserted') {
+      Promise.resolve(scheduleParlantInboundEvent(event))
+        .catch(error => desktopLog('error', 'parlant-inbound-processing-failed', { reasonCode: error?.reasonCode || error?.code || '', message: error?.message || String(error) }));
+      Promise.resolve(scheduleGraphitiInboundEvent(event))
+        .catch(error => desktopLog('error', 'graphiti-inbound-processing-failed', { reasonCode: error?.reasonCode || error?.code || '', message: error?.message || String(error) }));
+    }
     if (['sound-notification:event','desktop:notify','send-queue:sent','send-queue:failed','conversation:presence','system:notifications-updated','notification:settings-updated'].includes(event.type)) {
       Promise.resolve(soundNotificationService.handleBackendEvent(event))
         .catch(error => desktopLog('error', 'sound-notification-event-failed', { type: event.type, error: error.message || String(error) }));
@@ -2022,7 +2767,7 @@ function startBackendProcessForCoordinator(options = {}) {
     backendObservationChild = child;
     backendPid = child.pid || 0;
     const supervisor = createBackendStartupSupervisor({
-      baseUrl: LOCAL_FRONTEND_URL,
+      baseUrl: YANCE_BACKEND_URL,
       apiToken: started.apiSessionToken,
       expectedPid: backendPid,
       startupNonce,
@@ -2229,6 +2974,36 @@ async function restartBackend(options = {}) {
   } finally { backendRestarting = false; }
 }
 
+async function waitForElementShellReady(options = {}) {
+  const timeoutMs = Math.max(1000, Number(options.timeoutMs || 60000));
+  const pollIntervalMs = Math.max(100, Number(options.pollIntervalMs || 400));
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+  while (Date.now() < deadline && !quitting && !relaunchPending) {
+    try {
+      const response = await fetch(YANCE_ELEMENT_HEALTH_URL, {
+        method: 'GET',
+        redirect: 'follow',
+        signal: AbortSignal.timeout(Math.min(5000, Math.max(500, deadline - Date.now())))
+      });
+      if (response.ok) return { ready: true, status: response.status, url: YANCE_ELEMENT_HEALTH_URL };
+      lastError = new Error(`Element shell health returned HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+    if (Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+  const error = new Error(lastError?.message || 'Element shell readiness timed out');
+  error.reasonCode = 'YANCE_ELEMENT_SHELL_READY_TIMEOUT';
+  error.details = { url: YANCE_ELEMENT_HEALTH_URL, timeoutMs };
+  throw error;
+}
+
+function loadElementShell(window) {
+  return waitForElementShellReady()
+    .then(() => window.loadURL(YANCE_ELEMENT_URL));
+}
+
 function createWindow() {
   if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
 
@@ -2322,7 +3097,8 @@ function createWindow() {
   createdWindow.on('restore', syncSoundWindowState);
   createdWindow.once('ready-to-show', syncSoundWindowState);
   syncSoundWindowState();
-  createdWindow.loadURL(LOCAL_FRONTEND_URL).catch(error => {
+  loadElementShell(createdWindow).catch(error => {
+    desktopLog('error', 'element-shell-load-failed', { reasonCode: error.reasonCode || '', message: error.message, url: YANCE_ELEMENT_URL });
     if (mainWindow === createdWindow) dialog.showErrorBox('工作台加载失败', error.message);
   });
   return createdWindow;
@@ -2652,6 +3428,110 @@ function registerIpc() {
   installR32StoreBridge({ ipcMain, apiRequest });
   registerM2DebugIpc();
   ipcGuardHandle('desktop:get-state', () => desktopState());
+  ipcGuardHandle('desktop:letta-get-state', () => projectLettaRendererState(ensureLettaAgentRuntime().snapshot()));
+  ipcGuardHandle('desktop:letta-list-agents', async () => {
+    const agents = await ensureLettaAgentRuntime().listAgents();
+    return (Array.isArray(agents) ? agents : []).map(projectLettaAgentIdentity).filter(agent => agent.id);
+  });
+  ipcGuardHandle('desktop:letta-list-conversations', async (_event, input = {}) => {
+    const normalized = normalizeLettaConversationListInput(input);
+    const conversations = await ensureLettaAgentRuntime().listConversations(normalized);
+    return (Array.isArray(conversations) ? conversations : [])
+      .map(conversation => projectLettaConversationIdentity(conversation, normalized.agentId))
+      .filter(conversation => conversation.id);
+  });
+  ipcGuardHandle('desktop:parlant-get-relationship-goal', (_event, input = {}) => readParlantRelationshipGoalProjection(input));
+  ipcGuardHandle('desktop:parlant-upsert-relationship-goal', async (_event, input = {}) => {
+    const normalized = normalizeParlantGoalInput(input, ['contactId', 'goalText']);
+    return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().upsertRelationshipGoal(normalized));
+  });
+  ipcGuardHandle('desktop:parlant-delete-relationship-goal', async (_event, input = {}) => {
+    const normalized = normalizeParlantGoalInput(input, ['contactId']);
+    const result = await ensureParlantRelationshipRuntime().deleteRelationshipGoal(normalized);
+    return Object.freeze({ deleted: result?.deleted === true });
+  });
+  ipcGuardHandle('desktop:parlant-set-relationship-goal-paused', async (_event, input = {}) => {
+    const normalized = normalizeParlantGoalInput(input, ['contactId', 'paused']);
+    return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().setRelationshipGoalPaused(normalized));
+  });
+  ipcGuardHandle('desktop:presence-avatar-health', () => ensurePresenceAvatarRuntime().health());
+  ipcGuardHandle('desktop:presence-avatar-create-session', (_event, input = {}) => ensurePresenceAvatarRuntime().createSession(input));
+  ipcGuardHandle('desktop:presence-avatar-close-session', (_event, input = {}) => ensurePresenceAvatarRuntime().closeSession(input));
+  ipcGuardHandle('desktop:presence-avatar-push-voice-audio-chunk', (_event, input = {}) => ensurePresenceAvatarRuntime().pushVoiceAudioChunk(input));
+  ipcGuardHandle('desktop:voice-brain-health', () => ensureVoiceBrainRuntime().health());
+  ipcGuardHandle('desktop:voice-brain-transcribe', async (_event, input = {}) => {
+    const filePath = await selectVoiceInputFile('选择要转写的语音');
+    if (!filePath) return Object.freeze({ cancelled: true });
+    return ensureVoiceBrainRuntime().transcribe({
+      filePath,
+      language: input.language,
+      translateToChinese: input.translateToChinese === true
+    });
+  });
+  ipcGuardHandle('desktop:voice-brain-enroll-profile', async (_event, input = {}) => {
+    const samplePath = await selectVoiceInputFile('选择本地声音样本');
+    if (!samplePath) return Object.freeze({ cancelled: true });
+    const enrolled = await ensureVoiceBrainRuntime().enrollVoiceProfile({
+      samplePath,
+      label: input.label,
+      language: input.language,
+      promptText: input.promptText
+    });
+    return Object.freeze({
+      voiceProfileId: enrolled.voiceProfileId,
+      label: enrolled.label,
+      sampleLanguage: enrolled.sampleLanguage,
+      createdAt: enrolled.createdAt,
+      local: enrolled.local === true,
+      private: enrolled.private === true
+    });
+  });
+  ipcGuardHandle('desktop:voice-brain-delete-profile', (_event, input = {}) => ensureVoiceBrainRuntime().deleteVoiceProfile(input));
+  ipcGuardHandle('desktop:voice-brain-generate-speech', async (_event, input = {}) => {
+    const output = await ensureVoiceBrainRuntime().generateSpeech(input);
+    return projectVoiceRendererOutput(output);
+  });
+  ipcGuardHandle('desktop:voice-brain-send-artifact', (_event, input = {}) => sendVoiceArtifactThroughExistingAuthority(input));
+  ipcGuardHandle('desktop:media-brain-health', () => ensureMediaBrainRuntime().health());
+  ipcGuardHandle('desktop:media-brain-save-settings', (_event, input = {}) => saveMediaBrainSettings(input));
+  ipcGuardHandle('desktop:media-brain-import-asset', (_event, input = {}) => ensureMediaBrainRuntime().importAsset(input));
+  ipcGuardHandle('desktop:media-brain-search-assets', (_event, input = {}) => ensureMediaBrainRuntime().searchAssets(input));
+  ipcGuardHandle('desktop:media-brain-list-people', (_event, input = {}) => ensureMediaBrainRuntime().listPeople(input));
+  ipcGuardHandle('desktop:media-brain-list-albums', (_event, input = {}) => ensureMediaBrainRuntime().listAlbums(input));
+  ipcGuardHandle('desktop:media-brain-get-asset-preview', (_event, input = {}) => ensureMediaBrainRuntime().getAssetPreview(input));
+  ipcGuardHandle('desktop:media-brain-queue-workflow', async (_event, input = {}) => {
+    const runtime = ensureMediaBrainRuntime();
+    const kind = String(input?.kind || '').trim().toLowerCase();
+    const queueInput = {
+      kind,
+      prompt: String(input?.prompt || ''),
+      negativePrompt: String(input?.negativePrompt || ''),
+      checkpoint: String(input?.checkpoint || ''),
+      clientId: String(input?.clientId || ''),
+      seed: input?.seed,
+      width: input?.width,
+      height: input?.height,
+      denoise: input?.denoise
+    };
+    if (kind === 'edit') {
+      const assetId = String(input?.assetId || '').trim();
+      if (!assetId || assetId.length > 512) {
+        throw Object.assign(new Error('Edit workflow requires an Immich asset id.'), { reasonCode: 'IMMICH_ASSET_REQUIRED' });
+      }
+      const uploaded = await runtime.uploadImmichAssetAsWorkflowInput({
+        assetId,
+        filename: path.basename(String(input?.filename || `immich-${assetId}`)).slice(0, 240)
+      });
+      queueInput.inputImage = String(uploaded?.name || uploaded?.filename || '').trim();
+      if (!queueInput.inputImage) {
+        throw Object.assign(new Error('ComfyUI did not return an uploaded image name.'), { reasonCode: 'COMFYUI_INPUT_IMAGE_UPLOAD_INVALID' });
+      }
+    }
+    return runtime.queueWorkflow(queueInput);
+  });
+  ipcGuardHandle('desktop:media-brain-get-workflow-result', (_event, input = {}) => ensureMediaBrainRuntime().getWorkflowOutput({ promptId: String(input?.promptId || '').trim() }));
+  ipcGuardHandle('desktop:media-brain-save-workflow-output', (_event, input = {}) => ensureMediaBrainRuntime().saveWorkflowOutputToImmich(input));
+  ipcGuardHandle('desktop:media-brain-send-asset', (_event, input = {}) => sendMediaAssetThroughExistingAuthority(input));
   ipcGuardHandle('desktop:report-runtime-environment', (_event, input = {}) => {
     const state = desktopState();
     const finite = (value, min, max) => {
@@ -2843,8 +3723,8 @@ function registerIpc() {
   ipcGuardHandle('desktop:restart-app', async () => restartElectronApp({
     setRelaunchIntent: () => { relaunchPending = true; quitting = true; backendRestarting = true; stopEventSocket(); },
     clearRelaunchIntent: () => { relaunchPending = false; quitting = false; backendRestarting = false; },
-    stop: () => stopBackend({ forShutdown: true, reason: 'application-relaunch' }),
-    authoritySnapshot: () => authoritativeBackend().backend,
+    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch' }),
+    authoritySnapshot: () => applicationRuntimeAuthoritySnapshot(),
     appRelaunch: () => app.relaunch(),
     appExit: code => { exitAfterBackendShutdown = true; app.exit(code); },
     onFailure: error => {
@@ -2860,20 +3740,20 @@ ipcGuardHandle('desktop:set-active-conversation', (_event, data = {}) => {
   return { ok: true };
 });
   ipcMain.on('desktop:preload-ready', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [LOCAL_FRONTEND_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
     ensureMainWindowActivationController().markPreloadReady(mainWindow, payload);
   });
   ipcMain.on('desktop:renderer-ready', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [LOCAL_FRONTEND_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
     ensureMainWindowActivationController().markRendererReady(mainWindow, payload);
   });
   ipcMain.on('desktop:activation-probe-complete', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [LOCAL_FRONTEND_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
     ensureMainWindowRuntimeReadiness().complete(event.sender, payload);
   });
   ipcGuardHandle('desktop:report-sound-result', (_event, result) => ({ accepted: resolveSound(result || {}) }));
   ipcMain.on('sound:result', (event, result) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [LOCAL_FRONTEND_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
     resolveSound(result || {});
   });
   ipcGuardHandle('desktop:save-credential', (_event, input) => saveCredentialFromDesktop(input?.ref, input?.value || {}, { requestId: input?.requestId }));
@@ -2931,7 +3811,7 @@ if (!app.requestSingleInstanceLock()) {
     });
     try { governRuntimeNativeBinariesBootCheck(); } catch (_) { /* never block startup */ }
     runtimeApiV2Client = new ApiV2RuntimeClient({
-      baseURL: LOCAL_FRONTEND_URL,
+      baseURL: YANCE_BACKEND_URL,
       sessionProvider: options => desktopHost.backendProcessHost.getApiSessionBinding(options),
       expectedBuildId: acceptedRelease.buildId
     });
@@ -2987,14 +3867,18 @@ if (!app.requestSingleInstanceLock()) {
       });
       desktopLog('info', 'desktop-bootstrap-containment-recovery-complete', startupContainmentRecovery);
       credentialVaultRecoveryReport = {
-        ...await desktopCredentialApplicationCoordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', applicationLeaseToken => recoverCredentialVaults({
-          legacyRoots: legacyDiscovery.legacyRoots,
-          destinationFile: credentialFile,
-          destinationVault: vault,
-          credentialVaultHost: desktopHost.credentialVaultHost,
-          applicationLeaseToken,
-          createVault: file => new CredentialVault(file)
-        })),
+        ...await desktopCredentialApplicationCoordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async applicationLeaseToken => {
+          const recovery = await recoverCredentialVaults({
+            legacyRoots: legacyDiscovery.legacyRoots,
+            destinationFile: credentialFile,
+            destinationVault: vault,
+            credentialVaultHost: desktopHost.credentialVaultHost,
+            applicationLeaseToken,
+            createVault: file => new CredentialVault(file)
+          });
+          const graphitiNeo4jCredential = await ensureGraphitiNeo4jCredentialProvisioned(applicationLeaseToken);
+          return { ...recovery, graphitiNeo4jCredential };
+        }),
         mode: 'same-machine-safe-storage-reencryption',
         legacyRoots: legacyDiscovery.legacyRoots
       };
@@ -3026,6 +3910,7 @@ if (!app.requestSingleInstanceLock()) {
     createTray();
     createSoundWindow();
     try {
+      await ensureLettaAgentRuntime().start();
       await launchBackend();
       if (wp7ProbeRequested()) {
         const probeResult = await runWp7InstalledRuntimeProbe();
@@ -3115,12 +4000,12 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin' && !settingsStore?.read().closeToTray) app.quit();
 });
 app.on('will-quit', event => {
-  if (exitAfterBackendShutdown || !backendOwnershipPresent()) return;
+  if (exitAfterBackendShutdown || (!backendOwnershipPresent() && !lettaOwnershipPresent() && !parlantOwnershipPresent() && !graphitiOwnershipPresent() && !presenceAvatarOwnershipPresent())) return;
   event.preventDefault();
   stopEventSocket();
   if (shutdownInProgress) return;
   shutdownInProgress = completeElectronQuit({
-    stop: () => stopBackend({ forShutdown: true, reason: 'application-quit' }),
+    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-quit' }),
     appExit: code => { exitAfterBackendShutdown = true; app.exit(code); },
     onFailure: error => {
       quitting = false;

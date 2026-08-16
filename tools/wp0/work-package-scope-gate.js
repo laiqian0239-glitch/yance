@@ -1,6 +1,7 @@
 'use strict';
 
 const legacy = require('./work-package-scope-gate-legacy');
+const { decodeChangedFileBuffer } = legacy;
 const {
   evaluateAuthorizedWpBScope,
   resolveWpBImplementationAuthority
@@ -18,6 +19,7 @@ function result(values = {}) {
     unauthorizedPaths: [],
     taskScopeChainApplied: false,
     postMergeDefectScopeApplied: false,
+    openSourceWorkPackageScopeApplied: false,
     activeTask: null,
     defectId: null,
     readyForPromotion: false,
@@ -124,13 +126,12 @@ function evaluateWpBScopeForGate(options, authority) {
       'core.quotePath=false',
       'diff',
       '--name-only',
+      '-z',
       authority.baseHead,
       'HEAD',
       '--'
-    ]);
-    changedFiles = raw
-      ? [...new Set(raw.split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort()
-      : [];
+    ], { encoding: null, trim: false });
+    changedFiles = decodeChangedFileBuffer(raw);
   } catch (cause) {
     return gitFailure('ACV2_WORK_PACKAGE_SCOPE_DIFF_FAILED', cause, {
       effectiveBranch,
@@ -152,6 +153,7 @@ function evaluateWpBScopeForGate(options, authority) {
     changedFileCount: changedFiles.length,
     taskScopeChainApplied: false,
     postMergeDefectScopeApplied: false,
+    openSourceWorkPackageScopeApplied: false,
     activeTask: null,
     defectId: null,
     readyForPromotion: false
@@ -177,4 +179,4 @@ function evaluateWorkPackageScopeForGate(options = {}) {
   return legacy.evaluateWorkPackageScopeForGate(options);
 }
 
-module.exports = Object.freeze({ evaluateWorkPackageScopeForGate });
+module.exports = Object.freeze({ decodeChangedFileBuffer, evaluateWorkPackageScopeForGate });

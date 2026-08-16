@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-12T14:40:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-MATRIX-ELEMENT-EOL-SCOPE-REPAIR",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh Product Final Validation run 31576339681 at exact Product Head 58b0ff3d8ebb0d8d3a6cbc717950aa72085277fd proves the previous Matrix Dockerfile-entrypoint repair and strict bootstrap replay are effective, but the broad process-tree core.autocrlf=true repair now causes the exact Element checkout's scripts/docker-link-repos.sh to materialize with CRLF and fail inside the official upstream Dockerfile with /usr/bin/env: 'bash\\r': No such file or directory. Synapse exact upstream image builds successfully first. Existing V2 authority already proves the exact Element API-report blob is CRLF while the reviewed 0001 patch is LF and that Git-native process-scoped core.autocrlf=true makes unchanged strict git apply --check succeed without patch/target rewrite. This repair moves that mature Git semantic to the true owner layer: only the strict git apply --check/apply subprocesses in tools/matrix/bootstrap.js receive temporary core.autocrlf=true; clone, fetch and checkout keep upstream-native bytes. The outer Product workflow Git-config wrapper is retired. No patch bytes, target bytes, upstream pins, Dockerfiles, package manifests, lockfiles, Product runtime/UI or generic EOL normalizer may change.",
+  "evidence": {
+    "productPullRequest": 229,
+    "productHead": "58b0ff3d8ebb0d8d3a6cbc717950aa72085277fd",
+    "productFinalValidationRun": 31576339681,
+    "matrixJob": 94049206992,
+    "firstRemainingError": "/usr/bin/env: 'bash\\r': No such file or directory",
+    "failingUpstreamPath": "scripts/docker-link-repos.sh",
+    "synapseImageBuiltBeforeFailure": true,
+    "exactElementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "priorGitSemanticAuthority": "governance/layered-ci/v21-product-experience-materialized-uat-runtime-repair-v2-authorization.json"
+  },
+  "base": { "branch": "main", "commit": "e0d063a4309970d2e4704fbc66abc253bcb571d9" },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-matrix-element-eol-scope-repair-authorization",
+    "allowedChangedPaths": ["governance/layered-ci/v21-product-matrix-element-eol-scope-repair-authorization.json"],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e2383bd2839bb0cd1820e92b3ac67b024cd8db318cf636eae19d3f411ce92f34",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-matrix-element-eol-scope-repair",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/matrix/bootstrap.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "eed318b2d4535b89d8ac61aa9b8cd8696889a6f1f42969f146f500dabc5d68c3",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [".github/workflows/v21-product-experience-shell-p0-final-validation.yml"],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": ["tests/wp0/v21-product-experience-materialized-uat.test.js"],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "e4b2fb37cb3192d81204f4bc7eeaf1150d165d3afa1c36aaa21b38943d39a530",
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
+    }
+  },
+  "ossFit": {
+    "decision": "REUSE_GIT_NATIVE_APPLY_SCOPED_EOL_SEMANTICS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Git process-scoped configuration for strict apply subprocesses",
+        "source": "Git GIT_CONFIG_COUNT/GIT_CONFIG_KEY_0/GIT_CONFIG_VALUE_0 runtime configuration attached only to git apply --check and git apply child processes spawned by tools/matrix/bootstrap.js",
+        "license": "GPL-2.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing V2 evidence already proves Git-native core.autocrlf=true semantics make the unchanged strict CRLF-target/LF-patch replay succeed. Moving the same mature Git mechanism from the whole bootstrap process tree to only the apply children preserves upstream-native checkout bytes and keeps the environment ephemeral with no persistent Git configuration."
+      },
+      {
+        "name": "Existing strict Matrix bootstrap and reviewed Element patches",
+        "source": "tools/matrix/bootstrap.js plus the already-reviewed upstream-patches/element-web patch sequence at exact Element a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+        "license": "existing reviewed repository/upstream closure",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already owns the correct strict apply seam and exact upstream pins. Reusing it avoids a new EOL framework, keeps git apply --check followed by git apply as the replay authority, and changes only the environment of those exact child commands."
+      },
+      {
+        "name": "Generic EOL rewrite or normalization layer",
+        "source": "hypothetical dos2unix/sed/patch rewrite/target rewrite/new Yance normalizer",
+        "license": "not applicable because adoption is rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "These alternatives mutate reviewed source bytes or duplicate mature Git behavior, violate exact upstream materialization, or weaken strict replay semantics. They are explicitly rejected."
+      }
+    ],
+    "thinYanceAdapterOnly": true,
+    "retireOrAvoid": [
+      "Retire broad core.autocrlf=true around the entire node tools/matrix/bootstrap.js process tree.",
+      "Keep exact upstream clone/fetch/checkout bytes native and unchanged.",
+      "Do not rewrite or regenerate any Element patch or target file.",
+      "Do not use dos2unix, sed, checkout normalization, git apply whitespace relaxation, reject, three-way, recount or fuzzy application.",
+      "Do not add a Yance EOL normalizer or new dependency."
+    ]
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only the permanent WP0 test and must RED because current workflow still wraps the whole Matrix bootstrap process tree in core.autocrlf=true while bootstrap itself has no apply-only Git environment.",
+    "The owner-layer implementation must give core.autocrlf=true only to git apply --check and git apply subprocesses and no clone, fetch, checkout, Node process, Docker build or ambient repository config.",
+    "A real temporary Git fixture must prove a CRLF target plus LF textual patch succeeds through strict apply-only Git semantics while an unrelated executable shell script remains LF byte-for-byte.",
+    "The Product workflow must invoke node tools/matrix/bootstrap.js without the broad GIT_CONFIG_COUNT/GIT_CONFIG_KEY_0/GIT_CONFIG_VALUE_0 wrapper and must still prove ambient Git config is unchanged.",
+    "All existing Element patch blobs and exact upstream pins remain byte-identical; strict git apply flags remain unchanged.",
+    "Fresh Product Final Validation must build Synapse, Element and mautrix-whatsapp exact images and the Element Docker build must cross scripts/docker-link-repos.sh without bash\\r."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "patchRewrite": true,
+    "targetRewrite": true,
+    "upstreamLockModification": true,
+    "packageManifestModification": true,
+    "lockfileModification": true,
+    "newYanceEolNormalizer": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}

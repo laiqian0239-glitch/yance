@@ -1,0 +1,304 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-16T13:16:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-RELATIONSHIP-INTELLIGENCE-SURFACE-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh Product P0 successor rooted directly at the ordinary #441 relationship inference authority merge. Trusted main now has Graphiti/Neo4j as the sole relationship inference authority and truthful pending/empty behavior, but Product Experience still projects only identity/platform metadata and does not expose the authority-aware relationship trajectory, epistemic source labels, AI-analysis status, or truthful pending state to users. This package closes only that consumer/product-surface gap by reusing the existing RelationshipProjectionAuthority -> workspaceService.bootstrap -> Electron store bridge -> Product Experience seams. It may not read historical local social heuristics as relationship intelligence.",
+  "base": {
+    "branch": "main",
+    "commit": "f2fcd5f2e5b35282a031f491dbeb12b5a196d162"
+  },
+  "architecture": {
+    "prerequisiteRelationshipAuthorityPullRequest": 441,
+    "prerequisiteRelationshipAuthorityMerge": "f2fcd5f2e5b35282a031f491dbeb12b5a196d162",
+    "relationshipInferenceAuthority": "Graphiti/Neo4j",
+    "relationshipProjectionAuthority": "RelationshipProjectionAuthority",
+    "existingServerProjectionSeam": "workspaceService.bootstrap trajectoryState",
+    "existingElectronSeam": "store:get-snapshot / storeSnapshot",
+    "existingProductSurface": "ProductExperienceShell / PeopleSurface / RelationshipWorld",
+    "newIpcChannelRequired": false,
+    "newBackendRouteRequired": false
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "f2fcd5f2e5b35282a031f491dbeb12b5a196d162",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-relationship-intelligence-surface-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-relationship-intelligence-surface-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "5a13bdcd689ac82dfec48d3f0322c47dff2b485218f0512760ecec62e2b1393e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-relationship-intelligence-surface-p0-v1",
+    "allowedChangedPaths": [
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "tests/wp0/v21-product-relationship-intelligence-surface.test.js"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "513f86df1814025fe5a5fe2a8f2e892c3e04d4e57c4526e38ecca451b8462ee0",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-relationship-intelligence-surface.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "fde948f2299d0f833b9282638600699b0ce357fe2d43e4148557076ed08babb3",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The existing storeSnapshot bridge cannot request and return authority-aware workspace relationship trajectory state for Product consumption.",
+        "Product experience types/projection do not expose a RelationshipProjectionAuthority-backed relationship intelligence projection.",
+        "PeopleSurface and RelationshipWorld do not render truthful relationship-analysis status, Graphiti inference/user annotation provenance, or pending/empty relationship intelligence.",
+        "ProductExperienceShell does not refresh relationship intelligence through the existing relationship event stream after relevant contact activity."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "graphitiRuntimeModificationAllowed": false,
+    "neo4jRuntimeModificationAllowed": false,
+    "productRendererModificationAllowed": true
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Trusted main is freshly read and the effective authorization merge is an ordinary two-parent merge whose first parent equals this document base.commit and whose second parent equals the independently reviewed authorization exact head.",
+      "The implementation branch starts exactly from the effective authorization merge commit and contains no pre-authorization implementation commit.",
+      "The trusted implementationBranchPolicy parser recognizes this exact authorization and implementation branch without wildcard, alias, local-only or candidate-owned authority.",
+      "The implementation and failure-first path sets, counts and SHA-256 digests exactly match this document.",
+      "Every implementation path is already a valid PRODUCT_WP0 route on trusted main; no route-bootstrap mutation is required.",
+      "No active open PR changes any of the eight authorized implementation paths.",
+      "No dependency, workflow, preload, IPC manifest, new IPC channel, backend route, database, Graphiti runtime, Neo4j runtime or new Yance infrastructure path has entered scope."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "existing storeSnapshot bridge optional aggregation of workspace bootstrap relationship trajectory",
+      "relationship intelligence type and renderer normalization boundary",
+      "PeopleSurface truthful analysis-status projection",
+      "RelationshipWorld stage/summary/next-action/timeline presentation from authority output only",
+      "Product event-driven refresh using the existing relationship event subscription",
+      "Graphiti graphiti_temporal_inference epistemic labeling and no fabricated confidence",
+      "explicit user relationship annotations and user ownership",
+      "existing ai_analysis epistemic distinction from Graphiti inference",
+      "truthful pending/empty UI when Graphiti/ai_analysis evidence is absent",
+      "Parlant goal and Letta RelationshipAssistant behavior",
+      "negative proof that customer_social_state, relationshipPotential, emotion, interaction, replyStrategy, social_rule_projection or message_baseline is not used as Product relationship inference",
+      "negative proof that no new relationship engine/store/service/sidecar/cache/IPC channel/backend route replaces existing authorities"
+    ]
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "The Product snapshot request may opt into relationship intelligence without changing the default storeSnapshot response contract for existing consumers.",
+      "When relationship intelligence is requested, the existing r32StoreBridge snapshot handler must reuse the existing /api/workspace/bootstrap endpoint and return only its authority-aware relationship trajectory projection alongside the normal snapshot.",
+      "Renderer normalization must accept relationship intelligence only from the trusted RelationshipProjectionAuthority/workspace trajectory projection; historical social heuristic fields are not inference inputs.",
+      "PeopleSurface must expose a compact truthful state such as pending analysis, AI analysis ready/stale, or no confirmed relationship intelligence based only on authority projection state/status.",
+      "RelationshipWorld must visibly distinguish Graphiti AI inference, explicit user annotation and independent ai_analysis semantics using authority-provided source/presentation metadata.",
+      "Graphiti inference must never be presented as human-confirmed fact and must not receive fabricated confidence.",
+      "If Graphiti inference and ai_analysis are absent, Product must display a truthful pending/empty state and must not synthesize relationship stage, risk, opportunity, temperature or next action.",
+      "Existing source-account/conversation/canonical-contact isolation remains inherited from RelationshipProjectionAuthority; Product must not merge or re-key relationship evidence locally.",
+      "Relevant relationship events must refresh the Product projection through the existing event subscription rather than requiring application reload."
+    ],
+    "forbiddenBehavior": [
+      "Do not use relationshipPotential, emotion, interaction, replyStrategy, customer_social_state, relationship_state_signals, social_rule_projection or message_baseline as a Product relationship inference source.",
+      "Do not add a compatibility alias that relabels old social heuristic output as Graphiti, ai_analysis or relationship intelligence.",
+      "Do not create a new IPC channel, preload API, backend route, relationship service, graph store, cache, sidecar, inference engine or state machine.",
+      "Do not fabricate Graphiti evidence, confidence, episode IDs, runtime health, analysis status, stage, risk, opportunity or next action.",
+      "Do not weaken the existing Product Shell, Graphiti provenance, RelationshipProjectionAuthority, user-annotation or epistemic contracts."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_PINNED_GRAPHITI_NEO4J_RELATIONSHIP_PROJECTION_AND_EXISTING_PRODUCT_BRIDGE_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Graphiti",
+        "source": "getzep/graphiti",
+        "upstreamVersion": "v0.29.3",
+        "upstreamCommit": "021d3a57d511f21b10adaf7fa923bd5c1fce5e9d",
+        "license": "Apache-2.0",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already trusted as the sole temporal relationship inference runtime; this Product package only displays its existing authority projection."
+      },
+      {
+        "name": "Neo4j Community Edition",
+        "source": "Neo4j",
+        "upstreamVersion": "2026.07.1",
+        "license": "GPL-3.0",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already the authenticated Graphiti graph store; no graph-store or runtime change is required."
+      },
+      {
+        "name": "RelationshipProjectionAuthority + workspaceService.bootstrap",
+        "source": "existing Yance repository seams",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already produces the truthful authority-aware trajectory required by Product, including Graphiti/user annotation/ai_analysis epistemic separation and pending states."
+      },
+      {
+        "name": "Existing r32 store snapshot bridge + Product Experience Shell",
+        "source": "electron/r32StoreBridge.js + integration/element-module/src/product-experience",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing desktop/product seams are sufficient for a thin read-only projection; no new channel, service or framework is needed."
+      },
+      {
+        "name": "Historical customer social heuristic projection",
+        "source": "customerSocialSelectors / social-context fields",
+        "license": "repository-existing",
+        "adoptionMode": "retire",
+        "fit": "GAP",
+        "reason": "relationshipPotential/emotion/interaction/replyStrategy and similar local fields are not authorized relationship inference after #441 and must not be surfaced as Product relationship intelligence."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second relationship intelligence engine, graph database, inference service, sidecar, cache, model router or local state machine.",
+      "Do not use old social-context heuristic output as a shortcut around RelationshipProjectionAuthority.",
+      "Do not modify pinned Graphiti/Neo4j runtime bytes or dependencies for a Product consumer-surface gap.",
+      "Do not add a new Electron IPC/preload/backend API surface when the existing snapshot and workspace bootstrap seams are sufficient."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-product-relationship-intelligence-surface.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-p0.test.js",
+      "node --test tests/wp0/v21-graphiti-relationship-authority.test.js",
+      "node --test tests/uat/relationshipProjectionAuthority.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "Layered/WP-A validation when triggered",
+      "Product Experience Final Validation when triggered",
+      "Graphiti P0 validation when triggered",
+      "Model validation when triggered"
+    ],
+    "negativeProofs": [
+      "Product relationship intelligence consumes RelationshipProjectionAuthority/workspace trajectory output and not old social heuristic fields.",
+      "No new IPC channel, preload API, backend route, relationship engine/store/service/cache/sidecar or database migration is introduced.",
+      "Graphiti inference remains visibly AI inference without fabricated confidence; user annotations remain user-owned and ai_analysis remains distinct.",
+      "Absent Graphiti/ai_analysis evidence produces truthful pending/empty Product UI rather than synthesized relationship claims.",
+      "Existing Product Shell, Parlant/Letta RelationshipAssistant and source-isolation semantics remain intact."
+    ]
+  },
+  "parallelWork": {
+    "freshOpenPullRequests": [
+      17,
+      67
+    ],
+    "exactImplementationPathOverlapCount": 0,
+    "historicalRelationshipIntelligenceDocsBranch": "docs/v21-relationship-intelligence-enhancement-2026-08-07",
+    "historicalBranchIsImplementationAuthority": false
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "authority projection is consumed rather than reconstructed in Product",
+      "old social heuristic fields cannot re-enter as relationship inference",
+      "Graphiti/user annotation/ai_analysis epistemic labels remain truthful",
+      "pending/empty state is truthful and no confidence/stage/risk/opportunity/next-action is fabricated",
+      "existing storeSnapshot/workspace bootstrap/event seams are reused without a new IPC/backend/infrastructure layer",
+      "failure-first RED is causal to missing Product behavior and exact scope remains eight paths"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

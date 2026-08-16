@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-08T13:58:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PARLANT-P0-WP7-PACKAGING-CLOSURE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #127 exact Head 684dd571343148fd170c178b251d54868c740b10 has completed the Parlant Windows runtime sealing and dead-proxy offline health closure, while trusted-main Stage run 31245105259 remains causal RED only on the existing WP7 portable packaging contract. The remaining root cause is that the established WP7 trusted product assembler accepts reviewed application source and the sealed Node runtime but has no explicit input or trust projection for the already-sealed Parlant runtime. This work package authorizes only the minimal integration of that presealed runtime into the existing WP7 product payload, hash closure, and native-binary trust scan; it does not authorize a second packaging trust system or any production release/publish/promotion action.",
+  "base": {
+    "branch": "main",
+    "commit": "e3bc6b1312525d07d2dc69ebd60ae54fecbc1573"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "evidence": {
+    "sourcePullRequest": 127,
+    "sourceExactHead": "684dd571343148fd170c178b251d54868c740b10",
+    "sourceAuthorizedChangedFileCount": 20,
+    "sourceAuthorizedChangedFileSetSha256": "e9cdb1ac7c250c235b7b6f595c3b9a2e5856d9852cdf34aa3b1f5ec81e62cab6",
+    "stageWp0Run": 31245105259,
+    "stageWp0ProductJob": 93072338621,
+    "stageWp0TestCount": 148,
+    "stageWp0PassCount": 147,
+    "stageWp0FailCount": 1,
+    "causalRedTest": "real WP7 application payload must carry the sealed Parlant runtime as an explicit trusted product addition",
+    "causalRedTestPath": "tests/wp0/v21-parlant-portable-runtime.test.js",
+    "windowsRuntimeRun": 31245105254,
+    "windowsRuntimeJob": 93072292353,
+    "windowsSealingStep": "success",
+    "windowsResolverAndVcsExclusionStep": "success",
+    "windowsOfflineHealthClosureStep": "success",
+    "windowsFinalWp0RerunStep": "failure only because the same WP7 portable packaging contract remains RED",
+    "trustedWp7BaseCommit": "e3bc6b1312525d07d2dc69ebd60ae54fecbc1573"
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-parlant-p0-wp7-packaging-closure-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-parlant-p0-wp7-packaging-closure-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-parlant-p0-wp7-packaging-closure",
+    "allowedChangedPaths": [
+      "tools/wp7/create-pre-review-trusted-product.js",
+      "tools/wp7/lib.js",
+      "tools/wp7/packaged-product-trust.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "987381147d7f08a7246db85026c4cd2707dc9d5596378c630a535240fe0cd31a",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false
+  },
+  "packagingClosure": {
+    "requiredInput": "explicit presealed Parlant runtime directory",
+    "requiredPayloadRoot": "resources/parlant-runtime",
+    "trustAuthority": "existing WP7 packaged-product trust and application payload closure",
+    "requiredCoverage": [
+      "existing product payload hashing",
+      "existing application payload closure",
+      "existing native-binary scan",
+      "existing trusted product archive"
+    ],
+    "secondPackagingTrustSystemAllowed": false,
+    "runtimeResolutionAllowed": false
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 127,
+    "candidateBranch": "product/v21-parlant-p0-v1",
+    "candidateAuthorizedChangedFileCountMustRemain": 20,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "e9cdb1ac7c250c235b7b6f595c3b9a2e5856d9852cdf34aa3b1f5ec81e62cab6",
+    "candidateHistoryRewriteAllowed": false,
+    "candidateDirectWp7SelfAuthorizationAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "Trusted-main Stage run 31245105259 records causal RED on the existing WP7 Parlant portable packaging contract at PR #127 exact Head 684dd571343148fd170c178b251d54868c740b10",
+    "The pre-review trusted product builder requires an explicit existing non-symlink presealed Parlant runtime input instead of resolving or generating it at packaging time",
+    "The presealed Parlant runtime is copied only into application resources/parlant-runtime",
+    "The Parlant runtime is included in the existing application payload hash and filesystem identity closure",
+    "The Parlant runtime is included in the existing packaged-product native-binary trust scan for the Windows x64 target",
+    "The existing Electron distribution trust permits only the explicit resources/parlant-runtime trusted product addition and does not broaden arbitrary resource additions",
+    "No second packaging trust, hashing, allowlist, resolver, downloader, runtime installer, dependency manifest change, workflow change, production release, publish, promotion, Facebook modernization or unrelated work package is introduced"
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes applicable governance gates with zero unresolved P0/P1 findings",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite",
+    "Implementation branch is created from that exact authorization merge commit",
+    "The existing causal RED in tests/wp0/v21-parlant-portable-runtime.test.js remains the failure-first authority; no weakened replacement test is permitted",
+    "Only the three approved WP7 implementation paths are changed",
+    "Implementation exact Head passes applicable Stage, Layered, ACV2 and independent review gates",
+    "Implementation PR merges to main by ordinary two-parent merge",
+    "Fresh main is merged normally into PR #127 without rebase, amend or force push",
+    "PR #127 is reverified against its original exact 20-path authorization before final merge consideration"
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "secondPackagingTrustSystem": true,
+    "runtimeDependencyResolution": true,
+    "runtimeDownloadDuringPackaging": true,
+    "packageJsonModification": true,
+    "packageLockModification": true,
+    "workflowModification": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "directCandidateSelfAuthorization": true,
+    "candidateScopeReduction": true,
+    "candidateScopeExpansion": true,
+    "productionRelease": true,
+    "publish": true,
+    "promotion": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
