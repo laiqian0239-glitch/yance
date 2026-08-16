@@ -198,12 +198,13 @@ export function PeopleSurface({
                       left: `${position.x}%`,
                       top: `${position.y}%`,
                       ...(denseUniverse ? {
-                        width: "40px",
-                        height: "40px",
-                        minHeight: "40px",
+                        width: "44px",
+                        height: "44px",
+                        minHeight: "44px",
                         padding: "3px",
                         borderRadius: "50%",
                         gridTemplateColumns: "1fr",
+                        boxSizing: "border-box",
                       } : {}),
                     }}
                     aria-pressed={focused}
