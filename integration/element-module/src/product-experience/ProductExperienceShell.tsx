@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { LearningWorkspace } from "../LearningWorkspace";
 import { AnimatePresence, motion } from "motion/react";
 import { BilingualSearchPanel } from "./BilingualSearchPanel";
-import { PeopleSurface } from "./PeopleSurface";
+import { PeopleSurface, type PeopleHomeView } from "./PeopleSurface";
 import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
 import { RelationshipWorld } from "./RelationshipWorld";
@@ -29,10 +29,12 @@ type ProductExperienceShellProps = {
 export function ProductExperienceShell({ navigateSearchResult }: ProductExperienceShellProps): React.JSX.Element {
   const [relationships, setRelationships] = useState<readonly RelationshipProjection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState("Loading relationships");
+  const [status, setStatus] = useState("正在加载关系");
   const [assistantVisible, setAssistantVisible] = useState(false);
   const [learningAdminVisible, setLearningAdminVisible] = useState(false);
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
+  const [peopleHomeView, setPeopleHomeView] = useState<PeopleHomeView>("list");
+  const [focusedRelationshipId, setFocusedRelationshipId] = useState("");
   const session = useExperienceSession();
   const preferences = useExperiencePreferences();
   const selectedRelationshipIdRef = useRef(session.selectedRelationshipId);
@@ -48,8 +50,11 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
       const next = await loadRelationshipProjections();
       if (generation !== refreshGenerationRef.current) return;
       setRelationships(next);
+      setFocusedRelationshipId((current) => (
+        current && !next.some((row) => row.id === current) ? "" : current
+      ));
       setLoading(false);
-      setStatus(next.length ? `${next.length} relationships ready` : "No relationships available yet");
+      setStatus(next.length ? `已载入 ${next.length} 段关系` : "暂无可用关系");
       const selectedRelationshipId = selectedRelationshipIdRef.current;
       if (selectedRelationshipId && !next.some((row) => row.id === selectedRelationshipId)) {
         clearSelectedRelationship();
@@ -57,8 +62,9 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
     } catch {
       if (generation !== refreshGenerationRef.current) return;
       setRelationships([]);
+      setFocusedRelationshipId("");
       setLoading(false);
-      setStatus("Relationship data unavailable");
+      setStatus("关系数据暂不可用");
     }
   }, []);
 
@@ -84,7 +90,7 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
 
   const chooseRelationship = (relationshipId: string): void => {
     selectRelationship(relationshipId);
-    setStatus("Relationship opened");
+    setStatus("已打开关系");
   };
 
   const toggleAssistant = (): void => {
@@ -101,7 +107,7 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
       data-yance-workspace
       data-atmosphere={preferences.atmosphere.toLowerCase()}
       data-reduced-motion={preferences.reducedMotion || undefined}
-      aria-label="Yance Living Relationship OS"
+      aria-label="Yance 关系智能操作系统"
     >
       <div className="yance-shell-status yance-sr-only" role="status" aria-live="polite">{status}</div>
 
@@ -124,14 +130,18 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
           >
             {loading ? (
               <div className="yance-empty" role="status" aria-live="polite">
-                <strong>Loading people</strong>
-                <span>Reading your existing relationship projection.</span>
+                <strong>正在加载关系</strong>
+                <span>正在读取已有的可信关系投影。</span>
               </div>
             ) : (
               <PeopleSurface
                 relationships={relationships}
                 selectedRelationshipId={session.selectedRelationshipId}
+                focusedRelationshipId={focusedRelationshipId}
+                viewMode={peopleHomeView}
                 reducedMotion={preferences.reducedMotion}
+                onViewModeChange={setPeopleHomeView}
+                onFocus={setFocusedRelationshipId}
                 onSelect={chooseRelationship}
               />
             )}
@@ -176,38 +186,38 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
           if (!event.currentTarget.open) setLearningAdminVisible(false);
         }}
       >
-        <summary>Experience</summary>
+        <summary>体验设置</summary>
         <div className="yance-settings-grid">
           <label>
-            <span>Sound</span>
+            <span>声音</span>
             <select value={preferences.soundMode} onChange={(event) => preferences.setSoundMode(event.target.value as SoundMode)}>
-              <option>Off</option>
-              <option>Essential only</option>
-              <option>Immersive</option>
+              <option value="Off">关闭</option>
+              <option value="Essential only">仅必要提示</option>
+              <option value="Immersive">沉浸</option>
             </select>
           </label>
           <label>
-            <span>Motion</span>
+            <span>动效</span>
             <select value={preferences.motionMode} onChange={(event) => preferences.setMotionMode(event.target.value as MotionMode)}>
-              <option>Standard</option>
-              <option>Reduced</option>
+              <option value="Standard">标准</option>
+              <option value="Reduced">减少动效</option>
             </select>
           </label>
           <label>
-            <span>Atmosphere</span>
+            <span>氛围</span>
             <select value={preferences.atmosphere} onChange={(event) => preferences.setAtmosphere(event.target.value as RelationshipAtmosphere)}>
-              <option>Quiet</option>
-              <option>Warm</option>
-              <option>Vivid</option>
+              <option value="Quiet">安静</option>
+              <option value="Warm">温暖</option>
+              <option value="Vivid">鲜活</option>
             </select>
           </label>
         </div>
-        {preferences.reducedMotion ? <p className="yance-reduced-motion-note">Reduced motion is active; state changes remain visible without spatial travel.</p> : null}
+        {preferences.reducedMotion ? <p className="yance-reduced-motion-note">已启用减少动效；状态变化仍会清晰显示，但不会进行空间移动。</p> : null}
         <div className="yance-learning-settings-actions">
           {learningAdminVisible ? (
-            <button type="button" aria-expanded="true" onClick={() => setLearningAdminVisible(false)}>Close learning controls</button>
+            <button type="button" aria-expanded="true" onClick={() => setLearningAdminVisible(false)}>收起学习控制</button>
           ) : (
-            <button type="button" aria-expanded="false" onClick={() => setLearningAdminVisible(true)}>Learning controls</button>
+            <button type="button" aria-expanded="false" onClick={() => setLearningAdminVisible(true)}>学习控制</button>
           )}
         </div>
         {learningAdminVisible ? <LearningWorkspace /> : null}

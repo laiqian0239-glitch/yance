@@ -156,8 +156,10 @@ test('bilingual search panel renders evidence and truthful bounded translation l
   assert.match(panel, /aria-live=["']polite["']/u);
   assert.match(panel, /<progress\b/u);
   assert.match(panel, /cancellable/u);
-  assert.match(panel, />\s*Cancel\s*</u);
-  assert.match(panel, />\s*Retry\s*</u);
+  assert.match(panel, />\s*取消\s*</u);
+  assert.match(panel, />\s*重试\s*</u);
+  assert.match(panel, /翻译任务/u);
+  assert.match(panel, /消息、姓名或中文翻译/u);
   assert.match(panel, /setTimeout\s*\(/u);
   assert.match(panel, /clearTimeout\s*\(/u);
   assert.match(panel, /queued|running/u);
