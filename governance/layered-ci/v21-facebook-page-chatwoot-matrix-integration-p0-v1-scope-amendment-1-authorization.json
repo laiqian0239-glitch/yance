@@ -204,7 +204,7 @@
     "explicitOwnerAuthorizationRequired": true
   },
   "governance": {
-    "authorizationPredatesAmendedImplementation": true,
+    "authorizationPredatesImplementation": true,
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
     "productionUseAuthorized": false,
