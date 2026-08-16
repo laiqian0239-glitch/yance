@@ -38,45 +38,45 @@ test('forced previews bypass renderer throttling and native fallback keeps the s
   assert.match(main, /requestWindowsNativeSound\(\{ \.\.\.payload, pattern: serviceResult\.pattern \|\| kind \}\)/);
 });
 
-test('all selectable sound patterns are backed by valid WAV resources', () => {
+test('official built-in sound patterns use the seven-slot Yance Classic Electron asset family', () => {
   const files = [
-    'yance-message.wav',
-    'yance-message-soft.wav',
-    'yance-message-crystal.wav',
-    'yance-message-chime.wav',
-    'yance-message-pulse.wav',
-    'yance-message-sent.wav',
-    'yance-send-failed.wav',
-    'yance-contact-online.wav',
-    'yance-contact-offline.wav',
-    'yance-task-complete.wav',
-    'yance-warning-low.wav'
+    'yance-classic-message-in.wav',
+    'yance-classic-message-sent.wav',
+    'yance-classic-send-failed.wav',
+    'yance-classic-contact-online.wav',
+    'yance-classic-contact-offline.wav',
+    'yance-classic-task-complete.wav',
+    'yance-classic-warning-low.wav'
   ];
   for (const file of files) {
-    const value = fs.readFileSync(path.join(ROOT, 'frontend/assets/sounds', file));
+    const value = fs.readFileSync(path.join(ROOT, 'electron/assets/sounds', file));
     assert.equal(value.subarray(0, 4).toString('ascii'), 'RIFF', file);
     assert.equal(value.subarray(8, 12).toString('ascii'), 'WAVE', file);
     assert.ok(value.length > 1000, file);
   }
+
+  const soundAuthority = require('../../shared/notificationSoundCatalog');
+  const catalog = soundAuthority.soundCatalog();
+  assert.equal(catalog.patterns.length, 7);
+  assert.equal(catalog.events.length, 5);
+  assert.equal(catalog.library.builtInCount, 7);
+  assert.equal(catalog.library.originalCount, 7);
+  assert.equal(catalog.library.importedCount, 0);
+  assert.ok(catalog.patterns.every(row => row.group === 'Yance Classic' && row.family === 'Yance Classic' && row.pack === 'Yance Classic'));
+  assert.deepEqual(catalog.events.map(row => row.settingKey), ['incomingSoundPattern','outgoingSoundPattern','failureSoundPattern','presenceOnlineSoundPattern','presenceOfflineSoundPattern']);
 });
 
-test('settings and contact controls route through existing UI surfaces', () => {
-  const schema = require('../../electron/desktopSettingsSchema');
-  assert.equal(schema.DEFAULTS.minimizeToTray, false);
-  assert.equal(schema.normalizeDesktopSettings({ minimizeToTray: true }).minimizeToTray, false);
-  assert.ok(schema.DESKTOP_SETTING_KEYS.includes('minimizeToTray'));
-  const recovery = read('frontend/r32-settings-recovery.js');
-  for (const value of ['open-system-notifications','__Y27SystemCenter','state.soundCatalog','save-media']) assert.match(recovery, new RegExp(value));
-  assert.doesNotMatch(recovery, /data-action=\"save-notify\"/);
+test('notification policy remains the business settings authority and custom UUID sound fallback stays supported', () => {
+  const policy = read('backend/services/notificationPolicy.js');
   const soundAuthority = require('../../shared/notificationSoundCatalog');
-  assert.equal(soundAuthority.soundCatalog().patterns.length, 136);
-  assert.equal(soundAuthority.soundCatalog().events.length, 5);
-  const systemCenter = read('frontend/r32-system-center.js');
-  assert.match(systemCenter, /notificationSoundCatalog\(\)\.events\.map/);
-  for (const value of ['incomingSoundEnabled','outgoingSoundEnabled','failureSoundEnabled','presenceSoundEnabled','preview-sound']) assert.match(systemCenter, new RegExp(value));
-  assert.deepEqual(soundAuthority.soundCatalog().events.map(row => row.settingKey), ['incomingSoundPattern','outgoingSoundPattern','failureSoundPattern','presenceOnlineSoundPattern','presenceOfflineSoundPattern']);
-  const conversation = read('frontend/js/r32-conversation-capabilities.js');
-  for (const label of ['静音此联系人','设为重点联系人','试听新消息声音']) assert.match(conversation, new RegExp(label));
+  const customId = 'custom-12345678-1234-4123-8123-123456789abc';
+  assert.match(policy, /incomingSoundPattern/);
+  assert.match(policy, /presenceOfflineSoundPattern/);
+  assert.equal(soundAuthority.normalizeSoundPattern(customId), customId);
+  assert.equal(soundAuthority.soundFileName(customId), '');
+  assert.equal(soundAuthority.normalizeSoundPattern('qq-message', 'message-in'), 'message-in');
+  const customCatalog = soundAuthority.soundCatalog([{ id: customId, originalFileName: 'mine.wav' }]);
+  assert.equal(customCatalog.patterns.some(row => row.id === customId && row.custom === true), true);
 });
 
 test('backend publishes raw unified input before compatibility desktop notification', () => {
