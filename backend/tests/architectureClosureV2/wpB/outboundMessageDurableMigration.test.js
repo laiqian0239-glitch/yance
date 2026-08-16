@@ -232,6 +232,11 @@ test('M2-OUT-005 real platform facade preserves fenced persisted-attempt context
         providerRequestId: 'telegram-request-fenced-1'
       });
     },
+    eventLog: Object.freeze({
+      append(input) {
+        return Object.freeze({ eventId: 'event-fenced-1', input });
+      }
+    }),
     deliveryAuthority: Object.freeze({
       recordSuccess() { return Object.freeze({ observationId: 'delivery-observation-1', capabilityId: 'delivery-capability-1' }); },
       recordFailure() { throw new Error('failure evidence is not expected'); }
