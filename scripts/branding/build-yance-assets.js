@@ -11,7 +11,6 @@ const sourceRoot = path.join(brandRoot, 'source');
 const productRoot = path.join(brandRoot, 'product');
 const wordmarkRoot = path.join(brandRoot, 'wordmarks');
 const generated = path.join(brandRoot, 'generated');
-const runtime = path.join(root, 'frontend', 'assets', 'branding', 'yance');
 const productSvg = path.join(productRoot, 'yance-mark-flat.svg');
 const microSvg = path.join(productRoot, 'yance-mark-micro.svg');
 const sizes = [16, 20, 24, 32, 48, 64, 128, 256, 512, 1024];
@@ -58,25 +57,7 @@ function generateRasterAssets() {
   return { pngs, ico };
 }
 
-function copyRuntimeAssets({ pngs, ico }) {
-  fs.rmSync(runtime, { recursive: true, force: true });
-  fs.mkdirSync(runtime, { recursive: true });
-  const svgRelatives = [
-    'product/yance-mark-flat.svg',
-    'product/yance-mark-micro.svg',
-    'product/yance-mark-mono-dark.svg',
-    'product/yance-mark-mono-light.svg',
-    'presentation/yance-mark-display.svg',
-    'wordmarks/yance-wordmark-zh.svg',
-    'wordmarks/yance-wordmark-en.svg',
-    'wordmarks/yance-lockup-horizontal.svg',
-    'wordmarks/yance-lockup-stacked.svg'
-  ];
-  for (const rel of svgRelatives) copy(path.join(brandRoot, rel), path.join(runtime, path.basename(rel)));
-  for (const file of pngs) copy(file, path.join(runtime, path.basename(file)));
-  copy(ico, path.join(runtime, 'Yance.ico'));
-
-  // Stable public asset names requested by the brand contract.
+function publishCanonicalAliases({ pngs, ico }) {
   const aliases = new Map([
     [path.join(sourceRoot, 'yance-mark-master.svg'), path.join(brandRoot, 'yance-mark.svg')],
     [path.join(productRoot, 'yance-mark-flat.svg'), path.join(brandRoot, 'yance-mark-flat.svg')],
@@ -90,11 +71,6 @@ function copyRuntimeAssets({ pngs, ico }) {
   ]);
   for (const file of pngs) aliases.set(file, path.join(brandRoot, path.basename(file)));
   for (const [source, destination] of aliases) copy(source, destination);
-
-  // Existing runtime entry points remain stable while their bytes become Yance assets.
-  copy(path.join(generated, 'yance-app-icon-64.png'), path.join(root, 'frontend', 'assets', 'icon.png'));
-  copy(path.join(generated, 'yance-app-icon-512.png'), path.join(root, 'frontend', 'assets', 'icon-512.png'));
-  copy(ico, path.join(root, 'frontend', 'assets', 'icon.ico'));
 }
 
 function writeManifest({ pngs, ico }) {
@@ -129,7 +105,7 @@ function writeManifest({ pngs, ico }) {
 function main() {
   convertWordmarks();
   const generatedAssets = generateRasterAssets();
-  copyRuntimeAssets(generatedAssets);
+  publishCanonicalAliases(generatedAssets);
   writeManifest(generatedAssets);
   console.log(`Generated ${generatedAssets.pngs.length} PNG files, ${wordmarkConversions.length} path-based wordmarks, and ${relative(generatedAssets.ico)}`);
 }

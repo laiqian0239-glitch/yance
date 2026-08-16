@@ -7,7 +7,6 @@ const crypto = require('node:crypto');
 const ROOT = path.resolve(__dirname, '..', '..');
 const BRAND_ROOT = path.join(ROOT, 'assets', 'branding', 'yance');
 const GENERATED = path.join(BRAND_ROOT, 'generated');
-const RUNTIME = path.join(ROOT, 'frontend', 'assets', 'branding', 'yance');
 const REQUIRED_SIZES = [16, 20, 24, 32, 48, 64, 128, 256, 512, 1024];
 const REQUIRED_ICO_SIZES = [16, 20, 24, 32, 48, 64, 128, 256];
 const REQUIRED_COLORS = ['#0B1416', '#0F2E31', '#17BDB5', '#3DD9D0', '#E6ECEC', '#8A9499'];
@@ -80,8 +79,7 @@ function verifyYanceAssets() {
     const generated = required(path.join(GENERATED, `yance-app-icon-${size}.png`));
     const dimensions = pngDimensions(generated);
     if (dimensions.width !== size || dimensions.height !== size) fail('BRAND_PNG_SIZE_MISMATCH', `PNG size mismatch for ${size}`, dimensions);
-    assertSame(generated, path.join(BRAND_ROOT, `yance-app-icon-${size}.png`), `Public PNG alias drifted at ${size}px`);
-    assertSame(generated, path.join(RUNTIME, `yance-app-icon-${size}.png`), `Runtime PNG drifted at ${size}px`);
+    assertSame(generated, path.join(BRAND_ROOT, `yance-app-icon-${size}.png`), `Canonical PNG alias drifted at ${size}px`);
     pngEvidence.push({ size, bytes: fs.statSync(generated).size, sha256: sha256(generated) });
   }
 
@@ -89,11 +87,7 @@ function verifyYanceAssets() {
   const icoEntries = icoDimensions(ico);
   const dimensions = new Set(icoEntries.filter(row => row.width === row.height).map(row => row.width));
   for (const size of REQUIRED_ICO_SIZES) if (!dimensions.has(size)) fail('BRAND_ICO_SIZE_MISSING', `Yance.ico is missing ${size}x${size}`, { entries: icoEntries });
-  assertSame(ico, path.join(BRAND_ROOT, 'Yance.ico'), 'Public Yance.ico alias drifted');
-  assertSame(ico, path.join(RUNTIME, 'Yance.ico'), 'Runtime Yance.ico drifted');
-  assertSame(ico, path.join(ROOT, 'frontend', 'assets', 'icon.ico'), 'Electron/installer icon.ico drifted');
-  assertSame(path.join(GENERATED, 'yance-app-icon-64.png'), path.join(ROOT, 'frontend', 'assets', 'icon.png'), 'Electron icon.png drifted');
-  assertSame(path.join(GENERATED, 'yance-app-icon-512.png'), path.join(ROOT, 'frontend', 'assets', 'icon-512.png'), 'Electron icon-512.png drifted');
+  assertSame(ico, path.join(BRAND_ROOT, 'Yance.ico'), 'Canonical Yance.ico alias drifted');
 
   for (const file of walk(BRAND_ROOT)) {
     if (/\.(?:ttf|otf|woff2?|eot)$/i.test(file)) fail('BRAND_FONT_FILE_FORBIDDEN', `Font files must not be bundled: ${path.relative(ROOT, file)}`);
