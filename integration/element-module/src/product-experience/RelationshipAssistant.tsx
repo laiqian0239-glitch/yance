@@ -27,6 +27,7 @@ function statusText(projection: RelationshipAssistantProjection | null): string 
 }
 
 export function RelationshipAssistant({ relationship, onStateChange }: RelationshipAssistantProps): React.JSX.Element {
+  const relationshipId = relationship.id;
   const [projection, setProjection] = useState<RelationshipAssistantProjection | null>(null);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -44,7 +45,7 @@ export function RelationshipAssistant({ relationship, onStateChange }: Relations
 
   const refresh = async (syncDraft = false): Promise<void> => {
     try {
-      const next = await loadRelationshipAssistant(relationship.id);
+      const next = await loadRelationshipAssistant(relationshipId);
       applyProjection(next, syncDraft);
     } catch {
       setProjection(null);
@@ -62,7 +63,7 @@ export function RelationshipAssistant({ relationship, onStateChange }: Relations
 
     const load = async (syncDraft: boolean): Promise<void> => {
       try {
-        const next = await loadRelationshipAssistant(relationship.id);
+        const next = await loadRelationshipAssistant(relationshipId);
         if (!cancelled) applyProjection(next, syncDraft);
       } catch {
         if (!cancelled) {
@@ -85,7 +86,7 @@ export function RelationshipAssistant({ relationship, onStateChange }: Relations
     });
 
     const unsubscribe = subscribeRelationshipEvents((contactId) => {
-      if (contactId === relationship.id && !cancelled) void load(false);
+      if (contactId === relationshipId && !cancelled) void load(false);
     });
 
     return () => {
@@ -93,7 +94,7 @@ export function RelationshipAssistant({ relationship, onStateChange }: Relations
       if (refreshTimer !== undefined) window.clearTimeout(refreshTimer);
       unsubscribe();
     };
-  }, [relationship.id]);
+  }, [relationshipId]);
 
   const save = async (): Promise<void> => {
     const goalText = draft.trim();
@@ -101,7 +102,7 @@ export function RelationshipAssistant({ relationship, onStateChange }: Relations
     setBusy(true);
     onStateChange?.("listening");
     try {
-      const next = await updateRelationshipGoal(relationship.id, goalText);
+      const next = await updateRelationshipGoal(relationshipId, goalText);
       dirtyDraftRef.current = false;
       setProjection(next);
       setDraft(next.goal.goalText);
@@ -119,7 +120,7 @@ export function RelationshipAssistant({ relationship, onStateChange }: Relations
     if (!projection || projection.goal.exists !== true || busy) return;
     setBusy(true);
     try {
-      const next = await setRelationshipGoalPaused(relationship.id, !projection.goal.paused);
+      const next = await setRelationshipGoalPaused(relationshipId, !projection.goal.paused);
       setProjection(next);
       setStatus(next.goal.paused ? "Goal paused" : "Goal active");
       onStateChange?.("ready");
@@ -135,7 +136,7 @@ export function RelationshipAssistant({ relationship, onStateChange }: Relations
     if (!projection || projection.goal.exists !== true || busy) return;
     setBusy(true);
     try {
-      await deleteRelationshipGoal(relationship.id);
+      await deleteRelationshipGoal(relationshipId);
       dirtyDraftRef.current = false;
       setDraft("");
       await refresh(true);
