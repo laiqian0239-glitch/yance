@@ -20,6 +20,8 @@ This file is durable, repository-level execution guidance for AI/coding agents w
 
 Fast Closure V2 is the default governed implementation shape when a work package is failure-first and the root cause may span more than one boundary.
 
+Fast Closure V2 is effective only when the merged authorization and base-owned trusted parser/policy can enforce the required diagnostic-window and first-production-commit semantics. If the trusted parser still binds RED evidence to a fixed commit ordinal instead of the first production commit, do not begin governed implementation; close that parser-policy gap first rather than simulating Fast Closure V2 in process or commit-message convention.
+
 ### Multi-RED diagnostic window
 
 - Production implementation is forbidden until the diagnostic window is closed.
