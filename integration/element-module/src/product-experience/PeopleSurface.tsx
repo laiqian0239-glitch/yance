@@ -194,7 +194,18 @@ export function PeopleSurface({
                     data-selected={selected || undefined}
                     data-ring={position.ring}
                     data-intelligence-state={relationship.relationshipIntelligence?.state || "unavailable"}
-                    style={{ left: `${position.x}%`, top: `${position.y}%` }}
+                    style={{
+                      left: `${position.x}%`,
+                      top: `${position.y}%`,
+                      ...(denseUniverse ? {
+                        width: "40px",
+                        height: "40px",
+                        minHeight: "40px",
+                        padding: "3px",
+                        borderRadius: "50%",
+                        gridTemplateColumns: "1fr",
+                      } : {}),
+                    }}
                     aria-pressed={focused}
                     aria-label={`查看 ${relationship.name} 的关系洞察。${analysisStatusLabel}`}
                     onClick={() => onFocus(relationship.id)}
@@ -204,10 +215,12 @@ export function PeopleSurface({
                     <span className="yance-relationship-universe__node-avatar" aria-hidden="true">
                       {relationship.avatarUrl ? <img src={relationship.avatarUrl} alt="" /> : initials(relationship.name)}
                     </span>
-                    <span className="yance-relationship-universe__node-copy">
-                      <strong>{relationship.name}</strong>
-                      <span>{analysisStatusLabel}</span>
-                    </span>
+                    {denseUniverse ? null : (
+                      <span className="yance-relationship-universe__node-copy">
+                        <strong>{relationship.name}</strong>
+                        <span>{analysisStatusLabel}</span>
+                      </span>
+                    )}
                   </motion.button>
                 );
               })}
