@@ -31,6 +31,7 @@ const TRUSTED_MAIN_DELEGATED_GOVERNANCE_MODE = 'TRUSTED_MAIN_DELEGATED_GOVERNANC
 const DELEGATED_ROUTE_POLICY_PATH = 'governance/layered-ci/wp0-routing-policy.json';
 const DELEGATED_ROUTE_POLICY_MUTATION_DENIED = 'WP0_DELEGATED_ROUTE_POLICY_MUTATION_DENIED';
 const DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED = 'WP0_DELEGATED_DEPENDENCY_IDENTITY_MUTATION_DENIED';
+const FAST_CLOSURE_V2_REQUIRED_TRAILER = 'Yance-Closure-Matrix-Unknown-Blockers: 0';
 const DEPENDENCY_IDENTITY_SECTIONS = new Set([
   'dependencies',
   'devDependencies',
@@ -517,10 +518,23 @@ function resolveFailureFirstCommitProtocol(implementation, implementationPaths) 
     || declaration.approvedChangedFileCount !== allowedChangedPaths.length
     || declaration.approvedChangedFileSetSha256 !== workPackageChangedFilesSha256(allowedChangedPaths)) return false;
 
+  let fastClosureV2 = null;
+  if (Object.prototype.hasOwnProperty.call(declaration, 'fastClosureV2')) {
+    const fastClosure = declaration.fastClosureV2;
+    if (!isPlainJsonObject(fastClosure)
+      || !sameJson(Object.keys(fastClosure).sort(), ['enabled', 'requiredClosureTrailer'])
+      || fastClosure.enabled !== true
+      || fastClosure.requiredClosureTrailer !== FAST_CLOSURE_V2_REQUIRED_TRAILER) return false;
+    fastClosureV2 = Object.freeze({
+      requiredClosureTrailer: fastClosure.requiredClosureTrailer
+    });
+  }
+
   return Object.freeze({
     allowedChangedPaths: Object.freeze([...allowedChangedPaths]),
     approvedChangedFileCount: declaration.approvedChangedFileCount,
-    approvedChangedFileSetSha256: declaration.approvedChangedFileSetSha256
+    approvedChangedFileSetSha256: declaration.approvedChangedFileSetSha256,
+    fastClosureV2
   });
 }
 
@@ -552,6 +566,17 @@ function hasExactFailureFirstEvidence(commitMessage, redHead) {
     if (!match || !spec.valuePattern.test(match[1]) || (spec.value !== null && match[1] !== spec.value)) return false;
   }
   return true;
+}
+
+function hasExactFastClosureV2ClosureEvidence(commitMessage, requiredTrailer) {
+  if (typeof commitMessage !== 'string' || requiredTrailer !== FAST_CLOSURE_V2_REQUIRED_TRAILER) return false;
+  const key = 'Yance-Closure-Matrix-Unknown-Blockers';
+  const normalizedKey = key.toLowerCase();
+  const lines = commitMessage.split(/\r?\n/u);
+  const candidates = lines.filter(line => (
+    line.trimStart().slice(0, key.length).toLowerCase() === normalizedKey
+  ));
+  return candidates.length === 1 && candidates[0] === requiredTrailer;
 }
 
 function isValidGenericDelegatedGovernanceAuthorization(document, authorizationPath) {
@@ -1403,12 +1428,56 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID');
     }
 
-    if (firstParentCommits.length > 1) {
-      const firstPostRedCommit = firstParentCommits[1];
-      const resolveCommitMessage = options.resolveCommitMessage
-        || (commit => defaultCommitMessage(commit, options));
-      if (!hasExactFailureFirstEvidence(resolveCommitMessage(firstPostRedCommit), redHead)) {
+    const resolveCommitMessage = options.resolveCommitMessage
+      || (commit => defaultCommitMessage(commit, options));
+    if (!failureFirstProtocol.fastClosureV2) {
+      if (firstParentCommits.length > 1
+        && !hasExactFailureFirstEvidence(resolveCommitMessage(firstParentCommits[1]), redHead)) {
         return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID');
+      }
+    } else {
+      const diagnosticPaths = new Set(failureFirstProtocol.allowedChangedPaths);
+      let latestRedHead = redHead;
+      let productionStarted = false;
+      for (let index = 1; index < firstParentCommits.length; index += 1) {
+        const commit = firstParentCommits[index];
+        const expectedParent = firstParentCommits[index - 1];
+        const parents = resolveParents(commit);
+        const commitChangedFiles = resolveChangedFiles(expectedParent, commit);
+        const commitNormalized = normalizeChangedFiles(commitChangedFiles);
+        if (!Array.isArray(parents)
+          || parents.length !== 1
+          || parents[0] !== expectedParent
+          || !Array.isArray(commitChangedFiles)
+          || commitNormalized.length === 0
+          || commitNormalized.length !== commitChangedFiles.length
+          || !sameJson(commitNormalized, commitChangedFiles)
+          || commitNormalized.some(repositoryPath => !allowed.has(repositoryPath))) {
+          return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID');
+        }
+
+        const commitMessage = resolveCommitMessage(commit);
+        const diagnosticOnly = commitNormalized.every(repositoryPath => diagnosticPaths.has(repositoryPath));
+        if (!productionStarted && diagnosticOnly) {
+          if (!hasExactFailureFirstEvidence(commitMessage, latestRedHead)) {
+            return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID');
+          }
+          latestRedHead = commit;
+          continue;
+        }
+
+        if (!productionStarted) {
+          if (!hasExactFailureFirstEvidence(commitMessage, latestRedHead)) {
+            return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID');
+          }
+          if (!hasExactFastClosureV2ClosureEvidence(
+            commitMessage,
+            failureFirstProtocol.fastClosureV2.requiredClosureTrailer
+          )) {
+            return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_CLOSURE_MATRIX_INVALID');
+          }
+          productionStarted = true;
+        }
       }
     }
   }
