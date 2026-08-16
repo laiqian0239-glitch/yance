@@ -15,26 +15,8 @@ function productSource(...rels) {
   return rels.map(read).join('\n');
 }
 
-test('storeSnapshot binds workspace trajectory aliases to stable customer ids without changing the default snapshot contract', async () => {
-  const { installR32StoreBridge, CHANNELS } = require('../../electron/r32StoreBridge');
-  const handlers = new Map();
-  const ipcMain = {
-    handle(channel, handler) { handlers.set(channel, handler); },
-    removeHandler() {},
-    on() {},
-    removeListener() {}
-  };
-  const requests = [];
-  const snapshot = {
-    snapshot: {
-      customers: {
-        byId: {
-          c1: { id: 'c1', contactId: 'c1', displayName: 'Ada' }
-        }
-      }
-    }
-  };
-  const trustedProjection = {
+function trustedProjection(conversationId = 'conv-1') {
+  return {
     schemaVersion: 1,
     authorityId: 'RelationshipProjectionAuthority',
     state: 'pending_analysis',
@@ -43,7 +25,7 @@ test('storeSnapshot binds workspace trajectory aliases to stable customer ids wi
     analysisStatusLabel: 'AI 分析待执行',
     sourceScope: {
       sourceAccountId: 'wa-account-1',
-      conversationId: 'conv-1',
+      conversationId,
       canonicalContactId: 'canonical-1'
     },
     trajectory: {
@@ -64,22 +46,46 @@ test('storeSnapshot binds workspace trajectory aliases to stable customer ids wi
       ]]
     }
   };
+}
+
+function fakeIpcMain(handlers) {
+  return {
+    handle(channel, handler) { handlers.set(channel, handler); },
+    removeHandler() {},
+    on() {},
+    removeListener() {}
+  };
+}
+
+test('storeSnapshot preserves the default contract and keeps trusted relationship intelligence keyed by the authority conversation scope', async () => {
+  const { installR32StoreBridge, CHANNELS } = require('../../electron/r32StoreBridge');
+  const handlers = new Map();
+  const requests = [];
+  const snapshot = {
+    snapshot: {
+      customers: {
+        byId: {
+          c1: { id: 'c1', contactId: 'c1', displayName: 'Ada' }
+        }
+      },
+      conversations: {
+        byId: {
+          'conv-2': { id: 'conv-2', contactId: 'c1' },
+          'conv-1': { id: 'conv-1', contactId: 'c1' }
+        },
+        byContactId: { c1: ['conv-2', 'conv-1'] }
+      }
+    }
+  };
+  const first = trustedProjection('conv-1');
+  const latest = trustedProjection('conv-2');
   const apiRequest = async (requestPath) => {
     requests.push(requestPath);
-    if (requestPath === '/api/workspace/bootstrap') {
+    if (requestPath === '/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1') {
       return {
-        contacts: [
-          {
-            id: 'workspace-row-1',
-            sessionKey: 'conv-1',
-            conversationId: 'conv-alias-1',
-            contactId: 'c1',
-            canonicalContactId: 'canonical-1'
-          },
-          { id: 'conv-legacy', sessionKey: 'conv-legacy', contactId: 'c2', canonicalContactId: 'canonical-2' }
-        ],
         trajectoryState: {
-          'conv-1': { relationshipProjection: trustedProjection },
+          'conv-2': { relationshipProjection: latest },
+          'conv-1': { relationshipProjection: first },
           'conv-legacy': {
             relationshipPotential: 99,
             relationshipProjection: { authorityId: 'LegacyRelationshipHeuristic', trajectory: { stage: 'VIP' } }
@@ -90,7 +96,7 @@ test('storeSnapshot binds workspace trajectory aliases to stable customer ids wi
     return snapshot;
   };
 
-  installR32StoreBridge({ ipcMain, apiRequest });
+  installR32StoreBridge({ ipcMain: fakeIpcMain(handlers), apiRequest });
   const handler = handlers.get(CHANNELS.snapshot);
   assert.equal(typeof handler, 'function');
 
@@ -99,14 +105,17 @@ test('storeSnapshot binds workspace trajectory aliases to stable customer ids wi
   assert.deepEqual(requests, ['/api/r32/store/snapshot?domains=customers']);
 
   requests.length = 0;
-  const enriched = await handler({}, { domains: ['customers'], includeRelationshipIntelligence: true });
+  const enriched = await handler({}, { domains: ['customers', 'conversations'], includeRelationshipIntelligence: true });
   assert.deepEqual([...requests].sort(), [
-    '/api/r32/store/snapshot?domains=customers',
-    '/api/workspace/bootstrap'
+    '/api/r32/store/snapshot?domains=customers%2Cconversations',
+    '/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1'
   ].sort());
   assert.deepEqual(enriched.snapshot, snapshot.snapshot);
-  assert.deepEqual(enriched.relationshipIntelligence, { c1: trustedProjection });
-  assert.equal(Object.hasOwn(enriched.relationshipIntelligence, 'conv-1'), false);
+  assert.deepEqual(enriched.relationshipIntelligence, {
+    'conv-2': latest,
+    'conv-1': first
+  });
+  assert.equal(Object.hasOwn(enriched.relationshipIntelligence, 'c1'), false, 'authority evidence must not be re-keyed to contact scope');
   assert.equal(JSON.stringify(enriched).includes('relationshipPotential'), false);
   assert.equal(JSON.stringify(enriched).includes('LegacyRelationshipHeuristic'), false);
 });
@@ -114,12 +123,6 @@ test('storeSnapshot binds workspace trajectory aliases to stable customer ids wi
 test('storeSnapshot starts optional relationship enrichment concurrently and degrades to the primary snapshot when bootstrap fails', async () => {
   const { installR32StoreBridge, CHANNELS } = require('../../electron/r32StoreBridge');
   const handlers = new Map();
-  const ipcMain = {
-    handle(channel, handler) { handlers.set(channel, handler); },
-    removeHandler() {},
-    on() {},
-    removeListener() {}
-  };
   const snapshot = { snapshot: { customers: { byId: { c1: { id: 'c1', contactId: 'c1' } } } } };
   const requests = [];
   let resolveSnapshot;
@@ -128,16 +131,16 @@ test('storeSnapshot starts optional relationship enrichment concurrently and deg
   const bootstrapPromise = new Promise((_resolve, reject) => { rejectBootstrap = reject; });
   const apiRequest = (requestPath) => {
     requests.push(requestPath);
-    if (requestPath === '/api/workspace/bootstrap') return bootstrapPromise;
+    if (requestPath === '/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1') return bootstrapPromise;
     if (requestPath === '/api/r32/store/snapshot?domains=customers') return snapshotPromise;
     throw new Error(`Unexpected request ${requestPath}`);
   };
 
-  installR32StoreBridge({ ipcMain, apiRequest });
+  installR32StoreBridge({ ipcMain: fakeIpcMain(handlers), apiRequest });
   const handler = handlers.get(CHANNELS.snapshot);
   const pending = handler({}, { domains: ['customers'], includeRelationshipIntelligence: true });
   await Promise.resolve();
-  const bootstrapStartedBeforeSnapshotResolved = requests.includes('/api/workspace/bootstrap');
+  const bootstrapStartedBeforeSnapshotResolved = requests.includes('/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1');
   resolveSnapshot(snapshot);
   await Promise.resolve();
   rejectBootstrap(new Error('workspace bootstrap unavailable'));
@@ -147,6 +150,19 @@ test('storeSnapshot starts optional relationship enrichment concurrently and deg
   assert.deepEqual(result.snapshot, snapshot.snapshot);
   assert.deepEqual(result.relationshipIntelligence, {});
   assert.equal(result.__yanceBridgeError, undefined);
+});
+
+test('Product joins relationship intelligence through the existing customer-to-conversation snapshot relation without local evidence re-keying', () => {
+  const bridge = read('electron/r32StoreBridge.js');
+  const projection = read('integration/element-module/src/product-experience/experienceProjection.ts');
+
+  assert.match(projection, /domains:\s*\["customers",\s*"conversations"\]/u);
+  assert.match(projection, /conversations/u);
+  assert.match(projection, /byContactId/u);
+  assert.match(projection, /relationshipIntelligence\[conversationId\]/u);
+  assert.doesNotMatch(bridge, /stableContactIdByTrajectoryId|projections\[stableContactId\]/u);
+  assert.match(bridge, /projections\[trajectoryId\]\s*=\s*projection/u);
+  assert.match(bridge, /conversationLimit=2000&messageLimit=1/u);
 });
 
 test('Product projection accepts only RelationshipProjectionAuthority relationship intelligence and exposes truthful authority states', () => {
@@ -170,8 +186,7 @@ test('Product projection accepts only RelationshipProjectionAuthority relationsh
   ]) assert.doesNotMatch(projection, new RegExp(forbidden, 'u'));
 });
 
-test('review closure keeps relationship intelligence identity, state, refresh, accessibility and event normalization contract-driven', () => {
-  const bridge = read('electron/r32StoreBridge.js');
+test('review closure keeps relationship intelligence state, refresh, accessibility and event normalization contract-driven', () => {
   const projection = read('integration/element-module/src/product-experience/experienceProjection.ts');
   const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
   const people = read('integration/element-module/src/product-experience/PeopleSurface.tsx');
@@ -179,8 +194,6 @@ test('review closure keeps relationship intelligence identity, state, refresh, a
   const types = read('integration/element-module/src/product-experience/experienceTypes.ts');
   const css = read('integration/element-module/src/product-experience/ProductExperienceShell.css');
 
-  assert.match(bridge, /contact\.id[\s\S]*contact\.sessionKey[\s\S]*contact\.conversationId/u);
-  assert.match(projection, /const stableContactId = text\(row\.contactId \|\| row\.id \|\| key\)/u);
   assert.match(projection, /relationshipIntelligenceState\(row\.state\)[\s\S]*\|\| relationshipIntelligenceState\(trajectory\.projectionState\)/u);
   assert.match(projection, /value\.length !== 5/u);
   assert.match(projection, /\/graphiti\/iu/u);
@@ -249,7 +262,6 @@ test('relationship intelligence surface adds no new IPC, backend route, database
   );
 
   assert.match(bridge, /snapshot:\s*'store:get-snapshot'/u);
-  assert.match(bridge, /contact\.contactId/u);
   assert.doesNotMatch(bridge, /relationship-intelligence|relationship:.*intelligence/u);
   assert.doesNotMatch(product, /new\s+(?:Relationship|Graph|Neo4j)|\/api\/relationship|ipcRenderer|contextBridge/u);
 });
