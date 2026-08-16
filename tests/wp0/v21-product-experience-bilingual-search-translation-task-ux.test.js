@@ -198,3 +198,14 @@ test('translation completion refreshes the latest query instead of an effect-cap
   assert.match(panel, /runSearch\(latestQuery\.current\)/u);
   assert.doesNotMatch(panel, /nextStatus\s*===\s*"success"\s*&&\s*query\.trim\(\)[\s\S]{0,160}runSearch\(query\)/u);
 });
+
+test('translation status chrome localizes unknown runtime states instead of exposing provider strings', () => {
+  const panel = readOrEmpty(PANEL_PATH);
+  assert.match(panel, /if\s*\(!status\)\s*return\s*["']已更新["']/u);
+  assert.match(panel, /return\s*["']状态未知["']/u);
+  assert.doesNotMatch(panel, /return\s+status\s*\|\|\s*["']已更新["']/u);
+  assert.match(
+    panel,
+    /activeJob\.durableState\s*\?\s*<span>\{translationStatusLabel\(activeJob\.durableState\)\}<\/span>\s*:\s*null/u,
+  );
+});
