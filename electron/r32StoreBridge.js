@@ -38,26 +38,14 @@ function objectRecord(value) {
 function trustedRelationshipIntelligence(value) {
   const bootstrap = objectRecord(value);
   const trajectoryState = objectRecord(bootstrap.trajectoryState);
-  const contacts = Array.isArray(bootstrap.contacts) ? bootstrap.contacts : [];
-  const stableContactIdByTrajectoryId = new Map();
-  for (const rawContact of contacts) {
-    const contact = objectRecord(rawContact);
-    const stableContactId = clean(contact.contactId);
-    if (!stableContactId) continue;
-    for (const rawTrajectoryId of [contact.id, contact.sessionKey, contact.conversationId]) {
-      const trajectoryId = clean(rawTrajectoryId);
-      if (trajectoryId) stableContactIdByTrajectoryId.set(trajectoryId, stableContactId);
-    }
-  }
-
   const projections = {};
-  for (const [trajectoryId, rawTrajectory] of Object.entries(trajectoryState)) {
-    const stableContactId = stableContactIdByTrajectoryId.get(trajectoryId);
-    if (!stableContactId || projections[stableContactId]) continue;
+  for (const [rawTrajectoryId, rawTrajectory] of Object.entries(trajectoryState)) {
+    const trajectoryId = clean(rawTrajectoryId);
+    if (!trajectoryId) continue;
     const trajectory = objectRecord(rawTrajectory);
     const projection = objectRecord(trajectory.relationshipProjection);
     if (projection.authorityId === 'RelationshipProjectionAuthority') {
-      projections[stableContactId] = projection;
+      projections[trajectoryId] = projection;
     }
   }
   return projections;
@@ -107,7 +95,7 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       if (input.includeRelationshipIntelligence !== true) return apiRequest(snapshotPath);
       const [snapshot, bootstrap] = await Promise.all([
         apiRequest(snapshotPath),
-        apiRequest('/api/workspace/bootstrap').catch(() => null)
+        apiRequest('/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1').catch(() => null)
       ]);
       return {
         ...objectRecord(snapshot),
