@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-RELATIONSHIP-UNIVERSE-IMMERSIVE-P0-V1",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Closure V2 post-production Stage RED 31947990858 at exact production head a07b74b75aa2868fc9c672a65471bd0aba6f2cd8 proved exactly four stale executable Product-consumer contract paths outside the original fifteen-path implementation scope. The new relationship-universe root contracts, Chinese Product relationship chrome contracts, RelationshipProjectionAuthority/Graphiti contracts, Parlant Private Quest contracts, bilingual translation lifecycle contracts, accessibility contracts, Base UI/Motion/Rive/Howler interaction contracts and Product shell composition contract are already GREEN. The remaining five failures are old English presentation assertions in Element workspace, Learning UI, Media UI and Presence UI tests. Reintroducing hidden or compatibility English Product labels merely to satisfy those tests would violate the merged Chinese real-UI design and constitute a workaround. This amendment therefore adds exactly those four proven stale consumer-test paths, leaves the nine-path production scope unchanged, preserves all Element/Matrix, Learning, Media and Presence runtime authorities, and requires a new continuation branch so the original failure-first and production commits remain immutable evidence.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-relationship-universe-immersive-p0-v1-authorization.json",
+    "authorizationMerge": "c71350e59e1444ff3353de91e473e771014c88e7",
+    "implementationBranch": "product/v21-product-relationship-universe-immersive-p0-v1",
+    "reason": "Fresh post-production causal RED proved four additional stale executable consumer-test boundaries. The original implementation branch remains immutable evidence at production head a07b74b75aa2868fc9c672a65471bd0aba6f2cd8 and must receive no further commits after this amendment becomes effective."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "c71350e59e1444ff3353de91e473e771014c88e7"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "c71350e59e1444ff3353de91e473e771014c88e7",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-relationship-universe-immersive-p0-v1-scope-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-relationship-universe-immersive-p0-v1-scope-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2f36a9045d248abf8fc64322732bf528048fd2af27793290e32211b1324e3fe3",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-relationship-universe-immersive-p0-v1-amendment-1",
+    "allowedChangedPaths": [
+      "integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/RiveRelationshipCompanion.tsx",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-presence-avatar-ui.test.js",
+      "tests/wp0/v21-product-ai-companion-private-quest-p0.test.js",
+      "tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js",
+      "tests/wp0/v21-product-experience-shell-accessibility.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-relationship-intelligence-surface.test.js",
+      "tests/wp0/v21-product-relationship-universe-immersive-p0.test.js"
+    ],
+    "approvedChangedFileCount": 19,
+    "approvedChangedFileSetSha256": "c9b574bbfa4b809867387654696b05728bf8d5120c9d8d3110828c60dcf06354",
+    "newlyAuthorizedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-presence-avatar-ui.test.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 4,
+    "newlyAuthorizedChangedFileSetSha256": "b002cbf601f0ebc3a885cd766de07bea66804f71ef900f8c63a2d027be2a6b37",
+    "productionAllowedChangedPaths": [
+      "integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/RiveRelationshipCompanion.tsx"
+    ],
+    "productionChangedFileCount": 9,
+    "productionChangedFileSetSha256": "a542f650304b9c0fc8f0ba21555fcfe5659c5fd6ebc6d1bfa909390cf721e54b",
+    "productionPathScopeUnchanged": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "graphitiRuntimeModificationAllowed": false,
+    "neo4jRuntimeModificationAllowed": false,
+    "lettaRuntimeModificationAllowed": false,
+    "parlantRuntimeModificationAllowed": false,
+    "learningRuntimeModificationAllowed": false,
+    "elementConversationAuthorityModificationAllowed": false,
+    "searchTranslationRuntimeModificationAllowed": false,
+    "mediaRuntimeModificationAllowed": false,
+    "presenceRuntimeModificationAllowed": false,
+    "productRendererModificationAllowed": true
+  },
+  "postRedContinuation": {
+    "fastClosureV2": true,
+    "originalEffectiveAuthorizationMerge": "c71350e59e1444ff3353de91e473e771014c88e7",
+    "originalImplementationBranch": "product/v21-product-relationship-universe-immersive-p0-v1",
+    "originalFailureFirstHead": "ba55af3b7171a53f84c001517ecf1366709a736f",
+    "originalFailureFirstStageRun": 31947428295,
+    "originalFailureFirstConclusion": "failure",
+    "originalFailureFirstStagePassCount": 448,
+    "originalFailureFirstStageFailCount": 13,
+    "closureMatrixUnknownBlockersAtFirstProduction": 0,
+    "firstProductionHead": "a07b74b75aa2868fc9c672a65471bd0aba6f2cd8",
+    "firstProductionCommitCarriesExactRedTrailers": true,
+    "postProductionCausalRedHead": "a07b74b75aa2868fc9c672a65471bd0aba6f2cd8",
+    "postProductionCausalStageRun": 31947990858,
+    "postProductionCausalStageJob": 95166979248,
+    "postProductionCausalStageConclusion": "failure",
+    "postProductionStagePassCount": 456,
+    "postProductionStageFailCount": 5,
+    "provenNewScopePaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-presence-avatar-ui.test.js"
+    ],
+    "unknownBlockers": 0,
+    "requiredContinuationTopology": {
+      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
+      "firstContinuationCommitMustBeTwoParentMerge": true,
+      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
+      "firstContinuationCommitSecondParent": "a07b74b75aa2868fc9c672a65471bd0aba6f2cd8",
+      "historyRewriteForbidden": true,
+      "cherryPickDuplicationForbidden": true,
+      "oldImplementationBranchMustNotReceiveFurtherCommits": true
+    }
+  },
+  "causalRedClassification": {
+    "rootImplementationAlreadyGreen": [
+      "tests/wp0/v21-product-relationship-universe-immersive-p0.test.js",
+      "tests/wp0/v21-product-relationship-intelligence-surface.test.js",
+      "tests/wp0/v21-product-ai-companion-private-quest-p0.test.js",
+      "tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-accessibility.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "RelationshipProjectionAuthority / Graphiti conversation-scoped relationship intelligence contracts",
+      "Parlant Goal/Journey and Private Quest runtime contracts",
+      "durable bilingual search/translation job lifecycle contracts",
+      "Base UI/Motion/Rive/Howler Product primitive contracts"
+    ],
+    "staleElementAssertions": [
+      "Two Element workspace consumer assertions still require ProductExperienceShell to expose aria-label Yance Living Relationship OS instead of the successor Chinese shell label Yance 关系智能操作系统."
+    ],
+    "staleLearningAssertions": [
+      "Learning UI consumer test still requires visible Experience and Learning controls English chrome even though LearningWorkspace reachability remains intact through explicit secondary Chinese settings."
+    ],
+    "staleMediaAssertions": [
+      "Media UI consumer test still requires Photo, Attachment and Immich library and ComfyUI visible Product labels even though photo/attachment action kinds, MediaWorkspace authority and Base UI Popover remain intact."
+    ],
+    "stalePresenceAssertions": [
+      "Presence UI consumer test still requires Live and LiveKit room and avatar visible Product labels even though live action kind, PresenceWorkspace/React Router authority and Base UI integration remain intact."
+    ],
+    "preservedAuthorities": [
+      "Element/Matrix conversation, timeline, composer, room and public navigation authority.",
+      "LearningWorkspace secondary admin reachability and Learning runtime authority.",
+      "MediaWorkspace ownership of media/photo/attachment runtime behavior.",
+      "PresenceWorkspace ownership of live/presence/avatar runtime behavior.",
+      "Existing action kinds photo, voice, live and attachment remain stable internal identifiers.",
+      "No hidden English compatibility UI or implementation/provider telemetry is restored."
+    ],
+    "unknownBlockers": 0
+  },
+  "contractMigration": {
+    "productionCodeChanged": false,
+    "allowedChangedPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-presence-avatar-ui.test.js"
+    ],
+    "requiredMigrations": [
+      "Element workspace contract replaces both old Yance Living Relationship OS aria-label assertions with Yance 关系智能操作系统 while preserving all Element public API, workspace composition, Nx materialization and forbidden-private-seam assertions.",
+      "Learning UI contract requires 体验设置, 学习控制 and 收起学习控制 while preserving LearningWorkspace import, explicit secondary reachability, no permanent normal-scene mount and all Learning runtime assertions.",
+      "Media UI contract requires 照片 and 附件 visible labels plus user-oriented Chinese media hints while preserving kind photo/attachment, MediaWorkspace, Base UI Popover, scoped CSS and every non-UI media authority assertion.",
+      "Presence UI contract requires 实时陪伴 and 实时空间 visible labels while preserving kind live, PresenceWorkspace/React Router, Base UI and all LiveKit/desktop authority assertions."
+    ],
+    "forbiddenMigrations": [
+      "Do not weaken or delete Element, Learning, Media, Presence, Base UI, React Router, LiveKit, IPC or runtime authority assertions.",
+      "Do not restore English labels, provider names, raw runtime inventory or hidden compatibility elements merely to satisfy stale tests.",
+      "Do not modify any production path unless a new fresh exact-head causal RED proves a separate defect after this amendment."
+    ]
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "People Home remains list-default with explicit 关系宇宙 switching and truthful user-centered constellation semantics.",
+      "Normal Product relationship chrome remains Chinese while internal enum, action-kind and authority identifiers remain stable.",
+      "Element/Matrix remains the sole conversation/navigation authority; Product shell aria is Chinese presentation only.",
+      "Learning admin remains explicitly user-reachable through secondary 体验设置 without permanent normal-scene mounting.",
+      "Media and Presence child workspaces remain unchanged runtime authorities while their Product host actions use Chinese user-facing labels.",
+      "The original failure-first and first production commits remain preserved unchanged in continuation history."
+    ],
+    "forbiddenBehavior": [
+      "Do not add hidden English compatibility labels or raw provider/runtime names to make stale tests pass.",
+      "Do not change Element/Matrix, Learning, Media, Presence, Graphiti, Neo4j, Parlant, Letta or translation runtime authority.",
+      "Do not introduce graph edges, relationship scores, graph/layout infrastructure, dependencies, workflows, IPC channels, backend routes, databases, services, caches or sidecars.",
+      "Do not rewrite, squash, rebase or force-update the original implementation history."
+    ]
+  },
+  "ossFit": {
+    "decision": "PRESERVE_EXISTING_PRODUCT_AND_CHILD_WORKSPACE_AUTHORITIES_MIGRATE_STALE_CONSUMER_TESTS_ONLY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Element / Matrix + Base UI / Motion / Rive",
+        "source": "existing repository-pinned Product runtime/primitives",
+        "license": "repository-pinned",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "The new Product implementation is already green; the RED is stale visible-copy consumer contracts, not a missing UI/runtime framework."
+      },
+      {
+        "name": "LearningWorkspace / MediaWorkspace / PresenceWorkspace",
+        "source": "existing repository-owned adapters over already-authorized runtimes",
+        "license": "repository scope",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Their runtime ownership and reachability assertions remain green; only host-level English presentation assertions need migration."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire only the four stale English Product-consumer presentation contracts proven by Stage 31947990858.",
+      "Do not retire, duplicate or bypass Element, Learning, Media, Presence, Base UI, Motion or Rive authority.",
+      "Do not add a compatibility UI layer, translation shim, provider-name alias or new Yance infrastructure as a test workaround."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-element-workspace-contract.test.js",
+      "node --test tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "node --test tests/wp0/v21-media-brain-ui.test.js",
+      "node --test tests/wp0/v21-presence-avatar-ui.test.js",
+      "node --test tests/wp0/v21-product-relationship-universe-immersive-p0.test.js",
+      "node --test tests/wp0/v21-product-relationship-intelligence-surface.test.js",
+      "node --test tests/wp0/v21-product-ai-companion-private-quest-p0.test.js",
+      "node --test tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-accessibility.test.js",
+      "node --test tests/wp0/v21-product-experience-shell-p0.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when triggered",
+      "ACV2 when triggered",
+      "WP-A validation when triggered",
+      "Product Experience Final Validation when triggered",
+      "Model validation when triggered"
+    ],
+    "negativeProofs": [
+      "No hidden English compatibility UI is introduced.",
+      "Element/Matrix public conversation/navigation boundaries remain intact.",
+      "Learning, Media and Presence child-workspace runtime authorities remain intact.",
+      "Original RED evidence and first production trailers remain present through the required two-parent continuation merge.",
+      "No new dependency or infrastructure is introduced."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
