@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-16T17:24:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FACEBOOK-PAGE-CHATWOOT-MATRIX-P0-V1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main Facebook Page integration successor. The independently completed YANCE-MULTIBRIDGE-LAB readiness package proves the thin Chatwoot REST/signed-webhook to Matrix boundary with 73/73 static tests plus validate/policy-scan GREEN, while current Yance main still routes facebook-page-official through the Yance-owned facebookAdapter/Cloudflare Worker Page transport. This package adopts Chatwoot CE v4.16.2 as the sole Facebook Page protocol/runtime authority, reuses the existing Matrix/Element seam, and retires the old Yance Page transport/OAuth path from production reachability without affecting Facebook Personal identity or experimental Personal Messenger.",
+  "base": {
+    "branch": "main",
+    "commit": "71f5d5b4ad482fae28ba9baf10684a33150cf190"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "71f5d5b4ad482fae28ba9baf10684a33150cf190",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-page-chatwoot-matrix-integration-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-page-chatwoot-matrix-integration-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "01c24a465580e594ff394f28faa015e8e0cab86c64206cc186d8ee86f997e9de",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-facebook-page-chatwoot-matrix-integration-p0-v1",
+    "allowedChangedPaths": [
+      "backend/routes/accounts.js",
+      "backend/services/facebookChatwootMatrixBridge.js",
+      "backend/services/facebookOAuthService.js",
+      "backend/services/platformDriverRegistry.js",
+      "config/upstreams/v21-comms-p0.json",
+      "services/matrix/chatwoot-facebook-page/contract.json",
+      "tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js"
+    ],
+    "approvedChangedFileCount": 7,
+    "approvedChangedFileSetSha256": "ae5e92b99a2ca54df8ffe63b84485b3f49bbcd9654c3706b99c5acd1d4fc08ec",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "b3a77b0ad78e1ee8e592ae86674503d8e966a557f825f4a294c27d6b2be697d1",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "v21-comms-p0 upstream authority does not yet pin Chatwoot CE v4.16.2 exact commit 70e284a044f00326725f65f703162745371075ec for Facebook Page.",
+        "platformDriverRegistry still imports facebookAdapter and resolves facebook-page-official to the Yance-owned Page transport instead of the Chatwoot/Matrix external-runtime boundary.",
+        "facebookOAuthService still starts the legacy Yance Worker Page OAuth flow instead of failing closed for Page accounts now owned by Chatwoot.",
+        "the existing /accounts/facebook/webhook production path is not yet the Chatwoot signed-account-webhook boundary with exact raw-body HMAC and 300-second freshness validation.",
+        "no production thin Chatwoot REST/account-webhook to Matrix room-state bridge exists on trusted main."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "productRendererModificationAllowed": false
+  },
+  "artifactAuthority": {
+    "source": "YANCE-MULTIBRIDGE-LAB Facebook Ads/Page Chatwoot P0 readiness package",
+    "fileName": "yance-multibridge-facebook-ads-chatwoot-p0-readiness-2026-08-16.zip",
+    "sha256": "9808015d8e6a0626ea0a69750f114a237a5ccd371f5d68d8af62769006fb1e7f",
+    "staticEvidence": "73/73 tests GREEN; validate GREEN; policy-scan GREEN",
+    "realAccountEvidencePresent": false,
+    "sourcePackageIntegrationEligibleFlag": false,
+    "ownerAccelerationDecision": "Do not run the remaining Real P0 15-item manual account matrix before this source integration lands.",
+    "falseCapabilityClaimForbidden": true
+  },
+  "validationAcceleration": {
+    "realAccountP0ManualMatrixRequiredBeforeSourceMerge": false,
+    "reason": "Owner explicitly prioritizes fastest project landing and waived the remaining repetitive manual Page A/B real-account matrix as a source-merge prerequisite.",
+    "staticReadinessEvidencePreserved": true,
+    "githubGovernanceGatesStillRequired": true,
+    "realAccountCapabilityFlagsMayBePromotedWithoutEvidence": false,
+    "productionReleaseClaimAuthorized": false
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "Chatwoot CE v4.16.2 exact commit is the sole Facebook Page OAuth, Page discovery, credential, Meta webhook, Messenger send/receive/media, jobs/retry and authorization-state authority.",
+      "Facebook Page account identity remains facebook_ads:<page-id> and one Chatwoot Facebook Page inbox maps to exactly one Page identity.",
+      "Incoming Chatwoot account webhooks are verified from raw bytes using the Chatwoot webhook secret and X-Chatwoot-Timestamp freshness bounded to 300 seconds before parsing/routing.",
+      "Chatwoot conversation to Matrix room identity is stored only as Matrix room state com.yance.multibridge.binding / facebook_ads; no second Yance conversation database is introduced.",
+      "Inbound Page text/media is projected into the existing Matrix seam and outbound bound Matrix text/media is sent through the exact Chatwoot conversation.",
+      "Old Yance Page facebookAdapter transport and Worker Page OAuth become unreachable for page accounts, while Facebook Personal identity and experimental Personal Messenger remain unchanged."
+    ],
+    "forbiddenBehavior": [
+      "Do not call Meta Graph API directly from the new Page integration.",
+      "Do not persist Facebook passwords, Page tokens, user tokens, Chatwoot API tokens, Matrix tokens or webhook secrets in repository files or evidence.",
+      "Do not introduce a Page-specific message/contact database, retry queue, deduplication store, conversation state machine or connector framework.",
+      "Do not treat the skipped manual Real P0 matrix as completed or promote unverified capability flags without evidence.",
+      "Do not modify Facebook Personal identity or Personal Messenger runtime ownership in this work package.",
+      "Do not add package dependencies, workflows, database migrations or a second Matrix store."
+    ]
+  },
+  "ossFit": {
+    "decision": "ADOPT_CHATWOOT_WHOLE_RUNTIME_REUSE_MATRIX_THIN_ADAPTER_ONLY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "sidecar-service",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Chatwoot CE",
+        "source": "chatwoot/chatwoot",
+        "upstreamVersion": "v4.16.2",
+        "license": "MIT",
+        "adoptionMode": "whole-runtime-sidecar",
+        "fit": "FIT",
+        "reason": "Exact source owns Facebook Page OAuth, manageable Page discovery, encrypted credential lifecycle, /bot webhook handling, Messenger text/media send/receive, jobs/retry, delivery state and reauthorization behavior."
+      },
+      {
+        "name": "Element / Matrix / Synapse",
+        "source": "existing repository-pinned V21 Communications P0 authorities",
+        "upstreamVersion": "existing repository pins",
+        "license": "AGPL-3.0 family",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already owns the unified conversation shell and canonical Matrix room/event state; Facebook Page must enter this seam rather than create a second inbox."
+      },
+      {
+        "name": "mautrix/meta",
+        "source": "mautrix/meta",
+        "upstreamVersion": "independent Lab pin",
+        "license": "AGPL-3.0",
+        "adoptionMode": "retain-for-facebook-personal-only",
+        "fit": "GAP",
+        "reason": "Retained for Facebook Personal evaluation; it is not promoted to the official Page/OAuth commercial account authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire Yance facebookAdapter/Cloudflare Worker as the production Facebook Page transport and Page OAuth authority.",
+      "Avoid copying Chatwoot Facebook protocol classes into Yance; consume stable REST and signed account-webhook boundaries only.",
+      "Avoid introducing another connector framework, Page message database, retry queue or Matrix state store.",
+      "Avoid mutable Chatwoot/pgvector/Redis image tags inside Yance; Chatwoot remains an independently managed whole-runtime sidecar for this P0 source integration."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Trusted main is freshly read and the effective authorization merge is an ordinary two-parent merge rooted at this exact base commit.",
+      "Implementation branch starts exactly from the effective authorization merge commit.",
+      "The seven-path implementation set and one-test failure-first set/count/digests exactly match this document.",
+      "Current open Draft PR #17 overlaps none of the seven paths; backend/services/accountManager.js intentionally remains out of scope.",
+      "Current open Draft PR #67 overlaps none of the seven paths.",
+      "The readiness ZIP SHA-256 matches 9808015d8e6a0626ea0a69750f114a237a5ccd371f5d68d8af62769006fb1e7f and its static Chatwoot/Matrix contracts remain the source basis.",
+      "No dependency/workflow/database/product-renderer path enters scope."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "Chatwoot exact upstream pin and authority contract",
+      "old facebook-page-official -> facebookAdapter production reachability",
+      "legacy Page Worker OAuth reachability",
+      "Chatwoot signed webhook verification and timestamp freshness",
+      "facebook_ads:<page-id> Page/inbox identity isolation",
+      "Chatwoot conversation <-> Matrix room-state mapping",
+      "Matrix outbound -> exact Chatwoot conversation send",
+      "Facebook Personal identity/session preservation",
+      "negative proof of no direct Meta Graph Page client",
+      "negative proof of no new Page DB/retry queue/connector framework",
+      "negative proof that skipped Real P0 evidence is not represented as verified"
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js",
+      "node --test backend/tests/fix6oScopedSafetyAndFacebookDrivers.test.js",
+      "node --test backend/tests/facebookOAuthLifecycleRegression.test.js",
+      "node --test tests/wp0/v21-comms-p0.test.js",
+      "node --test tests/wp0/v21-element-workspace-contract.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "Layered/WP-A validation when triggered",
+      "Product Experience Final Validation when triggered",
+      "Model/Graphiti validation when triggered"
+    ],
+    "manualRealAccountMatrix": "NOT_REQUIRED_BEFORE_SOURCE_MERGE_BY_OWNER_ACCELERATION_DIRECTIVE"
+  },
+  "parallelWork": {
+    "freshOpenPullRequests": [17, 67],
+    "exactImplementationPathOverlapCount": 0,
+    "openPullRequestsAreHistoricalDrafts": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
