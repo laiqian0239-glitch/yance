@@ -625,7 +625,7 @@ function assembleWindowsApplication(options = {}) {
   }
   const appRoot = path.join(payloadRoot, 'resources', 'app');
   fs.mkdirSync(appRoot, { recursive: true });
-  for (const rootName of ['backend', 'frontend', 'shared', 'electron', 'diagnostics', 'release']) {
+  for (const rootName of ['backend', 'shared', 'electron', 'diagnostics', 'release', 'assets', 'vendor/sillytavern/1.18.0']) {
     copyTree(path.join(repoRoot, rootName), path.join(appRoot, rootName), { excludeNames: rootName === 'backend' ? ['tests'] : [] });
   }
   for (const file of ['package.json', 'package-lock.json', 'installer/installedIdentityReceipt.js']) {

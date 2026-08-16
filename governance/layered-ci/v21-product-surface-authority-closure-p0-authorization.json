@@ -1,0 +1,292 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-16T06:13:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-SURFACE-AUTHORITY-CLOSURE-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh post-#387 audit proves that Element is intended to be the sole Product renderer while legacy frontend remains independently reachable through backend static serving and catch-all HTML fallback, is still copied by WP1/WP6/WP7 production-style payload authorities, and is still treated by executable root-cause governance as current Product truth. Consumer analysis also proves that legitimate notification sounds and generated Yance brand assets are incorrectly hosted beneath the legacy frontend authority. This authorization retires the duplicate Product surface across HTTP reachability, production payload construction and executable governance in one root-cause work package, while re-homing legitimate supporting assets under canonical non-legacy authorities. User selected a lively classic default sound direction; official built-in sound bytes must come from the pinned CC0 Kenney Interface Sounds source rather than legacy QQ/WeChat/Samsung-labelled assets whose redistribution provenance is not established. No redirect, feature flag, hidden fallback, packaging-only exclusion, test weakening or second authority is permitted.",
+  "base": {
+    "branch": "main",
+    "commit": "26da237915536506296ce1ed39c681a9917ab985"
+  },
+  "architectureIssues": {
+    "implementationIssue": 406,
+    "parentClosureIssue": 407,
+    "rendererAuthority": "Element",
+    "backendAuthority": "API_AND_CONTROL_ONLY"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "26da237915536506296ce1ed39c681a9917ab985",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-surface-authority-closure-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-surface-authority-closure-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ab1cb4f9e6ca0e3a0eb855b315419f0bf223f8b08b8be9a5f5eb92195d11c653",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-surface-authority-closure-p0",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "electron/assets/sounds/yance-classic-contact-offline.wav",
+      "electron/assets/sounds/yance-classic-contact-online.wav",
+      "electron/assets/sounds/yance-classic-message-in.wav",
+      "electron/assets/sounds/yance-classic-message-sent.wav",
+      "electron/assets/sounds/yance-classic-send-failed.wav",
+      "electron/assets/sounds/yance-classic-task-complete.wav",
+      "electron/assets/sounds/yance-classic-warning-low.wav",
+      "electron/main.js",
+      "electron/sound-player.js",
+      "governance/notification-sound-kenney-interface-sounds-20260816.json",
+      "governance/root-cause-closure/authority-and-writer-matrix.json",
+      "scripts/branding/build-yance-assets.js",
+      "scripts/branding/verify-yance-assets.js",
+      "shared/notificationSoundCatalog.js",
+      "tests/sound-notification/integration-boundary.test.js",
+      "tests/uat/rootCauseClosureGate.test.js",
+      "tests/wp0/v21-product-surface-authority-closure.test.js",
+      "tests/wp1/yance-branding-runtime-payload.test.js",
+      "tests/wp7/m7-windows-project-mode-policy.test.js",
+      "tools/uat/rootCauseClosureGate.js",
+      "tools/wp1/lib.js",
+      "tools/wp6/common.js",
+      "tools/wp7/lib.js",
+      "tools/wp7/packaged-payload-closure.js"
+    ],
+    "approvedChangedFileCount": 25,
+    "approvedChangedFileSetSha256": "de3d42d6122edaf8278492be38d48c5ccf9deb1b9a6434e421563c44dfa0e4f5",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/sound-notification/integration-boundary.test.js",
+        "tests/uat/rootCauseClosureGate.test.js",
+        "tests/wp0/v21-product-surface-authority-closure.test.js",
+        "tests/wp1/yance-branding-runtime-payload.test.js",
+        "tests/wp7/m7-windows-project-mode-policy.test.js"
+      ],
+      "approvedChangedFileCount": 5,
+      "approvedChangedFileSetSha256": "d414dcc9450a478df08e499460e89648b197a0016dc24d66d0c5005a531a2cf7",
+      "productionCodeChanged": false,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure"
+      ],
+      "expectedFailures": [
+        "backend/server.js still serves frontend as a static root and returns frontend/index.html for arbitrary non-API GET paths.",
+        "WP1/WP6/WP7 still identify or copy frontend as a runtime/production root rather than excluding the duplicate Product renderer.",
+        "branding build/verify still materializes and validates duplicate runtime branding below frontend instead of binding canonical assets/branding/yance directly.",
+        "notification sound runtime still resolves built-in files below frontend/assets/sounds and the active built-in catalog still admits legacy imported branded patterns.",
+        "root-cause executable governance still treats legacy frontend readers/assets as current Product authority."
+      ]
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true
+    },
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "workflowModificationAllowed": false,
+    "legacyFrontendDeletionRequired": false,
+    "legacyFrontendProductionReachabilityAllowed": false,
+    "legacyFrontendProductionPackagingAllowed": false,
+    "legacyFrontendExecutableGovernanceAuthorityAllowed": false,
+    "customUserNotificationSoundsMustRemainSupported": true
+  },
+  "surfaceAuthorityClosure": {
+    "requiredBehavior": [
+      "Remove backend static serving of the legacy frontend tree and remove the catch-all frontend/index.html fallback; non-API paths must not return legacy Product HTML.",
+      "Keep backend API/control-plane routes and structured error handling intact.",
+      "Make Element the only Product renderer in packaged/runtime authority.",
+      "Remove frontend from WP1 runtime payload allowlist, WP6 production roots and WP7 reviewed Product roots; add the canonical assets root only where legitimate canonical brand assets are required.",
+      "Update source-closure verification so a packaged Product containing a second launchable legacy frontend is rejected rather than required.",
+      "Retire legacy frontend readers/assets from executable root-cause governance while preserving truthful historical audit classification.",
+      "Keep the source frontend tree available as historical material in this work package; source deletion is not evidence of runtime retirement and is not required."
+    ],
+    "forbiddenBehavior": [
+      "Do not replace legacy HTML fallback with a redirect, feature flag, secret route, alternate static mount or other hidden second renderer.",
+      "Do not keep frontend in production payload only to satisfy old tests.",
+      "Do not weaken Product Final, source-closure, brand, native or architecture verification.",
+      "Do not delete legitimate supporting assets before their canonical consumer path is migrated."
+    ]
+  },
+  "brandingAuthority": {
+    "canonicalRoot": "assets/branding/yance",
+    "retiredDuplicateRoot": "frontend/assets/branding/yance",
+    "requiredBehavior": [
+      "Make assets/branding/yance the single generated and verified Yance brand asset authority.",
+      "Stop branding build scripts from recreating runtime copies under frontend.",
+      "Bind payload verification and WP1 branding tests to canonical packaged assets instead of frontend copies.",
+      "Preserve deterministic generated PNG/ICO/SVG identity checks against the canonical brand manifest."
+    ]
+  },
+  "notificationSoundAuthority": {
+    "productDirection": "YANCE_CLASSIC_LIVELY",
+    "userPreferenceSource": "Owner selected B: QQ-classic-like lively character, de-branded and independently licensed.",
+    "runtimeAssetRoot": "electron/assets/sounds",
+    "businessSettingsAuthority": "backend/services/notificationPolicy.js",
+    "catalogAuthority": "shared/notificationSoundCatalog.js",
+    "requiredBuiltInSlots": [
+      "message-in",
+      "message-sent",
+      "send-failed",
+      "contact-online",
+      "contact-offline",
+      "task-complete",
+      "warning-low"
+    ],
+    "requiredBehavior": [
+      "Replace the active built-in base/event files with a coherent lively Yance Classic family selected only from the pinned Kenney Interface Sounds CC0 source.",
+      "Prefer expressive confirmation/glass/select/pluck/error families over a monotonous click/tick-only set.",
+      "Keep notificationPolicy as the sole business settings authority and preserve existing custom UUID sound upload/reference behavior.",
+      "Remove legacy imported QQ/WeChat/Samsung-labelled rows from the active official built-in pattern set because redistribution provenance is not established.",
+      "Allow existing stored legacy built-in pattern ids to normalize through the existing event fallback semantics to the new official default rather than adding a second compatibility authority.",
+      "Do not add a new desktop business-settings channel or a parallel sound settings store."
+    ],
+    "forbiddenBehavior": [
+      "Do not ship QQ, WeChat, Samsung or other branded legacy sound bytes as official built-in assets without independent redistribution evidence.",
+      "Do not generate synthetic placeholder beeps as the final Product sound set.",
+      "Do not remove user-owned custom notification sounds."
+    ]
+  },
+  "ossFit": {
+    "decision": "ADOPT_PINNED_KENNEY_INTERFACE_SOUNDS_CC0_FOR_OFFICIAL_BUILT_IN_SOUND_BYTES_AND_REUSE_EXISTING_YANCE_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Kenney Interface Sounds",
+        "source": "Calinou/kenney-interface-sounds",
+        "upstreamVersion": "1.0",
+        "upstreamCommit": "4596a49eaf5a533948d49a47467f606bcdea70ff",
+        "license": "CC0 1.0",
+        "adoptionMode": "select-seven-event-assets-and-record-exact-source-provenance",
+        "fit": "FIT",
+        "reason": "Mature 100-sound UI pack with explicit CC0 redistribution rights; supports a lively classic Product character without new Yance sound-generation infrastructure."
+      },
+      {
+        "name": "Existing Yance notificationPolicy and custom sound authority",
+        "source": "backend/services/notificationPolicy.js plus shared/notificationSoundCatalog.js",
+        "license": "repository-existing",
+        "adoptionMode": "reuse-existing-business-authority",
+        "fit": "FIT",
+        "reason": "Already owns event patterns, volume, enablement, persistence, custom user sound validation and fallback normalization."
+      },
+      {
+        "name": "Existing Yance canonical brand assets",
+        "source": "assets/branding/yance",
+        "license": "repository-owned",
+        "adoptionMode": "canonical-only-runtime-binding",
+        "fit": "FIT",
+        "reason": "The canonical brand authority already exists; frontend copies are redundant derived runtime authority."
+      },
+      {
+        "name": "Legacy QQ/WeChat/Samsung-labelled imported notification library",
+        "source": "shared/notificationSoundLibrary.json and frontend/assets/sounds",
+        "license": "redistribution provenance not established in current governance evidence",
+        "adoptionMode": "do-not-distribute-as-official-built-in",
+        "fit": "GAP",
+        "reason": "Existing import evidence proves decode/dedupe/safety properties but does not establish redistribution authorization."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a new sound engine, sound settings database, IPC settings authority, asset generator, static renderer, payload builder or brand asset authority.",
+      "Do not preserve the legacy frontend in runtime/package authority just to retain sounds or brand copies.",
+      "Do not ship branded legacy sound bytes with missing redistribution provenance.",
+      "Do not implement a server-only retirement that leaves WP1/WP6/WP7 or executable governance requiring the second UI.",
+      "Do not delete the whole frontend source tree as a substitute for consumer migration."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "knownSuccessorGap": {
+    "classification": "REAL_GAP_NOT_IN_THIS_IMPLEMENTATION_SCOPE",
+    "area": "relationship-inference-authority",
+    "evidence": "Graphiti/Neo4j is the intended relationship inference authority, but backend/services/relationshipProjectionAuthority.js still exposes legacy_projection and local ruleProjection fallback behavior.",
+    "requiredNextAction": "After this Product surface authority closure merges, start a fresh successor authorization to retire the remaining legacy relationship inference fallback without reopening the retired legacy Product renderer."
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-product-surface-authority-closure.test.js",
+      "node --test tests/sound-notification/integration-boundary.test.js",
+      "node --test tests/uat/rootCauseClosureGate.test.js",
+      "node --test tests/wp1/yance-branding-runtime-payload.test.js",
+      "node --test tests/wp7/m7-windows-project-mode-policy.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "Layered/WP-A validation when triggered",
+      "Model validation when triggered",
+      "Product Final desktop UAT",
+      "Product Final frozen Element reproducibility",
+      "Product Final Matrix UAT"
+    ],
+    "productNegativeProofs": [
+      "A packaged backend GET / must not return legacy Product HTML.",
+      "A packaged backend arbitrary non-API GET path must not return legacy Product HTML.",
+      "Final Product payload must not contain a launchable legacy frontend renderer.",
+      "Canonical Yance brand assets and Yance Classic sound assets must remain present and usable from their new non-legacy authorities."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "fresh failure-first RED proves the current duplicate Product surface across serve/package/governance layers before implementation",
+      "supporting sound and branding capabilities survive retirement without retaining frontend authority",
+      "Kenney source is pinned and exact transplanted assets have provenance",
+      "custom user notification sounds remain supported",
+      "no hidden static fallback, alternate renderer, packaging-only workaround or governance weakening is introduced",
+      "Graphiti legacy inference fallback is reported as a successor gap rather than falsely claimed closed"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}

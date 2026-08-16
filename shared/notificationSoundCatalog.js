@@ -1,37 +1,17 @@
 'use strict';
 
-const importedLibrary = require('./notificationSoundLibrary.json');
-
+const YANCE_CLASSIC = 'Yance Classic';
 const BASE_SOUND_OPTIONS = Object.freeze([
-  Object.freeze({ id: 'message-in', fileName: 'yance-message.wav', label: '清澈提示', description: '清晰而简短的新消息提示。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'message', recommendedEvents: ['incoming'] }),
-  Object.freeze({ id: 'message-soft', fileName: 'yance-message-soft.wav', label: '轻柔水滴', description: '更安静、柔和的提醒。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'message', recommendedEvents: ['incoming'] }),
-  Object.freeze({ id: 'message-crystal', fileName: 'yance-message-crystal.wav', label: '水晶双音', description: '两段明亮音色，适合重点消息。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'message', recommendedEvents: ['incoming'] }),
-  Object.freeze({ id: 'message-chime', fileName: 'yance-message-chime.wav', label: '暖色铃音', description: '温和的短铃音。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'message', recommendedEvents: ['incoming'] }),
-  Object.freeze({ id: 'message-pulse', fileName: 'yance-message-pulse.wav', label: '柔和脉冲', description: '低干扰的脉冲提示。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'message', recommendedEvents: ['incoming'] }),
-  Object.freeze({ id: 'message-sent', fileName: 'yance-message-sent.wav', label: '发送轻响', description: '消息发送成功的轻提示。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'folder', recommendedEvents: ['outgoing'] }),
-  Object.freeze({ id: 'send-failed', fileName: 'yance-send-failed.wav', label: '失败警示', description: '发送失败或需要人工处理。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'system', recommendedEvents: ['failure'] }),
-  Object.freeze({ id: 'contact-online', fileName: 'yance-contact-online.wav', label: '上线提示', description: '重点联系人上线。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'global', recommendedEvents: ['presence-online'] }),
-  Object.freeze({ id: 'contact-offline', fileName: 'yance-contact-offline.wav', label: '离线提示', description: '重点联系人离线。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'global', recommendedEvents: ['presence-offline'] }),
-  Object.freeze({ id: 'task-complete', fileName: 'yance-task-complete.wav', label: '完成和弦', description: '重要任务完成。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'folder', recommendedEvents: ['outgoing'] }),
-  Object.freeze({ id: 'warning-low', fileName: 'yance-warning-low.wav', label: '低频警告', description: '低频、明确的异常提示。', group: '言策原创', family: '言策原创', pack: '言策原创', role: 'system', recommendedEvents: ['failure'] })
+  Object.freeze({ id: 'message-in', fileName: 'yance-classic-message-in.wav', label: 'Classic Pop', description: '活泼、清脆的新消息提示。', group: YANCE_CLASSIC, family: YANCE_CLASSIC, pack: YANCE_CLASSIC, role: 'message', recommendedEvents: ['incoming'] }),
+  Object.freeze({ id: 'message-sent', fileName: 'yance-classic-message-sent.wav', label: 'Classic Send', description: '轻巧的发送成功提示。', group: YANCE_CLASSIC, family: YANCE_CLASSIC, pack: YANCE_CLASSIC, role: 'message', recommendedEvents: ['outgoing'] }),
+  Object.freeze({ id: 'send-failed', fileName: 'yance-classic-send-failed.wav', label: 'Classic Alert', description: '明确但不过度刺耳的失败警示。', group: YANCE_CLASSIC, family: YANCE_CLASSIC, pack: YANCE_CLASSIC, role: 'system', recommendedEvents: ['failure'] }),
+  Object.freeze({ id: 'contact-online', fileName: 'yance-classic-contact-online.wav', label: 'Classic Online', description: '重点联系人上线提示。', group: YANCE_CLASSIC, family: YANCE_CLASSIC, pack: YANCE_CLASSIC, role: 'presence', recommendedEvents: ['presence-online'] }),
+  Object.freeze({ id: 'contact-offline', fileName: 'yance-classic-contact-offline.wav', label: 'Classic Offline', description: '重点联系人离线提示。', group: YANCE_CLASSIC, family: YANCE_CLASSIC, pack: YANCE_CLASSIC, role: 'presence', recommendedEvents: ['presence-offline'] }),
+  Object.freeze({ id: 'task-complete', fileName: 'yance-classic-task-complete.wav', label: 'Classic Complete', description: '稍上扬的重要任务完成提示。', group: YANCE_CLASSIC, family: YANCE_CLASSIC, pack: YANCE_CLASSIC, role: 'task', recommendedEvents: ['outgoing'] }),
+  Object.freeze({ id: 'warning-low', fileName: 'yance-classic-warning-low.wav', label: 'Classic Warning', description: '低级警告与需要注意的异常提示。', group: YANCE_CLASSIC, family: YANCE_CLASSIC, pack: YANCE_CLASSIC, role: 'system', recommendedEvents: ['failure'] })
 ]);
 
-const IMPORTED_SOUND_OPTIONS = Object.freeze((Array.isArray(importedLibrary.patterns) ? importedLibrary.patterns : []).map(row => Object.freeze({
-  id: String(row.id || '').trim().toLowerCase(),
-  fileName: String(row.fileName || '').trim(),
-  label: String(row.label || '').trim(),
-  description: String(row.description || '').trim(),
-  group: String(row.group || row.family || '扩展音效').trim(),
-  family: String(row.family || '扩展音效').trim(),
-  pack: String(row.pack || '').trim(),
-  role: String(row.role || '').trim(),
-  durationMs: Math.max(0, Number(row.durationMs || 0)),
-  sizeBytes: Math.max(0, Number(row.sizeBytes || 0)),
-  recommendedEvents: Object.freeze((Array.isArray(row.recommendedEvents) ? row.recommendedEvents : []).map(value => String(value || '').trim()).filter(Boolean)),
-  imported: true
-})));
-
-const SOUND_OPTIONS = Object.freeze([...BASE_SOUND_OPTIONS, ...IMPORTED_SOUND_OPTIONS]);
+const SOUND_OPTIONS = BASE_SOUND_OPTIONS;
 const SOUND_PATTERNS = Object.freeze(SOUND_OPTIONS.map(row => row.id));
 const SOUND_PATTERN_SET = new Set(SOUND_PATTERNS);
 const SOUND_FILE_BY_PATTERN = new Map(SOUND_OPTIONS.map(row => [row.id, row.fileName]));
@@ -61,7 +41,8 @@ function isCustomSoundPattern(value) {
 
 function normalizeSoundPattern(value, fallback = 'message-in') {
   const pattern = String(value == null ? '' : value).trim().toLowerCase();
-  const safeFallback = SOUND_PATTERN_SET.has(fallback) ? fallback : 'message-in';
+  const normalizedFallback = String(fallback == null ? '' : fallback).trim().toLowerCase();
+  const safeFallback = SOUND_PATTERN_SET.has(normalizedFallback) ? normalizedFallback : 'message-in';
   return SOUND_PATTERN_SET.has(pattern) || isCustomSoundPattern(pattern) ? pattern : safeFallback;
 }
 
@@ -105,7 +86,7 @@ function publicSoundRow(row) {
     role: row.role,
     durationMs: Math.max(0, Number(row.durationMs || 0)),
     recommendedEvents: Array.isArray(row.recommendedEvents) ? [...row.recommendedEvents] : [],
-    imported: row.imported === true,
+    imported: false,
     custom: false
   };
 }
@@ -114,19 +95,19 @@ function soundCatalog(customPatterns = []) {
   const custom = customCatalogRows(customPatterns);
   const groups = [...new Set(SOUND_OPTIONS.map(row => row.group).filter(Boolean))];
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     authority: 'NotificationSoundAuthority',
     patterns: [...SOUND_OPTIONS.map(publicSoundRow), ...custom],
     events: EVENT_SOUND_OPTIONS.map(row => ({ ...row })),
     library: {
       builtInCount: SOUND_OPTIONS.length,
       originalCount: BASE_SOUND_OPTIONS.length,
-      importedCount: IMPORTED_SOUND_OPTIONS.length,
+      importedCount: 0,
       customCount: custom.length,
       groupCount: groups.length,
       groups,
-      duplicateEntriesRemoved: Math.max(0, Number(importedLibrary?.dedupe?.removedDuplicateEntries || 0)),
-      invalidEntriesRejected: Math.max(0, Number(importedLibrary?.dedupe?.rejectedEntries || 0)),
+      duplicateEntriesRemoved: 0,
+      invalidEntriesRejected: 0,
       deduplicated: true
     },
     upload: {
@@ -139,7 +120,6 @@ function soundCatalog(customPatterns = []) {
 
 module.exports = {
   BASE_SOUND_OPTIONS,
-  IMPORTED_SOUND_OPTIONS,
   SOUND_OPTIONS,
   SOUND_PATTERNS,
   EVENT_SOUND_OPTIONS,

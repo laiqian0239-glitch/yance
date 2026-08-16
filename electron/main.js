@@ -1841,7 +1841,7 @@ function notificationSoundPath(pattern = 'message-in') {
     return '';
   }
   const fileName = soundFileName(normalized, 'message-in');
-  const relative = path.join('frontend', 'assets', 'sounds', fileName);
+  const relative = path.join('electron', 'assets', 'sounds', fileName);
   const candidates = app.isPackaged
     ? [path.join(packagedAppRoot(), relative)]
     : [path.join(APP_ROOT, relative)];

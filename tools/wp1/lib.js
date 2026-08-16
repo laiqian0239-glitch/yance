@@ -21,7 +21,7 @@ const PAYLOAD_EXCLUDED_PATHS = new Set([
 ]);
 const RUNTIME_PAYLOAD_ALLOWLIST = Object.freeze([
   { source: 'backend', destination: 'backend', excludedPrefixes: ['tests/'] },
-  { source: 'frontend', destination: 'frontend', excludedPrefixes: [] },
+  { source: 'assets', destination: 'assets', excludedPrefixes: [] },
   { source: 'shared', destination: 'shared', excludedPrefixes: [] },
   { source: 'electron', destination: 'electron_runtime', excludedPrefixes: [] },
   { source: 'diagnostics', destination: 'diagnostics', excludedPrefixes: [] },
