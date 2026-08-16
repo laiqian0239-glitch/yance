@@ -31,6 +31,7 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("Loading relationships");
   const [assistantVisible, setAssistantVisible] = useState(false);
+  const [learningAdminVisible, setLearningAdminVisible] = useState(false);
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
   const session = useExperienceSession();
   const preferences = useExperiencePreferences();
@@ -161,7 +162,7 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
                   exit={preferences.reducedMotion ? undefined : { opacity: 0, y: 6 }}
                   transition={{ duration: preferences.reducedMotion ? 0 : 0.16 }}
                 >
-                  <RelationshipAssistant relationshipId={selectedRelationship.id} onStateChange={setAiState} />
+                  <RelationshipAssistant relationship={selectedRelationship} onStateChange={setAiState} />
                 </motion.div>
               ) : null}
             </AnimatePresence>
@@ -169,9 +170,12 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
         )}
       </AnimatePresence>
 
-      <LearningWorkspace />
-
-      <details className="yance-experience-settings">
+      <details
+        className="yance-experience-settings"
+        onToggle={(event) => {
+          if (!event.currentTarget.open) setLearningAdminVisible(false);
+        }}
+      >
         <summary>Experience</summary>
         <div className="yance-settings-grid">
           <label>
@@ -199,6 +203,14 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
           </label>
         </div>
         {preferences.reducedMotion ? <p className="yance-reduced-motion-note">Reduced motion is active; state changes remain visible without spatial travel.</p> : null}
+        <div className="yance-learning-settings-actions">
+          {learningAdminVisible ? (
+            <button type="button" aria-expanded="true" onClick={() => setLearningAdminVisible(false)}>Close learning controls</button>
+          ) : (
+            <button type="button" aria-expanded="false" onClick={() => setLearningAdminVisible(true)}>Learning controls</button>
+          )}
+        </div>
+        {learningAdminVisible ? <LearningWorkspace /> : null}
       </details>
 
       <RelationshipOverlayHost />
