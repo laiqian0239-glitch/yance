@@ -15,7 +15,7 @@ function productSource(...rels) {
   return rels.map(read).join('\n');
 }
 
-test('storeSnapshot binds workspace trajectory session keys to stable customer ids without changing the default snapshot contract', async () => {
+test('storeSnapshot binds workspace trajectory aliases to stable customer ids without changing the default snapshot contract', async () => {
   const { installR32StoreBridge, CHANNELS } = require('../../electron/r32StoreBridge');
   const handlers = new Map();
   const ipcMain = {
@@ -29,7 +29,7 @@ test('storeSnapshot binds workspace trajectory session keys to stable customer i
     snapshot: {
       customers: {
         byId: {
-          c1: { id: 'c1', displayName: 'Ada' }
+          c1: { id: 'c1', contactId: 'c1', displayName: 'Ada' }
         }
       }
     }
@@ -69,7 +69,13 @@ test('storeSnapshot binds workspace trajectory session keys to stable customer i
     if (requestPath === '/api/workspace/bootstrap') {
       return {
         contacts: [
-          { id: 'conv-1', sessionKey: 'conv-1', contactId: 'c1', canonicalContactId: 'canonical-1' },
+          {
+            id: 'workspace-row-1',
+            sessionKey: 'conv-1',
+            conversationId: 'conv-alias-1',
+            contactId: 'c1',
+            canonicalContactId: 'canonical-1'
+          },
           { id: 'conv-legacy', sessionKey: 'conv-legacy', contactId: 'c2', canonicalContactId: 'canonical-2' }
         ],
         trajectoryState: {
@@ -94,15 +100,53 @@ test('storeSnapshot binds workspace trajectory session keys to stable customer i
 
   requests.length = 0;
   const enriched = await handler({}, { domains: ['customers'], includeRelationshipIntelligence: true });
-  assert.deepEqual(requests, [
+  assert.deepEqual([...requests].sort(), [
     '/api/r32/store/snapshot?domains=customers',
     '/api/workspace/bootstrap'
-  ]);
+  ].sort());
   assert.deepEqual(enriched.snapshot, snapshot.snapshot);
   assert.deepEqual(enriched.relationshipIntelligence, { c1: trustedProjection });
   assert.equal(Object.hasOwn(enriched.relationshipIntelligence, 'conv-1'), false);
   assert.equal(JSON.stringify(enriched).includes('relationshipPotential'), false);
   assert.equal(JSON.stringify(enriched).includes('LegacyRelationshipHeuristic'), false);
+});
+
+test('storeSnapshot starts optional relationship enrichment concurrently and degrades to the primary snapshot when bootstrap fails', async () => {
+  const { installR32StoreBridge, CHANNELS } = require('../../electron/r32StoreBridge');
+  const handlers = new Map();
+  const ipcMain = {
+    handle(channel, handler) { handlers.set(channel, handler); },
+    removeHandler() {},
+    on() {},
+    removeListener() {}
+  };
+  const snapshot = { snapshot: { customers: { byId: { c1: { id: 'c1', contactId: 'c1' } } } } };
+  const requests = [];
+  let resolveSnapshot;
+  let rejectBootstrap;
+  const snapshotPromise = new Promise((resolve) => { resolveSnapshot = resolve; });
+  const bootstrapPromise = new Promise((_resolve, reject) => { rejectBootstrap = reject; });
+  const apiRequest = (requestPath) => {
+    requests.push(requestPath);
+    if (requestPath === '/api/workspace/bootstrap') return bootstrapPromise;
+    if (requestPath === '/api/r32/store/snapshot?domains=customers') return snapshotPromise;
+    throw new Error(`Unexpected request ${requestPath}`);
+  };
+
+  installR32StoreBridge({ ipcMain, apiRequest });
+  const handler = handlers.get(CHANNELS.snapshot);
+  const pending = handler({}, { domains: ['customers'], includeRelationshipIntelligence: true });
+  await Promise.resolve();
+  const bootstrapStartedBeforeSnapshotResolved = requests.includes('/api/workspace/bootstrap');
+  resolveSnapshot(snapshot);
+  await Promise.resolve();
+  rejectBootstrap(new Error('workspace bootstrap unavailable'));
+  const result = await pending;
+
+  assert.equal(bootstrapStartedBeforeSnapshotResolved, true, 'snapshot and optional enrichment should start together');
+  assert.deepEqual(result.snapshot, snapshot.snapshot);
+  assert.deepEqual(result.relationshipIntelligence, {});
+  assert.equal(result.__yanceBridgeError, undefined);
 });
 
 test('Product projection accepts only RelationshipProjectionAuthority relationship intelligence and exposes truthful authority states', () => {
@@ -124,6 +168,32 @@ test('Product projection accepts only RelationshipProjectionAuthority relationsh
     'message_baseline',
     'replyStrategy'
   ]) assert.doesNotMatch(projection, new RegExp(forbidden, 'u'));
+});
+
+test('review closure keeps relationship intelligence identity, state, refresh, accessibility and event normalization contract-driven', () => {
+  const bridge = read('electron/r32StoreBridge.js');
+  const projection = read('integration/element-module/src/product-experience/experienceProjection.ts');
+  const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+  const people = read('integration/element-module/src/product-experience/PeopleSurface.tsx');
+  const world = read('integration/element-module/src/product-experience/RelationshipWorld.tsx');
+  const types = read('integration/element-module/src/product-experience/experienceTypes.ts');
+  const css = read('integration/element-module/src/product-experience/ProductExperienceShell.css');
+
+  assert.match(bridge, /contact\.id[\s\S]*contact\.sessionKey[\s\S]*contact\.conversationId/u);
+  assert.match(projection, /const stableContactId = text\(row\.contactId \|\| row\.id \|\| key\)/u);
+  assert.match(projection, /relationshipIntelligenceState\(row\.state\)[\s\S]*\|\| relationshipIntelligenceState\(trajectory\.projectionState\)/u);
+  assert.match(projection, /value\.length !== 5/u);
+  assert.match(projection, /\/graphiti\/iu/u);
+  assert.match(types, /source:\s*"ai_analysis"\s*\|\s*"empty"/u);
+  assert.match(shell, /useRef/u);
+  assert.match(shell, /selectedRelationshipIdRef/u);
+  assert.match(shell, /refreshGenerationRef/u);
+  assert.match(shell, /generation !== refreshGenerationRef\.current/u);
+  assert.match(people, /analysisStatusLabel/u);
+  assert.match(people, /aria-label=\{`Open relationship with \$\{relationship\.name\}\. \$\{analysisStatusLabel\}`\}/u);
+  assert.match(world, /Date\.parse\(event\.at\)/u);
+  const intelligenceStatusRule = css.match(/\.yance-person-intelligence-status\s*\{([^}]*)\}/u)?.[1] || '';
+  assert.doesNotMatch(intelligenceStatusRule, /!important/u);
 });
 
 test('People and Relationship World render authority status, epistemic provenance and truthful pending or empty relationship intelligence', () => {
