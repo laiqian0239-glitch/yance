@@ -244,13 +244,16 @@ class TelegramAdapter {
         }))
         .finally(() => {
           row.egressRecoveryScheduled = false;
-          if (!this.isCurrentRow(accountId, row) || !row.account) return;
-          this.connect(row.account).catch(error => logger.warn('telegram', 'egress-reconnect-failed', {
+          if (!this.isCurrentRow(accountId, row)) return;
+          eventBus.publish('telegram:egress-recovery-required', {
             accountId,
             executionGeneration,
-            errorCode: error.code || '',
-            error: error.message
-          }));
+            executionId: clean(options?.physicalAttemptContext?.executionId),
+            attemptId: clean(options?.physicalAttemptContext?.attemptId),
+            reasonCode: reason.code || 'TELEGRAM_EGRESS_ABORTED',
+            automaticRetryBlocked: true,
+            at: new Date().toISOString()
+          });
         });
     };
     if (signal.aborted) onAbort();

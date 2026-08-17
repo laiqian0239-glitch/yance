@@ -336,3 +336,46 @@ test('M3-SC-DIAG-019 AI gateway validates persisted claim and fencing identity b
     assert.match(physicalSource, new RegExp(`\\b${field}\\b`, 'u'), `M3-SC-DIAG-019:${field}`);
   }
 });
+
+test('M3-SC-DIAG-020 Telegram registry preserves and revalidates the persisted attempt at every physical egress boundary', () => {
+  const registryPath = path.join(repoRoot, 'backend', 'services', 'platformDriverRegistry.js');
+  const source = fs.readFileSync(registryPath, 'utf8');
+  assert.match(source, /validatePersistedEgressContext/u, 'M3-SC-DIAG-020:PERSISTED_EGRESS_VALIDATOR_REQUIRED');
+  assert.match(source, /function\s+requirePersistedEgressAttempt\s*\(/u, 'M3-SC-DIAG-020:REGISTRY_FAIL_CLOSED_HELPER_REQUIRED');
+  const telegramStart = source.indexOf('telegram: Object.freeze({');
+  const facebookStart = source.indexOf('facebook: Object.freeze({', telegramStart);
+  assert.ok(telegramStart >= 0 && facebookStart > telegramStart, 'M3-SC-DIAG-020:TELEGRAM_DRIVER_BOUNDARY_REQUIRED');
+  const telegramSource = source.slice(telegramStart, facebookStart);
+  for (const operation of ['sendText', 'sendMedia', 'sendReaction', 'revokeMessage', 'sendNativeExpression', 'sendPresence', 'markRead']) {
+    const start = telegramSource.indexOf(`async ${operation}(`);
+    assert.ok(start >= 0, `M3-SC-DIAG-020:${operation}:METHOD_REQUIRED`);
+    const next = telegramSource.indexOf('\n    async ', start + 1);
+    const methodSource = telegramSource.slice(start, next > start ? next : telegramSource.length);
+    assert.match(methodSource, /requirePersistedEgressAttempt\s*\(/u, `M3-SC-DIAG-020:${operation}:ATTEMPT_REVALIDATION_REQUIRED`);
+    assert.match(methodSource, /physicalAttemptContext/u, `M3-SC-DIAG-020:${operation}:ATTEMPT_FORWARDING_REQUIRED`);
+  }
+});
+
+test('M3-SC-DIAG-021 Telegram egress abort quarantines the stale generation without owning reconnect authority', () => {
+  const adapterPath = path.join(repoRoot, 'backend', 'services', 'telegramAdapter.js');
+  const source = fs.readFileSync(adapterPath, 'utf8');
+  const start = source.indexOf('bindEgressAbort(accountId, row, options = {})');
+  const end = source.indexOf('\n  assertEgressActive(', start);
+  assert.ok(start >= 0 && end > start, 'M3-SC-DIAG-021:ABORT_BOUNDARY_REQUIRED');
+  const abortSource = source.slice(start, end);
+  assert.doesNotMatch(abortSource, /this\.connect\s*\(/u, 'M3-SC-DIAG-021:INDEPENDENT_RECONNECT_FORBIDDEN');
+  assert.match(abortSource, /telegram:egress-recovery-required/u, 'M3-SC-DIAG-021:DURABLE_RECOVERY_SIGNAL_REQUIRED');
+  assert.match(abortSource, /automaticRetryBlocked:\s*true/u, 'M3-SC-DIAG-021:AUTOMATIC_RETRY_MUST_REMAIN_BLOCKED');
+});
+
+test('M3-SC-DIAG-022 domain projection retry ownership is canonical Schema 23 durability, not projection-table SQL', () => {
+  const repositoryPath = path.join(repoRoot, 'backend', 'repositories', 'messageRepository.js');
+  const authorityPath = path.join(repoRoot, 'backend', 'services', 'domainEventProjectionAuthority.js');
+  const repositorySource = fs.readFileSync(repositoryPath, 'utf8');
+  const authoritySource = fs.readFileSync(authorityPath, 'utf8');
+  assert.match(repositorySource, /DurableInternalOperationAuthority|currentRuntimeInternalOperationAuthority/u, 'M3-SC-DIAG-022:CANONICAL_INTERNAL_OPERATION_REQUIRED');
+  assert.doesNotMatch(repositorySource, /UPDATE\s+domain_event_projection_jobs/iu, 'M3-SC-DIAG-022:REPOSITORY_RETRY_SQL_FORBIDDEN');
+  assert.doesNotMatch(authoritySource, /UPDATE\s+domain_event_projection_jobs/iu, 'M3-SC-DIAG-022:AUTHORITY_RETRY_SQL_FORBIDDEN');
+  assert.doesNotMatch(authoritySource, /setInterval\s*\(\s*\(\)\s*=>\s*this\.drainProjectionJobs/u, 'M3-SC-DIAG-022:SECOND_SCHEDULER_FORBIDDEN');
+  assert.match(authoritySource, /currentRuntimeRecoveryAuthority|DurableExecutionRecoveryAuthority/u, 'M3-SC-DIAG-022:CANONICAL_RECOVERY_AUTHORITY_REQUIRED');
+});

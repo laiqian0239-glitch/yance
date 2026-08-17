@@ -5,6 +5,7 @@ const telegram = require('./telegramAdapter');
 const facebookChatwoot = require('./facebookChatwootMatrixBridge');
 const facebookPersonalIdentity = require('./facebookPersonalIdentityAdapter');
 const facebookPersonalMessenger = require('./facebookPersonalMessengerExperimentalAdapter');
+const { validatePersistedEgressContext } = require('./platformAdapterPorts');
 
 const PLATFORMS = Object.freeze(['whatsapp', 'telegram', 'facebook']);
 
@@ -30,6 +31,13 @@ function normalizePlatform(value) {
 }
 function mapWhatsAppState(value) {
   return ({ online: 'connected', qr: 'waiting-verification', connecting: 'connecting', offline: 'error', 'logged-out': 'logged-out', stopped: 'logged-out' })[value] || 'logged-out';
+}
+function requirePersistedEgressAttempt(context = {}, input = {}) {
+  const attempt = input?.physicalAttemptContext;
+  return validatePersistedEgressContext(attempt, {
+    accountId: clean(context.accountId || context.adapterAccountId),
+    idempotencyKey: clean(attempt?.idempotencyKey)
+  }, 'telegram');
 }
 
 const drivers = Object.freeze({
@@ -69,13 +77,13 @@ const drivers = Object.freeze({
     async sync(account, options = {}) { return telegram.sync(account, options); },
     externalTarget(value) { return clean(value).replace(/^telegram:/i, ''); },
     adapterAccountId(account, requestedId = '') { return clean(account?.id || requestedId); },
-    async sendText(context, input) { return telegram.sendText(context.accountId, context.target, input.text, { quoted: input.quoted, localMessageId: input.localMessageId, sessionKey: input.sessionKey, signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async sendMedia(context, input) { return telegram.sendMedia(context.accountId, context.target, input); },
-    async sendReaction(context, input) { return telegram.sendReaction(context.accountId, context.target, input.targetId, input.emoji, { signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async revokeMessage(context, input) { return telegram.revokeMessage(context.accountId, context.target, input.targetId, { signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async sendNativeExpression(context, input) { return telegram.sendNativeExpression(context.accountId, context.target, input.reference, { kind: clean(input.kind).toLowerCase(), caption: input.caption, quoted: input.quoted, sessionKey: input.sessionKey, localMessageId: input.localMessageId, signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async sendPresence(context, input) { return telegram.sendPresence(context.accountId, context.target, input.state, { signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async markRead(context, input) { return telegram.markRead(context.accountId, context.target, input.messageKeys || input.messageIds || [], { signal: input.signal, executionGeneration: input.executionGeneration }); },
+    async sendText(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendText(context.accountId, context.target, input.text, { quoted: input.quoted, localMessageId: input.localMessageId, sessionKey: input.sessionKey, signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
+    async sendMedia(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendMedia(context.accountId, context.target, { ...input, physicalAttemptContext }); },
+    async sendReaction(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendReaction(context.accountId, context.target, input.targetId, input.emoji, { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
+    async revokeMessage(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.revokeMessage(context.accountId, context.target, input.targetId, { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
+    async sendNativeExpression(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendNativeExpression(context.accountId, context.target, input.reference, { kind: clean(input.kind).toLowerCase(), caption: input.caption, quoted: input.quoted, sessionKey: input.sessionKey, localMessageId: input.localMessageId, signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
+    async sendPresence(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendPresence(context.accountId, context.target, input.state, { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
+    async markRead(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.markRead(context.accountId, context.target, input.messageKeys || input.messageIds || [], { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
     async listNativeExpressions(account, kind, options = {}) { return telegram.listNativeExpressions(clean(account?.id || account), kind, options); },
     async beginQrLogin(account, options = {}) { return telegram.beginQrLogin(account, options); },
     async beginPhoneLogin(account, phoneNumber, options = {}) { return telegram.beginPhoneLogin(account, phoneNumber, options); },

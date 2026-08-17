@@ -815,5 +815,5 @@ module.exports = {
   ADAPTER_SCHEMA_VERSION, PORTS, PLATFORMS, PlatformAdapterFacade, PlatformAdapterRegistryV2,
   singleton, defaultNormalizer, assertDomainDto, authorizePersistedOutbox, normalizeSendResult, sanitizePortValue,
   createAccountManagerAuthHandler, createAccountManagerReconcileHandler, executeEgressWithDeadline,
-  executePortWithDeadline, portDeadlineMs, projectPhysicalOperationContext
+  executePortWithDeadline, portDeadlineMs, projectPhysicalOperationContext, validatePersistedEgressContext
 };
