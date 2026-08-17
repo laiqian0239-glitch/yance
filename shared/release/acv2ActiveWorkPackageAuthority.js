@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const engine = require('./acv2ActiveWorkPackageAuthorityEngine');
+const implementationBranchPolicyLegacy = require('./implementationBranchPolicyLegacy');
 
 const AUTHORITY_DOCUMENT_PATHS = Object.freeze({
   design: 'governance/architecture-closure-v2/wp-b-design-authorization.json',
@@ -49,6 +50,7 @@ const WP_B_CORE_SCOPE_PATTERNS = Object.freeze([
 ]);
 const FULL_SHA = /^[a-f0-9]{40}$/u;
 const EXPECTED_BRANCH = 'acv2/wp-b-durable-execution-outbox';
+const WP_B_M3_SUCCESSOR_AUTHORIZATION_PATH = 'governance/layered-ci/acv2-wp-b-m3-source-closure-successor-authorization.json';
 const EXPECTED_M1_SEAL_HEAD = '1e3d600f0647af35e737ff92a200c67e69224c82';
 const EXPECTED_M2_EVIDENCE_HEAD = '9f82377119e16f8e02d3b83f0795b452e36f769e';
 const EXPECTED_M2_SEAL_HEAD = '5f08a5a75aeae4d3baeb5a1d34a470f21ac0180d';
@@ -333,9 +335,21 @@ function resolveWpBImplementationAuthority(options = {}) {
 
 function isAuthorizedWpBImplementationBranch(
   branch,
-  authority = resolveWpBImplementationAuthority()
+  authority = resolveWpBImplementationAuthority(),
+  options = {}
 ) {
-  return Boolean(authority && typeof branch === 'string' && branch === authority.authorizedBranch);
+  if (!authority || typeof branch !== 'string' || branch.length === 0) return false;
+  if (branch === authority.authorizedBranch) return true;
+
+  const evaluateTrustedDelegatedGovernanceBranch = options.evaluateTrustedDelegatedGovernanceBranch
+    || implementationBranchPolicyLegacy.evaluateTrustedDelegatedGovernanceBranch;
+  const delegated = evaluateTrustedDelegatedGovernanceBranch({
+    branch,
+    trustedPolicyRoot: repositoryRoot(options),
+    ...(options.delegatedGovernance || {})
+  });
+  return Boolean(delegated?.pass === true
+    && delegated.authorizationPath === WP_B_M3_SUCCESSOR_AUTHORIZATION_PATH);
 }
 
 function evaluateAuthorizedWpBScope(options = {}) {
@@ -354,6 +368,7 @@ module.exports = Object.freeze({
   MILESTONE_THREE_WORKFLOW_PATHS,
   PERMANENT_REVIEW_WORKFLOW_PATHS,
   WP_B_CORE_SCOPE_PATTERNS,
+  WP_B_M3_SUCCESSOR_AUTHORIZATION_PATH,
   resolveWpBM2ImplementationAuthority,
   resolveWpBM3ImplementationAuthority,
   resolveWpBImplementationAuthority,

@@ -103,6 +103,70 @@ test('M3-AUTH-006 verifier rejects wildcard scope and downstream-governance muta
   );
 });
 
+test('M3-AUTH-007 successor branch authority is delegated by trusted main, never by historical branch mutation', () => {
+  const authority = loadAuthority();
+  const legacyAuthority = Object.freeze({ authorizedBranch: 'acv2/wp-b-durable-execution-outbox' });
+  const successor = 'product/acv2-wp-b-m3-source-closure-successor';
+  const successorAuthorizationPath = 'governance/layered-ci/acv2-wp-b-m3-source-closure-successor-authorization.json';
+
+  assert.equal(authority.isAuthorizedWpBImplementationBranch(
+    'acv2/wp-b-durable-execution-outbox', legacyAuthority
+  ), true, 'M3-AUTH-007:HISTORICAL_AUTHORITY_PRESERVED');
+
+  assert.equal(authority.isAuthorizedWpBImplementationBranch(successor, legacyAuthority, {
+    evaluateTrustedDelegatedGovernanceBranch: () => Object.freeze({
+      pass: true,
+      authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
+      authorizationPath: successorAuthorizationPath
+    })
+  }), true, 'M3-AUTH-007:TRUSTED_MAIN_SUCCESSOR_REQUIRED');
+
+  assert.equal(authority.isAuthorizedWpBImplementationBranch(successor, legacyAuthority, {
+    evaluateTrustedDelegatedGovernanceBranch: () => Object.freeze({
+      pass: true,
+      authorityMode: 'TRUSTED_MAIN_DELEGATED_GOVERNANCE',
+      authorizationPath: 'governance/layered-ci/unrelated-authorization.json'
+    })
+  }), false, 'M3-AUTH-007:UNRELATED_DELEGATED_AUTHORITY_FORBIDDEN');
+
+  assert.equal(authority.isAuthorizedWpBImplementationBranch(successor, legacyAuthority, {
+    evaluateTrustedDelegatedGovernanceBranch: () => Object.freeze({
+      pass: false,
+      reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID'
+    })
+  }), false, 'M3-AUTH-007:FAIL_CLOSED');
+});
+
+test('M3-AUTH-008 WP-B successor workflows derive branch identity from the active authority seam', () => {
+  const workflowPaths = [
+    '.github/workflows/wp-b-m2-authorization.yml',
+    '.github/workflows/wp-b-m2-red.yml',
+    '.github/workflows/wp-b-m2-independent-review-integrity.yml',
+    '.github/workflows/wp-b-m3-authorization.yml'
+  ];
+  for (const repositoryPath of workflowPaths) {
+    const source = fs.readFileSync(path.join(repoRoot, repositoryPath), 'utf8');
+    assert.match(source, /IMPLEMENTATION_BRANCH:\s*\$\{\{ github\.head_ref \|\| github\.ref_name \}\}/u,
+      `M3-AUTH-008:${repositoryPath}:EVENT_BRANCH_REQUIRED`);
+    assert.doesNotMatch(source,
+      /test\s+"\$\{IMPLEMENTATION_BRANCH\}"\s*=\s*"acv2\/wp-b-durable-execution-outbox"/u,
+      `M3-AUTH-008:${repositoryPath}:HISTORICAL_BRANCH_GATE_FORBIDDEN`);
+    assert.match(source, /isAuthorizedWpBImplementationBranch/u,
+      `M3-AUTH-008:${repositoryPath}:ACTIVE_AUTHORITY_REQUIRED`);
+  }
+});
+
+test('M3-AUTH-009 historical M2/M3 verifiers accept a successor only through active WP-B branch authority', () => {
+  for (const repositoryPath of [
+    'tools/architecture-closure-v2/verify-wp-b-m2-review.js',
+    'tools/architecture-closure-v2/verify-wp-b-m3-authorization.js'
+  ]) {
+    const source = fs.readFileSync(path.join(repoRoot, repositoryPath), 'utf8');
+    assert.match(source, /isAuthorizedWpBImplementationBranch/u,
+      `M3-AUTH-009:${repositoryPath}:ACTIVE_AUTHORITY_REQUIRED`);
+  }
+});
+
 test('M3-SC-DIAG-015 legacy send-queue startup owns no retry timer', () => {
   const servicePath = path.join(repoRoot, 'backend', 'services', 'sendQueueService.js');
   delete require.cache[require.resolve(servicePath)];

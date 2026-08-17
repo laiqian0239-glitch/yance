@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { isAuthorizedWpBImplementationBranch } = require('../../shared/release/acv2ActiveWorkPackageAuthority');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const RECEIPT = path.join(ROOT, 'governance', 'architecture-closure-v2', 'wp-b-m2-review.json');
@@ -225,10 +226,12 @@ function verifyLocalRepository(document = readReceipt()) {
   requireThat(redReceipt.redHead === red.head && redReceipt.workflowRunId === red.workflowRunId, 'WP_B_M2_REVIEW_RED_RECEIPT_MISMATCH', 'RED receipt changed');
   requireThat(redReceipt.platforms?.ubuntu?.jobId === red.ubuntuJobId && redReceipt.platforms?.windows?.jobId === red.windowsJobId, 'WP_B_M2_REVIEW_RED_JOB_MISMATCH', 'RED jobs changed');
   requireThat(redReceipt.platforms?.ubuntu?.artifactId === red.ubuntuArtifactId && redReceipt.platforms?.windows?.artifactId === red.windowsArtifactId, 'WP_B_M2_REVIEW_RED_ARTIFACT_MISMATCH', 'RED artifacts changed');
-  requireThat(git(['branch', '--show-current']) === BRANCH, 'WP_B_M2_REVIEW_BRANCH_CHECKOUT_INVALID', 'Wrong branch');
+  const currentBranch = git(['branch', '--show-current']);
+  requireThat(isAuthorizedWpBImplementationBranch(currentBranch, undefined, { repositoryRoot: ROOT }),
+    'WP_B_M2_REVIEW_BRANCH_CHECKOUT_INVALID', 'Wrong or unauthorized branch');
   const status = git(['status', '--porcelain=v1', '--untracked-files=all']);
   requireThat(status === '', 'WP_B_M2_REVIEW_WORKTREE_DIRTY', 'Worktree must be clean', { status });
-  return Object.freeze({ ok: true, reviewedHead: validation.reviewedHead, currentHead, sealStatus: validation.sealStatus, sealHead: validation.sealHead, reviewedFileCount: reviewedFiles.length, reviewedFileSetSha256: reviewedDigest, postReviewFiles: Object.freeze(postReviewFiles), ...prerequisites() });
+  return Object.freeze({ ok: true, reviewedHead: validation.reviewedHead, currentHead, currentBranch, sealStatus: validation.sealStatus, sealHead: validation.sealHead, reviewedFileCount: reviewedFiles.length, reviewedFileSetSha256: reviewedDigest, postReviewFiles: Object.freeze(postReviewFiles), ...prerequisites() });
 }
 
 async function fetchJson(url, token, code) {
@@ -273,6 +276,9 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
   const token = String(options.token || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '');
   const repository = String(options.repository || process.env.GITHUB_REPOSITORY || document.repository || '');
   const currentHead = String(options.currentHead || git(['rev-parse', 'HEAD']));
+  const currentBranch = String(options.currentBranch || git(['branch', '--show-current']));
+  requireThat(isAuthorizedWpBImplementationBranch(currentBranch, undefined, { repositoryRoot: ROOT }),
+    'WP_B_M2_REVIEW_REMOTE_BRANCH_INVALID', 'Current branch is not an authorized WP-B implementation branch');
   requireThat(token && repository === REPOSITORY, 'WP_B_M2_REVIEW_REMOTE_TOKEN_REQUIRED', 'Authenticated repository token is required');
   const api = `https://api.github.com/repos/${repository}`;
   const reviewedRuns = await verifyRunSetRemote(api, token, document.formalValidation, document.reviewedImplementation.head, 'WP_B_M2_REVIEW_REMOTE');
@@ -290,17 +296,40 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
   const redArtifacts = new Set((redArtifactsPage.artifacts || []).map(item => Number(item.id)));
   requireThat(redArtifacts.has(red.ubuntuArtifactId) && redArtifacts.has(red.windowsArtifactId), 'WP_B_M2_REVIEW_REMOTE_RED_ARTIFACT_MISSING', 'RED artifacts changed');
 
-  const pr = await fetchJson(`${api}/pulls/${document.pullRequest}`, token, 'WP_B_M2_REVIEW_REMOTE_PR_REQUEST_FAILED');
-  requireThat(pr.state === 'open' && pr.draft === true && pr.merged_at == null, 'WP_B_M2_REVIEW_REMOTE_PR_STATE_INVALID', 'PR must remain Draft/open/unmerged');
-  requireThat(pr.head?.ref === document.branch && pr.head?.sha === currentHead && pr.base?.ref === 'main', 'WP_B_M2_REVIEW_REMOTE_PR_HEAD_INVALID', 'PR refs changed', { currentHead, actual: pr.head?.sha });
+  const historicalPr = await fetchJson(`${api}/pulls/${document.pullRequest}`, token, 'WP_B_M2_REVIEW_REMOTE_PR_REQUEST_FAILED');
+  requireThat(historicalPr.state === 'open' && historicalPr.draft === true && historicalPr.merged_at == null,
+    'WP_B_M2_REVIEW_REMOTE_PR_STATE_INVALID', 'Historical PR must remain Draft/open/unmerged');
+  requireThat(historicalPr.head?.ref === document.branch && historicalPr.base?.ref === 'main',
+    'WP_B_M2_REVIEW_REMOTE_PR_HEAD_INVALID', 'Historical PR refs changed');
 
-  return Object.freeze({ ok: true, reviewedHead: document.reviewedImplementation.head, currentHead, verifiedRunCount: reviewedRuns.length, verifiedRuns: reviewedRuns, verifiedSealRunCount: sealRuns.length, verifiedSealRuns: sealRuns, credibleRedVerified: true, prDraftOpenUnmerged: true });
+  if (currentBranch === BRANCH) {
+    requireThat(historicalPr.head?.sha === currentHead,
+      'WP_B_M2_REVIEW_REMOTE_PR_HEAD_INVALID', 'Historical PR Head changed', { currentHead, actual: historicalPr.head?.sha });
+  } else {
+    const owner = repository.split('/')[0];
+    const candidatePrs = await fetchJson(
+      `${api}/pulls?state=open&base=main&head=${encodeURIComponent(`${owner}:${currentBranch}`)}&per_page=10`,
+      token,
+      'WP_B_M2_REVIEW_REMOTE_SUCCESSOR_PR_REQUEST_FAILED'
+    );
+    const matches = Array.isArray(candidatePrs)
+      ? candidatePrs.filter(candidate => candidate?.head?.ref === currentBranch && candidate?.base?.ref === 'main')
+      : [];
+    requireThat(matches.length === 1
+      && matches[0].draft === true
+      && matches[0].merged_at == null
+      && matches[0].head?.sha === currentHead,
+    'WP_B_M2_REVIEW_REMOTE_SUCCESSOR_PR_INVALID', 'Successor PR must be exact Draft/open/unmerged Head',
+    { currentBranch, currentHead, matches: matches.map(candidate => ({ number: candidate.number, head: candidate.head?.sha, draft: candidate.draft })) });
+  }
+
+  return Object.freeze({ ok: true, reviewedHead: document.reviewedImplementation.head, currentHead, currentBranch, verifiedRunCount: reviewedRuns.length, verifiedRuns: reviewedRuns, verifiedSealRunCount: sealRuns.length, verifiedSealRuns: sealRuns, credibleRedVerified: true, prDraftOpenUnmerged: true });
 }
 
 async function main() {
   const document = readReceipt();
   const local = verifyLocalRepository(document);
-  const remote = process.argv.includes('--remote') ? await verifyRemoteEvidence(document, { currentHead: local.currentHead }) : null;
+  const remote = process.argv.includes('--remote') ? await verifyRemoteEvidence(document, { currentHead: local.currentHead, currentBranch: local.currentBranch }) : null;
   process.stdout.write(`${JSON.stringify({ ok: true, local, remote }, null, 2)}\n`);
 }
 if (require.main === module) main().catch(error => {

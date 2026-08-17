@@ -57,7 +57,7 @@ permissions:
   pull-requests: read
 
 env:
-  IMPLEMENTATION_BRANCH: acv2/wp-b-durable-execution-outbox
+  IMPLEMENTATION_BRANCH: ${{ github.head_ref || github.ref_name }}
   VALIDATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
@@ -91,6 +91,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node -e "const authority=require('./shared/release/acv2ActiveWorkPackageAuthority');if(!authority.isAuthorizedWpBImplementationBranch(process.env.IMPLEMENTATION_BRANCH)){console.error('WP_B_ACTIVE_IMPLEMENTATION_BRANCH_UNAUTHORIZED');process.exit(1)}"
           test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
           git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
           test "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})" = "${VALIDATION_SHA}"

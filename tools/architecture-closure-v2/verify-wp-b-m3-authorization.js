@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { isAuthorizedWpBImplementationBranch } = require('../../shared/release/acv2ActiveWorkPackageAuthority');
 
 const REPOSITORY_ROOT = path.resolve(__dirname, '..', '..');
 const RECEIPT_PATH = path.join(REPOSITORY_ROOT, 'governance', 'architecture-closure-v2', 'wp-b-m3-authorization.json');
@@ -455,13 +456,14 @@ function verifyLocalRepository(document = readReceipt(), options = {}) {
     'WP_B_M3_AUTHORIZATION_SCOPE_002_MERGE_TOPOLOGY_INVALID', 'Scope-002 causal RED topology changed');
   requireThat(git(root, ['rev-parse', `${EXPECTED.m2EvidenceHead}:${INVENTORY_PATH}`]) === EXPECTED.inventoryAnchorBlob,
     'WP_B_M3_AUTHORIZATION_INVENTORY_ANCHOR_INVALID', 'Inventory anchor blob changed');
-  requireThat(git(root, ['branch', '--show-current']) === EXPECTED_BRANCH,
-    'WP_B_M3_AUTHORIZATION_BRANCH_CHECKOUT_INVALID', 'Wrong branch checked out');
+  const currentBranch = git(root, ['branch', '--show-current']);
+  requireThat(isAuthorizedWpBImplementationBranch(currentBranch, undefined, { repositoryRoot: root }),
+    'WP_B_M3_AUTHORIZATION_BRANCH_CHECKOUT_INVALID', 'Wrong or unauthorized branch checked out');
   requireThat(git(root, ['status', '--porcelain=v1', '--untracked-files=all']) === '',
     'WP_B_M3_AUTHORIZATION_WORKTREE_DIRTY', 'Authorization verification requires clean worktree');
   const authorizedPaths = resolveAuthorizedPaths(document, { repositoryRoot: root });
   return Object.freeze({
-    ok: true, currentHead,
+    ok: true, currentHead, currentBranch,
     parentMilestone2EvidenceHead: validation.parentMilestone2EvidenceHead,
     parentMilestone2SealHead: validation.parentMilestone2SealHead,
     parentMilestone2ReviewedHead: validation.parentMilestone2ReviewedHead,
@@ -588,11 +590,36 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
   'WP_B_M3_SCOPE_005_REMOTE_ARTIFACT_MISMATCH', 'Scope-005 M3-SC-DIAG-014 artifacts changed');
 
   const currentHead = String(options.currentHead || git(REPOSITORY_ROOT, ['rev-parse', 'HEAD']));
-  const pr = await fetchJson(`${api}/pulls/${document.pullRequest}`, token, 'WP_B_M3_AUTHORIZATION_REMOTE_PR_REQUEST_FAILED');
-  requireThat(pr.state === 'open' && pr.draft === true && pr.merged_at == null,
-    'WP_B_M3_AUTHORIZATION_REMOTE_PR_STATE_INVALID', 'PR must remain Draft/open/unmerged');
-  requireThat(pr.head?.ref === document.branch && pr.head?.sha === currentHead && pr.base?.ref === 'main',
-    'WP_B_M3_AUTHORIZATION_REMOTE_PR_HEAD_INVALID', 'PR refs changed');
+  const currentBranch = String(options.currentBranch || git(REPOSITORY_ROOT, ['branch', '--show-current']));
+  requireThat(isAuthorizedWpBImplementationBranch(currentBranch, undefined, { repositoryRoot: REPOSITORY_ROOT }),
+    'WP_B_M3_AUTHORIZATION_REMOTE_BRANCH_INVALID', 'Current branch is not an authorized WP-B implementation branch');
+
+  const historicalPr = await fetchJson(`${api}/pulls/${document.pullRequest}`, token, 'WP_B_M3_AUTHORIZATION_REMOTE_PR_REQUEST_FAILED');
+  requireThat(historicalPr.state === 'open' && historicalPr.draft === true && historicalPr.merged_at == null,
+    'WP_B_M3_AUTHORIZATION_REMOTE_PR_STATE_INVALID', 'Historical PR must remain Draft/open/unmerged');
+  requireThat(historicalPr.head?.ref === document.branch && historicalPr.base?.ref === 'main',
+    'WP_B_M3_AUTHORIZATION_REMOTE_PR_HEAD_INVALID', 'Historical PR refs changed');
+
+  if (currentBranch === EXPECTED_BRANCH) {
+    requireThat(historicalPr.head?.sha === currentHead,
+      'WP_B_M3_AUTHORIZATION_REMOTE_PR_HEAD_INVALID', 'Historical PR Head changed');
+  } else {
+    const owner = repository.split('/')[0];
+    const candidatePrs = await fetchJson(
+      `${api}/pulls?state=open&base=main&head=${encodeURIComponent(`${owner}:${currentBranch}`)}&per_page=10`,
+      token,
+      'WP_B_M3_AUTHORIZATION_REMOTE_SUCCESSOR_PR_REQUEST_FAILED'
+    );
+    const matches = Array.isArray(candidatePrs)
+      ? candidatePrs.filter(candidate => candidate?.head?.ref === currentBranch && candidate?.base?.ref === 'main')
+      : [];
+    requireThat(matches.length === 1
+      && matches[0].draft === true
+      && matches[0].merged_at == null
+      && matches[0].head?.sha === currentHead,
+    'WP_B_M3_AUTHORIZATION_REMOTE_SUCCESSOR_PR_INVALID', 'Successor PR must be exact Draft/open/unmerged Head',
+    { currentBranch, currentHead, matches: matches.map(candidate => ({ number: candidate.number, head: candidate.head?.sha, draft: candidate.draft })) });
+  }
   return Object.freeze({
     ok: true,
     credibleRedVerified: true,
@@ -604,14 +631,15 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
     scope005CausalRedVerified: true,
     scope005DiagnosticArtifactsVerified: true,
     prDraftOpenUnmerged: true,
-    currentHead
+    currentHead,
+    currentBranch
   });
 }
 async function main() {
   const document = readReceipt();
   const local = verifyLocalRepository(document);
   const result = process.argv.includes('--remote')
-    ? { local, remote: await verifyRemoteEvidence(document, { currentHead: local.currentHead }) }
+    ? { local, remote: await verifyRemoteEvidence(document, { currentHead: local.currentHead, currentBranch: local.currentBranch }) }
     : { local };
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
