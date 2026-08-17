@@ -16,6 +16,58 @@ This file is durable, repository-level execution guidance for AI/coding agents w
 - Prefer mature OSS as a whole over new Yance-built infrastructure. Any new Yance infrastructure must first satisfy the repository's V2.1 OSS-fit admission requirements.
 - Use GitHub connector/API operations for repository work whenever possible. Ask for local-machine commands only when the connector cannot perform the required operation; keep local commands minimal and avoid disturbing unrelated local staged/working-tree changes.
 
+## Fast Landing Execution Mode (mandatory)
+
+Fast Landing is the repository-default execution cadence for governed Yance work. It changes batching and validation cadence, not quality or authorization requirements.
+
+Stable policy markers:
+
+```text
+FAST_LANDING_DEFAULT=batch_causal_closure
+MICRO_SCOPE_SERIALIZATION=forbidden_by_default
+FULL_GATE_CADENCE=stable_batch_only
+INDEPENDENT_BUCKETS=parallel_by_default
+FINAL_CLOSURE_PREP=parallel_by_default
+```
+
+### Batch causal closure is the default
+
+- For one root cause, source-closure family, or authority cutover, discover the complete currently observable same-root source graph before the first production root-fix batch. The graph must cover known authority writers, importers, transitive consumers, fallbacks, retry/recovery/timer owners, platform bridges, and physical I/O boundaries that can participate in the defect.
+- Convert the discovered same-root paths into one Closure Matrix and one diagnostic batch. Each newly proven boundary still requires its own same-head causal RED evidence where governance requires failure-first proof, but several already-discoverable same-root boundaries should be locked in the same diagnostic window instead of being serialized into one work package per importer.
+- A discovered path outside the effective authorization remains an authorization boundary: record the causal evidence, obtain the exact same-work-package scope amendment, and do not touch the path before that amendment is effective.
+- Close the diagnostic window when the same-root source graph is exhausted, the Closure Matrix explains every known boundary, and `unknownBlockers = 0`. After that point, stop speculative RED expansion and implement the cohesive root fix as one production batch.
+
+### Micro-scope serialization is forbidden by default
+
+Do not use the pattern `one importer -> one scope -> one full CI cycle` when multiple same-root paths are already discoverable and authorized. Split a batch only when at least one real boundary exists:
+
+- an authorization or exact-path scope amendment is required;
+- immutable commit/topology policy requires a dedicated head or commit boundary;
+- two buckets mutate the same authoritative file/state and cannot be safely isolated;
+- a true causal dependency requires one fix to exist before another can be validated;
+- an external permission, secret, platform, artifact, or owner resource boundary blocks continuation;
+- an independent-review boundary requires a stable reviewed head;
+- the final merge boundary requires owner authorization.
+
+Convenience, habit, or CI latency alone is not a valid reason to serialize same-root work into micro-scopes.
+
+### Validation cadence
+
+- Tier 1 — diagnostic/focused: during source-graph discovery and implementation, run the narrowest scanner, contract, and behavior tests that prove the currently edited causal boundaries.
+- Tier 2 — work-package focused: when the root-fix batch stabilizes, run the complete authorized focused suite for the affected work package and exact implementation head.
+- Tier 3 — full routed gates: run Stage/WP0, ACV2, cross-platform, sealed-runtime/model/product gates, independent review, and other routed final gates on the stable batch before review/seal/merge. Do not repeat the entire full-gate matrix after every individual importer unless a more-specific trusted authorization or base-owned policy explicitly requires that exact-head cadence.
+- A skipped job is never GREEN. Preserve existing exact-head, cross-platform, immutable evidence, and final-gate semantics.
+
+### Parallel closure buckets
+
+- Independent closure buckets are parallel by default when they do not share mutable authority, files, immutable topology, or a causal dependency. Typical independent buckets include lifecycle/retry closure, outbound physical-boundary closure, media/history recovery closure, and OSS provenance/evidence preparation.
+- Final-closure preparation is parallel by default: matrix harnesses, NOTICE/license/SBOM/provenance inputs, post-merge validation contracts, and independent-review inputs may be prepared while source closure continues, provided their final hashes/heads are bound only after the implementation head stabilizes.
+- Parallel preparation must not fabricate final evidence, freeze stale digests, or claim GREEN before the exact final head is verified.
+
+### Safety invariants
+
+Fast Landing never means skipping failure-first, scope authorization, independent review, or final full gates. It also never permits temporary bypasses, contract weakening, fake evidence, unreviewed OSS admission, blind retry, hidden parallel authority, or crossing an explicit merge boundary without authorization. Speed comes from larger same-root batches, early complete discovery, validation layering, and safe parallelism—not from reducing correctness.
+
 ## Fast Closure V2
 
 Fast Closure V2 is the default governed implementation shape when a work package is failure-first and the root cause may span more than one boundary.
