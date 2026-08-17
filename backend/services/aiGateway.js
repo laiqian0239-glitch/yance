@@ -6,7 +6,6 @@ const modelBrainRuntime = require('./modelBrainRuntime');
 const modelBrainProjection = require('./modelBrainProjection');
 const eventBus = require('./eventBus');
 const logger = require('./logger');
-const { JobQueue } = require('./jobQueue');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
 
 const securityGuard = getSecurityGuard();
@@ -100,6 +99,147 @@ function credentialEnvelope(candidates = []) {
   }
   return result;
 }
+class PQueueSchedulerAdapter {
+  constructor({ concurrency = 2, name = 'model-brain' } = {}) {
+    this.name = clean(name) || 'model-brain';
+    this.concurrency = Math.max(1, Number(concurrency || 1));
+    this.queue = null;
+    this.queuePromise = null;
+    this.queueLoadState = 'idle';
+    this.queueLoadError = '';
+    this.controllers = new Map();
+    this.pending = new Map();
+    this.running = new Map();
+    this.completed = new Map();
+    this.sequence = 0;
+  }
+  _rememberCompletion(id, record) {
+    this.completed.set(id, Object.freeze({ id, ...record }));
+    while (this.completed.size > 50) this.completed.delete(this.completed.keys().next().value);
+  }
+  async _loadQueue() {
+    if (this.queuePromise) return this.queuePromise;
+    this.queueLoadState = 'loading';
+    this.queuePromise = import('p-queue').then(module => {
+      const PQueue = module?.default;
+      if (typeof PQueue !== 'function') {
+        throw Object.assign(new Error('p-queue default export is unavailable'), {
+          code: 'P_QUEUE_MODULE_INVALID'
+        });
+      }
+      this.queue = new PQueue({ concurrency: this.concurrency });
+      this.queueLoadState = 'ready';
+      return this.queue;
+    }).catch(error => {
+      this.queueLoadState = 'failed';
+      this.queueLoadError = clean(error?.code || error?.message || error);
+      throw error;
+    });
+    return this.queuePromise;
+  }
+  add(task, meta = {}) {
+    if (typeof task !== 'function') throw new TypeError('PQueueSchedulerAdapter task must be a function');
+    const id = clean(meta.id || meta.jobId) || `${this.name}-${++this.sequence}`;
+    if (this.controllers.has(id) || this.pending.has(id) || this.running.has(id)) {
+      throw Object.assign(new Error(`Duplicate p-queue task id: ${id}`), { code: 'P_QUEUE_TASK_ID_DUPLICATE', id });
+    }
+    const priority = Number.isFinite(Number(meta.priority)) ? Number(meta.priority) : 0;
+    const queueTimeoutMs = Math.max(0, Number(meta.queueTimeoutMs || 0));
+    const externalSignal = meta.signal;
+    const publicMeta = { ...meta, priority, queueTimeoutMs };
+    delete publicMeta.signal;
+    const controller = new AbortController();
+    const pending = Object.freeze({ id, meta: Object.freeze(publicMeta), createdAt: Date.now() });
+    this.controllers.set(id, controller);
+    this.pending.set(id, pending);
+
+    let detachExternalAbort = () => {};
+    if (externalSignal?.addEventListener) {
+      const onExternalAbort = () => {
+        if (!this.pending.has(id) || controller.signal.aborted) return;
+        controller.abort(externalSignal.reason || Object.assign(new Error('Queued AI task cancelled'), {
+          code: 'JOB_CANCELLED',
+          taskId: id
+        }));
+      };
+      detachExternalAbort = () => externalSignal.removeEventListener?.('abort', onExternalAbort);
+      if (externalSignal.aborted) onExternalAbort();
+      else externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+
+    let queueTimer = null;
+    if (queueTimeoutMs > 0) {
+      queueTimer = setTimeout(() => {
+        if (!this.pending.has(id) || controller.signal.aborted) return;
+        controller.abort(Object.assign(new Error('AI任务排队超时，尚未开始运行'), {
+          code: 'AI_QUEUE_TIMEOUT',
+          taskId: id
+        }));
+      }, queueTimeoutMs);
+    }
+
+    // Keep running work inside p-queue until the task itself settles; execution deadlines and
+    // provider termination remain downstream runtime responsibilities, not scheduler authority.
+    const promise = this._loadQueue().then(queue => queue.add(async ({ signal }) => {
+      if (queueTimer) clearTimeout(queueTimer);
+      detachExternalAbort();
+      this.pending.delete(id);
+      const startedAt = Date.now();
+      this.running.set(id, Object.freeze({ id, meta: pending.meta, startedAt }));
+      try {
+        const value = await task({ signal });
+        this._rememberCompletion(id, { ok: true, durationMs: Date.now() - startedAt, at: new Date().toISOString() });
+        return value;
+      } catch (error) {
+        this._rememberCompletion(id, {
+          ok: false,
+          durationMs: Date.now() - startedAt,
+          at: new Date().toISOString(),
+          code: clean(error?.code || error?.name || 'P_QUEUE_TASK_FAILED')
+        });
+        throw error;
+      } finally {
+        this.running.delete(id);
+      }
+    }, {
+      id,
+      priority,
+      signal: controller.signal
+    })).finally(() => {
+      if (queueTimer) clearTimeout(queueTimer);
+      detachExternalAbort();
+      this.pending.delete(id);
+      this.controllers.delete(id);
+    });
+
+    return Object.freeze({ id, promise });
+  }
+  // Cancellation is intentionally queued-only. Running work retains its concurrency slot until settlement.
+  cancel(id) {
+    const key = clean(id);
+    const controller = this.controllers.get(key);
+    if (!controller || !this.pending.has(key) || controller.signal.aborted) return false;
+    controller.abort(Object.assign(new Error('Queued AI task cancelled'), {
+      code: 'JOB_CANCELLED',
+      taskId: key
+    }));
+    return true;
+  }
+  status() {
+    return {
+      name: this.name,
+      scheduler: 'p-queue@9.3.1',
+      moduleState: this.queueLoadState,
+      moduleError: this.queueLoadError,
+      concurrency: this.concurrency,
+      pending: [...this.pending.values()],
+      running: [...this.running.values()],
+      completed: [...this.completed.values()],
+      pQueue: this.queue ? { size: this.queue.size, pending: this.queue.pending } : { size: 0, pending: 0 }
+    };
+  }
+}
+
 function normalizeRuntimeResult(result = {}, task = '') {
   const evidence = result.evidence || {};
   return {
@@ -131,11 +271,9 @@ class AiGateway {
     this.contextJobs = new Map();
     this.jobRetentionLimit = Math.max(50, Number(process.env.YANCE_AI_JOB_RETENTION || 500));
     const concurrency = Math.max(1, Number(options.concurrency || process.env.YANCE_AI_CONCURRENCY || 2));
-    this.queue = options.queue || new JobQueue({
+    this.queue = options.queue || new PQueueSchedulerAdapter({
       concurrency,
-      name: 'model-brain',
-      reservedHighPrioritySlots: concurrency > 1 ? Math.max(1, Number(process.env.YANCE_AI_INTERACTIVE_RESERVED_SLOTS || 1)) : 0,
-      highPriorityThreshold: 70
+      name: 'model-brain'
     });
   }
   prepare() { return this.runtime.status(); }
@@ -266,11 +404,27 @@ class AiGateway {
       executionTimeoutMs: timeoutMs + 5000,
       executionTimeoutCode: 'AI_EXECUTION_TIMEOUT',
       background: background === true,
-      providerKey: 'model-brain'
+      providerKey: 'model-brain',
+      signal: controller.signal
     });
     this.queueIds.set(jobId, queued.id);
-    queued.promise.finally(() => this.queueIds.delete(jobId)).catch(error => {
-      logger.warn('ai', 'model-brain-job-failed', { jobId, task, reasonCode: error.code || 'MODEL_BRAIN_QUEUE_FAILED', error: error.message });
+    queued.promise.catch(error => {
+      const current = this.jobs.get(jobId);
+      if (current && current.status === 'queued') {
+        current.status = error?.code === 'JOB_CANCELLED' || controller.signal.aborted ? 'cancelled' : 'failed';
+        current.completedAt = new Date().toISOString();
+        current.error = {
+          code: error?.code || 'MODEL_BRAIN_QUEUE_FAILED',
+          message: error?.message || String(error),
+          status: Number(error?.status || 0)
+        };
+      }
+      logger.warn('ai', 'model-brain-job-failed', { jobId, task, reasonCode: error?.code || 'MODEL_BRAIN_QUEUE_FAILED', error: error?.message || String(error) });
+    }).finally(() => {
+      this.queueIds.delete(jobId);
+      externalSignal?.removeEventListener?.('abort', relayExternal);
+      this.controllers.delete(jobId);
+      this.releaseTaskContext(jobId, context);
     });
     return { jobId };
   }
@@ -332,3 +486,5 @@ module.exports.resolveQueueTimeoutMs = resolveQueueTimeoutMs;
 module.exports.normalizeTaskContext = normalizeTaskContext;
 module.exports.staleContextError = staleContextError;
 module.exports.assertExecutionCommitAllowed = assertExecutionCommitAllowed;
+
+module.exports.PQueueSchedulerAdapter = PQueueSchedulerAdapter;

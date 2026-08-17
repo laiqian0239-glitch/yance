@@ -24,6 +24,7 @@
     "@openfeature/flagd-provider": "0.16.0",
     "@openfeature/server-sdk": "1.23.0",
     "proper-lockfile": "4.1.2",
+    "p-queue": "9.3.1",
     "xstate": "5.32.5"
   },
   "engines": {
