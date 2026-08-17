@@ -286,3 +286,53 @@ test('M3-SC-DIAG-017 outbound compatibility facade dispatches one persisted atte
     delete require.cache[require.resolve(servicePath)];
   }
 });
+
+test('M3-SC-DIAG-018 exact-six AI provider client preserves the full persisted attempt at the physical boundary', () => {
+  const compositionPath = path.join(repoRoot, 'backend', 'runtime', 'AppRuntimeComposition.js');
+  const source = fs.readFileSync(compositionPath, 'utf8');
+  const start = source.indexOf('function createAiProviderClient()');
+  const end = source.indexOf('function createMultiplexChannelClient()', start);
+  assert.ok(start >= 0 && end > start, 'M3-SC-DIAG-018:AI_PROVIDER_CLIENT_BOUNDARY_REQUIRED');
+  const clientSource = source.slice(start, end);
+  assert.doesNotMatch(
+    clientSource,
+    /aiGateway\.execute\s*\(/u,
+    'M3-SC-DIAG-018:LEGACY_AI_GATEWAY_EXECUTE_BYPASS_FORBIDDEN'
+  );
+  assert.match(
+    clientSource,
+    /aiGateway\.performPersistedAttempt\s*\(/u,
+    'M3-SC-DIAG-018:PERSISTED_AI_PHYSICAL_ENTRY_REQUIRED'
+  );
+  for (const field of [
+    'executionId', 'intentId', 'attemptId', 'claimId', 'ownerId',
+    'generation', 'hostGeneration', 'fencingToken', 'idempotencyKey',
+    'requestContentSha256', 'credential'
+  ]) {
+    assert.match(clientSource, new RegExp(`\\b${field}\\b`, 'u'), `M3-SC-DIAG-018:${field}`);
+  }
+});
+
+test('M3-SC-DIAG-019 AI gateway validates persisted claim and fencing identity before Model Brain physical execution', () => {
+  const gatewayPath = path.join(repoRoot, 'backend', 'services', 'aiGateway.js');
+  const source = fs.readFileSync(gatewayPath, 'utf8');
+  assert.match(
+    source,
+    /function validatePersistedAiPhysicalInput\s*\(/u,
+    'M3-SC-DIAG-019:PERSISTED_AI_VALIDATOR_REQUIRED'
+  );
+  const start = source.indexOf('async performPersistedAttempt(');
+  assert.ok(start >= 0, 'M3-SC-DIAG-019:PERSISTED_AI_PHYSICAL_ENTRY_REQUIRED');
+  const validation = source.indexOf('validatePersistedAiPhysicalInput(', start);
+  const physical = source.indexOf('this.runtime.execute(', start);
+  assert.ok(validation >= start, 'M3-SC-DIAG-019:VALIDATION_CALL_REQUIRED');
+  assert.ok(physical > validation, 'M3-SC-DIAG-019:VALIDATE_BEFORE_PHYSICAL_CALL');
+  const physicalSource = source.slice(start, physical);
+  for (const field of [
+    'executionId', 'intentId', 'attemptId', 'claimId', 'ownerId',
+    'generation', 'hostGeneration', 'fencingToken', 'idempotencyKey',
+    'requestContentSha256'
+  ]) {
+    assert.match(physicalSource, new RegExp(`\\b${field}\\b`, 'u'), `M3-SC-DIAG-019:${field}`);
+  }
+});
