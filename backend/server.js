@@ -169,7 +169,6 @@ const backupScheduler = require('./services/backupScheduler');
 const sendQueueService = require('./services/sendQueueService');
 const localPersistenceRepairService = require('./services/localPersistenceRepairService');
 const runtimeRecovery = require('./services/runtimeRecoveryService');
-const runtimeSettings = require('./services/runtimeSettings');
 const aiAutomation = require('./services/aiBrainOrchestrator');
 const storeManagerService = require('./services/storeManagerService');
 const aiReplyOutboxService = require('./services/aiReplyOutboxService');
@@ -719,10 +718,6 @@ server.listen(CONFIG.port, CONFIG.host, async () => {
   if (!safeModeActive) {
     sendQueueService.start();
     localPersistenceRepairService.start();
-    runtimeRecovery.start();
-    if (runtimeSettings.read().autoConnectAccounts) {
-      runtimeRecovery.scheduleRecovery('startup-auto-connect', 250);
-    }
   } else {
     sendQueueService.pause?.('safe-mode');
     logger.warn('recovery', 'safe-mode-runtime-restrictions-active', { reason: safeModeService.read().reason });
