@@ -5,7 +5,6 @@ const { getStore } = require('../repositories/storeProvider');
 const accountStore = require('./accountStore');
 const platformDrivers = require('./platformDriverRegistry');
 const logger = require('./logger');
-const asyncOperationLifecycleAuthority = require('./asyncOperationLifecycleAuthority').authority;
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function nowIso() { return new Date().toISOString(); }
@@ -266,27 +265,7 @@ class AccountLifecycleSagaService {
   async start() {
     try {
       const saga = await this.recoverInterrupted();
-      const auth = await asyncOperationLifecycleAuthority.recoverInterruptedAuthOperations({
-        canResume: async adapterSessionId => {
-          for (const platform of ['whatsapp','telegram','facebook']) {
-            try {
-              const driver = this.platformDrivers.get(platform);
-              if (typeof driver.canResumeAuthSession === 'function' && await driver.canResumeAuthSession(adapterSessionId)) return true;
-            } catch (_) {}
-          }
-          return false;
-        },
-        resume: async adapterSessionId => {
-          for (const platform of ['whatsapp','telegram','facebook']) {
-            try {
-              const driver = this.platformDrivers.get(platform);
-              if (typeof driver.resumeAuthSession === 'function') return await driver.resumeAuthSession(adapterSessionId);
-            } catch (_) {}
-          }
-          return null;
-        }
-      });
-      return { saga, auth };
+      return { saga };
     } catch (error) {
       logger.error('accounts', 'account-saga-recovery-failed', { code: error.code || 'ACCOUNT_SAGA_RECOVERY_FAILED', error: error.message });
       throw error;
