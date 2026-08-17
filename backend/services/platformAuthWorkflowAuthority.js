@@ -1,7 +1,6 @@
 'use strict';
 
-const eventBus = require('./eventBus');
-const { authority: defaultLifecycle, TERMINAL } = require('./asyncOperationLifecycleAuthority');
+const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
 
 const OPERATION_TYPE = 'platform.auth.workflow';
 const PENDING_STATES = new Set(['connecting', 'waiting-verification', 'pending', 'pending-user-action', 'qr', 'code', 'password', 'authorizing']);
@@ -23,10 +22,10 @@ function extractState(result = {}) {
   if (result.connected === true || result.account?.connected === true) return 'connected';
   return candidates[0] || '';
 }
-function isActive(row) { return Boolean(row && !TERMINAL.has(row.state)); }
+function isActive(row) { return Boolean(row && !TERMINAL_STATES.has(clean(row.state).toUpperCase())); }
 
 class PlatformAuthWorkflowAuthority {
-  constructor(options = {}) { this.defaultLifecycle = options.lifecycle || defaultLifecycle; }
+  constructor(options = {}) { this.injectedLifecycle = options.lifecycle || null; }
 
   latest(lifecycle, platform, accountId) {
     return lifecycle.latest({ operationType: OPERATION_TYPE, scopeKey: scopeKey(platform, accountId) });
@@ -84,8 +83,6 @@ class PlatformAuthWorkflowAuthority {
       const settled = lifecycle.fail(row.operationId, { code: clean(result.reasonCode || result.code) || 'AUTH_WORKFLOW_FAILED', message: clean(result.lastError || result.error || result.message) || `Authentication workflow entered ${state}` }, options);
       return { operation: settled.operation, pending: false };
     }
-    // Interactive authentication is not complete when QR/code/password or an
-    // OAuth selection is merely presented. Keep the durable workflow RUNNING.
     lifecycle.progress(row.operationId, Math.max(10, Number(context.progress || 20)));
     return { operation: lifecycle.read(row.operationId), pending: PENDING_STATES.has(state) || !state, state };
   }
@@ -110,20 +107,9 @@ class PlatformAuthWorkflowAuthority {
 }
 
 const singleton = new PlatformAuthWorkflowAuthority();
-let listenersBound = false;
 function bindDefaultLifecycleEvents() {
-  if (listenersBound) return;
-  listenersBound = true;
-  const settle = event => {
-    const payload = event?.payload || {};
-    const platform = lower(payload.platform || (event?.type || '').split(':')[0]);
-    const accountId = clean(payload.accountId || payload.databaseAccountId || payload.id);
-    if (!platform || !accountId) return;
-    try { singleton.settleFromState(defaultLifecycle, { ...payload, platform, accountId }); } catch (_) {}
-  };
-  for (const type of ['account:state', 'whatsapp:state', 'account:authority-state']) eventBus.on(type, settle);
+  return { bound: false, delegatedTo: 'AccountLifecycleSagaService' };
 }
-bindDefaultLifecycleEvents();
 
 module.exports = {
   OPERATION_TYPE,
