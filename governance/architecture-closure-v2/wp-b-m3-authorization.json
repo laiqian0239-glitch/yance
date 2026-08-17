@@ -115,6 +115,34 @@
         "backend/services/avatarService.js",
         "backend/services/runtimeSafetySupervisor.js"
       ]
+    },
+    {
+      "amendmentId": "WP-B-M3-SCOPE-004",
+      "authorizedAt": "2026-08-17T11:55:00+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner full continuous-execution authorization in the 独立软件工程审计 conversation; exact-head source-closure RED requires the listed physical legacy owners/importers to be removed rather than bypassed",
+      "reasonCode": "WP_B_M3_CAUSAL_LEGACY_OWNER_AND_COMPOSITION_CLOSURE",
+      "causalRedEvidence": {
+        "head": "bcb2a96b85d0ca67765bea7f53b4c381cfeae60d",
+        "wpBValidationRunId": 31995895141,
+        "ubuntuArtifactId": 9276807628,
+        "windowsArtifactId": 9276821982,
+        "m3SourceClosureDiagnostic": "M3-SC-DIAG-005_AND_M3-SC-DIAG-007",
+        "unknownBlockers": 0
+      },
+      "addedPaths": [
+        "backend/runtime/AppRuntimeComposition.js",
+        "backend/services/aiGateway.js",
+        "backend/services/asyncOperationLifecycleAuthority.js",
+        "backend/services/asyncOperationLifecycleAuthorityCore.js",
+        "backend/services/backgroundJobAuthority.js",
+        "backend/services/backgroundJobAuthorityCore.js",
+        "backend/services/jobQueue.js",
+        "backend/services/jobQueueCore.js",
+        "backend/services/platformAdapterPorts.js",
+        "backend/services/telegramAdapter.js",
+        "backend/services/whatsappHistoryMediaRecovery.js"
+      ]
     }
   ],
   "allowedPaths": [
@@ -123,16 +151,27 @@
     ".github/workflows/wp-b-validation.yml",
     "THIRD_PARTY_NOTICES_WP_B.md",
     "backend/repositories/messageRepository.js",
+    "backend/runtime/AppRuntimeComposition.js",
     "backend/services/accountLifecycleSagaService.js",
     "backend/services/aiBrainOrchestrator.js",
+    "backend/services/aiGateway.js",
     "backend/services/aiTaskRuntimeRegistry.js",
+    "backend/services/asyncOperationLifecycleAuthority.js",
+    "backend/services/asyncOperationLifecycleAuthorityCore.js",
     "backend/services/avatarService.js",
+    "backend/services/backgroundJobAuthority.js",
+    "backend/services/backgroundJobAuthorityCore.js",
     "backend/services/durableInternalOperationAuthority.js",
     "backend/services/facebookChatwootMatrixBridge.js",
+    "backend/services/jobQueue.js",
+    "backend/services/jobQueueCore.js",
     "backend/services/messageTranslationService.js",
+    "backend/services/platformAdapterPorts.js",
     "backend/services/platformAuthWorkflowAuthority.js",
     "backend/services/runtimeSafetySupervisor.js",
     "backend/services/systemCenterService.js",
+    "backend/services/telegramAdapter.js",
+    "backend/services/whatsappHistoryMediaRecovery.js",
     "backend/tests/architectureClosureV2/wpA/sourceClosureFinal.test.js",
     "backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js",
     "backend/tests/architectureClosureV2/wpB/finalClosureIntegrity.test.js",

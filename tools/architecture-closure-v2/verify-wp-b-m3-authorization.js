@@ -30,7 +30,8 @@ const EXPECTED = Object.freeze({
   scope002TrustedMain: '7ab4b85f6bdbce34ea96b608a807ca120618bb87',
   scope002RedHead: '8c9edef0c2e19f56081f769d3d509d76cb797a84',
   scope002Pr17Parent: '708ce1290f3bfcaec3a3a8c6589248fde5961c47',
-  scope003RedHead: '99019a999ef591049fcf45d2b108df6b0e5e676c'
+  scope003RedHead: '99019a999ef591049fcf45d2b108df6b0e5e676c',
+  scope004RedHead: 'bcb2a96b85d0ca67765bea7f53b4c381cfeae60d'
 });
 
 const EXPECTED_FAILURE_IDS = Object.freeze([
@@ -158,7 +159,36 @@ const SCOPE_003 = Object.freeze({
   ])
 });
 
-const EXPECTED_AMENDMENTS = Object.freeze([SCOPE_001, SCOPE_002, SCOPE_003]);
+const SCOPE_004 = Object.freeze({
+  amendmentId: 'WP-B-M3-SCOPE-004',
+  authorizedAt: '2026-08-17T11:55:00+07:00',
+  approvedBy: 'PROJECT_OWNER',
+  approvalSource: 'Project owner full continuous-execution authorization in the 独立软件工程审计 conversation; exact-head source-closure RED requires the listed physical legacy owners/importers to be removed rather than bypassed',
+  reasonCode: 'WP_B_M3_CAUSAL_LEGACY_OWNER_AND_COMPOSITION_CLOSURE',
+  causalRedEvidence: Object.freeze({
+    head: EXPECTED.scope004RedHead,
+    wpBValidationRunId: 31995895141,
+    ubuntuArtifactId: 9276807628,
+    windowsArtifactId: 9276821982,
+    m3SourceClosureDiagnostic: 'M3-SC-DIAG-005_AND_M3-SC-DIAG-007',
+    unknownBlockers: 0
+  }),
+  addedPaths: Object.freeze([
+    'backend/runtime/AppRuntimeComposition.js',
+    'backend/services/aiGateway.js',
+    'backend/services/asyncOperationLifecycleAuthority.js',
+    'backend/services/asyncOperationLifecycleAuthorityCore.js',
+    'backend/services/backgroundJobAuthority.js',
+    'backend/services/backgroundJobAuthorityCore.js',
+    'backend/services/jobQueue.js',
+    'backend/services/jobQueueCore.js',
+    'backend/services/platformAdapterPorts.js',
+    'backend/services/telegramAdapter.js',
+    'backend/services/whatsappHistoryMediaRecovery.js'
+  ])
+});
+
+const EXPECTED_AMENDMENTS = Object.freeze([SCOPE_001, SCOPE_002, SCOPE_003, SCOPE_004]);
 const EXPECTED_ALLOWED_PATHS = Object.freeze(
   [...new Set([...BASE_ALLOWED_PATHS, ...EXPECTED_AMENDMENTS.flatMap(value => value.addedPaths)])].sort()
 );
@@ -314,8 +344,7 @@ function validateReceipt(document) {
 
   requireThat(JSON.stringify(document.authorizationAmendments) === JSON.stringify(EXPECTED_AMENDMENTS),
     'WP_B_M3_AUTHORIZATION_AMENDMENT_INVALID', 'M3 scope amendment chain changed');
-  requireThat(document.authorizationAmendments[1].causalRedEvidence.unknownBlockers === 0
-    && document.authorizationAmendments[2].causalRedEvidence.unknownBlockers === 0,
+  requireThat(document.authorizationAmendments.slice(1).every(amendment => amendment.causalRedEvidence?.unknownBlockers === 0),
   'WP_B_M3_AUTHORIZATION_AMENDMENT_INVALID', 'Scope amendment causal RED matrix is not closed');
 
   const normalized = (document.allowedPaths || []).map(normalizeRepositoryPath);
@@ -389,13 +418,15 @@ function verifyLocalRepository(document = readReceipt(), options = {}) {
   const currentHead = git(root, ['rev-parse', 'HEAD']);
   for (const commit of [
     EXPECTED.m2ReviewedHead, EXPECTED.m2SealHead, EXPECTED.m2EvidenceHead, EXPECTED.designHead,
-    EXPECTED.m3RedHead, EXPECTED.scope002TrustedMain, EXPECTED.scope002RedHead, EXPECTED.scope003RedHead
+    EXPECTED.m3RedHead, EXPECTED.scope002TrustedMain, EXPECTED.scope002RedHead, EXPECTED.scope003RedHead,
+    EXPECTED.scope004RedHead
   ]) {
     git(root, ['cat-file', '-e', `${commit}^{commit}`]);
   }
   for (const ancestor of [
     EXPECTED.m2EvidenceHead, EXPECTED.designHead, EXPECTED.m3RedHead,
-    EXPECTED.scope002TrustedMain, EXPECTED.scope002RedHead, EXPECTED.scope003RedHead
+    EXPECTED.scope002TrustedMain, EXPECTED.scope002RedHead, EXPECTED.scope003RedHead,
+    EXPECTED.scope004RedHead
   ]) {
     git(root, ['merge-base', '--is-ancestor', ancestor, currentHead]);
   }
@@ -418,6 +449,7 @@ function verifyLocalRepository(document = readReceipt(), options = {}) {
     scope002TrustedMainHead: EXPECTED.scope002TrustedMain,
     scope002CausalRedHead: EXPECTED.scope002RedHead,
     scope003CausalRedHead: EXPECTED.scope003RedHead,
+    scope004CausalRedHead: EXPECTED.scope004RedHead,
     authorizedPathCount: authorizedPaths.length,
     m2SealVerified: true
   });
@@ -509,6 +541,19 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
     'WP-B M2 Contracts', SCOPE_003.causalRedEvidence.head, 'success',
     'WP_B_M3_SCOPE_003_REMOTE_M2_GREEN_MISMATCH');
 
+  await verifyRun(api, token, SCOPE_004.causalRedEvidence.wpBValidationRunId,
+    'WP-B Validation', SCOPE_004.causalRedEvidence.head, 'failure',
+    'WP_B_M3_SCOPE_004_REMOTE_RED_MISMATCH');
+  const scope004Artifacts = await fetchJson(
+    `${api}/actions/runs/${SCOPE_004.causalRedEvidence.wpBValidationRunId}/artifacts?per_page=100`,
+    token,
+    'WP_B_M3_SCOPE_004_REMOTE_ARTIFACTS_REQUEST_FAILED'
+  );
+  const scope004ArtifactIds = new Set((scope004Artifacts.artifacts || []).map(artifact => Number(artifact.id)));
+  requireThat(scope004ArtifactIds.has(SCOPE_004.causalRedEvidence.ubuntuArtifactId)
+    && scope004ArtifactIds.has(SCOPE_004.causalRedEvidence.windowsArtifactId),
+  'WP_B_M3_SCOPE_004_REMOTE_ARTIFACT_MISMATCH', 'Scope-004 source-closure diagnostic artifacts changed');
+
   const currentHead = String(options.currentHead || git(REPOSITORY_ROOT, ['rev-parse', 'HEAD']));
   const pr = await fetchJson(`${api}/pulls/${document.pullRequest}`, token, 'WP_B_M3_AUTHORIZATION_REMOTE_PR_REQUEST_FAILED');
   requireThat(pr.state === 'open' && pr.draft === true && pr.merged_at == null,
@@ -521,6 +566,8 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
     scope002CausalRedVerified: true,
     scope003CausalRedVerified: true,
     scope003M2PreservationVerified: true,
+    scope004CausalRedVerified: true,
+    scope004DiagnosticArtifactsVerified: true,
     prDraftOpenUnmerged: true,
     currentHead
   });
@@ -548,6 +595,7 @@ module.exports = Object.freeze({
   SCOPE_001,
   SCOPE_002,
   SCOPE_003,
+  SCOPE_004,
   isAuthorizedPath,
   normalizeRepositoryPath,
   pathSetSha256,
