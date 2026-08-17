@@ -23,7 +23,7 @@
     {
       "path": "governance/architecture-closure-v2/wp-b-open-source-adoption-registry.json",
       "documentType": "YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_REGISTRY",
-      "gitBlobSha": "e63c8100e9683bda6cbeeb994a11cde09479e720"
+      "gitBlobSha": "cf359c3fb8caa313e495eb277af64b1f72ba646b"
     },
     {
       "path": "governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json",
