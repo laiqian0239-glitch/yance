@@ -143,6 +143,24 @@
         "backend/services/telegramAdapter.js",
         "backend/services/whatsappHistoryMediaRecovery.js"
       ]
+    },
+    {
+      "amendmentId": "WP-B-M3-SCOPE-005",
+      "authorizedAt": "2026-08-17T17:32:52+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner full continuous-execution authorization in the 独立软件工程审计 conversation; exact-head M3-SC-DIAG-014 causal RED requires the registered account manager Core to preserve persisted operation identity through the existing driver chain rather than bypass it",
+      "reasonCode": "WP_B_M3_SESSION_SYNC_PHYSICAL_IDENTITY_PROPAGATION",
+      "causalRedEvidence": {
+        "head": "2418b77009742758a03442ea00a6f987002cd5ce",
+        "wpBValidationRunId": 32020504382,
+        "ubuntuArtifactId": 9285191065,
+        "windowsArtifactId": 9285194089,
+        "m3SourceClosureDiagnostic": "M3-SC-DIAG-014",
+        "unknownBlockers": 0
+      },
+      "addedPaths": [
+        "backend/services/accountManagerCore.js"
+      ]
     }
   ],
   "allowedPaths": [
@@ -153,6 +171,7 @@
     "backend/repositories/messageRepository.js",
     "backend/runtime/AppRuntimeComposition.js",
     "backend/services/accountLifecycleSagaService.js",
+    "backend/services/accountManagerCore.js",
     "backend/services/aiBrainOrchestrator.js",
     "backend/services/aiGateway.js",
     "backend/services/aiTaskRuntimeRegistry.js",
