@@ -165,3 +165,69 @@ test('M3-SC-DIAG-013 Facebook Chatwoot physical egress consumes the persisted WP
     delete require.cache[require.resolve(bridgePath)];
   }
 });
+
+test('M3-SC-DIAG-014 Facebook Chatwoot session and sync physical I/O consume one RUNNING persisted operation identity', async () => {
+  const portsPath = path.join(repoRoot, 'backend', 'services', 'platformAdapterPorts.js');
+  const workflowPath = path.join(repoRoot, 'backend', 'services', 'platformAuthWorkflowAuthority.js');
+  const corePath = path.join(repoRoot, 'backend', 'services', 'accountManagerCore.js');
+  const bridgePath = path.join(repoRoot, 'backend', 'services', 'facebookChatwootMatrixBridge.js');
+  const portsSource = fs.readFileSync(portsPath, 'utf8');
+  const workflowSource = fs.readFileSync(workflowPath, 'utf8');
+  const coreSource = fs.readFileSync(corePath, 'utf8');
+
+  assert.match(
+    workflowSource,
+    /operation\s*:\s*lifecycle\.read\(created\.operation\.operationId\)/u,
+    'M3-SC-DIAG-014:AUTH_WORKFLOW_MUST_RETURN_RUNNING_PERSISTED_SNAPSHOT'
+  );
+  assert.match(
+    portsSource,
+    /physicalOperationContext\s*:/u,
+    'M3-SC-DIAG-014:PORT_MUST_PROJECT_PERSISTED_OPERATION_IDENTITY'
+  );
+  assert.match(
+    coreSource,
+    /physicalOperationContext\s*:\s*options\.physicalOperationContext/u,
+    'M3-SC-DIAG-014:ACCOUNT_CORE_MUST_FORWARD_PERSISTED_OPERATION_IDENTITY'
+  );
+
+  const envNames = [
+    'CHATWOOT_BASE_URL', 'CHATWOOT_ACCOUNT_ID', 'CHATWOOT_API_ACCESS_TOKEN',
+    'MATRIX_BASE_URL', 'MATRIX_ACCESS_TOKEN'
+  ];
+  const previousEnv = Object.fromEntries(envNames.map(name => [name, process.env[name]]));
+  const previousFetch = global.fetch;
+  let fetchCalls = 0;
+  try {
+    process.env.CHATWOOT_BASE_URL = 'https://chatwoot.invalid';
+    process.env.CHATWOOT_ACCOUNT_ID = '1';
+    process.env.CHATWOOT_API_ACCESS_TOKEN = 'token';
+    process.env.MATRIX_BASE_URL = 'https://matrix.invalid';
+    process.env.MATRIX_ACCESS_TOKEN = 'token';
+    global.fetch = async () => {
+      fetchCalls += 1;
+      throw new Error('M3-SC-DIAG-014 unexpected physical I/O');
+    };
+
+    delete require.cache[require.resolve(bridgePath)];
+    const bridge = require(bridgePath);
+    await assert.rejects(
+      () => bridge.connect({ id: 'facebook_ads:page-1', platform: 'facebook', metadata: { pageId: 'page-1' } }, {}),
+      error => error?.code === 'FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED',
+      'M3-SC-DIAG-014:CONNECT_MUST_FAIL_CLOSED_BEFORE_FETCH'
+    );
+    await assert.rejects(
+      () => bridge.sync({ id: 'facebook_ads:page-1', platform: 'facebook', metadata: { pageId: 'page-1' } }, {}),
+      error => error?.code === 'FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED',
+      'M3-SC-DIAG-014:SYNC_MUST_FAIL_CLOSED_BEFORE_FETCH'
+    );
+    assert.equal(fetchCalls, 0, 'M3-SC-DIAG-014:NO_SESSION_OR_SYNC_IO_WITHOUT_PERSISTED_OPERATION');
+  } finally {
+    global.fetch = previousFetch;
+    for (const name of envNames) {
+      if (previousEnv[name] === undefined) delete process.env[name];
+      else process.env[name] = previousEnv[name];
+    }
+    delete require.cache[require.resolve(bridgePath)];
+  }
+});
