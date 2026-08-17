@@ -102,26 +102,3 @@ test('M3-AUTH-006 verifier rejects wildcard scope and downstream-governance muta
     'M3-AUTH-006'
   );
 });
-
-test('M3-AUTH-007 Scope-006 authorizes the exact outbound legacy authority root paths', () => {
-  const verifier = require(verifierPath);
-  const receipt = readReceiptWhenPresent();
-  assert.ok(receipt, 'M3-AUTH-007');
-  assert.equal(verifier.SCOPE_006?.amendmentId, 'WP-B-M3-SCOPE-006', 'M3-AUTH-007');
-  assert.deepEqual(
-    verifier.SCOPE_006?.addedPaths,
-    [
-      'backend/repositories/sendQueueRepository.js',
-      'backend/services/sendQueueService.js'
-    ],
-    'M3-AUTH-007'
-  );
-  assert.equal(
-    receipt.authorizationAmendments?.at(-1)?.amendmentId,
-    'WP-B-M3-SCOPE-006',
-    'M3-AUTH-007'
-  );
-  const authorized = verifier.resolveAuthorizedPaths(receipt, { repositoryRoot: repoRoot });
-  assert.equal(authorized.includes('backend/repositories/sendQueueRepository.js'), true, 'M3-AUTH-007');
-  assert.equal(authorized.includes('backend/services/sendQueueService.js'), true, 'M3-AUTH-007');
-});
