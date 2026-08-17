@@ -8,7 +8,6 @@ const aiGateway = require('./aiGateway');
 const bilingualUnderstandingService = require('./bilingualUnderstandingService');
 const contactLanguageAuthority = require('./contactLanguageAuthority');
 const messageSpeakerAuthority = require('./messageSpeakerAuthority');
-const { AsyncOperationLifecycleAuthority } = require('./asyncOperationLifecycleAuthority');
 
 const TRANSLATION_MODEL_TIMEOUT_MS = 180000;
 
@@ -120,16 +119,7 @@ class MessageTranslationService {
     this.active = 0;
     this.installed = false;
     this.listeners = [];
-    this.lifecycleAuthority = options.lifecycleAuthority || new AsyncOperationLifecycleAuthority();
-  }
-
-  lifecycleStore() {
-    try {
-      const store = this.storeProvider();
-      return store?.db && typeof store.db.exec === 'function' && typeof store.db.prepare === 'function' && typeof store.transaction === 'function'
-        ? store
-        : null;
-    } catch (_) { return null; }
+    this.messageGenerations = new Map();
   }
 
   fallbackLifecycleState(job) {
@@ -137,91 +127,39 @@ class MessageTranslationService {
     return mapping[job?.status] || '';
   }
 
-  ensureLifecycle(job) {
+  ensureRuntimeIdentity(job) {
     if (!job || job.operationId) return job;
-    const store = this.lifecycleStore();
-    if (!store) {
-      // Legacy unit stores are not authoritative persistence. Production always supplies R32SqliteStore.
-      job.operationId = job.id;
-      job.generation = 1;
-      job.objectFingerprint = job.translationKey || `${job.messageId}:${job.sourceHash}`;
-      job.lifecyclePersisted = false;
-      return job;
-    }
-    const created = this.lifecycleAuthority.create({
-      operationId: job.id,
-      operationType: 'translation.message',
-      scopeKey: job.messageId,
-      objectFingerprint: job.translationKey || `${job.messageId}:${job.sourceHash}`,
-      metadata: { conversationId: job.conversationId || '', contactId: job.contactId || '', retryOf: job.retryOf || '' }
-    }, store).operation;
-    job.operationId = created.operationId;
-    job.generation = created.generation;
-    job.objectFingerprint = created.objectFingerprint;
-    job.lifecyclePersisted = true;
+    const messageId = clean(job.messageId);
+    const generation = Number(this.messageGenerations.get(messageId) || 0) + 1;
+    this.messageGenerations.set(messageId, generation);
+    job.operationId = job.id;
+    job.generation = generation;
+    job.objectFingerprint = job.translationKey || `${job.messageId}:${job.sourceHash}`;
+    job.lifecyclePersisted = false;
     return job;
   }
 
-  syncLifecycle(job) {
+  assertTranslationAuthority(job, _store, allowedStates = ['RUNNING']) {
     if (!job) return null;
-    this.ensureLifecycle(job);
-    const store = this.lifecycleStore();
-    if (!store || job.lifecyclePersisted === false) return { state: this.fallbackLifecycleState(job), persisted: false };
-    const options = { generation: job.generation, objectFingerprint: job.objectFingerprint };
-    if (job.status === 'running') {
-      this.lifecycleAuthority.start(job.operationId, { progress: Math.max(1, Number(job.progress || 1)) }, store);
-      this.lifecycleAuthority.progress(job.operationId, Math.max(1, Number(job.progress || 1)), store);
-    } else if (job.status === 'success' || job.status === 'skipped') {
-      this.lifecycleAuthority.succeed(job.operationId, { status: job.status, messageId: job.messageId }, options, store);
-    } else if (job.status === 'failed') {
-      this.lifecycleAuthority.fail(job.operationId, { code: job.errorCode || 'TRANSLATION_FAILED', message: job.error || '翻译失败' }, options, store);
-    } else if (job.status === 'cancelled') {
-      this.lifecycleAuthority.cancel(job.operationId, job.errorCode || 'TRANSLATION_CANCELLED', { ...options, message: job.error || '翻译已取消' }, store);
-    }
-    return this.lifecycleAuthority.read(job.operationId, store);
-  }
-
-  assertTranslationAuthority(job, store, allowedStates = ['RUNNING']) {
-    if (!job || job.lifecyclePersisted === false) return null;
-    const current = store.db.prepare(`SELECT operation_id,operation_type,scope_key,object_fingerprint,generation,state
-      FROM async_operation_state WHERE operation_id=?`).get(clean(job.operationId));
-    const latest = current ? store.db.prepare(`SELECT operation_id,generation,object_fingerprint,state
-      FROM async_operation_state WHERE operation_type=? AND scope_key=? ORDER BY generation DESC LIMIT 1`)
-      .get(current.operation_type, current.scope_key) : null;
+    const current = this.jobs.get(clean(job.id));
+    const latestGeneration = Number(this.messageGenerations.get(clean(job.messageId)) || 0);
     const allowed = new Set(allowedStates.map(value => clean(value).toUpperCase()));
-    const valid = current
-      && latest?.operation_id === current.operation_id
-      && Number(current.generation || 0) === Number(job.generation || 0)
-      && clean(current.object_fingerprint) === clean(job.objectFingerprint)
-      && allowed.has(clean(current.state).toUpperCase());
+    const actualState = this.fallbackLifecycleState(current);
+    const valid = current === job
+      && Number(job.generation || 0) === latestGeneration
+      && clean(current?.objectFingerprint) === clean(job.objectFingerprint)
+      && allowed.has(actualState);
     if (!valid) {
       throw Object.assign(new Error('Translation runtime generation changed before message commit'), {
         code: 'STALE_TRANSLATION_RUNTIME_AT_COMMIT',
         messageId: clean(job.messageId), operationId: clean(job.operationId),
-        expectedGeneration: Number(job.generation || 0), actualGeneration: Number(current?.generation || 0),
-        expectedFingerprint: clean(job.objectFingerprint), actualFingerprint: clean(current?.object_fingerprint),
-        actualState: clean(current?.state), latestOperationId: clean(latest?.operation_id)
+        expectedGeneration: Number(job.generation || 0), actualGeneration: latestGeneration,
+        expectedFingerprint: clean(job.objectFingerprint), actualFingerprint: clean(current?.objectFingerprint),
+        actualState,
+        latestOperationId: clean(current?.operationId)
       });
     }
     return current;
-  }
-
-  settleLifecycleInTransaction(job, terminalState, error, store) {
-    if (!job || job.lifecyclePersisted === false || !terminalState) return null;
-    const options = { generation: job.generation, objectFingerprint: job.objectFingerprint };
-    const target = clean(terminalState).toUpperCase();
-    const result = target === 'SUCCEEDED'
-      ? this.lifecycleAuthority.succeed(job.operationId, { status: 'success', messageId: job.messageId }, options, store)
-      : target === 'CANCELLED'
-        ? this.lifecycleAuthority.cancel(job.operationId, clean(error?.code || 'TRANSLATION_CANCELLED'), { ...options, message: clean(error?.message || '翻译已取消') }, store)
-        : this.lifecycleAuthority.fail(job.operationId, { code: clean(error?.code || 'TRANSLATION_FAILED'), message: clean(error?.message || '翻译失败') }, options, store);
-    if (result?.updated === false) {
-      throw Object.assign(new Error('Translation lifecycle terminal CAS was rejected'), {
-        code: 'STALE_TRANSLATION_RUNTIME_AT_COMMIT', operationId: clean(job.operationId),
-        terminalState: target, reason: clean(result.reason), actualState: clean(result.operation?.state)
-      });
-    }
-    return result;
   }
 
   jobSnapshot(job) {
@@ -246,22 +184,14 @@ class MessageTranslationService {
       objectFingerprint: job.objectFingerprint || job.translationKey || '',
       durableState: (() => {
         if (!job.operationId) return '';
-        const store = this.lifecycleStore();
-        if (!store || job.lifecyclePersisted === false) return this.fallbackLifecycleState(job);
-        try { return this.lifecycleAuthority.read(job.operationId, store)?.state || ''; } catch (_) { return this.fallbackLifecycleState(job); }
+        return this.fallbackLifecycleState(job);
       })(),
-      lifecyclePersisted: job.lifecyclePersisted !== false,
+      lifecyclePersisted: false,
       cancellable: ['queued', 'running'].includes(job.status)
     };
   }
 
   publishJob(job) {
-    try { this.syncLifecycle(job); }
-    catch (error) {
-      this.logger.warn('translation', 'translation-lifecycle-writeback-failed', {
-        messageId: job?.messageId || '', operationId: job?.id || '', code: error.code || 'TRANSLATION_LIFECYCLE_WRITEBACK_FAILED', error: error.message
-      });
-    }
     const snapshot = this.jobSnapshot(job);
     if (snapshot) eventBus.publish('translation:job-updated', snapshot);
     return snapshot;
@@ -303,7 +233,7 @@ class MessageTranslationService {
         translationKey, sourceHash: translationSourceHash(text), status: 'success', progress: 100, createdAt, startedAt: createdAt, finishedAt: createdAt,
         errorCode: '', error: '', retryOf: clean(options.retryOf), options: {}, controller: new AbortController()
       };
-      this.ensureLifecycle(completed);
+      this.ensureRuntimeIdentity(completed);
       this.jobs.set(completed.id, completed);
       this.publishJob(completed);
       return this.jobSnapshot(completed);
@@ -326,7 +256,7 @@ class MessageTranslationService {
       options: { force: options.force === true, timeoutMs: options.timeoutMs, background: options.background === true },
       controller: new AbortController()
     };
-    this.ensureLifecycle(job);
+    this.ensureRuntimeIdentity(job);
     this.jobs.set(job.id, job);
     this.pendingIds.set(translationKey, job.id);
     this.pending.push({ messageId, translationKey, options: job.options, jobId: job.id });
@@ -421,7 +351,6 @@ class MessageTranslationService {
         } : {})
       };
       store.upsertMessage(next);
-      if (job && options.terminalState) this.settleLifecycleInTransaction(job, options.terminalState, options.terminalError, store);
       return store.getMessage(message.id) || next;
     };
     const saved = typeof store.transaction === 'function' ? store.transaction(commit) : commit();
@@ -673,91 +602,16 @@ class MessageTranslationService {
     return rows.length;
   }
 
-  recoverInterruptedTranslations(options = {}) {
-    const store = this.lifecycleStore();
-    const report = { scanned: 0, messageFailed: 0, lifecycleFailed: 0, stale: 0, missingMessage: 0, errors: [] };
-    if (!store) return report;
-    const pageLimit = Math.max(1, Math.min(500, Number(options.pageLimit || 100)));
-    let cursor = null;
-    do {
-      const page = this.lifecycleAuthority.snapshot({
-        operationType: 'translation.message',
-        states: ['CREATED', 'RUNNING'],
-        order: 'oldest',
-        limit: pageLimit,
-        cursor
-      }, store);
-      for (const operation of page.operations) {
-        report.scanned += 1;
-        const message = store.getMessage(operation.scopeKey);
-        const markerMatches = message
-          && clean(message.translationOperationId) === clean(operation.operationId)
-          && Number(message.translationGeneration || 0) === Number(operation.generation || 0)
-          && clean(message.translationObjectFingerprint) === clean(operation.objectFingerprint);
-        const interruption = {
-          code: 'PROCESS_RESTARTED_TRANSLATION_INTERRUPTED',
-          message: '翻译任务所属进程已重启，旧执行结果已失效并等待重新排队。'
-        };
-        let settledWithMessage = false;
-        if (message && markerMatches && clean(message.translationStatus).toLowerCase() === 'pending') {
-          const text = translationEligibleMessage(message) ? translatableText(message) : '';
-          const sourceHash = clean(message.translationSourceHash) || (text ? translationSourceHash(text) : '');
-          const recoveryJob = {
-            id: operation.operationId,
-            operationId: operation.operationId,
-            messageId: operation.scopeKey,
-            generation: operation.generation,
-            objectFingerprint: operation.objectFingerprint,
-            sourceHash,
-            lifecyclePersisted: true
-          };
-          try {
-            const existing = currentTranslation(message);
-            this.persist(message, {
-              sourceText: text || clean(message.sourceText || message.text),
-              sourceLanguage: clean(message.sourceLanguage || message.language || existing.sourceLanguage),
-              translatedZh: clean(message.lastSuccessfulTranslatedZh || existing.translatedZh),
-              translationStatus: 'failed',
-              translationModel: clean(message.lastSuccessfulTranslationModel || existing.translationModel),
-              translatedAt: clean(message.lastSuccessfulTranslatedAt || existing.translatedAt),
-              translationErrorCode: interruption.code,
-              translationError: interruption.message,
-              translationSourceHash: sourceHash,
-              translationTargetLanguage: 'zh',
-              lastSuccessfulTranslatedZh: clean(message.lastSuccessfulTranslatedZh || existing.translatedZh),
-              lastSuccessfulTranslationModel: clean(message.lastSuccessfulTranslationModel || existing.translationModel),
-              lastSuccessfulTranslatedAt: clean(message.lastSuccessfulTranslatedAt || existing.translatedAt)
-            }, {
-              job: recoveryJob,
-              expectedSourceHash: text && sourceHash ? sourceHash : '',
-              requireMarker: true,
-              allowedStates: [operation.state],
-              terminalState: 'FAILED',
-              terminalError: interruption
-            });
-            report.messageFailed += 1;
-            report.lifecycleFailed += 1;
-            settledWithMessage = true;
-          } catch (error) {
-            const code = clean(error.code || 'TRANSLATION_RECOVERY_MESSAGE_FAILED').toUpperCase();
-            if (code.startsWith('STALE_TRANSLATION_')) report.stale += 1;
-            else report.errors.push({ operationId: operation.operationId, messageId: operation.scopeKey, code, error: clean(error.message) });
-          }
-        } else if (!message) {
-          report.missingMessage += 1;
-        } else {
-          report.stale += 1;
-        }
-        if (settledWithMessage) continue;
-        const settled = this.lifecycleAuthority.fail(operation.operationId, interruption, {
-          generation: operation.generation,
-          objectFingerprint: operation.objectFingerprint
-        }, store);
-        if (settled.updated) report.lifecycleFailed += 1;
-      }
-      cursor = page.nextCursor;
-    } while (cursor);
-    return report;
+  recoverInterruptedTranslations() {
+    return {
+      scanned: 0,
+      messageFailed: 0,
+      lifecycleFailed: 0,
+      stale: 0,
+      missingMessage: 0,
+      errors: [],
+      delegatedTo: 'DurableExecutionRecoveryAuthority'
+    };
   }
 
   install() {
