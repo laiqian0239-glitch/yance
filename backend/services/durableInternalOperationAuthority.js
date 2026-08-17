@@ -180,6 +180,16 @@ function canonicalReferencePayload(value, field = 'payload') {
   }
 }
 
+function canonicalFailurePayload(value = {}) {
+  const source = value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...value }
+    : {};
+  const errorCode = optionalString(source.errorCode ?? source.code, 'failurePayload.errorCode', 256);
+  delete source.code;
+  if (errorCode) source.errorCode = errorCode;
+  return canonicalReferencePayload(source, 'failurePayload');
+}
+
 function validateToken(value) {
   const token = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   return deepFreeze({
@@ -235,6 +245,12 @@ function operationSnapshot(execution) {
     fencingToken: execution.fencingToken,
     leaseStartedAt: execution.leaseStartedAt,
     leaseExpiresAt: execution.leaseExpiresAt,
+    heartbeatSequence: execution.heartbeatSequence,
+    lastHeartbeatAt: execution.lastHeartbeatAt,
+    retryCount: execution.retryCount,
+    maxAttempts: execution.maxAttempts,
+    nextAttemptAt: execution.nextAttemptAt,
+    failureCode: execution.failureCode,
     progress,
     result: execution.state === WP_B_STATES.SUCCEEDED ? terminalPayload : {},
     error: execution.state === WP_B_STATES.FAILED ? terminalPayload : {},
@@ -326,7 +342,7 @@ class DurableInternalOperationAuthority {
       },
       metadata,
       authorityTimestamp,
-      maxAttempts: 1
+      maxAttempts: safeInteger(input.maxAttempts ?? 1, 'maxAttempts', 1, 100)
     });
     if (execution.state === WP_B_STATES.CREATED) {
       const token = this.token();
@@ -467,6 +483,86 @@ class DurableInternalOperationAuthority {
     return deepFreeze({ updated: true, operation: this.read(current.executionId) });
   }
 
+  heartbeat(operationId) {
+    const store = this.store();
+    const current = this.executionAuthority.get(requiredString(operationId, 'operationId'));
+    if (!current) {
+      throw internalOperationError('WP_B_INTERNAL_OPERATION_NOT_FOUND', 'Internal operation does not exist', { operationId });
+    }
+    if (current.state !== WP_B_STATES.RUNNING && current.state !== WP_B_STATES.WAITING_REMOTE) {
+      throw internalOperationError(
+        'WP_B_INTERNAL_OPERATION_HEARTBEAT_STATE_INVALID',
+        'Heartbeat is accepted only for a running or remote-waiting internal operation',
+        { operationId: current.executionId, state: current.state }
+      );
+    }
+    const token = this.token();
+    const heartbeatAt = this.timestamp();
+    const leaseExpiresAt = new Date(Date.parse(heartbeatAt) + this.leaseMs).toISOString();
+    store.transaction(() => {
+      const result = store.db.prepare(`UPDATE durable_executions SET
+          state_version=state_version+1,heartbeat_sequence=heartbeat_sequence+1,
+          last_heartbeat_at=?,lease_expires_at=?,updated_at=?
+        WHERE execution_id=? AND state=? AND state_version=? AND generation=?
+          AND owner_id=? AND claim_id=? AND host_generation=? AND fencing_token=?
+          AND lease_expires_at>=?
+          AND EXISTS(
+            SELECT 1 FROM authority_write_host_lease
+            WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+              AND fencing_token=? AND state='ACTIVE'
+          )`).run(
+        heartbeatAt,
+        leaseExpiresAt,
+        heartbeatAt,
+        current.executionId,
+        current.state,
+        current.stateVersion,
+        current.generation,
+        token.instanceId,
+        current.claimId,
+        token.hostGeneration,
+        token.fencingToken,
+        heartbeatAt,
+        token.instanceId,
+        token.hostGeneration,
+        token.fencingToken
+      );
+      if (Number(result.changes || 0) !== 1) {
+        throw internalOperationError(
+          'WP_B_INTERNAL_OPERATION_HEARTBEAT_CAS_REJECTED',
+          'Internal operation heartbeat was rejected by current claim, lease, or Host fencing',
+          {
+            operationId: current.executionId,
+            stateVersion: current.stateVersion,
+            generation: current.generation,
+            claimId: current.claimId,
+            hostGeneration: current.hostGeneration,
+            fencingToken: current.fencingToken
+          }
+        );
+      }
+      const sequence = Number(store.db.prepare(`SELECT COALESCE(MAX(sequence),0)+1 AS next
+        FROM durable_execution_events WHERE execution_id=?`).get(current.executionId)?.next || 1);
+      store.db.prepare(`INSERT INTO durable_execution_events(
+          event_id,execution_id,sequence,event_type,from_state,to_state,generation,
+          owner_id,reason_code,payload_json,created_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).run(
+        this.idFactory('internal-operation-event'),
+        current.executionId,
+        sequence,
+        'internal-operation-heartbeat',
+        current.state,
+        current.state,
+        current.generation,
+        token.instanceId,
+        'INTERNAL_OPERATION_HEARTBEAT',
+        canonicalSerialize({ status: 'heartbeat' }),
+        heartbeatAt
+      );
+    });
+    return deepFreeze({ updated: true, operation: this.read(current.executionId) });
+  }
+
   terminal(operationId, targetState, payload = {}, options = {}) {
     this.store();
     const current = this.executionAuthority.get(requiredString(operationId, 'operationId'));
@@ -525,7 +621,151 @@ class DurableInternalOperationAuthority {
   }
 
   fail(operationId, error = {}, options = {}) {
-    return this.terminal(operationId, WP_B_STATES.FAILED, error, options);
+    const retryable = options.retryable === true;
+    const failurePayload = canonicalFailurePayload(error);
+    if (!retryable) {
+      const result = this.terminal(operationId, WP_B_STATES.FAILED, failurePayload, options);
+      return deepFreeze({ ...result, retryable: false });
+    }
+
+    const store = this.store();
+    const current = this.executionAuthority.get(requiredString(operationId, 'operationId'));
+    if (!current) {
+      throw internalOperationError('WP_B_INTERNAL_OPERATION_NOT_FOUND', 'Internal operation does not exist', { operationId });
+    }
+    if (current.state !== WP_B_STATES.RUNNING && current.state !== WP_B_STATES.WAITING_REMOTE) {
+      throw internalOperationError(
+        'WP_B_INTERNAL_OPERATION_RETRY_STATE_INVALID',
+        'Retryable failure requires a running or remote-waiting internal operation',
+        { operationId: current.executionId, state: current.state }
+      );
+    }
+    if (options.generation != null && safeInteger(options.generation, 'generation', 1) !== current.generation) {
+      throw internalOperationError(
+        'WP_B_INTERNAL_OPERATION_GENERATION_STALE',
+        'Internal operation generation is stale',
+        { expectedGeneration: options.generation, actualGeneration: current.generation }
+      );
+    }
+    const expectedFingerprint = optionalString(options.objectFingerprint, 'objectFingerprint');
+    if (expectedFingerprint && expectedFingerprint !== String(current.metadata?.objectFingerprint || '')) {
+      throw internalOperationError(
+        'WP_B_INTERNAL_OPERATION_OBJECT_FINGERPRINT_STALE',
+        'Internal operation object fingerprint is stale',
+        { expectedFingerprint, actualFingerprint: String(current.metadata?.objectFingerprint || '') }
+      );
+    }
+    const persistedMaxAttempts = safeInteger(current.maxAttempts || 1, 'persistedMaxAttempts', 1, 100);
+    if (options.maxAttempts != null
+        && safeInteger(options.maxAttempts, 'maxAttempts', 1, 100) !== persistedMaxAttempts) {
+      throw internalOperationError(
+        'WP_B_INTERNAL_OPERATION_MAX_ATTEMPTS_MISMATCH',
+        'Retry policy must match the persisted Schema 23 execution',
+        { expectedMaxAttempts: persistedMaxAttempts, receivedMaxAttempts: Number(options.maxAttempts) }
+      );
+    }
+    const retryCount = safeInteger(Number(current.retryCount || 0) + 1, 'retryCount', 1, 100);
+    const retryDelayMs = safeInteger(
+      options.retryDelayMs ?? 0,
+      'retryDelayMs',
+      0,
+      7 * 24 * 60 * 60 * 1000
+    );
+    const authorityTimestamp = this.timestamp();
+    const nextAttemptAt = new Date(Date.parse(authorityTimestamp) + retryDelayMs).toISOString();
+    const targetState = retryCount >= persistedMaxAttempts
+      ? WP_B_STATES.DEAD_LETTERED
+      : WP_B_STATES.RETRY_SCHEDULED;
+    const scheduledNextAttemptAt = targetState === WP_B_STATES.RETRY_SCHEDULED ? nextAttemptAt : '';
+    const completedAt = targetState === WP_B_STATES.DEAD_LETTERED ? authorityTimestamp : '';
+    const failureCode = optionalString(
+      failurePayload.errorCode || options.reasonCode || 'INTERNAL_OPERATION_FAILED',
+      'failureCode',
+      256
+    );
+    const token = this.token();
+
+    store.transaction(() => {
+      const result = store.db.prepare(`UPDATE durable_executions SET
+          state=?,state_version=state_version+1,
+          owner_id='',claim_id='',host_generation=0,fencing_token=0,
+          lease_started_at='',lease_expires_at='',last_heartbeat_at='',
+          retry_count=?,next_attempt_at=?,failure_code=?,updated_at=?,
+          completed_at=CASE WHEN ?<>'' THEN ? ELSE '' END
+        WHERE execution_id=? AND state=? AND state_version=? AND generation=?
+          AND owner_id=? AND claim_id=? AND host_generation=? AND fencing_token=?
+          AND lease_expires_at>=?
+          AND EXISTS(
+            SELECT 1 FROM authority_write_host_lease
+            WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+              AND fencing_token=? AND state='ACTIVE'
+          )`).run(
+        targetState,
+        retryCount,
+        scheduledNextAttemptAt,
+        failureCode,
+        authorityTimestamp,
+        completedAt,
+        completedAt,
+        current.executionId,
+        current.state,
+        current.stateVersion,
+        current.generation,
+        token.instanceId,
+        current.claimId,
+        token.hostGeneration,
+        token.fencingToken,
+        authorityTimestamp,
+        token.instanceId,
+        token.hostGeneration,
+        token.fencingToken
+      );
+      if (Number(result.changes || 0) !== 1) {
+        throw internalOperationError(
+          'WP_B_INTERNAL_OPERATION_RETRY_CAS_REJECTED',
+          'Internal operation retry scheduling was rejected by current claim, lease, or Host fencing',
+          {
+            operationId: current.executionId,
+            stateVersion: current.stateVersion,
+            generation: current.generation,
+            claimId: current.claimId,
+            hostGeneration: current.hostGeneration,
+            fencingToken: current.fencingToken
+          }
+        );
+      }
+      const sequence = Number(store.db.prepare(`SELECT COALESCE(MAX(sequence),0)+1 AS next
+        FROM durable_execution_events WHERE execution_id=?`).get(current.executionId)?.next || 1);
+      store.db.prepare(`INSERT INTO durable_execution_events(
+          event_id,execution_id,sequence,event_type,from_state,to_state,generation,
+          owner_id,reason_code,payload_json,created_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).run(
+        this.idFactory('internal-operation-event'),
+        current.executionId,
+        sequence,
+        targetState === WP_B_STATES.RETRY_SCHEDULED
+          ? 'internal-operation-retry-scheduled'
+          : 'internal-operation-dead-lettered',
+        current.state,
+        targetState,
+        current.generation,
+        '',
+        failureCode,
+        canonicalSerialize({
+          errorCode: failureCode,
+          retryable: targetState === WP_B_STATES.RETRY_SCHEDULED,
+          nextAttemptAt: scheduledNextAttemptAt,
+          attempt: retryCount
+        }),
+        authorityTimestamp
+      );
+    });
+
+    return deepFreeze({
+      updated: true,
+      retryable: targetState === WP_B_STATES.RETRY_SCHEDULED,
+      operation: this.read(current.executionId)
+    });
   }
 
   cancel(operationId, receipt = {}, options = {}) {
