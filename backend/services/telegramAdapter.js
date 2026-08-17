@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('path');
+const crypto = require('node:crypto');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
 const securityGuard = getSecurityGuard();
 const messageStore = require('./messageStore');
@@ -13,7 +14,8 @@ const avatarService = require('./avatarService');
 const platformAuthConfig = require('./platformAuthConfig');
 const authChallenges = require('./authChallengeService');
 const expressionReferences = require('./telegramExpressionReferenceService');
-const backgroundJobAuthority = require('./backgroundJobAuthority');
+const { currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
+const { currentRuntimeRecoveryAuthority } = require('./durableExecutionRecoveryAuthority');
 const { executeWithDeadline } = require('./executionDeadline');
 const { createSessionGenerationFence } = require('./sessionGenerationFence');
 
@@ -709,15 +711,111 @@ class TelegramAdapter {
     };
   }
 
+  enrichmentFingerprint(identity = {}) {
+    return crypto.createHash('sha256').update([
+      identity.jobType,
+      identity.platform,
+      identity.sourceAccountId,
+      identity.conversationId,
+      identity.entityId,
+      identity.revision
+    ].map(clean).join('\u001f')).digest('hex');
+  }
+
+  enrichmentOperationSpec(identity = {}) {
+    return {
+      operationType: 'history.telegram-message-enrichment',
+      scopeKey: [identity.platform, identity.sourceAccountId, identity.conversationId, identity.entityId].map(clean).join(':'),
+      objectFingerprint: this.enrichmentFingerprint(identity),
+      maxAttempts: 5,
+      metadata: {
+        accountId: clean(identity.sourceAccountId),
+        messageId: clean(identity.entityId)
+      }
+    };
+  }
+
+  canonicalEnrichmentLease(operation = {}) {
+    return Object.freeze({
+      operationId: clean(operation.operationId),
+      generation: Number(operation.generation || 0),
+      objectFingerprint: clean(operation.objectFingerprint)
+    });
+  }
+
+  maybeRecoverEnrichment(authority, operation) {
+    const now = Date.now();
+    const retryDue = operation?.state === 'RETRY_SCHEDULED'
+      && (!operation.nextAttemptAt || Date.parse(operation.nextAttemptAt) <= now);
+    const leaseExpired = operation?.state === 'RUNNING'
+      && operation.leaseExpiresAt
+      && Date.parse(operation.leaseExpiresAt) <= now;
+    if (!retryDue && !leaseExpired) return operation;
+    currentRuntimeRecoveryAuthority().recoverExecution(operation.operationId, {
+      authorityTimestamp: new Date(now).toISOString()
+    });
+    return authority.read(operation.operationId);
+  }
+
+  acquireEnrichment(identity = {}) {
+    const authority = currentRuntimeInternalOperationAuthority();
+    const created = authority.create(this.enrichmentOperationSpec(identity));
+    let operation = this.maybeRecoverEnrichment(authority, created.operation);
+    if (operation.state === 'SCHEDULED') {
+      operation = authority.start(operation.operationId, { progress: 1 }).operation;
+      return { acquired: true, reason: created.created ? 'created' : 'scheduled', operation, job: operation, lease: this.canonicalEnrichmentLease(operation) };
+    }
+    return {
+      acquired: false,
+      reason: operation.state === 'SUCCEEDED' ? 'already-succeeded'
+        : operation.state === 'RETRY_SCHEDULED' ? 'retry-wait'
+          : operation.state === 'RUNNING' ? 'already-running'
+            : ['FAILED', 'DEAD_LETTERED'].includes(operation.state) ? 'failed_final'
+              : operation.state === 'CANCELLED' ? 'cancelled'
+                : clean(operation.state).toLowerCase(),
+      operation,
+      job: operation,
+      lease: null
+    };
+  }
+
+  heartbeatEnrichment(lease) {
+    if (!lease?.operationId) return { updated: false };
+    return currentRuntimeInternalOperationAuthority().heartbeat(lease.operationId);
+  }
+
+  failEnrichment(lease, error, options = {}) {
+    if (!lease?.operationId) return { updated: false };
+    const errorCode = clean(error?.code || error?.errorCode || error || 'TELEGRAM_ENRICHMENT_FAILED').toUpperCase();
+    return currentRuntimeInternalOperationAuthority().fail(lease.operationId, { errorCode }, {
+      retryable: options.retryable !== false,
+      retryDelayMs: Math.max(0, Number(options.retryDelayMs || 15_000)),
+      generation: lease.generation,
+      objectFingerprint: lease.objectFingerprint,
+      reasonCode: errorCode
+    });
+  }
+
+  succeedEnrichment(lease, externalId) {
+    if (!lease?.operationId) return { updated: false };
+    return currentRuntimeInternalOperationAuthority().succeed(lease.operationId, {
+      status: 'enriched',
+      messageId: clean(externalId)
+    }, {
+      generation: lease.generation,
+      objectFingerprint: lease.objectFingerprint
+    });
+  }
+
   async enrichPersistedMessage(account, row, msg, baseMessage, descriptor, options = {}) {
     const chatId = clean(options.chatId || targetId(baseMessage.chatJid));
     const externalId = clean(baseMessage.externalMessageId || baseMessage.id);
     const identity = this.enrichmentIdentity(account, chatId, externalId, baseMessage.conversationId);
-    const acquired = backgroundJobAuthority.begin(identity, { maxAttempts: 5, force: options.force === true, staleRunningMs: 60_000 });
+    const acquired = options.acquired || this.acquireEnrichment(identity);
     if (!acquired.acquired) return acquired;
     try {
       const attachments = await this.materializeMessageMedia(account, msg, baseMessage.conversationId, externalId, descriptor, { throwOnFailure: true });
-      if (!backgroundJobAuthority.heartbeat(acquired.lease).updated) {
+      if (!this.heartbeatEnrichment(acquired.lease).updated) {
         throw Object.assign(new Error('Telegram enrichment lease was lost after media materialization'), { code: 'BACKGROUND_JOB_LEASE_LOST' });
       }
       let displayName = clean(baseMessage.contactName || baseMessage.senderName || account.displayName || 'Telegram 联系人');
@@ -740,13 +838,13 @@ class TelegramAdapter {
           }
         }
       }
-      if (!backgroundJobAuthority.heartbeat(acquired.lease).updated) {
+      if (!this.heartbeatEnrichment(acquired.lease).updated) {
         throw Object.assign(new Error('Telegram enrichment lease was lost before durable message projection'), { code: 'BACKGROUND_JOB_LEASE_LOST' });
       }
       await messageStore.upsert({ ...baseMessage, contactName: displayName, senderName: displayName, avatarUrl, attachments });
-      return backgroundJobAuthority.succeed(acquired.lease, { messageId: externalId, attachments: attachments.length, enriched: true });
+      return this.succeedEnrichment(acquired.lease, externalId);
     } catch (error) {
-      backgroundJobAuthority.fail(acquired.lease, error, { retryable: true, maxAttempts: 5, retryDelayMs: 15_000, payload: { messageId: externalId } });
+      this.failEnrichment(acquired.lease, error, { retryable: true, retryDelayMs: 15_000 });
       throw error;
     }
   }
@@ -764,116 +862,104 @@ class TelegramAdapter {
     const maximumPages = Math.max(1, Math.min(100, Number(options.maximumPages || 20)));
     const budgetMs = Math.max(1000, Number(options.budgetMs || 30_000));
     const startedAt = Date.now();
-    let scanned = 0; let recovered = 0; let orphanJobs = 0; let orphanMessages = 0; let pages = 0;
+    let scanned = 0;
+    let recovered = 0;
+    let orphanJobs = 0;
+    let orphanMessages = 0;
+    let pages = 0;
+    let hasMore = false;
     try {
-    backgroundJobAuthority.recoverInterrupted({
-      jobType: 'telegram-message-enrichment', platform: 'telegram', sourceAccountId: account.id,
-      staleRunningMs: Math.max(60_000, Number(options.staleRunningMs || 5 * 60_000)), retryDelayMs: 1_000
-    });
-    // Repair the inverse orphan case first: a base message says enrichment is
-    // pending but the durable job is missing (for example, old data or a
-    // partially imported database). Enqueue is idempotent by scoped identity.
-    let messageCursor = null;
-    for (let page = 0; page < maximumPages && Date.now() - startedAt < budgetMs; page += 1) {
-      const pendingMessages = messageStore.listPendingTelegramEnrichment?.(account.id, { limit: pageSize, cursor: messageCursor }) || { messages: [] };
-      for (const message of pendingMessages.messages || []) {
-        const chatId = clean(message.chatJid).replace(/^telegram:/i, '') || clean(message.conversationId).split(':').slice(1).join(':');
-        const externalId = clean(message.externalMessageId || message.id);
-        if (!chatId || !externalId) continue;
-        const existingJob = backgroundJobAuthority.read(this.enrichmentIdentity(account, chatId, externalId, message.conversationId));
-        if (!existingJob) {
-          backgroundJobAuthority.enqueue(this.enrichmentIdentity(account, chatId, externalId, message.conversationId), { maxAttempts: 5 });
-          orphanMessages += 1;
+      // AppRuntime performs Schema 23 recovery before adapters start. The
+      // authoritative recovery worklist is the persisted message projection,
+      // not a duplicate job payload table.
+      let messageCursor = null;
+      do {
+        const pendingMessages = messageStore.listPendingTelegramEnrichment?.(account.id, {
+          limit: pageSize,
+          cursor: messageCursor
+        }) || { messages: [], hasMore: false, nextCursor: null };
+        pages += 1;
+        hasMore = pendingMessages.hasMore === true;
+        for (const message of pendingMessages.messages || []) {
+          if (Date.now() - startedAt >= budgetMs) {
+            hasMore = true;
+            break;
+          }
+          scanned += 1;
+          const conversationId = clean(message.conversationId || message.sessionKey);
+          const chatId = clean(message.chatJid).replace(/^telegram:/i, '')
+            || conversationId.split(':').slice(1).join(':');
+          const externalId = clean(message.externalMessageId || message.id);
+          const scopedDedupeKey = clean(message.dedupeKey) || `${account.id}:${chatId}:${externalId}`;
+          if (!chatId || !externalId || !conversationId) {
+            orphanMessages += 1;
+            continue;
+          }
+          const identity = this.enrichmentIdentity(account, chatId, externalId, conversationId);
+          const acquired = this.acquireEnrichment(identity);
+          if (!acquired.acquired) continue;
+          try {
+            const rows = await executeWithDeadline(
+              () => row.client.getMessages(targetId(chatId), { ids: [messageId(externalId)], limit: 1 }),
+              { timeoutMs: 20_000, code: 'TELEGRAM_ENRICHMENT_RECOVERY_TIMEOUT', operation: 'telegram-enrichment-recovery', platform: 'telegram', accountId: account.id, commandId: externalId }
+            );
+            const msg = Array.isArray(rows) ? rows[0] : rows?.[0];
+            if (!msg) {
+              orphanJobs += 1;
+              throw Object.assign(new Error('Telegram enrichment remote message is unavailable'), {
+                code: 'TELEGRAM_ENRICHMENT_REMOTE_MESSAGE_MISSING'
+              });
+            }
+            const existing = messageStore.getMessageByDedupeKey?.(scopedDedupeKey) || message;
+            await this.enrichPersistedMessage(
+              account,
+              row,
+              msg,
+              existing,
+              this.mediaDescriptor(msg, this.detectKind(msg)),
+              { chatId, acquired }
+            );
+            recovered += 1;
+          } catch (error) {
+            try {
+              this.failEnrichment(acquired.lease, error, {
+                retryable: error?.code !== 'TELEGRAM_ENRICHMENT_JOB_IDENTITY_INCOMPLETE',
+                retryDelayMs: 15_000
+              });
+            } catch (failure) {
+              logger.error('telegram', 'message-enrichment-recovery-durable-fail-rejected', {
+                accountId: account.id,
+                messageId: externalId,
+                code: failure.code || '',
+                error: failure.message
+              });
+            }
+            logger.warn('telegram', 'message-enrichment-recovery-failed', {
+              accountId: account.id,
+              messageId: externalId,
+              code: error.code || '',
+              error: error.message
+            });
+          }
         }
-      }
-      if (!pendingMessages.hasMore) break;
-      messageCursor = pendingMessages.nextCursor;
-    }
+        messageCursor = pendingMessages.nextCursor;
+        if (!hasMore || !messageCursor || Date.now() - startedAt >= budgetMs) break;
+      } while (pages < maximumPages);
 
-    let cursor = null;
-    let hasMore = true;
-    while (hasMore && pages < maximumPages && Date.now() - startedAt < budgetMs) {
-      const snapshot = backgroundJobAuthority.snapshot({
-        jobType: 'telegram-message-enrichment', platform: 'telegram', sourceAccountId: account.id,
-        states: ['PENDING','RETRY_WAIT'], dueBefore: new Date().toISOString(), order: 'oldest', limit: pageSize, cursor
-      });
-      pages += 1;
-      scanned += snapshot.jobs.length;
-      for (const job of snapshot.jobs) {
-      const chatId = clean(job.payload?.chatId);
-      const externalId = clean(job.payload?.externalId || job.entityId);
-      const scopedDedupeKey = clean(job.payload?.scopedDedupeKey) || `${account.id}:${chatId}:${externalId}`;
-      if (!chatId || !externalId) {
-        orphanJobs += 1;
-        const identityError = Object.assign(new Error('Telegram enrichment job identity is incomplete'), {
-          code: 'TELEGRAM_ENRICHMENT_JOB_IDENTITY_INCOMPLETE'
-        });
-        logger.error('telegram', 'message-enrichment-job-identity-incomplete', { accountId: account.id, jobId: job.jobId, chatId, externalId });
-        const currentJob = backgroundJobAuthority.read(job.idempotencyKey || job);
-        if (currentJob && ['PENDING','RUNNING'].includes(currentJob.state)) {
-          const acquired = backgroundJobAuthority.begin(job, { maxAttempts: 1 });
-          if (acquired?.acquired) backgroundJobAuthority.fail(acquired.lease, identityError, { retryable: false, maxAttempts: 1 });
-        }
-        continue;
-      }
-      try {
-        const rows = await executeWithDeadline(
-          () => row.client.getMessages(targetId(chatId), { ids: [messageId(externalId)], limit: 1 }),
-          { timeoutMs: 20_000, code: 'TELEGRAM_ENRICHMENT_RECOVERY_TIMEOUT', operation: 'telegram-enrichment-recovery', platform: 'telegram', accountId: account.id, commandId: externalId }
-        );
-        const msg = Array.isArray(rows) ? rows[0] : rows?.[0];
-        let existing = messageStore.getMessageByDedupeKey?.(scopedDedupeKey) || null;
-        if (!msg) {
-          orphanJobs += 1;
-          throw Object.assign(new Error('Telegram enrichment remote message is unavailable'), { code: 'TELEGRAM_ENRICHMENT_REMOTE_MESSAGE_MISSING' });
-        }
-        if (!existing) {
-          orphanJobs += 1;
-          const kind = this.detectKind(msg);
-          const conversationId = clean(job.conversationId || job.payload?.conversationId) || `${account.id}:${chatId}`;
-          const fromMe = Boolean(msg.out);
-          const baseMessage = {
-            id: externalId, externalMessageId: externalId, dedupeKey: scopedDedupeKey,
-            accountId: account.id, platform: 'telegram', chatJid: `telegram:${chatId}`, conversationId,
-            direction: fromMe ? 'outbound' : 'inbound', fromMe, type: kind,
-            text: clean(msg.message || (kind === 'text' ? '' : `[${kind}]`)),
-            sender: clean(msg.senderId || chatId), senderName: account.displayName || 'Telegram 联系人',
-            contactName: account.displayName || 'Telegram 联系人', timestamp: telegramTimestamp(msg.date),
-            attachments: msg.media ? [{ ...this.mediaDescriptor(msg, kind), downloadStatus: 'queued', retryable: true }] : [],
-            deliveryStatus: fromMe ? 'sent' : '', source: 'telegram-enrichment-recovery',
-            rawMeta: { enrichmentState: 'pending' }
-          };
-          await messageStore.upsert(baseMessage);
-          existing = messageStore.getMessageByDedupeKey?.(scopedDedupeKey) || baseMessage;
-        }
-        await this.enrichPersistedMessage(account, row, msg, existing, this.mediaDescriptor(msg, this.detectKind(msg)), { chatId });
-        recovered += 1;
-      } catch (error) {
-        logger.warn('telegram', 'message-enrichment-recovery-failed', { accountId: account.id, messageId: externalId, code: error.code || '', error: error.message });
-        // Recovery failures that happen before enrichPersistedMessage acquires
-        // the durable lease (for example missing remote rows or malformed old
-        // payloads) must still advance to RETRY_WAIT/DLQ. Otherwise the same
-        // poison job remains at the head of every oldest-first recovery page.
-        const currentJob = backgroundJobAuthority.read(job.idempotencyKey || job);
-        if (currentJob && ['PENDING','RUNNING'].includes(currentJob.state)) {
-          const acquired = backgroundJobAuthority.begin(job, { maxAttempts: 5 });
-          if (acquired?.acquired) backgroundJobAuthority.fail(acquired.lease, error, {
-            retryable: error?.code !== 'TELEGRAM_ENRICHMENT_JOB_IDENTITY_INCOMPLETE',
-            maxAttempts: 5,
-            retryDelayMs: 15_000,
-            payload: { messageId: externalId, chatId, scopedDedupeKey }
-          });
-        }
-      }
-      }
-      hasMore = snapshot.hasMore === true;
-      cursor = snapshot.nextCursor;
-      if (!snapshot.jobs.length) break;
-    }
-    const remaining = backgroundJobAuthority.snapshot({ jobType: 'telegram-message-enrichment', platform: 'telegram', sourceAccountId: account.id, states: ['PENDING','RUNNING','RETRY_WAIT'], limit: 1, order: 'oldest' });
-    const metrics = { scanned, recovered, remaining: remaining.total, oldestPendingAt: remaining.oldestPendingAt || '', orphanJobs, orphanMessages, pages, budgetExhausted: hasMore };
-    eventBus.publish('telegram:enrichment-recovery-progress', { accountId: account.id, ...metrics, at: new Date().toISOString() });
-    return metrics;
+      const remainingPage = messageStore.listPendingTelegramEnrichment?.(account.id, { limit: 1 }) || { messages: [], hasMore: false };
+      const remaining = (remainingPage.messages || []).length + (remainingPage.hasMore ? 1 : 0);
+      const metrics = {
+        scanned,
+        recovered,
+        remaining,
+        oldestPendingAt: clean(remainingPage.messages?.[0]?.updatedAt || remainingPage.messages?.[0]?.timestamp),
+        orphanJobs,
+        orphanMessages,
+        pages,
+        budgetExhausted: hasMore && (pages >= maximumPages || Date.now() - startedAt >= budgetMs)
+      };
+      eventBus.publish('telegram:enrichment-recovery-progress', { accountId: account.id, ...metrics, at: new Date().toISOString() });
+      return metrics;
     } finally {
       row.enrichmentRecoveryRunning = false;
     }

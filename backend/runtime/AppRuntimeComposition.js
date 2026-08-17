@@ -27,7 +27,6 @@ const systemPolicy = require('../services/systemPolicy');
 const migrationService = require('../services/migrationService');
 const { createMigrationAuthority, configureMigrationAuthority } = require('../services/migrationAuthority');
 const syncCheckpointService = require('../services/syncCheckpointService');
-const backgroundJobAuthority = require('../services/backgroundJobAuthority');
 const cacheGcService = require('../services/cacheGcService');
 const workspaceService = require('../services/workspaceService');
 const { runProductionDataGuard } = require('../migrations/legacyDemoCleanup');
@@ -48,6 +47,7 @@ const canonicalEventLedgerModule = require('../services/canonicalEventLedgerAuth
 const { CanonicalEventLedgerAuthority } = canonicalEventLedgerModule;
 const { IdentityAuthority } = require('../services/identityAuthority');
 const { DurableExecutionRecoveryAuthority } = require('../services/durableExecutionRecoveryAuthority');
+const { DurableInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
 const {
   isAuthorityWriteHostCapability,
   assertCurrentAuthorityWriteHostToken
@@ -100,9 +100,6 @@ function createStartupCommandHandlers(options = {}) {
   const handlerEntries = Object.assign(Object.create(null), {
     'startup.migrate': () => migrationService.migrateAtStartup(),
     'startup.recoverSync': () => syncCheckpointService.recoverInterrupted(),
-    'startup.recoverBackgroundJobs': payload => backgroundJobAuthority.recoverInterrupted({
-      retryDelayMs: Math.max(0, Number(payload?.retryDelayMs || 30_000))
-    }),
     'startup.requestSessionRestores': payload => accountManager.requestPersistedSessionRestores(payload || {}),
     'startup.canonicalizeIdentity': payload => identityAuthority.canonicalizeWhatsAppAccounts({
       dryRun: payload?.dryRun === true
@@ -120,8 +117,16 @@ function createStartupCommandHandlers(options = {}) {
         503
       );
     }
-    handlerEntries['startup.recoverDurableExecutions'] = payload =>
-      durableExecutionRecoveryAuthority.recoverNonterminalExecutions(payload || {});
+    let durableRecoveryReceipt = null;
+    const recoverDurableExecutions = payload => {
+      durableRecoveryReceipt = durableExecutionRecoveryAuthority.recoverNonterminalExecutions(payload || {});
+      return durableRecoveryReceipt;
+    };
+    handlerEntries['startup.recoverDurableExecutions'] = recoverDurableExecutions;
+    // The legacy startup command name remains only as a compatibility read of
+    // the canonical recovery pass. It never invokes a second scheduler/store.
+    handlerEntries['startup.recoverBackgroundJobs'] = payload =>
+      durableRecoveryReceipt || recoverDurableExecutions(payload || {});
   }
   const handlers = Object.freeze(handlerEntries);
   STARTUP_HANDLER_AUTHORITIES.set(handlers, identityAuthority);
@@ -801,6 +806,15 @@ function createAppRuntimeComposition(runtime) {
     authorityWriteHostCapability
   );
 
+  const internalOperationStoreProvider = () => authorityStore;
+  const internalOperationTokenProvider = () => authorityWriteHostCapability.tokenSnapshot();
+  const durableInternalOperationAuthority = new DurableInternalOperationAuthority({
+    storeProvider: internalOperationStoreProvider,
+    tokenProvider: internalOperationTokenProvider
+  });
+  lockAuthorityBinding(durableInternalOperationAuthority, 'storeProvider', internalOperationStoreProvider);
+  lockAuthorityBinding(durableInternalOperationAuthority, 'tokenProvider', internalOperationTokenProvider);
+
   const startupCommandHandlers = createStartupCommandHandlers({
     identityAuthority,
     durableExecutionRecoveryAuthority
@@ -830,7 +844,7 @@ function createAppRuntimeComposition(runtime) {
   });
   securityGuard.setPolicyProviders({ safeModeProvider: () => runtime.operatingMode === 'safeMode', lifecycleStateProvider: () => runtime.state, productionDiagnostics });
   return Object.freeze({
-    authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, durableExecutionRecoveryAuthority, platformCoreRepository, workspaceIdentityCommandFacade, migrationAuthority }),
+    authorities: Object.freeze({ authorityWriteHostCapability, authorityTransactionCoordinator, canonicalEventLedgerAuthority, identityAuthority, durableExecutionRecoveryAuthority, durableInternalOperationAuthority, platformCoreRepository, workspaceIdentityCommandFacade, migrationAuthority }),
     authorityCommandGateway,
     commandSubmitter,
     durableOperationRuntime,

@@ -1,6 +1,6 @@
 'use strict';
 
-const core = require('./jobQueueCore');
+require('./jobQueueCore');
 const {
   recoverNonterminalExecutions
 } = require('./durableExecutionRecoveryAuthority');
@@ -10,7 +10,6 @@ function recoverDurableExecutions(options = {}) {
 }
 
 module.exports = Object.freeze({
-  ...core,
   recoverDurableExecutions,
   recoverNonterminalExecutions: recoverDurableExecutions
 });

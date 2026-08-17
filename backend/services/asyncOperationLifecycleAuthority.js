@@ -10,7 +10,8 @@ function recoverDurableExecutions(options = {}) {
 }
 
 module.exports = Object.freeze({
-  ...core,
+  STATES: core.STATES,
+  TERMINAL: core.TERMINAL,
   recoverDurableExecutions,
   recoverNonterminalExecutions: recoverDurableExecutions
 });

@@ -311,6 +311,20 @@ class DurableInternalOperationAuthority {
     return operationSnapshot(this.executionAuthority.get(requiredString(operationId, 'operationId')));
   }
 
+  latest({ operationType = '', scopeKey = '' } = {}) {
+    const store = this.store();
+    const normalizedOperationType = requiredString(operationType, 'operationType', 256).toLowerCase();
+    const normalizedScopeKey = requiredString(scopeKey, 'scopeKey');
+    const row = store.db.prepare(`SELECT execution_id FROM durable_executions
+      WHERE json_extract(metadata_json,'$.internalOperationType')=?
+        AND json_extract(metadata_json,'$.scopeKey')=?
+      ORDER BY created_at DESC,execution_id DESC LIMIT 1`).get(
+      normalizedOperationType,
+      normalizedScopeKey
+    );
+    return row ? this.read(row.execution_id) : null;
+  }
+
   create(input = {}) {
     const store = this.store();
     const operationId = requiredString(input.operationId || this.idFactory('internal-operation'), 'operationId');
@@ -769,7 +783,10 @@ class DurableInternalOperationAuthority {
   }
 
   cancel(operationId, receipt = {}, options = {}) {
-    return this.terminal(operationId, WP_B_STATES.CANCELLED, receipt, options);
+    const normalizedReceipt = typeof receipt === 'string'
+      ? { reasonCode: optionalString(receipt, 'cancelReasonCode', 256) || 'CANCELLED' }
+      : receipt;
+    return this.terminal(operationId, WP_B_STATES.CANCELLED, normalizedReceipt, options);
   }
 
   snapshot({ operationType = '', state = '', limit = 100 } = {}) {
@@ -789,6 +806,18 @@ class DurableInternalOperationAuthority {
   }
 }
 
+function currentRuntimeInternalOperationAuthority() {
+  const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+  const authority = AppRuntimeFactory.current()?.composition?.authorities?.durableInternalOperationAuthority;
+  if (!authority || typeof authority.create !== 'function' || typeof authority.read !== 'function') {
+    throw internalOperationError(
+      'WP_B_RUNTIME_INTERNAL_OPERATION_AUTHORITY_REQUIRED',
+      'The current AppRuntime has not composed DurableInternalOperationAuthority'
+    );
+  }
+  return authority;
+}
+
 module.exports = Object.freeze({
   AUTHORITY,
   DurableInternalOperationAuthority,
@@ -796,6 +825,7 @@ module.exports = Object.freeze({
   REFERENCE_PAYLOAD_KEYS: Object.freeze([...REFERENCE_PAYLOAD_KEYS].sort()),
   SCHEMA_VERSION,
   canonicalReferencePayload,
+  currentRuntimeInternalOperationAuthority,
   internalOperationError,
   internalOperationKindFor,
   operationSnapshot

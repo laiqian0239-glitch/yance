@@ -49,7 +49,7 @@ class PlatformAuthWorkflowAuthority {
       operationType: OPERATION_TYPE,
       scopeKey: scopeKey(platform, accountId),
       objectFingerprint: fingerprint,
-      metadata: { platform, accountId, operation, workflow: true },
+      metadata: { accountId, providerRequestId: fingerprint },
       resumePolicy,
       adapterSessionId,
       challengeExpiresAt: clean(input.challengeExpiresAt || input.expiresAt)
@@ -76,11 +76,11 @@ class PlatformAuthWorkflowAuthority {
     }
     const state = extractState(result);
     if (SUCCESS_STATES.has(state)) {
-      const settled = lifecycle.succeed(row.operationId, { platform: context.platform, accountId: context.accountId, operation, state, completed: true }, options);
+      const settled = lifecycle.succeed(row.operationId, { status: state, accountId: context.accountId }, options);
       return { operation: settled.operation, pending: false };
     }
     if (FAILURE_STATES.has(state)) {
-      const settled = lifecycle.fail(row.operationId, { code: clean(result.reasonCode || result.code) || 'AUTH_WORKFLOW_FAILED', message: clean(result.lastError || result.error || result.message) || `Authentication workflow entered ${state}` }, options);
+      const settled = lifecycle.fail(row.operationId, { errorCode: clean(result.reasonCode || result.code) || 'AUTH_WORKFLOW_FAILED', status: state, accountId: context.accountId }, options);
       return { operation: settled.operation, pending: false };
     }
     lifecycle.progress(row.operationId, Math.max(10, Number(context.progress || 20)));
@@ -94,9 +94,9 @@ class PlatformAuthWorkflowAuthority {
     if (!isActive(current)) return { updated: false, reason: 'no-active-workflow', operation: current || null };
     const state = lower(input.state || input.status);
     const options = { generation: current.generation, objectFingerprint: current.objectFingerprint };
-    if (SUCCESS_STATES.has(state)) return lifecycle.succeed(current.operationId, { platform, accountId, state, completed: true }, options);
+    if (SUCCESS_STATES.has(state)) return lifecycle.succeed(current.operationId, { status: state, accountId }, options);
     if (FAILURE_STATES.has(state) || ['logged-out', 'offline'].includes(state)) {
-      return lifecycle.fail(current.operationId, { code: clean(input.reasonCode || input.code) || 'AUTH_WORKFLOW_FAILED', message: clean(input.lastError || input.error) || `Authentication workflow entered ${state}` }, options);
+      return lifecycle.fail(current.operationId, { errorCode: clean(input.reasonCode || input.code) || 'AUTH_WORKFLOW_FAILED', status: state, accountId }, options);
     }
     if (state === 'cancelled' || state === 'unconfigured' && input.cancelled === true) {
       return lifecycle.cancel(current.operationId, 'AUTH_WORKFLOW_CANCELLED', options);

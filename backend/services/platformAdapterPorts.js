@@ -5,7 +5,8 @@ const domainEventLog = require('./domainEventLogService').singleton;
 const queueRepository = require('../repositories/sendQueueRepository');
 const sendPolicyAuthority = require('./sendPolicyAuthority').singleton;
 const platformDeliveryAuthority = require('./platformDeliveryAuthority').singleton;
-const asyncOperationLifecycleAuthority = require('./asyncOperationLifecycleAuthority').authority;
+const { currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
+const { TERMINAL_STATES } = require('./durableExecutionLifecycle');
 const platformAuthWorkflowAuthority = require('./platformAuthWorkflowAuthority').singleton;
 const outboxRouteAuthority = require('./outboxRouteAuthority').singleton;
 const { sha256 } = require('./domainEventLogService');
@@ -16,6 +17,7 @@ const ADAPTER_SCHEMA_VERSION = 1;
 const PORTS = Object.freeze(['auth', 'ingress', 'egress', 'reconcile']);
 const PLATFORMS = Object.freeze(['facebook', 'whatsapp', 'telegram']);
 const FORBIDDEN_DTO_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const INTERNAL_OPERATION_TERMINAL_STATES = new Set([...TERMINAL_STATES, 'SUPERSEDED']);
 const EGRESS_DEADLINES_MS = Object.freeze({
   text: 45_000,
   media: 120_000,
@@ -432,7 +434,7 @@ class PlatformAdapterFacade {
     this.egressAuthorizer = typeof options.egressAuthorizer === 'function' ? options.egressAuthorizer : authorizePersistedOutbox;
     this.reconcileHandler = options.reconcileHandler || null;
     this.deliveryAuthority = options.deliveryAuthority || platformDeliveryAuthority;
-    this.operationLifecycle = options.operationLifecycle || asyncOperationLifecycleAuthority;
+    this.operationLifecycle = options.operationLifecycle || null;
 
     this.auth = Object.freeze({
       status: input => this.authStatus(input),
@@ -463,10 +465,11 @@ class PlatformAdapterFacade {
   }
   async executeAuth(input = {}) {
     assertDomainDto(input, 'AuthCommand');
+    const lifecycle = this.operationLifecycle || currentRuntimeInternalOperationAuthority();
     const operation = clean(input.operation);
     if (!operation) throw error('PLATFORM_AUTH_OPERATION_REQUIRED', 'AuthPort 必须声明认证操作。');
     const accountId = clean(input.accountId);
-    const workflow = platformAuthWorkflowAuthority.begin(this.operationLifecycle, {
+    const workflow = platformAuthWorkflowAuthority.begin(lifecycle, {
       ...input, platform: this.platform, accountId, operation
     });
     const created = workflow.operation;
@@ -485,7 +488,7 @@ class PlatformAdapterFacade {
         );
       }
       const normalized = assertDomainDto(result, 'AuthCommandResult');
-      const completion = platformAuthWorkflowAuthority.afterCommand(this.operationLifecycle, {
+      const completion = platformAuthWorkflowAuthority.afterCommand(lifecycle, {
         platform: this.platform, accountId, operation, operationId: created.operationId
       }, normalized);
       return assertDomainDto({
@@ -496,9 +499,9 @@ class PlatformAdapterFacade {
         workflowPending: completion.pending === true
       }, 'AuthCommandResult');
     } catch (cause) {
-      const current = this.operationLifecycle.read(created.operationId);
-      if (current && !require('./asyncOperationLifecycleAuthority').TERMINAL.has(current.state)) {
-        this.operationLifecycle.fail(created.operationId, cause, { generation: created.generation, objectFingerprint: created.objectFingerprint });
+      const current = lifecycle.read(created.operationId);
+      if (current && !INTERNAL_OPERATION_TERMINAL_STATES.has(current.state)) {
+        lifecycle.fail(created.operationId, cause, { generation: created.generation, objectFingerprint: created.objectFingerprint });
       }
       cause.operationId = created.operationId;
       cause.operationGeneration = created.generation;
@@ -628,14 +631,15 @@ class PlatformAdapterFacade {
 
   async executeReconcile(request = {}) {
     assertDomainDto(request, 'ReconcileRequest');
+    const lifecycle = this.operationLifecycle || currentRuntimeInternalOperationAuthority();
     const accountId = clean(request.accountId);
     const operation = clean(request.operation) || 'sync';
     const requestId = clean(request.requestId || request.correlationId) || sha256({ platform: this.platform, accountId, operation, requestedAt: request.requestedAt || new Date().toISOString() });
-    const created = this.operationLifecycle.create({
+    const created = lifecycle.create({
       operationId: clean(request.operationId), operationType: 'platform.reconcile', scopeKey: `${this.platform}:${accountId}:${operation}`,
-      objectFingerprint: requestId, metadata: { platform: this.platform, accountId, operation, requestId }
+      objectFingerprint: requestId, metadata: { accountId, providerRequestId: requestId }
     }).operation;
-    this.operationLifecycle.start(created.operationId, { progress: 5 });
+    lifecycle.start(created.operationId, { progress: 5 });
     if (this.reconcileHandler) {
       try {
         const result = assertDomainDto(await executePortWithDeadline(
@@ -655,14 +659,14 @@ class PlatformAdapterFacade {
           reasonCode: clean(result.reasonCode),
           completedAt: clean(result.completedAt) || new Date().toISOString()
         };
-        this.operationLifecycle.succeed(created.operationId, {
-          platform: this.platform, accountId, operation, status: normalized.status, completedAt: normalized.completedAt
+        lifecycle.succeed(created.operationId, {
+          status: normalized.status, accountId
         }, { generation: created.generation, objectFingerprint: created.objectFingerprint });
         recordOperationalDomainEvent({ platform: this.platform, accountId, eventType: 'reconcile.completed', externalEventId: requestId, idempotencyKey: ['reconcile-completed', this.platform, accountId, requestId].join(':'), correlationId: requestId, projection: normalized, targetRefs: [{ table: 'r32_accounts', id: accountId }] }, this.eventLog);
         if (/sync|history/i.test(operation)) recordOperationalDomainEvent({ platform: this.platform, accountId, eventType: 'history.sync.completed', externalEventId: requestId, idempotencyKey: ['history-sync-completed', this.platform, accountId, requestId].join(':'), correlationId: requestId, projection: normalized, targetRefs: [{ table: 'r32_accounts', id: accountId }] }, this.eventLog);
         return normalized;
       } catch (cause) {
-        this.operationLifecycle.fail(created.operationId, cause, { generation: created.generation, objectFingerprint: created.objectFingerprint });
+        lifecycle.fail(created.operationId, cause, { generation: created.generation, objectFingerprint: created.objectFingerprint });
         const normalized = {
           schemaVersion: ADAPTER_SCHEMA_VERSION,
           platform: this.platform,
@@ -682,7 +686,7 @@ class PlatformAdapterFacade {
       }
     }
     const notBound = error('RECONCILE_PORT_NOT_BOUND', 'ReconcilePort 尚未绑定。', 501);
-    this.operationLifecycle.fail(created.operationId, notBound, { generation: created.generation, objectFingerprint: created.objectFingerprint });
+    lifecycle.fail(created.operationId, notBound, { generation: created.generation, objectFingerprint: created.objectFingerprint });
     const normalized = {
       schemaVersion: ADAPTER_SCHEMA_VERSION,
       platform: this.platform,
