@@ -85,6 +85,61 @@ function assertExecutionCommitAllowed({ signal, executionId = '', expectedGenera
     reason: clean(signal?.reason?.code || (expected && expected !== current ? 'GENERATION_SUPERSEDED' : 'MODEL_CANCELLED'))
   });
 }
+function persistedAiAttemptError(field = '') {
+  return Object.assign(new Error('Persisted AI attempt identity is required before Model Brain physical execution'), {
+    code: 'WP_B_AI_PERSISTED_ATTEMPT_REQUIRED',
+    field: clean(field)
+  });
+}
+function requiredPersistedAiString(value, field, maximum = 2048) {
+  const result = clean(value);
+  if (!result || result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
+    throw persistedAiAttemptError(field);
+  }
+  return result;
+}
+function requiredPersistedAiInteger(value, field) {
+  const result = Number(value);
+  if (!Number.isSafeInteger(result) || result < 1) throw persistedAiAttemptError(field);
+  return result;
+}
+function validatePersistedAiPhysicalInput(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input) || !Object.isFrozen(input)) {
+    throw persistedAiAttemptError('attempt');
+  }
+  const credential = input.credential;
+  if (!credential || typeof credential !== 'object' || Array.isArray(credential) || !Object.isFrozen(credential)) {
+    throw persistedAiAttemptError('credential');
+  }
+  const requestContentSha256 = requiredPersistedAiString(input.requestContentSha256, 'requestContentSha256', 64);
+  if (!/^[a-f0-9]{64}$/u.test(requestContentSha256)) throw persistedAiAttemptError('requestContentSha256');
+  const messages = input.messages;
+  if (!Array.isArray(messages) || !messages.length || !Object.isFrozen(messages)) {
+    throw persistedAiAttemptError('messages');
+  }
+  const options = input.options == null ? Object.freeze({}) : input.options;
+  if (!options || typeof options !== 'object' || Array.isArray(options) || !Object.isFrozen(options)) {
+    throw persistedAiAttemptError('options');
+  }
+  return Object.freeze({
+    executionId: requiredPersistedAiString(input.executionId, 'executionId'),
+    intentId: requiredPersistedAiString(input.intentId, 'intentId'),
+    attemptId: requiredPersistedAiString(input.attemptId, 'attemptId'),
+    claimId: requiredPersistedAiString(input.claimId, 'claimId'),
+    ownerId: requiredPersistedAiString(input.ownerId, 'ownerId'),
+    generation: requiredPersistedAiInteger(input.generation, 'generation'),
+    hostGeneration: requiredPersistedAiInteger(input.hostGeneration, 'hostGeneration'),
+    fencingToken: requiredPersistedAiInteger(input.fencingToken, 'fencingToken'),
+    idempotencyKey: requiredPersistedAiString(input.idempotencyKey, 'idempotencyKey'),
+    requestContentSha256,
+    credential,
+    task: requiredPersistedAiString(input.task || 'reply', 'task', 128),
+    modelReference: requiredPersistedAiString(input.modelReference, 'modelReference'),
+    messages,
+    options
+  });
+}
+
 function credentialEnvelope(candidates = []) {
   const result = {};
   for (const model of candidates) {
@@ -357,6 +412,89 @@ class AiGateway {
     eventBus.publish('ai:job-complete', { jobId, task, modelBrain: true, evidence: result.evidence });
     return result;
   }
+  async performPersistedAttempt(input = {}) {
+    const {
+      executionId: executionKey,
+      intentId: intentKey,
+      attemptId: attemptKey,
+      claimId: claimKey,
+      ownerId: ownerKey,
+      generation: attemptGeneration,
+      hostGeneration: hostEpoch,
+      fencingToken: fence,
+      idempotencyKey: idempotencyScope,
+      requestContentSha256: requestFingerprint,
+      credential: credentialCapability,
+      task: taskKey,
+      modelReference: modelKey,
+      messages: messageBatch,
+      options: optionSnapshot
+    } = validatePersistedAiPhysicalInput(input);
+    void intentKey;
+    void claimKey;
+    void ownerKey;
+    void attemptGeneration;
+    void hostEpoch;
+    void fence;
+    void idempotencyScope;
+    void requestFingerprint;
+
+    const projection = this.projection(taskKey, optionSnapshot);
+    const exactCandidates = projection.candidates.filter(row => clean(row?.id) === modelKey);
+    if (exactCandidates.length !== 1) {
+      throw Object.assign(new Error('Persisted AI attempt model binding does not resolve to exactly one enabled deployment'), {
+        code: 'WP_B_AI_PERSISTED_MODEL_BINDING_INVALID',
+        modelReference: modelKey,
+        candidateCount: exactCandidates.length
+      });
+    }
+    const candidate = exactCandidates[0];
+    const credentialRef = clean(candidate.credentialRef);
+    if (!credentialRef) throw persistedAiAttemptError('credentialReference');
+    const credentials = Object.freeze({
+      [credentialRef]: Object.freeze({
+        apiKey: clean(credentialCapability.apiKey || credentialCapability.key || credentialCapability.token),
+        endpoint: clean(credentialCapability.endpoint || credentialCapability.baseUrl || candidate.endpoint),
+        model: clean(credentialCapability.model || credentialCapability.modelName || candidate.modelName || candidate.name)
+      })
+    });
+    const timeoutMs = Math.max(1000, Number(optionSnapshot.timeoutMs || TASK_QUEUE_TIMEOUT_FLOORS[taskKey] || 180000));
+    const payload = Object.freeze({
+      requestId: attemptKey,
+      modelGroup: projection.modelGroup,
+      logicalModel: projection.logicalModel,
+      tags: projection.tags,
+      catalog: Object.freeze([candidate]),
+      credentials,
+      messages: messageBatch,
+      complexity: optionSnapshot.complexity || null,
+      options: Object.freeze({
+        timeoutMs,
+        maxTokens: optionSnapshot.maxTokens,
+        temperature: optionSnapshot.temperature,
+        json: optionSnapshot.json === true,
+        numRetries: optionSnapshot.numRetries,
+        maxFallbacks: optionSnapshot.maxFallbacks
+      })
+    });
+    const queued = this.queue.add(async ({ signal }) => {
+      if (signal?.aborted) throw signal.reason || Object.assign(new Error('Persisted AI attempt was cancelled before physical execution'), { code: 'JOB_CANCELLED' });
+      eventBus.publish('ai:job-started', { jobId: executionKey, task: taskKey, modelBrain: true, logicalModel: projection.logicalModel, candidateCount: 1, persistedAttempt: true });
+      const raw = taskKey === 'probe' ? await this.runtime.probe(payload) : await this.runtime.execute(payload);
+      const result = normalizeRuntimeResult(raw, taskKey);
+      eventBus.publish('ai:job-complete', { jobId: executionKey, task: taskKey, modelBrain: true, evidence: result.evidence, persistedAttempt: true });
+      return result;
+    }, {
+      id: `wpb-ai-attempt:${attemptKey}`,
+      task: taskKey,
+      priority: taskPriority(taskKey, { priority: optionSnapshot.priority, background: false }),
+      queueTimeoutMs: resolveQueueTimeoutMs(taskKey, { options: { ...optionSnapshot, timeoutMs }, background: false }),
+      background: false,
+      providerKey: 'model-brain'
+    });
+    return queued.promise;
+  }
+
   submit({ task, messages, modelId = '', options = {}, signal: externalSignal = null, priority, queueTimeoutMs, background = false, context: rawContext = {} }) {
     const jobId = randomUUID();
     const context = this.registerTaskContext(jobId, task, rawContext);

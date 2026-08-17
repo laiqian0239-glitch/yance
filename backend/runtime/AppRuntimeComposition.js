@@ -471,19 +471,23 @@ function createAiProviderClient() {
   return Object.freeze({
     async perform(input) {
       const prompt = promptCapability(input.promptReference);
-      const result = await aiGateway.execute({
+      const result = await aiGateway.performPersistedAttempt(deepFreeze({
+        executionId: input.executionId,
+        intentId: input.intentId,
+        attemptId: input.attemptId,
+        claimId: input.claimId,
+        ownerId: input.ownerId,
+        generation: input.generation,
+        hostGeneration: input.hostGeneration,
+        fencingToken: input.fencingToken,
+        idempotencyKey: input.idempotencyKey,
+        requestContentSha256: input.requestContentSha256,
+        credential: input.credential,
         task: 'reply',
-        modelId: input.modelReference,
+        modelReference: input.modelReference,
         messages: [{ role: 'user', content: prompt }],
-        options: {
-          correlationId: input.executionId,
-          persistedAttemptId: input.attemptId
-        },
-        context: {
-          scopeKey: input.executionId,
-          generation: String(input.generation)
-        }
-      });
+        options: {}
+      }));
       return Object.freeze({
         accepted: true,
         providerRequestId: String(result?.providerRequestId || result?.requestId || '').trim(),
