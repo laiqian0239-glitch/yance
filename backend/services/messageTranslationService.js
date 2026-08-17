@@ -8,8 +8,12 @@ const aiGateway = require('./aiGateway');
 const bilingualUnderstandingService = require('./bilingualUnderstandingService');
 const contactLanguageAuthority = require('./contactLanguageAuthority');
 const messageSpeakerAuthority = require('./messageSpeakerAuthority');
+const { currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
 
 const TRANSLATION_MODEL_TIMEOUT_MS = 180000;
+const TRANSLATION_OPERATION_TYPE = 'translation.message';
+const TERMINAL_OPERATION_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED', 'DEAD_LETTERED']);
+const EXECUTABLE_OPERATION_STATES = new Set(['SCHEDULED', 'RUNNING']);
 
 function clean(value) {
   return String(value == null ? '' : value).trim();
@@ -106,110 +110,244 @@ class MessageTranslationService {
     this.bilingual = options.bilingualUnderstandingService || bilingualUnderstandingService;
     this.languageAuthority = options.contactLanguageAuthority || contactLanguageAuthority;
     this.logger = options.logger || logger;
+    this.internalOperationAuthorityProvider = options.internalOperationAuthorityProvider || currentRuntimeInternalOperationAuthority;
     this.maxConcurrency = Math.max(1, Math.min(3, Number(options.maxConcurrency || 1)));
     this.pending = [];
-    // Maps a translation work key to the currently authoritative in-memory
-    // job. A simple Set is insufficient when a forced retry supersedes a
-    // running job with the same source fingerprint: the old job's finally
-    // handler could otherwise delete the new job's dedupe fence.
     this.pendingIds = new Map();
-    this.jobs = new Map();
-    this.jobRetentionLimit = Math.max(50, Number(options.jobRetentionLimit || process.env.YANCE_TRANSLATION_JOB_RETENTION || 500));
-    this.jobSequence = 0;
+    // Process-local execution context only. Durable lifecycle ownership lives in
+    // Schema 23 through DurableInternalOperationAuthority; this map never
+    // answers public read/list/cancel/retry lifecycle queries.
+    this.executionContexts = new Map();
     this.active = 0;
     this.installed = false;
     this.listeners = [];
-    this.messageGenerations = new Map();
   }
 
-  fallbackLifecycleState(job) {
-    const mapping = { queued: 'CREATED', running: 'RUNNING', success: 'SUCCEEDED', skipped: 'SUCCEEDED', failed: 'FAILED', cancelled: 'CANCELLED' };
-    return mapping[job?.status] || '';
+  internalOperationAuthority() {
+    const authority = this.internalOperationAuthorityProvider();
+    if (!authority
+        || typeof authority.create !== 'function'
+        || typeof authority.read !== 'function'
+        || typeof authority.latest !== 'function'
+        || typeof authority.snapshot !== 'function'
+        || typeof authority.start !== 'function'
+        || typeof authority.progress !== 'function'
+        || typeof authority.succeed !== 'function'
+        || typeof authority.fail !== 'function'
+        || typeof authority.cancel !== 'function') {
+      throw Object.assign(new Error('Schema 23 translation operation authority is required'), {
+        code: 'TRANSLATION_DURABLE_AUTHORITY_REQUIRED'
+      });
+    }
+    return authority;
   }
 
-  ensureRuntimeIdentity(job) {
-    if (!job || job.operationId) return job;
-    const messageId = clean(job.messageId);
-    const generation = Number(this.messageGenerations.get(messageId) || 0) + 1;
-    this.messageGenerations.set(messageId, generation);
-    job.operationId = job.id;
-    job.generation = generation;
-    job.objectFingerprint = job.translationKey || `${job.messageId}:${job.sourceHash}`;
-    job.lifecyclePersisted = false;
-    return job;
+  operationSourceHash(operation = {}) {
+    const match = /^translation:([a-f0-9]{64}):[a-f0-9]{64}$/u.exec(clean(operation.objectFingerprint));
+    return match?.[1] || '';
+  }
+
+  operationFingerprint(message = {}, text = translatableText(message), options = {}) {
+    const sourceHash = translationSourceHash(text);
+    const baseKey = translationWorkKey(message, text);
+    const mode = clean(options.retryOf)
+      ? `retry:${clean(options.retryOf)}`
+      : options.forceNew === true
+        ? `force-new:${crypto.randomUUID()}`
+        : options.force === true
+          ? `force:${[
+              clean(message.translationOperationId),
+              Number(message.translationGeneration || 0),
+              clean(message.translationStatus).toLowerCase(),
+              clean(message.translationUpdatedAt),
+              clean(message.translationErrorCode)
+            ].join('\u001f')}`
+          : clean(options.previousOperationIdentity)
+            ? `after:${clean(options.previousOperationIdentity)}`
+            : 'normal';
+    const revisionHash = crypto.createHash('sha256').update(`${baseKey}\u001f${mode}`).digest('hex');
+    return `translation:${sourceHash}:${revisionHash}`;
+  }
+
+  operationStatus(operation = {}) {
+    const state = clean(operation.state).toUpperCase();
+    if (['CREATED', 'SCHEDULED', 'CLAIMED', 'RETRY_SCHEDULED'].includes(state)) return 'queued';
+    if (['RUNNING', 'WAITING_REMOTE', 'CANCEL_REQUESTED'].includes(state)) return 'running';
+    if (state === 'SUCCEEDED') return 'success';
+    if (['FAILED', 'DEAD_LETTERED'].includes(state)) return 'failed';
+    if (state === 'CANCELLED') return 'cancelled';
+    return state ? state.toLowerCase() : '';
+  }
+
+  contextFor(operation = {}, message = null, options = {}) {
+    const operationId = clean(operation.operationId || operation.executionId);
+    if (!operationId) return null;
+    let context = this.executionContexts.get(operationId);
+    if (context) return context;
+    const resolvedMessage = message || this.getMessage(operation.scopeKey);
+    const text = translationEligibleMessage(resolvedMessage || {}) ? translatableText(resolvedMessage || {}) : '';
+    context = {
+      id: operationId,
+      operationId,
+      messageId: clean(operation.scopeKey),
+      conversationId: clean(resolvedMessage?.sessionKey || resolvedMessage?.conversationId),
+      contactId: clean(resolvedMessage?.contactId),
+      translationKey: translationWorkKey(resolvedMessage || { id: operation.scopeKey }, text),
+      sourceHash: this.operationSourceHash(operation) || translationSourceHash(text),
+      generation: Number(operation.generation || 0),
+      objectFingerprint: clean(operation.objectFingerprint),
+      retryOf: clean(options.retryOf),
+      options: {
+        force: options.force === true,
+        timeoutMs: options.timeoutMs,
+        background: options.background === true
+      },
+      controller: new AbortController()
+    };
+    this.executionContexts.set(operationId, context);
+    return context;
+  }
+
+  durableOperation(jobOrId) {
+    const operationId = clean(typeof jobOrId === 'string'
+      ? jobOrId
+      : jobOrId?.operationId || jobOrId?.id);
+    if (!operationId) return null;
+    const operation = this.internalOperationAuthority().read(operationId);
+    return operation?.operationType === TRANSLATION_OPERATION_TYPE ? operation : null;
   }
 
   assertTranslationAuthority(job, _store, allowedStates = ['RUNNING']) {
     if (!job) return null;
-    const current = this.jobs.get(clean(job.id));
-    const latestGeneration = Number(this.messageGenerations.get(clean(job.messageId)) || 0);
+    const authority = this.internalOperationAuthority();
+    const current = authority.read(clean(job.operationId || job.id));
+    const latest = authority.latest({
+      operationType: TRANSLATION_OPERATION_TYPE,
+      scopeKey: clean(job.messageId || current?.scopeKey)
+    });
     const allowed = new Set(allowedStates.map(value => clean(value).toUpperCase()));
-    const actualState = this.fallbackLifecycleState(current);
-    const valid = current === job
-      && Number(job.generation || 0) === latestGeneration
-      && clean(current?.objectFingerprint) === clean(job.objectFingerprint)
+    const actualState = clean(current?.state).toUpperCase();
+    const valid = current
+      && latest
+      && current.operationId === latest.operationId
+      && Number(current.generation || 0) === Number(job.generation || 0)
+      && clean(current.objectFingerprint) === clean(job.objectFingerprint)
       && allowed.has(actualState);
     if (!valid) {
-      throw Object.assign(new Error('Translation runtime generation changed before message commit'), {
+      throw Object.assign(new Error('Translation durable generation changed before message commit'), {
         code: 'STALE_TRANSLATION_RUNTIME_AT_COMMIT',
-        messageId: clean(job.messageId), operationId: clean(job.operationId),
-        expectedGeneration: Number(job.generation || 0), actualGeneration: latestGeneration,
-        expectedFingerprint: clean(job.objectFingerprint), actualFingerprint: clean(current?.objectFingerprint),
+        messageId: clean(job.messageId),
+        operationId: clean(job.operationId),
+        expectedGeneration: Number(job.generation || 0),
+        actualGeneration: Number(current?.generation || 0),
+        expectedFingerprint: clean(job.objectFingerprint),
+        actualFingerprint: clean(current?.objectFingerprint),
         actualState,
-        latestOperationId: clean(current?.operationId)
+        latestOperationId: clean(latest?.operationId)
       });
     }
     return current;
   }
 
-  jobSnapshot(job) {
-    if (!job) return null;
+  jobSnapshot(operationOrContext) {
+    if (!operationOrContext) return null;
+    const operation = clean(operationOrContext.state)
+      ? operationOrContext
+      : this.durableOperation(operationOrContext);
+    if (!operation) return null;
+    const message = this.getMessage(operation.scopeKey);
+    const context = this.executionContexts.get(clean(operation.operationId));
+    const status = this.operationStatus(operation);
+    const terminalEvent = [...(Array.isArray(operation.history) ? operation.history : [])]
+      .reverse()
+      .find(event => ['internal-operation-cancelled', 'internal-operation-failed'].includes(clean(event?.eventType)));
+    const errorCode = clean(operation.error?.errorCode || operation.failureCode || terminalEvent?.payload?.reasonCode || terminalEvent?.payload?.errorCode);
+    const sourceHash = this.operationSourceHash(operation);
     return {
-      id: job.id,
-      messageId: job.messageId,
-      conversationId: job.conversationId || '',
-      contactId: job.contactId || '',
-      status: job.status,
-      progress: Number(job.progress || 0),
-      createdAt: job.createdAt,
-      startedAt: job.startedAt || '',
-      finishedAt: job.finishedAt || '',
-      errorCode: job.errorCode || '',
-      error: job.error || '',
-      retryOf: job.retryOf || '',
-      translationKey: job.translationKey || '',
-      sourceHash: job.sourceHash || '',
-      operationId: job.operationId || job.id,
-      generation: Number(job.generation || 0),
-      objectFingerprint: job.objectFingerprint || job.translationKey || '',
-      durableState: (() => {
-        if (!job.operationId) return '';
-        return this.fallbackLifecycleState(job);
-      })(),
-      lifecyclePersisted: false,
-      cancellable: ['queued', 'running'].includes(job.status)
+      id: clean(operation.operationId),
+      messageId: clean(operation.scopeKey),
+      conversationId: clean(context?.conversationId || message?.sessionKey || message?.conversationId),
+      contactId: clean(context?.contactId || message?.contactId),
+      status,
+      progress: Number(operation.progress || 0),
+      createdAt: clean(operation.createdAt),
+      startedAt: clean(operation.leaseStartedAt),
+      finishedAt: clean(operation.completedAt),
+      errorCode,
+      error: errorCode ? '中文翻译任务未完成，请重试。' : '',
+      retryOf: clean(context?.retryOf),
+      translationKey: clean(context?.translationKey),
+      sourceHash,
+      operationId: clean(operation.operationId),
+      generation: Number(operation.generation || 0),
+      objectFingerprint: clean(operation.objectFingerprint),
+      durableState: clean(operation.state).toUpperCase(),
+      lifecyclePersisted: true,
+      cancellable: ['SCHEDULED', 'RUNNING'].includes(clean(operation.state).toUpperCase())
     };
   }
 
-  publishJob(job) {
-    const snapshot = this.jobSnapshot(job);
+  publishJob(jobOrOperation) {
+    const snapshot = this.jobSnapshot(jobOrOperation);
     if (snapshot) eventBus.publish('translation:job-updated', snapshot);
     return snapshot;
   }
 
-  pruneJobs(limit = this.jobRetentionLimit) {
-    const maximum = Math.max(1, Number(limit || this.jobRetentionLimit));
-    if (this.jobs.size < maximum) return;
-    const terminal = new Set(['success', 'failed', 'cancelled', 'skipped']);
-    for (const [jobId, row] of this.jobs) {
-      if (this.jobs.size < maximum) break;
-      if (!terminal.has(row?.status)) continue;
-      this.jobs.delete(jobId);
+  terminalResult(operation, status, reasonCode = '') {
+    const authority = this.internalOperationAuthority();
+    const current = authority.read(operation.operationId);
+    if (!current || TERMINAL_OPERATION_STATES.has(clean(current.state).toUpperCase())) return current;
+    const options = {
+      generation: Number(current.generation || 0),
+      objectFingerprint: clean(current.objectFingerprint),
+      reasonCode: clean(reasonCode).toUpperCase()
+    };
+    if (status === 'failed') {
+      return authority.fail(current.operationId, { errorCode: clean(reasonCode || 'TRANSLATION_FAILED').toUpperCase() }, options).operation;
     }
+    return authority.succeed(current.operationId, {
+      status: clean(status || 'completed'),
+      messageId: clean(current.scopeKey),
+      reasonCode: clean(reasonCode).toUpperCase()
+    }, options).operation;
+  }
+
+  cancelDurableOperation(operation, options = {}) {
+    const authority = this.internalOperationAuthority();
+    let current = operation?.operationId ? authority.read(operation.operationId) : null;
+    if (!current || TERMINAL_OPERATION_STATES.has(clean(current.state).toUpperCase())) return current;
+    if (clean(current.state).toUpperCase() === 'SCHEDULED') {
+      current = authority.start(current.operationId, { progress: Number(current.progress || 0) }).operation;
+    }
+    if (!['RUNNING', 'CANCEL_REQUESTED'].includes(clean(current.state).toUpperCase())) {
+      return current;
+    }
+    const reasonCode = clean(options.code || 'TRANSLATION_CANCELLED').toUpperCase();
+    return authority.cancel(current.operationId, { reasonCode, messageId: clean(current.scopeKey) }, {
+      generation: Number(current.generation || 0),
+      objectFingerprint: clean(current.objectFingerprint),
+      reasonCode
+    }).operation;
+  }
+
+  queueOperation(operation, message, options = {}) {
+    if (!operation || clean(operation.state).toUpperCase() !== 'SCHEDULED') return false;
+    const context = this.contextFor(operation, message, options);
+    if (!context) return false;
+    const pendingOperationId = this.pendingIds.get(context.translationKey);
+    if (pendingOperationId === operation.operationId) return false;
+    this.pendingIds.set(context.translationKey, operation.operationId);
+    this.pending.push({
+      messageId: context.messageId,
+      translationKey: context.translationKey,
+      options: context.options,
+      jobId: operation.operationId
+    });
+    queueMicrotask(() => this.drain());
+    return true;
   }
 
   createJob(input, options = {}) {
-    this.pruneJobs();
     const message = typeof input === 'string' ? this.getMessage(input) : input;
     const messageId = clean(message?.id || input);
     if (!message?.id || !messageId) {
@@ -218,95 +356,156 @@ class MessageTranslationService {
       throw error;
     }
     const text = translationEligibleMessage(message) ? translatableText(message) : '';
-    const translationKey = translationWorkKey(message, text);
-    const activeForMessage = [...this.jobs.values()].filter(job => job.messageId === messageId && ['queued', 'running'].includes(job.status));
-    const duplicate = activeForMessage.find(job => job.translationKey === translationKey);
-    if (duplicate && options.forceNew !== true) return this.jobSnapshot(duplicate);
-    for (const active of activeForMessage) {
-      this.cancelJob(active.id, { code: 'TRANSLATION_SUPERSEDED', message: '较新的翻译任务已接管该消息' });
+    const sourceHash = translationSourceHash(text);
+    const authority = this.internalOperationAuthority();
+    const latest = authority.latest({ operationType: TRANSLATION_OPERATION_TYPE, scopeKey: messageId });
+    const latestState = clean(latest?.state).toUpperCase();
+    const latestSourceHash = this.operationSourceHash(latest || {});
+    if (latest && !TERMINAL_OPERATION_STATES.has(latestState) && latestSourceHash === sourceHash && options.forceNew !== true) {
+      this.contextFor(latest, message, options);
+      this.queueOperation(latest, message, options);
+      return this.jobSnapshot(latest);
     }
-    const createdAt = new Date().toISOString();
-    if (options.force !== true && text && translationIsFresh(message, text)) {
-      const completed = {
-        id: `translation-${Date.now()}-${++this.jobSequence}-${Math.random().toString(16).slice(2)}`,
-        messageId, conversationId: clean(message?.sessionKey || message?.conversationId), contactId: clean(message?.contactId),
-        translationKey, sourceHash: translationSourceHash(text), status: 'success', progress: 100, createdAt, startedAt: createdAt, finishedAt: createdAt,
-        errorCode: '', error: '', retryOf: clean(options.retryOf), options: {}, controller: new AbortController()
-      };
-      this.ensureRuntimeIdentity(completed);
-      this.jobs.set(completed.id, completed);
-      this.publishJob(completed);
-      return this.jobSnapshot(completed);
+    if (latest && !TERMINAL_OPERATION_STATES.has(latestState)) {
+      this.cancelDurableOperation(latest, {
+        code: 'TRANSLATION_SUPERSEDED',
+        message: '较新的翻译任务已接管该消息'
+      });
     }
-    const job = {
-      id: `translation-${Date.now()}-${++this.jobSequence}-${Math.random().toString(16).slice(2)}`,
-      messageId,
-      conversationId: clean(message?.sessionKey || message?.conversationId),
-      contactId: clean(message?.contactId),
-      translationKey,
-      sourceHash: translationSourceHash(text),
-      status: 'queued',
-      progress: 0,
-      createdAt,
-      startedAt: '',
-      finishedAt: '',
-      errorCode: '',
-      error: '',
-      retryOf: clean(options.retryOf),
-      options: { force: options.force === true, timeoutMs: options.timeoutMs, background: options.background === true },
-      controller: new AbortController()
-    };
-    this.ensureRuntimeIdentity(job);
-    this.jobs.set(job.id, job);
-    this.pendingIds.set(translationKey, job.id);
-    this.pending.push({ messageId, translationKey, options: job.options, jobId: job.id });
-    this.publishJob(job);
-    queueMicrotask(() => this.drain());
-    return this.jobSnapshot(job);
+
+    const previousOperationIdentity = latest && TERMINAL_OPERATION_STATES.has(latestState)
+      ? `${clean(latest.operationId)}:${Number(latest.stateVersion || 0)}:${Number(latest.generation || 0)}`
+      : '';
+    const objectFingerprint = this.operationFingerprint(message, text, {
+      ...options,
+      previousOperationIdentity
+    });
+    const created = authority.create({
+      operationType: TRANSLATION_OPERATION_TYPE,
+      scopeKey: messageId,
+      objectFingerprint,
+      maxAttempts: 1,
+      metadata: { messageId, progress: 0, objectFingerprint }
+    });
+    let operation = created.operation;
+    const context = this.contextFor(operation, message, options);
+
+    if (options.force !== true && text && translationIsFresh(message, text)
+        && clean(operation.state).toUpperCase() === 'SCHEDULED') {
+      operation = authority.start(operation.operationId, { progress: 100 }).operation;
+      operation = authority.succeed(operation.operationId, {
+        status: 'cached', messageId
+      }, {
+        generation: operation.generation,
+        objectFingerprint: operation.objectFingerprint,
+        reasonCode: 'TRANSLATION_CACHE_HIT'
+      }).operation;
+      this.publishJob(operation);
+      return this.jobSnapshot(operation);
+    }
+
+    if (clean(operation.state).toUpperCase() === 'SCHEDULED') {
+      this.queueOperation(operation, message, options);
+      this.publishJob(operation);
+    }
+    return this.jobSnapshot(operation);
   }
 
   getJob(jobId) {
-    return this.jobSnapshot(this.jobs.get(clean(jobId)));
+    const operation = this.durableOperation(jobId);
+    return this.jobSnapshot(operation);
   }
 
   listJobs(options = {}) {
     const messageId = clean(options.messageId);
     const limit = Math.max(1, Math.min(200, Number(options.limit || 50)));
-    return [...this.jobs.values()]
-      .filter(job => !messageId || job.messageId === messageId)
-      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    return this.internalOperationAuthority()
+      .snapshot({ operationType: TRANSLATION_OPERATION_TYPE, limit: Math.min(1000, Math.max(limit, messageId ? 1000 : limit)) })
+      .filter(operation => !messageId || clean(operation.scopeKey) === messageId)
       .slice(0, limit)
-      .map(job => this.jobSnapshot(job));
+      .map(operation => this.jobSnapshot(operation));
   }
 
   cancelJob(jobId, options = {}) {
-    const job = this.jobs.get(clean(jobId));
-    if (!job) return null;
-    if (!['queued', 'running'].includes(job.status)) return this.jobSnapshot(job);
-    job.status = 'cancelled';
-    job.progress = Number(job.progress || 0);
-    job.finishedAt = new Date().toISOString();
-    job.errorCode = clean(options.code || 'TRANSLATION_CANCELLED').toUpperCase();
-    job.error = clean(options.message || (job.errorCode === 'TRANSLATION_SUPERSEDED' ? '较新的翻译任务已接管该消息' : '用户已取消翻译'));
-    try { job.controller.abort(Object.assign(new Error(job.error), { code: job.errorCode })); } catch (_) {}
-    this.publishJob(job);
-    return this.jobSnapshot(job);
+    const operation = this.durableOperation(jobId);
+    if (!operation) return null;
+    if (TERMINAL_OPERATION_STATES.has(clean(operation.state).toUpperCase())) return this.jobSnapshot(operation);
+    const context = this.executionContexts.get(clean(operation.operationId));
+    const reasonCode = clean(options.code || 'TRANSLATION_CANCELLED').toUpperCase();
+    const reason = clean(options.message || (reasonCode === 'TRANSLATION_SUPERSEDED'
+      ? '较新的翻译任务已接管该消息'
+      : '用户已取消翻译'));
+    const message = this.getMessage(operation.scopeKey);
+    const text = translationEligibleMessage(message || {}) ? translatableText(message || {}) : '';
+    const store = this.storeProvider();
+    let cancelled;
+    const commit = () => {
+      cancelled = this.cancelDurableOperation(operation, { code: reasonCode, message: reason });
+      const currentMessage = store.getMessage(operation.scopeKey);
+      if (currentMessage?.id) {
+        const markerMatches = !clean(currentMessage.translationOperationId)
+          || clean(currentMessage.translationOperationId) === clean(operation.operationId);
+        if (markerMatches) {
+          store.upsertMessage({
+            ...stripDatabaseHelpers(currentMessage),
+            sourceText: clean(currentMessage.sourceText || text || currentMessage.text),
+            translationStatus: 'cancelled',
+            translationErrorCode: reasonCode,
+            translationError: reason,
+            translationSourceHash: this.operationSourceHash(operation) || translationSourceHash(text),
+            translationTargetLanguage: clean(currentMessage.translationTargetLanguage || 'zh'),
+            translationOperationId: clean(operation.operationId),
+            translationGeneration: Number(operation.generation || 0),
+            translationObjectFingerprint: clean(operation.objectFingerprint),
+            translationUpdatedAt: new Date().toISOString()
+          });
+        }
+      }
+    };
+    if (typeof store.transaction === 'function') store.transaction(commit); else commit();
+    try { context?.controller?.abort(Object.assign(new Error(reason), { code: reasonCode })); } catch (_) {}
+    const snapshot = this.publishJob(cancelled || operation);
+    const saved = this.getMessage(operation.scopeKey);
+    if (saved?.id) {
+      eventBus.publish('message:translation-updated', {
+        messageId: saved.id,
+        conversationId: saved.sessionKey || saved.conversationId,
+        contactId: clean(saved.contactId),
+        translation: currentTranslation(saved),
+        message: saved
+      });
+    }
+    return snapshot;
   }
 
   retryJob(jobId, options = {}) {
-    const previous = this.jobs.get(clean(jobId));
+    const previous = this.durableOperation(jobId);
     if (!previous) {
       const error = new Error('翻译任务不存在');
       error.code = 'TRANSLATION_JOB_NOT_FOUND';
       throw error;
     }
-    return this.createJob(previous.messageId, {
+    if (!TERMINAL_OPERATION_STATES.has(clean(previous.state).toUpperCase())) {
+      this.cancelJob(previous.operationId, {
+        code: 'TRANSLATION_SUPERSEDED',
+        message: '较新的翻译任务已接管该消息'
+      });
+    }
+    return this.createJob(previous.scopeKey, {
       force: true,
-      timeoutMs: options.timeoutMs || previous.options?.timeoutMs,
-      background: options.background === true || previous.options?.background === true,
-      retryOf: previous.id,
+      timeoutMs: options.timeoutMs,
+      background: options.background === true,
+      retryOf: previous.operationId,
       forceNew: true
     });
+  }
+
+  progressJob(job, value) {
+    if (!job) return null;
+    const authority = this.internalOperationAuthority();
+    const current = authority.read(clean(job.operationId || job.id));
+    if (!current || clean(current.state).toUpperCase() !== 'RUNNING') return current;
+    return authority.progress(current.operationId, Math.max(0, Math.min(100, Number(value || 0)))).operation;
   }
 
   getMessage(messageId) {
@@ -351,6 +550,29 @@ class MessageTranslationService {
         } : {})
       };
       store.upsertMessage(next);
+      if (job && clean(options.terminalState)) {
+        const terminalState = clean(options.terminalState).toUpperCase();
+        const operation = this.assertTranslationAuthority(job, store, allowedStates);
+        if (terminalState === 'FAILED') {
+          const terminalError = options.terminalError || {};
+          this.internalOperationAuthority().fail(operation.operationId, {
+            errorCode: clean(terminalError.code || terminalError.errorCode || 'TRANSLATION_FAILED').toUpperCase()
+          }, {
+            generation: operation.generation,
+            objectFingerprint: operation.objectFingerprint,
+            reasonCode: clean(terminalError.code || terminalError.errorCode || 'TRANSLATION_FAILED').toUpperCase()
+          });
+        } else if (terminalState === 'SUCCEEDED') {
+          this.internalOperationAuthority().succeed(operation.operationId, {
+            status: clean(translation.translationStatus || 'success'),
+            messageId: clean(message.id)
+          }, {
+            generation: operation.generation,
+            objectFingerprint: operation.objectFingerprint,
+            reasonCode: 'TRANSLATION_COMPLETED'
+          });
+        }
+      }
       return store.getMessage(message.id) || next;
     };
     const saved = typeof store.transaction === 'function' ? store.transaction(commit) : commit();
@@ -397,38 +619,70 @@ class MessageTranslationService {
 
   async translateMessage(input, options = {}) {
     const message = typeof input === 'string' ? this.getMessage(input) : input;
-    const job = options.jobId ? this.jobs.get(clean(options.jobId)) : null;
-    if (job?.status === 'cancelled') return { status: 'cancelled', message };
-    if (job) {
-      job.status = 'running';
-      job.progress = 12;
-      job.startedAt = job.startedAt || new Date().toISOString();
-      this.publishJob(job);
+    let job = null;
+    let operation = null;
+    if (options.jobId) {
+      operation = this.durableOperation(options.jobId);
+      if (!operation) {
+        const error = new Error('翻译任务不存在');
+        error.code = 'TRANSLATION_JOB_NOT_FOUND';
+        throw error;
+      }
+      job = this.contextFor(operation, message, options);
+      const state = clean(operation.state).toUpperCase();
+      if (state === 'CANCELLED') return { status: 'cancelled', message };
+      if (state === 'SCHEDULED') {
+        operation = this.internalOperationAuthority().start(operation.operationId, { progress: 12 }).operation;
+        job.generation = Number(operation.generation || 0);
+        job.objectFingerprint = clean(operation.objectFingerprint);
+      } else if (state !== 'RUNNING') {
+        return { status: this.operationStatus(operation), message };
+      }
+      this.publishJob(operation);
     }
-    if (!message?.id) { if (job) { job.status='failed'; job.errorCode='MESSAGE_NOT_FOUND'; job.error='消息不存在'; job.finishedAt=new Date().toISOString(); this.publishJob(job); } return { status: 'not-found', message: null }; }
+
+    if (!message?.id) {
+      if (operation && clean(operation.state).toUpperCase() === 'RUNNING') {
+        this.terminalResult(operation, 'failed', 'MESSAGE_NOT_FOUND');
+        this.publishJob(operation.operationId);
+      }
+      return { status: 'not-found', message: null };
+    }
+
     const eligible = translationEligibleMessage(message);
     const text = eligible ? translatableText(message) : '';
     if (eligible) this.languageAuthority.observeMessage(message, { store: this.storeProvider() });
-    else if (job) { job.status='skipped'; job.progress=100; job.finishedAt=new Date().toISOString(); job.errorCode='TRANSLATION_MESSAGE_NOT_ELIGIBLE'; job.error='系统、草稿或已撤回消息不进入自动翻译'; this.publishJob(job); }
-    if (!eligible) return { status: 'skipped', message };
-    if (!text) { if (job) { job.status='skipped'; job.progress=100; job.finishedAt=new Date().toISOString(); this.publishJob(job); } return { status: 'skipped', message }; }
+    if (!eligible || !text) {
+      if (operation && clean(this.durableOperation(operation.operationId)?.state).toUpperCase() === 'RUNNING') {
+        const reasonCode = eligible ? 'TRANSLATION_TEXT_EMPTY' : 'TRANSLATION_MESSAGE_NOT_ELIGIBLE';
+        const terminal = this.terminalResult(operation, 'skipped', reasonCode);
+        this.publishJob(terminal || operation);
+      }
+      return { status: 'skipped', message };
+    }
+
     const currentKey = translationWorkKey(message, text);
     if (job?.translationKey && job.translationKey !== currentKey) {
-      job.status = 'skipped';
-      job.progress = 100;
-      job.finishedAt = new Date().toISOString();
-      job.errorCode = 'TRANSLATION_SOURCE_CHANGED_BEFORE_START';
-      job.error = '消息内容在翻译开始前已变化，旧任务未执行';
-      this.publishJob(job);
-      this.enqueue(message, { background: options.background === true, timeoutMs: options.timeoutMs, force: options.force === true });
+      const terminal = this.terminalResult(operation, 'skipped', 'TRANSLATION_SOURCE_CHANGED_BEFORE_START');
+      this.publishJob(terminal || operation);
+      this.enqueue(message, {
+        background: options.background === true,
+        timeoutMs: options.timeoutMs,
+        force: options.force === true
+      });
       return { status: 'stale', message };
     }
+
     const existing = currentTranslation(message);
     const sourceHash = translationSourceHash(text);
     if (options.force !== true && translationIsFresh(message, text)) {
-      if (job) { job.status='success'; job.progress=100; job.finishedAt=new Date().toISOString(); this.publishJob(job); }
+      if (operation) {
+        const terminal = this.terminalResult(operation, 'cached', 'TRANSLATION_CACHE_HIT');
+        this.publishJob(terminal || operation);
+      }
       return { status: 'cached', message };
     }
+
     const pendingMessage = this.persist(message, {
       sourceText: text,
       sourceLanguage: clean(message.sourceLanguage || message.language),
@@ -444,7 +698,8 @@ class MessageTranslationService {
       lastSuccessfulTranslationModel: clean(existing.translationModel || message.lastSuccessfulTranslationModel),
       lastSuccessfulTranslatedAt: clean(existing.translatedAt || message.lastSuccessfulTranslatedAt)
     }, { job, expectedSourceHash: sourceHash, allowedStates: ['RUNNING'] });
-    if (job) { job.progress = 35; this.publishJob(job); }
+    if (job) this.publishJob(this.progressJob(job, 35) || operation);
+
     const rawResult = await this.bilingual.translateToChinese({
       text,
       sourceLanguage: message.sourceLanguage || message.language,
@@ -456,9 +711,19 @@ class MessageTranslationService {
       fingerprint: translationWorkKey(message, text)
     }, { aiGateway: this.aiGateway });
     const result = normalizedTranslationResult(rawResult);
-    if (job?.controller?.signal?.aborted || job?.status === 'cancelled' || result.translationStatus === 'cancelled') {
+    const currentOperation = job ? this.durableOperation(job.operationId) : null;
+
+    if (job && clean(currentOperation?.state).toUpperCase() === 'CANCELLED') {
+      return { status: 'cancelled', message: this.getMessage(message.id) || pendingMessage };
+    }
+
+    if (job?.controller?.signal?.aborted || result.translationStatus === 'cancelled') {
+      const cancellationCode = clean(job?.controller?.signal?.reason?.code || 'TRANSLATION_CANCELLED').toUpperCase();
+      let cancelledOperation = currentOperation;
+      if (cancelledOperation && !TERMINAL_OPERATION_STATES.has(clean(cancelledOperation.state).toUpperCase())) {
+        cancelledOperation = this.cancelDurableOperation(cancelledOperation, { code: cancellationCode });
+      }
       try {
-        const cancellationCode = clean(job?.errorCode || 'TRANSLATION_CANCELLED').toUpperCase();
         const cancelled = this.persist(pendingMessage, {
           sourceText: text,
           sourceLanguage: clean(message.sourceLanguage || message.language),
@@ -467,30 +732,33 @@ class MessageTranslationService {
           translationModel: clean(existing.translationModel),
           translatedAt: clean(existing.translatedAt),
           translationErrorCode: cancellationCode,
-          translationError: clean(job?.error || '翻译已取消')
+          translationError: '翻译已取消'
         }, {
-          job, expectedSourceHash: sourceHash, requireMarker: true,
-          allowedStates: job ? ['CANCELLED'] : ['RUNNING'],
-          terminalState: !job && result.translationStatus === 'cancelled' ? 'CANCELLED' : '',
-          terminalError: { code: cancellationCode, message: clean(job?.error || '翻译已取消') }
+          job,
+          expectedSourceHash: sourceHash,
+          requireMarker: true,
+          allowedStates: job ? ['CANCELLED'] : ['RUNNING']
         });
+        if (cancelledOperation) this.publishJob(cancelledOperation);
         return { status: 'cancelled', message: cancelled };
       } catch (error) {
         if (!['STALE_TRANSLATION_RUNTIME_AT_COMMIT','STALE_TRANSLATION_SOURCE_AT_COMMIT','STALE_TRANSLATION_MARKER_AT_COMMIT'].includes(clean(error.code).toUpperCase())) throw error;
         return { status: 'stale', message: this.getMessage(message.id) || pendingMessage };
       }
     }
-    if (job) { job.progress = 88; this.publishJob(job); }
+
+    if (job) this.publishJob(this.progressJob(job, 88) || currentOperation || operation);
     const latestMessage = this.getMessage(message.id) || pendingMessage;
     const latestText = translatableText(latestMessage);
     if (latestText && translationSourceHash(latestText) !== sourceHash) {
-      if (job) {
-        job.status = 'skipped'; job.progress = 100; job.finishedAt = new Date().toISOString();
-        job.errorCode = 'TRANSLATION_SOURCE_CHANGED'; job.error = '消息内容已变化，旧翻译结果未写入'; this.publishJob(job);
+      if (operation) {
+        const terminal = this.terminalResult(this.durableOperation(operation.operationId) || operation, 'skipped', 'TRANSLATION_SOURCE_CHANGED');
+        this.publishJob(terminal || operation);
       }
       this.enqueue(latestMessage, { background: options.background === true, timeoutMs: options.timeoutMs });
       return { status: 'stale', message: latestMessage };
     }
+
     const saved = this.persist(latestMessage, {
       ...result,
       translationSourceHash: sourceHash,
@@ -505,20 +773,16 @@ class MessageTranslationService {
         ? clean(result.translatedAt)
         : clean(existing.translatedAt || message.lastSuccessfulTranslatedAt)
     }, {
-      job, expectedSourceHash: sourceHash, requireMarker: Boolean(job), allowedStates: ['RUNNING'],
+      job,
+      expectedSourceHash: sourceHash,
+      requireMarker: Boolean(job),
+      allowedStates: ['RUNNING'],
       terminalState: job ? (result.translationStatus === 'failed' ? 'FAILED' : 'SUCCEEDED') : '',
       terminalError: result.translationStatus === 'failed'
         ? { code: result.translationErrorCode || 'TRANSLATION_FAILED', message: result.translationError || '翻译失败' }
         : null
     });
-    if (job) {
-      job.status = result.translationStatus === 'failed' ? 'failed' : 'success';
-      job.progress = result.translationStatus === 'failed' ? 88 : 100;
-      job.finishedAt = new Date().toISOString();
-      job.errorCode = clean(result.translationErrorCode);
-      job.error = clean(result.translationError);
-      this.publishJob(job);
-    }
+    if (job) this.publishJob(job.operationId);
     if (result.translationStatus === 'failed') {
       this.logger.warn('translation', 'message-translation-failed', {
         messageId: message.id,
@@ -535,19 +799,22 @@ class MessageTranslationService {
     const text = translationEligibleMessage(message || {}) ? translatableText(message || {}) : '';
     if (!messageId || !text || (options.force !== true && translationIsFresh(message, text))) return false;
     const translationKey = translationWorkKey(message, text);
-    const pendingJobId = this.pendingIds.get(translationKey);
-    const pendingJob = pendingJobId ? this.jobs.get(pendingJobId) : null;
-    if (pendingJob && ['queued', 'running'].includes(pendingJob.status)) return false;
-    if (pendingJobId) this.pendingIds.delete(translationKey);
-    this.createJob(message, { ...options, forceNew: false });
-    return true;
+    const pendingOperationId = this.pendingIds.get(translationKey);
+    if (pendingOperationId) {
+      const pendingOperation = this.durableOperation(pendingOperationId);
+      if (pendingOperation && EXECUTABLE_OPERATION_STATES.has(clean(pendingOperation.state).toUpperCase())) return false;
+      this.pendingIds.delete(translationKey);
+    }
+    const created = this.createJob(message, { ...options, forceNew: false });
+    return ['SCHEDULED', 'RUNNING'].includes(clean(created?.durableState).toUpperCase());
   }
 
   async drain() {
     while (this.active < this.maxConcurrency && this.pending.length) {
       const item = this.pending.shift();
-      const job = item.jobId ? this.jobs.get(item.jobId) : null;
-      if (job?.status === 'cancelled') {
+      const operation = item.jobId ? this.durableOperation(item.jobId) : null;
+      const context = operation ? this.executionContexts.get(operation.operationId) : null;
+      if (!operation || clean(operation.state).toUpperCase() === 'CANCELLED') {
         if (this.pendingIds.get(item.translationKey) === item.jobId) this.pendingIds.delete(item.translationKey);
         continue;
       }
@@ -557,21 +824,15 @@ class MessageTranslationService {
         .catch(error => {
           const code = clean(error.code || 'TRANSLATION_JOB_FAILED').toUpperCase();
           const stale = ['STALE_TRANSLATION_RUNTIME_AT_COMMIT','STALE_TRANSLATION_SOURCE_AT_COMMIT','STALE_TRANSLATION_MARKER_AT_COMMIT','TRANSLATION_SUPERSEDED'].includes(code);
-          try { this.settleUnexpectedFailure(item.messageId, error, job); } catch (settleError) {
+          try { this.settleUnexpectedFailure(item.messageId, error, context); } catch (settleError) {
             this.logger.warn('translation', 'message-translation-failure-settlement-failed', {
               messageId: item.messageId,
               code: settleError.code || 'TRANSLATION_FAILURE_SETTLEMENT_FAILED',
               error: settleError.message
             });
           }
-          if (job && job.status !== 'cancelled') {
-            job.status = stale ? 'skipped' : 'failed';
-            job.progress = stale ? 100 : Number(job.progress || 0);
-            job.errorCode = code;
-            job.error = clean(error.message);
-            job.finishedAt = new Date().toISOString();
-            this.publishJob(job);
-          }
+          const current = item.jobId ? this.durableOperation(item.jobId) : null;
+          if (current) this.publishJob(current);
           this.logger.warn('translation', stale ? 'message-translation-stale-result-rejected' : 'message-translation-job-failed', {
             messageId: item.messageId,
             code,
@@ -581,6 +842,7 @@ class MessageTranslationService {
         .finally(() => {
           if (this.pendingIds.get(item.translationKey) === item.jobId) this.pendingIds.delete(item.translationKey);
           this.active -= 1;
+          this.executionContexts.delete(clean(item.jobId));
           this.drain();
         });
     }
@@ -642,9 +904,11 @@ class MessageTranslationService {
 
   close() {
     this.listeners.splice(0).forEach(dispose => dispose());
-    for (const job of this.jobs.values()) {
-      if (['queued', 'running'].includes(job.status)) this.cancelJob(job.id);
-    }
+    // Service shutdown is not a user cancellation. Leave Schema 23 operations
+    // non-terminal so DurableExecutionRecoveryAuthority can recover them after
+    // process loss/restart; only discard process-local queue bookkeeping.
+    this.pending.length = 0;
+    this.pendingIds.clear();
     this.installed = false;
   }
 }

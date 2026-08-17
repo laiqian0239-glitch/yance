@@ -35,7 +35,7 @@
         "HOST_FENCED_COMPATIBILITY_PROJECTION"
       ],
       "targetAuthority": "DurableExecutionAuthorityV2",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "All legacy async/background lifecycle consumers delegate to this single Schema 23 authority; legacy tables and callable writer facades are absent."
     },
     {
@@ -56,7 +56,7 @@
         "SESSION_AND_SYNC_PHYSICAL_IO"
       ],
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "All Chatwoot and Matrix physical calls consume persisted WP-B attempt identity through the registered channel Adapter; signed webhook ingress remains ingress-only and owns no durable retry or recovery authority."
     }
   ],

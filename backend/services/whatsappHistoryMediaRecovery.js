@@ -300,30 +300,25 @@ class WhatsAppHistoryMediaRecoveryQueue {
     if (!job.accountId || !job.conversationId || !job.messageId || !job.info || !job.socket || !job.descriptor) {
       return { queued: false, reason: 'invalid-job' };
     }
-    if (this.known.has(key)) return { queued: false, reason: this.known.get(key).state };
-    let durableDecision = null;
-    if (this.backgroundJobs?.begin) {
-      durableDecision = this.backgroundJobs.begin(durableMediaJob({ ...job, maxRetries: this.maxRetries }), {
-        maxAttempts: this.maxRetries,
-        force: job.force === true
-      });
-      if (!durableDecision.acquired) {
-        return {
-          queued: false,
-          reason: durableDecision.reason,
-          backgroundJobState: durableDecision.job?.state || '',
-          nextRetryAt: durableDecision.job?.nextRetryAt || '',
-          attachment: durableDecision.reason === 'retry-wait'
-            ? terminalAttachment(job.descriptor, durableDecision.job?.lastErrorCode || 'MEDIA_RECOVERY_RETRY_WAIT', {
-              retryable: true,
-              retryCount: durableDecision.job?.attempt || job.descriptor?.retryCount || 0,
-              nextRetryAt: durableDecision.job?.nextRetryAt || ''
-            })
-            : job.descriptor
-        };
-      }
-      job.lease = durableDecision.lease;
+    const durableDecision = this.beginDurableMedia(job);
+    if (!durableDecision.acquired) {
+      const durableState = durableDecision.job || durableDecision.operation || null;
+      return {
+        queued: false,
+        reason: durableDecision.reason,
+        backgroundJobState: durableState?.state || '',
+        nextRetryAt: durableState?.nextRetryAt || durableState?.nextAttemptAt || '',
+        attachment: durableDecision.reason === 'retry-wait'
+          ? terminalAttachment(job.descriptor, durableState?.lastErrorCode || durableState?.failureCode || 'MEDIA_RECOVERY_RETRY_WAIT', {
+            retryable: true,
+            retryCount: durableState?.attempt || durableState?.retryCount || job.descriptor?.retryCount || 0,
+            nextRetryAt: durableState?.nextRetryAt || durableState?.nextAttemptAt || ''
+          })
+          : job.descriptor
+      };
     }
+    job.lease = durableDecision.lease;
+    if (this.known.has(key) && !job.lease) return { queued: false, reason: this.known.get(key).state };
     const conversationDepth = this.pending.filter(row => row.accountId === job.accountId && row.conversationId === job.conversationId).length;
     if (this.pending.length >= this.maxQueue || conversationDepth >= this.maxPerConversation) {
       const code = this.pending.length >= this.maxQueue ? 'MEDIA_RECOVERY_QUEUE_FULL' : 'MEDIA_RECOVERY_CONVERSATION_LIMIT';
@@ -496,9 +491,11 @@ class WhatsAppHistoryMediaRecoveryQueue {
         const status = String(descriptor?.downloadStatus || '').toLowerCase();
         if (!descriptor || descriptor.mediaUrl || descriptor.localFile) continue;
         if (!['pending', 'queued', 'recovering', 'failed', 'remote', 'history-requested'].includes(status || 'pending')) continue;
-        if (status === 'failed' && descriptor.retryable === false) continue;
-        if (status === 'failed' && Number(descriptor.retryCount || 0) >= this.maxRetries) continue;
-        if (status === 'failed' && descriptor.nextRetryAt && Date.parse(descriptor.nextRetryAt) > Date.now()) continue;
+        if (!this.useCanonicalDurability) {
+          if (status === 'failed' && descriptor.retryable === false) continue;
+          if (status === 'failed' && Number(descriptor.retryCount || 0) >= this.maxRetries) continue;
+          if (status === 'failed' && descriptor.nextRetryAt && Date.parse(descriptor.nextRetryAt) > Date.now()) continue;
+        }
         rows.push({ message, descriptor, priority: normalizedPriority(message.timestamp || message.sentAt) });
       }
     }

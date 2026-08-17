@@ -222,10 +222,23 @@ function withSchema23(work) {
       '2026-08-04T08:00:00.000Z',
       '2026-08-04T08:00:00.000Z'
     );
-    return work({ db, store });
-  } finally {
+    const cleanup = () => {
+      try { db.close(); } catch (_) {}
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    };
+    try {
+      const result = work({ db, store });
+      if (result && typeof result.then === 'function') return result.finally(cleanup);
+      cleanup();
+      return result;
+    } catch (error) {
+      cleanup();
+      throw error;
+    }
+  } catch (error) {
     try { db.close(); } catch (_) {}
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    throw error;
   }
 }
 
@@ -247,6 +260,34 @@ function createInternalAuthority(module, store) {
     clock: () => new Date(Date.parse('2026-08-04T08:01:00.000Z') + (sequence++ * 1000)).toISOString(),
     idFactory: prefix => `${prefix}-fixed-${sequence}`,
     leaseMs: 120000
+  });
+}
+
+
+function waitForValue(predicate, timeoutMs = 2000) {
+  const startedAt = Date.now();
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      try {
+        const value = predicate();
+        if (value) return resolve(value);
+      } catch (error) {
+        return reject(error);
+      }
+      if (Date.now() - startedAt >= timeoutMs) return reject(new Error('M3-SC-DIAG wait timed out'));
+      setTimeout(check, 5);
+    };
+    check();
+  });
+}
+
+function schema23TranslationStore(store, initialMessage) {
+  const rows = new Map([[initialMessage.id, { ...initialMessage }]]);
+  return Object.freeze({
+    db: store.db,
+    transaction: callback => store.transaction(callback),
+    getMessage(id) { return rows.get(String(id || '').trim()) || null; },
+    upsertMessage(input) { rows.set(input.id, { ...input }); return input.id; }
   });
 }
 
@@ -454,6 +495,154 @@ test('M3-SC-DIAG-011 canonical internal retry lifecycle owns heartbeat and retry
   const names = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row => row.name));
   assert.equal(names.has('background_job_state'), false, 'M3-SC-DIAG-011:NO_LEGACY_BACKGROUND_TABLE');
 }));
+
+test('M3-SC-DIAG-012A translation job lifecycle is owned by Schema 23 across service instances', () => withSchema23(async ({ store }) => {
+  const module = loadInternalAuthorityModule('M3-SC-DIAG-012A');
+  const authority = createInternalAuthority(module, store);
+  const translationStore = schema23TranslationStore(store, {
+    id: 'translation-message-durable-1',
+    sessionKey: 'translation-conversation-durable-1',
+    contactId: 'translation-contact-durable-1',
+    direction: 'incoming',
+    text: 'Guten Morgen',
+    language: 'de'
+  });
+  const { MessageTranslationService } = require(path.join(repoRoot, 'backend', 'services', 'messageTranslationService.js'));
+  let finishFirstTranslation;
+  const firstTranslation = new Promise(resolve => { finishFirstTranslation = resolve; });
+  const common = {
+    storeProvider: () => translationStore,
+    internalOperationAuthorityProvider: () => authority,
+    contactLanguageAuthority: { observeMessage() {} },
+    logger: { warn() {}, info() {} }
+  };
+  const first = new MessageTranslationService({
+    ...common,
+    bilingualUnderstandingService: {
+      async translateToChinese() { return firstTranslation; }
+    }
+  });
+
+  const created = first.createJob('translation-message-durable-1', { force: true });
+  assert.equal(created.lifecyclePersisted, true, 'M3-SC-DIAG-012A:CREATE_MUST_PERSIST');
+  assert.equal(created.durableState, 'SCHEDULED', 'M3-SC-DIAG-012A:CREATE_SCHEDULED');
+  const running = await waitForValue(() => {
+    const snapshot = first.getJob(created.id);
+    return snapshot?.durableState === 'RUNNING' ? snapshot : null;
+  });
+  assert.equal(running.status, 'running', 'M3-SC-DIAG-012A:RUNNING_PROJECTION');
+
+  const second = new MessageTranslationService({
+    ...common,
+    bilingualUnderstandingService: {
+      async translateToChinese(input) {
+        return {
+          sourceText: input.text,
+          sourceLanguage: 'de',
+          translatedZh: '早上好',
+          translationStatus: 'success',
+          translationModel: 'durable-test-model',
+          translatedAt: '2026-08-04T08:10:00.000Z'
+        };
+      }
+    }
+  });
+  const restartedRead = second.getJob(created.id);
+  assert.equal(restartedRead?.durableState, 'RUNNING', 'M3-SC-DIAG-012A:RESTART_READS_SCHEMA23');
+  assert.equal(restartedRead?.lifecyclePersisted, true, 'M3-SC-DIAG-012A:RESTART_PERSISTED');
+
+  const retried = second.retryJob(created.id);
+  assert.notEqual(retried.id, created.id, 'M3-SC-DIAG-012A:RETRY_NEW_OPERATION');
+  assert.equal(second.getJob(created.id)?.durableState, 'CANCELLED', 'M3-SC-DIAG-012A:RETRY_SUPERSEDES_RUNNING');
+  assert.equal(second.getJob(created.id)?.errorCode, 'TRANSLATION_SUPERSEDED', 'M3-SC-DIAG-012A:SUPERSEDE_REASON');
+
+  finishFirstTranslation({
+    sourceText: 'Guten Morgen',
+    sourceLanguage: 'de',
+    translatedZh: '旧结果不得提交',
+    translationStatus: 'success',
+    translationModel: 'stale-model',
+    translatedAt: '2026-08-04T08:09:00.000Z'
+  });
+  await waitForValue(() => first.active === 0);
+  assert.notEqual(translationStore.getMessage('translation-message-durable-1')?.translatedZh, '旧结果不得提交', 'M3-SC-DIAG-012A:STALE_RESULT_REJECTED');
+
+  const succeeded = await waitForValue(() => {
+    const snapshot = second.getJob(retried.id);
+    return snapshot?.durableState === 'SUCCEEDED' ? snapshot : null;
+  });
+  assert.equal(succeeded.status, 'success', 'M3-SC-DIAG-012A:RETRY_SUCCEEDED');
+  const third = new MessageTranslationService({ ...common });
+  assert.equal(third.getJob(retried.id)?.durableState, 'SUCCEEDED', 'M3-SC-DIAG-012A:TERMINAL_SURVIVES_RESTART');
+  assert.equal(third.listJobs({ messageId: 'translation-message-durable-1', limit: 10 }).length, 2, 'M3-SC-DIAG-012A:LIST_FROM_SCHEMA23');
+
+  first.close();
+  second.close();
+  third.close();
+}));
+
+test('M3-SC-DIAG-012B WhatsApp history media enqueue acquires canonical durability before transient queueing', () => {
+  const { WhatsAppHistoryMediaRecoveryQueue } = require('../../../services/whatsappHistoryMediaRecovery');
+  const queue = new WhatsAppHistoryMediaRecoveryQueue({
+    store: { listConversations() { return []; }, listMessages() { return []; }, async upsert() {} },
+    media: {}, events: { publish() {} }, log: { info() {}, warn() {} }
+  });
+  const calls = [];
+  queue.beginDurableMedia = job => {
+    calls.push(job);
+    return { acquired: false, reason: 'retry-wait', lease: null, job: { state: 'RETRY_SCHEDULED', nextAttemptAt: '2026-08-18T00:00:00.000Z' } };
+  };
+  const result = queue.enqueue({
+    accountId: 'wa-durable-1', conversationId: 'conv-durable-1', messageId: 'msg-durable-1',
+    info: { key: { id: 'msg-durable-1' }, message: { imageMessage: {} } },
+    socket: {}, descriptor: { kind: 'image', downloadStatus: 'pending' }, message: { id: 'msg-durable-1' }
+  });
+  assert.equal(calls.length, 1, 'M3-SC-DIAG-012B:DURABLE_ACQUIRE_REQUIRED');
+  assert.equal(result.queued, false, 'M3-SC-DIAG-012B:TRANSIENT_QUEUE_MUST_NOT_BYPASS_DURABLE_DECISION');
+  assert.equal(result.reason, 'retry-wait', 'M3-SC-DIAG-012B:DURABLE_DECISION_MUST_WIN');
+});
+
+test('M3-SC-DIAG-012C canonical WhatsApp recovery worklist treats attachment retry fields as projection only', () => {
+  const { WhatsAppHistoryMediaRecoveryQueue } = require('../../../services/whatsappHistoryMediaRecovery');
+  const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const message = {
+    id: 'msg-durable-projection-1', conversationId: 'conv-durable-projection-1', sentAt: new Date().toISOString(),
+    attachments: [{ kind: 'image', downloadStatus: 'failed', retryable: false, retryCount: 999, nextRetryAt: future }]
+  };
+  const queue = new WhatsAppHistoryMediaRecoveryQueue({
+    store: {
+      listConversations() { return [{ id: message.conversationId, accountId: 'wa-durable-projection-1', platform: 'whatsapp' }]; },
+      listMessages() { return [message]; }, async upsert() {}
+    },
+    media: {}, events: { publish() {} }, log: { info() {}, warn() {} }
+  });
+  queue.useCanonicalDurability = true;
+  const rows = queue.recoverableMessages('wa-durable-projection-1');
+  assert.equal(rows.length, 1, 'M3-SC-DIAG-012C:SCHEMA23_MUST_OWN_RETRY_ELIGIBILITY');
+});
+
+test('M3-SC-DIAG-012D transient WhatsApp dedupe cannot preempt canonical durable retry authority', () => {
+  const { WhatsAppHistoryMediaRecoveryQueue } = require('../../../services/whatsappHistoryMediaRecovery');
+  const queue = new WhatsAppHistoryMediaRecoveryQueue({
+    store: { listConversations() { return []; }, listMessages() { return []; }, async upsert() {} },
+    media: {}, events: { publish() {} }, log: { info() {}, warn() {} }
+  });
+  queue.useCanonicalDurability = true;
+  const key = 'wa-durable-2:conv-durable-2:msg-durable-2';
+  queue.known.set(key, { state: 'settled', at: Date.now(), nextRetryAt: new Date(Date.now() + 60_000).toISOString() });
+  let acquisitions = 0;
+  queue.beginDurableMedia = () => {
+    acquisitions += 1;
+    return { acquired: false, reason: 'retry-wait', lease: null, operation: { state: 'RETRY_SCHEDULED', nextAttemptAt: '2026-08-18T00:00:00.000Z' } };
+  };
+  const result = queue.enqueue({
+    accountId: 'wa-durable-2', conversationId: 'conv-durable-2', messageId: 'msg-durable-2',
+    info: { key: { id: 'msg-durable-2' }, message: { imageMessage: {} } }, socket: {},
+    descriptor: { kind: 'image', downloadStatus: 'failed' }, message: { id: 'msg-durable-2' }
+  });
+  assert.equal(acquisitions, 1, 'M3-SC-DIAG-012D:DURABLE_AUTHORITY_MUST_RUN_BEFORE_TRANSIENT_DEDUPE');
+  assert.equal(result.reason, 'retry-wait', 'M3-SC-DIAG-012D:DURABLE_DECISION_MUST_OVERRIDE_TRANSIENT_STATE');
+});
 
 test('M3-SC-DIAG-012 AI gateway generic scheduling is pinned behind the p-queue adapter boundary', () => {
   const aiGatewayPath = path.join(repoRoot, 'backend', 'services', 'aiGateway.js');
