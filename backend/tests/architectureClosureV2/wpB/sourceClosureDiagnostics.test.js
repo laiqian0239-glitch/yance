@@ -413,3 +413,44 @@ test('M3-SC-DIAG-010 stale Host fencing rejects internal operation start', () =>
   );
   assert.equal(authority.read(created.operation.operationId).state, 'SCHEDULED', 'M3-SC-DIAG-010:NO_MUTATION');
 }));
+
+test('M3-SC-DIAG-011 canonical internal retry lifecycle owns heartbeat and retry scheduling in Schema 23', () => withSchema23(({ db, store }) => {
+  const module = loadInternalAuthorityModule('M3-SC-DIAG-011');
+  const authority = createInternalAuthority(module, store);
+  const created = authority.create({
+    operationId: 'avatar-operation-retry-1',
+    operationType: 'avatar.contact.refresh',
+    scopeKey: 'whatsapp:account-1:conversation-1',
+    objectFingerprint: 'avatar-source-hash-1',
+    maxAttempts: 4,
+    metadata: { accountId: 'account-1', progress: 0 }
+  });
+  const started = authority.start(created.operation.operationId, { progress: 10 });
+  const firstLeaseExpiresAt = started.operation.leaseExpiresAt;
+  const heartbeat = authority.heartbeat(created.operation.operationId);
+  assert.equal(heartbeat.updated, true, 'M3-SC-DIAG-011:HEARTBEAT_UPDATED');
+  assert.equal(heartbeat.operation.state, 'RUNNING', 'M3-SC-DIAG-011:HEARTBEAT_STATE');
+  assert.ok(Date.parse(heartbeat.operation.leaseExpiresAt) > Date.parse(firstLeaseExpiresAt), 'M3-SC-DIAG-011:LEASE_EXTENDED');
+
+  const failed = authority.fail(
+    created.operation.operationId,
+    { code: 'AVATAR_FETCH_TIMEOUT' },
+    {
+      retryable: true,
+      maxAttempts: 4,
+      retryDelayMs: 15000,
+      generation: started.operation.generation,
+      objectFingerprint: 'avatar-source-hash-1'
+    }
+  );
+  assert.equal(failed.updated, true, 'M3-SC-DIAG-011:FAIL_UPDATED');
+  assert.equal(failed.retryable, true, 'M3-SC-DIAG-011:RETRYABLE');
+  assert.equal(failed.operation.state, 'RETRY_SCHEDULED', 'M3-SC-DIAG-011:RETRY_STATE');
+  assert.equal(failed.operation.retryCount, 1, 'M3-SC-DIAG-011:RETRY_COUNT');
+  assert.ok(Date.parse(failed.operation.nextAttemptAt) > Date.parse(failed.operation.updatedAt), 'M3-SC-DIAG-011:NEXT_ATTEMPT');
+  assert.equal(failed.operation.ownerId, '', 'M3-SC-DIAG-011:OWNER_CLEARED');
+  assert.equal(failed.operation.claimId, '', 'M3-SC-DIAG-011:CLAIM_CLEARED');
+
+  const names = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row => row.name));
+  assert.equal(names.has('background_job_state'), false, 'M3-SC-DIAG-011:NO_LEGACY_BACKGROUND_TABLE');
+}));
