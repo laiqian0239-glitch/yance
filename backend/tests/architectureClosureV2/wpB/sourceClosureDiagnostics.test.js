@@ -454,3 +454,38 @@ test('M3-SC-DIAG-011 canonical internal retry lifecycle owns heartbeat and retry
   const names = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row => row.name));
   assert.equal(names.has('background_job_state'), false, 'M3-SC-DIAG-011:NO_LEGACY_BACKGROUND_TABLE');
 }));
+
+test('M3-SC-DIAG-012 AI gateway generic scheduling is pinned behind the p-queue adapter boundary', () => {
+  const aiGatewayPath = path.join(repoRoot, 'backend', 'services', 'aiGateway.js');
+  const source = fs.readFileSync(aiGatewayPath, 'utf8');
+  const manifest = readJson(path.join(repoRoot, 'package.json'));
+
+  assert.doesNotMatch(
+    source,
+    /require\(['"]\.\/jobQueue['"]\)/u,
+    'M3-SC-DIAG-012:LEGACY_JOB_QUEUE_IMPORT_FORBIDDEN'
+  );
+  assert.equal(
+    manifest.dependencies?.['p-queue'],
+    '9.3.1',
+    'M3-SC-DIAG-012:P_QUEUE_DIRECT_DEPENDENCY_MUST_BE_EXACT'
+  );
+  assert.match(
+    source,
+    /class\s+PQueueSchedulerAdapter\b/u,
+    'M3-SC-DIAG-012:YANCE_ADAPTER_BOUNDARY_REQUIRED'
+  );
+  assert.match(
+    source,
+    /import\(['"]p-queue['"]\)/u,
+    'M3-SC-DIAG-012:NATIVE_ESM_MUST_LOAD_BEHIND_ADAPTER'
+  );
+  for (const forbidden of [
+    /ai_provider_physical_execution_state/u,
+    /durable_executions/u,
+    /background_job_state/u,
+    /storeProvider/u
+  ]) {
+    assert.doesNotMatch(source, forbidden, `M3-SC-DIAG-012:OSS_SCHEDULER_AUTHORITY_BOUNDARY:${forbidden.source}`);
+  }
+});
