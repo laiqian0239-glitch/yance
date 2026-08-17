@@ -35,7 +35,10 @@ test('landed backend already owns bilingual search and durable translation job l
   assert.match(routes, /router\.get\('\/translations\/jobs\/:jobId'/u);
   assert.match(routes, /router\.delete\('\/translations\/jobs\/:jobId'/u);
   assert.match(routes, /\/translations\/jobs\/:jobId\/retry/u);
-  assert.match(service, /AsyncOperationLifecycleAuthority/u);
+  assert.match(service, /currentRuntimeInternalOperationAuthority/u);
+  assert.doesNotMatch(service, /AsyncOperationLifecycleAuthority/u);
+  assert.doesNotMatch(service, /messageGenerations/u);
+  assert.match(service, /lifecyclePersisted:\s*true/u);
   assert.match(service, /cancelJob\s*\(/u);
   assert.match(service, /retryJob\s*\(/u);
   assert.match(service, /durableState/u);

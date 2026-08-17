@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_B_XSTATE_FAULT_RED_EVIDENCE",
+  "workPackage": "WP-B",
+  "candidateId": "XSTATE_CORE_5_32_5",
+  "redHead": "53acc228408871420256f034db71782309822003",
+  "workflowRun": {
+    "id": 30795156540,
+    "name": "WP-B Validation",
+    "exactHeadCheckoutEnforced": true,
+    "ubuntu": {
+      "jobId": 91626939872,
+      "status": "VALID_CAPABILITY_RED",
+      "passCount": 8,
+      "validCapabilityRed": 4,
+      "invalidRedInfrastructure": 0
+    },
+    "windows": {
+      "jobId": 91626939851,
+      "status": "VALID_CAPABILITY_RED",
+      "passCount": 8,
+      "validCapabilityRed": 4,
+      "invalidRedInfrastructure": 0
+    }
+  },
+  "normalizedFailureSet": {
+    "sha256": "058a961de053e2e391d8f0af9ac359db6dbfb1316775dc5d1b90bf9ca7140c50",
+    "failures": [
+      {
+        "id": "RUNTIME_UNAVAILABLE_NORMALIZATION",
+        "expectedCode": "WP_B_XSTATE_RUNTIME_UNAVAILABLE",
+        "phase": "LOAD_RUNTIME",
+        "observedChildExit": 34
+      },
+      {
+        "id": "CREATE_MACHINE_FAILURE_NORMALIZATION",
+        "expectedCode": "WP_B_XSTATE_RUNTIME_FAILURE",
+        "phase": "CREATE_MACHINE",
+        "observedChildExit": 52
+      },
+      {
+        "id": "INITIAL_SNAPSHOT_FAILURE_NORMALIZATION",
+        "expectedCode": "WP_B_XSTATE_RUNTIME_FAILURE",
+        "phase": "INITIAL_SNAPSHOT",
+        "observedChildExit": 62
+      },
+      {
+        "id": "TRANSITION_FAILURE_NORMALIZATION",
+        "expectedCode": "WP_B_XSTATE_RUNTIME_FAILURE",
+        "phase": "TRANSITION",
+        "observedChildExit": 72
+      }
+    ]
+  },
+  "alreadyGreenFaultContracts": [
+    "MISSING_RUNTIME_EXPORT",
+    "TRANSITION_PARITY_DIVERGENCE",
+    "CONFIGURATION_REJECTED_BEFORE_RUNTIME_LOAD"
+  ],
+  "unaffectedGates": {
+    "governanceUbuntu": "PASSED",
+    "governanceWindows": "PASSED",
+    "upstreamUbuntu": "PASSED",
+    "upstreamWindows": "PASSED",
+    "milestoneOneUbuntu": "PASSED",
+    "milestoneOneWindows": "PASSED"
+  },
+  "authorization": {
+    "faultBoundaryImplementationMayProceed": true,
+    "crossPlatformAndFaultValidationComplete": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "temporaryBypassAllowed": false
+  }
+}

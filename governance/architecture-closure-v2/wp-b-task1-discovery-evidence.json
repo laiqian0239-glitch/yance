@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_B_TASK1_DISCOVERY_EVIDENCE",
+  "workPackage": "WP-B",
+  "task": "OPEN_SOURCE_ADMISSION_AND_OPERATION_INVENTORY",
+  "status": "GREEN",
+  "validatedHead": "0acb897733a885b7d0554018f316a70758dc913d",
+  "pullRequestMergeValidationSha": "",
+  "workflowRun": {
+    "id": 30776966903,
+    "name": "WP-B Validation",
+    "conclusion": "success"
+  },
+  "jobs": [
+    {
+      "id": 91574181639,
+      "name": "wp-b-governance-ubuntu-latest",
+      "conclusion": "success"
+    },
+    {
+      "id": 91574181667,
+      "name": "wp-b-governance-windows-latest",
+      "conclusion": "success"
+    },
+    {
+      "id": 91574234286,
+      "name": "wp-b-validation-gate",
+      "conclusion": "success"
+    }
+  ],
+  "results": {
+    "openSourceGateContractGreen": true,
+    "operationDiscoveryContractGreen": true,
+    "openSourceVerifierGreen": true,
+    "operationInventoryVerifierGreen": true,
+    "unregisteredProductionOperationPathCount": 0,
+    "xstateProductionImportCount": 0,
+    "thirdPartyProductionUseAuthorized": false
+  },
+  "governance": {
+    "schema23Applied": false,
+    "productionImplementationStarted": false,
+    "wpCAuthorized": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}

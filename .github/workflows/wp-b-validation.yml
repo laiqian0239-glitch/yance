@@ -1,0 +1,339 @@
+name: WP-B Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wp-b-validation.yml
+      - backend/automation/execution/**
+      - backend/db/**
+      - backend/execution/**
+      - backend/lib/deepFreeze.js
+      - backend/lib/r32SqliteStore.js
+      - backend/lib/r32SqliteStoreEngine.js
+      - backend/lib/r32SqliteStoreEngineLegacy.js
+      - backend/migrations/**
+      - backend/services/authorityTimestamp.js
+      - backend/services/authorityTransactionCoordinator.js
+      - backend/services/durableExecutionAuthority.js
+      - backend/services/durableExecutionLifecycle.js
+      - backend/services/durableInternalOperationAuthority.js
+      - backend/services/externalActionDispatcher.js
+      - backend/services/externalActionOutboxAuthority.js
+      - backend/services/externalOutcomeReconciliation.js
+      - backend/services/xstateLifecycleAdapter.js
+      - backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js
+      - backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js
+      - backend/tests/architectureClosureV2/wpB/**
+      - governance/architecture-closure-v2/wp-b-*.json
+      - release/architecture-closure-v2/wp-b-governance-package.json
+      - shared/release/acv2ActiveWorkPackageAuthority.js
+      - shared/release/implementationBranchPolicy.js
+      - shared/release/implementationBranchPolicyLegacy.js
+      - shared/release/wpBM1RedEvidenceAuthority.js
+      - tests/wp0/acv2-work-package-scope-wiring.test.js
+      - tests/wp0/implementation-branch-policy.test.js
+      - tools/architecture-closure-v2/**
+      - tools/wp0/work-package-scope-gate.js
+      - tools/wp0/work-package-scope-gate-legacy.js
+      - docs/superpowers/plans/2026-08-03-yance-acv2-wp-b-implementation*.md
+      - docs/superpowers/specs/2026-08-03-yance-acv2-*.md
+      - package.json
+      - package-lock.json
+  push:
+    branches:
+      - acv2/wp-b-durable-execution-outbox
+    paths:
+      - .github/workflows/wp-b-validation.yml
+      - backend/automation/execution/**
+      - backend/db/**
+      - backend/execution/**
+      - backend/lib/deepFreeze.js
+      - backend/lib/r32SqliteStore.js
+      - backend/lib/r32SqliteStoreEngine.js
+      - backend/lib/r32SqliteStoreEngineLegacy.js
+      - backend/migrations/**
+      - backend/services/authorityTimestamp.js
+      - backend/services/authorityTransactionCoordinator.js
+      - backend/services/durableExecutionAuthority.js
+      - backend/services/durableExecutionLifecycle.js
+      - backend/services/durableInternalOperationAuthority.js
+      - backend/services/externalActionDispatcher.js
+      - backend/services/externalActionOutboxAuthority.js
+      - backend/services/externalOutcomeReconciliation.js
+      - backend/services/xstateLifecycleAdapter.js
+      - backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js
+      - backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js
+      - backend/tests/architectureClosureV2/wpB/**
+      - governance/architecture-closure-v2/wp-b-*.json
+      - release/architecture-closure-v2/wp-b-governance-package.json
+      - shared/release/acv2ActiveWorkPackageAuthority.js
+      - shared/release/implementationBranchPolicy.js
+      - shared/release/implementationBranchPolicyLegacy.js
+      - shared/release/wpBM1RedEvidenceAuthority.js
+      - tests/wp0/acv2-work-package-scope-wiring.test.js
+      - tests/wp0/implementation-branch-policy.test.js
+      - tools/architecture-closure-v2/**
+      - tools/wp0/work-package-scope-gate.js
+      - tools/wp0/work-package-scope-gate-legacy.js
+      - docs/superpowers/plans/2026-08-03-yance-acv2-wp-b-implementation*.md
+      - docs/superpowers/specs/2026-08-03-yance-acv2-*.md
+      - package.json
+      - package-lock.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  VALIDATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  governance-and-discovery:
+    name: wp-b-governance-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATION_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Validate exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+
+      - name: Validate tool syntax
+        run: |
+          node --check tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
+          node --check tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js
+          node --check tools/architecture-closure-v2/verify-wp-b-m1-red-evidence.js
+          node --check tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
+          node --check tools/architecture-closure-v2/capture-wp-b-red-evidence.js
+          node --check tools/architecture-closure-v2/source-closure-scan.js
+          node --check backend/services/durableInternalOperationAuthority.js
+          node --check backend/tests/architectureClosureV2/wpB/sourceClosureFinal.test.js
+          node --check backend/tests/architectureClosureV2/wpB/sourceClosureDiagnostics.test.js
+          node --check shared/release/acv2ActiveWorkPackageAuthority.js
+          node --check shared/release/implementationBranchPolicy.js
+          node --check shared/release/implementationBranchPolicyLegacy.js
+          node --check shared/release/wpBM1RedEvidenceAuthority.js
+          node --check tools/wp0/work-package-scope-gate.js
+          node --check tools/wp0/work-package-scope-gate-legacy.js
+
+      - name: Run WP-B governance contracts
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/openSourceAdoptionGate.test.js backend/tests/architectureClosureV2/wpB/operationInventoryDiscovery.test.js backend/tests/architectureClosureV2/wpB/m1RedEvidence.test.js
+
+      - name: Run WP-B source-closure credible RED contracts
+        shell: bash
+        run: |
+          set +e
+          OUTPUT_PATH="${RUNNER_TEMP}/wp-b-source-closure-${RUNNER_OS}.tap"
+          node --test --test-concurrency=1 \
+            backend/tests/architectureClosureV2/wpB/sourceClosureFinal.test.js \
+            backend/tests/architectureClosureV2/wpB/sourceClosureDiagnostics.test.js \
+            > "${OUTPUT_PATH}" 2>&1
+          STATUS=$?
+          cat "${OUTPUT_PATH}"
+          exit "${STATUS}"
+
+      - name: Upload source-closure diagnostic evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wp-b-source-closure-${{ matrix.os }}-${{ env.VALIDATION_SHA }}
+          path: ${{ runner.temp }}/wp-b-source-closure-${{ runner.os }}.tap
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Verify immutable Milestone 1 RED evidence
+        run: node tools/architecture-closure-v2/verify-wp-b-m1-red-evidence.js
+
+      - name: Verify fail-closed open-source gate
+        run: node tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
+
+      - name: Enforce exact operation inventory
+        run: node tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
+
+      - name: Confirm clean validation workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+  xstate-upstream-gate:
+    name: wp-b-xstate-upstream-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATION_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Validate exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+
+      - name: Verify exact XState package, license, tarball and audit
+        env:
+          WP_B_EVIDENCE_PATH: ${{ runner.temp }}/wp-b-xstate-upstream.json
+        run: node tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js
+
+  xstate-adapter-contracts:
+    name: wp-b-xstate-adapter-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATION_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Validate exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+
+      - name: Install exact locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run XState Adapter and fault-injection contracts
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/xstateLifecycleAdapter.test.js backend/tests/architectureClosureV2/wpB/xstateLifecycleAdapterFaults.test.js
+
+      - name: Confirm clean tracked workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=no)"
+
+  milestone-one-contracts:
+    name: wp-b-m1-contracts-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact validation commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATION_SHA }}
+          fetch-depth: 1
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Validate exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+
+      - name: Install exact locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run complete Milestone 1 contracts
+        run: node tools/architecture-closure-v2/capture-wp-b-red-evidence.js
+
+      - name: Run real Schema 23 SQLite integration contracts
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/schema23SqliteIntegration.test.js backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js
+
+      - name: Confirm clean tracked workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=no)"
+
+  gate:
+    name: wp-b-validation-gate
+    if: ${{ always() }}
+    needs:
+      - governance-and-discovery
+      - xstate-upstream-gate
+      - xstate-adapter-contracts
+      - milestone-one-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Enforce all WP-B validation results
+        shell: bash
+        env:
+          GOVERNANCE_RESULT: ${{ needs.governance-and-discovery.result }}
+          XSTATE_UPSTREAM_RESULT: ${{ needs.xstate-upstream-gate.result }}
+          XSTATE_ADAPTER_RESULT: ${{ needs.xstate-adapter-contracts.result }}
+          CONTRACT_RESULT: ${{ needs.milestone-one-contracts.result }}
+        run: |
+          set -euo pipefail
+          test "${GOVERNANCE_RESULT}" = "success"
+          test "${XSTATE_UPSTREAM_RESULT}" = "success"
+          test "${XSTATE_ADAPTER_RESULT}" = "success"
+          test "${CONTRACT_RESULT}" = "success"
+          {
+            echo '### WP-B validation'
+            echo ''
+            echo '- wpBImplementationAuthorized=true'
+            echo '- schema23Applied=true'
+            echo '- thirdPartyProductionUseAuthorized=false'
+            echo '- wpCAuthorized=false'
+            echo '- formalRelease=false'
+            echo '- publish=false'
+          } >> "${GITHUB_STEP_SUMMARY}"

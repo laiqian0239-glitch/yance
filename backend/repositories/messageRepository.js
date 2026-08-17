@@ -14,7 +14,7 @@ const logger = require('../services/logger');
 const operationalProjectionReceipts = require('../services/operationalProjectionReceiptAuthority');
 const externalIdentityAuthority = require('../services/externalIdentityAuthority').singleton;
 const identityDomainEventOutbox = require('../services/identityDomainEventOutboxService').singleton;
-const backgroundJobAuthority = require('../services/backgroundJobAuthority');
+const { currentRuntimeInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
 
 const platformCoreRepository = createPlatformCoreRepository({ storeProvider: getStore });
 const domainEventLog = new DomainEventLogService({ repository: platformCoreRepository });
@@ -63,6 +63,59 @@ function recordOperationalFailure(created, cause, targetRefs = []) {
 
 function now() { return new Date().toISOString(); }
 function projectionRetry(attempts) { return new Date(Date.now() + Math.min(300, Math.max(5, 2 ** Math.min(8, Number(attempts || 0)))) * 1000).toISOString(); }
+
+function durableInternalJobSpec(job = {}) {
+  const jobType = String(job.jobType || '').trim().toLowerCase();
+  const operationType = jobType === 'ai-conversation-analysis'
+    ? 'ai.conversation-analysis'
+    : jobType === 'telegram-message-enrichment'
+      ? 'history.telegram-message-enrichment'
+      : '';
+  if (!operationType) {
+    throw Object.assign(new Error(`Unsupported durable background job type: ${jobType || 'missing'}`), {
+      code: 'WP_B_INTERNAL_OPERATION_JOB_TYPE_UNREGISTERED',
+      jobType
+    });
+  }
+  const platform = String(job.platform || '').trim().toLowerCase();
+  const sourceAccountId = String(job.sourceAccountId || job.accountId || '').trim();
+  const conversationId = String(job.conversationId || '').trim();
+  const entityId = String(job.entityId || job.messageId || job.contactId || '').trim();
+  const revision = String(job.revision || job.projectionVersion || 'v1').trim();
+  if (!sourceAccountId || !entityId) {
+    throw Object.assign(new Error('Durable internal job identity is incomplete'), {
+      code: 'WP_B_INTERNAL_OPERATION_JOB_IDENTITY_INCOMPLETE',
+      jobType, sourceAccountId, entityId
+    });
+  }
+  const scopeKey = jobType === 'ai-conversation-analysis'
+    ? conversationId
+    : [platform, sourceAccountId, conversationId, entityId].join(':');
+  const objectFingerprint = crypto.createHash('sha256')
+    .update([jobType, platform, sourceAccountId, conversationId, entityId, revision].join('\u001f'))
+    .digest('hex');
+  return {
+    operationType,
+    scopeKey,
+    objectFingerprint,
+    maxAttempts: Math.max(1, Number(job.maxAttempts || 5)),
+    metadata: {
+      accountId: sourceAccountId,
+      messageId: entityId
+    }
+  };
+}
+
+function enqueueDurableInternalJobWithinTransaction(job, store) {
+  const authority = currentRuntimeInternalOperationAuthority();
+  const authorityStore = authority.store();
+  if (authorityStore.db !== store.db) {
+    throw Object.assign(new Error('Durable internal job must share the authoritative message transaction store'), {
+      code: 'WP_B_INTERNAL_OPERATION_TRANSACTION_STORE_MISMATCH'
+    });
+  }
+  return authority.create(durableInternalJobSpec(job));
+}
 function appendInboundEventWithProjectionJob(store, input = {}) {
   return store.transaction(() => {
     const created = domainEventLog.append(input);
@@ -536,7 +589,7 @@ async function upsert(input) {
         }
       }
       for (const job of durableJobs) {
-        backgroundJobAuthority.enqueue(job, { maxAttempts: Number(job.maxAttempts || 5) }, store);
+        enqueueDurableInternalJobWithinTransaction(job, store);
       }
 
       if (authoritativeDomainEvent?.event?.eventId) {

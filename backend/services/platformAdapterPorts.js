@@ -5,7 +5,8 @@ const domainEventLog = require('./domainEventLogService').singleton;
 const queueRepository = require('../repositories/sendQueueRepository');
 const sendPolicyAuthority = require('./sendPolicyAuthority').singleton;
 const platformDeliveryAuthority = require('./platformDeliveryAuthority').singleton;
-const asyncOperationLifecycleAuthority = require('./asyncOperationLifecycleAuthority').authority;
+const { currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
+const { TERMINAL_STATES } = require('./durableExecutionLifecycle');
 const platformAuthWorkflowAuthority = require('./platformAuthWorkflowAuthority').singleton;
 const outboxRouteAuthority = require('./outboxRouteAuthority').singleton;
 const { sha256 } = require('./domainEventLogService');
@@ -16,6 +17,7 @@ const ADAPTER_SCHEMA_VERSION = 1;
 const PORTS = Object.freeze(['auth', 'ingress', 'egress', 'reconcile']);
 const PLATFORMS = Object.freeze(['facebook', 'whatsapp', 'telegram']);
 const FORBIDDEN_DTO_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const INTERNAL_OPERATION_TERMINAL_STATES = new Set([...TERMINAL_STATES, 'SUPERSEDED']);
 const EGRESS_DEADLINES_MS = Object.freeze({
   text: 45_000,
   media: 120_000,
@@ -343,6 +345,43 @@ function defaultNormalizer(platform, input = {}) {
 }
 
 
+function projectPhysicalOperationContext(operation = {}, platform = '', accountId = '') {
+  if (!operation || typeof operation !== 'object' || clean(operation.state).toUpperCase() !== 'RUNNING') {
+    throw error('PLATFORM_PERSISTED_OPERATION_REQUIRED', 'Physical platform operation requires one RUNNING persisted Schema 23 operation.', 409);
+  }
+  const requiredStrings = [
+    'operationId', 'executionId', 'operationType', 'operationKind', 'scopeKey',
+    'objectFingerprint', 'ownerId', 'claimId'
+  ];
+  for (const field of requiredStrings) {
+    if (!clean(operation[field])) {
+      throw error('PLATFORM_PERSISTED_OPERATION_REQUIRED', 'Persisted physical operation identity is incomplete.', 409, { field });
+    }
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const value = Number(operation[field]);
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw error('PLATFORM_PERSISTED_OPERATION_REQUIRED', 'Persisted physical operation fencing identity is invalid.', 409, { field });
+    }
+  }
+  return Object.freeze({
+    operationId: clean(operation.operationId),
+    executionId: clean(operation.executionId),
+    operationType: clean(operation.operationType),
+    operationKind: clean(operation.operationKind),
+    scopeKey: clean(operation.scopeKey),
+    objectFingerprint: clean(operation.objectFingerprint),
+    state: 'RUNNING',
+    generation: Number(operation.generation),
+    ownerId: clean(operation.ownerId),
+    claimId: clean(operation.claimId),
+    hostGeneration: Number(operation.hostGeneration),
+    fencingToken: Number(operation.fencingToken),
+    platform: clean(platform).toLowerCase(),
+    accountId: clean(accountId)
+  });
+}
+
 function defaultAccountManager() { return require('./accountManager'); }
 function createAccountManagerAuthHandler(managerProvider = defaultAccountManager) {
   return {
@@ -351,20 +390,20 @@ function createAccountManagerAuthHandler(managerProvider = defaultAccountManager
       const operation = clean(input.operation);
       const accountId = clean(input.accountId);
       switch (operation) {
-        case 'connect': return manager.connect(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration });
-        case 'reconnect': return manager.reconnect(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration });
-        case 'pause': return manager.disconnect(accountId, { logout: false, signal: input.signal, operationGeneration: input.operationGeneration });
-        case 'resume': return manager.resume(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration });
-        case 'logout': return manager.disconnect(accountId, { logout: true, signal: input.signal, operationGeneration: input.operationGeneration });
-        case 'telegram.qr.start': return { account: await manager.startTelegramQr(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration }) };
-        case 'telegram.phone.start': return { account: await manager.startTelegramPhone(accountId, input.phoneNumber, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration }) };
-        case 'telegram.code': return { account: await manager.submitTelegramCode(accountId, input.code, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-        case 'telegram.password': return { account: await manager.submitTelegramPassword(accountId, input.password, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-        case 'telegram.cancel': return { account: await manager.cancelTelegramLogin(accountId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-        case 'facebook.oauth.start': return { flow: await manager.beginFacebookOAuth(accountId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-        case 'facebook.oauth.status': return { flow: await manager.pollFacebookOAuth(accountId, input.flowId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-        case 'facebook.oauth.selectPage': return manager.selectFacebookPage(accountId, input.flowId, input.pageId, { signal: input.signal, operationGeneration: input.operationGeneration });
-        case 'facebook.oauth.cancel': return { flow: await manager.cancelFacebookOAuth(accountId, input.flowId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
+        case 'connect': return manager.connect(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'reconnect': return manager.reconnect(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'pause': return manager.disconnect(accountId, { logout: false, signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'resume': return manager.resume(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'logout': return manager.disconnect(accountId, { logout: true, signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'telegram.qr.start': return { account: await manager.startTelegramQr(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'telegram.phone.start': return { account: await manager.startTelegramPhone(accountId, input.phoneNumber, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'telegram.code': return { account: await manager.submitTelegramCode(accountId, input.code, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'telegram.password': return { account: await manager.submitTelegramPassword(accountId, input.password, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'telegram.cancel': return { account: await manager.cancelTelegramLogin(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'facebook.oauth.start': return { flow: await manager.beginFacebookOAuth(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'facebook.oauth.status': return { flow: await manager.pollFacebookOAuth(accountId, input.flowId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'facebook.oauth.selectPage': return manager.selectFacebookPage(accountId, input.flowId, input.pageId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'facebook.oauth.cancel': return { flow: await manager.cancelFacebookOAuth(accountId, input.flowId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
         default: throw error('PLATFORM_AUTH_OPERATION_UNSUPPORTED', `AuthPort 不支持操作：${operation || 'unknown'}`, 404);
       }
     }
@@ -376,14 +415,50 @@ function createAccountManagerReconcileHandler(managerProvider = defaultAccountMa
     const operation = clean(input.operation) || 'sync';
     const accountId = clean(input.accountId);
     switch (operation) {
-      case 'sync': return manager.sync(accountId, { signal: input.signal, executionGeneration: input.operationGeneration, operationGeneration: input.operationGeneration });
-      case 'facebook.avatar-import.start': return { session: manager.startFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-      case 'facebook.avatar-import.status': return { session: manager.getFacebookBusinessSuiteAvatarImportStatus(accountId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-      case 'facebook.avatar-import.stop': return { session: manager.stopFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-      case 'facebook.avatar-closure.diagnose': return { report: await manager.diagnoseFacebookAvatarClosure(accountId, { limit: input.limit, signal: input.signal, operationGeneration: input.operationGeneration }) };
+      case 'sync': return manager.sync(accountId, { signal: input.signal, executionGeneration: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+      case 'facebook.avatar-import.start': return { session: manager.startFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+      case 'facebook.avatar-import.status': return { session: manager.getFacebookBusinessSuiteAvatarImportStatus(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+      case 'facebook.avatar-import.stop': return { session: manager.stopFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+      case 'facebook.avatar-closure.diagnose': return { report: await manager.diagnoseFacebookAvatarClosure(accountId, { limit: input.limit, signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
       default: throw error('PLATFORM_RECONCILE_OPERATION_UNSUPPORTED', `ReconcilePort 不支持操作：${operation}`, 404);
     }
   };
+}
+
+function validatePersistedEgressContext(value, command, platform) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.isFrozen(value)) {
+    throw error('EGRESS_PERSISTED_ATTEMPT_REQUIRED', 'Physical Egress requires one frozen persisted WP-B attempt context before any platform call.', 409);
+  }
+  assertDomainDto(value, 'PersistedEgressAttemptContext');
+  const requiredStrings = [
+    'executionId', 'intentId', 'attemptId', 'claimId', 'ownerId',
+    'idempotencyKey', 'requestContentSha256'
+  ];
+  for (const field of requiredStrings) {
+    if (!clean(value[field])) {
+      throw error('EGRESS_PERSISTED_ATTEMPT_REQUIRED', 'Persisted Egress attempt field is required.', 409, { field });
+    }
+  }
+  if (!/^[a-f0-9]{64}$/u.test(clean(value.requestContentSha256))) {
+    throw error('EGRESS_PERSISTED_ATTEMPT_REQUIRED', 'Persisted Egress requestContentSha256 is invalid.', 409, { field: 'requestContentSha256' });
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const number = Number(value[field]);
+    if (!Number.isSafeInteger(number) || number < 1) {
+      throw error('EGRESS_PERSISTED_ATTEMPT_REQUIRED', 'Persisted Egress attempt integer field is invalid.', 409, { field });
+    }
+  }
+  const normalizedPlatform = clean(platform).toLowerCase();
+  if (clean(value.platform) && clean(value.platform).toLowerCase() !== normalizedPlatform) {
+    throw error('EGRESS_PERSISTED_ATTEMPT_SCOPE_MISMATCH', 'Persisted Egress platform scope mismatch.', 409);
+  }
+  if (clean(value.accountReference) && clean(value.accountReference) !== clean(command.accountId)) {
+    throw error('EGRESS_PERSISTED_ATTEMPT_SCOPE_MISMATCH', 'Persisted Egress account scope mismatch.', 409);
+  }
+  if (clean(value.idempotencyKey) !== clean(command.idempotencyKey)) {
+    throw error('EGRESS_PERSISTED_ATTEMPT_SCOPE_MISMATCH', 'Persisted Egress idempotency scope mismatch.', 409);
+  }
+  return value;
 }
 
 class PlatformAdapterFacade {
@@ -396,7 +471,7 @@ class PlatformAdapterFacade {
     this.egressAuthorizer = typeof options.egressAuthorizer === 'function' ? options.egressAuthorizer : authorizePersistedOutbox;
     this.reconcileHandler = options.reconcileHandler || null;
     this.deliveryAuthority = options.deliveryAuthority || platformDeliveryAuthority;
-    this.operationLifecycle = options.operationLifecycle || asyncOperationLifecycleAuthority;
+    this.operationLifecycle = options.operationLifecycle || null;
 
     this.auth = Object.freeze({
       status: input => this.authStatus(input),
@@ -408,7 +483,7 @@ class PlatformAdapterFacade {
       normalize: input => this.normalizeIngress(input),
       ingest: input => this.ingest(input)
     });
-    this.egress = Object.freeze({ execute: command => this.executeEgress(command) });
+    this.egress = Object.freeze({ execute: (command, persistedContext) => this.executeEgress(command, persistedContext) });
     this.reconcile = Object.freeze({ execute: request => this.executeReconcile(request) });
   }
 
@@ -427,29 +502,31 @@ class PlatformAdapterFacade {
   }
   async executeAuth(input = {}) {
     assertDomainDto(input, 'AuthCommand');
+    const lifecycle = this.operationLifecycle || currentRuntimeInternalOperationAuthority();
     const operation = clean(input.operation);
     if (!operation) throw error('PLATFORM_AUTH_OPERATION_REQUIRED', 'AuthPort 必须声明认证操作。');
     const accountId = clean(input.accountId);
-    const workflow = platformAuthWorkflowAuthority.begin(this.operationLifecycle, {
+    const workflow = platformAuthWorkflowAuthority.begin(lifecycle, {
       ...input, platform: this.platform, accountId, operation
     });
     const created = workflow.operation;
+    const physicalOperationContext = projectPhysicalOperationContext(created, this.platform, accountId);
     try {
       let result;
       if (this.authHandler?.execute) result = await executePortWithDeadline(
-        ({ signal, generation }) => this.authHandler.execute({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, signal }),
+        ({ signal, generation }) => this.authHandler.execute({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
         { kind: 'auth', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, timeoutMs: input.timeoutMs, signal: input.signal }
       );
       else {
         const direct = this.authHandler?.[operation];
         if (typeof direct !== 'function') throw error('PLATFORM_AUTH_OPERATION_NOT_BOUND', `${this.platform} AuthPort 尚未绑定操作：${operation}`, 501);
         result = await executePortWithDeadline(
-          ({ signal, generation }) => direct({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, signal }),
+          ({ signal, generation }) => direct({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
           { kind: 'auth', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, timeoutMs: input.timeoutMs, signal: input.signal }
         );
       }
       const normalized = assertDomainDto(result, 'AuthCommandResult');
-      const completion = platformAuthWorkflowAuthority.afterCommand(this.operationLifecycle, {
+      const completion = platformAuthWorkflowAuthority.afterCommand(lifecycle, {
         platform: this.platform, accountId, operation, operationId: created.operationId
       }, normalized);
       return assertDomainDto({
@@ -460,9 +537,9 @@ class PlatformAdapterFacade {
         workflowPending: completion.pending === true
       }, 'AuthCommandResult');
     } catch (cause) {
-      const current = this.operationLifecycle.read(created.operationId);
-      if (current && !require('./asyncOperationLifecycleAuthority').TERMINAL.has(current.state)) {
-        this.operationLifecycle.fail(created.operationId, cause, { generation: created.generation, objectFingerprint: created.objectFingerprint });
+      const current = lifecycle.read(created.operationId);
+      if (current && !INTERNAL_OPERATION_TERMINAL_STATES.has(current.state)) {
+        lifecycle.fail(created.operationId, cause, { generation: created.generation, objectFingerprint: created.objectFingerprint });
       }
       cause.operationId = created.operationId;
       cause.operationGeneration = created.generation;
@@ -494,17 +571,26 @@ class PlatformAdapterFacade {
     return this.eventLog.append(normalized);
   }
 
-  async executeEgress(command = {}) {
+  async executeEgress(command = {}, persistedContext = null) {
     assertDomainDto(command, 'OutboxCommand');
     if (clean(command.platform).toLowerCase() !== this.platform) throw error('EGRESS_PLATFORM_MISMATCH', 'OutboxCommand 与平台适配器不一致。', 409);
     if (clean(command.commandType) !== 'OutboxCommand') throw error('EGRESS_OUTBOX_COMMAND_REQUIRED', 'Egress 只能消费已持久化的 OutboxCommand。', 409);
     if (!clean(command.idempotencyKey) || command.contentFrozen !== true) throw error('EGRESS_OUTBOX_COMMAND_UNFROZEN', 'Egress 拒绝未冻结或缺少幂等键的命令。', 409);
+    const durableAttempt = validatePersistedEgressContext(persistedContext, command, this.platform);
     const persistenceReceipt = await this.egressAuthorizer(command);
     if (!persistenceReceipt || persistenceReceipt.authorized !== true) throw error('EGRESS_PERSISTED_OUTBOX_REQUIRED', 'Egress 未获得持久化 Outbox 授权。', 409);
     let result;
     if (this.egressHandler) {
       try {
-        result = await executeEgressWithDeadline(({ signal, generation }) => this.egressHandler(command, { ...persistenceReceipt, signal, executionGeneration: generation }), command);
+        result = await executeEgressWithDeadline(({ signal, generation }) => this.egressHandler(
+          command,
+          Object.freeze({
+            ...persistenceReceipt,
+            ...durableAttempt,
+            signal,
+            executionGeneration: generation
+          })
+        ), command);
         let normalized;
         try { normalized = normalizeSendResult(this.platform, command, result); }
         catch (cause) {
@@ -527,7 +613,8 @@ class PlatformAdapterFacade {
         result = await executeEgressWithDeadline(({ signal, generation }) => sendMessageService.sendText({
           platform: this.platform, accountId: command.accountId, chatJid: command.conversationTarget,
           text: command.finalText, quoted: command.replyReference || null,
-          localMessageId: command.commandId, sessionKey: command.sessionKey, localProjectionOwnedByQueue: true, signal, executionGeneration: generation, deadlineOwnedByCaller: true
+          localMessageId: command.commandId, sessionKey: command.sessionKey, localProjectionOwnedByQueue: true,
+          physicalAttemptContext: durableAttempt, signal, executionGeneration: generation, deadlineOwnedByCaller: true
         }), command);
       } else if (command.operation === 'media') {
         const media = Array.isArray(command.mediaReferences) ? command.mediaReferences[0] : null;
@@ -536,26 +623,30 @@ class PlatformAdapterFacade {
           platform: this.platform, accountId: command.accountId, chatJid: command.conversationTarget,
           kind: media.kind || command.messageType, filePath: media.path, mimeType: media.mimeType,
           filename: media.filename, caption: command.finalText, quoted: command.replyReference || null,
-          localMessageId: command.commandId, sessionKey: command.sessionKey, expectedSha256: media.sha256, localProjectionOwnedByQueue: true, signal, executionGeneration: generation, deadlineOwnedByCaller: true
+          localMessageId: command.commandId, sessionKey: command.sessionKey, expectedSha256: media.sha256, localProjectionOwnedByQueue: true,
+          physicalAttemptContext: durableAttempt, signal, executionGeneration: generation, deadlineOwnedByCaller: true
         }), command);
       } else if (command.operation === 'reaction') {
         result = await executeEgressWithDeadline(({ signal, generation }) => sendMessageService.sendReaction({
           platform: this.platform, accountId: command.accountId, chatJid: command.conversationTarget,
           targetId: command.actionPayload?.targetId, emoji: command.actionPayload?.emoji,
-          targetFromMe: command.actionPayload?.targetFromMe === true, participant: command.actionPayload?.participant || '', signal, executionGeneration: generation, deadlineOwnedByCaller: true
+          targetFromMe: command.actionPayload?.targetFromMe === true, participant: command.actionPayload?.participant || '',
+          physicalAttemptContext: durableAttempt, signal, executionGeneration: generation, deadlineOwnedByCaller: true
         }), command);
       } else if (command.operation === 'revoke') {
         result = await executeEgressWithDeadline(({ signal, generation }) => sendMessageService.revokeMessage({
           platform: this.platform, accountId: command.accountId, chatJid: command.conversationTarget,
           targetId: command.actionPayload?.targetId, targetFromMe: command.actionPayload?.targetFromMe !== false,
-          participant: command.actionPayload?.participant || '', signal, executionGeneration: generation, deadlineOwnedByCaller: true
+          participant: command.actionPayload?.participant || '', physicalAttemptContext: durableAttempt,
+          signal, executionGeneration: generation, deadlineOwnedByCaller: true
         }), command);
       } else if (command.operation === 'native_expression') {
         result = await executeEgressWithDeadline(({ signal, generation }) => sendMessageService.sendNativeExpression({
           platform: this.platform, accountId: command.accountId, chatJid: command.conversationTarget,
           reference: command.actionPayload?.reference, kind: command.actionPayload?.kind || command.messageType,
           caption: command.finalText, quoted: command.replyReference || null,
-          localMessageId: command.commandId, sessionKey: command.sessionKey, localProjectionOwnedByQueue: true, signal, executionGeneration: generation, deadlineOwnedByCaller: true
+          localMessageId: command.commandId, sessionKey: command.sessionKey, localProjectionOwnedByQueue: true,
+          physicalAttemptContext: durableAttempt, signal, executionGeneration: generation, deadlineOwnedByCaller: true
         }), command);
       } else {
         throw error('EGRESS_OPERATION_UNSUPPORTED', `Egress 不支持操作：${command.operation}`, 409);
@@ -583,18 +674,21 @@ class PlatformAdapterFacade {
 
   async executeReconcile(request = {}) {
     assertDomainDto(request, 'ReconcileRequest');
+    const lifecycle = this.operationLifecycle || currentRuntimeInternalOperationAuthority();
     const accountId = clean(request.accountId);
     const operation = clean(request.operation) || 'sync';
     const requestId = clean(request.requestId || request.correlationId) || sha256({ platform: this.platform, accountId, operation, requestedAt: request.requestedAt || new Date().toISOString() });
-    const created = this.operationLifecycle.create({
-      operationId: clean(request.operationId), operationType: 'platform.reconcile', scopeKey: `${this.platform}:${accountId}:${operation}`,
-      objectFingerprint: requestId, metadata: { platform: this.platform, accountId, operation, requestId }
+    const reconcileOperationType = /sync|history/iu.test(operation) ? 'history.sync' : `media.${operation}`;
+    const scheduled = lifecycle.create({
+      operationId: clean(request.operationId), operationType: reconcileOperationType, scopeKey: `${this.platform}:${accountId}:${operation}`,
+      objectFingerprint: requestId, metadata: { accountId, providerRequestId: requestId }
     }).operation;
-    this.operationLifecycle.start(created.operationId, { progress: 5 });
+    const created = lifecycle.start(scheduled.operationId, { progress: 5 }).operation;
+    const physicalOperationContext = projectPhysicalOperationContext(created, this.platform, accountId);
     if (this.reconcileHandler) {
       try {
         const result = assertDomainDto(await executePortWithDeadline(
-          ({ signal, generation }) => this.reconcileHandler({ ...request, platform: this.platform, operationId: created.operationId, operationGeneration: generation, signal }),
+          ({ signal, generation }) => this.reconcileHandler({ ...request, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
           { kind: 'reconcile', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, timeoutMs: request.timeoutMs, signal: request.signal }
         ), 'ReconcileResult');
         const normalized = {
@@ -610,14 +704,14 @@ class PlatformAdapterFacade {
           reasonCode: clean(result.reasonCode),
           completedAt: clean(result.completedAt) || new Date().toISOString()
         };
-        this.operationLifecycle.succeed(created.operationId, {
-          platform: this.platform, accountId, operation, status: normalized.status, completedAt: normalized.completedAt
+        lifecycle.succeed(created.operationId, {
+          status: normalized.status, accountId
         }, { generation: created.generation, objectFingerprint: created.objectFingerprint });
         recordOperationalDomainEvent({ platform: this.platform, accountId, eventType: 'reconcile.completed', externalEventId: requestId, idempotencyKey: ['reconcile-completed', this.platform, accountId, requestId].join(':'), correlationId: requestId, projection: normalized, targetRefs: [{ table: 'r32_accounts', id: accountId }] }, this.eventLog);
         if (/sync|history/i.test(operation)) recordOperationalDomainEvent({ platform: this.platform, accountId, eventType: 'history.sync.completed', externalEventId: requestId, idempotencyKey: ['history-sync-completed', this.platform, accountId, requestId].join(':'), correlationId: requestId, projection: normalized, targetRefs: [{ table: 'r32_accounts', id: accountId }] }, this.eventLog);
         return normalized;
       } catch (cause) {
-        this.operationLifecycle.fail(created.operationId, cause, { generation: created.generation, objectFingerprint: created.objectFingerprint });
+        lifecycle.fail(created.operationId, cause, { generation: created.generation, objectFingerprint: created.objectFingerprint });
         const normalized = {
           schemaVersion: ADAPTER_SCHEMA_VERSION,
           platform: this.platform,
@@ -637,7 +731,7 @@ class PlatformAdapterFacade {
       }
     }
     const notBound = error('RECONCILE_PORT_NOT_BOUND', 'ReconcilePort 尚未绑定。', 501);
-    this.operationLifecycle.fail(created.operationId, notBound, { generation: created.generation, objectFingerprint: created.objectFingerprint });
+    lifecycle.fail(created.operationId, notBound, { generation: created.generation, objectFingerprint: created.objectFingerprint });
     const normalized = {
       schemaVersion: ADAPTER_SCHEMA_VERSION,
       platform: this.platform,
@@ -677,6 +771,7 @@ class PlatformAdapterFacade {
       boundaries: {
         ingressProducesDomainEventsOnly: true,
         egressConsumesOutboxOnly: true,
+        egressRequiresPersistedAttempt: true,
         reconcileDoesNotBlockRealtime: true,
         uiObjectsForbidden: true,
         expressObjectsForbidden: true,
@@ -705,7 +800,7 @@ class PlatformAdapterRegistryV2 {
   }
   contracts() { return Object.fromEntries([...this.adapters].map(([id, adapter]) => [id, adapter.contract()])); }
   executeAuth(input) { return this.get(input?.platform).auth.execute(input); }
-  executeEgress(command) { return this.get(command?.platform).egress.execute(command); }
+  executeEgress(command, persistedContext) { return this.get(command?.platform).egress.execute(command, persistedContext); }
   ingest(input) { return this.get(input?.platform).ingress.ingest(input); }
   reconcile(input) { return this.get(input?.platform).reconcile.execute(input); }
 }
@@ -720,5 +815,5 @@ module.exports = {
   ADAPTER_SCHEMA_VERSION, PORTS, PLATFORMS, PlatformAdapterFacade, PlatformAdapterRegistryV2,
   singleton, defaultNormalizer, assertDomainDto, authorizePersistedOutbox, normalizeSendResult, sanitizePortValue,
   createAccountManagerAuthHandler, createAccountManagerReconcileHandler, executeEgressWithDeadline,
-  executePortWithDeadline, portDeadlineMs
+  executePortWithDeadline, portDeadlineMs, projectPhysicalOperationContext
 };

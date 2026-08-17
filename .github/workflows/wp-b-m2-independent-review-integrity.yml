@@ -1,0 +1,156 @@
+name: WP-B M2 Independent Review Integrity
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wp-b-m2-independent-review-integrity.yml
+      - backend/runtime/AppRuntimeComposition.js
+      - backend/runtime/AppRuntimeFactory.js
+      - backend/server.js
+      - backend/services/durableExecutionRecoveryAuthority.js
+      - backend/services/durableOperationRegistry.js
+      - backend/services/durableOperations/**
+      - backend/services/externalActionDispatcher.js
+      - backend/services/externalActionOutboxAuthority*.js
+      - backend/services/channelAdapterRuntime.js
+      - backend/services/channelRuntimeEngine.js
+      - backend/services/modelExecutionHost.js
+      - backend/tests/architectureClosureV2/wpB/m2IndependentReviewIntegrity.test.js
+      - backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
+      - backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js
+      - governance/architecture-closure-v2/wp-b-m2-review.json
+      - tools/architecture-closure-v2/run-wp-b-m2-contracts.js
+      - tools/architecture-closure-v2/verify-wp-b-m2-review.js
+      - tools/architecture-closure-v2/wp-b-process-fault-matrix.js
+      - tools/architecture-closure-v2/fixtures/wp-b-*.js
+  push:
+    branches:
+      - acv2/wp-b-durable-execution-outbox
+    paths:
+      - .github/workflows/wp-b-m2-independent-review-integrity.yml
+      - backend/runtime/AppRuntimeComposition.js
+      - backend/runtime/AppRuntimeFactory.js
+      - backend/server.js
+      - backend/services/durableExecutionRecoveryAuthority.js
+      - backend/services/durableOperationRegistry.js
+      - backend/services/durableOperations/**
+      - backend/services/externalActionDispatcher.js
+      - backend/services/externalActionOutboxAuthority*.js
+      - backend/services/channelAdapterRuntime.js
+      - backend/services/channelRuntimeEngine.js
+      - backend/services/modelExecutionHost.js
+      - backend/tests/architectureClosureV2/wpB/m2IndependentReviewIntegrity.test.js
+      - backend/tests/architectureClosureV2/wpB/m2ProcessFaultRed.test.js
+      - backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js
+      - governance/architecture-closure-v2/wp-b-m2-review.json
+      - tools/architecture-closure-v2/run-wp-b-m2-contracts.js
+      - tools/architecture-closure-v2/verify-wp-b-m2-review.js
+      - tools/architecture-closure-v2/wp-b-process-fault-matrix.js
+      - tools/architecture-closure-v2/fixtures/wp-b-*.js
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+env:
+  IMPLEMENTATION_BRANCH: acv2/wp-b-durable-execution-outbox
+  VALIDATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  independent-review-integrity:
+    name: wp-b-m2-review-integrity-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact review candidate
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATION_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Establish exact trusted implementation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          test "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})" = "${VALIDATION_SHA}"
+          git switch --force-create "${IMPLEMENTATION_BRANCH}" "${VALIDATION_SHA}"
+          test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+
+      - name: Validate independent-review syntax
+        shell: bash
+        run: |
+          node --check backend/tests/architectureClosureV2/wpB/m2IndependentReviewIntegrity.test.js
+          node --check backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js
+          node --check tools/architecture-closure-v2/run-wp-b-m2-contracts.js
+          node --check tools/architecture-closure-v2/verify-wp-b-m2-review.js
+          node --check tools/architecture-closure-v2/wp-b-process-fault-matrix.js
+
+      - name: Run independent source-bound integrity contracts
+        shell: bash
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2IndependentReviewIntegrity.test.js
+
+      - name: Run seal mutation and exact-delta contracts
+        shell: bash
+        run: node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js
+
+      - name: Run complete Milestone 2 contracts
+        shell: bash
+        run: node tools/architecture-closure-v2/run-wp-b-m2-contracts.js --mode contract
+
+      - name: Execute complete eighteen-scenario process matrix
+        shell: bash
+        run: node tools/architecture-closure-v2/wp-b-process-fault-matrix.js
+
+      - name: Verify Milestone 2 reviewed-head receipt locally
+        shell: bash
+        run: node tools/architecture-closure-v2/verify-wp-b-m2-review.js
+
+      - name: Verify authenticated reviewed-head workflow evidence
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: node tools/architecture-closure-v2/verify-wp-b-m2-review.js --remote
+
+      - name: Confirm clean review workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+  independent-review-gate:
+    name: wp-b-m2-independent-review-gate
+    if: always()
+    needs:
+      - independent-review-integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require both platform review jobs
+        env:
+          REVIEW_RESULT: ${{ needs.independent-review-integrity.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${REVIEW_RESULT}" = "success"

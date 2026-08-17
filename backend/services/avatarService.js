@@ -5,7 +5,8 @@ const crypto = require('crypto');
 const mediaPipeline = require('./mediaPipeline');
 const messageStore = require('./messageStore');
 const logger = require('./logger');
-const backgroundJobAuthority = require('./backgroundJobAuthority');
+const { currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
+const { currentRuntimeRecoveryAuthority } = require('./durableExecutionRecoveryAuthority');
 
 const MAX_AVATAR_BYTES = 4 * 1024 * 1024;
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -124,9 +125,8 @@ class AvatarSyncService {
     this.knownPlatformAvatarHashes = options.knownPlatformAvatarHashes instanceof Map
       ? options.knownPlatformAvatarHashes
       : KNOWN_PLATFORM_AVATAR_HASHES;
-    this.backgroundJobs = options.backgroundJobs === undefined
-      ? (this.messageStore === messageStore ? backgroundJobAuthority : null)
-      : options.backgroundJobs;
+    this.backgroundJobs = options.backgroundJobs === undefined ? null : options.backgroundJobs;
+    this.useCanonicalDurability = options.backgroundJobs === undefined && this.messageStore === messageStore;
     this.avatarJobMaxAttempts = Math.max(1, Number(options.avatarJobMaxAttempts || 4));
     this.avatarRetryDelayMs = Math.max(1000, Number(options.avatarRetryDelayMs || 15 * 60 * 1000));
   }
@@ -527,6 +527,139 @@ class AvatarSyncService {
     };
   }
 
+  avatarOperationScope(input = {}) {
+    const durable = this.durableJobInput(input);
+    return JSON.stringify([durable.sourceAccountId, durable.conversationId || durable.entityId]);
+  }
+
+  avatarOperationFingerprint(input = {}) {
+    const durable = this.durableJobInput(input);
+    const current = durable.conversationId ? this.messageStore.getConversation(durable.conversationId) : null;
+    const anchor = clean(current?.avatarUpdatedAt || current?.avatar_updated_at) || 'initial';
+    return crypto.createHash('sha256')
+      .update([durable.revision, anchor, input.force === true ? 'force' : 'scheduled'].join('\u001f'))
+      .digest('hex');
+  }
+
+  canonicalAvatarLease(operation = {}) {
+    return Object.freeze({
+      operationId: clean(operation.operationId),
+      generation: Number(operation.generation || 0),
+      objectFingerprint: clean(operation.objectFingerprint)
+    });
+  }
+
+  maybeRecoverCanonicalAvatar(authority, operation) {
+    const now = Date.now();
+    const retryDue = operation?.state === 'RETRY_SCHEDULED'
+      && (!operation.nextAttemptAt || Date.parse(operation.nextAttemptAt) <= now);
+    const leaseExpired = operation?.state === 'RUNNING'
+      && operation.leaseExpiresAt
+      && Date.parse(operation.leaseExpiresAt) <= now;
+    if (!retryDue && !leaseExpired) return operation;
+    currentRuntimeRecoveryAuthority().recoverExecution(operation.operationId, {
+      authorityTimestamp: new Date(now).toISOString()
+    });
+    return authority.read(operation.operationId);
+  }
+
+  acquireAvatarJob(input = {}) {
+    if (this.backgroundJobs?.begin) {
+      return this.backgroundJobs.begin(this.durableJobInput(input), {
+        maxAttempts: this.avatarJobMaxAttempts,
+        refreshAfterMs: this.refreshIntervalMs,
+        force: input.force === true
+      });
+    }
+    if (!this.useCanonicalDurability) return { acquired: true, reason: 'non-production-no-durable-authority', lease: null, job: null };
+
+    const authority = currentRuntimeInternalOperationAuthority();
+    const scopeKey = this.avatarOperationScope(input);
+    let latest = authority.latest({ operationType: 'media.account-avatar-sync', scopeKey });
+    if (latest && !['SUCCEEDED', 'FAILED', 'CANCELLED', 'DEAD_LETTERED'].includes(latest.state)) {
+      latest = this.maybeRecoverCanonicalAvatar(authority, latest);
+      if (latest.state === 'SCHEDULED') {
+        const started = authority.start(latest.operationId, { progress: 1 }).operation;
+        return { acquired: true, reason: 'recovered', lease: this.canonicalAvatarLease(started), job: started, operation: started };
+      }
+      return {
+        acquired: false,
+        reason: latest.state === 'RETRY_SCHEDULED' ? 'retry-wait' : 'already-running',
+        lease: null,
+        job: latest,
+        operation: latest
+      };
+    }
+    if (latest && ['FAILED', 'DEAD_LETTERED'].includes(latest.state) && input.force !== true) {
+      return { acquired: false, reason: 'failed_final', lease: null, job: latest, operation: latest };
+    }
+    if (input.force !== true && !this.needsRefresh(input.conversationId, false)) {
+      return { acquired: false, reason: 'already-succeeded', lease: null, job: latest, operation: latest };
+    }
+
+    const durable = this.durableJobInput(input);
+    const created = authority.create({
+      operationType: 'media.account-avatar-sync',
+      scopeKey,
+      objectFingerprint: this.avatarOperationFingerprint(input),
+      maxAttempts: this.avatarJobMaxAttempts,
+      metadata: {
+        accountId: durable.sourceAccountId,
+        resultReference: durable.conversationId || durable.entityId
+      }
+    });
+    let operation = this.maybeRecoverCanonicalAvatar(authority, created.operation);
+    if (operation.state === 'SCHEDULED') {
+      operation = authority.start(operation.operationId, { progress: 1 }).operation;
+      return { acquired: true, reason: created.created ? 'created' : 'scheduled', lease: this.canonicalAvatarLease(operation), job: operation, operation };
+    }
+    return {
+      acquired: false,
+      reason: operation.state === 'SUCCEEDED' ? 'already-succeeded'
+        : operation.state === 'RETRY_SCHEDULED' ? 'retry-wait'
+          : operation.state === 'RUNNING' ? 'already-running'
+            : ['FAILED', 'DEAD_LETTERED'].includes(operation.state) ? 'failed_final'
+              : clean(operation.state).toLowerCase(),
+      lease: null,
+      job: operation,
+      operation
+    };
+  }
+
+  failAvatarJob(lease, error, options = {}) {
+    if (!lease) return null;
+    if (this.backgroundJobs?.fail) {
+      return this.backgroundJobs.fail(lease, error, {
+        retryable: options.retryable === true,
+        maxAttempts: this.avatarJobMaxAttempts,
+        retryDelayMs: this.avatarRetryDelayMs,
+        payload: { stage: clean(options.stage || 'avatar-sync') }
+      });
+    }
+    if (!this.useCanonicalDurability || !lease.operationId) return null;
+    const errorCode = clean(error?.code || error?.errorCode || error || 'AVATAR_SYNC_FAILED').toUpperCase();
+    return currentRuntimeInternalOperationAuthority().fail(lease.operationId, { errorCode }, {
+      retryable: options.retryable === true,
+      retryDelayMs: this.avatarRetryDelayMs,
+      generation: lease.generation,
+      objectFingerprint: lease.objectFingerprint,
+      reasonCode: errorCode
+    });
+  }
+
+  succeedAvatarJob(lease, result = {}) {
+    if (!lease) return null;
+    if (this.backgroundJobs?.succeed) return this.backgroundJobs.succeed(lease, result);
+    if (!this.useCanonicalDurability || !lease.operationId) return null;
+    return currentRuntimeInternalOperationAuthority().succeed(lease.operationId, {
+      status: clean(result.status || 'completed'),
+      reasonCode: clean(result.avatarStatus || '')
+    }, {
+      generation: lease.generation,
+      objectFingerprint: lease.objectFingerprint
+    });
+  }
+
   suppressedAvatarResult(input, decision) {
     const current = clean(input.conversationId) ? this.messageStore.getConversation(clean(input.conversationId)) : null;
     if (decision.reason === 'already-succeeded') {
@@ -543,15 +676,8 @@ class AvatarSyncService {
     const key = this.taskKey(input);
     if (this.inFlight.has(key)) return this.inFlight.get(key);
     const promise = Promise.resolve().then(() => {
-      let decision = null;
-      if (this.backgroundJobs?.begin) {
-        decision = this.backgroundJobs.begin(this.durableJobInput(input), {
-          maxAttempts: this.avatarJobMaxAttempts,
-          refreshAfterMs: this.refreshIntervalMs,
-          force: input.force === true
-        });
-        if (!decision.acquired) return this.suppressedAvatarResult(input, decision);
-      }
+      const decision = this.acquireAvatarJob(input);
+      if (!decision.acquired) return this.suppressedAvatarResult(input, decision);
       return new Promise((resolve, reject) => {
         this.queue.push({ input, resolve, reject, key, lease: decision?.lease || null });
         this.pump();
@@ -564,29 +690,24 @@ class AvatarSyncService {
   async runQueuedJob(job) {
     try {
       const result = await this.syncWhatsAppContact(job.input);
-      if (job.lease && this.backgroundJobs) {
+      if (job.lease) {
         if (result?.status === 'failed') {
-          const failed = this.backgroundJobs.fail(job.lease, { code: result.errorCode || result.avatarStatus || 'AVATAR_SYNC_FAILED' }, {
+          const failed = this.failAvatarJob(job.lease, { code: result.errorCode || result.avatarStatus || 'AVATAR_SYNC_FAILED' }, {
             retryable: avatarFailureRetryable(result.errorCode || result.avatarStatus),
-            maxAttempts: this.avatarJobMaxAttempts,
-            retryDelayMs: this.avatarRetryDelayMs,
-            payload: { status: result.status, avatarStatus: result.avatarStatus || '' }
+            stage: 'avatar-sync-result'
           });
-          return { ...result, backgroundJobState: failed.state || failed.job?.state, nextRetryAt: failed.nextRetryAt || '' };
+          const operation = failed?.operation || failed?.job || null;
+          return { ...result, backgroundJobState: operation?.state || failed?.state || '', nextRetryAt: operation?.nextAttemptAt || failed?.nextRetryAt || '' };
         }
-        const succeeded = this.backgroundJobs.succeed(job.lease, { status: result?.status || 'completed', avatarStatus: result?.avatarStatus || '' });
-        return { ...result, backgroundJobState: succeeded.job?.state || 'SUCCEEDED' };
+        const succeeded = this.succeedAvatarJob(job.lease, { status: result?.status || 'completed', avatarStatus: result?.avatarStatus || '' });
+        return { ...result, backgroundJobState: succeeded?.operation?.state || succeeded?.job?.state || 'SUCCEEDED' };
       }
       return result;
     } catch (error) {
-      if (job.lease && this.backgroundJobs) {
-        this.backgroundJobs.fail(job.lease, error, {
-          retryable: avatarFailureRetryable(error),
-          maxAttempts: this.avatarJobMaxAttempts,
-          retryDelayMs: this.avatarRetryDelayMs,
-          payload: { stage: 'queue-unhandled' }
-        });
-      }
+      if (job.lease) this.failAvatarJob(job.lease, error, {
+        retryable: avatarFailureRetryable(error),
+        stage: 'queue-unhandled'
+      });
       throw error;
     }
   }

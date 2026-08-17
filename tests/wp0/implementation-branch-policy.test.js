@@ -1635,3 +1635,188 @@ test('generic delegated route guard rejects governance bootstrap ambiguity and s
   failClosedWeakening.unknownPathFailsClosed = false;
   denied(baseAuthorization, failClosedWeakening);
 });
+
+
+function buildTopologyFixtureAuthorization({
+  authorizationPath,
+  authorizationBranch,
+  implementationBranch,
+  implementationPaths,
+  supersedes = null
+}) {
+  const document = genericDelegatedAuthorization({
+    allowedChangedPaths: implementationPaths
+  });
+
+  document.authorizationBranch = {
+    ...document.authorizationBranch,
+    name: authorizationBranch,
+    allowedChangedPaths: [authorizationPath]
+  };
+
+  document.implementation = {
+    ...document.implementation,
+    branch: implementationBranch,
+    allowedChangedPaths: [...implementationPaths],
+    approvedChangedFileCount: implementationPaths.length,
+    approvedChangedFileSetSha256:
+      workPackageChangedFilesSha256(implementationPaths)
+  };
+
+  if (supersedes) {
+    document.supersedes = supersedes;
+  }
+
+  return document;
+}
+
+test('delegated governance topology rejects a non-candidate branch before unrelated history traversal', () => {
+  const targetPath =
+    'governance/layered-ci/test-unrelated-target-authorization.json';
+
+  const successorPath =
+    'governance/layered-ci/test-unrelated-successor-authorization.json';
+
+  const target = buildTopologyFixtureAuthorization({
+    authorizationPath: targetPath,
+    authorizationBranch: 'governance/test-unrelated-target',
+    implementationBranch: 'fix/test-unrelated-target',
+    implementationPaths: [
+      'shared/release/test-unrelated-target.js'
+    ]
+  });
+
+  const successor = buildTopologyFixtureAuthorization({
+    authorizationPath: successorPath,
+    authorizationBranch: 'governance/test-unrelated-successor',
+    implementationBranch: 'fix/test-unrelated-successor',
+    implementationPaths: [
+      'shared/release/test-unrelated-successor.js'
+    ],
+    supersedes: {
+      authorizationPath: targetPath,
+      implementationBranch: target.implementation.branch,
+      reason: 'test-only unrelated supersession topology'
+    }
+  });
+
+  let historyLookups = 0;
+
+  const result = evaluateTrustedDelegatedGovernanceBranch({
+    branch: 'feature/not-authorized-by-delegated-governance',
+    trustedMainHead: GENERIC_TRUSTED_MAIN,
+    evaluatedHead: GENERIC_IMPLEMENTATION_HEAD,
+
+    listAuthorizationPaths: () => [
+      targetPath,
+      successorPath
+    ],
+
+    loadAuthorizationAtTrustedHead: repositoryPath => {
+      if (repositoryPath === targetPath) return target;
+      if (repositoryPath === successorPath) return successor;
+      return null;
+    },
+
+    findAuthorizationIntroductionMerges: () => {
+      historyLookups += 1;
+      return [];
+    }
+  });
+
+  assert.equal(result.pass, false);
+  assert.equal(
+    result.reasonCode,
+    'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID'
+  );
+
+  assert.equal(
+    historyLookups,
+    0,
+    'a branch with no matching authorization must not traverse unrelated authorization history'
+  );
+});
+
+test('delegated governance topology validates only the supersession component connected to the candidate branch', () => {
+  const exact = genericTrustedAuthorityOptions();
+
+  const candidate =
+    genericDelegatedAuthorization();
+
+  const unrelatedTargetPath =
+    'governance/layered-ci/test-disconnected-target-authorization.json';
+
+  const unrelatedSuccessorPath =
+    'governance/layered-ci/test-disconnected-successor-authorization.json';
+
+  const unrelatedTarget = buildTopologyFixtureAuthorization({
+    authorizationPath: unrelatedTargetPath,
+    authorizationBranch: 'governance/test-disconnected-target',
+    implementationBranch: 'fix/test-disconnected-target',
+    implementationPaths: [
+      'shared/release/test-disconnected-target.js'
+    ]
+  });
+
+  const unrelatedSuccessor = buildTopologyFixtureAuthorization({
+    authorizationPath: unrelatedSuccessorPath,
+    authorizationBranch: 'governance/test-disconnected-successor',
+    implementationBranch: 'fix/test-disconnected-successor',
+    implementationPaths: [
+      'shared/release/test-disconnected-successor.js'
+    ],
+    supersedes: {
+      authorizationPath: unrelatedTargetPath,
+      implementationBranch:
+        unrelatedTarget.implementation.branch,
+      reason: 'test-only disconnected supersession topology'
+    }
+  });
+
+  let unrelatedHistoryLookups = 0;
+
+  const result = evaluateTrustedDelegatedGovernanceBranch({
+    ...exact,
+
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+
+    listAuthorizationPaths: () => [
+      GENERIC_AUTHORIZATION_PATH,
+      unrelatedTargetPath,
+      unrelatedSuccessorPath
+    ],
+
+    loadAuthorizationAtTrustedHead: repositoryPath => {
+      if (repositoryPath === GENERIC_AUTHORIZATION_PATH) {
+        return candidate;
+      }
+
+      if (repositoryPath === unrelatedTargetPath) {
+        return unrelatedTarget;
+      }
+
+      if (repositoryPath === unrelatedSuccessorPath) {
+        return unrelatedSuccessor;
+      }
+
+      return null;
+    },
+
+    findAuthorizationIntroductionMerges: repositoryPath => {
+      if (repositoryPath === GENERIC_AUTHORIZATION_PATH) {
+        return [GENERIC_MERGE];
+      }
+
+      unrelatedHistoryLookups += 1;
+      return [];
+    }
+  });
+
+  assert.equal(result.pass, true, JSON.stringify(result));
+
+  assert.equal(
+    unrelatedHistoryLookups,
+    0,
+    'candidate validation must not traverse a disconnected supersession component'
+  );
+});
