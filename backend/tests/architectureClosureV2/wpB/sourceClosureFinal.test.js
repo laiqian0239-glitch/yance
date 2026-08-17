@@ -107,7 +107,7 @@ test('M3-SC-012 generalized call-site discovery is complete and exact', () => {
   const discovery = discoveryReport();
   assert.equal(discovery.unregisteredCount, 0, JSON.stringify(discovery.unregistered, null, 2));
   assert.equal(discovery.missingInventoryPathCount, 0, JSON.stringify(discovery.missingInventoryPaths, null, 2));
-  assert.equal(discovery.discoveryComplete, true);
+  assert.equal(discovery.ok, true);
 });
 
 test('M3-SC-DIAG-013 Facebook Chatwoot physical egress consumes the persisted WP-B attempt at the fetch boundary', async () => {
