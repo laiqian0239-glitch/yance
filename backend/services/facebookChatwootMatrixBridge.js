@@ -26,6 +26,27 @@ function assertActive(signal, code = 'FACEBOOK_CHATWOOT_OPERATION_ABORTED') {
   if (!reason.code) reason.code = code;
   throw reason;
 }
+function requirePersistedAttempt(input = {}) {
+  const attempt = input?.physicalAttemptContext;
+  if (!attempt || typeof attempt !== 'object' || Array.isArray(attempt) || !Object.isFrozen(attempt)) {
+    throw fail('FACEBOOK_CHATWOOT_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Page Chatwoot physical egress requires the frozen persisted WP-B attempt before any network call', 409);
+  }
+  for (const field of ['executionId', 'intentId', 'attemptId', 'claimId', 'ownerId', 'idempotencyKey', 'requestContentSha256']) {
+    if (!clean(attempt[field])) {
+      throw fail('FACEBOOK_CHATWOOT_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Page Chatwoot persisted attempt identity is incomplete', 409, { field });
+    }
+  }
+  if (!/^[a-f0-9]{64}$/u.test(clean(attempt.requestContentSha256))) {
+    throw fail('FACEBOOK_CHATWOOT_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Page Chatwoot persisted request fingerprint is invalid', 409, { field: 'requestContentSha256' });
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const value = Number(attempt[field]);
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw fail('FACEBOOK_CHATWOOT_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Page Chatwoot persisted fencing identity is invalid', 409, { field });
+    }
+  }
+  return attempt;
+}
 
 function runtimeConfig() {
   return {
@@ -453,11 +474,13 @@ function resolveAccountKey(account = {}) {
 function externalTarget(value) { return clean(value).replace(/^facebook:/iu, ''); }
 function adapterAccountId(account = {}, requestedId = '') { return resolveAccountKey(account) || clean(requestedId); }
 async function sendText(context = {}, input = {}) {
+  requirePersistedAttempt(input);
   const config = requireRuntimeConfig();
   const target = await resolveConversationTarget(config, context.target, input);
   return chatwootSendText(config, target.conversationId, input.text, input);
 }
 async function sendMedia(context = {}, input = {}) {
+  requirePersistedAttempt(input);
   const config = requireRuntimeConfig();
   const target = await resolveConversationTarget(config, context.target, input);
   return chatwootSendMedia(config, target.conversationId, input, input);

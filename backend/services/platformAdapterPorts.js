@@ -575,7 +575,8 @@ class PlatformAdapterFacade {
         result = await executeEgressWithDeadline(({ signal, generation }) => sendMessageService.sendText({
           platform: this.platform, accountId: command.accountId, chatJid: command.conversationTarget,
           text: command.finalText, quoted: command.replyReference || null,
-          localMessageId: command.commandId, sessionKey: command.sessionKey, localProjectionOwnedByQueue: true, signal, executionGeneration: generation, deadlineOwnedByCaller: true
+          localMessageId: command.commandId, sessionKey: command.sessionKey, localProjectionOwnedByQueue: true,
+          physicalAttemptContext: durableAttempt, signal, executionGeneration: generation, deadlineOwnedByCaller: true
         }), command);
       } else if (command.operation === 'media') {
         const media = Array.isArray(command.mediaReferences) ? command.mediaReferences[0] : null;
@@ -584,26 +585,30 @@ class PlatformAdapterFacade {
           platform: this.platform, accountId: command.accountId, chatJid: command.conversationTarget,
           kind: media.kind || command.messageType, filePath: media.path, mimeType: media.mimeType,
           filename: media.filename, caption: command.finalText, quoted: command.replyReference || null,
-          localMessageId: command.commandId, sessionKey: command.sessionKey, expectedSha256: media.sha256, localProjectionOwnedByQueue: true, signal, executionGeneration: generation, deadlineOwnedByCaller: true
+          localMessageId: command.commandId, sessionKey: command.sessionKey, expectedSha256: media.sha256, localProjectionOwnedByQueue: true,
+          physicalAttemptContext: durableAttempt, signal, executionGeneration: generation, deadlineOwnedByCaller: true
         }), command);
       } else if (command.operation === 'reaction') {
         result = await executeEgressWithDeadline(({ signal, generation }) => sendMessageService.sendReaction({
           platform: this.platform, accountId: command.accountId, chatJid: command.conversationTarget,
           targetId: command.actionPayload?.targetId, emoji: command.actionPayload?.emoji,
-          targetFromMe: command.actionPayload?.targetFromMe === true, participant: command.actionPayload?.participant || '', signal, executionGeneration: generation, deadlineOwnedByCaller: true
+          targetFromMe: command.actionPayload?.targetFromMe === true, participant: command.actionPayload?.participant || '',
+          physicalAttemptContext: durableAttempt, signal, executionGeneration: generation, deadlineOwnedByCaller: true
         }), command);
       } else if (command.operation === 'revoke') {
         result = await executeEgressWithDeadline(({ signal, generation }) => sendMessageService.revokeMessage({
           platform: this.platform, accountId: command.accountId, chatJid: command.conversationTarget,
           targetId: command.actionPayload?.targetId, targetFromMe: command.actionPayload?.targetFromMe !== false,
-          participant: command.actionPayload?.participant || '', signal, executionGeneration: generation, deadlineOwnedByCaller: true
+          participant: command.actionPayload?.participant || '', physicalAttemptContext: durableAttempt,
+          signal, executionGeneration: generation, deadlineOwnedByCaller: true
         }), command);
       } else if (command.operation === 'native_expression') {
         result = await executeEgressWithDeadline(({ signal, generation }) => sendMessageService.sendNativeExpression({
           platform: this.platform, accountId: command.accountId, chatJid: command.conversationTarget,
           reference: command.actionPayload?.reference, kind: command.actionPayload?.kind || command.messageType,
           caption: command.finalText, quoted: command.replyReference || null,
-          localMessageId: command.commandId, sessionKey: command.sessionKey, localProjectionOwnedByQueue: true, signal, executionGeneration: generation, deadlineOwnedByCaller: true
+          localMessageId: command.commandId, sessionKey: command.sessionKey, localProjectionOwnedByQueue: true,
+          physicalAttemptContext: durableAttempt, signal, executionGeneration: generation, deadlineOwnedByCaller: true
         }), command);
       } else {
         throw error('EGRESS_OPERATION_UNSUPPORTED', `Egress 不支持操作：${command.operation}`, 409);
