@@ -500,10 +500,11 @@
       ],
       "currentResponsibilities": [
         "DRIVER_LOOKUP",
+        "PERSISTED_ATTEMPT_EGRESS_VALIDATION",
         "PLATFORM_INVOCATION"
       ],
       "targetAuthority": "DurableOperationRegistry",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Registry resolves a typed Adapter only; every invocation remains bound to a persisted attempt."
     },
     {
@@ -553,11 +554,12 @@
       ],
       "currentResponsibilities": [
         "TELEGRAM_CALL",
-        "RECONNECT",
-        "RECOVERY"
+        "PERSISTED_ATTEMPT_EGRESS",
+        "EGRESS_ABORT_QUARANTINE",
+        "DURABLE_RECOVERY_SIGNAL"
       ],
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Telegram calls require persisted attempts; reconnect/history recovery cannot issue independent retries."
     },
     {
@@ -673,13 +675,12 @@
         "HISTORY_SYNCHRONIZATION"
       ],
       "currentResponsibilities": [
-        "DOMAIN_EVENT_PROJECTION_JOB",
-        "EXPIRED_CLAIM_RECOVERY",
-        "RETRY_BACKOFF",
-        "STALE_COMPLETION_REJECTION"
+        "DOMAIN_EVENT_PROJECTION_COMPATIBILITY_WRITE",
+        "DURABLE_INTERNAL_OPERATION_DELEGATION",
+        "DURABLE_RECOVERY_DELEGATION"
       ],
       "targetAuthority": "DurableExecutionRecoveryAuthority",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Projection recovery and retry must delegate to the common execution and outbox authority; no second retry authority may remain."
     },
     {

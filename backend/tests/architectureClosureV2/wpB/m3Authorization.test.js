@@ -443,3 +443,36 @@ test('M3-SC-DIAG-022 domain projection retry ownership is canonical Schema 23 du
   assert.doesNotMatch(authoritySource, /setInterval\s*\(\s*\(\)\s*=>\s*this\.drainProjectionJobs/u, 'M3-SC-DIAG-022:SECOND_SCHEDULER_FORBIDDEN');
   assert.match(authoritySource, /currentRuntimeRecoveryAuthority|DurableExecutionRecoveryAuthority/u, 'M3-SC-DIAG-022:CANONICAL_RECOVERY_AUTHORITY_REQUIRED');
 });
+
+test('M3-SC-DIAG-023 proven Telegram and projection boundaries are terminalized only after authority closure', () => {
+  const inventoryPath = path.join(
+    repoRoot,
+    'governance',
+    'architecture-closure-v2',
+    'wp-b-operation-inventory.json'
+  );
+  const inventory = JSON.parse(fs.readFileSync(inventoryPath, 'utf8'));
+  const entries = new Map((inventory.entries || []).map(entry => [entry.id, entry]));
+  const messageProjection = entries.get('WPB-MESSAGE-PROJECTION-REPOSITORY');
+  const platformRegistry = entries.get('WPB-PLATFORM-DRIVER-REGISTRY');
+  const telegramAdapter = entries.get('WPB-TELEGRAM-ADAPTER');
+
+  assert.equal(messageProjection?.closureState, 'DELEGATES_TO_WP_B_AUTHORITY', 'M3-SC-DIAG-023:MESSAGE_PROJECTION_TERMINAL');
+  assert.doesNotMatch(
+    (messageProjection?.currentResponsibilities || []).join('|'),
+    /EXPIRED_CLAIM_RECOVERY|RETRY_BACKOFF|STALE_COMPLETION_REJECTION/u,
+    'M3-SC-DIAG-023:MESSAGE_PROJECTION_SECOND_RECOVERY_AUTHORITY_FORBIDDEN'
+  );
+  assert.equal(platformRegistry?.closureState, 'DELEGATES_TO_WP_B_AUTHORITY', 'M3-SC-DIAG-023:PLATFORM_REGISTRY_TERMINAL');
+  assert.ok(
+    (platformRegistry?.currentResponsibilities || []).includes('PERSISTED_ATTEMPT_EGRESS_VALIDATION'),
+    'M3-SC-DIAG-023:PLATFORM_REGISTRY_ATTEMPT_VALIDATION_REQUIRED'
+  );
+  assert.equal(telegramAdapter?.closureState, 'DELEGATES_TO_WP_B_AUTHORITY', 'M3-SC-DIAG-023:TELEGRAM_ADAPTER_TERMINAL');
+  assert.doesNotMatch(
+    (telegramAdapter?.currentResponsibilities || []).join('|'),
+    /^(?:RECONNECT|RECOVERY)$|\|(?:RECONNECT|RECOVERY)(?:\||$)/u,
+    'M3-SC-DIAG-023:TELEGRAM_RECONNECT_RECOVERY_AUTHORITY_FORBIDDEN'
+  );
+  assert.ok((telegramAdapter?.currentResponsibilities || []).includes('DURABLE_RECOVERY_SIGNAL'), 'M3-SC-DIAG-023:TELEGRAM_DURABLE_RECOVERY_SIGNAL_REQUIRED');
+});
