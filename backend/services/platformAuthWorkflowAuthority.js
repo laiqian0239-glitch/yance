@@ -62,7 +62,7 @@ class PlatformAuthWorkflowAuthority {
       leaseOwner: `platform-auth-${process.pid}`,
       leaseExpiresAt: new Date(Date.now() + 120000).toISOString()
     });
-    return created;
+    return { ...created, operation: lifecycle.read(created.operation.operationId) };
   }
 
   afterCommand(lifecycle, context = {}, result = {}) {

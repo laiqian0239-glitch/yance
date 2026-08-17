@@ -345,6 +345,43 @@ function defaultNormalizer(platform, input = {}) {
 }
 
 
+function projectPhysicalOperationContext(operation = {}, platform = '', accountId = '') {
+  if (!operation || typeof operation !== 'object' || clean(operation.state).toUpperCase() !== 'RUNNING') {
+    throw error('PLATFORM_PERSISTED_OPERATION_REQUIRED', 'Physical platform operation requires one RUNNING persisted Schema 23 operation.', 409);
+  }
+  const requiredStrings = [
+    'operationId', 'executionId', 'operationType', 'operationKind', 'scopeKey',
+    'objectFingerprint', 'ownerId', 'claimId'
+  ];
+  for (const field of requiredStrings) {
+    if (!clean(operation[field])) {
+      throw error('PLATFORM_PERSISTED_OPERATION_REQUIRED', 'Persisted physical operation identity is incomplete.', 409, { field });
+    }
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const value = Number(operation[field]);
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw error('PLATFORM_PERSISTED_OPERATION_REQUIRED', 'Persisted physical operation fencing identity is invalid.', 409, { field });
+    }
+  }
+  return Object.freeze({
+    operationId: clean(operation.operationId),
+    executionId: clean(operation.executionId),
+    operationType: clean(operation.operationType),
+    operationKind: clean(operation.operationKind),
+    scopeKey: clean(operation.scopeKey),
+    objectFingerprint: clean(operation.objectFingerprint),
+    state: 'RUNNING',
+    generation: Number(operation.generation),
+    ownerId: clean(operation.ownerId),
+    claimId: clean(operation.claimId),
+    hostGeneration: Number(operation.hostGeneration),
+    fencingToken: Number(operation.fencingToken),
+    platform: clean(platform).toLowerCase(),
+    accountId: clean(accountId)
+  });
+}
+
 function defaultAccountManager() { return require('./accountManager'); }
 function createAccountManagerAuthHandler(managerProvider = defaultAccountManager) {
   return {
@@ -353,20 +390,20 @@ function createAccountManagerAuthHandler(managerProvider = defaultAccountManager
       const operation = clean(input.operation);
       const accountId = clean(input.accountId);
       switch (operation) {
-        case 'connect': return manager.connect(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration });
-        case 'reconnect': return manager.reconnect(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration });
-        case 'pause': return manager.disconnect(accountId, { logout: false, signal: input.signal, operationGeneration: input.operationGeneration });
-        case 'resume': return manager.resume(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration });
-        case 'logout': return manager.disconnect(accountId, { logout: true, signal: input.signal, operationGeneration: input.operationGeneration });
-        case 'telegram.qr.start': return { account: await manager.startTelegramQr(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration }) };
-        case 'telegram.phone.start': return { account: await manager.startTelegramPhone(accountId, input.phoneNumber, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration }) };
-        case 'telegram.code': return { account: await manager.submitTelegramCode(accountId, input.code, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-        case 'telegram.password': return { account: await manager.submitTelegramPassword(accountId, input.password, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-        case 'telegram.cancel': return { account: await manager.cancelTelegramLogin(accountId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-        case 'facebook.oauth.start': return { flow: await manager.beginFacebookOAuth(accountId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-        case 'facebook.oauth.status': return { flow: await manager.pollFacebookOAuth(accountId, input.flowId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-        case 'facebook.oauth.selectPage': return manager.selectFacebookPage(accountId, input.flowId, input.pageId, { signal: input.signal, operationGeneration: input.operationGeneration });
-        case 'facebook.oauth.cancel': return { flow: await manager.cancelFacebookOAuth(accountId, input.flowId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
+        case 'connect': return manager.connect(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'reconnect': return manager.reconnect(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'pause': return manager.disconnect(accountId, { logout: false, signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'resume': return manager.resume(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'logout': return manager.disconnect(accountId, { logout: true, signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'telegram.qr.start': return { account: await manager.startTelegramQr(accountId, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'telegram.phone.start': return { account: await manager.startTelegramPhone(accountId, input.phoneNumber, { signal: input.signal, attemptId: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'telegram.code': return { account: await manager.submitTelegramCode(accountId, input.code, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'telegram.password': return { account: await manager.submitTelegramPassword(accountId, input.password, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'telegram.cancel': return { account: await manager.cancelTelegramLogin(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'facebook.oauth.start': return { flow: await manager.beginFacebookOAuth(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'facebook.oauth.status': return { flow: await manager.pollFacebookOAuth(accountId, input.flowId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+        case 'facebook.oauth.selectPage': return manager.selectFacebookPage(accountId, input.flowId, input.pageId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+        case 'facebook.oauth.cancel': return { flow: await manager.cancelFacebookOAuth(accountId, input.flowId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
         default: throw error('PLATFORM_AUTH_OPERATION_UNSUPPORTED', `AuthPort 不支持操作：${operation || 'unknown'}`, 404);
       }
     }
@@ -378,11 +415,11 @@ function createAccountManagerReconcileHandler(managerProvider = defaultAccountMa
     const operation = clean(input.operation) || 'sync';
     const accountId = clean(input.accountId);
     switch (operation) {
-      case 'sync': return manager.sync(accountId, { signal: input.signal, executionGeneration: input.operationGeneration, operationGeneration: input.operationGeneration });
-      case 'facebook.avatar-import.start': return { session: manager.startFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-      case 'facebook.avatar-import.status': return { session: manager.getFacebookBusinessSuiteAvatarImportStatus(accountId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-      case 'facebook.avatar-import.stop': return { session: manager.stopFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration }) };
-      case 'facebook.avatar-closure.diagnose': return { report: await manager.diagnoseFacebookAvatarClosure(accountId, { limit: input.limit, signal: input.signal, operationGeneration: input.operationGeneration }) };
+      case 'sync': return manager.sync(accountId, { signal: input.signal, executionGeneration: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+      case 'facebook.avatar-import.start': return { session: manager.startFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+      case 'facebook.avatar-import.status': return { session: manager.getFacebookBusinessSuiteAvatarImportStatus(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+      case 'facebook.avatar-import.stop': return { session: manager.stopFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
+      case 'facebook.avatar-closure.diagnose': return { report: await manager.diagnoseFacebookAvatarClosure(accountId, { limit: input.limit, signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
       default: throw error('PLATFORM_RECONCILE_OPERATION_UNSUPPORTED', `ReconcilePort 不支持操作：${operation}`, 404);
     }
   };
@@ -473,17 +510,18 @@ class PlatformAdapterFacade {
       ...input, platform: this.platform, accountId, operation
     });
     const created = workflow.operation;
+    const physicalOperationContext = projectPhysicalOperationContext(created, this.platform, accountId);
     try {
       let result;
       if (this.authHandler?.execute) result = await executePortWithDeadline(
-        ({ signal, generation }) => this.authHandler.execute({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, signal }),
+        ({ signal, generation }) => this.authHandler.execute({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
         { kind: 'auth', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, timeoutMs: input.timeoutMs, signal: input.signal }
       );
       else {
         const direct = this.authHandler?.[operation];
         if (typeof direct !== 'function') throw error('PLATFORM_AUTH_OPERATION_NOT_BOUND', `${this.platform} AuthPort 尚未绑定操作：${operation}`, 501);
         result = await executePortWithDeadline(
-          ({ signal, generation }) => direct({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, signal }),
+          ({ signal, generation }) => direct({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
           { kind: 'auth', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, timeoutMs: input.timeoutMs, signal: input.signal }
         );
       }
@@ -640,15 +678,17 @@ class PlatformAdapterFacade {
     const accountId = clean(request.accountId);
     const operation = clean(request.operation) || 'sync';
     const requestId = clean(request.requestId || request.correlationId) || sha256({ platform: this.platform, accountId, operation, requestedAt: request.requestedAt || new Date().toISOString() });
-    const created = lifecycle.create({
-      operationId: clean(request.operationId), operationType: 'platform.reconcile', scopeKey: `${this.platform}:${accountId}:${operation}`,
+    const reconcileOperationType = /sync|history/iu.test(operation) ? 'history.sync' : `media.${operation}`;
+    const scheduled = lifecycle.create({
+      operationId: clean(request.operationId), operationType: reconcileOperationType, scopeKey: `${this.platform}:${accountId}:${operation}`,
       objectFingerprint: requestId, metadata: { accountId, providerRequestId: requestId }
     }).operation;
-    lifecycle.start(created.operationId, { progress: 5 });
+    const created = lifecycle.start(scheduled.operationId, { progress: 5 }).operation;
+    const physicalOperationContext = projectPhysicalOperationContext(created, this.platform, accountId);
     if (this.reconcileHandler) {
       try {
         const result = assertDomainDto(await executePortWithDeadline(
-          ({ signal, generation }) => this.reconcileHandler({ ...request, platform: this.platform, operationId: created.operationId, operationGeneration: generation, signal }),
+          ({ signal, generation }) => this.reconcileHandler({ ...request, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
           { kind: 'reconcile', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, timeoutMs: request.timeoutMs, signal: request.signal }
         ), 'ReconcileResult');
         const normalized = {
@@ -775,5 +815,5 @@ module.exports = {
   ADAPTER_SCHEMA_VERSION, PORTS, PLATFORMS, PlatformAdapterFacade, PlatformAdapterRegistryV2,
   singleton, defaultNormalizer, assertDomainDto, authorizePersistedOutbox, normalizeSendResult, sanitizePortValue,
   createAccountManagerAuthHandler, createAccountManagerReconcileHandler, executeEgressWithDeadline,
-  executePortWithDeadline, portDeadlineMs
+  executePortWithDeadline, portDeadlineMs, projectPhysicalOperationContext
 };

@@ -31,7 +31,8 @@ const EXPECTED = Object.freeze({
   scope002RedHead: '8c9edef0c2e19f56081f769d3d509d76cb797a84',
   scope002Pr17Parent: '708ce1290f3bfcaec3a3a8c6589248fde5961c47',
   scope003RedHead: '99019a999ef591049fcf45d2b108df6b0e5e676c',
-  scope004RedHead: 'bcb2a96b85d0ca67765bea7f53b4c381cfeae60d'
+  scope004RedHead: 'bcb2a96b85d0ca67765bea7f53b4c381cfeae60d',
+  scope005RedHead: '2418b77009742758a03442ea00a6f987002cd5ce'
 });
 
 const EXPECTED_FAILURE_IDS = Object.freeze([
@@ -188,7 +189,26 @@ const SCOPE_004 = Object.freeze({
   ])
 });
 
-const EXPECTED_AMENDMENTS = Object.freeze([SCOPE_001, SCOPE_002, SCOPE_003, SCOPE_004]);
+const SCOPE_005 = Object.freeze({
+  amendmentId: 'WP-B-M3-SCOPE-005',
+  authorizedAt: '2026-08-17T17:32:52+07:00',
+  approvedBy: 'PROJECT_OWNER',
+  approvalSource: 'Project owner full continuous-execution authorization in the 独立软件工程审计 conversation; exact-head M3-SC-DIAG-014 causal RED requires the registered account manager Core to preserve persisted operation identity through the existing driver chain rather than bypass it',
+  reasonCode: 'WP_B_M3_SESSION_SYNC_PHYSICAL_IDENTITY_PROPAGATION',
+  causalRedEvidence: Object.freeze({
+    head: EXPECTED.scope005RedHead,
+    wpBValidationRunId: 32020504382,
+    ubuntuArtifactId: 9285191065,
+    windowsArtifactId: 9285194089,
+    m3SourceClosureDiagnostic: 'M3-SC-DIAG-014',
+    unknownBlockers: 0
+  }),
+  addedPaths: Object.freeze([
+    'backend/services/accountManagerCore.js'
+  ])
+});
+
+const EXPECTED_AMENDMENTS = Object.freeze([SCOPE_001, SCOPE_002, SCOPE_003, SCOPE_004, SCOPE_005]);
 const EXPECTED_ALLOWED_PATHS = Object.freeze(
   [...new Set([...BASE_ALLOWED_PATHS, ...EXPECTED_AMENDMENTS.flatMap(value => value.addedPaths)])].sort()
 );
@@ -419,14 +439,14 @@ function verifyLocalRepository(document = readReceipt(), options = {}) {
   for (const commit of [
     EXPECTED.m2ReviewedHead, EXPECTED.m2SealHead, EXPECTED.m2EvidenceHead, EXPECTED.designHead,
     EXPECTED.m3RedHead, EXPECTED.scope002TrustedMain, EXPECTED.scope002RedHead, EXPECTED.scope003RedHead,
-    EXPECTED.scope004RedHead
+    EXPECTED.scope004RedHead, EXPECTED.scope005RedHead
   ]) {
     git(root, ['cat-file', '-e', `${commit}^{commit}`]);
   }
   for (const ancestor of [
     EXPECTED.m2EvidenceHead, EXPECTED.designHead, EXPECTED.m3RedHead,
     EXPECTED.scope002TrustedMain, EXPECTED.scope002RedHead, EXPECTED.scope003RedHead,
-    EXPECTED.scope004RedHead
+    EXPECTED.scope004RedHead, EXPECTED.scope005RedHead
   ]) {
     git(root, ['merge-base', '--is-ancestor', ancestor, currentHead]);
   }
@@ -554,6 +574,19 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
     && scope004ArtifactIds.has(SCOPE_004.causalRedEvidence.windowsArtifactId),
   'WP_B_M3_SCOPE_004_REMOTE_ARTIFACT_MISMATCH', 'Scope-004 source-closure diagnostic artifacts changed');
 
+  await verifyRun(api, token, SCOPE_005.causalRedEvidence.wpBValidationRunId,
+    'WP-B Validation', SCOPE_005.causalRedEvidence.head, 'failure',
+    'WP_B_M3_SCOPE_005_REMOTE_RED_MISMATCH');
+  const scope005Artifacts = await fetchJson(
+    `${api}/actions/runs/${SCOPE_005.causalRedEvidence.wpBValidationRunId}/artifacts?per_page=100`,
+    token,
+    'WP_B_M3_SCOPE_005_REMOTE_ARTIFACTS_REQUEST_FAILED'
+  );
+  const scope005ArtifactIds = new Set((scope005Artifacts.artifacts || []).map(artifact => Number(artifact.id)));
+  requireThat(scope005ArtifactIds.has(SCOPE_005.causalRedEvidence.ubuntuArtifactId)
+    && scope005ArtifactIds.has(SCOPE_005.causalRedEvidence.windowsArtifactId),
+  'WP_B_M3_SCOPE_005_REMOTE_ARTIFACT_MISMATCH', 'Scope-005 M3-SC-DIAG-014 artifacts changed');
+
   const currentHead = String(options.currentHead || git(REPOSITORY_ROOT, ['rev-parse', 'HEAD']));
   const pr = await fetchJson(`${api}/pulls/${document.pullRequest}`, token, 'WP_B_M3_AUTHORIZATION_REMOTE_PR_REQUEST_FAILED');
   requireThat(pr.state === 'open' && pr.draft === true && pr.merged_at == null,
@@ -568,6 +601,8 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
     scope003M2PreservationVerified: true,
     scope004CausalRedVerified: true,
     scope004DiagnosticArtifactsVerified: true,
+    scope005CausalRedVerified: true,
+    scope005DiagnosticArtifactsVerified: true,
     prDraftOpenUnmerged: true,
     currentHead
   });
@@ -596,6 +631,7 @@ module.exports = Object.freeze({
   SCOPE_002,
   SCOPE_003,
   SCOPE_004,
+  SCOPE_005,
   isAuthorizedPath,
   normalizeRepositoryPath,
   pathSetSha256,

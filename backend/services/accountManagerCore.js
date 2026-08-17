@@ -483,6 +483,7 @@ class AccountManager {
           attemptId,
           signal: options.signal || null,
           executionGeneration: options.operationGeneration || attemptId,
+          physicalOperationContext: options.physicalOperationContext,
           secret: securityGuard.credentials.get(account.credentialRef) || {}
         }),
         options.signal,
@@ -555,7 +556,8 @@ class AccountManager {
     const result = await withAbortSignal(
       driverFor(account).sync(account, {
         signal: options.signal || null,
-        executionGeneration: options.executionGeneration || options.operationGeneration || ''
+        executionGeneration: options.executionGeneration || options.operationGeneration || '',
+        physicalOperationContext: options.physicalOperationContext
       }),
       options.signal,
       'ACCOUNT_SYNC_ABORTED'
@@ -680,7 +682,7 @@ class AccountManager {
     const result = await withAbortSignal(facebookOAuth.poll(id, flowId, options), options.signal, 'FACEBOOK_OAUTH_STATUS_ABORTED');
     assertOperationActive(options.signal, 'FACEBOOK_OAUTH_STATUS_ABORTED');
     if (result?.mode === 'identity' && result?.status === 'completed') {
-      const connected = await this.connect(id, { signal: options.signal, attemptId: options.operationGeneration, operationGeneration: options.operationGeneration });
+      const connected = await this.connect(id, { signal: options.signal, attemptId: options.operationGeneration, operationGeneration: options.operationGeneration, physicalOperationContext: options.physicalOperationContext });
       assertOperationActive(options.signal, 'FACEBOOK_OAUTH_STATUS_ABORTED');
       this.publishSummary();
       return { ...result, account: connected };
@@ -694,7 +696,7 @@ class AccountManager {
     assertOperationActive(options.signal, 'FACEBOOK_OAUTH_SELECT_PAGE_ABORTED');
     const selected = await withAbortSignal(facebookOAuth.selectPage(id, flowId, pageId, options), options.signal, 'FACEBOOK_OAUTH_SELECT_PAGE_ABORTED');
     assertOperationActive(options.signal, 'FACEBOOK_OAUTH_SELECT_PAGE_ABORTED');
-    const connected = await this.connect(id, { signal: options.signal, attemptId: options.operationGeneration, operationGeneration: options.operationGeneration });
+    const connected = await this.connect(id, { signal: options.signal, attemptId: options.operationGeneration, operationGeneration: options.operationGeneration, physicalOperationContext: options.physicalOperationContext });
     assertOperationActive(options.signal, 'FACEBOOK_OAUTH_SELECT_PAGE_ABORTED');
     this.publishSummary();
     return { account: connected, page: selected.page };
