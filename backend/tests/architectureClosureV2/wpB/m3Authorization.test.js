@@ -102,3 +102,52 @@ test('M3-AUTH-006 verifier rejects wildcard scope and downstream-governance muta
     'M3-AUTH-006'
   );
 });
+
+test('M3-SC-DIAG-015 legacy send-queue startup owns no retry timer or interrupted-work recovery', () => {
+  const repositoryPath = path.join(repoRoot, 'backend', 'repositories', 'sendQueueRepository.js');
+  const servicePath = path.join(repoRoot, 'backend', 'services', 'sendQueueService.js');
+  const repository = require(repositoryPath);
+  const originalRecoverInterrupted = repository.recoverInterrupted;
+  const originalSetInterval = global.setInterval;
+  let recoveryCalls = 0;
+  let timerCalls = 0;
+
+  repository.recoverInterrupted = () => {
+    recoveryCalls += 1;
+    return 0;
+  };
+  global.setInterval = () => {
+    timerCalls += 1;
+    return { unref() {} };
+  };
+  try {
+    delete require.cache[require.resolve(servicePath)];
+    const { SendQueueService } = require(servicePath);
+    const service = new SendQueueService();
+    service.start();
+    service.stop();
+    assert.equal(recoveryCalls, 0, 'M3-SC-DIAG-015:NO_LEGACY_RECOVERY');
+    assert.equal(timerCalls, 0, 'M3-SC-DIAG-015:NO_LEGACY_RETRY_TIMER');
+  } finally {
+    repository.recoverInterrupted = originalRecoverInterrupted;
+    global.setInterval = originalSetInterval;
+    delete require.cache[require.resolve(servicePath)];
+  }
+});
+
+test('M3-SC-DIAG-016 send-queue repository exposes no legacy scheduler mutation surface', () => {
+  const repositoryPath = path.join(repoRoot, 'backend', 'repositories', 'sendQueueRepository.js');
+  delete require.cache[require.resolve(repositoryPath)];
+  const repository = require(repositoryPath);
+  for (const method of [
+    'claimNext',
+    'recoverInterrupted',
+    'retry',
+    'cancel',
+    'defer',
+    'markResult',
+    'checkpointDelivery'
+  ]) {
+    assert.equal(typeof repository[method], 'undefined', `M3-SC-DIAG-016:${method}`);
+  }
+});
