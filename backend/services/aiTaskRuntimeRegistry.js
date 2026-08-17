@@ -1,8 +1,9 @@
 'use strict';
 
+const { authority: lifecycleAuthority, STATES } = require('./asyncOperationLifecycleAuthority');
+
 const entries = new Map();
 const replacements = new Map();
-const generations = new Map();
 
 function clean(value) {
   return String(value == null ? '' : value).trim();
@@ -50,13 +51,6 @@ function combineSignals(controller, externalSignal) {
   return controller.signal;
 }
 
-function nextGeneration(taskId) {
-  const id = clean(taskId);
-  const generation = Number(generations.get(id) || 0) + 1;
-  generations.set(id, generation);
-  return generation;
-}
-
 function operationIdentity(taskId, metadata = {}) {
   const conversationId = clean(metadata.conversationId);
   const contactId = clean(metadata.contactId);
@@ -90,7 +84,17 @@ function start(taskId, metadata = {}, externalSignal = null) {
       retryable: true
     });
   }
-  const identity = operationIdentity(id, metadata);
+  const operation = lifecycleAuthority.create({
+    ...operationIdentity(id, metadata),
+    metadata: {
+      contactId: clean(metadata.contactId),
+      conversationId: clean(metadata.conversationId),
+      modelId: clean(metadata.modelId),
+      contextVersion: clean(metadata.contextVersion),
+      conversationRevision: Number(metadata.conversationRevision || 0)
+    }
+  }).operation;
+  const started = lifecycleAuthority.start(operation.operationId, { progress: 2 }).operation || operation;
   const controller = new AbortController();
   controller.__taskId = id;
   const entry = {
@@ -99,10 +103,10 @@ function start(taskId, metadata = {}, externalSignal = null) {
     conversationId: clean(metadata.conversationId),
     modelId: clean(metadata.modelId),
     controller,
-    startedAt: new Date().toISOString(),
-    operationId: identity.operationId,
-    generation: nextGeneration(id),
-    objectFingerprint: identity.objectFingerprint,
+    startedAt: started.startedAt || new Date().toISOString(),
+    operationId: started.operationId,
+    generation: started.generation,
+    objectFingerprint: started.objectFingerprint,
     executionId: clean(metadata.executionId || taskId),
     hardTerminate: typeof metadata.hardTerminate === 'function' ? metadata.hardTerminate : null,
     detachExternal: null
@@ -155,20 +159,25 @@ async function replace(taskId, metadata = {}, externalSignal = null) {
         taskId: id, executionId: old.executionId, receiptExecutionId: clean(receipt?.executionId)
       });
     }
-    if (typeof metadata.durableCancel === 'function') {
-      let cancelled;
-      try {
-        cancelled = await metadata.durableCancel(old);
-      } catch (error) {
-        throw replacementBlocked('DURABLE_CANCEL_FAILED', {
-          taskId: id, executionId: old.executionId, cause: clean(error?.code || error?.message)
-        });
-      }
-      if (cancelled?.updated !== true) {
-        throw replacementBlocked('DURABLE_CANCEL_REJECTED', {
-          taskId: id, executionId: old.executionId, durableReason: clean(cancelled?.reason)
-        });
-      }
+    const durableCancel = typeof metadata.durableCancel === 'function'
+      ? metadata.durableCancel
+      : (entry => lifecycleAuthority.cancel(entry.operationId, 'AI_TASK_REPLACED', {
+        generation: entry.generation,
+        objectFingerprint: entry.objectFingerprint,
+        message: 'A verified replacement terminated the old physical execution.'
+      }));
+    let cancelled;
+    try {
+      cancelled = await durableCancel(old);
+    } catch (error) {
+      throw replacementBlocked('DURABLE_CANCEL_FAILED', {
+        taskId: id, executionId: old.executionId, cause: clean(error?.code || error?.message)
+      });
+    }
+    if (cancelled?.updated !== true) {
+      throw replacementBlocked('DURABLE_CANCEL_REJECTED', {
+        taskId: id, executionId: old.executionId, durableReason: clean(cancelled?.reason)
+      });
     }
     if (entries.get(id) !== old) {
       throw replacementBlocked('RUNTIME_GENERATION_CHANGED', { taskId: id, executionId: old.executionId });
@@ -209,6 +218,15 @@ function assertCurrent(taskId, expected = {}) {
     if (reason instanceof Error) throw reason;
     throw createAbortError(clean(reason) || 'AI_TASK_CANCELLED');
   }
+  const durable = lifecycleAuthority.read(entry.operationId);
+  if (!durable || durable.state !== STATES.RUNNING
+    || Number(durable.generation) !== Number(entry.generation)
+    || clean(durable.objectFingerprint) !== clean(entry.objectFingerprint)) {
+    throw Object.assign(new Error('AI durable runtime task is no longer running'), {
+      code: 'AI_TASK_DURABLE_STATE_STALE', taskId: id,
+      durableState: clean(durable?.state)
+    });
+  }
   return {
     taskId: id, operationId: entry.operationId, generation: entry.generation,
     objectFingerprint: entry.objectFingerprint, signal: entry.controller.signal
@@ -220,24 +238,39 @@ function cancel(taskId, reason = 'AI_TASK_CANCELLED') {
   const entry = entries.get(id);
   if (!entry) return false;
   if (!entry.controller.signal.aborted) entry.controller.abort(createAbortError(reason));
+  lifecycleAuthority.cancel(entry.operationId, reason, {
+    generation: entry.generation,
+    objectFingerprint: entry.objectFingerprint,
+    message: reason
+  });
   return true;
 }
 
 function succeed(taskId, result = {}) {
   const entry = entries.get(clean(taskId));
   if (!entry) return { updated: false, reason: 'runtime-entry-not-found' };
-  return { updated: true, reason: 'runtime-success-observed', operationId: entry.operationId, result };
+  return lifecycleAuthority.succeed(entry.operationId, result, {
+    generation: entry.generation,
+    objectFingerprint: entry.objectFingerprint
+  });
 }
 
 function fail(taskId, error = {}) {
   const entry = entries.get(clean(taskId));
   if (!entry) return { updated: false, reason: 'runtime-entry-not-found' };
   const code = clean(error.code || error.errorCode).toUpperCase();
-  if (['MODEL_CANCELLED', 'JOB_CANCELLED', 'ABORT_ERR', 'ABORTED', 'NEW_INCOMING_MESSAGE', 'SOCIAL_CONTEXT_CHANGED', 'AI_TASK_CANCELLED'].includes(code)
-      && !entry.controller.signal.aborted) {
-    entry.controller.abort(createAbortError(code || 'AI_TASK_CANCELLED'));
+  const cancellationCodes = new Set(['MODEL_CANCELLED', 'JOB_CANCELLED', 'ABORT_ERR', 'ABORTED', 'NEW_INCOMING_MESSAGE', 'SOCIAL_CONTEXT_CHANGED', 'AI_TASK_CANCELLED']);
+  if (cancellationCodes.has(code)) {
+    return lifecycleAuthority.cancel(entry.operationId, code || 'AI_TASK_CANCELLED', {
+      generation: entry.generation,
+      objectFingerprint: entry.objectFingerprint,
+      message: clean(error.message || code)
+    });
   }
-  return { updated: true, reason: 'runtime-failure-observed', operationId: entry.operationId, errorCode: code };
+  return lifecycleAuthority.fail(entry.operationId, error, {
+    generation: entry.generation,
+    objectFingerprint: entry.objectFingerprint
+  });
 }
 
 function cancelForContact(contactId, reason = 'SOCIAL_CONTEXT_CHANGED') {
@@ -273,36 +306,42 @@ function finish(taskId, generation) {
 }
 
 function recoverInterrupted(reason = 'PROCESS_RESTARTED_AI_TASK_INTERRUPTED') {
+  let cursor = null; let hasMore = true; let scanned = 0; let recovered = 0; let pages = 0; let oldestPendingAt = '';
+  while (hasMore && pages < 1000) {
+    const snapshot = lifecycleAuthority.snapshot({ operationType: 'ai.reply.candidates', states: [STATES.CREATED, STATES.RUNNING], limit: 500, order: 'oldest', cursor });
+    const rows = Array.isArray(snapshot?.operations) ? snapshot.operations : [];
+    if (!oldestPendingAt) oldestPendingAt = snapshot.oldestPendingAt || '';
+    scanned += rows.length; pages += 1;
+    for (const operation of rows) {
+      if (![STATES.CREATED, STATES.RUNNING, 'CREATED', 'RUNNING'].includes(operation.state)) continue;
+      const result = lifecycleAuthority.fail(operation.operationId, {
+        code: reason,
+        message: '进程重启中断了内存模型调用；旧运行任务已明确失败，禁止永久保持 running。'
+      }, {
+        generation: operation.generation,
+        objectFingerprint: operation.objectFingerprint
+      });
+      if (result?.updated !== false) recovered += 1;
+    }
+    hasMore = snapshot.hasMore === true;
+    cursor = snapshot.nextCursor;
+    if (!rows.length) break;
+  }
+  const remainingSnapshot = lifecycleAuthority.snapshot({
+    operationType: 'ai.reply.candidates', states: [STATES.CREATED, STATES.RUNNING], limit: 1, order: 'oldest'
+  });
   return {
-    scanned: 0,
-    recovered: 0,
-    remaining: 0,
-    oldestPendingAt: '',
-    pages: 0,
-    reason,
-    budgetExhausted: false,
-    hasMore: false,
-    delegatedTo: 'DurableExecutionRecoveryAuthority'
+    scanned, recovered, remaining: Number(remainingSnapshot.total || 0),
+    oldestPendingAt: remainingSnapshot.oldestPendingAt || oldestPendingAt,
+    pages, reason, budgetExhausted: hasMore, hasMore: Number(remainingSnapshot.total || 0) > 0
   };
 }
 
 function status() {
+  const durable = lifecycleAuthority.snapshot({ operationType: 'ai.reply.candidates', limit: 100 });
   return {
     active: entries.size,
-    durable: {
-      authority: 'DurableExecutionAuthorityV2',
-      delegated: true,
-      authoritative: false,
-      projection: 'RUNTIME_NON_AUTHORITATIVE_PROJECTION',
-      operations: [...entries.values()].map(entry => ({
-        operationId: entry.operationId,
-        operationType: 'ai.reply.candidates',
-        scopeKey: entry.conversationId || entry.contactId || entry.taskId,
-        objectFingerprint: entry.objectFingerprint,
-        generation: entry.generation,
-        state: entry.controller.signal.aborted ? 'CANCELLED' : 'RUNNING'
-      }))
-    },
+    durable,
     tasks: [...entries.values()].map(entry => ({
       taskId: entry.taskId,
       operationId: entry.operationId,
@@ -314,7 +353,7 @@ function status() {
       modelId: entry.modelId,
       startedAt: entry.startedAt,
       aborted: entry.controller.signal.aborted,
-      state: entry.controller.signal.aborted ? 'CANCELLED' : 'RUNNING'
+      state: lifecycleAuthority.read(entry.operationId)?.state || STATES.RUNNING
     }))
   };
 }
