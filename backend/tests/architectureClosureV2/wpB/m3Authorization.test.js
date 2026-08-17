@@ -527,3 +527,107 @@ test('M3-SC-DIAG-024 session restore and isolated model execution boundaries are
   assert.equal(modelWorker?.closureState, 'DELEGATES_TO_WP_B_AUTHORITY',
     'M3-SC-DIAG-024:MODEL_WORKER_TERMINAL');
 });
+test('M3-SC-DIAG-025 composed runtime, startup recovery and Electron supervision terminalize only after authority proof', () => {
+  const inventoryPath = path.join(
+    repoRoot,
+    'governance',
+    'architecture-closure-v2',
+    'wp-b-operation-inventory.json'
+  );
+  const inventory = JSON.parse(fs.readFileSync(inventoryPath, 'utf8'));
+  const entries = new Map((inventory.entries || []).map(entry => [entry.id, entry]));
+
+  const channelRuntime = entries.get('WPB-CHANNEL-ADAPTER-RUNTIME');
+  const backendServer = entries.get('WPB-BACKEND-SERVER');
+  const electronMain = entries.get('WPB-ELECTRON-MAIN');
+
+  const runtimePath = path.join(repoRoot, 'backend', 'services', 'channelAdapterRuntime.js');
+  const enginePath = path.join(repoRoot, 'backend', 'services', 'channelRuntimeEngine.js');
+  const runtimeSource = fs.readFileSync(runtimePath, 'utf8');
+  const engineSource = fs.readFileSync(enginePath, 'utf8');
+
+  assert.match(
+    runtimeSource,
+    /migrationMode:\s*'durable-outbox-only'/u,
+    'M3-SC-DIAG-025:CHANNEL_RUNTIME_DURABLE_OUTBOX_ONLY'
+  );
+  assert.match(
+    engineSource,
+    /function\s+validatePhysicalEnvelope\s*\(/u,
+    'M3-SC-DIAG-025:CHANNEL_PHYSICAL_ENVELOPE_VALIDATOR_REQUIRED'
+  );
+  const physicalPerform = engineSource.indexOf('async perform(input = {})');
+  const physicalValidate = engineSource.indexOf('const attempt = validatePhysicalEnvelope(input);', physicalPerform);
+  const physicalEgress = engineSource.indexOf('return facade.egress.execute(', physicalPerform);
+  assert.ok(
+    physicalPerform >= 0 && physicalValidate > physicalPerform && physicalEgress > physicalValidate,
+    'M3-SC-DIAG-025:VALIDATE_PERSISTED_ATTEMPT_BEFORE_CHANNEL_IO'
+  );
+  const physicalSource = engineSource.slice(physicalPerform, physicalEgress + 400);
+  assert.match(
+    physicalSource,
+    /persistedAttemptContext\s*\(\s*attempt\s*,\s*normalizedPlatform\s*\)/u,
+    'M3-SC-DIAG-025:CHANNEL_PERSISTED_ATTEMPT_FORWARDING_REQUIRED'
+  );
+  assert.equal(
+    channelRuntime?.closureState,
+    'DELEGATES_TO_WP_B_AUTHORITY',
+    'M3-SC-DIAG-025:CHANNEL_RUNTIME_TERMINAL'
+  );
+
+  const serverPath = path.join(repoRoot, 'backend', 'server.js');
+  const factoryPath = path.join(repoRoot, 'backend', 'runtime', 'AppRuntimeFactory.js');
+  const serverSource = fs.readFileSync(serverPath, 'utf8');
+  const factorySource = fs.readFileSync(factoryPath, 'utf8');
+  const composition = serverSource.indexOf('APP_RUNTIME.configureProductionServices()');
+  const readiness = serverSource.indexOf('AppRuntimeFactory.assertAuthorityReady()', composition);
+  const recovery = serverSource.indexOf("'startup.recoverDurableExecutions'", readiness);
+  assert.ok(
+    composition >= 0 && readiness > composition && recovery > readiness,
+    'M3-SC-DIAG-025:WRITE_HOST_READINESS_MUST_PRECEDE_STARTUP_RECOVERY'
+  );
+  assert.match(
+    factorySource,
+    /assertCurrentAuthorityWriteHostToken\s*\(/u,
+    'M3-SC-DIAG-025:CURRENT_WRITE_HOST_TOKEN_REQUIRED'
+  );
+  assert.match(
+    factorySource,
+    /durableExecutionRecoveryReady/u,
+    'M3-SC-DIAG-025:DURABLE_RECOVERY_AUTHORITY_READINESS_REQUIRED'
+  );
+  assert.equal(
+    backendServer?.closureState,
+    'DELEGATES_TO_WP_B_AUTHORITY',
+    'M3-SC-DIAG-025:BACKEND_SERVER_TERMINAL'
+  );
+
+  const electronPath = path.join(repoRoot, 'electron', 'main.js');
+  const electronSource = fs.readFileSync(electronPath, 'utf8');
+  assert.doesNotMatch(
+    electronSource,
+    /require\s*\(\s*['"]\.\.\/backend\/services\//u,
+    'M3-SC-DIAG-025:ELECTRON_BACKEND_BUSINESS_SERVICE_IMPORT_FORBIDDEN'
+  );
+  for (const processBoundary of [
+    'createBackendStartupSupervisor',
+    'DesktopHost',
+    'backendShutdownCoordinator'
+  ]) {
+    assert.match(
+      electronSource,
+      new RegExp(`\\b${processBoundary}\\b`, 'u'),
+      `M3-SC-DIAG-025:ELECTRON_PROCESS_BOUNDARY:${processBoundary}`
+    );
+  }
+  assert.equal(
+    electronMain?.closureState,
+    'DELEGATES_TO_WP_B_AUTHORITY',
+    'M3-SC-DIAG-025:ELECTRON_MAIN_TERMINAL'
+  );
+  assert.doesNotMatch(
+    (electronMain?.currentResponsibilities || []).join('|'),
+    /BUSINESS_RETRY|SESSION_RESTORE|HISTORY_SYNCHRONIZATION/u,
+    'M3-SC-DIAG-025:ELECTRON_BUSINESS_RECOVERY_AUTHORITY_FORBIDDEN'
+  );
+});

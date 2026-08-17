@@ -91,10 +91,12 @@
         "SESSION_RESTORE"
       ],
       "currentResponsibilities": [
-        "PLATFORM_ADAPTER_CALL"
+        "DURABLE_COMMAND_PREPARATION",
+        "PERSISTED_ATTEMPT_PHYSICAL_CLIENT",
+        "REFERENCE_ONLY_OPERATION_DISPATCH"
       ],
       "targetAuthority": "ExternalActionDispatcher",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Every physical platform call requires a valid persisted attempt envelope."
     },
     {
@@ -161,12 +163,12 @@
         "HISTORY_SYNCHRONIZATION"
       ],
       "currentResponsibilities": [
-        "STARTUP",
-        "RECOVERY_TRIGGER",
-        "TIMERS"
+        "RUNTIME_COMPOSITION",
+        "WRITE_HOST_READINESS_ASSERTION",
+        "DURABLE_STARTUP_RECOVERY_COMMAND"
       ],
       "targetAuthority": "AppRuntimeComposition",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Startup recovery runs after write-host acquisition through WP-B recovery authority."
     },
     {
@@ -191,11 +193,12 @@
         "SESSION_RESTORE"
       ],
       "currentResponsibilities": [
-        "DESKTOP_STARTUP",
-        "BACKEND_PROCESS_CONTROL"
+        "DESKTOP_PROCESS_LIFECYCLE_ONLY",
+        "BACKEND_PROCESS_CONTROL",
+        "PROCESS_READINESS_SUPERVISION"
       ],
       "targetAuthority": "PROCESS_SUPERVISOR_ONLY",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Electron owns process lifecycle only; WP-B owns durable business recovery."
     },
     {
