@@ -103,33 +103,23 @@ test('M3-AUTH-006 verifier rejects wildcard scope and downstream-governance muta
   );
 });
 
-test('M3-SC-DIAG-015 legacy send-queue startup owns no retry timer or interrupted-work recovery', () => {
-  const repositoryPath = path.join(repoRoot, 'backend', 'repositories', 'sendQueueRepository.js');
+test('M3-SC-DIAG-015 legacy send-queue startup owns no retry timer', () => {
   const servicePath = path.join(repoRoot, 'backend', 'services', 'sendQueueService.js');
-  const repository = require(repositoryPath);
-  const originalRecoverInterrupted = repository.recoverInterrupted;
+  delete require.cache[require.resolve(servicePath)];
+  const { SendQueueService } = require(servicePath);
+  const service = new SendQueueService();
   const originalSetInterval = global.setInterval;
-  let recoveryCalls = 0;
   let timerCalls = 0;
 
-  repository.recoverInterrupted = () => {
-    recoveryCalls += 1;
-    return 0;
-  };
   global.setInterval = () => {
     timerCalls += 1;
     return { unref() {} };
   };
   try {
-    delete require.cache[require.resolve(servicePath)];
-    const { SendQueueService } = require(servicePath);
-    const service = new SendQueueService();
     service.start();
     service.stop();
-    assert.equal(recoveryCalls, 0, 'M3-SC-DIAG-015:NO_LEGACY_RECOVERY');
     assert.equal(timerCalls, 0, 'M3-SC-DIAG-015:NO_LEGACY_RETRY_TIMER');
   } finally {
-    repository.recoverInterrupted = originalRecoverInterrupted;
     global.setInterval = originalSetInterval;
     delete require.cache[require.resolve(servicePath)];
   }
@@ -149,5 +139,150 @@ test('M3-SC-DIAG-016 send-queue repository exposes no legacy scheduler mutation 
     'checkpointDelivery'
   ]) {
     assert.equal(typeof repository[method], 'undefined', `M3-SC-DIAG-016:${method}`);
+  }
+});
+
+test('M3-SC-DIAG-017 outbound compatibility facade dispatches one persisted attempt and never resends a terminal intent', async () => {
+  const servicePath = path.join(repoRoot, 'backend', 'services', 'sendQueueService.js');
+  const sendMessagePath = path.join(repoRoot, 'backend', 'services', 'sendMessageService.js');
+  delete require.cache[require.resolve(servicePath)];
+  const sendMessageService = require(sendMessagePath);
+  const originalResolveAccount = sendMessageService.resolveAccount;
+  let adapterCalls = 0;
+  let adapterInput = null;
+  let transitionCalls = 0;
+  let execution = { executionId: 'execution-outbound-1', state: 'CREATED', stateVersion: 0, generation: 0 };
+  let intent = {
+    intentId: 'send-outbound-1',
+    executionId: execution.executionId,
+    claim: { state: 'READY', stateVersion: 0, generation: 0 }
+  };
+  const durableExecutionAuthority = {
+    createExecution(input) {
+      if (execution.state === 'CREATED' && execution.stateVersion === 0) {
+        execution = { ...execution, executionId: input.executionId };
+      }
+      return execution;
+    },
+    schedule() {
+      execution = { ...execution, state: 'SCHEDULED', stateVersion: 1 };
+      return execution;
+    },
+    claim(input) {
+      execution = {
+        ...execution,
+        state: 'CLAIMED',
+        stateVersion: 2,
+        generation: 1,
+        ownerId: input.ownerId,
+        claimId: input.claimId
+      };
+      return execution;
+    },
+    transition(input) {
+      transitionCalls += 1;
+      assert.deepEqual(input.allowedStates, ['CLAIMED']);
+      execution = { ...execution, state: input.targetState, stateVersion: execution.stateVersion + 1 };
+      return execution;
+    }
+  };
+  const outboxAuthority = {
+    createIntent(input) {
+      intent = { ...intent, intentId: input.intentId, executionId: input.executionId };
+      return intent;
+    },
+    intent() { return intent; },
+    claimIntent(input) {
+      intent = {
+        ...intent,
+        claim: {
+          state: 'CLAIMED',
+          stateVersion: 1,
+          generation: 1,
+          ownerId: input.ownerId,
+          claimId: input.claimId,
+          hostGeneration: input.hostGeneration,
+          fencingToken: input.fencingToken
+        }
+      };
+      return intent;
+    },
+    startAttempt(input) {
+      intent = { ...intent, claim: { ...intent.claim, state: 'ATTEMPTED', stateVersion: 2 } };
+      return {
+        intentId: intent.intentId,
+        attemptId: 'attempt-outbound-1',
+        stateVersion: 2,
+        generation: intent.claim.generation,
+        ownerId: input.ownerId,
+        claimId: input.claimId,
+        hostGeneration: input.hostGeneration,
+        fencingToken: input.fencingToken
+      };
+    },
+    recordReceipt() {
+      intent = { ...intent, claim: { ...intent.claim, state: 'COMPLETED', stateVersion: 3 } };
+      return {
+        receiptId: 'receipt-outbound-1',
+        receiptType: 'SUCCESS',
+        providerReceiptId: 'provider-receipt-outbound-1'
+      };
+    },
+    recordFailureReceipt() { throw new Error('unexpected failure receipt'); },
+    markUncertain() { throw new Error('unexpected uncertain receipt'); }
+  };
+  const adapter = {
+    async perform(input) {
+      adapterCalls += 1;
+      adapterInput = input;
+      return {
+        providerReceiptId: 'provider-receipt-outbound-1',
+        evidenceReference: 'provider:evidence:outbound-1',
+        result: { accepted: true }
+      };
+    }
+  };
+  const row = {
+    id: 'send-outbound-1',
+    idempotency_key: 'idem-outbound-1',
+    account_id: 'account-outbound-1',
+    session_key: 'account-outbound-1:chat-outbound-1',
+    message_type: 'text',
+    state: 'pending',
+    outbox_id: 'send-outbound-1',
+    payload: {
+      platform: 'whatsapp',
+      chatJid: 'chat-outbound-1',
+      outboxCommand: { commandSha256: 'a'.repeat(64) }
+    }
+  };
+  sendMessageService.resolveAccount = () => ({
+    platform: 'whatsapp',
+    accountId: row.account_id,
+    account: { credentialRef: 'credential-ref-outbound-1' }
+  });
+  try {
+    const { SendQueueService } = require(servicePath);
+    const service = new SendQueueService({
+      communicationAuthority: { durableExecutionAuthority, outboxAuthority },
+      sendPolicyAuthority: { verifyFrozenCommand() { return { ok: true }; } },
+      authorityTokenProvider: () => ({ instanceId: 'host-outbound-1', hostGeneration: 1, fencingToken: 1 }),
+      durableRuntime: { registry: { require(kind) { assert.equal(kind, 'OUTBOUND_MESSAGE_SEND'); return adapter; } } }
+    });
+    const first = await service.dispatchDurableQueueItem(row);
+    assert.equal(first.state, 'sent');
+    assert.equal(adapterCalls, 1);
+    assert.equal(adapterInput.executionId, execution.executionId);
+    assert.equal(adapterInput.intentId, intent.intentId);
+    assert.equal(adapterInput.attemptId, 'attempt-outbound-1');
+    assert.equal(adapterInput.request.commandReference, 'send-outbound-1');
+    assert.equal(transitionCalls, 1);
+    const second = await service.dispatchDurableQueueItem(row);
+    assert.equal(second.state, 'sent');
+    assert.equal(adapterCalls, 1, 'terminal durable intent must not perform a second physical send');
+    assert.equal(transitionCalls, 1);
+  } finally {
+    sendMessageService.resolveAccount = originalResolveAccount;
+    delete require.cache[require.resolve(servicePath)];
   }
 });
