@@ -20,13 +20,14 @@
         "AI_PROVIDER_EXECUTION"
       ],
       "currentResponsibilities": [
-        "WORKER_FORK",
-        "TIMEOUT",
-        "RESULT_CAPTURE",
-        "EVIDENCE_WRITE"
+        "PERSISTED_ATTEMPT_VALIDATION",
+        "DURABLE_EXECUTION_AND_OUTBOX_DELEGATION",
+        "ISOLATED_WORKER_FORK",
+        "UNCERTAIN_OUTCOME_RECONCILIATION",
+        "EVIDENCE_PROJECTION_WRITE"
       ],
       "targetAuthority": "ExternalActionDispatcher",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Physical model execution requires a persisted WP-B attempt; uncertain result enters reconciliation."
     },
     {
@@ -37,10 +38,12 @@
         "AI_PROVIDER_EXECUTION"
       ],
       "currentResponsibilities": [
-        "PROVIDER_CALL"
+        "PERSISTED_ENVELOPE_VALIDATION",
+        "PROVIDER_CALL",
+        "OBSERVATION_IPC_ONLY"
       ],
       "targetAuthority": "AI_PROVIDER_EXECUTION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Worker receives only an immutable persisted-attempt envelope and owns no database state."
     },
     {
@@ -297,7 +300,7 @@
         "PERSISTED_ACCOUNT_RESTORE_ENUMERATION"
       ],
       "targetAuthority": "DurableExecutionAuthorityV2",
-      "closureState": "MIGRATED_ENTRYPOINT",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Facade creates only persisted execution and outbox intent records; physical restore remains Adapter-only."
     },
     {

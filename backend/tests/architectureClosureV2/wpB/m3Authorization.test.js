@@ -476,3 +476,54 @@ test('M3-SC-DIAG-023 proven Telegram and projection boundaries are terminalized 
   );
   assert.ok((telegramAdapter?.currentResponsibilities || []).includes('DURABLE_RECOVERY_SIGNAL'), 'M3-SC-DIAG-023:TELEGRAM_DURABLE_RECOVERY_SIGNAL_REQUIRED');
 });
+
+test('M3-SC-DIAG-024 session restore and isolated model execution boundaries are terminal only after durable authority closure', () => {
+  const inventoryPath = path.join(
+    repoRoot,
+    'governance',
+    'architecture-closure-v2',
+    'wp-b-operation-inventory.json'
+  );
+  const inventory = JSON.parse(fs.readFileSync(inventoryPath, 'utf8'));
+  const entries = new Map((inventory.entries || []).map(entry => [entry.id, entry]));
+  const accountManager = entries.get('WPB-ACCOUNT-MANAGER');
+  const modelHost = entries.get('WPB-MODEL-EXECUTION-HOST');
+  const modelWorker = entries.get('WPB-MODEL-EXECUTION-WORKER');
+
+  const accountPath = path.join(repoRoot, 'backend', 'services', 'accountManager.js');
+  const accountSource = fs.readFileSync(accountPath, 'utf8');
+  const accountStart = accountSource.indexOf('function requestSessionRestore(input = {})');
+  const accountEnd = accountSource.indexOf('\nfunction requestPersistedSessionRestores', accountStart);
+  assert.ok(accountStart >= 0 && accountEnd > accountStart, 'M3-SC-DIAG-024:SESSION_RESTORE_BOUNDARY_REQUIRED');
+  const accountBoundary = accountSource.slice(accountStart, accountEnd);
+  assert.match(accountBoundary, /prepareSessionRestore\s*\(/u, 'M3-SC-DIAG-024:DURABLE_SESSION_PREPARATION_REQUIRED');
+  assert.doesNotMatch(accountBoundary, /setTimeout|setInterval|\.connect\s*\(|\.send\s*\(|fetch\s*\(/u,
+    'M3-SC-DIAG-024:ACCOUNT_MANAGER_PHYSICAL_RETRY_FORBIDDEN');
+  assert.equal(accountManager?.closureState, 'DELEGATES_TO_WP_B_AUTHORITY',
+    'M3-SC-DIAG-024:ACCOUNT_MANAGER_TERMINAL');
+
+  const hostPath = path.join(repoRoot, 'backend', 'services', 'modelExecutionHost.js');
+  const hostSource = fs.readFileSync(hostPath, 'utf8');
+  const hostStart = hostSource.indexOf('function startModelExecution({');
+  const persistedValidation = hostSource.indexOf('validatePersistedAttempt(', hostStart);
+  const physicalFork = hostSource.indexOf('childProcessFactory(', hostStart);
+  assert.ok(hostStart >= 0 && persistedValidation > hostStart && physicalFork > persistedValidation,
+    'M3-SC-DIAG-024:PERSISTED_ATTEMPT_MUST_PRECEDE_FORK');
+  assert.match(hostSource, /ExternalActionDispatcher/u,
+    'M3-SC-DIAG-024:DURABLE_DISPATCHER_REQUIRED');
+  assert.match(hostSource, /UNCERTAIN_REMOTE_OUTCOME|markUncertain/u,
+    'M3-SC-DIAG-024:UNCERTAIN_RECONCILIATION_REQUIRED');
+  assert.equal(modelHost?.closureState, 'DELEGATES_TO_WP_B_AUTHORITY',
+    'M3-SC-DIAG-024:MODEL_HOST_TERMINAL');
+
+  const workerPath = path.join(repoRoot, 'backend', 'services', 'modelExecutionWorker.js');
+  const workerSource = fs.readFileSync(workerPath, 'utf8');
+  const envelopeValidation = workerSource.indexOf('verifyModelExecutionEnvelope(');
+  const providerExecution = workerSource.indexOf('executeIsolatedModel(');
+  assert.ok(envelopeValidation >= 0 && providerExecution > envelopeValidation,
+    'M3-SC-DIAG-024:WORKER_ENVELOPE_VALIDATION_REQUIRED');
+  assert.doesNotMatch(workerSource, /r32Store|storeProvider|sqlite|securityGuard/iu,
+    'M3-SC-DIAG-024:WORKER_DATABASE_AUTHORITY_FORBIDDEN');
+  assert.equal(modelWorker?.closureState, 'DELEGATES_TO_WP_B_AUTHORITY',
+    'M3-SC-DIAG-024:MODEL_WORKER_TERMINAL');
+});
