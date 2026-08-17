@@ -109,3 +109,59 @@ test('M3-SC-012 generalized call-site discovery is complete and exact', () => {
   assert.equal(discovery.missingInventoryPathCount, 0, JSON.stringify(discovery.missingInventoryPaths, null, 2));
   assert.equal(discovery.discoveryComplete, true);
 });
+
+test('M3-SC-DIAG-013 Facebook Chatwoot physical egress consumes the persisted WP-B attempt at the fetch boundary', async () => {
+  const portsPath = path.join(repoRoot, 'backend', 'services', 'platformAdapterPorts.js');
+  const bridgePath = path.join(repoRoot, 'backend', 'services', 'facebookChatwootMatrixBridge.js');
+  const portsSource = fs.readFileSync(portsPath, 'utf8');
+
+  assert.match(
+    portsSource,
+    /physicalAttemptContext\s*:\s*durableAttempt/u,
+    'M3-SC-DIAG-013:PORT_MUST_FORWARD_VALIDATED_ATTEMPT'
+  );
+
+  const envNames = [
+    'CHATWOOT_BASE_URL', 'CHATWOOT_ACCOUNT_ID', 'CHATWOOT_API_ACCESS_TOKEN',
+    'MATRIX_BASE_URL', 'MATRIX_ACCESS_TOKEN'
+  ];
+  const previousEnv = Object.fromEntries(envNames.map(name => [name, process.env[name]]));
+  const previousFetch = global.fetch;
+  let fetchCalls = 0;
+  try {
+    process.env.CHATWOOT_BASE_URL = 'https://chatwoot.invalid';
+    process.env.CHATWOOT_ACCOUNT_ID = '1';
+    process.env.CHATWOOT_API_ACCESS_TOKEN = 'token';
+    process.env.MATRIX_BASE_URL = 'https://matrix.invalid';
+    process.env.MATRIX_ACCESS_TOKEN = 'token';
+    global.fetch = async () => {
+      fetchCalls += 1;
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({ id: 'unexpected-network-call' }),
+        text: async () => JSON.stringify({ id: 'unexpected-network-call' })
+      };
+    };
+
+    delete require.cache[require.resolve(bridgePath)];
+    const bridge = require(bridgePath);
+    await assert.rejects(
+      () => bridge.sendText(
+        { target: 'chatwoot:123' },
+        { text: 'scope-006-red', signal: null }
+      ),
+      error => error?.code === 'FACEBOOK_CHATWOOT_PERSISTED_ATTEMPT_REQUIRED',
+      'M3-SC-DIAG-013:BRIDGE_MUST_FAIL_CLOSED_BEFORE_FETCH'
+    );
+    assert.equal(fetchCalls, 0, 'M3-SC-DIAG-013:NO_PHYSICAL_IO_WITHOUT_PERSISTED_ATTEMPT');
+  } finally {
+    global.fetch = previousFetch;
+    for (const name of envNames) {
+      if (previousEnv[name] === undefined) delete process.env[name];
+      else process.env[name] = previousEnv[name];
+    }
+    delete require.cache[require.resolve(bridgePath)];
+  }
+});
