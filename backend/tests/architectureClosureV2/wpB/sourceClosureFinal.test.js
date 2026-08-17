@@ -231,3 +231,59 @@ test('M3-SC-DIAG-014 Facebook Chatwoot session and sync physical I/O consume one
     delete require.cache[require.resolve(bridgePath)];
   }
 });
+
+test('M3-SC-DIAG-015 runtime recovery has no second persisted backoff, timer, or send-queue mutation authority', async () => {
+  const servicePath = path.join(repoRoot, 'backend', 'services', 'runtimeRecoveryService.js');
+  const serverPath = path.join(repoRoot, 'backend', 'server.js');
+  const serviceSource = fs.readFileSync(servicePath, 'utf8');
+  const serverSource = fs.readFileSync(serverPath, 'utf8');
+
+  for (const [expression, reason] of [
+    [/settingsRepository/u, 'SETTINGS_REPOSITORY_RETRY_STATE_MUST_BE_REMOVED'],
+    [/account-attempts-v1/u, 'PERSISTED_ACCOUNT_BACKOFF_MUST_BE_REMOVED'],
+    [/(?:initialBackoffMs|maximumBackoffMs|markFailure\s*\(|markSuccess\s*\(|attemptState\s*\()/u, 'SECOND_BACKOFF_AUTHORITY_MUST_BE_REMOVED'],
+    [/(?:scheduleRecovery\s*\(|recoveryTimer|\bsetInterval\s*\(|\bsetTimeout\s*\()/u, 'DELAYED_RECOVERY_TIMER_AUTHORITY_MUST_BE_REMOVED'],
+    [/this\.sendQueue\.(?:pause|resume)\s*\(/u, 'RUNTIME_RECOVERY_MUST_NOT_MUTATE_SEND_QUEUE_STATE']
+  ]) {
+    assert.doesNotMatch(serviceSource, expression, `M3-SC-DIAG-015:${reason}`);
+  }
+  assert.doesNotMatch(
+    serverSource,
+    /runtimeRecovery\.(?:start|scheduleRecovery)\s*\(/u,
+    'M3-SC-DIAG-015:SERVER_MUST_NOT_START_SECOND_RECOVERY_SCHEDULER'
+  );
+  assert.match(
+    serverSource,
+    /startup\.recoverDurableExecutions/u,
+    'M3-SC-DIAG-015:STARTUP_MUST_KEEP_CANONICAL_DURABLE_RECOVERY_COMMAND'
+  );
+  assert.match(
+    serviceSource,
+    /recoverNonterminalExecutions/u,
+    'M3-SC-DIAG-015:EXPLICIT_RECOVERY_MUST_DELEGATE_TO_DURABLE_AUTHORITY'
+  );
+
+  delete require.cache[require.resolve(servicePath)];
+  const { RuntimeRecoveryService } = require(servicePath);
+  const calls = [];
+  const service = new RuntimeRecoveryService({
+    sendQueue: {
+      status: () => ({ writeBlocked: false, resumeBlocked: false, unknownOutcomeCount: 0, uncertainCount: 0 }),
+      pause: () => { throw new Error('runtime recovery must not pause send queue'); },
+      resume: () => { throw new Error('runtime recovery must not resume send queue'); }
+    },
+    eventBus: { publish() {} },
+    safeModeService: { isActive: () => false },
+    systemPolicy: { read: () => ({ emergencyStop: false }) },
+    recoverNonterminalExecutions: options => {
+      calls.push({ ...options });
+      return [];
+    }
+  });
+  const snapshot = await service.recover('scope-007-explicit');
+  assert.equal(calls.length, 1, 'M3-SC-DIAG-015:EXPLICIT_RECOVERY_DELEGATES_EXACTLY_ONCE');
+  assert.equal(calls[0].reasonCode, 'scope-007-explicit');
+  assert.match(calls[0].authorityTimestamp, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u);
+  assert.equal(snapshot.recovering, false);
+  delete require.cache[require.resolve(servicePath)];
+});
