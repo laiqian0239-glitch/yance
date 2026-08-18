@@ -5,7 +5,6 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
-const aiGateway = require('./aiGateway');
 const logger = require('./logger');
 const mediaPipeline = require('./mediaPipeline');
 const { deepFreeze } = require('../lib/deepFreeze');
@@ -202,27 +201,11 @@ async function executeTranscriptionPhysical({ filePath, language = 'auto', trans
     const parsed = parseSenseVoiceOutput(await runSenseVoice(runtime, prepared.inputFile), language);
     if (!parsed.transcript) throw Object.assign(new Error('SenseVoice did not return transcript text.'), { code: 'TRANSCRIPTION_EMPTY' });
 
-    let chinese = '';
-    if (translateToChinese && parsed.transcript) {
-      try {
-        const translated = await aiGateway.execute({
-          task: 'translation',
-          messages: [
-            { role: 'system', content: '把语音转写准确翻译成中文，只输出中文译文，不补充事实。' },
-            { role: 'user', content: parsed.transcript }
-          ],
-          options: { maxTokens: 1200, temperature: 0.1 }
-        });
-        chinese = translated.text;
-      } catch (error) {
-        logger.warn('speech', 'translation-failed', { filePath: full, error: error.message });
-      }
-    }
-
     const payload = {
       ok: true,
       transcript: parsed.transcript,
-      chinese,
+      chinese: '',
+      translationRequested: translateToChinese === true && Boolean(parsed.transcript),
       language: parsed.language || language,
       detectedLanguage: parsed.detectedLanguage,
       confidence: null,
