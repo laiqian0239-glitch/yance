@@ -32,19 +32,21 @@ function normalizePlatform(value) {
 function mapWhatsAppState(value) {
   return ({ online: 'connected', qr: 'waiting-verification', connecting: 'connecting', offline: 'error', 'logged-out': 'logged-out', stopped: 'logged-out' })[value] || 'logged-out';
 }
-function requirePersistedEgressAttempt(context = {}, input = {}) {
+function requirePersistedPlatformEgressAttempt(platform, context = {}, input = {}) {
   const attempt = input?.physicalAttemptContext;
   return validatePersistedEgressContext(attempt, {
     accountId: clean(context.accountId || context.adapterAccountId),
     idempotencyKey: clean(attempt?.idempotencyKey)
-  }, 'telegram');
+  }, platform);
+}
+function requirePersistedEgressAttempt(context = {}, input = {}) {
+  return requirePersistedPlatformEgressAttempt('telegram', context, input);
 }
 function requirePersistedWhatsAppEgressAttempt(context = {}, input = {}) {
-  const attempt = input?.physicalAttemptContext;
-  return validatePersistedEgressContext(attempt, {
-    accountId: clean(context.accountId || context.adapterAccountId),
-    idempotencyKey: clean(attempt?.idempotencyKey)
-  }, 'whatsapp');
+  return requirePersistedPlatformEgressAttempt('whatsapp', context, input);
+}
+function requirePersistedFacebookEgressAttempt(context = {}, input = {}) {
+  return requirePersistedPlatformEgressAttempt('facebook', context, input);
 }
 
 const drivers = Object.freeze({
@@ -168,8 +170,8 @@ const driverById = Object.freeze({
     async sync(account, options = {}) { return facebookPersonalMessenger.sync(account, options); },
     externalTarget(value) { return clean(value).replace(/^facebook:/i, ''); },
     adapterAccountId(account, requestedId = '') { return clean(account?.id || requestedId); },
-    async sendText(context, input) { return facebookPersonalMessenger.sendText(context, input); },
-    async sendMedia(context, input) { return facebookPersonalMessenger.sendMedia(context, input); },
+    async sendText(context, input) { requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessenger.sendText(context, input); },
+    async sendMedia(context, input) { requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessenger.sendMedia(context, input); },
     async sendPresence(context, input) { return facebookPersonalMessenger.sendPresence(context, input); },
     async markRead(context, input) { return facebookPersonalMessenger.markRead(context, input); }
   })
