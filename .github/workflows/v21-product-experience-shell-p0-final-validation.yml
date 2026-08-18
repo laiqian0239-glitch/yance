@@ -239,6 +239,7 @@ jobs:
           try { $hashBytes = $sha512.ComputeHash($stream) } finally { $stream.Dispose(); $sha512.Dispose() }
           $actualIntegrity = 'sha512-' + [Convert]::ToBase64String($hashBytes)
           if ($actualIntegrity -ne $expectedIntegrity) { throw "Electron npm tarball integrity mismatch: expected=$expectedIntegrity actual=$actualIntegrity" }
+
           tar.exe -xzf $tarball -C $extractRoot
           if ($LASTEXITCODE -ne 0) { throw "Electron npm tarball extraction failed: $LASTEXITCODE" }
           $packageRoot = Join-Path $extractRoot 'package'
