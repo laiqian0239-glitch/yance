@@ -233,6 +233,18 @@ test('trusted authorization count and digest must match the exact actual path se
   }
 });
 
+test('trusted Git keeps local operations bounded at 15s but gives the remote identity fetch a 60s bound', () => {
+  const source = fs.readFileSync(VERIFIER_PATH, 'utf8');
+  assert.match(source, /const DEFAULT_GIT_TIMEOUT_MS = 15000;/u);
+  assert.match(source, /const REMOTE_FETCH_TIMEOUT_MS = 60000;/u);
+  assert.match(source, /timeout: options\.timeoutMs \?\? DEFAULT_GIT_TIMEOUT_MS/u);
+  assert.match(
+    source,
+    /candidateSha\]\s*,\s*\{\s*timeoutMs:\s*REMOTE_FETCH_TIMEOUT_MS\s*\}\);/u
+  );
+  assert.doesNotMatch(source, /for\s*\([^)]*retry|setTimeout\(|backoff/iu);
+});
+
 test('real historical delegated L2 V2 head fails closed when canonical base no longer equals its authorization merge', { timeout: 45000 }, () => {
   const {
     verifyDelegatedProductL2Candidate,
