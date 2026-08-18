@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-18T22:13:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-PRELAUNCH-DATING-AI-EXPERIENCE-AMENDMENT-WP1-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Reissue the approved pre-launch Product audit WP-1 authorization from fresh trusted main after the independent Layered CI trusted-Git Windows timeout prerequisite was prospectively authorized and root-fixed through ordinary merges #482 and #483. The prior unmerged WP-1 proposal #481 explicitly became invalid when trusted main moved, so it remains historical review evidence and is never retroactively rebound. Product source scope is unchanged: Chinese-first normal-user Product surfaces, one durable 85%-150% typography contract in 1% steps, one global theme experience across the pinned Element host and Yance Product/Media/Voice/Presence/Learning surfaces, and extension of existing typography/theme audits. Reuse existing Yance Store appearance authority, semantic theme/typography contracts and pinned Element appearance machinery; no second theme/font engine, registry, persistence authority, dependency, workflow, send route, model, learning or messaging runtime is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "ba8d92f0c8aa64419673b75fdaadfb34c26c9b5b"
+  },
+  "designAuthority": {
+    "branch": "design/v21-product-prelaunch-dating-ai-experience-amendment",
+    "commit": "747edcaae0c6a64ea4ef0ef98d73a02449666f37",
+    "path": "docs/superpowers/specs/2026-08-18-yance-v21-product-prelaunch-dating-ai-experience-amendment-design.md",
+    "approved": true,
+    "designApprovalIsNotImplementationAuthority": true
+  },
+  "implementationPlan": {
+    "branch": "plan/v21-product-prelaunch-dating-ai-experience-amendment-wp1",
+    "commit": "0db9763070f300dcbfa1e5bcfa1b59ec092a4c3a",
+    "path": "docs/superpowers/plans/2026-08-18-yance-v21-product-prelaunch-dating-ai-experience-amendment-wp1.md"
+  },
+  "predecessorProposal": {
+    "pullRequest": 481,
+    "branch": "governance/v21-product-prelaunch-dating-ai-experience-amendment-wp1-authorization",
+    "lastReviewedHead": "fa6a6fc14d21834472f4e0174c33817f492fdd80",
+    "base": "ca48fc7b365084089de5060469c913d6fb0339f1",
+    "state": "SUPERSEDED_UNMERGED_PROPOSAL",
+    "reason": "Its prospective authorization contract declared itself invalid if trusted main moved before merge. Main moved through ordinary prerequisite merges #482/#483; no history is rewritten and #481 grants no implementation authority."
+  },
+  "prerequisite": {
+    "authorizationPullRequest": 482,
+    "authorizationMerge": "dc94ed6d654d690d5f337b8a943a59c9e94f4ce8",
+    "implementationPullRequest": 483,
+    "implementationMerge": "ba8d92f0c8aa64419673b75fdaadfb34c26c9b5b",
+    "closedRootCause": "delegated-product L2 trusted remote identity fetch now has a bounded 60000ms timeout while local Git operations retain the 15000ms default; no retry/backoff or workflow weakening was introduced"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "ba8d92f0c8aa64419673b75fdaadfb34c26c9b5b",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "evidence": {
+    "freshTrustedMain": "ba8d92f0c8aa64419673b75fdaadfb34c26c9b5b",
+    "freshMainDeltaFromOriginalDesignBase": [
+      "governance/layered-ci/v21-layered-ci-trusted-git-windows-timeout-p0-authorization.json",
+      "tests/layered-ci/delegated-product-l2.test.js",
+      "tools/layered-ci/verify-delegated-product-l2.js"
+    ],
+    "productScopeUnchanged": true,
+    "freshSourceFindings": [
+      "backend/store/themeAppearancePolicy.js remains the catalog-backed durable appearance authority and normalizeTypography still clamps fontScale to 90-120, contrary to the approved 85-150 contract.",
+      "backend/routes/store.js still exposes PUT /api/r32/store/ui/theme/preferences backed by UPDATE_THEME_PREFERENCES and Store persistence; the Electron Store bridge still lacks that narrow write seam.",
+      "frontend/r32-theme-semantic-contract.css and frontend/r32-global-reading.css remain the repository semantic theme and typography contracts; shipping Product CSS still has private palette/type escapes.",
+      "Existing typography/theme audits still omit shipping integration/element-module scope.",
+      "Normal Media/Voice/Presence/Learning Product surfaces still expose English/internal implementation names prohibited by the approved design.",
+      "Pinned Element Web v1.12.25 at a2a996ae50d802878bf48e4bbf3730004bdcc55c still has read-only public SettingsApi while host-wide font/theme application already exists behind SettingsStore, FontSizeController/FontWatcher and ThemeWatcher/custom themes.",
+      "tools/matrix/bootstrap.js still explicitly replays numbered Element patches through 0013; the approved appearance seam therefore remains a minimal explicit 0014 replay."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7ddde36289781e671f42654494a9886087fe6d3182a1554e1f9342a9e21a10fb",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "product/v21-product-prelaunch-dating-ai-experience-amendment-wp1",
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/store/themeAppearancePolicy.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/LearningToolUiAdapter.tsx",
+      "integration/element-module/src/LearningWorkspace.css",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/MediaWorkspace.css",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.css",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.css",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "scripts/audit-theme-colors.js",
+      "tests/frontend-security/global-theme-authority.test.js",
+      "tests/uat/fix6dGlobalTypographyAudit.test.js",
+      "tests/uat/themeStudioExpansion.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-learning-growth-brain-ui.test.js",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-presence-avatar-ui.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-voice-brain-ui.test.js",
+      "tools/matrix/bootstrap.js",
+      "tools/uat/fix6d-global-typography-audit.js",
+      "upstream-patches/element-web/0014-yance-module-appearance-authority.patch"
+    ],
+    "approvedChangedFileCount": 31,
+    "approvedChangedFileSetSha256": "199272faaedf32ebc52b43bdbfdd62b88e71707aebeaa306521633577f4be5e7",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/frontend-security/global-theme-authority.test.js",
+        "tests/uat/fix6dGlobalTypographyAudit.test.js",
+        "tests/uat/themeStudioExpansion.test.js",
+        "tests/wp0/v21-element-workspace-contract.test.js",
+        "tests/wp0/v21-learning-growth-brain-ui.test.js",
+        "tests/wp0/v21-media-brain-ui.test.js",
+        "tests/wp0/v21-presence-avatar-ui.test.js",
+        "tests/wp0/v21-product-experience-shell-interaction.test.js",
+        "tests/wp0/v21-voice-brain-ui.test.js"
+      ],
+      "approvedChangedFileCount": 9,
+      "approvedChangedFileSetSha256": "d32b3a4abeea115fbc6ba0604c781ace7a42a901a61b0662a254eab19a040787",
+      "productionCodeChanged": false
+    },
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "sendAuthorityModificationAllowed": false,
+    "modelAuthorityModificationAllowed": false,
+    "learningAuthorityModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "backendModificationAllowed": true,
+    "electronModificationAllowed": true,
+    "productRendererModificationAllowed": true,
+    "upstreamPatchModificationAllowed": true,
+    "matrixBootstrapModificationAllowed": true,
+    "existingAuditModificationAllowed": true
+  },
+  "appearanceAuthorityContract": {
+    "durableAuthority": "existing Yance Store ui appearance state normalized by backend/store/themeAppearancePolicy.js",
+    "fontScale": {
+      "defaultPercent": 100,
+      "minimumPercent": 85,
+      "maximumPercent": 150,
+      "stepPercent": 1,
+      "normalizationOwner": "backend/store/themeAppearancePolicy.js",
+      "componentLocalClampsForbidden": true
+    },
+    "themeCatalogAuthority": "frontend/theme-catalog.json consumed through backend/store/themeAppearancePolicy.js",
+    "requiredBehavior": [
+      "Expose the existing Store theme-preferences write through the existing Electron Store bridge/preload rather than adding another persistence path.",
+      "If Product needs theme metadata/tokens, expose a narrow read-only projection from the existing themeAppearancePolicy/catalog through the existing Store route/bridge layer; do not copy the catalog into Product source.",
+      "Project the canonical Yance appearance state into the pinned Element host through the authorized Element appearance seam so Element main UI and Yance Product descendants change together.",
+      "At startup and after user changes, reconcile Element derived appearance from Yance Store canonical state; Element settings remain rendering/application mechanisms, not a second Yance canonical authority.",
+      "Map Yance theme catalog values to Element's existing custom-theme capability; do not fork theme selection/rendering.",
+      "Product Shell, Media, Voice, Presence, Learning and Product overlays consume semantic theme/typography roles only; no Product-private palette or typography registry remains."
+    ],
+    "forbiddenBehavior": [
+      "No rootNode/document style hack as the production global typography mechanism.",
+      "No Product-localStorage persistence for global appearance.",
+      "No second theme catalog, second font registry, second CSS authority or new general-purpose appearance runtime.",
+      "No late !important override layer used to fake semantic migration.",
+      "No workflow/scanner exclusions added merely to allow Product CSS through."
+    ]
+  },
+  "upstreamPatchContract": {
+    "path": "upstream-patches/element-web/0014-yance-module-appearance-authority.patch",
+    "pinnedUpstream": "element-hq/element-web v1.12.25",
+    "pinnedCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "allowedUpstreamChangedPaths": [
+      "apps/web/src/modules/Api.ts",
+      "apps/web/src/modules/AppearanceApi.ts",
+      "packages/module-api/element-web-module-api.api.md",
+      "packages/module-api/src/api/appearance.ts",
+      "packages/module-api/src/api/index.ts"
+    ],
+    "approvedUpstreamChangedFileCount": 5,
+    "approvedUpstreamChangedFileSetSha256": "8473be4e7778000aa668e3c97eabf3d37a90c71ae7de66ab9a089390ffc0b6a1",
+    "requiredBehavior": [
+      "Add a narrow public module appearance API instead of making SettingsApi a general write API.",
+      "Font-scale application delegates to Element SettingsStore/FontSizeController/FontWatcher at DEVICE scope and validates the Yance 85-150 integer-percent contract before conversion to Element's existing fontSizeDelta mechanism.",
+      "Theme application delegates to Element's existing theme/custom_themes/use_system_theme settings and ThemeWatcher/RecheckTheme path.",
+      "The module API exposes appearance operations only; arbitrary SettingsStore writes, MatrixClient, tokens, sync control, messaging sends or runtime control are forbidden.",
+      "Remain an ordinary replayable textual patch against the exact pinned Element commit."
+    ],
+    "bootstrapReplay": [
+      "tools/matrix/bootstrap.js declares the exact 0014 patch path.",
+      "The existing bootstrap performs git apply --check then applies 0014 after prior numbered module API patches; no broad patch auto-loader.",
+      "The upstream pin remains unchanged."
+    ]
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "Normal product navigation, buttons, status, empty states, errors and settings are Chinese-first.",
+      "Normal UI hides implementation/vendor names and presents capabilities; technical reason/error codes may remain only as secondary diagnostics after a Chinese explanation.",
+      "Foreign-language chat original/sent text remains authoritative; Chinese understanding is a separate display projection and is never substituted for the actual sent body.",
+      "Global font control is 85%-150%, default 100%, integer 1% steps, persisted through existing Store appearance authority and applied to Element host plus all Yance shipping surfaces.",
+      "Global theme switching is persisted through existing Store appearance authority and applied to Element host plus all Yance shipping surfaces using existing Element theme capability and Yance semantic tokens.",
+      "Product CSS uses repository semantic roles for surface/text/accent/status/focus and semantic type roles; component hard-coded text sizes do not escape global scaling.",
+      "Existing #478 active-room canonical relationship tool route binding remains unchanged."
+    ],
+    "forbiddenBehavior": [
+      "Do not change relationship/send/media/voice/presence/Learning runtime identity or authority to accomplish presentation closure.",
+      "Do not expose LiteLLM, Langfuse, DSPy, GEPA, Promptfoo, OpenFeature, flagd, Letta, Immich, ComfyUI, CyberVerse, SoulX, SenseVoice or CosyVoice as ordinary primary UI labels.",
+      "Do not replace foreign original chat/candidate text with a Chinese translation.",
+      "Do not turn Product UI into CRM, marketing, service desk, KPI or runtime-operations dashboards."
+    ]
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before production changes, focused tests prove current fontScale 85/150 behavior fails against the old 90-120 authority.",
+    "Focused tests prove the existing Electron bridge/preload lacks the theme-preferences write seam needed to use existing Store persistence authority.",
+    "Pinned Element contract test proves current public module API lacks an appearance write seam and requires the exact 0014 patch/replay.",
+    "Product tests prove current normal-user Product/Media/Voice/Presence/Learning surfaces expose English/internal implementation names contrary to the approved contract.",
+    "Typography/theme audit tests prove existing global scanners omit integration/element-module and current Product CSS contains private palette/hard-coded type escapes.",
+    "The first implementation commit changes only the exact authorized nine test files and produces causal RED before any production path changes."
+  ],
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/uat/themeStudioExpansion.test.js",
+      "node --test --test-concurrency=1 tests/uat/fix6dGlobalTypographyAudit.test.js",
+      "node --test --test-concurrency=1 tests/frontend-security/global-theme-authority.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-element-workspace-contract.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-media-brain-ui.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-voice-brain-ui.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-presence-avatar-ui.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-learning-growth-brain-ui.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "Layered CI Fast Feedback",
+      "ACV2 WP-A Architecture Gates when triggered",
+      "V21 Product Experience Shell P0 Final Validation when triggered"
+    ],
+    "negativeProofs": [
+      "No second theme/font catalog, registry, persistence authority or delay/runtime infrastructure.",
+      "No dependency/package/workflow/routing-policy/database change.",
+      "No send/route/model/Learning authority change and no #478 canonical-route regression.",
+      "No arbitrary Element SettingsStore write surface.",
+      "No Product-local rootNode/document style workaround.",
+      "No scanner/gate weakening or new exclusions to hide Product violations.",
+      "No internal OSS/framework names in ordinary user UI and no foreign-message overwrite."
+    ]
+  },
+  "ossFit": {
+    "decision": "ADOPT_EXISTING_YANCE_AND_PINNED_ELEMENT_APPEARANCE_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance Store theme/appearance authority",
+        "source": "backend/store/themeAppearancePolicy.js + UPDATE_THEME_PREFERENCES + frontend/theme-catalog.json",
+        "license": "repository-native",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns durable theme and typography state; only approved range/bridge/projection closure is missing."
+      },
+      {
+        "name": "Element Web v1.12.25 appearance machinery",
+        "source": "SettingsStore + FontSizeController/FontWatcher + ThemeWatcher + custom themes",
+        "license": "AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Commercial",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Element already owns host-wide font/theme application; a narrow module seam avoids DOM hacks or a forked theme engine."
+      },
+      {
+        "name": "Existing FIX6D typography and theme audits",
+        "source": "tools/uat/fix6d-global-typography-audit.js + scripts/audit-theme-colors.js",
+        "license": "repository-native",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Extending existing global audits to shipping Element module avoids duplicate governance scanners."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a Product-private theme catalog or typography registry.",
+      "Do not persist global appearance in Product localStorage or another renderer-owned store.",
+      "Do not use direct rootNode/document style mutation as production appearance authority.",
+      "Do not expose a generic Element SettingsStore write API; keep module seam appearance-only.",
+      "Do not create a duplicate typography/theme scanner; extend existing FIX6D/theme audits."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "authorizationPullRequest": "ordinary two-parent merge only",
+    "implementationPullRequest": "ordinary two-parent merge only",
+    "allowedMergeMethod": "merge",
+    "squashAllowed": false,
+    "rebaseAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  }
+}
