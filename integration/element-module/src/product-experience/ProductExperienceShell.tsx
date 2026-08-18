@@ -22,11 +22,20 @@ import type {
 } from "./experienceTypes";
 import "./ProductExperienceShell.css";
 
+type ReadRoomStateEvents = (
+  roomId: string,
+  eventType: string,
+) => readonly { stateKey: string; content: Record<string, unknown> }[];
+
 type ProductExperienceShellProps = {
   navigateSearchResult?: (relationship: RelationshipProjection) => Promise<boolean>;
+  readRoomStateEvents?: ReadRoomStateEvents;
 };
 
-export function ProductExperienceShell({ navigateSearchResult }: ProductExperienceShellProps): React.JSX.Element {
+export function ProductExperienceShell({
+  navigateSearchResult,
+  readRoomStateEvents,
+}: ProductExperienceShellProps): React.JSX.Element {
   const [relationships, setRelationships] = useState<readonly RelationshipProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("正在加载关系");
@@ -223,7 +232,7 @@ export function ProductExperienceShell({ navigateSearchResult }: ProductExperien
         {learningAdminVisible ? <LearningWorkspace /> : null}
       </details>
 
-      <RelationshipOverlayHost />
+      <RelationshipOverlayHost readRoomStateEvents={readRoomStateEvents} />
     </main>
   );
 }
