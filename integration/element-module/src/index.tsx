@@ -46,6 +46,7 @@ class YanceElementModule implements Module {
         id: string;
         name: string;
         isDark: boolean;
+        colors?: Record<string, string>;
         compound?: Record<string, string>;
       }) => this.api.appearance.setTheme(theme),
     };
