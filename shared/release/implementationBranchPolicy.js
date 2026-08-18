@@ -540,6 +540,21 @@ function resolveFailureFirstCommitProtocol(implementation, implementationPaths) 
   });
 }
 
+function resolveForwardContinuationProtocol(authorization) {
+  const implementation = authorization?.implementation;
+  if (!isPlainJsonObject(implementation)
+    || !Object.prototype.hasOwnProperty.call(implementation, 'forwardContinuation')) return null;
+  const declaration = implementation.forwardContinuation;
+  if (!isPlainJsonObject(declaration)
+    || !sameJson(Object.keys(declaration).sort(), ['frozenPredecessorHead', 'required'])
+    || declaration.required !== true
+    || !SHA40.test(String(declaration.frozenPredecessorHead || ''))
+    || !isPlainJsonObject(authorization?.supersedes)) return false;
+  return Object.freeze({
+    frozenPredecessorHead: declaration.frozenPredecessorHead
+  });
+}
+
 function hasExactFailureFirstEvidence(commitMessage, redHead) {
   if (typeof commitMessage !== 'string' || !SHA40.test(String(redHead || ''))) return false;
   const specs = Object.freeze([
@@ -633,6 +648,9 @@ function isValidGenericDelegatedGovernanceAuthorization(document, authorizationP
 
   const failureFirstProtocol = resolveFailureFirstCommitProtocol(document.implementation, implementationPaths);
   if (failureFirstProtocol === false) return false;
+
+  const forwardContinuationProtocol = resolveForwardContinuationProtocol(document);
+  if (forwardContinuationProtocol === false) return false;
 
   const dependencyPaths = implementationPaths.filter(isDependencyControlPath);
   if (document.implementation.newDependencyAllowed === false) {
@@ -1371,6 +1389,47 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       authorityMode: null,
       unauthorizedPaths: []
     });
+  }
+
+  const forwardContinuationProtocol = resolveForwardContinuationProtocol(match.authorization);
+  if (forwardContinuationProtocol) {
+    const denyForwardContinuation = () => Object.freeze({
+      pass: false,
+      reasonCode: 'WP0_DELEGATED_GOVERNANCE_FORWARD_CONTINUATION_INVALID',
+      authorityMode: null,
+      authorizationPath: match.authorizationPath,
+      authorizationMergeCommit: match.mergeCommit,
+      reviewedAuthorizationHead: match.reviewedHead,
+      unauthorizedPaths: Object.freeze([])
+    });
+    const predecessorAuthorizationPath = edges.get(match.authorizationPath);
+    const predecessorRecord = predecessorAuthorizationPath
+      ? effectiveRecords.get(predecessorAuthorizationPath)
+      : null;
+    if (!predecessorRecord
+      || ancestor(predecessorRecord.mergeCommit, forwardContinuationProtocol.frozenPredecessorHead) !== true) {
+      return denyForwardContinuation();
+    }
+
+    const resolveFirstParentCommits = options.resolveFirstParentCommitsBetween
+      || ((base, head) => defaultFirstParentCommitsBetween(base, head, options));
+    const firstParentCommits = resolveFirstParentCommits(match.mergeCommit, evaluatedHead);
+    if (!Array.isArray(firstParentCommits)
+      || firstParentCommits.length === 0
+      || firstParentCommits.some(commit => !SHA40.test(String(commit || '')))
+      || new Set(firstParentCommits).size !== firstParentCommits.length
+      || firstParentCommits[firstParentCommits.length - 1] !== evaluatedHead) {
+      return denyForwardContinuation();
+    }
+
+    const firstImplementationCommit = firstParentCommits[0];
+    const firstImplementationParents = resolveParents(firstImplementationCommit);
+    if (!Array.isArray(firstImplementationParents)
+      || firstImplementationParents.length !== 2
+      || firstImplementationParents[0] !== match.mergeCommit
+      || firstImplementationParents[1] !== forwardContinuationProtocol.frozenPredecessorHead) {
+      return denyForwardContinuation();
+    }
   }
 
   const resolveMergeBases = options.resolveMergeBases
