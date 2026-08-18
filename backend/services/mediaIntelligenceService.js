@@ -133,37 +133,82 @@ function saveAnalysis(key, value) {
   return row;
 }
 function getAnalysis(key) { return settingsRepository.get('media-analysis', clean(key, 500), null); }
-async function analyzeFile({ filePath, kind, mimeType, caption = '', key = '' }) {
-  const normalized = normalizeKind(kind || mimeType || filePath);
-  if (normalized === 'audio') {
-    const result = await transcription.transcribe({ filePath, language: 'auto', translateToChinese: true });
-    return saveAnalysis(key || crypto.randomUUID(), { status: 'completed', kind: 'audio', transcript: result.transcript, translation: result.chinese, summary: result.chinese || result.transcript, language: result.language, durationMs: result.durationMs, engine: result.engine });
+
+function createMediaIntelligenceService({
+  transcriptionService = transcription,
+  persistAnalysis = saveAnalysis
+} = {}) {
+  if (!transcriptionService || typeof transcriptionService.transcribe !== 'function') {
+    throw new TypeError('Media intelligence requires a transcription scheduling service');
   }
-  if (normalized === 'image' || normalized === 'video') {
-    const input = await prepareVisionInput({ filePath, mimeType, kind: normalized });
-    try {
-      return saveAnalysis(key || crypto.randomUUID(), await analyzeImageBuffer({ buffer: input.buffer, mimeType: input.mimeType, caption, kind: normalized }));
-    } finally { input.cleanup(); }
+  if (typeof persistAnalysis !== 'function') {
+    throw new TypeError('Media intelligence requires an analysis persistence function');
   }
-  return saveAnalysis(key || crypto.randomUUID(), { status: 'unavailable', kind: normalized, error: '当前媒体类型暂不支持自动识别' });
-}
-async function analyzeMessage({ sessionKey, messageId }) {
-  const message = findMessage(clean(sessionKey), clean(messageId));
-  if (!message) throw Object.assign(new Error('消息不存在'), { code: 'MESSAGE_NOT_FOUND', status: 404 });
-  const attachment = attachmentFromMessage(message);
-  if (!attachment.filePath) throw Object.assign(new Error('消息媒体尚未缓存到本地'), { code: 'MEDIA_NOT_CACHED', status: 409 });
-  return analyzeFile({ ...attachment, key: message.id || messageId });
-}
-async function analyzeBuffer({ buffer, kind, mimeType, caption = '', key = '' }) {
-  const normalized = normalizeKind(kind || mimeType);
-  if (normalized === 'image' || normalized === 'video') {
-    const input = await prepareVisionInput({ buffer, mimeType, kind: normalized });
-    try {
-      const result = await analyzeImageBuffer({ buffer: input.buffer, mimeType: input.mimeType, caption, kind: normalized });
-      return saveAnalysis(key || crypto.randomUUID(), result);
-    } finally { input.cleanup(); }
+
+  async function analyzeFile({ filePath, kind, mimeType, caption = '', key = '' }) {
+    const normalized = normalizeKind(kind || mimeType || filePath);
+    const analysisKey = key || crypto.randomUUID();
+    if (normalized === 'audio') {
+      const scheduled = await transcriptionService.transcribe({
+        mediaReference: clean(filePath, 5000),
+        filePath: clean(filePath, 5000),
+        language: 'auto',
+        translateToChinese: true,
+        traceId: `media-intelligence:${analysisKey}`,
+        sourceScopeReference: `media-intelligence-source:${analysisKey}`,
+        destinationScopeReference: `media-intelligence-result:${analysisKey}`,
+        custodyReference: `media-intelligence-custody:${analysisKey}`
+      });
+      return persistAnalysis(analysisKey, {
+        status: 'scheduled',
+        kind: 'audio',
+        executionId: clean(scheduled?.executionId, 2048),
+        intentId: clean(scheduled?.intentId, 2048),
+        operationKind: clean(scheduled?.operationKind, 128),
+        idempotencyKey: clean(scheduled?.idempotencyKey, 2048)
+      });
+    }
+    if (normalized === 'image' || normalized === 'video') {
+      const input = await prepareVisionInput({ filePath, mimeType, kind: normalized });
+      try {
+        return persistAnalysis(analysisKey, await analyzeImageBuffer({ buffer: input.buffer, mimeType: input.mimeType, caption, kind: normalized }));
+      } finally { input.cleanup(); }
+    }
+    return persistAnalysis(analysisKey, { status: 'unavailable', kind: normalized, error: '当前媒体类型暂不支持自动识别' });
   }
-  throw Object.assign(new Error('流式识别当前只接受图片或视频代表帧'), { code: 'STREAM_ANALYSIS_KIND_UNSUPPORTED' });
+
+  async function analyzeMessage({ sessionKey, messageId }) {
+    const message = findMessage(clean(sessionKey), clean(messageId));
+    if (!message) throw Object.assign(new Error('消息不存在'), { code: 'MESSAGE_NOT_FOUND', status: 404 });
+    const attachment = attachmentFromMessage(message);
+    if (!attachment.filePath) throw Object.assign(new Error('消息媒体尚未缓存到本地'), { code: 'MEDIA_NOT_CACHED', status: 409 });
+    return analyzeFile({ ...attachment, key: message.id || messageId });
+  }
+
+  async function analyzeBuffer({ buffer, kind, mimeType, caption = '', key = '' }) {
+    const normalized = normalizeKind(kind || mimeType);
+    if (normalized === 'image' || normalized === 'video') {
+      const input = await prepareVisionInput({ buffer, mimeType, kind: normalized });
+      try {
+        const result = await analyzeImageBuffer({ buffer: input.buffer, mimeType: input.mimeType, caption, kind: normalized });
+        return persistAnalysis(key || crypto.randomUUID(), result);
+      } finally { input.cleanup(); }
+    }
+    throw Object.assign(new Error('流式识别当前只接受图片或视频代表帧'), { code: 'STREAM_ANALYSIS_KIND_UNSUPPORTED' });
+  }
+
+  return Object.freeze({ analyzeMessage, analyzeFile, analyzeBuffer });
 }
 
-module.exports = { analyzeMessage, analyzeFile, analyzeBuffer, getAnalysis, normalizeKind, parseJson, analyzeImageBuffer, prepareVisionInput, requiresRepresentativeFrame };
+const defaultMediaIntelligenceService = createMediaIntelligenceService();
+
+module.exports = {
+  ...defaultMediaIntelligenceService,
+  createMediaIntelligenceService,
+  getAnalysis,
+  normalizeKind,
+  parseJson,
+  analyzeImageBuffer,
+  prepareVisionInput,
+  requiresRepresentativeFrame
+};

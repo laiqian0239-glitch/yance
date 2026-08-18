@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_B_XSTATE_FAULT_GREEN_EVIDENCE",
+  "workPackage": "WP-B",
+  "candidateId": "XSTATE_CORE_5_32_5",
+  "reviewedImplementationHead": "b807603162606d79e74d1180f7cad15cfd58d338",
+  "workflowRun": {
+    "id": 30796337742,
+    "name": "WP-B Validation",
+    "exactHeadCheckoutEnforced": true,
+    "ubuntu": {
+      "jobId": 91630658913,
+      "status": "PASSED",
+      "passCount": 12,
+      "failCount": 0,
+      "skipCount": 0
+    },
+    "windows": {
+      "jobId": 91630658908,
+      "status": "PASSED",
+      "passCount": 12,
+      "failCount": 0,
+      "skipCount": 0
+    }
+  },
+  "sourceBinding": {
+    "adapterPath": "backend/services/xstateLifecycleAdapter.js",
+    "adapterBlobSha": "1bbf2480211c788233c4973cececdbfcc8c436f7",
+    "lifecyclePath": "backend/services/durableExecutionLifecycle.js",
+    "lifecycleBlobSha": "4087b36b400ef59fbb9f80559245a90765fbed87",
+    "adapterContractPath": "backend/tests/architectureClosureV2/wpB/xstateLifecycleAdapter.test.js",
+    "adapterContractBlobSha": "851adde0a34510c3962354f83503ef233713ac94",
+    "faultContractPath": "backend/tests/architectureClosureV2/wpB/xstateLifecycleAdapterFaults.test.js",
+    "faultContractBlobSha": "76d04a60c029e4088429dd2ba30bacea1bfe4bad"
+  },
+  "faultCapabilities": [
+    "RUNTIME_UNAVAILABLE_NORMALIZATION",
+    "MISSING_RUNTIME_EXPORT",
+    "CREATE_MACHINE_FAILURE_NORMALIZATION",
+    "INITIAL_SNAPSHOT_FAILURE_NORMALIZATION",
+    "TRANSITION_FAILURE_NORMALIZATION",
+    "TRANSITION_PARITY_DIVERGENCE",
+    "CONFIGURATION_REJECTED_BEFORE_RUNTIME_LOAD"
+  ],
+  "crossWorkPackageRegression": {
+    "wp0": {
+      "runId": 30796337410,
+      "status": "PASSED"
+    },
+    "wpAArchitecture": {
+      "runId": 30796337419,
+      "status": "PASSED"
+    },
+    "wpAPostMerge": {
+      "runId": 30796337547,
+      "status": "PASSED"
+    }
+  },
+  "authorization": {
+    "crossPlatformAndFaultValidationComplete": true,
+    "noticeSbomProvenanceComplete": false,
+    "independentReviewComplete": false,
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "temporaryBypassAllowed": false
+  }
+}

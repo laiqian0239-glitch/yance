@@ -14,7 +14,7 @@ const logger = require('../services/logger');
 const operationalProjectionReceipts = require('../services/operationalProjectionReceiptAuthority');
 const externalIdentityAuthority = require('../services/externalIdentityAuthority').singleton;
 const identityDomainEventOutbox = require('../services/identityDomainEventOutboxService').singleton;
-const backgroundJobAuthority = require('../services/backgroundJobAuthority');
+const { DurableInternalOperationAuthority, currentRuntimeInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
 
 const platformCoreRepository = createPlatformCoreRepository({ storeProvider: getStore });
 const domainEventLog = new DomainEventLogService({ repository: platformCoreRepository });
@@ -62,20 +62,161 @@ function recordOperationalFailure(created, cause, targetRefs = []) {
 }
 
 function now() { return new Date().toISOString(); }
-function projectionRetry(attempts) { return new Date(Date.now() + Math.min(300, Math.max(5, 2 ** Math.min(8, Number(attempts || 0)))) * 1000).toISOString(); }
+const PROJECTION_OPERATION_TYPE = 'projection.domain-event-message';
+const PROJECTION_MAX_ATTEMPTS = 5;
+
+function projectionAuthorityForStore(store) {
+  try {
+    const runtimeAuthority = currentRuntimeInternalOperationAuthority();
+    if (runtimeAuthority.store().db === store.db) return runtimeAuthority;
+  } catch (_) {}
+  const capability = store?.authorityWriteHostCapability;
+  if (!capability || typeof capability.tokenSnapshot !== 'function') {
+    throw Object.assign(new Error('Domain projection requires the current AuthorityWriteHost capability'), {
+      code: 'DOMAIN_EVENT_PROJECTION_AUTHORITY_WRITE_HOST_REQUIRED'
+    });
+  }
+  return new DurableInternalOperationAuthority({
+    storeProvider: () => store,
+    tokenProvider: () => capability.tokenSnapshot()
+  });
+}
+
+function projectionOperationSpec(event = {}) {
+  const eventId = String(event.eventId || event.event_id || '').trim();
+  if (!eventId) throw Object.assign(new Error('Domain projection operation requires eventId'), { code: 'DOMAIN_EVENT_ID_MISSING' });
+  const objectFingerprint = String(event.payloadSha256 || event.payload_sha256 || '').trim()
+    || crypto.createHash('sha256').update(JSON.stringify(event.payload || {})).digest('hex');
+  return {
+    operationId: `project-${eventId}`,
+    operationType: PROJECTION_OPERATION_TYPE,
+    scopeKey: eventId,
+    objectFingerprint,
+    maxAttempts: PROJECTION_MAX_ATTEMPTS,
+    metadata: { messageId: eventId, resultReference: eventId }
+  };
+}
+
+function compatibilityProjectionState(operation = {}) {
+  return ({
+    SCHEDULED: 'pending',
+    RUNNING: 'processing',
+    RETRY_SCHEDULED: 'failed',
+    SUCCEEDED: 'applied',
+    FAILED: 'quarantined',
+    DEAD_LETTERED: 'quarantined',
+    CANCELLED: 'quarantined'
+  })[String(operation.state || '').trim()] || 'pending';
+}
+
+function projectCanonicalProjectionOperation(store, eventId, operation = {}, error = null) {
+  const state = compatibilityProjectionState(operation);
+  const at = String(operation.updatedAt || now());
+  const createdAt = String(operation.createdAt || at);
+  const attempts = Math.max(0, Number(operation.retryCount || 0)) + (['RUNNING', 'SUCCEEDED'].includes(operation.state) ? 1 : 0);
+  store.db.prepare(`INSERT INTO domain_event_projection_jobs(
+      job_id,event_id,projector_name,state,attempts,claim_token,lease_expires_at,next_attempt_at,last_error,created_at,updated_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(event_id) DO UPDATE SET
+      state=excluded.state,attempts=excluded.attempts,claim_token=excluded.claim_token,
+      lease_expires_at=excluded.lease_expires_at,next_attempt_at=excluded.next_attempt_at,
+      last_error=excluded.last_error,updated_at=excluded.updated_at`).run(
+    `project-${eventId}`,
+    eventId,
+    'message-projection',
+    state,
+    attempts,
+    String(operation.claimId || ''),
+    String(operation.leaseExpiresAt || ''),
+    String(operation.nextAttemptAt || ''),
+    state === 'failed' || state === 'quarantined'
+      ? String(error?.message || error?.code || operation.failureCode || 'DOMAIN_EVENT_PROJECTION_FAILED').slice(0, 2000)
+      : '',
+    createdAt,
+    at
+  );
+  return state;
+}
+
+function maybeRecoverProjectionOperation(authority, operation) {
+  const currentTime = Date.now();
+  const retryDue = operation?.state === 'RETRY_SCHEDULED'
+    && (!operation.nextAttemptAt || Date.parse(operation.nextAttemptAt) <= currentTime);
+  const leaseExpired = operation?.state === 'RUNNING'
+    && operation.leaseExpiresAt
+    && Date.parse(operation.leaseExpiresAt) <= currentTime;
+  if (!retryDue && !leaseExpired) return operation;
+  const { currentRuntimeRecoveryAuthority, DurableExecutionRecoveryAuthority } = require('../services/durableExecutionRecoveryAuthority');
+  let recovery;
+  try { recovery = currentRuntimeRecoveryAuthority(); }
+  catch (_) {
+    const store = authority.store();
+    recovery = new DurableExecutionRecoveryAuthority({
+      storeProvider: () => store,
+      authorityWriteHostCapability: store.authorityWriteHostCapability
+    });
+  }
+  recovery.recoverExecution(operation.operationId, { authorityTimestamp: new Date(currentTime).toISOString() });
+  return authority.read(operation.operationId);
+}
+
 function appendInboundEventWithProjectionJob(store, input = {}) {
   return store.transaction(() => {
     const created = domainEventLog.append(input);
     const eventId = String(created?.event?.eventId || '').trim();
     if (!eventId) throw Object.assign(new Error('Domain event append did not return eventId'), { code: 'DOMAIN_EVENT_ID_MISSING' });
-    const at = now();
-    store.db.prepare(`INSERT INTO domain_event_projection_jobs(
-      job_id,event_id,projector_name,state,attempts,claim_token,lease_expires_at,next_attempt_at,last_error,created_at,updated_at
-    ) VALUES(?,?,?,'pending',0,'','','','',?,?)
-    ON CONFLICT(event_id) DO NOTHING`).run(`project-${eventId}`, eventId, 'message-projection', at, at);
+    const authority = projectionAuthorityForStore(store);
+    const scheduled = authority.create(projectionOperationSpec(created.event)).operation;
+    projectCanonicalProjectionOperation(store, eventId, scheduled);
     return created;
   });
 }
+
+function claimProjectionOperation(store, event = {}) {
+  const eventId = String(event.eventId || event.event_id || '').trim();
+  const authority = projectionAuthorityForStore(store);
+  const created = authority.create(projectionOperationSpec(event));
+  let operation = maybeRecoverProjectionOperation(authority, created.operation);
+  if (operation.state === 'SCHEDULED') {
+    operation = authority.start(operation.operationId, { progress: 1 }).operation;
+    projectCanonicalProjectionOperation(store, eventId, operation);
+    return {
+      eventId,
+      authority,
+      applied: false,
+      operationId: operation.operationId,
+      generation: operation.generation,
+      objectFingerprint: operation.objectFingerprint
+    };
+  }
+  projectCanonicalProjectionOperation(store, eventId, operation);
+  if (operation.state === 'SUCCEEDED') return { eventId, authority, applied: true };
+  throw Object.assign(new Error('Domain event projection operation is not claimable'), {
+    code: operation.state === 'RUNNING' ? 'DOMAIN_EVENT_PROJECTION_JOB_BUSY' : 'DOMAIN_EVENT_PROJECTION_JOB_NOT_CLAIMABLE',
+    status: 409,
+    eventId,
+    state: operation.state
+  });
+}
+
+function settleProjectionOperation(store, claim, state, error = null) {
+  if (!claim || claim.applied) return null;
+  const options = {
+    generation: claim.generation,
+    objectFingerprint: claim.objectFingerprint
+  };
+  const result = state === 'applied'
+    ? claim.authority.succeed(claim.operationId, { status: 'applied', resultReference: claim.eventId }, options)
+    : claim.authority.fail(claim.operationId, { errorCode: String(error?.code || 'DOMAIN_EVENT_PROJECTION_FAILED') }, {
+      ...options,
+      retryable: true,
+      retryDelayMs: 0,
+      reasonCode: String(error?.code || 'DOMAIN_EVENT_PROJECTION_FAILED')
+    });
+  projectCanonicalProjectionOperation(store, claim.eventId, result.operation, error);
+  return result;
+}
+
 function existingAuthoritativeDomainEvent(eventId) {
   const row = platformCoreRepository.getDomainEvent(String(eventId || '').trim());
   if (!row) throw Object.assign(new Error('Authoritative domain event for projection replay was not found'), {
@@ -104,46 +245,6 @@ function existingAuthoritativeDomainEvent(eventId) {
   };
 }
 
-function recoverExpiredProjectionJob(store, eventId = '') {
-  const at = now();
-  const params = [at, at, at];
-  let sql = `UPDATE domain_event_projection_jobs
-    SET state='failed',claim_token='',lease_expires_at='',last_error='PROCESSING_LEASE_EXPIRED',next_attempt_at=?,updated_at=?
-    WHERE state='processing' AND lease_expires_at<>'' AND lease_expires_at<=?`;
-  if (eventId) { sql += ' AND event_id=?'; params.push(eventId); }
-  return Number(store.db.prepare(sql).run(...params).changes || 0);
-}
-function claimProjectionJob(store, eventId) {
-  recoverExpiredProjectionJob(store, eventId);
-  const token = crypto.randomUUID();
-  const at = now();
-  const lease = new Date(Date.now() + 60000).toISOString();
-  const updated = store.db.prepare(`UPDATE domain_event_projection_jobs
-    SET state='processing',attempts=attempts+1,claim_token=?,lease_expires_at=?,updated_at=?
-    WHERE event_id=? AND state IN ('pending','failed') AND (next_attempt_at='' OR next_attempt_at<=?)`)
-    .run(token, lease, at, eventId, at);
-  if (Number(updated.changes || 0) !== 1) {
-    const row = store.db.prepare('SELECT * FROM domain_event_projection_jobs WHERE event_id=?').get(eventId);
-    if (row?.state === 'applied') return { eventId, applied: true, token: '' };
-    throw Object.assign(new Error('Domain event projection job is not claimable'), {
-      code: row?.state === 'processing' ? 'DOMAIN_EVENT_PROJECTION_JOB_BUSY' : 'DOMAIN_EVENT_PROJECTION_JOB_NOT_CLAIMABLE',
-      status: 409, eventId, state: row?.state || 'missing'
-    });
-  }
-  return { eventId, token, applied: false };
-}
-function settleProjectionJobWithinTransaction(store, claim, state, error = null) {
-  if (!claim || claim.applied) return;
-  const at = now();
-  const target = state === 'applied' ? 'applied' : 'failed';
-  const row = store.db.prepare('SELECT attempts FROM domain_event_projection_jobs WHERE event_id=?').get(claim.eventId);
-  const nextAttemptAt = target === 'failed' ? projectionRetry(Number(row?.attempts || 1)) : '';
-  const updated = store.db.prepare(`UPDATE domain_event_projection_jobs
-    SET state=?,claim_token='',lease_expires_at='',next_attempt_at=?,last_error=?,updated_at=?
-    WHERE event_id=? AND state='processing' AND claim_token=?`)
-    .run(target, nextAttemptAt, target === 'failed' ? String(error?.message || error?.code || 'DOMAIN_EVENT_PROJECTION_FAILED').slice(0, 2000) : '', at, claim.eventId, claim.token);
-  if (Number(updated.changes || 0) !== 1) throw Object.assign(new Error('Stale projection completion rejected'), { code: 'DOMAIN_EVENT_PROJECTION_STALE_COMPLETION', eventId: claim.eventId });
-}
 function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 
 function normalizeMessage(message = {}) {
@@ -469,7 +570,7 @@ async function upsert(input) {
   let projectionClaim = null;
   const identityScope = inboundIdentityScope(message);
   if (authoritativeDomainEvent?.event?.eventId) {
-    projectionClaim = store.transaction(() => claimProjectionJob(store, authoritativeDomainEvent.event.eventId));
+    projectionClaim = claimProjectionOperation(store, authoritativeDomainEvent.event);
   }
   try {
     store.transaction(() => {
@@ -536,7 +637,7 @@ async function upsert(input) {
         }
       }
       for (const job of durableJobs) {
-        backgroundJobAuthority.enqueue(job, { maxAttempts: Number(job.maxAttempts || 5) }, store);
+        enqueueDurableInternalJobWithinTransaction(job, store);
       }
 
       if (authoritativeDomainEvent?.event?.eventId) {
@@ -555,7 +656,7 @@ async function upsert(input) {
           projection: savedProjection,
           targetRefs: [{ table: 'r32_messages', id: saved.id }]
         });
-        settleProjectionJobWithinTransaction(store, projectionClaim, 'applied');
+        settleProjectionOperation(store, projectionClaim, 'applied');
       }
     });
   } catch (cause) {
@@ -581,7 +682,7 @@ async function upsert(input) {
     if (outboundEchoDomainEvent?.event?.eventId) recordOperationalFailure(outboundEchoDomainEvent, cause, [{ table: 'r32_messages', id: message.id }]);
     if (authoritativeDomainEvent?.event?.eventId && projectionClaim && !projectionClaim.applied) {
       try {
-        store.transaction(() => settleProjectionJobWithinTransaction(store, projectionClaim, 'failed', cause));
+        settleProjectionOperation(store, projectionClaim, 'failed', cause);
       } catch (jobError) {
         logger.error('domain-event', 'projection-job-failure-checkpoint-failed', {
           eventId: authoritativeDomainEvent.event.eventId, code: jobError.code || 'PROJECTION_JOB_FAILURE_CHECKPOINT_FAILED', error: jobError.message

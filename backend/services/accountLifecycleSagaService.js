@@ -5,7 +5,10 @@ const { getStore } = require('../repositories/storeProvider');
 const accountStore = require('./accountStore');
 const platformDrivers = require('./platformDriverRegistry');
 const logger = require('./logger');
-const asyncOperationLifecycleAuthority = require('./asyncOperationLifecycleAuthority').authority;
+const communicationAuthority = require('./communicationAuthority');
+const { DurableExecutionAuthority } = require('./durableExecutionAuthority');
+const { ExternalActionOutboxAuthority } = require('./externalActionOutboxAuthority');
+const { executePreparedOperation } = require('./externalActionDispatcher');
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function nowIso() { return new Date().toISOString(); }
@@ -18,6 +21,8 @@ class AccountLifecycleSagaService {
     this.accountStore = options.accountStore || accountStore;
     this.platformDrivers = options.platformDrivers || platformDrivers;
     this._credentials = options.credentials || null;
+    this._durableDispatch = null;
+    this._durableDispatchState = Object.freeze({ configured: false, startupDispatched: 0, startupSkipped: 0 });
   }
 
   store() { return this.storeProvider(); }
@@ -108,8 +113,6 @@ class AccountLifecycleSagaService {
     const saga = this.latest(accountId, 'connect');
     if (!saga || !['running','compensating'].includes(saga.state)) return null;
     const normalized = clean(state).toLowerCase();
-    // A connected adapter is not enough to complete the Saga. The persisted
-    // identity/account projection must reach sqlite_identity_committed first.
     if (['connected','limited'].includes(normalized)) {
       if (saga.phase === 'sqlite_identity_committed') return await this.finish(saga.operation_id, 'succeeded', { adapterReceipt: detail });
       return { updated: false, requiresIdentityCommit: true, saga };
@@ -262,31 +265,80 @@ class AccountLifecycleSagaService {
     return report;
   }
 
+  configureDurableOperationDispatch() {
+    const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+    const runtime = AppRuntimeFactory.current();
+    const composition = runtime?.composition;
+    const authorityStore = runtime?.primaryAuthorityStore;
+    const authorityWriteHostCapability = runtime?.authorityWriteHostCapability;
+    const operationRegistry = composition?.durableOperationRegistry;
+    if (!runtime || !composition || !authorityStore?.db || !authorityWriteHostCapability
+        || !operationRegistry || typeof operationRegistry.require !== 'function') {
+      throw Object.assign(new Error('Canonical durable operation runtime is unavailable'), {
+        code: 'WP_B_DURABLE_OPERATION_RUNTIME_REQUIRED'
+      });
+    }
+    const storeProvider = () => authorityStore;
+    const executionAuthority = new DurableExecutionAuthority({ storeProvider });
+    const outboxAuthority = new ExternalActionOutboxAuthority({ storeProvider });
+    const dispatch = async prepared => {
+      if (runtime.operatingMode === 'safeMode') {
+        return Object.freeze({
+          dispatched: false,
+          executionId: clean(prepared?.executionId),
+          intentId: clean(prepared?.intentId),
+          reason: 'SAFE_MODE_SUPPRESSED'
+        });
+      }
+      return executePreparedOperation({
+        prepared,
+        executionAuthority,
+        outboxAuthority,
+        operationRegistry,
+        authorityWriteHostCapability,
+        issueTimestamp: () => nowIso()
+      });
+    };
+    communicationAuthority.configureOperationDispatcher(dispatch);
+    this._durableDispatch = dispatch;
+    this._durableDispatchState = Object.freeze({
+      configured: true,
+      startupDispatched: this._durableDispatchState.startupDispatched,
+      startupSkipped: this._durableDispatchState.startupSkipped
+    });
+    return Object.freeze({ dispatch, composition, runtime });
+  }
+
+  async dispatchStartupSessionRestores() {
+    const context = this.configureDurableOperationDispatch();
+    const rows = Array.isArray(context.composition?.sessionRestoreStartupReceipt?.result)
+      ? context.composition.sessionRestoreStartupReceipt.result
+      : [];
+    let startupDispatched = 0;
+    let startupSkipped = 0;
+    for (const prepared of rows) {
+      const result = await context.dispatch(prepared);
+      if (result?.dispatched === true) startupDispatched += 1;
+      else startupSkipped += 1;
+    }
+    this._durableDispatchState = Object.freeze({
+      configured: true,
+      startupDispatched,
+      startupSkipped
+    });
+    return this._durableDispatchState;
+  }
+
+  durableDispatchSnapshot() {
+    return this._durableDispatchState;
+  }
+
   async prepare() { return { ready: true }; }
   async start() {
     try {
       const saga = await this.recoverInterrupted();
-      const auth = await asyncOperationLifecycleAuthority.recoverInterruptedAuthOperations({
-        canResume: async adapterSessionId => {
-          for (const platform of ['whatsapp','telegram','facebook']) {
-            try {
-              const driver = this.platformDrivers.get(platform);
-              if (typeof driver.canResumeAuthSession === 'function' && await driver.canResumeAuthSession(adapterSessionId)) return true;
-            } catch (_) {}
-          }
-          return false;
-        },
-        resume: async adapterSessionId => {
-          for (const platform of ['whatsapp','telegram','facebook']) {
-            try {
-              const driver = this.platformDrivers.get(platform);
-              if (typeof driver.resumeAuthSession === 'function') return await driver.resumeAuthSession(adapterSessionId);
-            } catch (_) {}
-          }
-          return null;
-        }
-      });
-      return { saga, auth };
+      const durableSessionRestore = await this.dispatchStartupSessionRestores();
+      return { saga, durableSessionRestore };
     } catch (error) {
       logger.error('accounts', 'account-saga-recovery-failed', { code: error.code || 'ACCOUNT_SAGA_RECOVERY_FAILED', error: error.message });
       throw error;

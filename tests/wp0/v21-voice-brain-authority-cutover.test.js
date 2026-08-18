@@ -11,18 +11,26 @@ function read(file) {
   return fs.readFileSync(path.join(ROOT, file), 'utf8');
 }
 
-test('legacy Whisper ASR discovery and execution authority is retired at source', () => {
-  const transcription = read('backend/services/transcriptionService.js');
+test('legacy Whisper ASR authority is retired while the wrapper delegates physical Voice Brain ownership to core', () => {
+  const wrapper = read('backend/services/transcriptionService.js');
+  const core = read('backend/services/transcriptionServiceCore.js');
 
-  assert.match(transcription, /SenseVoice/iu, 'transcriptionService must name SenseVoice as the ASR authority');
+  assert.match(wrapper, /require\('\.\/transcriptionServiceCore'\)/u, 'transcriptionService wrapper must delegate to the canonical core');
+  assert.match(wrapper, /asynchronousServiceBoundary/u, 'wrapper must preserve the asynchronous service boundary');
+  assert.match(wrapper, /executePersistedTranscription/u, 'wrapper must expose only persisted physical execution');
+  assert.doesNotMatch(wrapper, /spawn\s*\(|spawnSync\s*\(|SENSEVOICE_EXECUTABLE|SENSEVOICE_MODEL/u, 'wrapper must not duplicate physical ASR authority');
+
+  assert.match(core, /SenseVoice/iu, 'transcriptionServiceCore must name SenseVoice as the ASR authority');
+  assert.match(core, /persistedTranscriptionAttempt/u, 'physical transcription must validate a persisted WP-B attempt');
+  assert.match(core, /executePersistedTranscription/u, 'core must expose persisted physical execution');
   assert.doesNotMatch(
-    transcription,
+    `${wrapper}\n${core}`,
     /YANCE_WHISPER_(?:MODEL|COMMAND)|whisper-cpp|openai-whisper-cli|discoverModel|discoverEngine|executeEngine/iu,
-    'legacy Whisper model, command, discovery and execution authority must be removed'
+    'legacy Whisper model, command, discovery and execution authority must remain removed'
   );
 
-  assert.match(transcription, /\brunCommand\b/u, 'generic process helper must remain available to existing Media consumers');
-  assert.match(transcription, /\bdiscoverFfmpeg\b/u, 'generic FFmpeg discovery must remain available to existing Media consumers');
+  assert.match(core, /\brunCommand\b/u, 'generic process helper must remain available to existing Media consumers');
+  assert.match(core, /\bdiscoverFfmpeg\b/u, 'generic FFmpeg discovery must remain available to existing Media consumers');
 });
 
 test('speech installer no longer launches or owns the legacy Whisper installer', () => {
@@ -36,6 +44,7 @@ test('speech installer no longer launches or owns the legacy Whisper installer',
 test('Voice source does not recreate a fallback ASR or TTS engine', () => {
   const authorizedProductFiles = [
     'backend/services/transcriptionService.js',
+    'backend/services/transcriptionServiceCore.js',
     'backend/services/speechInstallerService.js'
   ].map(read).join('\n');
 

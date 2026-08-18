@@ -38,6 +38,13 @@ markStartupPhase('directoriesReadyMs');
 
 const RUNTIME_COMPOSITION = APP_RUNTIME.configureProductionServices();
 const STARTUP_AUTHORITY_READINESS = AppRuntimeFactory.assertAuthorityReady();
+const durableExecutionRecoveryAuthority = RUNTIME_COMPOSITION.authorities?.durableExecutionRecoveryAuthority;
+if (!durableExecutionRecoveryAuthority
+    || typeof durableExecutionRecoveryAuthority.recoverNonterminalExecutions !== 'function') {
+  const error = new Error('Durable execution recovery authority is not composed');
+  error.code = 'WP_B_RUNTIME_RECOVERY_AUTHORITY_REQUIRED';
+  throw error;
+}
 
 function executeStartupAuthorityCommand(commandType, payload = {}) {
   const snapshot = APP_RUNTIME.snapshot();
@@ -86,17 +93,36 @@ if (!startupMigration?.ok) {
   throw error;
 }
 
-let startupArchitectureClosure = { ok: true, executed: false, identity: null, cache: null, interruptedSyncs: [], interruptedBackgroundJobs: [] };
+let startupArchitectureClosure = {
+  ok: true,
+  executed: false,
+  identity: null,
+  cache: null,
+  recoveredDurableExecutions: [],
+  interruptedSyncs: [],
+  interruptedBackgroundJobs: []
+};
 try {
+  const recoveredDurableExecutions = executeStartupAuthorityCommand(
+    'startup.recoverDurableExecutions',
+    { authorityTimestamp: new Date().toISOString() }
+  ).result || [];
   const interruptedSyncs = executeStartupAuthorityCommand('startup.recoverSync').result || [];
   const interruptedBackgroundJobs = executeStartupAuthorityCommand('startup.recoverBackgroundJobs', { retryDelayMs: 30_000 }).result || [];
   const identity = executeStartupAuthorityCommand('startup.canonicalizeIdentity', { dryRun: false }).result;
   const cache = executeStartupAuthorityCommand('startup.purgeCache').result;
   startupArchitectureClosure = {
     ok: true,
-    executed: Boolean(identity?.executed || cache?.removed?.length || interruptedSyncs.length || interruptedBackgroundJobs.length),
+    executed: Boolean(
+      recoveredDurableExecutions.length
+      || identity?.executed
+      || cache?.removed?.length
+      || interruptedSyncs.length
+      || interruptedBackgroundJobs.length
+    ),
     identity,
     cache,
+    recoveredDurableExecutions,
     interruptedSyncs,
     interruptedBackgroundJobs,
     at: new Date().toISOString()
@@ -143,7 +169,6 @@ const backupScheduler = require('./services/backupScheduler');
 const sendQueueService = require('./services/sendQueueService');
 const localPersistenceRepairService = require('./services/localPersistenceRepairService');
 const runtimeRecovery = require('./services/runtimeRecoveryService');
-const runtimeSettings = require('./services/runtimeSettings');
 const aiAutomation = require('./services/aiBrainOrchestrator');
 const storeManagerService = require('./services/storeManagerService');
 const aiReplyOutboxService = require('./services/aiReplyOutboxService');
@@ -296,7 +321,13 @@ function announceReady() {
   const authorityState = AppRuntimeFactory.assertAuthorityReady({ requireStartupGatewaySealed: true });
   const canonicalLedgerReady = authorityState.canonicalLedgerReady === true;
   const identityAuthorityReady = authorityState.identityAuthorityReady === true;
-  if (!authorityState.authorityWriteHostBound || !canonicalLedgerReady || !identityAuthorityReady || !authorityState.canonicalGraphBound || !authorityState.startupGatewaySealed) {
+  const durableExecutionRecoveryReady = authorityState.durableExecutionRecoveryReady === true;
+  if (!authorityState.authorityWriteHostBound
+      || !canonicalLedgerReady
+      || !identityAuthorityReady
+      || !durableExecutionRecoveryReady
+      || !authorityState.canonicalGraphBound
+      || !authorityState.startupGatewaySealed) {
     const error = new Error('Backend authority readiness could not be proven');
     error.code = 'BACKEND_AUTHORITY_READINESS_FAILED';
     throw error;
@@ -314,7 +345,12 @@ function announceReady() {
     host: CONFIG.host,
     port: boundServerPort(),
     url: `http://${CONFIG.host}:${boundServerPort()}`,
-    authorityReadiness: { ...authorityState, canonicalLedgerReady, identityAuthorityReady }
+    authorityReadiness: {
+      ...authorityState,
+      canonicalLedgerReady,
+      identityAuthorityReady,
+      durableExecutionRecoveryReady
+    }
   };
   sendParentMessage(payload);
   try {
@@ -682,10 +718,6 @@ server.listen(CONFIG.port, CONFIG.host, async () => {
   if (!safeModeActive) {
     sendQueueService.start();
     localPersistenceRepairService.start();
-    runtimeRecovery.start();
-    if (runtimeSettings.read().autoConnectAccounts) {
-      runtimeRecovery.scheduleRecovery('startup-auto-connect', 250);
-    }
   } else {
     sendQueueService.pause?.('safe-mode');
     logger.warn('recovery', 'safe-mode-runtime-restrictions-active', { reason: safeModeService.read().reason });

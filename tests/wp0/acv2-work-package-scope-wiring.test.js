@@ -10,6 +10,8 @@ const repoRoot = path.join(__dirname, '..', '..');
 const verifyGatePath = path.join(repoRoot, 'tools', 'wp0', 'verify-gate.js');
 const protectedCommandPath = path.join(repoRoot, 'tools', 'wp0', 'run-protected-command.js');
 const sharedScopeGatePath = path.join(repoRoot, 'tools', 'wp0', 'work-package-scope-gate.js');
+const legacyScopeGatePath = path.join(repoRoot, 'tools', 'wp0', 'work-package-scope-gate-legacy.js');
+const activeAuthorityPath = path.join(repoRoot, 'shared', 'release', 'acv2ActiveWorkPackageAuthority.js');
 const authorizationPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'implementation-plan-authorization.json');
 const taskScopeChainPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'wp-a-task-scope-chain.json');
 const postMergeDefectPath = path.join(repoRoot, 'governance', 'architecture-closure-v2', 'wp-a-post-merge-defect-001.json');
@@ -49,27 +51,46 @@ test('every executable WP0 entrypoint consumes one shared ACV2 work-package scop
   assert.match(protectedSource, /evidenceSourceCommit/);
 });
 
-test('shared scope gate preserves the immutable task chain and adds fail-closed post-close defect scope', () => {
-  assert.equal(fs.existsSync(sharedScopeGatePath), true, 'shared work-package scope gate must exist');
-  const source = fs.readFileSync(sharedScopeGatePath, 'utf8');
-  assert.match(source, /evaluateAuthorizedWorkPackageTaskScope/);
-  assert.match(source, /loadWorkPackageTaskScopeChain/);
-  assert.match(source, /validateWorkPackageTaskScopeChain/);
-  assert.match(source, /taskScopeChainApplied/);
-  assert.match(source, /activeTask/);
-  assert.match(source, /evaluateAuthorizedWorkPackageScope/);
-  assert.match(source, /loadWorkPackageScopeAmendment/);
-  assert.match(source, /evaluateAuthorizedPostMergeDefectScope/);
-  assert.match(source, /loadWorkPackagePostMergeDefect/);
-  assert.match(source, /isValidWorkPackagePostMergeDefect/);
-  assert.match(source, /postMergeDefectScopeApplied/);
-  assert.match(source, /ACV2_AUTHORIZATION_BLOB_SHA/);
-  assert.match(source, /ACV2_WP_A_PARENT_GOVERNANCE_HEAD/);
-  assert.match(source, /status[^\n]*--porcelain/);
-  assert.match(source, /core\.quotePath=false/);
-  assert.match(source, /diff[\s\S]*--name-only/);
-  assert.match(source, /merge-base[^\n]*--is-ancestor/);
-  assert.match(source, /ACV2_(?:WORK_PACKAGE|TASK|POST_MERGE_DEFECT)_SCOPE_/);
+test('shared scope gate routes exact active WP-B authority while preserving immutable WP-A legacy scope', () => {
+  for (const filePath of [sharedScopeGatePath, legacyScopeGatePath, activeAuthorityPath]) {
+    assert.equal(fs.existsSync(filePath), true, `${path.relative(repoRoot, filePath)} must exist`);
+  }
+
+  const sharedSource = fs.readFileSync(sharedScopeGatePath, 'utf8');
+  assert.match(sharedSource, /require\(['"]\.\/work-package-scope-gate-legacy['"]\)/);
+  assert.match(sharedSource, /resolveWpBImplementationAuthority/);
+  assert.match(sharedSource, /evaluateAuthorizedWpBScope/);
+  assert.match(sharedSource, /hasExplicitLegacyContext/);
+  assert.match(sharedSource, /legacy\.evaluateWorkPackageScopeForGate/);
+  assert.match(sharedSource, /status[^\n]*--porcelain/);
+  assert.match(sharedSource, /core\.quotePath=false/);
+  assert.match(sharedSource, /diff[\s\S]*--name-only/);
+  assert.match(sharedSource, /decodeChangedFileBuffer/);
+  assert.match(sharedSource, /['"]-z['"]/);
+  assert.match(sharedSource, /merge-base[^\n]*--is-ancestor/);
+  assert.match(sharedSource, /ACV2_WP_B_(?:AUTHORIZATION|SCOPE)_/);
+
+  const legacySource = fs.readFileSync(legacyScopeGatePath, 'utf8');
+  assert.match(legacySource, /evaluateAuthorizedWorkPackageTaskScope/);
+  assert.match(legacySource, /loadWorkPackageTaskScopeChain/);
+  assert.match(legacySource, /validateWorkPackageTaskScopeChain/);
+  assert.match(legacySource, /evaluateAuthorizedWorkPackageScope/);
+  assert.match(legacySource, /loadWorkPackageScopeAmendment/);
+  assert.match(legacySource, /evaluateAuthorizedPostMergeDefectScope/);
+  assert.match(legacySource, /loadWorkPackagePostMergeDefect/);
+  assert.match(legacySource, /isValidWorkPackagePostMergeDefect/);
+  assert.match(legacySource, /ACV2_AUTHORIZATION_BLOB_SHA/);
+  assert.match(legacySource, /ACV2_WP_A_PARENT_GOVERNANCE_HEAD/);
+  assert.match(legacySource, /evaluateAuthorizedOpenSourceWorkPackageScope/);
+
+  const activeSource = fs.readFileSync(activeAuthorityPath, 'utf8');
+  assert.match(activeSource, /wp-b-design-authorization\.json/);
+  assert.match(activeSource, /wp-b-baseline\.json/);
+  assert.match(activeSource, /wp-b-operation-inventory\.json/);
+  assert.match(activeSource, /evaluateAuthorizedWpBScope/);
+  assert.match(activeSource, /temporaryBypassAllowed/);
+  assert.match(activeSource, /formalRelease/);
+  assert.match(activeSource, /publish/);
 });
 
 test('repository task scope chain is machine-readable and pins A6 and A7 closed before A8', () => {
@@ -158,6 +179,79 @@ test('historical detached evidence without an A8-R1 document retains the prior A
   assert.equal(result.readyForPromotion, false);
 });
 
+test('current WP-B detached evidence uses the exact active baseline and cannot claim promotion readiness', () => {
+  const {
+    resolveWpBImplementationAuthority
+  } = require('../../shared/release/implementationBranchPolicy');
+  const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
+  const authority = resolveWpBImplementationAuthority();
+  assert.ok(authority, 'active WP-B authority must resolve');
+  const sourceCommit = 'c'.repeat(40);
+  const changedFiles = [
+    '.github/workflows/wp-b-validation.yml',
+    'backend/migrations/architectureClosureV2WpB.js',
+    'backend/services/durableExecutionAuthority.js',
+    'backend/tests/architectureClosureV2/wpB/schema23SqliteIntegration.test.js',
+    'governance/architecture-closure-v2/wp-b-baseline.json',
+    'shared/release/acv2ActiveWorkPackageAuthority.js',
+    'tools/wp0/work-package-scope-gate.js'
+  ].sort();
+  const git = args => {
+    if (args[0] === 'status') return '';
+    if (args[0] === 'rev-parse' && args[1] === 'HEAD') return sourceCommit;
+    if (args[0] === 'cat-file' || args[0] === 'merge-base') return '';
+    if (args.includes('diff') && args.includes('--name-only')) return nulPathBuffer(changedFiles);
+    throw new Error(`unexpected git command: ${args.join(' ')}`);
+  };
+  const result = evaluateWorkPackageScopeForGate({
+    branch: null,
+    evidenceMode: true,
+    evidenceSourceCommit: sourceCommit,
+    wpBAuthority: authority,
+    git
+  });
+  assert.equal(result.applicable, true);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.workPackage, 'WP-B');
+  assert.equal(result.effectiveBranch, authority.authorizedBranch);
+  assert.equal(result.parentGovernanceHead, authority.baseHead);
+  assert.equal(result.changedFileCount, changedFiles.length);
+  assert.deepEqual(result.unauthorizedPaths, []);
+  assert.equal(result.readyForPromotion, false);
+});
+
+test('WP-B authorizes only the two exact WP-A regression contracts needed by Schema 23 integration', () => {
+  const {
+    evaluateAuthorizedWpBScope,
+    resolveWpBImplementationAuthority
+  } = require('../../shared/release/implementationBranchPolicy');
+  const authority = resolveWpBImplementationAuthority();
+  assert.ok(authority, 'active WP-B authority must resolve');
+
+  const exactRegressionContracts = [
+    'backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js',
+    'backend/tests/architectureClosureV2/wpA/sourceClosureInventory.test.js'
+  ];
+  const exactResult = evaluateAuthorizedWpBScope({
+    authority,
+    branch: authority.authorizedBranch,
+    changedFiles: exactRegressionContracts
+  });
+  assert.equal(exactResult.pass, true, JSON.stringify(exactResult));
+  assert.deepEqual(exactResult.unauthorizedPaths, []);
+
+  const unrelatedWpAContract = 'backend/tests/architectureClosureV2/wpA/schema22PostMergeIntegrityMigration.test.js';
+  const unrelatedResult = evaluateAuthorizedWpBScope({
+    authority,
+    branch: authority.authorizedBranch,
+    changedFiles: [unrelatedWpAContract]
+  });
+  assert.equal(unrelatedResult.pass, false);
+  assert.equal(unrelatedResult.reasonCode, 'ACV2_WP_B_SCOPE_VIOLATION');
+  assert.deepEqual(unrelatedResult.unauthorizedPaths, [unrelatedWpAContract]);
+  assert.equal(authority.allowedProductionPaths.includes('backend/tests/architectureClosureV2/wpA/**'), false);
+});
+
 test('active task chain evaluation includes the frozen A8 closure receipt and cannot claim promotion readiness', () => {
   const { evaluateWorkPackageScopeForGate } = require('../../tools/wp0/work-package-scope-gate');
   const { workPackageChangedFilesSha256 } = require('../../shared/release/implementationBranchPolicy');
@@ -188,6 +282,46 @@ test('active task chain evaluation includes the frozen A8 closure receipt and ca
   assert.equal(result.taskScopeChainApplied, true);
   assert.equal(result.activeTask, 'A8');
   assert.equal(result.readyForPromotion, false);
+});
+
+test('WP-B authority keeps exact internal engines and packaged evidence without adjacent expansion', () => {
+  const {
+    ADDITIONAL_WP_B_AUTHORITY_PATHS,
+    evaluateAuthorizedWpBScope,
+    resolveWpBImplementationAuthority
+  } = require('../../shared/release/implementationBranchPolicy');
+  const authority = resolveWpBImplementationAuthority();
+  assert.ok(authority, 'active WP-B authority must resolve');
+  const exactPaths = [
+    'backend/lib/r32SqliteStoreEngineLegacy.js',
+    'backend/migrations/architectureClosureV2WpBEngine.js',
+    'release/architecture-closure-v2/wp-b-governance-package.json',
+    'shared/release/acv2ActiveWorkPackageAuthorityEngine.js'
+  ];
+  assert.deepEqual([...ADDITIONAL_WP_B_AUTHORITY_PATHS].sort(), exactPaths);
+
+  const exact = evaluateAuthorizedWpBScope({
+    authority,
+    branch: authority.authorizedBranch,
+    changedFiles: exactPaths
+  });
+  assert.equal(exact.pass, true, JSON.stringify(exact));
+  assert.deepEqual(exact.unauthorizedPaths, []);
+
+  const adjacent = [
+    'backend/lib/r32SqliteStoreEngineLegacyCopy.js',
+    'backend/migrations/architectureClosureV2WpCEngine.js',
+    'release/architecture-closure-v2/wp-c-governance-package.json',
+    'shared/release/anotherAuthorityEngine.js'
+  ];
+  const rejected = evaluateAuthorizedWpBScope({
+    authority,
+    branch: authority.authorizedBranch,
+    changedFiles: adjacent
+  });
+  assert.equal(rejected.pass, false);
+  assert.equal(rejected.reasonCode, 'ACV2_WP_B_SCOPE_VIOLATION');
+  assert.deepEqual(rejected.unauthorizedPaths, adjacent.sort());
 });
 
 test('String-delimited Git path evidence fails closed after the Buffer transport upgrade', () => {

@@ -26,6 +26,58 @@ function assertActive(signal, code = 'FACEBOOK_CHATWOOT_OPERATION_ABORTED') {
   if (!reason.code) reason.code = code;
   throw reason;
 }
+function requirePersistedOperation(input = {}, expectedKind = '', account = {}) {
+  const operation = input?.physicalOperationContext;
+  if (!operation || typeof operation !== 'object' || Array.isArray(operation) || !Object.isFrozen(operation)) {
+    throw fail('FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED', 'Facebook Page Chatwoot session/sync I/O requires one frozen RUNNING persisted WP-B operation before any network call', 409);
+  }
+  for (const field of ['operationId', 'executionId', 'operationType', 'operationKind', 'scopeKey', 'objectFingerprint', 'ownerId', 'claimId']) {
+    if (!clean(operation[field])) {
+      throw fail('FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED', 'Facebook Page Chatwoot persisted operation identity is incomplete', 409, { field });
+    }
+  }
+  if (clean(operation.state).toUpperCase() !== 'RUNNING') {
+    throw fail('FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED', 'Facebook Page Chatwoot persisted operation must be RUNNING before physical I/O', 409, { field: 'state' });
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const value = Number(operation[field]);
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw fail('FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED', 'Facebook Page Chatwoot persisted operation fencing identity is invalid', 409, { field });
+    }
+  }
+  if (expectedKind && clean(operation.operationKind) !== clean(expectedKind)) {
+    throw fail('FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED', 'Facebook Page Chatwoot persisted operation kind does not authorize this physical I/O', 409, { expectedKind, operationKind: clean(operation.operationKind) });
+  }
+  if (clean(operation.platform) && clean(operation.platform).toLowerCase() !== 'facebook') {
+    throw fail('FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED', 'Facebook Page Chatwoot persisted operation platform scope mismatch', 409, { platform: clean(operation.platform) });
+  }
+  if (clean(operation.accountId) && clean(account?.id) && clean(operation.accountId) !== clean(account.id)) {
+    throw fail('FACEBOOK_CHATWOOT_PERSISTED_OPERATION_REQUIRED', 'Facebook Page Chatwoot persisted operation account scope mismatch', 409, { accountId: clean(account.id) });
+  }
+  return operation;
+}
+
+function requirePersistedAttempt(input = {}) {
+  const attempt = input?.physicalAttemptContext;
+  if (!attempt || typeof attempt !== 'object' || Array.isArray(attempt) || !Object.isFrozen(attempt)) {
+    throw fail('FACEBOOK_CHATWOOT_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Page Chatwoot physical egress requires the frozen persisted WP-B attempt before any network call', 409);
+  }
+  for (const field of ['executionId', 'intentId', 'attemptId', 'claimId', 'ownerId', 'idempotencyKey', 'requestContentSha256']) {
+    if (!clean(attempt[field])) {
+      throw fail('FACEBOOK_CHATWOOT_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Page Chatwoot persisted attempt identity is incomplete', 409, { field });
+    }
+  }
+  if (!/^[a-f0-9]{64}$/u.test(clean(attempt.requestContentSha256))) {
+    throw fail('FACEBOOK_CHATWOOT_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Page Chatwoot persisted request fingerprint is invalid', 409, { field: 'requestContentSha256' });
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const value = Number(attempt[field]);
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw fail('FACEBOOK_CHATWOOT_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Page Chatwoot persisted fencing identity is invalid', 409, { field });
+    }
+  }
+  return attempt;
+}
 
 function runtimeConfig() {
   return {
@@ -386,6 +438,7 @@ async function bootstrapSyncToken(config, key, operation = {}) {
   return nextBatch;
 }
 async function sync(account = {}, options = {}) {
+  requirePersistedOperation(options, 'HISTORY_SYNCHRONIZATION', account);
   const config = requireRuntimeConfig();
   assertActive(options.signal, 'FACEBOOK_CHATWOOT_SYNC_ABORTED');
   const key = syncKey(account);
@@ -415,6 +468,7 @@ async function sync(account = {}, options = {}) {
   return { state: 'connected', bootstrapped: false, nextBatch, processed, failures };
 }
 async function connect(account = {}, options = {}) {
+  requirePersistedOperation(options, 'SESSION_RESTORE', account);
   const config = requireRuntimeConfig();
   assertActive(options.signal, 'FACEBOOK_CHATWOOT_CONNECT_ABORTED');
   const pageId = pageIdForAccount(account);
@@ -453,11 +507,13 @@ function resolveAccountKey(account = {}) {
 function externalTarget(value) { return clean(value).replace(/^facebook:/iu, ''); }
 function adapterAccountId(account = {}, requestedId = '') { return resolveAccountKey(account) || clean(requestedId); }
 async function sendText(context = {}, input = {}) {
+  requirePersistedAttempt(input);
   const config = requireRuntimeConfig();
   const target = await resolveConversationTarget(config, context.target, input);
   return chatwootSendText(config, target.conversationId, input.text, input);
 }
 async function sendMedia(context = {}, input = {}) {
+  requirePersistedAttempt(input);
   const config = requireRuntimeConfig();
   const target = await resolveConversationTarget(config, context.target, input);
   return chatwootSendMedia(config, target.conversationId, input, input);
