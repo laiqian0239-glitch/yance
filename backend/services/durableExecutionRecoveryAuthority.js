@@ -194,6 +194,16 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput, 
     });
   }
 
+  if (execution.state === STATES.CANCEL_REQUESTED && trustedReceipt) {
+    return deepFreeze({
+      decision: DECISIONS.CANCEL_CONFIRMATION_REQUIRED,
+      targetState: STATES.CANCEL_REQUESTED,
+      reasonCode: `PERSISTED_${trustedReceipt.receiptType}_RECEIPT_CANCEL_CONFIRMATION_REQUIRED`,
+      clearOwnership: true,
+      ...base
+    });
+  }
+
   if (trustedReceipt?.receiptType === 'SUCCESS') {
     return deepFreeze({
       decision: DECISIONS.RECONCILE_REQUIRED,
