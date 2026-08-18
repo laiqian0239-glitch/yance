@@ -1504,6 +1504,278 @@ test('later effective delegated authorization supersedes the exact earlier imple
   }
 });
 
+test('delegated forward continuation requires the exact frozen predecessor two-parent merge', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-delegated-forward-continuation-'));
+  const git = (...args) => execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: isolatedGitEnvironment(root)
+  }).trim();
+  const write = (repositoryPath, content) => {
+    const filePath = path.join(root, ...repositoryPath.split('/'));
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, content);
+  };
+  const allowedChangedPaths = ['shared/release/implementationBranchPolicy.js'];
+  const exactImplementation = (branch, extra = {}) => ({
+    branch,
+    allowedChangedPaths,
+    approvedChangedFileCount: allowedChangedPaths.length,
+    approvedChangedFileSetSha256: workPackageChangedFilesSha256(allowedChangedPaths),
+    newDependencyAllowed: false,
+    workflowModificationAllowed: false,
+    ...extra
+  });
+
+  try {
+    git('init', '-b', 'main');
+    git('config', 'user.name', 'Yance Test');
+    git('config', 'user.email', 'yance-test@example.invalid');
+    write('.base', 'base\n');
+    git('add', '.base');
+    git('commit', '-m', 'base');
+    const base = git('rev-parse', 'HEAD');
+
+    const v1AuthorizationPath = 'governance/layered-ci/forward-v1-authorization.json';
+    const v1AuthorizationBranch = 'governance/forward-v1-authorization';
+    const v1ImplementationBranch = 'fix/forward-v1';
+    const v1Authorization = genericDelegatedAuthorization({
+      allowedChangedPaths,
+      document: {
+        workPackage: 'FORWARD-V1',
+        base: { branch: 'main', commit: base },
+        authorizationBranch: {
+          name: v1AuthorizationBranch,
+          allowedChangedPaths: [v1AuthorizationPath],
+          mustRemainSingleFile: true
+        },
+        implementation: exactImplementation(v1ImplementationBranch)
+      }
+    });
+
+    git('switch', '-c', v1AuthorizationBranch);
+    write(v1AuthorizationPath, `${JSON.stringify(v1Authorization, null, 2)}\n`);
+    git('add', v1AuthorizationPath);
+    git('commit', '-m', 'authorize forward v1');
+    const v1ReviewedHead = git('rev-parse', 'HEAD');
+
+    git('switch', 'main');
+    git('merge', '--no-ff', v1AuthorizationBranch, '-m', 'merge forward v1 authorization');
+    const v1Merge = git('rev-parse', 'HEAD');
+    assert.deepEqual(git('rev-list', '--parents', '-n', '1', v1Merge).split(/\s+/u).slice(1), [
+      base,
+      v1ReviewedHead
+    ]);
+
+    git('switch', '-c', v1ImplementationBranch, v1Merge);
+    write(allowedChangedPaths[0], 'frozen predecessor implementation\n');
+    git('add', allowedChangedPaths[0]);
+    git('commit', '-m', 'frozen predecessor implementation');
+    const frozenPredecessorHead = git('rev-parse', 'HEAD');
+
+    git('switch', 'main');
+    const v2AuthorizationPath = 'governance/layered-ci/forward-v2-authorization.json';
+    const v2AuthorizationBranch = 'governance/forward-v2-authorization';
+    const v2ImplementationBranch = 'fix/forward-v2';
+    const v2Authorization = genericDelegatedAuthorization({
+      allowedChangedPaths,
+      document: {
+        workPackage: 'FORWARD-V2',
+        supersedes: {
+          authorizationPath: v1AuthorizationPath,
+          implementationBranch: v1ImplementationBranch,
+          reason: 'replace v1 only through an exact forward continuation'
+        },
+        base: { branch: 'main', commit: v1Merge },
+        authorizationBranch: {
+          name: v2AuthorizationBranch,
+          allowedChangedPaths: [v2AuthorizationPath],
+          mustRemainSingleFile: true
+        },
+        implementation: exactImplementation(v2ImplementationBranch, {
+          forwardContinuation: {
+            required: true,
+            frozenPredecessorHead
+          }
+        })
+      }
+    });
+
+    assert.equal(
+      isValidGenericDelegatedGovernanceAuthorization(v2Authorization, v2AuthorizationPath),
+      true,
+      'valid forwardContinuation declaration must be admissible before trusted-main merge'
+    );
+
+    git('switch', '-c', v2AuthorizationBranch);
+    write(v2AuthorizationPath, `${JSON.stringify(v2Authorization, null, 2)}\n`);
+    git('add', v2AuthorizationPath);
+    git('commit', '-m', 'authorize forward v2');
+    const v2ReviewedHead = git('rev-parse', 'HEAD');
+
+    git('switch', 'main');
+    git('merge', '--no-ff', v2AuthorizationBranch, '-m', 'merge forward v2 authorization');
+    const trustedMainHead = git('rev-parse', 'HEAD');
+    assert.deepEqual(git('rev-list', '--parents', '-n', '1', trustedMainHead).split(/\s+/u).slice(1), [
+      v1Merge,
+      v2ReviewedHead
+    ]);
+
+    git('switch', '-c', 'fixture/forward-one-parent', trustedMainHead);
+    write(allowedChangedPaths[0], 'one-parent continuation must fail\n');
+    git('add', allowedChangedPaths[0]);
+    git('commit', '-m', 'one parent continuation');
+    const oneParentHead = git('rev-parse', 'HEAD');
+
+    const oneParent = evaluateTrustedDelegatedGovernanceBranch({
+      branch: v2ImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead,
+      evaluatedHead: oneParentHead
+    });
+    assert.equal(oneParent.pass, false, JSON.stringify(oneParent));
+    assert.equal(
+      oneParent.reasonCode,
+      'WP0_DELEGATED_GOVERNANCE_FORWARD_CONTINUATION_INVALID',
+      JSON.stringify(oneParent)
+    );
+
+    git('switch', '-C', 'fixture/forward-valid', trustedMainHead);
+    write(allowedChangedPaths[0], 'exact two-parent forward continuation\n');
+    git('add', allowedChangedPaths[0]);
+    const candidateTree = git('write-tree');
+    const validHead = git(
+      'commit-tree',
+      candidateTree,
+      '-p', trustedMainHead,
+      '-p', frozenPredecessorHead,
+      '-m', 'exact two-parent forward continuation'
+    );
+
+    const valid = evaluateTrustedDelegatedGovernanceBranch({
+      branch: v2ImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead,
+      evaluatedHead: validHead
+    });
+    assert.equal(valid.pass, true, JSON.stringify(valid));
+
+    const substitutedHead = git(
+      'commit-tree',
+      candidateTree,
+      '-p', trustedMainHead,
+      '-p', v1Merge,
+      '-m', 'substituted predecessor continuation'
+    );
+    const substituted = evaluateTrustedDelegatedGovernanceBranch({
+      branch: v2ImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead,
+      evaluatedHead: substitutedHead
+    });
+    assert.equal(substituted.pass, false, JSON.stringify(substituted));
+    assert.equal(
+      substituted.reasonCode,
+      'WP0_DELEGATED_GOVERNANCE_FORWARD_CONTINUATION_INVALID',
+      JSON.stringify(substituted)
+    );
+
+    const extraParentHead = git(
+      'commit-tree',
+      candidateTree,
+      '-p', trustedMainHead,
+      '-p', frozenPredecessorHead,
+      '-p', v1Merge,
+      '-m', 'extra-parent continuation'
+    );
+    const extraParent = evaluateTrustedDelegatedGovernanceBranch({
+      branch: v2ImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead,
+      evaluatedHead: extraParentHead
+    });
+    assert.equal(extraParent.pass, false, JSON.stringify(extraParent));
+    assert.equal(
+      extraParent.reasonCode,
+      'WP0_DELEGATED_GOVERNANCE_FORWARD_CONTINUATION_INVALID',
+      JSON.stringify(extraParent)
+    );
+
+    const reversedHead = git(
+      'commit-tree',
+      candidateTree,
+      '-p', frozenPredecessorHead,
+      '-p', trustedMainHead,
+      '-m', 'reversed-parent continuation'
+    );
+    const reversed = evaluateTrustedDelegatedGovernanceBranch({
+      branch: v2ImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead,
+      evaluatedHead: reversedHead
+    });
+    assert.equal(reversed.pass, false, JSON.stringify(reversed));
+    assert.equal(
+      reversed.reasonCode,
+      'WP0_DELEGATED_GOVERNANCE_FORWARD_CONTINUATION_INVALID',
+      JSON.stringify(reversed)
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('delegated forward continuation declaration is strict and requires supersession', () => {
+  const allowedChangedPaths = ['shared/release/implementationBranchPolicy.js'];
+  const base = genericDelegatedAuthorization({ allowedChangedPaths });
+  const validSupersedes = {
+    authorizationPath: 'governance/layered-ci/forward-old-authorization.json',
+    implementationBranch: 'fix/forward-old',
+    reason: 'replace old authority through a frozen continuation'
+  };
+  const valid = genericDelegatedAuthorization({
+    allowedChangedPaths,
+    document: {
+      supersedes: validSupersedes,
+      implementation: {
+        ...base.implementation,
+        forwardContinuation: {
+          required: true,
+          frozenPredecessorHead: 'a'.repeat(40)
+        }
+      }
+    }
+  });
+  assert.equal(
+    isValidGenericDelegatedGovernanceAuthorization(valid, GENERIC_AUTHORIZATION_PATH),
+    true
+  );
+
+  for (const [name, declaration] of [
+    ['missing required', { frozenPredecessorHead: 'a'.repeat(40) }],
+    ['required false', { required: false, frozenPredecessorHead: 'a'.repeat(40) }],
+    ['malformed sha', { required: true, frozenPredecessorHead: 'not-a-sha' }],
+    ['extra key', { required: true, frozenPredecessorHead: 'a'.repeat(40), mode: 'loose' }]
+  ]) {
+    const candidate = clone(valid);
+    candidate.implementation.forwardContinuation = declaration;
+    assert.equal(
+      isValidGenericDelegatedGovernanceAuthorization(candidate, GENERIC_AUTHORIZATION_PATH),
+      false,
+      name
+    );
+  }
+
+  const withoutSupersession = clone(valid);
+  delete withoutSupersession.supersedes;
+  assert.equal(
+    isValidGenericDelegatedGovernanceAuthorization(withoutSupersession, GENERIC_AUTHORIZATION_PATH),
+    false,
+    'forward continuation without an exact supersession declaration must fail closed'
+  );
+});
+
 test('generic delegated authority exposes its canonical implementation base to downstream verifiers', () => {
   const result = evaluateTrustedDelegatedGovernanceBranch({
     branch: GENERIC_IMPLEMENTATION_BRANCH,
