@@ -92,6 +92,29 @@ class ExternalActionOutboxAuthority extends core.ExternalActionOutboxAuthority {
       return this.intent(intentId, store);
     });
   }
+
+  recordFailureReceipt(input = {}) {
+    if (input.retryable !== true) return super.recordFailureReceipt(input);
+    const store = this.store();
+    this.assertSchema23(store);
+    return store.transaction(() => {
+      const receipt = super.recordFailureReceipt(input);
+      const current = this.intent(input.intentId, store);
+      this.rearmRetry({
+        intentId: input.intentId,
+        receiptId: receipt.receiptId,
+        stateVersion: Number(current?.claim?.stateVersion),
+        generation: Number(current?.claim?.generation),
+        ownerId: String(current?.claim?.ownerId || input.ownerId || ''),
+        claimId: String(current?.claim?.claimId || input.claimId || ''),
+        hostId: String(input.hostId || input.ownerId || ''),
+        hostGeneration: Number(current?.claim?.hostGeneration || input.hostGeneration || 0),
+        fencingToken: Number(current?.claim?.fencingToken || input.fencingToken || 0),
+        authorityTimestamp: input.authorityTimestamp
+      });
+      return receipt;
+    });
+  }
 }
 
 const externalActionOutboxAuthority = new ExternalActionOutboxAuthority();
