@@ -196,6 +196,7 @@
     "third_party/licenses/types-howler-MIT.txt",
     "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
     "upstream-patches/element-web/0012-yance-element-module-runtime.patch",
+    "upstream-patches/element-web/0013-yance-module-room-state-read.patch",
     "config/upstreams/v21-agent-lightning-p1.json",
     "runtime/deep-training/agent-lightning/agent_lightning_entrypoint.py",
     "runtime/deep-training/agent-lightning/generate_runtime_sbom.py",
