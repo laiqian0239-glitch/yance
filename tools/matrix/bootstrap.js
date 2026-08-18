@@ -12,6 +12,7 @@ const ELEMENT_NX_CRLF_LOCKFILE_PATCH = path.join(ROOT, 'upstream-patches/element
 const PRODUCT_DEPENDENCY_LOCK_PATCH = path.join(ROOT, 'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
 const MODULE_DELIVERY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0012-yance-element-module-runtime.patch');
 const ROOM_STATE_READ_PATCH = path.join(ROOT, 'upstream-patches/element-web/0013-yance-module-room-state-read.patch');
+const APPEARANCE_AUTHORITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0014-yance-module-appearance-authority.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
@@ -85,6 +86,7 @@ function main() {
   if (!fs.existsSync(ROOM_STATE_READ_PATCH)) throw new Error('Element module room-state read patch missing');
   run(element, 'git', ['apply', '--check', ROOM_STATE_READ_PATCH]);
   run(element, 'git', ['apply', ROOM_STATE_READ_PATCH]);
+  applyPatch(element, APPEARANCE_AUTHORITY_PATCH, 'Element appearance authority patch');
 
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);

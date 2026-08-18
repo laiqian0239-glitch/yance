@@ -1,0 +1,176 @@
+diff --git a/apps/web/src/modules/Api.ts b/apps/web/src/modules/Api.ts
+--- a/apps/web/src/modules/Api.ts
++++ b/apps/web/src/modules/Api.ts
+@@ -33,6 +33,7 @@ import { CustomisationsApi } from "./customisationsApi.ts";
+ import { ComposerApi } from "./ComposerApi.ts";
+ import { SettingsApi } from "./SettingsApi.ts";
++import { AppearanceApi } from "./AppearanceApi.ts";
+ import defaultDispatcher from "../dispatcher/dispatcher.ts";
+@@ -99,6 +100,7 @@ export class ModuleApi implements Api {
+     public readonly stores = new StoresApi();
+     public readonly composer = new ComposerApi(defaultDispatcher);
++    public readonly appearance = new AppearanceApi();
+     public readonly settings = new SettingsApi();
+ 
+     public createRoot(element: Element): Root {
+diff --git a/apps/web/src/modules/AppearanceApi.ts b/apps/web/src/modules/AppearanceApi.ts
+new file mode 100644
+--- /dev/null
++++ b/apps/web/src/modules/AppearanceApi.ts
+@@ -0,0 +1,68 @@
++/*
++Copyright 2026 Yance
++
++SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Commercial
++Please see LICENSE files in the repository root for full details.
++*/
++
++import type { Api } from "@element-hq/element-web-module-api";
++
++import SettingsStore from "../settings/SettingsStore";
++import { SettingLevel } from "../settings/SettingLevel";
++import { FontWatcher } from "../settings/watchers/FontWatcher";
++import dis from "../dispatcher/dispatcher";
++import { Action } from "../dispatcher/actions";
++import { type RecheckThemePayload } from "../dispatcher/payloads/RecheckThemePayload";
++
++type IAppearanceApi = Api["appearance"];
++type AppearanceThemeInput = Parameters<IAppearanceApi["setTheme"]>[0];
++
++const YANCE_THEME_PREFIX = "言策 · ";
++
++function assertFontScale(percent: number): void {
++    if (!Number.isInteger(percent) || percent < 85 || percent > 150) {
++        throw new Error("Appearance font scale must be an integer from 85 through 150");
++    }
++}
++
++function assertTheme(theme: AppearanceThemeInput): void {
++    if (!/^[a-z0-9][a-z0-9_-]{0,63}$/iu.test(theme.id)) {
++        throw new Error("Appearance theme id is invalid");
++    }
++    if (!theme.name.trim() || theme.name.length > 80) {
++        throw new Error("Appearance theme name is invalid");
++    }
++}
++
++export class AppearanceApi implements IAppearanceApi {
++    public async setFontScale(percent: number): Promise<void> {
++        assertFontScale(percent);
++
++        const browserDefaultFontSize = FontWatcher.getBrowserDefaultFontSize();
++        const delta = (browserDefaultFontSize * (percent - 100)) / 100;
++        await SettingsStore.setValue("fontSizeDelta", null, SettingLevel.DEVICE, delta);
++    }
++
++    public async setTheme(theme: AppearanceThemeInput): Promise<void> {
++        assertTheme(theme);
++
++        const elementThemeName = `${YANCE_THEME_PREFIX}${theme.name.trim()}`;
++        const currentThemes = SettingsStore.getValue("custom_themes") ?? [];
++        const retainedThemes = currentThemes.filter((entry) => !entry.name.startsWith(YANCE_THEME_PREFIX));
++        const customTheme = {
++            name: elementThemeName,
++            is_dark: theme.isDark,
++            ...(theme.colors ? { colors: theme.colors } : {}),
++            ...(theme.compound ? { compound: theme.compound } : {}),
++        };
++
++        await SettingsStore.setValue("custom_themes", null, SettingLevel.DEVICE, [...retainedThemes, customTheme]);
++        await SettingsStore.setValue("use_system_theme", null, SettingLevel.DEVICE, false);
++
++        const elementThemeId = `custom-${elementThemeName}`;
++        await SettingsStore.setValue("theme", null, SettingLevel.DEVICE, elementThemeId);
++        dis.dispatch<RecheckThemePayload>({ action: Action.RecheckTheme, forceTheme: elementThemeId });
++    }
++}
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -46,6 +46,8 @@ export interface AccountDataApi {
+ // @public
+ export interface Api extends LegacyModuleApiExtension, LegacyCustomisationsApiExtension, DialogApiExtension, AccountAuthApiExtension, ProfileApiExtension {
++    // @alpha
++    readonly appearance: AppearanceApi;
+     // @alpha
+     readonly builtins: BuiltinsApi;
+@@ -70,6 +72,22 @@ export interface Api extends LegacyModuleApiExtension, LegacyCustomisationsApiEx
+     readonly widgetLifecycle: WidgetLifecycleApi;
+ }
+ 
++// @alpha
++export interface AppearanceApi {
++    setFontScale(percent: number): Promise<void>;
++    setTheme(theme: AppearanceTheme): Promise<void>;
++}
++
++// @alpha
++export interface AppearanceTheme {
++    colors?: Record<string, string>;
++    compound?: Record<string, string>;
++    id: string;
++    isDark: boolean;
++    name: string;
++}
++
+ // @alpha
+ export interface BuiltinsApi {
+     renderNotificationDecoration(roomId: string): React.ReactNode;
+diff --git a/packages/module-api/src/api/appearance.ts b/packages/module-api/src/api/appearance.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/module-api/src/api/appearance.ts
+@@ -0,0 +1,37 @@
++/*
++Copyright 2026 Yance
++
++SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
++Please see LICENSE files in the repository root for full details.
++*/
++
++/**
++ * A host appearance theme projected by a runtime module.
++ * @alpha Subject to change.
++ */
++export interface AppearanceTheme {
++    /** Stable caller-owned theme identity. */
++    id: string;
++    /** User-facing theme name. */
++    name: string;
++    /** Whether the theme should use Element's dark custom-theme base. */
++    isDark: boolean;
++    /** Existing Element custom-theme color variables. */
++    colors?: Record<string, string>;
++    /** Existing Element Compound design-token overrides. */
++    compound?: Record<string, string>;
++}
++
++/**
++ * Narrow API for applying host-wide appearance through Element's existing settings machinery.
++ * @alpha Subject to change.
++ */
++export interface AppearanceApi {
++    /** Apply an integer font scale from 85 through 150 percent. */
++    setFontScale(percent: number): Promise<void>;
++    /** Apply a custom theme through Element's existing custom theme capability. */
++    setTheme(theme: AppearanceTheme): Promise<void>;
++}
+diff --git a/packages/module-api/src/api/index.ts b/packages/module-api/src/api/index.ts
+--- a/packages/module-api/src/api/index.ts
++++ b/packages/module-api/src/api/index.ts
+@@ -24,6 +24,7 @@ import { type CustomisationsApi } from "./customisations.ts";
+ import { type ComposerApi } from "./composer.ts";
+ import { type SettingsApi } from "./settings.ts";
++import { type AppearanceApi } from "./appearance.ts";
+@@ -130,6 +131,12 @@ export interface Api
+      */
+     readonly settings: SettingsApi;
++
++    /**
++     * Applies host-wide appearance through Element's existing settings, font and theme machinery.
++     * @alpha Subject to change.
++     */
++    readonly appearance: AppearanceApi;
+ 
+     /**
+      * Create a ReactDOM root for rendering React components.

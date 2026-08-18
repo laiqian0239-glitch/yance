@@ -5,6 +5,7 @@ const aiGateway = require('../services/aiGateway');
 const eventBus = require('../services/eventBus');
 const productionDiagnostics = require('../services/productionDiagnosticsService');
 const { getStoreManager } = require('../store/storeManagerSingleton');
+const themeAppearancePolicy = require('../store/themeAppearancePolicy');
 const { getStore } = require('../repositories/storeProvider');
 const workspaceRepository = require('../repositories/workspaceRepository');
 const { selectCustomerSocialContext } = require('../store/selectors/customerSocialSelectors');
@@ -93,6 +94,29 @@ router.put('/ui/reading-mode', asyncRoute(async (req, res) => {
   res.json({ ok: true, ...result.result, stateVersion: result.stateVersion });
 }));
 
+router.get('/ui/theme/catalog', (_req, res) => {
+  const { catalog, THEMES, DEFAULT_THEME_ID, DEFAULT_LIGHT_THEME_ID, DEFAULT_DARK_THEME_ID } = themeAppearancePolicy;
+  res.set('Cache-Control', 'no-store').json({
+    ok: true,
+    version: Number(catalog.version || 1),
+    defaultThemeId: DEFAULT_THEME_ID,
+    lightDefaultThemeId: DEFAULT_LIGHT_THEME_ID,
+    darkDefaultThemeId: DEFAULT_DARK_THEME_ID,
+    themes: THEMES.map(theme => ({
+      id: theme.id,
+      name: theme.name,
+      description: theme.description,
+      brightness: theme.brightness,
+      style: theme.style,
+      scenes: Array.isArray(theme.scenes) ? [...theme.scenes] : [],
+      texture: theme.texture,
+      series: theme.series,
+      accessibility: theme.accessibility,
+      defaults: { ...(theme.defaults || {}) },
+      tokens: { ...(theme.tokens || {}) }
+    }))
+  });
+});
 
 router.put('/ui/theme/preview', asyncRoute(async (req, res) => {
   const result = await getStoreManager().dispatch({
@@ -156,7 +180,6 @@ router.delete('/ui/theme/presets/:presetId', asyncRoute(async (req, res) => {
   });
   res.json({ ok: true, ...result.result, stateVersion: result.stateVersion });
 }));
-
 
 router.get('/search', (req, res) => {
   const query = clean(req.query?.q);
@@ -275,7 +298,6 @@ router.post('/translations/messages/:messageId', asyncRoute(async (req, res) => 
   if (result.status === 'not-found') return res.status(404).json({ ok: false, code: 'MESSAGE_NOT_FOUND', message: '消息不存在' });
   res.status(result.status === 'failed' ? 503 : 200).json({ ok: result.status !== 'failed', ...result });
 }));
-
 
 router.post('/translations/messages/:messageId/jobs', asyncRoute(async (req, res) => {
   const job = messageTranslationService.createJob(req.params.messageId, {
@@ -669,9 +691,6 @@ router.post('/translations/structured', asyncRoute(async (req, res) => {
     dedupeKey: req.body?.dedupeKey,
     fingerprint: req.body?.fingerprint
   }, { aiGateway });
-  // Business-level translation failure is a safe degraded result: the authoritative
-  // source remains available and must not be replaced. Transport/runtime failures still
-  // reach the route error handler as non-2xx responses.
   res.set('Cache-Control', 'no-store').status(200).json({
     ok: true,
     degraded: result.translationStatus !== 'success',

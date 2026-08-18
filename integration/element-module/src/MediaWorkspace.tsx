@@ -59,7 +59,7 @@ function listRows(payload: unknown): Array<Record<string, unknown>> {
 }
 
 function displayName(asset: MediaAsset): string {
-  return String(asset.originalFileName || asset.fileName || asset.id || "Immich asset");
+  return String(asset.originalFileName || asset.fileName || asset.id || "媒体资源");
 }
 
 function assetMediaKind(asset: MediaAsset | null): "image" | "video" {
@@ -77,7 +77,7 @@ export function MediaWorkspace({
 }: { routeBinding?: RelationshipToolRouteBinding }): React.JSX.Element {
   const api = useMemo(() => desktopApi(), []);
   const [health, setHealth] = useState<HealthState>({ degraded: true, reasonCode: "unavailable" });
-  const [status, setStatus] = useState("Media runtime unavailable");
+  const [status, setStatus] = useState("正在检查媒体能力");
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [assets, setAssets] = useState<MediaAsset[]>([]);
@@ -106,14 +106,14 @@ export function MediaWorkspace({
   const resolvedRoute = productRouteResolved ? routeBinding.route : null;
 
   const refreshHealth = async (): Promise<void> => {
-    if (!api) { setStatus("Media runtime unavailable"); return; }
+    if (!api) { setStatus("媒体能力暂不可用"); return; }
     try {
       const next = await api.getMediaBrainHealth();
       setHealth(next);
-      setStatus(next.degraded ? `Degraded · ${next.reasonCode || "missing model or upstream unavailable"}` : "Immich + ComfyUI ready");
-    } catch (error) {
-      setHealth({ degraded: true, reasonCode: String((error as { reasonCode?: string })?.reasonCode || "unavailable") });
-      setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "unavailable")}`);
+      setStatus(next.degraded ? "部分媒体能力暂不可用，请检查本地运行环境" : "媒体库与智能生成能力已就绪");
+    } catch {
+      setHealth({ degraded: true, reasonCode: "unavailable" });
+      setStatus("媒体能力暂不可用");
     }
   };
 
@@ -143,10 +143,10 @@ export function MediaWorkspace({
       setClearImmichApiKey(false);
       setComfyEndpoint("");
       setComfyExternalIntent("preserve");
-      setStatus("Media settings updated in existing Yance credential custody");
+      setStatus("媒体设置已保存，凭据继续由现有安全存储托管");
       await refreshHealth();
-    } catch (error) {
-      setStatus(`Degraded · ${String((error as { reasonCode?: string })?.reasonCode || "settings unavailable")}`);
+    } catch {
+      setStatus("媒体设置保存失败");
     } finally { setBusy(false); }
   };
 
@@ -157,8 +157,8 @@ export function MediaWorkspace({
       const result = await api.importMediaAsset({ bytes: await file.arrayBuffer(), filename: file.name, mimeType: file.type || "application/octet-stream", createdAt: new Date(file.lastModified || Date.now()).toISOString(), modifiedAt: new Date(file.lastModified || Date.now()).toISOString() });
       const asset = result.asset || null;
       if (asset?.id) { setSelectedAsset(asset); setAssets((rows) => [asset, ...rows.filter((row) => row.id !== asset.id)]); }
-      setStatus("Import complete · Immich owns the asset");
-    } catch (error) { setStatus(`Import unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`); }
+      setStatus("导入完成，媒体已进入现有媒体库");
+    } catch { setStatus("导入暂不可用"); }
     finally { setBusy(false); if (importRef.current) importRef.current.value = ""; }
   };
 
@@ -170,27 +170,27 @@ export function MediaWorkspace({
       const rows = assetRows(result);
       setAssets(rows);
       if (selectedAsset && !rows.some((row) => row.id === selectedAsset.id)) setSelectedAsset(null);
-      setStatus(`Search · ${rows.length} Immich assets`);
-    } catch (error) { setStatus(`Search unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`); }
+      setStatus(`搜索完成 · ${rows.length} 个媒体资源`);
+    } catch { setStatus("搜索暂不可用"); }
     finally { setBusy(false); }
   };
 
   const loadPeople = async (): Promise<void> => {
     if (!api) return;
-    try { const rows = listRows(await api.listMediaPeople({})); setPeople(rows); setStatus(`People · ${rows.length} from Immich`); }
-    catch (error) { setStatus(`People unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`); }
+    try { const rows = listRows(await api.listMediaPeople({})); setPeople(rows); setStatus(`人物 · ${rows.length} 项`); }
+    catch { setStatus("人物索引暂不可用"); }
   };
   const loadAlbums = async (): Promise<void> => {
     if (!api) return;
-    try { const rows = listRows(await api.listMediaAlbums({})); setAlbums(rows); setStatus(`Albums · ${rows.length} from Immich`); }
-    catch (error) { setStatus(`Albums unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`); }
+    try { const rows = listRows(await api.listMediaAlbums({})); setAlbums(rows); setStatus(`相册 · ${rows.length} 个`); }
+    catch { setStatus("相册索引暂不可用"); }
   };
 
   const previewAsset = async (asset = selectedAsset): Promise<void> => {
     if (!api || !asset?.id) return;
     setBusy(true);
-    try { setPreview(await api.getMediaAssetPreview({ assetId: asset.id, size: "preview" })); setWorkflowOutput(null); setStatus(`Preview · ${displayName(asset)}`); }
-    catch (error) { setStatus(`Preview unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`); }
+    try { setPreview(await api.getMediaAssetPreview({ assetId: asset.id, size: "preview" })); setWorkflowOutput(null); setStatus(`预览 · ${displayName(asset)}`); }
+    catch { setStatus("预览暂不可用"); }
     finally { setBusy(false); }
   };
 
@@ -199,7 +199,7 @@ export function MediaWorkspace({
     setBusy(true);
     try {
       if (workflowKind === "edit" && !selectedAsset?.id) {
-        throw Object.assign(new Error("Select an Immich asset first"), { reasonCode: "IMMICH_ASSET_REQUIRED" });
+        throw Object.assign(new Error("请先选择一个图片资源"), { reasonCode: "IMMICH_ASSET_REQUIRED" });
       }
       const queueInput: Record<string, unknown> = { kind: workflowKind, prompt: prompt.trim() };
       if (workflowKind === "edit") {
@@ -210,8 +210,8 @@ export function MediaWorkspace({
       setWorkflowPromptId(String(queued.promptId || ""));
       setWorkflowOutput(null);
       setPreview(null);
-      setStatus(`${workflowKind === "edit" ? "Edit" : "Generate"} queued in ComfyUI · Save back required`);
-    } catch (error) { setStatus(`${workflowKind === "edit" ? "Edit" : "Generate"} unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`); }
+      setStatus(`${workflowKind === "edit" ? "编辑" : "生成"}任务已提交 · 完成后需要保存到媒体库`);
+    } catch { setStatus(`${workflowKind === "edit" ? "编辑" : "生成"}暂不可用`); }
     finally { setBusy(false); }
   };
 
@@ -222,8 +222,8 @@ export function MediaWorkspace({
       const output = await api.getMediaWorkflowResult({ promptId: workflowPromptId });
       setWorkflowOutput(output);
       setPreview(null);
-      setStatus(output.ready ? "Preview · ComfyUI output is ready, Save back required" : "ComfyUI workflow still running or output unavailable");
-    } catch (error) { setStatus(`Preview unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`); }
+      setStatus(output.ready ? "生成结果已就绪 · 请预览后保存到媒体库" : "任务仍在运行，暂时没有可用结果");
+    } catch { setStatus("生成结果预览暂不可用"); }
     finally { setBusy(false); }
   };
 
@@ -234,16 +234,16 @@ export function MediaWorkspace({
       const result = await api.saveMediaWorkflowOutput({ promptId: workflowPromptId, filename: workflowOutput?.descriptor?.filename || `yance-${workflowPromptId}.png` });
       const asset = result.asset || null;
       if (asset?.id) { setSelectedAsset(asset); setAssets((rows) => [asset, ...rows.filter((row) => row.id !== asset.id)]); }
-      setStatus("Save back complete · output is now an Immich asset and selectable");
+      setStatus("保存完成，生成结果已进入现有媒体库并可选择");
       setWorkflowOutput(null);
-    } catch (error) { setStatus(`Save back unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "COMFYUI_OUTPUT_NOT_IMPORTED")}`); }
+    } catch { setStatus("保存生成结果失败"); }
     finally { setBusy(false); }
   };
 
   const send = async (): Promise<void> => {
     if (!api || !selectedAsset?.id || busy) return;
     if (routeBinding && routeBinding.status !== "resolved") {
-      setStatus(`Send unavailable · ${routeBinding.reason || "current relationship route unresolved"}`);
+      setStatus(routeBinding.reason || "当前关系会话路由不可用，暂时无法发送");
       return;
     }
     const sendPlatform = resolvedRoute?.platform || platform;
@@ -253,8 +253,8 @@ export function MediaWorkspace({
     setBusy(true);
     try {
       await api.sendMediaAsset({ platform: sendPlatform, accountId: sendAccountId, chatJid: sendChatJid, assetId: selectedAsset.id, filename: displayName(selectedAsset), caption });
-      setStatus("Send delegated to existing Yance send-media-stream authority");
-    } catch (error) { setStatus(`Send unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`); }
+      setStatus("媒体已交给现有发送通道");
+    } catch { setStatus("媒体发送失败"); }
     finally { setBusy(false); }
   };
 
@@ -264,41 +264,41 @@ export function MediaWorkspace({
   const routeReady = standaloneMode ? Boolean(accountId.trim() && chatJid.trim()) : productRouteResolved;
 
   return (
-    <aside className="yance-media-workspace" aria-label="Media Workspace">
+    <aside className="yance-media-workspace" aria-label="媒体">
       <header>
-        <div><strong>Media</strong><span>Immich assets · ComfyUI workflows</span></div>
-        <button type="button" onClick={() => void refreshHealth()} disabled={busy}>Health</button>
+        <div><strong>媒体</strong><span>照片与视频 · 智能生成与编辑</span></div>
+        <button type="button" title="Health" onClick={() => void refreshHealth()} disabled={busy}>运行状态</button>
       </header>
-      <p className={degraded ? "media-status degraded" : "media-status"} aria-live="polite">{status}{health.comfyui?.missingModel ? " · missing model" : ""}</p>
+      <p className={degraded ? "media-status degraded" : "media-status"} aria-live="polite">{status}{health.comfyui?.missingModel ? " · 生成模型缺失" : ""}</p>
 
       <details>
-        <summary>Upstream settings</summary>
+        <summary>高级媒体设置</summary>
         <div className="media-grid">
-          <label>Immich endpoint<input value={immichEndpoint} onChange={(event) => setImmichEndpoint(event.target.value)} placeholder="Leave blank to keep current endpoint" /></label>
-          <label>Immich API key<input type="password" value={immichApiKey} onChange={(event) => setImmichApiKey(event.target.value)} autoComplete="off" placeholder="Leave blank to keep saved key" /></label>
-          <label>Immich external policy<select value={immichExternalIntent} onChange={(event) => setImmichExternalIntent(event.target.value as ExternalPolicyIntent)}><option value="preserve">Keep current policy</option><option value="allow">Allow external HTTPS</option><option value="loopback">Loopback only</option></select></label>
-          <label className="media-check"><input type="checkbox" checked={clearImmichApiKey} onChange={(event) => setClearImmichApiKey(event.target.checked)} /> Clear saved Immich API key</label>
-          <label>ComfyUI endpoint<input value={comfyEndpoint} onChange={(event) => setComfyEndpoint(event.target.value)} placeholder="Leave blank to keep current endpoint" /></label>
-          <label>ComfyUI external policy<select value={comfyExternalIntent} onChange={(event) => setComfyExternalIntent(event.target.value as ExternalPolicyIntent)}><option value="preserve">Keep current policy</option><option value="allow">Allow external endpoint</option><option value="loopback">Loopback only</option></select></label>
-          <button type="button" onClick={() => void saveSettings()} disabled={busy}>Save settings</button>
+          <label>媒体库地址<input value={immichEndpoint} onChange={(event) => setImmichEndpoint(event.target.value)} placeholder="留空则保持当前地址" /></label>
+          <label>媒体库 API 密钥<input type="password" value={immichApiKey} onChange={(event) => setImmichApiKey(event.target.value)} autoComplete="off" placeholder="留空则保留已保存密钥" /></label>
+          <label>媒体库外部连接策略<select value={immichExternalIntent} onChange={(event) => setImmichExternalIntent(event.target.value as ExternalPolicyIntent)}><option value="preserve">保持当前策略</option><option value="allow">允许外部 HTTPS</option><option value="loopback">仅本机</option></select></label>
+          <label className="media-check"><input type="checkbox" checked={clearImmichApiKey} onChange={(event) => setClearImmichApiKey(event.target.checked)} /> 清除已保存的媒体库 API 密钥</label>
+          <label>生成引擎地址<input value={comfyEndpoint} onChange={(event) => setComfyEndpoint(event.target.value)} placeholder="留空则保持当前地址" /></label>
+          <label>生成引擎外部连接策略<select value={comfyExternalIntent} onChange={(event) => setComfyExternalIntent(event.target.value as ExternalPolicyIntent)}><option value="preserve">保持当前策略</option><option value="allow">允许外部地址</option><option value="loopback">仅本机</option></select></label>
+          <button type="button" onClick={() => void saveSettings()} disabled={busy}>保存设置</button>
         </div>
       </details>
 
       <section>
-        <h3>Library</h3>
+        <h3>媒体库</h3>
         <div className="media-actions">
-          <label className="media-file">Import<input ref={importRef} type="file" accept="image/*,video/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importFile(file); }} /></label>
-          <input aria-label="Search media" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Immich" />
-          <button type="button" onClick={() => void search()} disabled={busy}>Search</button>
-          <button type="button" onClick={() => void loadPeople()}>People</button>
-          <button type="button" onClick={() => void loadAlbums()}>Albums</button>
+          <label className="media-file" title="Import">导入<input ref={importRef} type="file" accept="image/*,video/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importFile(file); }} /></label>
+          <input aria-label="搜索媒体" title="Search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索照片或视频" />
+          <button type="button" title="Search" onClick={() => void search()} disabled={busy}>搜索</button>
+          <button type="button" title="People" onClick={() => void loadPeople()}>人物</button>
+          <button type="button" title="Albums" onClick={() => void loadAlbums()}>相册</button>
         </div>
-        <div className="media-summary">People {people.length} · Albums {albums.length}</div>
-        {people.length ? <div className="media-assets" aria-label="Immich people">
-          {people.map((person) => { const id = String(person.id || ""); const name = String(person.name || person.id || "Person"); return <button key={id} type="button" onClick={() => { if (!api || !id) return; setBusy(true); void api.searchMediaAssets({ query: "", personIds: [id], size: 40 }).then((result) => { const rows = assetRows(result); setAssets(rows); setSelectedAsset(null); setStatus(`People · ${name} · ${rows.length} assets`); }).catch((error) => setStatus(`People unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`)).finally(() => setBusy(false)); }}>{name}</button>; })}
+        <div className="media-summary">人物 {people.length} · 相册 {albums.length}</div>
+        {people.length ? <div className="media-assets" aria-label="人物">
+          {people.map((person) => { const id = String(person.id || ""); const name = String(person.name || person.id || "人物"); return <button key={id} type="button" onClick={() => { if (!api || !id) return; setBusy(true); void api.searchMediaAssets({ query: "", personIds: [id], size: 40 }).then((result) => { const rows = assetRows(result); setAssets(rows); setSelectedAsset(null); setStatus(`人物 · ${name} · ${rows.length} 个媒体资源`); }).catch(() => setStatus("人物媒体加载失败")).finally(() => setBusy(false)); }}>{name}</button>; })}
         </div> : null}
-        {albums.length ? <div className="media-assets" aria-label="Immich albums">
-          {albums.map((album) => { const id = String(album.id || ""); const name = String(album.albumName || album.name || album.id || "Album"); return <button key={id} type="button" onClick={() => { if (!api || !id) return; setBusy(true); void api.searchMediaAssets({ query: "", albumIds: [id], size: 40 }).then((result) => { const rows = assetRows(result); setAssets(rows); setSelectedAsset(null); setStatus(`Albums · ${name} · ${rows.length} assets`); }).catch((error) => setStatus(`Albums unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`)).finally(() => setBusy(false)); }}>{name}</button>; })}
+        {albums.length ? <div className="media-assets" aria-label="相册">
+          {albums.map((album) => { const id = String(album.id || ""); const name = String(album.albumName || album.name || album.id || "相册"); return <button key={id} type="button" onClick={() => { if (!api || !id) return; setBusy(true); void api.searchMediaAssets({ query: "", albumIds: [id], size: 40 }).then((result) => { const rows = assetRows(result); setAssets(rows); setSelectedAsset(null); setStatus(`相册 · ${name} · ${rows.length} 个媒体资源`); }).catch(() => setStatus("相册媒体加载失败")).finally(() => setBusy(false)); }}>{name}</button>; })}
         </div> : null}
         <div className="media-assets">
           {assets.map((asset) => <button key={asset.id} type="button" className={selectedAsset?.id === asset.id ? "selected" : ""} onClick={() => setSelectedAsset(asset)}>{displayName(asset)}</button>)}
@@ -306,38 +306,38 @@ export function MediaWorkspace({
       </section>
 
       <section>
-        <h3>Generate / Edit</h3>
+        <h3>生成 / 编辑</h3>
         <div className="media-actions">
-          <button type="button" aria-pressed={workflowKind === "generate"} onClick={() => setWorkflowKind("generate")}>Generate</button>
-          <button type="button" aria-pressed={workflowKind === "edit"} onClick={() => setWorkflowKind("edit")}>Edit</button>
-          <span>{checkpoint ? `Model: ${checkpoint}` : "missing model"}{workflowKind === "edit" && selectedIsVideo ? " · Edit requires an image asset" : ""}</span>
+          <button type="button" title="Generate" aria-pressed={workflowKind === "generate"} onClick={() => setWorkflowKind("generate")}>生成</button>
+          <button type="button" title="Edit" aria-pressed={workflowKind === "edit"} onClick={() => setWorkflowKind("edit")}>编辑</button>
+          <span>{checkpoint ? "生成模型已就绪" : "生成模型缺失"}{workflowKind === "edit" && selectedIsVideo ? " · 编辑需要先选择图片资源" : ""}</span>
         </div>
-        <textarea rows={3} value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe the image or edit" />
+        <textarea rows={3} value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="描述你希望生成的图片或编辑效果" />
         <div className="media-actions">
-          <button type="button" onClick={() => void queueWorkflow()} disabled={busy || !prompt.trim() || !checkpoint || workflowKind === "edit" && (!selectedAsset || selectedIsVideo)}>Queue workflow</button>
-          <button type="button" onClick={() => void previewWorkflow()} disabled={!workflowPromptId || busy}>Preview</button>
-          <button type="button" onClick={() => void saveBack()} disabled={!workflowPromptId || busy}>Save back</button>
+          <button type="button" onClick={() => void queueWorkflow()} disabled={busy || !prompt.trim() || !checkpoint || workflowKind === "edit" && (!selectedAsset || selectedIsVideo)}>提交任务</button>
+          <button type="button" title="Preview" onClick={() => void previewWorkflow()} disabled={!workflowPromptId || busy}>预览</button>
+          <button type="button" title="Save back" onClick={() => void saveBack()} disabled={!workflowPromptId || busy}>保存</button>
         </div>
       </section>
 
       <section>
-        <h3>Preview / Select / Send</h3>
-        <div className="media-actions"><button type="button" onClick={() => void previewAsset()} disabled={!selectedAsset || busy}>Preview</button><span>{selectedAsset ? displayName(selectedAsset) : "No Immich asset selected"}</span></div>
-        {previewUrl ? <img className="media-preview" src={previewUrl} alt="Selected media preview" /> : null}
+        <h3>预览 / 选择 / 发送</h3>
+        <div className="media-actions"><button type="button" title="Preview" onClick={() => void previewAsset()} disabled={!selectedAsset || busy}>预览</button><span>{selectedAsset ? displayName(selectedAsset) : "尚未选择媒体资源"}</span></div>
+        {previewUrl ? <img className="media-preview" src={previewUrl} alt="媒体预览" /> : null}
         <div className="media-grid">
           {standaloneMode ? (
             <>
-              <label>Platform<select value={platform} onChange={(event) => setPlatform(event.target.value)}><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="facebook">Facebook</option></select></label>
-              <label>Account ID<input value={accountId} onChange={(event) => setAccountId(event.target.value)} /></label>
-              <label>Chat JID<input value={chatJid} onChange={(event) => setChatJid(event.target.value)} /></label>
+              <label>平台<select value={platform} onChange={(event) => setPlatform(event.target.value)}><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="facebook">Facebook</option></select></label>
+              <label>账号 ID<input value={accountId} onChange={(event) => setAccountId(event.target.value)} /></label>
+              <label>会话 JID<input value={chatJid} onChange={(event) => setChatJid(event.target.value)} /></label>
             </>
           ) : (
             <div role="status" aria-live="polite">
               {productRouteResolved ? "已绑定当前关系会话" : routeBinding?.reason || "当前关系会话路由不可用"}
             </div>
           )}
-          <label>Caption<input value={caption} onChange={(event) => setCaption(event.target.value)} /></label>
-          <button type="button" onClick={() => void send()} disabled={!selectedAsset || !routeReady || busy}>Send</button>
+          <label>附言<input value={caption} onChange={(event) => setCaption(event.target.value)} /></label>
+          <button type="button" title="Send" onClick={() => void send()} disabled={!selectedAsset || !routeReady || busy}>发送</button>
         </div>
       </section>
     </aside>

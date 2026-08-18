@@ -59,3 +59,10 @@ test('desktop preload and IPC manifest expose only sanitized Presence session/au
   assert.match(manifestText, /presence-avatar/u, 'Presence IPC channels must be declared in the manifest');
   assert.doesNotMatch(preload, /livekitApiSecret|livekitApiKey|signLiveKit|mintLiveKit/iu, 'preload must not expose token-signing secrets');
 });
+
+test('Presence normal-user controls are Chinese-first', () => {
+  const workspace = fs.readFileSync(workspacePath, 'utf8');
+  for (const label of ['连接', '断开', '麦克风', '摄像头', '形象']) {
+    assert.match(workspace, new RegExp(label, 'u'), `Presence missing Chinese-first label: ${label}`);
+  }
+});

@@ -45,3 +45,10 @@ test('Learning remains user-reachable through Product secondary settings without
   ]) assert.match(workspace, new RegExp(label, 'u'), `${label} surface must remain available`);
   assert.match(workspace, /learningAssistantRuntime|invoke|action/iu);
 });
+
+test('Learning normal-user surface is Chinese-first and capability-oriented', () => {
+  const workspace = fs.readFileSync(path.join(ROOT, 'integration/element-module/src/LearningWorkspace.tsx'), 'utf8');
+  for (const label of ['概览', '每日回顾', '学习教练', '证据', '提案', '实验', '灰度发布', '晋级', '回滚', '隐私', '同意']) {
+    assert.match(workspace, new RegExp(label, 'u'), `Learning missing Chinese-first label: ${label}`);
+  }
+});

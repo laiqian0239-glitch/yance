@@ -6,7 +6,13 @@ import { PeopleSurface, type PeopleHomeView } from "./PeopleSurface";
 import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
 import { RelationshipWorld } from "./RelationshipWorld";
-import { loadRelationshipProjections, subscribeRelationshipEvents } from "./experienceProjection";
+import {
+  loadProductAppearance,
+  loadRelationshipProjections,
+  subscribeRelationshipEvents,
+  updateProductAppearance,
+  type ProductAppearanceProjection,
+} from "./experienceProjection";
 import { useExperiencePreferences } from "./experiencePreferences";
 import {
   clearSelectedRelationship,
@@ -27,18 +33,48 @@ type ReadRoomStateEvents = (
   eventType: string,
 ) => readonly { stateKey: string; content: Record<string, unknown> }[];
 
+export type ProductAppearanceHost = {
+  setFontScale: (percent: number) => Promise<void>;
+  setTheme: (theme: {
+    id: string;
+    name: string;
+    isDark: boolean;
+    colors?: Record<string, string>;
+    compound?: Record<string, string>;
+  }) => Promise<void>;
+};
+
 type ProductExperienceShellProps = {
+  appearanceHost?: ProductAppearanceHost;
   navigateSearchResult?: (relationship: RelationshipProjection) => Promise<boolean>;
   readRoomStateEvents?: ReadRoomStateEvents;
 };
 
+const EMPTY_APPEARANCE: ProductAppearanceProjection = {
+  available: false,
+  fontScale: 100,
+  themeId: "",
+  themes: [],
+};
+
+function elementCustomThemeColors(semanticVariables: Readonly<Record<string, string>>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(semanticVariables)
+      .filter(([token, value]) => token.startsWith("--") && Boolean(value))
+      .map(([token, value]) => [token.slice(2), value]),
+  );
+}
+
 export function ProductExperienceShell({
+  appearanceHost,
   navigateSearchResult,
   readRoomStateEvents,
 }: ProductExperienceShellProps): React.JSX.Element {
   const [relationships, setRelationships] = useState<readonly RelationshipProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("正在加载关系");
+  const [appearance, setAppearance] = useState<ProductAppearanceProjection>(EMPTY_APPEARANCE);
+  const [appearanceStatus, setAppearanceStatus] = useState("正在同步外观设置");
   const [assistantVisible, setAssistantVisible] = useState(false);
   const [learningAdminVisible, setLearningAdminVisible] = useState(false);
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
@@ -48,6 +84,8 @@ export function ProductExperienceShell({
   const preferences = useExperiencePreferences();
   const selectedRelationshipIdRef = useRef(session.selectedRelationshipId);
   const refreshGenerationRef = useRef(0);
+  const appearanceMutationRef = useRef<Promise<void>>(Promise.resolve());
+  const appearanceGenerationRef = useRef(0);
 
   useEffect(() => {
     selectedRelationshipIdRef.current = session.selectedRelationshipId;
@@ -77,9 +115,66 @@ export function ProductExperienceShell({
     }
   }, []);
 
+  const reconcileHostAppearance = useCallback(async (next: ProductAppearanceProjection): Promise<void> => {
+    if (!appearanceHost || !next.available) return;
+    await appearanceHost.setFontScale(next.fontScale);
+    const activeTheme = next.themes.find((theme) => theme.id === next.themeId);
+    if (!activeTheme) return;
+    await appearanceHost.setTheme({
+      id: activeTheme.id,
+      name: activeTheme.name,
+      isDark: activeTheme.isDark,
+      colors: elementCustomThemeColors(activeTheme.semanticVariables),
+      compound: { ...activeTheme.elementCompound },
+    });
+  }, [appearanceHost]);
+
+  const refreshAppearance = useCallback(async (): Promise<ProductAppearanceProjection> => {
+    const next = await loadProductAppearance();
+    setAppearance(next);
+    if (!next.available) {
+      setAppearanceStatus("桌面外观同步不可用，当前界面将继承宿主外观");
+      return next;
+    }
+    await reconcileHostAppearance(next);
+    setAppearanceStatus("外观已同步");
+    return next;
+  }, [reconcileHostAppearance]);
+
+  const queueAppearanceUpdate = useCallback((input: { fontScale?: number; themeId?: string }): void => {
+    const generation = ++appearanceGenerationRef.current;
+    appearanceMutationRef.current = appearanceMutationRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          const next = await updateProductAppearance(input);
+          if (generation !== appearanceGenerationRef.current) return;
+          setAppearance(next);
+          await reconcileHostAppearance(next);
+          setAppearanceStatus("外观已同步");
+        } catch {
+          if (generation !== appearanceGenerationRef.current) return;
+          setAppearanceStatus("外观设置保存失败，已恢复到持久化状态");
+          try {
+            await refreshAppearance();
+          } catch {
+            setAppearance(EMPTY_APPEARANCE);
+            setAppearanceStatus("桌面外观同步不可用，当前界面将继承宿主外观");
+          }
+        }
+      });
+  }, [reconcileHostAppearance, refreshAppearance]);
+
   useEffect(() => {
     void refreshRelationships();
   }, [refreshRelationships]);
+
+  useEffect(() => {
+    void refreshAppearance().catch(() => {
+      setAppearance(EMPTY_APPEARANCE);
+      setAppearanceStatus("桌面外观同步不可用，当前界面将继承宿主外观");
+    });
+  }, [refreshAppearance]);
 
   useEffect(() => {
     return subscribeRelationshipEvents(() => {
@@ -116,7 +211,9 @@ export function ProductExperienceShell({
       data-yance-workspace
       data-atmosphere={preferences.atmosphere.toLowerCase()}
       data-reduced-motion={preferences.reducedMotion || undefined}
-      aria-label="Yance 关系智能操作系统"
+      data-theme-id={appearance.themeId || undefined}
+      data-font-scale={appearance.available ? appearance.fontScale : undefined}
+      aria-label="言策关系智能操作系统"
     >
       <div className="yance-shell-status yance-sr-only" role="status" aria-live="polite">{status}</div>
 
@@ -198,6 +295,38 @@ export function ProductExperienceShell({
         <summary>体验设置</summary>
         <div className="yance-settings-grid">
           <label>
+            <span>全局字号 <output>{appearance.fontScale}%</output></span>
+            <input
+              type="range"
+              min={85}
+              max={150}
+              step={1}
+              value={appearance.fontScale}
+              disabled={!appearance.available}
+              onChange={(event) => {
+                const fontScale = Number(event.target.value);
+                setAppearance((current) => ({ ...current, fontScale }));
+                queueAppearanceUpdate({ fontScale });
+              }}
+            />
+          </label>
+          <label>
+            <span>全局主题</span>
+            <select
+              value={appearance.themeId}
+              disabled={!appearance.available || appearance.themes.length === 0}
+              onChange={(event) => {
+                const themeId = event.target.value;
+                setAppearance((current) => ({ ...current, themeId }));
+                queueAppearanceUpdate({ themeId });
+              }}
+            >
+              {appearance.themes.map((theme) => (
+                <option key={theme.id} value={theme.id}>{theme.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
             <span>声音</span>
             <select value={preferences.soundMode} onChange={(event) => preferences.setSoundMode(event.target.value as SoundMode)}>
               <option value="Off">关闭</option>
@@ -221,6 +350,7 @@ export function ProductExperienceShell({
             </select>
           </label>
         </div>
+        <p className="yance-appearance-status" role="status" aria-live="polite">{appearanceStatus}</p>
         {preferences.reducedMotion ? <p className="yance-reduced-motion-note">已启用减少动效；状态变化仍会清晰显示，但不会进行空间移动。</p> : null}
         <div className="yance-learning-settings-actions">
           {learningAdminVisible ? (

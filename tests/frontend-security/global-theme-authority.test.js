@@ -63,3 +63,12 @@ test('account-center transient status delegates to the global semantic notificat
   assert.match(accountCenter, /YanceNotificationLayoutAuthority\.show/);
   assert.doesNotMatch(accountCenter, /style\.cssText|border:1px solid rgba\(67,234,214/);
 });
+
+test('shipping Element Product consumes semantic theme roles instead of a private Product palette', () => {
+  const productCss = fs.readFileSync(
+    path.join(ROOT, 'integration/element-module/src/product-experience/ProductExperienceShell.css'),
+    'utf8'
+  );
+  assert.doesNotMatch(productCss, /--yance-(?:surface|muted|accent)\s*:/u, 'Product must not define a competing private theme palette');
+  assert.match(productCss, /var\(--(?:surface|text|accent)-/u, 'Product must consume repository semantic theme roles');
+});
