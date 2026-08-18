@@ -58,6 +58,7 @@ function egressDeadlineMs(command = {}) {
 }
 function executeEgressWithDeadline(executor, command = {}) {
   return executeWithDeadline(executor, {
+    deadlineAt: clean(command.deadlineAt),
     timeoutMs: egressDeadlineMs(command),
     code: 'PLATFORM_EGRESS_DEADLINE_EXCEEDED',
     message: '平台发送执行超过期限；远端结果不确定，已禁止自动重发。',
@@ -101,6 +102,18 @@ function portDeadlineMs(kind, platform, operation, requested = 0) {
   return Math.max(1_000, override > 0 ? override : Number(defaults[normalizedOperation] || 60_000));
 }
 
+function persistedAuthorityDeadlineAt(lifecycle, kind, platform, operation, requested = 0) {
+  if (!lifecycle || typeof lifecycle.timestamp !== 'function') {
+    throw error('PLATFORM_AUTHORITY_CLOCK_REQUIRED', 'Persisted platform deadline requires the durable operation authority clock.', 503);
+  }
+  const authorityNow = lifecycle.timestamp();
+  const nowMs = Date.parse(authorityNow);
+  if (!Number.isFinite(nowMs) || new Date(nowMs).toISOString() !== authorityNow) {
+    throw error('PLATFORM_AUTHORITY_CLOCK_INVALID', 'Durable operation authority returned an invalid timestamp.', 503);
+  }
+  return new Date(nowMs + portDeadlineMs(kind, platform, operation, requested)).toISOString();
+}
+
 function executePortWithDeadline(executor, context = {}) {
   const kind = clean(context.kind).toLowerCase();
   const platform = clean(context.platform).toLowerCase();
@@ -108,6 +121,7 @@ function executePortWithDeadline(executor, context = {}) {
   const operation = clean(context.operation).toLowerCase();
   const operationId = clean(context.operationId);
   return executeWithDeadline(executor, {
+    deadlineAt: clean(context.deadlineAt),
     timeoutMs: portDeadlineMs(kind, platform, operation, context.timeoutMs),
     signal: context.signal || null,
     generation: clean(context.generation),
@@ -377,6 +391,7 @@ function projectPhysicalOperationContext(operation = {}, platform = '', accountI
     claimId: clean(operation.claimId),
     hostGeneration: Number(operation.hostGeneration),
     fencingToken: Number(operation.fencingToken),
+    deadlineAt: clean(operation.deadlineAt),
     platform: clean(platform).toLowerCase(),
     accountId: clean(accountId)
   });
@@ -506,8 +521,10 @@ class PlatformAdapterFacade {
     const operation = clean(input.operation);
     if (!operation) throw error('PLATFORM_AUTH_OPERATION_REQUIRED', 'AuthPort 必须声明认证操作。');
     const accountId = clean(input.accountId);
+    const requestedDeadlineAt = clean(input.deadlineAt);
+    const deadlineAt = requestedDeadlineAt || persistedAuthorityDeadlineAt(lifecycle, 'auth', this.platform, operation, input.timeoutMs);
     const workflow = platformAuthWorkflowAuthority.begin(lifecycle, {
-      ...input, platform: this.platform, accountId, operation
+      ...input, platform: this.platform, accountId, operation, deadlineAt
     });
     const created = workflow.operation;
     const physicalOperationContext = projectPhysicalOperationContext(created, this.platform, accountId);
@@ -515,14 +532,14 @@ class PlatformAdapterFacade {
       let result;
       if (this.authHandler?.execute) result = await executePortWithDeadline(
         ({ signal, generation }) => this.authHandler.execute({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
-        { kind: 'auth', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, timeoutMs: input.timeoutMs, signal: input.signal }
+        { kind: 'auth', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, deadlineAt: created.deadlineAt, timeoutMs: input.timeoutMs, signal: input.signal }
       );
       else {
         const direct = this.authHandler?.[operation];
         if (typeof direct !== 'function') throw error('PLATFORM_AUTH_OPERATION_NOT_BOUND', `${this.platform} AuthPort 尚未绑定操作：${operation}`, 501);
         result = await executePortWithDeadline(
           ({ signal, generation }) => direct({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
-          { kind: 'auth', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, timeoutMs: input.timeoutMs, signal: input.signal }
+          { kind: 'auth', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, deadlineAt: created.deadlineAt, timeoutMs: input.timeoutMs, signal: input.signal }
         );
       }
       const normalized = assertDomainDto(result, 'AuthCommandResult');
@@ -679,9 +696,11 @@ class PlatformAdapterFacade {
     const operation = clean(request.operation) || 'sync';
     const requestId = clean(request.requestId || request.correlationId) || sha256({ platform: this.platform, accountId, operation, requestedAt: request.requestedAt || new Date().toISOString() });
     const reconcileOperationType = /sync|history/iu.test(operation) ? 'history.sync' : `media.${operation}`;
+    const requestedDeadlineAt = clean(request.deadlineAt);
+    const deadlineAt = requestedDeadlineAt || persistedAuthorityDeadlineAt(lifecycle, 'reconcile', this.platform, operation, request.timeoutMs);
     const scheduled = lifecycle.create({
       operationId: clean(request.operationId), operationType: reconcileOperationType, scopeKey: `${this.platform}:${accountId}:${operation}`,
-      objectFingerprint: requestId, metadata: { accountId, providerRequestId: requestId }
+      objectFingerprint: requestId, metadata: { accountId, providerRequestId: requestId }, deadlineAt
     }).operation;
     const created = lifecycle.start(scheduled.operationId, { progress: 5 }).operation;
     const physicalOperationContext = projectPhysicalOperationContext(created, this.platform, accountId);
@@ -689,7 +708,7 @@ class PlatformAdapterFacade {
       try {
         const result = assertDomainDto(await executePortWithDeadline(
           ({ signal, generation }) => this.reconcileHandler({ ...request, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
-          { kind: 'reconcile', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, timeoutMs: request.timeoutMs, signal: request.signal }
+          { kind: 'reconcile', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, deadlineAt: created.deadlineAt, timeoutMs: request.timeoutMs, signal: request.signal }
         ), 'ReconcileResult');
         const normalized = {
           ...result,
@@ -815,5 +834,5 @@ module.exports = {
   ADAPTER_SCHEMA_VERSION, PORTS, PLATFORMS, PlatformAdapterFacade, PlatformAdapterRegistryV2,
   singleton, defaultNormalizer, assertDomainDto, authorizePersistedOutbox, normalizeSendResult, sanitizePortValue,
   createAccountManagerAuthHandler, createAccountManagerReconcileHandler, executeEgressWithDeadline,
-  executePortWithDeadline, portDeadlineMs, projectPhysicalOperationContext, validatePersistedEgressContext
+  executePortWithDeadline, portDeadlineMs, persistedAuthorityDeadlineAt, projectPhysicalOperationContext, validatePersistedEgressContext
 };

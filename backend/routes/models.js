@@ -1,7 +1,6 @@
 'use strict';
 
 const express = require('express');
-const ollama = require('../services/ollamaClient');
 const registry = require('../services/modelRegistry');
 const modelStatus = require('../services/modelStatusService');
 const qualification = require('../services/modelQualification');
@@ -9,7 +8,6 @@ const aiGateway = require('../services/aiGateway');
 const eventBus = require('../services/eventBus');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
 const { verifyCloudCredential } = require('../services/modelExecutor');
-const { listModels } = require('../services/openAiCompatibleClient');
 const aiAutomation = require('../services/aiBrainOrchestrator');
 const modelAutoActivation = require('../services/modelAutoActivationService');
 const replyBrainAuthority = require('../services/replyBrainModelAuthority');
@@ -24,13 +22,6 @@ function clean(value) { return String(value == null ? '' : value).trim(); }
 function findModel(idOrName) {
   const state = registry.read();
   return (state.models || []).find(model => model.id === idOrName || model.name === idOrName);
-}
-function publicCredential(credentialRef, fallbackEndpoint = '') {
-  const row = securityGuard.credentials.get(clean(credentialRef)) || {};
-  return {
-    apiKey: clean(row.apiKey || row.key || row.token),
-    endpoint: clean(row.endpoint || row.baseUrl || fallbackEndpoint)
-  };
 }
 async function waitForCredential(credentialRef) {
   for (let attempt = 0; attempt < 10 && !securityGuard.credentials.has(credentialRef); attempt += 1) {
@@ -112,8 +103,8 @@ router.post('/cloud/discover', async (req, res) => {
   if (!endpoint || !credentialRef) return res.status(400).json({ ok: false, error: 'INVALID_CLOUD_MODEL_DISCOVERY', message: '地址和凭据不能为空' });
   try {
     if (!await waitForCredential(credentialRef)) return res.status(409).json({ ok: false, error: 'CLOUD_MODEL_CREDENTIAL_MISSING', message: '云模型凭据尚未写入系统安全存储' });
-    const credential = publicCredential(credentialRef, endpoint);
-    const models = await listModels({ endpoint: credential.endpoint || endpoint, apiKey: credential.apiKey, timeoutMs: Number(req.body?.timeoutMs || 30000) });
+    const credential = aiGateway.assertCloudCredential(credentialRef, endpoint);
+    const models = await aiGateway.listCloudModels({ endpoint: credential.endpoint || endpoint, credentialRef, timeoutMs: Number(req.body?.timeoutMs || 30000) });
     return res.json({ ok: true, endpoint: credential.endpoint || endpoint, models });
   } catch (error) {
     return res.status(responseStatus(error)).json(cloudFailurePayload(error, 'CLOUD_MODEL_DISCOVERY_FAILED'));
@@ -130,8 +121,8 @@ router.post('/cloud', async (req, res, next) => {
   if (req.body?.verify === false) return res.status(400).json({ ok: false, error: 'CLOUD_MODEL_TEST_REQUIRED', message: '云模型必须先完成目录读取和 Model Brain 逻辑烟测，测试通过后才能保存。', persisted: false });
   try {
     if (!await waitForCredential(credentialRef)) return res.status(409).json({ ok: false, error: 'CLOUD_MODEL_CREDENTIAL_MISSING', message: '云模型凭据尚未写入系统安全存储', persisted: false });
-    const credential = publicCredential(credentialRef, endpoint);
-    const availableModels = await listModels({ endpoint: credential.endpoint || endpoint, apiKey: credential.apiKey, timeoutMs: Number(req.body?.discoveryTimeoutMs || 30000) });
+    const credential = aiGateway.assertCloudCredential(credentialRef, endpoint);
+    const availableModels = await aiGateway.listCloudModels({ endpoint: credential.endpoint || endpoint, credentialRef, timeoutMs: Number(req.body?.discoveryTimeoutMs || 30000) });
     let verification;
     try {
       verification = await verifyCloudCredential({ endpoint, credentialRef, model: name, provider, runInference: true, testVision });
@@ -279,7 +270,7 @@ router.delete('/local/:id', async (req, res, next) => {
     if (model.provider !== 'ollama') return res.status(409).json({ ok: false, error: 'CLOUD_MODEL_DELETE_ENDPOINT_REQUIRED' });
     if (model.userDisabled !== true) return res.status(409).json({ ok: false, error: 'MODEL_MUST_BE_DISABLED_BEFORE_DELETE', message: '请先停用模型，再执行永久删除。' });
     if (clean(req.body?.confirmName) !== clean(model.name)) return res.status(409).json({ ok: false, error: 'MODEL_DELETE_CONFIRMATION_MISMATCH', message: '模型名称确认不一致。' });
-    await ollama.remove(model.endpoint, model.name);
+    await aiGateway.removeLocalModel(model.endpoint, model.name);
     await registry.removeModel(model.id);
     res.json({ ok: true, modelId: model.id, model: model.name });
   } catch (error) { next(error); }
@@ -287,7 +278,7 @@ router.delete('/local/:id', async (req, res, next) => {
 
 router.post('/scan', async (_req, res, next) => {
   try {
-    const discovery = await ollama.discover();
+    const discovery = await aiGateway.discoverLocalModels();
     let state = await registry.mergeDiscovered(discovery);
     state = await modelAutoActivation.run({ reason: 'manual-scan', state });
     eventBus.publish('models:scanned', { count: discovery.models?.length || 0, online: discovery.online === true });
@@ -333,7 +324,7 @@ router.post('/:id/unload', async (req, res, next) => {
     const model = findModel(req.params.id);
     if (!model) return res.status(404).json({ ok: false, error: 'MODEL_NOT_FOUND' });
     if (model.provider !== 'ollama') return res.status(409).json({ ok: false, error: 'CLOUD_MODEL_CANNOT_BE_UNLOADED' });
-    await ollama.unload(model.endpoint, model.name);
+    await aiGateway.unloadLocalModel(model.endpoint, model.name);
     res.json({ ok: true, modelId: model.id, model: model.name });
   } catch (error) { next(error); }
 });
@@ -355,11 +346,6 @@ router.post('/model-brain/probe', async (req, res, next) => {
 });
 
 router.post('/execute', async (req, res, next) => {
-  const controller = new AbortController();
-  const abortRequest = () => { if (!controller.signal.aborted) controller.abort(Object.assign(new Error('MODEL_REQUEST_DISCONNECTED'), { code: 'MODEL_REQUEST_DISCONNECTED' })); };
-  req.once('aborted', abortRequest);
-  const closeHandler = () => { if (!res.writableEnded) abortRequest(); };
-  res.once('close', closeHandler);
   try {
     const task = clean(req.body?.task);
     const modelId = clean(req.body?.modelId);
@@ -371,15 +357,11 @@ router.post('/execute', async (req, res, next) => {
       options: req.body?.options || {},
       dedupeKey: req.body?.dedupeKey || '',
       fingerprint: req.body?.fingerprint || '',
-      context: req.body?.context || {},
-      signal: controller.signal
+      context: req.body?.context || {}
     });
     if (!res.writableEnded) res.json({ ok: true, result, structured: result.text || '' });
   } catch (error) {
-    if (!controller.signal.aborted && !res.headersSent) next(error);
-  } finally {
-    req.removeListener('aborted', abortRequest);
-    res.removeListener('close', closeHandler);
+    if (!res.headersSent) next(error);
   }
 });
 router.post('/jobs', (req, res, next) => {

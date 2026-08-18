@@ -50,6 +50,7 @@ class PlatformAuthWorkflowAuthority {
       scopeKey: scopeKey(platform, accountId),
       objectFingerprint: fingerprint,
       metadata: { accountId, providerRequestId: fingerprint },
+      deadlineAt: clean(input.deadlineAt),
       resumePolicy,
       adapterSessionId,
       challengeExpiresAt: clean(input.challengeExpiresAt || input.expiresAt)

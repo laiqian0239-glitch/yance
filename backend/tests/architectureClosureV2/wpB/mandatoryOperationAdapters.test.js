@@ -6,6 +6,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const servicesRoot = path.join(__dirname, '..', '..', '..', 'services');
+const whatsappAdapterPath = path.join(servicesRoot, 'whatsappAdapter.js');
+const platformDriverRegistryPath = path.join(servicesRoot, 'platformDriverRegistry.js');
+const accountContextPath = path.join(__dirname, '..', '..', '..', 'core', 'accountContext.js');
 const registryPath = path.join(servicesRoot, 'durableOperationRegistry.js');
 const outboundOperationPath = path.join(
   servicesRoot,
@@ -347,4 +350,225 @@ test('M2-MSG-004 reconciliation performs lookup only and returns bounded remote 
     evidenceReference: 'evidence-message-reconciled'
   });
   assert.equal(Object.isFrozen(result), true);
+});
+
+
+test('M2-WA-003 AccountContext preserves persisted platform operation context through auth and reconcile bindings', () => {
+  const source = fs.readFileSync(accountContextPath, 'utf8');
+  assert.match(source, /function\s+physicalOperationOptions\(request\s*=\s*\{\}\)[\s\S]*?signal:\s*request\.signal[\s\S]*?operationGeneration:[\s\S]*?request\.operationGeneration[\s\S]*?physicalOperationContext:\s*request\.physicalOperationContext/u, 'M2-WA-003:PHYSICAL_OPTIONS_REQUIRED');
+  for (const pattern of [
+    /this\.lifecycle\.start\(accountId,\s*\{\s*action:\s*'connect',\s*\.\.\.physicalOperationOptions\(request\)\s*\}\)/u,
+    /this\.lifecycle\.restart\(accountId,\s*\{\s*action:\s*'reconnect',\s*\.\.\.physicalOperationOptions\(request\)\s*\}\)/u,
+    /this\.accountManager\.beginFacebookOAuth\(accountId,\s*physicalOperationOptions\(request\)\)/u,
+    /this\.accountManager\.pollFacebookOAuth\(accountId,\s*request\.flowId,\s*physicalOperationOptions\(request\)\)/u,
+    /this\.accountManager\.selectFacebookPage\(accountId,\s*request\.flowId,\s*request\.pageId,\s*physicalOperationOptions\(request\)\)/u,
+    /this\.accountManager\.cancelFacebookOAuth\(accountId,\s*request\.flowId,\s*physicalOperationOptions\(request\)\)/u,
+    /this\.accountManager\.sync\(accountId,\s*\{[\s\S]*?\.\.\.physicalOperationOptions\(request\)[\s\S]*?executionGeneration:\s*request\.operationGeneration[\s\S]*?\}\)/u
+  ]) assert.match(source, pattern, `M2-WA-003:CONTEXT_PROPAGATION_REQUIRED:${pattern}`);
+});
+
+test('M2-WA-004 platform driver preserves persisted WhatsApp operation context into the physical adapter', () => {
+  const source = fs.readFileSync(platformDriverRegistryPath, 'utf8');
+  assert.match(
+    source,
+    /async\s+connect\(account,\s*options\s*=\s*\{\}\)\s*\{[\s\S]*?whatsapp\.start\(account,\s*\{[\s\S]*?physicalOperationContext:\s*options\.physicalOperationContext[\s\S]*?\}\)/u,
+    'M2-WA-004:CONNECT_CONTEXT_REQUIRED'
+  );
+  assert.match(
+    source,
+    /async\s+sync\(account,\s*options\s*=\s*\{\}\)\s*\{\s*return\s+withPersistedOperationContext\(options,\s*\(\)\s*=>\s*whatsapp\.sync\(account,\s*options\)\);\s*\}/u,
+    'M2-WA-004:SYNC_CONTEXT_REQUIRED'
+  );
+});
+
+test('M2-WA-001 WhatsApp physical adapter is fail-closed behind persisted WP-B operation contexts', () => {
+  const source = fs.readFileSync(whatsappAdapterPath, 'utf8');
+  assert.match(source, /validatePersistedEgressContext/u, 'M2-WA-001:PERSISTED_CONTEXT_VALIDATOR_REQUIRED');
+  assert.match(source, /requirePersistedWhatsAppOperation/u, 'M2-WA-001:ADAPTER_BOUNDARY_REQUIRED');
+  assert.match(source, /async\s+start\([^)]*options[^)]*\)[\s\S]*?requirePersistedWhatsAppOperation\(options\.physicalOperationContext/u, 'M2-WA-001:start:CONTEXT_REQUIRED');
+  assert.match(source, /async\s+sync\([^)]*options[^)]*\)[\s\S]*?requirePersistedWhatsAppOperation\(options\.physicalOperationContext/u, 'M2-WA-001:sync:CONTEXT_REQUIRED');
+  for (const method of ['sendText', 'sendMedia', 'sendReaction', 'revokeMessage', 'sendPresence', 'markRead']) {
+    assert.match(source, new RegExp(`async\\s+${method}\\(\\{[^}]*physicalAttemptContext`, 'u'), `M2-WA-001:${method}:CONTEXT_REQUIRED`);
+  }
+});
+
+test('M2-WA-002 WhatsApp connection close returns an observation and owns no reconnect retry timer', () => {
+  const source = fs.readFileSync(whatsappAdapterPath, 'utf8');
+  assert.doesNotMatch(source, /reconnectTimers/u, 'M2-WA-002:RECONNECT_TIMER_MAP_FORBIDDEN');
+  assert.doesNotMatch(source, /reconnect-blocked-by-lifecycle|reconnect-cancelled-by-lifecycle|reconnect-failed/u, 'M2-WA-002:LOCAL_RECONNECT_AUTHORITY_FORBIDDEN');
+  assert.doesNotMatch(source, /this\.start\(latest\)/u, 'M2-WA-002:LOCAL_RESTART_FORBIDDEN');
+  assert.match(source, /whatsapp:state/u, 'M2-WA-002:CLOSE_OBSERVATION_REQUIRED');
+});
+
+test('M2-SYNC-001 legacy sync repository is read-only and durable checkpoint mutation delegates to the canonical CAS authority', () => {
+  const repositoryPath = path.join(__dirname, '..', '..', '..', 'repositories', 'syncCheckpointRepository.js');
+  const servicePath = path.join(servicesRoot, 'syncCheckpointService.js');
+  const repositorySource = fs.readFileSync(repositoryPath, 'utf8');
+  const serviceSource = fs.readFileSync(servicePath, 'utf8');
+  const driverSource = fs.readFileSync(platformDriverRegistryPath, 'utf8');
+  assert.doesNotMatch(repositorySource, /UPDATE\s+sync_checkpoints/iu, 'M2-SYNC-001:LEGACY_CHECKPOINT_MUTATION_FORBIDDEN');
+  assert.match(repositorySource, /WP_B_SYNC_CHECKPOINT_DIRECT_MUTATION_FORBIDDEN/u, 'M2-SYNC-001:DIRECT_MUTATION_FAIL_CLOSED_REQUIRED');
+  assert.match(repositorySource, /mutationPerformed:\s*false/u, 'M2-SYNC-001:RECOVERY_MUST_BE_OBSERVATION_ONLY');
+  assert.match(serviceSource, /AsyncLocalStorage/u, 'M2-SYNC-001:EXECUTION_SCOPE_REQUIRED');
+  assert.match(serviceSource, /applyHistoryCheckpointObservation/u, 'M2-SYNC-001:CANONICAL_CHECKPOINT_AUTHORITY_REQUIRED');
+  assert.match(serviceSource, /batchExpectedVersion/u, 'M2-SYNC-001:BEGIN_VERSION_MUST_FLOW_TO_COMMIT');
+  assert.match(driverSource, /withPersistedOperationContext\(options,[\s\S]*?telegram\.sync/u, 'M2-SYNC-001:TELEGRAM_SYNC_SCOPE_REQUIRED');
+  assert.match(driverSource, /withPersistedOperationContext\(options,[\s\S]*?whatsapp\.sync/u, 'M2-SYNC-001:WHATSAPP_SYNC_SCOPE_REQUIRED');
+});
+
+test('M2-SYNC-002 sync checkpoint compatibility service rejects stale begin versions through canonical CAS', () => {
+  const servicePath = path.join(servicesRoot, 'syncCheckpointService.js');
+  delete require.cache[require.resolve(servicePath)];
+  const { SyncCheckpointService } = require(servicePath);
+  const current = { row: null };
+  const observations = [];
+  const authority = {
+    getSyncCheckpoint() { return current.row; },
+    applyHistoryCheckpointObservation(input) {
+      observations.push(input);
+      const expected = Number(input.checkpoint.expectedVersion);
+      const actual = Number(current.row?.version || 0);
+      if (expected !== actual) throw Object.assign(new Error('stale'), { code: 'WP_B_HISTORY_CHECKPOINT_CAS_REJECTED' });
+      if (input.observation.outcome === 'REMOTE_RESULT_UNKNOWN') return { state: 'REMOTE_RESULT_UNKNOWN', checkpointAdvanced: false };
+      current.row = {
+        checkpointId: input.checkpoint.checkpointId,
+        version: actual + 1,
+        cursor: input.observation.cursorReference,
+        highWatermark: input.observation.highWatermarkReference,
+        gapClosed: input.observation.gapClosed,
+        updatedAt: '2026-08-18T08:00:00.000Z'
+      };
+      return { state: 'PAGE_OBSERVED', checkpointAdvanced: true };
+    }
+  };
+  const operation = Object.freeze({
+    executionId: 'history-execution-1', operationId: 'history-execution-1', operationKind: 'HISTORY_SYNCHRONIZATION',
+    state: 'RUNNING', stateVersion: 4, generation: 2, ownerId: 'host-1', claimId: 'claim-1', hostGeneration: 3, fencingToken: 7
+  });
+  const context = Object.freeze({ ...operation, platform: 'telegram', accountId: 'account-1' });
+  const service = new SyncCheckpointService({
+    checkpointRepository: {
+      read() { return null; }, claimRemoteMessage() {}, releaseRemoteMessage() {}, receiptRemoteKey() {}, recoverInterrupted() { return []; }
+    },
+    authority,
+    lifecycleProvider: () => ({ read() { return operation; } })
+  });
+  service.withPhysicalOperationContext(context, () => {
+    const first = service.begin({ platform: 'telegram', accountId: 'account-1', scopeId: 'chat-1' });
+    const stale = service.begin({ platform: 'telegram', accountId: 'account-1', scopeId: 'chat-1' });
+    const committed = service.commit({ platform: 'telegram', accountId: 'account-1', scopeId: 'chat-1', batchId: first.batchId, cursor: '42', remoteTimestamp: '2026-08-18T08:00:00.000Z' });
+    assert.equal(committed.version, 1, 'M2-SYNC-002:VERSION_ADVANCED');
+    assert.throws(
+      () => service.commit({ platform: 'telegram', accountId: 'account-1', scopeId: 'chat-1', batchId: stale.batchId, cursor: '43' }),
+      error => error?.code === 'WP_B_HISTORY_CHECKPOINT_CAS_REJECTED',
+      'M2-SYNC-002:STALE_BEGIN_MUST_FAIL_CLOSED'
+    );
+    const next = service.begin({ platform: 'telegram', accountId: 'account-1', scopeId: 'chat-1' });
+    const failed = service.fail({ platform: 'telegram', accountId: 'account-1', scopeId: 'chat-1', batchId: next.batchId, error: 'remote unknown' });
+    assert.equal(failed.payload.checkpointAdvanced, false, 'M2-SYNC-002:UNKNOWN_MUST_NOT_ADVANCE');
+  });
+  assert.equal(observations[0].executionClaim.stateVersion, 4, 'M2-SYNC-002:STATE_VERSION_REQUIRED');
+  assert.equal(observations[0].executionClaim.fencingToken, 7, 'M2-SYNC-002:FENCING_REQUIRED');
+});
+
+test('M2-DEADLINE-001 port-level deadlines are persisted absolute authority timestamps and local timeout cannot prove remote failure', async () => {
+  const deadlinePath = path.join(servicesRoot, 'executionDeadline.js');
+  const lifecyclePath = path.join(servicesRoot, 'durableInternalOperationAuthority.js');
+  const portSource = fs.readFileSync(path.join(servicesRoot, 'platformAdapterPorts.js'), 'utf8');
+  const deadlineSource = fs.readFileSync(deadlinePath, 'utf8');
+  const lifecycleSource = fs.readFileSync(lifecyclePath, 'utf8');
+  assert.match(lifecycleSource, /deadlineAt:\s*optionalString\(input\.deadlineAt/u, 'M2-DEADLINE-001:DURABLE_CREATE_MUST_PERSIST_DEADLINE');
+  assert.match(lifecycleSource, /deadlineAt:\s*execution\.deadlineAt/u, 'M2-DEADLINE-001:DURABLE_SNAPSHOT_MUST_EXPOSE_DEADLINE');
+  assert.match(portSource, /persistedAuthorityDeadlineAt\(lifecycle,\s*'auth'/u, 'M2-DEADLINE-001:AUTH_PERSISTED_DEADLINE_REQUIRED');
+  assert.match(portSource, /persistedAuthorityDeadlineAt\(lifecycle,\s*'reconcile'/u, 'M2-DEADLINE-001:RECONCILE_PERSISTED_DEADLINE_REQUIRED');
+  assert.match(portSource, /deadlineAt:\s*created\.deadlineAt/u, 'M2-DEADLINE-001:PHYSICAL_PORT_MUST_CONSUME_PERSISTED_DEADLINE');
+  assert.match(deadlineSource, /deadlineAuthority:\s*deadlineAt\s*\?\s*'PERSISTED_AUTHORITY_TIMESTAMP'/u, 'M2-DEADLINE-001:DEADLINE_AUTHORITY_CLASSIFICATION_REQUIRED');
+  assert.match(deadlineSource, /outcomeUnknown:\s*options\.outcomeKnownLocal\s*===\s*true\s*\?\s*false\s*:\s*true/u, 'M2-DEADLINE-001:TIMEOUT_REMOTE_TRUTH_UNKNOWN_REQUIRED');
+  assert.match(deadlineSource, /automaticRetryBlocked:[\s\S]*?true/u, 'M2-DEADLINE-001:TIMEOUT_AUTORETRY_BLOCK_REQUIRED');
+
+  delete require.cache[require.resolve(deadlinePath)];
+  const { executeWithDeadline } = require(deadlinePath);
+  const deadlineAt = new Date(Date.now() + 20).toISOString();
+  await assert.rejects(
+    executeWithDeadline(() => new Promise(() => {}), { deadlineAt, operation: 'persisted-deadline-contract' }),
+    error => error?.code === 'EXECUTION_DEADLINE_EXCEEDED'
+      && error?.deadlineAt === deadlineAt
+      && error?.deadlineAuthority === 'PERSISTED_AUTHORITY_TIMESTAMP'
+      && error?.outcomeUnknown === true
+      && error?.automaticRetryBlocked === true
+  );
+});
+
+
+test('M2-FB-001 Facebook OAuth worker probes require one persisted operation and use its authority deadline', () => {
+  const source = fs.readFileSync(path.join(servicesRoot, 'facebookOAuthService.js'), 'utf8');
+  assert.match(source, /requirePersistedFacebookOperation/u, 'M2-FB-001:PERSISTED_OPERATION_VALIDATOR_REQUIRED');
+  assert.match(source, /async\s+function\s+workerRequest[\s\S]*?requirePersistedFacebookOperation\(operation/u, 'M2-FB-001:WORKER_REQUEST_MUST_FAIL_CLOSED');
+  assert.match(source, /executeWithDeadline/u, 'M2-FB-001:AUTHORITY_DEADLINE_ADAPTER_REQUIRED');
+  assert.match(source, /deadlineAt:\s*persisted\.deadlineAt/u, 'M2-FB-001:PERSISTED_DEADLINE_REQUIRED');
+});
+
+test('M2-FB-002 legacy Facebook relay binds every signed request to a persisted attempt and owns no poll retry loop', () => {
+  const source = fs.readFileSync(path.join(servicesRoot, 'facebookRelayClient.js'), 'utf8');
+  assert.match(source, /function\s+persistedOperationIdentity/u, 'M2-FB-002:PERSISTED_IDENTITY_REQUIRED');
+  assert.match(source, /function\s+appendPersistedOperationIdentity/u, 'M2-FB-002:SIGNED_QUERY_IDENTITY_REQUIRED');
+  assert.match(source, /async\s+request\([^)]*options[\s\S]*?persistedOperationIdentity\(options/u, 'M2-FB-002:REQUEST_FAIL_CLOSED_REQUIRED');
+  assert.match(source, /appendPersistedOperationIdentity\([^,]+,\s*persisted/u, 'M2-FB-002:IDENTITY_MUST_ENTER_SIGNED_URL');
+  assert.doesNotMatch(source, /row\.timer|row\.backoff|setTimeout\(loop/u, 'M2-FB-002:RELAY_RETRY_LOOP_FORBIDDEN');
+});
+
+test('M2-FB-003 Facebook Worker desktop physical routes require signed persisted-attempt query identity', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', '..', '..', '..', 'services', 'facebook-worker', 'src', 'index.js'), 'utf8');
+  assert.match(source, /function\s+requirePersistedAttemptQuery/u, 'M2-FB-003:WORKER_ATTEMPT_QUERY_VALIDATOR_REQUIRED');
+  assert.match(source, /function\s+isPhysicalDesktopRoute/u, 'M2-FB-003:PHYSICAL_ROUTE_CLASSIFIER_REQUIRED');
+  assert.match(source, /isPhysicalDesktopRoute\(path, request\.method\)\s*\?\s*requirePersistedAttemptQuery\(url\)/u, 'M2-FB-003:PHYSICAL_ROUTE_GUARD_REQUIRED');
+  assert.doesNotMatch(source, /path\.startsWith\('\/api\/desktop\/'\)\s*\?\s*requirePersistedAttemptQuery/u, 'M2-FB-003:READ_ONLY_DESKTOP_GUARD_FORBIDDEN');
+  assert.match(source, /authenticateDesktop/u, 'M2-FB-003:MEDIA_SIGNATURE_AUTH_REQUIRED');
+  assert.match(source, /cacheEventMedia\([^)]*persistedAttempt/u, 'M2-FB-003:MEDIA_FETCH_ATTEMPT_REQUIRED');
+});
+
+test('M2-FB-004 Facebook Worker media performs one persisted attempt and owns no retry schedule', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', '..', '..', '..', 'services', 'facebook-worker', 'src', 'media.js'), 'utf8');
+  assert.match(source, /FACEBOOK_MEDIA_PERSISTED_ATTEMPT_REQUIRED/u, 'M2-FB-004:MEDIA_FAIL_CLOSED_REQUIRED');
+  assert.match(source, /if\s*\(!attemptIdentity\)\s*return\s+recordEventMediaReferences/u, 'M2-FB-004:WEBHOOK_MUST_BE_METADATA_ONLY');
+  assert.doesNotMatch(source, /function\s+retryAt\b|retryPendingMedia/u, 'M2-FB-004:MEDIA_RETRY_AUTHORITY_FORBIDDEN');
+  assert.doesNotMatch(source, /mediaRetryBaseSeconds|mediaRetryMaxAttempts/u, 'M2-FB-004:LOCAL_BACKOFF_POLICY_FORBIDDEN');
+});
+
+test('M2-FB-005 Facebook Worker scheduled cleanup owns no media retry or physical media deletion authority', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', '..', '..', '..', 'services', 'facebook-worker', 'src', 'cleanup.js'), 'utf8');
+  assert.doesNotMatch(source, /retryPendingMedia|cleanupExpiredMedia/u, 'M2-FB-005:SCHEDULED_MEDIA_AUTHORITY_FORBIDDEN');
+  assert.doesNotMatch(source, /mediaRetry|mediaDeleted/u, 'M2-FB-005:SCHEDULED_MEDIA_RESULT_FORBIDDEN');
+});
+
+test('M2-FB-006 production Facebook driver is Chatwoot and legacy Page adapter is not a runtime importer', () => {
+  const source = fs.readFileSync(platformDriverRegistryPath, 'utf8');
+  assert.match(source, /require\('\.\/facebookChatwootMatrixBridge'\)/u, 'M2-FB-006:CHATWOOT_PRODUCTION_DRIVER_REQUIRED');
+  assert.doesNotMatch(source, /require\('\.\/facebookAdapter'\)/u, 'M2-FB-006:LEGACY_ADAPTER_RUNTIME_IMPORT_FORBIDDEN');
+});
+
+test('M2-FB-007 legacy Facebook Page adapter retains projection helpers but owns no autonomous physical retry or background I/O', () => {
+  const source = fs.readFileSync(path.join(servicesRoot, 'facebookAdapter.js'), 'utf8');
+  assert.match(source, /requirePersistedLegacyFacebookOperation/u, 'M2-FB-007:PERSISTED_OPERATION_GUARD_REQUIRED');
+  assert.match(source, /async\s+connect\([^)]*options[\s\S]*?requirePersistedLegacyFacebookOperation\(options/u, 'M2-FB-007:CONNECT_FAIL_CLOSED');
+  assert.match(source, /async\s+sync\([^)]*options[\s\S]*?requirePersistedLegacyFacebookOperation\(options/u, 'M2-FB-007:SYNC_FAIL_CLOSED');
+  assert.doesNotMatch(source, /schedule\(policy\.intervalMs|reconciliationTimer\s*=\s*setTimeout/u, 'M2-FB-007:PERIODIC_RECONCILIATION_FORBIDDEN');
+  assert.doesNotMatch(source, /avatarBufferWithRetry[\s\S]*?for\s*\(let\s+attempt/u, 'M2-FB-007:AVATAR_RETRY_LOOP_FORBIDDEN');
+  assert.doesNotMatch(source, /setImmediate\(\(\)\s*=>\s*this\.cacheWebhookAttachments/u, 'M2-FB-007:WEBHOOK_MEDIA_BACKGROUND_IO_FORBIDDEN');
+  assert.doesNotMatch(source, /this\.scheduleWebhookContactEnrichment\(/u, 'M2-FB-007:WEBHOOK_PROFILE_BACKGROUND_IO_FORBIDDEN');
+});
+
+test('M2-FB-008 experimental Facebook Personal session and sync are fenced by the same persisted operation boundary as Page', () => {
+  const source = fs.readFileSync(path.join(servicesRoot, 'facebookPersonalMessengerExperimentalAdapter.js'), 'utf8');
+  assert.match(source, /function\s+persistedOperation/u, 'M2-FB-008:PERSISTED_OPERATION_VALIDATOR_REQUIRED');
+  assert.match(source, /async\s+function\s+connect\([^)]*options[\s\S]*?persistedOperation\(account,\s*options/u, 'M2-FB-008:CONNECT_FAIL_CLOSED');
+  assert.match(source, /async\s+function\s+sync\([^)]*options[\s\S]*?persistedOperation\(account,\s*options/u, 'M2-FB-008:SYNC_FAIL_CLOSED');
+});
+
+test('M2-FB-009 Facebook Worker observations echo signed provider request IDs on success as well as failure', () => {
+  const relaySource = fs.readFileSync(path.join(servicesRoot, 'facebookRelayClient.js'), 'utf8');
+  const workerSource = fs.readFileSync(path.join(__dirname, '..', '..', '..', '..', 'services', 'facebook-worker', 'src', 'index.js'), 'utf8');
+  assert.match(workerSource, /x-yance-request-id/u, 'M2-FB-009:WORKER_REQUEST_ID_ECHO_REQUIRED');
+  assert.match(relaySource, /providerRequestId/u, 'M2-FB-009:RELAY_PROVIDER_REQUEST_ID_REQUIRED');
+  assert.match(relaySource, /response\.headers\?\.get\?\.\('x-yance-request-id'\)/u, 'M2-FB-009:PROVIDER_REQUEST_ID_FROM_WORKER_RESPONSE');
 });

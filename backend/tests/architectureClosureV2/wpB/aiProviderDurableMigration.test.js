@@ -454,3 +454,153 @@ test('M2-AI-008 provider acceptance followed by worker exit is an uncertain remo
   assert.equal(exit.providerRequestId, 'provider-request-uncertain-1');
   assert.equal(observe.forkCount, 1);
 });
+
+
+test('M2-AI-009 AiGateway persists and starts one AI_PROVIDER_EXECUTION operation before direct Model Brain execution', async () => {
+  const gatewayPath = path.join(servicesRoot, 'aiGateway.js');
+  delete require.cache[require.resolve(gatewayPath)];
+  const { AiGateway } = require(gatewayPath);
+  const calls = [];
+  const running = Object.freeze({
+    operationId: 'ai-operation-1', executionId: 'ai-operation-1', operationType: 'ai.provider-execution',
+    operationKind: 'AI_PROVIDER_EXECUTION', scopeKey: 'conversation-1|probe', objectFingerprint: 'fingerprint-1',
+    state: 'RUNNING', stateVersion: 2, generation: 1, ownerId: 'write-host-1', claimId: 'claim-1',
+    hostGeneration: 7, fencingToken: 11, leaseExpiresAt: '2026-08-18T08:30:00.000Z'
+  });
+  const authority = Object.freeze({
+    create(input) {
+      calls.push(['create', input.operationType, input.scopeKey]);
+      return Object.freeze({ created: true, operation: Object.freeze({ ...running, state: 'SCHEDULED', stateVersion: 1, ownerId: '', claimId: '', hostGeneration: 0, fencingToken: 0 }) });
+    },
+    start(operationId) {
+      calls.push(['start', operationId]);
+      return Object.freeze({ updated: true, operation: running });
+    },
+    succeed(operationId) {
+      calls.push(['succeed', operationId]);
+      return Object.freeze({ updated: true, operation: Object.freeze({ ...running, state: 'SUCCEEDED' }) });
+    },
+    fail(operationId) {
+      calls.push(['fail', operationId]);
+      return Object.freeze({ updated: true, operation: Object.freeze({ ...running, state: 'FAILED' }) });
+    },
+    cancel(operationId) {
+      calls.push(['cancel', operationId]);
+      return Object.freeze({ updated: true, operation: Object.freeze({ ...running, state: 'CANCELLED' }) });
+    }
+  });
+  const queue = Object.freeze({
+    add(work) {
+      const controller = new AbortController();
+      return Object.freeze({ id: 'queue-1', promise: Promise.resolve().then(() => work({ signal: controller.signal })) });
+    },
+    cancel() { return false; },
+    status() { return Object.freeze({ pending: 0, running: 0 }); }
+  });
+  const runtime = Object.freeze({
+    status() { return Object.freeze({ health: 'healthy' }); },
+    async probe() {
+      calls.push(['runtime']);
+      return Object.freeze({ text: 'YANCE_MODEL_BRAIN_OK', evidence: Object.freeze({ selectedModel: 'model-1', requestId: 'provider-1' }) });
+    },
+    async execute() { throw new Error('probe must use runtime.probe'); }
+  });
+  const gateway = new AiGateway({
+    runtime,
+    queue,
+    internalOperationAuthorityProvider: () => authority
+  });
+  gateway.projection = () => Object.freeze({
+    modelGroup: 'probe', logicalModel: 'probe', tags: Object.freeze([]), hardEligibility: Object.freeze([]),
+    catalog: Object.freeze([Object.freeze({ id: 'model-1', enabled: true, credentialRef: '' })]),
+    candidates: Object.freeze([Object.freeze({ id: 'model-1', enabled: true, credentialRef: '' })])
+  });
+
+  const result = await gateway.execute({
+    task: 'probe', modelId: 'model-1', messages: Object.freeze([{ role: 'user', content: 'ping' }]),
+    context: { scopeKey: 'conversation-1|probe', generation: 'generation-1' }
+  });
+
+  assert.equal(result.text, 'YANCE_MODEL_BRAIN_OK');
+  assert.deepEqual(calls.map(row => row[0]), ['create', 'start', 'runtime', 'succeed']);
+  assert.equal(calls[0][1], 'ai.provider-execution');
+});
+
+test('M2-AI-010 AiGateway physical runtime path rejects execution without a persisted RUNNING attempt', async () => {
+  const gatewayPath = path.join(servicesRoot, 'aiGateway.js');
+  delete require.cache[require.resolve(gatewayPath)];
+  const { AiGateway } = require(gatewayPath);
+  let physicalCalls = 0;
+  const gateway = new AiGateway({
+    runtime: Object.freeze({
+      status() { return Object.freeze({ health: 'healthy' }); },
+      async probe() { physicalCalls += 1; return Object.freeze({ text: 'unexpected', evidence: Object.freeze({ selectedModel: 'model-1' }) }); },
+      async execute() { physicalCalls += 1; return Object.freeze({ text: 'unexpected', evidence: Object.freeze({ selectedModel: 'model-1' }) }); }
+    })
+  });
+  gateway.projection = () => Object.freeze({
+    modelGroup: 'probe', logicalModel: 'probe', tags: Object.freeze([]), hardEligibility: Object.freeze([]),
+    catalog: Object.freeze([Object.freeze({ id: 'model-1', enabled: true, credentialRef: '' })]),
+    candidates: Object.freeze([Object.freeze({ id: 'model-1', enabled: true, credentialRef: '' })])
+  });
+
+  await assert.rejects(
+    () => gateway._run({ jobId: 'job-no-attempt', task: 'probe', messages: Object.freeze([{ role: 'user', content: 'ping' }]), modelId: 'model-1', options: {}, signal: null, context: {} }),
+    error => error?.code === 'WP_B_AI_RUNTIME_PERSISTED_ATTEMPT_REQUIRED'
+  );
+  assert.equal(physicalCalls, 0);
+});
+
+test('M2-AI-011 provider administration physical I/O starts one persisted AI operation before touching provider clients', async () => {
+  const gatewayPath = path.join(servicesRoot, 'aiGateway.js');
+  delete require.cache[require.resolve(gatewayPath)];
+  const { AiGateway } = require(gatewayPath);
+  const calls = [];
+  const running = Object.freeze({
+    operationId: 'ai-admin-1', executionId: 'ai-admin-1', operationType: 'ai.provider-admin',
+    operationKind: 'AI_PROVIDER_EXECUTION', scopeKey: 'ai-admin:cloud-list', objectFingerprint: 'fingerprint-admin-1',
+    state: 'RUNNING', stateVersion: 2, generation: 1, ownerId: 'write-host-1', claimId: 'claim-admin-1',
+    hostGeneration: 7, fencingToken: 11, leaseExpiresAt: '2026-08-18T08:30:00.000Z'
+  });
+  const authority = Object.freeze({
+    create(input) {
+      calls.push(['create', input.operationType]);
+      return Object.freeze({ created: true, operation: Object.freeze({ ...running, state: 'SCHEDULED', ownerId: '', claimId: '', hostGeneration: 0, fencingToken: 0 }) });
+    },
+    start(operationId) { calls.push(['start', operationId]); return Object.freeze({ updated: true, operation: running }); },
+    succeed(operationId) { calls.push(['succeed', operationId]); return Object.freeze({ updated: true, operation: Object.freeze({ ...running, state: 'SUCCEEDED' }) }); },
+    fail(operationId) { calls.push(['fail', operationId]); return Object.freeze({ updated: true, operation: Object.freeze({ ...running, state: 'FAILED' }) }); }
+  });
+  const gateway = new AiGateway({
+    internalOperationAuthorityProvider: () => authority,
+    openAiClient: Object.freeze({
+      async listModels() { calls.push(['physical']); return ['model-a', 'model-b']; },
+      normalizeEndpoint(value) { return String(value); },
+      normalizeApiKey(value) { return String(value); }
+    }),
+    ollamaClient: Object.freeze({}),
+    securityGuard: Object.freeze({ credentials: Object.freeze({ get(ref) { return ref === 'credential-1' ? Object.freeze({ apiKey: 'secret', endpoint: 'https://example.invalid/v1' }) : null; } }) })
+  });
+
+  const result = await gateway.listCloudModels({ endpoint: 'https://example.invalid/v1', credentialRef: 'credential-1', timeoutMs: 1000 });
+  assert.deepEqual(result, ['model-a', 'model-b']);
+  assert.deepEqual(calls.map(row => row[0]), ['create', 'start', 'physical', 'succeed']);
+  assert.equal(calls[0][1], 'ai.provider-admin.cloud-list');
+});
+
+test('M2-AI-012 model route has no direct provider client ownership and request disconnect does not cancel durable execution truth', () => {
+  const routeSource = fs.readFileSync(path.join(servicesRoot, '..', 'routes', 'models.js'), 'utf8');
+  assert.doesNotMatch(routeSource, /require\(['"]\.\.\/services\/(?:ollamaClient|openAiCompatibleClient)['"]\)/u);
+  assert.doesNotMatch(routeSource, /MODEL_REQUEST_DISCONNECTED/u);
+  assert.doesNotMatch(routeSource, /req\.once\(['"]aborted['"]/u);
+  assert.match(routeSource, /aiGateway\.listCloudModels/u);
+  assert.match(routeSource, /aiGateway\.discoverLocalModels/u);
+  assert.match(routeSource, /aiGateway\.unloadLocalModel/u);
+});
+
+test('M2-AI-013 OpenRouter catalog service reaches cloud physical I/O only through AiGateway persisted adapter', () => {
+  const source = fs.readFileSync(path.join(servicesRoot, 'openRouterAutoConfigurationService.js'), 'utf8');
+  assert.doesNotMatch(source, /require\(['"]\.\/openAiCompatibleClient['"]\)/u);
+  assert.match(source, /require\(['"]\.\/aiGateway['"]\)/u);
+  assert.match(source, /requestOpenAiJson/u);
+});

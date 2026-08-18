@@ -4,7 +4,9 @@ import { errorResponse, html, json, text, withSecurityHeaders } from './response
 import { GatewayError } from './errors.js';
 import { beginOAuth, cancelOAuthResult, handleOAuthCallback, pollOAuthResult, selectOAuthPage } from './oauth.js';
 import { ingestWebhook, verifyWebhookChallenge } from './webhook.js';
-import { acknowledgeEvents, avatarResponse, disconnectAccount, health, history, historyMessages, listAccounts, mediaResponse, profile, pullEvents, refreshPermissions, sendMessage } from './desktopApi.js';
+import { acknowledgeEvents, avatarResponse, disconnectAccount, health, history, historyMessages, listAccounts, profile, pullEvents, refreshPermissions, sendMessage } from './desktopApi.js';
+import { authenticateDesktop } from './desktopAuth.js';
+import { cacheEventMedia, getMediaObject } from './media.js';
 import { clean, randomId } from './utils.js';
 import { all } from './db.js';
 
@@ -19,6 +21,37 @@ function parseJson(bytes) {
   if (!bytes.byteLength) return {};
   try { return JSON.parse(new TextDecoder().decode(bytes)); }
   catch (_) { throw new GatewayError('FACEBOOK_REQUEST_JSON_INVALID', '请求正文不是有效 JSON', 400); }
+}
+function requirePersistedAttemptQuery(url) {
+  const required = {
+    executionId: 'wpb_execution_id', attemptId: 'wpb_attempt_id', claimId: 'wpb_claim_id', ownerId: 'wpb_owner_id'
+  };
+  const result = {};
+  for (const [field, key] of Object.entries(required)) {
+    result[field] = clean(url.searchParams.get(key));
+    if (!result[field] || result[field].length > 200) throw new GatewayError('FACEBOOK_WORKER_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Worker 请求缺少持久化 attempt identity', 409, { field });
+  }
+  for (const [field, key] of [['generation','wpb_generation'], ['hostGeneration','wpb_host_generation'], ['fencingToken','wpb_fencing_token']]) {
+    const value = Number(url.searchParams.get(key));
+    if (!Number.isSafeInteger(value) || value < 1) throw new GatewayError('FACEBOOK_WORKER_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Worker fencing identity 无效', 409, { field });
+    result[field] = value;
+  }
+  result.operationKind = clean(url.searchParams.get('wpb_operation_kind'));
+  return Object.freeze(result);
+}
+
+async function persistedMediaResponse(request, env, config, eventId, index, persistedAttempt) {
+  const auth = await authenticateDesktop(request, env, config, new Uint8Array());
+  await cacheEventMedia(env, config, eventId, persistedAttempt, index);
+  const { row, object } = await getMediaObject(env, eventId, index, auth.device, persistedAttempt);
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set('cache-control', 'private, max-age=300');
+  headers.set('content-disposition', `attachment; filename="${clean(row.filename, 'facebook-media').replace(/["\\\r\n]/g, '_')}"`);
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('x-yance-wpb-execution-id', persistedAttempt.executionId);
+  headers.set('x-yance-wpb-attempt-id', persistedAttempt.attemptId);
+  return new Response(object.body, { status: 200, headers });
 }
 async function d1SchemaStatus(env) {
   try {
@@ -77,12 +110,19 @@ function oauthCallbackErrorMessage(error) {
   return `授权完成，但 Meta 没有返回可连接的 Facebook 公共主页。安全证据：/me/accounts=${primaryCount}；显式用户accounts=${explicitCount}（已选=${explicitSelected}）；granular target_ids=${targetLabel}；定向Page Token=${directTokenLabel}；主页资料探针=${profileLabel}；可用Page Token=${recovered}。请返回言策查看诊断。`;
 }
 
+function isPhysicalDesktopRoute(path, method) {
+  if (method === 'POST' && ['/api/desktop/send', '/api/desktop/permissions/refresh', '/api/desktop/disconnect'].includes(path)) return true;
+  if (method === 'GET' && ['/api/desktop/history', '/api/desktop/history/messages', '/api/desktop/profile', '/api/desktop/avatar/page', '/api/desktop/avatar/profile'].includes(path)) return true;
+  return method === 'GET' && /^\/api\/desktop\/media\/[^/]+\/\d+$/u.test(path);
+}
+
 async function route(request, env, ctx, dependencies = {}) {
   const preflight = noCorsPreflight(request);
   if (preflight) return preflight;
   const config = workerConfig(env);
   const url = new URL(request.url);
   const path = url.pathname;
+  const persistedAttempt = isPhysicalDesktopRoute(path, request.method) ? requirePersistedAttemptQuery(url) : null;
 
   if (request.method === 'GET' && path === '/webhooks/facebook') return text(verifyWebhookChallenge(url, config.verifyToken));
   if (request.method === 'POST' && path === '/webhooks/facebook') {
@@ -134,7 +174,7 @@ async function route(request, env, ctx, dependencies = {}) {
   if (path === '/api/desktop/avatar/page' && request.method === 'GET') return avatarResponse(request, env, config, new Uint8Array(), 'page');
   if (path === '/api/desktop/avatar/profile' && request.method === 'GET') return avatarResponse(request, env, config, new Uint8Array(), 'profile');
   const mediaMatch = path.match(/^\/api\/desktop\/media\/([^/]+)\/(\d+)$/);
-  if (mediaMatch && request.method === 'GET') return mediaResponse(request, env, config, new Uint8Array(), decodeURIComponent(mediaMatch[1]), Number(mediaMatch[2]));
+  if (mediaMatch && request.method === 'GET') return persistedMediaResponse(request, env, config, decodeURIComponent(mediaMatch[1]), Number(mediaMatch[2]), persistedAttempt);
 
   if (path === '/healthz' && request.method === 'GET') return json({
     ok: true,
@@ -188,13 +228,24 @@ async function route(request, env, ctx, dependencies = {}) {
 export default {
   async fetch(request, env, ctx) {
     const requestId = clean(request.headers.get('x-request-id'), randomId('req_'));
-    try { return await route(request, env, ctx); }
+    const signedRequestId = clean(request.headers.get('x-yance-request-id'));
+    try {
+      const response = await route(request, env, ctx);
+      if (!signedRequestId) return response;
+      const headers = new Headers(response.headers);
+      headers.set('x-yance-request-id', signedRequestId);
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+    }
     catch (error) {
       console.error(JSON.stringify({ level: 'error', component: 'facebook-worker', requestId, code: clean(error.code, 'FACEBOOK_GATEWAY_INTERNAL'), status: Number(error.status || 500) }));
-      return errorResponse(error, requestId);
+      const response = errorResponse(error, requestId);
+      if (!signedRequestId) return response;
+      const headers = new Headers(response.headers);
+      headers.set('x-yance-request-id', signedRequestId);
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
     }
   },
-  async scheduled(_event, env, ctx) { ctx.waitUntil(cleanup(env, { config: workerConfig(env) })); }
+  async scheduled(_event, env, ctx) { ctx.waitUntil(cleanup(env)); }
 };
 
 export { route };

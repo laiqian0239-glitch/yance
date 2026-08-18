@@ -30,6 +30,16 @@ function operationAbortError(signal, fallbackCode = 'FACEBOOK_OPERATION_ABORTED'
 function assertOperationActive(signal, fallbackCode = 'FACEBOOK_OPERATION_ABORTED', details = {}) {
   if (signal?.aborted) throw operationAbortError(signal, fallbackCode, details);
 }
+function requirePersistedLegacyFacebookOperation(options = {}, account = {}) {
+  const persisted = relayClient.persistedOperationIdentity(options);
+  const accountId = clean(account?.id || account);
+  if (persisted.accountId && accountId && persisted.accountId !== accountId) {
+    throw Object.assign(new Error('Facebook legacy adapter persisted operation account scope mismatch'), {
+      code: 'FACEBOOK_LEGACY_PERSISTED_OPERATION_SCOPE_MISMATCH', status: 409, accountId, persistedAccountId: persisted.accountId
+    });
+  }
+  return persisted;
+}
 function localAvatarFallback(value) { const avatar = clean(value); return avatar && !/^https?:\/\//iu.test(avatar) ? avatar : ''; }
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms) || 0))); }
 async function retrySqliteBusy(operation, work, options = {}) {
@@ -366,81 +376,20 @@ class FacebookAdapter {
 
   scheduleReconciliation(account, row) {
     if (!row || !account) return false;
-    if (row.historySyncAvailable !== true) {
-      const error = row.historySyncReason || 'pages_read_engagement 尚未授权，Meta Business Suite 最近会话无法补拉';
-      row.reconciliationActive = false;
-      row.reconciliationRunning = false;
-      row.reconciliationLastError = error;
-      row.reconciliationLastResult = null;
-      eventBus.publish('facebook:reconciliation-blocked', {
-        accountId: account.id,
-        code: 'FACEBOOK_HISTORY_PERMISSION_MISSING',
-        missingPermissions: row.missingOptionalPermissions || ['pages_read_engagement'],
-        error
-      });
-      logger.warn('facebook', 'external-conversation-reconciliation-blocked', {
-        accountId: account.id,
-        pageId: clean(row.page?.id),
-        code: 'FACEBOOK_HISTORY_PERMISSION_MISSING',
-        missingPermissions: row.missingOptionalPermissions || ['pages_read_engagement'],
-        error
-      });
-      this.emit(account.id, row);
-      return false;
-    }
-    const policy = this.reconciliationPolicy();
-    row.stopped = false;
-    row.reconciliationActive = true;
-    row.reconciliationIntervalMs = policy.intervalMs;
-    const schedule = (delayMs, reason) => {
-      if (row.stopped || this.sessions.get(account.id) !== row) return;
-      if (row.reconciliationTimer) clearTimeout(row.reconciliationTimer);
-      row.reconciliationTimer = setTimeout(async () => {
-        row.reconciliationTimer = null;
-        if (row.stopped || this.sessions.get(account.id) !== row) return;
-        if (row.reconciliationRunning) {
-          schedule(policy.intervalMs, 'periodic');
-          return;
-        }
-        row.reconciliationRunning = true;
-        try {
-          const result = await this.sync(account, {
-            maximumConversations: policy.maximumConversations,
-            maximumMessages: policy.maximumMessages,
-            source: `facebook-history-${reason}-reconciliation`
-          });
-          row.lastSyncAt = result.syncedAt || new Date().toISOString();
-          row.reconciliationLastAt = row.lastSyncAt;
-          row.reconciliationLastError = '';
-          row.reconciliationLastResult = {
-            conversations: Number(result.conversations || 0),
-            messages: Number(result.messages || result.messagesInserted || 0),
-            failedConversations: Number(result.failedConversations || 0),
-            failedMessages: Number(result.failedMessages || 0),
-            reconciliationCursor: clean(result.reconciliationCursor),
-            cursorAdvanced: result.cursorAdvanced === true,
-            source: clean(result.source || `facebook-history-${reason}-reconciliation`),
-            syncedAt: clean(result.syncedAt || row.lastSyncAt)
-          };
-          eventBus.publish('facebook:reconciliation-completed', { accountId: account.id, reason, ...result });
-          logger.info('facebook', 'external-conversation-reconciliation-completed', { accountId: account.id, reason, ...result });
-        } catch (error) {
-          row.reconciliationLastError = clean(error?.message || error, 'Facebook 外部会话对账失败');
-          row.reconciliationLastResult = { failed: true, code: clean(error?.code), at: new Date().toISOString() };
-          eventBus.publish('facebook:reconciliation-failed', { accountId: account.id, reason, code: clean(error?.code), error: row.reconciliationLastError });
-          logger.warn('facebook', 'external-conversation-reconciliation-failed', { accountId: account.id, reason, error: row.reconciliationLastError, code: clean(error?.code) });
-        } finally {
-          row.reconciliationRunning = false;
-          if (!row.stopped && this.sessions.get(account.id) === row) {
-            this.emit(account.id, row);
-            schedule(policy.intervalMs, 'periodic');
-          }
-        }
-      }, Math.max(0, Number(delayMs) || 0));
-      row.reconciliationTimer.unref?.();
-    };
-    schedule(policy.initialDelayMs, 'post-connect');
-    return true;
+    row.reconciliationActive = false;
+    row.reconciliationRunning = false;
+    row.reconciliationTimer = null;
+    row.reconciliationIntervalMs = 0;
+    row.reconciliationLastError = row.historySyncAvailable === true
+      ? 'DURABLE_HISTORY_SYNCHRONIZATION_REQUIRED'
+      : (row.historySyncReason || 'FACEBOOK_HISTORY_PERMISSION_MISSING');
+    eventBus.publish('facebook:reconciliation-delegated', {
+      accountId: account.id,
+      authority: 'DurableExecutionAuthorityV2',
+      operationKind: 'HISTORY_SYNCHRONIZATION',
+      reasonCode: row.reconciliationLastError
+    });
+    return false;
   }
 
   async request() {
@@ -457,22 +406,13 @@ class FacebookAdapter {
     return { secret, version: secret.graphVersion || platformAuthConfig.DEFAULT_FACEBOOK_GRAPH_VERSION };
   }
 
-  async avatarBufferWithRetry(secret, kind, psid = '', maximumAttempts = 3) {
-    let lastError = null;
-    for (let attempt = 1; attempt <= Math.max(1, maximumAttempts); attempt += 1) {
-      try { return await relayClient.avatarBuffer(secret, kind, psid); }
-      catch (error) {
-        lastError = error;
-        const status = Number(error?.status || 0);
-        const transient = !status || status === 408 || status === 429 || status >= 500;
-        if (!transient || attempt >= maximumAttempts) break;
-        await sleep(350 * (2 ** (attempt - 1)));
-      }
-    }
-    throw lastError || Object.assign(new Error('Facebook 头像读取失败'), { code: 'FACEBOOK_AVATAR_FAILED' });
+  async avatarBufferWithRetry(secret, kind, psid = '', _maximumAttempts = 1, options = {}) {
+    requirePersistedLegacyFacebookOperation(options, options.account || {});
+    return relayClient.avatarBuffer(secret, kind, psid, options);
   }
 
-  async refreshPageAvatar(account, row, secret, maximumAttempts = 3) {
+  async refreshPageAvatar(account, row, secret, _maximumAttempts = 1, options = {}) {
+    requirePersistedLegacyFacebookOperation(options, account);
     const previousPicture = localAvatarFallback(row.page?.picture || account.metadata?.picture || account.metadata?.pagePicture);
     row.page = {
       ...(row.page || {}),
@@ -483,7 +423,7 @@ class FacebookAdapter {
     };
     this.emit(account.id, row);
     try {
-      const avatar = await this.avatarBufferWithRetry(secret, 'page', '', maximumAttempts);
+      const avatar = await this.avatarBufferWithRetry(secret, 'page', '', 1, { ...options, account });
       const cached = await avatarService.cacheStandaloneBuffer({ accountId: account.id, assetKey: 'facebook-page-avatar', buffer: avatar.buffer, source: 'facebook-page-profile-proxy' });
       row.page = {
         ...(row.page || {}),
@@ -581,33 +521,17 @@ class FacebookAdapter {
   }
 
   async diagnoseAvatarClosure(account, options = {}) {
+    requirePersistedLegacyFacebookOperation(options, account);
     assertOperationActive(options.signal, 'FACEBOOK_AVATAR_DIAGNOSE_ABORTED', { accountId: account.id });
     const startedAt = new Date().toISOString();
     const limit = boundedInteger(options.limit, 8, 1, 25);
     const { secret } = this.credentials(account);
     const pageId = clean(secret.pageId || account.metadata?.pageId);
-    const publicHealthUrl = `${clean(secret.workerBaseUrl).replace(/\/$/u, '')}/healthz`;
-    let publicHealth = { ok: false, status: 0, contract: null, error: '' };
-    try {
-      const timeoutSignal = AbortSignal.timeout(15000);
-      const signal = options.signal ? AbortSignal.any([options.signal, timeoutSignal]) : timeoutSignal;
-      const response = await fetch(publicHealthUrl, { redirect: 'manual', signal });
-      assertOperationActive(options.signal, 'FACEBOOK_AVATAR_DIAGNOSE_ABORTED', { accountId: account.id });
-      const data = await response.json().catch(() => ({}));
-      publicHealth = {
-        ok: response.ok && data?.ok !== false,
-        status: response.status,
-        service: clean(data?.service),
-        contract: data?.avatarProxyContract || null,
-        error: response.ok ? '' : clean(data?.message || data?.error || `HTTP ${response.status}`)
-      };
-    } catch (error) {
-      publicHealth = { ok: false, status: Number(error?.status || 0), contract: null, error: clean(error?.code || error?.message, 'WORKER_HEALTH_FAILED') };
-    }
+    const publicHealth = { ok: false, status: 0, contract: null, error: 'LEGACY_PUBLIC_HEALTH_PROBE_RETIRED' };
 
     let signedHealth = { ok: false, status: '', error: '' };
     try {
-      const health = await relayClient.health(secret);
+      const health = await relayClient.health(secret, options);
       assertOperationActive(options.signal, 'FACEBOOK_AVATAR_DIAGNOSE_ABORTED', { accountId: account.id });
       signedHealth = { ok: true, status: clean(health?.status), queue: health?.queue || null, error: '' };
     } catch (error) {
@@ -616,7 +540,7 @@ class FacebookAdapter {
 
     let pageProbe = { ok: false, bytes: 0, mimeType: '', error: '', httpStatus: 0 };
     try {
-      const avatar = await relayClient.avatarBuffer(secret, 'page', '');
+      const avatar = await relayClient.avatarBuffer(secret, 'page', '', options);
       assertOperationActive(options.signal, 'FACEBOOK_AVATAR_DIAGNOSE_ABORTED', { accountId: account.id });
       const verified = avatarService.validateBuffer(avatar.buffer, { expectedPlatform: 'facebook' });
       pageProbe = { ok: true, bytes: verified.bytes, mimeType: verified.mimeType || avatar.mimeType || '', imageHash: clean(verified.hash).slice(0, 16), error: '', httpStatus: 200, requestId: clean(avatar.requestId) };
@@ -644,7 +568,7 @@ class FacebookAdapter {
       if (identity.resolved) {
         workerProbe.attempted = true;
         try {
-          const avatar = await relayClient.avatarBuffer(secret, 'profile', identity.rawIdentity);
+          const avatar = await relayClient.avatarBuffer(secret, 'profile', identity.rawIdentity, options);
           assertOperationActive(options.signal, 'FACEBOOK_AVATAR_DIAGNOSE_ABORTED', { accountId: account.id });
           const verified = avatarService.validateBuffer(avatar.buffer, { expectedPlatform: 'facebook' });
           workerProbe = { attempted: true, ok: true, bytes: verified.bytes, mimeType: verified.mimeType || avatar.mimeType || '', imageHash: clean(verified.hash).slice(0, 16), error: '', httpStatus: 200, requestId: clean(avatar.requestId) };
@@ -695,7 +619,7 @@ class FacebookAdapter {
       if (externalConversationId && pageId) {
         identityProvenance.attempted = true;
         try {
-          const page = await relayClient.historyMessages(secret, externalConversationId, { limit: 25 });
+          const page = await relayClient.historyMessages(secret, externalConversationId, { limit: 25 }, options);
           assertOperationActive(options.signal, 'FACEBOOK_AVATAR_DIAGNOSE_ABORTED', { accountId: account.id });
           const messages = Array.isArray(page?.data) ? page.data : [];
           identityProvenance.messagesRead = messages.length;
@@ -721,7 +645,7 @@ class FacebookAdapter {
             identityProvenance.source = 'history-message-from-to';
             identityProvenance.workerProbe.attempted = true;
             try {
-              const avatar = await relayClient.avatarBuffer(secret, 'profile', messageDerivedIdentity);
+              const avatar = await relayClient.avatarBuffer(secret, 'profile', messageDerivedIdentity, options);
               const verified = avatarService.validateBuffer(avatar.buffer, { expectedPlatform: 'facebook' });
               identityProvenance.workerProbe = {
                 attempted: true, ok: true, bytes: verified.bytes,
@@ -835,6 +759,7 @@ class FacebookAdapter {
   }
 
   async refreshExistingContactAvatars(account, options = {}) {
+    requirePersistedLegacyFacebookOperation(options, account);
     const limit = boundedInteger(options.limit, 100, 1, 500);
     const all = messageStore.listConversations({ limit: Math.max(limit * 4, 500) });
     const rows = all
@@ -865,7 +790,7 @@ class FacebookAdapter {
         avatarSource: 'facebook-profile-proxy'
       }).catch(error => logCriticalFailure('messageStore.updateConversationMetadata.avatarSyncing', error, { accountId: account.id, conversationId }));
       try {
-        const profile = await this.senderProfile(account, peerId, conversationId);
+        const profile = await this.senderProfile(account, peerId, conversationId, options);
         if (profile.avatarUrl) ready += 1; else failed += 1;
       } catch (error) {
         failed += 1;
@@ -878,33 +803,23 @@ class FacebookAdapter {
         }).catch(metadataError => logCriticalFailure('messageStore.updateConversationMetadata.avatarRepairFailed', metadataError, { accountId: account.id, conversationId, reasonCode: evidence.code }));
         logger.warn('facebook', 'contact-avatar-repair-failed', { accountId: account.id, conversationId, senderId: peerId, ...evidence });
       }
-      if (Number(options.delayMs || 0) > 0) await sleep(Number(options.delayMs));
     }
     const result = { scanned: rows.length, attempted, ready, failed, skipped, completedAt: new Date().toISOString() };
     logger.info('facebook', 'contact-avatar-repair-completed', { accountId: account.id, ...result });
     return result;
   }
 
-  scheduleExistingContactAvatarRepair(account, options = {}) {
+  scheduleExistingContactAvatarRepair(account, _options = {}) {
     const accountId = clean(account?.id);
-    if (!accountId || this.contactAvatarRepairTasks.has(accountId)) return this.contactAvatarRepairTasks.get(accountId) || null;
-    const delayMs = boundedInteger(options.startDelayMs, 1200, 0, 30000);
-    const task = new Promise(resolve => {
-      const timer = setTimeout(async () => {
-        try { resolve(await this.refreshExistingContactAvatars(account, { limit: 100, delayMs: 120 })); }
-        catch (error) {
-          logger.warn('facebook', 'contact-avatar-repair-task-failed', { accountId, ...avatarErrorEvidence(error) });
-          resolve({ scanned: 0, attempted: 0, ready: 0, failed: 1, skipped: 0, error: avatarErrorEvidence(error).code });
-        } finally { this.contactAvatarRepairTasks.delete(accountId); }
-      }, delayMs);
-      timer.unref?.();
+    logger.info('facebook', 'contact-avatar-repair-delegated', {
+      accountId, authority: 'DurableExecutionAuthorityV2', operationKind: 'HISTORY_SYNCHRONIZATION'
     });
-    this.contactAvatarRepairTasks.set(accountId, task);
-    logger.info('facebook', 'contact-avatar-repair-scheduled', { accountId, delayMs });
-    return task;
+    return null;
   }
 
+
   async connect(account, options = {}) {
+    requirePersistedLegacyFacebookOperation(options, account);
     const attemptId = clean(options.attemptId);
     assertOperationActive(options.signal, 'FACEBOOK_CONNECT_ABORTED', { accountId: account.id, attemptId });
     const secret = securityGuard.credentials.get(account.credentialRef) || {};
@@ -925,9 +840,9 @@ class FacebookAdapter {
     this.sessions.set(account.id, row); this.emit(account.id, row);
     try {
       assertOperationActive(options.signal, 'FACEBOOK_CONNECT_ABORTED', { accountId: account.id, attemptId });
-      await relayClient.refreshPermissions(secret).catch(error => logger.warn('facebook', 'permission-refresh-failed', { accountId: account.id, code: clean(error?.code), error: clean(error?.message) }));
+      await relayClient.refreshPermissions(secret, options).catch(error => logger.warn('facebook', 'permission-refresh-failed', { accountId: account.id, code: clean(error?.code), error: clean(error?.message) }));
       assertOperationActive(options.signal, 'FACEBOOK_CONNECT_ABORTED', { accountId: account.id, attemptId });
-      const cloud = await relayClient.accounts(secret);
+      const cloud = await relayClient.accounts(secret, options);
       assertOperationActive(options.signal, 'FACEBOOK_CONNECT_ABORTED', { accountId: account.id, attemptId });
       if (this.sessions.get(account.id) !== row || row.stopped || (attemptId && clean(row.attemptId) !== attemptId)) {
         throw Object.assign(new Error('Facebook connect completion belongs to a stale generation'), { code: 'FACEBOOK_CONNECT_GENERATION_STALE', accountId: account.id, attemptId });
@@ -995,7 +910,7 @@ class FacebookAdapter {
           ? (row.historySyncAvailable === true ? (row.reconciliationLastError || '') : row.historySyncReason)
           : (relayState.lastError || row.lastError);
         this.emit(account.id, row);
-      });
+      }, options);
       assertOperationActive(options.signal, 'FACEBOOK_CONNECT_ABORTED', { accountId: account.id, attemptId });
       if (this.sessions.get(account.id) !== row || row.stopped || (attemptId && clean(row.attemptId) !== attemptId)) {
         throw Object.assign(new Error('Facebook relay completion belongs to a stale generation'), { code: 'FACEBOOK_CONNECT_GENERATION_STALE', accountId: account.id, attemptId });
@@ -1017,14 +932,6 @@ class FacebookAdapter {
         historySyncAvailable: row.historySyncAvailable === true,
         missingOptionalPermissions: row.missingOptionalPermissions || []
       });
-      if (row.page?.avatarStatus !== 'ready') {
-        setImmediate(() => {
-          const current = this.sessions.get(account.id);
-          if (!current || !['connected', 'connecting', 'limited'].includes(current.state)) return;
-          this.refreshPageAvatar(account, current, secret, 2).catch(error => logCriticalFailure('refreshPageAvatar.deferred', error, { accountId: account.id, attempt: 2 }));
-        });
-      }
-      this.scheduleExistingContactAvatarRepair(account);
       this.scheduleReconciliation(account, row);
       return this.publicState(row);
     } catch (error) {
@@ -1050,7 +957,7 @@ class FacebookAdapter {
     try {
       if (logout && sourceAccount?.credentialRef) {
         const secret = securityGuard.credentials.get(sourceAccount.credentialRef) || {};
-        await relayClient.revoke(accountId, secret).catch(error => logger.warn('facebook', 'worker-account-revoke-failed', { accountId, error: error.message, code: error.code || '' }));
+        await relayClient.revoke(accountId, secret, options).catch(error => logger.warn('facebook', 'worker-account-revoke-failed', { accountId, error: error.message, code: error.code || '' }));
         assertOperationActive(options.signal, 'FACEBOOK_LOGOUT_ABORTED', { accountId });
       }
       await relayClient.disconnect(accountId).catch(error => logCriticalFailure('relayClient.disconnect', error, { accountId }));
@@ -1095,10 +1002,11 @@ class FacebookAdapter {
   }
 
   async sendText(account, target, text, options = {}) {
+    requirePersistedLegacyFacebookOperation(options, account);
     const { secret } = this.credentials(account); const recipient = recipientId(target);
     const session = this.sessions.get(account.id);
     const idempotencyKey = clean(options.localMessageId, `yance-text-${crypto.randomUUID()}`);
-    const result = await relayClient.send(secret, { kind: 'text', recipientId: recipient, text: String(text || ''), replyToMessageId: clean(options.quoted?.externalMessageId || options.quoted?.id) }, idempotencyKey, { signal: options.signal, executionGeneration: options.executionGeneration });
+    const result = await relayClient.send(secret, { kind: 'text', recipientId: recipient, text: String(text || ''), replyToMessageId: clean(options.quoted?.externalMessageId || options.quoted?.id) }, idempotencyKey, { ...options, signal: options.signal, executionGeneration: options.executionGeneration });
     this.assertEgressCurrent(account, session, options.signal, options.executionGeneration, result, 'text');
     // Queue-backed sends already own the local outbound projection. The queue
     // checkpoints delivery in one SQLite transaction after the remote receipt;
@@ -1140,6 +1048,7 @@ class FacebookAdapter {
   }
 
   async sendMedia(account, target, input = {}) {
+    requirePersistedLegacyFacebookOperation(input, account);
     const { secret } = this.credentials(account); const recipient = recipientId(target); const filePath = path.resolve(input.filePath || '');
     mediaPipeline.verifyFile(filePath);
     const kindMap = { image: 'image', video: 'video', gif: 'image', sticker: 'image', voice: 'audio', audio: 'audio', document: 'file' };
@@ -1148,7 +1057,7 @@ class FacebookAdapter {
     if (bytes.length > 20 * 1024 * 1024) throw Object.assign(new Error('Facebook 附件超过云端发送大小限制'), { code: 'FACEBOOK_MEDIA_SIZE_INVALID', status: 413 });
     const session = this.sessions.get(account.id);
     const idempotencyKey = clean(input.localMessageId, `yance-media-${crypto.randomUUID()}`);
-    const result = await relayClient.send(secret, { kind: 'media', recipientId: recipient, replyToMessageId: clean(input.quoted?.externalMessageId || input.quoted?.id), media: { dataBase64: bytes.toString('base64'), attachmentType, mimeType: clean(input.mimeType, 'application/octet-stream'), filename: clean(input.filename, path.basename(filePath)) } }, idempotencyKey, { signal: input.signal, executionGeneration: input.executionGeneration });
+    const result = await relayClient.send(secret, { kind: 'media', recipientId: recipient, replyToMessageId: clean(input.quoted?.externalMessageId || input.quoted?.id), media: { dataBase64: bytes.toString('base64'), attachmentType, mimeType: clean(input.mimeType, 'application/octet-stream'), filename: clean(input.filename, path.basename(filePath)) } }, idempotencyKey, { ...input, signal: input.signal, executionGeneration: input.executionGeneration });
     this.assertEgressCurrent(account, session, input.signal, input.executionGeneration, result, 'media');
     const externalId = clean(result.messageId);
     if (input.localProjectionOwnedByQueue === true && input.localMessageId) {
@@ -1183,17 +1092,19 @@ class FacebookAdapter {
   }
 
   async sendPresence(account, target, state = 'composing', options = {}) {
+    requirePersistedLegacyFacebookOperation(options, account);
     const { secret } = this.credentials(account); const action = ['paused','available','cancel'].includes(clean(state).toLowerCase()) ? 'typing_off' : 'typing_on';
     const session = this.sessions.get(account.id);
-    const result = await relayClient.send(secret, { kind: action, recipientId: recipientId(target) }, `yance-presence-${crypto.randomUUID()}`, { signal: options.signal, executionGeneration: options.executionGeneration });
+    const result = await relayClient.send(secret, { kind: action, recipientId: recipientId(target) }, `yance-presence-${crypto.randomUUID()}`, { ...options, signal: options.signal, executionGeneration: options.executionGeneration });
     this.assertEgressCurrent(account, session, options.signal, options.executionGeneration, result, 'presence');
     return result;
   }
 
   async markRead(account, target, options = {}) {
+    requirePersistedLegacyFacebookOperation(options, account);
     const { secret } = this.credentials(account);
     const session = this.sessions.get(account.id);
-    const result = await relayClient.send(secret, { kind: 'mark_seen', recipientId: recipientId(target) }, `yance-read-${crypto.randomUUID()}`, { signal: options.signal, executionGeneration: options.executionGeneration });
+    const result = await relayClient.send(secret, { kind: 'mark_seen', recipientId: recipientId(target) }, `yance-read-${crypto.randomUUID()}`, { ...options, signal: options.signal, executionGeneration: options.executionGeneration });
     this.assertEgressCurrent(account, session, options.signal, options.executionGeneration, result, 'read');
     return { marked: true, result };
   }
@@ -1210,80 +1121,48 @@ class FacebookAdapter {
     return url.toString();
   }
 
-  async fetchAttachmentUrl(value, signal) {
-    let current = this.validateAttachmentUrl(value);
-    for (let hop = 0; hop < 4; hop += 1) {
-      const response = await fetch(current, { signal, redirect: 'manual' });
-      if (response.status < 300 || response.status >= 400) return response;
-      const location = clean(response.headers.get('location'));
-      if (!location) throw Object.assign(new Error('Facebook媒体重定向无效'), { code: 'FACEBOOK_MEDIA_REDIRECT_INVALID' });
-      current = this.validateAttachmentUrl(new URL(location, current).toString());
-    }
-    throw Object.assign(new Error('Facebook媒体重定向次数过多'), { code: 'FACEBOOK_MEDIA_REDIRECT_LIMIT' });
+  async fetchAttachmentUrl(value, _signal, options = {}) {
+    this.validateAttachmentUrl(value);
+    requirePersistedLegacyFacebookOperation(options, options.account || {});
+    throw Object.assign(new Error('Legacy Facebook direct CDN fetch is retired; media transfer must run through the persisted Worker adapter'), {
+      code: 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED', status: 409
+    });
   }
 
-  async downloadRemoteAttachment({ account, accountId, conversationId, messageId, attachment, index = 0 }) {
+
+  async downloadRemoteAttachment({ account, accountId, conversationId, messageId, attachment, index = 0, physicalOperationContext = null, signal = null }) {
+    const options = Object.freeze({ physicalOperationContext, signal, account });
+    requirePersistedLegacyFacebookOperation(options, account);
     const workerMedia = attachment?.payload?.worker_media || attachment?.workerMedia || null;
-    const sourceUrl = workerMedia ? '' : this.validateAttachmentUrl(attachment?.payload?.url || attachment?.sourceUrl || attachment?.url);
+    if (!workerMedia) {
+      throw Object.assign(new Error('Legacy Facebook remote media URL fetch is retired; a Worker media reference is required'), {
+        code: 'FACEBOOK_LEGACY_MEDIA_REFERENCE_REQUIRED', status: 409
+      });
+    }
     fs.mkdirSync(PATHS.tmp, { recursive: true });
     const tempFile = path.join(PATHS.tmp, `facebook-${crypto.randomUUID()}-${index}.download`);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), Math.max(5000, Number(process.env.YANCE_FACEBOOK_MEDIA_TIMEOUT_MS || 45000)));
-    let bytes = 0;
     try {
-      let mimeType = clean(workerMedia?.mime_type, 'application/octet-stream');
-      let filename = clean(workerMedia?.filename || attachment?.name, `facebook-${messageId}-${index}`);
-      if (workerMedia) {
-        const { secret } = this.credentials(account);
-        const result = await relayClient.downloadMedia(secret, clean(workerMedia.event_id), Number(workerMedia.index ?? index), tempFile);
-        bytes = Number(result.bytes || 0);
-        mimeType = clean(result.mimeType, mimeType);
-      } else {
-        const response = await this.fetchAttachmentUrl(sourceUrl, controller.signal);
-        if (!response.ok || !response.body) throw new Error(`Facebook媒体下载失败（HTTP ${response.status}）`);
-        const declared = Number(response.headers.get('content-length') || 0);
-        if (declared > CONFIG.mediaMaxBytes) throw Object.assign(new Error('Facebook媒体超过大小限制'), { code: 'MEDIA_TOO_LARGE' });
-        const limiter = new Transform({ transform(chunk, _encoding, callback) { bytes += chunk.length; if (bytes > CONFIG.mediaMaxBytes) return callback(Object.assign(new Error('Facebook媒体超过大小限制'), { code: 'MEDIA_TOO_LARGE' })); callback(null, chunk); } });
-        await pipeline(Readable.fromWeb(response.body), limiter, fs.createWriteStream(tempFile, { flags: 'wx' }));
-        mimeType = clean(response.headers.get('content-type'), mimeType);
-      }
-      if (bytes > CONFIG.mediaMaxBytes) throw Object.assign(new Error('Facebook媒体超过大小限制'), { code: 'MEDIA_TOO_LARGE' });
+      const { secret } = this.credentials(account);
+      const result = await relayClient.downloadMedia(secret, clean(workerMedia.event_id), Number(workerMedia.index ?? index), tempFile, options);
+      if (Number(result.bytes || 0) > CONFIG.mediaMaxBytes) throw Object.assign(new Error('Facebook媒体超过大小限制'), { code: 'MEDIA_TOO_LARGE' });
       return mediaPipeline.saveFile({
         accountId, conversationId, messageId: `${messageId}-${index}`, filePath: tempFile,
         descriptor: {
-          id: `${messageId}:${index}`,
-          kind: this.attachmentType(attachment),
-          mimeType,
-          filename,
-          sourceUrl,
-          workerMedia: workerMedia ? { eventId: clean(workerMedia.event_id), index: Number(workerMedia.index ?? index) } : null,
-          ...facebookExpressionDescriptor(attachment),
-          status: 'ready',
-          downloadStatus: 'ready'
+          id: `${messageId}:${index}`, kind: this.attachmentType(attachment),
+          mimeType: clean(result.mimeType, clean(workerMedia?.mime_type, 'application/octet-stream')),
+          filename: clean(workerMedia?.filename || attachment?.name, `facebook-${messageId}-${index}`),
+          sourceUrl: '', workerMedia: { eventId: clean(workerMedia.event_id), index: Number(workerMedia.index ?? index) },
+          ...facebookExpressionDescriptor(attachment), status: 'ready', downloadStatus: 'ready'
         }
       });
-    } catch (error) {
-      logger.warn('facebook', 'media-download-failed', { accountId, conversationId, messageId, workerEventId: clean(workerMedia?.event_id), sourceUrl, error: error.message, code: error.code || '' });
-      return {
-        id: `${messageId}:${index}`,
-        kind: this.attachmentType(attachment),
-        sourceUrl,
-        url: sourceUrl,
-        mediaUrl: sourceUrl,
-        workerMedia: workerMedia ? { eventId: clean(workerMedia.event_id), index: Number(workerMedia.index ?? index) } : null,
-        ...facebookExpressionDescriptor(attachment),
-        status: 'failed',
-        downloadStatus: 'failed',
-        downloadError: error.code || error.message,
-        retryable: true
-      };
     } finally {
-      clearTimeout(timer);
       try { fs.rmSync(tempFile, { force: true }); } catch (error) { logCriticalFailure('facebookMedia.removeTemporaryFile', error, { accountId: account.id, conversationId, reasonCode: 'FACEBOOK_MEDIA_TEMP_CLEANUP_FAILED' }); }
     }
   }
 
-  async cacheWebhookAttachments(account, baseMessage, rawAttachments = []) {
+
+  async cacheWebhookAttachments(account, baseMessage, rawAttachments = [], options = {}) {
+    requirePersistedLegacyFacebookOperation(options, account);
     if (!rawAttachments.length) return baseMessage;
     const attachments = await Promise.all(rawAttachments.map((attachment, index) => this.downloadRemoteAttachment({
       account,
@@ -1291,7 +1170,9 @@ class FacebookAdapter {
       conversationId: baseMessage.conversationId,
       messageId: baseMessage.externalMessageId,
       attachment,
-      index
+      index,
+      physicalOperationContext: options.physicalOperationContext,
+      signal: options.signal
     })));
     const outcome = await messageStore.upsert({ ...baseMessage, attachments });
     eventBus.publish('facebook:media-cached', { accountId: account.id, conversationId: baseMessage.conversationId, messageId: baseMessage.externalMessageId, attachments });
@@ -1303,20 +1184,21 @@ class FacebookAdapter {
     const value = clean(attachment.type).toLowerCase(); if (value === 'image') return 'image'; if (value === 'video') return 'video'; if (value === 'audio') return 'audio'; if (value === 'file') return 'document'; if (value === 'fallback') return 'unknown'; return value || 'unknown';
   }
 
-  async senderProfile(account, senderId, conversationId = '') {
+  async senderProfile(account, senderId, conversationId = '', options = {}) {
+    requirePersistedLegacyFacebookOperation(options, account);
     const { secret } = this.credentials(account);
     const normalizedSenderId = recipientId(senderId);
     const currentConversation = conversationId ? messageStore.getConversation(clean(conversationId)) : null;
     let profile = {};
     let profileError = null;
-    try { profile = await relayClient.profile(secret, normalizedSenderId); }
+    try { profile = await relayClient.profile(secret, normalizedSenderId, options); }
     catch (error) {
       profileError = error;
       logger.warn('facebook', 'contact-profile-fetch-failed', { accountId: account.id, conversationId, senderId: normalizedSenderId, ...avatarErrorEvidence(error) });
     }
     let avatarUrl = clean(currentConversation?.avatarUrl);
     try {
-      const avatar = await this.avatarBufferWithRetry(secret, 'profile', normalizedSenderId, 3);
+      const avatar = await this.avatarBufferWithRetry(secret, 'profile', normalizedSenderId, 1, { ...options, account });
       const cached = currentConversation
         ? await avatarService.cacheBuffer({ accountId: account.id, conversationId, buffer: avatar.buffer, source: 'facebook-profile-proxy' })
         : await avatarService.cacheStandaloneBuffer({ accountId: account.id, assetKey: `facebook-profile-${normalizedSenderId}`, buffer: avatar.buffer, source: 'facebook-profile-proxy' });
@@ -1365,6 +1247,7 @@ class FacebookAdapter {
   }
 
   async sync(account, options = {}) {
+    requirePersistedLegacyFacebookOperation(options, account);
     assertOperationActive(options.signal, 'FACEBOOK_SYNC_ABORTED', { accountId: account.id });
     const { secret } = this.credentials(account);
     const pageId = clean(secret.pageId || account.metadata?.pageId);
@@ -1391,7 +1274,8 @@ class FacebookAdapter {
           after
         }, {
           signal: options.signal,
-          executionGeneration: options.executionGeneration || options.operationGeneration || ''
+          executionGeneration: options.executionGeneration || options.operationGeneration || '',
+          physicalOperationContext: options.physicalOperationContext
         });
         assertOperationActive(options.signal, 'FACEBOOK_SYNC_ABORTED', { accountId: account.id, pageIndex });
         conversations.push(...(Array.isArray(page.data) ? page.data : []));
@@ -1421,7 +1305,8 @@ class FacebookAdapter {
             after: messageAfter
           }, {
             signal: options.signal,
-            executionGeneration: options.executionGeneration || options.operationGeneration || ''
+            executionGeneration: options.executionGeneration || options.operationGeneration || '',
+            physicalOperationContext: options.physicalOperationContext
           });
           assertOperationActive(options.signal, 'FACEBOOK_SYNC_ABORTED', { accountId: account.id, externalConversationId: clean(conversation.id) });
           const batch = Array.isArray(page.data) ? page.data : [];
@@ -1510,7 +1395,8 @@ class FacebookAdapter {
         // APIs. Enrichment is deduplicated and bounded so a large account does
         // not create one simultaneous Worker/Graph request per conversation.
         assertOperationActive(options.signal, 'FACEBOOK_SYNC_ABORTED', { accountId: account.id, conversationId });
-        this.scheduleHistoryContactEnrichment(account, peer.id, conversationId, basicName);
+        // Contact/profile enrichment is a separate persisted HISTORY_SYNCHRONIZATION attempt;
+        // this legacy facade records only the projection observed by this attempt.
         synchronized += 1;
       } catch (error) {
         if (options.signal?.aborted) {
@@ -1542,126 +1428,24 @@ class FacebookAdapter {
     };
   }
 
-  drainHistoryContactEnrichmentQueue() {
-    while (this.historyContactEnrichmentRunning < this.historyContactEnrichmentConcurrency && this.historyContactEnrichmentQueue.length) {
-      const job = this.historyContactEnrichmentQueue.shift();
-      this.historyContactEnrichmentRunning += 1;
-      setImmediate(async () => {
-        try {
-          const profile = await this.senderProfile(job.account, job.peerId, job.primaryConversationId);
-          const updatedConversationIds = [];
-          const failedConversationIds = [];
-          const processed = new Set();
-          while (processed.size < job.targets.size) {
-            const pending = [...job.targets.entries()].filter(([conversationId]) => !processed.has(conversationId));
-            for (const [conversationId, fallbackName] of pending) {
-              processed.add(conversationId);
-              try {
-                await messageStore.updateConversationMetadata(conversationId, {
-                  title: profile.name || fallbackName,
-                  contactName: profile.name || fallbackName,
-                  ...(profile.avatarUrl ? { avatarUrl: profile.avatarUrl } : {}),
-                  profileEnrichedAt: new Date().toISOString()
-                });
-                updatedConversationIds.push(conversationId);
-              } catch (error) {
-                failedConversationIds.push(conversationId);
-                logCriticalFailure('historySync.senderProfile.fanout', error, { accountId: job.accountId, conversationId });
-              }
-            }
-          }
-          job.resolve({ ok: failedConversationIds.length === 0, profile, updatedConversationIds, failedConversationIds });
-        } catch (error) {
-          logCriticalFailure('historySync.senderProfile.deferred', error, { accountId: job.accountId, conversationId: job.primaryConversationId });
-          job.resolve({ ok: false, code: clean(error?.code || error?.message, 'FACEBOOK_HISTORY_PROFILE_ENRICHMENT_FAILED') });
-        } finally {
-          this.historyContactEnrichmentRunning = Math.max(0, this.historyContactEnrichmentRunning - 1);
-          this.historyContactEnrichmentTasks.delete(job.taskKey);
-          this.drainHistoryContactEnrichmentQueue();
-        }
-      });
-    }
-  }
+  drainHistoryContactEnrichmentQueue() { return 0; }
 
   scheduleHistoryContactEnrichment(account, peerId, conversationId, fallbackName = '') {
-    const accountId = clean(account?.id);
-    const normalizedPeerId = clean(peerId);
-    const normalizedConversationId = clean(conversationId);
-    const taskKey = `${accountId}:${normalizedPeerId}`;
-    if (!accountId || !normalizedPeerId || !normalizedConversationId) return null;
-    const existing = this.historyContactEnrichmentTasks.get(taskKey);
-    if (existing) {
-      existing.targets.set(normalizedConversationId, clean(fallbackName, `Facebook ${normalizedPeerId}`));
-      return existing.promise;
-    }
-    let resolveTask;
-    const task = new Promise(resolve => { resolveTask = resolve; });
-    const job = {
-      taskKey,
-      account,
-      accountId,
-      peerId: normalizedPeerId,
-      primaryConversationId: normalizedConversationId,
-      targets: new Map([[normalizedConversationId, clean(fallbackName, `Facebook ${normalizedPeerId}`)]]),
-      resolve: resolveTask,
-      promise: task
-    };
-    this.historyContactEnrichmentTasks.set(taskKey, job);
-    this.historyContactEnrichmentQueue.push(job);
-    this.drainHistoryContactEnrichmentQueue();
-    return task;
+    return Promise.resolve({
+      ok: false, delegated: true, authority: 'DurableExecutionAuthorityV2', operationKind: 'HISTORY_SYNCHRONIZATION',
+      accountId: clean(account?.id), peerId: clean(peerId), conversationId: clean(conversationId), fallbackName: clean(fallbackName),
+      code: 'FACEBOOK_HISTORY_PROFILE_ENRICHMENT_DELEGATED'
+    });
   }
 
   scheduleWebhookContactEnrichment(account, peerId, conversationId, fallbackName = '') {
-    const accountId = clean(account?.id);
-    const normalizedPeerId = clean(peerId);
-    const normalizedConversationId = clean(conversationId);
-    const taskKey = `${accountId}:${normalizedPeerId}`;
-    if (!accountId || !normalizedPeerId || !normalizedConversationId) return null;
-    if (this.webhookContactEnrichmentTasks.has(taskKey)) return this.webhookContactEnrichmentTasks.get(taskKey);
-
-    const task = new Promise(resolve => {
-      setImmediate(async () => {
-        const startedAt = Date.now();
-        try {
-          const profile = await this.senderProfile(account, normalizedPeerId, normalizedConversationId);
-          const metadata = {
-            profileStatus: clean(profile.profileStatus),
-            profileLastError: clean(profile.profileLastError),
-            profileUpdatedAt: new Date().toISOString()
-          };
-          const resolvedName = clean(profile.name);
-          if (resolvedName && resolvedName !== clean(fallbackName)) {
-            metadata.title = resolvedName;
-            metadata.contactName = resolvedName;
-          }
-          if (clean(profile.avatarUrl)) metadata.avatarUrl = clean(profile.avatarUrl);
-          await messageStore.updateConversationMetadata(normalizedConversationId, metadata);
-          eventBus.publish('facebook:webhook-contact-enriched', {
-            accountId,
-            conversationId: normalizedConversationId,
-            peerId: normalizedPeerId,
-            profileStatus: metadata.profileStatus || 'unknown',
-            durationMs: Date.now() - startedAt
-          });
-          resolve({ ok: true, ...metadata });
-        } catch (error) {
-          logCriticalFailure('webhook.contactEnrichment', error, { accountId, conversationId: normalizedConversationId });
-          eventBus.publish('facebook:webhook-contact-enrichment-failed', {
-            accountId,
-            conversationId: normalizedConversationId,
-            code: clean(error?.code || error?.message, 'FACEBOOK_CONTACT_ENRICHMENT_FAILED'),
-            durationMs: Date.now() - startedAt
-          });
-          resolve({ ok: false, code: clean(error?.code || error?.message, 'FACEBOOK_CONTACT_ENRICHMENT_FAILED') });
-        } finally {
-          this.webhookContactEnrichmentTasks.delete(taskKey);
-        }
-      });
+    return Promise.resolve({
+      ok: false, delegated: true, authority: 'DurableExecutionAuthorityV2', operationKind: 'HISTORY_SYNCHRONIZATION',
+      accountId: clean(account?.id), peerId: clean(peerId), conversationId: clean(conversationId), fallbackName: clean(fallbackName),
+      code: 'FACEBOOK_WEBHOOK_PROFILE_ENRICHMENT_DELEGATED'
     });
-    this.webhookContactEnrichmentTasks.set(taskKey, task);
-    return task;
   }
+
 
   async handleWebhook(body, accounts) {
     const entries = Array.isArray(body?.entry) ? body.entry : []; let accepted = 0;
@@ -1801,7 +1585,7 @@ class FacebookAdapter {
           }).catch(error => logCriticalFailure('webhook.referralMetadata', error, { accountId: account.id, conversationId }));
         }
         if (hasWorkerMedia || hasLegacyRemoteMedia) {
-          setImmediate(() => this.cacheWebhookAttachments(account, messageWithContact, rawAttachments).catch(error => logger.warn('facebook', 'media-cache-task-failed', { accountId: account.id, messageId: externalId, error: error.message })));
+          eventBus.publish('facebook:webhook-media-delegated', { accountId: account.id, conversationId, messageId: externalId, operationKind: 'MEDIA_TRANSFER' });
         }
         if (outcome.inserted && !isEcho) {
           const notificationConversation = outcome.conversation || {};
@@ -1826,7 +1610,7 @@ class FacebookAdapter {
           accepted += 1;
         }
         if (!currentConversation || avatarService.needsRefresh(conversationId)) {
-          this.scheduleWebhookContactEnrichment(account, peerId, conversationId, fallbackName);
+          eventBus.publish('facebook:webhook-profile-enrichment-delegated', { accountId: account.id, conversationId, peerId, operationKind: 'HISTORY_SYNCHRONIZATION' });
         }
       }
     }

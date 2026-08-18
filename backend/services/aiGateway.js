@@ -1,12 +1,15 @@
 'use strict';
 
-const { randomUUID } = require('crypto');
+const { randomUUID, createHash } = require('crypto');
 const registry = require('./modelRegistry');
 const modelBrainRuntime = require('./modelBrainRuntime');
 const modelBrainProjection = require('./modelBrainProjection');
 const eventBus = require('./eventBus');
 const logger = require('./logger');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
+const openAiCompatibleClient = require('./openAiCompatibleClient');
+const ollamaClient = require('./ollamaClient');
+const { currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
 
 const securityGuard = getSecurityGuard();
 const TASK_QUEUE_TIMEOUT_FLOORS = Object.freeze({
@@ -85,6 +88,40 @@ function assertExecutionCommitAllowed({ signal, executionId = '', expectedGenera
     reason: clean(signal?.reason?.code || (expected && expected !== current ? 'GENERATION_SUPERSEDED' : 'MODEL_CANCELLED'))
   });
 }
+function aiRuntimePersistedAttemptError(field = '') {
+  return Object.assign(new Error('Persisted RUNNING AI operation is required before Model Brain physical execution'), {
+    code: 'WP_B_AI_RUNTIME_PERSISTED_ATTEMPT_REQUIRED',
+    field: clean(field)
+  });
+}
+function validateRuntimePersistedOperation(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.isFrozen(value)) {
+    throw aiRuntimePersistedAttemptError('operation');
+  }
+  if (clean(value.operationKind) !== 'AI_PROVIDER_EXECUTION') throw aiRuntimePersistedAttemptError('operationKind');
+  if (clean(value.state) !== 'RUNNING') throw aiRuntimePersistedAttemptError('state');
+  for (const field of ['operationId', 'executionId', 'ownerId', 'claimId', 'leaseExpiresAt']) {
+    if (!clean(value[field])) throw aiRuntimePersistedAttemptError(field);
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    if (!Number.isSafeInteger(Number(value[field])) || Number(value[field]) < 1) throw aiRuntimePersistedAttemptError(field);
+  }
+  return value;
+}
+function durableAiOperationFingerprint({ jobId = '', task = '', modelId = '', context = {} } = {}) {
+  return createHash('sha256').update([
+    clean(jobId), clean(task), clean(modelId), clean(context.scopeKey), clean(context.generation), clean(context.requestId)
+  ].join('\n'), 'utf8').digest('hex');
+}
+function durableAiTerminalReceipt(result = {}) {
+  const evidence = result?.evidence || {};
+  return Object.freeze({
+    status: 'completed',
+    modelId: clean(evidence.selectedModel || result.modelId || result.model),
+    providerRequestId: clean(evidence.requestId || result.providerRequestId)
+  });
+}
+
 function persistedAiAttemptError(field = '') {
   return Object.assign(new Error('Persisted AI attempt identity is required before Model Brain physical execution'), {
     code: 'WP_B_AI_PERSISTED_ATTEMPT_REQUIRED',
@@ -145,7 +182,7 @@ function credentialEnvelope(candidates = []) {
   for (const model of candidates) {
     const ref = clean(model.credentialRef);
     if (!ref || Object.prototype.hasOwnProperty.call(result, ref)) continue;
-    const row = securityGuard.credentials.get(ref) || {};
+    const row = this.securityGuard.credentials.get(ref) || {};
     result[ref] = {
       apiKey: clean(row.apiKey || row.key || row.token),
       endpoint: clean(row.endpoint || row.baseUrl || model.endpoint),
@@ -318,6 +355,10 @@ class AiGateway {
   constructor(options = {}) {
     this.registry = options.registry || registry;
     this.runtime = options.runtime || modelBrainRuntime;
+    this.internalOperationAuthorityProvider = options.internalOperationAuthorityProvider || currentRuntimeInternalOperationAuthority;
+    this.openAiClient = options.openAiClient || openAiCompatibleClient;
+    this.ollamaClient = options.ollamaClient || ollamaClient;
+    this.securityGuard = options.securityGuard || securityGuard;
     this.jobs = new Map();
     this.controllers = new Map();
     this.queueIds = new Map();
@@ -377,7 +418,117 @@ class AiGateway {
     const candidates = projection.catalog.filter(row => row.id === clean(modelId) && row.enabled);
     return Object.freeze({ ...projection, candidates: Object.freeze(candidates), catalog: Object.freeze(candidates) });
   }
-  async _run({ jobId, task, messages, modelId = '', options = {}, signal, context = {} }) {
+  _internalOperationAuthority() {
+    const authority = this.internalOperationAuthorityProvider();
+    if (!authority || typeof authority.create !== 'function' || typeof authority.start !== 'function'
+        || typeof authority.succeed !== 'function' || typeof authority.fail !== 'function') {
+      throw Object.assign(new Error('Durable AI operation authority is unavailable'), { code: 'WP_B_RUNTIME_INTERNAL_OPERATION_AUTHORITY_REQUIRED' });
+    }
+    return authority;
+  }
+  _providerAdminFingerprint(operationType, parts = []) {
+    return createHash('sha256').update([clean(operationType), ...parts.map(clean)].join('\n'), 'utf8').digest('hex');
+  }
+  async _runDurableProviderAdmin({ operationType, scopeKey, fingerprintParts = [], work, receipt = () => ({ status: 'completed' }) }) {
+    if (typeof work !== 'function') throw new TypeError('Durable provider administration requires physical work');
+    const authority = this._internalOperationAuthority();
+    const operationId = `ai-provider-admin-${randomUUID()}`;
+    const objectFingerprint = this._providerAdminFingerprint(operationType, fingerprintParts);
+    const persisted = authority.create({
+      operationId,
+      operationType,
+      scopeKey: clean(scopeKey) || `ai-provider-admin:${operationType}`,
+      objectFingerprint,
+      traceId: operationId,
+      maxAttempts: 1
+    });
+    if (clean(persisted?.operation?.state) !== 'SCHEDULED') {
+      throw Object.assign(new Error('Durable provider administration was not scheduled before physical I/O'), {
+        code: 'WP_B_AI_OPERATION_SCHEDULE_REQUIRED', operationId
+      });
+    }
+    const running = authority.start(operationId, { progress: 1 }).operation;
+    validateRuntimePersistedOperation(running);
+    try {
+      const result = await work(running);
+      authority.succeed(operationId, receipt(result), {
+        generation: running.generation,
+        objectFingerprint,
+        reasonCode: 'AI_PROVIDER_ADMIN_SUCCEEDED'
+      });
+      return result;
+    } catch (error) {
+      authority.fail(operationId, { errorCode: clean(error?.code || 'AI_PROVIDER_ADMIN_FAILED') }, {
+        retryable: false,
+        generation: running.generation,
+        objectFingerprint,
+        reasonCode: clean(error?.code || 'AI_PROVIDER_ADMIN_FAILED')
+      });
+      throw error;
+    }
+  }
+  _cloudCredential(credentialRef, fallbackEndpoint = '') {
+    const ref = clean(credentialRef);
+    if (!ref) throw Object.assign(new Error('Cloud model credential reference is required'), { code: 'CLOUD_MODEL_CREDENTIAL_MISSING' });
+    const row = securityGuard.credentials.get(ref) || {};
+    const apiKey = this.openAiClient.normalizeApiKey(row.apiKey || row.key || row.token);
+    const endpoint = this.openAiClient.normalizeEndpoint(row.endpoint || row.baseUrl || fallbackEndpoint);
+    return Object.freeze({ credentialRef: ref, apiKey, endpoint });
+  }
+  assertCloudCredential(credentialRef, fallbackEndpoint = '') {
+    const credential = this._cloudCredential(credentialRef, fallbackEndpoint);
+    return Object.freeze({ credentialRef: credential.credentialRef, endpoint: credential.endpoint });
+  }
+  normalizeCloudEndpoint(value = '') { return this.openAiClient.normalizeEndpoint(value); }
+  async listCloudModels({ endpoint = '', credentialRef = '', timeoutMs = 30000 } = {}) {
+    const credential = this._cloudCredential(credentialRef, endpoint);
+    return this._runDurableProviderAdmin({
+      operationType: 'ai.provider-admin.cloud-list',
+      scopeKey: `cloud-list:${credential.credentialRef}`,
+      fingerprintParts: [credential.endpoint, credential.credentialRef],
+      work: () => this.openAiClient.listModels({ endpoint: credential.endpoint, apiKey: credential.apiKey, timeoutMs }),
+      receipt: () => ({ status: 'completed' })
+    });
+  }
+  async requestOpenAiJson({ url = '', credentialRef = '', timeoutMs = 30000, method = 'GET', body, signal = null } = {}) {
+    const credential = this._cloudCredential(credentialRef, url);
+    return this._runDurableProviderAdmin({
+      operationType: 'ai.provider-admin.cloud-request',
+      scopeKey: `cloud-request:${credential.credentialRef}`,
+      fingerprintParts: [url, method, credential.credentialRef],
+      work: () => this.openAiClient.requestJson(url, { apiKey: credential.apiKey, timeoutMs, method, body, signal }),
+      receipt: () => ({ status: 'completed', provider: 'openai-compatible' })
+    });
+  }
+  async discoverLocalModels() {
+    return this._runDurableProviderAdmin({
+      operationType: 'ai.provider-admin.local-discover',
+      scopeKey: 'local-model-discovery',
+      fingerprintParts: ['ollama'],
+      work: () => this.ollamaClient.discover(),
+      receipt: () => ({ status: 'completed' })
+    });
+  }
+  async removeLocalModel(endpoint, model) {
+    return this._runDurableProviderAdmin({
+      operationType: 'ai.provider-admin.local-remove',
+      scopeKey: `local-model:${clean(model)}`,
+      fingerprintParts: [endpoint, model],
+      work: () => this.ollamaClient.remove(endpoint, model),
+      receipt: () => ({ status: 'completed', modelId: clean(model) })
+    });
+  }
+  async unloadLocalModel(endpoint, model) {
+    return this._runDurableProviderAdmin({
+      operationType: 'ai.provider-admin.local-unload',
+      scopeKey: `local-model:${clean(model)}`,
+      fingerprintParts: [endpoint, model],
+      work: () => this.ollamaClient.unload(endpoint, model),
+      receipt: () => ({ status: 'completed', modelId: clean(model) })
+    });
+  }
+  async _run({ jobId, task, messages, modelId = '', options = {}, signal, context = {}, persistedOperation = null }) {
+    validateRuntimePersistedOperation(persistedOperation);
     assertExecutionCommitAllowed({ signal, executionId: jobId, expectedGeneration: context.generation, currentGeneration: () => this.latestContextGenerations.get(context.scopeKey) || context.generation });
     const projection = this.projection(task, options, modelId);
     if (!projection.candidates.length) {
@@ -407,8 +558,14 @@ class AiGateway {
     };
     eventBus.publish('ai:job-started', { jobId, task, modelBrain: true, logicalModel: projection.logicalModel, candidateCount: projection.candidates.length });
     const raw = clean(task) === 'probe' ? await this.runtime.probe(payload) : await this.runtime.execute(payload);
-    assertExecutionCommitAllowed({ signal, executionId: jobId, expectedGeneration: context.generation, currentGeneration: () => this.latestContextGenerations.get(context.scopeKey) || context.generation });
     const result = normalizeRuntimeResult(raw, task);
+    try {
+      assertExecutionCommitAllowed({ signal, executionId: jobId, expectedGeneration: context.generation, currentGeneration: () => this.latestContextGenerations.get(context.scopeKey) || context.generation });
+    } catch (error) {
+      error.physicalSucceeded = true;
+      error.physicalResult = result;
+      throw error;
+    }
     eventBus.publish('ai:job-complete', { jobId, task, modelBrain: true, evidence: result.evidence });
     return result;
   }
@@ -498,22 +655,48 @@ class AiGateway {
   submit({ task, messages, modelId = '', options = {}, signal: externalSignal = null, priority, queueTimeoutMs, background = false, context: rawContext = {} }) {
     const jobId = randomUUID();
     const context = this.registerTaskContext(jobId, task, rawContext);
+    const authority = this.internalOperationAuthorityProvider();
+    if (!authority || typeof authority.create !== 'function' || typeof authority.start !== 'function'
+        || typeof authority.succeed !== 'function' || typeof authority.fail !== 'function') {
+      throw Object.assign(new Error('Durable AI operation authority is unavailable'), { code: 'WP_B_RUNTIME_INTERNAL_OPERATION_AUTHORITY_REQUIRED' });
+    }
+    const operationScopeKey = clean(context.scopeKey) || `ai-job:${jobId}`;
+    const operationFingerprint = durableAiOperationFingerprint({ jobId, task, modelId, context });
+    const persisted = authority.create({
+      operationId: `ai-provider-${jobId}`,
+      operationType: 'ai.provider-execution',
+      scopeKey: operationScopeKey,
+      objectFingerprint: operationFingerprint,
+      traceId: clean(context.requestId) || jobId,
+      maxAttempts: 1
+    });
+    const operationId = clean(persisted?.operation?.operationId);
+    if (!operationId || clean(persisted?.operation?.state) !== 'SCHEDULED') {
+      throw Object.assign(new Error('Durable AI operation was not scheduled before queue admission'), { code: 'WP_B_AI_OPERATION_SCHEDULE_REQUIRED', operationId });
+    }
     const controller = new AbortController();
     const relayExternal = () => controller.abort(externalSignal?.reason || Object.assign(new Error('MODEL_CANCELLED'), { code: 'MODEL_CANCELLED' }));
     if (externalSignal?.aborted) relayExternal();
     else externalSignal?.addEventListener?.('abort', relayExternal, { once: true });
     this.controllers.set(jobId, controller);
     this._pruneJobs();
-    this.jobs.set(jobId, { jobId, task, status: 'queued', createdAt: new Date().toISOString(), context, result: null, error: null });
+    this.jobs.set(jobId, { jobId, task, operationId, operationFingerprint, status: 'queued', createdAt: new Date().toISOString(), context, result: null, error: null });
     const timeoutMs = Math.max(1000, Number(options.timeoutMs || TASK_QUEUE_TIMEOUT_FLOORS[clean(task)] || 180000));
     const queued = this.queue.add(async ({ signal }) => {
       const relay = () => controller.abort(signal.reason || Object.assign(new Error('JOB_CANCELLED'), { code: 'JOB_CANCELLED' }));
       if (signal.aborted) relay(); else signal.addEventListener('abort', relay, { once: true });
       const row = this.jobs.get(jobId);
       if (row) { row.status = 'running'; row.startedAt = new Date().toISOString(); }
+      let runningOperation = null;
       try {
         this.assertTaskContextCurrent(context);
-        const result = await this._run({ jobId, task, messages, modelId, options: { ...options, timeoutMs }, signal: controller.signal, context });
+        runningOperation = authority.start(operationId, { progress: 1 }).operation;
+        const result = await this._run({ jobId, task, messages, modelId, options: { ...options, timeoutMs }, signal: controller.signal, context, persistedOperation: runningOperation });
+        authority.succeed(operationId, durableAiTerminalReceipt(result), {
+          generation: runningOperation.generation,
+          objectFingerprint: operationFingerprint,
+          reasonCode: 'AI_PROVIDER_EXECUTION_SUCCEEDED'
+        });
         this.assertTaskContextCurrent(context);
         const current = this.jobs.get(jobId);
         if (current && current.status === 'running') {
@@ -521,6 +704,28 @@ class AiGateway {
         }
         return result;
       } catch (error) {
+        if (runningOperation) {
+          if (error?.physicalSucceeded === true) {
+            authority.succeed(operationId, durableAiTerminalReceipt(error.physicalResult || {}), {
+              generation: runningOperation.generation,
+              objectFingerprint: operationFingerprint,
+              reasonCode: 'AI_PROVIDER_EXECUTION_SUCCEEDED'
+            });
+          } else if (controller.signal.aborted && typeof authority.cancel === 'function') {
+            authority.cancel(operationId, { reasonCode: clean(controller.signal.reason?.code || error?.code || 'MODEL_CANCELLED') }, {
+              generation: runningOperation.generation,
+              objectFingerprint: operationFingerprint,
+              reasonCode: clean(controller.signal.reason?.code || error?.code || 'MODEL_CANCELLED')
+            });
+          } else {
+            authority.fail(operationId, { errorCode: clean(error?.code || 'MODEL_BRAIN_JOB_FAILED') }, {
+              retryable: false,
+              generation: runningOperation.generation,
+              objectFingerprint: operationFingerprint,
+              reasonCode: clean(error?.code || 'MODEL_BRAIN_JOB_FAILED')
+            });
+          }
+        }
         const current = this.jobs.get(jobId);
         if (current && current.status === 'running') {
           current.status = controller.signal.aborted ? 'cancelled' : 'failed';
@@ -547,6 +752,19 @@ class AiGateway {
     });
     this.queueIds.set(jobId, queued.id);
     queued.promise.catch(error => {
+      const durable = authority.read?.(operationId);
+      if (durable?.state === 'SCHEDULED') {
+        try {
+          const started = authority.start(operationId, { progress: 0 }).operation;
+          authority.cancel?.(operationId, { reasonCode: clean(error?.code || 'AI_QUEUE_CANCELLED') }, {
+            generation: started.generation,
+            objectFingerprint: operationFingerprint,
+            reasonCode: clean(error?.code || 'AI_QUEUE_CANCELLED')
+          });
+        } catch (terminalError) {
+          logger.error('ai', 'durable-ai-queue-terminalization-failed', { jobId, operationId, reasonCode: terminalError?.code || 'AI_DURABLE_TERMINALIZATION_FAILED', error: terminalError?.message || String(terminalError) });
+        }
+      }
       const current = this.jobs.get(jobId);
       if (current && current.status === 'queued') {
         current.status = error?.code === 'JOB_CANCELLED' || controller.signal.aborted ? 'cancelled' : 'failed';
@@ -624,5 +842,7 @@ module.exports.resolveQueueTimeoutMs = resolveQueueTimeoutMs;
 module.exports.normalizeTaskContext = normalizeTaskContext;
 module.exports.staleContextError = staleContextError;
 module.exports.assertExecutionCommitAllowed = assertExecutionCommitAllowed;
+module.exports.validateRuntimePersistedOperation = validateRuntimePersistedOperation;
+module.exports.durableAiOperationFingerprint = durableAiOperationFingerprint;
 
 module.exports.PQueueSchedulerAdapter = PQueueSchedulerAdapter;

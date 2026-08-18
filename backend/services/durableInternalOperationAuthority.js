@@ -247,6 +247,7 @@ function operationSnapshot(execution) {
     leaseExpiresAt: execution.leaseExpiresAt,
     heartbeatSequence: execution.heartbeatSequence,
     lastHeartbeatAt: execution.lastHeartbeatAt,
+    deadlineAt: execution.deadlineAt,
     retryCount: execution.retryCount,
     maxAttempts: execution.maxAttempts,
     nextAttemptAt: execution.nextAttemptAt,
@@ -355,6 +356,7 @@ class DurableInternalOperationAuthority {
         objectFingerprint
       },
       metadata,
+      deadlineAt: optionalString(input.deadlineAt, 'deadlineAt'),
       authorityTimestamp,
       maxAttempts: safeInteger(input.maxAttempts ?? 1, 'maxAttempts', 1, 100)
     });

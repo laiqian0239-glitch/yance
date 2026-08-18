@@ -37,10 +37,14 @@ test('M3-SC-002 base plus authorized extension inventory remains exact and uniqu
   const report = currentReport();
   const baseline = readJson(baselinePath);
   assert.deepEqual(report.inventoryExtensionPaths, baseline.operationInventoryExtensionPaths);
-  assert.equal(report.baseRegistryEntries, 45);
+  assert.equal(report.baseRegistryEntries, 46);
   assert.equal(report.registryExtensionEntries, 2);
   assert.equal(report.registryEntries, report.baseRegistryEntries + report.registryExtensionEntries);
   assert.equal(report.totalRegisteredSourcePaths, report.registryEntries);
+  const inventory = readJson(inventoryPath);
+  const syncService = inventory.entries.find(entry => entry.id === 'WPB-SYNC-CHECKPOINT-SERVICE');
+  assert.equal(syncService?.path, 'backend/services/syncCheckpointService.js');
+  assert.equal(syncService?.closureState, 'DELEGATES_TO_WP_B_AUTHORITY');
 });
 
 test('M3-SC-003 no legacy callable operation path remains', () => {

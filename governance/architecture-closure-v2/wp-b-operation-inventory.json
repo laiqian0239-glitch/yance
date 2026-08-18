@@ -54,11 +54,12 @@
         "AI_PROVIDER_EXECUTION"
       ],
       "currentResponsibilities": [
-        "NETWORK_CALL",
-        "TIMEOUT"
+        "PERSISTED_ATTEMPT_PROVIDER_CALL",
+        "PROVIDER_REQUEST_ID_OBSERVATION",
+        "NO_INDEPENDENT_RETRY_AUTHORITY"
       ],
       "targetAuthority": "AI_PROVIDER_EXECUTION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Client is reachable only from the registered operation Adapter."
     },
     {
@@ -147,11 +148,13 @@
         "SESSION_RESTORE"
       ],
       "currentResponsibilities": [
-        "DEADLINE_TIMER",
-        "ABORT"
+        "PERSISTED_AUTHORITY_TIMESTAMP",
+        "LOCAL_ABORT_OBSERVATION",
+        "REMOTE_OUTCOME_UNKNOWN_ON_TIMEOUT",
+        "AUTOMATIC_RETRY_BLOCKED"
       ],
       "targetAuthority": "DurableExecutionAuthorityV2",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Deadline is an explicit persisted authority timestamp and timeout does not imply remote failure."
     },
     {
@@ -268,11 +271,11 @@
         "HISTORY_SYNCHRONIZATION"
       ],
       "currentResponsibilities": [
-        "SYNC_CHECKPOINT",
-        "RECOVERY_MUTATION"
+        "READ_ONLY_COMPATIBILITY_PROJECTION",
+        "CANONICAL_CHECKPOINT_CAS_DELEGATION"
       ],
       "targetAuthority": "DurableExecutionAuthorityV2",
-      "closureState": "OPEN",
+      "closureState": "READ_ONLY_PROJECTION",
       "removalCondition": "Checkpoint advancement becomes a versioned execution checkpoint command; direct recovery mutation is removed."
     },
     {
@@ -284,10 +287,12 @@
       ],
       "currentResponsibilities": [
         "HTTP_ENTRYPOINT",
-        "CALLER_TIMEOUT"
+        "DURABLE_AI_COMMAND_SUBMISSION",
+        "RECEIPT_OBSERVATION_ONLY",
+        "CALLER_DISCONNECT_NONAUTHORITATIVE"
       ],
       "targetAuthority": "DurableExecutionAuthorityV2",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "The route submits a durable command and observes receipts; caller timeout cannot mutate or cancel remote truth implicitly."
     },
     {
@@ -332,11 +337,12 @@
       ],
       "currentResponsibilities": [
         "MODEL_ROUTING",
-        "PROVIDER_INVOCATION",
-        "TIMEOUT"
+        "PERSISTED_AI_ATTEMPT_ADAPTER",
+        "P_QUEUE_SCHEDULER_ADAPTER",
+        "PROVIDER_OBSERVATION"
       ],
       "targetAuthority": "AI_PROVIDER_EXECUTION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Gateway resolves routing before intent creation; physical provider invocation occurs only through a persisted attempt."
     },
     {
@@ -386,11 +392,12 @@
         "SESSION_RESTORE"
       ],
       "currentResponsibilities": [
-        "FACEBOOK_NETWORK_CALL",
-        "PLATFORM_RETRY"
+        "NON_PRODUCTION_COMPATIBILITY_PROJECTION",
+        "PERSISTED_OPERATION_FAIL_CLOSED",
+        "NO_AUTONOMOUS_PLATFORM_RETRY_OR_TIMER"
       ],
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Every Facebook physical call consumes a persisted attempt envelope and returns an observation without durable retry decisions."
     },
     {
@@ -402,10 +409,12 @@
       ],
       "currentResponsibilities": [
         "OAUTH_NETWORK_CALL",
-        "SESSION_RETRY"
+        "PERSISTED_OPERATION_VALIDATION",
+        "PERSISTED_AUTHORITY_DEADLINE",
+        "NO_SESSION_RETRY_AUTHORITY"
       ],
       "targetAuthority": "SESSION_RESTORE_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "OAuth/session probes run from persisted attempts; credentials and tokens never enter WP-B records."
     },
     {
@@ -419,10 +428,12 @@
         "SESSION_RESTORE"
       ],
       "currentResponsibilities": [
-        "EXPERIMENTAL_PLATFORM_CALL"
+        "EXPERIMENTAL_PLATFORM_CALL",
+        "PERSISTED_OPERATION_SESSION_SYNC",
+        "PERSISTED_ATTEMPT_EGRESS"
       ],
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Experimental calls are either removed or placed behind the same persisted-attempt boundary; no bypass remains."
     },
     {
@@ -436,11 +447,13 @@
         "HISTORY_SYNCHRONIZATION"
       ],
       "currentResponsibilities": [
-        "RELAY_NETWORK_CALL",
-        "RETRY_TIMER"
+        "PERSISTED_ATTEMPT_NETWORK_CALL",
+        "SIGNED_ATTEMPT_IDENTITY",
+        "PROVIDER_REQUEST_ID_OBSERVATION",
+        "NO_POLL_RETRY_AUTHORITY"
       ],
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Relay requests require attempt identity and provider request IDs; uncertain results require reconciliation."
     },
     {
@@ -467,11 +480,12 @@
         "AI_PROVIDER_EXECUTION"
       ],
       "currentResponsibilities": [
-        "PROVIDER_NETWORK_CALL",
-        "TIMEOUT"
+        "PERSISTED_ATTEMPT_PROVIDER_NETWORK_CALL",
+        "PROVIDER_REQUEST_ID_OBSERVATION",
+        "NO_INDEPENDENT_TIMEOUT_AUTHORITY"
       ],
       "targetAuthority": "AI_PROVIDER_EXECUTION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Client is reachable only from the persisted-attempt Adapter and reports request IDs for reconciliation."
     },
     {
@@ -598,11 +612,12 @@
       ],
       "currentResponsibilities": [
         "WHATSAPP_CALL",
-        "RECONNECT",
-        "RECOVERY"
+        "PERSISTED_OPERATION_SESSION_SYNC",
+        "PERSISTED_ATTEMPT_EGRESS",
+        "DURABLE_RECOVERY_SIGNAL"
       ],
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "WhatsApp calls require persisted attempts; reconnect/history recovery cannot own business retry."
     },
     {
@@ -666,10 +681,12 @@
         "HISTORY_SYNCHRONIZATION"
       ],
       "currentResponsibilities": [
-        "FACEBOOK_WORKER_NETWORK_CALL"
+        "FACEBOOK_WORKER_SINGLE_ATTEMPT_NETWORK_CALL",
+        "PERSISTED_ATTEMPT_QUERY_FENCE",
+        "PROVIDER_REQUEST_ID_OBSERVATION"
       ],
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Worker requests are bound to persisted attempt IDs and return provider request IDs or uncertain outcomes."
     },
     {
@@ -698,12 +715,12 @@
         "MEDIA_TRANSFER"
       ],
       "currentResponsibilities": [
-        "MEDIA_RETRY_TRIGGER",
-        "RETENTION_CLEANUP",
-        "D1_EXPIRY_MUTATION"
+        "RETENTION_CLEANUP_ONLY",
+        "NO_MEDIA_RETRY_AUTHORITY",
+        "NO_PHYSICAL_MEDIA_DELETE_AUTHORITY"
       ],
       "targetAuthority": "DurableExecutionRecoveryAuthority",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Periodic cleanup may execute registered maintenance attempts but must not own an unregistered media retry authority."
     },
     {
@@ -715,14 +732,13 @@
         "HISTORY_SYNCHRONIZATION"
       ],
       "currentResponsibilities": [
-        "MEDIA_FETCH",
-        "R2_CACHE",
-        "D1_RETRY_STATE",
-        "EXPONENTIAL_BACKOFF",
-        "RETENTION_DELETE"
+        "PERSISTED_ATTEMPT_MEDIA_FETCH",
+        "R2_CACHE_SINGLE_ATTEMPT",
+        "FAILURE_OBSERVATION_ONLY",
+        "NO_RETRY_SCHEDULE"
       ],
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Physical media I/O must consume a persisted attempt identity and return observations; retry scheduling moves to the durable execution authority."
     },
     {
@@ -776,13 +792,29 @@
       "targetAuthority": "DurableExecutionRecoveryAuthority",
       "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Facade delegates only to the current Runtime durable recovery authority and owns no local retry, persistence or business-state repair."
+    },
+    {
+      "id": "WPB-SYNC-CHECKPOINT-SERVICE",
+      "path": "backend/services/syncCheckpointService.js",
+      "classification": "RECOVERY_OR_SCHEDULER",
+      "operationKinds": [
+        "HISTORY_SYNCHRONIZATION"
+      ],
+      "currentResponsibilities": [
+        "CANONICAL_CHECKPOINT_CAS_DELEGATION",
+        "PERSISTED_OPERATION_SCOPE",
+        "REMOTE_RESULT_UNKNOWN_OBSERVATION"
+      ],
+      "targetAuthority": "CommunicationAuthority",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
+      "removalCondition": "Compatibility service advances checkpoints only through the canonical fenced CommunicationAuthority CAS and owns no independent retry or recovery mutation."
     }
   ],
   "closure": {
-    "discoveryComplete": false,
-    "unregisteredPathCount": -1,
-    "legacyCallablePathCount": -1,
-    "directExternalCallOutsideAdapterCount": -1,
-    "blindRetryPathCount": -1
+    "discoveryComplete": true,
+    "unregisteredPathCount": 0,
+    "legacyCallablePathCount": 0,
+    "directExternalCallOutsideAdapterCount": 0,
+    "blindRetryPathCount": 0
   }
 }
