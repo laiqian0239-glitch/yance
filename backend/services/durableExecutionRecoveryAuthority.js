@@ -27,9 +27,15 @@ const SAFE_REQUEUE_STATES = new Set([
   STATES.RUNNING,
   STATES.RETRY_SCHEDULED
 ]);
+const RECEIPT_TYPES = new Set(['SUCCESS', 'FAILURE', 'UNKNOWN']);
 
 function clean(value) {
   return String(value == null ? '' : value).trim();
+}
+
+function parse(value, fallback = {}) {
+  try { return value == null || value === '' ? fallback : JSON.parse(value); }
+  catch (_) { return fallback; }
 }
 
 function recoveryError(code, message, details = {}) {
@@ -84,7 +90,11 @@ function executionSnapshot(row = {}) {
     fencingToken: Number(row.fencingToken ?? row.fencing_token ?? 0),
     leaseExpiresAt: clean(row.leaseExpiresAt || row.lease_expires_at),
     deadlineAt: clean(row.deadlineAt || row.deadline_at),
+    retryCount: Number(row.retryCount ?? row.retry_count ?? 0),
+    maxAttempts: Number(row.maxAttempts ?? row.max_attempts ?? 1),
     nextAttemptAt: clean(row.nextAttemptAt || row.next_attempt_at),
+    failureCode: clean(row.failureCode || row.failure_code),
+    terminalReceiptId: clean(row.terminalReceiptId || row.terminal_receipt_id),
     createdAt: clean(row.createdAt || row.created_at),
     updatedAt: clean(row.updatedAt || row.updated_at)
   });
@@ -96,6 +106,19 @@ function attemptSnapshot(row = {}) {
     intentId: clean(row.intentId || row.intent_id),
     attemptId: clean(row.attemptId || row.attempt_id),
     attemptSequence: Number(row.attemptSequence ?? row.attempt_sequence ?? 0),
+    authorityTimestamp: clean(row.authorityTimestamp || row.authority_timestamp),
+    createdAt: clean(row.createdAt || row.created_at)
+  });
+}
+
+function receiptSnapshot(row = {}) {
+  return deepFreeze({
+    executionId: clean(row.executionId || row.execution_id),
+    intentId: clean(row.intentId || row.intent_id),
+    attemptId: clean(row.attemptId || row.attempt_id),
+    receiptId: clean(row.receiptId || row.receipt_id),
+    receiptType: clean(row.receiptType || row.receipt_type).toUpperCase(),
+    result: deepFreeze(parse(row.result ?? row.result_json, {})),
     authorityTimestamp: clean(row.authorityTimestamp || row.authority_timestamp),
     createdAt: clean(row.createdAt || row.created_at)
   });
@@ -118,7 +141,14 @@ function retryIsDue(execution, authorityTimestamp) {
   return !execution.nextAttemptAt || timestampReached(execution.nextAttemptAt, authorityTimestamp);
 }
 
-function decideRecovery(executionInput, attemptsInput, authorityTimestampInput) {
+function latestTrustedReceipt(receiptsInput) {
+  const receipts = (Array.isArray(receiptsInput) ? receiptsInput : [])
+    .map(receiptSnapshot)
+    .filter(receipt => receipt.receiptId && RECEIPT_TYPES.has(receipt.receiptType));
+  return receipts.length ? receipts[receipts.length - 1] : null;
+}
+
+function decideRecovery(executionInput, attemptsInput, authorityTimestampInput, receiptsInput = []) {
   const execution = executionSnapshot(executionInput);
   if (!execution?.executionId) {
     throw recoveryError('WP_B_RECOVERY_EXECUTION_REQUIRED', 'A persisted durable execution is required');
@@ -128,6 +158,22 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput) 
     .map(attemptSnapshot)
     .filter(attempt => attempt.attemptId));
   const persistedAttemptCount = attempts.length;
+  const trustedReceipt = latestTrustedReceipt(receiptsInput);
+  const persistedReceiptCount = (Array.isArray(receiptsInput) ? receiptsInput : [])
+    .map(receiptSnapshot)
+    .filter(receipt => receipt.receiptId && RECEIPT_TYPES.has(receipt.receiptType)).length;
+
+  const base = {
+    persistedAttemptCount,
+    persistedReceiptCount,
+    receiptId: trustedReceipt?.receiptId || '',
+    retryable: trustedReceipt?.result?.retryable === true,
+    retryDelayMs: Number.isSafeInteger(Number(trustedReceipt?.result?.retryDelayMs))
+      && Number(trustedReceipt.result.retryDelayMs) >= 0
+      ? Number(trustedReceipt.result.retryDelayMs)
+      : 0,
+    failureCode: clean(trustedReceipt?.result?.failureCode)
+  };
 
   if (TERMINAL_STATE_SET.has(execution.state)) {
     return deepFreeze({
@@ -135,12 +181,98 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput) 
       targetState: execution.state,
       reasonCode: 'TERMINAL_EXECUTION',
       clearOwnership: false,
-      persistedAttemptCount
+      ...base
     });
   }
 
-  // Once any physical attempt has been persisted, recovery can never infer
-  // remote absence. Reconciliation or cancel confirmation must decide truth.
+  if (trustedReceipt?.receiptType === 'SUCCESS') {
+    return deepFreeze({
+      decision: DECISIONS.RECONCILE_REQUIRED,
+      targetState: STATES.SUCCEEDED,
+      reasonCode: 'PERSISTED_SUCCESS_RECEIPT_TERMINALIZATION_REQUIRED',
+      clearOwnership: true,
+      ...base
+    });
+  }
+
+  if (trustedReceipt?.receiptType === 'UNKNOWN') {
+    const cancellation = execution.state === STATES.CANCEL_REQUESTED;
+    return deepFreeze({
+      decision: cancellation
+        ? DECISIONS.CANCEL_CONFIRMATION_REQUIRED
+        : DECISIONS.RECONCILE_REQUIRED,
+      targetState: cancellation
+        ? STATES.CANCEL_REQUESTED
+        : STATES.UNCERTAIN_REMOTE_OUTCOME,
+      reasonCode: cancellation
+        ? 'PERSISTED_UNKNOWN_RECEIPT_CANCEL_CONFIRMATION_REQUIRED'
+        : 'PERSISTED_UNKNOWN_RECEIPT_RECONCILIATION_REQUIRED',
+      clearOwnership: true,
+      ...base,
+      failureCode: base.failureCode || 'UNCERTAIN_REMOTE_OUTCOME'
+    });
+  }
+
+  if (trustedReceipt?.receiptType === 'FAILURE') {
+    const retryable = trustedReceipt.result?.retryable === true;
+    const failureCode = clean(trustedReceipt.result?.failureCode) || 'EXTERNAL_ACTION_FAILED';
+    if (!retryable) {
+      return deepFreeze({
+        decision: DECISIONS.RECONCILE_REQUIRED,
+        targetState: STATES.FAILED,
+        reasonCode: 'PERSISTED_PERMANENT_FAILURE_RECEIPT_TERMINALIZATION_REQUIRED',
+        clearOwnership: true,
+        ...base,
+        retryable: false,
+        failureCode
+      });
+    }
+    if (timestampReached(execution.deadlineAt, authorityTimestamp)) {
+      return deepFreeze({
+        decision: DECISIONS.DEADLINE_EXPIRED,
+        targetState: STATES.FAILED,
+        reasonCode: 'DEADLINE_EXPIRED_AFTER_RETRYABLE_FAILURE',
+        clearOwnership: true,
+        ...base,
+        retryable: false,
+        failureCode: 'DEADLINE_EXPIRED'
+      });
+    }
+    if (execution.state === STATES.RETRY_SCHEDULED) {
+      if (retryIsDue(execution, authorityTimestamp)) {
+        return deepFreeze({
+          decision: DECISIONS.REQUEUE_SAFE,
+          targetState: STATES.SCHEDULED,
+          reasonCode: 'PERSISTED_RETRYABLE_FAILURE_RETRY_DUE',
+          clearOwnership: true,
+          ...base,
+          retryable: true,
+          failureCode
+        });
+      }
+      return deepFreeze({
+        decision: DECISIONS.NO_ACTION,
+        targetState: STATES.RETRY_SCHEDULED,
+        reasonCode: 'PERSISTED_RETRYABLE_FAILURE_NOT_DUE',
+        clearOwnership: false,
+        ...base,
+        retryable: true,
+        failureCode
+      });
+    }
+    return deepFreeze({
+      decision: DECISIONS.RECONCILE_REQUIRED,
+      targetState: STATES.RETRY_SCHEDULED,
+      reasonCode: 'PERSISTED_RETRYABLE_FAILURE_RECEIPT_RETRY_SCHEDULE_REQUIRED',
+      clearOwnership: true,
+      ...base,
+      retryable: true,
+      failureCode
+    });
+  }
+
+  // A persisted physical attempt without a trusted receipt leaves remote truth
+  // unknown. Recovery may never infer absence or perform an automatic retry.
   if (persistedAttemptCount > 0) {
     const cancellation = execution.state === STATES.CANCEL_REQUESTED;
     return deepFreeze({
@@ -154,7 +286,7 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput) 
         ? 'PERSISTED_ATTEMPT_CANCEL_CONFIRMATION_REQUIRED'
         : 'PERSISTED_ATTEMPT_RECONCILIATION_REQUIRED',
       clearOwnership: true,
-      persistedAttemptCount
+      ...base
     });
   }
 
@@ -164,7 +296,7 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput) 
       targetState: STATES.UNCERTAIN_REMOTE_OUTCOME,
       reasonCode: 'UNCERTAIN_REMOTE_OUTCOME',
       clearOwnership: true,
-      persistedAttemptCount
+      ...base
     });
   }
 
@@ -174,7 +306,7 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput) 
       targetState: STATES.CANCEL_REQUESTED,
       reasonCode: 'CANCEL_CONFIRMATION_REQUIRED',
       clearOwnership: true,
-      persistedAttemptCount
+      ...base
     });
   }
 
@@ -184,7 +316,8 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput) 
       targetState: STATES.FAILED,
       reasonCode: 'DEADLINE_EXPIRED',
       clearOwnership: true,
-      persistedAttemptCount
+      ...base,
+      failureCode: 'DEADLINE_EXPIRED'
     });
   }
 
@@ -197,7 +330,7 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput) 
       targetState: STATES.SCHEDULED,
       reasonCode: 'NO_PERSISTED_ATTEMPT_SAFE_REQUEUE',
       clearOwnership: true,
-      persistedAttemptCount
+      ...base
     });
   }
 
@@ -206,7 +339,7 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput) 
     targetState: execution.state,
     reasonCode: 'ACTIVE_OR_NOT_DUE',
     clearOwnership: false,
-    persistedAttemptCount
+    ...base
   });
 }
 
@@ -228,7 +361,9 @@ function appendRecoveryEvent(store, input) {
     input.reasonCode,
     canonicalSerialize({
       decision: input.decision,
-      persistedAttemptCount: input.persistedAttemptCount
+      persistedAttemptCount: input.persistedAttemptCount,
+      persistedReceiptCount: input.persistedReceiptCount,
+      receiptId: input.receiptId || ''
     }),
     input.authorityTimestamp
   );
@@ -265,6 +400,18 @@ function createSqliteReaders(storeProvider) {
         requiredString(executionId, 'executionId')
       ).map(attemptSnapshot));
     },
+    receiptReader(executionId) {
+      const store = resolveStore();
+      return deepFreeze(store.db.prepare(`SELECT
+          i.execution_id,r.intent_id,r.attempt_id,r.receipt_id,r.receipt_type,
+          r.result_json,r.authority_timestamp,r.created_at
+        FROM external_action_receipts r
+        JOIN external_action_intents i ON i.intent_id=r.intent_id
+        WHERE i.execution_id=? AND r.receipt_type IN ('SUCCESS','FAILURE','UNKNOWN')
+        ORDER BY r.created_at ASC,r.receipt_id ASC`).all(
+        requiredString(executionId, 'executionId')
+      ).map(receiptSnapshot));
+    },
     nonterminalReader() {
       const store = resolveStore();
       const placeholders = TERMINAL_STATES.map(() => '?').join(',');
@@ -284,12 +431,47 @@ function createSqliteDecisionWriter({ storeProvider, authorityWriteHostCapabilit
     assertCurrentAuthorityWriteHostToken(authorityWriteHostCapability, store.db);
     const token = authorityWriteHostCapability.tokenSnapshot();
     const execution = executionSnapshot(input.execution);
-    const targetState = requiredString(input.targetState, 'targetState', 64);
+    let targetState = requiredString(input.targetState, 'targetState', 64);
     const decision = requiredString(input.decision, 'decision', 64);
     const authorityTimestamp = normalizedTimestamp(input.authorityTimestamp);
     const reasonCode = requiredString(input.reasonCode, 'reasonCode', 256);
     const persistedAttemptCount = safeInteger(input.persistedAttemptCount, 'persistedAttemptCount');
+    const persistedReceiptCount = safeInteger(input.persistedReceiptCount ?? 0, 'persistedReceiptCount');
+    const retryable = input.retryable === true;
+    const retryDelayMs = Math.min(
+      7 * 24 * 60 * 60 * 1000,
+      safeInteger(input.retryDelayMs ?? 0, 'retryDelayMs')
+    );
+    const receiptId = clean(input.receiptId);
+    let failureCode = clean(input.failureCode);
+    let retryCount = safeInteger(execution.retryCount || 0, 'execution.retryCount');
+    const maxAttempts = Math.max(1, safeInteger(execution.maxAttempts || 1, 'execution.maxAttempts', 1));
+    let nextAttemptAt = execution.nextAttemptAt;
+
+    if (targetState === STATES.RETRY_SCHEDULED) {
+      retryCount += 1;
+      if (retryCount >= maxAttempts) {
+        targetState = STATES.DEAD_LETTERED;
+        nextAttemptAt = '';
+      } else {
+        nextAttemptAt = new Date(Date.parse(authorityTimestamp) + retryDelayMs).toISOString();
+      }
+    } else if (targetState === STATES.SCHEDULED) {
+      nextAttemptAt = '';
+      failureCode = '';
+    } else if (targetState === STATES.SUCCEEDED) {
+      nextAttemptAt = '';
+      failureCode = '';
+    } else if (targetState === STATES.UNCERTAIN_REMOTE_OUTCOME) {
+      nextAttemptAt = '';
+      failureCode = failureCode || 'UNCERTAIN_REMOTE_OUTCOME';
+    } else if (targetState === STATES.FAILED || targetState === STATES.DEAD_LETTERED) {
+      nextAttemptAt = '';
+      failureCode = failureCode || reasonCode;
+    }
+
     const completedAt = TERMINAL_STATE_SET.has(targetState) ? authorityTimestamp : '';
+    const terminalReceiptId = TERMINAL_STATE_SET.has(targetState) ? receiptId : '';
 
     return store.transaction(() => {
       assertCurrentAuthorityWriteHostToken(authorityWriteHostCapability, store.db);
@@ -297,8 +479,9 @@ function createSqliteDecisionWriter({ storeProvider, authorityWriteHostCapabilit
           state=?,state_version=state_version+1,generation=generation+1,
           owner_id='',claim_id='',host_generation=0,fencing_token=0,
           lease_started_at='',lease_expires_at='',last_heartbeat_at='',
+          retry_count=?,next_attempt_at=?,failure_code=?,
+          terminal_receipt_id=CASE WHEN ?<>'' THEN ? ELSE terminal_receipt_id END,
           completed_at=CASE WHEN ?<>'' THEN ? ELSE completed_at END,
-          failure_code=CASE WHEN ?='DEADLINE_EXPIRED' THEN 'DEADLINE_EXPIRED' ELSE failure_code END,
           updated_at=?
         WHERE execution_id=? AND state=? AND state_version=? AND generation=?
           AND owner_id=? AND claim_id=? AND host_generation=? AND fencing_token=?
@@ -308,9 +491,13 @@ function createSqliteDecisionWriter({ storeProvider, authorityWriteHostCapabilit
               AND fencing_token=? AND state='ACTIVE'
           )`).run(
         targetState,
+        retryCount,
+        nextAttemptAt,
+        failureCode,
+        terminalReceiptId,
+        terminalReceiptId,
         completedAt,
         completedAt,
-        decision,
         authorityTimestamp,
         execution.executionId,
         execution.state,
@@ -340,6 +527,8 @@ function createSqliteDecisionWriter({ storeProvider, authorityWriteHostCapabilit
         decision,
         reasonCode,
         persistedAttemptCount,
+        persistedReceiptCount,
+        receiptId,
         authorityTimestamp
       });
       return deepFreeze({
@@ -350,6 +539,11 @@ function createSqliteDecisionWriter({ storeProvider, authorityWriteHostCapabilit
         generation: execution.generation + 1,
         hostGeneration: token.hostGeneration,
         fencingToken: token.fencingToken,
+        retryable: retryable && targetState === STATES.RETRY_SCHEDULED,
+        retryCount,
+        nextAttemptAt,
+        failureCode,
+        receiptId,
         authorityTimestamp
       });
     });
@@ -376,6 +570,9 @@ class DurableExecutionRecoveryAuthority {
     this.attemptReader = typeof options.attemptReader === 'function'
       ? options.attemptReader
       : sqliteReaders.attemptReader;
+    this.receiptReader = typeof options.receiptReader === 'function'
+      ? options.receiptReader
+      : sqliteReaders.receiptReader;
     this.nonterminalReader = typeof options.nonterminalReader === 'function'
       ? options.nonterminalReader
       : sqliteReaders.nonterminalReader;
@@ -397,7 +594,8 @@ class DurableExecutionRecoveryAuthority {
       });
     }
     const attempts = this.attemptReader(normalizedExecutionId) || [];
-    const decision = decideRecovery(execution, attempts, authorityTimestamp);
+    const receipts = this.receiptReader(normalizedExecutionId) || [];
+    const decision = decideRecovery(execution, attempts, authorityTimestamp, receipts);
     let transition = null;
     if (decision.decision !== DECISIONS.NO_ACTION) {
       transition = this.decisionWriter({
@@ -407,6 +605,11 @@ class DurableExecutionRecoveryAuthority {
         reasonCode: decision.reasonCode,
         clearOwnership: decision.clearOwnership,
         persistedAttemptCount: decision.persistedAttemptCount,
+        persistedReceiptCount: decision.persistedReceiptCount,
+        receiptId: decision.receiptId,
+        retryable: decision.retryable,
+        retryDelayMs: decision.retryDelayMs,
+        failureCode: decision.failureCode,
         authorityTimestamp
       });
     }
@@ -415,11 +618,13 @@ class DurableExecutionRecoveryAuthority {
       schemaVersion: 1,
       executionId: execution.executionId,
       fromState: execution.state,
-      targetState: decision.targetState,
+      targetState: transition?.targetState || decision.targetState,
       decision: decision.decision,
       reasonCode: decision.reasonCode,
       clearOwnership: decision.clearOwnership,
       persistedAttemptCount: decision.persistedAttemptCount,
+      persistedReceiptCount: decision.persistedReceiptCount,
+      receiptId: decision.receiptId,
       transition,
       authorityTimestamp
     });
