@@ -163,8 +163,8 @@ export function VoiceWorkspace({
 
   const send = async (): Promise<void> => {
     if (!api || !output?.audioArtifact || busy) return;
-    if (!standaloneMode && !resolvedRoute) {
-      setStatus(`Send failed · ${routeBinding?.reason || "current relationship route unresolved"}`);
+    if (routeBinding && routeBinding.status !== "resolved") {
+      setStatus(`Send failed · ${routeBinding.reason || "current relationship route unresolved"}`);
       return;
     }
     const sendPlatform = resolvedRoute?.platform || platform;

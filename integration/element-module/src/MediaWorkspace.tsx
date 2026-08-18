@@ -242,8 +242,8 @@ export function MediaWorkspace({
 
   const send = async (): Promise<void> => {
     if (!api || !selectedAsset?.id || busy) return;
-    if (!standaloneMode && !resolvedRoute) {
-      setStatus(`Send unavailable · ${routeBinding?.reason || "current relationship route unresolved"}`);
+    if (routeBinding && routeBinding.status !== "resolved") {
+      setStatus(`Send unavailable · ${routeBinding.reason || "current relationship route unresolved"}`);
       return;
     }
     const sendPlatform = resolvedRoute?.platform || platform;
