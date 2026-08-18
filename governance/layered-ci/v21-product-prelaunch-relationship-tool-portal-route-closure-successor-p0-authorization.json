@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-18T19:14:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-PRELAUNCH-RELATIONSHIP-TOOL-PORTAL-ROUTE-CLOSURE-SUCCESSOR-P0",
+  "workPackage": "V21-PRODUCT-PRELAUNCH-RELATIONSHIP-PORTAL-ROUTE-CLOSURE-P0",
   "proposalRevision": 1,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Pre-launch non-production Product audit found that Media/Voice relationship tools are real-bound to the existing send-media-stream authority but the current Element composer room's authoritative remote portal identity is not projected across the Product overlay composition boundary. PR #474 is preserved unmerged because it incorrectly assumed RelationshipProjection.matrixRoomId had an authoritative source and permitted selected-relationship fallback. After #475/#476 admitted the exact Element patch path, this successor authorizes the corrected closure: a minimal read-only Element v1.12.25 Room state seam, explicit replay of patch 0013 in the existing Matrix bootstrap, and a fail-closed unique match against the existing Store conversations authority. No new route registry, Matrix client/token surface, backend/IPC authority, or send authority is authorized.",
@@ -78,11 +78,12 @@
     "approvedChangedFileCount": 13,
     "approvedChangedFileSetSha256": "5a4020347d3c92f5053a2635707f3999c8ac1e78b313079f094b4ee9b20905ac",
     "failureFirstCommit": {
+      "freshCausalRedRequired": true,
       "mustBeFirstImplementationCommit": true,
       "allowedChangedPaths": [
         "tests/wp0/v21-element-workspace-contract.test.js",
-        "tests/wp0/v21-product-experience-shell-interaction.test.js",
         "tests/wp0/v21-media-brain-ui.test.js",
+        "tests/wp0/v21-product-experience-shell-interaction.test.js",
         "tests/wp0/v21-voice-brain-ui.test.js"
       ],
       "approvedChangedFileCount": 4,
