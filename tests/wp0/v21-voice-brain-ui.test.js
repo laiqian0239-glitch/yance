@@ -27,8 +27,8 @@ test('Voice is a modular relationship capability composed only through the Produ
   );
   assert.match(
     overlay,
-    /overlay\s*===\s*["']voice["'][\s\S]*?<VoiceWorkspace\s*\/>/u,
-    'the Product Experience voice seam must render VoiceWorkspace'
+    /overlay\s*===\s*["']voice["'][\s\S]*?<VoiceWorkspace\s+routeBinding=\{relationshipToolRoute\}/u,
+    'the Product Experience voice seam must render VoiceWorkspace with the current relationship route binding'
   );
   assert.doesNotMatch(
     overlay,
