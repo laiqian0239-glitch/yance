@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-18T19:14:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-PRELAUNCH-FINAL-VALIDATION-ROUTE-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #478 exact implementation head 7c9ce2d5321800fd1aab32db10365e6f332850a7 exposed a base-owned Product Final Validation routing gap outside the #477 Product implementation scope. The pull_request workflow is selected, but all three existing materialized validation jobs are skipped because each job's same-repository guard accepts only the two historical exact Product branch names and does not accept the separately authorized successor branch product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0. Stage wp0-route is already GREEN for the Product implementation paths, so no WP0 routing policy change is needed. This prerequisite authorizes only permanent exact-branch admission of that one successor branch to the existing Product Final Validation workflow and the existing static contract. No wildcard/prefix branch family, new workflow, trigger expansion, Product runtime change, route policy change, validation weakening, manual-dispatch bypass, or fabricated UAT evidence is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "bf5868ef1f9b923d299edb8289880286ad965b37"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "bf5868ef1f9b923d299edb8289880286ad965b37",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "causalRedEvidence": {
+    "implementationPullRequest": 478,
+    "implementationExactHead": "7c9ce2d5321800fd1aab32db10365e6f332850a7",
+    "stageWp0Route": {
+      "workflow": "Stage 6.4.5.9 WP0 Architecture Gates",
+      "runId": 32141830669,
+      "jobId": 95726085946,
+      "conclusion": "success",
+      "meaning": "Current Product implementation paths already classify through trusted WP0 routing policy; this prerequisite is not a route-policy repair."
+    },
+    "productFinalValidation": {
+      "workflow": "V21 Product Experience Shell P0 Final Validation",
+      "workflowPath": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "runId": 32141830808,
+      "runConclusion": "skipped",
+      "candidateBranch": "product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0",
+      "skippedJobs": [
+        {
+          "name": "frozen-element-reproducibility",
+          "jobId": 95726087065
+        },
+        {
+          "name": "materialized-desktop-uat",
+          "jobId": 95726087643
+        },
+        {
+          "name": "materialized-matrix-uat",
+          "jobId": 95726133926
+        }
+      ],
+      "rootCause": "Each existing Product Final Validation job requires the pull-request head ref to equal one of exactly two historical Product branches. The separately authorized #478 successor branch is absent, so all three materialized validation jobs skip before validation runs.",
+      "failureOccurredBeforeProductFinalValidation": true
+    }
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-prelaunch-final-validation-route-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-prelaunch-relationship-tool-final-validation-route-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b1f09996ec959cd464bbcd960b0354a770ba29869883af7f8bccf8adb1e4901f",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "exactAuthorizedProductBranches": [
+    "product/v21-product-experience-bilingual-search-translation-task-ux-p0",
+    "product/v21-product-experience-shell-p0",
+    "product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0"
+  ],
+  "exactAuthorizedProductBranchCount": 3,
+  "exactAuthorizedProductBranchSetSha256": "8e60a8a32e1b3058830cf5bfb31b49f2aa9ba6b910602ce088d0236e8734d86b",
+  "implementation": {
+    "branch": "fix/v21-product-prelaunch-final-validation-route",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0fe120e1cd4c2692f06a11c3becc1d5db4324efcbaf59f2cc62154b008fd9d6e",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "1248eca9fee4a07fc2a0c5dd816c01de973d57ef003a3996926ca22ee3fb8d44",
+      "productionCodeChanged": false,
+      "expectedFailures": [
+        "The existing Product Final Validation static contract does not yet require the exact #478 successor Product branch.",
+        "The existing Product Final Validation workflow does not admit the exact #478 successor Product branch while preserving both historical exact branches."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "wp0RoutingPolicyModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "backendModificationAllowed": false,
+    "electronModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "workflowMigration": {
+    "path": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "requiredChange": "Preserve pull-request-only execution, same-repository identity, exact-head checkout and all existing validation steps, while adding exactly product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0 as a third literal accepted Product branch in each of the three existing materialized validation job guards.",
+    "requiredExistingBranches": [
+      "product/v21-product-experience-bilingual-search-translation-task-ux-p0",
+      "product/v21-product-experience-shell-p0"
+    ],
+    "requiredNewBranch": "product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0",
+    "manualDispatchAllowed": false,
+    "pushTriggerAllowed": false,
+    "scheduleTriggerAllowed": false,
+    "wildcardBranchMatchAllowed": false,
+    "prefixBranchMatchAllowed": false,
+    "sameRepositoryRequirementMustRemain": true,
+    "exactHeadCheckoutMustRemain": true,
+    "existingValidationStepsMayBeRemoved": false,
+    "existingValidationAssertionsMayBeWeakened": false,
+    "existingArtifactSemanticsMayBeWeakened": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before workflow modification, the existing static contract is extended to require the exact #478 successor branch and must fail on trusted main because that literal is absent.",
+    "After the RED is captured, change only the existing Product Final Validation workflow to add the same exact successor branch literal to all three existing job guards.",
+    "The two historical exact Product branches remain accepted.",
+    "No startsWith, contains, regex, wildcard, product/ prefix, workflow_dispatch, push or schedule trigger is introduced.",
+    "No validation job, validation assertion, artifact sealing step, same-repository check or exact-head checkout is removed or weakened."
+  ],
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "Layered CI Fast Feedback when triggered",
+      "ACV2 WP-A Architecture Gates when triggered",
+      "V21 Model Brain P0 Windows when triggered"
+    ],
+    "postMergeTargetProof": [
+      "PR #478 must receive a new same-head Product Final Validation run after trusted main contains this route repair; all three materialized validation jobs must execute rather than skip."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_VALIDATION_EXACT_BRANCH_ROUTER",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product Final Validation GitHub Actions workflow",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing/GitHub Actions hosted CI",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The workflow already owns frozen Element reproducibility plus materialized desktop and Matrix validation. Only one separately authorized exact Product branch identity is missing."
+      },
+      {
+        "name": "Existing Product Final Validation static contract",
+        "source": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The contract already forbids trigger expansion and non-literal branch families while protecting exact-head, same-repository and materialization semantics; it should be extended only for the third exact authorized branch."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second Product Final Validation workflow.",
+      "Do not create a temporary alias PR on one of the historical Product branches.",
+      "Do not add wildcard, prefix, startsWith, contains or regex branch matching.",
+      "Do not add workflow_dispatch, push or schedule triggers.",
+      "Do not weaken exact-head checkout, same-repository checks, frozen Element materialization, desktop/matrix materialization, artifact sealing or clean-tree assertions.",
+      "Do not modify Product runtime, WP0 routing policy, dependencies, package manifests, lockfiles, backend, Electron or UAT evidence/status files."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "branch allowlist remains exactly three literal Product branches",
+      "same-repository pull-request requirement preserved",
+      "exact-head checkout and local branch binding preserved",
+      "no workflow trigger expansion",
+      "no validation or artifact assertion weakening",
+      "no Product runtime, route-policy or dependency changes",
+      "test-only first implementation commit proves the causal branch-routing gap"
+    ]
+  },
+  "requiredSequence": [
+    "Authorization exact head remains one governance file based on unchanged trusted main and passes all applicable governance gates.",
+    "Authorization PR merges to main by ordinary two-parent merge without rebase, squash, force push or history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "First implementation commit changes only the authorized static contract and proves the current causal RED.",
+    "Add exactly the #478 successor branch literal to all three existing Product Final Validation job guards.",
+    "Run focused RED-to-GREEN static contract and exact-head governance CI.",
+    "Implementation PR merges to main by ordinary two-parent merge.",
+    "Re-run/refresh #478 against trusted main and require its same-head Product Final Validation materialized jobs to execute."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "rebaseMerge": true,
+    "workflowTriggerExpansion": true,
+    "broadBranchMatch": true,
+    "newWorkflow": true,
+    "wp0RoutingPolicyModification": true,
+    "productRuntimeModification": true,
+    "backendModification": true,
+    "electronModification": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
