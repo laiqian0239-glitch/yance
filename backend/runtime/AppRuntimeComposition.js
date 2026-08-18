@@ -26,7 +26,7 @@ const safeModeService = require('../services/safeModeService');
 const systemPolicy = require('../services/systemPolicy');
 const migrationService = require('../services/migrationService');
 const { createMigrationAuthority, configureMigrationAuthority } = require('../services/migrationAuthority');
-const syncCheckpointService = require('../services/syncCheckpointService');
+const syncCheckpointRepository = require('../repositories/syncCheckpointRepository');
 const cacheGcService = require('../services/cacheGcService');
 const workspaceService = require('../services/workspaceService');
 const { runProductionDataGuard } = require('../migrations/legacyDemoCleanup');
@@ -99,7 +99,7 @@ function createStartupCommandHandlers(options = {}) {
   }
   const handlerEntries = Object.assign(Object.create(null), {
     'startup.migrate': () => migrationService.migrateAtStartup(),
-    'startup.recoverSync': () => syncCheckpointService.recoverInterrupted(),
+    'startup.recoverSync': () => syncCheckpointRepository.recoverInterrupted(),
     'startup.requestSessionRestores': payload => accountManager.requestPersistedSessionRestores(payload || {}),
     'startup.canonicalizeIdentity': payload => identityAuthority.canonicalizeWhatsAppAccounts({
       dryRun: payload?.dryRun === true

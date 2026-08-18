@@ -789,22 +789,6 @@
       "targetAuthority": "DurableExecutionRecoveryAuthority",
       "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Facade delegates only to the current Runtime durable recovery authority and owns no local retry, persistence or business-state repair."
-    },
-    {
-      "id": "WPB-SYNC-CHECKPOINT-SERVICE",
-      "path": "backend/services/syncCheckpointService.js",
-      "classification": "RECOVERY_OR_SCHEDULER",
-      "operationKinds": [
-        "HISTORY_SYNCHRONIZATION"
-      ],
-      "currentResponsibilities": [
-        "CANONICAL_CHECKPOINT_CAS_DELEGATION",
-        "PERSISTED_OPERATION_SCOPE",
-        "REMOTE_RESULT_UNKNOWN_OBSERVATION"
-      ],
-      "targetAuthority": "CommunicationAuthority",
-      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
-      "removalCondition": "Compatibility service advances checkpoints only through the canonical fenced CommunicationAuthority CAS and owns no independent retry or recovery mutation."
     }
   ],
   "closure": {

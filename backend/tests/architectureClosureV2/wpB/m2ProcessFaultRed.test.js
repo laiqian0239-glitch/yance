@@ -202,3 +202,15 @@ test('M2-FAULT-010 all eighteen scenarios execute and emit zero-leak zero-duplic
     assert.equal(report.results.every(row => row.duplicateExternalSideEffectCount === 0), true);
   }
 ));
+
+
+test('M2-FAULT-003A child fixture readiness uses an infrastructure budget separate from command timeout', () => {
+  const { childFixtureReadyTimeoutMs } = matrixModule();
+  assert.equal(childFixtureReadyTimeoutMs(15_000), 30_000);
+  assert.equal(childFixtureReadyTimeoutMs(45_000), 45_000);
+  assert.equal(childFixtureReadyTimeoutMs(15_000, 40_000), 40_000);
+  assert.equal(childFixtureReadyTimeoutMs(15_000, 10_000), 15_000);
+  const text = requireFile(matrixPath, 'WP_B_M2_PROCESS_FAULT_MATRIX_REQUIRED');
+  assert.match(text, /this\.readyTimeoutMs\s*=\s*childFixtureReadyTimeoutMs/u);
+  assert.match(text, /async\s+start\(\)[\s\S]*?this\.readyTimeoutMs/u);
+});

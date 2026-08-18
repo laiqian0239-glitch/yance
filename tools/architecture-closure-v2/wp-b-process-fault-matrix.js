@@ -48,6 +48,13 @@ function clean(value) { return String(value == null ? '' : value).trim(); }
 function wait(milliseconds) { return new Promise(resolve => setTimeout(resolve, milliseconds)); }
 function matrixError(code, message, details = {}) { return Object.assign(new Error(message || code), { code, ...details }); }
 function boundedTimeout(value, fallback = 15_000) { return Math.max(1000, Math.min(60_000, Number(value || fallback))); }
+function childFixtureReadyTimeoutMs(commandTimeoutMs, requestedReadyTimeoutMs) {
+  const commandTimeout = boundedTimeout(commandTimeoutMs);
+  const readyTimeout = requestedReadyTimeoutMs == null
+    ? 30_000
+    : boundedTimeout(requestedReadyTimeoutMs);
+  return Math.max(commandTimeout, readyTimeout);
+}
 function requirePositive(value, field) {
   const result = Number(value);
   if (!Number.isInteger(result) || result < 1) throw matrixError('WP_B_PROCESS_EVIDENCE_INVALID', `${field} must be positive`, { field, value });
@@ -58,6 +65,7 @@ class ChildController {
   constructor(filePath, args, options = {}) {
     this.filePath = filePath;
     this.timeoutMs = boundedTimeout(options.timeoutMs);
+    this.readyTimeoutMs = childFixtureReadyTimeoutMs(this.timeoutMs, options.readyTimeoutMs);
     this.pending = new Map();
     this.waiters = new Map();
     this.relay = options.relay || null;
@@ -144,7 +152,7 @@ class ChildController {
   }
 
   async start() {
-    const timer = setTimeout(() => this.rejectReady(matrixError('WP_B_CHILD_READY_TIMEOUT')), this.timeoutMs);
+    const timer = setTimeout(() => this.rejectReady(matrixError('WP_B_CHILD_READY_TIMEOUT')), this.readyTimeoutMs);
     timer.unref?.();
     try { return await this.ready; } finally { clearTimeout(timer); }
   }
@@ -776,6 +784,7 @@ if (require.main === module) {
 
 module.exports = Object.freeze({
   SCENARIOS,
+  childFixtureReadyTimeoutMs,
   runFakeRemoteRestartProbe,
   runFaultMatrix
 });

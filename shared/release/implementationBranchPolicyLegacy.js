@@ -1055,6 +1055,54 @@ function resolveTrustedNpmInvocation(args, options = {}) {
   });
 }
 
+
+const DELEGATED_NPM_LOCK_TREE_RETRYABLE_CLEANUP_CODES = new Set([
+  'EBUSY',
+  'EPERM',
+  'ENOTEMPTY',
+  'ENFILE',
+  'EMFILE'
+]);
+
+function waitSynchronously(milliseconds) {
+  const delayMs = Math.max(0, Number(milliseconds || 0));
+  if (!delayMs) return;
+  const signal = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+  Atomics.wait(signal, 0, 0, delayMs);
+}
+
+function removeDelegatedNpmLockTreeTemporaryRoot(temporaryRoot, options = {}) {
+  if (!temporaryRoot) return true;
+  const remove = typeof options.remove === 'function'
+    ? options.remove
+    : target => fs.rmSync(target, { recursive: true, force: true, maxRetries: 0, retryDelay: 0 });
+  const wait = typeof options.wait === 'function' ? options.wait : waitSynchronously;
+  const maxAttempts = Number.isSafeInteger(options.maxAttempts) && options.maxAttempts > 0
+    ? options.maxAttempts
+    : 12;
+  const initialDelayMs = Number.isFinite(Number(options.initialDelayMs)) && Number(options.initialDelayMs) >= 0
+    ? Number(options.initialDelayMs)
+    : 100;
+  const maxDelayMs = Number.isFinite(Number(options.maxDelayMs)) && Number(options.maxDelayMs) >= initialDelayMs
+    ? Number(options.maxDelayMs)
+    : 1000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      remove(temporaryRoot);
+      return true;
+    } catch (error) {
+      const code = String(error?.code || '');
+      if (!DELEGATED_NPM_LOCK_TREE_RETRYABLE_CLEANUP_CODES.has(code) || attempt === maxAttempts) {
+        throw error;
+      }
+      const delayMs = Math.min(maxDelayMs, initialDelayMs * (2 ** (attempt - 1)));
+      wait(delayMs);
+    }
+  }
+  return false;
+}
+
 function resolveNpmLockTreePackagePaths(
   candidateManifest,
   candidateLockfile,
@@ -1117,7 +1165,7 @@ function resolveNpmLockTreePackagePaths(
   } catch (_) {
     return null;
   } finally {
-    if (temporaryRoot) fs.rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    if (temporaryRoot) removeDelegatedNpmLockTreeTemporaryRoot(temporaryRoot);
   }
 }
 
@@ -2243,6 +2291,7 @@ module.exports = {
   validateDelegatedRoutePolicyMutation,
   validateDelegatedDependencyIdentityMutation,
   resolveTrustedNpmInvocation,
+  removeDelegatedNpmLockTreeTemporaryRoot,
   evaluateTrustedDelegatedGovernanceBranch,
   isAuthorizedDelegatedGovernanceBranch,
   isAuthorizedImplementationBranch,

@@ -16,6 +16,7 @@ const {
   isAuthorizedImplementationBranch,
   authorizedImplementationBranchDescription,
   buildTrustedGitEnvironment,
+  removeDelegatedNpmLockTreeTemporaryRoot,
   loadWorkPackageScopeAmendment,
   loadWorkPackageTaskScopeChain,
   loadWorkPackagePostMergeDefect,
@@ -2140,4 +2141,61 @@ test('delegated governance topology validates only the supersession component co
     0,
     'candidate validation must not traverse a disconnected supersession component'
   );
+});
+
+
+test('delegated npm lock-tree cleanup retries transient Windows busy handles and fails closed on exhaustion', () => {
+  let attempts = 0;
+  const delays = [];
+  removeDelegatedNpmLockTreeTemporaryRoot('synthetic-npm-lock-tree', {
+    maxAttempts: 7,
+    initialDelayMs: 10,
+    maxDelayMs: 25,
+    remove() {
+      attempts += 1;
+      if (attempts < 7) {
+        const error = new Error('busy');
+        error.code = 'EBUSY';
+        throw error;
+      }
+    },
+    wait(delayMs) {
+      delays.push(delayMs);
+    }
+  });
+  assert.equal(attempts, 7);
+  assert.deepEqual(delays, [10, 20, 25, 25, 25, 25]);
+
+  let exhaustedAttempts = 0;
+  assert.throws(
+    () => removeDelegatedNpmLockTreeTemporaryRoot('synthetic-npm-lock-tree', {
+      maxAttempts: 3,
+      initialDelayMs: 1,
+      maxDelayMs: 1,
+      remove() {
+        exhaustedAttempts += 1;
+        const error = new Error('still busy');
+        error.code = 'EBUSY';
+        throw error;
+      },
+      wait() {}
+    }),
+    error => error?.code === 'EBUSY'
+  );
+  assert.equal(exhaustedAttempts, 3);
+
+  let permanentAttempts = 0;
+  assert.throws(
+    () => removeDelegatedNpmLockTreeTemporaryRoot('synthetic-npm-lock-tree', {
+      remove() {
+        permanentAttempts += 1;
+        const error = new Error('access denied');
+        error.code = 'EACCES';
+        throw error;
+      },
+      wait() {}
+    }),
+    error => error?.code === 'EACCES'
+  );
+  assert.equal(permanentAttempts, 1);
 });

@@ -198,7 +198,6 @@ class SyncCheckpointService {
   claimRemoteMessage(input, store) { return this.repository.claimRemoteMessage(input, store); }
   releaseRemoteMessage(input, store) { return this.repository.releaseRemoteMessage(input, store); }
   receiptRemoteKey(...args) { return this.repository.receiptRemoteKey(...args); }
-  recoverInterrupted(store) { return this.repository.recoverInterrupted(store); }
 }
 
 const singleton = new SyncCheckpointService();
