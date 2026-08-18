@@ -18,6 +18,9 @@ const COMMUNICATION_OPERATION_KINDS = Object.freeze([
 class CommunicationAuthority extends history.CommunicationAuthority {
   constructor(options = {}) {
     super(options);
+    this.operationDispatcher = typeof options.operationDispatcher === 'function'
+      ? options.operationDispatcher
+      : null;
     if (typeof this.durableExecutionAuthority?.createExecution !== 'function') {
       throw new TypeError('CommunicationAuthority SESSION_RESTORE requires DurableExecutionAuthority.createExecution');
     }
@@ -27,7 +30,7 @@ class CommunicationAuthority extends history.CommunicationAuthority {
   }
 
   prepareSessionRestore(input = {}) {
-    return prepareSessionRestore({
+    const prepared = prepareSessionRestore({
       durableExecutionAuthority: this.durableExecutionAuthority,
       outboxAuthority: this.outboxAuthority,
       issueTimestamp: this.issueTimestamp,
@@ -37,6 +40,19 @@ class CommunicationAuthority extends history.CommunicationAuthority {
       maxAttempts: input.maxAttempts,
       command: input.command
     });
+    if (typeof this.operationDispatcher !== 'function') return prepared;
+    return Promise.resolve(this.operationDispatcher(prepared)).then(dispatch => Object.freeze({
+      ...prepared,
+      dispatch
+    }));
+  }
+
+  bindOperationDispatcher(dispatcher) {
+    if (typeof dispatcher !== 'function') {
+      throw new TypeError('CommunicationAuthority operation dispatcher must be a function');
+    }
+    this.operationDispatcher = dispatcher;
+    return this;
   }
 }
 
@@ -46,6 +62,7 @@ module.exports.CommunicationAuthority = CommunicationAuthority;
 module.exports.AUTHORITY = history.AUTHORITY;
 module.exports.SCHEMA_VERSION = history.SCHEMA_VERSION;
 module.exports.COMMUNICATION_OPERATION_KINDS = COMMUNICATION_OPERATION_KINDS;
+module.exports.configureOperationDispatcher = dispatcher => communicationAuthority.bindOperationDispatcher(dispatcher);
 module.exports.normalizeContent = history.normalizeContent;
 module.exports.renderProjection = history.renderProjection;
 module.exports.historyAuthorityError = history.historyAuthorityError;
