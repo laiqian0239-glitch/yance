@@ -39,6 +39,7 @@ export type ProductAppearanceHost = {
     id: string;
     name: string;
     isDark: boolean;
+    colors?: Record<string, string>;
     compound?: Record<string, string>;
   }) => Promise<void>;
 };
@@ -55,6 +56,14 @@ const EMPTY_APPEARANCE: ProductAppearanceProjection = {
   themeId: "",
   themes: [],
 };
+
+function elementCustomThemeColors(semanticVariables: Readonly<Record<string, string>>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(semanticVariables)
+      .filter(([token, value]) => token.startsWith("--") && Boolean(value))
+      .map(([token, value]) => [token.slice(2), value]),
+  );
+}
 
 export function ProductExperienceShell({
   appearanceHost,
@@ -115,6 +124,7 @@ export function ProductExperienceShell({
       id: activeTheme.id,
       name: activeTheme.name,
       isDark: activeTheme.isDark,
+      colors: elementCustomThemeColors(activeTheme.semanticVariables),
       compound: { ...activeTheme.elementCompound },
     });
   }, [appearanceHost]);
