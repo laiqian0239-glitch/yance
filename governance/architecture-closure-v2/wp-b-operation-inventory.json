@@ -217,7 +217,7 @@
         "RETRY_TIMER"
       ],
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELETED",
       "removalCondition": "Gateway accepts an attempt identity and returns observation data; it owns no durable retry authority."
     },
     {
@@ -456,7 +456,7 @@
         "TRANSFER_ORCHESTRATION"
       ],
       "targetAuthority": "DurableExecutionAuthorityV2",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Media pipeline creates durable transfer intents; transfer and retry are owned by dispatcher/reconciliation."
     },
     {
@@ -582,7 +582,7 @@
         "RETRY_TIMER"
       ],
       "targetAuthority": "MEDIA_OR_AI_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "Transcription process execution requires a persisted attempt; timeout becomes an observation, not authoritative failure."
     },
     {
@@ -652,7 +652,7 @@
         "PLATFORM_IO"
       ],
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
-      "closureState": "OPEN",
+      "closureState": "DELETED",
       "removalCondition": "Gateway core accepts attempt identity and emits observations; it owns no durable retry schedule."
     },
     {

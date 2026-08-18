@@ -347,3 +347,12 @@ test('String-delimited Git path evidence fails closed after the Buffer transport
   assert.equal(result.reasonCode, 'ACV2_WORK_PACKAGE_SCOPE_DIFF_FAILED');
   assert.match(result.error, /must return a Buffer/u);
 });
+
+test('delegated npm lock-tree cleanup retries transient Windows busy locks without swallowing exhaustion', () => {
+  const policyPath = path.join(repoRoot, 'shared', 'release', 'implementationBranchPolicyLegacy.js');
+  const source = fs.readFileSync(policyPath, 'utf8');
+  assert.match(
+    source,
+    /fs\.rmSync\(temporaryRoot,\s*\{\s*recursive:\s*true,\s*force:\s*true,\s*maxRetries:\s*5,\s*retryDelay:\s*100\s*\}\);/u
+  );
+});

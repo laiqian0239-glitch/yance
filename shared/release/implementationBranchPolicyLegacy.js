@@ -1099,7 +1099,7 @@ function resolveNpmLockTreePackagePaths(
   } catch (_) {
     return null;
   } finally {
-    if (temporaryRoot) fs.rmSync(temporaryRoot, { recursive: true, force: true });
+    if (temporaryRoot) fs.rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 }
 
