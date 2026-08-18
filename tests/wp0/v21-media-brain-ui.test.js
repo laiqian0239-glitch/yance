@@ -87,3 +87,14 @@ test('Media settings use a secret-preserving Media settings IPC', () => {
   assert.match(preload, /saveMediaBrainSettings/u, 'preload must expose the Media-specific settings projection');
   assert.equal(manifest.handlers.some(handler => handler.channel === 'desktop:media-brain-save-settings'), true, 'IPC manifest must declare the Media settings handler');
 });
+
+test('Media Product-bound mode consumes the resolved relationship route and never falls back to copied internal identifiers', () => {
+  const workspace = read('integration/element-module/src/MediaWorkspace.tsx');
+  const overlay = read('integration/element-module/src/product-experience/RelationshipOverlayHost.tsx');
+  assert.match(workspace, /RelationshipToolRouteBinding/u, 'Media must accept the shared Product route binding');
+  assert.match(workspace, /routeBinding/u);
+  assert.match(workspace, /routeBinding\?\.status\s*===\s*["']resolved["']/u, 'only a uniquely resolved Product route may enable Product-bound send');
+  assert.match(workspace, /routeBinding\s*===\s*undefined/u, 'manual internal route controls may exist only in standalone mode');
+  assert.match(overlay, /<MediaWorkspace\s+routeBinding=\{relationshipToolRoute\}/u, 'Product overlay must pass the resolved binding into Media');
+  assert.doesNotMatch(overlay, /<MediaWorkspace\s*\/>/u, 'Product-bound Media must not silently fall back to standalone manual route mode');
+});

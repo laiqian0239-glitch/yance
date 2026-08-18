@@ -97,3 +97,14 @@ test('Voice workspace CSS exists as a dedicated modular capability surface', () 
   const css = fs.readFileSync(cssPath, 'utf8');
   assert.match(css, /yance-voice-workspace/u);
 });
+
+test('Voice Product-bound mode consumes the resolved relationship route and never falls back to copied internal identifiers', () => {
+  const workspace = read('integration/element-module/src/VoiceWorkspace.tsx');
+  const overlay = read('integration/element-module/src/product-experience/RelationshipOverlayHost.tsx');
+  assert.match(workspace, /RelationshipToolRouteBinding/u, 'Voice must accept the shared Product route binding');
+  assert.match(workspace, /routeBinding/u);
+  assert.match(workspace, /routeBinding\?\.status\s*===\s*["']resolved["']/u, 'only a uniquely resolved Product route may enable Product-bound send');
+  assert.match(workspace, /routeBinding\s*===\s*undefined/u, 'manual internal route controls may exist only in standalone mode');
+  assert.match(overlay, /<VoiceWorkspace\s+routeBinding=\{relationshipToolRoute\}/u, 'Product overlay must pass the resolved binding into Voice');
+  assert.doesNotMatch(overlay, /<VoiceWorkspace\s*\/>/u, 'Product-bound Voice must not silently fall back to standalone manual route mode');
+});
