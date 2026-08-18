@@ -95,10 +95,30 @@ class ExternalActionOutboxAuthority extends core.ExternalActionOutboxAuthority {
 
   recordFailureReceipt(input = {}) {
     if (input.retryable !== true) return super.recordFailureReceipt(input);
+    const authorityTimestamp = normalizedTimestamp(input.authorityTimestamp);
     const store = this.store();
     this.assertSchema23(store);
     return store.transaction(() => {
       const receipt = super.recordFailureReceipt(input);
+      const policy = store.db.prepare(`SELECT d.retry_count,d.max_attempts,d.deadline_at
+        FROM durable_executions d
+        JOIN external_action_intents i ON i.execution_id=d.execution_id
+        WHERE i.intent_id=?`).get(requiredString(input.intentId, 'intentId'));
+      if (!policy) {
+        throw core.outboxError(
+          'WP_B_OUTBOX_EXECUTION_NOT_FOUND',
+          'Retryable failure receipt is not bound to a durable execution',
+          { intentId: input.intentId }
+        );
+      }
+      const nextRetryCount = safeInteger(policy.retry_count || 0, 'retryCount') + 1;
+      const maxAttempts = safeInteger(policy.max_attempts || 1, 'maxAttempts', 1);
+      const deadlineAt = String(policy.deadline_at || '').trim();
+      const deadlineReached = deadlineAt
+        ? Number.isFinite(Date.parse(deadlineAt)) && Date.parse(deadlineAt) <= Date.parse(authorityTimestamp)
+        : false;
+      if (nextRetryCount >= maxAttempts || deadlineReached) return receipt;
+
       const current = this.intent(input.intentId, store);
       this.rearmRetry({
         intentId: input.intentId,
@@ -110,7 +130,7 @@ class ExternalActionOutboxAuthority extends core.ExternalActionOutboxAuthority {
         hostId: String(input.hostId || input.ownerId || ''),
         hostGeneration: Number(current?.claim?.hostGeneration || input.hostGeneration || 0),
         fencingToken: Number(current?.claim?.fencingToken || input.fencingToken || 0),
-        authorityTimestamp: input.authorityTimestamp
+        authorityTimestamp
       });
       return receipt;
     });
