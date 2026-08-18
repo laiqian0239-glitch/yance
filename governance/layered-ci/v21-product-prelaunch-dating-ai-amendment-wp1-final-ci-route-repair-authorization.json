@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-PRELAUNCH-DATING-AI-AMENDMENT-WP1-FINAL-CI-ROUTE-CLOSURE",
+  "workPackage": "V21-PRODUCT-PRELAUNCH-WP1-FINAL-CI-ROUTE-CLOSURE",
   "proposalRevision": 1,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "PR #485 exact implementation head 52ea54f6e592a099d95cec9235c87c7b880a024d exposed two base-owned CI routing gaps outside the fixed 31-path WP-1 implementation authorization. Stage 6.4.5.9 run 32165056347 fails in wp0-route job 95802595051 before Product gates because trusted-base governance/layered-ci/wp0-routing-policy.json does not classify the separately authorized exact upstream patch path upstream-patches/element-web/0014-yance-module-appearance-authority.patch. V21 Product Experience Shell P0 Final Validation run 32165056230 is selected by pull_request but its validation jobs are skipped because the existing workflow exact-branch allowlist does not include product/v21-product-prelaunch-dating-ai-experience-amendment-wp1. WP-1 requires exact-head Stage and Product Final Validation before its ordinary merge boundary, while the WP-1 authorization explicitly forbids workflow/routing expansion inside PR #485. This successor authorization permits only permanent exact-path WP0 route classification plus permanent exact-branch Product Final Validation routing, each protected by the existing static contracts. No broad Product prefix, wildcard branch match, Product runtime change, dependency, new UAT framework, gate weakening, manual-dispatch bypass, alias PR, or fabricated validation evidence is authorized.",
