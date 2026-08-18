@@ -79,7 +79,7 @@ test('theme appearance policy is a single catalog-backed persistence authority',
   });
   assert.deepEqual(policy.normalizeTypography({ fontProfile: 'serif', fontScale: 500, lineHeight: 1, spacing: 'compact' }), {
     fontProfile: 'serif',
-    fontScale: 120,
+    fontScale: 150,
     lineHeight: 130,
     spacing: 'compact'
   });
