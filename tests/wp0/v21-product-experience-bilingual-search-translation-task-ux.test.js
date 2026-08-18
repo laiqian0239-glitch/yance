@@ -181,7 +181,15 @@ test('bilingual search panel renders evidence and truthful bounded translation l
 
   assert.match(css, /\.yance-product-shell\s+\.yance-bilingual-search/u);
   assert.match(css, /\.yance-product-shell\s+\.yance-bilingual-search[^{}]*\{[^}]*var\(--yance-/su);
-  assert.match(css, /yance-bilingual-search__field input[\s\S]{0,320}background:\s*var\(--yance-surface\)/u);
+  const semanticThemeMigrated = /yance-bilingual-search__field input[\s\S]{0,320}background:\s*var\(--surface-control\)/u.test(css);
+  if (semanticThemeMigrated) {
+    assert.match(css, /yance-bilingual-search__field input[\s\S]{0,320}background:\s*var\(--surface-control\)/u);
+    assert.match(css, /yance-bilingual-search__result[\s\S]{0,320}background:\s*var\(--surface-card-raised\)/u);
+    assert.doesNotMatch(css, /yance-bilingual-search__field input[\s\S]{0,320}background:\s*var\(--yance-surface\)/u);
+  } else {
+    assert.match(css, /yance-bilingual-search__field input[\s\S]{0,320}background:\s*var\(--yance-surface\)/u);
+    assert.match(css, /yance-bilingual-search__result[\s\S]{0,320}background:\s*var\(--yance-surface-raised\)/u);
+  }
   assert.match(css, /yance-bilingual[^{}]*:focus-visible/u);
   assert.match(css, /prefers-reduced-motion/u);
   assert.doesNotMatch(css, /--(?:bilingual|search|translation)-/u, 'new Product UX must reuse the existing --yance-* token namespace');
