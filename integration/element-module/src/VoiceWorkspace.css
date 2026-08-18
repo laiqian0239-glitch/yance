@@ -6,7 +6,7 @@
   border-radius: 16px;
   color: var(--text-primary, inherit);
   background: var(--surface-panel, transparent);
-  font-size: var(--type-body, 1rem);
+  font-size: inherit;
   line-height: var(--leading-body, 1.58);
 }
 .yance-voice-workspace > header {
@@ -18,7 +18,7 @@
 .yance-voice-workspace header strong,
 .yance-voice-workspace legend {
   color: var(--text-primary, inherit);
-  font-size: var(--type-card-title, 1rem);
+  font-size: inherit;
 }
 .yance-voice-workspace header p,
 .yance-voice-workspace fieldset p,
@@ -26,7 +26,7 @@
 .yance-voice-workspace dt {
   margin: 4px 0 0;
   color: var(--text-secondary, inherit);
-  font-size: var(--type-caption, .9em);
+  font-size: inherit;
 }
 .yance-voice-workspace output[data-degraded="true"] {
   color: var(--status-warning, currentcolor);
@@ -51,7 +51,7 @@
   display: grid;
   gap: 6px;
   color: var(--text-secondary, inherit);
-  font-size: var(--type-control, 1rem);
+  font-size: inherit;
 }
 .yance-voice-workspace input,
 .yance-voice-workspace select,
@@ -88,7 +88,7 @@
   margin: 0;
   overflow-wrap: anywhere;
   color: var(--text-primary, inherit);
-  font-size: var(--type-body, 1rem);
+  font-size: inherit;
 }
 .yance-voice-workspace audio {
   width: 100%;
