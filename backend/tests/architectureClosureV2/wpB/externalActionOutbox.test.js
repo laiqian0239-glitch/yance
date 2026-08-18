@@ -386,3 +386,10 @@ test('dispatcher binds persisted attempt and receipt to durable execution WAITIN
   ]);
   assert.deepEqual(calls.filter(call => call[0] === 'transition').map(call => call[2]), [4, 5]);
 });
+
+test('external action settlement is owned by durable execution authority and retry re-arm stays in outbox authority', () => {
+  const { DurableExecutionAuthority } = require('../../../services/durableExecutionAuthority');
+  const { ExternalActionOutboxAuthority } = outboxModule();
+  assert.equal(typeof DurableExecutionAuthority.prototype.settleExternalAttempt, 'function');
+  assert.equal(typeof ExternalActionOutboxAuthority.prototype.rearmRetry, 'function');
+});
