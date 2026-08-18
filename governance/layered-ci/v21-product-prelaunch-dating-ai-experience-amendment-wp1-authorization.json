@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-18T22:13:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-PRELAUNCH-DATING-AI-EXPERIENCE-AMENDMENT-WP1",
-  "proposalRevision": 2,
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Approved pre-launch Product audit WP-1 requires Chinese-first normal-user Product surfaces, one durable global typography contract at 85%-150% in 1% steps, and one global theme experience across the pinned Element host plus Yance Product/Media/Voice/Presence/Learning surfaces. Fresh source audit found the existing Yance Store/themeAppearancePolicy is already the durable appearance authority but clamps fontScale to 90-120; the existing Store REST route already writes theme preferences, while the Electron Store bridge lacks only that narrow write seam. Pinned Element Web v1.12.25 already owns font/theme application through SettingsStore, FontSizeController/FontWatcher and ThemeWatcher, but its public module SettingsApi is read-only. This authorization therefore permits only the correct-layer authority range correction, a narrow existing Store bridge/catalog projection, a minimal replayable Element appearance module seam that delegates to Element's existing authorities, semantic token migration, Chinese-first copy, and extension of existing typography/theme audits to the shipping Element module. No second theme/font engine, registry, persistence authority, dependency, workflow, send route, model, learning or messaging runtime is authorized.",
   "base": {
@@ -247,14 +247,14 @@
   "ossFit": {
     "decision": "ADOPT_EXISTING_YANCE_AND_PINNED_ELEMENT_APPEARANCE_AUTHORITIES",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "existing-authority-plus-minimal-upstream-seam",
+    "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
     "reviewedCandidates": [
       {
         "name": "Yance Store theme/appearance authority",
         "source": "backend/store/themeAppearancePolicy.js + UPDATE_THEME_PREFERENCES + frontend/theme-catalog.json",
         "license": "repository-native",
-        "adoptionMode": "reuse-existing-authority",
+        "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
         "reason": "Already owns durable theme and typography state; only the approved font range and Product bridge/projection are missing."
       },
@@ -262,7 +262,7 @@
         "name": "Element Web v1.12.25 appearance machinery",
         "source": "SettingsStore + FontSizeController/FontWatcher + ThemeWatcher + custom themes",
         "license": "AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Commercial",
-        "adoptionMode": "minimal-upstream-module-seam",
+        "adoptionMode": "source-module",
         "fit": "FIT",
         "reason": "Element already owns host-wide font and theme application. A narrow module seam preserves that ownership and avoids Yance DOM/CSS hacks or a forked theme engine."
       },
@@ -270,10 +270,17 @@
         "name": "Existing FIX6D typography and theme audits",
         "source": "tools/uat/fix6d-global-typography-audit.js + scripts/audit-theme-colors.js",
         "license": "repository-native",
-        "adoptionMode": "extend-existing-audit-scope",
+        "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
         "reason": "Extending the current global audits to the shipping Element module is stricter and avoids duplicate governance scanners."
       }
+    ],
+    "retireOrAvoid": [
+      "Do not create a Product-private theme catalog or typography registry.",
+      "Do not persist global appearance in Product localStorage or another renderer-owned store.",
+      "Do not use direct rootNode/document style mutation as the production appearance authority.",
+      "Do not expose a generic Element SettingsStore write API; keep the module seam appearance-only.",
+      "Do not create a duplicate typography/theme scanner; extend the existing FIX6D/theme audits."
     ]
   },
   "governance": {
