@@ -2,8 +2,12 @@
   display: grid;
   gap: 16px;
   padding: 18px;
-  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border: 1px solid var(--border-default, currentcolor);
   border-radius: 16px;
+  color: var(--text-primary, inherit);
+  background: var(--surface-panel, transparent);
+  font-size: var(--type-body, 1rem);
+  line-height: var(--leading-body, 1.58);
 }
 .yance-voice-workspace > header {
   display: flex;
@@ -11,12 +15,21 @@
   justify-content: space-between;
   gap: 16px;
 }
+.yance-voice-workspace header strong,
+.yance-voice-workspace legend {
+  color: var(--text-primary, inherit);
+  font-size: var(--type-card-title, 1rem);
+}
 .yance-voice-workspace header p,
-.yance-voice-workspace fieldset p {
+.yance-voice-workspace fieldset p,
+.yance-voice-workspace output,
+.yance-voice-workspace dt {
   margin: 4px 0 0;
-  opacity: .72;
+  color: var(--text-secondary, inherit);
+  font-size: var(--type-caption, .9em);
 }
 .yance-voice-workspace output[data-degraded="true"] {
+  color: var(--status-warning, currentcolor);
   font-weight: 600;
 }
 .yance-voice-grid {
@@ -29,19 +42,33 @@
   align-content: start;
   gap: 10px;
   min-width: 0;
-  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border: 1px solid var(--border-default, currentcolor);
   border-radius: 12px;
   padding: 14px;
+  background: var(--surface-card, transparent);
 }
 .yance-voice-workspace label {
   display: grid;
   gap: 6px;
+  color: var(--text-secondary, inherit);
+  font-size: var(--type-control, 1rem);
 }
 .yance-voice-workspace input,
 .yance-voice-workspace select,
 .yance-voice-workspace textarea,
 .yance-voice-workspace button {
+  border: 1px solid var(--border-default, currentcolor);
+  color: var(--text-primary, inherit);
+  background: var(--surface-control, transparent);
   font: inherit;
+}
+.yance-voice-workspace button:hover:not(:disabled) {
+  border-color: var(--border-active, currentcolor);
+  background: var(--surface-control-hover, var(--surface-control, transparent));
+}
+.yance-voice-workspace :focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring, 0 0 0 2px currentcolor);
 }
 .yance-voice-workspace textarea {
   resize: vertical;
@@ -60,6 +87,8 @@
 .yance-voice-workspace dd {
   margin: 0;
   overflow-wrap: anywhere;
+  color: var(--text-primary, inherit);
+  font-size: var(--type-body, 1rem);
 }
 .yance-voice-workspace audio {
   width: 100%;
