@@ -191,11 +191,6 @@ export function ProductExperienceShell({
     () => relationships.find((row) => row.id === session.selectedRelationshipId) || null,
     [relationships, session.selectedRelationshipId],
   );
-  const activeTheme = useMemo(
-    () => appearance.themes.find((theme) => theme.id === appearance.themeId) || null,
-    [appearance.themeId, appearance.themes],
-  );
-  const semanticThemeStyle = activeTheme?.semanticVariables as unknown as React.CSSProperties | undefined;
 
   const chooseRelationship = (relationshipId: string): void => {
     selectRelationship(relationshipId);
@@ -218,7 +213,6 @@ export function ProductExperienceShell({
       data-reduced-motion={preferences.reducedMotion || undefined}
       data-theme-id={appearance.themeId || undefined}
       data-font-scale={appearance.available ? appearance.fontScale : undefined}
-      style={semanticThemeStyle}
       aria-label="言策关系智能操作系统"
     >
       <div className="yance-shell-status yance-sr-only" role="status" aria-live="polite">{status}</div>
