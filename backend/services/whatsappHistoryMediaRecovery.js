@@ -5,7 +5,8 @@ const mediaPipeline = require('./mediaPipeline');
 const messageStore = require('./messageStore');
 const eventBus = require('./eventBus');
 const logger = require('./logger');
-const backgroundJobAuthority = require('./backgroundJobAuthority');
+const { currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
+const { currentRuntimeRecoveryAuthority } = require('./durableExecutionRecoveryAuthority');
 const { reconstructBaileysMessageInfo, hasMediaEnvelope } = require('./whatsappMediaEnvelope');
 
 const DEFAULT_CONCURRENCY = 3;
@@ -114,9 +115,166 @@ class WhatsAppHistoryMediaRecoveryQueue {
     this.store = store;
     this.events = events;
     this.log = log;
-    this.backgroundJobs = backgroundJobs === undefined
-      ? (store === messageStore ? backgroundJobAuthority : null)
-      : backgroundJobs;
+    this.backgroundJobs = backgroundJobs === undefined ? null : backgroundJobs;
+    this.useCanonicalDurability = backgroundJobs === undefined && store === messageStore;
+  }
+
+  mediaOperationScope(job = {}) {
+    return JSON.stringify([
+      String(job.accountId || '').trim(),
+      String(job.conversationId || '').trim(),
+      String(job.messageId || '').trim()
+    ]);
+  }
+
+  mediaOperationFingerprint(job = {}) {
+    const durable = durableMediaJob({ ...job, maxRetries: this.maxRetries });
+    const manualRevision = job.force === true
+      ? `manual:${Number(job.descriptor?.retryCount || 0)}:${String(job.descriptor?.failedAt || '')}`
+      : 'scheduled';
+    return crypto.createHash('sha256').update([
+      durable.sourceAccountId,
+      durable.conversationId,
+      durable.entityId,
+      durable.revision,
+      manualRevision
+    ].join('\u001f')).digest('hex');
+  }
+
+  mediaOperationSpec(job = {}) {
+    return {
+      operationType: 'media.whatsapp-history-materialization',
+      scopeKey: this.mediaOperationScope(job),
+      objectFingerprint: this.mediaOperationFingerprint(job),
+      maxAttempts: this.maxRetries,
+      metadata: {
+        accountId: String(job.accountId || '').trim(),
+        messageId: String(job.messageId || '').trim()
+      }
+    };
+  }
+
+  canonicalMediaLease(operation = {}) {
+    return Object.freeze({
+      operationId: String(operation.operationId || '').trim(),
+      generation: Number(operation.generation || 0),
+      objectFingerprint: String(operation.objectFingerprint || '').trim()
+    });
+  }
+
+  maybeRecoverMediaOperation(authority, operation) {
+    const now = Date.now();
+    const retryDue = operation?.state === 'RETRY_SCHEDULED'
+      && (!operation.nextAttemptAt || Date.parse(operation.nextAttemptAt) <= now);
+    const leaseExpired = operation?.state === 'RUNNING'
+      && operation.leaseExpiresAt
+      && Date.parse(operation.leaseExpiresAt) <= now;
+    if (!retryDue && !leaseExpired) return operation;
+    currentRuntimeRecoveryAuthority().recoverExecution(operation.operationId, {
+      authorityTimestamp: new Date(now).toISOString()
+    });
+    return authority.read(operation.operationId);
+  }
+
+  beginDurableMedia(job = {}) {
+    if (this.backgroundJobs?.begin) {
+      return this.backgroundJobs.begin(durableMediaJob({ ...job, maxRetries: this.maxRetries }), {
+        maxAttempts: this.maxRetries,
+        force: job.force === true
+      });
+    }
+    if (!this.useCanonicalDurability) return { acquired: true, reason: 'non-production-no-durable-authority', lease: null, job: null };
+
+    const authority = currentRuntimeInternalOperationAuthority();
+    const scopeKey = this.mediaOperationScope(job);
+    let latest = authority.latest({ operationType: 'media.whatsapp-history-materialization', scopeKey });
+    if (latest && !['SUCCEEDED', 'FAILED', 'CANCELLED', 'DEAD_LETTERED'].includes(latest.state)) {
+      latest = this.maybeRecoverMediaOperation(authority, latest);
+      if (latest.state === 'SCHEDULED') {
+        const started = authority.start(latest.operationId, { progress: 1 }).operation;
+        return { acquired: true, reason: 'recovered', operation: started, job: started, lease: this.canonicalMediaLease(started) };
+      }
+      return {
+        acquired: false,
+        reason: latest.state === 'RETRY_SCHEDULED' ? 'retry-wait' : 'already-running',
+        operation: latest,
+        job: latest,
+        lease: null
+      };
+    }
+    if (latest && ['FAILED', 'DEAD_LETTERED'].includes(latest.state) && job.force !== true) {
+      return { acquired: false, reason: 'failed_final', operation: latest, job: latest, lease: null };
+    }
+
+    const created = authority.create(this.mediaOperationSpec(job));
+    let operation = this.maybeRecoverMediaOperation(authority, created.operation);
+    if (operation.state === 'SCHEDULED') {
+      operation = authority.start(operation.operationId, { progress: 1 }).operation;
+      return { acquired: true, reason: created.created ? 'created' : 'scheduled', operation, job: operation, lease: this.canonicalMediaLease(operation) };
+    }
+    return {
+      acquired: false,
+      reason: operation.state === 'SUCCEEDED' ? 'already-succeeded'
+        : operation.state === 'RETRY_SCHEDULED' ? 'retry-wait'
+          : operation.state === 'RUNNING' ? 'already-running'
+            : ['FAILED', 'DEAD_LETTERED'].includes(operation.state) ? 'failed_final'
+              : operation.state === 'CANCELLED' ? 'cancelled'
+                : String(operation.state || '').toLowerCase(),
+      operation,
+      job: operation,
+      lease: null
+    };
+  }
+
+  failDurableMedia(lease, error, options = {}) {
+    if (!lease) return null;
+    if (this.backgroundJobs?.fail) {
+      return this.backgroundJobs.fail(lease, error, {
+        retryable: options.retryable === true,
+        maxAttempts: this.maxRetries,
+        retryDelayMs: Number(options.retryDelayMs || 5 * 60 * 1000),
+        payload: { stage: options.stage || 'media-materialization' }
+      });
+    }
+    if (!this.useCanonicalDurability || !lease.operationId) return null;
+    const errorCode = String(error?.code || error?.errorCode || error || 'MEDIA_RECOVERY_FAILED').trim().toUpperCase();
+    const result = currentRuntimeInternalOperationAuthority().fail(lease.operationId, { errorCode }, {
+      retryable: options.retryable === true,
+      retryDelayMs: Number(options.retryDelayMs || 5 * 60 * 1000),
+      generation: lease.generation,
+      objectFingerprint: lease.objectFingerprint,
+      reasonCode: errorCode
+    });
+    return {
+      ...result,
+      attempt: Number(result.operation?.retryCount || 0),
+      nextRetryAt: result.operation?.nextAttemptAt || '',
+      retryable: result.retryable === true
+    };
+  }
+
+  succeedDurableMedia(lease, result = {}) {
+    if (!lease) return null;
+    if (this.backgroundJobs?.succeed) return this.backgroundJobs.succeed(lease, result);
+    if (!this.useCanonicalDurability || !lease.operationId) return null;
+    return currentRuntimeInternalOperationAuthority().succeed(lease.operationId, {
+      status: String(result.status || 'ready').trim(),
+      messageId: String(result.messageId || '').trim()
+    }, {
+      generation: lease.generation,
+      objectFingerprint: lease.objectFingerprint
+    });
+  }
+
+  parseMediaOperationScope(scopeKey = '') {
+    try {
+      const value = JSON.parse(String(scopeKey || ''));
+      if (!Array.isArray(value) || value.length !== 3) return null;
+      const [accountId, conversationId, messageId] = value.map(item => String(item || '').trim());
+      return accountId && conversationId && messageId ? { accountId, conversationId, messageId } : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   cleanupKnown() {
@@ -142,40 +300,34 @@ class WhatsAppHistoryMediaRecoveryQueue {
     if (!job.accountId || !job.conversationId || !job.messageId || !job.info || !job.socket || !job.descriptor) {
       return { queued: false, reason: 'invalid-job' };
     }
-    if (this.known.has(key)) return { queued: false, reason: this.known.get(key).state };
-    let durableDecision = null;
-    if (this.backgroundJobs?.begin) {
-      durableDecision = this.backgroundJobs.begin(durableMediaJob({ ...job, maxRetries: this.maxRetries }), {
-        maxAttempts: this.maxRetries,
-        force: job.force === true
-      });
-      if (!durableDecision.acquired) {
-        return {
-          queued: false,
-          reason: durableDecision.reason,
-          backgroundJobState: durableDecision.job?.state || '',
-          nextRetryAt: durableDecision.job?.nextRetryAt || '',
-          attachment: durableDecision.reason === 'retry-wait'
-            ? terminalAttachment(job.descriptor, durableDecision.job?.lastErrorCode || 'MEDIA_RECOVERY_RETRY_WAIT', {
-              retryable: true,
-              retryCount: durableDecision.job?.attempt || job.descriptor?.retryCount || 0,
-              nextRetryAt: durableDecision.job?.nextRetryAt || ''
-            })
-            : job.descriptor
-        };
-      }
-      job.lease = durableDecision.lease;
+    const durableDecision = this.beginDurableMedia(job);
+    if (!durableDecision.acquired) {
+      const durableState = durableDecision.job || durableDecision.operation || null;
+      return {
+        queued: false,
+        reason: durableDecision.reason,
+        backgroundJobState: durableState?.state || '',
+        nextRetryAt: durableState?.nextRetryAt || durableState?.nextAttemptAt || '',
+        attachment: durableDecision.reason === 'retry-wait'
+          ? terminalAttachment(job.descriptor, durableState?.lastErrorCode || durableState?.failureCode || 'MEDIA_RECOVERY_RETRY_WAIT', {
+            retryable: true,
+            retryCount: durableState?.attempt || durableState?.retryCount || job.descriptor?.retryCount || 0,
+            nextRetryAt: durableState?.nextRetryAt || durableState?.nextAttemptAt || ''
+          })
+          : job.descriptor
+      };
     }
+    job.lease = durableDecision.lease;
+    if (this.known.has(key) && !job.lease) return { queued: false, reason: this.known.get(key).state };
     const conversationDepth = this.pending.filter(row => row.accountId === job.accountId && row.conversationId === job.conversationId).length;
     if (this.pending.length >= this.maxQueue || conversationDepth >= this.maxPerConversation) {
       const code = this.pending.length >= this.maxQueue ? 'MEDIA_RECOVERY_QUEUE_FULL' : 'MEDIA_RECOVERY_CONVERSATION_LIMIT';
       const error = Object.assign(new Error(code === 'MEDIA_RECOVERY_QUEUE_FULL' ? '历史媒体恢复队列已满' : '当前会话待恢复媒体过多'), { code });
       let failure = null;
-      if (job.lease && this.backgroundJobs) failure = this.backgroundJobs.fail(job.lease, error, {
+      if (job.lease) failure = this.failDurableMedia(job.lease, error, {
         retryable: true,
-        maxAttempts: this.maxRetries,
         retryDelayMs: 60_000,
-        payload: { stage: code === 'MEDIA_RECOVERY_QUEUE_FULL' ? 'queue-full' : 'conversation-limit' }
+        stage: code === 'MEDIA_RECOVERY_QUEUE_FULL' ? 'queue-full' : 'conversation-limit'
       });
       const attachment = terminalAttachment(job.descriptor, error, {
         retryable: failure ? failure.retryable : true,
@@ -234,11 +386,10 @@ class WhatsAppHistoryMediaRecoveryQueue {
 
   async persistTerminalFailure(job, error, options = {}) {
     let durableFailure = null;
-    if (job.lease && this.backgroundJobs) durableFailure = this.backgroundJobs.fail(job.lease, error, {
+    if (job.lease) durableFailure = this.failDurableMedia(job.lease, error, {
       retryable: options.retryable === true,
-      maxAttempts: this.maxRetries,
       retryDelayMs: Number(options.retryDelayMs || 5 * 60 * 1000),
-      payload: { stage: options.stage || 'terminal-failure' }
+      stage: options.stage || 'terminal-failure'
     });
     const attachment = terminalAttachment(job.descriptor, error, {
       ...options,
@@ -290,14 +441,12 @@ class WhatsAppHistoryMediaRecoveryQueue {
       const source = attachment || job.descriptor;
       const sourceRetryable = source.retryable !== false;
       let durableFailure = null;
-      if (job.lease && this.backgroundJobs) durableFailure = this.backgroundJobs.fail(job.lease, {
+      if (job.lease) durableFailure = this.failDurableMedia(job.lease, {
         code: source.downloadError || 'MEDIA_RECOVERY_FAILED'
       }, {
         retryable: sourceRetryable,
-        maxAttempts: this.maxRetries,
         retryDelayMs: 5 * 60 * 1000,
-        maxRetryDelayMs: 6 * 60 * 60 * 1000,
-        payload: { stage: 'materialize' }
+        stage: 'materialize'
       });
       const retryCount = durableFailure?.attempt || (Number(source.retryCount || job.descriptor.retryCount || 0) + 1);
       const retryable = durableFailure ? durableFailure.retryable : (sourceRetryable && retryCount < this.maxRetries);
@@ -319,8 +468,8 @@ class WhatsAppHistoryMediaRecoveryQueue {
     }
 
     await this.store.upsert({ ...job.message, attachments: [attachment] });
-    if (job.lease && this.backgroundJobs) this.backgroundJobs.succeed(job.lease, {
-      status: 'ready', kind: attachment.kind || '', mimeType: attachment.mimeType || ''
+    if (job.lease) this.succeedDurableMedia(job.lease, {
+      status: 'ready', messageId: job.messageId
     });
     this.events.publish('whatsapp:history-media-recovered', {
       accountId: job.accountId,
@@ -342,9 +491,11 @@ class WhatsAppHistoryMediaRecoveryQueue {
         const status = String(descriptor?.downloadStatus || '').toLowerCase();
         if (!descriptor || descriptor.mediaUrl || descriptor.localFile) continue;
         if (!['pending', 'queued', 'recovering', 'failed', 'remote', 'history-requested'].includes(status || 'pending')) continue;
-        if (status === 'failed' && descriptor.retryable === false) continue;
-        if (status === 'failed' && Number(descriptor.retryCount || 0) >= this.maxRetries) continue;
-        if (status === 'failed' && descriptor.nextRetryAt && Date.parse(descriptor.nextRetryAt) > Date.now()) continue;
+        if (!this.useCanonicalDurability) {
+          if (status === 'failed' && descriptor.retryable === false) continue;
+          if (status === 'failed' && Number(descriptor.retryCount || 0) >= this.maxRetries) continue;
+          if (status === 'failed' && descriptor.nextRetryAt && Date.parse(descriptor.nextRetryAt) > Date.now()) continue;
+        }
         rows.push({ message, descriptor, priority: normalizedPriority(message.timestamp || message.sentAt) });
       }
     }
@@ -352,24 +503,65 @@ class WhatsAppHistoryMediaRecoveryQueue {
   }
 
   reconcileDurableCompletions(accountId, options = {}) {
-    if (!this.backgroundJobs?.snapshot || !this.backgroundJobs?.reconcileSucceeded) return { scanned: 0, reconciled: 0 };
-    const jobs = this.backgroundJobs.snapshot({ jobType: 'media-materialization', sourceAccountId: accountId, limit: Number(options.limit || 1200) }).jobs
-      .filter(row => row.state !== 'SUCCEEDED');
-    let reconciled = 0;
-    for (const job of jobs) {
-      const message = this.getStoredMessage(accountId, job.conversationId, job.entityId);
-      const descriptor = Array.isArray(message?.attachments) ? message.attachments[0] : null;
-      const ready = String(descriptor?.downloadStatus || '').toLowerCase() === 'ready' && Boolean(descriptor?.mediaUrl || descriptor?.localFile);
-      if (!ready) continue;
-      const result = this.backgroundJobs.reconcileSucceeded(durableMediaJob({
-        accountId,
-        conversationId: job.conversationId,
-        messageId: job.entityId,
-        descriptor
-      }), { status: 'ready-reconciled', kind: descriptor.kind || '', mimeType: descriptor.mimeType || '' });
-      if (result.updated) reconciled += 1;
+    if (this.backgroundJobs?.snapshot && this.backgroundJobs?.reconcileSucceeded) {
+      const jobs = this.backgroundJobs.snapshot({ jobType: 'media-materialization', sourceAccountId: accountId, limit: Number(options.limit || 1200) }).jobs
+        .filter(row => row.state !== 'SUCCEEDED');
+      let reconciled = 0;
+      for (const job of jobs) {
+        const message = this.getStoredMessage(accountId, job.conversationId, job.entityId);
+        const descriptor = Array.isArray(message?.attachments) ? message.attachments[0] : null;
+        const ready = String(descriptor?.downloadStatus || '').toLowerCase() === 'ready' && Boolean(descriptor?.mediaUrl || descriptor?.localFile);
+        if (!ready) continue;
+        const result = this.backgroundJobs.reconcileSucceeded(durableMediaJob({
+          accountId,
+          conversationId: job.conversationId,
+          messageId: job.entityId,
+          descriptor
+        }), { status: 'ready-reconciled', kind: descriptor.kind || '', mimeType: descriptor.mimeType || '' });
+        if (result.updated) reconciled += 1;
+      }
+      return { scanned: jobs.length, reconciled };
     }
-    return { scanned: jobs.length, reconciled };
+    if (!this.useCanonicalDurability) return { scanned: 0, reconciled: 0 };
+
+    const authority = currentRuntimeInternalOperationAuthority();
+    const operations = authority.snapshot({
+      operationType: 'media.whatsapp-history-materialization',
+      limit: Math.max(1, Math.min(5000, Number(options.limit || 1200)))
+    });
+    let scanned = 0;
+    let reconciled = 0;
+    for (const sourceOperation of operations) {
+      const scope = this.parseMediaOperationScope(sourceOperation.scopeKey);
+      if (!scope || scope.accountId !== String(accountId || '').trim()) continue;
+      if (['SUCCEEDED', 'FAILED', 'CANCELLED', 'DEAD_LETTERED'].includes(sourceOperation.state)) continue;
+      scanned += 1;
+      const message = this.getStoredMessage(scope.accountId, scope.conversationId, scope.messageId);
+      const descriptor = Array.isArray(message?.attachments) ? message.attachments[0] : null;
+      const ready = String(descriptor?.downloadStatus || '').toLowerCase() === 'ready'
+        && Boolean(descriptor?.mediaUrl || descriptor?.localFile);
+      if (!ready) continue;
+      let operation = this.maybeRecoverMediaOperation(authority, sourceOperation);
+      if (operation.state === 'SCHEDULED') operation = authority.start(operation.operationId, { progress: 100 }).operation;
+      if (operation.state !== 'RUNNING') continue;
+      try {
+        const lease = this.canonicalMediaLease(operation);
+        // heartbeat proves the current Host still owns the claim before using
+        // persisted ready media as completion evidence.
+        if (!authority.heartbeat(operation.operationId).updated) continue;
+        const result = this.succeedDurableMedia(lease, { status: 'ready-reconciled', messageId: scope.messageId });
+        if (result?.updated) reconciled += 1;
+      } catch (error) {
+        this.log.warn('whatsapp', 'history-media-durable-reconcile-deferred', {
+          accountId: scope.accountId,
+          conversationId: scope.conversationId,
+          messageId: scope.messageId,
+          code: error.code || '',
+          error: error.message
+        });
+      }
+    }
+    return { scanned, reconciled };
   }
 
   resumeAccount({ accountId, socket, limit = 600 } = {}) {

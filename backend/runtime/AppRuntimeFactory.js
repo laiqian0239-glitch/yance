@@ -164,13 +164,16 @@ function canonicalAuthorityGraph(runtime) {
   const coordinator = authorities?.authorityTransactionCoordinator || null;
   const ledger = authorities?.canonicalEventLedgerAuthority || null;
   const identity = authorities?.identityAuthority || null;
+  const durableExecutionRecoveryAuthority = authorities?.durableExecutionRecoveryAuthority || null;
   const platformCoreRepository = authorities?.platformCoreRepository || null;
   const gateway = composition?.authorityCommandGateway || null;
   const gatewayEvidenceSurfaceLocked = lockGatewayEvidenceSurface(gateway);
   let identityStore = null;
   let repositoryStore = null;
+  let recoveryStore = null;
   try { identityStore = identity?.repository?.store?.() || null; } catch (_) { identityStore = null; }
   try { repositoryStore = platformCoreRepository?.store?.() || null; } catch (_) { repositoryStore = null; }
+  try { recoveryStore = durableExecutionRecoveryAuthority?.storeProvider?.() || null; } catch (_) { recoveryStore = null; }
   let gatewayState = '';
   try {
     if (gatewayEvidenceSurfaceLocked) gatewayState = String(gateway.snapshot().state || '');
@@ -218,6 +221,18 @@ function canonicalAuthorityGraph(runtime) {
     identityEventRecorderImmutable: hasImmutableValue(identity, 'eventRecorder', identity?.eventRecorder),
     identityLegacyCanonicalizerImmutable: hasImmutableValue(identity, 'legacyCanonicalIdentity', identity?.legacyCanonicalIdentity),
     identityStoreMatches: identityStore === processAuthorityWriteHostStore,
+    durableExecutionRecoveryAuthorityPresent: Boolean(durableExecutionRecoveryAuthority),
+    durableExecutionRecoveryStoreProviderImmutable: hasImmutableValue(
+      durableExecutionRecoveryAuthority,
+      'storeProvider',
+      durableExecutionRecoveryAuthority?.storeProvider
+    ),
+    durableExecutionRecoveryCapabilityImmutable: hasImmutableValue(
+      durableExecutionRecoveryAuthority,
+      'authorityWriteHostCapability',
+      processAuthorityWriteHostCapability
+    ),
+    durableExecutionRecoveryStoreMatches: recoveryStore === processAuthorityWriteHostStore,
     gatewayEvidenceSurfaceLocked,
     gatewayPrivateBindingMatches: gatewayBinding?.bound === true
   });
@@ -228,6 +243,7 @@ function canonicalAuthorityGraph(runtime) {
     coordinator,
     ledger,
     identity,
+    durableExecutionRecoveryAuthority,
     gateway,
     checks,
     gatewayBindingChecks: gatewayBinding?.checks || null,
@@ -302,15 +318,18 @@ class AppRuntimeFactory {
     const coordinatorReady = Boolean(graph.coordinator);
     const canonicalLedgerReady = Boolean(graph.ledger);
     const identityAuthorityReady = Boolean(graph.identity);
-    if (options.requireComposition !== false && (!coordinatorReady || !canonicalLedgerReady || !identityAuthorityReady)) {
+    const durableExecutionRecoveryReady = Boolean(graph.durableExecutionRecoveryAuthority);
+    if (options.requireComposition !== false
+      && (!coordinatorReady || !canonicalLedgerReady || !identityAuthorityReady || !durableExecutionRecoveryReady)) {
       throw factoryError(
         'APP_RUNTIME_CANONICAL_AUTHORITIES_NOT_READY',
-        'Canonical coordinator, ledger and identity authorities must be composed before readiness',
+        'Canonical coordinator, ledger, identity and durable recovery authorities must be composed before readiness',
         503,
-        { coordinatorReady, canonicalLedgerReady, identityAuthorityReady }
+        { coordinatorReady, canonicalLedgerReady, identityAuthorityReady, durableExecutionRecoveryReady }
       );
     }
-    if (coordinatorReady && canonicalLedgerReady && identityAuthorityReady && !graph.canonicalGraphBound) {
+    if (coordinatorReady && canonicalLedgerReady && identityAuthorityReady
+      && durableExecutionRecoveryReady && !graph.canonicalGraphBound) {
       throw factoryError(
         'APP_RUNTIME_CANONICAL_AUTHORITY_BINDING_MISMATCH',
         'Canonical runtime authorities no longer share the validated write-host capability and primary store',
@@ -331,6 +350,7 @@ class AppRuntimeFactory {
       coordinatorReady,
       canonicalLedgerReady,
       identityAuthorityReady,
+      durableExecutionRecoveryReady,
       canonicalGraphBound: graph.canonicalGraphBound,
       startupGatewayState: graph.startupGatewayState,
       startupGatewaySealed: graph.startupGatewaySealed
@@ -352,6 +372,7 @@ class AppRuntimeFactory {
       coordinatorReady: Boolean(graph?.coordinator),
       canonicalLedgerReady: Boolean(graph?.ledger),
       identityAuthorityReady: Boolean(graph?.identity),
+      durableExecutionRecoveryReady: Boolean(graph?.durableExecutionRecoveryAuthority),
       canonicalGraphBound: graph?.canonicalGraphBound === true,
       startupGatewayState: graph?.startupGatewayState || '',
       startupGatewaySealed: graph?.startupGatewaySealed === true

@@ -30,8 +30,7 @@ const { recentCoreFailures, buildReleaseReadiness } = require('./systemReleaseRe
 const { buildTopology, buildAvailability } = require('./systemHealthProjection');
 const systemHealthAuthority = require('./systemHealthAuthority');
 const dataProtectionAuthority = require('./dataProtectionAuthority');
-const backgroundJobAuthority = require('./backgroundJobAuthority');
-const asyncOperationLifecycleAuthority = require('./asyncOperationLifecycleAuthority').authority;
+const { currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
 const { getRuntimeSafetySupervisor } = require('./runtimeSafetySupervisor');
 const { verifyRuntimeGovernanceEvidence } = require('./runtimeGovernanceEvidenceService');
 
@@ -473,6 +472,62 @@ function calculateHealth(report, accounts, ai, backups, policy, secure, integrit
   });
 }
 
+function canonicalInternalOperationProjection(limit = 1000) {
+  let operations = [];
+  try {
+    operations = currentRuntimeInternalOperationAuthority().snapshot({ limit });
+  } catch (error) {
+    if (error?.code !== 'WP_B_RUNTIME_INTERNAL_OPERATION_AUTHORITY_REQUIRED') throw error;
+  }
+  const terminal = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED', 'DEAD_LETTERED']);
+  const backgroundRows = operations.filter(row => !['platform.auth.workflow', 'platform.reconcile'].includes(String(row.operationType || '')));
+  const counts = { PENDING: 0, RUNNING: 0, RETRY_WAIT: 0, SUCCEEDED: 0, FAILED_FINAL: 0, CANCELLED: 0 };
+  const byType = {};
+  for (const row of backgroundRows) {
+    const state = String(row.state || '');
+    if (['CREATED', 'SCHEDULED'].includes(state)) counts.PENDING += 1;
+    else if (['RUNNING', 'WAITING_REMOTE', 'CANCEL_REQUESTED'].includes(state)) counts.RUNNING += 1;
+    else if (state === 'RETRY_SCHEDULED') counts.RETRY_WAIT += 1;
+    else if (state === 'SUCCEEDED') counts.SUCCEEDED += 1;
+    else if (['FAILED', 'DEAD_LETTERED'].includes(state)) counts.FAILED_FINAL += 1;
+    else if (state === 'CANCELLED') counts.CANCELLED += 1;
+    const type = String(row.operationType || 'internal-operation');
+    byType[type] = Number(byType[type] || 0) + 1;
+  }
+  const total = backgroundRows.length;
+  const counted = Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
+  const activeRows = backgroundRows.filter(row => !terminal.has(String(row.state || '')));
+  const finalFailures = backgroundRows
+    .filter(row => ['FAILED', 'DEAD_LETTERED'].includes(String(row.state || '')))
+    .sort((left, right) => String(right.updatedAt || '').localeCompare(String(left.updatedAt || '')));
+  const backgroundJobs = {
+    total,
+    counts,
+    byType,
+    unresolved: activeRows.length,
+    oldestPendingAt: activeRows.map(row => String(row.createdAt || '')).filter(Boolean).sort()[0] || '',
+    latestFinalFailures: finalFailures.slice(0, 20).map(row => ({
+      jobType: row.operationType,
+      lastErrorCode: row.failureCode || 'BACKGROUND_JOB_FAILED',
+      updatedAt: row.updatedAt,
+      operationId: row.operationId
+    })),
+    consistency: { pass: counted === total, counted, total }
+  };
+  const asyncRows = operations.filter(row => ['platform.auth.workflow', 'platform.reconcile'].includes(String(row.operationType || '')));
+  const asyncCounts = {};
+  for (const row of asyncRows) asyncCounts[row.state] = Number(asyncCounts[row.state] || 0) + 1;
+  const asyncOperations = {
+    operations: asyncRows.slice(0, 500),
+    counts: asyncCounts,
+    active: asyncRows.filter(row => !terminal.has(String(row.state || ''))).length,
+    failed: asyncRows.filter(row => ['FAILED', 'DEAD_LETTERED'].includes(String(row.state || ''))).length,
+    total: asyncRows.length,
+    consistency: { pass: true, counted: asyncRows.length, total: asyncRows.length }
+  };
+  return { backgroundJobs, asyncOperations };
+}
+
 function snapshot() {
   const policy = systemPolicy.read();
   const notifications = { ...notificationPolicy.read(), soundCatalog: notificationPolicy.soundCatalog() };
@@ -484,16 +539,9 @@ function snapshot() {
   const recentErrors = recentLogs.filter(row => row.level === 'error').slice(0, 40);
   const recentWarnings = recentLogs.filter(row => row.level === 'warn').slice(0, 60);
   const logProjection = systemHealthAuthority.projectLogs(recentLogs);
-  const backgroundJobs = backgroundJobAuthority.snapshot({ limit: 1000 });
-  const backgroundJobSummary = {
-    total: backgroundJobs.total,
-    counts: backgroundJobs.counts,
-    byType: backgroundJobs.byType || {},
-    unresolved: Number(backgroundJobs.unresolved || 0),
-    latestFinalFailures: Array.isArray(backgroundJobs.latestFinalFailures) ? backgroundJobs.latestFinalFailures : [],
-    consistency: backgroundJobs.consistency || { pass: true, counted: backgroundJobs.total, total: backgroundJobs.total }
-  };
-  const asyncOperations = asyncOperationLifecycleAuthority.snapshot({ limit: 500 });
+  const internalOperationProjection = canonicalInternalOperationProjection(1000);
+  const backgroundJobSummary = internalOperationProjection.backgroundJobs;
+  const asyncOperations = internalOperationProjection.asyncOperations;
   const productionDiagnosticSnapshot = productionDiagnostics.snapshot({ limit: 30 });
   const coreFailures = recentCoreFailures({ productionDiagnostics: productionDiagnosticSnapshot, recentErrors, diagnostics: report });
   const data = dataSummary(policy.privacyMode);

@@ -8,6 +8,12 @@ const eventBus = require('./eventBus');
 const logger = require('./logger');
 const { reconstructBaileysMessageInfo } = require('./whatsappMediaEnvelope');
 const { unwrap, stableJid } = require('./messageNormalizer');
+const defaultDurableExecutionAuthority = require('./durableExecutionAuthority');
+const defaultOutboxAuthority = require('./externalActionOutboxAuthority');
+const {
+  OPERATION_KINDS,
+  assertReferenceOnlyEnvelope
+} = require('./durableOperationRegistry');
 
 function ensureDir(dir) { fs.mkdirSync(dir, { recursive: true }); }
 function safePart(value, fallback = 'item') {
@@ -43,6 +49,94 @@ function extension(mimeType = '', kind = '') {
   if (mime === 'audio/mp4') return 'm4a';
   if (mime === 'application/pdf') return 'pdf';
   return (mime.split('/')[1] || 'bin').replace(/[^a-z0-9]/g, '') || 'bin';
+}
+
+function mediaTransferError(code, message, details = {}) {
+  return Object.assign(new Error(message), { code, ...details });
+}
+function requiredString(value, field, maximum = 2048) {
+  const result = String(value == null ? '' : value).trim();
+  if (!result) throw mediaTransferError('WP_B_MEDIA_TRANSFER_FIELD_REQUIRED', `${field} is required`, { field });
+  if (result.length > maximum || /[\u0000-\u001f\u007f]/u.test(result)) {
+    throw mediaTransferError('WP_B_MEDIA_TRANSFER_FIELD_INVALID', `${field} is invalid`, { field, maximum });
+  }
+  return result;
+}
+function authorityTimestamp(issuer, purpose) {
+  if (typeof issuer !== 'function') throw new TypeError('Media transfer scheduler requires an authority timestamp issuer');
+  const source = String(issuer(purpose) || '');
+  const milliseconds = Date.parse(source);
+  if (!Number.isFinite(milliseconds) || new Date(milliseconds).toISOString() !== source) {
+    throw mediaTransferError('WP_B_MEDIA_TRANSFER_TIMESTAMP_INVALID', `${purpose} must be normalized UTC ISO-8601`);
+  }
+  return source;
+}
+function createMediaTransferScheduler({
+  durableExecutionAuthority = defaultDurableExecutionAuthority,
+  outboxAuthority = defaultOutboxAuthority,
+  issueTimestamp = () => new Date().toISOString()
+} = {}) {
+  if (!durableExecutionAuthority || typeof durableExecutionAuthority.createExecution !== 'function') {
+    throw new TypeError('Media transfer scheduler requires DurableExecutionAuthority.createExecution');
+  }
+  if (!outboxAuthority || typeof outboxAuthority.createIntent !== 'function') {
+    throw new TypeError('Media transfer scheduler requires ExternalActionOutboxAuthority.createIntent');
+  }
+  return Object.freeze({
+    prepare(input = {}) {
+      const idempotencyKey = requiredString(input.idempotencyKey, 'idempotencyKey');
+      const command = assertReferenceOnlyEnvelope(input.command);
+      const execution = durableExecutionAuthority.createExecution({
+        operationKind: OPERATION_KINDS.MEDIA_TRANSFER,
+        idempotencyKey,
+        traceId: String(input.traceId || '').trim(),
+        command,
+        deadlineAt: String(input.deadlineAt || '').trim(),
+        maxAttempts: Math.max(1, Number(input.maxAttempts || 3)),
+        authorityTimestamp: authorityTimestamp(issueTimestamp, 'media-transfer-execution')
+      });
+      const executionId = requiredString(execution?.executionId, 'execution.executionId');
+      const intent = outboxAuthority.createIntent({
+        executionId,
+        actionKind: OPERATION_KINDS.MEDIA_TRANSFER,
+        idempotencyKey,
+        payload: command,
+        authorityTimestamp: authorityTimestamp(issueTimestamp, 'media-transfer-intent')
+      });
+      return Object.freeze({
+        executionId,
+        intentId: requiredString(intent?.intentId, 'intent.intentId'),
+        operationKind: OPERATION_KINDS.MEDIA_TRANSFER,
+        idempotencyKey
+      });
+    }
+  });
+}
+
+function persistedMediaAttempt(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.isFrozen(value)) {
+    throw mediaTransferError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', 'Media materialization requires one frozen persisted attempt');
+  }
+  for (const field of ['executionId', 'intentId', 'attemptId', 'claimId', 'ownerId', 'idempotencyKey']) {
+    try { requiredString(value[field], `persistedAttempt.${field}`); }
+    catch (error) {
+      throw mediaTransferError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', error.message, { field });
+    }
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const number = Number(value[field]);
+    if (!Number.isSafeInteger(number) || number < 1) {
+      throw mediaTransferError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', `persistedAttempt.${field} is required`, { field });
+    }
+  }
+  if (!value.request || typeof value.request !== 'object' || Array.isArray(value.request) || !Object.isFrozen(value.request)) {
+    throw mediaTransferError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', 'Persisted media request is required');
+  }
+  assertReferenceOnlyEnvelope(value);
+  if (String(value.request.transferKind || '').toUpperCase() !== 'FETCH') {
+    throw mediaTransferError('WP_B_MEDIA_TRANSFER_ATTEMPT_REQUIRED', 'Media materialization requires a FETCH attempt');
+  }
+  return value;
 }
 
 function mediaDirectory(accountId, conversationId) {
@@ -140,9 +234,7 @@ function saveFile({ accountId, conversationId, messageId, filePath, descriptor =
   };
   eventBus.publish('media:ready', { accountId, conversationId, messageId, attachment: row });
   return row;
-
 }
-
 
 function canonicalBaileysMediaInfo(info = {}) {
   const chatJid = stableJid(info);
@@ -153,7 +245,8 @@ function canonicalBaileysMediaInfo(info = {}) {
   };
 }
 
-async function materializeBaileys({ accountId, conversationId, messageId, info, socket, descriptor, timeoutMs = 45000 }) {
+async function materializeBaileys({ accountId, conversationId, messageId, info, socket, descriptor, persistedAttempt, timeoutMs = 45000 }) {
+  persistedMediaAttempt(persistedAttempt);
   if (descriptor?.downloadable === false) {
     return { ...descriptor, downloadStatus: 'unsupported', cachedAt: new Date().toISOString() };
   }
@@ -223,4 +316,25 @@ function cleanup({ olderThanDays = 45, dryRun = true } = {}) {
   return { scanned: files.length, removable: removable.length, removed: dryRun ? 0 : removable.length, dryRun };
 }
 
-module.exports = { safePart, sha256, sha256File, isAnimatedWebp, extension, saveBuffer, saveFile, canonicalBaileysMediaInfo, materializeBaileys, resolveFile, cleanup, verifyBuffer, verifyFile, publicUrl, mediaFailureRetryable };
+const defaultMediaTransferScheduler = createMediaTransferScheduler();
+
+module.exports = {
+  safePart,
+  sha256,
+  sha256File,
+  isAnimatedWebp,
+  extension,
+  saveBuffer,
+  saveFile,
+  canonicalBaileysMediaInfo,
+  materializeBaileys,
+  persistedMediaAttempt,
+  resolveFile,
+  cleanup,
+  verifyBuffer,
+  verifyFile,
+  publicUrl,
+  mediaFailureRetryable,
+  createMediaTransferScheduler,
+  prepareMediaTransfer: input => defaultMediaTransferScheduler.prepare(input)
+};

@@ -5,6 +5,7 @@ const telegram = require('./telegramAdapter');
 const facebookChatwoot = require('./facebookChatwootMatrixBridge');
 const facebookPersonalIdentity = require('./facebookPersonalIdentityAdapter');
 const facebookPersonalMessenger = require('./facebookPersonalMessengerExperimentalAdapter');
+const { validatePersistedEgressContext } = require('./platformAdapterPorts');
 
 const PLATFORMS = Object.freeze(['whatsapp', 'telegram', 'facebook']);
 
@@ -31,6 +32,22 @@ function normalizePlatform(value) {
 function mapWhatsAppState(value) {
   return ({ online: 'connected', qr: 'waiting-verification', connecting: 'connecting', offline: 'error', 'logged-out': 'logged-out', stopped: 'logged-out' })[value] || 'logged-out';
 }
+function requirePersistedPlatformEgressAttempt(platform, context = {}, input = {}) {
+  const attempt = input?.physicalAttemptContext;
+  return validatePersistedEgressContext(attempt, {
+    accountId: clean(context.accountId || context.adapterAccountId),
+    idempotencyKey: clean(attempt?.idempotencyKey)
+  }, platform);
+}
+function requirePersistedEgressAttempt(context = {}, input = {}) {
+  return requirePersistedPlatformEgressAttempt('telegram', context, input);
+}
+function requirePersistedWhatsAppEgressAttempt(context = {}, input = {}) {
+  return requirePersistedPlatformEgressAttempt('whatsapp', context, input);
+}
+function requirePersistedFacebookEgressAttempt(context = {}, input = {}) {
+  return requirePersistedPlatformEgressAttempt('facebook', context, input);
+}
 
 const drivers = Object.freeze({
   whatsapp: Object.freeze({
@@ -49,12 +66,12 @@ const drivers = Object.freeze({
     async sync(account, options = {}) { return whatsapp.sync(account, options); },
     externalTarget(value) { return clean(value); },
     adapterAccountId(account, requestedId = '') { return clean(account?.adapterAccountId || requestedId || account?.id); },
-    async sendText(context, input) { return whatsapp.sendText({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
-    async sendMedia(context, input) { return whatsapp.sendMedia({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
-    async sendReaction(context, input) { return whatsapp.sendReaction({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
-    async revokeMessage(context, input) { return whatsapp.revokeMessage({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
-    async sendPresence(context, input) { return whatsapp.sendPresence({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
-    async markRead(context, input) { return whatsapp.markRead({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
+    async sendText(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendText({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
+    async sendMedia(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendMedia({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
+    async sendReaction(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendReaction({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
+    async revokeMessage(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.revokeMessage({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
+    async sendPresence(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendPresence({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
+    async markRead(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.markRead({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
     async retryMedia(input = {}) { return whatsapp.retryMedia(input); }
   }),
   telegram: Object.freeze({
@@ -69,13 +86,13 @@ const drivers = Object.freeze({
     async sync(account, options = {}) { return telegram.sync(account, options); },
     externalTarget(value) { return clean(value).replace(/^telegram:/i, ''); },
     adapterAccountId(account, requestedId = '') { return clean(account?.id || requestedId); },
-    async sendText(context, input) { return telegram.sendText(context.accountId, context.target, input.text, { quoted: input.quoted, localMessageId: input.localMessageId, sessionKey: input.sessionKey, signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async sendMedia(context, input) { return telegram.sendMedia(context.accountId, context.target, input); },
-    async sendReaction(context, input) { return telegram.sendReaction(context.accountId, context.target, input.targetId, input.emoji, { signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async revokeMessage(context, input) { return telegram.revokeMessage(context.accountId, context.target, input.targetId, { signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async sendNativeExpression(context, input) { return telegram.sendNativeExpression(context.accountId, context.target, input.reference, { kind: clean(input.kind).toLowerCase(), caption: input.caption, quoted: input.quoted, sessionKey: input.sessionKey, localMessageId: input.localMessageId, signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async sendPresence(context, input) { return telegram.sendPresence(context.accountId, context.target, input.state, { signal: input.signal, executionGeneration: input.executionGeneration }); },
-    async markRead(context, input) { return telegram.markRead(context.accountId, context.target, input.messageKeys || input.messageIds || [], { signal: input.signal, executionGeneration: input.executionGeneration }); },
+    async sendText(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendText(context.accountId, context.target, input.text, { quoted: input.quoted, localMessageId: input.localMessageId, sessionKey: input.sessionKey, signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
+    async sendMedia(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendMedia(context.accountId, context.target, { ...input, physicalAttemptContext }); },
+    async sendReaction(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendReaction(context.accountId, context.target, input.targetId, input.emoji, { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
+    async revokeMessage(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.revokeMessage(context.accountId, context.target, input.targetId, { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
+    async sendNativeExpression(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendNativeExpression(context.accountId, context.target, input.reference, { kind: clean(input.kind).toLowerCase(), caption: input.caption, quoted: input.quoted, sessionKey: input.sessionKey, localMessageId: input.localMessageId, signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
+    async sendPresence(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendPresence(context.accountId, context.target, input.state, { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
+    async markRead(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.markRead(context.accountId, context.target, input.messageKeys || input.messageIds || [], { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
     async listNativeExpressions(account, kind, options = {}) { return telegram.listNativeExpressions(clean(account?.id || account), kind, options); },
     async beginQrLogin(account, options = {}) { return telegram.beginQrLogin(account, options); },
     async beginPhoneLogin(account, phoneNumber, options = {}) { return telegram.beginPhoneLogin(account, phoneNumber, options); },
@@ -153,8 +170,8 @@ const driverById = Object.freeze({
     async sync(account, options = {}) { return facebookPersonalMessenger.sync(account, options); },
     externalTarget(value) { return clean(value).replace(/^facebook:/i, ''); },
     adapterAccountId(account, requestedId = '') { return clean(account?.id || requestedId); },
-    async sendText(context, input) { return facebookPersonalMessenger.sendText(context, input); },
-    async sendMedia(context, input) { return facebookPersonalMessenger.sendMedia(context, input); },
+    async sendText(context, input) { requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessenger.sendText(context, input); },
+    async sendMedia(context, input) { requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessenger.sendMedia(context, input); },
     async sendPresence(context, input) { return facebookPersonalMessenger.sendPresence(context, input); },
     async markRead(context, input) { return facebookPersonalMessenger.markRead(context, input); }
   })

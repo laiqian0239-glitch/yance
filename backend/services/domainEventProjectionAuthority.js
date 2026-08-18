@@ -7,6 +7,8 @@ const { projectMessage, projectDomainEvent } = require('./domainMessageProjector
 const operationalProjector = require('./domainOperationalProjector');
 const eventBus = require('./eventBus');
 const logger = require('./logger');
+const { DurableInternalOperationAuthority, currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
+const { DurableExecutionRecoveryAuthority, currentRuntimeRecoveryAuthority } = require('./durableExecutionRecoveryAuthority');
 
 const AUTHORITY = 'DomainEventProjectionAuthority';
 const PROJECTOR_NAME = 'message-projection';
@@ -208,13 +210,53 @@ class DomainEventProjectionAuthority {
     report.convergence = this.auditExisting({}).convergence; report.ok = report.failed.length === 0 && report.convergence.blocking === 0; return report;
   }
 
-  recoverExpiredProjectionJobs() {
+  projectionInternalAuthority() {
     const store = this.repository.store();
-    const at = new Date().toISOString();
-    const result = store.db.prepare(`UPDATE domain_event_projection_jobs
-      SET state='failed',claim_token='',lease_expires_at='',last_error='PROCESSING_LEASE_EXPIRED',next_attempt_at=?,updated_at=?
-      WHERE state='processing' AND lease_expires_at<>'' AND lease_expires_at<=?`).run(at, at, at);
-    return Number(result.changes || 0);
+    try {
+      const authority = currentRuntimeInternalOperationAuthority();
+      if (authority.store().db === store.db) return authority;
+    } catch (_) {}
+    const capability = store?.authorityWriteHostCapability;
+    if (!capability || typeof capability.tokenSnapshot !== 'function') {
+      throw Object.assign(new Error('Domain projection requires the current AuthorityWriteHost capability'), {
+        code: 'DOMAIN_EVENT_PROJECTION_AUTHORITY_WRITE_HOST_REQUIRED'
+      });
+    }
+    return new DurableInternalOperationAuthority({
+      storeProvider: () => store,
+      tokenProvider: () => capability.tokenSnapshot()
+    });
+  }
+
+  projectionRecoveryAuthority() {
+    const store = this.repository.store();
+    try {
+      const authority = currentRuntimeRecoveryAuthority();
+      if (authority.storeProvider?.()?.db === store.db) return authority;
+    } catch (_) {}
+    return new DurableExecutionRecoveryAuthority({
+      storeProvider: () => store,
+      authorityWriteHostCapability: store.authorityWriteHostCapability
+    });
+  }
+
+  recoverExpiredProjectionJobs() {
+    const authority = this.projectionInternalAuthority();
+    const recovery = this.projectionRecoveryAuthority();
+    const authorityTimestamp = new Date().toISOString();
+    const nowMs = Date.parse(authorityTimestamp);
+    let recovered = 0;
+    for (const operation of authority.snapshot({ operationType: 'projection.domain-event-message', limit: 1000 })) {
+      const retryDue = operation.state === 'RETRY_SCHEDULED'
+        && (!operation.nextAttemptAt || Date.parse(operation.nextAttemptAt) <= nowMs);
+      const leaseExpired = operation.state === 'RUNNING'
+        && operation.leaseExpiresAt
+        && Date.parse(operation.leaseExpiresAt) <= nowMs;
+      if (!retryDue && !leaseExpired) continue;
+      const receipt = recovery.recoverExecution(operation.operationId, { authorityTimestamp });
+      if (receipt?.decision === 'REQUEUE_SAFE' || receipt?.transition?.state === 'SCHEDULED') recovered += 1;
+    }
+    return recovered;
   }
 
   async drainProjectionJobs(input = {}) {
@@ -223,37 +265,26 @@ class DomainEventProjectionAuthority {
     const report = { claimed: 0, applied: 0, failed: 0, quarantined: 0, recovered: 0 };
     try {
       report.recovered = this.recoverExpiredProjectionJobs();
-      const store = this.repository.store();
+      const authority = this.projectionInternalAuthority();
       const limit = bounded(input.limit, 20, 1, 100);
-      const at = new Date().toISOString();
-      const jobs = store.db.prepare(`SELECT * FROM domain_event_projection_jobs
-        WHERE state IN ('pending','failed') AND (next_attempt_at='' OR next_attempt_at<=?)
-        ORDER BY created_at LIMIT ?`).all(at, limit);
-      for (const job of jobs) {
+      const operations = authority.snapshot({ operationType: 'projection.domain-event-message', limit: Math.max(limit * 5, limit) })
+        .filter(operation => operation.state === 'SCHEDULED')
+        .slice(0, limit);
+      for (const operation of operations) {
+        const eventId = clean(operation.scopeKey || operation.messageId);
+        if (!eventId) continue;
         report.claimed += 1;
         try {
           await this.repairEvent({
-            eventId: job.event_id,
-            actor: 'domain-projection-job-worker',
-            reason: 'Durable projection job retry after initial projection did not converge.'
+            eventId,
+            actor: 'domain-projection-canonical-recovery',
+            reason: 'Canonical Schema 23 projection operation is scheduled and eligible for replay.'
           });
-          const current = store.db.prepare('SELECT state FROM domain_event_projection_jobs WHERE job_id=?').get(job.job_id);
-          if (current?.state !== 'applied') {
-            store.db.prepare(`UPDATE domain_event_projection_jobs
-              SET state='applied',claim_token='',lease_expires_at='',next_attempt_at='',last_error='',updated_at=?
-              WHERE job_id=? AND state<>'quarantined'`).run(new Date().toISOString(), job.job_id);
-          }
           report.applied += 1;
         } catch (error) {
-          const current = store.db.prepare('SELECT attempts,state FROM domain_event_projection_jobs WHERE job_id=?').get(job.job_id);
-          if (Number(current?.attempts || 0) >= 5) {
-            store.db.prepare(`UPDATE domain_event_projection_jobs
-              SET state='quarantined',claim_token='',lease_expires_at='',next_attempt_at='',last_error=?,updated_at=?
-              WHERE job_id=? AND state<>'applied'`).run(clean(error.message || error.code).slice(0, 2000), new Date().toISOString(), job.job_id);
-            report.quarantined += 1;
-          } else {
-            report.failed += 1;
-          }
+          const latest = authority.read(operation.operationId);
+          if (latest?.state === 'DEAD_LETTERED' || latest?.state === 'FAILED') report.quarantined += 1;
+          else report.failed += 1;
         }
       }
       return report;
@@ -268,12 +299,9 @@ class DomainEventProjectionAuthority {
       this.boundAppend = event => this.scheduleLiveAudit(event?.payload?.eventId);
       this.eventBus.on('domain-event:appended', this.boundAppend);
     }
-    if (!this.jobTimer) {
-      this.jobTimer = setInterval(() => this.drainProjectionJobs().catch(error => {
-        this.logger.warn('domain-event', 'projection-job-drain-failed', { code: error.code || 'DOMAIN_EVENT_PROJECTION_JOB_DRAIN_FAILED', error: error.message });
-      }), this.jobIntervalMs);
-      this.jobTimer.unref?.();
-    }
+    // Startup recovery may execute eligible work, but retry timing and stale
+    // lease decisions are owned exclusively by DurableExecutionRecoveryAuthority.
+    // There is deliberately no second projection retry timer here.
     await this.drainProjectionJobs().catch(error => this.logger.warn('domain-event', 'projection-job-start-recovery-failed', { code: error.code || 'DOMAIN_EVENT_PROJECTION_JOB_RECOVERY_FAILED', error: error.message }));
     try { return this.auditExisting({}); }
     catch (error) { this.logger.warn('domain-event', 'projection-audit-start-failed', { code: error.code || 'DOMAIN_EVENT_PROJECTION_AUDIT_FAILED', error: error.message }); this.lastAudit = { authority: AUTHORITY, converged: false, code: error.code || 'DOMAIN_EVENT_PROJECTION_AUDIT_FAILED', error: error.message, completedAt: new Date().toISOString() }; return this.lastAudit; }
