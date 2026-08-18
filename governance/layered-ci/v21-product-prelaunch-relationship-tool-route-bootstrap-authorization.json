@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-18T18:21:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-PRELAUNCH-RELATIONSHIP-TOOL-ROUTE-BOOTSTRAP",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Pre-launch Product audit found that the correct relationship-tool route closure needs one narrow read-only Element module API seam for authoritative Matrix room state. The new replayable upstream patch path upstream-patches/element-web/0013-yance-module-room-state-read.patch is not yet known to the trusted-main WP0 classifier, which intentionally fails closed on unknown paths. Candidate-owned routing changes, broad upstream-patches prefixes, and hiding the change inside an unrelated existing patch are forbidden. This bootstrap authorizes only one exact PRODUCT_WP0 route plus one routing regression contract; it does not authorize the Product implementation itself.",
   "base": {
@@ -130,11 +130,14 @@
   },
   "ossFit": {
     "decision": "REUSE_EXISTING_BASE_OWNED_ROUTE_BOOTSTRAP_PATTERN",
+    "matureOssAvailable": true,
     "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
     "reviewedCandidates": [
       {
         "name": "Existing literal Product route bootstrap pattern",
         "source": "governance/layered-ci/v21-product-experience-shell-p0-runtime-module-route-bootstrap-authorization.json",
+        "license": "repository-native",
         "adoptionMode": "reuse-existing-governance-pattern",
         "fit": "FIT",
         "reason": "The repository already solved the same exact-path admission problem for Element patch 0012 using a single literal productExactPaths addition plus a failure-first routing regression."
