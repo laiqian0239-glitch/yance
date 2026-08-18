@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP1-BILINGUAL-SEMANTIC-CONTRACT-RECONCILIATION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #485 exact head 29491b2e4f7050e9d5b37598af759e6d84d8dbcc exposed one base-owned stale bilingual-search CSS contract after the separately authorized WP-1 semantic-theme migration. Stage 6.4.5.9 run 32171607447 executes Product WP0 on the fresh trusted-main base and fails tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js because that historical contract still requires the private --yance-surface token for the bilingual search field. Trusted main e6d59699608a319edd04f628854978f4c07187eb still legitimately uses that pre-migration token, while the WP-1 candidate intentionally consumes the canonical semantic theme authority and uses --surface-control for the same field. Reintroducing --yance-surface in Product code would violate the approved semantic-theme migration. This authorization permits only a permanent dual-state semantic test contract: preserve the exact trusted-main assertion while the legacy palette is present, and require the canonical semantic surface contract once the source has migrated. Selection may depend only on source content, never branch name, environment, CI state or skip flags. No Product code, workflow, route, scanner, dependency or authority change is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "e6d59699608a319edd04f628854978f4c07187eb"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "e6d59699608a319edd04f628854978f4c07187eb",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "causalRedEvidence": {
+    "implementationPullRequest": 485,
+    "implementationExactHead": "29491b2e4f7050e9d5b37598af759e6d84d8dbcc",
+    "stageRunId": 32171607447,
+    "stageProductJobId": 95823924282,
+    "failedTestPath": "tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js",
+    "staleAssertion": "yance-bilingual-search__field input must use background: var(--yance-surface)",
+    "trustedMainLegacyValue": "background: var(--yance-surface)",
+    "wp1SemanticValue": "background: var(--surface-control)",
+    "wp1SemanticResultSurface": "background: var(--surface-card-raised)",
+    "productionRegressionRequired": false
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp1-bilingual-semantic-contract-reconciliation-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp1-bilingual-semantic-contract-reconciliation-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7b49f560966d19009b7f0d89517ff8901edc8d6303658f0f103651ea29545fa5",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-wp1-bilingual-semantic-contract-reconciliation",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "33264769a780b00416f2f31665c0578cd885d7d2921ea5bc7bd969c19eba6234",
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "wp0RoutingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "contractMigration": {
+    "legacySentinel": "background: var(--yance-surface)",
+    "semanticSentinel": "background: var(--surface-control)",
+    "selectionAuthority": "SOURCE_CONTENT_ONLY",
+    "branchNameSelectionForbidden": true,
+    "environmentSelectionForbidden": true,
+    "ciStateSelectionForbidden": true,
+    "skipFlagSelectionForbidden": true,
+    "legacyContract": "When ProductExperienceShell.css still contains the pre-WP-1 private palette, the bilingual-search field must continue to use var(--yance-surface) and all existing bilingual translation/navigation semantics remain asserted.",
+    "semanticContract": "When ProductExperienceShell.css has migrated to semantic appearance authority, the bilingual-search field must use var(--surface-control), result/notice surfaces must consume semantic surface roles, and the test must not require restoration of the retired --yance-surface token.",
+    "semanticEquivalenceRequired": true,
+    "zeroSkippedTestsRequired": true,
+    "temporaryBypass": false
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 485,
+    "candidateBranch": "product/v21-product-prelaunch-dating-ai-experience-amendment-wp1",
+    "candidateObservedHead": "29491b2e4f7050e9d5b37598af759e6d84d8dbcc",
+    "candidateAuthorizedChangedFileCountMustRemain": 31,
+    "candidateScopeExpansionForbidden": true,
+    "candidateHistoryRewriteForbidden": true
+  },
+  "ossFit": {
+    "decision": "Reuse the existing Node test contract and the already adopted semantic theme authority. This is a one-assertion source-contract reconciliation; no new runtime, scanner, router, theme engine or dependency is needed.",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing bilingual-search WP0 contract",
+        "source": "tests/wp0/v21-product-experience-bilingual-search-translation-task-ux.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already owns the full bilingual-search translation, polling, navigation and CSS integration contract; only one historical private-surface assertion is stale."
+      },
+      {
+        "name": "Existing Product semantic theme authority",
+        "source": "integration/element-module/src/product-experience/ProductExperienceShell.css",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "WP-1 already migrates Product surfaces to canonical --surface-* roles; the contract must follow that authority rather than restoring a private palette."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not reintroduce --yance-surface or another private Product color palette into the WP-1 candidate.",
+      "Do not weaken bilingual translation, job lifecycle, navigation, focus-visible or reduced-motion assertions.",
+      "Do not select contract behavior by branch name, environment, CI state or skip flags.",
+      "Do not modify Product runtime, workflow, route policy, scanner, dependencies, package manifests or lockfiles.",
+      "Do not expand PR #485 beyond its fixed 31-path authorization."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "single exact test path only",
+      "trusted-main legacy assertion preserved",
+      "WP-1 semantic surface assertion exact and stronger",
+      "no branch/environment/CI conditional",
+      "no assertion skip or deletion",
+      "no Product candidate scope expansion"
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
