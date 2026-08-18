@@ -284,3 +284,33 @@ test('M2-OUT-005 real platform facade preserves fenced persisted-attempt context
   assert.equal(observed[0].physicalContext.hostGeneration, 7);
   assert.equal(observed[0].physicalContext.fencingToken, 11);
 });
+
+test('M2-OUT-006 Facebook Personal physical adapter rejects direct egress without a persisted attempt', async () => {
+  const previous = process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL;
+  process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL = '1';
+  const adapter = require('../../../services/facebookPersonalMessengerExperimentalAdapter');
+  const account = { id: 'facebook-personal-direct-guard-1' };
+  let bridgeCalls = 0;
+  try {
+    await adapter.connect(account, { secret: { browserSessionRef: 'browser-session-ref-1' } });
+    await assert.rejects(
+      () => adapter.sendText({
+        account,
+        accountId: account.id,
+        target: 'friend-1',
+        browserBridge: {
+          async sendText() {
+            bridgeCalls += 1;
+            return { accepted: true };
+          }
+        }
+      }, { text: 'hello' }),
+      error => error?.code === 'EGRESS_PERSISTED_ATTEMPT_REQUIRED'
+    );
+    assert.equal(bridgeCalls, 0);
+  } finally {
+    await adapter.disconnect(account);
+    if (previous === undefined) delete process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL;
+    else process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL = previous;
+  }
+});
