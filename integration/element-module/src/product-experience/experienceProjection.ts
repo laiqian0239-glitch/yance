@@ -44,6 +44,7 @@ type ProductDesktopApi = {
   storeRetryTranslationJob: (input: { jobId: string; timeoutMs?: number }) => Promise<Record<string, unknown>>;
   getThemeCatalog: () => Promise<Record<string, unknown>>;
   updateThemePreferences: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  storeApplyTheme: (input: { themeId: string }) => Promise<Record<string, unknown>>;
   getParlantRelationshipGoal: (input: { contactId: string }) => Promise<RelationshipGoalProjection>;
   upsertParlantRelationshipGoal: (input: { contactId: string; goalText: string }) => Promise<RelationshipGoalProjection>;
   deleteParlantRelationshipGoal: (input: { contactId: string }) => Promise<{ deleted: boolean }>;
@@ -241,11 +242,15 @@ export async function updateProductAppearance(
   input: { fontScale?: number; themeId?: string },
 ): Promise<ProductAppearanceProjection> {
   const api = desktopApi();
-  if (!api || typeof api.updateThemePreferences !== "function") throw bridgeUnavailable("update-theme-preferences");
-  const payload: Record<string, unknown> = {};
-  if (input.fontScale !== undefined) payload.typography = { fontScale: input.fontScale };
-  if (input.themeId !== undefined) payload.themeId = input.themeId;
-  await api.updateThemePreferences(payload);
+  if (!api) throw bridgeUnavailable("appearance");
+  if (input.fontScale !== undefined) {
+    if (typeof api.updateThemePreferences !== "function") throw bridgeUnavailable("update-theme-preferences");
+    await api.updateThemePreferences({ typography: { fontScale: input.fontScale } });
+  }
+  if (input.themeId !== undefined) {
+    if (typeof api.storeApplyTheme !== "function") throw bridgeUnavailable("apply-theme");
+    await api.storeApplyTheme({ themeId: input.themeId });
+  }
   return loadProductAppearance();
 }
 
