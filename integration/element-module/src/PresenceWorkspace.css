@@ -7,24 +7,24 @@
   border-radius: 16px;
   color: var(--text-primary, inherit);
   background: var(--surface-panel, transparent);
-  font-size: var(--type-body, 1rem);
+  font-size: inherit;
   line-height: var(--leading-body, 1.58);
 }
 .yance-presence-workspace header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .yance-presence-workspace header div { display: grid; gap: 4px; }
-.yance-presence-workspace header strong { color: var(--text-primary, inherit); font-size: var(--type-card-title, 1rem); }
+.yance-presence-workspace header strong { color: var(--text-primary, inherit); font-size: inherit; }
 .yance-presence-workspace header div span,
 .presence-status,
 .yance-presence-workspace dd,
-.presence-media-placeholder { color: var(--text-secondary, inherit); font-size: var(--type-caption, .9em); }
-.presence-health { font-size: var(--type-meta, .8rem); border: 1px solid var(--border-default, currentcolor); border-radius: 999px; padding: 3px 8px; }
+.presence-media-placeholder { color: var(--text-secondary, inherit); font-size: inherit; }
+.presence-health { font-size: inherit; border: 1px solid var(--border-default, currentcolor); border-radius: 999px; padding: 3px 8px; }
 .presence-health.ready { color: var(--status-success, currentcolor); }
 .presence-health.degraded { color: var(--status-warning, currentcolor); }
 .presence-media { min-height: 180px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border-default, currentcolor); border-radius: 12px; background: var(--surface-card, transparent); }
 .presence-media .presence-remote-media { width: 100%; max-height: 360px; object-fit: contain; }
 .presence-media audio.presence-remote-media { min-height: 36px; }
 .presence-media-placeholder { margin: -8px 0 0; }
-.yance-presence-workspace label { display: grid; gap: 6px; color: var(--text-secondary, inherit); font-size: var(--type-control, 1rem); }
+.yance-presence-workspace label { display: grid; gap: 6px; color: var(--text-secondary, inherit); font-size: inherit; }
 .presence-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .presence-actions button,
 .yance-presence-workspace select {
@@ -39,4 +39,4 @@
 .yance-presence-workspace dl { display: grid; gap: 8px; margin: 0; }
 .yance-presence-workspace dl div { display: flex; justify-content: space-between; gap: 12px; }
 .yance-presence-workspace dt, .yance-presence-workspace dd { margin: 0; }
-.yance-presence-workspace dt { color: var(--text-secondary, inherit); font-size: var(--type-caption, .9em); }
+.yance-presence-workspace dt { color: var(--text-secondary, inherit); font-size: inherit; }
