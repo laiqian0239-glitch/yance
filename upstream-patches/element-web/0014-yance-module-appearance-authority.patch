@@ -1,12 +1,16 @@
 diff --git a/apps/web/src/modules/Api.ts b/apps/web/src/modules/Api.ts
 --- a/apps/web/src/modules/Api.ts
 +++ b/apps/web/src/modules/Api.ts
-@@ -33,6 +33,7 @@ import { CustomisationsApi } from "./customisationsApi.ts";
+@@ -35,6 +35,7 @@ import { WidgetApi } from "./WidgetApi.ts";
+ import { CustomisationsApi } from "./customisationsApi.ts";
  import { ComposerApi } from "./ComposerApi.ts";
  import { SettingsApi } from "./SettingsApi.ts";
 +import { AppearanceApi } from "./AppearanceApi.ts";
  import defaultDispatcher from "../dispatcher/dispatcher.ts";
-@@ -99,6 +100,7 @@ export class ModuleApi implements Api {
+ 
+ const legacyCustomisationsFactory = <T extends object>(baseCustomisations: T) => {
+@@ -97,6 +98,7 @@ const legacyCustomisationsFactory = <T extends object>(baseCustomisations: T) =>
+     public readonly client = new ClientApi();
      public readonly stores = new StoresApi();
      public readonly composer = new ComposerApi(defaultDispatcher);
 +    public readonly appearance = new AppearanceApi();
@@ -17,7 +21,7 @@ diff --git a/apps/web/src/modules/AppearanceApi.ts b/apps/web/src/modules/Appear
 new file mode 100644
 --- /dev/null
 +++ b/apps/web/src/modules/AppearanceApi.ts
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,66 @@
 +/*
 +Copyright 2026 Yance
 +
@@ -87,40 +91,22 @@ new file mode 100644
 diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
 --- a/packages/module-api/element-web-module-api.api.md
 +++ b/packages/module-api/element-web-module-api.api.md
-@@ -46,6 +46,8 @@ export interface AccountDataApi {
+@@ -45,6 +45,10 @@
+ //
  // @public
  export interface Api extends LegacyModuleApiExtension, LegacyCustomisationsApiExtension, DialogApiExtension, AccountAuthApiExtension, ProfileApiExtension {
++    // Warning: (ae-forgotten-export) The symbol "AppearanceApi" needs to be exported by the entry point index.d.ts
++    //
 +    // @alpha
 +    readonly appearance: AppearanceApi;
      // @alpha
      readonly builtins: BuiltinsApi;
-@@ -70,6 +72,22 @@ export interface Api extends LegacyModuleApiExtension, LegacyCustomisationsApiEx
-     readonly widgetLifecycle: WidgetLifecycleApi;
- }
- 
-+// @alpha
-+export interface AppearanceApi {
-+    setFontScale(percent: number): Promise<void>;
-+    setTheme(theme: AppearanceTheme): Promise<void>;
-+}
-+
-+// @alpha
-+export interface AppearanceTheme {
-+    colors?: Record<string, string>;
-+    compound?: Record<string, string>;
-+    id: string;
-+    isDark: boolean;
-+    name: string;
-+}
-+
- // @alpha
- export interface BuiltinsApi {
-     renderNotificationDecoration(roomId: string): React.ReactNode;
+     readonly client: ClientApi;
 diff --git a/packages/module-api/src/api/appearance.ts b/packages/module-api/src/api/appearance.ts
 new file mode 100644
 --- /dev/null
 +++ b/packages/module-api/src/api/appearance.ts
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,34 @@
 +/*
 +Copyright 2026 Yance
 +
@@ -158,19 +144,24 @@ new file mode 100644
 diff --git a/packages/module-api/src/api/index.ts b/packages/module-api/src/api/index.ts
 --- a/packages/module-api/src/api/index.ts
 +++ b/packages/module-api/src/api/index.ts
-@@ -24,6 +24,7 @@ import { type CustomisationsApi } from "./customisations.ts";
+@@ -25,6 +25,7 @@ import { type WidgetApi } from "./widget.ts";
+ import { type CustomisationsApi } from "./customisations.ts";
  import { type ComposerApi } from "./composer.ts";
  import { type SettingsApi } from "./settings.ts";
 +import { type AppearanceApi } from "./appearance.ts";
-@@ -130,6 +131,12 @@ export interface Api
+ 
+ /**
+  * Module interface for modules to implement.
+@@ -173,6 +174,12 @@ import { type SettingsApi } from "./settings.ts";
       */
      readonly settings: SettingsApi;
-+
+ 
 +    /**
 +     * Applies host-wide appearance through Element's existing settings, font and theme machinery.
 +     * @alpha Subject to change.
 +     */
 +    readonly appearance: AppearanceApi;
- 
++
      /**
       * Create a ReactDOM root for rendering React components.
+      * Exposed to allow modules to avoid needing to bundle their own ReactDOM.
