@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-18T22:13:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LAYERED-CI-TRUSTED-GIT-WINDOWS-TIMEOUT-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "WP-1 governance PR #481 exact head fa6a6fc14d21834472f4e0174c33817f492fdd80 exposed a real cross-platform Layered CI trusted-Git acquisition defect. Windows job 95776404332 failed only because prepareGitDependencies returned null after its production git helper killed a multi-ref origin fetch at the hard-coded 15000ms timeout. The same runner's preceding checkout single-ref fetch took about 20071ms, while the exact-head Ubuntu layered governance matrix passed. The root fix belongs in the existing delegated-product L2 trusted-Git verifier: keep the strict 15000ms default for local Git identity operations but give the network fetch an explicit bounded 60000ms timeout, with a permanent regression proving the fetch-specific bound while preserving fail-closed semantics. No workflow, routing, authorization policy, product source, dependency or scanner change is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "ca48fc7b365084089de5060469c913d6fb0339f1"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "ca48fc7b365084089de5060469c913d6fb0339f1",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "causalRed": {
+    "sourcePr": 481,
+    "candidateHead": "fa6a6fc14d21834472f4e0174c33817f492fdd80",
+    "workflow": "Layered CI Fast Feedback",
+    "workflowRunId": 32156850788,
+    "jobId": 95776404332,
+    "platform": "windows-latest",
+    "failingTest": "real historical delegated L2 V2 head fails closed when canonical base no longer equals its authorization merge",
+    "failure": "prepareGitDependencies returned null before semantic verification",
+    "rootCauseEvidence": [
+      "tools/layered-ci/verify-delegated-product-l2.js hard-codes timeout: 15000 for every Git operation, including the multi-ref network fetch in prepareGitDependencies.",
+      "The same Windows runner's actions/checkout fetch of one SHA took approximately 20.071 seconds before this test executed.",
+      "The failing prepareGitDependencies fetch requests main, the preserved implementation branch, and the candidate SHA in one remote operation, so the 15-second production timeout is lower than an observed healthy Windows network fetch on the same runner.",
+      "All other 204 layered-ci tests passed in that Windows job and the same exact-head portable Ubuntu layered governance job passed."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-layered-ci-trusted-git-windows-timeout-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-layered-ci-trusted-git-windows-timeout-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "95b6de8bd133b1ca3bc68710b2db2a5f6e59d567d0eaa4396f667c0f3acc1476",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-layered-ci-trusted-git-windows-timeout-p0",
+    "allowedChangedPaths": [
+      "tests/layered-ci/delegated-product-l2.test.js",
+      "tools/layered-ci/verify-delegated-product-l2.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "12a3f2e47833f33dc2bf4a8075892049ebe071dcf26d81bd51cc168e063ed30b",
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "sendAuthorityModificationAllowed": false,
+    "modelAuthorityModificationAllowed": false,
+    "learningAuthorityModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "fixContract": {
+    "requiredBehavior": [
+      "Preserve the existing trusted Git environment, exact branch/SHA validation, force fetch semantics, fail-closed null result and downstream trusted-main authority evaluation.",
+      "Keep 15000ms as the default timeout for local Git identity, show, rev-parse and diff operations.",
+      "Allow the existing git helper to accept an explicit per-operation timeout without introducing a new scheduler, retry subsystem or environment-driven policy.",
+      "Call only the prepareGitDependencies network fetch with an explicit 60000ms bounded timeout.",
+      "Add a permanent layered-ci regression that proves the fetch has the explicit larger timeout and the default local Git timeout remains 15000ms.",
+      "Do not rerun or retry inside production verification code; one bounded fetch either succeeds or fails closed."
+    ],
+    "forbiddenBehavior": [
+      "No workflow runner change, no Windows exclusion and no matrix weakening.",
+      "No test skip, timeout-only test annotation change or same-head rerun used as the repair.",
+      "No removal of the historical real-Git regression.",
+      "No generic retry/backoff infrastructure.",
+      "No broad increase of every Git command timeout to hide unrelated hangs."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/layered-ci/delegated-product-l2.test.js",
+      "node --test --test-concurrency=1 tests/layered-ci/*.test.js"
+    ],
+    "exactHeadCi": [
+      "Layered CI Fast Feedback",
+      "Stage 6.4.5.9 WP0 Architecture Gates"
+    ],
+    "negativeProofs": [
+      "No workflow, route, scanner, dependency or product source change.",
+      "No retry loop or unbounded network wait.",
+      "Historical real-Git fail-closed coverage remains active on Windows and Ubuntu."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TRUSTED_GIT_VERIFIER",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing delegated-product L2 trusted-Git verifier",
+        "source": "tools/layered-ci/verify-delegated-product-l2.js",
+        "license": "repository-native",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is a too-small network timeout in the existing authority; the correct fix is a narrow per-operation option in that verifier, not new infrastructure."
+      },
+      {
+        "name": "Git native bounded fetch",
+        "source": "git fetch invoked through node:child_process execFileSync",
+        "license": "GPL-2.0-only for Git; Node built-in API",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The existing implementation already uses native Git; an explicit bounded process timeout is sufficient and avoids custom retry/network code."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add retry/backoff infrastructure around Git fetch.",
+      "Do not weaken or skip the Windows layered-ci matrix.",
+      "Do not raise every Git operation timeout globally when only the network fetch requires a larger bound.",
+      "Do not convert the real-Git regression into a mocked-only test."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "authorizationPullRequest": "ordinary two-parent merge only",
+    "implementationPullRequest": "ordinary two-parent merge only",
+    "allowedMergeMethod": "merge",
+    "squashAllowed": false,
+    "rebaseAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  }
+}
