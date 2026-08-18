@@ -13,6 +13,8 @@ const { argValue, runJsonCli } = require('./cli-support');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const SHA40 = /^[0-9a-f]{40}$/u;
+const DEFAULT_GIT_TIMEOUT_MS = 15000;
+const REMOTE_FETCH_TIMEOUT_MS = 60000;
 
 function isExactBranch(value) {
   const branch = String(value || '');
@@ -133,7 +135,7 @@ function git(args, options = {}) {
     encoding: options.encoding === null ? null : 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     env: buildTrustedGitEnvironment(process.env),
-    timeout: 15000,
+    timeout: options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS,
     maxBuffer: 4 * 1024 * 1024,
     windowsHide: true
   });
@@ -179,7 +181,7 @@ function prepareGitDependencies(candidateBranch, candidateSha) {
     git(['fetch', '--no-tags', '--force', 'origin',
       'main:refs/remotes/origin/main',
       `${candidateBranch}:refs/remotes/origin/${candidateBranch}`,
-      candidateSha]);
+      candidateSha], { timeoutMs: REMOTE_FETCH_TIMEOUT_MS });
   } catch (_) {
     return null;
   }
