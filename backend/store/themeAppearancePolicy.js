@@ -80,7 +80,7 @@ function normalizeTypography(input = {}) {
   const spacing = clean(input.spacing);
   return {
     fontProfile: FONT_PROFILES.has(fontProfile) ? fontProfile : 'theme',
-    fontScale: clamp(input.fontScale, 90, 120, 100),
+    fontScale: clamp(input.fontScale, 85, 150, 100),
     lineHeight: clamp(input.lineHeight, 130, 190, 155),
     spacing: SPACING_PROFILES.has(spacing) ? spacing : 'theme'
   };
