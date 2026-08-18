@@ -117,6 +117,8 @@ contextBridge.exposeInMainWorld('yanceDesktop', Object.freeze({
   storeConfirmSend: input => invokeStore('store:confirm-send', input),
   storeCorrectInference: input => invokeStore('store:correct-inference', input),
   storeSetReadingMode: input => invokeStore('store:set-reading-mode', input),
+  getThemeCatalog: () => invokeStore('store:get-theme-catalog'),
+  updateThemePreferences: input => invokeStore('store:update-theme-preferences', input),
   storePreviewTheme: input => invokeStore('store:preview-theme', input),
   storeCancelThemePreview: () => invokeStore('store:cancel-theme-preview'),
   storeApplyTheme: input => invokeStore('store:apply-theme', input),
