@@ -31,3 +31,18 @@ test('FIX6D typography audit rejects dynamic font-size writes and unknown semant
   assert.ok(result.violations.some(row => row.type === 'dynamic-font-size' && row.file === 'frontend/probe.js'), concise(result));
   assert.ok(result.violations.some(row => row.type === 'non-semantic-font-size' && row.file === 'frontend/probe.css'), concise(result));
 });
+
+test('FIX6D typography audit covers the shipping Element module', t => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fix6d-element-typography-audit-'));
+  t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+  const elementSrc = path.join(tempRoot, 'integration', 'element-module', 'src');
+  fs.mkdirSync(elementSrc, { recursive: true });
+  fs.writeFileSync(path.join(elementSrc, 'probe.css'), '.probe{font-size:13px}\n');
+  const result = auditTypography(tempRoot);
+  assert.ok(
+    result.violations.some(row => row.type === 'non-semantic-font-size' && row.file === 'integration/element-module/src/probe.css'),
+    concise(result)
+  );
+});

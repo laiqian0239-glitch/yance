@@ -201,3 +201,10 @@ test('theme studio frontend exposes filters, mini previews, personalization, acc
     assert.ok(routes.includes(route), `route missing ${route}`);
   }
 });
+
+test('global fontScale authority accepts exact 85-150 percent bounds', () => {
+  assert.equal(policy.normalizeTypography({ fontScale: 85 }).fontScale, 85);
+  assert.equal(policy.normalizeTypography({ fontScale: 150 }).fontScale, 150);
+  assert.equal(policy.normalizeTypography({ fontScale: 84 }).fontScale, 85);
+  assert.equal(policy.normalizeTypography({ fontScale: 151 }).fontScale, 150);
+});

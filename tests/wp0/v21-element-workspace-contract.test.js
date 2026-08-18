@@ -507,3 +507,24 @@ test('relationship-tool room-state seam is an exact read-only Element patch repl
   assert.ok(roomStateApplyIndex > roomStateCheckIndex, '0013 must apply only after its replay check');
   assert.doesNotMatch(bootstrap, /glob[^\n]*upstream-patches|readdirSync[^\n]*upstream-patches/iu, 'Element patches must remain explicit, not broad-loaded');
 });
+
+test('pinned Element exposes only a narrow appearance authority seam and bootstrap replays 0014 explicitly', () => {
+  const appearancePatchPath = 'upstream-patches/element-web/0014-yance-module-appearance-authority.patch';
+  assert.equal(fs.existsSync(repositoryPath(appearancePatchPath)), true, '0014 appearance authority patch must exist');
+  const patchText = readText(appearancePatchPath);
+  assert.deepEqual(patchedPaths(patchText), [
+    'apps/web/src/modules/Api.ts',
+    'apps/web/src/modules/AppearanceApi.ts',
+    'packages/module-api/element-web-module-api.api.md',
+    'packages/module-api/src/api/appearance.ts',
+    'packages/module-api/src/api/index.ts'
+  ]);
+  assert.match(patchText, /AppearanceApi/u);
+  assert.match(patchText, /fontSizeDelta/u);
+  assert.match(patchText, /SettingsStore/u);
+  assert.doesNotMatch(patchText, /MatrixClient|accessToken|sendEvent|stopClient|logout\(/u);
+  const bootstrap = readText('tools/matrix/bootstrap.js');
+  assert.match(bootstrap, /0014-yance-module-appearance-authority\.patch/u);
+  assert.match(bootstrap, /APPEARANCE_AUTHORITY_PATCH/u);
+  assert.doesNotMatch(bootstrap, /glob[^\n]*upstream-patches|readdirSync[^\n]*upstream-patches/iu);
+});

@@ -98,3 +98,10 @@ test('Media Product-bound mode consumes the resolved relationship route and neve
   assert.match(overlay, /<MediaWorkspace\s+routeBinding=\{relationshipToolRoute\}/u, 'Product overlay must pass the resolved binding into Media');
   assert.doesNotMatch(overlay, /<MediaWorkspace\s*\/>/u, 'Product-bound Media must not silently fall back to standalone manual route mode');
 });
+
+test('Media normal-user controls are Chinese-first', () => {
+  const workspace = fs.readFileSync(workspacePath, 'utf8');
+  for (const label of ['导入', '搜索', '人物', '相册', '生成', '编辑', '预览', '保存', '发送']) {
+    assert.match(workspace, new RegExp(label, 'u'), `Media missing Chinese-first label: ${label}`);
+  }
+});

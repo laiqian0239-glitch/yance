@@ -108,3 +108,10 @@ test('Voice Product-bound mode consumes the resolved relationship route and neve
   assert.match(overlay, /<VoiceWorkspace\s+routeBinding=\{relationshipToolRoute\}/u, 'Product overlay must pass the resolved binding into Voice');
   assert.doesNotMatch(overlay, /<VoiceWorkspace\s*\/>/u, 'Product-bound Voice must not silently fall back to standalone manual route mode');
 });
+
+test('Voice normal-user controls are Chinese-first', () => {
+  const workspace = fs.readFileSync(workspacePath, 'utf8');
+  for (const label of ['录入声音', '删除', '测试声音', '语言', '生成', '预览', '重新生成', '发送']) {
+    assert.match(workspace, new RegExp(label, 'u'), `Voice missing Chinese-first label: ${label}`);
+  }
+});
