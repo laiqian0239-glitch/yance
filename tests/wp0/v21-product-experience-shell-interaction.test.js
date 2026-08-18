@@ -73,3 +73,27 @@ test('Howler sound policy has exact modes and no thinking sound event', () => {
   assert.doesNotMatch(sound, /thinking[^\\n]*(?:sound|play)|play[^\\n]*thinking/iu);
   assert.doesNotMatch(sound, /\bhover\b[^\\n]*(?:sound|play)|play[^\\n]*hover/iu);
 });
+
+test('Product relationship tools bind the active Element room bridge state uniquely to Store conversation authority', () => {
+  const index = readOrEmpty('integration/element-module/src/index.tsx');
+  const workspace = readOrEmpty('integration/element-module/src/YanceWorkspace.tsx');
+  const shell = readOrEmpty('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+  const overlay = readOrEmpty('integration/element-module/src/product-experience/RelationshipOverlayHost.tsx');
+  const session = readOrEmpty('integration/element-module/src/product-experience/experienceSession.ts');
+
+  assert.match(index, /getRoom\s*\(/u, 'Element module must resolve the current public Room wrapper');
+  assert.match(index, /getStateEvents/u, 'Element module must expose only the new read-only room-state seam to Product');
+  for (const [name, source] of [['YanceWorkspace', workspace], ['ProductExperienceShell', shell], ['RelationshipOverlayHost', overlay]]) {
+    assert.match(source, /readRoomStateEvents/u, `${name} must thread the read-only room-state reader without exposing MatrixClient`);
+  }
+  assert.match(overlay, /activeMatrixRoomId/u, 'current Element room identity must select Product-bound route resolution');
+  assert.match(overlay, /resolveRelationshipToolRoute/u, 'overlay must resolve a transient Product-bound route');
+
+  for (const token of ['m.bridge', 'uk.half-shot.bridge', 'conversations', 'routeScope', 'platformContactIdentity', 'sourceAccountId', 'conversationId']) {
+    assert.match(overlay, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'), `overlay route composition must bind ${token}`);
+  }
+  assert.match(overlay, /storeSnapshot\s*\(\{\s*domains:\s*\["conversations"\]\s*\}\)/u, 'Product route composition must read the existing Store conversations domain');
+  assert.match(overlay, /matches\.length\s*!==\s*1/u, 'zero or ambiguous Store route matches must fail closed');
+  assert.doesNotMatch(overlay, /selectedRelationshipId[\s\S]{0,160}(?:activeMatrixRoomId|roomId|resolveRelationshipToolRoute)/u, 'selected relationship must never substitute for the active Matrix room');
+  assert.doesNotMatch(session, /\b(?:platform|accountId|chatJid|sessionKey|bridgeState)\s*:/u, 'resolved route identity must not become a second experienceSession authority');
+});

@@ -36,8 +36,17 @@ class YanceElementModule implements Module {
       return false;
     };
 
+    const readRoomStateEvents = (roomId: string, eventType: string) => (
+      this.api.client.getRoom(roomId)?.getStateEvents(eventType) ?? []
+    );
+
     this.api.customComponents.registerGlobalRightPanel(
-      () => <YanceWorkspace navigateSearchResult={navigateSearchResult} />,
+      () => (
+        <YanceWorkspace
+          navigateSearchResult={navigateSearchResult}
+          readRoomStateEvents={readRoomStateEvents}
+        />
+      ),
     );
     this.api.customComponents.registerComposerPreview(
       (_composerText, roomId) => Boolean(roomId),

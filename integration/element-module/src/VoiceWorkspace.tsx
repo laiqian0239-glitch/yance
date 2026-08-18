@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import type { RelationshipToolRouteBinding } from "./product-experience/RelationshipOverlayHost";
 import "./VoiceWorkspace.css";
 
 type VoiceHealth = {
@@ -69,7 +70,9 @@ const LANGUAGES = [
   ["yue", "Cantonese"]
 ] as const;
 
-export function VoiceWorkspace(): React.JSX.Element {
+export function VoiceWorkspace({
+  routeBinding,
+}: { routeBinding?: RelationshipToolRouteBinding }): React.JSX.Element {
   const [health, setHealth] = useState<VoiceHealth>({ available: false, degraded: true });
   const [profile, setProfile] = useState<VoiceProfile | null>(null);
   const [language, setLanguage] = useState("auto");
@@ -81,6 +84,9 @@ export function VoiceWorkspace(): React.JSX.Element {
   const [accountId, setAccountId] = useState("");
   const [chatJid, setChatJid] = useState("");
   const [sessionKey, setSessionKey] = useState("");
+  const productRouteResolved = routeBinding?.status === "resolved";
+  const standaloneMode = routeBinding === undefined;
+  const resolvedRoute = productRouteResolved ? routeBinding.route : null;
 
   const api = useMemo(() => voiceApi(), []);
 
@@ -156,15 +162,24 @@ export function VoiceWorkspace(): React.JSX.Element {
   };
 
   const send = async (): Promise<void> => {
-    if (!api || !output?.audioArtifact || !accountId.trim() || !chatJid.trim() || busy) return;
+    if (!api || !output?.audioArtifact || busy) return;
+    if (routeBinding && routeBinding.status !== "resolved") {
+      setStatus(`Send failed · ${routeBinding.reason || "current relationship route unresolved"}`);
+      return;
+    }
+    const sendPlatform = resolvedRoute?.platform || platform;
+    const sendAccountId = resolvedRoute?.accountId || accountId.trim();
+    const sendChatJid = resolvedRoute?.chatJid || chatJid.trim();
+    const sendSessionKey = resolvedRoute?.sessionKey || sessionKey.trim();
+    if (!sendAccountId || !sendChatJid) return;
     setBusy(true);
     setStatus("Sending through existing media authority");
     try {
       await api.sendVoiceArtifact({
-        platform,
-        accountId: accountId.trim(),
-        chatJid: chatJid.trim(),
-        sessionKey: sessionKey.trim(),
+        platform: sendPlatform,
+        accountId: sendAccountId,
+        chatJid: sendChatJid,
+        sessionKey: sendSessionKey,
         audioArtifact: output.audioArtifact,
         filename: "yance-voice-reply.wav"
       });
@@ -175,6 +190,8 @@ export function VoiceWorkspace(): React.JSX.Element {
       setBusy(false);
     }
   };
+
+  const routeReady = standaloneMode ? Boolean(accountId.trim() && chatJid.trim()) : productRouteResolved;
 
   return (
     <section className="yance-voice-workspace" aria-label="Voice">
@@ -232,17 +249,25 @@ export function VoiceWorkspace(): React.JSX.Element {
 
         <fieldset>
           <legend>Send</legend>
-          <label>Platform
-            <select value={platform} onChange={(event) => setPlatform(event.target.value)}>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="telegram">Telegram</option>
-              <option value="facebook">Facebook</option>
-            </select>
-          </label>
-          <label>Account ID<input value={accountId} onChange={(event) => setAccountId(event.target.value)} /></label>
-          <label>Chat JID<input value={chatJid} onChange={(event) => setChatJid(event.target.value)} /></label>
-          <label>Session key<input value={sessionKey} onChange={(event) => setSessionKey(event.target.value)} /></label>
-          <button type="button" onClick={() => { void send(); }} disabled={busy || !output || !accountId.trim() || !chatJid.trim()}>Send</button>
+          {standaloneMode ? (
+            <>
+              <label>Platform
+                <select value={platform} onChange={(event) => setPlatform(event.target.value)}>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="telegram">Telegram</option>
+                  <option value="facebook">Facebook</option>
+                </select>
+              </label>
+              <label>Account ID<input value={accountId} onChange={(event) => setAccountId(event.target.value)} /></label>
+              <label>Chat JID<input value={chatJid} onChange={(event) => setChatJid(event.target.value)} /></label>
+              <label>Session key<input value={sessionKey} onChange={(event) => setSessionKey(event.target.value)} /></label>
+            </>
+          ) : (
+            <p role="status" aria-live="polite">
+              {productRouteResolved ? "已绑定当前关系会话" : routeBinding?.reason || "当前关系会话路由不可用"}
+            </p>
+          )}
+          <button type="button" onClick={() => { void send(); }} disabled={busy || !output || !routeReady}>Send</button>
         </fieldset>
       </div>
     </section>

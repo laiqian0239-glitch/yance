@@ -476,3 +476,34 @@ test('governed tool-ui receives React JSX runtime ownership from the physical El
     /shamefully-hoist|public-hoist-pattern|NODE_PATH|strict-peer-dependencies\s*=\s*false|--no-frozen-lockfile|--lockfile-only/iu
   );
 });
+
+test('relationship-tool room-state seam is an exact read-only Element patch replayed after module delivery', () => {
+  const patchText = readText('upstream-patches/element-web/0013-yance-module-room-state-read.patch');
+  assert.deepEqual(patchedPaths(patchText), [
+    'apps/web/src/modules/models/Room.ts',
+    'apps/web/test/unit-tests/modules/models/Room-test.ts',
+    'packages/module-api/element-web-module-api.api.md',
+    'packages/module-api/src/models/Room.ts'
+  ]);
+  assert.match(patchText, /getStateEvents/u);
+  assert.match(patchText, /currentState\.getStateEvents/u);
+  assert.match(patchText, /stateKey/u);
+  assert.match(patchText, /content/u);
+  assert.doesNotMatch(patchText, /MatrixClient|accessToken|sendStateEvent|setRoomState|stopClient|logout\(/u);
+
+  const bootstrap = readText('tools/matrix/bootstrap.js');
+  const deliveryApply = "run(element, 'git', ['apply', MODULE_DELIVERY_PATCH]);";
+  const roomStateCheck = "run(element, 'git', ['apply', '--check', ROOM_STATE_READ_PATCH]);";
+  const roomStateApply = "run(element, 'git', ['apply', ROOM_STATE_READ_PATCH]);";
+  assert.match(
+    bootstrap,
+    /const ROOM_STATE_READ_PATCH = path\.join\(ROOT, 'upstream-patches\/element-web\/0013-yance-module-room-state-read\.patch'\);/u
+  );
+  const deliveryApplyIndex = bootstrap.indexOf(deliveryApply);
+  const roomStateCheckIndex = bootstrap.indexOf(roomStateCheck);
+  const roomStateApplyIndex = bootstrap.indexOf(roomStateApply);
+  assert.ok(deliveryApplyIndex >= 0, 'bootstrap must preserve 0012 module delivery');
+  assert.ok(roomStateCheckIndex > deliveryApplyIndex, '0013 replay check must run after successful 0012 replay');
+  assert.ok(roomStateApplyIndex > roomStateCheckIndex, '0013 must apply only after its replay check');
+  assert.doesNotMatch(bootstrap, /glob[^\n]*upstream-patches|readdirSync[^\n]*upstream-patches/iu, 'Element patches must remain explicit, not broad-loaded');
+});
