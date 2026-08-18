@@ -39,6 +39,13 @@ function requirePersistedEgressAttempt(context = {}, input = {}) {
     idempotencyKey: clean(attempt?.idempotencyKey)
   }, 'telegram');
 }
+function requirePersistedWhatsAppEgressAttempt(context = {}, input = {}) {
+  const attempt = input?.physicalAttemptContext;
+  return validatePersistedEgressContext(attempt, {
+    accountId: clean(context.accountId || context.adapterAccountId),
+    idempotencyKey: clean(attempt?.idempotencyKey)
+  }, 'whatsapp');
+}
 
 const drivers = Object.freeze({
   whatsapp: Object.freeze({
@@ -57,12 +64,12 @@ const drivers = Object.freeze({
     async sync(account, options = {}) { return whatsapp.sync(account, options); },
     externalTarget(value) { return clean(value); },
     adapterAccountId(account, requestedId = '') { return clean(account?.adapterAccountId || requestedId || account?.id); },
-    async sendText(context, input) { return whatsapp.sendText({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
-    async sendMedia(context, input) { return whatsapp.sendMedia({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
-    async sendReaction(context, input) { return whatsapp.sendReaction({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
-    async revokeMessage(context, input) { return whatsapp.revokeMessage({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
-    async sendPresence(context, input) { return whatsapp.sendPresence({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
-    async markRead(context, input) { return whatsapp.markRead({ ...input, accountId: context.adapterAccountId, chatJid: context.target }); },
+    async sendText(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendText({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
+    async sendMedia(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendMedia({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
+    async sendReaction(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendReaction({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
+    async revokeMessage(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.revokeMessage({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
+    async sendPresence(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendPresence({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
+    async markRead(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.markRead({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
     async retryMedia(input = {}) { return whatsapp.retryMedia(input); }
   }),
   telegram: Object.freeze({
