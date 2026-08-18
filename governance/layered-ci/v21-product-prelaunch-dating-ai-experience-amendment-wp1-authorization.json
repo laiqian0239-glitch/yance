@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-18T22:13:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-PRELAUNCH-DATING-AI-EXPERIENCE-AMENDMENT-WP1",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Approved pre-launch Product audit WP-1 requires Chinese-first normal-user Product surfaces, one durable global typography contract at 85%-150% in 1% steps, and one global theme experience across the pinned Element host plus Yance Product/Media/Voice/Presence/Learning surfaces. Fresh source audit found the existing Yance Store/themeAppearancePolicy is already the durable appearance authority but clamps fontScale to 90-120; the existing Store REST route already writes theme preferences, while the Electron Store bridge lacks only that narrow write seam. Pinned Element Web v1.12.25 already owns font/theme application through SettingsStore, FontSizeController/FontWatcher and ThemeWatcher, but its public module SettingsApi is read-only. This authorization therefore permits only the correct-layer authority range correction, a narrow existing Store bridge/catalog projection, a minimal replayable Element appearance module seam that delegates to Element's existing authorities, semantic token migration, Chinese-first copy, and extension of existing typography/theme audits to the shipping Element module. No second theme/font engine, registry, persistence authority, dependency, workflow, send route, model, learning or messaging runtime is authorized.",
   "base": {
@@ -275,6 +275,16 @@
         "reason": "Extending the current global audits to the shipping Element module is stricter and avoids duplicate governance scanners."
       }
     ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   },
   "mergePolicy": {
     "authorizationPullRequest": "ordinary two-parent merge only",
