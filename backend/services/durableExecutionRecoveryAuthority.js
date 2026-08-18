@@ -38,6 +38,11 @@ function parse(value, fallback = {}) {
   catch (_) { return fallback; }
 }
 
+function canonicalObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  try { return JSON.parse(JSON.stringify(value)); } catch (_) { return {}; }
+}
+
 function recoveryError(code, message, details = {}) {
   return Object.assign(new Error(message), { code, ...details });
 }
@@ -112,13 +117,16 @@ function attemptSnapshot(row = {}) {
 }
 
 function receiptSnapshot(row = {}) {
+  const resultValue = row.result && typeof row.result === 'object' && !Array.isArray(row.result)
+    ? canonicalObject(row.result)
+    : parse(row.result_json, {});
   return deepFreeze({
     executionId: clean(row.executionId || row.execution_id),
     intentId: clean(row.intentId || row.intent_id),
     attemptId: clean(row.attemptId || row.attempt_id),
     receiptId: clean(row.receiptId || row.receipt_id),
     receiptType: clean(row.receiptType || row.receipt_type).toUpperCase(),
-    result: deepFreeze(parse(row.result ?? row.result_json, {})),
+    result: deepFreeze(resultValue),
     authorityTimestamp: clean(row.authorityTimestamp || row.authority_timestamp),
     createdAt: clean(row.createdAt || row.created_at)
   });
@@ -158,10 +166,11 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput, 
     .map(attemptSnapshot)
     .filter(attempt => attempt.attemptId));
   const persistedAttemptCount = attempts.length;
-  const trustedReceipt = latestTrustedReceipt(receiptsInput);
-  const persistedReceiptCount = (Array.isArray(receiptsInput) ? receiptsInput : [])
+  const normalizedReceipts = (Array.isArray(receiptsInput) ? receiptsInput : [])
     .map(receiptSnapshot)
-    .filter(receipt => receipt.receiptId && RECEIPT_TYPES.has(receipt.receiptType)).length;
+    .filter(receipt => receipt.receiptId && RECEIPT_TYPES.has(receipt.receiptType));
+  const trustedReceipt = normalizedReceipts.length ? normalizedReceipts[normalizedReceipts.length - 1] : null;
+  const persistedReceiptCount = normalizedReceipts.length;
 
   const base = {
     persistedAttemptCount,
@@ -271,8 +280,6 @@ function decideRecovery(executionInput, attemptsInput, authorityTimestampInput, 
     });
   }
 
-  // A persisted physical attempt without a trusted receipt leaves remote truth
-  // unknown. Recovery may never infer absence or perform an automatic retry.
   if (persistedAttemptCount > 0) {
     const cancellation = execution.state === STATES.CANCEL_REQUESTED;
     return deepFreeze({
