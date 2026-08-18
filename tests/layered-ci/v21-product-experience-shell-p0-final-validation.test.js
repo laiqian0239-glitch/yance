@@ -24,11 +24,13 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-experience-bilingual-search-translation-task-ux-p0'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-prelaunch-dating-ai-experience-amendment-wp1'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
     'product/v21-product-experience-bilingual-search-translation-task-ux-p0',
     'product/v21-product-experience-shell-p0',
     'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1',
+    'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3',
     'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0'
   ].sort());
   assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
