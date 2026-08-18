@@ -34,6 +34,7 @@ const V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS = Object.freeze([
   'third_party/licenses/types-howler-MIT.txt',
   'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch'
 ]);
+const WP1_APPEARANCE_PATCH = 'upstream-patches/element-web/0014-yance-module-appearance-authority.patch';
 
 test('V2.1 Product Experience Shell P0 bootstrap paths are exact PRODUCT_WP0 routes', () => {
   assert.equal(new Set(V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS).size, 23);
@@ -49,6 +50,15 @@ test('V2.1 Product Experience Shell P0 bootstrap paths are exact PRODUCT_WP0 rou
   assert.equal(aggregate.pass, true, JSON.stringify(aggregate));
   assert.equal(aggregate.route, ROUTES.PRODUCT);
   assert.equal(aggregate.productChangesPresent, true);
+});
+
+test('WP-1 Element appearance seam is an exact PRODUCT_WP0 route without broad upstream authorization', () => {
+  assert.equal(policy.productExactPaths.includes(WP1_APPEARANCE_PATCH), true, WP1_APPEARANCE_PATCH);
+  assert.equal(policy.productPrefixes.includes('upstream-patches/'), false, 'upstream-patches/');
+  const result = classifyWp0Route(policy, [WP1_APPEARANCE_PATCH]);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.route, ROUTES.PRODUCT);
+  assert.equal(result.productChangesPresent, true);
 });
 
 test('V2.1 Product Experience route bootstrap does not authorize broad product prefixes', () => {
