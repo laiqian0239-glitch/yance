@@ -1727,6 +1727,13 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     }
   }
 
+  const supersededAuthorizationPaths = [];
+  let supersessionCursor = match.authorizationPath;
+  while (edges.has(supersessionCursor)) {
+    supersessionCursor = edges.get(supersessionCursor);
+    supersededAuthorizationPaths.push(supersessionCursor);
+  }
+
   return Object.freeze({
     pass: true,
     reasonCode: null,
@@ -1735,6 +1742,7 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     authorizationMergeCommit: match.mergeCommit,
     implementationBase,
     reviewedAuthorizationHead: match.reviewedHead,
+    supersededAuthorizationPaths: Object.freeze([...supersededAuthorizationPaths]),
     unauthorizedPaths: Object.freeze([])
   });
 }

@@ -1499,6 +1499,55 @@ test('later effective delegated authorization supersedes the exact earlier imple
       evaluatedHead: trustedMainHead
     });
     assert.equal(replacement.pass, true, JSON.stringify(replacement));
+    assert.deepEqual(replacement.supersededAuthorizationPaths, [v1AuthorizationPath]);
+
+    const v3AuthorizationPath = 'governance/layered-ci/supersession-v3-authorization.json';
+    const v3AuthorizationBranch = 'governance/supersession-v3-authorization';
+    const v3ImplementationBranch = 'fix/supersession-v3';
+    const v3Authorization = genericDelegatedAuthorization({
+      allowedChangedPaths,
+      document: {
+        workPackage: 'SUPERSESSION-V3',
+        supersedes: {
+          authorizationPath: v2AuthorizationPath,
+          implementationBranch: v2ImplementationBranch,
+          reason: 'replace exact v2 delegated authority'
+        },
+        base: { branch: 'main', commit: trustedMainHead },
+        authorizationBranch: {
+          name: v3AuthorizationBranch,
+          allowedChangedPaths: [v3AuthorizationPath],
+          mustRemainSingleFile: true
+        },
+        implementation: exactImplementation(v3ImplementationBranch)
+      }
+    });
+
+    git('switch', '-c', v3AuthorizationBranch);
+    write(v3AuthorizationPath, `${JSON.stringify(v3Authorization, null, 2)}\n`);
+    git('add', v3AuthorizationPath);
+    git('commit', '-m', 'authorize v3 supersession');
+    const v3ReviewedHead = git('rev-parse', 'HEAD');
+
+    git('switch', 'main');
+    git('merge', '--no-ff', v3AuthorizationBranch, '-m', 'merge v3 authorization');
+    const trustedMainHeadV3 = git('rev-parse', 'HEAD');
+    assert.deepEqual(git('rev-list', '--parents', '-n', '1', trustedMainHeadV3).split(/\s+/u).slice(1), [
+      trustedMainHead,
+      v3ReviewedHead
+    ]);
+
+    const finalReplacement = evaluateTrustedDelegatedGovernanceBranch({
+      branch: v3ImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead: trustedMainHeadV3,
+      evaluatedHead: trustedMainHeadV3
+    });
+    assert.equal(finalReplacement.pass, true, JSON.stringify(finalReplacement));
+    assert.deepEqual(finalReplacement.supersededAuthorizationPaths, [
+      v2AuthorizationPath,
+      v1AuthorizationPath
+    ]);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

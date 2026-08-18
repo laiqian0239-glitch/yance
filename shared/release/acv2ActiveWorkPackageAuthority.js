@@ -351,16 +351,8 @@ function isAuthorizedWpBImplementationBranch(
   });
   if (delegated?.pass !== true) return false;
   if (delegated.authorizationPath === WP_B_M3_SUCCESSOR_AUTHORIZATION_PATH) return true;
-
-  const predecessor = evaluateTrustedDelegatedGovernanceBranch({
-    branch: WP_B_M3_SUCCESSOR_IMPLEMENTATION_BRANCH,
-    trustedPolicyRoot: repositoryRoot(options),
-    ...(options.delegatedGovernance || {})
-  });
-  return Boolean(predecessor?.pass === false
-    && predecessor.reasonCode === 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED'
-    && predecessor.authorizationPath === WP_B_M3_SUCCESSOR_AUTHORIZATION_PATH
-    && predecessor.supersededByAuthorizationPath === delegated.authorizationPath);
+  return Array.isArray(delegated.supersededAuthorizationPaths)
+    && delegated.supersededAuthorizationPaths.includes(WP_B_M3_SUCCESSOR_AUTHORIZATION_PATH);
 }
 
 function evaluateAuthorizedWpBScope(options = {}) {
