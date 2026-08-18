@@ -301,3 +301,88 @@ test('late stale results have a separate append-only receipt path', () => {
   assert.match(source, /recordLateResult/u);
   assert.match(source, /LATE_RESULT/u);
 });
+
+test('dispatcher binds persisted attempt and receipt to durable execution WAITING_REMOTE and terminal CAS', async () => {
+  const { ExternalActionDispatcher } = dispatcherModule();
+  const calls = [];
+  const executionAuthority = {
+    transition(input) {
+      calls.push(['transition', input.targetState, input.stateVersion]);
+      return Object.freeze({
+        executionId: input.executionId,
+        state: input.targetState,
+        stateVersion: input.stateVersion + 1,
+        generation: input.generation,
+        ownerId: input.ownerId,
+        claimId: input.claimId,
+        hostGeneration: input.hostGeneration,
+        fencingToken: input.fencingToken
+      });
+    }
+  };
+  const dispatcher = new ExternalActionDispatcher({
+    executionAuthority,
+    outboxAuthority: {
+      startAttempt(input) {
+        calls.push(['startAttempt', input.intentId]);
+        return Object.freeze({
+          attemptId: 'attempt-session-restore-1',
+          intentId: input.intentId,
+          stateVersion: 2,
+          generation: input.generation,
+          ownerId: input.ownerId
+        });
+      },
+      recordReceipt(input) {
+        calls.push(['recordReceipt', input.attemptId]);
+        return Object.freeze({ receiptId: 'receipt-session-restore-1', receiptType: 'SUCCESS' });
+      },
+      recordFailureReceipt() { throw new Error('unexpected failure receipt'); },
+      markUncertain() { throw new Error('unexpected uncertain receipt'); }
+    },
+    adapter: Object.freeze({
+      operationKind: 'SESSION_RESTORE',
+      async perform(input) {
+        calls.push(['perform', input.attemptId]);
+        return Object.freeze({
+          providerReceiptId: 'provider-session-restore-1',
+          evidenceReference: 'session-restore:provider-session-restore-1',
+          result: Object.freeze({ state: 'RESTORED' })
+        });
+      }
+    }),
+    issueTimestamp: purpose => ({
+      'external-action-attempt': '2026-08-18T00:00:00.000Z',
+      'external-action-waiting-remote': '2026-08-18T00:00:01.000Z',
+      'external-action-success-receipt': '2026-08-18T00:00:02.000Z',
+      'external-action-terminal-success': '2026-08-18T00:00:03.000Z'
+    })[purpose] || '2026-08-18T00:00:04.000Z'
+  });
+
+  const receipt = await dispatcher.dispatch({
+    executionId: 'execution-session-restore-1',
+    executionStateVersion: 4,
+    executionGeneration: 2,
+    intentId: 'intent-session-restore-1',
+    idempotencyKey: 'session-restore:whatsapp:account-1:1:hash',
+    ownerId: 'authority-host-1',
+    hostId: 'authority-host-1',
+    claimId: 'claim-session-restore-1',
+    generation: 1,
+    hostGeneration: 7,
+    fencingToken: 19,
+    stateVersion: 1,
+    leaseExpiresAt: '2026-08-18T00:02:00.000Z',
+    request: { platform: 'whatsapp', accountReference: 'account-1' }
+  });
+
+  assert.equal(receipt.receiptType, 'SUCCESS');
+  assert.deepEqual(calls.map(call => call[0] === 'transition' ? `${call[0]}:${call[1]}` : call[0]), [
+    'startAttempt',
+    'transition:WAITING_REMOTE',
+    'perform',
+    'recordReceipt',
+    'transition:SUCCEEDED'
+  ]);
+  assert.deepEqual(calls.filter(call => call[0] === 'transition').map(call => call[2]), [4, 5]);
+});
