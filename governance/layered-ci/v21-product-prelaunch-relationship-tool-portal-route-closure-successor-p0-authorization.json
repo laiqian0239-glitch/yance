@@ -61,19 +61,19 @@
   "implementation": {
     "branch": "product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0",
     "allowedChangedPaths": [
-      "upstream-patches/element-web/0013-yance-module-room-state-read.patch",
-      "tools/matrix/bootstrap.js",
-      "integration/element-module/src/index.tsx",
-      "integration/element-module/src/YanceWorkspace.tsx",
       "integration/element-module/src/MediaWorkspace.tsx",
       "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
       "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
       "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
       "integration/element-module/src/product-experience/experienceProjection.ts",
       "tests/wp0/v21-element-workspace-contract.test.js",
-      "tests/wp0/v21-product-experience-shell-interaction.test.js",
       "tests/wp0/v21-media-brain-ui.test.js",
-      "tests/wp0/v21-voice-brain-ui.test.js"
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-voice-brain-ui.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0013-yance-module-room-state-read.patch"
     ],
     "approvedChangedFileCount": 13,
     "approvedChangedFileSetSha256": "5a4020347d3c92f5053a2635707f3999c8ac1e78b313079f094b4ee9b20905ac",
