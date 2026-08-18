@@ -13,7 +13,8 @@ class RuntimeSafetySupervisor {
     this.runtime = options.runtime || null;
     this.sendQueue = options.sendQueue || require('./sendQueueService');
     this.modelStatus = options.modelStatus || require('./modelStatusService');
-    this.backgroundJobs = options.backgroundJobs || require('./backgroundJobAuthority');
+    this.executionStatus = options.executionStatus || options.backgroundJobs || null;
+    this.storeProvider = options.storeProvider || (() => require('../repositories/storeProvider').getPrimaryStoreCapability());
     this.accountManager = options.accountManager || require('./accountManager');
     this.platformReadiness = options.platformReadiness || require('./platformProductionReadinessAuthority');
     this.domainIsolation = options.domainIsolation || getRuntimeDomainIsolationAuthority();
@@ -133,13 +134,32 @@ class RuntimeSafetySupervisor {
     }
 
     try {
-      const jobs = this.backgroundJobs.snapshot({ limit: 50 });
-      const failed = Number(jobs.counts?.FAILED_FINAL || 0);
-      if (failed >= this.finalFailureThreshold) {
-        triggers.push({ code: 'BACKGROUND_JOB_FAILURE_STORM', severity: 'critical', scopeType: 'capability', capability: 'background-jobs', detail: `${failed} 个后台任务最终失败，达到阈值 ${this.finalFailureThreshold}`, evidence: { failedFinal: failed, threshold: this.finalFailureThreshold } });
+      let executionHealth;
+      if (this.executionStatus?.snapshot) {
+        const legacyProjection = this.executionStatus.snapshot({ limit: 50 });
+        executionHealth = {
+          total: Number(legacyProjection.total || legacyProjection.consistency?.total || 0),
+          counted: Number(legacyProjection.consistency?.counted ?? legacyProjection.total ?? 0),
+          failedFinal: Number(legacyProjection.counts?.FAILED_FINAL || 0),
+          consistencyPass: legacyProjection.consistency?.pass !== false
+        };
+      } else {
+        const store = this.storeProvider();
+        const counts = store.db.prepare('SELECT state,COUNT(*) AS count FROM durable_executions GROUP BY state').all();
+        const total = Number(store.db.prepare('SELECT COUNT(*) AS total FROM durable_executions').get()?.total || 0);
+        const counted = counts.reduce((sum, row) => sum + Number(row.count || 0), 0);
+        const failedFinal = counts
+          .filter(row => ['FAILED', 'DEAD_LETTERED'].includes(clean(row.state).toUpperCase()))
+          .reduce((sum, row) => sum + Number(row.count || 0), 0);
+        executionHealth = { total, counted, failedFinal, consistencyPass: counted === total };
       }
-      if (jobs.consistency?.pass === false) {
-        triggers.push({ code: 'BACKGROUND_JOB_COUNT_MISMATCH', severity: 'critical', scopeType: 'system', detail: `后台任务状态汇总 ${jobs.consistency.counted} 与总数 ${jobs.consistency.total} 不一致`, evidence: jobs.consistency });
+      const failed = executionHealth.failedFinal;
+      if (failed >= this.finalFailureThreshold) {
+        triggers.push({ code: 'BACKGROUND_JOB_FAILURE_STORM', severity: 'critical', scopeType: 'capability', capability: 'background-jobs', detail: `${failed} 个持久执行最终失败，达到阈值 ${this.finalFailureThreshold}`, evidence: { failedFinal: failed, threshold: this.finalFailureThreshold, authority: 'DurableExecutionAuthorityV2' } });
+      }
+      if (!executionHealth.consistencyPass) {
+        const evidence = { counted: executionHealth.counted, total: executionHealth.total, authority: 'DurableExecutionAuthorityV2' };
+        triggers.push({ code: 'BACKGROUND_JOB_COUNT_MISMATCH', severity: 'critical', scopeType: 'system', detail: `持久执行状态汇总 ${evidence.counted} 与总数 ${evidence.total} 不一致`, evidence });
       }
     } catch (error) {
       triggers.push({ code: 'BACKGROUND_JOB_STATUS_UNAVAILABLE', severity: 'high', scopeType: 'capability', capability: 'background-jobs', detail: error.message || String(error) });

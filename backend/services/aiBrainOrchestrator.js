@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const { SqliteDocumentStore } = require('../lib/sqliteDocumentStore');
 const eventBus = require('./eventBus');
 const messageStore = require('./messageStore');
@@ -10,7 +11,8 @@ const workspaceData = require('./workspaceDataService');
 const logger = require('./logger');
 const { QUALIFICATION } = require('../../shared/constants');
 const messageSpeakerAuthority = require('./messageSpeakerAuthority');
-const backgroundJobAuthority = require('./backgroundJobAuthority');
+const { currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
+const { currentRuntimeRecoveryAuthority } = require('./durableExecutionRecoveryAuthority');
 const { getRuntimeDomainIsolationAuthority } = require('./runtimeDomainIsolationAuthority');
 const modelBrainProjection = require('./modelBrainProjection');
 
@@ -177,11 +179,10 @@ async function pauseAutomationForIsolation(snapshot = runtimeDomainIsolationAuth
     entry?.controller?.abort?.(error);
     if (entry?.lease) {
       try {
-        backgroundJobAuthority.fail(entry.lease, error, {
+        failCanonicalAnalysis(entry.lease, error, {
           retryable: true,
-          maxAttempts: 20,
           retryDelayMs: 15_000,
-          payload: { conversationId, reason: isolation.reason, isolationReasons: isolation.reasons }
+          reasonCode: 'AI_DOMAIN_ISOLATED'
         });
         deferred += 1;
       } catch (failure) {
@@ -393,7 +394,134 @@ async function processConversation(conversationId, options = {}) {
   }
 }
 
-function analysisJobIdentity(conversationId) {
+function durableAnalysisIdentity(base = {}) {
+  const parts = [
+    base.jobType,
+    base.platform,
+    base.sourceAccountId,
+    base.conversationId,
+    base.entityId,
+    base.revision
+  ].map(value => clean(value));
+  return crypto.createHash('sha256').update(parts.join('\u001f')).digest('hex');
+}
+
+function analysisOperationSpec(identity = {}, maxAttempts = 20) {
+  return {
+    operationType: 'ai.conversation-analysis',
+    scopeKey: clean(identity.conversationId),
+    objectFingerprint: clean(identity.idempotencyKey),
+    maxAttempts: Math.max(1, Number(maxAttempts || 20)),
+    metadata: {
+      accountId: clean(identity.sourceAccountId),
+      messageId: clean(identity.entityId),
+      resultReference: clean(identity.conversationId)
+    }
+  };
+}
+
+function canonicalAnalysisLease(operation = {}) {
+  return Object.freeze({
+    operationId: clean(operation.operationId),
+    generation: Number(operation.generation || 0),
+    objectFingerprint: clean(operation.objectFingerprint)
+  });
+}
+
+function maybeRecoverCanonicalAnalysis(authority, operation) {
+  const now = Date.now();
+  const retryDue = operation?.state === 'RETRY_SCHEDULED'
+    && (!operation.nextAttemptAt || Date.parse(operation.nextAttemptAt) <= now);
+  const leaseExpired = operation?.state === 'RUNNING'
+    && operation.leaseExpiresAt
+    && Date.parse(operation.leaseExpiresAt) <= now;
+  if (!retryDue && !leaseExpired) return operation;
+  currentRuntimeRecoveryAuthority().recoverExecution(operation.operationId, {
+    authorityTimestamp: new Date(now).toISOString()
+  });
+  return authority.read(operation.operationId);
+}
+
+function acquireCanonicalAnalysis(identity, options = {}) {
+  const authority = currentRuntimeInternalOperationAuthority();
+  const created = authority.create(analysisOperationSpec(identity, options.maxAttempts || 20));
+  let operation = maybeRecoverCanonicalAnalysis(authority, created.operation);
+  if (operation.state === 'SCHEDULED') {
+    operation = authority.start(operation.operationId, { progress: 1 }).operation;
+    return { acquired: true, reason: created.created ? 'created' : 'scheduled', operation, lease: canonicalAnalysisLease(operation) };
+  }
+  const reason = operation.state === 'SUCCEEDED'
+    ? 'already-succeeded'
+    : operation.state === 'RETRY_SCHEDULED'
+      ? 'retry-wait'
+      : operation.state === 'RUNNING'
+        ? 'already-running'
+        : ['FAILED', 'DEAD_LETTERED'].includes(operation.state)
+          ? 'failed_final'
+          : operation.state === 'CANCELLED'
+            ? 'cancelled'
+            : clean(operation.state).toLowerCase();
+  return { acquired: false, reason, operation, job: operation, lease: null };
+}
+
+function failCanonicalAnalysis(lease, error, options = {}) {
+  if (!lease?.operationId) return { updated: false, reason: 'missing-lease' };
+  const authority = currentRuntimeInternalOperationAuthority();
+  const errorCode = clean(error?.errorCode || error?.code || options.reasonCode || 'AI_ANALYSIS_FAILED').toUpperCase();
+  return authority.fail(lease.operationId, { errorCode }, {
+    retryable: options.retryable === true,
+    retryDelayMs: Math.max(0, Number(options.retryDelayMs || 0)),
+    generation: lease.generation,
+    objectFingerprint: lease.objectFingerprint,
+    reasonCode: errorCode
+  });
+}
+
+function succeedCanonicalAnalysis(lease, result = {}) {
+  if (!lease?.operationId) return { updated: false, reason: 'missing-lease' };
+  return currentRuntimeInternalOperationAuthority().succeed(lease.operationId, {
+    status: result?.processed === true ? 'processed' : clean(result?.status || 'completed'),
+    reasonCode: clean(result?.reason || '')
+  }, {
+    generation: lease.generation,
+    objectFingerprint: lease.objectFingerprint
+  });
+}
+
+function cancelCanonicalAnalysis(identityOrLease, reason = 'CANCELLED') {
+  const authority = currentRuntimeInternalOperationAuthority();
+  let current = null;
+  const operationId = clean(identityOrLease?.operationId);
+  if (operationId) current = authority.read(operationId);
+  if (!current && identityOrLease?.conversationId) {
+    const candidate = authority.latest({
+      operationType: 'ai.conversation-analysis',
+      scopeKey: clean(identityOrLease.conversationId)
+    });
+    if (candidate?.objectFingerprint === clean(identityOrLease.idempotencyKey)) current = candidate;
+  }
+  if (!current || ['SUCCEEDED', 'FAILED', 'CANCELLED', 'DEAD_LETTERED'].includes(current.state)) {
+    return { updated: false, reason: current ? 'already-terminal' : 'not-found', operation: current };
+  }
+  return authority.cancel(current.operationId, { reasonCode: clean(reason).toUpperCase() || 'CANCELLED' }, {
+    generation: current.generation,
+    objectFingerprint: current.objectFingerprint
+  });
+}
+
+function forcedAnalysisRevision(latest = {}, entityId = '') {
+  const state = [
+    entityId,
+    clean(latest.text || latest.sourceText || latest.transcript),
+    clean(latest.translatedZh || latest.translationZh || latest.translation),
+    clean(latest.translationStatus).toLowerCase(),
+    latest.revoked === true ? 'revoked' : 'active',
+    clean(latest.revokedAt || latest.revoked_at)
+  ];
+  return `${entityId}:force:${crypto.createHash('sha256').update(state.join('\\u001f')).digest('hex')}`;
+}
+
+function analysisJobIdentity(conversationId, options = {}) {
   const latest = latestPeerInboundMessage(conversationId, 200);
   const entityId = clean(latest?.externalMessageId || latest?.id || latest?.dedupeKey);
   if (!entityId) return null;
@@ -403,12 +531,14 @@ function analysisJobIdentity(conversationId) {
     sourceAccountId: clean(latest.accountId || latest.account_id) || 'workspace',
     conversationId: clean(conversationId),
     entityId,
-    // The message repository commits this same identity in the authoritative
-    // message transaction, so process death before debounce cannot lose it.
-    revision: entityId,
+    // Normal inbound acquisition must exactly match the operation committed by
+    // messageRepository inside the authoritative message transaction. Forced
+    // re-analysis derives a deterministic revision from persisted message
+    // state instead of creating a timestamp/random duplicate execution.
+    revision: options.force === true ? forcedAnalysisRevision(latest, entityId) : entityId,
     payload: { conversationId: clean(conversationId), messageId: entityId }
   };
-  return { ...base, idempotencyKey: backgroundJobAuthority.identity(base).idempotencyKey };
+  return { ...base, idempotencyKey: durableAnalysisIdentity(base) };
 }
 
 async function runScheduledAnalysis(conversationId, identity, lease, controller) {
@@ -417,30 +547,32 @@ async function runScheduledAnalysis(conversationId, identity, lease, controller)
   try {
     const result = await processConversation(conversationId, { signal, identity, lease });
     if (result?.cancelled === true) {
-      backgroundJobAuthority.authority.cancel(identity.idempotencyKey, clean(signal?.reason?.code || signal?.reason || 'SUPERSEDED_BY_NEWER_INBOUND'));
+      cancelCanonicalAnalysis(lease || identity, clean(signal?.reason?.code || signal?.reason || 'SUPERSEDED_BY_NEWER_INBOUND'));
     } else if (result?.deferred === true) {
-      backgroundJobAuthority.fail(lease, { code: `AI_ANALYSIS_${clean(result.reason).toUpperCase() || 'DEFERRED'}` }, {
-        retryable: true, maxAttempts: 20, retryDelayMs: 5_000, payload: { conversationId, deferred: true, reason: result.reason }
+      failCanonicalAnalysis(lease, { code: `AI_ANALYSIS_${clean(result.reason).toUpperCase() || 'DEFERRED'}` }, {
+        retryable: true,
+        retryDelayMs: 5_000
       });
     } else if (result?.reason === 'failed') {
-      backgroundJobAuthority.fail(lease, { code: 'AI_ANALYSIS_FAILED', message: result.error || result.reason }, {
-        retryable: true, maxAttempts: 10, retryDelayMs: 15_000, payload: { conversationId }
+      failCanonicalAnalysis(lease, { code: 'AI_ANALYSIS_FAILED' }, {
+        retryable: true,
+        retryDelayMs: 15_000
       });
     } else {
-      backgroundJobAuthority.succeed(lease, { conversationId, processed: result?.processed === true, reason: result?.reason || '' });
+      succeedCanonicalAnalysis(lease, { processed: result?.processed === true, reason: result?.reason || '' });
     }
     return result;
   } catch (error) {
     const abortCode = clean(error?.code || signal?.reason?.code).toUpperCase();
     if (abortCode === 'AI_DOMAIN_ISOLATED') {
-      backgroundJobAuthority.fail(lease, error, { retryable: true, maxAttempts: 20, retryDelayMs: 15_000, payload: { conversationId, reason: 'ai-domain-isolated' } });
+      failCanonicalAnalysis(lease, error, { retryable: true, retryDelayMs: 15_000, reasonCode: 'AI_DOMAIN_ISOLATED' });
       return { processed: false, deferred: true, reason: 'ai-domain-isolated' };
     }
     if (signal?.aborted) {
-      backgroundJobAuthority.authority.cancel(identity.idempotencyKey, clean(error?.code || signal.reason?.code || 'SUPERSEDED_BY_NEWER_INBOUND'));
+      cancelCanonicalAnalysis(lease || identity, clean(error?.code || signal.reason?.code || 'SUPERSEDED_BY_NEWER_INBOUND'));
       return { processed: false, cancelled: true, reason: 'cancelled-or-superseded' };
     }
-    backgroundJobAuthority.fail(lease, error, { retryable: true, maxAttempts: 10, retryDelayMs: 15_000, payload: { conversationId } });
+    failCanonicalAnalysis(lease, error, { retryable: true, retryDelayMs: 15_000 });
     throw error;
   } finally {
     const current = analysisControllers.get(conversationId);
@@ -459,7 +591,7 @@ function schedule(conversationId, options = {}) {
     eventBus.publish('ai:automation-isolated', { conversationId: id, reasons: isolation.reasons, at: nowIso() });
     return false;
   }
-  const identity = analysisJobIdentity(id);
+  const identity = analysisJobIdentity(id, options);
   if (!identity) return false;
 
   const previous = timers.get(id);
@@ -470,7 +602,7 @@ function schedule(conversationId, options = {}) {
     const active = analysisControllers.get(id);
     if (active?.identity?.idempotencyKey === previous.identity.idempotencyKey) active.controller?.abort?.(cancelError);
     try {
-      const cancelled = backgroundJobAuthority.authority.cancel(previous.identity.idempotencyKey, 'SUPERSEDED_BY_NEWER_INBOUND');
+      const cancelled = cancelCanonicalAnalysis(previous.lease || previous.identity, 'SUPERSEDED_BY_NEWER_INBOUND');
       if (!cancelled.updated) eventBus.publish('ai-analysis:durable-cancel-noop', { conversationId: id, idempotencyKey: previous.identity.idempotencyKey, at: nowIso() });
     } catch (error) {
       logger.error('models', 'ai-analysis-durable-cancel-failed', { conversationId: id, idempotencyKey: previous.identity.idempotencyKey, code: error.code || '', error: error.message });
@@ -478,12 +610,8 @@ function schedule(conversationId, options = {}) {
     }
   }
 
-  const acquired = backgroundJobAuthority.begin(identity, {
-    maxAttempts: 20,
-    force: options.force === true,
-    staleRunningMs: Math.max(10_000, Number(config.debounceMs || 2500) * 4)
-  });
-  if (!acquired.acquired && ['already-succeeded','failed_final','cancelled','superseded'].includes(clean(acquired.reason).toLowerCase())) {
+  const acquired = acquireCanonicalAnalysis(identity, { maxAttempts: 20 });
+  if (!acquired.acquired && ['already-succeeded','failed_final','cancelled'].includes(clean(acquired.reason).toLowerCase())) {
     updateDocument(current => current).catch(() => {});
     return false;
   }
@@ -493,9 +621,10 @@ function schedule(conversationId, options = {}) {
     updateDocument(current => current).catch(() => {});
     if (controller.signal.aborted) return;
     if (!acquired.acquired) {
-      // The durable job may still be running or waiting for retry. Recheck
-      // rather than losing the trigger in memory.
-      setTimeout(() => schedule(id), 2_000).unref?.();
+      // The durable operation is still owned or waiting for its persisted
+      // retry time. Re-acquire from Schema 23 instead of losing the trigger in
+      // an in-memory debounce queue.
+      setTimeout(() => schedule(id, options), 2_000).unref?.();
       return;
     }
     runScheduledAnalysis(id, identity, acquired.lease, controller).catch(error => logger.warn('models', 'ai-automation-unhandled', { conversationId: id, error: error.message }));
@@ -511,70 +640,87 @@ function recoverStartupAnalyses(options = {}) {
   if (isolation.blocked) {
     return { scanned: 0, recovered: 0, remaining: 0, oldestPendingAt: '', pages: 0, budgetExhausted: false, conversationsScanned: 0, blocked: true, reason: isolation.reason, isolationReasons: isolation.reasons };
   }
-  const backgroundJobs = options.backgroundJobs || backgroundJobAuthority;
   const scheduleAnalysis = options.scheduleAnalysis || schedule;
   const listConversations = options.listConversations || (() => messageStore.listConversations());
   const latestInbound = options.latestPeerInbound || latestPeerInboundMessage;
   const clock = typeof options.now === 'function' ? options.now : Date.now;
-  const pageSize = Math.max(1, Math.min(5000, Number(options.pageSize || 500)));
-  const maxPages = Math.max(1, Number(options.maxPages || 1000));
-  const timeBudgetMs = Math.max(1, Number(options.timeBudgetMs || 5000));
-  const startedAt = Number(clock());
-  const dueBefore = new Date(startedAt).toISOString();
-  const states = ['PENDING', 'RUNNING', 'RETRY_WAIT'];
 
-  backgroundJobs.recoverInterrupted({
-    jobType: 'ai-conversation-analysis',
-    staleRunningMs: 1_000,
-    retryDelayMs: 1_000,
-    now: startedAt
-  });
-
-  let cursor = null;
-  let hasMore = true;
-  let scanned = 0;
-  let recovered = 0;
-  let pages = 0;
-  let oldestPendingAt = '';
-  while (hasMore && pages < maxPages && Number(clock()) - startedAt <= timeBudgetMs) {
-    const snapshot = backgroundJobs.snapshot({
+  // Non-production compatibility for historical unit fixtures. Production has
+  // no import or fallback to BackgroundJobAuthority; AppRuntime recovery owns
+  // durable mutation before this scan executes.
+  if (options.backgroundJobs) {
+    const backgroundJobs = options.backgroundJobs;
+    const pageSize = Math.max(1, Math.min(5000, Number(options.pageSize || 500)));
+    const maxPages = Math.max(1, Number(options.maxPages || 1000));
+    const timeBudgetMs = Math.max(1, Number(options.timeBudgetMs || 5000));
+    const startedAt = Number(clock());
+    const dueBefore = new Date(startedAt).toISOString();
+    const states = ['PENDING', 'RUNNING', 'RETRY_WAIT'];
+    backgroundJobs.recoverInterrupted({
       jobType: 'ai-conversation-analysis',
-      states,
-      dueBefore,
-      order: 'oldest',
-      limit: pageSize,
-      cursor
+      staleRunningMs: 1_000,
+      retryDelayMs: 1_000,
+      now: startedAt
     });
-    if (!oldestPendingAt) oldestPendingAt = snapshot.oldestPendingAt || '';
-    scanned += snapshot.jobs.length;
-    pages += 1;
-    for (const job of snapshot.jobs) {
-      const conversationId = clean(job.conversationId || job.payload?.conversationId);
-      if (conversationId && scheduleAnalysis(conversationId, { startupRecovery: true }) === true) recovered += 1;
+    let cursor = null;
+    let hasMore = true;
+    let scanned = 0;
+    let recovered = 0;
+    let pages = 0;
+    let oldestPendingAt = '';
+    while (hasMore && pages < maxPages && Number(clock()) - startedAt <= timeBudgetMs) {
+      const snapshot = backgroundJobs.snapshot({
+        jobType: 'ai-conversation-analysis', states, dueBefore, order: 'oldest', limit: pageSize, cursor
+      });
+      if (!oldestPendingAt) oldestPendingAt = snapshot.oldestPendingAt || '';
+      scanned += snapshot.jobs.length;
+      pages += 1;
+      for (const job of snapshot.jobs) {
+        const conversationId = clean(job.conversationId || job.payload?.conversationId);
+        if (conversationId && scheduleAnalysis(conversationId, { startupRecovery: true }) === true) recovered += 1;
+      }
+      hasMore = snapshot.hasMore === true;
+      cursor = snapshot.nextCursor;
+      if (!snapshot.jobs.length) break;
     }
-    hasMore = snapshot.hasMore === true;
-    cursor = snapshot.nextCursor;
-    if (!snapshot.jobs.length) break;
+    const conversations = listConversations();
+    for (const conversation of conversations) {
+      const id = clean(conversation.id || conversation.sessionKey);
+      if (id && latestInbound(id, 1)) scheduleAnalysis(id, { startupRecovery: true });
+    }
+    const remainingSnapshot = backgroundJobs.snapshot({
+      jobType: 'ai-conversation-analysis', states, order: 'oldest', limit: 1
+    });
+    return {
+      scanned,
+      recovered,
+      remaining: Number(remainingSnapshot.total || 0),
+      oldestPendingAt: remainingSnapshot.oldestPendingAt || oldestPendingAt,
+      pages,
+      budgetExhausted: hasMore,
+      conversationsScanned: conversations.length
+    };
   }
 
   const conversations = listConversations();
+  let scanned = 0;
+  let recovered = 0;
   for (const conversation of conversations) {
     const id = clean(conversation.id || conversation.sessionKey);
-    if (id && latestInbound(id, 1)) scheduleAnalysis(id, { startupRecovery: true });
+    if (!id || !latestInbound(id, 1)) continue;
+    scanned += 1;
+    if (scheduleAnalysis(id, { startupRecovery: true }) === true) recovered += 1;
   }
-  const remainingSnapshot = backgroundJobs.snapshot({
-    jobType: 'ai-conversation-analysis',
-    states,
-    order: 'oldest',
-    limit: 1
-  });
+  const authority = currentRuntimeInternalOperationAuthority();
+  const unresolved = authority.snapshot({ operationType: 'ai.conversation-analysis', limit: 1000 })
+    .filter(operation => !['SUCCEEDED', 'FAILED', 'CANCELLED', 'DEAD_LETTERED'].includes(operation.state));
   return {
     scanned,
     recovered,
-    remaining: Number(remainingSnapshot.total || 0),
-    oldestPendingAt: remainingSnapshot.oldestPendingAt || oldestPendingAt,
-    pages,
-    budgetExhausted: hasMore,
+    remaining: unresolved.length,
+    oldestPendingAt: unresolved.map(operation => operation.createdAt).filter(Boolean).sort()[0] || '',
+    pages: 1,
+    budgetExhausted: unresolved.length >= 1000,
     conversationsScanned: conversations.length
   };
 }

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_B_SOURCE_CLOSURE_BASELINE",
+  "program": "Architecture Closure V2",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP-B",
+  "status": "FROZEN_FOR_CREDIBLE_RED",
+  "authorizationHead": "9977e081abcaf3dfe1a7b5a309b872b0a4660114",
+  "parentMilestone2EvidenceHead": "9f82377119e16f8e02d3b83f0795b452e36f769e",
+  "operationInventoryPath": "governance/architecture-closure-v2/wp-b-operation-inventory.json",
+  "operationInventoryExtensionPaths": [
+    "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json"
+  ],
+  "operationInventoryAnchorBlobSha": "c564fd0c225ddc24317ac2f10c46aa0ad52db691",
+  "discovery": {
+    "roots": [
+      "backend",
+      "electron",
+      "services",
+      "shared/release"
+    ],
+    "excludes": [
+      "backend/tests",
+      "services/facebook-gateway/tests",
+      "services/facebook-worker/tests"
+    ],
+    "runtimeSourceExtensions": [
+      ".js",
+      ".cjs",
+      ".mjs"
+    ]
+  },
+  "requiredReportFields": [
+    "violationCount",
+    "legacyCallablePathCount",
+    "directExternalCallOutsideAdapterCount",
+    "blindRetryPathCount",
+    "legacyWriterPathCount",
+    "legacyRecoveryPathCount",
+    "timerOrReconnectAuthorityPathCount",
+    "unregisteredSourcePathCount"
+  ],
+  "requiredDiagnosticFields": [
+    "inventoryId",
+    "path",
+    "capabilityClass",
+    "reasonCode",
+    "callable"
+  ],
+  "productionTerminalStates": [
+    "DELETED",
+    "DELEGATES_TO_WP_B_AUTHORITY",
+    "READ_ONLY_PROJECTION"
+  ],
+  "nonProductionTerminalStates": [
+    "REGISTERED_NON_PRODUCTION"
+  ],
+  "forbiddenTerminalStates": [
+    "OPEN",
+    "MIGRATED_ENTRYPOINT",
+    "DISABLED_BY_FLAG",
+    "WARNING_ONLY",
+    "LEGACY_FALLBACK_AVAILABLE"
+  ],
+  "governance": {
+    "exactPathsOnly": true,
+    "wildcardPathsAllowed": false,
+    "scannerExclusionForSourceAllowed": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "readyForPromotion": false,
+    "mergeAuthorized": false,
+    "productionUseAuthorized": false,
+    "wpCAuthorized": false,
+    "formalRelease": false,
+    "publish": false
+  }
+}

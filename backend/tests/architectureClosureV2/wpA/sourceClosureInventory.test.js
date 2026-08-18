@@ -6,6 +6,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const scanner = require('../../../../tools/architecture-closure-v2/source-closure-scan');
+const {
+  verifyRegistryExtensionCapabilities
+} = require('../../../../tools/architecture-closure-v2/registry-extension-capability-authority');
 const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
 
 function readJson(relativePath) {
@@ -95,6 +98,74 @@ test('authority registry is complete, single-classified, and bound to real sourc
   }
 });
 
+test('WP-B extends the frozen registry with one exact AuthorityWriteHost Engine source', () => {
+  assert.deepEqual(scanner.REGISTRY_EXTENSION_PATHS, [
+    'governance/architecture-closure-v2/wp-b-authority-registry-extension.json'
+  ]);
+  const extensions = scanner.loadRegistryExtensions();
+  assert.equal(extensions.length, 1);
+  assert.deepEqual(scanner.validateRegistryExtension(extensions[0].document, extensions[0].path), []);
+  const extension = extensions[0].document;
+  assert.equal(extension.workPackage, 'WP-B');
+  assert.equal(extension.status, 'ACTIVE_IMPLEMENTATION');
+  assert.deepEqual(extension.entries, [
+    {
+      registryId: 'WP-B-A0-R32-STORE-ENGINE',
+      sourcePath: 'backend/lib/r32SqliteStoreEngine.js',
+      authoritativeOwner: 'AuthorityWriteHost',
+      classification: 'REGISTERED_INTERNAL_AUTHORITY_SOURCE',
+      allowedCapabilities: ['PRIMARY_DB_CONSTRUCTOR', 'PRIMARY_STORE_CONSTRUCTOR'],
+      publicEntryPoint: 'backend/lib/r32SqliteStore.js',
+      temporaryBypassAllowed: false
+    }
+  ]);
+  assert.equal(extension.governance.exactPathsOnly, true);
+  assert.equal(extension.governance.wildcardPathsAllowed, false);
+  assert.equal(extension.governance.temporaryBypassAllowed, false);
+  assert.equal(extension.governance.warningOnlyAllowed, false);
+});
+
+test('registry extension capabilities exactly match detected source facts', () => {
+  const extensions = scanner.loadRegistryExtensions();
+  for (const extension of extensions) {
+    const report = verifyRegistryExtensionCapabilities(extension.document, {
+      repositoryRoot: repoRoot
+    });
+    assert.equal(report.ok, true);
+    assert.equal(report.entryCount, extension.document.entries.length);
+    for (const entry of report.entries) {
+      assert.deepEqual(entry.declared, entry.detected, entry.sourcePath);
+    }
+  }
+});
+
+test('registry capability authority rejects unknown, missing and unused declarations', () => {
+  const extension = structuredClone(scanner.loadRegistryExtensions()[0].document);
+  extension.entries[0].allowedCapabilities = ['UNKNOWN_CAPABILITY'];
+  assert.throws(
+    () => verifyRegistryExtensionCapabilities(extension, { repositoryRoot: repoRoot }),
+    error => error?.code === 'REGISTRY_EXTENSION_CAPABILITY_UNKNOWN'
+  );
+
+  extension.entries[0].allowedCapabilities = ['PRIMARY_DB_CONSTRUCTOR'];
+  assert.throws(
+    () => verifyRegistryExtensionCapabilities(extension, { repositoryRoot: repoRoot }),
+    error => error?.code === 'REGISTRY_EXTENSION_CAPABILITY_MISMATCH'
+      && error?.undeclared?.includes('PRIMARY_STORE_CONSTRUCTOR')
+  );
+
+  extension.entries[0].allowedCapabilities = [
+    'PRIMARY_DB_CONSTRUCTOR',
+    'PRIMARY_STORE_CONSTRUCTOR',
+    'RECOVERY_OR_FALLBACK_ENTRYPOINT'
+  ];
+  assert.throws(
+    () => verifyRegistryExtensionCapabilities(extension, { repositoryRoot: repoRoot }),
+    error => error?.code === 'REGISTRY_EXTENSION_CAPABILITY_MISMATCH'
+      && error?.unused?.includes('RECOVERY_OR_FALLBACK_ENTRYPOINT')
+  );
+});
+
 test('scanner rejects an unregistered writable primary-store acquisition', () => {
   const registry = readJson(scanner.REGISTRY_PATH);
   const violations = scanner.findUnregisteredSourceCapabilities([
@@ -113,12 +184,57 @@ test('scanner rejects an unregistered writable primary-store acquisition', () =>
   ]);
 });
 
-test('WP-A source closure report is globally closed without weakening discovery', () => {
+test('WP-A source closure report is globally closed across frozen and active registry layers', () => {
+  const registry = readJson(scanner.REGISTRY_PATH);
+  const extensions = scanner.loadRegistryExtensions();
+  const extensionEntries = extensions.flatMap(extension => extension.document.entries || []);
+  const registeredPaths = new Set([
+    ...registry.entries.map(entry => scanner.normalizePath(entry.path)),
+    ...extensionEntries.map(entry => scanner.normalizePath(entry.sourcePath))
+  ]);
   const report = scanner.scanRegisteredSources({ wp: 'A' });
+
+  assert.equal(report.schemaVersion, 3);
   assert.ok(report.scannedSourceFiles > 0, 'source closure must scan real backend source files');
+  assert.equal(report.registryEntries, registry.entries.length);
+  assert.equal(report.registryExtensionEntries, extensionEntries.length);
+  assert.equal(report.totalRegisteredSourcePaths, registeredPaths.size);
   assert.equal(report.counts.REGISTRY_INVALID || 0, 0, 'governance registry/configuration must remain valid');
   assert.deepEqual(report.violations, []);
   assert.equal(report.violationCount, 0);
   assert.deepEqual(report.counts, {});
   assert.equal(report.ok, true);
+});
+
+test('source closure scan itself rejects capability drift and missing extension documents', () => {
+  const registry = readJson(scanner.REGISTRY_PATH);
+  const loaded = scanner.loadRegistryExtensions();
+  const extension = structuredClone(loaded[0].document);
+  extension.entries[0].allowedCapabilities = ['PRIMARY_DB_CONSTRUCTOR'];
+  const sourcePath = extension.entries[0].sourcePath;
+  const violations = scanner.findUnregisteredSourceCapabilities([
+    {
+      path: sourcePath,
+      source: fs.readFileSync(path.join(repoRoot, sourcePath), 'utf8')
+    }
+  ], registry, [{ path: loaded[0].path, document: extension, loadError: null }]);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].violationClass, 'REGISTRY_INVALID');
+  assert.equal(violations[0].code, 'REGISTRY_EXTENSION_CAPABILITY_MISMATCH');
+  assert.deepEqual(violations[0].undeclared, ['PRIMARY_STORE_CONSTRUCTOR']);
+
+  const missingPath = 'governance/architecture-closure-v2/definitely-missing-registry-extension.json';
+  const missing = scanner.loadRegistryExtensions([missingPath]);
+  assert.equal(missing.length, 1);
+  assert.equal(missing[0].document, null);
+  assert.deepEqual(missing[0].loadError, {
+    code: 'REGISTRY_EXTENSION_DOCUMENT_MISSING',
+    path: missingPath
+  });
+  const report = scanner.scanRegisteredSources({ wp: 'A', registryExtensions: missing });
+  assert.equal(report.ok, false);
+  assert.ok(report.violations.some(violation =>
+    violation.code === 'REGISTRY_EXTENSION_DOCUMENT_MISSING'
+      && violation.path === missingPath
+  ));
 });

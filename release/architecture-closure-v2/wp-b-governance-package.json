@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_ACV2_WP_B_APPLICATION_GOVERNANCE_PACKAGE",
+  "workPackage": "WP-B",
+  "status": "EVIDENCE_BOUND_RELEASE_CLOSED",
+  "sourceAuthorityRoot": "governance/architecture-closure-v2",
+  "sourceBindings": [
+    {
+      "path": "governance/architecture-closure-v2/wp-b-baseline.json",
+      "documentType": "YANCE_ACV2_WP_B_BASELINE",
+      "gitBlobSha": "177da0b051b2199b58004729b7e7597c69460959"
+    },
+    {
+      "path": "governance/architecture-closure-v2/wp-b-design-authorization.json",
+      "documentType": "YANCE_ACV2_WP_B_IMPLEMENTATION_AUTHORIZATION",
+      "gitBlobSha": "a69061f6a5722096ae3b95b2a88037dc1923c4e0"
+    },
+    {
+      "path": "governance/architecture-closure-v2/wp-b-operation-inventory.json",
+      "documentType": "YANCE_ACV2_WP_B_OPERATION_INVENTORY",
+      "gitBlobSha": "3714fe1cbd94dd522ce8631cf6fe81266d046d68"
+    },
+    {
+      "path": "governance/architecture-closure-v2/wp-b-open-source-adoption-registry.json",
+      "documentType": "YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_REGISTRY",
+      "gitBlobSha": "cf359c3fb8caa313e495eb277af64b1f72ba646b"
+    },
+    {
+      "path": "governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json",
+      "documentType": "YANCE_ACV2_WP_B_XSTATE_ADOPTION_EVIDENCE",
+      "gitBlobSha": "0afe0ba776c317f11436ca101cb865c14908a023"
+    },
+    {
+      "path": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "documentType": "YANCE_ACV2_WP_B_XSTATE_SUPPLY_CHAIN_LOCK",
+      "gitBlobSha": "bea185be1ab40c29d1652dba45c94c7819b1ddf6"
+    }
+  ],
+  "packaging": {
+    "applicationRoot": "resources/app",
+    "inclusionRoot": "release",
+    "packagedRelativePath": "release/architecture-closure-v2/wp-b-governance-package.json",
+    "bytesMustMatchReviewedPackage": true,
+    "symlinkAllowed": false
+  },
+  "observations": {
+    "operationInventory": {
+      "reviewedHead": "efe346fe6c382d6f5fea060e5badb0ed4e2a62ff",
+      "workflowRunId": 30811412096,
+      "ubuntuGovernanceJobId": 91678713208,
+      "windowsGovernanceJobId": 91678713210,
+      "unregisteredPathCount": 0
+    },
+    "xstate": {
+      "version": "5.32.5",
+      "upstreamCommit": "c25dba07a2b68565edbe83d83c5d679dd85e00b2",
+      "command": "corepack pnpm test:core",
+      "testFilePassCount": 75,
+      "testPassCount": 1747,
+      "testFailCount": 0,
+      "upstreamSkipCount": 13,
+      "upstreamTodoCount": 1
+    }
+  },
+  "governance": {
+    "reviewGate1": "CHANGES_REQUIRED",
+    "milestone1": "NOT_SEALED",
+    "milestone2": "NOT_STARTED",
+    "productionUseAuthorized": false,
+    "formalRelease": false,
+    "publish": false,
+    "wpCAuthorized": false,
+    "temporaryBypassAllowed": false
+  }
+}

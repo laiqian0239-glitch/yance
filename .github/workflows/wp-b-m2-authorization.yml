@@ -1,0 +1,144 @@
+name: WP-B M2 Authorization
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wp-b-m2-authorization.yml
+      - backend/tests/architectureClosureV2/wpB/m1SealContinuation.test.js
+      - backend/tests/architectureClosureV2/wpB/m2Authorization.test.js
+      - governance/architecture-closure-v2/wp-b-m1-review.json
+      - governance/architecture-closure-v2/wp-b-m2-authorization.json
+      - governance/architecture-closure-v2/wp-b-m2-red-evidence.json
+      - shared/release/acv2ActiveWorkPackageAuthority.js
+      - shared/release/acv2ActiveWorkPackageAuthorityEngine.js
+      - tools/architecture-closure-v2/capture-wp-b-m2-red-evidence.js
+      - tools/architecture-closure-v2/verify-wp-b-m1-review.js
+      - tools/architecture-closure-v2/verify-wp-b-m2-authorization.js
+      - tests/wp0/acv2-work-package-scope-wiring.test.js
+      - tests/wp0/implementation-branch-policy.test.js
+  push:
+    branches:
+      - acv2/wp-b-durable-execution-outbox
+    paths:
+      - .github/workflows/wp-b-m2-authorization.yml
+      - backend/tests/architectureClosureV2/wpB/m1SealContinuation.test.js
+      - backend/tests/architectureClosureV2/wpB/m2Authorization.test.js
+      - governance/architecture-closure-v2/wp-b-m1-review.json
+      - governance/architecture-closure-v2/wp-b-m2-authorization.json
+      - governance/architecture-closure-v2/wp-b-m2-red-evidence.json
+      - shared/release/acv2ActiveWorkPackageAuthority.js
+      - shared/release/acv2ActiveWorkPackageAuthorityEngine.js
+      - tools/architecture-closure-v2/capture-wp-b-m2-red-evidence.js
+      - tools/architecture-closure-v2/verify-wp-b-m1-review.js
+      - tools/architecture-closure-v2/verify-wp-b-m2-authorization.js
+      - tests/wp0/acv2-work-package-scope-wiring.test.js
+      - tests/wp0/implementation-branch-policy.test.js
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  IMPLEMENTATION_BRANCH: ${{ github.head_ref || github.ref_name }}
+  VALIDATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  authorization-contracts:
+    name: wp-b-m2-authorization-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - name: Checkout exact authorization commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.VALIDATION_SHA }}
+          fetch-depth: 0
+          fetch-tags: false
+          lfs: false
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Establish exact trusted implementation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const authority=require('./shared/release/acv2ActiveWorkPackageAuthority');if(!authority.isAuthorizedWpBImplementationBranch(process.env.IMPLEMENTATION_BRANCH)){console.error('WP_B_ACTIVE_IMPLEMENTATION_BRANCH_UNAUTHORIZED');process.exit(1)}"
+          test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+          git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
+          test "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})" = "${VALIDATION_SHA}"
+          git switch --force-create "${IMPLEMENTATION_BRANCH}" "${VALIDATION_SHA}"
+          test "$(git branch --show-current)" = "${IMPLEMENTATION_BRANCH}"
+          test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
+
+      - name: Validate existing and contract syntax
+        shell: bash
+        run: |
+          node --check tools/architecture-closure-v2/verify-wp-b-m1-review.js
+          node --check tools/architecture-closure-v2/verify-wp-b-m2-authorization.js
+          node --check tools/architecture-closure-v2/capture-wp-b-m2-red-evidence.js
+          node --check backend/tests/architectureClosureV2/wpB/m1SealContinuation.test.js
+          node --check backend/tests/architectureClosureV2/wpB/m2Authorization.test.js
+          node --check shared/release/acv2ActiveWorkPackageAuthority.js
+          node --check shared/release/acv2ActiveWorkPackageAuthorityEngine.js
+
+      - name: Run immutable seal continuation and M2 authorization contracts
+        shell: bash
+        run: |
+          node --test --test-concurrency=1 \
+            backend/tests/architectureClosureV2/wpB/m1SealContinuation.test.js \
+            backend/tests/architectureClosureV2/wpB/m2Authorization.test.js
+
+      - name: Run WP0 authority wiring regressions when authorization exists
+        if: ${{ hashFiles('governance/architecture-closure-v2/wp-b-m2-authorization.json') != '' }}
+        shell: bash
+        run: |
+          node --test --test-concurrency=1 \
+            tests/wp0/acv2-work-package-scope-wiring.test.js \
+            tests/wp0/implementation-branch-policy.test.js
+
+      - name: Verify standalone M2 authorization
+        shell: bash
+        run: node tools/architecture-closure-v2/verify-wp-b-m2-authorization.js
+
+      - name: Verify immutable M2 RED evidence locally and remotely
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/architecture-closure-v2/capture-wp-b-m2-red-evidence.js --remote
+
+      - name: Confirm clean validation workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+  gate:
+    name: wp-b-m2-authorization-gate
+    if: ${{ always() }}
+    needs:
+      - authorization-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Enforce authorization contracts
+        shell: bash
+        env:
+          AUTHORIZATION_RESULT: ${{ needs.authorization-contracts.result }}
+        run: |
+          set -euo pipefail
+          test "${AUTHORIZATION_RESULT}" = "success"
