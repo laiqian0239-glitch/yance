@@ -3,18 +3,40 @@
   gap: 12px;
   padding: 16px;
   min-width: 280px;
-  color: var(--cpd-color-text-primary, #e6ecec);
+  border: 1px solid var(--border-default, currentcolor);
+  border-radius: 16px;
+  color: var(--text-primary, inherit);
+  background: var(--surface-panel, transparent);
+  font-size: var(--type-body, 1rem);
+  line-height: var(--leading-body, 1.58);
 }
 .yance-presence-workspace header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .yance-presence-workspace header div { display: grid; gap: 4px; }
-.yance-presence-workspace header span, .presence-status, .yance-presence-workspace dd { opacity: .78; }
-.presence-health { font-size: 12px; border: 1px solid currentColor; border-radius: 999px; padding: 3px 8px; }
-.presence-media { min-height: 180px; display: grid; place-items: center; overflow: hidden; border-radius: 12px; background: rgba(0, 0, 0, .32); }
+.yance-presence-workspace header strong { color: var(--text-primary, inherit); font-size: var(--type-card-title, 1rem); }
+.yance-presence-workspace header div span,
+.presence-status,
+.yance-presence-workspace dd,
+.presence-media-placeholder { color: var(--text-secondary, inherit); font-size: var(--type-caption, .9em); }
+.presence-health { font-size: var(--type-meta, .8rem); border: 1px solid var(--border-default, currentcolor); border-radius: 999px; padding: 3px 8px; }
+.presence-health.ready { color: var(--status-success, currentcolor); }
+.presence-health.degraded { color: var(--status-warning, currentcolor); }
+.presence-media { min-height: 180px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--border-default, currentcolor); border-radius: 12px; background: var(--surface-card, transparent); }
 .presence-media .presence-remote-media { width: 100%; max-height: 360px; object-fit: contain; }
 .presence-media audio.presence-remote-media { min-height: 36px; }
-.presence-media-placeholder { margin: -8px 0 0; font-size: 12px; opacity: .68; }
+.presence-media-placeholder { margin: -8px 0 0; }
+.yance-presence-workspace label { display: grid; gap: 6px; color: var(--text-secondary, inherit); font-size: var(--type-control, 1rem); }
 .presence-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.presence-actions button, .yance-presence-workspace select { min-height: 34px; }
+.presence-actions button,
+.yance-presence-workspace select {
+  min-height: var(--control-min-height, 34px);
+  border: 1px solid var(--border-default, currentcolor);
+  color: var(--text-primary, inherit);
+  background: var(--surface-control, transparent);
+  font: inherit;
+}
+.presence-actions button:hover:not(:disabled) { border-color: var(--border-active, currentcolor); background: var(--surface-control-hover, var(--surface-control, transparent)); }
+.yance-presence-workspace :focus-visible { outline: none; box-shadow: var(--focus-ring, 0 0 0 2px currentcolor); }
 .yance-presence-workspace dl { display: grid; gap: 8px; margin: 0; }
 .yance-presence-workspace dl div { display: flex; justify-content: space-between; gap: 12px; }
 .yance-presence-workspace dt, .yance-presence-workspace dd { margin: 0; }
+.yance-presence-workspace dt { color: var(--text-secondary, inherit); font-size: var(--type-caption, .9em); }
