@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-18T18:21:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-PRELAUNCH-RELATIONSHIP-TOOL-ROUTE-BOOTSTRAP",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Pre-launch Product audit found that the correct relationship-tool route closure needs one narrow read-only Element module API seam for authoritative Matrix room state. The new replayable upstream patch path upstream-patches/element-web/0013-yance-module-room-state-read.patch is not yet known to the trusted-main WP0 classifier, which intentionally fails closed on unknown paths. Candidate-owned routing changes, broad upstream-patches prefixes, and hiding the change inside an unrelated existing patch are forbidden. This bootstrap authorizes only one exact PRODUCT_WP0 route plus one routing regression contract; it does not authorize the Product implementation itself.",
+  "base": {
+    "branch": "main",
+    "commit": "4ddbed262e1a7eeb164593df185b05325ea34142"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "4ddbed262e1a7eeb164593df185b05325ea34142",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "evidence": {
+    "sourcePullRequest": 474,
+    "sourceExactHead": "8fe752f5d6d03034a57800ee19291e7b132cd95c",
+    "sourceAutomatedGatesGreen": true,
+    "manualRootCauseReviewRejectedOriginalDesign": true,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPathsRequiredForCorrectedDesign": [
+      "upstream-patches/element-web/0013-yance-module-room-state-read.patch"
+    ],
+    "trustedRoutingPolicyCommit": "4ddbed262e1a7eeb164593df185b05325ea34142",
+    "designEvidence": [
+      "Pinned Element v1.12.25 module API exposes room identity but no read-only room-state access.",
+      "Pinned mautrix bridgev2 writes authoritative portal identity into standard Matrix m.bridge / uk.half-shot.bridge state.",
+      "Yance Store conversation projections already own canonical platform/account/session routing and fail closed on ambiguity.",
+      "The corrected design therefore requires a narrow Element room-state read seam, not a new Yance route registry, bridge token, backend route, or second Matrix store."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-prelaunch-relationship-tool-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-prelaunch-relationship-tool-route-bootstrap-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "6f962d99a3229d1b4faf8e960c03755734aaf5a8971000383c1f7cd7f07030e1",
+    "mustRemainSingleFile": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-product-prelaunch-relationship-tool-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-product-prelaunch-relationship-tool-route-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "964c7105b0aadaf54a77f7f4852e94ef8c65131ff0df2211efd9f34186b3a1e4",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-prelaunch-relationship-tool-route-routing.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "c2f62f8011220e00ffb7fd9694f6b9e0f4ce08fbeb7a9d868e96cbe752eea6bf",
+      "productionCodeChanged": false
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "bootstrapPaths": [
+    "upstream-patches/element-web/0013-yance-module-room-state-read.patch"
+  ],
+  "bootstrapPathCount": 1,
+  "bootstrapPathSetSha256": "4ef4a9c479711a188ba4bce577c945b7f2fd1a376364792799f8a103c4ddd390",
+  "routePolicy": {
+    "targetCollection": "productExactPaths",
+    "broadPrefixExpansionForbidden": true,
+    "schemaVersionMustRemain": 2,
+    "unknownPathFailsClosedMustRemain": true,
+    "mixedChangesEscalateToProductMustRemain": true
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 474,
+    "candidateBranch": "governance/v21-product-prelaunch-relationship-tool-route-closure-p0-authorization",
+    "candidateObservedHead": "8fe752f5d6d03034a57800ee19291e7b132cd95c",
+    "candidateMustRemainUnmerged": true,
+    "candidateImplementationMustNotStart": true,
+    "candidateHistoryRewriteAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before route implementation, the trusted-main classifier reports WP0_ROUTE_UNKNOWN_PATH for upstream-patches/element-web/0013-yance-module-room-state-read.patch.",
+    "After route implementation the exact 0013 room-state read patch independently selects PRODUCT_WP0.",
+    "The bootstrap adds only the one literal 0013 path to productExactPaths and does not add upstream-patches/ or upstream-patches/element-web/ product prefixes.",
+    "Unknown and malformed repository paths continue to fail closed.",
+    "Governance and product-documentation precedence remains unchanged.",
+    "No Product implementation path, Element patch content, dependency manifest, workflow, release policy, promotion authority, backend, runtime authority, Voice, Media, Presence, Learning, or unrelated work package is modified by this route bootstrap."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head remains one file, is based on unchanged trusted main, and passes all applicable governance gates.",
+    "Authorization PR merges to main by ordinary two-parent merge without rebase, squash, force push or history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "A one-test-file first implementation commit proves causal route RED for the exact 0013 path before policy implementation.",
+    "Only upstream-patches/element-web/0013-yance-module-room-state-read.patch is added to productExactPaths.",
+    "Route implementation exact Head passes applicable Stage, Layered, ACV2 and independent review gates.",
+    "Route implementation PR merges to main by ordinary two-parent merge.",
+    "Only after that trusted-main merge may a corrected prospective Product relationship-tool authorization include the 0013 path."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "directCandidateSelfAuthorization": true,
+    "candidateScopeExpansion": true,
+    "workflowModification": true,
+    "existingPatchSemanticOverload": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BASE_OWNED_ROUTE_BOOTSTRAP_PATTERN",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing literal Product route bootstrap pattern",
+        "source": "governance/layered-ci/v21-product-experience-shell-p0-runtime-module-route-bootstrap-authorization.json",
+        "adoptionMode": "reuse-existing-governance-pattern",
+        "fit": "FIT",
+        "reason": "The repository already solved the same exact-path admission problem for Element patch 0012 using a single literal productExactPaths addition plus a failure-first routing regression."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a broad upstream-patches prefix.",
+      "Do not weaken unknownPathFailsClosed.",
+      "Do not hide new room-state API semantics inside an unrelated existing Element patch."
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
