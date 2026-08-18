@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-PRELAUNCH-WP1-FINAL-CI-ROUTE-CLOSURE",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #485 exact implementation head 52ea54f6e592a099d95cec9235c87c7b880a024d exposed two base-owned CI routing gaps outside the fixed 31-path WP-1 implementation authorization. Stage 6.4.5.9 run 32165056347 fails in wp0-route job 95802595051 before Product gates because trusted-base governance/layered-ci/wp0-routing-policy.json does not classify the separately authorized exact upstream patch path upstream-patches/element-web/0014-yance-module-appearance-authority.patch. V21 Product Experience Shell P0 Final Validation run 32165056230 is selected by pull_request but its validation jobs are skipped because the existing workflow exact-branch allowlist does not include product/v21-product-prelaunch-dating-ai-experience-amendment-wp1. WP-1 requires exact-head Stage and Product Final Validation before its ordinary merge boundary, while the WP-1 authorization explicitly forbids workflow/routing expansion inside PR #485. This successor authorization permits only permanent exact-path WP0 route classification plus permanent exact-branch Product Final Validation routing, each protected by the existing static contracts. No broad Product prefix, wildcard branch match, Product runtime change, dependency, new UAT framework, gate weakening, manual-dispatch bypass, alias PR, or fabricated validation evidence is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "3c736b5969d4096d66a86d8d4336ae19ddf8b540"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "3c736b5969d4096d66a86d8d4336ae19ddf8b540",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "causalRedEvidence": {
+    "implementationPullRequest": 485,
+    "implementationExactHead": "52ea54f6e592a099d95cec9235c87c7b880a024d",
+    "implementationAuthorizationMerge": "3c736b5969d4096d66a86d8d4336ae19ddf8b540",
+    "implementationAuthorizedChangedFileCount": 31,
+    "stageWp0Route": {
+      "workflow": "Stage 6.4.5.9 WP0 Architecture Gates",
+      "runId": 32165056347,
+      "jobId": 95802595051,
+      "failedStep": "Classify protected WP0 route from base-owned policy",
+      "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+      "unknownPaths": [
+        "upstream-patches/element-web/0014-yance-module-appearance-authority.patch"
+      ],
+      "trustedPolicyPath": "governance/layered-ci/wp0-routing-policy.json",
+      "failureOccurredBeforeProductGateExecution": true
+    },
+    "productFinalValidation": {
+      "workflow": "V21 Product Experience Shell P0 Final Validation",
+      "workflowPath": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "runId": 32165056230,
+      "runConclusion": "skipped",
+      "implementationBranch": "product/v21-product-prelaunch-dating-ai-experience-amendment-wp1",
+      "rootCause": "All Product Final Validation jobs use an exact Product branch allowlist that does not include the separately authorized WP-1 branch product/v21-product-prelaunch-dating-ai-experience-amendment-wp1.",
+      "failureOccurredBeforeProductFinalValidation": true
+    }
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-prelaunch-dating-ai-amendment-wp1-final-ci-route-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-prelaunch-dating-ai-amendment-wp1-final-ci-route-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b2db6649ef906d25e81ee9b6b447dc94a13ea4c1edfc7d4241ab58aab85de7bc",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "wp0RouteExactProductPaths": [
+    "upstream-patches/element-web/0014-yance-module-appearance-authority.patch"
+  ],
+  "wp0RouteExactProductPathCount": 1,
+  "wp0RouteExactProductPathSetSha256": "aacd74b5f610997929cef239b7699058ef6795a1239fcc5f625da0db961df5c5",
+  "exactAuthorizedProductBranches": [
+    "product/v21-product-experience-shell-p0",
+    "product/v21-product-experience-bilingual-search-translation-task-ux-p0",
+    "product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0",
+    "product/v21-product-prelaunch-dating-ai-experience-amendment-wp1"
+  ],
+  "exactAuthorizedProductBranchCount": 4,
+  "exactAuthorizedProductBranchSetSha256": "185c29f73d3c11f9062e1112ccc365da3e43d6508872f63856d0043625c1aa92",
+  "implementation": {
+    "branch": "fix/v21-product-prelaunch-dating-ai-amendment-wp1-final-ci-route-closure",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "9a0c41a7c0767e07176ff897cdd0ac58fad3c7ac59827cc75b4d91c2321056a7",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "tests/layered-ci/v21-product-experience-shell-p0-routing.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "a0aa35cde230f8b113342ca9e3c650bccb1450cb362517a012a852fc9cb39102",
+      "productionCodeChanged": false,
+      "expectedFailures": [
+        "The existing WP0 Product routing policy does not classify exactly upstream-patches/element-web/0014-yance-module-appearance-authority.patch as PRODUCT_WP0.",
+        "The existing Product Final Validation workflow does not accept exactly product/v21-product-prelaunch-dating-ai-experience-amendment-wp1 while preserving the three existing exact Product branches."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "wp0RoutingPolicyModificationAllowed": true,
+    "wp0RoutingPolicyModificationPolicy": {
+      "allowedPolicyPaths": [
+        "governance/layered-ci/wp0-routing-policy.json"
+      ],
+      "approvedPolicyPathCount": 1,
+      "approvedPolicyPathSetSha256": "2ed622837b028e8b6062e06f3dd933634a5ea0d38d4a89754d68732861a63da3"
+    },
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "wp0RouteMigration": {
+    "path": "governance/layered-ci/wp0-routing-policy.json",
+    "requiredChange": "Add exactly upstream-patches/element-web/0014-yance-module-appearance-authority.patch to productExactPaths so the separately authorized WP-1 Element appearance seam routes to PRODUCT_WP0.",
+    "requiredRoute": "PRODUCT_WP0",
+    "broadProductPrefixModificationAllowed": false,
+    "existingPrefixModificationAllowed": false,
+    "existingClassificationRemovalAllowed": false,
+    "unknownPathFailsClosedMustRemain": true,
+    "mixedChangesEscalateToProductMustRemain": true,
+    "readyForPromotionMustRemain": false
+  },
+  "workflowMigration": {
+    "path": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "requiredChange": "Preserve same-repository pull-request and exact-head binding, but allow the existing validation jobs for exactly the three currently authorized Product branches plus product/v21-product-prelaunch-dating-ai-experience-amendment-wp1.",
+    "manualDispatchAllowed": false,
+    "pushTriggerAllowed": false,
+    "scheduleTriggerAllowed": false,
+    "wildcardBranchMatchAllowed": false,
+    "prefixBranchMatchAllowed": false,
+    "sameRepositoryRequirementMustRemain": true,
+    "exactHeadCheckoutMustRemain": true,
+    "existingValidationStepsMayBeRemoved": false,
+    "existingValidationAssertionsMayBeWeakened": false,
+    "existingArtifactSemanticsMayBeWeakened": false
+  },
+  "ossFit": {
+    "decision": "Reuse the already-adopted fail-closed WP0 route classifier and existing Product Final Validation GitHub Actions workflow, hosted Windows/Linux runners, pinned Element materialization path, existing materialized desktop/matrix UAT builders, and their existing static contracts. Only one exact Product route identity and one exact successor Product branch identity are missing; no new CI, router, Product runtime, or UAT infrastructure is needed.",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing fail-closed WP0 Product route classifier",
+        "source": "governance/layered-ci/wp0-routing-policy.json + tools/layered-ci/wp0-routing.js + tests/layered-ci/v21-product-experience-shell-p0-routing.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The classifier already owns exact Product path routing and rejects broad upstream-patches prefixes; only the separately authorized 0014 exact path identity is absent."
+      },
+      {
+        "name": "Existing Product Final Validation GitHub Actions workflow",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing/GitHub Actions hosted CI",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already owns exact-head Windows Element reproducibility and materialized desktop/matrix UAT evidence; only its exact branch selector prevents the separately authorized WP-1 workline from running."
+      },
+      {
+        "name": "Existing Product Final Validation and route static contracts",
+        "source": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js + tests/layered-ci/v21-product-experience-shell-p0-routing.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "They already protect pull-request-only execution, same-repository identity, exact branch matching, exact Product path routing, fail-closed unknown paths, exact-head checkout and anti-bypass constraints; extend them only for the two missing exact identities."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add upstream-patches/, integration/, integration/element-module/, or any other broad Product route prefix.",
+      "Do not set unknownPathFailsClosed=false, change mixed-change escalation, or alter ready-for-promotion semantics.",
+      "Do not create a second Product Final Validation workflow or a temporary alias PR on an already authorized Product branch.",
+      "Do not add workflow_dispatch, push, schedule, wildcard branch matching, startsWith/contains branch matching, regex branch families, or broad product/ prefixes.",
+      "Do not weaken exact-head checkout, same-repository checks, frozen Element materialization, Windows/Linux materialized UAT, artifact sealing, clean-tree assertions, or existing route fail-closed behavior.",
+      "Do not modify Product runtime, Electron runtime, dependencies, package manifests, lockfiles, Layered risk policy, UAT evidence/status files, or unrelated routing entries in this prerequisite repair.",
+      "Do not alter PR #485's fixed 31-path implementation authorization or claim Product Final GREEN from skipped jobs."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "WP0 route addition remains exactly one Product path",
+      "broad upstream-patches and Product prefixes remain forbidden",
+      "WP0 unknown-path fail-closed behavior remains intact",
+      "branch allowlist remains exactly four literal Product branches",
+      "same-repository pull-request requirement preserved",
+      "exact-head checkout and local branch binding preserved",
+      "no workflow trigger expansion",
+      "no validation, artifact, or route assertion weakening",
+      "no Product runtime or dependency changes",
+      "tests-only first implementation commit covers both causal gaps"
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
