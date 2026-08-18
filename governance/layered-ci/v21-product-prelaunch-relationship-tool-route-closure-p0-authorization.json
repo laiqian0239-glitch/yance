@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-PRELAUNCH-RELATIONSHIP-TOOL-ROUTE-CLOSURE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Pre-launch source audit found a Product composition defect: relationship tools are opened from the current Element composer room, and trusted RelationshipProjection already carries platform/account/chat/session linkage, but ProductExperienceShell drops that projection at the RelationshipOverlayHost boundary. MediaWorkspace and VoiceWorkspace therefore require manual internal route identifiers in the normal relationship flow. This package fixes only that composition boundary, preserves Element/Matrix and existing send/runtime authorities, and fails closed when the active Matrix room cannot be mapped to a trusted relationship projection.",
+  "base": {
+    "branch": "main",
+    "commit": "4ddbed262e1a7eeb164593df185b05325ea34142"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-prelaunch-relationship-tool-route-closure-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-prelaunch-relationship-tool-route-closure-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "fe9d7b4150bd41c36b2ef68576cf1642041ac0183c3268a2a667d46e0b3e966c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "product/v21-product-prelaunch-relationship-tool-route-closure-p0",
+    "allowedChangedPaths": [
+      "docs/superpowers/plans/2026-08-18-yance-product-prelaunch-relationship-tool-route-closure-p0.md",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-voice-brain-ui.test.js"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "b73a02030b25eb6983d4f7a84b9280a620827023084555c6c170d4114ac35e55",
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "backendModificationAllowed": false,
+    "runtimeAuthorityModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "productRendererModificationAllowed": true
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "When a relationship tool is opened from an active Element composer room, activeMatrixRoomId resolves the exact trusted RelationshipProjection by matrixRoomId before any selected-relationship fallback is considered.",
+      "If activeMatrixRoomId is non-empty and no trusted RelationshipProjection matches it, the Product-bound Media/Voice send route remains unresolved and fails closed; it must not silently use a different selected relationship.",
+      "When no active Matrix room is present, an explicitly selected trusted RelationshipProjection may provide the relationship-tool route context.",
+      "Product-bound Media and Voice surfaces consume trusted platform/accountId/chatJid/sessionKey linkage from the resolved relationship projection and do not require the user to copy internal route identifiers for the normal relationship flow.",
+      "Standalone Media/Voice capability behavior may remain available when no Product-bound relationship context is supplied.",
+      "Existing Media and Voice IPC/runtime operations and the existing unique send-media/sendQueue authorities remain unchanged."
+    ],
+    "forbiddenBehavior": [
+      "Do not persist a second relationship route, conversation graph, messages, composer draft, send queue or outbox in experienceSession.",
+      "Do not infer, guess or cross-fallback to a different relationship when an active Matrix room has no trusted projection match.",
+      "Do not add or modify backend routes, IPC channels, runtime authorities, send authorities, databases, package dependencies, workflows or routing policy.",
+      "Do not hide an unresolved Product route by accepting manually copied internal identifiers in Product-bound mode."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_PROJECTION_AND_COMPONENT_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing RelationshipProjection route linkage",
+        "source": "integration/element-module/src/product-experience/experienceTypes.ts and experienceProjection.ts",
+        "license": "repository-native",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "The trusted projection already carries platform, accountId, chatJid, sessionKey and matrixRoomId; no new registry or data authority is required."
+      },
+      {
+        "name": "Existing ProductExperienceShell -> RelationshipOverlayHost composition seam",
+        "source": "integration/element-module/src/product-experience/ProductExperienceShell.tsx and RelationshipOverlayHost.tsx",
+        "license": "repository-native",
+        "adoptionMode": "thin-prop-plumbing",
+        "fit": "FIT",
+        "reason": "The selected relationships are already loaded in ProductExperienceShell and the overlay host is the exact composition boundary where route context is currently dropped."
+      },
+      {
+        "name": "Existing MediaWorkspace and VoiceWorkspace modular capabilities",
+        "source": "integration/element-module/src/MediaWorkspace.tsx and VoiceWorkspace.tsx",
+        "license": "repository-native",
+        "adoptionMode": "optional-product-bound-context",
+        "fit": "FIT",
+        "reason": "Both surfaces already call real desktop/runtime send operations; only their Product-bound route inputs need authoritative defaults and fail-closed semantics."
+      }
+    ],
+    "retireOrAvoid": [
+      "Avoid any new Yance route registry, conversation binding cache, send adapter, context database or general-purpose infrastructure.",
+      "Avoid React/global-state duplication of RelationshipProjection data inside experienceSession.",
+      "Avoid backend, IPC or send-authority changes because the defect is confined to Product composition."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-media-brain-ui.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-voice-brain-ui.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "ACV2 WP-A Architecture Gates when triggered",
+      "Product Experience Final Validation when triggered",
+      "Media/Voice consumer validation when triggered"
+    ],
+    "negativeProofs": [
+      "No experienceSession relationship-route persistence is introduced.",
+      "No backend, IPC, runtime, dependency, workflow or routing-policy path changes are present.",
+      "No second media/voice/send authority is introduced."
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
