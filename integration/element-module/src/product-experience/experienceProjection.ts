@@ -42,6 +42,8 @@ type ProductDesktopApi = {
   storeGetTranslationJob: (input: { jobId: string }) => Promise<Record<string, unknown>>;
   storeCancelTranslationJob: (input: { jobId: string }) => Promise<Record<string, unknown>>;
   storeRetryTranslationJob: (input: { jobId: string; timeoutMs?: number }) => Promise<Record<string, unknown>>;
+  getThemeCatalog: () => Promise<Record<string, unknown>>;
+  updateThemePreferences: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   getParlantRelationshipGoal: (input: { contactId: string }) => Promise<RelationshipGoalProjection>;
   upsertParlantRelationshipGoal: (input: { contactId: string; goalText: string }) => Promise<RelationshipGoalProjection>;
   deleteParlantRelationshipGoal: (input: { contactId: string }) => Promise<{ deleted: boolean }>;
@@ -52,6 +54,22 @@ type ProductDesktopApi = {
   onDesktopEvent?: (callback: (event: DesktopEvent) => void) => (() => void);
 };
 
+export type ProductAppearanceTheme = {
+  id: string;
+  name: string;
+  description: string;
+  isDark: boolean;
+  semanticVariables: Readonly<Record<string, string>>;
+  elementCompound: Readonly<Record<string, string>>;
+};
+
+export type ProductAppearanceProjection = {
+  available: boolean;
+  fontScale: number;
+  themeId: string;
+  themes: readonly ProductAppearanceTheme[];
+};
+
 const RELATIONSHIP_INTELLIGENCE_STATES = new Set([
   "empty",
   "pending_translation",
@@ -60,6 +78,39 @@ const RELATIONSHIP_INTELLIGENCE_STATES = new Set([
   "stale",
   "rebuild_required",
 ]);
+
+const SEMANTIC_THEME_TOKEN_MAP = Object.freeze({
+  "--surface-app": "bg",
+  "--surface-nav": "nav",
+  "--surface-panel": "panel",
+  "--surface-panel-raised": "panel2",
+  "--surface-card": "card",
+  "--surface-card-raised": "card2",
+  "--surface-control": "panel2",
+  "--surface-control-hover": "card2",
+  "--border-default": "line",
+  "--border-active": "line2",
+  "--text-primary": "text",
+  "--text-secondary": "muted",
+  "--text-muted": "muted2",
+  "--accent-primary": "theme-accent",
+  "--accent-secondary": "theme-accent-2",
+  "--accent-tertiary": "theme-accent-3",
+  "--status-success": "green",
+  "--status-warning": "gold",
+  "--status-danger": "red",
+} as const);
+
+const ELEMENT_COMPOUND_TOKEN_MAP = Object.freeze({
+  "--cpd-color-bg-canvas-default": "bg",
+  "--cpd-color-bg-subtle-primary": "card",
+  "--cpd-color-bg-subtle-secondary": "panel",
+  "--cpd-color-text-primary": "text",
+  "--cpd-color-text-secondary": "muted",
+  "--cpd-color-icon-primary": "text",
+  "--cpd-color-bg-accent-rest": "theme-accent",
+  "--cpd-color-border-interactive-primary": "theme-accent",
+} as const);
 
 function desktopApi(): Partial<ProductDesktopApi> | null {
   return (window as unknown as { yanceDesktop?: Partial<ProductDesktopApi> }).yanceDesktop || null;
@@ -119,6 +170,83 @@ function emptyGoal(reasonCode = ""): RelationshipGoalProjection {
     progress: { path: [], completed: false },
     reasonCode,
   };
+}
+
+function projectVariables(
+  tokens: Record<string, unknown>,
+  mapping: Readonly<Record<string, string>>,
+): Readonly<Record<string, string>> {
+  const output: Record<string, string> = {};
+  for (const [target, source] of Object.entries(mapping)) {
+    const value = text(tokens[source]);
+    if (value) output[target] = value;
+  }
+  return Object.freeze(output);
+}
+
+function normalizeAppearanceTheme(value: unknown): ProductAppearanceTheme | null {
+  const row = objectRecord(value);
+  const id = text(row.id);
+  const name = text(row.name);
+  if (!id || !name) return null;
+  const tokens = objectRecord(row.tokens);
+  return {
+    id,
+    name,
+    description: text(row.description),
+    isDark: text(row.brightness) === "深色",
+    semanticVariables: projectVariables(tokens, SEMANTIC_THEME_TOKEN_MAP),
+    elementCompound: projectVariables(tokens, ELEMENT_COMPOUND_TOKEN_MAP),
+  };
+}
+
+function canonicalFontScale(value: unknown): number {
+  const scale = Number(value);
+  return Number.isInteger(scale) && scale >= 85 && scale <= 150 ? scale : 100;
+}
+
+export async function loadProductAppearance(): Promise<ProductAppearanceProjection> {
+  const api = desktopApi();
+  if (!api || typeof api.storeSnapshot !== "function" || typeof api.getThemeCatalog !== "function") {
+    return { available: false, fontScale: 100, themeId: "", themes: [] };
+  }
+
+  const [snapshotPayload, catalogPayload] = await Promise.all([
+    api.storeSnapshot({ domains: ["ui"] }),
+    api.getThemeCatalog(),
+  ]);
+  const snapshotRoot = objectRecord(snapshotPayload);
+  const snapshot = objectRecord(snapshotRoot.snapshot || snapshotRoot);
+  const ui = objectRecord(snapshot.ui);
+  const typography = objectRecord(ui.typography);
+  const catalog = objectRecord(catalogPayload);
+  const themes = objectArray(catalog.themes)
+    .map(normalizeAppearanceTheme)
+    .filter((theme): theme is ProductAppearanceTheme => Boolean(theme));
+  const requestedThemeId = text(ui.themeId);
+  const fallbackThemeId = text(catalog.defaultThemeId);
+  const themeId = themes.some((theme) => theme.id === requestedThemeId)
+    ? requestedThemeId
+    : themes.some((theme) => theme.id === fallbackThemeId) ? fallbackThemeId : themes[0]?.id || "";
+
+  return {
+    available: true,
+    fontScale: canonicalFontScale(typography.fontScale),
+    themeId,
+    themes,
+  };
+}
+
+export async function updateProductAppearance(
+  input: { fontScale?: number; themeId?: string },
+): Promise<ProductAppearanceProjection> {
+  const api = desktopApi();
+  if (!api || typeof api.updateThemePreferences !== "function") throw bridgeUnavailable("update-theme-preferences");
+  const payload: Record<string, unknown> = {};
+  if (input.fontScale !== undefined) payload.typography = { fontScale: input.fontScale };
+  if (input.themeId !== undefined) payload.themeId = input.themeId;
+  await api.updateThemePreferences(payload);
+  return loadProductAppearance();
 }
 
 function relationshipIntelligenceState(value: unknown): RelationshipIntelligenceProjection["state"] | null {
@@ -195,7 +323,7 @@ function relationshipFromEntry(
   const id = text(row.id || row.contactId || key);
   if (!id) return null;
 
-  const name = text(row.displayName || row.name || row.title || id) || "Relationship";
+  const name = text(row.displayName || row.name || row.title || id) || "关系";
   const platform = optionalText(row.platform || row.channel || row.source);
   const accountId = optionalText(row.accountId || row.account);
   const subtitleParts = [platform, accountId].filter(Boolean);
@@ -204,7 +332,7 @@ function relationshipFromEntry(
   return {
     id,
     name,
-    subtitle: subtitleParts.join(" · ") || "Relationship",
+    subtitle: subtitleParts.join(" · ") || "关系",
     avatarUrl: optionalText(row.avatarUrl || row.avatar || row.photoUrl),
     platform,
     accountId,
@@ -380,7 +508,7 @@ export async function loadRelationshipAssistant(contactId: string): Promise<Rela
   const relationshipId = contactId.trim();
   let goal = emptyGoal("DESKTOP_PARLANT_BRIDGE_UNAVAILABLE");
   let agentReady = false;
-  let agentStatus = "AI unavailable";
+  let agentStatus = "智能助手暂不可用";
   let agentCount = 0;
   let recentConversationCount = 0;
 
@@ -401,7 +529,7 @@ export async function loadRelationshipAssistant(contactId: string): Promise<Rela
     try {
       const state = await api.getLettaState();
       agentReady = Boolean(state?.ready);
-      agentStatus = agentReady ? "Ready" : state?.reasonCode || "Not ready";
+      agentStatus = agentReady ? "智能助手已就绪" : "智能助手尚未就绪";
       if (agentReady) {
         const agents = await api.listLettaAgents();
         const normalized = Array.isArray(agents) ? agents : [];
@@ -414,7 +542,7 @@ export async function loadRelationshipAssistant(contactId: string): Promise<Rela
       }
     } catch {
       agentReady = false;
-      agentStatus = "AI projection unavailable";
+      agentStatus = "智能助手状态暂不可用";
     }
   }
 
