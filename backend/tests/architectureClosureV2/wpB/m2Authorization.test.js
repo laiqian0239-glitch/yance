@@ -230,6 +230,45 @@ test('active authority resolves Milestone 2 only from a valid exact authorizatio
   assert.equal(Object.isFrozen(authority.governance), true);
 });
 
+test('active WP-B authority accepts only the exact trusted direct successor supersession', () => {
+  const authorityModule = require(authorityModulePath);
+  const originalAuthorizationPath = authorityModule.WP_B_M3_SUCCESSOR_AUTHORIZATION_PATH;
+  const amendmentAuthorizationPath = 'governance/layered-ci/acv2-wp-b-m3-source-closure-successor-scope-amendment-1-authorization.json';
+  const authority = { authorizedBranch: 'acv2/wp-b-durable-execution-outbox' };
+  const branch = 'product/acv2-wp-b-m3-source-closure-successor-amendment-1';
+  const calls = [];
+  const accepted = authorityModule.isAuthorizedWpBImplementationBranch(branch, authority, {
+    repositoryRoot: repoRoot,
+    evaluateTrustedDelegatedGovernanceBranch: input => {
+      calls.push(input.branch);
+      if (input.branch === branch) return { pass: true, authorizationPath: amendmentAuthorizationPath };
+      if (input.branch === authorityModule.WP_B_M3_SUCCESSOR_IMPLEMENTATION_BRANCH) {
+        return {
+          pass: false,
+          reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED',
+          authorizationPath: originalAuthorizationPath,
+          supersededByAuthorizationPath: amendmentAuthorizationPath
+        };
+      }
+      return { pass: false, reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID' };
+    }
+  });
+  assert.equal(accepted, true);
+  assert.deepEqual(calls, [branch, authorityModule.WP_B_M3_SUCCESSOR_IMPLEMENTATION_BRANCH]);
+
+  assert.equal(authorityModule.isAuthorizedWpBImplementationBranch(branch, authority, {
+    repositoryRoot: repoRoot,
+    evaluateTrustedDelegatedGovernanceBranch: input => input.branch === branch
+      ? { pass: true, authorizationPath: amendmentAuthorizationPath }
+      : {
+          pass: false,
+          reasonCode: 'WP0_DELEGATED_GOVERNANCE_AUTHORITY_SUPERSEDED',
+          authorizationPath: originalAuthorizationPath,
+          supersededByAuthorizationPath: 'governance/layered-ci/unrelated-authorization.json'
+        }
+  }), false);
+});
+
 test('credible Milestone 2 RED evidence is bound to one exact Head, workflow and two platform reports', () => {
   const receipt = readRedEvidenceReceipt();
   const { validateReceipt: validateRedEvidenceReceipt } = loadRedEvidenceVerifier();
