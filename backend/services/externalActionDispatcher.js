@@ -52,6 +52,40 @@ function receiptIdentity(input, attempt) {
   };
 }
 
+function normalizedPhysicalObservation(value) {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const providerReceiptId = String(source.providerReceiptId || source.remoteReceiptId || '').trim();
+  const evidenceReference = String(source.evidenceReference || '').trim();
+  const failureCode = String(source.failureCode || '').trim();
+  const uncertain = source.uncertain === true || source.remoteOutcomeUnknown === true;
+  const retryable = source.retryable === true;
+  const retryDelayMs = Number.isSafeInteger(Number(source.retryDelayMs)) && Number(source.retryDelayMs) >= 0
+    ? Number(source.retryDelayMs)
+    : 0;
+  let resultSource = source.result;
+  if (!resultSource || typeof resultSource !== 'object' || Array.isArray(resultSource)) {
+    resultSource = Object.fromEntries(Object.entries(source).filter(([field]) => ![
+      'providerReceiptId',
+      'remoteReceiptId',
+      'evidenceReference',
+      'failureCode',
+      'uncertain',
+      'remoteOutcomeUnknown',
+      'retryable',
+      'retryDelayMs'
+    ].includes(field)));
+  }
+  return Object.freeze({
+    providerReceiptId,
+    evidenceReference,
+    failureCode,
+    uncertain,
+    retryable,
+    retryDelayMs,
+    result: canonicalSnapshot(resultSource || {}, 'physicalResult.result')
+  });
+}
+
 class ExternalActionDispatcher {
   constructor(options = {}) {
     if (!options.outboxAuthority || typeof options.outboxAuthority.startAttempt !== 'function') {
@@ -76,6 +110,104 @@ class ExternalActionDispatcher {
     return authorityTimestamp(this.issueTimestamp(purpose), purpose);
   }
 
+  settleExecution(input, waitingExecution, identity, receipt, settlement) {
+    if (!this.executionAuthority) return null;
+    if (typeof this.executionAuthority.settleExternalAttempt === 'function') {
+      const settled = this.executionAuthority.settleExternalAttempt({
+        executionId: String(input.executionId || ''),
+        outcome: settlement.outcome,
+        receiptId: String(receipt?.receiptId || ''),
+        stateVersion: Number(waitingExecution?.stateVersion),
+        generation: Number(input.executionGeneration),
+        ownerId: String(identity.ownerId || ''),
+        claimId: String(identity.claimId || ''),
+        hostId: String(input.hostId || identity.ownerId || ''),
+        hostGeneration: Number(identity.hostGeneration || 0),
+        fencingToken: Number(identity.fencingToken || 0),
+        retryable: settlement.retryable === true,
+        retryDelayMs: Number(settlement.retryDelayMs || 0),
+        failureCode: String(settlement.failureCode || ''),
+        authorityTimestamp: this.issue(`external-action-settlement-${settlement.outcome.toLowerCase()}`)
+      });
+      if (settled?.state === 'RETRY_SCHEDULED'
+          && typeof this.outboxAuthority.rearmRetry === 'function'
+          && typeof this.outboxAuthority.intent === 'function') {
+        const currentIntent = this.outboxAuthority.intent(identity.intentId);
+        this.outboxAuthority.rearmRetry({
+          intentId: identity.intentId,
+          receiptId: String(receipt?.receiptId || ''),
+          stateVersion: Number(currentIntent?.claim?.stateVersion),
+          generation: Number(currentIntent?.claim?.generation),
+          ownerId: String(currentIntent?.claim?.ownerId || identity.ownerId || ''),
+          claimId: String(currentIntent?.claim?.claimId || identity.claimId || ''),
+          hostId: String(input.hostId || identity.ownerId || ''),
+          hostGeneration: Number(currentIntent?.claim?.hostGeneration || identity.hostGeneration || 0),
+          fencingToken: Number(currentIntent?.claim?.fencingToken || identity.fencingToken || 0),
+          authorityTimestamp: this.issue('external-action-retry-rearm')
+        });
+      }
+      return settled;
+    }
+    if (settlement.outcome !== 'SUCCESS') return null;
+    return this.executionAuthority.transition({
+      executionId: String(input.executionId || ''),
+      allowedStates: ['WAITING_REMOTE'],
+      targetState: 'SUCCEEDED',
+      stateVersion: Number(waitingExecution?.stateVersion),
+      generation: Number(input.executionGeneration),
+      ownerId: String(identity.ownerId || ''),
+      claimId: String(identity.claimId || ''),
+      hostId: String(input.hostId || identity.ownerId || ''),
+      hostGeneration: Number(identity.hostGeneration || 0),
+      fencingToken: Number(identity.fencingToken || 0),
+      authorityTimestamp: this.issue('external-action-terminal-success'),
+      eventType: 'external-action-succeeded',
+      reasonCode: 'EXTERNAL_ACTION_RECEIPT_COMMITTED',
+      payload: {
+        intentId: identity.intentId,
+        attemptId: identity.attemptId,
+        receiptId: String(receipt?.receiptId || '')
+      }
+    });
+  }
+
+  recordUnknown(input, waitingExecution, identity, observation) {
+    const receipt = this.outboxAuthority.markUncertain({
+      ...identity,
+      evidenceReference: String(observation.evidenceReference || `adapter:${identity.attemptId}:unknown`),
+      result: observation.result,
+      authorityTimestamp: this.issue('external-action-unknown-receipt')
+    });
+    this.settleExecution(input, waitingExecution, identity, receipt, {
+      outcome: 'UNKNOWN',
+      failureCode: 'UNCERTAIN_REMOTE_OUTCOME'
+    });
+    return receipt;
+  }
+
+  recordFailure(input, waitingExecution, identity, observation) {
+    const receipt = this.outboxAuthority.recordFailureReceipt({
+      ...identity,
+      evidenceReference: String(
+        observation.evidenceReference || `adapter:${identity.attemptId}:${observation.failureCode}`
+      ),
+      result: canonicalSnapshot({
+        ...observation.result,
+        failureCode: observation.failureCode,
+        retryable: observation.retryable === true,
+        retryDelayMs: Number(observation.retryDelayMs || 0)
+      }, 'failureResult'),
+      authorityTimestamp: this.issue('external-action-failure-receipt')
+    });
+    this.settleExecution(input, waitingExecution, identity, receipt, {
+      outcome: 'FAILURE',
+      failureCode: observation.failureCode,
+      retryable: observation.retryable === true,
+      retryDelayMs: Number(observation.retryDelayMs || 0)
+    });
+    return receipt;
+  }
+
   async dispatch(input = {}) {
     const request = canonicalSnapshot(input.request || {}, 'request');
     const attempt = this.outboxAuthority.startAttempt({
@@ -84,9 +216,9 @@ class ExternalActionDispatcher {
       authorityTimestamp: this.issue('external-action-attempt')
     });
     const identity = receiptIdentity(input, attempt);
-    let execution = null;
+    let waitingExecution = null;
     if (this.executionAuthority) {
-      execution = this.executionAuthority.transition({
+      waitingExecution = this.executionAuthority.transition({
         executionId: String(input.executionId || ''),
         allowedStates: ['RUNNING'],
         targetState: 'WAITING_REMOTE',
@@ -120,73 +252,64 @@ class ExternalActionDispatcher {
         request
       }));
     } catch (error) {
-      const receiptInput = {
-        ...identity,
-        evidenceReference: String(
-          error?.evidenceReference || `adapter:${attempt.attemptId}:${stableFailureCode(error)}`
-        ),
-        result: canonicalSnapshot({ failureCode: stableFailureCode(error) }, 'failureResult'),
-        authorityTimestamp: this.issue(
-          error?.remoteOutcomeUnknown === true
-            ? 'external-action-unknown-receipt'
-            : 'external-action-failure-receipt'
-        )
-      };
+      const failureCode = stableFailureCode(error);
+      const observation = Object.freeze({
+        evidenceReference: String(error?.evidenceReference || `adapter:${attempt.attemptId}:${failureCode}`),
+        failureCode,
+        retryable: error?.retryable === true,
+        retryDelayMs: Number.isSafeInteger(Number(error?.retryDelayMs)) && Number(error.retryDelayMs) >= 0
+          ? Number(error.retryDelayMs)
+          : 0,
+        result: canonicalSnapshot({ failureCode }, 'failureResult')
+      });
       if (error?.remoteOutcomeUnknown === true) {
-        return this.outboxAuthority.markUncertain(receiptInput);
+        return this.recordUnknown(input, waitingExecution, identity, observation);
       }
-      return this.outboxAuthority.recordFailureReceipt(receiptInput);
+      return this.recordFailure(input, waitingExecution, identity, observation);
     }
 
+    let observation;
     try {
-      const result = canonicalSnapshot(physicalResult?.result || {}, 'physicalResult.result');
-      const receipt = this.outboxAuthority.recordReceipt({
+      observation = normalizedPhysicalObservation(physicalResult);
+    } catch (error) {
+      return this.recordUnknown(input, waitingExecution, identity, Object.freeze({
+        evidenceReference: String(physicalResult?.evidenceReference || `adapter:${attempt.attemptId}:post-call-canonical`),
+        result: canonicalSnapshot({
+          failureCode: 'WP_B_POST_CALL_CANONICALIZATION_UNCERTAIN',
+          causeCode: stableFailureCode(error)
+        }, 'postCallUnknownResult')
+      }));
+    }
+
+    if (observation.uncertain) {
+      return this.recordUnknown(input, waitingExecution, identity, observation);
+    }
+    if (observation.failureCode) {
+      return this.recordFailure(input, waitingExecution, identity, observation);
+    }
+
+    let receipt;
+    try {
+      receipt = this.outboxAuthority.recordReceipt({
         ...identity,
-        providerReceiptId: String(physicalResult?.providerReceiptId || ''),
-        evidenceReference: String(
-          physicalResult?.evidenceReference || `adapter:${attempt.attemptId}:success`
-        ),
-        result,
+        providerReceiptId: observation.providerReceiptId,
+        evidenceReference: String(observation.evidenceReference || `adapter:${attempt.attemptId}:success`),
+        result: observation.result,
         authorityTimestamp: this.issue('external-action-success-receipt')
       });
-      if (this.executionAuthority) {
-        this.executionAuthority.transition({
-          executionId: String(input.executionId || ''),
-          allowedStates: ['WAITING_REMOTE'],
-          targetState: 'SUCCEEDED',
-          stateVersion: Number(execution?.stateVersion),
-          generation: Number(input.executionGeneration),
-          ownerId: String(identity.ownerId || ''),
-          claimId: String(identity.claimId || ''),
-          hostId: String(input.hostId || identity.ownerId || ''),
-          hostGeneration: Number(identity.hostGeneration || 0),
-          fencingToken: Number(identity.fencingToken || 0),
-          authorityTimestamp: this.issue('external-action-terminal-success'),
-          eventType: 'external-action-succeeded',
-          reasonCode: 'EXTERNAL_ACTION_RECEIPT_COMMITTED',
-          payload: {
-            intentId: identity.intentId,
-            attemptId: attempt.attemptId,
-            receiptId: String(receipt?.receiptId || '')
-          }
-        });
-      }
-      return receipt;
     } catch (error) {
-      const causeCode = stableFailureCode(error);
-      return this.outboxAuthority.markUncertain({
-        ...identity,
+      return this.recordUnknown(input, waitingExecution, identity, Object.freeze({
         evidenceReference: String(
-          physicalResult?.evidenceReference
-            || `adapter:${attempt.attemptId}:post-call:${causeCode}`
+          observation.evidenceReference || `adapter:${attempt.attemptId}:post-call:${stableFailureCode(error)}`
         ),
         result: canonicalSnapshot({
           failureCode: 'WP_B_POST_CALL_PERSISTENCE_UNCERTAIN',
-          causeCode
-        }, 'postCallUnknownResult'),
-        authorityTimestamp: this.issue('external-action-post-call-unknown-receipt')
-      });
+          causeCode: stableFailureCode(error)
+        }, 'postCallUnknownResult')
+      }));
     }
+    this.settleExecution(input, waitingExecution, identity, receipt, { outcome: 'SUCCESS' });
+    return receipt;
   }
 }
 
