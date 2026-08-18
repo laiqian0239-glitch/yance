@@ -30,13 +30,16 @@ function execution(overrides = {}) {
     fencingToken: 7,
     leaseExpiresAt: '2026-08-04T02:00:00.000Z',
     deadlineAt: '2026-08-04T04:00:00.000Z',
+    retryCount: 0,
+    maxAttempts: 3,
     nextAttemptAt: '',
+    failureCode: '',
     createdAt: '2026-08-04T01:00:00.000Z',
     ...overrides
   });
 }
 
-function authorityFixture({ row, attempts = [], rows, now = '2026-08-04T03:00:00.000Z' } = {}) {
+function authorityFixture({ row, attempts = [], receipts = [], rows, now = '2026-08-04T03:00:00.000Z' } = {}) {
   const writes = [];
   const { DurableExecutionRecoveryAuthority } = recoveryModule();
   const authority = new DurableExecutionRecoveryAuthority({
@@ -46,6 +49,7 @@ function authorityFixture({ row, attempts = [], rows, now = '2026-08-04T03:00:00
       return null;
     },
     attemptReader: executionId => attempts.filter(attempt => attempt.executionId === executionId),
+    receiptReader: executionId => receipts.filter(receipt => receipt.executionId === executionId),
     nonterminalReader: () => rows || (row ? [row] : []),
     decisionWriter: input => {
       writes.push(input);
@@ -223,6 +227,7 @@ test('M2-REC-012 batch recovery is deterministic and returns frozen decision rec
     clock: () => '2026-08-04T03:00:00.000Z',
     executionReader: executionId => rows.find(row => row.executionId === executionId) || null,
     attemptReader: () => [],
+    receiptReader: () => [],
     nonterminalReader: () => rows,
     decisionWriter: input => {
       writes.push(input.execution.executionId);
@@ -235,4 +240,77 @@ test('M2-REC-012 batch recovery is deterministic and returns frozen decision rec
   assert.deepEqual(writes, ['execution-a', 'execution-b']);
   assert.equal(Object.isFrozen(receipts), true);
   assert.equal(receipts.every(Object.isFrozen), true);
+});
+
+test('M2-REC-013 a persisted SUCCESS receipt completes the execution without a second physical call', () => {
+  const row = execution({ state: 'WAITING_REMOTE' });
+  const attempt = Object.freeze({ executionId: row.executionId, attemptId: 'attempt-success-1' });
+  const { authority, writes } = authorityFixture({
+    row,
+    attempts: [attempt],
+    receipts: [Object.freeze({
+      executionId: row.executionId,
+      attemptId: attempt.attemptId,
+      receiptId: 'receipt-success-1',
+      receiptType: 'SUCCESS',
+      result: { accepted: true }
+    })]
+  });
+  const recovered = authority.recoverExecution(row.executionId);
+  assert.equal(recovered.decision, 'RECONCILE_REQUIRED');
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].targetState, 'SUCCEEDED');
+  assert.equal(writes[0].receiptId, 'receipt-success-1');
+});
+
+test('M2-REC-014 a persisted retryable FAILURE receipt schedules retry instead of becoming uncertain', () => {
+  const row = execution({ state: 'WAITING_REMOTE', retryCount: 0, maxAttempts: 3 });
+  const attempt = Object.freeze({ executionId: row.executionId, attemptId: 'attempt-failure-1' });
+  const { authority, writes } = authorityFixture({
+    row,
+    attempts: [attempt],
+    receipts: [Object.freeze({
+      executionId: row.executionId,
+      attemptId: attempt.attemptId,
+      receiptId: 'receipt-failure-1',
+      receiptType: 'FAILURE',
+      result: { failureCode: 'REMOTE_TEMPORARY', retryable: true, retryDelayMs: 30000 }
+    })]
+  });
+  const recovered = authority.recoverExecution(row.executionId);
+  assert.equal(recovered.decision, 'RECONCILE_REQUIRED');
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].targetState, 'RETRY_SCHEDULED');
+  assert.equal(writes[0].retryable, true);
+  assert.equal(writes[0].retryDelayMs, 30000);
+  assert.equal(writes[0].failureCode, 'REMOTE_TEMPORARY');
+});
+
+test('M2-REC-015 a due RETRY_SCHEDULED execution with a persisted failure receipt requeues safely', () => {
+  const row = execution({
+    state: 'RETRY_SCHEDULED',
+    ownerId: '',
+    claimId: '',
+    hostGeneration: 0,
+    fencingToken: 0,
+    leaseExpiresAt: '',
+    retryCount: 1,
+    nextAttemptAt: '2026-08-04T02:59:00.000Z'
+  });
+  const attempt = Object.freeze({ executionId: row.executionId, attemptId: 'attempt-due-retry-1' });
+  const { authority, writes } = authorityFixture({
+    row,
+    attempts: [attempt],
+    receipts: [Object.freeze({
+      executionId: row.executionId,
+      attemptId: attempt.attemptId,
+      receiptId: 'receipt-due-retry-1',
+      receiptType: 'FAILURE',
+      result: { failureCode: 'REMOTE_TEMPORARY', retryable: true, retryDelayMs: 30000 }
+    })]
+  });
+  const recovered = authority.recoverExecution(row.executionId);
+  assert.equal(recovered.decision, 'REQUEUE_SAFE');
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].targetState, 'SCHEDULED');
 });
