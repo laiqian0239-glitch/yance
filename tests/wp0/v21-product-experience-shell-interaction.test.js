@@ -79,7 +79,6 @@ test('Product relationship tools bind the active Element room bridge state uniqu
   const workspace = readOrEmpty('integration/element-module/src/YanceWorkspace.tsx');
   const shell = readOrEmpty('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
   const overlay = readOrEmpty('integration/element-module/src/product-experience/RelationshipOverlayHost.tsx');
-  const projection = readOrEmpty('integration/element-module/src/product-experience/experienceProjection.ts');
   const session = readOrEmpty('integration/element-module/src/product-experience/experienceSession.ts');
 
   assert.match(index, /getRoom\s*\(/u, 'Element module must resolve the current public Room wrapper');
@@ -91,9 +90,10 @@ test('Product relationship tools bind the active Element room bridge state uniqu
   assert.match(overlay, /resolveRelationshipToolRoute/u, 'overlay must resolve a transient Product-bound route');
 
   for (const token of ['m.bridge', 'uk.half-shot.bridge', 'conversations', 'routeScope', 'platformContactIdentity', 'sourceAccountId', 'conversationId']) {
-    assert.match(projection, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'), `route projection must bind ${token}`);
+    assert.match(overlay, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'), `overlay route composition must bind ${token}`);
   }
-  assert.match(projection, /matches\.length\s*!==\s*1|matches\.length\s*===\s*1/u, 'zero or ambiguous Store route matches must fail closed');
+  assert.match(overlay, /storeSnapshot\s*\(\{\s*domains:\s*\["conversations"\]\s*\}\)/u, 'Product route composition must read the existing Store conversations domain');
+  assert.match(overlay, /matches\.length\s*!==\s*1/u, 'zero or ambiguous Store route matches must fail closed');
   assert.doesNotMatch(overlay, /selectedRelationshipId[\s\S]{0,160}(?:activeMatrixRoomId|roomId|resolveRelationshipToolRoute)/u, 'selected relationship must never substitute for the active Matrix room');
   assert.doesNotMatch(session, /\b(?:platform|accountId|chatJid|sessionKey|bridgeState)\s*:/u, 'resolved route identity must not become a second experienceSession authority');
 });
