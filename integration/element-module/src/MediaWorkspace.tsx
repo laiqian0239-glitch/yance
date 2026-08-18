@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import type { RelationshipToolRouteBinding } from "./product-experience/RelationshipOverlayHost";
 import "./MediaWorkspace.css";
 
 type BinaryResult = { bytes?: Uint8Array | ArrayBuffer; mimeType?: string; assetId?: string };
@@ -71,7 +72,9 @@ function bytesToObjectUrl(result: BinaryResult | null): string {
   return URL.createObjectURL(new Blob([bytes], { type: result.mimeType || "image/jpeg" }));
 }
 
-export function MediaWorkspace(): React.JSX.Element {
+export function MediaWorkspace({
+  routeBinding,
+}: { routeBinding?: RelationshipToolRouteBinding }): React.JSX.Element {
   const api = useMemo(() => desktopApi(), []);
   const [health, setHealth] = useState<HealthState>({ degraded: true, reasonCode: "unavailable" });
   const [status, setStatus] = useState("Media runtime unavailable");
@@ -98,6 +101,9 @@ export function MediaWorkspace(): React.JSX.Element {
   const [chatJid, setChatJid] = useState("");
   const [caption, setCaption] = useState("");
   const importRef = useRef<HTMLInputElement | null>(null);
+  const productRouteResolved = routeBinding?.status === "resolved";
+  const standaloneMode = routeBinding === undefined;
+  const resolvedRoute = productRouteResolved ? routeBinding.route : null;
 
   const refreshHealth = async (): Promise<void> => {
     if (!api) { setStatus("Media runtime unavailable"); return; }
@@ -236,9 +242,17 @@ export function MediaWorkspace(): React.JSX.Element {
 
   const send = async (): Promise<void> => {
     if (!api || !selectedAsset?.id || busy) return;
+    if (!standaloneMode && !resolvedRoute) {
+      setStatus(`Send unavailable · ${routeBinding?.reason || "current relationship route unresolved"}`);
+      return;
+    }
+    const sendPlatform = resolvedRoute?.platform || platform;
+    const sendAccountId = resolvedRoute?.accountId || accountId.trim();
+    const sendChatJid = resolvedRoute?.chatJid || chatJid.trim();
+    if (!sendAccountId || !sendChatJid) return;
     setBusy(true);
     try {
-      await api.sendMediaAsset({ platform, accountId: accountId.trim(), chatJid: chatJid.trim(), assetId: selectedAsset.id, filename: displayName(selectedAsset), caption });
+      await api.sendMediaAsset({ platform: sendPlatform, accountId: sendAccountId, chatJid: sendChatJid, assetId: selectedAsset.id, filename: displayName(selectedAsset), caption });
       setStatus("Send delegated to existing Yance send-media-stream authority");
     } catch (error) { setStatus(`Send unavailable · ${String((error as { reasonCode?: string })?.reasonCode || "unknown")}`); }
     finally { setBusy(false); }
@@ -247,6 +261,7 @@ export function MediaWorkspace(): React.JSX.Element {
   const checkpoint = health.comfyui?.checkpoints?.[0] || "";
   const selectedIsVideo = assetMediaKind(selectedAsset) === "video";
   const degraded = health.degraded !== false;
+  const routeReady = standaloneMode ? Boolean(accountId.trim() && chatJid.trim()) : productRouteResolved;
 
   return (
     <aside className="yance-media-workspace" aria-label="Media Workspace">
@@ -310,11 +325,19 @@ export function MediaWorkspace(): React.JSX.Element {
         <div className="media-actions"><button type="button" onClick={() => void previewAsset()} disabled={!selectedAsset || busy}>Preview</button><span>{selectedAsset ? displayName(selectedAsset) : "No Immich asset selected"}</span></div>
         {previewUrl ? <img className="media-preview" src={previewUrl} alt="Selected media preview" /> : null}
         <div className="media-grid">
-          <label>Platform<select value={platform} onChange={(event) => setPlatform(event.target.value)}><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="facebook">Facebook</option></select></label>
-          <label>Account ID<input value={accountId} onChange={(event) => setAccountId(event.target.value)} /></label>
-          <label>Chat JID<input value={chatJid} onChange={(event) => setChatJid(event.target.value)} /></label>
+          {standaloneMode ? (
+            <>
+              <label>Platform<select value={platform} onChange={(event) => setPlatform(event.target.value)}><option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option><option value="facebook">Facebook</option></select></label>
+              <label>Account ID<input value={accountId} onChange={(event) => setAccountId(event.target.value)} /></label>
+              <label>Chat JID<input value={chatJid} onChange={(event) => setChatJid(event.target.value)} /></label>
+            </>
+          ) : (
+            <div role="status" aria-live="polite">
+              {productRouteResolved ? "已绑定当前关系会话" : routeBinding?.reason || "当前关系会话路由不可用"}
+            </div>
+          )}
           <label>Caption<input value={caption} onChange={(event) => setCaption(event.target.value)} /></label>
-          <button type="button" onClick={() => void send()} disabled={!selectedAsset || !accountId.trim() || !chatJid.trim() || busy}>Send</button>
+          <button type="button" onClick={() => void send()} disabled={!selectedAsset || !routeReady || busy}>Send</button>
         </div>
       </section>
     </aside>
