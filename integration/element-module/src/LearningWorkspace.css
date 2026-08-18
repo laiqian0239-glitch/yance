@@ -4,17 +4,17 @@
   min-width: 0;
   color: var(--text-primary, inherit);
   background: var(--surface-panel, transparent);
-  font-size: var(--type-body, 1rem);
+  font-size: inherit;
   line-height: var(--leading-body, 1.58);
 }
 .yance-learning-workspace > header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .yance-learning-workspace > header > div { display: grid; gap: 3px; }
 .yance-learning-workspace > header strong,
-.yance-learning-workspace h3 { color: var(--text-primary, inherit); font-size: var(--type-card-title, 1rem); }
+.yance-learning-workspace h3 { color: var(--text-primary, inherit); font-size: inherit; }
 .yance-learning-workspace > header span,
 .learning-status,
 .learning-grid dt,
-.yance-learning-workspace p { color: var(--text-secondary, inherit); font-size: var(--type-caption, .9em); }
+.yance-learning-workspace p { color: var(--text-secondary, inherit); font-size: inherit; }
 .yance-learning-workspace > nav { display: flex; flex-wrap: wrap; gap: 6px; }
 .yance-learning-workspace button,
 .yance-learning-workspace input,
@@ -30,12 +30,12 @@
 .yance-learning-workspace > section { display: grid; gap: 12px; }
 .learning-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 0; }
 .learning-grid > div { border: 1px solid var(--border-default, currentcolor); border-radius: 8px; padding: 8px; background: var(--surface-card, transparent); }
-.learning-grid dt { font-size: var(--type-meta, .8rem); }
+.learning-grid dt { font-size: inherit; }
 .learning-grid dd { margin: 4px 0 0; color: var(--text-primary, inherit); }
 .learning-coach { display: grid; gap: 10px; }
-.learning-coach label { display: grid; gap: 5px; color: var(--text-secondary, inherit); font-size: var(--type-control, 1rem); }
+.learning-coach label { display: grid; gap: 5px; color: var(--text-secondary, inherit); font-size: inherit; }
 .learning-coach input, .learning-coach textarea { width: 100%; box-sizing: border-box; }
-.learning-toggle { display: flex; gap: 8px; align-items: flex-start; color: var(--text-primary, inherit); font-size: var(--type-control, 1rem); }
+.learning-toggle { display: flex; gap: 8px; align-items: flex-start; color: var(--text-primary, inherit); font-size: inherit; }
 .yance-learning-workspace [data-slot="approval-card"],
 .yance-learning-workspace [data-slot="question-flow"],
 .yance-learning-workspace [data-slot="progress-tracker"] { max-width: 100%; min-width: 0; color: var(--text-primary, inherit); }
