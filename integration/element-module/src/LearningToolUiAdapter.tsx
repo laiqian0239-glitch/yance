@@ -18,8 +18,8 @@ export function LearningProposalApproval(props: LearningToolUiProposal): React.J
       role="decision"
       title={props.title}
       description={props.description}
-      confirmLabel="Approve proposal"
-      cancelLabel="Keep current behavior"
+      confirmLabel="批准提案"
+      cancelLabel="保持当前行为"
       onConfirm={props.onApprove}
       onCancel={props.onDeny}
     />
