@@ -40,9 +40,20 @@ class YanceElementModule implements Module {
       this.api.client.getRoom(roomId)?.getStateEvents(eventType) ?? []
     );
 
+    const appearanceHost = {
+      setFontScale: (percent: number) => this.api.appearance.setFontScale(percent),
+      setTheme: (theme: {
+        id: string;
+        name: string;
+        isDark: boolean;
+        compound?: Record<string, string>;
+      }) => this.api.appearance.setTheme(theme),
+    };
+
     this.api.customComponents.registerGlobalRightPanel(
       () => (
         <YanceWorkspace
+          appearanceHost={appearanceHost}
           navigateSearchResult={navigateSearchResult}
           readRoomStateEvents={readRoomStateEvents}
         />
@@ -60,7 +71,7 @@ class YanceElementModule implements Module {
 
     const openGlobalRightPanel = (): void => this.api.customComponents.openGlobalRightPanel();
     this.api.extras.addRoomHeaderButtonCallback(() => (
-      <button type="button" aria-label="Yance Workspace" onClick={openGlobalRightPanel}>Yance</button>
+      <button type="button" aria-label="打开言策关系工作台" onClick={openGlobalRightPanel}>言策</button>
     ));
   }
 }
