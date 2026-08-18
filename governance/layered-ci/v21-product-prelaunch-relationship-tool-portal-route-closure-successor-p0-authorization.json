@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-18T19:14:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-PRELAUNCH-RELATIONSHIP-TOOL-PORTAL-ROUTE-CLOSURE-SUCCESSOR-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Pre-launch non-production Product audit found that Media/Voice relationship tools are real-bound to the existing send-media-stream authority but the current Element composer room's authoritative remote portal identity is not projected across the Product overlay composition boundary. PR #474 is preserved unmerged because it incorrectly assumed RelationshipProjection.matrixRoomId had an authoritative source and permitted selected-relationship fallback. After #475/#476 admitted the exact Element patch path, this successor authorizes the corrected closure: a minimal read-only Element v1.12.25 Room state seam, explicit replay of patch 0013 in the existing Matrix bootstrap, and a fail-closed unique match against the existing Store conversations authority. No new route registry, Matrix client/token surface, backend/IPC authority, or send authority is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "8a62c0dc34304d77380723ad59a3127055a72a9f"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "8a62c0dc34304d77380723ad59a3127055a72a9f",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "evidence": {
+    "rejectedCandidatePullRequest": 474,
+    "rejectedCandidateObservedHead": "8fe752f5d6d03034a57800ee19291e7b132cd95c",
+    "candidateAutomatedGatesHadBeenGreen": true,
+    "manualRootCauseReviewRejectedCandidateDesign": true,
+    "routeBootstrapAuthorizationPullRequest": 475,
+    "routeBootstrapAuthorizationMerge": "085db1a3100c197b8ff66a930797a63edffa55e3",
+    "routeBootstrapImplementationPullRequest": 476,
+    "routeBootstrapImplementationMerge": "8a62c0dc34304d77380723ad59a3127055a72a9f",
+    "designEvidence": [
+      "Element v1.12.25 ClientApi.getRoom() wraps the private matrix-js-sdk Room, but the public module Room contract exposes only id, name and last-active timestamp.",
+      "Element v1.12.25 already uses sdkRoom.currentState.getStateEvents(...) as a read-only room-state source in the pinned codebase.",
+      "mautrix bridgev2 writes the same BridgeEventContent to m.bridge and uk.half-shot.bridge using a dynamic bridge state key; BridgeEventContent carries protocol.id, channel.id and channel.fi.mau.receiver.",
+      "Pinned mautrix-whatsapp v0.2607.0 reports protocol NetworkID 'whatsapp' and MakePortalID returns the remote WhatsApp JID as the portal/channel ID.",
+      "Yance workspaceRepository projects canonical conversation routeScope fields platform, sourceAccountId, platformContactIdentity and conversationId; Store SYNC_CUSTOMER_CONTEXT preserves those conversation rows in conversations.byId with sessionKey=conversationId.",
+      "ProductComposerAccessory already receives authoritative Element props.roomId and projects it transiently to activeMatrixRoomId; experienceSession does not need route persistence.",
+      "RelationshipOverlayHost currently sees activeMatrixRoomId but drops it before rendering MediaWorkspace/VoiceWorkspace, while those workspaces expose manual Platform/Account ID/Chat JID/Session key fields.",
+      "tools/matrix/bootstrap.js currently explicitly replays Element patches only through 0012, so merely adding 0013 would create a packaging/runtime omission; 0013 must be explicitly replayed after 0012."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "3e7e3b31545f9d339d6197774187dc764e91962100714b79c2c03165183a2e80",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0",
+    "allowedChangedPaths": [
+      "upstream-patches/element-web/0013-yance-module-room-state-read.patch",
+      "tools/matrix/bootstrap.js",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-voice-brain-ui.test.js"
+    ],
+    "approvedChangedFileCount": 13,
+    "approvedChangedFileSetSha256": "5a4020347d3c92f5053a2635707f3999c8ac1e78b313079f094b4ee9b20905ac",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-element-workspace-contract.test.js",
+        "tests/wp0/v21-product-experience-shell-interaction.test.js",
+        "tests/wp0/v21-media-brain-ui.test.js",
+        "tests/wp0/v21-voice-brain-ui.test.js"
+      ],
+      "approvedChangedFileCount": 4,
+      "approvedChangedFileSetSha256": "16200bab87529967fc581519ef74ab35ee782e4d1a6aeefa629ed3c7edd431e2",
+      "productionCodeChanged": false
+    },
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "backendModificationAllowed": false,
+    "electronModificationAllowed": false,
+    "runtimeAuthorityModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "productRendererModificationAllowed": true,
+    "upstreamPatchModificationAllowed": true,
+    "matrixBootstrapModificationAllowed": true
+  },
+  "upstreamPatchContract": {
+    "path": "upstream-patches/element-web/0013-yance-module-room-state-read.patch",
+    "pinnedUpstream": "element-hq/element-web v1.12.25",
+    "allowedUpstreamChangedPaths": [
+      "apps/web/src/modules/models/Room.ts",
+      "apps/web/test/unit-tests/modules/models/Room-test.ts",
+      "packages/module-api/element-web-module-api.api.md",
+      "packages/module-api/src/models/Room.ts"
+    ],
+    "approvedUpstreamChangedFileCount": 4,
+    "approvedUpstreamChangedFileSetSha256": "550390214d7dc52553b3238e40d6ecee73a5512f1cc30e83155b24ff1cae9a9f",
+    "requiredBehavior": [
+      "Extend the public Element module Room contract with the minimum generic read-only state-event content seam needed to enumerate state events of a requested event type, including each event state key and content.",
+      "Implement the seam only through the existing private sdkRoom/currentState wrapper; do not expose MatrixClient, access tokens, sync control, bridge credentials, timeline mutation or room-state write APIs.",
+      "Add pinned Element unit coverage for the new read-only Room seam and update the generated module-api textual API report.",
+      "Remain an ordinary replayable textual patch against the pinned Element source."
+    ],
+    "bootstrapReplay": [
+      "tools/matrix/bootstrap.js must declare the exact 0013 patch path.",
+      "The existing bootstrap must git apply --check and then apply 0013 only after successful 0012 module-delivery replay.",
+      "Do not replace explicit patch replay with a broad upstream-patches glob or directory loader."
+    ]
+  },
+  "productContract": {
+    "authoritativeRoomIdentity": "existing experienceSession.activeMatrixRoomId populated from Element composer props.roomId",
+    "requiredBehavior": [
+      "Opening a Product relationship tool from the active Element composer room resolves routing only from that activeMatrixRoomId; selectedRelationshipId is never used as an active-room route substitute.",
+      "For the active room, read all m.bridge and uk.half-shot.bridge state events through the new read-only Element module seam, normalize valid bridge identities, and deduplicate equivalent duplicate identity emitted under both event types.",
+      "A usable bridge identity contains a normalized protocol.id and channel.id; channel.fi.mau.receiver is included in matching when present. Zero identities, malformed identities or multiple distinct identities fail closed.",
+      "Request the existing Store snapshot conversations domain and normalize canonical routes from routeScope/platform/sourceAccountId/platformContactIdentity/conversationId with existing direct-row fallbacks only where the Store row already contains the same authority data.",
+      "Match bridge protocol.id to Store platform and bridge channel.id to Store platformContactIdentity; when bridge receiver is present it must match Store sourceAccountId. Exactly one Store conversation may match. Zero or multiple matches fail closed.",
+      "The resolved Product route uses Store platform, sourceAccountId as accountId, platformContactIdentity as chatJid, and conversationId/sessionKey as sessionKey.",
+      "m.bridge and uk.half-shot.bridge copies of the same portal identity must not create false ambiguity.",
+      "RelationshipOverlayHost resolves the route transiently for the current overlay and passes an explicit Product-bound route binding to MediaWorkspace/VoiceWorkspace; route identity is not persisted into experienceSession or a new registry.",
+      "In Product-bound mode Media/Voice do not ask the user to copy Platform, Account ID, Chat JID or Session key. Resolved fields are used directly; unresolved/ambiguous routing disables send and surfaces a fail-closed status.",
+      "When MediaWorkspace or VoiceWorkspace is rendered outside Product-bound mode, existing standalone manual route controls may remain available.",
+      "Existing Media/Voice desktop APIs, sendMediaAsset/sendVoiceArtifact calls and the unique send-media-stream/sendQueue authorities remain unchanged."
+    ],
+    "forbiddenBehavior": [
+      "Do not infer the active room from selected relationship, customer focus, search result, display name, most-recent conversation or first conversation.",
+      "Do not create a Yance room-to-route registry, mapping table, route cache, bridge proxy, token broker, second Matrix store, second send authority, queue or outbox.",
+      "Do not expose or share a high-privilege bridge access token or MatrixClient through the module API.",
+      "Do not persist bridge state content or resolved Product routes in experienceSession.",
+      "Do not weaken ambiguous/no-match handling or fall back to user-entered internal identifiers in Product-bound mode.",
+      "Do not modify backend routes, Electron IPC/preload, runtime authorities, dependency manifests, workflows, WP0 routing policy or send-media-stream authority."
+    ]
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 474,
+    "candidateBranch": "governance/v21-product-prelaunch-relationship-tool-route-closure-p0-authorization",
+    "candidateObservedHead": "8fe752f5d6d03034a57800ee19291e7b132cd95c",
+    "candidateMustRemainUnmerged": true,
+    "candidateImplementationMustNotStart": true,
+    "candidateHistoryRewriteAllowed": false,
+    "supersededReason": "The candidate assumed RelationshipProjection.matrixRoomId had an authoritative source and permitted selected-relationship fallback, both contradicted by source audit."
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before production changes, focused Product tests prove that the current code lacks the 0013 read-only room-state patch/replay, drops active room identity at the overlay boundary, and renders manual Product-bound Media/Voice route inputs.",
+    "The 0013 patch contract test proves its upstream path set is exact, includes the module API report and pinned Room unit test, and contains no token/client/write seam.",
+    "Matrix bootstrap contract proves 0013 is explicitly replayed after 0012 with apply --check before apply.",
+    "Product interaction contract proves activeMatrixRoomId is the only room selector for Product-bound route resolution and selectedRelationshipId is not a route fallback.",
+    "Store route resolution contract proves conversations domain is used and ambiguous/no-match candidates fail closed.",
+    "Media and Voice tests prove Product-bound mode removes manual internal route entry while standalone mode may retain it.",
+    "No experienceSession route persistence, backend/electron/runtime/dependency/workflow/routing-policy/send-authority modification is introduced."
+  ],
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-element-workspace-contract.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-media-brain-ui.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-voice-brain-ui.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "Layered CI Fast Feedback when triggered",
+      "ACV2 WP-A Architecture Gates when triggered",
+      "V21 Model Brain P0 Windows when triggered",
+      "V21 Product Experience Shell P0 Final Validation when triggered"
+    ],
+    "negativeProofs": [
+      "No #474 merge or implementation.",
+      "No experienceSession route fields or selected-relationship active-room fallback.",
+      "No backend/electron/IPC/runtime/dependency/workflow/routing-policy/send authority changes.",
+      "No broad Element patch replay glob.",
+      "No second routing authority."
+    ]
+  },
+  "ossFit": {
+    "decision": "ADOPT_PINNED_OSS_ROOM_STATE_AND_EXISTING_STORE_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Web v1.12.25 module Room wrapper",
+        "source": "element-hq/element-web packages/module-api/src/models/Room.ts and apps/web/src/modules/models/Room.ts",
+        "license": "AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Commercial",
+        "adoptionMode": "minimal-upstream-patch",
+        "fit": "FIT",
+        "reason": "Element already owns the current room and private sdkRoom. Extending its public Room wrapper with a narrow read-only state seam preserves OSS ownership and avoids exposing MatrixClient or tokens."
+      },
+      {
+        "name": "mautrix bridgev2 standard bridge info state",
+        "source": "mautrix/go event.BridgeEventContent and bridgev2 Portal.UpdateBridgeInfo",
+        "license": "MPL-2.0",
+        "adoptionMode": "reuse-standard-state-contract",
+        "fit": "FIT",
+        "reason": "Bridgev2 already writes authoritative protocol/channel/receiver identity to m.bridge and uk.half-shot.bridge; Yance should consume that standard state rather than create a mapping registry."
+      },
+      {
+        "name": "Yance Store canonical conversations authority",
+        "source": "backend/repositories/workspaceRepository.js plus Store SYNC_CUSTOMER_CONTEXT projection",
+        "license": "repository-native",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Existing routeScope already owns platform/sourceAccountId/platformContactIdentity/conversationId and Store snapshot already exposes conversations without new backend or IPC."
+      },
+      {
+        "name": "Existing Media/Voice send-media-stream composition",
+        "source": "MediaWorkspace.tsx, VoiceWorkspace.tsx and existing desktop send adapters",
+        "license": "repository-native",
+        "adoptionMode": "thin-product-bound-context",
+        "fit": "FIT",
+        "reason": "Media and Voice already delegate to the unique send-media-stream authority; only authoritative Product-bound route inputs are missing."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire the #474 assumption that RelationshipProjection.matrixRoomId is authoritative.",
+      "Avoid selectedRelationship fallback for an active Matrix room.",
+      "Avoid new Yance route registries, mapping tables, bridge-token access, backend/IPC surfaces or send authorities.",
+      "Avoid broad patch replay globs; replay 0013 explicitly after 0012."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredSequence": [
+    "Authorization exact Head remains one governance file based on unchanged trusted main and passes all applicable governance gates.",
+    "Authorization PR merges to main by ordinary two-parent merge without rebase, squash, force push or history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "First implementation commit changes only the four authorized focused test files and proves the current causal REDs.",
+    "Implement the minimal Element read-only state patch and explicit 0013 bootstrap replay, then Product/Store unique route composition and Product-bound Media/Voice context.",
+    "Run focused RED-to-GREEN tests and exact-head Stage/Layered/ACV2/Model Brain/Product validation as applicable.",
+    "Implementation PR merges to main by ordinary two-parent merge."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "squashMerge": true,
+    "rebaseMerge": true,
+    "directCandidateSelfAuthorization": true,
+    "candidateScopeExpansion": true,
+    "workflowModification": true,
+    "routingPolicyModification": true,
+    "backendModification": true,
+    "electronModification": true,
+    "newRouteRegistry": true,
+    "bridgeTokenExposure": true,
+    "selectedRelationshipActiveRoomFallback": true,
+    "broadPatchReplayGlob": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
