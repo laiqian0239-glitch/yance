@@ -348,10 +348,18 @@ test('String-delimited Git path evidence fails closed after the Buffer transport
   assert.match(result.error, /must return a Buffer/u);
 });
 
-test('delegated npm lock-tree cleanup retries transient Windows busy locks without swallowing exhaustion', () => {
+test('delegated npm lock-tree cleanup wiring delegates to the bounded fail-closed cleanup primitive', () => {
   const policyPath = path.join(repoRoot, 'shared', 'release', 'implementationBranchPolicyLegacy.js');
   const source = fs.readFileSync(policyPath, 'utf8');
   assert.match(
+    source,
+    /function\s+removeDelegatedNpmLockTreeTemporaryRoot\s*\(/u
+  );
+  assert.match(
+    source,
+    /finally\s*\{[\s\S]*?if\s*\(temporaryRoot\)\s*removeDelegatedNpmLockTreeTemporaryRoot\(temporaryRoot\);[\s\S]*?\}/u
+  );
+  assert.doesNotMatch(
     source,
     /fs\.rmSync\(temporaryRoot,\s*\{\s*recursive:\s*true,\s*force:\s*true,\s*maxRetries:\s*5,\s*retryDelay:\s*100\s*\}\);/u
   );
