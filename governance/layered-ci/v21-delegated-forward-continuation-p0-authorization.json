@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-18T00:32:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-FORWARD-CONTINUATION-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Independent review of ACV2 WP-B Amendment-2 authorization PR #466 proved a real base-owned governance gap: generic delegated-governance authorization can bind a superseding authorization and exact implementation scope, but it cannot require a successor implementation to begin with an exact two-parent forward-continuation merge whose first parent is the authorization ordinary merge and whose second parent is a frozen predecessor implementation head. PR #466 therefore remains Draft review evidence and must not be merged by accepting or waiving the finding. This work package authorizes only the minimum generic evaluator and contract repair needed to make such continuation topology machine-enforced before a fresh Amendment-2 authorization is proposed. No product, workflow, dependency, release, routing, database, or production scope is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "f49b796dbfe526e4378115f4e3f703c777b3c622",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "f49b796dbfe526e4378115f4e3f703c777b3c622",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-forward-continuation-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-forward-continuation-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e34d47bb006135d03bb60ef5b4700baaa65dc5937bf35bcb13d2aecb0d374abf",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-delegated-forward-continuation-p0",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "targetDefect": {
+    "reviewEvidencePullRequest": 466,
+    "reviewEvidenceHead": "a08aeb746b8af6de0192e1d59fa4d0ae9e97443d",
+    "policyFunction": "evaluateTrustedDelegatedGovernanceBranch",
+    "policyPath": "shared/release/implementationBranchPolicy.js",
+    "testPath": "tests/wp0/implementation-branch-policy.test.js",
+    "requiredProtocol": "A delegated authorization may optionally declare one exact forwardContinuation protocol. When declared, the evaluator must require the first implementation commit after the effective authorization merge to have exactly two parents: parent[0] equal to that authorization merge and parent[1] equal to the declared frozen predecessor implementation head. The frozen predecessor head must descend from the superseded authorization merge. Missing, reordered, substituted, extra-parent, non-descendant, malformed, or proposal-only topology must fail closed. Authorizations without the protocol must preserve current behavior.",
+    "requiredReasonCode": "WP0_DELEGATED_GOVERNANCE_FORWARD_CONTINUATION_INVALID"
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before the repair, a real Git fixture with effective V1 and V2 delegated authorizations must demonstrate RED because a V2 implementation branch can be accepted without an exact two-parent continuation merge from the frozen V1 implementation head.",
+    "After the repair, a V2 authorization declaring forwardContinuation must accept only a first implementation commit whose first parent is the V2 authorization ordinary merge and whose second parent is the exact declared frozen V1 implementation head.",
+    "The declared frozen predecessor head must be a descendant of the exact superseded authorization merge; an unrelated commit must fail closed.",
+    "A one-parent copy/cherry-pick style continuation, reversed parents, extra parents, or a different second parent must fail with WP0_DELEGATED_GOVERNANCE_FORWARD_CONTINUATION_INVALID.",
+    "The protocol declaration must be strict and exact; malformed SHA, missing supersedes binding, extra declaration keys, or contradictory topology must fail closed.",
+    "Existing delegated authorizations that do not declare forwardContinuation must retain their current behavior.",
+    "No wildcard branch/path authority, gate weakening, warning-only behavior, force update, history rewrite, dependency change, workflow change, or new governance framework is permitted.",
+    "The implementation diff must remain exactly the two authorized policy/test paths."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_GENERIC_DELEGATED_GOVERNANCE_EVALUATOR",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing generic delegated-governance evaluator",
+        "source": "shared/release/implementationBranchPolicy.js on trusted main",
+        "license": "repository-existing",
+        "adoptionMode": "extend-existing-authority",
+        "fit": "FIT",
+        "reason": "The evaluator already owns trusted-main introduction, supersession graph, commit-parent resolution, ancestry, merge-base, exact-scope, dependency identity and failure-first enforcement. The missing behavior belongs in this existing authority rather than a second governance engine."
+      },
+      {
+        "name": "Existing implementation-branch policy contract suite",
+        "source": "tests/wp0/implementation-branch-policy.test.js on trusted main",
+        "license": "repository-existing",
+        "adoptionMode": "extend-existing-contract",
+        "fit": "FIT",
+        "reason": "The suite already builds real Git fixtures for delegated authorization and supersession, so forward-continuation enforcement can be proven with the same mature test seam."
+      }
+    ],
+    "retireOrAvoid": [
+      "Avoid prose-only continuation topology that the evaluator does not consume.",
+      "Avoid Amendment-specific filename or branch whitelists.",
+      "Avoid a second delegated-governance evaluator or history-rewrite mechanism.",
+      "Avoid accepting PR #466 review findings without machine enforcement."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "negativeProofs": [
+      "Only the two authorized policy/test paths change.",
+      "Existing authorizations without forwardContinuation remain behaviorally unchanged.",
+      "No dependency, workflow, routing, product, release or production path changes."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
