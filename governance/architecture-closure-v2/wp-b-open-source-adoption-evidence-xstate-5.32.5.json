@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 4,
+  "documentType": "YANCE_ACV2_WP_B_XSTATE_ADOPTION_EVIDENCE",
+  "workPackage": "WP-B",
+  "candidateId": "XSTATE_CORE_5_32_5",
+  "supplyChainAuthorityPath": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+  "capturedAtHead": "48961a5efc21e23b512988a3beb22b08ca8894d6",
+  "supersedes": {
+    "capturedAtHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+    "reason": "REPLACED_YANCE_AUTHORED_CONFORMANCE_WITH_REAL_XSTATE_PNPM_TEST_CORE_AND_CANONICAL_CROSS_PLATFORM_SOURCE_BYTES",
+    "preservedHistoricalObservation": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json#/supersededObservation"
+  },
+  "workflowRun": {
+    "id": 30809421417,
+    "name": "WP-B Validation",
+    "exactHeadCheckoutEnforced": true,
+    "ubuntu": {
+      "upstreamJobId": 91672352461,
+      "status": "PASSED",
+      "installLogSha256": "81df163ff138e68140c9926526319f949b0b952646ad1987283c4c1e59f53528",
+      "testLogSha256": "b7ab83518fe8248f0e318fcfa88e2a47317cae6caefedc43fb20fbe5b0e0edec",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
+    },
+    "windows": {
+      "upstreamJobId": 91672352425,
+      "status": "PASSED",
+      "installLogSha256": "43562ebd282ce1e8e607b5f66bfff6e2e1172135090ffbe83c107716acb1801d",
+      "testLogSha256": "733b4a9a1252115859d776f8ed6111b1a503856f15ba1cad57148ea510a84a42",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
+    }
+  },
+  "repositoryBinding": {
+    "packageManifestPath": "package.json",
+    "packageManifestBlobSha": "f4a1c15316cc451a2979acf5e9a6c7f9eb5f12bc",
+    "packageLockPath": "package-lock.json",
+    "packageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
+    "packageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
+    "bindingStatus": "LOCKED"
+  },
+  "exactVersionAndLicenseReview": {
+    "status": "COMPLETE",
+    "packageName": "xstate",
+    "exactVersion": "5.32.5",
+    "license": "MIT",
+    "repository": "git+https://github.com/statelyai/xstate.git",
+    "upstreamTag": "xstate@5.32.5",
+    "upstreamCommit": "c25dba07a2b68565edbe83d83c5d679dd85e00b2",
+    "licenseTextSha256": "542d926d7bbb099785e322d1d5574c539d51942e52ec8adce2be4629ba81fc7f"
+  },
+  "dependencyAndSecurityScan": {
+    "status": "COMPLETE",
+    "runtimeDependencyCount": 0,
+    "installLifecycleScripts": [],
+    "packageFileCount": 132,
+    "suspiciousPackageFiles": [],
+    "distIntegrity": "sha512-ULazi1oe6wGrXl0Frb6otSlkm5HLifbbVTkMk5kkSKqz4TkxJaVpnl6jOJwKeid3ORPxYyZQgNLUSYX9q65SIA==",
+    "distShasum": "0594075f9fb7d5a12791296c5c798c394b66e823",
+    "tarballDigestMatchedOnUbuntu": true,
+    "tarballDigestMatchedOnWindows": true,
+    "sandboxLockIntegrityMatched": true,
+    "npmAudit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "upstreamConformance": {
+    "status": "COMPLETE",
+    "runtimeVersion": "node@22",
+    "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531",
+    "upstreamCommit": "c25dba07a2b68565edbe83d83c5d679dd85e00b2",
+    "selection": [
+      "XSTATE_PNPM_TEST_CORE"
+    ],
+    "command": "corepack pnpm test:core",
+    "passCount": 1,
+    "failCount": 0,
+    "commandSkipCount": 0,
+    "ubuntu": {
+      "upstreamJobId": 91672352461,
+      "status": "PASSED",
+      "installLogSha256": "81df163ff138e68140c9926526319f949b0b952646ad1987283c4c1e59f53528",
+      "testLogSha256": "b7ab83518fe8248f0e318fcfa88e2a47317cae6caefedc43fb20fbe5b0e0edec",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
+    },
+    "windows": {
+      "upstreamJobId": 91672352425,
+      "status": "PASSED",
+      "installLogSha256": "43562ebd282ce1e8e607b5f66bfff6e2e1172135090ffbe83c107716acb1801d",
+      "testLogSha256": "733b4a9a1252115859d776f8ed6111b1a503856f15ba1cad57148ea510a84a42",
+      "testSummary": {
+        "testFilePassCount": 75,
+        "testFileFailCount": 0,
+        "testPassCount": 1747,
+        "testFailCount": 0,
+        "skipCount": 13,
+        "todoCount": 1
+      }
+    }
+  },
+  "adoptionModeDecision": {
+    "status": "COMPLETE",
+    "mode": "DIRECT_DEPENDENCY",
+    "singleImportBoundary": "backend/services/xstateLifecycleAdapter.js",
+    "allowedResponsibilities": [
+      "PURE_LIFECYCLE_GRAPH",
+      "TRANSITION_VALIDATION",
+      "MODEL_PATH_GENERATION"
+    ],
+    "databaseRemainsDurableAuthority": true,
+    "xstateMayPerformExternalIo": false,
+    "xstateMayIssueBusinessTimestamps": false,
+    "forkOrVendoredCopyAllowed": false
+  },
+  "yanceRedContractFirst": {
+    "status": "COMPLETE",
+    "authorityPath": "governance/architecture-closure-v2/wp-b-m1-red-evidence.json",
+    "reviewedRedHead": "da773d5b29c1f54c6c14f6024c38b53ab7ca10bb",
+    "ubuntu": {
+      "status": "VALID_CAPABILITY_RED",
+      "green": 0,
+      "validCapabilityRed": 7,
+      "invalidRedInfrastructure": 0
+    },
+    "windows": {
+      "status": "VALID_CAPABILITY_RED",
+      "green": 0,
+      "validCapabilityRed": 7,
+      "invalidRedInfrastructure": 0
+    }
+  },
+  "authorization": {
+    "originalModuleIntroduced": true,
+    "repairedPackageLockRequired": false,
+    "upstreamTestsComplete": true,
+    "adapterIntroductionAuthorized": true,
+    "productionUseAuthorized": false,
+    "schema23Applied": true,
+    "formalRelease": false,
+    "publish": false,
+    "temporaryBypassAllowed": false
+  }
+}

@@ -29,6 +29,7 @@ const { getBackendReleaseIdentity } = require('../releaseIdentity');
 const releaseSource = require('../../release/release-source.json');
 const { getStore } = require('../repositories/storeProvider');
 const { createSessionGenerationFence, createSocketGenerationGuard } = require('./sessionGenerationFence');
+const { validatePersistedEgressContext } = require('./platformAdapterPorts');
 
 let qrCodeRenderer = null;
 function loadQRCodeDependency(moduleLoader = require) {
@@ -65,6 +66,43 @@ function operationAbortError(signal, fallbackCode = 'WHATSAPP_OPERATION_ABORTED'
 }
 function assertOperationActive(signal, fallbackCode = 'WHATSAPP_OPERATION_ABORTED', details = {}) {
   if (signal?.aborted) throw operationAbortError(signal, fallbackCode, details);
+}
+
+function requirePersistedWhatsAppOperation(value, { accountId = '', operation = '' } = {}) {
+  const fail = (message, details = {}) => {
+    throw Object.assign(new Error(message), {
+      code: 'WHATSAPP_PERSISTED_OPERATION_REQUIRED',
+      status: 409,
+      operation: String(operation || '').trim(),
+      ...details
+    });
+  };
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.isFrozen(value)) {
+    fail('WhatsApp physical operation requires one frozen persisted WP-B operation context.');
+  }
+  if (String(value.state || '').trim().toUpperCase() !== 'RUNNING') {
+    fail('WhatsApp physical operation requires a RUNNING persisted WP-B operation context.', { field: 'state' });
+  }
+  for (const field of ['operationId', 'executionId', 'operationType', 'operationKind', 'scopeKey', 'objectFingerprint', 'ownerId', 'claimId']) {
+    if (!String(value[field] == null ? '' : value[field]).trim()) {
+      fail('WhatsApp persisted operation identity is incomplete.', { field });
+    }
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const number = Number(value[field]);
+    if (!Number.isSafeInteger(number) || number < 1) {
+      fail('WhatsApp persisted operation fencing identity is invalid.', { field });
+    }
+  }
+  const platform = String(value.platform || '').trim().toLowerCase();
+  if (platform !== 'whatsapp') {
+    fail('WhatsApp persisted operation platform scope mismatch.', { field: 'platform' });
+  }
+  const expectedAccountId = String(accountId || '').trim();
+  if (expectedAccountId && String(value.accountId || '').trim() !== expectedAccountId) {
+    fail('WhatsApp persisted operation account scope mismatch.', { field: 'accountId' });
+  }
+  return value;
 }
 
 async function discoverBaileysVersion(baileys, timeoutMs = WHATSAPP_VERSION_DISCOVERY_TIMEOUT_MS) {
@@ -669,7 +707,6 @@ class WhatsAppAdapter {
     this.stopping = new Set();
     this.stoppedAccounts = new Set();
     this.generations = new Map();
-    this.reconnectTimers = new Map();
     this.credentialStateCache = new Map();
     this.credentialStateTtlMs = 3000;
   }
@@ -1074,6 +1111,10 @@ class WhatsAppAdapter {
   async start(accountId = 'account-a', options = {}) {
     assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { attemptId: String(options.attemptId || '') });
     const reference = this.resolveAccountReference(accountId);
+    const persistedAccountId = reference && typeof reference === 'object'
+      ? String(reference.id || '').trim()
+      : String(this.accountByAdapterId(accountId)?.id || accountId || '').trim();
+    requirePersistedWhatsAppOperation(options.physicalOperationContext, { accountId: persistedAccountId, operation: 'start' });
     if (reference && typeof reference === 'object') {
       accountLifecycle.assertEligible(reference, { manual: options.manual === true });
       const canonicalAccountId = canonicalIdentity.resolveCanonicalAccountId(reference.id);
@@ -1082,7 +1123,6 @@ class WhatsAppAdapter {
     const auth = resolveAuthLocation(reference, { migrate: true, includeFileCount: true });
     accountId = auth.key;
     const databaseAccountId = reference && typeof reference === 'object' ? reference.id : (this.accountByAdapterId(accountId)?.id || accountId);
-    this.cancelReconnect(accountId);
     const existing = this.accounts.get(accountId);
     const preparation = await this.prepareStartGeneration(accountId, existing, { databaseAccountId });
     assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: String(options.attemptId || '') });
@@ -1155,7 +1195,6 @@ class WhatsAppAdapter {
       socket: null,
       connectedAt: '',
       user: null,
-      retryCount: 0,
       presenceSubscriptions: new Set(),
       databaseAccountId,
       startedAtMs: Date.now(),
@@ -1272,7 +1311,6 @@ class WhatsAppAdapter {
         row.qrDataUrl = '';
         authChallenges.clear(databaseAccountId);
         row.user = user;
-        row.retryCount = 0;
         await this.recordLiveValidationSuccess(accountId, row.user).catch(error => logger.error('whatsapp', 'account-live-validation-update-failed', { accountId, error: error.message }));
         socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'connection.update', phase: 'validation-recorded' });
         eventBus.publish('whatsapp:state', { accountId, databaseAccountId, state: 'online', user: row.user, attemptId: String(options.attemptId || '') });
@@ -1348,27 +1386,6 @@ class WhatsAppAdapter {
         const reasonCode = loggedOut ? 'WHATSAPP_LOGGED_OUT' : 'WHATSAPP_CONNECTION_CLOSED';
         eventBus.publish('whatsapp:state', { accountId, databaseAccountId, state: row.state, error: row.lastError, lastError: row.lastError, code: reasonCode, reasonCode, attemptId: String(options.attemptId || '') });
         logger.warn('whatsapp', 'connection-closed', { accountId, statusCode, loggedOut, error: row.lastError });
-        if (!loggedOut && !this.stopping.has(accountId) && !this.stoppedAccounts.has(accountId) && !row.startupTimedOut && this.generations.get(accountId) === row.generation) {
-          const currentAccount = accountStore.getRaw(databaseAccountId) || this.accountByAdapterId(accountId);
-          const gate = currentAccount ? accountLifecycle.eligibility(currentAccount, { manual: false }) : { eligible: false, reasons: ['account-missing'] };
-          if (!gate.eligible) {
-            logger.warn('whatsapp', 'reconnect-blocked-by-lifecycle', { accountId, databaseAccountId, reasons: gate.reasons });
-            this.cancelReconnect(accountId);
-            return;
-          }
-          row.retryCount += 1;
-          const delay = Math.min(30000, 1200 * 2 ** Math.min(row.retryCount, 5));
-          const timer = setTimeout(() => {
-            this.reconnectTimers.delete(accountId);
-            if (this.stoppedAccounts.has(accountId) || this.generations.get(accountId) !== row.generation) return;
-            const latest = accountStore.getRaw(databaseAccountId) || this.accountByAdapterId(accountId);
-            const latestGate = latest ? accountLifecycle.eligibility(latest, { manual: false }) : { eligible: false, reasons: ['account-missing'] };
-            if (!latestGate.eligible) return logger.warn('whatsapp', 'reconnect-cancelled-by-lifecycle', { accountId, databaseAccountId, reasons: latestGate.reasons });
-            this.start(latest).catch(error => logger.error('whatsapp', 'reconnect-failed', { accountId, databaseAccountId, error: error.message }));
-          }, delay);
-          timer.unref?.();
-          this.reconnectTimers.set(accountId, timer);
-        }
       }
     });
 
@@ -1731,8 +1748,9 @@ class WhatsAppAdapter {
     assertOperationActive(options.signal, 'WHATSAPP_SYNC_ABORTED');
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
+    const databaseAccountId = row?.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
+    requirePersistedWhatsAppOperation(options.physicalOperationContext, { accountId: databaseAccountId, operation: 'sync' });
     if (!row?.socket) throw Object.assign(new Error('WhatsApp账号未连接'), { code: 'WHATSAPP_NOT_CONNECTED', status: 409 });
-    const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
     let appStateRefreshed = false;
     if (typeof row.socket.resyncAppState === 'function' && Array.isArray(row.appStateCollections) && row.appStateCollections.length) {
       try {
@@ -1773,16 +1791,8 @@ class WhatsAppAdapter {
     return result;
   }
 
-  cancelReconnect(accountId) {
-    const key = this.resolveAccountKey(accountId);
-    const timer = this.reconnectTimers.get(key);
-    if (timer) clearTimeout(timer);
-    this.reconnectTimers.delete(key);
-  }
-
   async stop(accountId = 'account-a', logout = false) {
     accountId = this.resolveAccountKey(accountId);
-    this.cancelReconnect(accountId);
     const row = this.accounts.get(accountId);
     this.stoppedAccounts.add(accountId);
     this.generations.set(accountId, Number(this.generations.get(accountId) || 0) + 1);
@@ -1871,13 +1881,14 @@ class WhatsAppAdapter {
     throw error;
   }
 
-  async sendText({ accountId = 'account-a', chatJid, text, quoted, localMessageId = '', sessionKey = '', signal = null, executionGeneration = '' }) {
+  async sendText({ accountId = 'account-a', chatJid, text, quoted, localMessageId = '', sessionKey = '', signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
     if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
     const body = String(text || '').trim();
     if (!body) throw new Error('MESSAGE_TEXT_EMPTY');
     const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
+    validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const expectedSocket = row.socket;
     const expectedRowGeneration = Number(row.generation || this.generations.get(accountId) || 0);
     const target = canonicalWhatsAppTarget(databaseAccountId, chatJid, sessionKey);
@@ -1932,10 +1943,12 @@ class WhatsAppAdapter {
     };
   }
 
-  async markRead({ accountId = 'account-a', chatJid, messageKeys = [], signal = null, executionGeneration = '' }) {
+  async markRead({ accountId = 'account-a', chatJid, messageKeys = [], signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
     if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
+    const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
+    validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const keys = (Array.isArray(messageKeys) ? messageKeys : []).filter(key => key && key.id).map(key => ({ remoteJid: key.remoteJid || chatJid, id: key.id, fromMe: Boolean(key.fromMe), participant: key.participant || undefined }));
     if (!keys.length) return { read: 0 };
     const expectedSocket = row.socket;
@@ -1987,10 +2000,12 @@ class WhatsAppAdapter {
     return { subscribed: true, cached: false };
   }
 
-  async sendPresence({ accountId = 'account-a', chatJid, state = 'composing', signal = null, executionGeneration = '' }) {
+  async sendPresence({ accountId = 'account-a', chatJid, state = 'composing', signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
     if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
+    const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
+    validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const allowed = new Set(['available', 'unavailable', 'composing', 'recording', 'paused']);
     const presence = allowed.has(String(state)) ? String(state) : 'paused';
     const expectedSocket = row.socket;
@@ -2009,10 +2024,12 @@ class WhatsAppAdapter {
     return { state: presence };
   }
 
-  async sendReaction({ accountId = 'account-a', chatJid, targetId, emoji = '', targetFromMe = false, participant = '', signal = null, executionGeneration = '' }) {
+  async sendReaction({ accountId = 'account-a', chatJid, targetId, emoji = '', targetFromMe = false, participant = '', signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
     if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
+    const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
+    validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const key = { remoteJid: chatJid, id: String(targetId || ''), fromMe: Boolean(targetFromMe) };
     if (participant) key.participant = participant;
     const expectedSocket = row.socket;
@@ -2026,7 +2043,6 @@ class WhatsAppAdapter {
       detachAbort();
     }
     this.assertEgressGenerationCurrent(accountId, row, expectedSocket, expectedRowGeneration, signal, executionGeneration, result, 'reaction');
-    const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
     let localPersistencePending = false;
     let localPersistenceErrorCode = '';
     try {
@@ -2040,10 +2056,12 @@ class WhatsAppAdapter {
     return { ...result, localPersistencePending, localPersistenceErrorCode, localPersistenceRepair: localPersistencePending ? { kind: 'reaction-apply', reaction: { accountId: databaseAccountId, chatJid, targetId, emoji, actor: 'me' } } : null };
   }
 
-  async revokeMessage({ accountId = 'account-a', chatJid, targetId, targetFromMe = true, participant = '', signal = null, executionGeneration = '' }) {
+  async revokeMessage({ accountId = 'account-a', chatJid, targetId, targetFromMe = true, participant = '', signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
     if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
+    const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
+    validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const key = { remoteJid: chatJid, id: String(targetId || ''), fromMe: Boolean(targetFromMe) };
     if (participant) key.participant = participant;
     const expectedSocket = row.socket;
@@ -2057,7 +2075,6 @@ class WhatsAppAdapter {
       detachAbort();
     }
     this.assertEgressGenerationCurrent(accountId, row, expectedSocket, expectedRowGeneration, signal, executionGeneration, result, 'revoke');
-    const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
     let localPersistencePending = false;
     let localPersistenceErrorCode = '';
     try {
@@ -2071,7 +2088,7 @@ class WhatsAppAdapter {
     return { ...result, localPersistencePending, localPersistenceErrorCode, localPersistenceRepair: localPersistencePending ? { kind: 'message-revoke', revoke: { accountId: databaseAccountId, chatJid, targetId } } : null };
   }
 
-  async sendMedia({ accountId = 'account-a', chatJid, kind, buffer, filePath = '', mimeType, filename, caption = '', quoted, localMessageId = '', sessionKey = '', expectedSha256 = '', signal = null, executionGeneration = '' }) {
+  async sendMedia({ accountId = 'account-a', chatJid, kind, buffer, filePath = '', mimeType, filename, caption = '', quoted, localMessageId = '', sessionKey = '', expectedSha256 = '', signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
     if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
@@ -2086,6 +2103,7 @@ class WhatsAppAdapter {
       : normalizedKind === 'voice' || normalizedKind === 'audio' ? { audio: source, mimetype: mimeType, ptt: normalizedKind === 'voice' }
       : { document: source, mimetype: mimeType, fileName: filename || 'file', caption };
     const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
+    validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const expectedSocket = row.socket;
     const expectedRowGeneration = Number(row.generation || this.generations.get(accountId) || 0);
     const target = canonicalWhatsAppTarget(databaseAccountId, chatJid, sessionKey);

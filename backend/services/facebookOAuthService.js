@@ -10,6 +10,7 @@ const securityGuard = getSecurityGuard();
 const platformAuthConfig = require('./platformAuthConfig');
 const relayClient = require('./facebookRelayClient');
 const logger = require('./logger');
+const { executeWithDeadline, normalizedDeadlineAt } = require('./executionDeadline');
 
 const FLOW_TTL_MS = 30 * 60 * 1000;
 const PAGE_WORKER_OAUTH_CONTRACT_VERSION = 5;
@@ -28,6 +29,28 @@ function operationAbortError(signal, fallbackCode = 'FACEBOOK_OAUTH_ABORTED') {
 }
 function assertOperationActive(signal, fallbackCode = 'FACEBOOK_OAUTH_ABORTED') {
   if (signal?.aborted) throw operationAbortError(signal, fallbackCode);
+}
+function requirePersistedFacebookOperation(operation = {}) {
+  const persisted = operation.physicalOperationContext;
+  if (!persisted || typeof persisted !== 'object' || Array.isArray(persisted) || !Object.isFrozen(persisted)) {
+    throw Object.assign(new Error('Facebook OAuth physical I/O requires a frozen persisted WP-B operation'), { code: 'FACEBOOK_OAUTH_PERSISTED_OPERATION_REQUIRED', status: 409 });
+  }
+  for (const field of ['executionId', 'operationId', 'operationKind', 'ownerId', 'claimId']) {
+    if (!clean(persisted[field])) throw Object.assign(new Error('Facebook OAuth persisted operation identity is incomplete'), { code: 'FACEBOOK_OAUTH_PERSISTED_OPERATION_REQUIRED', status: 409, field });
+  }
+  if (clean(persisted.state).toUpperCase() !== 'RUNNING') {
+    throw Object.assign(new Error('Facebook OAuth persisted operation must be RUNNING'), { code: 'FACEBOOK_OAUTH_PERSISTED_OPERATION_REQUIRED', status: 409, field: 'state' });
+  }
+  if (clean(persisted.platform).toLowerCase() !== 'facebook') {
+    throw Object.assign(new Error('Facebook OAuth persisted operation platform mismatch'), { code: 'FACEBOOK_OAUTH_PERSISTED_OPERATION_REQUIRED', status: 409, field: 'platform' });
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const value = Number(persisted[field]);
+    if (!Number.isSafeInteger(value) || value < 1) throw Object.assign(new Error('Facebook OAuth persisted fencing identity is invalid'), { code: 'FACEBOOK_OAUTH_PERSISTED_OPERATION_REQUIRED', status: 409, field });
+  }
+  const deadlineAt = normalizedDeadlineAt(persisted.deadlineAt);
+  if (!deadlineAt) throw Object.assign(new Error('Facebook OAuth persisted authority deadline is required'), { code: 'FACEBOOK_OAUTH_PERSISTED_DEADLINE_REQUIRED', status: 409 });
+  return persisted;
 }
 function pageOAuthOwnedByChatwootError() {
   return Object.assign(new Error('Facebook Page OAuth is owned by Chatwoot'), {
@@ -171,30 +194,23 @@ async function getFlow(accountId, flowId) {
 
 async function workerRequest(url, options = {}, timeoutMs = 15000, operation = {}) {
   assertOperationActive(operation.signal, 'FACEBOOK_OAUTH_WORKER_ABORTED');
-  const controller = new AbortController();
-  const timeoutError = Object.assign(new Error('Facebook OAuth worker request timed out'), { code: 'FACEBOOK_OAUTH_WORKER_TIMEOUT' });
-  const timer = setTimeout(() => controller.abort(timeoutError), timeoutMs);
-  timer.unref?.();
-  let onAbort = null;
-  if (operation.signal) {
-    onAbort = () => controller.abort(operationAbortError(operation.signal, 'FACEBOOK_OAUTH_WORKER_ABORTED'));
-    operation.signal.addEventListener('abort', onAbort, { once: true });
-  }
-  try {
-    const response = await fetch(url, { ...options, signal: controller.signal, headers: { accept: 'application/json', ...(options.headers || {}) } });
+  const persisted = requirePersistedFacebookOperation(operation);
+  return executeWithDeadline(async ({ signal }) => {
+    const response = await fetch(url, { ...options, signal, headers: { accept: 'application/json', ...(options.headers || {}) } });
     assertOperationActive(operation.signal, 'FACEBOOK_OAUTH_WORKER_ABORTED');
     const data = await response.json().catch(() => ({}));
     assertOperationActive(operation.signal, 'FACEBOOK_OAUTH_WORKER_ABORTED');
     if (!response.ok || data.ok === false) throw Object.assign(new Error(data.message || `Facebook 云端授权服务返回 HTTP ${response.status}`), { code: data.code || 'FACEBOOK_OAUTH_WORKER_ERROR', status: response.status, details: data.details || {} });
     return data;
-  } catch (error) {
-    if (operation.signal?.aborted) throw operationAbortError(operation.signal, 'FACEBOOK_OAUTH_WORKER_ABORTED');
-    if (controller.signal.aborted && controller.signal.reason instanceof Error) throw controller.signal.reason;
-    throw error;
-  } finally {
-    clearTimeout(timer);
-    if (onAbort) operation.signal?.removeEventListener?.('abort', onAbort);
-  }
+  }, {
+    deadlineAt: persisted.deadlineAt,
+    timeoutMs,
+    signal: operation.signal || null,
+    generation: persisted.generation,
+    operation: 'facebook-oauth-worker',
+    platform: 'facebook',
+    accountId: clean(persisted.accountId)
+  });
 }
 
 async function verifyWorkerOAuthContract(workerBaseUrl, graphVersion, mode = 'page', options = {}) {

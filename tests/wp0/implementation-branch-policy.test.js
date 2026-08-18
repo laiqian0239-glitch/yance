@@ -16,6 +16,7 @@ const {
   isAuthorizedImplementationBranch,
   authorizedImplementationBranchDescription,
   buildTrustedGitEnvironment,
+  removeDelegatedNpmLockTreeTemporaryRoot,
   loadWorkPackageScopeAmendment,
   loadWorkPackageTaskScopeChain,
   loadWorkPackagePostMergeDefect,
@@ -1499,6 +1500,55 @@ test('later effective delegated authorization supersedes the exact earlier imple
       evaluatedHead: trustedMainHead
     });
     assert.equal(replacement.pass, true, JSON.stringify(replacement));
+    assert.deepEqual(replacement.supersededAuthorizationPaths, [v1AuthorizationPath]);
+
+    const v3AuthorizationPath = 'governance/layered-ci/supersession-v3-authorization.json';
+    const v3AuthorizationBranch = 'governance/supersession-v3-authorization';
+    const v3ImplementationBranch = 'fix/supersession-v3';
+    const v3Authorization = genericDelegatedAuthorization({
+      allowedChangedPaths,
+      document: {
+        workPackage: 'SUPERSESSION-V3',
+        supersedes: {
+          authorizationPath: v2AuthorizationPath,
+          implementationBranch: v2ImplementationBranch,
+          reason: 'replace exact v2 delegated authority'
+        },
+        base: { branch: 'main', commit: trustedMainHead },
+        authorizationBranch: {
+          name: v3AuthorizationBranch,
+          allowedChangedPaths: [v3AuthorizationPath],
+          mustRemainSingleFile: true
+        },
+        implementation: exactImplementation(v3ImplementationBranch)
+      }
+    });
+
+    git('switch', '-c', v3AuthorizationBranch);
+    write(v3AuthorizationPath, `${JSON.stringify(v3Authorization, null, 2)}\n`);
+    git('add', v3AuthorizationPath);
+    git('commit', '-m', 'authorize v3 supersession');
+    const v3ReviewedHead = git('rev-parse', 'HEAD');
+
+    git('switch', 'main');
+    git('merge', '--no-ff', v3AuthorizationBranch, '-m', 'merge v3 authorization');
+    const trustedMainHeadV3 = git('rev-parse', 'HEAD');
+    assert.deepEqual(git('rev-list', '--parents', '-n', '1', trustedMainHeadV3).split(/\s+/u).slice(1), [
+      trustedMainHead,
+      v3ReviewedHead
+    ]);
+
+    const finalReplacement = evaluateTrustedDelegatedGovernanceBranch({
+      branch: v3ImplementationBranch,
+      trustedPolicyRoot: root,
+      trustedMainHead: trustedMainHeadV3,
+      evaluatedHead: trustedMainHeadV3
+    });
+    assert.equal(finalReplacement.pass, true, JSON.stringify(finalReplacement));
+    assert.deepEqual(finalReplacement.supersededAuthorizationPaths, [
+      v2AuthorizationPath,
+      v1AuthorizationPath
+    ]);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -1906,4 +1956,246 @@ test('generic delegated route guard rejects governance bootstrap ambiguity and s
   const failClosedWeakening = exactCandidate();
   failClosedWeakening.unknownPathFailsClosed = false;
   denied(baseAuthorization, failClosedWeakening);
+});
+
+
+function buildTopologyFixtureAuthorization({
+  authorizationPath,
+  authorizationBranch,
+  implementationBranch,
+  implementationPaths,
+  supersedes = null
+}) {
+  const document = genericDelegatedAuthorization({
+    allowedChangedPaths: implementationPaths
+  });
+
+  document.authorizationBranch = {
+    ...document.authorizationBranch,
+    name: authorizationBranch,
+    allowedChangedPaths: [authorizationPath]
+  };
+
+  document.implementation = {
+    ...document.implementation,
+    branch: implementationBranch,
+    allowedChangedPaths: [...implementationPaths],
+    approvedChangedFileCount: implementationPaths.length,
+    approvedChangedFileSetSha256:
+      workPackageChangedFilesSha256(implementationPaths)
+  };
+
+  if (supersedes) {
+    document.supersedes = supersedes;
+  }
+
+  return document;
+}
+
+test('delegated governance topology rejects a non-candidate branch before unrelated history traversal', () => {
+  const targetPath =
+    'governance/layered-ci/test-unrelated-target-authorization.json';
+
+  const successorPath =
+    'governance/layered-ci/test-unrelated-successor-authorization.json';
+
+  const target = buildTopologyFixtureAuthorization({
+    authorizationPath: targetPath,
+    authorizationBranch: 'governance/test-unrelated-target',
+    implementationBranch: 'fix/test-unrelated-target',
+    implementationPaths: [
+      'shared/release/test-unrelated-target.js'
+    ]
+  });
+
+  const successor = buildTopologyFixtureAuthorization({
+    authorizationPath: successorPath,
+    authorizationBranch: 'governance/test-unrelated-successor',
+    implementationBranch: 'fix/test-unrelated-successor',
+    implementationPaths: [
+      'shared/release/test-unrelated-successor.js'
+    ],
+    supersedes: {
+      authorizationPath: targetPath,
+      implementationBranch: target.implementation.branch,
+      reason: 'test-only unrelated supersession topology'
+    }
+  });
+
+  let historyLookups = 0;
+
+  const result = evaluateTrustedDelegatedGovernanceBranch({
+    branch: 'feature/not-authorized-by-delegated-governance',
+    trustedMainHead: GENERIC_TRUSTED_MAIN,
+    evaluatedHead: GENERIC_IMPLEMENTATION_HEAD,
+
+    listAuthorizationPaths: () => [
+      targetPath,
+      successorPath
+    ],
+
+    loadAuthorizationAtTrustedHead: repositoryPath => {
+      if (repositoryPath === targetPath) return target;
+      if (repositoryPath === successorPath) return successor;
+      return null;
+    },
+
+    findAuthorizationIntroductionMerges: () => {
+      historyLookups += 1;
+      return [];
+    }
+  });
+
+  assert.equal(result.pass, false);
+  assert.equal(
+    result.reasonCode,
+    'WP0_DELEGATED_GOVERNANCE_AUTHORITY_INVALID'
+  );
+
+  assert.equal(
+    historyLookups,
+    0,
+    'a branch with no matching authorization must not traverse unrelated authorization history'
+  );
+});
+
+test('delegated governance topology validates only the supersession component connected to the candidate branch', () => {
+  const exact = genericTrustedAuthorityOptions();
+
+  const candidate =
+    genericDelegatedAuthorization();
+
+  const unrelatedTargetPath =
+    'governance/layered-ci/test-disconnected-target-authorization.json';
+
+  const unrelatedSuccessorPath =
+    'governance/layered-ci/test-disconnected-successor-authorization.json';
+
+  const unrelatedTarget = buildTopologyFixtureAuthorization({
+    authorizationPath: unrelatedTargetPath,
+    authorizationBranch: 'governance/test-disconnected-target',
+    implementationBranch: 'fix/test-disconnected-target',
+    implementationPaths: [
+      'shared/release/test-disconnected-target.js'
+    ]
+  });
+
+  const unrelatedSuccessor = buildTopologyFixtureAuthorization({
+    authorizationPath: unrelatedSuccessorPath,
+    authorizationBranch: 'governance/test-disconnected-successor',
+    implementationBranch: 'fix/test-disconnected-successor',
+    implementationPaths: [
+      'shared/release/test-disconnected-successor.js'
+    ],
+    supersedes: {
+      authorizationPath: unrelatedTargetPath,
+      implementationBranch:
+        unrelatedTarget.implementation.branch,
+      reason: 'test-only disconnected supersession topology'
+    }
+  });
+
+  let unrelatedHistoryLookups = 0;
+
+  const result = evaluateTrustedDelegatedGovernanceBranch({
+    ...exact,
+
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+
+    listAuthorizationPaths: () => [
+      GENERIC_AUTHORIZATION_PATH,
+      unrelatedTargetPath,
+      unrelatedSuccessorPath
+    ],
+
+    loadAuthorizationAtTrustedHead: repositoryPath => {
+      if (repositoryPath === GENERIC_AUTHORIZATION_PATH) {
+        return candidate;
+      }
+
+      if (repositoryPath === unrelatedTargetPath) {
+        return unrelatedTarget;
+      }
+
+      if (repositoryPath === unrelatedSuccessorPath) {
+        return unrelatedSuccessor;
+      }
+
+      return null;
+    },
+
+    findAuthorizationIntroductionMerges: repositoryPath => {
+      if (repositoryPath === GENERIC_AUTHORIZATION_PATH) {
+        return [GENERIC_MERGE];
+      }
+
+      unrelatedHistoryLookups += 1;
+      return [];
+    }
+  });
+
+  assert.equal(result.pass, true, JSON.stringify(result));
+
+  assert.equal(
+    unrelatedHistoryLookups,
+    0,
+    'candidate validation must not traverse a disconnected supersession component'
+  );
+});
+
+
+test('delegated npm lock-tree cleanup retries transient Windows busy handles and fails closed on exhaustion', () => {
+  let attempts = 0;
+  const delays = [];
+  removeDelegatedNpmLockTreeTemporaryRoot('synthetic-npm-lock-tree', {
+    maxAttempts: 7,
+    initialDelayMs: 10,
+    maxDelayMs: 25,
+    remove() {
+      attempts += 1;
+      if (attempts < 7) {
+        const error = new Error('busy');
+        error.code = 'EBUSY';
+        throw error;
+      }
+    },
+    wait(delayMs) {
+      delays.push(delayMs);
+    }
+  });
+  assert.equal(attempts, 7);
+  assert.deepEqual(delays, [10, 20, 25, 25, 25, 25]);
+
+  let exhaustedAttempts = 0;
+  assert.throws(
+    () => removeDelegatedNpmLockTreeTemporaryRoot('synthetic-npm-lock-tree', {
+      maxAttempts: 3,
+      initialDelayMs: 1,
+      maxDelayMs: 1,
+      remove() {
+        exhaustedAttempts += 1;
+        const error = new Error('still busy');
+        error.code = 'EBUSY';
+        throw error;
+      },
+      wait() {}
+    }),
+    error => error?.code === 'EBUSY'
+  );
+  assert.equal(exhaustedAttempts, 3);
+
+  let permanentAttempts = 0;
+  assert.throws(
+    () => removeDelegatedNpmLockTreeTemporaryRoot('synthetic-npm-lock-tree', {
+      remove() {
+        permanentAttempts += 1;
+        const error = new Error('access denied');
+        error.code = 'EACCES';
+        throw error;
+      },
+      wait() {}
+    }),
+    error => error?.code === 'EACCES'
+  );
+  assert.equal(permanentAttempts, 1);
 });

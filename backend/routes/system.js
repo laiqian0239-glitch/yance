@@ -42,7 +42,6 @@ async function coreExecute(req, command, payload = {}) {
   return output.result;
 }
 
-
 router.get('/health', (_req, res) => {
   const architectureGovernance = architectureRuntimeHealth.snapshot();
   const releaseIdentity = getReleaseIdentity();
@@ -233,7 +232,20 @@ router.post('/speech/install', (_req, res, next) => {
   try { res.status(202).json(speechInstaller.startInstall()); } catch (error) { next(error); }
 });
 router.post('/speech/transcribe', async (req, res, next) => {
-  try { res.json(await transcription.transcribe({ filePath: req.body?.filePath, language: req.body?.language || 'auto', translateToChinese: req.body?.translateToChinese !== false })); } catch (error) { next(error); }
+  try {
+    const scheduled = await transcription.transcribe({
+      filePath: req.body?.filePath,
+      mediaReference: req.body?.mediaReference || req.body?.filePath,
+      language: req.body?.language || 'auto',
+      translateToChinese: req.body?.translateToChinese !== false,
+      idempotencyKey: req.body?.idempotencyKey,
+      traceId: req.get('x-correlation-id') || req.body?.traceId || '',
+      sourceScopeReference: req.body?.sourceScopeReference,
+      destinationScopeReference: req.body?.destinationScopeReference,
+      custodyReference: req.body?.custodyReference
+    });
+    res.status(202).json({ ok: true, status: 'scheduled', ...scheduled });
+  } catch (error) { next(error); }
 });
 
 module.exports = router;

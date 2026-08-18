@@ -8,6 +8,49 @@ const { executeWithDeadline } = require('./executionDeadline');
 const { createSessionGenerationFence } = require('./sessionGenerationFence');
 
 function clean(value) { return value == null ? '' : String(value).trim(); }
+function persistedOperationIdentity(options = {}) {
+  const source = options.physicalAttemptContext || options.physicalOperationContext;
+  if (!source || typeof source !== 'object' || Array.isArray(source) || !Object.isFrozen(source)) {
+    throw Object.assign(new Error('Facebook relay physical I/O requires a frozen persisted WP-B attempt'), { code: 'FACEBOOK_RELAY_PERSISTED_ATTEMPT_REQUIRED', status: 409 });
+  }
+  const executionId = clean(source.executionId || source.operationId);
+  const attemptId = clean(source.attemptId || source.operationId);
+  const claimId = clean(source.claimId);
+  const ownerId = clean(source.ownerId);
+  if (!executionId || !attemptId || !claimId || !ownerId) {
+    throw Object.assign(new Error('Facebook relay persisted attempt identity is incomplete'), { code: 'FACEBOOK_RELAY_PERSISTED_ATTEMPT_REQUIRED', status: 409 });
+  }
+  for (const field of ['generation', 'hostGeneration', 'fencingToken']) {
+    const value = Number(source[field]);
+    if (!Number.isSafeInteger(value) || value < 1) throw Object.assign(new Error('Facebook relay persisted fencing identity is invalid'), { code: 'FACEBOOK_RELAY_PERSISTED_ATTEMPT_REQUIRED', status: 409, field });
+  }
+  if (clean(source.state) && clean(source.state).toUpperCase() !== 'RUNNING') {
+    throw Object.assign(new Error('Facebook relay persisted operation must be RUNNING'), { code: 'FACEBOOK_RELAY_PERSISTED_ATTEMPT_REQUIRED', status: 409, field: 'state' });
+  }
+  if (clean(source.platform) && clean(source.platform).toLowerCase() !== 'facebook') {
+    throw Object.assign(new Error('Facebook relay persisted attempt platform mismatch'), { code: 'FACEBOOK_RELAY_PERSISTED_ATTEMPT_REQUIRED', status: 409, field: 'platform' });
+  }
+  return Object.freeze({
+    executionId, attemptId, claimId, ownerId,
+    generation: Number(source.generation), hostGeneration: Number(source.hostGeneration), fencingToken: Number(source.fencingToken),
+    operationKind: clean(source.operationKind), deadlineAt: clean(source.deadlineAt), accountId: clean(source.accountId || source.accountReference)
+  });
+}
+function appendPersistedOperationIdentity(value, persisted) {
+  const url = new URL(value);
+  const fields = {
+    wpb_execution_id: persisted.executionId,
+    wpb_attempt_id: persisted.attemptId,
+    wpb_claim_id: persisted.claimId,
+    wpb_owner_id: persisted.ownerId,
+    wpb_generation: String(persisted.generation),
+    wpb_host_generation: String(persisted.hostGeneration),
+    wpb_fencing_token: String(persisted.fencingToken)
+  };
+  if (persisted.operationKind) fields.wpb_operation_kind = persisted.operationKind;
+  for (const [key, value] of Object.entries(fields)) url.searchParams.set(key, value);
+  return url.toString();
+}
 async function readRawBodyWithDeadline(response, options = {}) {
   try {
     return await executeWithDeadline(
@@ -135,8 +178,10 @@ class FacebookRelayClient {
   }
 
   async request(secret, endpoint, options = {}, timeoutMs = 30000) {
+    const persisted = persistedOperationIdentity(options);
     const base = assertReleaseWorkerBinding(secret.workerBaseUrl);
-    const url = new URL(endpoint, `${base}/`).toString();
+    const unsignedUrl = new URL(endpoint, `${base}/`).toString();
+    const url = appendPersistedOperationIdentity(unsignedUrl, persisted);
     const method = clean(options.method || 'GET').toUpperCase();
     const bodyText = options.body == null ? '' : typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
     const signatureHeaders = signedHeaders(secret, url, method, bodyText, clean(options.idempotencyKey));
@@ -148,20 +193,8 @@ class FacebookRelayClient {
       ...(options.headers || {}),
       'user-agent': 'Yance-FacebookWorkerClient/1'
     };
-    const controller = new AbortController();
-    const externalSignal = options.signal || null;
-    const onExternalAbort = () => {
-      const reason = externalSignal?.reason instanceof Error
-        ? externalSignal.reason
-        : Object.assign(new Error('Facebook relay request aborted by caller'), { code: 'FACEBOOK_RELAY_CALLER_ABORTED' });
-      if (!controller.signal.aborted) controller.abort(reason);
-    };
-    if (externalSignal?.aborted) onExternalAbort();
-    else externalSignal?.addEventListener?.('abort', onExternalAbort, { once: true });
-    let timeoutTriggered = false;
-    const timer = setTimeout(() => { timeoutTriggered = true; controller.abort(Object.assign(new Error('Facebook relay timeout'), { code: 'FACEBOOK_WORKER_TIMEOUT' })); }, timeoutMs);
-    try {
-      const response = await fetch(url, { method, headers, body: bodyText || undefined, signal: controller.signal });
+    return executeWithDeadline(async ({ signal }) => {
+      const response = await fetch(url, { method, headers, body: bodyText || undefined, signal });
       if (options.raw === true) {
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
@@ -171,30 +204,28 @@ class FacebookRelayClient {
         return response;
       }
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.ok === false) throw Object.assign(new Error(data.message || `Facebook 云端服务返回 HTTP ${response.status}`), { code: data.code || 'FACEBOOK_WORKER_REQUEST_FAILED', status: response.status, details: { ...(data.details || {}), requestId: clean(data.details?.requestId || response.headers?.get?.('x-yance-request-id') || localRequestId) } });
-      return data;
-    } catch (error) {
-      if (externalSignal?.aborted && !timeoutTriggered) {
-        const reason = externalSignal.reason instanceof Error ? externalSignal.reason : error;
-        if (!reason.code) reason.code = 'FACEBOOK_RELAY_CALLER_ABORTED';
-        reason.executionGeneration = clean(options.executionGeneration);
-        throw reason;
-      }
-      if (error.name === 'AbortError' || timeoutTriggered) throw Object.assign(new Error('Facebook 云端服务请求超时'), { code: 'FACEBOOK_WORKER_TIMEOUT', status: 504 });
-      throw error;
-    } finally {
-      clearTimeout(timer);
-      externalSignal?.removeEventListener?.('abort', onExternalAbort);
-    }
+      const providerRequestId = clean(response.headers?.get?.('x-yance-request-id') || data?.providerRequestId || localRequestId);
+      if (!response.ok || data.ok === false) throw Object.assign(new Error(data.message || `Facebook 云端服务返回 HTTP ${response.status}`), { code: data.code || 'FACEBOOK_WORKER_REQUEST_FAILED', status: response.status, details: { ...(data.details || {}), requestId: clean(data.details?.requestId || providerRequestId) } });
+      return { ...data, providerRequestId };
+    }, {
+      deadlineAt: persisted.deadlineAt,
+      timeoutMs,
+      signal: options.signal || null,
+      generation: persisted.generation,
+      code: 'FACEBOOK_WORKER_TIMEOUT',
+      operation: 'facebook-relay-request',
+      platform: 'facebook',
+      accountId: persisted.accountId
+    });
   }
 
-  async health(secret, options = {}) { return this.request(secret, '/api/desktop/health', { signal: options.signal }, 15000); }
-  async accounts(secret) { return this.request(secret, '/api/desktop/accounts', {}, 15000); }
-  async refreshPermissions(secret) { return this.request(secret, '/api/desktop/permissions/refresh', { method: 'POST', body: {} }, 15000); }
+  async health(secret, options = {}) { return this.request(secret, '/api/desktop/health', { ...options, signal: options.signal }, 15000); }
+  async accounts(secret, options = {}) { return this.request(secret, '/api/desktop/accounts', options, 15000); }
+  async refreshPermissions(secret, options = {}) { return this.request(secret, '/api/desktop/permissions/refresh', { ...options, method: 'POST', body: {} }, 15000); }
 
-  async avatarBuffer(secret, kind = 'profile', psid = '') {
+  async avatarBuffer(secret, kind = 'profile', psid = '', options = {}) {
     const endpoint = kind === 'page' ? '/api/desktop/avatar/page' : `/api/desktop/avatar/profile?psid=${encodeURIComponent(clean(psid))}`;
-    const response = await this.request(secret, endpoint, { raw: true, accept: 'image/*' }, 30000);
+    const response = await this.request(secret, endpoint, { ...options, raw: true, accept: 'image/*' }, 30000);
     const declared = Number(response.headers?.get?.('content-length') || 0);
     if (declared > 8 * 1024 * 1024) throw Object.assign(new Error('Facebook 头像文件过大'), { code: 'FACEBOOK_AVATAR_TOO_LARGE', status: 413 });
     const buffer = Buffer.from(await readRawBodyWithDeadline(response, { timeoutMs: 30_000, code: 'FACEBOOK_AVATAR_BODY_TIMEOUT', operation: 'facebook-avatar-body' }));
@@ -202,7 +233,7 @@ class FacebookRelayClient {
     return { buffer, mimeType: clean(response.headers?.get?.('content-type')), requestId: clean(response.yanceRequestId || response.headers?.get?.('x-yance-request-id')) };
   }
 
-  async syncOnce(account, secret, onWebhook) {
+  async syncOnce(account, secret, onWebhook, options = {}) {
     const row = this.sessions.get(account.id);
     const fence = row?.sessionFence || null;
     const isCurrent = () => !row || (
@@ -212,7 +243,7 @@ class FacebookRelayClient {
     );
     const staleResult = () => ({ received: 0, acked: 0, hasMore: false, stale: true, syncedAt: '' });
     const signal = row?.pollController?.signal || null;
-    const result = await this.request(secret, '/api/desktop/events?limit=50&lease_seconds=180', { signal }, 30000);
+    const result = await this.request(secret, '/api/desktop/events?limit=50&lease_seconds=180', { ...options, signal: options.signal || signal }, 30000);
     if (!isCurrent()) return staleResult();
     const acknowledgements = [];
     for (const event of Array.isArray(result.events) ? result.events : []) {
@@ -229,7 +260,7 @@ class FacebookRelayClient {
     let ackedCount = 0;
     if (acknowledgements.length) {
       if (!isCurrent()) return staleResult();
-      const ack = await this.request(secret, '/api/desktop/ack', { method: 'POST', body: { acknowledgements }, signal }, 30000);
+      const ack = await this.request(secret, '/api/desktop/ack', { ...options, method: 'POST', body: { acknowledgements }, signal: options.signal || signal }, 30000);
       if (!isCurrent()) return staleResult();
       ackedCount = Array.isArray(ack.acked) ? ack.acked.length : 0;
       if (ack.failed?.length) logger.warn('facebook', 'worker-ack-partial-failure', { accountId: account.id, failed: ack.failed.length });
@@ -242,82 +273,46 @@ class FacebookRelayClient {
     return { received: Number(result.events?.length || 0), acked: ackedCount, hasMore: result.has_more === true, syncedAt: new Date().toISOString() };
   }
 
-  async connect(account, secret, onWebhook, onState = () => {}) {
+  async connect(account, secret, onWebhook, onState = () => {}, options = {}) {
     await this.disconnect(account.id);
     if (!clean(secret.workerBaseUrl) || !clean(secret.cloudAccountId) || !clean(secret.deviceId) || !clean(secret.devicePrivateKeyPkcs8)) {
       return { state: 'unconfigured', connectedAt: '', lastError: 'Facebook 云端账号尚未完成授权' };
     }
-    const row = { accountId: account.id, state: 'connecting', connectedAt: '', lastError: '', stopped: false, timer: null, backoff: 1000, onState, lastSyncAt: '', lastAckAt: '', pendingEvents: 0, deadLetter: 0, workerStatus: 'checking', pollController: new AbortController() };
+    persistedOperationIdentity(options);
+    const row = { accountId: account.id, state: 'connecting', connectedAt: '', lastError: '', stopped: false, onState, lastSyncAt: '', lastAckAt: '', pendingEvents: 0, deadLetter: 0, workerStatus: 'checking', pollController: new AbortController() };
     row.sessionFence = createSessionGenerationFence(
       () => this.sessions.get(account.id) === row && row.stopped !== true,
       { prefix: `facebook:${account.id}` }
     );
     const publish = () => {
       try { row.onState(this.status(account.id)); }
-      catch (error) {
-        logger.warn('facebook', 'worker-state-listener-failed', { accountId: account.id, code: clean(error?.code), error: clean(error?.message || error) });
-      }
+      catch (error) { logger.warn('facebook', 'worker-state-listener-failed', { accountId: account.id, code: clean(error?.code), error: clean(error?.message || error) }); }
     };
     this.sessions.set(account.id, row);
-    const isCurrent = () => row.sessionFence.isCurrent();
-    const applyHealth = health => {
-      if (!isCurrent()) return false;
-      row.state = health.status === 'ready' ? 'connected' : 'connecting';
-      row.workerStatus = health.status || 'unknown';
-      row.connectedAt ||= new Date().toISOString();
-      row.lastError = '';
-      row.pendingEvents = Number(health.queue?.pending || 0) + Number(health.queue?.leased || 0);
-      row.deadLetter = Number(health.queue?.deadLetter || 0);
-      row.lastAckAt = clean(health.queue?.lastAckAt || row.lastAckAt);
-      publish();
-      return true;
-    };
-    const loop = async () => {
-      if (!isCurrent()) return;
-      try {
-        const health = await this.health(secret, { signal: row.pollController.signal });
-        if (!isCurrent() || !applyHealth(health)) return;
-        let rounds = 0;
-        do {
-          const result = await this.syncOnce(account, secret, onWebhook);
-          if (!isCurrent() || result.stale) return;
-          rounds += 1;
-          if (!result.hasMore || rounds >= 10) break;
-        } while (isCurrent());
-        row.backoff = 1000;
-      } catch (error) {
-        if (!isCurrent()) return;
-        row.state = 'connecting';
-        row.workerStatus = 'unreachable';
-        row.lastError = error.message;
-        row.backoff = Math.min(30000, Math.max(1000, row.backoff * 2));
-        publish();
-      }
-      if (isCurrent()) row.timer = setTimeout(loop, row.lastError ? row.backoff : 3000);
-    };
-    // Only the fast health handshake gates connect(). Backlog consumption runs
-    // in the background so old events cannot keep the account in "connecting".
-    const initialHealth = await this.health(secret, { signal: row.pollController.signal });
-    if (!isCurrent()) return { state: 'paused', connectedAt: '', lastError: '' };
-    applyHealth(initialHealth);
-    setImmediate(() => loop().catch(error => {
-      if (!isCurrent()) return;
-      row.state = 'connecting';
-      row.workerStatus = 'unreachable';
-      row.lastError = error.message;
-      publish();
-    }));
+    const health = await this.health(secret, { ...options, signal: options.signal || row.pollController.signal });
+    if (!row.sessionFence.isCurrent()) return { state: 'paused', connectedAt: '', lastError: '' };
+    row.state = health.status === 'ready' ? 'connected' : 'connecting';
+    row.workerStatus = health.status || 'unknown';
+    row.connectedAt = new Date().toISOString();
+    row.lastError = '';
+    row.pendingEvents = Number(health.queue?.pending || 0) + Number(health.queue?.leased || 0);
+    row.deadLetter = Number(health.queue?.deadLetter || 0);
+    row.lastAckAt = clean(health.queue?.lastAckAt || row.lastAckAt);
+    publish();
+    // Polling/retry scheduling is owned by the durable HISTORY_SYNCHRONIZATION /
+    // SESSION_RESTORE operation pump. connect() performs exactly one health observation.
     return this.status(account.id);
   }
 
   async send(secret, operation, idempotencyKey, options = {}) {
-    return this.request(secret, '/api/desktop/send', { method: 'POST', body: operation, idempotencyKey, signal: options.signal, executionGeneration: options.executionGeneration }, 90000);
+    return this.request(secret, '/api/desktop/send', { ...options, method: 'POST', body: operation, idempotencyKey, signal: options.signal, executionGeneration: options.executionGeneration }, 90000);
   }
 
   async history(secret, { limit = 50, messagesLimit = 50, after = '' } = {}, options = {}) {
     const query = new URLSearchParams({ limit: String(limit), messages_limit: String(messagesLimit) });
     if (after) query.set('after', after);
     return this.request(secret, `/api/desktop/history?${query}`, {
+      ...options,
       signal: options.signal,
       executionGeneration: options.executionGeneration
     }, 45000);
@@ -327,55 +322,50 @@ class FacebookRelayClient {
     const query = new URLSearchParams({ conversation_id: clean(conversationId), limit: String(limit) });
     if (after) query.set('after', after);
     return this.request(secret, `/api/desktop/history/messages?${query}`, {
+      ...options,
       signal: options.signal,
       executionGeneration: options.executionGeneration
     }, 45000);
   }
 
-  async profile(secret, psid) { return this.request(secret, `/api/desktop/profile?psid=${encodeURIComponent(clean(psid))}`, {}, 15000); }
+  async profile(secret, psid, options = {}) { return this.request(secret, `/api/desktop/profile?psid=${encodeURIComponent(clean(psid))}`, options, 15000); }
 
-  async downloadMedia(secret, eventId, index, outputPath) {
-    const response = await this.request(secret, `/api/desktop/media/${encodeURIComponent(clean(eventId))}/${Number(index)}`, { raw: true, accept: 'application/octet-stream' }, 60000);
+  async downloadMedia(secret, eventId, index, outputPath, options = {}) {
+    const response = await this.request(secret, `/api/desktop/media/${encodeURIComponent(clean(eventId))}/${Number(index)}`, { ...options, raw: true, accept: 'application/octet-stream' }, 60000);
     const bytes = Buffer.from(await readRawBodyWithDeadline(response, { timeoutMs: 60_000, code: 'FACEBOOK_MEDIA_BODY_TIMEOUT', operation: 'facebook-media-body' }));
     fs.writeFileSync(outputPath, bytes, { flag: 'wx' });
     return { bytes: bytes.length, mimeType: clean(response.headers.get('content-type'), 'application/octet-stream'), filename: clean(response.headers.get('content-disposition')) };
   }
 
   async revoke(accountId, secret = {}, options = {}) {
+    const persisted = persistedOperationIdentity(options);
     const legacyRelayUrl = clean(secret.relayUrl);
     const legacyPageId = clean(secret.pageId);
     const legacyRelayToken = clean(secret.relayToken);
     if (legacyRelayUrl || legacyPageId || legacyRelayToken) {
       if (!legacyRelayUrl || !legacyPageId || !legacyRelayToken) return { revoked: false, skipped: true };
       const url = relayManagementUrl(legacyRelayUrl, legacyPageId);
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 30000);
-      try {
+      return executeWithDeadline(async ({ signal }) => {
         const response = await fetch(url, {
           method: 'DELETE',
           headers: { accept: 'application/json', authorization: `Bearer ${legacyRelayToken}`, 'user-agent': 'Yance-FacebookRelayClient/1' },
-          signal: controller.signal
+          signal
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) {
           throw Object.assign(new Error(data.message || `Facebook Relay 凭据撤销失败（HTTP ${response.status}）`), {
-            code: data.code || 'FACEBOOK_RELAY_REVOKE_FAILED',
-            status: response.status,
-            details: { pageId: legacyPageId }
+            code: data.code || 'FACEBOOK_RELAY_REVOKE_FAILED', status: response.status, details: { pageId: legacyPageId }
           });
         }
         logger.info('facebook', 'relay-credential-revoked', { accountId, pageId: legacyPageId });
         return { revoked: data.revoked === true, skipped: false };
-      } catch (error) {
-        if (error.name === 'AbortError') throw Object.assign(new Error('Facebook Relay 凭据撤销超时'), { code: 'FACEBOOK_RELAY_REVOKE_TIMEOUT', status: 504 });
-        throw error;
-      } finally { clearTimeout(timer); }
+      }, { deadlineAt: persisted.deadlineAt, timeoutMs: 30000, signal: options.signal || null, generation: persisted.generation, code: 'FACEBOOK_RELAY_REVOKE_TIMEOUT', operation: 'facebook-relay-revoke', platform: 'facebook', accountId });
     }
     if (!clean(secret.workerBaseUrl) || !clean(secret.deviceId)) return { revoked: false, skipped: true };
     const disconnectAccount = options.disconnectAccount === true;
     const body = { disconnectAccount };
     if (disconnectAccount) body.unsubscribe = options.unsubscribe !== false;
-    const result = await this.request(secret, '/api/desktop/disconnect', { method: 'POST', body }, 30000);
+    const result = await this.request(secret, '/api/desktop/disconnect', { ...options, method: 'POST', body }, 30000);
     logger.info('facebook', disconnectAccount ? 'worker-account-disconnected' : 'worker-device-disconnected', { accountId, pageId: clean(secret.pageId), disconnectAccount });
     return { revoked: result.disconnected === true, accountDisconnected: result.accountDisconnected === true, skipped: false };
   }
@@ -388,7 +378,6 @@ class FacebookRelayClient {
     if (!row.pollController?.signal?.aborted) {
       row.pollController?.abort?.(Object.assign(new Error('Facebook relay disconnected'), { code: 'FACEBOOK_RELAY_DISCONNECTED' }));
     }
-    if (row.timer) clearTimeout(row.timer);
     this.sessions.delete(accountId);
     return { state: 'paused' };
   }
@@ -405,3 +394,5 @@ module.exports.verifyEnvelope = verifyEnvelope;
 module.exports.relayManagementUrl = relayManagementUrl;
 
 module.exports.readRawBodyWithDeadline = readRawBodyWithDeadline;
+
+module.exports.persistedOperationIdentity = persistedOperationIdentity;

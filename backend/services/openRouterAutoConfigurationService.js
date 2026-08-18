@@ -1,6 +1,6 @@
 'use strict';
 
-const { requestJson, normalizeEndpoint, normalizeApiKey } = require('./openAiCompatibleClient');
+const aiGateway = require('./aiGateway');
 
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1';
 const SERVICE_VERSION = 'openrouter-model-brain-catalog-v1';
@@ -96,37 +96,42 @@ function publicKeyStatus(keyInfo = {}) {
     expiresAt: clean(keyInfo.expires_at)
   };
 }
+function validateApiKey(value = '') {
+  let apiKey = clean(value).replace(/^Bearer\s+/iu, '').trim();
+  if (!apiKey) throw Object.assign(new Error('OpenRouter API Key尚未写入系统安全存储'), { code: 'OPENROUTER_CREDENTIAL_MISSING' });
+  if (/[\u0000-\u001f\u007f]/u.test(apiKey)) {
+    throw Object.assign(new Error('OpenRouter API Key格式无效'), { code: 'OPENROUTER_CREDENTIAL_INVALID' });
+  }
+  return apiKey;
+}
 function secureCredential(options = {}) {
   const securityGuard = options.securityGuard || require('../core/securityGuardSingleton').getSecurityGuard();
   const credentialRef = clean(options.credentialRef);
   if (!credentialRef) throw Object.assign(new Error('OpenRouter凭据引用不能为空'), { code: 'OPENROUTER_CREDENTIAL_REF_REQUIRED' });
   const credential = securityGuard.credentials.get(credentialRef) || {};
-  let apiKey = '';
-  try { apiKey = normalizeApiKey(credential.apiKey || credential.key || credential.token); }
-  catch (error) {
-    if (error.code === 'CLOUD_MODEL_CREDENTIAL_MISSING') throw Object.assign(new Error('OpenRouter API Key尚未写入系统安全存储'), { code: 'OPENROUTER_CREDENTIAL_MISSING' });
-    throw Object.assign(new Error(error.message || 'OpenRouter API Key格式无效'), { code: 'OPENROUTER_CREDENTIAL_INVALID' });
-  }
+  const apiKey = validateApiKey(credential.apiKey || credential.key || credential.token);
   return { credentialRef, apiKey };
 }
 async function refreshAccountStatus(options = {}) {
   const registry = options.registry || require('./modelRegistry');
-  const request = options.requestJson || requestJson;
-  const endpoint = normalizeEndpoint(options.endpoint || OPENROUTER_ENDPOINT);
-  const { credentialRef, apiKey } = secureCredential(options);
-  const keyPayload = await request(`${endpoint}/key`, { apiKey, timeoutMs: 30000, signal: options.signal });
+  const endpoint = aiGateway.normalizeCloudEndpoint(options.endpoint || OPENROUTER_ENDPOINT);
+  const { credentialRef, apiKey } = secureCredential({ ...options, endpoint });
+  const injectedRequest = typeof options.requestJson === 'function';
+  const request = injectedRequest ? options.requestJson : ((url, requestOptions = {}) => aiGateway.requestOpenAiJson({ url, credentialRef, ...requestOptions }));
+  const keyPayload = await request(`${endpoint}/key`, { ...(injectedRequest ? { apiKey } : {}), timeoutMs: 30000, signal: options.signal });
   const snapshot = { provider: 'openrouter', endpoint, credentialRef, key: publicKeyStatus(object(keyPayload.data)), accountStatus: 'connected', refreshedAt: new Date().toISOString() };
   await registry.recordOpenRouterSnapshot?.(snapshot);
   return snapshot;
 }
 async function autoConfigure(options = {}) {
   const registry = options.registry || require('./modelRegistry');
-  const request = options.requestJson || requestJson;
-  const endpoint = normalizeEndpoint(options.endpoint || OPENROUTER_ENDPOINT);
-  const { credentialRef, apiKey } = secureCredential(options);
+  const endpoint = aiGateway.normalizeCloudEndpoint(options.endpoint || OPENROUTER_ENDPOINT);
+  const { credentialRef, apiKey } = secureCredential({ ...options, endpoint });
+  const injectedRequest = typeof options.requestJson === 'function';
+  const request = injectedRequest ? options.requestJson : ((url, requestOptions = {}) => aiGateway.requestOpenAiJson({ url, credentialRef, ...requestOptions }));
   const [keyPayload, catalogPayload] = await Promise.all([
-    request(`${endpoint}/key`, { apiKey, timeoutMs: 30000, signal: options.signal }),
-    request(`${endpoint}/models/user`, { apiKey, timeoutMs: 60000, signal: options.signal })
+    request(`${endpoint}/key`, { ...(injectedRequest ? { apiKey } : {}), timeoutMs: 30000, signal: options.signal }),
+    request(`${endpoint}/models/user`, { ...(injectedRequest ? { apiKey } : {}), timeoutMs: 60000, signal: options.signal })
   ]);
   const catalog = array(catalogPayload.data).map(normalizeCatalogModel).filter(model => model.id);
   const usable = catalog.filter(model => !isSpecialPurpose(model));

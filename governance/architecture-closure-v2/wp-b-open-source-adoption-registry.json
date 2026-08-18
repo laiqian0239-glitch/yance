@@ -1,0 +1,397 @@
+{
+  "schemaVersion": 9,
+  "documentType": "YANCE_ACV2_WP_B_OPEN_SOURCE_ADOPTION_REGISTRY",
+  "workPackage": "WP-B",
+  "orderedGatePath": "governance/architecture-closure-v2/wp-b-open-source-adoption-gate.json",
+  "supplyChainAuthorityPath": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+  "status": "IN_PROGRESS",
+  "candidates": [
+    {
+      "candidateId": "XSTATE_CORE_5_32_5",
+      "project": "XState",
+      "upstreamRepository": "statelyai/xstate",
+      "packageName": "xstate",
+      "exactVersion": "5.32.5",
+      "license": "MIT",
+      "runtimeDependencyCount": 0,
+      "targetCapability": "PURE_DURABLE_EXECUTION_LIFECYCLE_AND_MODEL_PATHS",
+      "adoptionMode": "DIRECT_DEPENDENCY",
+      "status": "CROSS_PLATFORM_FAULT_COMPLETE_PROVENANCE_PENDING",
+      "productionUseAuthorized": false,
+      "allowedResponsibilities": [
+        "PURE_LIFECYCLE_GRAPH",
+        "TRANSITION_VALIDATION",
+        "MODEL_PATH_GENERATION"
+      ],
+      "forbiddenResponsibilities": [
+        "DATABASE_PERSISTENCE",
+        "IDEMPOTENCY_AUTHORITY",
+        "LEASE_AUTHORITY",
+        "GENERATION_AUTHORITY",
+        "FENCING_AUTHORITY",
+        "RETRY_SCHEDULING_AUTHORITY",
+        "RECEIPT_ISSUANCE",
+        "BUSINESS_TIMESTAMP_AUTHORITY",
+        "EXTERNAL_IO"
+      ],
+      "authorityBoundary": "backend/services/xstateLifecycleAdapter.js",
+      "officialEvidence": [
+        "npm:xstate@5.32.5",
+        "github:statelyai/xstate@c25dba07a2b68565edbe83d83c5d679dd85e00b2",
+        "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+        "governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json",
+        "governance/architecture-closure-v2/wp-b-xstate-adapter-red-evidence.json",
+        "governance/architecture-closure-v2/wp-b-xstate-adapter-green-evidence.json",
+        "governance/architecture-closure-v2/wp-b-xstate-fault-red-evidence.json",
+        "governance/architecture-closure-v2/wp-b-xstate-fault-green-evidence.json"
+      ],
+      "verifiedPackageEvidence": {
+        "distIntegrity": "sha512-ULazi1oe6wGrXl0Frb6otSlkm5HLifbbVTkMk5kkSKqz4TkxJaVpnl6jOJwKeid3ORPxYyZQgNLUSYX9q65SIA==",
+        "distShasum": "0594075f9fb7d5a12791296c5c798c394b66e823",
+        "licenseTextSha256": "542d926d7bbb099785e322d1d5574c539d51942e52ec8adce2be4629ba81fc7f",
+        "upstreamTag": "xstate@5.32.5",
+        "upstreamCommit": "c25dba07a2b68565edbe83d83c5d679dd85e00b2",
+        "packageFileCount": 132,
+        "npmAuditTotal": 0,
+        "verifiedOnUbuntu": true,
+        "verifiedOnWindows": true,
+        "reviewedHead": "48961a5efc21e23b512988a3beb22b08ca8894d6",
+        "workflowRunId": 30809421417,
+        "ubuntuJobId": 91672352461,
+        "windowsJobId": 91672352425
+      },
+      "originalModuleIntroduction": {
+        "introducedAtHead": "df384158be81a3cf133207f6c122d5452d50517e",
+        "repairedAtHead": "84fbbfdea6524dfa4a74dd0a9b40b9ae9ca0805d",
+        "packageManifestPath": "package.json",
+        "packageManifestBlobSha": "f4a1c15316cc451a2979acf5e9a6c7f9eb5f12bc",
+        "packageLockPath": "package-lock.json",
+        "packageLockBlobSha": "ccdab1bd849589a49f3dd2ce096c2579724bc291",
+        "packageLockSha256": "c85637bf92a6886acbc43eb9a540b04d937d5b9f4cebe4a77e4fedb81a5a81b7",
+        "rejectedPackageLockBlobSha": "467c23fa24b94a256f733c02315d4b6e79258dbe",
+        "rejectedPackageLockSha256": "ce962941efa555d782e17909efad33db2f04e02c2aded0a585ae199698978dc5",
+        "introducedPackageOrSourcePaths": [
+          "package.json#/dependencies/xstate",
+          "package-lock.json#/packages//dependencies/xstate",
+          "package-lock.json#/packages/node_modules~1xstate"
+        ],
+        "upstreamToYanceFileMap": [
+          {
+            "upstream": "npm:xstate@5.32.5",
+            "yance": "package.json#/dependencies/xstate"
+          },
+          {
+            "upstream": "npm:xstate@5.32.5",
+            "yance": "package-lock.json#/packages/node_modules~1xstate"
+          }
+        ],
+        "localPatchManifest": [],
+        "restrictedPathExclusionProof": {
+          "vendoredSourceFileCount": 0,
+          "enterpriseOrRestrictedPathCount": 0,
+          "onlyRegistryPackageUsed": true
+        }
+      },
+      "upstreamTestEvidence": {
+        "upstreamTestSelection": [
+          "XSTATE_PNPM_TEST_CORE"
+        ],
+        "upstreamTestCommand": "corepack pnpm test:core",
+        "runtimeVersion": "node@22",
+        "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531",
+        "upstreamCommit": "c25dba07a2b68565edbe83d83c5d679dd85e00b2",
+        "passCount": 1,
+        "failCount": 0,
+        "skipCount": 0,
+        "reviewedHead": "48961a5efc21e23b512988a3beb22b08ca8894d6",
+        "platforms": {
+          "ubuntu": {
+            "status": "PASSED",
+            "reviewedHead": "48961a5efc21e23b512988a3beb22b08ca8894d6",
+            "workflowRunId": 30809421417,
+            "jobId": 91672352461,
+            "installLogSha256": "81df163ff138e68140c9926526319f949b0b952646ad1987283c4c1e59f53528",
+            "testLogSha256": "b7ab83518fe8248f0e318fcfa88e2a47317cae6caefedc43fb20fbe5b0e0edec",
+            "testSummary": {
+              "testFilePassCount": 75,
+              "testFileFailCount": 0,
+              "testPassCount": 1747,
+              "testFailCount": 0,
+              "skipCount": 13,
+              "todoCount": 1
+            }
+          },
+          "windows": {
+            "status": "PASSED",
+            "reviewedHead": "48961a5efc21e23b512988a3beb22b08ca8894d6",
+            "workflowRunId": 30809421417,
+            "jobId": 91672352425,
+            "installLogSha256": "43562ebd282ce1e8e607b5f66bfff6e2e1172135090ffbe83c107716acb1801d",
+            "testLogSha256": "733b4a9a1252115859d776f8ed6111b1a503856f15ba1cad57148ea510a84a42",
+            "testSummary": {
+              "testFilePassCount": 75,
+              "testFileFailCount": 0,
+              "testPassCount": 1747,
+              "testFailCount": 0,
+              "skipCount": 13,
+              "todoCount": 1
+            }
+          }
+        }
+      },
+      "adapterRedEvidence": {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-adapter-red-evidence.json",
+        "redHead": "224ffcace1ddc0507462ebfb08b8737020918c34",
+        "workflowRunId": 30792421897,
+        "ubuntuJobId": 91618586643,
+        "windowsJobId": 91618586679,
+        "failureCode": "MODULE_NOT_FOUND",
+        "normalizedFailureSha256": "06eb384582f663da87d53a7172491c29fbb87b171fcba84e9247bb140a4b3e07"
+      },
+      "adapterGreenEvidence": {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-adapter-green-evidence.json",
+        "reviewedImplementationHead": "ce2de6e3ddb26d6f830ed5ed8696fe007a98c612",
+        "workflowRunId": 30794133328,
+        "ubuntuJobId": 91623786172,
+        "windowsJobId": 91623786262,
+        "passCountPerPlatform": 5,
+        "lazyRuntimeLoadBoundary": true,
+        "crossWorkPackageRegression": {
+          "wp0RunId": 30794133098,
+          "wpAArchitectureRunId": 30794133166,
+          "wpAPostMergeRunId": 30794133268
+        },
+        "productionXStateImportPaths": [
+          "backend/services/xstateLifecycleAdapter.js"
+        ]
+      },
+      "faultRedEvidence": {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-fault-red-evidence.json",
+        "redHead": "53acc228408871420256f034db71782309822003",
+        "workflowRunId": 30795156540,
+        "ubuntuJobId": 91626939872,
+        "windowsJobId": 91626939851,
+        "passCountPerPlatform": 8,
+        "validCapabilityRedPerPlatform": 4,
+        "invalidRedInfrastructurePerPlatform": 0,
+        "normalizedFailureSha256": "058a961de053e2e391d8f0af9ac359db6dbfb1316775dc5d1b90bf9ca7140c50"
+      },
+      "faultGreenEvidence": {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-fault-green-evidence.json",
+        "reviewedImplementationHead": "b807603162606d79e74d1180f7cad15cfd58d338",
+        "workflowRunId": 30796337742,
+        "ubuntuJobId": 91630658913,
+        "windowsJobId": 91630658908,
+        "passCountPerPlatform": 12,
+        "failCountPerPlatform": 0,
+        "skipCountPerPlatform": 0,
+        "crossWorkPackageRegression": {
+          "wp0RunId": 30796337410,
+          "wpAArchitectureRunId": 30796337419,
+          "wpAPostMergeRunId": 30796337547
+        }
+      },
+      "gateSteps": {
+        "CANDIDATE_IDENTIFICATION": "COMPLETE",
+        "EXACT_VERSION_AND_LICENSE_REVIEW": "COMPLETE",
+        "DEPENDENCY_AND_SECURITY_SCAN": "COMPLETE",
+        "ADOPTION_MODE_DECISION": "COMPLETE",
+        "YANCE_RED_CONTRACT_FIRST": "COMPLETE",
+        "INTRODUCE_ORIGINAL_MODULE": "COMPLETE",
+        "UPSTREAM_TESTS_PASS": "COMPLETE",
+        "YANCE_ADAPTER_BOUNDARY": "COMPLETE",
+        "CROSS_PLATFORM_AND_FAULT_VALIDATION": "COMPLETE",
+        "COPYRIGHT_NOTICE_SBOM_PROVENANCE": "NOT_STARTED",
+        "INDEPENDENT_REVIEW": "NOT_STARTED"
+      },
+      "pendingEvidence": [
+        "noticeSbomProvenance",
+        "independentReview"
+      ]
+    },
+    {
+      "candidateId": "TEMPORAL_DURABLE_EXECUTION_REFERENCE",
+      "project": "Temporal",
+      "upstreamRepository": "temporalio/temporal",
+      "exactVersion": "",
+      "license": "",
+      "targetCapability": "DURABLE_WORKFLOW_AND_FAILURE_SEMANTICS",
+      "adoptionMode": "REFERENCE_ONLY",
+      "status": "CANDIDATE_ONLY",
+      "productionUseAuthorized": false,
+      "importedPackageCount": 0,
+      "importedSourceFileCount": 0,
+      "allowedResponsibilities": [
+        "ARCHITECTURE_REFERENCE",
+        "FAILURE_SCENARIO_REFERENCE",
+        "TEST_SEMANTICS_REFERENCE"
+      ],
+      "forbiddenResponsibilities": [
+        "TEMPORAL_SERVER_EMBEDDING",
+        "SECOND_RUNTIME_SERVICE",
+        "SECOND_PERSISTENCE_AUTHORITY",
+        "SOURCE_COPY_WITHOUT_REVIEW"
+      ],
+      "gateSteps": {
+        "CANDIDATE_IDENTIFICATION": "COMPLETE",
+        "EXACT_VERSION_AND_LICENSE_REVIEW": "NOT_STARTED",
+        "DEPENDENCY_AND_SECURITY_SCAN": "NOT_STARTED",
+        "ADOPTION_MODE_DECISION": "NOT_STARTED",
+        "YANCE_RED_CONTRACT_FIRST": "NOT_STARTED",
+        "INTRODUCE_ORIGINAL_MODULE": "NOT_APPLICABLE_REFERENCE_ONLY",
+        "UPSTREAM_TESTS_PASS": "NOT_APPLICABLE_REFERENCE_ONLY",
+        "YANCE_ADAPTER_BOUNDARY": "NOT_APPLICABLE_REFERENCE_ONLY",
+        "CROSS_PLATFORM_AND_FAULT_VALIDATION": "NOT_STARTED",
+        "COPYRIGHT_NOTICE_SBOM_PROVENANCE": "NOT_STARTED",
+        "INDEPENDENT_REVIEW": "NOT_STARTED"
+      }
+    },
+    {
+      "candidateId": "P_QUEUE_SCHEDULER_9_3_1",
+      "project": "p-queue",
+      "upstreamRepository": "sindresorhus/p-queue",
+      "packageName": "p-queue",
+      "exactVersion": "9.3.1",
+      "upstreamTag": "v9.3.1",
+      "upstreamTagObject": "ce6420cf36bc9a28a1524b150d55a9af4e7488ad",
+      "upstreamCommit": "a06fbc928725f074c72716e1ba21106df6822dae",
+      "license": "MIT",
+      "licenseTextSha256": "187c9275f6a79165d8b27554b7b6f04a902d7e71f256d500161fa5001046749a",
+      "packageIntegrity": "sha512-POWdiIPmsUPGwb4FeQ4OBg46aqmcInSWe45CKDsGHiOBiVQM9chqfQTuqhuTzcg2Vz9faTI65at0KkVyVEiCHw==",
+      "runtimeDependencyCount": 2,
+      "runtimeDependencies": [
+        {
+          "name": "eventemitter3",
+          "exactLockedVersion": "5.0.4",
+          "license": "MIT",
+          "integrity": "sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw=="
+        },
+        {
+          "name": "p-timeout",
+          "exactLockedVersion": "7.0.1",
+          "license": "MIT",
+          "integrity": "sha512-AxTM2wDGORHGEkPCt8yqxOTMgpfbEHqF51f/5fJCmwFC3C/zNcGT63SymH2ttOAaiIws2zVg4+izQCjrakcwHg=="
+        }
+      ],
+      "targetCapability": "IN_PROCESS_AI_PRIORITY_QUEUE_ONLY",
+      "adoptionMode": "DIRECT_DEPENDENCY",
+      "status": "YANCE_RED_CONTRACT_COMPLETE_AWAITING_MODULE_INTRODUCTION",
+      "productionUseAuthorized": false,
+      "candidateAssessment": {
+        "projectPurpose": "Promise queue with bounded concurrency, priority ordering, cancellation and queue introspection.",
+        "targetWorkPackage": "WP-B",
+        "maintenanceActivity": "Feature-complete upstream with active maintainers and current 9.3.x releases; exact adoption remains pinned to 9.3.1 already present in the branch lock graph.",
+        "whyPreferOverYanceBuild": "Replaces the generic in-process scheduling portion of legacy JobQueueCore with mature upstream code instead of creating a new Yance queue implementation."
+      },
+      "securityReview": {
+        "reviewedAt": "2026-08-17",
+        "nodeRequirement": ">=20",
+        "yanceNodeRequirement": ">=22.19.0",
+        "nativeAddonCount": 0,
+        "installLifecycleScriptPresent": false,
+        "transitiveLicenseSet": [
+          "MIT"
+        ],
+        "githubAdvisoryDatabase": {
+          "p-queue@9.3.1": 0,
+          "eventemitter3@5.0.4": 0,
+          "p-timeout@7.0.1": 0
+        },
+        "unresolvedCriticalOrHighCount": 0,
+        "windowsCompatibilityAssessment": "Pure JavaScript/TypeScript distribution; no native runtime dependency. Native ESM requires a lazy dynamic-import boundary from the CommonJS Yance service."
+      },
+      "allowedResponsibilities": [
+        "IN_MEMORY_PRIORITY_ORDERING",
+        "BOUNDED_IN_PROCESS_CONCURRENCY",
+        "QUEUED_TASK_ABORT",
+        "QUEUE_SATURATION_INTROSPECTION"
+      ],
+      "forbiddenResponsibilities": [
+        "DATABASE_PERSISTENCE",
+        "DURABLE_RECOVERY",
+        "RETRY_SCHEDULING_AUTHORITY",
+        "PROVIDER_PHYSICAL_TERMINATION_AUTHORITY",
+        "PROVIDER_CIRCUIT_TRUTH",
+        "RECEIPT_ISSUANCE",
+        "CREDENTIAL_OWNERSHIP",
+        "EVIDENCE_TRUTH",
+        "BUSINESS_TIMESTAMP_AUTHORITY",
+        "EXTERNAL_IO"
+      ],
+      "authorityBoundary": "backend/services/aiGateway.js::PQueueSchedulerAdapter",
+      "adoptionDecision": {
+        "directDependencyRationale": "Runtime scheduling semantics are needed directly and should be upgrade-isolated behind a narrow adapter.",
+        "sourceTransplantRejected": "Would fork upstream queue code and create Yance maintenance/provenance burden.",
+        "referenceOnlyRejected": "Would still require a new self-built Yance scheduler, violating OSS-first policy.",
+        "upgradePlan": "Pin exact direct version; upgrade only by rerunning this adoption gate and adapter regression matrix.",
+        "removalPlan": "Remove the adapter and direct dependency without touching Schema 23 durable state because p-queue owns no persistent authority."
+      },
+      "dependencyBinding": {
+        "currentlyPresentTransitively": true,
+        "currentTransitiveOwner": "@whiskeysockets/baileys@7.0.0-rc13",
+        "directDependencyRequiredBeforeProductionImport": true,
+        "packageLockAuthorizationRequired": true
+      },
+      "officialEvidence": [
+        "github:sindresorhus/p-queue@v9.3.1",
+        "github-commit:a06fbc928725f074c72716e1ba21106df6822dae",
+        "npm-lock:p-queue@9.3.1",
+        "github-advisory-db:p-queue@9.3.1",
+        "github-advisory-db:eventemitter3@5.0.4",
+        "github-advisory-db:p-timeout@7.0.1"
+      ],
+      "gateSteps": {
+        "CANDIDATE_IDENTIFICATION": "COMPLETE",
+        "EXACT_VERSION_AND_LICENSE_REVIEW": "COMPLETE",
+        "DEPENDENCY_AND_SECURITY_SCAN": "COMPLETE",
+        "ADOPTION_MODE_DECISION": "COMPLETE",
+        "YANCE_RED_CONTRACT_FIRST": "COMPLETE",
+        "INTRODUCE_ORIGINAL_MODULE": "NOT_STARTED",
+        "UPSTREAM_TESTS_PASS": "NOT_STARTED",
+        "YANCE_ADAPTER_BOUNDARY": "NOT_STARTED",
+        "CROSS_PLATFORM_AND_FAULT_VALIDATION": "NOT_STARTED",
+        "COPYRIGHT_NOTICE_SBOM_PROVENANCE": "NOT_STARTED",
+        "INDEPENDENT_REVIEW": "NOT_STARTED"
+      },
+      "yanceRedEvidence": {
+        "redHead": "ba46d434b3527990eb0032eee9ee419a404aad04",
+        "workflow": "WP-B Validation",
+        "workflowRunId": 32012968447,
+        "causalDiagnostics": [
+          "M3-SC-DIAG-005",
+          "M3-SC-DIAG-012"
+        ],
+        "causalFacts": {
+          "legacyImporter": "backend/services/aiGateway.js -> backend/services/jobQueue.js",
+          "adapterFailureCode": "M3-SC-DIAG-012:LEGACY_JOB_QUEUE_IMPORT_FORBIDDEN",
+          "unknownBlockerCount": 0
+        },
+        "platforms": {
+          "ubuntu": {
+            "status": "EXPECTED_FAILURE",
+            "jobId": 95336318986,
+            "artifactId": 9282475111,
+            "artifactName": "wp-b-source-closure-ubuntu-latest-ba46d434b3527990eb0032eee9ee419a404aad04",
+            "artifactDigest": "sha256:4e8dc456546230b446c504d3eaf53f5abd0dcf257b1bd663e28af862a81c9540",
+            "tapSha256": "a65573270a569e27afa9e1aa9c973edc931ea628c998fd467a82f27d7dd5db16"
+          },
+          "windows": {
+            "status": "EXPECTED_FAILURE",
+            "jobId": 95336318917,
+            "artifactId": 9282474533,
+            "artifactName": "wp-b-source-closure-windows-latest-ba46d434b3527990eb0032eee9ee419a404aad04",
+            "artifactDigest": "sha256:aaf6b8b9f3a4bc273184ac13fe48dd500cf543eb93fb4b2e148e73a079e417d1",
+            "tapSha256": "115a60afeb2f5c31199dc5c30408ae24a0fc50c04f467921d819c7dba7744987"
+          }
+        }
+      }
+    }
+  ],
+  "closure": {
+    "allCandidatesApproved": false,
+    "unregisteredThirdPartyAssetCount": 0,
+    "restrictedLicensePathCount": 0,
+    "noticeOrSbomOmissionCount": 0,
+    "independentReviewApproved": false
+  }
+}

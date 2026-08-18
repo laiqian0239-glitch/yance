@@ -1,5 +1,7 @@
 'use strict';
 
+const { validatePersistedEgressContext } = require('./platformAdapterPorts');
+
 const sessions = new Map();
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function enabled() { return process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL === '1'; }
@@ -9,6 +11,13 @@ function requireEnabled() {
   error.code = 'FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL_DISABLED'; error.status = 409; throw error;
 }
 function credentialReady(_account, secret = {}) { return Boolean(clean(secret.browserSessionRef)); }
+function persistedEgressAttempt(context = {}, input = {}) {
+  const attempt = input.physicalAttemptContext;
+  return validatePersistedEgressContext(attempt, {
+    accountId: clean(context.accountId || context.account?.id),
+    idempotencyKey: clean(attempt?.idempotencyKey)
+  }, 'facebook');
+}
 function status(account) {
   const id = clean(account?.id || account);
   return sessions.get(id) || {
@@ -45,11 +54,13 @@ function assertSession(account) {
 }
 async function sync(account) { const row = assertSession(account); return { syncedAt: new Date().toISOString(), sessionIsolationKey: row.sessionIsolationKey, experimental: true }; }
 async function sendText(context, input = {}) {
+  persistedEgressAttempt(context, input);
   const row = assertSession(context.account || context.accountId);
   if (typeof context.browserBridge?.sendText !== 'function') { const error = new Error('Facebook 个人 Messenger 浏览器桥未连接'); error.code = 'FACEBOOK_PERSONAL_MESSENGER_BROWSER_BRIDGE_UNAVAILABLE'; error.status = 503; throw error; }
   return context.browserBridge.sendText({ sessionIsolationKey: row.sessionIsolationKey, target: context.target, text: clean(input.text) });
 }
 async function sendMedia(context, input = {}) {
+  persistedEgressAttempt(context, input);
   const row = assertSession(context.account || context.accountId);
   if (typeof context.browserBridge?.sendMedia !== 'function') { const error = new Error('Facebook 个人 Messenger 浏览器桥未连接'); error.code = 'FACEBOOK_PERSONAL_MESSENGER_BROWSER_BRIDGE_UNAVAILABLE'; error.status = 503; throw error; }
   return context.browserBridge.sendMedia({ sessionIsolationKey: row.sessionIsolationKey, target: context.target, ...input });

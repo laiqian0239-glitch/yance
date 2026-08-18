@@ -9,6 +9,14 @@ const { stableId } = require('../lib/r32SqliteStore');
 const platformAdapterRegistry = require('../services/platformAdapterPorts').singleton;
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
+function physicalOperationOptions(request = {}) {
+  return {
+    signal: request.signal || null,
+    attemptId: clean(request.operationGeneration),
+    operationGeneration: clean(request.operationGeneration),
+    physicalOperationContext: request.physicalOperationContext
+  };
+}
 
 class AccountContext {
   constructor({
@@ -50,20 +58,20 @@ class AccountContext {
         const operation = clean(request.operation);
         const accountId = clean(request.accountId);
         switch (operation) {
-          case 'connect': return this.lifecycle.start(accountId, { action: 'connect' });
-          case 'reconnect': return this.lifecycle.restart(accountId, { action: 'reconnect' });
-          case 'pause': return this.lifecycle.stop(accountId, { logout: false });
-          case 'resume': return this.lifecycle.start(accountId, { action: 'resume' });
-          case 'logout': return this.lifecycle.stop(accountId, { logout: true });
-          case 'telegram.qr.start': return { account: await this.accountManager.startTelegramQr(accountId) };
-          case 'telegram.phone.start': return { account: await this.accountManager.startTelegramPhone(accountId, request.phoneNumber) };
-          case 'telegram.code': return { account: await this.accountManager.submitTelegramCode(accountId, request.code) };
-          case 'telegram.password': return { account: await this.accountManager.submitTelegramPassword(accountId, request.password) };
-          case 'telegram.cancel': return { account: await this.accountManager.cancelTelegramLogin(accountId) };
-          case 'facebook.oauth.start': return { flow: await this.accountManager.beginFacebookOAuth(accountId) };
-          case 'facebook.oauth.status': return { flow: await this.accountManager.pollFacebookOAuth(accountId, request.flowId) };
-          case 'facebook.oauth.selectPage': return this.accountManager.selectFacebookPage(accountId, request.flowId, request.pageId);
-          case 'facebook.oauth.cancel': return { flow: await this.accountManager.cancelFacebookOAuth(accountId, request.flowId) };
+          case 'connect': return this.lifecycle.start(accountId, { action: 'connect', ...physicalOperationOptions(request) });
+          case 'reconnect': return this.lifecycle.restart(accountId, { action: 'reconnect', ...physicalOperationOptions(request) });
+          case 'pause': return this.lifecycle.operationResult('pause', await this.accountManager.disconnect(accountId, { logout: false, ...physicalOperationOptions(request) }));
+          case 'resume': return this.lifecycle.start(accountId, { action: 'resume', ...physicalOperationOptions(request) });
+          case 'logout': return this.lifecycle.operationResult('logout', await this.accountManager.disconnect(accountId, { logout: true, ...physicalOperationOptions(request) }));
+          case 'telegram.qr.start': return { account: await this.accountManager.startTelegramQr(accountId, physicalOperationOptions(request)) };
+          case 'telegram.phone.start': return { account: await this.accountManager.startTelegramPhone(accountId, request.phoneNumber, physicalOperationOptions(request)) };
+          case 'telegram.code': return { account: await this.accountManager.submitTelegramCode(accountId, request.code, physicalOperationOptions(request)) };
+          case 'telegram.password': return { account: await this.accountManager.submitTelegramPassword(accountId, request.password, physicalOperationOptions(request)) };
+          case 'telegram.cancel': return { account: await this.accountManager.cancelTelegramLogin(accountId, physicalOperationOptions(request)) };
+          case 'facebook.oauth.start': return { flow: await this.accountManager.beginFacebookOAuth(accountId, physicalOperationOptions(request)) };
+          case 'facebook.oauth.status': return { flow: await this.accountManager.pollFacebookOAuth(accountId, request.flowId, physicalOperationOptions(request)) };
+          case 'facebook.oauth.selectPage': return this.accountManager.selectFacebookPage(accountId, request.flowId, request.pageId, physicalOperationOptions(request));
+          case 'facebook.oauth.cancel': return { flow: await this.accountManager.cancelFacebookOAuth(accountId, request.flowId, physicalOperationOptions(request)) };
           default: throw new CoreError('PLATFORM_AUTH_OPERATION_UNSUPPORTED', `AuthPort 不支持操作：${operation}`, { status: 404 });
         }
       }
@@ -72,11 +80,11 @@ class AccountContext {
       const operation = clean(request.operation) || 'sync';
       const accountId = clean(request.accountId);
       switch (operation) {
-        case 'sync': return this.accountManager.sync(accountId);
-        case 'facebook.avatar-import.start': return { session: this.accountManager.startFacebookBusinessSuiteAvatarImport(accountId) };
-        case 'facebook.avatar-import.status': return { session: this.accountManager.getFacebookBusinessSuiteAvatarImportStatus(accountId) };
-        case 'facebook.avatar-import.stop': return { session: this.accountManager.stopFacebookBusinessSuiteAvatarImport(accountId) };
-        case 'facebook.avatar-closure.diagnose': return { report: await this.accountManager.diagnoseFacebookAvatarClosure(accountId, { limit: request.limit }) };
+        case 'sync': return this.accountManager.sync(accountId, { ...physicalOperationOptions(request), executionGeneration: request.operationGeneration });
+        case 'facebook.avatar-import.start': return { session: this.accountManager.startFacebookBusinessSuiteAvatarImport(accountId, physicalOperationOptions(request)) };
+        case 'facebook.avatar-import.status': return { session: this.accountManager.getFacebookBusinessSuiteAvatarImportStatus(accountId, physicalOperationOptions(request)) };
+        case 'facebook.avatar-import.stop': return { session: this.accountManager.stopFacebookBusinessSuiteAvatarImport(accountId, physicalOperationOptions(request)) };
+        case 'facebook.avatar-closure.diagnose': return { report: await this.accountManager.diagnoseFacebookAvatarClosure(accountId, { limit: request.limit, ...physicalOperationOptions(request) }) };
         default: throw new CoreError('PLATFORM_RECONCILE_OPERATION_UNSUPPORTED', `ReconcilePort 不支持操作：${operation}`, { status: 404 });
       }
     };

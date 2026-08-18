@@ -1,5 +1,4 @@
 import { run } from './db.js';
-import { cleanupExpiredMedia, retryPendingMedia } from './media.js';
 import { addDays, utcNow } from './utils.js';
 
 export async function cleanup(env, options = {}) {
@@ -7,8 +6,6 @@ export async function cleanup(env, options = {}) {
   const deadLetterRetentionDays = Math.max(7, Math.min(90, Number(options.deadLetterRetentionDays || env.DEAD_LETTER_RETENTION_DAYS || 30)));
   const completedOAuthCutoff = addDays(now, -1);
   const deadLetterCutoff = addDays(now, -deadLetterRetentionDays);
-  const mediaRetry = options.config ? await retryPendingMedia(env, options.config, now) : { events: 0, cached: 0, failed: 0, pending: 0 };
-  const mediaDeleted = await cleanupExpiredMedia(env, now);
   const statements = [
     [`DELETE FROM facebook_device_requests WHERE expires_at<=?`, [now]],
     [`DELETE FROM facebook_send_idempotency WHERE expires_at<=?`, [now]],
@@ -23,5 +20,5 @@ export async function cleanup(env, options = {}) {
   statements.splice(3, 0, [`DELETE FROM facebook_oauth_diagnostics WHERE flow_id IN (SELECT flow_id FROM facebook_oauth_states WHERE expires_at<=? OR (status IN ('completed','cancelled','denied','error') AND updated_at<=?))`, [now, completedOAuthCutoff]]);
   const results = [];
   for (const [sql, values] of statements) results.push(await run(env.DB, sql, values));
-  return { mediaRetry, mediaDeleted, databaseActions: results.length, deadLetterRetentionDays, at: now };
+  return { databaseActions: results.length, deadLetterRetentionDays, at: now };
 }

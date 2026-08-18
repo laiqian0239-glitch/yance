@@ -1,7 +1,6 @@
 'use strict';
 
-const eventBus = require('./eventBus');
-const { authority: defaultLifecycle, TERMINAL } = require('./asyncOperationLifecycleAuthority');
+const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELLED']);
 
 const OPERATION_TYPE = 'platform.auth.workflow';
 const PENDING_STATES = new Set(['connecting', 'waiting-verification', 'pending', 'pending-user-action', 'qr', 'code', 'password', 'authorizing']);
@@ -23,10 +22,10 @@ function extractState(result = {}) {
   if (result.connected === true || result.account?.connected === true) return 'connected';
   return candidates[0] || '';
 }
-function isActive(row) { return Boolean(row && !TERMINAL.has(row.state)); }
+function isActive(row) { return Boolean(row && !TERMINAL_STATES.has(clean(row.state).toUpperCase())); }
 
 class PlatformAuthWorkflowAuthority {
-  constructor(options = {}) { this.defaultLifecycle = options.lifecycle || defaultLifecycle; }
+  constructor(options = {}) { this.injectedLifecycle = options.lifecycle || null; }
 
   latest(lifecycle, platform, accountId) {
     return lifecycle.latest({ operationType: OPERATION_TYPE, scopeKey: scopeKey(platform, accountId) });
@@ -50,7 +49,8 @@ class PlatformAuthWorkflowAuthority {
       operationType: OPERATION_TYPE,
       scopeKey: scopeKey(platform, accountId),
       objectFingerprint: fingerprint,
-      metadata: { platform, accountId, operation, workflow: true },
+      metadata: { accountId, providerRequestId: fingerprint },
+      deadlineAt: clean(input.deadlineAt),
       resumePolicy,
       adapterSessionId,
       challengeExpiresAt: clean(input.challengeExpiresAt || input.expiresAt)
@@ -63,7 +63,7 @@ class PlatformAuthWorkflowAuthority {
       leaseOwner: `platform-auth-${process.pid}`,
       leaseExpiresAt: new Date(Date.now() + 120000).toISOString()
     });
-    return created;
+    return { ...created, operation: lifecycle.read(created.operation.operationId) };
   }
 
   afterCommand(lifecycle, context = {}, result = {}) {
@@ -77,15 +77,13 @@ class PlatformAuthWorkflowAuthority {
     }
     const state = extractState(result);
     if (SUCCESS_STATES.has(state)) {
-      const settled = lifecycle.succeed(row.operationId, { platform: context.platform, accountId: context.accountId, operation, state, completed: true }, options);
+      const settled = lifecycle.succeed(row.operationId, { status: state, accountId: context.accountId }, options);
       return { operation: settled.operation, pending: false };
     }
     if (FAILURE_STATES.has(state)) {
-      const settled = lifecycle.fail(row.operationId, { code: clean(result.reasonCode || result.code) || 'AUTH_WORKFLOW_FAILED', message: clean(result.lastError || result.error || result.message) || `Authentication workflow entered ${state}` }, options);
+      const settled = lifecycle.fail(row.operationId, { errorCode: clean(result.reasonCode || result.code) || 'AUTH_WORKFLOW_FAILED', status: state, accountId: context.accountId }, options);
       return { operation: settled.operation, pending: false };
     }
-    // Interactive authentication is not complete when QR/code/password or an
-    // OAuth selection is merely presented. Keep the durable workflow RUNNING.
     lifecycle.progress(row.operationId, Math.max(10, Number(context.progress || 20)));
     return { operation: lifecycle.read(row.operationId), pending: PENDING_STATES.has(state) || !state, state };
   }
@@ -97,9 +95,9 @@ class PlatformAuthWorkflowAuthority {
     if (!isActive(current)) return { updated: false, reason: 'no-active-workflow', operation: current || null };
     const state = lower(input.state || input.status);
     const options = { generation: current.generation, objectFingerprint: current.objectFingerprint };
-    if (SUCCESS_STATES.has(state)) return lifecycle.succeed(current.operationId, { platform, accountId, state, completed: true }, options);
+    if (SUCCESS_STATES.has(state)) return lifecycle.succeed(current.operationId, { status: state, accountId }, options);
     if (FAILURE_STATES.has(state) || ['logged-out', 'offline'].includes(state)) {
-      return lifecycle.fail(current.operationId, { code: clean(input.reasonCode || input.code) || 'AUTH_WORKFLOW_FAILED', message: clean(input.lastError || input.error) || `Authentication workflow entered ${state}` }, options);
+      return lifecycle.fail(current.operationId, { errorCode: clean(input.reasonCode || input.code) || 'AUTH_WORKFLOW_FAILED', status: state, accountId }, options);
     }
     if (state === 'cancelled' || state === 'unconfigured' && input.cancelled === true) {
       return lifecycle.cancel(current.operationId, 'AUTH_WORKFLOW_CANCELLED', options);
@@ -110,20 +108,9 @@ class PlatformAuthWorkflowAuthority {
 }
 
 const singleton = new PlatformAuthWorkflowAuthority();
-let listenersBound = false;
 function bindDefaultLifecycleEvents() {
-  if (listenersBound) return;
-  listenersBound = true;
-  const settle = event => {
-    const payload = event?.payload || {};
-    const platform = lower(payload.platform || (event?.type || '').split(':')[0]);
-    const accountId = clean(payload.accountId || payload.databaseAccountId || payload.id);
-    if (!platform || !accountId) return;
-    try { singleton.settleFromState(defaultLifecycle, { ...payload, platform, accountId }); } catch (_) {}
-  };
-  for (const type of ['account:state', 'whatsapp:state', 'account:authority-state']) eventBus.on(type, settle);
+  return { bound: false, delegatedTo: 'AccountLifecycleSagaService' };
 }
-bindDefaultLifecycleEvents();
 
 module.exports = {
   OPERATION_TYPE,

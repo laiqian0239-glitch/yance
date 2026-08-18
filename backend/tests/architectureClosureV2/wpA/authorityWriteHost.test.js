@@ -13,6 +13,10 @@ const migrationPath = path.join(repoRoot, 'backend', 'migrations', 'architecture
 const { SqliteConnectionBroker } = require('../../../lib/sqliteConnectionBroker');
 const roleGuard = require('../../../lib/runtimeRoleGuard');
 const { SCHEMA_VERSION } = require('../../../lib/r32SqliteStore');
+const {
+  BASE_TARGET_SCHEMA_VERSION: WP_A_BASE_SCHEMA_VERSION,
+  TARGET_SCHEMA_VERSION: WP_A_INTEGRITY_SCHEMA_VERSION
+} = require('../../../migrations/architectureClosureV2WpA');
 
 function tempDb(prefix = 'yance-acv2-a1-') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -56,11 +60,14 @@ function requireA1() {
   return authority;
 }
 
-test('A1 historical Schema 22 authority remains intact while current R32 exposes Schema 23 and the AuthorityWriteHost boundary', () => {
+test('A1 migrations remain Schema 21/22 while the current product startup target advances monotonically', () => {
   const authority = loadHostModule();
   assert.ok(fs.existsSync(migrationPath), 'WP-A schema migration entrypoint is missing');
   assert.ok(authority, 'AuthorityWriteHost service is missing');
+  assert.equal(WP_A_BASE_SCHEMA_VERSION, 21);
+  assert.equal(WP_A_INTEGRITY_SCHEMA_VERSION, 22);
   assert.equal(SCHEMA_VERSION, 23);
+  assert.ok(SCHEMA_VERSION > WP_A_INTEGRITY_SCHEMA_VERSION);
   assert.equal(typeof authority?.acquireAuthorityWriteHost, 'function');
   assert.equal(typeof authority?.assertCurrentAuthorityWriteHostToken, 'function');
 });
@@ -113,7 +120,7 @@ test('SqliteConnectionBroker requires a genuine externally acquired host capabil
   }
 });
 
-test('fresh database bootstrap and Schema 20 upgrade preserve complete Schema 22 authority while current R32 reaches Schema 23', () => {
+test('fresh bootstrap and Schema 20 upgrade preserve the complete WP-A object set within Schema 23 startup', () => {
   const authority = requireA1();
   const required = new Set([
     'authority_write_host_lease',
@@ -150,15 +157,21 @@ test('fresh database bootstrap and Schema 20 upgrade preserve complete Schema 22
       broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
       const store = broker.open();
       assert.equal(store.getMeta('schema_version'), SCHEMA_VERSION);
+      assert.equal(store.getMeta('schemaVersion'), SCHEMA_VERSION);
       const names = tableNames(store.db);
       for (const name of required) assert.equal(names.has(name), true, `${mode}:${name}`);
-      const baseMigration = store.db.prepare("SELECT status,checksum FROM r32_schema_migrations WHERE migration_id='021_architecture_closure_v2_wp_a'").get();
+      const baseMigration = store.db.prepare("SELECT status,checksum,target_schema_version FROM r32_schema_migrations WHERE migration_id='021_architecture_closure_v2_wp_a'").get();
       assert.equal(baseMigration?.status, 'completed');
+      assert.equal(baseMigration?.target_schema_version, 21);
       assert.match(String(baseMigration?.checksum || ''), /^[a-f0-9]{64}$/);
       const integrityMigration = store.db.prepare("SELECT status,checksum,target_schema_version FROM r32_schema_migrations WHERE migration_id='022_architecture_closure_v2_wp_a_integrity'").get();
       assert.equal(integrityMigration?.status, 'completed');
       assert.equal(integrityMigration?.target_schema_version, 22);
       assert.match(String(integrityMigration?.checksum || ''), /^[a-f0-9]{64}$/);
+      const wpBMigration = store.db.prepare("SELECT status,checksum,target_schema_version FROM r32_schema_migrations WHERE migration_id='023_architecture_closure_v2_wp_b'").get();
+      assert.equal(wpBMigration?.status, 'completed');
+      assert.equal(wpBMigration?.target_schema_version, 23);
+      assert.match(String(wpBMigration?.checksum || ''), /^[a-f0-9]{64}$/);
       const projectionJobMigration = store.db.prepare("SELECT status,checksum,target_schema_version FROM r32_schema_migrations WHERE migration_id='023_architecture_closure_v2_domain_event_projection_jobs_canonical'").get();
       assert.equal(projectionJobMigration?.status, 'completed');
       assert.equal(projectionJobMigration?.target_schema_version, 23);
