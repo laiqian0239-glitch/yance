@@ -706,6 +706,149 @@ class DurableExecutionAuthority extends legacy.DurableExecutionAuthority {
     return milestoneTwoOperationNotAuthorized('deadLetter');
   }
 
+  settleExternalAttempt(input = {}) {
+    const store = this.store();
+    if (!schema23Applied(store)) return milestoneTwoOperationNotAuthorized('settleExternalAttempt');
+    const executionId = requiredString(input.executionId, 'executionId');
+    const outcome = requiredString(input.outcome, 'outcome', 32).toUpperCase();
+    if (!['SUCCESS', 'FAILURE', 'UNKNOWN'].includes(outcome)) {
+      throw executionError('WP_B_EXECUTION_SETTLEMENT_OUTCOME_INVALID', 'External attempt settlement outcome is invalid', { outcome });
+    }
+    const receiptId = requiredString(input.receiptId, 'receiptId');
+    const stateVersion = safeInteger(input.stateVersion, 'stateVersion');
+    const generation = safeInteger(input.generation, 'generation', 1);
+    const ownerId = requiredString(input.ownerId, 'ownerId');
+    const claimId = requiredString(input.claimId, 'claimId');
+    const hostId = requiredString(input.hostId || ownerId, 'hostId');
+    const hostGeneration = safeInteger(input.hostGeneration, 'hostGeneration', 1);
+    const fencingToken = safeInteger(input.fencingToken, 'fencingToken', 1);
+    const authorityTimestamp = normalizedTimestamp(input.authorityTimestamp);
+    const retryable = input.retryable === true;
+    const retryDelayMs = Math.min(
+      7 * 24 * 60 * 60 * 1000,
+      safeInteger(input.retryDelayMs ?? 0, 'retryDelayMs')
+    );
+    const suppliedFailureCode = optionalString(input.failureCode, 'failureCode', 256);
+    const receiptType = outcome === 'SUCCESS' ? 'SUCCESS' : outcome === 'FAILURE' ? 'FAILURE' : 'UNKNOWN';
+
+    return store.transaction(() => {
+      const row = store.db.prepare('SELECT * FROM durable_executions WHERE execution_id=?').get(executionId);
+      if (!row) {
+        throw executionError('WP_B_EXECUTION_NOT_FOUND', 'Durable execution does not exist', { executionId });
+      }
+      if (String(row.state || '') !== LIFECYCLE_STATES.WAITING_REMOTE) {
+        throw executionError(
+          'WP_B_EXECUTION_SETTLEMENT_STATE_INVALID',
+          'External attempt settlement requires WAITING_REMOTE',
+          { executionId, state: String(row.state || '') }
+        );
+      }
+      const persistedRetryCount = safeInteger(row.retry_count || 0, 'persistedRetryCount');
+      const persistedMaxAttempts = safeInteger(row.max_attempts || 1, 'persistedMaxAttempts', 1);
+      let targetState = LIFECYCLE_STATES.SUCCEEDED;
+      let retryCount = persistedRetryCount;
+      let nextAttemptAt = '';
+      let failureCode = '';
+      if (outcome === 'UNKNOWN') {
+        targetState = LIFECYCLE_STATES.UNCERTAIN_REMOTE_OUTCOME;
+        failureCode = 'UNCERTAIN_REMOTE_OUTCOME';
+      } else if (outcome === 'FAILURE') {
+        failureCode = suppliedFailureCode || 'EXTERNAL_ACTION_FAILED';
+        if (retryable) {
+          retryCount = persistedRetryCount + 1;
+          if (retryCount >= persistedMaxAttempts) {
+            targetState = LIFECYCLE_STATES.DEAD_LETTERED;
+          } else {
+            targetState = LIFECYCLE_STATES.RETRY_SCHEDULED;
+            nextAttemptAt = new Date(Date.parse(authorityTimestamp) + retryDelayMs).toISOString();
+          }
+        } else {
+          targetState = LIFECYCLE_STATES.FAILED;
+        }
+      }
+      const completedAt = TERMINAL_STATES.has(targetState) ? authorityTimestamp : '';
+      const terminalReceiptId = TERMINAL_STATES.has(targetState) ? receiptId : '';
+      const result = store.db.prepare(`UPDATE durable_executions SET
+          state=?,state_version=state_version+1,
+          owner_id='',claim_id='',host_generation=0,fencing_token=0,
+          lease_started_at='',lease_expires_at='',last_heartbeat_at='',
+          retry_count=?,next_attempt_at=?,failure_code=?,
+          terminal_receipt_id=CASE WHEN ?<>'' THEN ? ELSE terminal_receipt_id END,
+          updated_at=?,completed_at=CASE WHEN ?<>'' THEN ? ELSE '' END
+        WHERE execution_id=? AND state='WAITING_REMOTE' AND state_version=? AND generation=?
+          AND owner_id=? AND claim_id=? AND host_generation=? AND fencing_token=?
+          AND lease_expires_at>=?
+          AND EXISTS(
+            SELECT 1 FROM external_action_receipts r
+            JOIN external_action_intents i ON i.intent_id=r.intent_id
+            WHERE r.receipt_id=? AND i.execution_id=? AND r.receipt_type=?
+          )
+          AND EXISTS(
+            SELECT 1 FROM authority_write_host_lease
+            WHERE singleton_id=1 AND owner_instance_id=? AND host_generation=?
+              AND fencing_token=? AND state='ACTIVE'
+          )`).run(
+        targetState,
+        retryCount,
+        nextAttemptAt,
+        failureCode,
+        terminalReceiptId,
+        terminalReceiptId,
+        authorityTimestamp,
+        completedAt,
+        completedAt,
+        executionId,
+        stateVersion,
+        generation,
+        ownerId,
+        claimId,
+        hostGeneration,
+        fencingToken,
+        authorityTimestamp,
+        receiptId,
+        executionId,
+        receiptType,
+        hostId,
+        hostGeneration,
+        fencingToken
+      );
+      if (Number(result.changes || 0) !== 1) {
+        throw executionError(
+          'WP_B_EXECUTION_SETTLEMENT_CAS_REJECTED',
+          'Receipt-bound external attempt settlement CAS rejected',
+          { executionId, outcome, receiptId, stateVersion, generation, claimId, hostGeneration, fencingToken }
+        );
+      }
+      appendV2Event(store, {
+        executionId,
+        eventType: outcome === 'SUCCESS'
+          ? 'external-action-succeeded'
+          : outcome === 'UNKNOWN'
+            ? 'external-action-uncertain'
+            : targetState === LIFECYCLE_STATES.RETRY_SCHEDULED
+              ? 'external-action-retry-scheduled'
+              : targetState === LIFECYCLE_STATES.DEAD_LETTERED
+                ? 'external-action-dead-lettered'
+                : 'external-action-failed',
+        fromState: LIFECYCLE_STATES.WAITING_REMOTE,
+        toState: targetState,
+        generation,
+        ownerId,
+        reasonCode: outcome === 'SUCCESS'
+          ? 'EXTERNAL_ACTION_RECEIPT_COMMITTED'
+          : failureCode,
+        payload: {
+          receiptId,
+          outcome,
+          retryable: targetState === LIFECYCLE_STATES.RETRY_SCHEDULED,
+          nextAttemptAt
+        },
+        authorityTimestamp
+      });
+      return this.get(executionId, store);
+    });
+  }
+
   transition(input = {}) {
     const store = this.store();
     if (!schema23Applied(store)) return super.transition(input);
