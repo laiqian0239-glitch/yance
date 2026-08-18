@@ -1,0 +1,86 @@
+diff --git a/apps/web/src/modules/models/Room.ts b/apps/web/src/modules/models/Room.ts
+--- a/apps/web/src/modules/models/Room.ts
++++ b/apps/web/src/modules/models/Room.ts
+@@ -17,6 +17,13 @@
+ 
+     public getLastActiveTimestamp(): number {
+         return this.sdkRoom.getLastActiveTimestamp();
++    }
++
++    public getStateEvents(eventType: string): Array<{ stateKey: string; content: Record<string, unknown> }> {
++        return this.sdkRoom.currentState.getStateEvents(eventType).map((event) => ({
++            stateKey: event.getStateKey() ?? "",
++            content: event.getContent<Record<string, unknown>>(),
++        }));
+     }
+ 
+     public get id(): string {
+diff --git a/apps/web/test/unit-tests/modules/models/Room-test.ts b/apps/web/test/unit-tests/modules/models/Room-test.ts
+--- a/apps/web/test/unit-tests/modules/models/Room-test.ts
++++ b/apps/web/test/unit-tests/modules/models/Room-test.ts
+@@ -4,6 +4,8 @@
+ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Commercial
+ Please see LICENSE files in the repository root for full details.
+ */
++
++import { MatrixEvent } from "matrix-js-sdk/src/matrix";
+ 
+ import { Room } from "../../../../src/modules/models/Room";
+ import { mkRoom, stubClient } from "../../../test-utils";
+@@ -21,6 +23,26 @@
+         const sdkRoom = mkRoom(cli, "!foo:m.org");
+         const room = new Room(sdkRoom);
+         expect(room.getLastActiveTimestamp()).toStrictEqual(sdkRoom.getLastActiveTimestamp());
++    });
++
++    it("should return read-only state event content from current room state", () => {
++        const cli = stubClient();
++        const sdkRoom = mkRoom(cli, "!foo:m.org");
++        sdkRoom.currentState.setStateEvents([
++            new MatrixEvent({
++                type: "m.bridge",
++                state_key: "bridge-state",
++                content: { protocol: { id: "whatsapp" }, channel: { id: "123@s.whatsapp.net" } },
++            }),
++        ]);
++        const room = new Room(sdkRoom);
++
++        expect(room.getStateEvents("m.bridge")).toStrictEqual([
++            {
++                stateKey: "bridge-state",
++                content: { protocol: { id: "whatsapp" }, channel: { id: "123@s.whatsapp.net" } },
++            },
++        ]);
+     });
+ 
+     describe("watchableName", () => {
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -449,6 +449,10 @@
+ // @public
+ export interface Room {
+     getLastActiveTimestamp: () => number;
++    getStateEvents: (eventType: string) => Array<{
++        stateKey: string;
++        content: Record<string, unknown>;
++    }>;
+     id: string;
+     name: Watchable<string>;
+ }
+diff --git a/packages/module-api/src/models/Room.ts b/packages/module-api/src/models/Room.ts
+--- a/packages/module-api/src/models/Room.ts
++++ b/packages/module-api/src/models/Room.ts
+@@ -25,4 +25,12 @@
+      * @returns last active timestamp
+      */
+     getLastActiveTimestamp: () => number;
++    /**
++     * Read state event content from the current room state.
++     * @param eventType - Matrix state event type
++     */
++    getStateEvents: (eventType: string) => Array<{
++        stateKey: string;
++        content: Record<string, unknown>;
++    }>;
+ }
