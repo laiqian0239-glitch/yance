@@ -64,6 +64,10 @@ class ExternalActionDispatcher {
       throw new TypeError('ExternalActionDispatcher requires an explicit authority timestamp issuer');
     }
     this.outboxAuthority = options.outboxAuthority;
+    this.executionAuthority = options.executionAuthority || null;
+    if (this.executionAuthority && typeof this.executionAuthority.transition !== 'function') {
+      throw new TypeError('ExternalActionDispatcher executionAuthority must expose transition');
+    }
     this.adapter = options.adapter;
     this.issueTimestamp = options.issueTimestamp;
   }
@@ -80,6 +84,25 @@ class ExternalActionDispatcher {
       authorityTimestamp: this.issue('external-action-attempt')
     });
     const identity = receiptIdentity(input, attempt);
+    let execution = null;
+    if (this.executionAuthority) {
+      execution = this.executionAuthority.transition({
+        executionId: String(input.executionId || ''),
+        allowedStates: ['RUNNING'],
+        targetState: 'WAITING_REMOTE',
+        stateVersion: Number(input.executionStateVersion),
+        generation: Number(input.executionGeneration),
+        ownerId: String(identity.ownerId || ''),
+        claimId: String(identity.claimId || ''),
+        hostId: String(input.hostId || identity.ownerId || ''),
+        hostGeneration: Number(identity.hostGeneration || 0),
+        fencingToken: Number(identity.fencingToken || 0),
+        authorityTimestamp: this.issue('external-action-waiting-remote'),
+        eventType: 'external-action-waiting-remote',
+        reasonCode: 'EXTERNAL_ACTION_ATTEMPT_PERSISTED',
+        payload: { intentId: identity.intentId, attemptId: attempt.attemptId }
+      });
+    }
 
     let physicalResult;
     try {
@@ -117,7 +140,7 @@ class ExternalActionDispatcher {
 
     try {
       const result = canonicalSnapshot(physicalResult?.result || {}, 'physicalResult.result');
-      return this.outboxAuthority.recordReceipt({
+      const receipt = this.outboxAuthority.recordReceipt({
         ...identity,
         providerReceiptId: String(physicalResult?.providerReceiptId || ''),
         evidenceReference: String(
@@ -126,6 +149,29 @@ class ExternalActionDispatcher {
         result,
         authorityTimestamp: this.issue('external-action-success-receipt')
       });
+      if (this.executionAuthority) {
+        this.executionAuthority.transition({
+          executionId: String(input.executionId || ''),
+          allowedStates: ['WAITING_REMOTE'],
+          targetState: 'SUCCEEDED',
+          stateVersion: Number(execution?.stateVersion),
+          generation: Number(input.executionGeneration),
+          ownerId: String(identity.ownerId || ''),
+          claimId: String(identity.claimId || ''),
+          hostId: String(input.hostId || identity.ownerId || ''),
+          hostGeneration: Number(identity.hostGeneration || 0),
+          fencingToken: Number(identity.fencingToken || 0),
+          authorityTimestamp: this.issue('external-action-terminal-success'),
+          eventType: 'external-action-succeeded',
+          reasonCode: 'EXTERNAL_ACTION_RECEIPT_COMMITTED',
+          payload: {
+            intentId: identity.intentId,
+            attemptId: attempt.attemptId,
+            receiptId: String(receipt?.receiptId || '')
+          }
+        });
+      }
+      return receipt;
     } catch (error) {
       const causeCode = stableFailureCode(error);
       return this.outboxAuthority.markUncertain({
