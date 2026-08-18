@@ -116,7 +116,7 @@ class ExternalActionDispatcher {
   settleExecution(input, waitingExecution, identity, receipt, settlement) {
     if (!this.executionAuthority) return null;
     if (typeof this.executionAuthority.settleExternalAttempt === 'function') {
-      const settled = this.executionAuthority.settleExternalAttempt({
+      return this.executionAuthority.settleExternalAttempt({
         executionId: String(input.executionId || ''),
         outcome: settlement.outcome,
         receiptId: String(receipt?.receiptId || ''),
@@ -132,24 +132,6 @@ class ExternalActionDispatcher {
         failureCode: String(settlement.failureCode || ''),
         authorityTimestamp: this.issue(`external-action-settlement-${settlement.outcome.toLowerCase()}`)
       });
-      if (settled?.state === 'RETRY_SCHEDULED'
-          && typeof this.outboxAuthority.rearmRetry === 'function'
-          && typeof this.outboxAuthority.intent === 'function') {
-        const currentIntent = this.outboxAuthority.intent(identity.intentId);
-        this.outboxAuthority.rearmRetry({
-          intentId: identity.intentId,
-          receiptId: String(receipt?.receiptId || ''),
-          stateVersion: Number(currentIntent?.claim?.stateVersion),
-          generation: Number(currentIntent?.claim?.generation),
-          ownerId: String(currentIntent?.claim?.ownerId || identity.ownerId || ''),
-          claimId: String(currentIntent?.claim?.claimId || identity.claimId || ''),
-          hostId: String(input.hostId || identity.ownerId || ''),
-          hostGeneration: Number(currentIntent?.claim?.hostGeneration || identity.hostGeneration || 0),
-          fencingToken: Number(currentIntent?.claim?.fencingToken || identity.fencingToken || 0),
-          authorityTimestamp: this.issue('external-action-retry-rearm')
-        });
-      }
-      return settled;
     }
     if (settlement.outcome !== 'SUCCESS') return null;
     return this.executionAuthority.transition({
@@ -191,6 +173,7 @@ class ExternalActionDispatcher {
   recordFailure(input, waitingExecution, identity, observation) {
     const receipt = this.outboxAuthority.recordFailureReceipt({
       ...identity,
+      retryable: observation.retryable === true,
       evidenceReference: String(
         observation.evidenceReference || `adapter:${identity.attemptId}:${observation.failureCode}`
       ),
