@@ -558,11 +558,15 @@ test('M2-FB-007 legacy Facebook Page adapter retains projection helpers but owns
   assert.doesNotMatch(source, /this\.scheduleWebhookContactEnrichment\(/u, 'M2-FB-007:WEBHOOK_PROFILE_BACKGROUND_IO_FORBIDDEN');
 });
 
-test('M2-FB-008 experimental Facebook Personal session and sync are fenced by the same persisted operation boundary as Page', () => {
+test('M2-FB-008 experimental Facebook Personal connect and sync are projection-only while physical egress remains persisted-attempt fenced', () => {
   const source = fs.readFileSync(path.join(servicesRoot, 'facebookPersonalMessengerExperimentalAdapter.js'), 'utf8');
-  assert.match(source, /function\s+persistedOperation/u, 'M2-FB-008:PERSISTED_OPERATION_VALIDATOR_REQUIRED');
-  assert.match(source, /async\s+function\s+connect\([^)]*options[\s\S]*?persistedOperation\(account,\s*options/u, 'M2-FB-008:CONNECT_FAIL_CLOSED');
-  assert.match(source, /async\s+function\s+sync\([^)]*options[\s\S]*?persistedOperation\(account,\s*options/u, 'M2-FB-008:SYNC_FAIL_CLOSED');
+  assert.doesNotMatch(source, /facebookRelayClient/u, 'M2-FB-008:SESSION_PROJECTION_MUST_NOT_IMPORT_PHYSICAL_RELAY');
+  assert.doesNotMatch(source, /function\s+persistedOperation/u, 'M2-FB-008:SESSION_PROJECTION_MUST_NOT_CLAIM_PERSISTED_PHYSICAL_OPERATION');
+  assert.match(source, /async\s+function\s+connect\([^)]*[\s\S]*?sessions\.set\(/u, 'M2-FB-008:CONNECT_REMAINS_LOCAL_SESSION_PROJECTION');
+  assert.match(source, /async\s+function\s+sync\([^)]*[\s\S]*?sessionIsolationKey/u, 'M2-FB-008:SYNC_REMAINS_LOCAL_SESSION_PROJECTION');
+  assert.match(source, /function\s+persistedEgressAttempt/u, 'M2-FB-008:EGRESS_PERSISTED_ATTEMPT_VALIDATOR_REQUIRED');
+  assert.match(source, /async\s+function\s+sendText\([^)]*[\s\S]*?persistedEgressAttempt\(/u, 'M2-FB-008:SEND_TEXT_FAIL_CLOSED');
+  assert.match(source, /async\s+function\s+sendMedia\([^)]*[\s\S]*?persistedEgressAttempt\(/u, 'M2-FB-008:SEND_MEDIA_FAIL_CLOSED');
 });
 
 test('M2-FB-009 Facebook Worker observations echo signed provider request IDs on success as well as failure', () => {

@@ -422,19 +422,16 @@
       "path": "backend/services/facebookPersonalMessengerExperimentalAdapter.js",
       "classification": "PHYSICAL_IO_ADAPTER",
       "operationKinds": [
-        "OUTBOUND_MESSAGE_SEND",
-        "DELIVERY_RECEIPT_RECONCILIATION",
-        "HISTORY_SYNCHRONIZATION",
-        "SESSION_RESTORE"
+        "OUTBOUND_MESSAGE_SEND"
       ],
       "currentResponsibilities": [
-        "EXPERIMENTAL_PLATFORM_CALL",
-        "PERSISTED_OPERATION_SESSION_SYNC",
+        "EXPERIMENTAL_BROWSER_EGRESS",
+        "SESSION_PROJECTION_ONLY",
         "PERSISTED_ATTEMPT_EGRESS"
       ],
-      "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
+      "targetAuthority": "OUTBOUND_MESSAGE_SEND_ADAPTER",
       "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
-      "removalCondition": "Experimental calls are either removed or placed behind the same persisted-attempt boundary; no bypass remains."
+      "removalCondition": "Connect and sync remain local session projections with no physical or retry authority; every physical browser egress requires a persisted WP-B attempt before the bridge call."
     },
     {
       "id": "WPB-FACEBOOK-RELAY-CLIENT",

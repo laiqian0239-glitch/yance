@@ -1,7 +1,6 @@
 'use strict';
 
 const { validatePersistedEgressContext } = require('./platformAdapterPorts');
-const relayClient = require('./facebookRelayClient');
 
 const sessions = new Map();
 function clean(value) { return String(value == null ? '' : value).trim(); }
@@ -12,15 +11,6 @@ function requireEnabled() {
   error.code = 'FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL_DISABLED'; error.status = 409; throw error;
 }
 function credentialReady(_account, secret = {}) { return Boolean(clean(secret.browserSessionRef)); }
-function persistedOperation(account = {}, options = {}) {
-  const persisted = relayClient.persistedOperationIdentity(options);
-  const accountId = clean(account?.id || account);
-  if (persisted.accountId && accountId && persisted.accountId !== accountId) {
-    const error = new Error('Facebook personal persisted operation account scope mismatch');
-    error.code = 'FACEBOOK_PERSONAL_PERSISTED_OPERATION_SCOPE_MISMATCH'; error.status = 409; throw error;
-  }
-  return persisted;
-}
 function persistedEgressAttempt(context = {}, input = {}) {
   const attempt = input.physicalAttemptContext;
   return validatePersistedEgressContext(attempt, {
@@ -38,7 +28,6 @@ function status(account) {
   };
 }
 async function connect(account, options = {}) {
-  persistedOperation(account, options);
   requireEnabled();
   const id = clean(account?.id);
   const secret = options.secret || {};
@@ -63,7 +52,7 @@ function assertSession(account) {
   if (!row || row.state !== 'connected') { const error = new Error('Facebook 个人 Messenger 会话不可用'); error.code = 'FACEBOOK_PERSONAL_MESSENGER_REAUTH_REQUIRED'; error.status = 409; throw error; }
   return row;
 }
-async function sync(account, options = {}) { persistedOperation(account, options); const row = assertSession(account); return { syncedAt: new Date().toISOString(), sessionIsolationKey: row.sessionIsolationKey, experimental: true }; }
+async function sync(account) { const row = assertSession(account); return { syncedAt: new Date().toISOString(), sessionIsolationKey: row.sessionIsolationKey, experimental: true }; }
 async function sendText(context, input = {}) {
   persistedEgressAttempt(context, input);
   const row = assertSession(context.account || context.accountId);
