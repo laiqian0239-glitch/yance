@@ -15,7 +15,8 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository &&
       (
         github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0' ||
-        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0'
+        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0' ||
+        github.event.pull_request.head.ref == 'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0'
       )
     runs-on: windows-latest
     env:
@@ -115,7 +116,8 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository &&
       (
         github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0' ||
-        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0'
+        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0' ||
+        github.event.pull_request.head.ref == 'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -427,7 +429,8 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository &&
       (
         github.event.pull_request.head.ref == 'product/v21-product-experience-shell-p0' ||
-        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0'
+        github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0' ||
+        github.event.pull_request.head.ref == 'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120
