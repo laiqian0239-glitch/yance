@@ -16,6 +16,8 @@ const CHANNELS = Object.freeze({
   confirmSend: 'store:confirm-send',
   correctInference: 'store:correct-inference',
   setReadingMode: 'store:set-reading-mode',
+  themeCatalog: 'store:get-theme-catalog',
+  updateThemePreferences: 'store:update-theme-preferences',
   previewTheme: 'store:preview-theme',
   cancelThemePreview: 'store:cancel-theme-preview',
   applyTheme: 'store:apply-theme',
@@ -199,6 +201,10 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
     [CHANNELS.setReadingMode]: (_event, input = {}) => apiRequest('/api/r32/store/ui/reading-mode', {
       method: 'PUT', body: jsonBody(input)
     }),
+    [CHANNELS.themeCatalog]: () => apiRequest('/api/r32/store/ui/theme/catalog'),
+    [CHANNELS.updateThemePreferences]: (_event, input = {}) => apiRequest('/api/r32/store/ui/theme/preferences', {
+      method: 'PUT', body: jsonBody(input)
+    }),
     [CHANNELS.previewTheme]: (_event, input = {}) => apiRequest('/api/r32/store/ui/theme/preview', {
       method: 'PUT', body: jsonBody(input)
     }),
@@ -229,8 +235,6 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
     if (!requestId) return;
     const key = rendererKey(event, requestId);
     const request = activeRequests.get(key);
-    if (!request) return;
-    activeRequests.delete(key);
     if (!request.controller.signal.aborted) request.controller.abort(bridgeAbortError());
   };
   ipcMain.on?.(CHANNELS.cancelRequest, cancelHandler);

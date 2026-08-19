@@ -19,7 +19,11 @@ const REQUIRED_TOKENS = Object.freeze([
 const REQUIRED_TOKEN_SET = new Set(REQUIRED_TOKENS);
 const LEGACY_TYPOGRAPHY_TOKEN = /--ws-(?:page-title|page-copy|section-title|section|card-title|body|small|meta|number|button|title)\b/giu;
 const FONT_SIZE_KEYWORD = /^(?:inherit|initial|unset|revert)$/iu;
-const TEXT_EXTENSIONS = new Set(['.css', '.html', '.js', '.mjs', '.cjs']);
+const TEXT_EXTENSIONS = new Set(['.css', '.html', '.js', '.mjs', '.cjs', '.ts', '.tsx']);
+const SCAN_ROOTS = Object.freeze([
+  'frontend',
+  'integration/element-module/src'
+]);
 
 function lineAt(text, offset) {
   return text.slice(0, offset).split('\n').length;
@@ -27,6 +31,7 @@ function lineAt(text, offset) {
 
 function walk(dir) {
   const output = [];
+  if (!fs.existsSync(dir)) return output;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === 'assets') continue;
     const absolute = path.join(dir, entry.name);
@@ -114,11 +119,12 @@ function scanFile(root, absolutePath, violations, definitions, readingSelectors)
 
 function auditTypography(rootPath) {
   const root = path.resolve(rootPath);
-  const frontend = path.join(root, 'frontend');
   const violations = [];
   const definitions = new Map();
   const readingSelectors = [];
-  const files = walk(frontend).sort();
+  const files = SCAN_ROOTS
+    .flatMap(relative => walk(path.join(root, relative)))
+    .sort();
   for (const file of files) scanFile(root, file, violations, definitions, readingSelectors);
 
   for (const token of REQUIRED_TOKENS) {
@@ -143,6 +149,7 @@ function auditTypography(rootPath) {
   return Object.freeze({
     schemaVersion: 1,
     authority: AUTHORITY,
+    scanRoots: SCAN_ROOTS,
     requiredTokens: REQUIRED_TOKENS,
     filesScanned: files.length,
     pass: violations.length === 0,
@@ -159,4 +166,4 @@ if (require.main === module) {
   process.exitCode = result.pass ? 0 : 1;
 }
 
-module.exports = { AUTHORITY, REQUIRED_TOKENS, auditTypography };
+module.exports = { AUTHORITY, REQUIRED_TOKENS, SCAN_ROOTS, auditTypography };

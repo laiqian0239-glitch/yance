@@ -97,3 +97,17 @@ test('Product relationship tools bind the active Element room bridge state uniqu
   assert.doesNotMatch(overlay, /selectedRelationshipId[\s\S]{0,160}(?:activeMatrixRoomId|roomId|resolveRelationshipToolRoute)/u, 'selected relationship must never substitute for the active Matrix room');
   assert.doesNotMatch(session, /\b(?:platform|accountId|chatJid|sessionKey|bridgeState)\s*:/u, 'resolved route identity must not become a second experienceSession authority');
 });
+
+test('Product appearance settings bind Store authority at 85-150 percent and expose the existing preference write seam', () => {
+  const shell = readOrEmpty('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+  const projection = readOrEmpty('integration/element-module/src/product-experience/experienceProjection.ts');
+  const preload = readOrEmpty('electron/preload.js');
+  const entry = readOrEmpty('integration/element-module/src/index.tsx');
+  assert.match(shell, /min=\{?85\}?/u, 'Product font control must start at 85%');
+  assert.match(shell, /max=\{?150\}?/u, 'Product font control must end at 150%');
+  assert.match(shell, /step=\{?1\}?/u, 'Product font control must use 1% steps');
+  assert.match(shell, /体验设置|字号/u);
+  assert.match(projection, /storeSnapshot[\s\S]*domains:\s*\[["']ui["']\]/u, 'Product must read canonical ui appearance state from Store');
+  assert.match(preload, /updateThemePreferences/u, 'preload must expose the existing Store theme-preferences write authority');
+  assert.doesNotMatch(entry, /Yance Workspace/u, 'normal Element entry chrome must be Chinese-first');
+});

@@ -79,7 +79,7 @@ test('theme appearance policy is a single catalog-backed persistence authority',
   });
   assert.deepEqual(policy.normalizeTypography({ fontProfile: 'serif', fontScale: 500, lineHeight: 1, spacing: 'compact' }), {
     fontProfile: 'serif',
-    fontScale: 120,
+    fontScale: 150,
     lineHeight: 130,
     spacing: 'compact'
   });
@@ -200,4 +200,11 @@ test('theme studio frontend exposes filters, mini previews, personalization, acc
   for (const route of ['/ui/theme/preferences', '/ui/theme/presets', "/ui/theme/presets/:presetId/apply", "/ui/theme/presets/:presetId"]) {
     assert.ok(routes.includes(route), `route missing ${route}`);
   }
+});
+
+test('global fontScale authority accepts exact 85-150 percent bounds', () => {
+  assert.equal(policy.normalizeTypography({ fontScale: 85 }).fontScale, 85);
+  assert.equal(policy.normalizeTypography({ fontScale: 150 }).fontScale, 150);
+  assert.equal(policy.normalizeTypography({ fontScale: 84 }).fontScale, 85);
+  assert.equal(policy.normalizeTypography({ fontScale: 151 }).fontScale, 150);
 });

@@ -5,9 +5,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const frontend = path.join(root, 'frontend');
 const colorPattern = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)/gi;
-const extensions = new Set(['.css', '.js', '.html']);
+const extensions = new Set(['.css', '.js', '.html', '.mjs', '.cjs', '.ts', '.tsx']);
+const scanRoots = Object.freeze([
+  'frontend',
+  'integration/element-module/src'
+]);
 const paletteSources = new Set([
   'frontend/r32-theme-motion.css',
   'frontend/r32-theme-motion.js',
@@ -28,6 +31,7 @@ const maintainedRuntimeFiles = Object.freeze([
 ]);
 
 function walk(dir) {
+  if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const full = path.join(dir, entry.name);
     return entry.isDirectory() ? walk(full) : [full];
@@ -39,7 +43,8 @@ function countColors(file) {
   return (text.match(colorPattern) || []).length;
 }
 
-const all = walk(frontend)
+const all = scanRoots
+  .flatMap(relative => walk(path.join(root, relative)))
   .filter(file => extensions.has(path.extname(file).toLowerCase()))
   .map(file => ({
     file: path.relative(root, file).replaceAll(path.sep, '/'),
@@ -67,6 +72,7 @@ const report = {
   schemaVersion: 1,
   policy: {
     semanticContract: 'frontend/r32-theme-semantic-contract.css',
+    scanRoots,
     paletteSources: [...paletteSources],
     maintainedRuntimeFiles: [...maintainedRuntimeFiles],
     legacyDebt
@@ -84,4 +90,4 @@ if (failures.length) {
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
-console.log(`Theme color audit PASS. Legacy inline structural color debt: ${legacyDebt['frontend/index.html']}; maintained runtime fixed colors: 0.`);
+console.log(`Theme color audit PASS. Scanned ${scanRoots.join(', ')}; legacy inline structural color debt: ${legacyDebt['frontend/index.html']}; maintained runtime fixed colors: 0.`);
