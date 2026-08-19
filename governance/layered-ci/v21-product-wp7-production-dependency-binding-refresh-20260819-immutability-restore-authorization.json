@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-19T23:47:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP7-BINDING-AUTHORITY-IMMUTABILITY-RESTORE-20260819",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #525 exact-head Stage 6.4.5.9 proves the regenerated production dependency binding itself is correct: permanent v21-production-dependency-binding-lifecycle.test.js completes GREEN as test 79, while the only WP0 RED is implementation-branch-policy.test.js rejecting the implementation branch. The generic delegated-governance authority deliberately requires an effective authorization file's trusted-main blob to remain identical to its unique introduction merge blob. PR #524 changed the already-effective original WP7 authorization in place to correct four evidence fingerprints, so its trusted-main blob no longer equals the #522 introduction blob and the original implementation authority is no longer locally provable. The correct owning-layer repair is to restore that original authorization path to its exact #522 introduction bytes, re-establishing immutable authorization identity. Corrected evidence will then be carried append-only by a new successor authorization; no test, policy, gate, scanner, workflow, binding, package manifest, lockfile, generator, timeout or retry behavior may be altered by this restoration.",
+  "base": {
+    "branch": "main",
+    "commit": "f7b79610add53e90b7f7358e7f694bcdfaf366ac",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "f7b79610add53e90b7f7358e7f694bcdfaf366ac",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-wp7-production-dependency-binding-refresh-20260819-immutability-restore-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-20260819-immutability-restore-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "f35dd8941aee243b2dd35c65b5bf168b3361b54dd53e10a5d4d6f50bfa340d60",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-wp7-production-dependency-binding-refresh-20260819-immutability-restore",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-20260819-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ad04effb2dd1fbcdf63449b9a95c9292282504f79a942c1d8d1af8a064f7f0b9",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "generatorModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "redEvidence": {
+    "consumerPullRequest": 525,
+    "consumerExactHead": "90d30bfa503aa4f34e5ff907b426701285a58dba",
+    "stageRun": 32278049876,
+    "stageJob": 96150090887,
+    "permanentBindingContract": "tests/wp0/v21-production-dependency-binding-lifecycle.test.js",
+    "permanentBindingContractStageOrdinal": 79,
+    "permanentBindingContractConclusion": "success",
+    "onlyWp0Failure": "tests/wp0/implementation-branch-policy.test.js",
+    "failureAssertionLine": 1148,
+    "classification": "DELEGATED_GOVERNANCE_AUTHORIZATION_IMMUTABILITY_RED"
+  },
+  "restoreTarget": {
+    "authorizationPath": "governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-20260819-authorization.json",
+    "introductionMergeCommit": "c2750299256ba509887d71f908208987a56822c9",
+    "introductionBlobSha": "ec1f426cd01e64de5259e57379b4494496660a30",
+    "currentTrustedMainBlobSha": "71e14810a3ab837aee5a85bfcf6d73da65f0b4d2",
+    "requiredRestoredBlobSha": "ec1f426cd01e64de5259e57379b4494496660a30",
+    "restorationMode": "EXACT_INTRODUCTION_BYTES_ONLY",
+    "semanticRewriteAllowed": false
+  },
+  "followUp": {
+    "correctedEvidenceMustBeAppendOnly": true,
+    "newSuccessorAuthorizationRequired": true,
+    "originalImplementationBranchMustNotBeMergedAfterRestore": true,
+    "frozenBindingHeadForSuccessor": "90d30bfa503aa4f34e5ff907b426701285a58dba"
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_GOVERNANCE_IMMUTABILITY_AND_SUCCESSOR_PROTOCOL",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing generic delegated-governance immutable introduction identity",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing policy already enforces introduction-merge blob identity and correctly surfaced the mutable-authorization regression."
+      },
+      {
+        "name": "Existing delegated forward-continuation successor protocol",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "After immutable bytes are restored, corrected evidence can be represented append-only by a successor without rewriting published implementation history."
+      },
+      {
+        "name": "Relax authorization blob equality or implementation-branch-policy test",
+        "source": "hypothetical policy/test weakening",
+        "license": "not applicable",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "This would hide the governance integrity failure instead of repairing the broken authority lineage."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not modify implementation-branch-policy.test.js or implementationBranchPolicyLegacy.js to admit mutable authorizations.",
+      "Do not keep corrected evidence by mutating the original #522 authorization path.",
+      "Do not alter the regenerated binding, package inputs, generator, workflow, gate, scanner, timeout or retry behavior.",
+      "Do not force-push, rebase, squash or rewrite PR #525 history.",
+      "Do not create new governance infrastructure."
+    ]
+  },
+  "requiredValidation": {
+    "implementationExactHead": [
+      "Original authorization path blob exactly equals ec1f426cd01e64de5259e57379b4494496660a30",
+      "tests/wp0/implementation-branch-policy.test.js",
+      "Stage 6.4.5.9 WP0 Architecture Gates"
+    ],
+    "newRedPolicy": "Permanent root fix in the correct owning layer; no gate/scanner relaxation, retry masking, timeout masking or workaround."
+  },
+  "requiredSequence": [
+    "This exact single-file immutability-restoration authorization proposal passes applicable exact-head governance checks.",
+    "Authorization merges to trusted main by ordinary two-parent merge with first parent f7b79610add53e90b7f7358e7f694bcdfaf366ac.",
+    "Create the authorized restoration implementation branch from that exact merge.",
+    "Restore only the original WP7 authorization path to the exact blob ec1f426cd01e64de5259e57379b4494496660a30 from #522 introduction merge c2750299256ba509887d71f908208987a56822c9.",
+    "Verify implementation-branch-policy and Stage GREEN without modifying policy or tests.",
+    "Merge restoration by ordinary two-parent merge.",
+    "Create an append-only corrected WP7 successor authorization and strict forward continuation from frozen binding head 90d30bfa503aa4f34e5ff907b426701285a58dba."
+  ],
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true
+  }
+}
