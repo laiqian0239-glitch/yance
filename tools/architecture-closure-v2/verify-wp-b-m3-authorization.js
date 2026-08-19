@@ -33,7 +33,9 @@ const EXPECTED = Object.freeze({
   scope002Pr17Parent: '708ce1290f3bfcaec3a3a8c6589248fde5961c47',
   scope003RedHead: '99019a999ef591049fcf45d2b108df6b0e5e676c',
   scope004RedHead: 'bcb2a96b85d0ca67765bea7f53b4c381cfeae60d',
-  scope005RedHead: '2418b77009742758a03442ea00a6f987002cd5ce'
+  scope005RedHead: '2418b77009742758a03442ea00a6f987002cd5ce',
+  scope006RedHead: '5813135f6386a235a85a5a580dc370bd89093422',
+  scope006AuthorizationMerge: '5d1929a22666ecd694090a210963b56ac02ad4a0'
 });
 
 const EXPECTED_FAILURE_IDS = Object.freeze([
@@ -209,7 +211,26 @@ const SCOPE_005 = Object.freeze({
   ])
 });
 
-const EXPECTED_AMENDMENTS = Object.freeze([SCOPE_001, SCOPE_002, SCOPE_003, SCOPE_004, SCOPE_005]);
+const SCOPE_006 = Object.freeze({
+  amendmentId: 'WP-B-M3-SCOPE-006',
+  authorizedAt: '2026-08-19T16:14:48+07:00',
+  approvedBy: 'PROJECT_OWNER',
+  approvalSource: 'Project owner full continuous-execution authorization in the 独立软件工程审计 conversation; Amendment-2 authorization merge 5d1929a22666ecd694090a210963b56ac02ad4a0 authorizes the exact Facebook Personal mautrix/meta physical-I/O closure path',
+  reasonCode: 'WP_B_M3_FACEBOOK_PERSONAL_MAUTRIX_META_PHYSICAL_IO_CLOSURE',
+  causalRedEvidence: Object.freeze({
+    head: EXPECTED.scope006RedHead,
+    wpBValidationRunId: 32233168698,
+    governanceUbuntuJobId: 96007235653,
+    operationInventoryDiagnostic: 'NETWORK_CLIENT_CALL_PLATFORM_OR_PROVIDER_CALL_OPERATIONAL_RETRY_OR_TIMER',
+    amendment2AuthorizationMerge: EXPECTED.scope006AuthorizationMerge,
+    unknownBlockers: 0
+  }),
+  addedPaths: Object.freeze([
+    'backend/services/facebookPersonalMessengerMautrixAdapter.js'
+  ])
+});
+
+const EXPECTED_AMENDMENTS = Object.freeze([SCOPE_001, SCOPE_002, SCOPE_003, SCOPE_004, SCOPE_005, SCOPE_006]);
 const EXPECTED_ALLOWED_PATHS = Object.freeze(
   [...new Set([...BASE_ALLOWED_PATHS, ...EXPECTED_AMENDMENTS.flatMap(value => value.addedPaths)])].sort()
 );
@@ -295,9 +316,9 @@ function validateInventoryExtension(extension) {
   requireThat(extension.authorizationAmendmentId === SCOPE_001.amendmentId
     && JSON.stringify(extension.authorizationAmendmentIds) === JSON.stringify(EXPECTED_AMENDMENTS.map(value => value.amendmentId)),
   'WP_B_M3_AUTHORIZATION_INVENTORY_EXTENSION_AMENDMENT_INVALID', 'Inventory extension amendment chain changed');
-  requireThat(Array.isArray(extension.entries) && extension.entries.length === 2,
-    'WP_B_M3_AUTHORIZATION_INVENTORY_EXTENSION_ENTRIES_INVALID', 'Inventory extension must contain exactly two operation entries');
-  const [internal, facebook] = extension.entries;
+  requireThat(Array.isArray(extension.entries) && extension.entries.length === 3,
+    'WP_B_M3_AUTHORIZATION_INVENTORY_EXTENSION_ENTRIES_INVALID', 'Inventory extension must contain exactly three operation entries');
+  const [internal, facebook, facebookPersonal] = extension.entries;
   requireThat(internal?.id === 'WPB-DURABLE-INTERNAL-OPERATION-AUTHORITY'
     && internal.path === 'backend/services/durableInternalOperationAuthority.js'
     && internal.authorizationAmendmentId === SCOPE_001.amendmentId
@@ -313,7 +334,24 @@ function validateInventoryExtension(extension) {
     && EXTENSION_STATES.has(facebook.closureState)
     && facebook.targetAuthority === 'CHANNEL_OPERATION_ADAPTER',
   'WP_B_M3_AUTHORIZATION_INVENTORY_EXTENSION_ENTRY_INVALID', 'Facebook bridge extension entry changed');
-  return Object.freeze({ paths: Object.freeze([internal.path, facebook.path]), entries: Object.freeze(extension.entries) });
+  requireThat(facebookPersonal?.id === 'WPB-FACEBOOK-PERSONAL-MAUTRIX-META-ADAPTER'
+    && facebookPersonal.path === 'backend/services/facebookPersonalMessengerMautrixAdapter.js'
+    && facebookPersonal.authorizationAmendmentId === SCOPE_006.amendmentId
+    && facebookPersonal.classification === 'PHYSICAL_IO_ADAPTER'
+    && EXTENSION_STATES.has(facebookPersonal.closureState)
+    && facebookPersonal.targetAuthority === 'CHANNEL_OPERATION_ADAPTER'
+    && JSON.stringify(facebookPersonal.operationKinds) === JSON.stringify([
+      'OUTBOUND_MESSAGE_SEND',
+      'DELIVERY_RECEIPT_RECONCILIATION',
+      'MEDIA_TRANSFER',
+      'HISTORY_SYNCHRONIZATION',
+      'SESSION_RESTORE'
+    ]),
+  'WP_B_M3_AUTHORIZATION_INVENTORY_EXTENSION_ENTRY_INVALID', 'Facebook Personal mautrix/meta adapter extension entry changed');
+  return Object.freeze({
+    paths: Object.freeze([internal.path, facebook.path, facebookPersonal.path]),
+    entries: Object.freeze(extension.entries)
+  });
 }
 function validateReceipt(document) {
   requireThat(document?.schemaVersion === 1
@@ -440,14 +478,14 @@ function verifyLocalRepository(document = readReceipt(), options = {}) {
   for (const commit of [
     EXPECTED.m2ReviewedHead, EXPECTED.m2SealHead, EXPECTED.m2EvidenceHead, EXPECTED.designHead,
     EXPECTED.m3RedHead, EXPECTED.scope002TrustedMain, EXPECTED.scope002RedHead, EXPECTED.scope003RedHead,
-    EXPECTED.scope004RedHead, EXPECTED.scope005RedHead
+    EXPECTED.scope004RedHead, EXPECTED.scope005RedHead, EXPECTED.scope006RedHead, EXPECTED.scope006AuthorizationMerge
   ]) {
     git(root, ['cat-file', '-e', `${commit}^{commit}`]);
   }
   for (const ancestor of [
     EXPECTED.m2EvidenceHead, EXPECTED.designHead, EXPECTED.m3RedHead,
     EXPECTED.scope002TrustedMain, EXPECTED.scope002RedHead, EXPECTED.scope003RedHead,
-    EXPECTED.scope004RedHead, EXPECTED.scope005RedHead
+    EXPECTED.scope004RedHead, EXPECTED.scope005RedHead, EXPECTED.scope006RedHead, EXPECTED.scope006AuthorizationMerge
   ]) {
     git(root, ['merge-base', '--is-ancestor', ancestor, currentHead]);
   }
@@ -472,6 +510,9 @@ function verifyLocalRepository(document = readReceipt(), options = {}) {
     scope002CausalRedHead: EXPECTED.scope002RedHead,
     scope003CausalRedHead: EXPECTED.scope003RedHead,
     scope004CausalRedHead: EXPECTED.scope004RedHead,
+    scope005CausalRedHead: EXPECTED.scope005RedHead,
+    scope006CausalRedHead: EXPECTED.scope006RedHead,
+    scope006AuthorizationMerge: EXPECTED.scope006AuthorizationMerge,
     authorizedPathCount: authorizedPaths.length,
     m2SealVerified: true
   });
@@ -588,6 +629,10 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
   requireThat(scope005ArtifactIds.has(SCOPE_005.causalRedEvidence.ubuntuArtifactId)
     && scope005ArtifactIds.has(SCOPE_005.causalRedEvidence.windowsArtifactId),
   'WP_B_M3_SCOPE_005_REMOTE_ARTIFACT_MISMATCH', 'Scope-005 M3-SC-DIAG-014 artifacts changed');
+
+  await verifyRun(api, token, SCOPE_006.causalRedEvidence.wpBValidationRunId,
+    'WP-B Validation', SCOPE_006.causalRedEvidence.head, 'failure',
+    'WP_B_M3_SCOPE_006_REMOTE_RED_MISMATCH');
 
   const currentHead = String(options.currentHead || git(REPOSITORY_ROOT, ['rev-parse', 'HEAD']));
   const currentBranch = String(options.currentBranch || git(REPOSITORY_ROOT, ['branch', '--show-current']));
