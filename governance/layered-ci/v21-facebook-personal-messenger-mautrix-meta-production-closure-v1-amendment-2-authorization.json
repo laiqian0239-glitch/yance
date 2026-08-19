@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FB-PERSONAL-MSG-MAUTRIX-META-CLOSURE-V1-AMENDMENT-2",
+  "proposalRevision": 3,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Exact-head CI at the Amendment-1 successor proved one combined dependency cycle outside the original 33-path scope: four base-owned tests bind historical Schema 23 to the current total schema and fail after the authorized forward-only Schema 24 migration; the existing XState supply-chain receipt must rebind to the new root lock bytes while preserving the exact xstate@5.32.5 artifact; and the new mautrix/meta physical-I/O adapter must be registered through the existing WP-B M3 scope-amendment and operation-inventory extension authority. The XState receipt and M3 inventory entry refer to candidate-only lock/adapter state, so they cannot be merged independently to current main. The correct closure is a strict two-parent forward-continuation successor that preserves the frozen 33-path product implementation and adds exactly eight owning-layer contract/governance paths. Because the inherited successor scope still contains package.json and package-lock.json from Amendment-1, this proposal preserves the already-authorized exact dependency-control paths and matrix-js-sdk@42.0.0 identity; it does not authorize any additional dependency identity.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-1-authorization.json",
+    "implementationBranch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-1",
+    "implementationPullRequest": 507,
+    "frozenHead": "5813135f6386a235a85a5a580dc370bd89093422",
+    "reason": "Amendment-1 remains immutable causal RED evidence after fresh-main route-bootstrap inheritance exposed base-owned current-schema, supply-chain binding and WP-B M3 inventory contracts outside its authorized 33-path scope."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "f77e0fabf846d858d3fed5f62b368898b1b41880",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "f77e0fabf846d858d3fed5f62b368898b1b41880",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "997207e83ddafb7f8f81591af55d1c4b361ead1e76b94c33008ef3de8a30dbc3",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "5813135f6386a235a85a5a580dc370bd89093422"
+    },
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/core/accountContext.js",
+      "backend/lib/r32SqliteStoreEngine.js",
+      "backend/migrations/v21FacebookPersonalMessengerMautrixMetaProductionClosure.js",
+      "backend/repositories/accountRepository.js",
+      "backend/routes/accounts.js",
+      "backend/server.js",
+      "backend/services/accountManagerCore.js",
+      "backend/services/facebookPersonalMessengerExperimentalAdapter.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/platformAdapterPorts.js",
+      "backend/services/platformAuthWorkflowAuthority.js",
+      "backend/services/platformCapabilities.js",
+      "backend/services/platformDriverRegistry.js",
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
+      "backend/tests/architectureClosureV2/wpA/domainEventProjectionJobsCanonicalMigration.test.js",
+      "backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js",
+      "backend/tests/batch27DeveloperHandoffV2Closure.test.js",
+      "backend/tests/fix6oScopedSafetyAndFacebookDrivers.test.js",
+      "backend/tests/v21FacebookPersonalMessengerMautrixMetaProductionClosure.test.js",
+      "config/matrix/mautrix-meta/config.yaml",
+      "config/matrix/synapse/homeserver.yaml",
+      "config/upstreams/v21-comms-p0.json",
+      "frontend/js/core-client.js",
+      "frontend/r32-account-center.js",
+      "governance/architecture-closure-v2/wp-b-m3-authorization.json",
+      "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json",
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "package-lock.json",
+      "package.json",
+      "services/matrix/docker-compose.yml",
+      "shared/core/contracts.js",
+      "tests/uat/fix6oScopedSafetyOmnichannelRuntime.test.js",
+      "tests/uat/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+      "tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js",
+      "tests/wp0/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+      "third_party/licenses/matrix-js-sdk-Apache-2.0.txt",
+      "third_party/licenses/mautrix-meta-AGPL-3.0.txt",
+      "third_party/licenses/mautrix-meta-LICENSE.exceptions.txt",
+      "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js",
+      "tools/matrix/bootstrap.js"
+    ],
+    "approvedChangedFileCount": 41,
+    "approvedChangedFileSetSha256": "838a32058b51805c43614da1e09a0c9d2d3ab7e04e76488b4690d35393c18254",
+    "inheritedProductPathCount": 33,
+    "inheritedProductPathSetSha256": "9ddd989f7af6e984d3cf8b7a015ee3e62212be6d20d8512d1c3fda635356ad06",
+    "newlyAuthorizedPaths": [
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
+      "backend/tests/architectureClosureV2/wpA/domainEventProjectionJobsCanonicalMigration.test.js",
+      "backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js",
+      "backend/tests/batch27DeveloperHandoffV2Closure.test.js",
+      "governance/architecture-closure-v2/wp-b-m3-authorization.json",
+      "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json",
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 8,
+    "newlyAuthorizedChangedFileSetSha256": "52924965675d087e1803c1f7e136ced1cd9c6fe87deb1bd398af0b26e0f28783",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "dependencyIdentityPolicy": {
+      "entries": [
+        {
+          "path": "package.json",
+          "section": "dependencies",
+          "name": "matrix-js-sdk",
+          "version": "42.0.0"
+        }
+      ]
+    },
+    "workflowModificationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "causalRedEvidence": {
+    "frozenPredecessorHead": "5813135f6386a235a85a5a580dc370bd89093422",
+    "stage": {
+      "run": 32233168884,
+      "routeResult": "GREEN_AFTER_EXACT_ROUTE_BOOTSTRAP",
+      "productResult": "RUNNER_INTERRUPTED_AFTER_78_GREEN_NO_ASSERTION_RED",
+      "productExit": 143
+    },
+    "acv2WpA": {
+      "run": 32233168763,
+      "ubuntuJob": 96007235870,
+      "failure": "authorityWriteHost current SCHEMA_VERSION expected 23, actual 24",
+      "targetedCount": "7 tests / 6 pass / 1 fail"
+    },
+    "wpAMainPostMerge": {
+      "run": 32233168806,
+      "ubuntuJob": 96007236185,
+      "failure": "authorityWriteHost and domainEventProjectionJobsCanonicalMigration bind current total schema to 23",
+      "count": "200 tests / 198 pass / 2 fail"
+    },
+    "wpBValidation": {
+      "run": 32233168698,
+      "governanceUbuntuJob": 96007235653,
+      "m1UbuntuJob": 96007235656,
+      "schemaFailure": "schema23StartupRegistration current-store assertion expected 23, actual 24",
+      "schemaCount": "16 tests / 15 pass / 1 fail",
+      "governanceFailures": [
+        "WP_B_XSTATE_PACKAGE_LOCK_DIGEST_MISMATCH",
+        "unregistered backend/services/facebookPersonalMessengerMautrixAdapter.js call site with NETWORK_CLIENT_CALL, PLATFORM_OR_PROVIDER_CALL and OPERATIONAL_RETRY_OR_TIMER"
+      ],
+      "xstateUpstreamAndAdapterJobs": "GREEN_ON_BOTH_PLATFORMS"
+    },
+    "wpBM1Review": {
+      "run": 32233168830,
+      "reviewContracts": "27/27 GREEN",
+      "onlyFailure": "same schema23StartupRegistration current-schema assertion"
+    },
+    "wpBM2AndReview": {
+      "contractsRun": 32233168923,
+      "reviewRun": 32233168664,
+      "classification": "NON_APPLICABLE_BRANCH_AUTHORITY",
+      "reason": "WP_B_M2_IMPLEMENTATION_BRANCH_UNAUTHORIZED for the Facebook Personal product branch; not a product correctness RED and not an authorization target."
+    },
+    "exactCurrentSchemaHardcodePaths": [
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
+      "backend/tests/architectureClosureV2/wpA/domainEventProjectionJobsCanonicalMigration.test.js",
+      "backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js",
+      "backend/tests/batch27DeveloperHandoffV2Closure.test.js"
+    ],
+    "unknownBlockers": 0
+  },
+  "schemaContract": {
+    "historicalTargetsRemainExact": [21, 22, 23],
+    "currentSchemaMustNotBeHardcodedTo24": true,
+    "requiredSemantics": [
+      "Historical Schema 21/22/23 migration targets and receipts remain exact.",
+      "The current total schema contract is monotonic and permits later forward-only schema additions.",
+      "Fresh-store persisted schema metadata equals the runtime SCHEMA_VERSION exactly.",
+      "No production migration file or SCHEMA_VERSION downgrade is authorized."
+    ]
+  },
+  "xstateSupplyChainRebind": {
+    "receiptPath": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+    "expectedNewRepositoryBinding": {
+      "packageLockBlob": "fadef0ad6bc492f762b7ac99c0862712b3a5a6f3",
+      "packageLockSha256": "6d03b9d9b479e17278e6fc492897a86080abe3b00eee0201cacf030bbe40112e"
+    },
+    "artifactMustRemain": {
+      "name": "xstate",
+      "version": "5.32.5",
+      "resolved": "https://registry.npmjs.org/xstate/-/xstate-5.32.5.tgz",
+      "integrity": "sha512-ULazi1oe6wGrXl0Frb6otSlkm5HLifbbVTkMk5kkSKqz4TkxJaVpnl6jOJwKeid3ORPxYyZQgNLUSYX9q65SIA==",
+      "license": "MIT"
+    },
+    "differencePolicy": "FRESH_MAIN_LOCKFILE_REBIND_PRESERVED_XSTATE_5_32_5_ARTIFACT"
+  },
+  "wpBM3Closure": {
+    "requiredNewAmendmentId": "WP-B-M3-SCOPE-006",
+    "newM3Path": "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+    "inventoryExtensionPath": "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json",
+    "strictVerifierPath": "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js",
+    "classification": "PHYSICAL_IO_ADAPTER",
+    "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
+    "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
+    "requirements": [
+      "SCOPE-006 adds only the new mautrix/meta adapter path to M3 allowedPaths.",
+      "The existing M3 inventory extension records one exact adapter entry bound to SCOPE-006.",
+      "The strict verifier is extended to require SCOPE-006, the exact allowed-path set, exact extension amendment IDs and exactly three inventory-extension entries.",
+      "No scanner wildcard, capability suppression or broad path authorization is allowed."
+    ]
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "5813135f6386a235a85a5a580dc370bd89093422",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionBeyond41Forbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "causalRedEvidenceMustBeInheritedNotRecreated": true
+  },
+  "ossFit": {
+    "decision": "PRESERVE_EXISTING_AUTHORITIES_AND_REBIND_EXACT_EVIDENCE",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP-B M3 scope amendment and operation inventory extension",
+        "source": "governance/architecture-closure-v2/wp-b-m3-authorization.json + wp-b-operation-inventory-m3-extension.json",
+        "license": "repository scope",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already owns exact physical-I/O path authorization and inventory closure; only one new mautrix/meta adapter path must be registered."
+      },
+      {
+        "name": "Existing XState supply-chain lock receipt",
+        "source": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+        "license": "repository scope",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already supports fresh-main lockfile rebind while preserving the exact xstate@5.32.5 artifact."
+      },
+      {
+        "name": "Schema-version-parametric base-owned tests",
+        "source": "existing ACV2/WP-B test seams",
+        "license": "repository scope",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "FIT",
+        "reason": "Removes invalid coupling between historical Schema 23 migration identity and the monotonically advancing current total schema without weakening persisted-current-schema equality."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not hardcode current schema to 24.",
+      "Do not downgrade SCHEMA_VERSION or edit historical Schema 21/22/23 migrations.",
+      "Do not change xstate@5.32.5 artifact identity.",
+      "Do not add a second operation inventory or physical-I/O authority.",
+      "Do not weaken discovery scanners, workflows, branch gates or route gates."
+    ]
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "hardcodeCurrentSchema24": true,
+    "schemaDowngrade": true,
+    "historicalMigrationModification": true,
+    "xstateArtifactChange": true,
+    "inventoryWildcard": true,
+    "scannerOrWorkflowWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "predecessorMutation": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
