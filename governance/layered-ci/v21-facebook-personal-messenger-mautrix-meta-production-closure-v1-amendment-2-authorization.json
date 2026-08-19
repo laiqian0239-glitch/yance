@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-FB-PERSONAL-MSG-MAUTRIX-META-CLOSURE-V1-AMENDMENT-2",
-  "proposalRevision": 2,
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Exact-head CI at the Amendment-1 successor proved one combined dependency cycle outside the original 33-path scope: four base-owned tests bind historical Schema 23 to the current total schema and fail after the authorized forward-only Schema 24 migration; the existing XState supply-chain receipt must rebind to the new root lock bytes while preserving the exact xstate@5.32.5 artifact; and the new mautrix/meta physical-I/O adapter must be registered through the existing WP-B M3 scope-amendment and operation-inventory extension authority. The XState receipt and M3 inventory entry refer to candidate-only lock/adapter state, so they cannot be merged independently to current main. The correct closure is a strict two-parent forward-continuation successor that preserves the frozen 33-path product implementation and adds exactly eight owning-layer contract/governance paths. Because the inherited successor scope still contains package.json and package-lock.json from Amendment-1, this proposal preserves the already-authorized exact dependency-control paths and matrix-js-sdk@42.0.0 identity; it does not authorize any additional dependency identity.",
   "supersedes": {
@@ -240,7 +240,7 @@
     "decision": "PRESERVE_EXISTING_AUTHORITIES_AND_REBIND_EXACT_EVIDENCE",
     "matureOssAvailable": true,
     "newGeneralPurposeInfrastructure": false,
-    "selectedAdoptionMode": "existing-repository-seams",
+    "selectedAdoptionMode": "existing-repository-seam",
     "reviewedCandidates": [
       {
         "name": "Existing WP-B M3 scope amendment and operation inventory extension",
