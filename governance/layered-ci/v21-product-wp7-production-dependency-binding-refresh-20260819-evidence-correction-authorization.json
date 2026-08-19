@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-19T22:01:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP7-BINDING-EVIDENCE-CORRECTION-20260819",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh verification of merged WP7 authorization #522 proved its classification, implementation scope, package/lock identity and recovery direction are correct, but redEvidence.owningChainBlobEquality contains four inaccurate Git blob SHA values for the permanent #79 test, WP7 host command runner, canonical generator and Stage workflow. Direct GitHub reads at trusted main 662f35e5428604664eb43448b0abd69168309add prove the actual blobs are 613b0dc6849d884e18a751a5a52a4570ce78ecd4, 3f6b1c3965713e97c4edb09a2856fa071b2e2cc2, 6e704279e719cc643efef1f09e20bf3775943190 and 8f124383c57017c5552a16c4e63067c10cee5e12 respectively. This work package reuses the repository's established delegated-governance evidence-correction pattern and authorizes exactly one governance evidence correction. It does not supersede or expand the original WP7 one-path implementation authority, alter AI_AUTO, change package inputs, or modify any test, generator, workflow, gate, scanner, timeout or retry behavior.",
+  "base": {
+    "branch": "main",
+    "commit": "c2750299256ba509887d71f908208987a56822c9",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "c2750299256ba509887d71f908208987a56822c9",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-wp7-production-dependency-binding-refresh-20260819-evidence-correction-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-20260819-evidence-correction-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "0f08fc954f30c52619fd6fc5503c65a78a3cc0f6bfe48c1e63bb718a54f7f768",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "governance/v21-product-wp7-production-dependency-binding-refresh-20260819-evidence-correction",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-20260819-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ad04effb2dd1fbcdf63449b9a95c9292282504f79a942c1d8d1af8a064f7f0b9",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "generatorModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "correctionTarget": {
+    "authorizationPullRequest": 522,
+    "authorizationMergeCommit": "c2750299256ba509887d71f908208987a56822c9",
+    "authorizationPath": "governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-20260819-authorization.json",
+    "jsonPointer": "/redEvidence/owningChainBlobEquality",
+    "consumerPullRequest": 521,
+    "consumerExactHead": "7d65f045061b9a4e7b07a0e0e18f40dfd0bdb039"
+  },
+  "exactEvidenceMutation": {
+    "onlyJsonPointerMayChange": "/redEvidence/owningChainBlobEquality",
+    "allOtherTargetAuthorizationSemanticsMustRemainByteEquivalentAfterJsonProjection": true,
+    "incorrectValues": {
+      "test": "613b0dc6612cc79a15293e70c670e54f19d0a6a8",
+      "hostCommandRunner": "51091908cbd83f2a32f34fa0c37e09557f9404c4",
+      "generator": "6e70427985fb6ce647026b696caf7bc029004bc4",
+      "stageWorkflow": "568f4c65220a4cbc2a98b896668aa77132dffcd4"
+    },
+    "replacement": {
+      "test": "613b0dc6849d884e18a751a5a52a4570ce78ecd4",
+      "hostCommandRunner": "3f6b1c3965713e97c4edb09a2856fa071b2e2cc2",
+      "generator": "6e704279e719cc643efef1f09e20bf3775943190",
+      "stageWorkflow": "8f124383c57017c5552a16c4e63067c10cee5e12"
+    }
+  },
+  "pinnedEvidence": {
+    "trustedHead": "662f35e5428604664eb43448b0abd69168309add",
+    "paths": {
+      "test": "tests/wp0/v21-production-dependency-binding-lifecycle.test.js",
+      "hostCommandRunner": "tools/wp7/host-command-runner.js",
+      "generator": "tools/wp7/generate-production-dependency-binding.js",
+      "stageWorkflow": ".github/workflows/stage-6459-wp0-gates.yml"
+    },
+    "verificationMethod": "GitHub repository file reads at exact trusted commit using Git blob SHA returned by repository contents API"
+  },
+  "preservedAuthority": {
+    "originalWp7AuthorizationRemainsEffective": true,
+    "originalWp7ImplementationBranch": "fix/v21-product-wp7-production-dependency-binding-refresh-20260819",
+    "originalWp7ImplementationAllowedChangedPaths": [
+      "release/production-dependency-binding.json"
+    ],
+    "originalWp7ImplementationPathSetSha256": "87e759dd8c57d4dcbb93ea465c7927b1d1d9f44e6c7beea7d94db332748b58dc",
+    "originalFailureClassification": "DETERMINISTIC_WP7_REVIEWED_BINDING_LIFECYCLE_RED",
+    "failureFirstHistoryChanged": false,
+    "dependencyAuthorityChanged": false,
+    "workflowAuthorityChanged": false,
+    "runtimeAuthorityChanged": false,
+    "aiAutoAuthorityChanged": false
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_GOVERNANCE_EVIDENCE_CORRECTION_PATTERN",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing delegated-governance evidence correction protocol",
+        "source": "repository precedent PR #355/#356",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already has an accepted single-file authorization -> single-file evidence-correction implementation pattern that preserves original product authority and requires fresh-main re-evaluation."
+      },
+      {
+        "name": "Ad-hoc direct edit of merged authorization without correction authority",
+        "source": "hypothetical direct main mutation",
+        "license": "not applicable",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "It would bypass the repository's existing delegated-governance transport and would not provide an independently reviewable authority chain."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not treat inaccurate evidence fingerprints as harmless prose.",
+      "Do not supersede or widen the original WP7 one-path implementation scope.",
+      "Do not modify AI_AUTO product code or its 12-path scope.",
+      "Do not alter package.json, package-lock.json, the WP7 generator, host runner, Stage workflow, permanent #79 test, gate, scanner, timeout or retry policy.",
+      "Do not create a custom evidence-correction framework."
+    ]
+  },
+  "requiredSequence": [
+    "This exact single-file correction authorization proposal passes applicable governance gates and independent review.",
+    "Authorization merges to trusted main by ordinary two-parent merge with first parent c2750299256ba509887d71f908208987a56822c9.",
+    "Create governance/v21-product-wp7-production-dependency-binding-refresh-20260819-evidence-correction from that exact authorization merge.",
+    "Modify only governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-20260819-authorization.json and only /redEvidence/owningChainBlobEquality.",
+    "Verify all original WP7 one-path implementation authority and deterministic RED classification semantics remain unchanged.",
+    "Evidence-correction implementation passes applicable governance gates and independent review and merges by ordinary two-parent merge.",
+    "Normally reconcile fresh main into fix/v21-product-wp7-production-dependency-binding-refresh-20260819 without history rewrite, then perform the already-authorized canonical Linux/POSIX binding regeneration and permanent #79 validation."
+  ],
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true
+  }
+}
