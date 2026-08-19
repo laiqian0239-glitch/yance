@@ -28,6 +28,15 @@
       "license": "MIT",
       "adoptionMode": "sidecar-service",
       "protocolAuthority": "facebook-page-official"
+    },
+    "mautrixMeta": {
+      "repository": "https://github.com/mautrix/meta.git",
+      "version": "v0.2607.0",
+      "commit": "ed37c9e6ce47e83dc75b9abea7b636302715b9bc",
+      "license": "AGPL-3.0",
+      "adoptionMode": "sidecar-service",
+      "protocolAuthority": "facebook-personal-messenger",
+      "nativeLoginFlow": "messenger-lite"
     }
   }
 }

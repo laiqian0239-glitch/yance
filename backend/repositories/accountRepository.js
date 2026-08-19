@@ -19,7 +19,7 @@ function now() { return new Date().toISOString(); }
 function idFor(platform) { return `${platform.slice(0, 2)}-${crypto.randomUUID()}`; }
 function defaultAccountKind(platform) { return platform === 'facebook' ? 'page' : platform === 'telegram' ? 'personal' : 'personal-multidevice'; }
 function defaultDriverId(platform, accountKind) {
-  if (platform === 'facebook') return accountKind === 'personal-identity' ? 'facebook-personal-identity-official' : accountKind === 'personal-messenger' ? 'facebook-personal-messenger-experimental' : 'facebook-page-official';
+  if (platform === 'facebook') return accountKind === 'personal-identity' ? 'facebook-personal-identity-official' : accountKind === 'personal-messenger' ? 'facebook-personal-messenger-mautrix-meta' : 'facebook-page-official';
   if (platform === 'telegram') return 'telegram-personal-mtproto';
   return 'whatsapp-web-multidevice';
 }
