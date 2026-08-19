@@ -24,7 +24,7 @@ const facebookBusinessSuiteAvatarImport = require('./facebookBusinessSuiteAvatar
 const platformDeliveryAuthority = require('./platformDeliveryAuthority').singleton;
 const accountLifecycleSaga = require('./accountLifecycleSagaService').singleton;
 
-const { MATRIX: CAPABILITY_MATRIX, publicContracts } = require('./platformCapabilities');
+const { MATRIX: CAPABILITY_MATRIX, publicContracts, resolveForAccount } = require('./platformCapabilities');
 const RECEIVE_DEPENDENT_CAPABILITIES = new Set(['incomingTyping', 'terminalPresence', 'contacts', 'historySync', 'lottieSticker', 'animatedEmojiDisplay']);
 const BIDIRECTIONAL_CAPABILITIES = new Set(['sticker', 'animatedSticker']);
 
@@ -184,10 +184,16 @@ class AccountManager {
     const platformSecret = account.platform === 'whatsapp' ? null : (securityGuard.credentials.get(account.credentialRef) || {});
     const credentialReady = driver.credentialReady(account, platformSecret);
     const messagingSupported = driver.messagingSupported !== false;
-    const capabilities = messagingSupported ? { ...CAPABILITY_MATRIX[account.platform] } : Object.fromEntries(Object.keys(CAPABILITY_MATRIX[account.platform] || {}).map(name => [name, false]));
+    const accountCapabilityProfile = resolveForAccount(account);
+    const capabilities = messagingSupported
+      ? Object.fromEntries(Object.entries(CAPABILITY_MATRIX[account.platform] || {}).map(([name, declared]) => [name, Object.prototype.hasOwnProperty.call(accountCapabilityProfile, name) ? accountCapabilityProfile[name] : declared]))
+      : Object.fromEntries(Object.keys(CAPABILITY_MATRIX[account.platform] || {}).map(name => [name, false]));
+    const personalMessenger = account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || '').toLowerCase() === 'personal-messenger';
     const directChallenge = ['whatsapp', 'telegram'].includes(account.platform)
       ? authChallenges.status(account.id)
-      : { ready: false, expiresAt: '', version: 0 };
+      : personalMessenger && runtime.authStep
+        ? { ready: true, expiresAt: String(runtime.authStep.expires_at || runtime.authStep.expiresAt || ''), version: Number(runtime.authStep.version || 1) }
+        : { ready: false, expiresAt: '', version: 0 };
     const challengeStatus = directChallenge.ready || account.platform !== 'whatsapp'
       ? directChallenge
       : authChallenges.status(this.whatsappAuthKey(account));
@@ -277,6 +283,7 @@ class AccountManager {
       credentialRegisteredFlag: whatsappCredential?.registered === true,
       routeAliases: [...new Set([...canonicalIdentity.accountIdentityAliases(account), whatsappCredential?.accountKey || ''].filter(Boolean))],
       capabilities,
+      capabilityAuthority: accountCapabilityProfile.authority || '',
       capabilityContracts: publicContracts(account.platform),
       capabilityAvailability,
       canAttemptSend,
@@ -321,11 +328,14 @@ class AccountManager {
   getAuthChallenge(id) {
     const account = accountStore.get(id);
     if (!account) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
-    if (!['whatsapp', 'telegram'].includes(account.platform)) {
-      throw Object.assign(new Error('当前平台不使用二维码认证挑战'), { code: 'AUTH_CHALLENGE_UNSUPPORTED', status: 409 });
+    const personalMessenger = account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || '').toLowerCase() === 'personal-messenger';
+    if (!['whatsapp', 'telegram'].includes(account.platform) && !personalMessenger) {
+      throw Object.assign(new Error('当前平台不使用交互式认证挑战'), { code: 'AUTH_CHALLENGE_UNSUPPORTED', status: 409 });
     }
     const adapterAccountId = account.platform === 'whatsapp' ? this.whatsappAuthKey(account) : account.id;
-    const challenge = authChallenges.read(account.id, { includeSecret: true }) || authChallenges.read(adapterAccountId, { includeSecret: true });
+    const challenge = personalMessenger
+      ? (this.runtime.get(account.id)?.authStep || null)
+      : (authChallenges.read(account.id, { includeSecret: true }) || authChallenges.read(adapterAccountId, { includeSecret: true }));
     return {
       accountId: account.id,
       state: this.publicAccount(account).state,
@@ -545,7 +555,7 @@ class AccountManager {
     if (!account) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
     const publicAccount = this.publicAccount(account);
     if (!publicAccount.canReceive) throw Object.assign(new Error(`账号不可同步：${publicAccount.stateLabel}`), { code: 'ACCOUNT_CANNOT_SYNC', status: 409 });
-    if (account.platform === 'facebook' && publicAccount.historySyncAvailable !== true) {
+    if (account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || 'page').toLowerCase() === 'page' && publicAccount.historySyncAvailable !== true) {
       const reason = publicAccount.historySyncReason || 'pages_read_engagement 尚未授权，无法读取 Meta Business Suite 最近会话';
       throw Object.assign(new Error(reason), {
         code: 'FACEBOOK_HISTORY_PERMISSION_MISSING',
@@ -623,7 +633,9 @@ class AccountManager {
       );
       assertOperationActive(options.signal, logout ? 'ACCOUNT_LOGOUT_ABORTED' : 'ACCOUNT_DISCONNECT_ABORTED');
       if (saga) await accountLifecycleSaga.setPhase(saga.operation_id, 'adapter_disconnect_started', 'adapter_disconnected', { adapterReceipt: result });
-      if (logout && ['telegram', 'facebook'].includes(account.platform)) {
+      const activeDriver = driverFor(account);
+      const preserveLocalRuntimeCredential = logout && activeDriver?.preserveLocalRuntimeCredentialOnLogout === true;
+      if (logout && ['telegram', 'facebook'].includes(account.platform) && !preserveLocalRuntimeCredential) {
         assertOperationActive(options.signal, 'ACCOUNT_LOGOUT_ABORTED');
         await securityGuard.credentials.remove(account.credentialRef, { actor: 'platform-adapter' });
         assertOperationActive(options.signal, 'ACCOUNT_LOGOUT_ABORTED');
@@ -634,7 +646,7 @@ class AccountManager {
         await accountStore.commitLifecycleTx(id, {
           paused: true,
           lifecycleState: 'paused',
-          metadata: { lifecyclePending: false, lifecycleOperationId: '', lifecycleOperation: '', loggedOut: logout }
+          metadata: { lifecyclePending: false, lifecycleOperationId: '', lifecycleOperation: '', loggedOut: logout, ...(logout && activeDriver?.driverId === 'facebook-personal-messenger-mautrix-meta' ? { mautrixMetaLoginId: '' } : {}) }
         }, {
           action: logout ? 'account-logout' : 'account-paused',
           detail: { operationId: saga.operation_id }
@@ -713,6 +725,75 @@ class AccountManager {
       assertOperationActive(options.signal, 'FACEBOOK_OAUTH_CANCEL_ABORTED');
     }
     return flow;
+  }
+
+  assertFacebookPersonalMessengerAccount(id) {
+    const account = accountStore.get(id);
+    const kind = String(account?.accountKind || account?.metadata?.accountKind || '').trim().toLowerCase();
+    if (!account || account.platform !== 'facebook' || kind !== 'personal-messenger') {
+      throw Object.assign(new Error('Facebook Personal Messenger账号不存在'), { code: 'FACEBOOK_PERSONAL_MESSENGER_ACCOUNT_NOT_FOUND', status: 404 });
+    }
+    return account;
+  }
+
+  async startFacebookMessengerLogin(id, username = '', options = {}) {
+    const account = this.assertFacebookPersonalMessengerAccount(id);
+    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_START_ABORTED');
+    const result = await withAbortSignal(driverFor(account).beginLogin(account, username, options), options.signal, 'FACEBOOK_PERSONAL_LOGIN_START_ABORTED');
+    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_START_ABORTED');
+    this.runtime.set(id, { ...this.rawRuntime(account), state: 'pending-user-action', authStep: result, lastError: '', reasonCode: '' });
+    this.publishSummary();
+    return { account: this.publicAccount(accountStore.get(id)), flow: result };
+  }
+
+  async settleFacebookMessengerLoginStep(id, account, result, options = {}) {
+    const state = String(result?.state || result?.status || result?.step?.type || result?.type || '').trim().toLowerCase();
+    const completeLoginId = String(
+      result?.complete?.user_login_id || result?.complete?.userLoginId
+      || result?.login_id || result?.loginId || result?.user_login_id || result?.userLoginId || ''
+    ).trim();
+    const complete = state === 'complete' || state === 'completed' || Boolean(result?.complete || completeLoginId);
+    if (complete) {
+      if (!completeLoginId) {
+        throw Object.assign(new Error('mautrix/meta completed login without user_login_id'), { code: 'FACEBOOK_PERSONAL_LOGIN_ID_MISSING', status: 502 });
+      }
+      await accountStore.update(id, { metadata: { ...(account.metadata || {}), mautrixMetaLoginId: completeLoginId } });
+      const connected = await this.connect(id, { ...options, attemptId: options.operationGeneration || options.attemptId });
+      this.runtime.set(id, { ...this.rawRuntime(accountStore.get(id)), authStep: null });
+      this.publishSummary();
+      return { account: connected, flow: result, completed: true };
+    }
+    this.runtime.set(id, { ...this.rawRuntime(account), state: 'pending-user-action', authStep: result, lastError: '', reasonCode: '' });
+    this.publishSummary();
+    return { account: this.publicAccount(accountStore.get(id)), flow: result, completed: false };
+  }
+
+  async submitFacebookMessengerInput(id, loginProcessId, stepId, input = {}, options = {}) {
+    const account = this.assertFacebookPersonalMessengerAccount(id);
+    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_INPUT_ABORTED');
+    const result = await withAbortSignal(driverFor(account).submitLoginInput(account, loginProcessId, stepId, input, options), options.signal, 'FACEBOOK_PERSONAL_LOGIN_INPUT_ABORTED');
+    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_INPUT_ABORTED');
+    return this.settleFacebookMessengerLoginStep(id, account, result, options);
+  }
+
+  async waitFacebookMessengerLogin(id, loginProcessId, stepId, options = {}) {
+    const account = this.assertFacebookPersonalMessengerAccount(id);
+    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_WAIT_ABORTED');
+    const result = await withAbortSignal(driverFor(account).waitLoginStep(account, loginProcessId, stepId, options), options.signal, 'FACEBOOK_PERSONAL_LOGIN_WAIT_ABORTED');
+    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_WAIT_ABORTED');
+    return this.settleFacebookMessengerLoginStep(id, account, result, options);
+  }
+
+  async cancelFacebookMessengerLogin(id, loginProcessId, options = {}) {
+    const account = this.assertFacebookPersonalMessengerAccount(id);
+    const result = await withAbortSignal(driverFor(account).cancelLogin(account, loginProcessId, options), options.signal, 'FACEBOOK_PERSONAL_LOGIN_CANCEL_ABORTED');
+    this.runtime.set(id, { state: 'logged-out', authStep: null, lastError: '', reasonCode: 'FACEBOOK_PERSONAL_LOGIN_CANCELLED', connectedAt: '' });
+    if (account.lifecycleState === 'pending-auth' || account.metadata?.authorizationPending === true) {
+      await this.discardPendingAuthorization(id, 'facebook-personal-login-cancelled', { skipAdapterStop: true });
+      return { flow: result, removed: true, cancelled: true };
+    }
+    this.publishSummary();
+    return { flow: result, account: this.publicAccount(accountStore.get(id)), cancelled: true };
   }
 
   async startTelegramQr(id, options = {}) {
@@ -797,6 +878,12 @@ class AccountManager {
       label = [result.user.firstName, result.user.lastName].filter(Boolean).join(' ') || (result.user.username ? `@${result.user.username}` : '') || result.user.phone || label;
       metadata.username = result.user.username || '';
       metadata.phone = result.user.phone || '';
+      metadata.liveUser = { ...(metadata.liveUser || {}), ...result.user };
+    }
+    if (account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || '').toLowerCase() === 'personal-messenger' && result.user) {
+      label = result.user.name || result.user.displayName || result.user.username || label;
+      metadata.username = result.user.username || metadata.username || '';
+      metadata.remoteUserId = String(result.user.id || result.user.userId || metadata.remoteUserId || '');
       metadata.liveUser = { ...(metadata.liveUser || {}), ...result.user };
     }
     if (account.platform === 'facebook' && result.page) {
@@ -969,10 +1056,10 @@ class AccountManager {
     }
     const tests = [
       { id: 'metadata', name: '账号资料存在', pass: Boolean(account.displayName && account.platform), detail: account.displayName },
-      { id: 'credentials', name: '登录凭据可用', pass: before.credentialReady, detail: account.platform === 'whatsapp' ? (platformDrivers.get('whatsapp').adapter.hasCredentials(account) ? 'Baileys多设备凭据已识别，等待真实连接确认' : '尚未完成二维码或配对登录') : (before.credentialReady ? account.platform === 'facebook' ? '云端主页授权与本机设备身份已进入安全存储（Page Token 不下发）' : '正式授权凭据已进入桌面安全存储' : '尚未完成正式授权') },
+      { id: 'credentials', name: '登录凭据可用', pass: before.credentialReady, detail: account.platform === 'whatsapp' ? (platformDrivers.get('whatsapp').adapter.hasCredentials(account) ? 'Baileys多设备凭据已识别，等待真实连接确认' : '尚未完成二维码或配对登录') : (before.credentialReady ? account.platform === 'facebook' ? (String(account.accountKind || account.metadata?.accountKind || 'page').toLowerCase() === 'personal-messenger' ? '隔离 Matrix 身份凭据已进入桌面安全存储；Facebook 密码不持久化' : '云端主页授权与本机设备身份已进入安全存储（Page Token 不下发）') : '正式授权凭据已进入桌面安全存储' : '尚未完成正式授权') },
       { id: 'service', name: '平台服务可访问', pass: !['error', 'unconfigured'].includes(after.state), detail: after.lastError || after.stateLabel },
       { id: 'session', name: '登录会话有效', pass: ['connected', 'limited'].includes(after.state), detail: after.stateLabel },
-      ...(account.platform === 'facebook' ? [
+      ...(account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || 'page').toLowerCase() === 'page' ? [
         { id: 'permissions', name: 'Page 消息权限', pass: after.permissionReady === true, detail: after.permissionReady ? 'Page 消息权限已满足' : `缺少权限：${(after.missingPermissions || []).join('、') || '尚未验证'}` },
         { id: 'subscription', name: 'Webhook messages 订阅', pass: after.subscriptionReady === true, detail: after.subscriptionReady ? 'messages 订阅已验证' : `当前订阅：${(after.subscriptionFields || []).join('、') || '尚未验证'}` }
       ] : []),

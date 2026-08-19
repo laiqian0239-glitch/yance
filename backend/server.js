@@ -135,6 +135,14 @@ markStartupPhase('architectureClosureReadyMs');
 
 const startupProductionGuard = executeStartupAuthorityCommand('startup.productionDataGuard').result;
 const startupStage6Data = executeStartupAuthorityCommand('startup.initializeWorkspacePipelines').result;
+const composition = Object.freeze({
+  commands: Object.freeze({
+    startup: Object.freeze({
+      requestSessionRestores: payload => executeStartupAuthorityCommand('startup.requestSessionRestores', payload).result
+    })
+  })
+});
+const startupSessionRestores = composition.commands.startup.requestSessionRestores({ authorityTimestamp: new Date().toISOString() });
 RUNTIME_COMPOSITION.authorityCommandGateway.seal();
 markStartupPhase('dataPipelinesReadyMs');
 

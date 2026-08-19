@@ -91,18 +91,20 @@ test('scoped safety issues are persisted with append-only events and resolution 
   } finally { fixture.close(); }
 });
 
-test('facebook driver resolution separates Page, personal identity and experimental personal Messenger', () => {
+test('facebook driver resolution separates Page, personal identity and production mautrix/meta Personal Messenger', () => {
   const registry = require('../services/platformDriverRegistry');
   assert.equal(registry.resolveDriverId({ platform: 'facebook', metadata: { accountKind: 'page' } }), 'facebook-page-official');
   assert.equal(registry.resolveDriverId({ platform: 'facebook', metadata: { accountKind: 'personal-identity' } }), 'facebook-personal-identity-official');
-  assert.equal(registry.resolveDriverId({ platform: 'facebook', metadata: { accountKind: 'personal-messenger' } }), 'facebook-personal-messenger-experimental');
+  assert.equal(registry.resolveDriverId({ platform: 'facebook', metadata: { accountKind: 'personal-messenger' } }), 'facebook-personal-messenger-mautrix-meta');
   const page = registry.getForAccount({ platform: 'facebook', metadata: { accountKind: 'page' } });
   const identity = registry.getForAccount({ platform: 'facebook', metadata: { accountKind: 'personal-identity' } });
   const messenger = registry.getForAccount({ platform: 'facebook', metadata: { accountKind: 'personal-messenger' } });
   assert.equal(page.supportLevel, 'production');
   assert.equal(identity.messagingSupported, false);
-  assert.equal(messenger.supportLevel, 'experimental');
-  assert.equal(messenger.riskDisclosureRequired, true);
+  assert.equal(messenger.supportLevel, 'production');
+  assert.equal(messenger.riskDisclosureRequired, false);
+  assert.equal(messenger.protocolAuthority, 'mautrix-meta');
+  assert.equal(messenger.isolationModel, 'matrix-application-service');
 });
 
 test('official Facebook personal identity driver cannot be misrepresented as Messenger messaging', async () => {
@@ -112,19 +114,14 @@ test('official Facebook personal identity driver cannot be misrepresented as Mes
   assert.throws(() => driver.sendText({}, { text: 'hello' }), error => error.code === 'FACEBOOK_PERSONAL_IDENTITY_MESSAGING_UNSUPPORTED');
 });
 
-test('experimental Facebook personal Messenger driver requires explicit opt-in and isolated browser session', async () => {
+test('Facebook personal Messenger production driver is mautrix/meta-owned and has no browser opt-in authority', () => {
   const registry = require('../services/platformDriverRegistry');
-  const previous = process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL;
-  delete process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL;
   const driver = registry.getForAccount({ id: 'fb-personal-a', platform: 'facebook', metadata: { accountKind: 'personal-messenger' } });
-  await assert.rejects(() => driver.connect({ id: 'fb-personal-a' }, { secret: { browserSessionRef: 'session-a' } }), error => error.code === 'FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL_DISABLED');
-  process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL = '1';
-  await assert.rejects(() => driver.connect({ id: 'fb-personal-a' }, { secret: {} }), error => error.code === 'FACEBOOK_PERSONAL_MESSENGER_SESSION_REQUIRED');
-  const connected = await driver.connect({ id: 'fb-personal-a' }, { secret: { browserSessionRef: 'session-a' } });
-  assert.equal(connected.state, 'connected');
-  assert.equal(connected.sessionIsolationKey, 'facebook-personal:fb-personal-a');
-  if (previous == null) delete process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL;
-  else process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL = previous;
+  assert.equal(driver.driverId, 'facebook-personal-messenger-mautrix-meta');
+  assert.equal(driver.supportLevel, 'production');
+  assert.equal(driver.protocolAuthority, 'mautrix-meta');
+  assert.equal(driver.isolationModel, 'matrix-application-service');
+  assert.equal(driver.riskDisclosureRequired, false);
 });
 
 test('safe mode exit authorization ignores account-scoped failures but cannot bypass shared infrastructure blockers', async () => {
