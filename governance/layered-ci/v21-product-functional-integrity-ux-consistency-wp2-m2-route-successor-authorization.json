@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-19T09:33:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FUNCTIONAL-INTEGRITY-UX-CONSISTENCY-WP2-M2-ROUTE-SUCCESSOR",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #498 exact product head ade4d8218087d4d69d0e42dc0dd102e6b8fb49d7 is a correctly authorized WP-2 amendment-2 implementation and changes shared electron/main.js, which intentionally triggers WP-B M2 Contracts. The trusted-main M2 workflow then rejects the legitimate delegated WP-2 branch before any M2 syntax or contract executes because its branch-establishment step calls the WP-B-specific isAuthorizedWpBImplementationBranch() authority. That authority intentionally admits only the active WP-B branch or trusted delegated successors rooted in the WP-B M3 successor chain, so widening it would be incorrect. The repository already has the generic implementationBranchPolicy.isAuthorizedImplementationBranch() authority for canonical Stage, trusted delegated governance, OSS and active WP-B branches. This authorization permits only the owning-layer repair: failure-first extend the existing WP-B workflow static contract, then make the existing M2 workflow use the existing generic implementation-branch authority while retaining its exact head/ref binding and running the complete M2 contract matrix. No trigger removal, path-filter narrowing, M2 skip, wildcard branch family, Product runtime change, shared authority widening, dependency, scanner/gate weakening or new infrastructure is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "7215c03e269e51d753bea90b370f28146b03d76e"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "7215c03e269e51d753bea90b370f28146b03d76e",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "causalRedEvidence": {
+    "implementationPullRequest": 498,
+    "implementationExactHead": "ade4d8218087d4d69d0e42dc0dd102e6b8fb49d7",
+    "implementationBranch": "product/v21-product-functional-integrity-ux-consistency-wp2-amendment-2",
+    "implementationAuthorizationMerge": "7215c03e269e51d753bea90b370f28146b03d76e",
+    "implementationAuthorizedChangedFileCount": 10,
+    "implementationAuthorizedChangedFileSetSha256": "5aeb8df2ced47932ab72ea21da9794ed946928b584a8b309448bb9761261138c",
+    "wpBM2Contracts": {
+      "workflow": "WP-B M2 Contracts",
+      "workflowPath": ".github/workflows/wp-b-m2-red.yml",
+      "runId": 32209059823,
+      "runConclusion": "failure",
+      "ubuntuJobId": 95937908945,
+      "windowsJobId": 95937908892,
+      "failedStep": "Establish exact trusted implementation branch",
+      "errorCode": "WP_B_ACTIVE_IMPLEMENTATION_BRANCH_UNAUTHORIZED",
+      "failureOccurredBeforeM2SyntaxAndContracts": true,
+      "triggeringSharedPath": "electron/main.js",
+      "rootCause": "The M2 pull_request path filter correctly includes shared electron/main.js, but the branch-establishment step incorrectly uses the WP-B-specific branch authority for every triggered PR. A legitimate trusted delegated Product branch is therefore rejected before M2 can evaluate the shared runtime change."
+    }
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-functional-integrity-ux-consistency-wp2-m2-route-successor-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-functional-integrity-ux-consistency-wp2-m2-route-successor-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c5828fa60ca17559048ffcd05a8ea87065a003a4b44e0235eb79a7ab18d35a5f",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "fix/v21-product-functional-integrity-ux-consistency-wp2-m2-route-successor",
+    "allowedChangedPaths": [
+      ".github/workflows/wp-b-m2-red.yml",
+      "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "7d062c9f4a8afa37d3600f9097e23d3b584b12a19c2a367113d88fddcce82ab4",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "25c7d20c001d156b8bb147721af1d3e01e58f58e7d78261668fa14abc6e94a05",
+      "productionCodeChanged": false,
+      "expectedFailures": [
+        "The existing WP-B M2 workflow rejects a legitimate trusted delegated implementation branch touching electron/main.js because it uses isAuthorizedWpBImplementationBranch instead of the repository generic implementation-branch authority."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/wp-b-m2-red.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "c56e6e847e538c2d6d141ef972e928f4e5549ad3e8444c8bd51340d1ae9cfe12"
+    },
+    "routingPolicyModificationAllowed": false,
+    "sharedImplementationBranchPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "workflowMigration": {
+    "path": ".github/workflows/wp-b-m2-red.yml",
+    "requiredChange": "Preserve the existing pull_request paths including electron/main.js, exact VALIDATION_SHA checkout, exact remote branch-head equality and full Ubuntu/Windows M2 contract matrix. Replace only the pre-contract WP-B-specific branch authorization call with the repository existing generic implementationBranchPolicy.isAuthorizedImplementationBranch() using the canonical current stage from release/release-source.json/tools/wp0/lib.",
+    "pullRequestPathFilterMayBeNarrowed": false,
+    "m2ContractStepsMayBeSkipped": false,
+    "workflowTriggerExpansionAllowed": false,
+    "wildcardBranchAuthorizationAllowed": false,
+    "sharedAuthorityWideningAllowed": false,
+    "exactHeadCheckoutMustRemain": true,
+    "exactRemoteBranchHeadBindingMustRemain": true,
+    "ubuntuWindowsMatrixMustRemain": true,
+    "existingM2AssertionsMayBeWeakened": false
+  },
+  "frozenProductContinuation": {
+    "pullRequest": 498,
+    "branch": "product/v21-product-functional-integrity-ux-consistency-wp2-amendment-2",
+    "exactHead": "ade4d8218087d4d69d0e42dc0dd102e6b8fb49d7",
+    "noFurtherCommitsBeforeRouteRepair": true,
+    "historyRewriteForbidden": true,
+    "afterRouteRepairMerge": "Re-trigger pull_request exact-head validation against repaired trusted main without changing the Product head. Final Product merge remains an ordinary two-parent merge with fresh trusted main as first parent and frozen Product head as second parent."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_GENERIC_IMPLEMENTATION_BRANCH_AUTHORITY_AND_WP_B_M2_WORKFLOW",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing generic implementationBranchPolicy",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already composes canonical Stage, trusted delegated governance, sealed OSS and active WP-B branch authority without widening the WP-B-specific successor authority."
+      },
+      {
+        "name": "Existing WP-B M2 Contracts workflow",
+        "source": ".github/workflows/wp-b-m2-red.yml",
+        "license": "repository-existing/GitHub Actions hosted CI",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Its path trigger, exact-head/ref checks and full M2 matrix are correct; only the pre-contract branch-authority selector is over-specialized."
+      },
+      {
+        "name": "Existing WP-B workflow scope static contract",
+        "source": "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already owns exact WP-B workflow-path invariants and is the correct failure-first companion for preserving M2 workflow scope while correcting branch authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not widen isAuthorizedWpBImplementationBranch to accept unrelated Product work packages.",
+      "Do not remove electron/main.js from the M2 trigger or skip M2 for WP-2.",
+      "Do not add wildcard/prefix Product branch allowlists or hard-code the WP-2 branch as a special M2 exception.",
+      "Do not create a second M2 workflow, branch router or general-purpose Yance infrastructure.",
+      "Do not modify #498 Product runtime or its fixed 10-path authorized scope."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "failureFirst": [
+      "node --test backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js"
+    ],
+    "focused": [
+      "node --test backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+      "node --test tests/wp0/implementation-branch-policy.test.js",
+      "node --test backend/tests/architectureClosureV2/wpB/m2Authorization.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "WP-B M2 Contracts",
+      "ACV2 WP-A Architecture Gates"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "M2 continues to trigger for shared electron/main.js changes",
+      "generic delegated branch authority is reused rather than WP-B-specific authority widened",
+      "exact VALIDATION_SHA checkout and remote branch-head equality are preserved",
+      "Ubuntu/Windows complete M2 contract execution is preserved",
+      "no workflow trigger/path-filter narrowing, special-case branch, wildcard, skip or gate weakening",
+      "only the exact workflow and its existing static companion contract change"
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
