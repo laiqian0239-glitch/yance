@@ -13,7 +13,8 @@
     "WP-B-M3-SCOPE-002",
     "WP-B-M3-SCOPE-003",
     "WP-B-M3-SCOPE-004",
-    "WP-B-M3-SCOPE-005"
+    "WP-B-M3-SCOPE-005",
+    "WP-B-M3-SCOPE-006"
   ],
   "entries": [
     {
@@ -58,6 +59,29 @@
       "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
       "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
       "removalCondition": "All Chatwoot and Matrix physical calls consume persisted WP-B attempt identity through the registered channel Adapter; signed webhook ingress remains ingress-only and owns no durable retry or recovery authority."
+    },
+    {
+      "id": "WPB-FACEBOOK-PERSONAL-MAUTRIX-META-ADAPTER",
+      "path": "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "authorizationAmendmentId": "WP-B-M3-SCOPE-006",
+      "classification": "PHYSICAL_IO_ADAPTER",
+      "operationKinds": [
+        "OUTBOUND_MESSAGE_SEND",
+        "DELIVERY_RECEIPT_RECONCILIATION",
+        "MEDIA_TRANSFER",
+        "HISTORY_SYNCHRONIZATION",
+        "SESSION_RESTORE"
+      ],
+      "currentResponsibilities": [
+        "MAUTRIX_META_PROVISIONING_NETWORK_CALL",
+        "MATRIX_CLIENT_NETWORK_CALL",
+        "REMOTE_MEDIA_TRANSFER",
+        "READ_RECEIPT_AND_TYPING_PHYSICAL_IO",
+        "SESSION_AND_HISTORY_PHYSICAL_IO"
+      ],
+      "targetAuthority": "CHANNEL_OPERATION_ADAPTER",
+      "closureState": "DELEGATES_TO_WP_B_AUTHORITY",
+      "removalCondition": "All Facebook Personal mautrix/meta and Matrix physical calls consume the existing WP-B attempt identity through the registered channel Adapter; matrix-js-sdk and mautrix/meta own protocol sync/recovery and Yance owns no second retry, session or transport authority."
     }
   ],
   "governance": {

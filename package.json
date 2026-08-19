@@ -25,7 +25,8 @@
     "@openfeature/server-sdk": "1.23.0",
     "proper-lockfile": "4.1.2",
     "p-queue": "9.3.1",
-    "xstate": "5.32.5"
+    "xstate": "5.32.5",
+    "matrix-js-sdk": "42.0.0"
   },
   "engines": {
     "node": ">=22.19.0",

@@ -138,7 +138,7 @@ test('fresh R32 bootstrap owns durable projection jobs through the canonical eve
         EXPECTED_COLUMNS
       );
       assert.deepEqual(claimIndexColumns(store.db), ['state', 'next_attempt_at', 'created_at']);
-      assert.equal(SCHEMA_VERSION, 23, 'R32 schema version must register the forward canonical projection-job migration');
+      assert.ok(SCHEMA_VERSION >= 23, 'R32 current schema must include the forward canonical projection-job migration');
     } finally {
       store.close();
     }

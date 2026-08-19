@@ -12,13 +12,13 @@ const STORAGE_KEY = 'yance27-r32-account-center';
 const PLATFORM = {
   whatsapp: { label: 'WhatsApp', icon: 'W', auth: '二维码 / 手机号配对码', accent: 'whatsapp' },
   telegram: { label: 'Telegram', icon: 'T', auth: '二维码优先 / 手机号备用', accent: 'telegram' },
-  facebook: { label: 'Facebook', icon: 'f', auth: '公共主页 / 个人身份 / 实验 Messenger', accent: 'facebook' }
+  facebook: { label: 'Facebook', icon: 'f', auth: '公共主页 / 个人身份 / Personal Messenger', accent: 'facebook' }
 };
 
 const FACEBOOK_ACCOUNT_TYPES = Object.freeze({
   page: { accountKind: 'page', driverId: 'facebook-page-official', label: 'Facebook 公共主页（官方）' },
   'personal-identity': { accountKind: 'personal-identity', driverId: 'facebook-personal-identity-official', label: 'Facebook 个人身份（官方，仅身份）' },
-  'personal-messenger': { accountKind: 'personal-messenger', driverId: 'facebook-personal-messenger-experimental', label: 'Facebook 个人 Messenger（非官方实验）' }
+  'personal-messenger': { accountKind: 'personal-messenger', driverId: 'facebook-personal-messenger-mautrix-meta', label: 'Facebook 个人 Messenger' }
 });
 function facebookAccountType(value = 'page') {
   const normalized = String(value || '').trim().toLowerCase();
@@ -488,8 +488,17 @@ function renderLogin(account) {
         ${account.state==='connected'?'<div class="ac32-hint" style="margin-top:10px">官方个人身份已连接；消息能力保持关闭，避免把身份授权伪装成 Messenger 接入。</div>':''}`;
       actions = `<button class="ac32-button primary" data-panel-action="facebook-oauth" ${available?'':'disabled'}>${htmlText(available?'使用官方 Facebook Login':'Facebook 登录尚未启用')}</button>${flow?'<button class="ac32-button" data-panel-action="facebook-cancel">取消授权</button>':''}<button class="ac32-button" data-panel-action="diagnose">检查身份状态</button>`;
     } else if (type.accountKind === 'personal-messenger') {
-      auth = '<div class="ac32-hint bad"><b>非官方实验能力：</b>个人 Messenger 依赖独立浏览器会话，可能因页面变化、登录挑战或账号风控失效。当前浏览器桥未完成真实验收，驱动保持隔离暂停，不会影响其他账号。</div>';
-      actions = '<button class="ac32-button primary" disabled>个人 Messenger 实验驱动尚未开放</button><button class="ac32-button" data-panel-action="diagnose">查看隔离原因</button>';
+      const messengerStep = flow?.step || flow || null;
+      const messengerFields = Array.isArray(messengerStep?.user_input?.fields) ? messengerStep.user_input.fields : Array.isArray(messengerStep?.fields) ? messengerStep.fields : [];
+      const loginProcessId = String(flow?.login_process_id || flow?.loginProcessId || messengerStep?.login_process_id || messengerStep?.loginProcessId || '').trim();
+      const stepId = String(messengerStep?.step_id || messengerStep?.stepId || flow?.step_id || flow?.stepId || '').trim();
+      const stepType = String(messengerStep?.type || flow?.type || '').trim().toLowerCase();
+      const fieldMarkup = messengerFields.map(field => { const name=String(field.id||field.name||field.key||'').trim(); if(!name) return ''; const label=field.label||field.name||name; const secret=/password|secret|token/i.test(String(field.type||name)); return `<label>${htmlText(label)}<input ${secret?'type="password" autocomplete="current-password"':'autocomplete="off"'} data-facebook-messenger-field="${htmlAttr(name)}" placeholder="${htmlAttr(field.description||field.placeholder||'')}"></label>`; }).join('');
+      auth = `<div class="ac32-hint"><b>mautrix/meta · messenger-lite：</b>Facebook 协议、登录挑战、会话与恢复由固定版本 mautrix/meta 持有；言策只消费每账号独立的 Matrix/Synapse 会话。密码与挑战输入不会写入账号元数据。</div>
+        ${flow?`<div class="ac32-hint warn" style="margin-top:10px">登录步骤：${htmlText(messengerStep?.instructions||messengerStep?.description||stepType||'等待输入')}</div>`:''}
+        ${fieldMarkup?`<div class="ac32-form" style="margin-top:10px">${fieldMarkup}<button class="ac32-button primary" data-panel-action="facebook-messenger-submit" data-login-process-id="${htmlAttr(loginProcessId)}" data-step-id="${htmlAttr(stepId)}">继续</button></div>`:''}
+        ${stepType==='display_and_wait'?`<div style="margin-top:10px"><button class="ac32-button primary" data-panel-action="facebook-messenger-wait" data-login-process-id="${htmlAttr(loginProcessId)}" data-step-id="${htmlAttr(stepId)}">我已完成上游确认</button></div>`:''}`;
+      actions = `${flow?'':`<button class="ac32-button primary" data-panel-action="facebook-messenger-start">开始 Personal Messenger 登录</button>`}${flow?'<button class="ac32-button" data-panel-action="facebook-messenger-cancel">取消登录</button>':''}<button class="ac32-button" data-panel-action="diagnose">检查连接</button>`;
     } else {
       auth = `${available?'<div class="ac32-hint">使用拥有公共主页管理权限的个人 Facebook 账号授权。授权结果必须包含 pages_read_engagement，才能同步 Meta Business Suite 的新联系人、最近会话和公共主页后台发送消息。</div>':'<div class="ac32-hint bad">当前安装包尚未启用 Facebook 登录。请安装包含 Facebook 平台服务的正式升级包。</div>'}
         ${account.credentialReady&&account.historySyncAvailable===false?`<div class="ac32-hint bad" style="margin-top:10px"><b>当前 Facebook 绑定不完整：</b>${htmlText(account.historySyncReason||'缺少 pages_read_engagement，Business Suite 会话无法补拉')}。请点击下方授权按钮重新授权。</div>`:''}
@@ -714,6 +723,10 @@ async function panelAction(action, account) {
   if (action === 'telegram-phone') return startTelegramPhone(account);
   if (action === 'telegram-cancel') return cancelTelegramLogin(account);
   if (action === 'facebook-oauth') return startFacebookOAuth(account);
+  if (action === 'facebook-messenger-start') return startFacebookMessengerLogin(account);
+  if (action === 'facebook-messenger-submit') return submitFacebookMessengerStep(account);
+  if (action === 'facebook-messenger-wait') return waitFacebookMessengerStep(account);
+  if (action === 'facebook-messenger-cancel') return cancelFacebookMessengerLogin(account);
   if (action === 'facebook-cancel') return cancelFacebookOAuth(account);
   if (action === 'facebook-sync-now') return mutate(`/${encodeURIComponent(account.id)}/sync`, 'POST', {}, '正在读取 Meta Business Suite 最近会话并执行对账…');
   if (action === 'facebook-avatar-diagnose') return runFacebookAvatarDiagnostics(account);
@@ -986,6 +999,51 @@ async function startTelegramPhone(account) {
 async function cancelTelegramLogin(account) {
   await mutate(`/${encodeURIComponent(account.id)}/telegram/cancel`, 'POST', {}, '正在取消 Telegram 登录…');
 }
+function facebookMessengerFlowIds(flow = state.facebookFlow || {}) {
+  const step = flow?.step || flow || {};
+  return {
+    loginProcessId: String(flow?.login_id || flow?.loginId || flow?.login_process_id || flow?.loginProcessId || step?.login_id || step?.loginId || step?.login_process_id || step?.loginProcessId || '').trim(),
+    stepId: String(step?.step_id || step?.stepId || flow?.step_id || flow?.stepId || '').trim(),
+    txnId: String(step?.txn_id || step?.txnId || flow?.txn_id || flow?.txnId || '').trim()
+  };
+}
+async function startFacebookMessengerLogin(account) {
+  if (!ensureAccountAuthAllowed(account, '启动 Facebook Personal Messenger 登录')) return;
+  clearAuthNotice(account.id);
+  try {
+    toast('正在启动 mautrix/meta messenger-lite 登录…', 'warning');
+    const data = await api(`/${encodeURIComponent(account.id)}/facebook/messenger/start`, { method:'POST', body:{} });
+    state.facebookFlow = { accountId: account.id, mode:'personal-messenger', ...(data.flow||{}) };
+    state.tab='login'; await refreshAccounts(false); renderWorkbench();
+  } catch (error) { setAuthNotice(account,error.message,safeModeError(error)?'warning':'error',{showRecovery:safeModeError(error)}); toast(error.message,'error'); }
+}
+async function submitFacebookMessengerStep(account) {
+  const { loginProcessId, stepId, txnId } = facebookMessengerFlowIds();
+  if (!loginProcessId || !stepId) return toast('当前 mautrix/meta 登录步骤缺少 continuation 标识，请重新开始登录。','error');
+  const input = {};
+  document.querySelectorAll('[data-facebook-messenger-field]').forEach(node => { input[node.dataset.facebookMessengerField] = node.value; });
+  try {
+    const data = await api(`/${encodeURIComponent(account.id)}/facebook/messenger/input`, { method:'POST', body:{ loginProcessId, stepId, txnId, input } });
+    state.facebookFlow = data.completed ? null : { accountId:account.id, mode:'personal-messenger', ...(data.flow||{}) };
+    await refreshAccounts(false); state.tab='login'; renderWorkbench(); toast(data.completed?'Facebook Personal Messenger 已连接':'已提交登录步骤');
+  } catch(error) { toast(error.message,'error'); }
+}
+async function waitFacebookMessengerStep(account) {
+  const { loginProcessId, stepId, txnId } = facebookMessengerFlowIds();
+  if (!loginProcessId || !stepId) return toast('当前 mautrix/meta 等待步骤缺少 continuation 标识。','error');
+  try {
+    const data = await api(`/${encodeURIComponent(account.id)}/facebook/messenger/wait`, { method:'POST', body:{ loginProcessId, stepId, txnId } });
+    state.facebookFlow = { accountId:account.id, mode:'personal-messenger', ...(data.flow||{}) };
+    await refreshAccounts(false); state.tab='login'; renderWorkbench();
+  } catch(error) { toast(error.message,'error'); }
+}
+async function cancelFacebookMessengerLogin(account) {
+  const { loginProcessId } = facebookMessengerFlowIds();
+  let data;
+  try { data = await api(`/${encodeURIComponent(account.id)}/facebook/messenger/cancel`, { method:'POST', body:{ loginProcessId } }); } catch(error) { toast(error.message,'error'); return; }
+  state.facebookFlow=null; if (!data?.removed) await discardPendingAuthorization(account.id,'facebook-messenger-cancelled'); await refreshAccounts(false); state.tab='login'; renderWorkbench(); toast('已取消 Facebook Personal Messenger 登录');
+}
+
 async function startFacebookOAuth(account) {
   const type = facebookAccountType(account.accountKind || account.driverId);
   if (!ensureAccountAuthAllowed(account, type.accountKind === 'personal-identity' ? '启动 Facebook 个人身份授权' : '启动 Facebook 公共主页授权')) return;
@@ -1153,9 +1211,9 @@ function platformFields(platform, facebookKind = 'page') {
   let detail = '';
   if (type.accountKind === 'page') detail = '使用拥有公共主页管理权限的个人 Facebook 账号完成官方授权，随后选择需要连接的公共主页。';
   if (type.accountKind === 'personal-identity') detail = '使用官方 Facebook Login 读取个人身份、名称和头像。个人身份登录不提供 Messenger 私信读取或发送能力。';
-  if (type.accountKind === 'personal-messenger') detail = '这是依赖独立浏览器会话的非官方实验能力，可能因 Meta 页面变化、登录挑战或风控失效；当前浏览器桥尚未达到可验收状态。';
-  const available = authConfig.facebook?.available === true && type.accountKind !== 'personal-messenger' && contract?.onboardingAvailable !== false;
-  return `${facebookTypeSelector(type.accountKind)}<div class="ac32-hint ${htmlAttr(type.accountKind==='personal-messenger'?'bad':'')}">${htmlText(detail)}</div>${authConfig.facebook?.available===true?'':`<div class="ac32-hint bad" style="margin-top:8px">当前安装包尚未启用 Facebook 登录。</div>`}${type.accountKind==='personal-messenger'?`<div class="ac32-hint bad" style="margin-top:8px">非官方实验能力必须独立启用并完成浏览器桥验收；当前不会创建一个无法登录的假账号。</div>`:''}`;
+  if (type.accountKind === 'personal-messenger') detail = '使用固定版本 mautrix/meta 的 messenger-lite 原生登录；Facebook 协议、挑战、会话恢复由上游持有，言策不保存 Facebook 密码。';
+  const available = type.accountKind === 'personal-messenger' ? contract?.onboardingAvailable !== false : authConfig.facebook?.available === true && contract?.onboardingAvailable !== false;
+  return `${facebookTypeSelector(type.accountKind)}<div class="ac32-hint">${htmlText(detail)}</div>${type.accountKind!=='personal-messenger'&&authConfig.facebook?.available!==true?`<div class="ac32-hint bad" style="margin-top:8px">当前安装包尚未启用 Facebook 登录。</div>`:''}`;
 }
 
 function bindFacebookKindSelector() {
@@ -1180,11 +1238,11 @@ function updateAccountDialogAction(platform, editing = false) {
   if (platform === 'facebook') {
     const type = selectedFacebookType();
     const contract = driverContract(type.driverId);
-    const available = authConfig.facebook?.available === true && type.accountKind !== 'personal-messenger' && contract?.onboardingAvailable !== false;
+    const available = type.accountKind === 'personal-messenger' ? contract?.onboardingAvailable !== false : authConfig.facebook?.available === true && contract?.onboardingAvailable !== false;
     button.disabled = !available;
     button.textContent = type.accountKind === 'page' ? (available ? '使用管理员账号授权主页' : 'Facebook 主页登录尚未启用')
       : type.accountKind === 'personal-identity' ? (available ? '使用官方 Facebook Login' : 'Facebook 身份登录尚未启用')
-      : '个人 Messenger 实验驱动尚未开放';
+      : (available ? '创建并登录 Personal Messenger' : 'Personal Messenger 登录尚未启用');
     return;
   }
   const available = platform === 'whatsapp' || authConfig[platform]?.available === true;
@@ -1241,14 +1299,10 @@ async function saveAccountDialog() {
     if (!platform) return setAccountDialogStatus('请选择平台。', 'warning');
     const authConfig = state.data.platformAuth || {};
     if (platform === 'telegram' && authConfig.telegram?.available !== true) return setAccountDialogStatus('当前安装包尚未启用 Telegram 登录，请安装已启用平台服务的版本。', 'warning');
-    if (platform === 'facebook' && authConfig.facebook?.available !== true) return setAccountDialogStatus('当前安装包尚未启用 Facebook 登录，请安装已启用平台服务的版本。', 'warning');
-
     const p = platformInfo(platform);
     const facebookType = platform === 'facebook' ? selectedFacebookType() : null;
+    if (platform === 'facebook' && facebookType?.accountKind !== 'personal-messenger' && authConfig.facebook?.available !== true) return setAccountDialogStatus('当前安装包尚未启用 Facebook 登录，请安装已启用平台服务的版本。', 'warning');
     const contract = facebookType ? driverContract(facebookType.driverId) : null;
-    if (facebookType?.accountKind === 'personal-messenger') {
-      return setAccountDialogStatus('Facebook 个人 Messenger 属于非官方实验能力，当前浏览器桥尚未完成真实验收，因此不会创建一个无法登录的假账号。', 'warning');
-    }
     if (facebookType && contract?.onboardingAvailable === false) {
       return setAccountDialogStatus(`当前驱动尚不可登录：${contract.onboardingReason || 'ONBOARDING_UNAVAILABLE'}`, 'warning');
     }
@@ -1269,7 +1323,8 @@ async function saveAccountDialog() {
     renderWorkbench();
     if (platform === 'whatsapp') await connectAccount(accountById(account.id) || account);
     if (platform === 'telegram') await startTelegramQr(accountById(account.id) || account);
-    if (platform === 'facebook') await startFacebookOAuth(accountById(account.id) || account);
+    if (platform === 'facebook' && facebookType?.accountKind === 'personal-messenger') await startFacebookMessengerLogin(accountById(account.id) || account);
+    if (platform === 'facebook' && facebookType?.accountKind !== 'personal-messenger') await startFacebookOAuth(accountById(account.id) || account);
   } catch (error) {
     const blocked = safeModeError(error);
     setAccountDialogStatus(error.message || '账号连接未完成', blocked ? 'warning' : 'error', { showRecovery: blocked });
