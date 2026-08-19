@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FB-PERSONAL-MSG-MAUTRIX-META-CLOSURE-V1-AMENDMENT-1",
+  "proposalRevision": 3,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh post-failure-first source audit proved that the already-merged design requires native mautrix/meta messenger-lite username/password login projection through the existing durable PlatformAuthWorkflowAuthority. The original executable authorization includes routes, AccountContext, AccountManager, shared contracts and Account Center surfaces, but omitted backend/services/platformAuthWorkflowAuthority.js even though that authority currently enumerates only Telegram and Facebook Page OAuth continuation operations. Calling BridgeV2 provisioning directly from routes would bypass the durable auth workflow and be a workaround. This amendment adds exactly that one owning-layer path, preserves the causal RED head unchanged, and uses the repository's existing forwardContinuation protocol for the strict two-parent successor.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-authorization.json",
+    "implementationBranch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1",
+    "reason": "Supersede the original implementation authority after frozen causal RED head 8bfae7bac52fd4aba54abdbe9c80a47ee19f5094 proved one missing owning-layer auth-workflow path; the predecessor branch remains immutable evidence and is not rewritten."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "430460d117849b01fb0db1b1df0df03bebdada09",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "430460d117849b01fb0db1b1df0df03bebdada09",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "bce09ef0b54fe19b4ea4107cfd6628875c86d148a7c3dd26377b795338ec8333",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "8bfae7bac52fd4aba54abdbe9c80a47ee19f5094"
+    },
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/core/accountContext.js",
+      "backend/lib/r32SqliteStoreEngine.js",
+      "backend/migrations/v21FacebookPersonalMessengerMautrixMetaProductionClosure.js",
+      "backend/repositories/accountRepository.js",
+      "backend/routes/accounts.js",
+      "backend/server.js",
+      "backend/services/accountManagerCore.js",
+      "backend/services/facebookPersonalMessengerExperimentalAdapter.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/platformAdapterPorts.js",
+      "backend/services/platformAuthWorkflowAuthority.js",
+      "backend/services/platformCapabilities.js",
+      "backend/services/platformDriverRegistry.js",
+      "backend/tests/fix6oScopedSafetyAndFacebookDrivers.test.js",
+      "backend/tests/v21FacebookPersonalMessengerMautrixMetaProductionClosure.test.js",
+      "config/matrix/mautrix-meta/config.yaml",
+      "config/matrix/synapse/homeserver.yaml",
+      "config/upstreams/v21-comms-p0.json",
+      "frontend/js/core-client.js",
+      "frontend/r32-account-center.js",
+      "package-lock.json",
+      "package.json",
+      "services/matrix/docker-compose.yml",
+      "shared/core/contracts.js",
+      "tests/uat/fix6oScopedSafetyOmnichannelRuntime.test.js",
+      "tests/uat/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+      "tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js",
+      "tests/wp0/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+      "third_party/licenses/matrix-js-sdk-Apache-2.0.txt",
+      "third_party/licenses/mautrix-meta-AGPL-3.0.txt",
+      "third_party/licenses/mautrix-meta-LICENSE.exceptions.txt",
+      "tools/matrix/bootstrap.js"
+    ],
+    "approvedChangedFileCount": 33,
+    "approvedChangedFileSetSha256": "9ddd989f7af6e984d3cf8b7a015ee3e62212be6d20d8512d1c3fda635356ad06",
+    "newlyAuthorizedPaths": [
+      "backend/services/platformAuthWorkflowAuthority.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "b793f9e62cadd5b02813ede125c9ce4bf2a73245a58122e0e6e17358936d60f6",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": ["package-lock.json", "package.json"],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "dependencyIdentityPolicy": {
+      "entries": [
+        { "path": "package.json", "section": "dependencies", "name": "matrix-js-sdk", "version": "42.0.0" }
+      ]
+    },
+    "workflowModificationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 505,
+    "branch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1",
+    "frozenHead": "8bfae7bac52fd4aba54abdbe9c80a47ee19f5094",
+    "originalEffectiveAuthorizationMerge": "430460d117849b01fb0db1b1df0df03bebdada09",
+    "originalFailureFirstResult": "496 tests / 492 pass / 4 causal RED",
+    "provenNewScopePaths": ["backend/services/platformAuthWorkflowAuthority.js"],
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "8bfae7bac52fd4aba54abdbe9c80a47ee19f5094",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true
+  },
+  "causalRedClassification": {
+    "rootCause": "The existing PlatformAuthWorkflowAuthority continuation/cancel operation sets do not recognize the durable multi-step mautrix/meta messenger-lite login workflow required by the merged design, while bypassing this authority would violate the repository's durable auth lifecycle.",
+    "requiredOwningLayerChange": "Extend only the existing platform auth workflow operation taxonomy/state settlement to carry messenger-lite start/user-input/cancel continuations. Do not add a second auth workflow engine.",
+    "unknownBlockers": 0
+  },
+  "ossFit": {
+    "decision": "PRESERVE_EXISTING_PLATFORM_AUTH_WORKFLOW_AUTHORITY_AND_ADOPT_MAUTRIX_META_NATIVE_LOGIN",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing PlatformAuthWorkflowAuthority",
+        "source": "backend/services/platformAuthWorkflowAuthority.js",
+        "license": "repository scope",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already owns durable platform auth create/continue/cancel/terminal settlement; it only lacks messenger-lite operation taxonomy."
+      },
+      {
+        "name": "mautrix/meta v0.2607.0 BridgeV2 messenger-lite",
+        "source": "mautrix/meta@ed37c9e6ce47e83dc75b9abea7b636302715b9bc",
+        "license": "AGPL-3.0 with upstream exceptions",
+        "adoptionMode": "sidecar-service",
+        "fit": "FIT",
+        "reason": "Mature OSS owns username/password, challenge/2FA, remote session and Meta protocol semantics."
+      },
+      {
+        "name": "Route-local login state machine",
+        "source": "rejected hypothetical Yance implementation",
+        "license": "not applicable",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "Would bypass the durable auth authority and duplicate lifecycle state."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not call messenger-lite provisioning directly from routes without PlatformAuthWorkflowAuthority receipts.",
+      "Do not create a second auth workflow/state machine.",
+      "Do not persist Facebook passwords or cookies.",
+      "Do not restore facebook-personal-messenger-experimental or isolated-browser-session authority."
+    ]
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "routeLocalAuthStateMachine": true,
+    "browserAutomation": true,
+    "cookieHarvesting": true,
+    "historicalMigrationModification": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
