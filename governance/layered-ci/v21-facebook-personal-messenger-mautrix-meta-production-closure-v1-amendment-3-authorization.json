@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FB-PERSONAL-MSG-MAUTRIX-META-CLOSURE-V1-AMENDMENT-3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Exact-head CI at c537674176081064450b7c3f5137f019239914c4 proved two final governance-layer blockers after the Facebook Personal product implementation itself closed its authorized schema and WP-B M3 contracts: the Amendment-2 authorization carries non-canonical supersession metadata that the base-owned delegated authority schema rejects, and the packaged WP-B governance manifest still binds the pre-rebind XState receipt blob. This successor bypasses no gate: it supersedes the last valid Amendment-1 authority, freezes c537674176081064450b7c3f5137f019239914c4 as immutable predecessor evidence, preserves the existing 41-path implementation, and adds only release/architecture-closure-v2/wp-b-governance-package.json so the package can bind the already-reviewed XState receipt bytes.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-1-authorization.json",
+    "implementationBranch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-1",
+    "reason": "Amendment-1 is the last valid delegated authority in this chain. Amendment-2 remains immutable diagnostic evidence but its supersedes object is not canonical under the base-owned exact schema, so it is not used as an authority predecessor."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "5d1929a22666ecd694090a210963b56ac02ad4a0",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "5d1929a22666ecd694090a210963b56ac02ad4a0",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d8eaeed49890b4d8a83a1e5a6295318adde4d0095ea1a28458bea25b367a2a74",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "c537674176081064450b7c3f5137f019239914c4"
+    },
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/core/accountContext.js",
+      "backend/lib/r32SqliteStoreEngine.js",
+      "backend/migrations/v21FacebookPersonalMessengerMautrixMetaProductionClosure.js",
+      "backend/repositories/accountRepository.js",
+      "backend/routes/accounts.js",
+      "backend/server.js",
+      "backend/services/accountManagerCore.js",
+      "backend/services/facebookPersonalMessengerExperimentalAdapter.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/platformAdapterPorts.js",
+      "backend/services/platformAuthWorkflowAuthority.js",
+      "backend/services/platformCapabilities.js",
+      "backend/services/platformDriverRegistry.js",
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
+      "backend/tests/architectureClosureV2/wpA/domainEventProjectionJobsCanonicalMigration.test.js",
+      "backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js",
+      "backend/tests/batch27DeveloperHandoffV2Closure.test.js",
+      "backend/tests/fix6oScopedSafetyAndFacebookDrivers.test.js",
+      "backend/tests/v21FacebookPersonalMessengerMautrixMetaProductionClosure.test.js",
+      "config/matrix/mautrix-meta/config.yaml",
+      "config/matrix/synapse/homeserver.yaml",
+      "config/upstreams/v21-comms-p0.json",
+      "frontend/js/core-client.js",
+      "frontend/r32-account-center.js",
+      "governance/architecture-closure-v2/wp-b-m3-authorization.json",
+      "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json",
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "package-lock.json",
+      "package.json",
+      "release/architecture-closure-v2/wp-b-governance-package.json",
+      "services/matrix/docker-compose.yml",
+      "shared/core/contracts.js",
+      "tests/uat/fix6oScopedSafetyOmnichannelRuntime.test.js",
+      "tests/uat/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+      "tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js",
+      "tests/wp0/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+      "third_party/licenses/matrix-js-sdk-Apache-2.0.txt",
+      "third_party/licenses/mautrix-meta-AGPL-3.0.txt",
+      "third_party/licenses/mautrix-meta-LICENSE.exceptions.txt",
+      "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js",
+      "tools/matrix/bootstrap.js"
+    ],
+    "approvedChangedFileCount": 42,
+    "approvedChangedFileSetSha256": "6c9578151ad57fbdf175b98194637de5cbce4310d77f385849367ea98afb1cdd",
+    "newlyAuthorizedPaths": [
+      "release/architecture-closure-v2/wp-b-governance-package.json"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "5b143fb0232be0c2128b096ccf0a87c5575b63e9e825a2e92e9f1ecaceb5f2da",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "dependencyIdentityPolicy": {
+      "entries": [
+        {
+          "path": "package.json",
+          "section": "dependencies",
+          "name": "matrix-js-sdk",
+          "version": "42.0.0"
+        }
+      ]
+    },
+    "workflowModificationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "causalRedEvidence": {
+    "frozenPredecessorHead": "c537674176081064450b7c3f5137f019239914c4",
+    "stageRun": 32237786104,
+    "stageFailure": "implementation-branch-policy rejects Amendment-2 because its supersedes declaration has non-canonical extra keys",
+    "packagingFailure": "release/architecture-closure-v2/wp-b-governance-package.json still binds the old wp-b-xstate-supply-chain-lock.json blob bea185be1ab40c29d1652dba45c94c7819b1ddf6 while reviewed head contains 0a2b707e766b0005fac99f6a7b818aa407882e27",
+    "nonApplicableWpBM2BranchAuthority": true,
+    "unknownProductCorrectnessBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "c537674176081064450b7c3f5137f019239914c4",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionBeyond42Forbidden": true
+  },
+  "ossFit": {
+    "decision": "PRESERVE_EXISTING_REPOSITORY_SEAMS_AND_REBIND_EXACT_EVIDENCE",
+    "matureOssAvailable": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP-B governance release package verifier",
+        "source": "tools/architecture-closure-v2/verify-wp-b-governance-release-package.js",
+        "license": "repository scope",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already enforces exact Git blob binding between packaged governance metadata and reviewed source evidence; the correct repair is to update the manifest binding, not create new infrastructure."
+      },
+      {
+        "name": "XState 5.32.5",
+        "source": "https://github.com/statelyai/xstate",
+        "license": "MIT",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "The existing exact XState artifact remains unchanged; only repository evidence binding is refreshed."
+      }
+    ],
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "retireOrAvoid": [
+      "Do not add a second governance package verifier.",
+      "Do not add a second runtime state-machine implementation.",
+      "Do not weaken delegated branch or packaged governance gates."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
