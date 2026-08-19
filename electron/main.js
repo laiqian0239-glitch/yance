@@ -113,6 +113,8 @@ const { createGraphitiRelationshipRuntime, createNeo4jPassword } = require('./gr
 const { createMediaBrainRuntime, mergeImmichConfiguration, mergeComfyuiConfiguration } = require('./mediaBrainRuntime');
 const { createPresenceAvatarRuntime } = require('./presenceAvatarRuntime');
 const { createVoiceBrainRuntime } = require('./voiceBrainRuntime');
+const { createLearningCoachTools } = require('./learningCoachTools');
+const { resolveProductionActivePolicy } = require('../backend/services/learningPolicyRuntimeAdapter');
 const { SoundNotificationService } = require('./SoundNotificationService');
 const { isCustomSoundPattern, soundFileName } = require('../shared/notificationSoundCatalog');
 const { runInstalledRuntimeProbeApplicationEntry } = require('./wp7InstalledRuntimeProbeApplicationEntry');
@@ -484,6 +486,7 @@ let graphitiRelationshipRuntime = null;
 let mediaBrainRuntime = null;
 let presenceAvatarRuntime = null;
 let voiceBrainRuntime = null;
+let learningCoachTools = null;
 const parlantInboundSequencer = createRelationshipTaskSequencer();
 
 function ensureLettaAgentRuntime() {
@@ -603,6 +606,61 @@ function ensureMediaBrainRuntime() {
 function ensurePresenceAvatarRuntime() {
   if (!presenceAvatarRuntime) presenceAvatarRuntime = createPresenceAvatarRuntime();
   return presenceAvatarRuntime;
+}
+
+function ensureLearningCoachTools() {
+  if (!learningCoachTools) learningCoachTools = createLearningCoachTools();
+  return learningCoachTools;
+}
+
+async function readLearningWorkspaceSnapshot() {
+  try {
+    const activePolicy = await resolveProductionActivePolicy();
+    const projectedPolicy = activePolicy ? Object.freeze({
+      policyArtifactId: String(activePolicy.policyArtifactId || ''),
+      policyVersion: String(activePolicy.policyVersion || ''),
+      degradation: activePolicy.degradation ? Object.freeze({
+        reasonCode: String(activePolicy.degradation.reasonCode || ''),
+        activeCandidateRejected: activePolicy.degradation.activeCandidateRejected === true,
+        fallbackSource: String(activePolicy.degradation.fallbackSource || '')
+      }) : null
+    }) : null;
+    return Object.freeze({
+      available: true,
+      authority: 'LearningPolicyRuntimeAdapter',
+      mode: projectedPolicy ? 'promoted' : 'baseline',
+      activePolicy: projectedPolicy,
+      durable: true,
+      restartRecoverable: true,
+      reasonCode: ''
+    });
+  } catch (error) {
+    return Object.freeze({
+      available: true,
+      authority: 'LearningPolicyRuntimeAdapter',
+      mode: 'baseline',
+      activePolicy: null,
+      durable: true,
+      restartRecoverable: true,
+      reasonCode: String(error?.reasonCode || error?.code || 'LEARNING_POLICY_ACTIVE_RESOLUTION_FAILED')
+    });
+  }
+}
+
+async function invokeLearningCoachAction(input = {}) {
+  const action = String(input.action || '').trim();
+  const tool = ensureLearningCoachTools()[action];
+  if (!tool || typeof tool.invoke !== 'function') {
+    const error = new Error('Learning Coach action is not supported.');
+    error.reasonCode = 'LEARNING_COACH_ACTION_INVALID';
+    throw error;
+  }
+  return tool.invoke({
+    title: String(input.title || '').slice(0, 240),
+    hypothesis: String(input.hypothesis || '').slice(0, 4000),
+    candidate: input.candidate && typeof input.candidate === 'object' && !Array.isArray(input.candidate) ? input.candidate : {},
+    evidence: input.evidence && typeof input.evidence === 'object' && !Array.isArray(input.evidence) ? input.evidence : {}
+  });
 }
 
 function voiceRuntimeRoot() {
@@ -3440,6 +3498,8 @@ function registerIpc() {
       .map(conversation => projectLettaConversationIdentity(conversation, normalized.agentId))
       .filter(conversation => conversation.id);
   });
+  ipcGuardHandle('desktop:learning-workspace-snapshot', () => readLearningWorkspaceSnapshot());
+  ipcGuardHandle('desktop:learning-coach-invoke', (_event, input = {}) => invokeLearningCoachAction(input));
   ipcGuardHandle('desktop:parlant-get-relationship-goal', (_event, input = {}) => readParlantRelationshipGoalProjection(input));
   ipcGuardHandle('desktop:parlant-upsert-relationship-goal', async (_event, input = {}) => {
     const normalized = normalizeParlantGoalInput(input, ['contactId', 'goalText']);
@@ -3486,6 +3546,7 @@ function registerIpc() {
       private: enrolled.private === true
     });
   });
+  ipcGuardHandle('desktop:voice-brain-list-profiles', () => ensureVoiceBrainRuntime().listVoiceProfiles());
   ipcGuardHandle('desktop:voice-brain-delete-profile', (_event, input = {}) => ensureVoiceBrainRuntime().deleteVoiceProfile(input));
   ipcGuardHandle('desktop:voice-brain-generate-speech', async (_event, input = {}) => {
     const output = await ensureVoiceBrainRuntime().generateSpeech(input);

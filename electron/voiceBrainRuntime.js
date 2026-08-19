@@ -138,6 +138,43 @@ function createVoiceBrainRuntime(options = {}) {
     return Object.freeze({ ...metadata, samplePath: locations.sample });
   }
 
+  function projectVoiceProfileMetadata(metadata = {}) {
+    const voiceProfileId = safeId(metadata.voiceProfileId);
+    return Object.freeze({
+      voiceProfileId,
+      label: clean(metadata.label).slice(0, 160) || 'My voice',
+      sampleLanguage: safeLanguage(metadata.sampleLanguage || 'auto'),
+      createdAt: clean(metadata.createdAt).slice(0, 64),
+      local: true,
+      private: true
+    });
+  }
+
+  function listVoiceProfiles() {
+    let entries = [];
+    try {
+      entries = fs.readdirSync(profileRoot, { withFileTypes: true });
+    } catch (error) {
+      if (error.code === 'ENOENT') return Object.freeze([]);
+      throw voiceError('VOICE_PROFILE_LIST_FAILED', 'Local voice profiles could not be listed.', { cause: error.message });
+    }
+    const profiles = [];
+    for (const entry of entries) {
+      if (!entry?.isDirectory?.()) continue;
+      try {
+        const locations = profilePaths(entry.name);
+        const metadata = readJson(locations.metadata);
+        if (!metadata || safeId(metadata.voiceProfileId) !== locations.id) continue;
+        assertFile(locations.sample, 'VOICE_PROFILE_SAMPLE_MISSING', 'Local/private voice profile sample');
+        profiles.push(projectVoiceProfileMetadata(metadata));
+      } catch (_) {
+        // One damaged profile must not hide other valid local/private profiles.
+      }
+    }
+    profiles.sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')) || left.voiceProfileId.localeCompare(right.voiceProfileId));
+    return Object.freeze(profiles.slice(0, 64));
+  }
+
   async function health() {
     const cosyVoice = resolveCosyVoiceLayout();
     let senseVoice;
@@ -236,7 +273,7 @@ function createVoiceBrainRuntime(options = {}) {
     });
   }
 
-  return Object.freeze({ health, transcribe, enrollVoiceProfile, deleteVoiceProfile, generateSpeech, projectVoiceOutput, resolveCosyVoiceLayout });
+  return Object.freeze({ health, transcribe, enrollVoiceProfile, listVoiceProfiles, deleteVoiceProfile, generateSpeech, projectVoiceOutput, resolveCosyVoiceLayout });
 }
 
 module.exports = { createVoiceBrainRuntime, projectVoiceHealth, projectVoiceOutput, VOICE_OUTPUT_FIELDS };
