@@ -88,7 +88,7 @@
       "backend/services/platformAuthWorkflowAuthority.js"
     ],
     "newlyAuthorizedChangedFileCount": 1,
-    "newlyAuthorizedChangedFileSetSha256": "5bc61c993fed29d242a3d28e57131393177d646565bc04b9d465dd1d806c2b7b",
+    "newlyAuthorizedChangedFileSetSha256": "b793f9e62cadd5b02813ede125c9ce4bf2a73245a58122e0e6e17358936d60f6",
     "newDependencyAllowed": true,
     "dependencyModificationPolicy": {
       "allowedDependencyPaths": ["package-lock.json", "package.json"],
