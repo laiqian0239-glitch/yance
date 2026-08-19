@@ -38,7 +38,7 @@ test('M3-SC-002 base plus authorized extension inventory remains exact and uniqu
   const baseline = readJson(baselinePath);
   assert.deepEqual(report.inventoryExtensionPaths, baseline.operationInventoryExtensionPaths);
   assert.equal(report.baseRegistryEntries, 45);
-  assert.equal(report.registryExtensionEntries, 2);
+  assert.equal(report.registryExtensionEntries, 3);
   assert.equal(report.registryEntries, report.baseRegistryEntries + report.registryExtensionEntries);
   assert.equal(report.totalRegisteredSourcePaths, report.registryEntries);
   const inventory = readJson(inventoryPath);
