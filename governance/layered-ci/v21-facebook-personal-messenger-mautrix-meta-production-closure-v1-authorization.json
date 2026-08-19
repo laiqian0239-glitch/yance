@@ -90,9 +90,16 @@
         "package.json"
       ],
       "approvedDependencyPathCount": 2,
-      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2",
-      "allowedNewRuntimeDependencies": [
-        "matrix-js-sdk@42.0.0"
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "dependencyIdentityPolicy": {
+      "entries": [
+        {
+          "path": "package.json",
+          "section": "dependencies",
+          "name": "matrix-js-sdk",
+          "version": "42.0.0"
+        }
       ]
     },
     "workflowModificationAllowed": false,
@@ -104,6 +111,7 @@
       "purpose": "Forward-migrate stale facebook-personal-messenger-experimental/isolated-browser-session persisted driver metadata to the mautrix/meta production driver contract without rewriting migration history."
     },
     "failureFirstCommit": {
+      "freshCausalRedRequired": true,
       "mustBeFirstImplementationCommit": true,
       "allowedChangedPaths": [
         "backend/tests/v21FacebookPersonalMessengerMautrixMetaProductionClosure.test.js",
