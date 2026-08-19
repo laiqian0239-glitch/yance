@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-19T21:24:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-WP7-PRODUCTION-DEPENDENCY-BINDING-REFRESH-20260819",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Exact-head Stage 6.4.5.9 for AI_AUTO PR #521 repeatedly reaches the existing permanent WP7 production dependency binding lifecycle contract after 78 GREEN tests and then terminates while entering dependency-pair materialization. Fresh owning-chain comparison proves the test, host command runner, generator and Stage workflow are byte-identical to historical full GREEN run 32197173570/job 95903490871, but the actual production dependency inputs are not equivalent: trusted main now contains the already-authorized matrix-js-sdk@42.0.0 root dependency, package.json and package-lock.json Git blobs changed to 86f6a940ab889bbb2303b2f52522e29ced602277 and fadef0ad6bc492f762b7ac99c0862712b3a5a6f3, while release/production-dependency-binding.json remains the historical blob 0fd3ab3c57e95667478681d92448d31ee27202b7 and still binds the old lock SHA-256 934acb4dd6eefe66cb1b45dde86572e51efaf43ce722a8e72a050c84304c8904. Existing Facebook Personal delegated governance independently records the new lock bytes as SHA-256 6d03b9d9b479e17278e6fc492897a86080abe3b00eee0201cacf030bbe40112e. This is therefore a deterministic WP7 reviewed-binding lifecycle RED outside AI_AUTO's exact 12-path scope. The repository already owns the correct generator tools/wp7/generate-production-dependency-binding.js and permanent test tests/wp0/v21-production-dependency-binding-lifecycle.test.js. The repair must regenerate the existing reviewed artifact through that authority under exact npm@10.9.2; it must not alter AI_AUTO, package manifests, lockfile, generator, workflow, gate, scanner or timeout/retry behavior.",
+  "base": {
+    "branch": "main",
+    "commit": "662f35e5428604664eb43448b0abd69168309add",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "662f35e5428604664eb43448b0abd69168309add",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-wp7-production-dependency-binding-refresh-20260819-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-20260819-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ad04effb2dd1fbcdf63449b9a95c9292282504f79a942c1d8d1af8a064f7f0b9",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-wp7-production-dependency-binding-refresh-20260819",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "release/production-dependency-binding.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "87e759dd8c57d4dcbb93ea465c7927b1d1d9f44e6c7beea7d94db332748b58dc",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "generatorModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "redEvidence": {
+    "consumerPullRequest": 521,
+    "consumerExactHead": "7d65f045061b9a4e7b07a0e0e18f40dfd0bdb039",
+    "stageRun": 32257493962,
+    "stageJob": 96083861881,
+    "lastGreenTestBeforeBoundary": "tests/wp0/v21-product-surface-authority-closure.test.js",
+    "nextOwningContract": "tests/wp0/v21-production-dependency-binding-lifecycle.test.js",
+    "sameDayIndependentSample": {
+      "head": "c537674176081064450b7c3f5137f019239914c4",
+      "stageRun": 32237786104,
+      "stageJob": 96021853148,
+      "requiredTestStepConclusion": "cancelled"
+    },
+    "historicalFullGreen": {
+      "head": "ecdc807aeec484630a01d9beb022091ad90bee49",
+      "stageRun": 32197173570,
+      "stageJob": 95903490871,
+      "requiredTestsConclusion": "success",
+      "postTestGatesConclusion": "success"
+    },
+    "owningChainBlobEquality": {
+      "test": "613b0dc6612cc79a15293e70c670e54f19d0a6a8",
+      "hostCommandRunner": "51091908cbd83f2a32f34fa0c37e09557f9404c4",
+      "generator": "6e70427985fb6ce647026b696caf7bc029004bc4",
+      "stageWorkflow": "568f4c65220a4cbc2a98b896668aa77132dffcd4"
+    },
+    "inputDrift": {
+      "historicalPackageJsonBlob": "360cff5eb32d86850e379ed0a81937bcac71fe26",
+      "currentPackageJsonBlob": "86f6a940ab889bbb2303b2f52522e29ced602277",
+      "historicalPackageLockBlob": "b2166faa1bc3864a6da3d757bceb3d876bf9f2b1",
+      "currentPackageLockBlob": "fadef0ad6bc492f762b7ac99c0862712b3a5a6f3",
+      "bindingBlobHistoricalAndCurrent": "0fd3ab3c57e95667478681d92448d31ee27202b7",
+      "reviewedBindingPackageLockSha256": "934acb4dd6eefe66cb1b45dde86572e51efaf43ce722a8e72a050c84304c8904",
+      "currentAuthorizedPackageLockSha256": "6d03b9d9b479e17278e6fc492897a86080abe3b00eee0201cacf030bbe40112e",
+      "newDependencyIdentity": "matrix-js-sdk@42.0.0"
+    },
+    "classification": "DETERMINISTIC_WP7_REVIEWED_BINDING_LIFECYCLE_RED",
+    "aiAutoProductRed": false
+  },
+  "failureFirstContract": {
+    "existingPermanentTest": "tests/wp0/v21-production-dependency-binding-lifecycle.test.js",
+    "newTestRequired": false,
+    "reason": "The existing permanent contract already computes current package/lock SHA-256 and validates fresh linux-x64/win32-x64 regeneration; Stage provides the failure-first evidence. Duplicating or modifying the test would add no behavioral coverage and is outside the minimal owning-layer repair.",
+    "manualHashOnlyPatchForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP7_REVIEWED_BINDING_GENERATOR",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP7 reviewed dependency binding generator",
+        "source": "tools/wp7/generate-production-dependency-binding.js + npm script generate:wp7:dependency-binding",
+        "license": "repository-existing using npm and Node.js core primitives",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It is already the generatedBy authority of the reviewed binding and materializes exact production dependency trees for linux-x64 and win32-x64."
+      },
+      {
+        "name": "npm 10.9.2 exact production materialization",
+        "source": "packageManager npm@10.9.2",
+        "license": "Artistic-2.0",
+        "adoptionMode": "mature-oss-through-existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The artifact must be generated with the same package-manager authority as the existing WP7 lifecycle contract."
+      },
+      {
+        "name": "Manual hash-only binding edit",
+        "source": "hypothetical direct JSON patch",
+        "license": "not applicable",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "The binding contains full platform dependency/file/mode trees, so changing only package hashes would create false reviewed evidence."
+      },
+      {
+        "name": "New Yance dependency binding infrastructure",
+        "source": "hypothetical new generator/verifier/cache authority",
+        "license": "not applicable",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "A mature repository authority already exists; duplicating it would violate reuse-first governance."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not modify AI_AUTO's authorized 12-path scope.",
+      "Do not change package.json or package-lock.json; matrix-js-sdk@42.0.0 is already separately authorized.",
+      "Do not modify the WP7 generator, host runner, workflow, test, gate or scanner.",
+      "Do not increase timeout, add retry, or reinterpret runner shutdown as GREEN.",
+      "Do not manually edit only packageJsonSha256/packageLockSha256.",
+      "Do not add a second dependency graph, verifier, generator, cache authority or package manager."
+    ],
+    "thinYanceAdapterOnly": false
+  },
+  "requiredValidation": {
+    "implementationExactHead": [
+      "tests/wp0/v21-production-dependency-binding-lifecycle.test.js",
+      "Stage 6.4.5.9 WP0 Architecture Gates"
+    ],
+    "consumerRevalidation": [
+      "AI_AUTO focused/review-contract suite remains 14/14 GREEN",
+      "PR #521 exact-head required checks GREEN after fresh-main integration"
+    ],
+    "newRedPolicy": "Permanent root fix in the correct owning layer; no gate/scanner relaxation, retry masking, timeout masking or workaround."
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
