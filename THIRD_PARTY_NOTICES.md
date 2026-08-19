@@ -304,3 +304,18 @@ Exact Voice Brain source, model and build-tool pins are recorded in `config/upst
 - License: `BSD-3-Clause`
 - License copy: `third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt`
 - Yance integration: sealed Learning runtime contextual-bandit ADF policy head only. P1 is deterministic (`actionProbability=1.0`, `exploration=false`); Model Brain/LiteLLM remains the final reply-generation authority.
+
+
+## mautrix/meta
+- Upstream: https://github.com/mautrix/meta
+- Version: v0.2607.0
+- Commit: `ed37c9e6ce47e83dc75b9abea7b636302715b9bc`
+- License: GNU AGPL v3 with upstream `LICENSE.exceptions` for Beeper and Element.
+- Adoption: unmodified sidecar protocol/login/session authority for Facebook Personal Messenger (`messenger-lite`).
+
+## matrix-js-sdk
+- Upstream: https://github.com/matrix-org/matrix-js-sdk
+- Version: 42.0.0
+- Commit: `85362b92fabe6009bc1a86b63d046263b1dc66b3`
+- License: Apache-2.0.
+- Adoption: Matrix client/sync/event/send/media/typing/read-receipt boundary; Yance does not implement a second Matrix `/sync` engine.

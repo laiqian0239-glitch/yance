@@ -4,7 +4,7 @@ const whatsapp = require('./whatsappAdapter');
 const telegram = require('./telegramAdapter');
 const facebookChatwoot = require('./facebookChatwootMatrixBridge');
 const facebookPersonalIdentity = require('./facebookPersonalIdentityAdapter');
-const facebookPersonalMessenger = require('./facebookPersonalMessengerExperimentalAdapter');
+const facebookPersonalMessengerMautrixAdapter = require('./facebookPersonalMessengerMautrixAdapter');
 const { validatePersistedEgressContext } = require('./platformAdapterPorts');
 const syncCheckpoint = require('./syncCheckpointService');
 
@@ -161,23 +161,27 @@ const driverById = Object.freeze({
     sendPresence(context, input) { return facebookPersonalIdentity.sendPresence(context, input); },
     markRead(context, input) { return facebookPersonalIdentity.markRead(context, input); }
   }),
-  'facebook-personal-messenger-experimental': Object.freeze({
-    platform: 'facebook', adapter: facebookPersonalMessenger,
-    driverId: 'facebook-personal-messenger-experimental', accountKind: 'personal-messenger', official: false,
-    supportLevel: 'experimental', messagingSupported: true, riskDisclosureRequired: true,
-    isolationModel: 'isolated-browser-session',
+  'facebook-personal-messenger-mautrix-meta': Object.freeze({
+    platform: 'facebook', adapter: facebookPersonalMessengerMautrixAdapter,
+    driverId: 'facebook-personal-messenger-mautrix-meta', accountKind: 'personal-messenger', official: false,
+    supportLevel: 'production', messagingSupported: true, riskDisclosureRequired: false,
+    protocolAuthority: 'mautrix-meta', isolationModel: 'matrix-application-service', preserveLocalRuntimeCredentialOnLogout: true,
     resolveAccountKey(account) { return clean(account?.id); }, credentialState() { return null; },
-    status(account) { return facebookPersonalMessenger.status(account); },
-    credentialReady(account, secret = {}) { return facebookPersonalMessenger.credentialReady(account, secret); },
-    async connect(account, options = {}) { return facebookPersonalMessenger.connect(account, options); },
-    async disconnect(account, options = {}) { return facebookPersonalMessenger.disconnect(account, options); },
-    async sync(account, options = {}) { return withPersistedOperationContext(options, () => facebookPersonalMessenger.sync(account, options)); },
-    externalTarget(value) { return clean(value).replace(/^facebook:/i, ''); },
-    adapterAccountId(account, requestedId = '') { return clean(account?.id || requestedId); },
-    async sendText(context, input) { requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessenger.sendText(context, input); },
-    async sendMedia(context, input) { requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessenger.sendMedia(context, input); },
-    async sendPresence(context, input) { return facebookPersonalMessenger.sendPresence(context, input); },
-    async markRead(context, input) { return facebookPersonalMessenger.markRead(context, input); }
+    status(account) { return facebookPersonalMessengerMautrixAdapter.status(account); },
+    credentialReady(account, secret = {}) { return facebookPersonalMessengerMautrixAdapter.credentialReady(account, secret); },
+    async connect(account, options = {}) { return facebookPersonalMessengerMautrixAdapter.connect(account, options); },
+    async disconnect(account, options = {}) { return facebookPersonalMessengerMautrixAdapter.disconnect(account, options); },
+    async sync(account, options = {}) { return withPersistedOperationContext(options, () => facebookPersonalMessengerMautrixAdapter.sync(account, options)); },
+    externalTarget(value) { return facebookPersonalMessengerMautrixAdapter.externalTarget(value); },
+    adapterAccountId(account, requestedId = '') { return facebookPersonalMessengerMautrixAdapter.adapterAccountId(account, requestedId); },
+    async sendText(context, input) { const physicalAttemptContext = requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessengerMautrixAdapter.sendText(context, { ...input, physicalAttemptContext }); },
+    async sendMedia(context, input) { const physicalAttemptContext = requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessengerMautrixAdapter.sendMedia(context, { ...input, physicalAttemptContext }); },
+    async sendPresence(context, input) { const physicalAttemptContext = requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessengerMautrixAdapter.sendPresence(context, { ...input, physicalAttemptContext }); },
+    async markRead(context, input) { const physicalAttemptContext = requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessengerMautrixAdapter.markRead(context, { ...input, physicalAttemptContext }); },
+    async beginLogin(account, username, options = {}) { return facebookPersonalMessengerMautrixAdapter.beginLogin(account, username, options); },
+    async submitLoginInput(account, loginProcessId, stepId, input, options = {}) { return facebookPersonalMessengerMautrixAdapter.submitLoginInput(account, loginProcessId, stepId, input, options); },
+    async waitLoginStep(account, loginProcessId, stepId, options = {}) { return facebookPersonalMessengerMautrixAdapter.waitLoginStep(account, loginProcessId, stepId, options); },
+    async cancelLogin(account, loginProcessId, options = {}) { return facebookPersonalMessengerMautrixAdapter.cancelLogin(account, loginProcessId, options); }
   })
 });
 
@@ -191,7 +195,7 @@ function resolveDriverId(account = {}) {
   const kind = clean(account?.metadata?.accountKind || account?.accountKind).toLowerCase();
   if (platform === 'facebook') {
     if (kind === 'personal-identity') return 'facebook-personal-identity-official';
-    if (kind === 'personal-messenger') return 'facebook-personal-messenger-experimental';
+    if (kind === 'personal-messenger') return 'facebook-personal-messenger-mautrix-meta';
     return 'facebook-page-official';
   }
   if (platform === 'telegram') return 'telegram-personal-mtproto';
@@ -201,14 +205,13 @@ function getForAccount(account = {}) { return driverById[resolveDriverId(account
 function driverContracts() {
   return Object.fromEntries(Object.entries(driverById).map(([driverId, driver]) => {
     const featureEnabled = typeof driver.adapter?.enabled === 'function' ? driver.adapter.enabled() : true;
-    const browserBridgePending = driverId === 'facebook-personal-messenger-experimental';
     return [driverId, {
       driverId, platform: driver.platform, accountKind: driver.accountKind, official: driver.official === true,
       supportLevel: driver.supportLevel, messagingSupported: driver.messagingSupported === true,
       riskDisclosureRequired: driver.riskDisclosureRequired === true, isolationModel: driver.isolationModel,
       featureEnabled,
-      onboardingAvailable: featureEnabled && !browserBridgePending,
-      onboardingReason: !featureEnabled ? 'FEATURE_FLAG_DISABLED' : browserBridgePending ? 'FACEBOOK_PERSONAL_MESSENGER_BROWSER_BRIDGE_PENDING' : '',
+      onboardingAvailable: featureEnabled,
+      onboardingReason: !featureEnabled ? 'FEATURE_FLAG_DISABLED' : '',
       operations: Object.keys(driver).filter(key => typeof driver[key] === 'function').sort()
     }];
   }));

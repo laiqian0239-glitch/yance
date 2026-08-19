@@ -6,8 +6,8 @@ const OPERATION_TYPE = 'platform.auth.workflow';
 const PENDING_STATES = new Set(['connecting', 'waiting-verification', 'pending', 'pending-user-action', 'qr', 'code', 'password', 'authorizing']);
 const SUCCESS_STATES = new Set(['connected', 'online', 'ready', 'authorized', 'completed', 'success', 'succeeded']);
 const FAILURE_STATES = new Set(['error', 'failed', 'rejected', 'expired']);
-const CANCEL_OPERATIONS = new Set(['cancel', 'logout', 'pause', 'telegram.cancel', 'facebook.oauth.cancel']);
-const CONTINUATION_OPERATIONS = new Set(['telegram.code', 'telegram.password', 'facebook.oauth.status', 'facebook.oauth.selectpage']);
+const CANCEL_OPERATIONS = new Set(['cancel', 'logout', 'pause', 'telegram.cancel', 'facebook.oauth.cancel', 'facebook.messenger.cancel']);
+const CONTINUATION_OPERATIONS = new Set(['telegram.code', 'telegram.password', 'facebook.oauth.status', 'facebook.oauth.selectpage', 'facebook.messenger.input', 'facebook.messenger.wait']);
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function lower(value) { return clean(value).toLowerCase(); }

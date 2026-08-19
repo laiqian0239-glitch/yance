@@ -18,12 +18,14 @@ test('FIX6O global safe mode is allow-listed to shared infrastructure and has no
   assert.doesNotMatch(recovery, /payload\.force\s*===\s*true/u);
 });
 
-test('FIX6O Facebook driver contracts keep Page, personal identity and experimental Messenger separate', () => {
+test('FIX6O Facebook driver contracts keep Page, personal identity and mautrix/meta Personal Messenger separate', () => {
   const registry = read('backend/services/platformDriverRegistry.js');
   const worker = read('services/facebook-worker/src/index.js');
   assert.match(registry, /facebook-page-official/u);
   assert.match(registry, /facebook-personal-identity-official/u);
-  assert.match(registry, /facebook-personal-messenger-experimental/u);
+  assert.match(registry, /facebook-personal-messenger-mautrix-meta/u);
+  assert.match(registry, /protocolAuthority:\s*'mautrix-meta'/u);
+  assert.doesNotMatch(registry, /isolated-browser-session/u);
   assert.match(worker, /supportedModes:\s*\['page',\s*'identity'\]/u);
   assert.match(worker, /messagingSupported:\s*false/u);
 });

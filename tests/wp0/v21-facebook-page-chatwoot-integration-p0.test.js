@@ -64,7 +64,8 @@ test('facebook-page-official and legacy platform-level Facebook messaging resolv
   assert.match(source, /'facebook-page-official'[\s\S]*adapter:\s*facebookChatwoot/u);
   assert.match(source, /facebook:\s*Object\.freeze\([\s\S]*adapter:\s*facebookChatwoot/u);
   assert.match(source, /facebook-personal-identity-official/u);
-  assert.match(source, /facebook-personal-messenger-experimental/u);
+  assert.match(source, /facebook-personal-messenger-mautrix-meta/u);
+  assert.match(source, /protocolAuthority:\s*'mautrix-meta'/u);
 });
 
 test('legacy Worker OAuth fails closed for Page accounts before any Worker contract call while Personal identity OAuth remains reachable', () => {

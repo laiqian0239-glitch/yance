@@ -161,6 +161,24 @@
       "addedPaths": [
         "backend/services/accountManagerCore.js"
       ]
+    },
+    {
+      "amendmentId": "WP-B-M3-SCOPE-006",
+      "authorizedAt": "2026-08-19T16:14:48+07:00",
+      "approvedBy": "PROJECT_OWNER",
+      "approvalSource": "Project owner full continuous-execution authorization in the 独立软件工程审计 conversation; Amendment-2 authorization merge 5d1929a22666ecd694090a210963b56ac02ad4a0 authorizes the exact Facebook Personal mautrix/meta physical-I/O closure path",
+      "reasonCode": "WP_B_M3_FACEBOOK_PERSONAL_MAUTRIX_META_PHYSICAL_IO_CLOSURE",
+      "causalRedEvidence": {
+        "head": "5813135f6386a235a85a5a580dc370bd89093422",
+        "wpBValidationRunId": 32233168698,
+        "governanceUbuntuJobId": 96007235653,
+        "operationInventoryDiagnostic": "NETWORK_CLIENT_CALL_PLATFORM_OR_PROVIDER_CALL_OPERATIONAL_RETRY_OR_TIMER",
+        "amendment2AuthorizationMerge": "5d1929a22666ecd694090a210963b56ac02ad4a0",
+        "unknownBlockers": 0
+      },
+      "addedPaths": [
+        "backend/services/facebookPersonalMessengerMautrixAdapter.js"
+      ]
     }
   ],
   "allowedPaths": [
@@ -182,6 +200,7 @@
     "backend/services/backgroundJobAuthorityCore.js",
     "backend/services/durableInternalOperationAuthority.js",
     "backend/services/facebookChatwootMatrixBridge.js",
+    "backend/services/facebookPersonalMessengerMautrixAdapter.js",
     "backend/services/jobQueue.js",
     "backend/services/jobQueueCore.js",
     "backend/services/messageTranslationService.js",

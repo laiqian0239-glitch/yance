@@ -15,10 +15,13 @@ database:
     database: /data/homeserver.db
 log_config: /data/log.config
 media_store_path: /data/media_store
-registration_shared_secret: yance-local-bootstrap-only
+registration_shared_secret_path: /run/secrets/yance_matrix_registration_shared_secret
 report_stats: false
 macaroon_secret_key: yance-local-macaroon
 form_secret: yance-local-form
 signing_key_path: /data/yance.local.signing.key
 trusted_key_servers: []
 enable_registration: false
+
+app_service_config_files:
+  - /mautrix-meta/registration.yaml

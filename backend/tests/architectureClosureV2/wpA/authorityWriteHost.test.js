@@ -66,7 +66,7 @@ test('A1 migrations remain Schema 21/22 while the current product startup target
   assert.ok(authority, 'AuthorityWriteHost service is missing');
   assert.equal(WP_A_BASE_SCHEMA_VERSION, 21);
   assert.equal(WP_A_INTEGRITY_SCHEMA_VERSION, 22);
-  assert.equal(SCHEMA_VERSION, 23);
+  assert.ok(SCHEMA_VERSION >= 23, 'current product schema must include the historical Schema 23 layer');
   assert.ok(SCHEMA_VERSION > WP_A_INTEGRITY_SCHEMA_VERSION);
   assert.equal(typeof authority?.acquireAuthorityWriteHost, 'function');
   assert.equal(typeof authority?.assertCurrentAuthorityWriteHostToken, 'function');
@@ -120,7 +120,7 @@ test('SqliteConnectionBroker requires a genuine externally acquired host capabil
   }
 });
 
-test('fresh bootstrap and Schema 20 upgrade preserve the complete WP-A object set within Schema 23 startup', () => {
+test('fresh bootstrap and Schema 20 upgrade preserve the complete WP-A object set within the current startup schema', () => {
   const authority = requireA1();
   const required = new Set([
     'authority_write_host_lease',
