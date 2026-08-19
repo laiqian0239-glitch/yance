@@ -25,3 +25,11 @@ test('automation mode is Store-backed rather than a localStorage-only product to
   assert.match(center, /automationModeReceipt|conversationAutomationMode/u);
   assert.doesNotMatch(center, /localStorage\.setItem\([^\n]*conversationAutomationMode/u);
 });
+
+test('committed automation receipt remains UI authority until the Store snapshot catches up', () => {
+  const center = read('frontend/js/r32-conversation-center-v3.js');
+  assert.match(center, /automationModePendingReceipt/u);
+  assert.match(center, /policyVersion/u);
+  assert.match(center, /automationModePendingReceipt\s*=\s*result\?\.automationModeReceipt/u);
+  assert.match(center, /pendingReceipt[\s\S]*currentReceipt/u);
+});

@@ -2,7 +2,7 @@
 (() => {
   if (window.YanceConversationCenterV3) return;
   const $ = id => document.getElementById(id);
-  const state = { expanded: false, aiMode: 'daily', activeConversationId: '', activeContactId: '', automationMode: 'HUMAN', automationModeReceipt: null, automationUpdating: false };
+  const state = { expanded: false, aiMode: 'daily', activeConversationId: '', activeContactId: '', automationMode: 'HUMAN', automationModeReceipt: null, automationModePendingReceipt: null, automationUpdating: false };
   const replySource='ai_routed_model';
   try { state.aiMode = localStorage.getItem('yance:r32:conversation-ai-mode:v3') === 'advanced' ? 'advanced' : 'daily'; } catch (_) {}
 
@@ -38,6 +38,34 @@
     return { conversationId, contactId, mode, automationModeReceipt: receipt && typeof receipt === 'object' ? receipt : null };
   }
 
+  function automationReceiptVersion(receipt) {
+    const version = Number(receipt?.policyVersion || 0);
+    return Number.isFinite(version) && version > 0 ? version : 0;
+  }
+
+  function reconcilePendingAutomationReceipt(current) {
+    const pendingReceipt = state.automationModePendingReceipt;
+    const currentReceipt = current.automationModeReceipt;
+    if (!pendingReceipt || String(pendingReceipt.conversationId || '').trim() !== current.conversationId) {
+      if (pendingReceipt && String(pendingReceipt.conversationId || '').trim() !== current.conversationId) {
+        state.automationModePendingReceipt = null;
+      }
+      return current;
+    }
+    const pendingId = String(pendingReceipt.id || '').trim();
+    const currentId = String(currentReceipt?.id || '').trim();
+    const pendingVersion = automationReceiptVersion(pendingReceipt);
+    const currentVersion = automationReceiptVersion(currentReceipt);
+    if ((pendingId && currentId === pendingId) || currentVersion > pendingVersion) {
+      state.automationModePendingReceipt = null;
+      return current;
+    }
+    const pendingMode = ['HUMAN', 'AI_ASSIST', 'AI_AUTO'].includes(String(pendingReceipt.mode || '').toUpperCase())
+      ? String(pendingReceipt.mode).toUpperCase()
+      : current.mode;
+    return { ...current, mode: pendingMode, automationModeReceipt: pendingReceipt };
+  }
+
   function ensureAutomationControls() {
     const actions = document.querySelector('.ai-head-actions');
     if (!actions || $('conversationAutomationMode')) return;
@@ -57,7 +85,7 @@
 
   function syncAutomationMode() {
     ensureAutomationControls();
-    const current = readConversationAutomationMode();
+    const current = reconcilePendingAutomationReceipt(readConversationAutomationMode());
     state.activeConversationId = current.conversationId || state.activeConversationId;
     state.activeContactId = current.contactId || state.activeContactId;
     state.automationMode = current.mode;
@@ -90,6 +118,7 @@
       });
       state.automationMode = String(result?.mode || mode).toUpperCase();
       state.automationModeReceipt = result?.automationModeReceipt || null;
+      state.automationModePendingReceipt = result?.automationModeReceipt || null;
     } catch (error) {
       console.warn('[AI_AUTO mode]', error?.message || error);
     } finally {

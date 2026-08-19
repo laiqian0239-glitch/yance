@@ -224,8 +224,15 @@ async function handleSendConfirmed(wrapperEvent) {
   let snapshot = readOutboxSnapshot(storeManager, outboxId);
   let guard = evaluateSendGuard(storeManager, snapshot);
   if (guard.blocked) {
-    if (guard.error === 'MANUAL_TAKEOVER') await retainAfterManualTakeover(storeManager, outboxId);
-    else if (guard.error !== 'OUTBOX_NOT_SEND_CONFIRMED') await recordBlocked(storeManager, outboxId, guard.error);
+    if (SEND_ABORT_RETAIN_CODES.has(guard.error)) {
+      await storeManager.dispatch({
+        type: 'OUTBOX_SEND_ABORTED',
+        source: 'ai-reply-outbox-service',
+        payload: { outboxId, reason: guard.error, reverifyRequired: false }
+      }).catch(() => {});
+    } else if (guard.error !== 'OUTBOX_NOT_SEND_CONFIRMED') {
+      await recordBlocked(storeManager, outboxId, guard.error);
+    }
     return;
   }
 

@@ -257,3 +257,63 @@ test('SQLite rehydrate restores AI_AUTO receipt and machine outbox authorization
     fs.rmSync(rootDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
+
+test('machine approval rejects a candidate that was generated without an AI_AUTO receipt', async () => {
+  const { manager } = await createAiAutoManager();
+  const candidateId = await createCandidate(manager, 'Generated before automation');
+  const mode = await manager.dispatch({
+    type: 'CONVERSATION_AI_AUTOMATION_MODE_SET', source: 'product-ui', payload: {
+      conversationId: 'conv1', mode: 'AI_AUTO', actor: 'user'
+    }
+  });
+
+  await assert.rejects(
+    manager.dispatch({
+      type: 'AI_REPLY_CANDIDATE_APPROVED', source: 'ai-auto', payload: {
+        candidateId,
+        authorizationType: 'machine',
+        machineApproved: true,
+        automationReceipt: mode.result.automationModeReceipt
+      }
+    }),
+    error => error?.code === 'AI_AUTO_AUTOMATION_RECEIPT_STALE'
+  );
+});
+
+test('pre-send AI_AUTO interaction-policy block retains the outbox for later revalidation', async () => {
+  const { configureStoreManager, resetStoreManagerForTests } = require('../store/storeManagerSingleton');
+  const aiReplyOutboxService = require('../services/aiReplyOutboxService');
+  const receipt = {
+    id: 'policy-retain-receipt', conversationId: 'conv1', contactId: 'contact1', mode: 'AI_AUTO',
+    policyVersion: 2, previousMode: 'HUMAN', actor: 'user', setAt: '2026-08-19T12:00:00.000Z'
+  };
+  const seed = aiAutoCommandState();
+  seed.interactionPolicies.byContactId.contact1 = {
+    ...seed.interactionPolicies.byContactId.contact1,
+    version: 2,
+    blocked: true,
+    allowReplies: false,
+    config: { conversationAutomationModes: { conv1: receipt } }
+  };
+  seed.outbox.byId.out1 = {
+    id: 'out1', taskId: '', candidateId: '', contactId: 'contact1', conversationId: 'conv1',
+    accountId: 'account1', platform: 'whatsapp', text: 'Retain me', originalText: 'Retain me',
+    state: 'send_confirmed', authorizationType: 'machine', machineApproved: true,
+    automationMode: 'AI_AUTO', automationReceipt: receipt, userApproved: false,
+    metadata: { conversationRevision: 3, authorizationType: 'machine', machineApproved: true, automationReceipt: receipt }
+  };
+
+  resetStoreManagerForTests();
+  const manager = configureStoreManager({ persistence: aiAutoMemoryPersistence(seed), replace: true });
+  registerRuntimeStateCommands(manager);
+  registerAiReplyCommands(manager);
+  await manager.hydrate();
+  try {
+    await aiReplyOutboxService.handleSendConfirmed({ payload: { entityId: 'out1', payload: { outboxId: 'out1' } } });
+    const outbox = manager.select(state => state.outbox.byId.out1);
+    assert.equal(outbox.state, 'approved');
+    assert.equal(outbox.metadata.lastTypingCancellation.reason, 'AI_AUTO_INTERACTION_POLICY_BLOCKED');
+  } finally {
+    resetStoreManagerForTests();
+  }
+});

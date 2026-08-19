@@ -58,7 +58,7 @@ function requireCandidateAuthorization(state, candidate, command, fail) {
   const suppliedId = clean(suppliedReceipt.id);
   const candidateId = clean(candidateReceipt.id);
   const currentId = clean(currentAutomation.receipt.id);
-  if (!suppliedId || suppliedId !== currentId || (candidateId && candidateId !== currentId)) {
+  if (!suppliedId || !candidateId || suppliedId !== currentId || candidateId !== currentId) {
     fail('AI_AUTO_AUTOMATION_RECEIPT_STALE', 'AI_AUTO authorization receipt changed before candidate approval', {
       conversationId: candidate.conversationId,
       expectedReceiptId: candidateId,
