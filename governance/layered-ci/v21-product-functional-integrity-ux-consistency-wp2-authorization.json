@@ -154,7 +154,7 @@
   "ossFit": {
     "decision": "REUSE_EXISTING_MATURE_AUTHORITIES_AND_REPOSITORY_SEAMS",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "existing-authority-reconciliation",
+    "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
     "matureOssDefault": true,
     "reviewedCandidates": [
