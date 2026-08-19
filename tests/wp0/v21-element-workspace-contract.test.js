@@ -162,19 +162,20 @@ test('the right workspace remains inside the unified Element shell and is restor
     assert.match(workspace, /ProductExperienceShell/u);
     assert.match(shell, /aria-label=["']言策关系智能操作系统["']/u);
     assert.match(shell, /data-yance-workspace/u);
-    assert.match(preferences, /localStorage\.getItem/u);
-    assert.match(preferences, /localStorage\.setItem/u);
-    for (const key of [
-      'yance.product-experience.sound',
-      'yance.product-experience.motion',
-      'yance.product-experience.atmosphere'
-    ]) assert.match(preferences, new RegExp(key.replaceAll('.', '\\.'), 'u'));
+    for (const authority of [
+      'storeSnapshot',
+      'storeSetMotionLevel',
+      'storeSetBackgroundEffect',
+      'getSettings',
+      'updateSettings'
+    ]) assert.match(preferences, new RegExp(`\\b${authority}\\b`, 'u'));
+    assert.match(preferences, /domains:\s*\["ui"\]/u, 'motion/background rehydrate must use the durable Store UI domain');
+    assert.match(preferences, /productSoundMode/u, 'sound preference must use the durable DesktopSettings field');
+    assert.doesNotMatch(preferences, /localStorage|sessionStorage/u, 'renderer storage must not be Product preference truth');
     assert.doesNotMatch(preferences, /goal|parlant|journey|contactId|message|relationshipId/iu, 'Product persistence must stay limited to experience preferences');
     assert.doesNotMatch(shell, /WhatsAppPage|TelegramPage|SignalPage|FacebookPage|InstagramPage/u);
   } else {
     assert.match(workspace, /aria-label=.*Yance|Yance Workspace/u);
-    assert.match(workspace, /localStorage|sessionStorage/u);
-    assert.match(workspace, /yance\.workspace/u);
     assert.doesNotMatch(workspace, /WhatsAppPage|TelegramPage|SignalPage|FacebookPage|InstagramPage/u);
   }
 });
