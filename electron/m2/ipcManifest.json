@@ -2970,6 +2970,109 @@
       "crossModuleDependency": "Letta App Server process ownership remains in Electron main; renderer receives projections only."
     },
     {
+      "channel": "desktop:learning-workspace-snapshot",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LEARNING_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Learning policy state projected from the existing durable LearningPolicyRuntimeAdapter and Learning Coach constrained to non-mutating review drafts; do not create a second Learning persistence authority.",
+      "crossModuleDependency": "OpenFeature/flagd and content-addressed Learning artifacts remain the promoted-policy authority; Electron main only projects minimized state and invokes the existing Learning Coach proposal seam.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "getLearningWorkspaceSnapshot",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Read-only minimized projection of the durable active learned-policy state. No artifact filesystem path, flagd transport detail, or provider credential reaches renderer."
+    },
+    {
+      "channel": "desktop:learning-coach-invoke",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_LEARNING_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep Learning policy state projected from the existing durable LearningPolicyRuntimeAdapter and Learning Coach constrained to non-mutating review drafts; do not create a second Learning persistence authority.",
+      "crossModuleDependency": "OpenFeature/flagd and content-addressed Learning artifacts remain the promoted-policy authority; Electron main only projects minimized state and invokes the existing Learning Coach proposal seam.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "propose_persona_change",
+              "propose_relationship_policy_change",
+              "propose_regression_case",
+              "propose_prompt_program_change",
+              "propose_tomorrow_journey"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "hypothesis": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "candidate": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "action",
+          "title",
+          "hypothesis"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "invokeLearningCoachAction",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Creates only a current-session review draft through existing Learning Coach tools; approvalRequired remains true and mutationApplied remains false. No fake approval mutation is exposed."
+    },
+    {
       "channel": "desktop:parlant-get-relationship-goal",
       "direction": "renderer-to-main",
       "phase": "pre-ready",
@@ -3453,6 +3556,78 @@
         "line": 0
       },
       "currentObservation": "Main owns the audio file picker; selected voice sample remains local/private and renderer receives only minimized profile metadata."
+    },
+    {
+      "channel": "desktop:voice-brain-list-profiles",
+      "direction": "renderer-to-main",
+      "phase": "pre-ready",
+      "requiresBackendReady": false,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_VOICE_BRAIN_ACTION_NOT_ALLOWED",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "risk": "P1",
+      "m2Scope": true,
+      "m2RequiredAction": "Keep SenseVoice as ASR authority, CosyVoice as cloned-speech authority, local/private profile custody in main, and existing send-media-stream as the sole final send authority.",
+      "crossModuleDependency": "Voice runtime is a thin main-process adapter over sealed SenseVoice/CosyVoice artifacts; renderer receives bounded profile metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "array",
+        "maxItems": 64,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "voiceProfileId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "sampleLanguage": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "createdAt": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "local": {
+              "type": "boolean"
+            },
+            "private": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "voiceProfileId",
+            "label",
+            "sampleLanguage",
+            "createdAt",
+            "local",
+            "private"
+          ]
+        }
+      },
+      "handler": {
+        "file": "electron/main.js",
+        "line": 0
+      },
+      "rendererExposure": {
+        "api": "listVoiceProfiles",
+        "file": "electron/preload.js",
+        "line": 0
+      },
+      "currentObservation": "Lists at most 64 valid durable local/private voice profile metadata records for restart recovery; prompt text, sample path and audio bytes remain main-process-only."
     },
     {
       "channel": "desktop:voice-brain-delete-profile",
@@ -4774,7 +4949,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 69,
+    "rendererToMainHandlerCount": 72,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,
