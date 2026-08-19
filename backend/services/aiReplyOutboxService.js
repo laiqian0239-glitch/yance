@@ -6,6 +6,7 @@ const sendQueueService = require('./sendQueueService');
 const typingStateService = require('./typingStateService');
 const { getStoreManager } = require('../store/storeManagerSingleton');
 const { currentEntityVersions } = require('../store/commands/registerAiReplyCommands');
+const { readConversationAutomationState } = require('../store/commands/registerRuntimeStateCommands');
 
 let started = false;
 let listeners = [];
@@ -20,7 +21,9 @@ const SEND_ABORT_REVERIFY_CODES = new Set([
 const SEND_ABORT_RETAIN_CODES = new Set([
   'MANUAL_TYPING_STARTED',
   'CONVERSATION_CHANGED',
-  'USER_CANCELLED_SEND'
+  'USER_CANCELLED_SEND',
+  'MANUAL_TAKEOVER',
+  'AI_AUTO_INTERACTION_POLICY_BLOCKED'
 ]);
 
 function clean(value) {
@@ -70,7 +73,31 @@ function evaluateSendGuard(storeManager, snapshot) {
     expectedConversationRevision,
     actualConversationRevision
   };
-  // Relationship/interaction policy remains advisory and never blocks the fast send path.
+  if (clean(snapshot.outbox.authorizationType).toLowerCase() === 'machine' || snapshot.outbox.machineApproved === true) {
+    const automation = storeManager.select(state => readConversationAutomationState(state, snapshot.outbox.conversationId, snapshot.outbox.contactId));
+    const expectedReceipt = snapshot.outbox.automationReceipt && typeof snapshot.outbox.automationReceipt === 'object'
+      ? snapshot.outbox.automationReceipt
+      : snapshot.outbox.metadata?.automationReceipt || {};
+    if (automation.mode !== 'AI_AUTO' || !automation.receipt?.id || clean(expectedReceipt.id) !== clean(automation.receipt.id)) {
+      return {
+        blocked: true,
+        error: 'MANUAL_TAKEOVER',
+        automationMode: automation.mode,
+        expectedReceiptId: clean(expectedReceipt.id),
+        currentReceiptId: clean(automation.receipt?.id)
+      };
+    }
+    if (automation.policy?.blocked === true || automation.policy?.allowReplies === false) {
+      return {
+        blocked: true,
+        error: 'AI_AUTO_INTERACTION_POLICY_BLOCKED',
+        blockedByPolicy: automation.policy?.blocked === true,
+        allowReplies: automation.policy?.allowReplies !== false
+      };
+    }
+  }
+  // Relationship/memory intelligence remains advisory. AI_AUTO mode itself is a durable
+  // send authorization and therefore is revalidated immediately before physical send.
   if (snapshot.account.canAttemptSend !== true) return { blocked: true, error: 'ACCOUNT_CANNOT_ATTEMPT_SEND' };
   return { blocked: false, actualVersions };
 }
@@ -83,6 +110,112 @@ async function recordBlocked(storeManager, outboxId, error) {
   });
 }
 
+async function retainAfterManualTakeover(storeManager, outboxId) {
+  await storeManager.dispatch({
+    type: 'OUTBOX_SEND_ABORTED',
+    source: 'ai-reply-outbox-service',
+    payload: { outboxId, reason: 'MANUAL_TAKEOVER', reverifyRequired: false }
+  }).catch(() => {});
+}
+
+function readCandidateSnapshot(storeManager, candidateId) {
+  return storeManager.select(state => {
+    const candidate = state.aiBrain?.candidatesById?.[candidateId] || null;
+    if (!candidate) return { candidate: null };
+    return {
+      candidate,
+      automation: readConversationAutomationState(state, candidate.conversationId, candidate.contactId)
+    };
+  });
+}
+
+async function confirmAutomaticOutbox(storeManager, outboxId) {
+  const snapshot = readOutboxSnapshot(storeManager, outboxId);
+  if (!snapshot.outbox || snapshot.outbox.state !== 'approved') return { skipped: true, reason: 'not-approved' };
+  if (clean(snapshot.outbox.authorizationType).toLowerCase() !== 'machine' || snapshot.outbox.machineApproved !== true) {
+    return { skipped: true, reason: 'not-machine-authorized' };
+  }
+  const automation = storeManager.select(state => readConversationAutomationState(state, snapshot.outbox.conversationId, snapshot.outbox.contactId));
+  const expectedReceipt = snapshot.outbox.automationReceipt || snapshot.outbox.metadata?.automationReceipt || {};
+  if (automation.mode !== 'AI_AUTO' || !automation.receipt?.id || clean(expectedReceipt.id) !== clean(automation.receipt.id)) {
+    await retainAfterManualTakeover(storeManager, outboxId);
+    return { skipped: true, reason: 'MANUAL_TAKEOVER' };
+  }
+  return storeManager.dispatch({
+    type: 'OUTBOX_SEND_CONFIRMED',
+    source: 'ai-auto-outbox-service',
+    payload: {
+      outboxId,
+      authorizationType: 'machine',
+      machineApproved: true,
+      automationReceipt: { ...automation.receipt }
+    }
+  });
+}
+
+async function approveAutomaticCandidate(storeManager, candidateId) {
+  const snapshot = readCandidateSnapshot(storeManager, candidateId);
+  const candidate = snapshot.candidate;
+  if (!candidate || !['generated', 'edited'].includes(clean(candidate.state))) return { skipped: true, reason: 'not-reviewable' };
+  const candidateReceipt = candidate.automationModeReceipt || candidate.generationMetadata?.automationModeReceipt || {};
+  if (snapshot.automation.mode !== 'AI_AUTO' || !snapshot.automation.receipt?.id || clean(candidateReceipt.id) !== clean(snapshot.automation.receipt.id)) {
+    return { skipped: true, reason: 'not-current-ai-auto' };
+  }
+  const approved = await storeManager.dispatch({
+    type: 'AI_REPLY_CANDIDATE_APPROVED',
+    source: 'ai-auto-outbox-service',
+    payload: {
+      candidateId,
+      text: candidate.text,
+      authorizationType: 'machine',
+      machineApproved: true,
+      automationReceipt: { ...snapshot.automation.receipt },
+      learningMode: 'send_and_learn',
+      source: candidate.source || 'ai_auto'
+    }
+  });
+  const outboxId = clean(approved.result?.outboxId);
+  if (outboxId) await confirmAutomaticOutbox(storeManager, outboxId);
+  return approved;
+}
+
+async function handleCandidateReady(wrapperEvent) {
+  const storeEvent = wrapperEvent?.payload || {};
+  const candidateId = clean(storeEvent.payload?.candidateId || storeEvent.entityId);
+  if (!candidateId) return;
+  const storeManager = getStoreManager();
+  await approveAutomaticCandidate(storeManager, candidateId).catch(error => {
+    const code = clean(error.code || error.reasonCode || error.message);
+    if (['MANUAL_TAKEOVER', 'AI_AUTO_AUTOMATION_RECEIPT_STALE', 'AI_AUTO_INTERACTION_POLICY_BLOCKED', 'AI_REPLY_CANDIDATE_NOT_REVIEWABLE'].includes(code)) return;
+    logger.warn('store', 'ai-auto-candidate-authorization-failed', { candidateId, code, error: error.message });
+  });
+}
+
+async function recoverAutomaticWork() {
+  const storeManager = getStoreManager();
+  const pending = storeManager.select(state => ({
+    candidates: Object.values(state.aiBrain?.candidatesById || {})
+      .filter(candidate => ['generated', 'edited'].includes(clean(candidate.state)) && clean(candidate.automationMode).toUpperCase() === 'AI_AUTO')
+      .map(candidate => candidate.candidateId),
+    approvedOutboxes: Object.values(state.outbox?.byId || {})
+      .filter(outbox => outbox.state === 'approved' && clean(outbox.authorizationType).toLowerCase() === 'machine' && outbox.machineApproved === true)
+      .map(outbox => outbox.id),
+    confirmedOutboxes: Object.values(state.outbox?.byId || {})
+      .filter(outbox => outbox.state === 'send_confirmed' && clean(outbox.authorizationType).toLowerCase() === 'machine' && outbox.machineApproved === true)
+      .map(outbox => outbox.id)
+  }));
+  for (const candidateId of pending.candidates) await approveAutomaticCandidate(storeManager, candidateId).catch(() => {});
+  for (const outboxId of pending.approvedOutboxes) await confirmAutomaticOutbox(storeManager, outboxId).catch(() => {});
+  for (const outboxId of pending.confirmedOutboxes) {
+    await handleSendConfirmed({ payload: { entityId: outboxId, payload: { outboxId } } }).catch(() => {});
+  }
+  return {
+    recoveredCandidates: pending.candidates.length,
+    recoveredApprovals: pending.approvedOutboxes.length,
+    recoveredConfirmed: pending.confirmedOutboxes.length
+  };
+}
+
 async function handleSendConfirmed(wrapperEvent) {
   const storeEvent = wrapperEvent?.payload || {};
   const outboxId = clean(storeEvent.payload?.outboxId || storeEvent.entityId);
@@ -91,7 +224,8 @@ async function handleSendConfirmed(wrapperEvent) {
   let snapshot = readOutboxSnapshot(storeManager, outboxId);
   let guard = evaluateSendGuard(storeManager, snapshot);
   if (guard.blocked) {
-    if (guard.error !== 'OUTBOX_NOT_SEND_CONFIRMED') await recordBlocked(storeManager, outboxId, guard.error);
+    if (guard.error === 'MANUAL_TAKEOVER') await retainAfterManualTakeover(storeManager, outboxId);
+    else if (guard.error !== 'OUTBOX_NOT_SEND_CONFIRMED') await recordBlocked(storeManager, outboxId, guard.error);
     return;
   }
 
@@ -248,9 +382,11 @@ async function handleQueueTerminal(wrapperEvent, success) {
 function start() {
   if (started) return status();
   started = true;
+  bind('store:ai.replyCandidate.ready', handleCandidateReady);
   bind('store:outbox.sendConfirmed', handleSendConfirmed);
   bind('send-queue:sent', event => handleQueueTerminal(event, true));
   bind('send-queue:failed', event => handleQueueTerminal(event, false));
+  setImmediate(() => recoverAutomaticWork().catch(error => logger.warn('store', 'ai-auto-recovery-failed', { code: error.code || 'AI_AUTO_RECOVERY_FAILED', error: error.message })));
   return status();
 }
 
@@ -264,8 +400,9 @@ function stop() {
 function status() {
   return {
     started,
-    manualApprovalRequired: true,
-    automaticSendEnabled: false,
+    manualApprovalRequired: 'HUMAN_OR_AI_ASSIST',
+    automaticSendEnabled: started,
+    automaticSendMode: 'AI_AUTO',
     dynamicTypingDelay: true,
     typingPolicy: typingStateService.status().policy
   };
@@ -279,5 +416,9 @@ module.exports = {
   readOutboxSnapshot,
   evaluateSendGuard,
   handleSendConfirmed,
-  handleQueueTerminal
+  handleQueueTerminal,
+  handleCandidateReady,
+  approveAutomaticCandidate,
+  confirmAutomaticOutbox,
+  recoverAutomaticWork
 };

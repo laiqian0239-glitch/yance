@@ -460,6 +460,26 @@ class StoreClient {
     return immutable(payload.languageProfile);
   }
 
+  async setConversationAutomationMode(conversationId, mode, input = {}) {
+    const id = clean(conversationId);
+    if (!id) throw new Error('conversationId is required');
+    const normalizedMode = clean(mode).toUpperCase();
+    if (!['HUMAN', 'AI_ASSIST', 'AI_AUTO'].includes(normalizedMode)) throw new Error('Invalid conversation automation mode');
+    const payload = await requestJson(`/api/r32/store/conversations/${encodeURIComponent(id)}/automation-mode`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        mode: normalizedMode,
+        contactId: input.contactId || '',
+        actor: input.actor || 'user'
+      })
+    });
+    await this.refresh(['interactionPolicies', 'conversations'], {
+      force: true,
+      eventType: 'conversation.automationModeSet'
+    }).catch(() => null);
+    return immutable(payload);
+  }
+
   async approveReplyCandidate(candidateId, input = {}) {
     const body = {
       candidateId,
@@ -736,6 +756,7 @@ window.YanceStoreClient = Object.freeze({
   forgetReplyLearning: (contactId, input) => client.forgetReplyLearning(contactId, input),
   getContactLanguage: contactId => client.getContactLanguage(contactId),
   setContactLanguage: (contactId, language) => client.setContactLanguage(contactId, language),
+  setConversationAutomationMode: (conversationId, mode, input) => client.setConversationAutomationMode(conversationId, mode, input),
   approveReplyCandidate: (candidateId, input) => client.approveReplyCandidate(candidateId, input),
   rejectReplyCandidate: (candidateId, reason) => client.rejectReplyCandidate(candidateId, reason),
   recordCandidateInteraction: (candidateId, input) => client.recordCandidateInteraction(candidateId, input),

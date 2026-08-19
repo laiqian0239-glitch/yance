@@ -213,6 +213,7 @@ function toPolicy(row) {
 }
 
 function toOutbox(row) {
+  const metadata = parseJson(row.metadata_json, {}) || {};
   return {
     id: row.id,
     taskId: row.task_id,
@@ -229,7 +230,13 @@ function toOutbox(row) {
     approvedBy: row.approved_by,
     sendQueueId: row.send_queue_id,
     contextVersion: Number(row.context_version || 0),
-    metadata: parseJson(row.metadata_json, {}) || {},
+    metadata,
+    authorizationType: clean(metadata.authorizationType),
+    machineApproved: metadata.machineApproved === true,
+    automationMode: clean(metadata.automationMode),
+    automationReceipt: metadata.automationReceipt && typeof metadata.automationReceipt === 'object'
+      ? { ...metadata.automationReceipt }
+      : null,
     personaProfileId: row.persona_profile_id || 'owner',
     personaVersionId: Number(row.persona_version_id || 0),
     personaPolicyHash: row.persona_policy_hash || '',
@@ -492,6 +499,10 @@ class SqliteStorePersistenceAdapter {
         targetLanguage: clean(chineseUnderstanding.targetLanguage || generationMetadata.targetLanguage),
         replyTask: clean(generationMetadata.replyTask),
         director: { ...(replyStrategy._director || {}) },
+        automationMode: clean(generationMetadata.automationMode) || 'HUMAN',
+        automationModeReceipt: generationMetadata.automationModeReceipt && typeof generationMetadata.automationModeReceipt === 'object'
+          ? { ...generationMetadata.automationModeReceipt }
+          : null,
         generationMetadata,
         replyStrategy,
         relationshipPotential: parseJson(row.relationship_potential_json, {}) || {},

@@ -2,7 +2,7 @@
 (() => {
   if (window.YanceConversationCenterV3) return;
   const $ = id => document.getElementById(id);
-  const state = { expanded: false, aiMode: 'daily' };
+  const state = { expanded: false, aiMode: 'daily', activeConversationId: '', activeContactId: '', automationMode: 'HUMAN', automationModeReceipt: null, automationUpdating: false };
   const replySource='ai_routed_model';
   try { state.aiMode = localStorage.getItem('yance:r32:conversation-ai-mode:v3') === 'advanced' ? 'advanced' : 'daily'; } catch (_) {}
 
@@ -17,6 +17,87 @@
     div.textContent = String(value ?? '');
     return div.innerHTML;
   }
+  function readConversationAutomationMode() {
+    const store = window.YanceStoreClient;
+    const snapshot = store?.snapshot?.() || {};
+    const conversations = snapshot.conversations?.byId || {};
+    const requestedId = String(state.activeConversationId || '').trim();
+    const requestedContactId = String(state.activeContactId || '').trim();
+    const conversation = conversations[requestedId] || Object.values(conversations).find(row => {
+      const rowId = String(row?.id || row?.conversationId || '').trim();
+      const rowContactId = String(row?.contactId || row?.customerId || '').trim();
+      return (requestedId && rowId === requestedId) || (requestedContactId && rowContactId === requestedContactId);
+    }) || null;
+    const conversationId = String(conversation?.id || conversation?.conversationId || requestedId).trim();
+    const contactId = String(conversation?.contactId || conversation?.customerId || requestedContactId).trim();
+    const policy = contactId ? (snapshot.interactionPolicies?.byContactId?.[contactId] || {}) : {};
+    const receipt = conversationId ? policy.config?.conversationAutomationModes?.[conversationId] : null;
+    const mode = ['HUMAN', 'AI_ASSIST', 'AI_AUTO'].includes(String(receipt?.mode || '').toUpperCase())
+      ? String(receipt.mode).toUpperCase()
+      : 'HUMAN';
+    return { conversationId, contactId, mode, automationModeReceipt: receipt && typeof receipt === 'object' ? receipt : null };
+  }
+
+  function ensureAutomationControls() {
+    const actions = document.querySelector('.ai-head-actions');
+    if (!actions || $('conversationAutomationMode')) return;
+    const select = document.createElement('select');
+    select.id = 'conversationAutomationMode';
+    select.setAttribute('aria-label', '会话自动化模式');
+    select.title = 'HUMAN：人工；AI_ASSIST：AI候选需人工确认；AI_AUTO：AI自动代聊';
+    select.innerHTML = '<option value="HUMAN">人工</option><option value="AI_ASSIST">AI 辅助</option><option value="AI_AUTO">AI 自动</option>';
+    const takeover = document.createElement('button');
+    takeover.id = 'aiManualTakeover';
+    takeover.type = 'button';
+    takeover.textContent = '人工接管';
+    takeover.title = '立即切回 HUMAN；已授权但未物理发送的 AI_AUTO 工作会在发送前失败关闭';
+    actions.insertBefore(select, $('aiModeToggle') || actions.firstChild);
+    actions.insertBefore(takeover, $('aiModeToggle') || actions.firstChild);
+  }
+
+  function syncAutomationMode() {
+    ensureAutomationControls();
+    const current = readConversationAutomationMode();
+    state.activeConversationId = current.conversationId || state.activeConversationId;
+    state.activeContactId = current.contactId || state.activeContactId;
+    state.automationMode = current.mode;
+    state.automationModeReceipt = current.automationModeReceipt;
+    const select = $('conversationAutomationMode');
+    const takeover = $('aiManualTakeover');
+    if (select) {
+      select.value = current.mode;
+      select.disabled = state.automationUpdating || !current.conversationId;
+      select.dataset.authority = 'Store.interactionPolicies';
+      select.dataset.automationModeReceipt = String(current.automationModeReceipt?.id || '');
+    }
+    if (takeover) {
+      takeover.disabled = state.automationUpdating || !current.conversationId || current.mode === 'HUMAN';
+      takeover.setAttribute('aria-pressed', String(current.mode === 'HUMAN'));
+    }
+    return current;
+  }
+
+  async function setAutomationMode(mode) {
+    const current = readConversationAutomationMode();
+    const store = window.YanceStoreClient;
+    if (!current.conversationId || !store?.setConversationAutomationMode || state.automationUpdating) return;
+    state.automationUpdating = true;
+    syncAutomationMode();
+    try {
+      const result = await store.setConversationAutomationMode(current.conversationId, mode, {
+        contactId: current.contactId,
+        actor: 'conversation-center'
+      });
+      state.automationMode = String(result?.mode || mode).toUpperCase();
+      state.automationModeReceipt = result?.automationModeReceipt || null;
+    } catch (error) {
+      console.warn('[AI_AUTO mode]', error?.message || error);
+    } finally {
+      state.automationUpdating = false;
+      syncAutomationMode();
+    }
+  }
+
   function trackCandidate(row, signalType, mode) {
     const candidateId = String(row?.candidateId || '').trim();
     const store = window.YanceStoreClient;
@@ -183,6 +264,9 @@
   function bind() {
     $('quickReplyExpand')?.addEventListener('click', () => { state.expanded = !state.expanded; renderQuickReplies(); });
     $('aiModeToggle')?.addEventListener('click', () => applyAiMode(state.aiMode === 'advanced' ? 'daily' : 'advanced'));
+    ensureAutomationControls();
+    $('conversationAutomationMode')?.addEventListener('change', event => setAutomationMode(event.target.value));
+    $('aiManualTakeover')?.addEventListener('click', () => setAutomationMode('HUMAN'));
     $('aiDailyOpenUnderstanding')?.addEventListener('click', () => { applyAiMode('advanced'); safeButtonClick('#mainTabs [data-tab="understanding"]'); });
     $('aiDailyRunUnderstanding')?.addEventListener('click', () => { applyAiMode('advanced'); safeButtonClick('#mainTabs [data-tab="understanding"]'); setTimeout(() => $('goDirector')?.click(), 0); });
     $('aiDailyOpenDirector')?.addEventListener('click', () => { applyAiMode('advanced'); safeButtonClick('#mainTabs [data-tab="director"]'); });
@@ -207,16 +291,31 @@
       const node = $(id);
       if (node) new MutationObserver(syncDailyDashboard).observe(node, { childList: true, subtree: true, characterData: true, attributes: true });
     });
-    window.addEventListener('yance:r32-contact-selected', () => { state.expanded = false; setTimeout(syncDailyDashboard, 0); });
-    window.addEventListener('yance:r32-data-ready', syncDailyDashboard);
+    window.addEventListener('yance:r32-contact-selected', event => {
+      const contact = event?.detail?.contact || {};
+      state.activeConversationId = String(contact.conversationId || contact.id || '').trim();
+      state.activeContactId = String(contact.contactId || contact.customerId || contact.id || '').trim();
+      state.expanded = false;
+      setTimeout(() => { syncAutomationMode(); syncDailyDashboard(); }, 0);
+    });
+    window.addEventListener('yance:r32-data-ready', event => {
+      const activeId = String(event?.detail?.activeId || '').trim();
+      if (activeId) state.activeConversationId = activeId;
+      syncAutomationMode();
+      syncDailyDashboard();
+    });
+    window.YanceStoreClient?.onEvent?.(event => {
+      if (event?.eventType === 'conversation.automationModeSet' || (event?.domains || []).includes('interactionPolicies')) syncAutomationMode();
+    });
   }
 
   function init() {
     bind();
     observe();
     applyAiMode(state.aiMode);
+    syncAutomationMode();
     document.documentElement.dataset.conversationCenter = 'v3';
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true }); else init();
-  window.YanceConversationCenterV3 = Object.freeze({ renderQuickReplies, syncDailyDashboard, applyAiMode, getState: () => ({ ...state }) });
+  window.YanceConversationCenterV3 = Object.freeze({ renderQuickReplies, syncDailyDashboard, syncAutomationMode, setAutomationMode, applyAiMode, getState: () => ({ ...state }) });
 })();
