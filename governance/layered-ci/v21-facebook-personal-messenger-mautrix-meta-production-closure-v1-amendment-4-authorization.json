@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FB-PERSONAL-MSG-MAUTRIX-META-CLOSURE-V1-AMENDMENT-4",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh WP-B source-closure validation at 5bbdd7e0d7e765fa0a32cf7750a944d7c75f1ea1 proved the production closure itself has zero violations and exact inventory discovery, but one base-owned final contract still hardcodes two extension entries after authorized SCOPE-006 added the third Facebook Personal mautrix/meta adapter entry. This successor preserves the frozen implementation and adds exactly backend/tests/architectureClosureV2/wpB/sourceClosureFinal.test.js to reconcile the stale exact-count contract from 2 to 3. No production behavior, gate, scanner, dependency identity, or architecture is changed.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-3-v2-authorization.json",
+    "implementationBranch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-3-v2",
+    "reason": "The frozen predecessor remains immutable RED evidence; only the newly exposed stale final source-closure test contract is added to scope."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "b95c96db68f15a2d42e97a1079531ca3b83df0b1",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b95c96db68f15a2d42e97a1079531ca3b83df0b1",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-4-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-4-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8103bad90beafc2355b9fedcdaaa2d0e9c372041b26cd1ace02010e7aab1875d",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-4",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "5bbdd7e0d7e765fa0a32cf7750a944d7c75f1ea1"
+    },
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/core/accountContext.js",
+      "backend/lib/r32SqliteStoreEngine.js",
+      "backend/migrations/v21FacebookPersonalMessengerMautrixMetaProductionClosure.js",
+      "backend/repositories/accountRepository.js",
+      "backend/routes/accounts.js",
+      "backend/server.js",
+      "backend/services/accountManagerCore.js",
+      "backend/services/facebookPersonalMessengerExperimentalAdapter.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/platformAdapterPorts.js",
+      "backend/services/platformAuthWorkflowAuthority.js",
+      "backend/services/platformCapabilities.js",
+      "backend/services/platformDriverRegistry.js",
+      "backend/tests/architectureClosureV2/wpA/authorityWriteHost.test.js",
+      "backend/tests/architectureClosureV2/wpA/domainEventProjectionJobsCanonicalMigration.test.js",
+      "backend/tests/architectureClosureV2/wpB/schema23StartupRegistration.test.js",
+      "backend/tests/architectureClosureV2/wpB/sourceClosureFinal.test.js",
+      "backend/tests/batch27DeveloperHandoffV2Closure.test.js",
+      "backend/tests/fix6oScopedSafetyAndFacebookDrivers.test.js",
+      "backend/tests/v21FacebookPersonalMessengerMautrixMetaProductionClosure.test.js",
+      "config/matrix/mautrix-meta/config.yaml",
+      "config/matrix/synapse/homeserver.yaml",
+      "config/upstreams/v21-comms-p0.json",
+      "frontend/js/core-client.js",
+      "frontend/r32-account-center.js",
+      "governance/architecture-closure-v2/wp-b-m3-authorization.json",
+      "governance/architecture-closure-v2/wp-b-operation-inventory-m3-extension.json",
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "package-lock.json",
+      "package.json",
+      "release/architecture-closure-v2/wp-b-governance-package.json",
+      "services/matrix/docker-compose.yml",
+      "shared/core/contracts.js",
+      "tests/uat/fix6oScopedSafetyOmnichannelRuntime.test.js",
+      "tests/uat/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+      "tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js",
+      "tests/wp0/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+      "third_party/licenses/matrix-js-sdk-Apache-2.0.txt",
+      "third_party/licenses/mautrix-meta-AGPL-3.0.txt",
+      "third_party/licenses/mautrix-meta-LICENSE.exceptions.txt",
+      "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js",
+      "tools/matrix/bootstrap.js"
+    ],
+    "approvedChangedFileCount": 43,
+    "approvedChangedFileSetSha256": "972d8da64ce096918523fa4ead55c9ef88f251876bcdc696586a012d2c39f361",
+    "newlyAuthorizedPaths": [
+      "backend/tests/architectureClosureV2/wpB/sourceClosureFinal.test.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "fa1ba468e546c078813eb439d081799476eaac5faed796b238c5031becd903d2",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": ["package-lock.json", "package.json"],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "dependencyIdentityPolicy": {
+      "entries": [
+        {"path": "package.json", "section": "dependencies", "name": "matrix-js-sdk", "version": "42.0.0"}
+      ]
+    },
+    "workflowModificationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "causalRedEvidence": {
+    "frozenPredecessorHead": "5bbdd7e0d7e765fa0a32cf7750a944d7c75f1ea1",
+    "wpBValidationRun": 32240104365,
+    "ubuntuJob": 96028568067,
+    "failure": "M3-SC-002 expected registryExtensionEntries=2 while authorized SCOPE-006 makes the exact current count 3",
+    "productSourceClosureViolations": 0,
+    "unknownProductCorrectnessBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "5bbdd7e0d7e765fa0a32cf7750a944d7c75f1ea1",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionBeyond43Forbidden": true
+  },
+  "ossFit": {
+    "decision": "PRESERVE_EXISTING_SOURCE_CLOSURE_SCANNER_AND_UPDATE_STALE_CONTRACT",
+    "matureOssAvailable": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP-B source closure scanner",
+        "source": "tools/architecture-closure-v2/source-closure-scan.js",
+        "license": "repository scope",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The scanner already reports the correct exact three-entry extension and zero violations; only its stale test expectation needs reconciliation."
+      }
+    ],
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "retireOrAvoid": [
+      "Do not fork or replace the source-closure scanner.",
+      "Do not weaken exact inventory validation or branch gates."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
