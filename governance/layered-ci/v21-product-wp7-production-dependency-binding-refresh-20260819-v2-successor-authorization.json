@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-19T23:47:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP7-BINDING-REFRESH-V2-SUCCESSOR-20260819",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #525 produced the correct canonical production-dependency binding at exact head 90d30bfa503aa4f34e5ff907b426701285a58dba: the permanent WP7 lifecycle contract completed GREEN in Stage as test 79, while the only Stage RED was delegated implementation authority invalidation caused by an in-place mutation of the original #522 authorization. PR #526/#527 permanently repaired that governance lifecycle by restoring the original authorization path to its immutable #522 introduction blob ec1f426cd01e64de5259e57379b4494496660a30. This successor now uses the repository's existing canonical supersession plus forwardContinuation protocol, preserves the exact one-path binding scope, freezes the already-generated 90d30bfa binding head, and records the corrected owning-chain fingerprints append-only instead of mutating the predecessor authority. No package input, generator, workflow, test, gate, scanner, timeout, retry, AI_AUTO path, or new infrastructure is changed.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-20260819-authorization.json",
+    "implementationBranch": "fix/v21-product-wp7-production-dependency-binding-refresh-20260819",
+    "reason": "Replace the restored immutable #522 WP7 implementation authority with an append-only successor that carries corrected evidence and continues the already-generated binding head without rewriting history."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "6f96a5d7d8440e20b5096393026288a3d4ae2613",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "6f96a5d7d8440e20b5096393026288a3d4ae2613",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-wp7-production-dependency-binding-refresh-20260819-v2-successor-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-wp7-production-dependency-binding-refresh-20260819-v2-successor-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e5e6c9291c1215b9caa3072afcdcf0a33bb67318a800627aa3e490b9386fe279",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-wp7-production-dependency-binding-refresh-20260819-v2-successor",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "90d30bfa503aa4f34e5ff907b426701285a58dba"
+    },
+    "allowedChangedPaths": [
+      "release/production-dependency-binding.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "87e759dd8c57d4dcbb93ea465c7927b1d1d9f44e6c7beea7d94db332748b58dc",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "generatorModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "90d30bfa503aa4f34e5ff907b426701285a58dba",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true
+  },
+  "correctedEvidence": {
+    "predecessorPullRequest": 525,
+    "frozenPredecessorHead": "90d30bfa503aa4f34e5ff907b426701285a58dba",
+    "stageRun": 32278049876,
+    "stageJob": 96150090887,
+    "permanentBindingContract": "tests/wp0/v21-production-dependency-binding-lifecycle.test.js",
+    "permanentBindingContractStageOrdinal": 79,
+    "permanentBindingContractConclusion": "success",
+    "owningChainBlobEquality": {
+      "test": "613b0dc6849d884e18a751a5a52a4570ce78ecd4",
+      "hostCommandRunner": "3f6b1c3965713e97c4edb09a2856fa071b2e2cc2",
+      "generator": "6e704279e719cc643efef1f09e20bf3775943190",
+      "stageWorkflow": "8f124383c57017c5552a16c4e63067c10cee5e12"
+    },
+    "packageLockSha256": "6d03b9d9b479e17278e6fc492897a86080abe3b00eee0201cacf030bbe40112e",
+    "classification": "DETERMINISTIC_WP7_REVIEWED_BINDING_LIFECYCLE_RED_ROOT_FIXED"
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP7_GENERATOR_AND_DELEGATED_FORWARD_CONTINUATION_PROTOCOL",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP7 reviewed dependency binding generator",
+        "source": "tools/wp7/generate-production-dependency-binding.js",
+        "license": "repository-existing using npm and Node.js core primitives",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already generated and validated the frozen 90d30bfa reviewed binding under exact npm@10.9.2 and Linux POSIX authority."
+      },
+      {
+        "name": "Existing delegated forwardContinuation policy",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Provides immutable supersession plus strict two-parent continuation without rewriting the frozen predecessor."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not mutate the restored original #522 authorization again.",
+      "Do not rebase, squash, force-push or rewrite predecessor head 90d30bfa503aa4f34e5ff907b426701285a58dba.",
+      "Do not widen the one-path binding scope.",
+      "Do not modify package.json, package-lock.json, generator, runner, workflow, permanent #79 test, gate or scanner.",
+      "Do not regenerate the already-validated binding unless a new causal dependency input RED appears.",
+      "Do not add a second dependency graph, generator, cache or verifier authority."
+    ]
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "ACV2 WP-A Architecture Gates",
+      "V21 Model Brain P0 Windows"
+    ],
+    "bindingContract": [
+      "tests/wp0/v21-production-dependency-binding-lifecycle.test.js"
+    ],
+    "consumerRevalidation": [
+      "AI_AUTO focused/review-contract suite remains 14/14 GREEN after WP7 main merge"
+    ],
+    "newRedPolicy": "Permanent root fix in the correct owning layer; no gate/scanner relaxation, retry masking, timeout masking or workaround."
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
