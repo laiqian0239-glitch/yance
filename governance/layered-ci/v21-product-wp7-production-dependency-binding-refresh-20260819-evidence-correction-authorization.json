@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-19T22:01:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-WP7-PRODUCTION-DEPENDENCY-BINDING-REFRESH-20260819-EVIDENCE-CORRECTION",
+  "workPackage": "V21-WP7-BINDING-EVIDENCE-CORRECTION-20260819",
   "proposalRevision": 1,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Fresh verification of merged WP7 authorization #522 proved its classification, implementation scope, package/lock identity and recovery direction are correct, but redEvidence.owningChainBlobEquality contains four inaccurate Git blob SHA values for the permanent #79 test, WP7 host command runner, canonical generator and Stage workflow. Direct GitHub reads at trusted main 662f35e5428604664eb43448b0abd69168309add prove the actual blobs are 613b0dc6849d884e18a751a5a52a4570ce78ecd4, 3f6b1c3965713e97c4edb09a2856fa071b2e2cc2, 6e704279e719cc643efef1f09e20bf3775943190 and 8f124383c57017c5552a16c4e63067c10cee5e12 respectively. This work package reuses the repository's established delegated-governance evidence-correction pattern and authorizes exactly one governance evidence correction. It does not supersede or expand the original WP7 one-path implementation authority, alter AI_AUTO, change package inputs, or modify any test, generator, workflow, gate, scanner, timeout or retry behavior.",
