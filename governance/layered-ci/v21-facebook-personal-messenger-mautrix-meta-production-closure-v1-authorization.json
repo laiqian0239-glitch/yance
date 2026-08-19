@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-19T12:01:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-FACEBOOK-PERSONAL-MESSENGER-MAUTRIX-META-PRODUCTION-CLOSURE-V1",
+  "workPackage": "V21-FB-PERSONAL-MESSENGER-MAUTRIX-META-PRODUCTION-CLOSURE-V1",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Close Facebook Personal Messenger post-login production behavior without reopening the already proven real username/password login question. Adopt mature mautrix/meta as the Meta Messenger protocol/login/session/send/receive/recovery authority behind Synapse/Matrix, use the official matrix-js-sdk only as the Node client-side Matrix synchronization/timeline SDK where Yance must consume or send canonical Matrix events, and reuse Yance's existing AccountManager, platform adapter ports, canonical message/account projections, SendQueue and durable SESSION_RESTORE authority. Retire the experimental isolated-browser-session driver and its persisted profile. No browser automation, DOM scraping, cookie harvesting, second protocol transport, second retry queue, or hand-written Matrix /sync state machine is authorized.",
   "evidence": {
