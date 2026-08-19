@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-19T12:01:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FB-PERSONAL-MESSENGER-MAUTRIX-META-PRODUCTION-CLOSURE-V1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close Facebook Personal Messenger post-login production behavior without reopening the already proven real username/password login question. Adopt mature mautrix/meta as the Meta Messenger protocol/login/session/send/receive/recovery authority behind Synapse/Matrix, use the official matrix-js-sdk only as the Node client-side Matrix synchronization/timeline SDK where Yance must consume or send canonical Matrix events, and reuse Yance's existing AccountManager, platform adapter ports, canonical message/account projections, SendQueue and durable SESSION_RESTORE authority. Retire the experimental isolated-browser-session driver and its persisted profile. No browser automation, DOM scraping, cookie harvesting, second protocol transport, second retry queue, or hand-written Matrix /sync state machine is authorized.",
+  "evidence": {
+    "designMergeCommit": "4ab08ef2c9fa884af57b6ac1d370e5a1cdc17d18",
+    "designPullRequest": 503,
+    "facebookPersonalRealUsernamePasswordLoginPreviouslyProven": true,
+    "loginReproofRequired": false,
+    "selectedMautrixMetaStableVersion": "v0.2607.0",
+    "selectedMautrixMetaCommit": "ed37c9e6ce47e83dc75b9abea7b636302715b9bc",
+    "selectedNativeLoginFlow": "messenger-lite",
+    "candidateVersionBumpCommit": "9e6484d7bb46078fda661b03e2aa28c0a1b4db70",
+    "candidateAndroidNativeFlow": "messenger-lite-android",
+    "candidateAndroidFlowDeferredUntilStable": true,
+    "selectedMatrixJsSdkVersion": "v42.0.0",
+    "selectedMatrixJsSdkCommit": "85362b92fabe6009bc1a86b63d046263b1dc66b3",
+    "currentSchemaVersion": 23,
+    "forwardMigrationTargetSchemaVersion": 24,
+    "restartRootCause": "AppRuntimeComposition already exposes startup.requestSessionRestores, but backend/server.js does not invoke it; normal persisted accounts therefore do not get a fresh durable SESSION_RESTORE request merely because the app restarted.",
+    "capabilityRootCause": "platformCapabilities currently keys Facebook capability truth only by platform while Facebook Page and Personal Messenger have different transports and capability contracts."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "4ab08ef2c9fa884af57b6ac1d370e5a1cdc17d18"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "846ee6c4632316265efb1ccf2761b0f9d394254e76974c8c01f0501fcdd4efa8",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1",
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/core/accountContext.js",
+      "backend/lib/r32SqliteStoreEngine.js",
+      "backend/migrations/v21FacebookPersonalMessengerMautrixMetaProductionClosure.js",
+      "backend/repositories/accountRepository.js",
+      "backend/routes/accounts.js",
+      "backend/server.js",
+      "backend/services/accountManagerCore.js",
+      "backend/services/facebookPersonalMessengerExperimentalAdapter.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/platformAdapterPorts.js",
+      "backend/services/platformCapabilities.js",
+      "backend/services/platformDriverRegistry.js",
+      "backend/tests/fix6oScopedSafetyAndFacebookDrivers.test.js",
+      "backend/tests/v21FacebookPersonalMessengerMautrixMetaProductionClosure.test.js",
+      "config/matrix/mautrix-meta/config.yaml",
+      "config/matrix/synapse/homeserver.yaml",
+      "config/upstreams/v21-comms-p0.json",
+      "frontend/js/core-client.js",
+      "frontend/r32-account-center.js",
+      "package-lock.json",
+      "package.json",
+      "services/matrix/docker-compose.yml",
+      "shared/core/contracts.js",
+      "tests/uat/fix6oScopedSafetyOmnichannelRuntime.test.js",
+      "tests/uat/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+      "tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js",
+      "tests/wp0/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+      "third_party/licenses/matrix-js-sdk-Apache-2.0.txt",
+      "third_party/licenses/mautrix-meta-AGPL-3.0.txt",
+      "third_party/licenses/mautrix-meta-LICENSE.exceptions.txt",
+      "tools/matrix/bootstrap.js"
+    ],
+    "approvedChangedFileCount": 32,
+    "approvedChangedFileSetSha256": "131ff8f1f50a5e845aa251b712898c6a7ac56d78d604a517bf0b86c401c5d15a",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "dependencyIdentityPolicy": {
+      "entries": [
+        {
+          "path": "package.json",
+          "section": "dependencies",
+          "name": "matrix-js-sdk",
+          "version": "42.0.0"
+        }
+      ]
+    },
+    "workflowModificationAllowed": false,
+    "migration": {
+      "historicalMigrationModificationAllowed": false,
+      "newMigrationPath": "backend/migrations/v21FacebookPersonalMessengerMautrixMetaProductionClosure.js",
+      "targetSchemaVersion": 24,
+      "engineRegistrationPath": "backend/lib/r32SqliteStoreEngine.js",
+      "purpose": "Forward-migrate stale facebook-personal-messenger-experimental/isolated-browser-session persisted driver metadata to the mautrix/meta production driver contract without rewriting migration history."
+    },
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "backend/tests/v21FacebookPersonalMessengerMautrixMetaProductionClosure.test.js",
+        "tests/uat/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js",
+        "tests/wp0/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1.test.js"
+      ],
+      "approvedChangedFileCount": 3,
+      "approvedChangedFileSetSha256": "bd20d411b7d41e55c61b8e5585bc0c66c2d3289a86002153b9f1eaaa77dd3de8",
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates and scoped backend/UAT tests"
+    }
+  },
+  "upstreams": {
+    "mautrixMeta": {
+      "repository": "mautrix/meta",
+      "version": "v0.2607.0",
+      "commit": "ed37c9e6ce47e83dc75b9abea7b636302715b9bc",
+      "license": "AGPL-3.0 with upstream license exceptions",
+      "adoptionMode": "sidecar-service",
+      "nativeLoginFlow": "messenger-lite"
+    },
+    "matrixJsSdk": {
+      "repository": "matrix-org/matrix-js-sdk",
+      "version": "v42.0.0",
+      "commit": "85362b92fabe6009bc1a86b63d046263b1dc66b3",
+      "license": "Apache-2.0",
+      "adoptionMode": "official-sdk-cli-native-prebuild-runtime"
+    },
+    "existingSynapseAuthority": {
+      "repository": "element-hq/synapse",
+      "version": "v1.158.0",
+      "commit": "7a3e98b6f77ee3a5fe4dbeb934b0a0c1721e6afe",
+      "license": "AGPL-3.0-or-later / commercial dual-license upstream; Yance uses existing adopted AGPL route"
+    }
+  },
+  "ossFit": {
+    "decision": "ADOPT_MAUTRIX_META_SIDECAR_AND_OFFICIAL_MATRIX_JS_SDK_WITH_EXISTING_YANCE_PORTS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "sidecar-service",
+    "reviewedCandidates": [
+      {
+        "name": "mautrix/meta v0.2607.0",
+        "source": "mautrix/meta exact stable tag v0.2607.0 at ed37c9e6ce47e83dc75b9abea7b636302715b9bc",
+        "license": "AGPL-3.0 with upstream license exceptions",
+        "adoptionMode": "sidecar-service",
+        "fit": "FIT",
+        "reason": "Mature BridgeV2 sidecar owns Facebook Messenger native messenger-lite username/password login, session, send/receive, media, typing/read receipt and history behavior while keeping protocol authority outside Yance."
+      },
+      {
+        "name": "mautrix/meta v26.08 candidate",
+        "source": "mautrix/meta version-bump commit 9e6484d7bb46078fda661b03e2aa28c0a1b4db70",
+        "license": "AGPL-3.0 with upstream license exceptions",
+        "adoptionMode": "sidecar-service",
+        "fit": "PARTIAL_FIT",
+        "reason": "Adds messenger-lite-android, but it is an unpublished candidate rather than the stable release line. V1 does not need the candidate because v0.2607.0 already provides the proven native messenger-lite flow."
+      },
+      {
+        "name": "matrix-js-sdk v42.0.0",
+        "source": "matrix-org/matrix-js-sdk exact stable tag v42.0.0 at 85362b92fabe6009bc1a86b63d046263b1dc66b3",
+        "license": "Apache-2.0",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Official mature Matrix client SDK owns sync, timeline, pagination, retry and event semantics needed by the thin backend adapter; avoids a Yance-built /sync/reconnect engine."
+      },
+      {
+        "name": "Existing Synapse + Yance AccountManager/platform adapter ports/SendQueue seams",
+        "source": "services/matrix runtime plus backend/services/accountManagerCore.js, platformAdapterPorts.js, platformDriverRegistry.js and sendQueueService.js",
+        "license": "existing Yance repository seams plus already adopted Synapse AGPL route",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns canonical account lifecycle, durable physical attempt boundaries, canonical ingress/egress projections and queued sends; the new adapter should plug into these seams rather than replace them."
+      },
+      {
+        "name": "facebook-personal-messenger-experimental isolated browser adapter",
+        "source": "backend/services/facebookPersonalMessengerExperimentalAdapter.js and persisted driver metadata",
+        "license": "existing Yance code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "GAP",
+        "reason": "Browser-session ownership duplicates protocol/login/session authority and is explicitly superseded by mature mautrix/meta."
+      },
+      {
+        "name": "Hand-written Matrix Client-Server /sync and retry loop",
+        "source": "hypothetical new Yance transport/runtime state machine",
+        "license": "not applicable because rejected",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "Would duplicate matrix-js-sdk and violate OSS-first prohibitions on second communications transport and second runtime state machine."
+      }
+    ],
+    "thinYanceAdapterOnly": true,
+    "retireOrAvoid": [
+      "Retire facebook-personal-messenger-experimental as the active Personal Messenger driver.",
+      "Retire isolated-browser-session as the Personal Messenger isolation/session authority and forward-migrate stale persisted driver metadata.",
+      "Delete/retire the experimental browser adapter production path rather than keeping it as fallback.",
+      "Do not use Selenium, Playwright, browser DOM automation, cookie harvesting or Yance-owned Meta protocol/login/session code.",
+      "Do not hand-write a Matrix /sync, pagination, retry, reconnect or client-state engine; use matrix-js-sdk.",
+      "Do not create a second message database, retry queue, scheduler, canonical identity engine or SendQueue.",
+      "Do not modify Facebook Page Chatwoot ownership except the regression assertion needed to prove Page remains isolated from Personal Messenger."
+    ]
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only the three approved dedicated tests and must fail on current main because Personal Messenger still resolves to facebook-personal-messenger-experimental/isolated-browser-session, no mautrix/meta runtime pin/config is present, and no production Matrix SDK adapter exists.",
+    "Failure-first must prove that previously successful real username/password login is inherited evidence and must not require repeating login; tests target post-login production closure.",
+    "Failure-first must prove stable mautrix/meta v0.2607.0 exact pin and native messenger-lite flow, and must reject candidate-only messenger-lite-android as a V1 production dependency until a stable upstream release exists.",
+    "Failure-first must prove that no browser automation, DOM scraping, cookie harvesting, direct Meta protocol client, duplicate retry queue, or hand-written Matrix /sync loop becomes production authority.",
+    "Failure-first must prove driver/account-kind-aware capabilities: Facebook Page retains Chatwoot capability truth while Personal Messenger exposes only capabilities backed by mautrix/meta/Matrix.",
+    "Failure-first must prove startup requests fresh durable SESSION_RESTORE for eligible persisted accounts through the existing startup.requestSessionRestores command rather than adapter-local reconnect timers.",
+    "Failure-first must prove canonical ingress identity/message idempotency and duplicate suppression across replay/reconnect, including Matrix event replay and stable upstream message identity.",
+    "Failure-first must prove send, attachments, history/backfill, typing, read receipt, logout/session expiry and multi-account isolation remain within existing canonical account/message and durable egress boundaries.",
+    "Failure-first must prove historical migrations are unchanged and only the new schema-24 migration moves stale persisted Personal Messenger driver/isolation metadata forward."
+  ],
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "browserAutomation": true,
+    "selenium": true,
+    "playwright": true,
+    "domScraping": true,
+    "cookieHarvesting": true,
+    "directMetaProtocolImplementation": true,
+    "handWrittenMatrixSyncRuntime": true,
+    "secondMessageDatabase": true,
+    "secondRetryQueue": true,
+    "secondScheduler": true,
+    "secondSendQueue": true,
+    "historicalMigrationModification": true,
+    "candidateOnlyAndroidFlowInV1": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "finalProductPullRequestMergeRequiresOwnerApproval": true
+  }
+}
