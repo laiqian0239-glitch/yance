@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-19T15:18:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FB-PERSONAL-MSG-MAUTRIX-META-ROUTE-BOOTSTRAP",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #507 exact-head Stage 6.4.5.9 evidence proved that the already-authorized Facebook Personal Messenger mautrix/meta production closure is correctly fail-closed by base-owned WP0 routing because four newly introduced product paths are absent from trusted-main productExactPaths. Candidate-owned policy changes are forbidden. The permanent owning-layer fix is an exact current-main route bootstrap that classifies only those four paths as PRODUCT_WP0 without changing workflow logic, scanners, prefixes, or the frozen #507 product scope.",
+  "base": {
+    "branch": "main",
+    "commit": "10b54d840b1a65753646cb714e0dfae2222f53bc",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "10b54d840b1a65753646cb714e0dfae2222f53bc",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "evidence": {
+    "sourcePullRequest": 507,
+    "sourceExactHead": "fd6eea95be484cbee89ec155b5c9fc8074004c53",
+    "sourceChangedFileCount": 33,
+    "stageWp0Run": 32231946137,
+    "stageWp0RouteJob": 96003480157,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPathsObservedAtSourceExactHead": [
+      "config/matrix/mautrix-meta/config.yaml",
+      "third_party/licenses/matrix-js-sdk-Apache-2.0.txt",
+      "third_party/licenses/mautrix-meta-AGPL-3.0.txt",
+      "third_party/licenses/mautrix-meta-LICENSE.exceptions.txt"
+    ],
+    "governanceChangesPresent": false,
+    "productDocumentationChangesPresent": false,
+    "productChangesPresent": false,
+    "executionAuthorized": false,
+    "buildAuthorized": false,
+    "packageAuthorized": false,
+    "releaseAuthorized": false,
+    "productionUseAuthorized": false
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-personal-messenger-mautrix-meta-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-route-bootstrap-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-facebook-personal-messenger-mautrix-meta-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-facebook-personal-messenger-mautrix-meta-route-bootstrap.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "2ad1c90352c4cc07bbb692565e4c58c07a5f2976d2adeedc4e5158890f24b99a",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "bootstrapPaths": [
+    "config/matrix/mautrix-meta/config.yaml",
+    "third_party/licenses/matrix-js-sdk-Apache-2.0.txt",
+    "third_party/licenses/mautrix-meta-AGPL-3.0.txt",
+    "third_party/licenses/mautrix-meta-LICENSE.exceptions.txt"
+  ],
+  "bootstrapPathCount": 4,
+  "bootstrapPathSetSha256": "d58c902fa3c98b68470d4d21bffd54f6e46bc1373e8825677d218bd6827078d7",
+  "candidatePreservation": {
+    "candidatePullRequest": 507,
+    "candidateBranch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-1",
+    "candidateExactRedHead": "fd6eea95be484cbee89ec155b5c9fc8074004c53",
+    "candidateAuthorizedChangedFileCountMustRemain": 33,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "9ddd989f7af6e984d3cf8b7a015ee3e62212be6d20d8512d1c3fda635356ad06",
+    "candidateWorkflowModificationAllowed": false,
+    "candidateHistoryRewriteAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "Trusted-main WP0 routing at 10b54d840b1a65753646cb714e0dfae2222f53bc reports WP0_ROUTE_UNKNOWN_PATH for exactly the four observed paths.",
+    "After implementation all four exact bootstrap paths select PRODUCT_WP0.",
+    "The bootstrap uses only productExactPaths and does not add config/, config/matrix/, third_party/, or third_party/licenses/ to productPrefixes.",
+    "Unknown and malformed repository paths continue to fail closed.",
+    "Governance and product-documentation route precedence remains unchanged.",
+    "No PR #507 product implementation file, workflow, dependency manifest, product authorization receipt, release policy, or promotion authority changes occur in the route-bootstrap implementation PR."
+  ],
+  "requiredSequence": [
+    "Authorization exact Head passes all applicable governance gates.",
+    "Authorization PR merges to main by ordinary two-parent merge without history rewrite.",
+    "Implementation branch is created from that exact authorization merge commit.",
+    "A failure-first test proves the four exact paths are rejected by the pre-fix trusted-main classifier.",
+    "Only the four exact bootstrap paths are added to productExactPaths.",
+    "Implementation exact Head passes applicable Layered CI, permanent WP0, ACV2 and independent review gates.",
+    "Implementation PR merges to main by ordinary two-parent merge.",
+    "The resulting fresh main is merged normally into PR #507 without rewriting its history.",
+    "PR #507 returns to its original exact 33-path authorized product scope relative to fresh main and is reverified."
+  ],
+  "ossFit": {
+    "decision": "PRESERVE_EXISTING_BASE_OWNED_WP0_ROUTING_POLICY",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing base-owned WP0 exact-path routing",
+        "source": "governance/layered-ci/wp0-routing-policy.json",
+        "license": "repository scope",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "The existing classifier already supports exact product path classification and intentionally fails unknown paths closed."
+      },
+      {
+        "name": "Broad product prefix expansion",
+        "source": "rejected policy change",
+        "license": "not applicable",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "Would authorize unrelated future config or third-party paths and weaken the fail-closed route contract."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not modify the Stage workflow or route scanner to suppress WP0_ROUTE_UNKNOWN_PATH.",
+      "Do not add broad config/, config/matrix/, third_party/, or third_party/licenses/ prefixes.",
+      "Do not change PR #507 product files to evade route classification."
+    ]
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "historyRewrite": true,
+    "rebase": true,
+    "squashMerge": true,
+    "directCandidateSelfAuthorization": true,
+    "candidateScopeReduction": true,
+    "workflowModification": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
