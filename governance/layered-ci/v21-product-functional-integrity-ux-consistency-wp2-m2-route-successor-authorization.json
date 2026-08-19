@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-19T09:33:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-FUNCTIONAL-INTEGRITY-UX-CONSISTENCY-WP2-M2-ROUTE-SUCCESSOR",
+  "workPackage": "V21-PRODUCT-WP2-M2-ROUTE-SUCCESSOR",
   "proposalRevision": 1,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "PR #498 exact product head ade4d8218087d4d69d0e42dc0dd102e6b8fb49d7 is a correctly authorized WP-2 amendment-2 implementation and changes shared electron/main.js, which intentionally triggers WP-B M2 Contracts. The trusted-main M2 workflow then rejects the legitimate delegated WP-2 branch before any M2 syntax or contract executes because its branch-establishment step calls the WP-B-specific isAuthorizedWpBImplementationBranch() authority. That authority intentionally admits only the active WP-B branch or trusted delegated successors rooted in the WP-B M3 successor chain, so widening it would be incorrect. The repository already has the generic implementationBranchPolicy.isAuthorizedImplementationBranch() authority for canonical Stage, trusted delegated governance, OSS and active WP-B branches. This authorization permits only the owning-layer repair: failure-first extend the existing WP-B workflow static contract, then make the existing M2 workflow use the existing generic implementation-branch authority while retaining its exact head/ref binding and running the complete M2 contract matrix. No trigger removal, path-filter narrowing, M2 skip, wildcard branch family, Product runtime change, shared authority widening, dependency, scanner/gate weakening or new infrastructure is authorized.",
