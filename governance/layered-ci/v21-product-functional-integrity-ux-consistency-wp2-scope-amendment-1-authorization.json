@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-19T07:30:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FUNCTIONAL-INTEGRITY-UX-CONSISTENCY-WP2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Closure V2 failure-first Stage RED 32203018666 at exact tests-only head 18f97f8aa272848e7134ea795b925473412e5cd2 produced exactly seven WP-2 failures and no unrelated regression: three preserve contracts passed; four Learning integrity contracts proved a missing Product desktop bridge plus hard-coded/decorative renderer state; two Voice contracts proved durable profile metadata cannot be rediscovered after restart and the already-authorized ASR channel is not consumed by the visible Voice workspace; one Product preference contract proved renderer-local localStorage duplicates existing durable Store/DesktopSettings authorities. Full source-graph closure finds no unknown blocker and requires exactly eight production paths. Learning reuses the existing OpenFeature/flagd durable learned-policy runtime and existing Learning Coach proposal seam without inventing a proposal database; fake privacy/consent toggles and fake lifecycle progress are replaced by truthful current-policy/read-only product projection. Voice extends the existing local/private profile runtime with bounded metadata discovery and reuses the existing file-selection ASR IPC. Product preferences reuse existing Store motion/background authorities and extend the existing Electron DesktopSettings schema only with one bounded Product sound-mode field. No backend route, database, dependency, workflow, scanner, gate, second renderer, or new general-purpose Yance infrastructure is authorized.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-functional-integrity-ux-consistency-wp2-authorization.json",
+    "authorizationMerge": "0bc5b90c410a9a3c4f530856adfe1ac44b076281",
+    "implementationBranch": "product/v21-product-functional-integrity-ux-consistency-wp2",
+    "frozenImplementationHead": "18f97f8aa272848e7134ea795b925473412e5cd2",
+    "reason": "The original implementation branch is immutable failure-first evidence. Production changes require this post-RED merged scope amendment and a new strict two-parent continuation."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "0bc5b90c410a9a3c4f530856adfe1ac44b076281"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "0bc5b90c410a9a3c4f530856adfe1ac44b076281",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-functional-integrity-ux-consistency-wp2-scope-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-functional-integrity-ux-consistency-wp2-scope-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "81ba84b2792dc84bf59a7650a0378949f656f06c76139e56a4a294564eb9626a",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-functional-integrity-ux-consistency-wp2-amendment-1",
+    "allowedChangedPaths": [
+      "electron/desktopSettingsSchema.js",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/voiceBrainRuntime.js",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/product-experience/experiencePreferences.ts",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js"
+    ],
+    "approvedChangedFileCount": 9,
+    "approvedChangedFileSetSha256": "8e66e38a757e068213f2593142c0418b046dd48b554fbbd63cfde8efdb6dbd65",
+    "newlyAuthorizedPaths": [
+      "electron/desktopSettingsSchema.js",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/voiceBrainRuntime.js",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/product-experience/experiencePreferences.ts"
+    ],
+    "newlyAuthorizedChangedFileCount": 8,
+    "newlyAuthorizedChangedFileSetSha256": "457fb4ac5a2cb17da3152c90db5e64a6cfd8d751a5af088c37ae1eb85da91783",
+    "productionAllowedChangedPaths": [
+      "electron/desktopSettingsSchema.js",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/voiceBrainRuntime.js",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/product-experience/experiencePreferences.ts"
+    ],
+    "productionChangedFileCount": 8,
+    "productionChangedFileSetSha256": "457fb4ac5a2cb17da3152c90db5e64a6cfd8d751a5af088c37ae1eb85da91783",
+    "productionScopeAuthorized": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "backendRouteModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "postRedContinuation": {
+    "fastClosureV2": true,
+    "originalEffectiveAuthorizationMerge": "0bc5b90c410a9a3c4f530856adfe1ac44b076281",
+    "originalImplementationBranch": "product/v21-product-functional-integrity-ux-consistency-wp2",
+    "originalFailureFirstHead": "18f97f8aa272848e7134ea795b925473412e5cd2",
+    "originalFailureFirstStageRun": 32203018666,
+    "originalFailureFirstStageJob": 95920597270,
+    "originalFailureFirstConclusion": "failure",
+    "originalFailureFirstStagePassCount": 485,
+    "originalFailureFirstStageFailCount": 7,
+    "preserveContractPassCount": 3,
+    "causalWp2FailCount": 7,
+    "closureMatrixUnknownBlockersAtFirstProduction": 0,
+    "unknownBlockers": 0,
+    "requiredFirstProductionTrailers": [
+      "Yance-Failure-First-Red-Head: 18f97f8aa272848e7134ea795b925473412e5cd2",
+      "Yance-Failure-First-Red-Run: 32203018666",
+      "Yance-Failure-First-Red-Conclusion: failure",
+      "Yance-Closure-Matrix-Unknown-Blockers: 0"
+    ],
+    "requiredContinuationTopology": {
+      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
+      "firstContinuationCommitMustBeTwoParentMerge": true,
+      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
+      "firstContinuationCommitSecondParent": "18f97f8aa272848e7134ea795b925473412e5cd2",
+      "historyRewriteForbidden": true,
+      "cherryPickDuplicationForbidden": true,
+      "oldImplementationBranchMustNotReceiveFurtherCommits": true
+    }
+  },
+  "causalRedClassification": {
+    "greenPreserveContracts": [
+      "Element ProductExperienceShell remains the active production renderer and retired frontend stays outside active mounts.",
+      "Bilingual search retains the durable translation create/read/cancel/retry lifecycle.",
+      "Relationship tools retain Matrix bridge identity, canonical Store conversation resolution, fail-closed ambiguous/unresolved routing, and Media/Presence/Voice child-workspace composition."
+    ],
+    "learningRoot": [
+      "Learning runtime wrapper declares invokeLearningCoachAction/getLearningWorkspaceSnapshot but current preload/M2 manifest exposes neither API.",
+      "Daily Review hard-codes completed/in-progress/pending rather than projecting actual Learning authority state.",
+      "LearningProposalApproval is visually rendered without real approve/deny actions; authoritative mutation is intentionally not implemented by Learning Coach and the card must become truthful read-only proposal output.",
+      "Privacy/Consent checkboxes are renderer-only useState values and therefore cannot claim product policy authority.",
+      "Existing durable Learning policy authority already exists in LearningPolicyRuntimeAdapter over OpenFeature/flagd and content-addressed promoted VW artifacts; existing Learning Coach tools already generate non-mutating review proposals. The missing root is Product bridge/projection, not Learning infrastructure."
+    ],
+    "voiceRoot": [
+      "VoiceBrainRuntime atomically persists local/private profile metadata and audio but exposes no metadata list/read projection, so VoiceWorkspace always restarts at profile=null.",
+      "desktop:voice-brain-transcribe already owns trusted file selection plus local ASR, but VoiceWorkspace never invokes transcribeVoiceAudio despite presenting local speech recognition as available."
+    ],
+    "preferenceRoot": [
+      "experiencePreferences.ts owns three localStorage keys and duplicates Product preference truth in the renderer.",
+      "Store already owns durable UI motionLevel/backgroundEffect mutation and snapshot projection.",
+      "R32DesktopSettings already owns Electron UI preference durability; its schema has no Product sound-mode field, so the correct bounded extension is one Product sound-mode key in the existing schema rather than a new settings store."
+    ],
+    "productionUiUatOnly": [
+      "Real WhatsApp/Telegram/Facebook account login, physical send/receive, platform-specific typing/read state, and provider recovery remain Production UI UAT because automated source audit cannot truthfully prove live external I/O without real accounts."
+    ],
+    "unknownBlockers": 0
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "Learning visible status is projected from real existing authorities or explicitly says unavailable/not configured; no hard-coded success/progress lifecycle is allowed.",
+      "Learning Coach proposal generation crosses the real desktop bridge but remains non-authoritative and cannot mutate Person/relationship/model authorities without a separate explicit review authority.",
+      "Learning Privacy/Consent surfaces explain enforced policy/state and do not expose renderer-only switches as product settings.",
+      "Voice profiles are rediscovered from local/private durable metadata after workspace remount/restart, without exposing raw sample bytes or arbitrary filesystem paths.",
+      "Voice local ASR has an actual user action using the existing trusted file picker and transcribe channel.",
+      "Sound, motion and atmosphere settings rehydrate from durable existing authorities and persist through those authorities; renderer localStorage is not product truth.",
+      "Search/translation, Relationship, Media and Presence preserve contracts remain unchanged.",
+      "Live external-platform verification remains explicitly Production UI UAT-only."
+    ],
+    "forbiddenBehavior": [
+      "Do not create a Learning proposal database, product settings store, second renderer, new IPC framework, new backend route, compatibility fallback, hidden fake control, or duplicate authority.",
+      "Do not claim Learning approval if no approve/deny mutation authority exists.",
+      "Do not expose Voice raw local paths/sample bytes to renderer when bounded metadata is sufficient.",
+      "Do not weaken gates/scanners or modify workflow/routing policy to pass."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_MATURE_AUTHORITIES_AND_REPOSITORY_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {"name":"OpenFeature + flagd + existing LearningPolicyRuntimeAdapter","source":"trusted-main existing Learning Growth Brain composition","license":"Apache-2.0 plus repository-owned thin adapter","adoptionMode":"preserve-existing-authority","fit":"FIT","reason":"Already owns durable promoted-policy rollout/restart resolution; Product needs projection only."},
+      {"name":"Letta + assistant-ui/tool-ui existing Learning Coach seam","source":"trusted-main pinned Learning Growth Brain composition","license":"Apache-2.0 / MIT as already reviewed","adoptionMode":"preserve-existing-authority","fit":"FIT","reason":"Existing coach tool seam creates review proposals; no second proposal engine or approval authority is required."},
+      {"name":"Existing Voice Brain SenseVoice/CosyVoice runtime","source":"electron/voiceBrainRuntime.js plus current Voice M2 IPC","license":"existing reviewed receipts","adoptionMode":"extend-existing-profile-projection","fit":"FIT","reason":"Durable local/private profiles and ASR already exist; bounded list projection and UI consumption close the gap."},
+      {"name":"Existing Store UI state + R32DesktopSettings","source":"electron/r32StoreBridge.js, backend Store UI authority, electron/r32DesktopSettings.js","license":"repository-existing","adoptionMode":"preserve-existing-authority","fit":"FIT","reason":"Already owns durable UI preferences; Product localStorage must converge onto it."}
+    ],
+    "retireOrAvoid": [
+      "Renderer-local fake Learning progress/privacy/consent authority.",
+      "Decorative Learning approval actions without mutation authority.",
+      "Renderer localStorage as Product sound/motion/atmosphere truth.",
+      "Any new general-purpose Learning/settings/IPC infrastructure."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered Fast Feedback",
+      "ACV2",
+      "Model Windows when triggered",
+      "Product Final contracts when triggered"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesProductionImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
