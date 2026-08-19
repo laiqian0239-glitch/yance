@@ -6,169 +6,199 @@ Trusted design base: `main@279c720d5e8750d83e08069c95d2b1fbd245e8e7`
 
 ## 1. Goal
 
-Promote Facebook Personal Messenger from the old isolated experimental browser-session contract into a production-capable Yance connector whose platform login/session/message authority is mature OSS `mautrix/meta`, while keeping Yance as the thin business/domain adapter only.
+Promote Facebook Personal Messenger from the old isolated experimental browser-session contract into a production-capable Yance connector whose platform login/session/message authority is mature OSS `mautrix/meta`, while keeping Yance as a thin business/domain adapter.
 
 Target data plane:
 
 `Facebook Personal Messenger -> mautrix/meta -> Matrix/Synapse -> Yance canonical account/message boundary`
 
-This work package is independent from Facebook Page. `facebook-page-official` remains unchanged.
+Facebook Page is independent and remains unchanged.
 
 ## 2. Existing verified evidence
 
-Real-account Facebook Personal username/password login has already been successfully exercised in prior lab work. This design therefore treats **authentication feasibility as already verified** and does not require repeating login merely to prove that a Facebook personal account can authenticate.
+Real-account Facebook Personal **username/password login already succeeded** in prior lab work. Authentication feasibility is therefore already verified and must not be reclassified as a fresh RED merely because older Lab snapshots still say `authentication=unverified`.
 
-The earlier Lab R12/runtime snapshots that still say `authentication=unverified` predate that later real-account login result and are historical evidence, not the current acceptance classification.
+Those old snapshots predate the later real-account login result and remain historical evidence only.
 
-Final production promotion still requires a durable evidence receipt tying the already-proven login path to the exact selected `mautrix/meta` build/config and to restart/recovery behavior. That is evidence capture, not a request to rediscover login feasibility.
+Final promotion still needs a durable receipt tying the already-proven login path to the exact selected upstream build/config and to restart/recovery behavior. That is evidence capture, not rediscovery of login feasibility.
 
-## 3. Root problem on current main
+## 3. Fresh upstream evidence and selected login family
 
-Current Yance still contains the historical `facebook-personal-messenger-experimental` driver contract with `isolated-browser-session` and UI copy that deliberately disables onboarding because the old browser bridge was never accepted as production authority.
+Fresh upstream review on 2026-08-19 found `mautrix/meta` release line `v26.08` with exact version-bump commit `9e6484d7bb46078fda661b03e2aa28c0a1b4db70` as the current stable candidate for later executable authorization.
 
-That contract is now the wrong owning layer for the intended product:
+At that exact source, BridgeV2 exposes four login flows:
 
-- browser automation/session emulation is not the target authority;
-- Facebook Page and Personal Messenger have different protocol/capability semantics;
-- the persisted `platform_driver_profiles` row can preserve stale browser-session authority even if runtime registry code changes;
-- current platform capability projection is keyed only by `facebook`, so Page capability truth cannot safely be reused for Personal Messenger where capabilities differ.
+- `facebook` — cookies from facebook.com;
+- `messenger` — cookies from messenger.com;
+- `messenger-lite` — Messenger iOS native username/password flow;
+- `messenger-lite-android` — Messenger Android native username/password flow.
 
-The permanent repair must remove those authority mismatches instead of hiding the disabled state in UI.
+The same release improves the iOS Messenger login mode and adds Android Messenger login.
 
-## 4. OSS-fit decision
+**Production design decision:** this work package selects the native Messenger username/password family (`messenger-lite`, with `messenger-lite-android` as the same upstream family) and does **not** admit cookie/browser login as the default production path.
 
-Selected mature OSS family: `mautrix/meta`.
+This directly matches the already-successful username/password testing and removes any need to build or own a Yance browser-login mechanism.
 
-Adoption mode: external sidecar / Matrix Application Service. Yance does not fork Meta protocol logic, browser DOM flows, reconnect state machines, session stores, message parsers, attachment transports, read-receipt logic, typing logic, or duplicate suppression.
+The later executable authorization must freshly revalidate the exact stable pin before granting implementation authority; this design does not authorize a floating tag.
 
-The exact stable release/commit must be freshly revalidated in the later executable authorization. The design may not authorize a mutable branch or floating image tag.
+## 4. Root problem on current main
 
-No Playwright/Selenium/DOM scraping/browser bot framework is admitted.
+Current Yance still contains the historical `facebook-personal-messenger-experimental` contract with `isolated-browser-session`, and the Unified Account Center deliberately disables Personal Messenger because the old browser bridge was never accepted as production authority.
+
+That is now the wrong owning layer:
+
+- the intended authority is mature `mautrix/meta`, not Yance browser-session automation;
+- Facebook Page and Personal Messenger have different protocol/capability truth;
+- persisted `platform_driver_profiles` can retain stale browser-session authority even if runtime registry code changes;
+- current capability projection is keyed only by `facebook`, so Page Graph API capability truth cannot safely stand in for Personal Messenger.
+
+The permanent repair must remove these authority mismatches instead of only changing UI text.
+
+## 5. OSS-fit decision
+
+Selected mature OSS: `mautrix/meta`.
+
+Adoption mode: external sidecar / Matrix Application Service.
+
+Yance does not fork or reimplement:
+
+- Meta protocol logic;
+- username/password login protocol;
+- challenge/2FA progression supported by upstream;
+- reconnect/session state machines;
+- message parsing or transport;
+- attachments;
+- read/typing behavior;
+- upstream event identifiers or bridge-side duplicate suppression.
+
+No Playwright/Selenium/DOM-scraping/browser-bot framework is admitted into Yance. Cookie/browser login flows from upstream are outside this V1 production path unless a future separately authorized package proves they are required.
 
 No new Yance connector framework is admitted.
 
-## 5. Authority boundaries
+## 6. Authority boundaries
 
-### 5.1 mautrix/meta owns
+### 6.1 mautrix/meta owns
 
-- Facebook Personal Messenger login/session protocol;
-- 2FA/challenge flow where supported upstream;
+- native Messenger username/password login/session protocol;
+- upstream challenge/2FA/checkpoint behavior;
 - session persistence and reconnect;
-- platform receive/send protocol;
+- receive/send protocol;
 - attachment transport supported by upstream;
-- read receipts and typing where supported upstream;
-- upstream message/event identifiers and bridge-side duplicate suppression;
-- bridge health and exact upstream version identity.
+- read receipts and typing where supported;
+- bridge-side event identity and duplicate suppression;
+- bridge health and upstream version identity.
 
-### 5.2 Matrix/Synapse owns
+### 6.2 Matrix/Synapse owns
 
-- Application Service event transport;
-- room/timeline event persistence and replay;
-- appservice registration and authenticated bridge delivery.
+- Application Service transport;
+- room/timeline persistence and replay;
+- authenticated appservice delivery.
 
-### 5.3 Yance owns only
+### 6.3 Yance owns only
 
-- mapping the existing `personal-messenger` account kind to the mature OSS driver;
-- account lifecycle projection into existing AccountManager contracts;
+- mapping existing `personal-messenger` account kind to the mature OSS driver;
+- projecting upstream account state into existing AccountManager lifecycle contracts;
 - canonical message/contact/conversation projection from Matrix public boundaries;
 - existing SendQueue/Outbox integration;
-- Product Account Center presentation and risk disclosure;
+- Unified Account Center presentation/risk disclosure;
 - product-scoped diagnostics and release evidence.
 
-Yance must not own Facebook passwords, raw cookies, protocol emulation, or a parallel message/session database.
+Yance must not own Facebook passwords, raw cookies, Meta protocol emulation, or a parallel message/session database.
 
-## 6. Login and secret handling
+## 7. Login and secret handling
 
-The user-facing entry remains the existing Unified Account Center `Facebook -> personal-messenger` option.
+User entry remains the existing Unified Account Center `Facebook -> personal-messenger` option.
 
-The old disabled text about an unfinished browser bridge is replaced by the mature bridge login state and explicit non-official-service risk disclosure.
+The old disabled “browser bridge unfinished” state is replaced by the mature BridgeV2 native Messenger login flow.
 
 Secrets are fail-closed:
 
-- Facebook password/cookies/session tokens must never be committed to the repository;
+- Facebook password is transient input to the upstream native login flow and must not be committed or persisted as a duplicate Yance credential;
+- cookie-mode credentials are not part of this V1 product path;
 - Matrix Application Service tokens must never be committed;
-- upstream-generated `registration.yaml` and runtime config containing secrets stay in local runtime storage;
+- upstream-generated `registration.yaml` and runtime secret-bearing config stay in local runtime storage;
 - repository files may contain only safe templates/placeholders and deterministic generation instructions;
-- Yance SecureStorage may retain only references/receipts needed for lifecycle projection, not duplicate the upstream session database.
+- Yance SecureStorage may retain references/receipts needed for lifecycle projection, not the upstream session database.
 
-## 7. Runtime topology
+## 8. Runtime topology
 
-The existing Matrix runtime remains the shared transport substrate. Facebook Personal adds one isolated `mautrix/meta` sidecar/service instance bound to the existing Synapse Application Service interface.
+The existing Matrix runtime remains the shared substrate. Facebook Personal adds one isolated `mautrix/meta` sidecar/service instance bound through the existing Synapse Application Service interface.
 
-Production runtime must use upstream-generated Application Service registration. Synapse must explicitly register that file through its supported appservice configuration. Ephemeral events must be enabled where required for typing/read-state behavior.
+Production runtime must use upstream-generated Application Service registration. Synapse must explicitly register it through the supported appservice configuration. Ephemeral events must be enabled where required for typing/read-state behavior.
 
-A Facebook Personal connector failure is account/platform scoped and must not stop WhatsApp, Telegram, Facebook Page, AI, or unrelated Yance work.
+A Facebook Personal failure is account/platform scoped and must not stop WhatsApp, Telegram, Facebook Page, AI, or unrelated Yance work.
 
-## 8. Capability truth
+## 9. Capability truth
 
-Capability truth becomes **driver-aware**, not merely `platform=facebook` aware.
+Capability truth becomes **driver/account-kind aware**, not merely `platform=facebook` aware.
 
-`facebook-page-official` keeps its existing Page contracts.
+`facebook-page-official` keeps its current Page contracts.
 
-`facebook-personal-messenger-*` receives only capabilities proven by the exact `mautrix/meta` upstream and executable contract tests. Unsupported or unverified capabilities remain false/partial and are not borrowed from Page Graph API behavior.
+Facebook Personal receives only capabilities proven by the exact `mautrix/meta` source and executable tests. Unsupported or unverified capabilities remain false/partial and are never borrowed from Page Graph API behavior.
 
-Minimum production-closure evidence set:
+Minimum closure evidence:
 
-1. already-proven real-account authentication bound to exact selected upstream;
+1. already-proven username/password authentication bound to exact upstream;
 2. identity projection;
-3. initial/history synchronization supported by upstream;
+3. history/backfill supported by upstream;
 4. live receive;
 5. text send;
-6. attachment receive/send where upstream supports it;
-7. read receipt;
-8. typing state where upstream supports it;
-9. reconnect after transient disconnect;
-10. clean process restart with session recovery;
+6. attachment receive/send where supported;
+7. read receipt where supported;
+8. typing where supported;
+9. transient reconnect;
+10. clean process restart/session recovery;
 11. duplicate suppression/idempotent projection;
-12. multi-account isolation if more than one account is configured;
+12. multi-account isolation when multiple accounts are configured;
 13. bounded send/receive latency observation;
 14. logout/session-expiry behavior.
 
-Reaction/reply/group semantics are accepted only if upstream exact-source verification proves them. They are not assumed.
+Reaction/reply/group semantics are accepted only when exact-source verification proves them.
 
-## 9. Persistent authority migration
+## 10. Persistent authority migration
 
 Historical migrations remain immutable.
 
-A new forward migration must replace the stale persisted driver profile semantics for Facebook Personal Messenger. The migration may update/add the active profile to the new mature-OSS authority and retire the browser-session profile from active selection without rewriting Batch42 history.
+A new forward migration must replace stale active Facebook Personal driver-profile semantics. It may add/update the mature-OSS active profile and retire `isolated-browser-session` from active selection without rewriting Batch42 history.
 
-Fresh install and upgraded existing databases must converge on the same active driver truth.
+Fresh install and upgraded databases must converge on the same driver truth.
 
-## 10. Existing Yance seams to reuse
+## 11. Existing Yance seams to reuse
 
-The implementation must preferentially reuse:
+Prefer existing:
 
 - `backend/services/accountManagerCore.js` lifecycle/saga authority;
 - `backend/services/platformDriverRegistry.js` driver dispatch;
 - existing account routes and Unified Account Center;
-- Matrix/Synapse runtime already used by Product communications;
-- existing `messageStore` / canonical conversation projection boundaries;
-- existing `sendQueueService` and platform delivery authority;
-- existing scoped safety model;
-- existing Product capability presentation.
+- Matrix/Synapse runtime;
+- canonical message/contact/conversation projection boundaries;
+- existing `sendQueueService` / Outbox / delivery authority;
+- scoped safety model;
+- Product capability presentation.
 
 A new general-purpose bridge manager, session manager, connector framework, queue, or event bus is forbidden.
 
-## 11. Failure-first requirements
+## 12. Failure-first requirements
 
-The future implementation authorization must require a tests-only first commit demonstrating at least these causal REDs on fresh trusted main:
+The future executable authorization must require tests-only first commit(s) proving causal REDs for at least:
 
-- Personal Messenger remains selected as `isolated-browser-session` / old experimental authority;
-- onboarding is disabled despite mature OSS authority being selected;
-- persisted driver profile still contains stale browser-session truth;
-- Facebook capability projection conflates Page and Personal Messenger;
-- no production Matrix Application Service binding for `mautrix/meta` exists;
-- restart/recovery and duplicate-suppression contracts are not yet wired into the Yance account/message boundary.
+- old `facebook-personal-messenger-experimental` / `isolated-browser-session` selection;
+- disabled Account Center onboarding;
+- stale persisted driver profile;
+- Page-vs-Personal capability conflation;
+- missing production Matrix Application Service binding for `mautrix/meta`;
+- missing native Messenger BridgeV2 login projection in the existing account lifecycle;
+- missing restart/recovery and duplicate-projection closure.
 
-Production changes are forbidden until the causal RED set is captured and the closure matrix has no unknown blocker.
+Production changes are forbidden until causal RED is captured and the closure matrix has no unknown blocker.
 
-## 12. UAT boundary
+## 13. UAT boundary
 
 The already-successful username/password login is inherited evidence and must not be needlessly repeated.
 
-Real-platform UAT still remains necessary for the **post-login** production closure: send, receive, history, attachments, read/typing where supported, restart recovery, session expiry, and multi-account isolation. Those checks happen only after automated/source closure is GREEN and are separate from pre-launch source auditing.
+Real-platform UAT remains necessary only for the **post-login production closure** and for binding the prior successful login to the exact selected upstream/runtime receipt: send, receive, history, attachments, read/typing where supported, reconnect, restart/session recovery, session expiry/logout, and multi-account isolation.
 
-## 13. Non-goals
+## 14. Non-goals
 
 This work package does not:
 
@@ -177,11 +207,12 @@ This work package does not:
 - add AI automatic reply/auto-chat;
 - change Persona/Learning/Relationship/Model Brain authority;
 - add browser automation;
-- weaken any gate/scanner/authorization policy;
-- perform force-push/rebase/squash history rewriting.
+- use cookie/browser login as the default V1 production path;
+- weaken gates/scanners/authorization;
+- use force-push/rebase/squash.
 
-## 14. Merge/governance boundary
+## 15. Governance boundary
 
 This design grants no implementation authority.
 
-A separate fresh-main authorization must freeze the exact upstream pin, exact implementation paths, exact failure-first paths, OSS-fit evidence, migration scope, tests, and ordinary two-parent merge rules before any production code is changed.
+A separate fresh-main authorization must freeze the final exact upstream pin, exact implementation paths, exact failure-first paths, OSS-fit evidence, migration scope, tests, and ordinary two-parent merge rules before any production code is changed.
