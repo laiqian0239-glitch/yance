@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-19T07:30:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FUNCTIONAL-INTEGRITY-UX-CONSISTENCY-WP2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh trusted-main pre-launch audit after ordinary PR #491 merge proves Product functional-integrity gaps that must be failure-first classified before production scope is authorized: Learning exposes visible Product surfaces whose current renderer uses hard-coded progress/explanatory placeholders and renderer-only privacy/consent state while its declared desktop methods have no current preload/M2 bridge; Voice persists local/private profiles but has no list/get rehydration contract, so a remounted/restarted workspace cannot recover the saved profile into UI; and Product Experience sound/motion/atmosphere preferences remain renderer-local even though trusted Store bridge already owns durable UI motion/background authorities. This authorization intentionally grants only one diagnostic test path. No production path is pre-authorized. Fast Closure V2 post-RED amendment must add only paths proven necessary by fresh exact-head causal RED and a complete closure matrix, preventing guessed scope, workaround changes, gate weakening, or new infrastructure.",
+  "base": {
+    "branch": "main",
+    "commit": "e000b39f0fcec7ea3303c957f9ceeeb3f8a675a2"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "e000b39f0fcec7ea3303c957f9ceeeb3f8a675a2",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-functional-integrity-ux-consistency-wp2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-functional-integrity-ux-consistency-wp2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c9b3b8cf652e773f2d4ae5682736b3aa4b4c128c75509093db796aaba850539d",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-functional-integrity-ux-consistency-wp2",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a65bfb7f6c11530f91a8bf0929ba00875ced8558e4244969f78617d997119cdf",
+    "productionScopeAuthorized": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "a65bfb7f6c11530f91a8bf0929ba00875ced8558e4244969f78617d997119cdf",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "Learning visible surfaces are not all backed by current real bridge/backend/durable authorities; hard-coded progress/informational-only pages and renderer-only privacy/consent state are rejected.",
+        "Learning runtime wrapper declares invokeLearningCoachAction/getLearningWorkspaceSnapshot while current preload/M2 manifest has no matching Product bridge contract.",
+        "Voice local/private profile persistence has no list/get rehydration channel and VoiceWorkspace cannot recover saved profile metadata after remount/restart.",
+        "Product Experience visible preference state must not persist through direct localStorage when an existing Store-backed UI authority is available; motion/background settings must use the existing Store seam and restart projection.",
+        "Current Product authority inventory must distinguish production-reachable Element Product surfaces from retired legacy frontend source and classify production-account-only verification as Production UI UAT rather than fabricate automated evidence."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true,
+      "newImplementationContinuationRequiredAfterAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Trusted main is freshly read and equals base.commit.",
+      "Authorization proposal is exactly one file and starts from base.commit.",
+      "Implementation branch starts exactly from the effective ordinary authorization merge.",
+      "The one-path diagnostic set/count/SHA-256 exactly matches this document and is recognized as PRODUCT_WP0 without route bootstrap.",
+      "Fresh current-main source proves ProductExperienceShell is the active Product renderer and legacy frontend is retired from production authority.",
+      "Fresh source proves LearningWorkspace/learningAssistantRuntime mismatch, Voice profile rehydration gap, and Product preference localStorage bypass before tests are committed.",
+      "No production path, dependency, workflow, route policy, database, service, sidecar or new general-purpose Yance infrastructure is authorized by this revision."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "auditInventory": {
+    "productRendererAuthority": "Element / Matrix ProductExperienceShell",
+    "retiredLegacyFrontendClassification": "HISTORICAL_SOURCE_ONLY_NEGATIVE_PROOF",
+    "buckets": [
+      {"id":"WP2-A","name":"Learning functional integrity","classification":"CAUSAL_RED_CANDIDATE"},
+      {"id":"WP2-B","name":"Voice profile lifecycle recovery","classification":"CAUSAL_RED_CANDIDATE"},
+      {"id":"WP2-C","name":"Product visible preferences","classification":"CAUSAL_RED_CANDIDATE"},
+      {"id":"WP2-D","name":"Search and durable translation lifecycle","classification":"PRESERVE_PENDING_EXECUTABLE_REGRESSION"},
+      {"id":"WP2-E","name":"Relationship goal/intelligence surfaces","classification":"PRESERVE_PENDING_EXECUTABLE_REGRESSION"},
+      {"id":"WP2-F","name":"Media and Presence workspaces","classification":"PRESERVE_PENDING_EXECUTABLE_REGRESSION"},
+      {"id":"WP2-UAT","name":"Real account/platform verification","classification":"PRODUCTION_UI_UAT_ONLY"}
+    ]
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+      "PRODUCTION_UI_UAT_ONLY"
+    ],
+    "requiredBoundaries": [
+      "Learning visible controls and user-action claims",
+      "Learning proposal/evidence/evaluation/rollout/promotion/rollback/privacy/consent authorities",
+      "Voice durable profile lifecycle and renderer rehydration",
+      "Product sound/motion/atmosphere preference persistence and existing Store UI authority",
+      "Search/translation durable job lifecycle",
+      "Relationship Parlant/Graphiti/Letta/Matrix authority boundaries",
+      "Media Immich/ComfyUI and Presence LiveKit/CyberVerse authority boundaries",
+      "retired legacy frontend negative proof",
+      "real platform-login-only paths classified to Production UI UAT",
+      "negative proof that no gate/scanner weakening, workaround, fallback, second renderer, duplicate authority or unapproved infrastructure is introduced"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_MATURE_AUTHORITIES_AND_REPOSITORY_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {"name":"Existing Learning OSS composition","source":"Langfuse + OpenTelemetry + DSPy/GEPA + Promptfoo + OpenFeature/flagd + Letta + assistant-ui/tool-ui already pinned in trusted main","license":"existing reviewed receipts","adoptionMode":"reuse-existing-authorities","fit":"FIT","reason":"The gap is Product bridge/projection integrity, not absence of a Learning framework."},
+      {"name":"Existing R32 Store bridge/UI state authority","source":"electron/r32StoreBridge.js + backend/routes/store.js","license":"repository-existing","adoptionMode":"reuse-existing-seam","fit":"FIT","reason":"Already owns backend UI snapshot/theme/motion/background-effect transport and durable state; Product localStorage duplication should be retired rather than expanded."},
+      {"name":"Existing Voice Brain runtime","source":"electron/voiceBrainRuntime.js + current M2 Voice IPC","license":"repository-existing over pinned SenseVoice/CosyVoice authorities","adoptionMode":"extend-existing-profile-projection","fit":"FIT","reason":"Profiles are already durably local/private; only bounded metadata listing/rehydration is missing."}
+    ],
+    "retireOrAvoid": [
+      "Do not create a second Learning engine, proposal store, rollout engine, voice profile database, product settings store, IPC framework, scanner or audit framework.",
+      "Do not preserve dead/decorative controls with hard-coded success/progress states.",
+      "Do not re-enable retired legacy frontend as a second Product renderer.",
+      "Do not claim real platform physical I/O without Production UI UAT."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focusedAfterDiagnostic": ["node --test tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js"],
+    "exactHeadCi": ["Stage","ACV2","Layered/WP-A validation when triggered","Model validation when triggered","Product Final contracts when triggered"],
+    "independentReview": {"required":true,"exactHeadRequired":true,"blockingSeverities":["P0","P1"],"requiredZeroBlockingFindings":true}
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
