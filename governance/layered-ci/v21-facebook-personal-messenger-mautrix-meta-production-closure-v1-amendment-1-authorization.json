@@ -3,19 +3,18 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-FB-PERSONAL-MSG-MAUTRIX-META-CLOSURE-V1-AMENDMENT-1",
-  "proposalRevision": 2,
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Fresh post-failure-first source audit proved that the already-merged design requires native mautrix/meta messenger-lite username/password login projection through the existing durable PlatformAuthWorkflowAuthority. The original executable authorization includes routes, AccountContext, AccountManager, shared contracts and Account Center surfaces, but omitted backend/services/platformAuthWorkflowAuthority.js even though that authority currently enumerates only Telegram and Facebook Page OAuth continuation operations. Calling BridgeV2 provisioning directly from routes would bypass the durable auth workflow and be a workaround. This amendment adds exactly that one owning-layer path, preserves the causal RED head unchanged, and requires a strict two-parent continuation from the effective amendment merge plus the frozen failure-first head.",
+  "reason": "Fresh post-failure-first source audit proved that the already-merged design requires native mautrix/meta messenger-lite username/password login projection through the existing durable PlatformAuthWorkflowAuthority. The original executable authorization includes routes, AccountContext, AccountManager, shared contracts and Account Center surfaces, but omitted backend/services/platformAuthWorkflowAuthority.js even though that authority currently enumerates only Telegram and Facebook Page OAuth continuation operations. Calling BridgeV2 provisioning directly from routes would bypass the durable auth workflow and be a workaround. This amendment adds exactly that one owning-layer path, preserves the causal RED head unchanged, and uses the repository's existing forwardContinuation protocol for the strict two-parent successor.",
   "supersedes": {
     "authorizationPath": "governance/layered-ci/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-authorization.json",
-    "authorizationMerge": "430460d117849b01fb0db1b1df0df03bebdada09",
     "implementationBranch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1",
-    "frozenImplementationHead": "8bfae7bac52fd4aba54abdbe9c80a47ee19f5094",
-    "reason": "The frozen first implementation commit remains immutable causal RED evidence. No production code has been committed on the predecessor branch."
+    "reason": "Supersede the original implementation authority after frozen causal RED head 8bfae7bac52fd4aba54abdbe9c80a47ee19f5094 proved one missing owning-layer auth-workflow path; the predecessor branch remains immutable evidence and is not rewritten."
   },
   "base": {
     "branch": "main",
-    "commit": "430460d117849b01fb0db1b1df0df03bebdada09"
+    "commit": "430460d117849b01fb0db1b1df0df03bebdada09",
+    "requiredFreshAtAuthorizationMerge": true
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
@@ -47,6 +46,11 @@
   },
   "implementation": {
     "branch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "8bfae7bac52fd4aba54abdbe9c80a47ee19f5094"
+    },
     "allowedChangedPaths": [
       "THIRD_PARTY_NOTICES.md",
       "backend/core/accountContext.js",
@@ -104,24 +108,24 @@
     "historicalMigrationModificationAllowed": false,
     "newGeneralPurposeYanceInfrastructureAllowed": false
   },
-  "postRedContinuation": {
+  "predecessorEvidence": {
+    "pullRequest": 505,
+    "branch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1",
+    "frozenHead": "8bfae7bac52fd4aba54abdbe9c80a47ee19f5094",
     "originalEffectiveAuthorizationMerge": "430460d117849b01fb0db1b1df0df03bebdada09",
-    "originalImplementationBranch": "product/v21-facebook-personal-messenger-mautrix-meta-production-closure-v1",
-    "originalFailureFirstHead": "8bfae7bac52fd4aba54abdbe9c80a47ee19f5094",
-    "originalFailureFirstConclusion": "failure",
-    "originalFailureFirstStagePassCount": 492,
-    "originalFailureFirstStageFailCount": 4,
+    "originalFailureFirstResult": "496 tests / 492 pass / 4 causal RED",
     "provenNewScopePaths": ["backend/services/platformAuthWorkflowAuthority.js"],
-    "unknownBlockers": 0,
-    "requiredContinuationTopology": {
-      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
-      "firstContinuationCommitMustBeTwoParentMerge": true,
-      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
-      "firstContinuationCommitSecondParent": "8bfae7bac52fd4aba54abdbe9c80a47ee19f5094",
-      "historyRewriteForbidden": true,
-      "cherryPickDuplicationForbidden": true,
-      "oldImplementationBranchMustNotReceiveFurtherCommits": true
-    }
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "8bfae7bac52fd4aba54abdbe9c80a47ee19f5094",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true
   },
   "causalRedClassification": {
     "rootCause": "The existing PlatformAuthWorkflowAuthority continuation/cancel operation sets do not recognize the durable multi-step mautrix/meta messenger-lite login workflow required by the merged design, while bypassing this authority would violate the repository's durable auth lifecycle.",
@@ -190,5 +194,15 @@
     "publishAuthorized": false,
     "readyForPromotionAuthorized": false,
     "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
   }
 }
