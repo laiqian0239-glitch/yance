@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-AI-AUTO-CONVERSATION-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Pre-launch product audit confirms the existing Reply Brain, Persona truth firewall, TypingStateService, durable Outbox, SendQueue and platform adapters already own the production reply path, while the product still hardcodes human approval and final send confirmation. This bounded work package adds durable per-conversation HUMAN/AI_ASSIST/AI_AUTO authorization, explicit fail-closed manual takeover, automatic approval/send receipts through the existing Outbox authority, and local temporal plus authoritative Persona lifeStatus context. It creates no second scheduler, queue, reply engine, persona engine or transport authority.",
+  "base": {
+    "branch": "main",
+    "commit": "8ba6d6a7f1f08671e91e5952674612cd745c3194",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "8ba6d6a7f1f08671e91e5952674612cd745c3194",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ai-auto-conversation-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ai-auto-conversation-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "44085cf9b7ae324315303d98e37466715a4f81ee81dfc1a4f5cef608bc8b74ee",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-ai-auto-conversation-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/personaBrain/compiler.js",
+      "backend/routes/store.js",
+      "backend/services/aiReplyOutboxService.js",
+      "backend/services/contextAwareReplyBrain.js",
+      "backend/store/adapters/SqliteStorePersistenceAdapter.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/store/commands/registerRuntimeStateCommands.js",
+      "backend/tests/v21ProductAiAutoConversationP0.test.js",
+      "frontend/js/r32-conversation-center-v3.js",
+      "frontend/js/r32-store-client.js",
+      "tests/uat/v21-product-ai-auto-conversation-p0.test.js"
+    ],
+    "approvedChangedFileCount": 11,
+    "approvedChangedFileSetSha256": "dec1a35833a064e3e284d4b49d3e96758711f61929178358cb02faf15d18e7c8",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "backend/tests/v21ProductAiAutoConversationP0.test.js",
+        "tests/uat/v21-product-ai-auto-conversation-p0.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "e2aa4a367201c2564dc819db13e732662c4dfec956f94eece32f39189e8567fc"
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "productContract": {
+    "modes": ["HUMAN", "AI_ASSIST", "AI_AUTO"],
+    "defaultMode": "HUMAN",
+    "aiAssistRequiresHumanApproval": true,
+    "aiAutoRequiresDurableModeReceipt": true,
+    "aiAutoUsesExistingReplyBrain": true,
+    "aiAutoUsesExistingOutboxAndSendQueue": true,
+    "manualTakeoverFailsClosedBeforePhysicalSend": true,
+    "staleConversationAndPersonaChecksRemainRequired": true,
+    "naturalTypingAndPresenceRemainRequired": true,
+    "noSecondSchedulerOrQueue": true,
+    "temporalContext": ["localDate", "localTime", "weekday", "daypart", "timeZone"],
+    "lifeStatusAuthority": "authoritative.personaProfile.lifeStatus",
+    "temporalContextMustNotFabricateActivity": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_MATURE_REPOSITORY_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Reply Brain + Persona truth firewall",
+        "source": "backend/services/contextAwareReplyBrain.js + backend/personaBrain/*",
+        "license": "repository scope",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already owns context-aware candidate generation, Persona version binding and truth-safe live reply constraints."
+      },
+      {
+        "name": "Existing StoreManager + durable Outbox + SendQueue + TypingStateService",
+        "source": "backend/store/* + backend/services/aiReplyOutboxService.js + sendQueueService.js + typingStateService.js",
+        "license": "repository scope",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already owns durable approval/send state, stale rechecks, natural typing cadence and terminal platform delivery."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second automatic-reply queue or scheduler.",
+      "Do not create a second Persona or reply-generation engine.",
+      "Do not bypass Outbox, SendQueue, stale-context, truth-firewall, typing or platform authorities."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
