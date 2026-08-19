@@ -2,7 +2,7 @@
 
 const DESKTOP_SETTING_KEYS = Object.freeze([
   'windowX', 'windowY', 'windowWidth', 'windowHeight', 'windowMaximized',
-  'autoLaunch', 'minimizeToTray', 'closeToTray', 'startMinimized', 'theme',
+  'autoLaunch', 'minimizeToTray', 'closeToTray', 'startMinimized', 'theme', 'productSoundMode',
   'gifAutoplay', 'stickerAutoplay', 'pauseAnimationWhenHidden',
   'autoCheckUpdates', 'autoDownloadUpdates'
 ]);
@@ -15,7 +15,7 @@ const BUSINESS_SETTING_KEYS = Object.freeze([
 const DEFAULTS = Object.freeze({
   schemaVersion: 2,
   windowX: null, windowY: null, windowWidth: 1520, windowHeight: 940, windowMaximized: false,
-  autoLaunch: false, minimizeToTray: false, closeToTray: true, startMinimized: false, theme: 'system',
+  autoLaunch: false, minimizeToTray: false, closeToTray: true, startMinimized: false, theme: 'system', productSoundMode: 'Essential only',
   gifAutoplay: true, stickerAutoplay: true, pauseAnimationWhenHidden: true,
   autoCheckUpdates: true, autoDownloadUpdates: false, updatedAt: ''
 });
@@ -41,6 +41,8 @@ function normalizeDesktopSettings(value = {}) {
   out.windowHeight = Math.max(600, Math.min(10000, Number(out.windowHeight || DEFAULTS.windowHeight)));
   const theme = String(value.theme || out.theme);
   out.theme = ['system','light','dark'].includes(theme) ? theme : 'system';
+  const productSoundMode = String(value.productSoundMode || out.productSoundMode);
+  out.productSoundMode = ['Off','Essential only','Immersive'].includes(productSoundMode) ? productSoundMode : 'Essential only';
   out.updatedAt = String(value.updatedAt || '').slice(0,64);
   return out;
 }

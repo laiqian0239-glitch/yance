@@ -14,6 +14,7 @@ type VoiceProfile = {
   voiceProfileId: string;
   label?: string;
   sampleLanguage?: string;
+  createdAt?: string;
   local?: boolean;
   private?: boolean;
   cancelled?: boolean;
@@ -34,6 +35,7 @@ type VoiceDesktopApi = {
   getVoiceBrainHealth: () => Promise<VoiceHealth>;
   transcribeVoiceAudio: (input?: Record<string, unknown>) => Promise<Record<string, unknown>>;
   enrollVoiceProfile: (input?: Record<string, unknown>) => Promise<VoiceProfile>;
+  listVoiceProfiles: () => Promise<VoiceProfile[]>;
   deleteVoiceProfile: (input: { voiceProfileId: string }) => Promise<{ deleted?: boolean }>;
   generateVoiceSpeech: (input: { voiceProfileId: string; text: string; language: string }) => Promise<VoiceOutput>;
   sendVoiceArtifact: (input: {
@@ -51,7 +53,9 @@ function voiceApi(): VoiceDesktopApi | null {
   const desktop = (window as unknown as { yanceDesktop?: Partial<VoiceDesktopApi> }).yanceDesktop;
   if (!desktop
     || typeof desktop.getVoiceBrainHealth !== "function"
+    || typeof desktop.transcribeVoiceAudio !== "function"
     || typeof desktop.enrollVoiceProfile !== "function"
+    || typeof desktop.listVoiceProfiles !== "function"
     || typeof desktop.deleteVoiceProfile !== "function"
     || typeof desktop.generateVoiceSpeech !== "function"
     || typeof desktop.sendVoiceArtifact !== "function") return null;
@@ -74,6 +78,7 @@ export function VoiceWorkspace({
   routeBinding,
 }: { routeBinding?: RelationshipToolRouteBinding }): React.JSX.Element {
   const [health, setHealth] = useState<VoiceHealth>({ available: false, degraded: true });
+  const [profiles, setProfiles] = useState<VoiceProfile[]>([]);
   const [profile, setProfile] = useState<VoiceProfile | null>(null);
   const [language, setLanguage] = useState("auto");
   const [replyText, setReplyText] = useState("");
@@ -96,10 +101,20 @@ export function VoiceWorkspace({
       setStatus("本地语音能力暂不可用");
       return () => { cancelled = true; };
     }
-    void api.getVoiceBrainHealth().then((next) => {
+    void Promise.allSettled([api.getVoiceBrainHealth(), api.listVoiceProfiles()]).then(([healthResult, profileResult]) => {
       if (cancelled) return;
-      setHealth(next || { available: false, degraded: true });
-      setStatus(next?.available ? "本地语音能力已就绪，声音样本仅保存在本机" : "本地语音能力暂不可用，请检查运行环境");
+      const nextHealth = healthResult.status === "fulfilled" ? healthResult.value : { available: false, degraded: true };
+      const savedProfiles = profileResult.status === "fulfilled" && Array.isArray(profileResult.value) ? profileResult.value : [];
+      setHealth(nextHealth || { available: false, degraded: true });
+      setProfiles(savedProfiles);
+      setProfile(savedProfiles[0] || null);
+      if (!nextHealth?.available) {
+        setStatus("本地语音能力暂不可用，请检查运行环境");
+      } else if (savedProfiles.length) {
+        setStatus(`本地语音能力已就绪，已恢复 ${savedProfiles.length} 个声音档案`);
+      } else {
+        setStatus("本地语音能力已就绪，尚未录入声音档案");
+      }
     }).catch(() => {
       if (!cancelled) setStatus("本地语音能力暂不可用");
     });
@@ -115,9 +130,10 @@ export function VoiceWorkspace({
         setStatus("已取消声音录入");
         return;
       }
+      setProfiles((current) => [next, ...current.filter((item) => item.voiceProfileId !== next.voiceProfileId)]);
       setProfile(next);
       setOutput(null);
-      setStatus("声音录入完成，样本仅保存在本机");
+      setStatus("声音录入完成，档案已持久保存在本机");
     } catch {
       setStatus("声音录入暂不可用");
     } finally {
@@ -130,11 +146,37 @@ export function VoiceWorkspace({
     setBusy(true);
     try {
       await api.deleteVoiceProfile({ voiceProfileId: profile.voiceProfileId });
-      setProfile(null);
+      const remaining = profiles.filter((item) => item.voiceProfileId !== profile.voiceProfileId);
+      setProfiles(remaining);
+      setProfile(remaining[0] || null);
       setOutput(null);
       setStatus("声音样本已从本机删除");
     } catch {
       setStatus("删除声音样本失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const transcribe = async (): Promise<void> => {
+    if (!api || busy) return;
+    setBusy(true);
+    setStatus("请选择要转写的语音文件");
+    try {
+      const result = await api.transcribeVoiceAudio({ language, translateToChinese: false });
+      if (result.cancelled === true) {
+        setStatus("已取消语音转写");
+        return;
+      }
+      const transcript = String(result.transcript || result.text || "").trim();
+      if (!transcript) {
+        setStatus("没有识别到可用文字");
+        return;
+      }
+      setReplyText(transcript);
+      setStatus("语音已转写到回复内容");
+    } catch {
+      setStatus("语音转写暂不可用");
     } finally {
       setBusy(false);
     }
@@ -212,20 +254,38 @@ export function VoiceWorkspace({
               {LANGUAGES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
+          <label>
+            已保存声音档案
+            <select
+              value={profile?.voiceProfileId || ""}
+              onChange={(event) => {
+                const next = profiles.find((item) => item.voiceProfileId === event.target.value) || null;
+                setProfile(next);
+                setOutput(null);
+              }}
+              disabled={busy || profiles.length === 0}
+            >
+              {profiles.length === 0 ? <option value="">尚未录入</option> : null}
+              {profiles.map((item) => <option key={item.voiceProfileId} value={item.voiceProfileId}>{item.label || item.voiceProfileId}</option>)}
+            </select>
+          </label>
           <div className="yance-voice-actions">
             <button type="button" title="Enroll" onClick={() => { void enroll(); }} disabled={busy}>录入声音</button>
             <button type="button" title="Delete" onClick={() => { void deleteProfile(); }} disabled={busy || !profile}>删除</button>
           </div>
           <dl>
-            <dt>声音档案</dt><dd>{profile?.voiceProfileId || "尚未录入"}</dd>
-            <dt>隐私</dt><dd>{profile ? "仅本机保存" : "没有保存声音样本"}</dd>
+            <dt>声音档案</dt><dd>{profile?.label || profile?.voiceProfileId || "尚未录入"}</dd>
+            <dt>隐私</dt><dd>{profile ? "仅本机持久保存" : "没有保存声音样本"}</dd>
             <dt>语音识别</dt><dd>{health.available ? "本地引擎" : "暂不可用"}</dd>
             <dt>语音合成</dt><dd>{health.available ? "本地引擎" : "暂不可用"}</dd>
           </dl>
         </fieldset>
 
         <fieldset>
-          <legend>智能回复转为你的声音</legend>
+          <legend>语音识别与智能回复转声音</legend>
+          <div className="yance-voice-actions">
+            <button type="button" onClick={() => { void transcribe(); }} disabled={busy || !health.available}>转写语音文件</button>
+          </div>
           <label>
             回复内容
             <textarea
@@ -233,7 +293,7 @@ export function VoiceWorkspace({
               maxLength={20000}
               rows={5}
               onChange={(event) => setReplyText(event.target.value)}
-              placeholder="输入或粘贴要用你的声音说出的回复。"
+              placeholder="输入、粘贴，或先转写语音文件，再用你的声音生成回复。"
             />
           </label>
           <div className="yance-voice-actions">
