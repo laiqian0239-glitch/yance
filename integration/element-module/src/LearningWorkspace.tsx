@@ -5,12 +5,12 @@ import { LearningCoachQuestion } from "./LearningToolUiAdapter";
 
 const SURFACES = [
   { id: "Overview", label: "概览" },
-  { id: "Daily Review", label: "当前状态" },
+  { id: "Daily Review", label: "每日回顾" },
   { id: "Learning Coach", label: "学习教练" },
   { id: "Evidence", label: "证据边界" },
   { id: "Proposals", label: "提案边界" },
   { id: "Experiments", label: "实验边界" },
-  { id: "Rollout", label: "灰度状态" },
+  { id: "Rollout", label: "灰度发布" },
   { id: "Promotion", label: "晋级状态" },
   { id: "Rollback", label: "回滚边界" },
   { id: "Privacy", label: "隐私" },
