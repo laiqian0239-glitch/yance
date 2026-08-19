@@ -18,6 +18,10 @@ const {
 } = require('../migrations/architectureClosureV2DomainEventProjectionJobsCanonical');
 const { ensureCanonicalProjectionReceiptSchema } = require('../migrations/projectionReceiptSchemaAuthority');
 const {
+  applyV21FacebookPersonalMessengerMautrixMetaProductionClosure,
+  TARGET_SCHEMA_VERSION: FACEBOOK_PERSONAL_MESSENGER_SCHEMA_VERSION
+} = require('../migrations/v21FacebookPersonalMessengerMautrixMetaProductionClosure');
+const {
   acquireAuthorityWriteHost,
   assertCurrentAuthorityWriteHostToken,
   requireAuthorityWriteHostCapability
@@ -25,7 +29,7 @@ const {
 const { claimOwnership, SqliteOwnershipError } = require('./sqliteOwnership');
 const { SqliteTransactionCoordinator } = require('../store/sqliteTransactionCoordinator');
 
-const SCHEMA_VERSION = Math.max(legacy.SCHEMA_VERSION, ACV2_DOMAIN_EVENT_PROJECTION_JOBS_CANONICAL_SCHEMA_VERSION);
+const SCHEMA_VERSION = Math.max(legacy.SCHEMA_VERSION, ACV2_DOMAIN_EVENT_PROJECTION_JOBS_CANONICAL_SCHEMA_VERSION, FACEBOOK_PERSONAL_MESSENGER_SCHEMA_VERSION);
 const LEGACY_ENGINE_PROTOTYPE = legacy.R32SqliteStoreOperations.prototype;
 
 function nowIso() {
@@ -378,6 +382,7 @@ R32SqliteStore.prototype.ensureSchema = function ensureSchema() {
     applyArchitectureClosureV2WpA(this.db);
   }
   applyArchitectureClosureV2DomainEventProjectionJobsCanonical(this.db);
+  applyV21FacebookPersonalMessengerMautrixMetaProductionClosure(this.db);
   ensureCanonicalProjectionReceiptSchema(this.db);
 };
 R32SqliteStore.prototype.governSchemaVersion = function governSchemaVersionMethod(preflight) {

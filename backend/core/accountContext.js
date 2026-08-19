@@ -72,6 +72,10 @@ class AccountContext {
           case 'facebook.oauth.status': return { flow: await this.accountManager.pollFacebookOAuth(accountId, request.flowId, physicalOperationOptions(request)) };
           case 'facebook.oauth.selectPage': return this.accountManager.selectFacebookPage(accountId, request.flowId, request.pageId, physicalOperationOptions(request));
           case 'facebook.oauth.cancel': return { flow: await this.accountManager.cancelFacebookOAuth(accountId, request.flowId, physicalOperationOptions(request)) };
+          case 'facebook.messenger.start': return this.accountManager.startFacebookMessengerLogin(accountId, request.username, physicalOperationOptions(request));
+          case 'facebook.messenger.input': return this.accountManager.submitFacebookMessengerInput(accountId, request.loginProcessId, request.stepId, request.input || {}, { ...physicalOperationOptions(request), txnId: request.txnId });
+          case 'facebook.messenger.wait': return this.accountManager.waitFacebookMessengerLogin(accountId, request.loginProcessId, request.stepId, { ...physicalOperationOptions(request), txnId: request.txnId });
+          case 'facebook.messenger.cancel': return this.accountManager.cancelFacebookMessengerLogin(accountId, request.loginProcessId, physicalOperationOptions(request));
           default: throw new CoreError('PLATFORM_AUTH_OPERATION_UNSUPPORTED', `AuthPort 不支持操作：${operation}`, { status: 404 });
         }
       }
@@ -260,6 +264,10 @@ class AccountContext {
       case 'account.facebook.oauth.status': return this.executePlatformAuth(payload.id, 'facebook.oauth.status', { flowId: payload.flowId });
       case 'account.facebook.oauth.selectPage': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.oauth.selectPage', { flowId: payload.flowId, pageId: payload.pageId }));
       case 'account.facebook.oauth.cancel': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.oauth.cancel', { flowId: payload.flowId }));
+      case 'account.facebook.messenger.start': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.messenger.start', { username: payload.username }));
+      case 'account.facebook.messenger.input': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.messenger.input', { loginProcessId: payload.loginProcessId, stepId: payload.stepId, txnId: payload.txnId, input: payload.input || {} }));
+      case 'account.facebook.messenger.wait': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.messenger.wait', { loginProcessId: payload.loginProcessId, stepId: payload.stepId, txnId: payload.txnId }));
+      case 'account.facebook.messenger.cancel': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.messenger.cancel', { loginProcessId: payload.loginProcessId }));
       case 'account.facebook.webhook.verify': return this.verifyFacebookWebhook(payload);
       case 'account.facebook.webhook.handle': return this.handleFacebookWebhook(payload);
       case 'account.bindConversation': return this.secured(command, context, async () => this.bindConversation(payload));

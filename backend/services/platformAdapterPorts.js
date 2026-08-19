@@ -41,7 +41,11 @@ const AUTH_DEADLINES_MS = Object.freeze({
   'facebook.oauth.start': 30_000,
   'facebook.oauth.status': 30_000,
   'facebook.oauth.selectpage': 120_000,
-  'facebook.oauth.cancel': 20_000
+  'facebook.oauth.cancel': 20_000,
+  'facebook.messenger.start': 120_000,
+  'facebook.messenger.input': 120_000,
+  'facebook.messenger.wait': 120_000,
+  'facebook.messenger.cancel': 20_000
 });
 const RECONCILE_DEADLINES_MS = Object.freeze({
   sync: 300_000,

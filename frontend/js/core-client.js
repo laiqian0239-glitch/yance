@@ -143,6 +143,8 @@ async function accountRequest(path = '', options = {}) {
       'telegram/cancel':'account.telegram.cancel','telegram/code':'account.telegram.code','telegram/password':'account.telegram.password',
       'facebook/oauth/start':'account.facebook.oauth.start','facebook/oauth/status':'account.facebook.oauth.status',
       'facebook/oauth/select-page':'account.facebook.oauth.selectPage','facebook/oauth/cancel':'account.facebook.oauth.cancel',
+      'facebook/messenger/start':'account.facebook.messenger.start','facebook/messenger/input':'account.facebook.messenger.input',
+      'facebook/messenger/wait':'account.facebook.messenger.wait','facebook/messenger/cancel':'account.facebook.messenger.cancel',
       'facebook/avatar-closure/diagnose':'account.facebook.avatarClosure.diagnose',
       'facebook/avatar-import/session':method === 'GET' ? 'account.facebook.avatarImport.status' : 'account.facebook.avatarImport.start',
       'facebook/avatar-import/session/stop':'account.facebook.avatarImport.stop',

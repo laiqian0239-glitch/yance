@@ -64,6 +64,7 @@ function main() {
   const synapse = materialize('synapse', LOCK.upstreams.synapse);
   const element = materialize('element-web', LOCK.upstreams.elementWeb);
   const mautrix = materialize('mautrix-whatsapp', LOCK.upstreams.mautrixWhatsapp);
+  const mautrixMeta = materialize('mautrix-meta', LOCK.externalRuntimes.mautrixMeta);
 
   applyPatch(element, ELEMENT_WORKSPACE_PATCH, 'Element workspace patch');
   applyPatch(element, ELEMENT_PACKAGE_MANAGER_AUTHORITY_PATCH, 'Element package-manager authority patch');
@@ -90,7 +91,8 @@ function main() {
 
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);
-  console.log('V2.1 Matrix/Element/mautrix exact-source runtime materialized.');
+  assertExactCommit(mautrixMeta, LOCK.externalRuntimes.mautrixMeta.commit);
+  console.log('V2.1 Matrix/Element/mautrix exact-source runtimes materialized.');
 }
 
 if (require.main === module) main();

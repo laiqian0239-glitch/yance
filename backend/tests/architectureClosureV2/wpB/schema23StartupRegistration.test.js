@@ -71,14 +71,14 @@ test('immutable RED authority explicitly permits Schema 23 startup registration'
   assert.equal(report.schema23StartupRegistrationAuthorized, true);
 });
 
-test('R32SqliteStore registers Schema 23 in the one startup migration chain', () => {
+test('R32SqliteStore preserves Schema 23 in the monotonically advancing startup migration chain', () => {
   delete require.cache[STORE_PATH];
   const { SCHEMA_VERSION } = require(STORE_PATH);
-  assert.equal(SCHEMA_VERSION, 23);
+  assert.ok(SCHEMA_VERSION >= 23, 'current schema must include the historical Schema 23 startup layer');
 
   withStore(store => {
-    assert.equal(store.getMeta('schema_version', null), 23);
-    assert.equal(store.getMeta('schemaVersion', null), 23);
+    assert.equal(Number(store.getMeta('schema_version', null)), SCHEMA_VERSION);
+    assert.equal(Number(store.getMeta('schemaVersion', null)), SCHEMA_VERSION);
     const migration = store.db.prepare(`SELECT migration_id,target_schema_version,status,checksum
       FROM r32_schema_migrations WHERE migration_id='023_architecture_closure_v2_wp_b'`).get();
     assert.equal(migration.migration_id, '023_architecture_closure_v2_wp_b');

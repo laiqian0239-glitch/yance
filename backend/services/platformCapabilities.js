@@ -130,10 +130,48 @@ function publicContracts(platform = '') {
   return CONTRACTS;
 }
 
+
+const FACEBOOK_ACCOUNT_CAPABILITIES = Object.freeze({
+  page: Object.freeze({
+    authority: 'chatwoot-facebook-page',
+    sendText: true,
+    receive: true,
+    attachments: true,
+    typing: true,
+    readReceipt: true,
+    historyBackfill: true
+  }),
+  'personal-messenger': Object.freeze({
+    authority: 'mautrix-meta',
+    sendText: true,
+    receive: true,
+    attachments: true,
+    typing: true,
+    readReceipt: true,
+    historyBackfill: true
+  }),
+  'personal-identity': Object.freeze({
+    authority: 'facebook-identity-oauth',
+    sendText: false,
+    receive: false,
+    attachments: false,
+    typing: false,
+    readReceipt: false,
+    historyBackfill: false
+  })
+});
+
+function resolveForAccount(account = {}) {
+  const platform = String(account.platform || '').trim().toLowerCase();
+  if (platform !== 'facebook') return Object.freeze({ authority: `${platform || 'unknown'}-platform-driver`, ...(MATRIX[platform] || {}) });
+  const kind = String(account.accountKind || account.metadata?.accountKind || 'page').trim().toLowerCase();
+  return FACEBOOK_ACCOUNT_CAPABILITIES[kind] || FACEBOOK_ACCOUNT_CAPABILITIES.page;
+}
+
 function mediaCapability(kind) {
   const value = String(kind || 'file').toLowerCase();
   if (value === 'document' || value === 'audio') return value === 'document' ? 'file' : 'voice';
   return canonicalOperation(value);
 }
 
-module.exports = { STATE, CONTRACTS, MATRIX, getContract, publicContracts, supports, mediaCapability, canonicalOperation };
+module.exports = { STATE, CONTRACTS, MATRIX, FACEBOOK_ACCOUNT_CAPABILITIES, getContract, publicContracts, resolveForAccount, supports, mediaCapability, canonicalOperation };
