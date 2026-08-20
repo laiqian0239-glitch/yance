@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-20T15:34:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-AI-AUTO-CONVERSATION-P0-V1-AMENDMENT-4",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Issue #533 / CodeRabbit finding 4: deterministic AI_AUTO reply-generation failures are currently collapsed into ai.conversation-analysis failure and therefore reuse its 20-attempt retry policy. This amendment authorizes a narrow error-classification repair only: deterministic generation failures must fail the durable analysis operation non-retryably, while candidate persistence/staleness and unknown/transient failures retain their existing fail-closed/retry semantics. The repair does not weaken analysisSuccessRequiresAiAutoCandidatePersistence and does not introduce a second scheduler, queue, durable state machine, send authority, model authority, or dependency.",
+  "base": {
+    "branch": "main",
+    "commit": "58354ae83d9ccad49b4aff4da87e81b898c00e33",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-ai-auto-conversation-p0-v1-scope-amendment-3-authorization.json",
+    "implementationBranch": "product/v21-product-ai-auto-conversation-p0-v1-amendment-3",
+    "reason": "Amendment-4 is a fresh-main defect-repair successor for issue #533. Amendment-3 remains historical authority for the shipped AI_AUTO P0 implementation; this successor narrows implementation scope to the orchestrator error classification and its focused regression test."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "58354ae83d9ccad49b4aff4da87e81b898c00e33",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ai-auto-conversation-p0-v1-scope-amendment-4-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ai-auto-conversation-p0-v1-scope-amendment-4-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "edfdd9ba6268d4f7dc13d630941687ad13fb9370495ed03bee0764ff1ffd6c71",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-ai-auto-conversation-p0-v1-amendment-4",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/services/aiBrainOrchestrator.js",
+      "backend/tests/v21ProductAiAutoConversationP0.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d7b86c19d44b99f507c342ebb854e839c274ba25482756b9e01918294b91cf4c",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "backend/tests/v21ProductAiAutoConversationP0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "3822af56d9881261ab050c44468f0eafed28991c59285e16d146b0bc6f4c21d8",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "defectContract": {
+    "issue": 533,
+    "deterministicGenerationFailureMustNotRetryAnalysis": true,
+    "deterministicGenerationFailureTerminatesAnalysisAsFailed": true,
+    "analysisSuccessStillRequiresAiAutoCandidatePersistence": true,
+    "aiStaleResultStillUsesExistingSupersededRecovery": true,
+    "unknownOrTransientGenerationFailureRetainsExistingRetry": true,
+    "noIndependentCandidateSchedulerIntroduced": true,
+    "noSecondDurableOperationIntroduced": true
+  },
+  "requiredValidation": {
+    "failureFirst": "backend/tests/v21ProductAiAutoConversationP0.test.js must first demonstrate the missing non-retryable deterministic-generation classification on the authorization-merge base and produce a fresh causal RED.",
+    "focused": [
+      "node --test backend/tests/v21ProductAiAutoConversationP0.test.js"
+    ],
+    "exactHeadCiRequired": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
