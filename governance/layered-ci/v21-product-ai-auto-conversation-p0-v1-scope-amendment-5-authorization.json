@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-20T15:34:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-AI-AUTO-CONVERSATION-P0-V1-AMENDMENT-5",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Issue #533 / CodeRabbit finding 4 narrow repair. This successor preserves Amendment-4's error-classification contract but moves the failure-first regression into a dedicated focused test file so the implementation can remain auditable without rewriting the broader AI_AUTO P0 test suite. Deterministic generation failures must terminate the existing durable analysis operation non-retryably; candidate persistence/staleness and unknown/transient failures retain existing fail-closed/retry semantics.",
+  "base": {
+    "branch": "main",
+    "commit": "16549395992243ffa8251eab749b5a2f76276cc8",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-ai-auto-conversation-p0-v1-scope-amendment-4-authorization.json",
+    "implementationBranch": "product/v21-product-ai-auto-conversation-p0-v1-amendment-4",
+    "reason": "Amendment-5 changes only the authorized regression-test path to a dedicated focused test file; the Amendment-4 implementation branch must not proceed."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "16549395992243ffa8251eab749b5a2f76276cc8",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ai-auto-conversation-p0-v1-scope-amendment-5-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ai-auto-conversation-p0-v1-scope-amendment-5-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b6077d6172e98e9e66162c68f807d261a4769f70f9ba74419b88a97acb848621",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-ai-auto-conversation-p0-v1-amendment-5",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/services/aiBrainOrchestrator.js",
+      "backend/tests/v21ProductAiAutoRetryStorm.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "5730ca64ca7f8527a51d122e35796e532d8bece7b9c28830ad20d9f1e51d0bcf",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "backend/tests/v21ProductAiAutoRetryStorm.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "29868de524000d3cef17551d2a227b4a5f00e12a16852834bf87e0bdd2b8abdd",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "defectContract": {
+    "issue": 533,
+    "deterministicGenerationFailureMustNotRetryAnalysis": true,
+    "deterministicGenerationFailureTerminatesAnalysisAsFailed": true,
+    "analysisSuccessStillRequiresAiAutoCandidatePersistence": true,
+    "aiStaleResultStillUsesExistingSupersededRecovery": true,
+    "unknownOrTransientGenerationFailureRetainsExistingRetry": true,
+    "noIndependentCandidateSchedulerIntroduced": true,
+    "noSecondDurableOperationIntroduced": true
+  },
+  "requiredValidation": {
+    "failureFirst": "backend/tests/v21ProductAiAutoRetryStorm.test.js must first demonstrate the missing non-retryable deterministic-generation classification on the authorization-merge base and produce a fresh causal RED.",
+    "focused": [
+      "node --test backend/tests/v21ProductAiAutoRetryStorm.test.js",
+      "node --test backend/tests/v21ProductAiAutoConversationP0.test.js"
+    ],
+    "exactHeadCiRequired": true
+  },
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_REPOSITORY_SEAMS_FOR_ERROR_CLASSIFICATION_ONLY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance aiBrainOrchestrator durable analysis authority",
+        "source": "backend/services/aiBrainOrchestrator.js@16549395992243ffa8251eab749b5a2f76276cc8",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repair is local error classification around the authoritative durable analysis operation and does not require a competing retry subsystem."
+      },
+      {
+        "name": "Yance context-aware reply brain candidate commit seam",
+        "source": "backend/services/contextAwareReplyBrain.js@16549395992243ffa8251eab749b5a2f76276cc8",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Stable generation error codes and authoritative candidate persistence already exist and can be consumed by the orchestrator."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test in the existing backend test stack",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "A dedicated focused regression file needs no new dependency or build tooling."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second candidate retry scheduler, queue, or durable-operation authority.",
+      "Do not bypass authoritative Store candidate persistence or AI_STALE_RESULT recovery.",
+      "Do not weaken analysisSuccessRequiresAiAutoCandidatePersistence.",
+      "Do not add a third-party dependency for this local classification repair."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
