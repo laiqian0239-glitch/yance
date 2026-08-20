@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T02:57:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "ACV2-WP-B-M3-PLATFORM-ACCEPTED-LOCAL-REPAIR-P0-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Authorized product successor PR #551 proved the four-path platform-accepted local repair P0 against Stage WP0, ACV2, WP-B Validation, WP-A post-merge validation, Model Brain Windows and dual-platform WP-B M2 Contracts, with Independent Review also passing source-bound integrity, seal exact-delta, all 116 M2 contracts, the eighteen-scenario process matrix and the local reviewed-head receipt. Its only RED was authenticated remote evidence because the historical PR #17 was legitimately merged while M2/M3 verifiers still required it to remain Draft/open/unmerged. Governance authorization #552 then correctly authorized a three-path verifier repair under generic delegated policy, but causal implementation PR #553 proved that this authorization was not connected to the WP-B M3 successor lineage and therefore fails the WP-B-specific isAuthorizedWpBImplementationBranch gate before source validation. This v2 successor supersedes the active #550 WP-B authorization and combines exactly the already-proven four product paths with the three prerequisite verifier/contract paths on one fresh WP-B lineage branch. No Desktop/Windows UAT candidate, package, dependency, workflow, routing policy, receipt, database schema, second outbox, second repair queue or new infrastructure is authorized.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/acv2-wp-b-platform-accepted-local-repair-p0-authorization.json",
+    "implementationBranch": "product/acv2-wp-b-platform-accepted-local-repair-p0",
+    "reason": "The v1 product implementation is behaviorally GREEN except for a base-owned authenticated remote-evidence lifecycle defect. A separate generic gate authorization cannot satisfy the WP-B-specific branch lineage gate. This v2 successor preserves the complete WP-B M3 supersession ancestry from v1 while adding only the exact three prerequisite verifier/contract paths required to validate the already-proven product repair."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "40786bb16e7f2938084b16b05897facdb958d518",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "40786bb16e7f2938084b16b05897facdb958d518",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/acv2-wp-b-platform-accepted-local-repair-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/acv2-wp-b-platform-accepted-local-repair-p0-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "881cefbe4cbd97171bf3a551c0e7d1999aa934469b73fec2734b3b73200d8531",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "product/acv2-wp-b-platform-accepted-local-repair-p0-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js",
+      "backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js",
+      "backend/tests/architectureClosureV2/wpB/outboundMessageDurableMigration.test.js",
+      "tests/wp0/platform-accepted-repair-durability.test.js",
+      "tests/wp0/wp-b-historical-pr-successor-state.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+      "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js"
+    ],
+    "approvedChangedFileCount": 7,
+    "approvedChangedFileSetSha256": "247fd405f8755cf0897747515cd1b3d1fb23d6ab1a250e5255c779da61522ce9",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "ossFit": {
+    "decision": "ADOPT_EXISTING_SCHEMA23_DURABLE_OUTBOUND_LOCAL_REPAIR_AND_WP_B_EVIDENCE_SEAMS",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance existing Schema-23 OUTBOUND_MESSAGE_SEND and local persistence repair seams",
+        "source": "backend/services/durableOperations/outboundMessageSendOperation.js, backend/services/localPersistenceRepairService.js and backend/repositories/localPersistenceRepairRepository.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The product defect is a missing durable handoff between existing authorities. The v1 implementation already passed dual-platform M2 contracts and requires no new queue, database, scheduler or third-party framework."
+      },
+      {
+        "name": "Yance existing WP-B authenticated M2/M3 remote evidence verifiers",
+        "source": "tools/architecture-closure-v2/verify-wp-b-m2-review.js and tools/architecture-closure-v2/verify-wp-b-m3-authorization.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The governance defect is one contradictory historical PR lifecycle assertion inside the existing authenticated evidence authority. Correcting it in place preserves all run, job, artifact, ref and current-successor exact-head checks."
+      },
+      {
+        "name": "Mature external durable workflow or queue framework",
+        "source": "repository OSS-first adoption order review",
+        "license": "varies; no new package selected",
+        "adoptionMode": "sidecar-service",
+        "fit": "GAP",
+        "reason": "External infrastructure would duplicate existing repository authorities and cannot repair the repository-specific GitHub evidence lifecycle assertion."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second local persistence repair queue, worker, repository or scheduler.",
+      "Do not create a second outbound execution or reconciliation authority.",
+      "Do not weaken or bypass authenticated GitHub evidence verification.",
+      "Do not treat closed-but-unmerged historical PRs as valid evidence.",
+      "Do not restore the retired Facebook Personal experimental browser driver.",
+      "Do not add a new third-party workflow, retry, queue, persistence or mocking dependency."
+    ],
+    "newThirdPartyDependencyRequired": false,
+    "basis": "Both defects are missing invariants inside existing authoritative repository seams, so exact in-place reuse is the highest-ranked fit."
+  },
+  "causalEvidence": {
+    "productPullRequest": 551,
+    "productHead": "1ef585650e403ab984c7853378bff55d390ea724",
+    "productM2ContractsRunId": 32399316511,
+    "productM2UbuntuConclusion": "success",
+    "productM2WindowsConclusion": "success",
+    "productIndependentReviewRunId": 32399316470,
+    "productIndependentReviewUbuntuJobId": 96523455191,
+    "productIndependentReviewFailureCode": "WP_B_M2_REVIEW_REMOTE_PR_STATE_INVALID",
+    "historicalPullRequest": 17,
+    "historicalPullRequestMergedAt": "2026-08-18T11:20:20Z",
+    "genericGateAuthorizationPullRequest": 552,
+    "genericGateAuthorizationMerge": "40786bb16e7f2938084b16b05897facdb958d518",
+    "genericGateImplementationPullRequest": 553,
+    "genericGateImplementationHead": "d43ad904a9737b9739ec27e4233387da82905d1d",
+    "genericGateFailureCode": "WP_B_ACTIVE_IMPLEMENTATION_BRANCH_UNAUTHORIZED",
+    "disposition": "PR #551 and PR #553 remain causal evidence only and must not merge after this v2 authorization becomes effective. Their proven product and verifier blobs may be reused byte-for-byte on the new fresh successor branch."
+  },
+  "mandatoryContracts": [
+    "OUTBOUND_MESSAGE_SEND must durably enqueue an adapter-provided local persistence repair plan before returning success when the provider accepted the external action but local canonical projection is pending.",
+    "Repair identity must be deterministic from the persisted outbound attempt so replay cannot allocate duplicate repair work.",
+    "If repair durability fails after provider acceptance, the operation must fail as post-call uncertainty and must never blind-resend the external action.",
+    "Normal outbound success without localPersistencePending must remain unchanged and allocate no repair work.",
+    "The retired Facebook Personal experimental adapter must remain zero session, messaging and physical egress authority with replacement bound to facebook-personal-messenger-mautrix-meta.",
+    "For the original historical WP-B branch, its bound PR must remain exact Draft/open/unmerged.",
+    "For an authorized successor branch, historical PR evidence is valid only when the historical PR is still Draft/open/unmerged or is closed because it was actually merged; closed-but-unmerged, open non-Draft and contradictory states must fail closed.",
+    "The current successor PR must independently remain exactly one Draft/open/unmerged PR on main whose head SHA equals the validation head.",
+    "M2 and M3 remote evidence verifiers must enforce identical historical PR lifecycle semantics.",
+    "No Desktop/Windows UAT candidate, packaged asset, dependency manifest, workflow, routing policy, review receipt, repair repository schema, second outbox or second repair queue may be modified."
+  ],
+  "requiredValidation": {
+    "focused": [
+      "node --check tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+      "node --check tools/architecture-closure-v2/verify-wp-b-m3-authorization.js",
+      "node --test --test-concurrency=1 tests/wp0/wp-b-historical-pr-successor-state.test.js",
+      "node tools/architecture-closure-v2/run-wp-b-m2-contracts.js --mode contract"
+    ],
+    "formal": [
+      "WP-B M2 Contracts Ubuntu and Windows GREEN",
+      "WP-B M2 Independent Review Integrity Ubuntu and Windows GREEN including authenticated remote evidence",
+      "WP-B M3 Authorization Ubuntu and Windows GREEN including standalone local and remote verification",
+      "WP-B Validation GREEN",
+      "Stage WP0 GREEN",
+      "ACV2 WP-A GREEN"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "historicalWpBBranchesImmutable": true,
+    "candidatePr551MustRemainUnmergedAfterV2Effectiveness": true,
+    "candidatePr553MustRemainUnmerged": true,
+    "desktopWindowsUatCandidateModificationAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  }
+}
