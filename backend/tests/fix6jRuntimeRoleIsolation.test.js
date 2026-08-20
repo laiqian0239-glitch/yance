@@ -97,3 +97,33 @@ test('unassigned desktop parent may resolve store modules but cannot acquire sto
   assert.equal(probe.status, 0, probe.stderr);
   assert.equal(probe.stdout, 'IMPORTED|PRIMARY_SQLITE_HOST_ROLE_FORBIDDEN');
 });
+
+test('unassigned desktop parent may import SQLite implementation modules without opening storage', () => {
+  const modulePaths = [
+    path.join(backendRoot, 'lib', 'r32SqliteStore.js'),
+    path.join(backendRoot, 'lib', 'r32SqliteStoreEngine.js'),
+    path.join(backendRoot, 'lib', 'r32SqliteStoreEngineLegacy.js'),
+    path.join(backendRoot, 'lib', 'sqliteDocumentStore.js')
+  ];
+  const probe = spawnSync(process.execPath, ['-e', `
+    try {
+      for (const modulePath of ${JSON.stringify(modulePaths)}) require(modulePath);
+      process.stdout.write('IMPORTED');
+    } catch (error) {
+      process.stdout.write('IMPORT_FAILED|' + String(error.code || error.message || error));
+    }
+  `], {
+    cwd: path.join(backendRoot, '..'),
+    env: {
+      ...process.env,
+      NODE_ENV: '',
+      NODE_TEST_CONTEXT: '',
+      YANCE_PROCESS_ROLE: 'unassigned',
+      YANCE_SQLITE_ACCESS: ''
+    },
+    encoding: 'utf8',
+    timeout: 10000
+  });
+  assert.equal(probe.status, 0, probe.stderr);
+  assert.equal(probe.stdout, 'IMPORTED');
+});
