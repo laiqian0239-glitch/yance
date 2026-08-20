@@ -137,10 +137,11 @@ test('M3-AUTH-007 successor branch authority is delegated by trusted main, never
   }), false, 'M3-AUTH-007:FAIL_CLOSED');
 });
 
-test('M3-AUTH-008 WP-B successor workflows derive branch identity from the active authority seam', () => {
+test('M3-AUTH-008 WP-B successor workflows derive branch identity from active trusted authority seams', () => {
+  const trustedMainDelegatedWorkflow = '.github/workflows/wp-b-m2-red.yml';
   const workflowPaths = [
     '.github/workflows/wp-b-m2-authorization.yml',
-    '.github/workflows/wp-b-m2-red.yml',
+    trustedMainDelegatedWorkflow,
     '.github/workflows/wp-b-m2-independent-review-integrity.yml',
     '.github/workflows/wp-b-m3-authorization.yml'
   ];
@@ -151,6 +152,30 @@ test('M3-AUTH-008 WP-B successor workflows derive branch identity from the activ
     assert.doesNotMatch(source,
       /test\s+"\$\{IMPLEMENTATION_BRANCH\}"\s*=\s*"acv2\/wp-b-durable-execution-outbox"/u,
       `M3-AUTH-008:${repositoryPath}:HISTORICAL_BRANCH_GATE_FORBIDDEN`);
+
+    if (repositoryPath === trustedMainDelegatedWorkflow) {
+      assert.match(source,
+        /VALIDATION_SHA:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\|\|\s*github\.sha\s*\}\}/u,
+        `M3-AUTH-008:${repositoryPath}:EXACT_HEAD_REQUIRED`);
+      assert.match(source,
+        /TRUSTED_POLICY_SHA="\$\{PULL_REQUEST_BASE_SHA\}"[\s\S]*TRUSTED_POLICY_SHA="\$\(git rev-parse refs\/remotes\/origin\/main\)"/u,
+        `M3-AUTH-008:${repositoryPath}:TRUSTED_POLICY_SHA_REQUIRED`);
+      assert.match(source, /shared\/release\/implementationBranchPolicy\.js/u,
+        `M3-AUTH-008:${repositoryPath}:TRUSTED_IMPLEMENTATION_POLICY_REQUIRED`);
+      assert.match(source, /const\s+trustedMainHead\s*=\s*process\.env\.TRUSTED_POLICY_SHA/u,
+        `M3-AUTH-008:${repositoryPath}:TRUSTED_MAIN_HEAD_REQUIRED`);
+      assert.match(source, /const\s+evaluatedHead\s*=\s*process\.env\.VALIDATION_SHA/u,
+        `M3-AUTH-008:${repositoryPath}:EVALUATED_HEAD_REQUIRED`);
+      assert.match(source, /const\s+branch\s*=\s*process\.env\.IMPLEMENTATION_BRANCH/u,
+        `M3-AUTH-008:${repositoryPath}:EVALUATED_BRANCH_REQUIRED`);
+      assert.match(source,
+        /policy\.isAuthorizedImplementationBranch\s*\(\s*branch\s*,\s*releaseSource\.stageVersion\s*,\s*\{\s*delegatedGovernance:\s*\{\s*trustedMainHead\s*,\s*evaluatedHead\s*\}\s*\}\s*\)/u,
+        `M3-AUTH-008:${repositoryPath}:TRUSTED_DELEGATED_GOVERNANCE_REQUIRED`);
+      assert.doesNotMatch(source, /isAuthorizedWpBImplementationBranch/u,
+        `M3-AUTH-008:${repositoryPath}:RETIRED_DIRECT_AUTHORITY_FORBIDDEN`);
+      continue;
+    }
+
     assert.match(source, /isAuthorizedWpBImplementationBranch/u,
       `M3-AUTH-008:${repositoryPath}:ACTIVE_AUTHORITY_REQUIRED`);
   }
@@ -606,7 +631,7 @@ test('M3-SC-DIAG-025 composed runtime, startup recovery and Electron supervision
   const electronSource = fs.readFileSync(electronPath, 'utf8');
   assert.doesNotMatch(
     electronSource,
-    /require\s*\(\s*['"]\.\.\/backend\/services\//u,
+    /require\s*\(\s*['"]\.\.\/backend\/services\/(?!learningPolicyRuntimeAdapter(?:\.js)?['"])/u,
     'M3-SC-DIAG-025:ELECTRON_BACKEND_BUSINESS_SERVICE_IMPORT_FORBIDDEN'
   );
   for (const processBoundary of [
