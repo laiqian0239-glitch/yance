@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-20T12:30:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-AI-AUTO-CONVERSATION-P0-V1-AMENDMENT-3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Trusted main advanced from 662f35e (Amendment-2 base) to bdc556fa after PR #529 WP7 production dependency binding refresh was merged. The delegated-governance immutability assertion defect that caused #521/#519/#517 WP0 failures was root-fixed in main via #529. Amendment-3 forward-continues the frozen Amendment-2 implementation (PR #521 head 7d65f04) onto fresh main bdc556fa. The 12-file cumulative product scope is unchanged. No gate, scanner, workflow, dependency, product behavior, architecture, persistence, send authority, model authority, Learning authority, or general-purpose infrastructure is widened or changed.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-ai-auto-conversation-p0-v1-scope-amendment-2-authorization.json",
+    "implementationBranch": "product/v21-product-ai-auto-conversation-p0-v1-amendment-2",
+    "reason": "Forward-continue frozen Amendment-2 implementation onto fresh main after WP7 binding refresh. Amendment-2 authorization remains effective for its scope; Amendment-3 extends the branch name to allow the successor to pass implementation-branch-policy under the new main base."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ai-auto-conversation-p0-v1-scope-amendment-3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ai-auto-conversation-p0-v1-scope-amendment-3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ef324ec7fb2f999397c669159dc24ea137a27c96ce4fa7528c11b3641bff1962",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-ai-auto-conversation-p0-v1-amendment-3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "7d65f045061b9a4e7b07a0e0e18f40dfd0bdb039"
+    },
+    "allowedChangedPaths": [
+      "backend/personaBrain/compiler.js",
+      "backend/routes/store.js",
+      "backend/services/aiBrainOrchestrator.js",
+      "backend/services/aiReplyOutboxService.js",
+      "backend/services/contextAwareReplyBrain.js",
+      "backend/store/adapters/SqliteStorePersistenceAdapter.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/store/commands/registerRuntimeStateCommands.js",
+      "backend/tests/v21ProductAiAutoConversationP0.test.js",
+      "frontend/js/r32-conversation-center-v3.js",
+      "frontend/js/r32-store-client.js",
+      "tests/uat/v21-product-ai-auto-conversation-p0.test.js"
+    ],
+    "approvedChangedFileCount": 12,
+    "approvedChangedFileSetSha256": "54d12e1f38dbc9b002cdf98f2df44295bbe46c1d576c9521c933cf7d8ddc374b",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": false,
+    "requiredFirstParent": null,
+    "requiredSecondParent": null,
+    "amendmentNote": "Amendment-3 is a forward-continue onto fresh main, not a two-parent continuation of a frozen predecessor. The single commit 41552d54 carries content equivalence against frozen head 7d65f04 without requiring a two-parent merge topology.",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true
+  },
+  "redEvidence": {
+    "pullRequest": 530,
+    "exactHead": "41552d54ec768f24a042b26dbbf6a103b4a7b127",
+    "focusedResult": "pending — awaiting authorization merge to run CI under accepted branch name",
+    "stageRun": null,
+    "stageAssertion": "tests/wp0/implementation-branch-policy.test.js:1148",
+    "owningLayer": "governance authorization data",
+    "productImplementationRed": false,
+    "forwardContinueReason": "Main advanced from 662f35e to bdc556fa. PR #529 (WP7 binding refresh) merged, root-fixing the delegated-governance defect that caused predecessor CI failures. Amendment-3 branch name not yet in any authorization JSON — this authorization is the root fix."
+  },
+  "productContract": {
+    "modes": [
+      "HUMAN",
+      "AI_ASSIST",
+      "AI_AUTO"
+    ],
+    "defaultMode": "HUMAN",
+    "aiAssistRequiresHumanApproval": true,
+    "aiAutoRequiresDurableModeReceipt": true,
+    "aiAutoUsesExistingInboundOrchestrator": true,
+    "aiAutoUsesExistingReplyBrain": true,
+    "aiAutoUsesExistingOutboxAndSendQueue": true,
+    "analysisSuccessRequiresAiAutoCandidatePersistence": true,
+    "manualTakeoverFailsClosedBeforePhysicalSend": true,
+    "staleConversationAndPersonaChecksRemainRequired": true,
+    "naturalTypingAndPresenceRemainRequired": true,
+    "noSecondSchedulerOrQueue": true,
+    "restartMustNotLoseAuthorizedIncompleteWork": true,
+    "temporalContext": [
+      "localDate",
+      "localTime",
+      "weekday",
+      "daypart",
+      "timeZone"
+    ],
+    "lifeStatusAuthority": "authoritative.personaProfile.lifeStatus",
+    "temporalContextMustNotFabricateActivity": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_MATURE_REPOSITORY_FORWARD_CONTINUATION_AUTHORITY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing delegated forwardContinuation policy",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already provides exact supersession graph validation. Amendment-3 extends the branch name namespace to allow the successor to pass implementation-branch-policy."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not mutate Amendment-2 authorization or its frozen predecessor in trusted history.",
+      "Do not rebase, squash, force-push or rewrite PR #519, #521, or their predecessor history.",
+      "Do not widen the cumulative 12-path product scope.",
+      "Do not introduce a second scheduler, queue, persistence subsystem, reply engine, Persona engine or transport authority."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "ACV2 WP-A Architecture Gates",
+      "WP-A Main Post-Merge Validation",
+      "V21 Model Brain P0 Windows"
+    ],
+    "successorFocused": [
+      "node --test backend/tests/v21ProductAiAutoConversationP0.test.js tests/uat/v21-product-ai-auto-conversation-p0.test.js"
+    ],
+    "newRedPolicy": "Permanent root fix in the correct owning layer; no gate/scanner relaxation or workaround."
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
