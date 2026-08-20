@@ -180,6 +180,11 @@ function compilePersonaContext(versionRecord, options = {}) {
       policyHash,
       truthSafePacket,
       composition,
+      // Explicit production authority for current owner life status. This is copied
+      // only from authoritative.personaProfile.lifeStatus; no inference or clock-based
+      // activity synthesis is allowed here.
+      lifeStatus: String(persistedPersonaProfile.lifeStatus == null ? '' : persistedPersonaProfile.lifeStatus).trim(),
+      lifeStatusAuthority: 'authoritative.personaProfile.lifeStatus',
       authoritative: opts.includeAuthoritativeForAdmin === true ? authoritative : undefined,
       learned: runtimeLearned,
       disclosureRules: isPlainObject(authoritative.disclosureRules) ? authoritative.disclosureRules : {},

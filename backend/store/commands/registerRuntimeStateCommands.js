@@ -7,6 +7,25 @@ function clean(value) {
   return String(value == null ? '' : value).trim();
 }
 
+const CONVERSATION_AUTOMATION_MODES = Object.freeze(['HUMAN', 'AI_ASSIST', 'AI_AUTO']);
+
+function normalizeConversationAutomationMode(value, fallback = 'HUMAN') {
+  const mode = clean(value).toUpperCase();
+  return CONVERSATION_AUTOMATION_MODES.includes(mode) ? mode : fallback;
+}
+
+function readConversationAutomationState(state = {}, conversationId, contactIdHint = '') {
+  const id = clean(conversationId);
+  const conversation = state.conversations?.byId?.[id] || {};
+  const contactId = clean(contactIdHint || conversation.contactId || conversation.customerId || conversation.contact_id);
+  const policy = contactId ? (state.interactionPolicies?.byContactId?.[contactId] || {}) : {};
+  const receipt = policy.config?.conversationAutomationModes?.[id];
+  if (!receipt || typeof receipt !== 'object') {
+    return { mode: 'HUMAN', receipt: null, contactId, conversationId: id, policy };
+  }
+  const mode = normalizeConversationAutomationMode(receipt.mode, 'HUMAN');
+  return { mode, receipt: { ...receipt, mode }, contactId, conversationId: id, policy };
+}
 
 const { randomUUID } = require('node:crypto');
 const {
@@ -631,6 +650,63 @@ function registerRuntimeStateCommands(storeManager) {
     };
   });
 
+  storeManager.registerCommand('CONVERSATION_AI_AUTOMATION_MODE_SET', ({ command, state, cloneState, createId, now, fail }) => {
+    const conversationId = clean(command.payload.conversationId);
+    if (!conversationId) fail('CONVERSATION_ID_REQUIRED', 'conversationId is required');
+    const conversation = state.conversations.byId[conversationId];
+    if (!conversation) fail('CONVERSATION_NOT_FOUND', 'Conversation does not exist', { conversationId });
+    const contactId = clean(command.payload.contactId || conversation.contactId || conversation.customerId || conversation.contact_id);
+    if (!contactId || !state.customers.byId[contactId]) {
+      fail('CUSTOMER_NOT_FOUND', 'Conversation customer does not exist', { conversationId, contactId });
+    }
+    const requestedMode = clean(command.payload.mode).toUpperCase();
+    if (!CONVERSATION_AUTOMATION_MODES.includes(requestedMode)) {
+      fail('CONVERSATION_AI_AUTOMATION_MODE_INVALID', 'Automation mode must be HUMAN, AI_ASSIST, or AI_AUTO', { conversationId, mode: requestedMode });
+    }
+
+    const nextState = cloneState();
+    const previousPolicy = nextState.interactionPolicies.byContactId[contactId] || { version: 0 };
+    const policy = { ...previousPolicy, config: { ...(previousPolicy.config || {}) } };
+    const modes = { ...(policy.config.conversationAutomationModes || {}) };
+    const previousReceipt = modes[conversationId] && typeof modes[conversationId] === 'object' ? modes[conversationId] : null;
+    const policyVersion = Number(policy.version || 0) + 1;
+    const updatedAt = typeof now === 'function' ? now() : new Date().toISOString();
+    const automationModeReceipt = Object.freeze({
+      id: typeof createId === 'function' ? createId() : randomUUID(),
+      conversationId,
+      contactId,
+      mode: requestedMode,
+      policyVersion,
+      previousMode: normalizeConversationAutomationMode(previousReceipt?.mode, 'HUMAN'),
+      actor: clean(command.payload.actor || command.source || 'user'),
+      setAt: updatedAt
+    });
+    modes[conversationId] = automationModeReceipt;
+    policy.version = policyVersion;
+    policy.config.conversationAutomationModes = modes;
+    policy.updatedAt = updatedAt;
+    nextState.interactionPolicies.byContactId[contactId] = policy;
+
+    return {
+      nextState,
+      changedDomains: ['interactionPolicies'],
+      result: { conversationId, contactId, mode: requestedMode, automationModeReceipt },
+      events: {
+        type: 'conversation.automationModeSet',
+        domain: 'interactionPolicies',
+        entityId: conversationId,
+        changedPaths: [`interactionPolicies.byContactId.${contactId}.config.conversationAutomationModes.${conversationId}`],
+        priority: 'high',
+        payload: { conversationId, contactId, mode: requestedMode, automationModeReceipt }
+      },
+      persist: transaction => transaction?.upsertInteractionPolicy?.({
+        contactId,
+        ...policy,
+        calculatedAt: updatedAt
+      })
+    };
+  });
+
   storeManager.registerCommand('SYNC_CUSTOMER_ARCHIVE', ({ command, state, cloneState }) => {
     const contactId = clean(command.payload.contactId);
     if (!contactId || !state.customers.byId[contactId]) return { noop: true, result: { contactId } };
@@ -674,4 +750,9 @@ function registerRuntimeStateCommands(storeManager) {
   });
 }
 
-module.exports = { registerRuntimeStateCommands };
+module.exports = {
+  registerRuntimeStateCommands,
+  CONVERSATION_AUTOMATION_MODES,
+  normalizeConversationAutomationMode,
+  readConversationAutomationState
+};
