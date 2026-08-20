@@ -28,12 +28,24 @@ function resolveLegacyAcv2Authorization(options = {}) {
   return legacy.loadWorkPackageAuthorization(options.authorizationPath);
 }
 
+function delegatedGovernanceOptions(options = {}) {
+  const delegated = options.delegatedGovernance
+    && typeof options.delegatedGovernance === 'object'
+    && !Array.isArray(options.delegatedGovernance)
+    ? options.delegatedGovernance
+    : {};
+  return {
+    ...delegated,
+    generic: delegated.generic || delegated
+  };
+}
+
 function isAuthorizedLegacyNonOssBranch(branch, stageVersion, options = {}) {
   if (typeof branch !== 'string' || branch.length === 0) return false;
   if (branch === legacy.canonicalStageBranch(stageVersion)
       || legacy.isReleaseClosureRebuildBranch(branch)) return true;
   if (legacy.isAuthorizedAcv2WorkPackageBranch(branch, resolveLegacyAcv2Authorization(options))) return true;
-  return legacy.isAuthorizedDelegatedGovernanceBranch(branch, options.delegatedGovernance || {});
+  return legacy.isAuthorizedDelegatedGovernanceBranch(branch, delegatedGovernanceOptions(options));
 }
 
 function isAuthorizedImplementationBranch(branch, stageVersion, options = {}) {
@@ -42,7 +54,11 @@ function isAuthorizedImplementationBranch(branch, stageVersion, options = {}) {
     branch,
     options.openSource || {}
   )) return true;
-  return active.isAuthorizedWpBImplementationBranch(branch, resolveWpBAuthority(options));
+  return active.isAuthorizedWpBImplementationBranch(
+    branch,
+    resolveWpBAuthority(options),
+    options
+  );
 }
 
 function authorizedImplementationBranchDescription(stageVersion, options = {}) {
