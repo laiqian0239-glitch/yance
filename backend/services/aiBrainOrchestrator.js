@@ -15,6 +15,10 @@ const { currentRuntimeInternalOperationAuthority } = require('./durableInternalO
 const { currentRuntimeRecoveryAuthority } = require('./durableExecutionRecoveryAuthority');
 const { getRuntimeDomainIsolationAuthority } = require('./runtimeDomainIsolationAuthority');
 const modelBrainProjection = require('./modelBrainProjection');
+const { getStoreManager } = require('../store/storeManagerSingleton');
+const { ensureCustomerContext } = require('./storeManagerService');
+const { createContextAwareReplyBrain } = require('./contextAwareReplyBrain');
+const { readConversationAutomationState } = require('../store/commands/registerRuntimeStateCommands');
 
 const DEFAULTS = Object.freeze({
   schemaVersion: 1,
@@ -212,6 +216,55 @@ function extractJson(text) {
   return null;
 }
 
+async function maybeGenerateAutomaticReplyCandidate(conversationId, conversation, latestInbound, options = {}) {
+  const storeManager = getStoreManager();
+  const contactId = await ensureCustomerContext(
+    storeManager,
+    conversationId,
+    clean(conversation?.contactId || conversation?.contact_id || conversation?.customerId)
+  );
+  const automation = storeManager.select(state => readConversationAutomationState(state, conversationId, contactId));
+  if (automation.mode !== 'AI_AUTO' || !automation.receipt?.id) {
+    return { generated: false, automationMode: automation.mode, automationModeReceipt: automation.receipt || null };
+  }
+  if (automation.policy?.blocked === true || automation.policy?.allowReplies === false) {
+    return {
+      generated: false,
+      reason: 'interaction-policy-blocked',
+      automationMode: automation.mode,
+      automationModeReceipt: { ...automation.receipt }
+    };
+  }
+
+  const brain = createContextAwareReplyBrain({
+    storeManager,
+    aiGateway,
+    resolveContactId: (nextConversationId, hint) => ensureCustomerContext(storeManager, nextConversationId, hint)
+  });
+  const candidate = await brain.generateCandidate({
+    contactId,
+    conversationId,
+    incomingMessage: {
+      id: clean(latestInbound?.id || latestInbound?.messageId),
+      text: clean(latestInbound?.text || latestInbound?.transcript || latestInbound?.translation || latestInbound?.translatedZh),
+      type: clean(latestInbound?.type || latestInbound?.messageType || 'text'),
+      sentAt: clean(latestInbound?.timestamp || latestInbound?.sentAt)
+    },
+    platform: clean(conversation?.platform || latestInbound?.platform),
+    sourceAccountId: clean(conversation?.accountId || conversation?.sourceAccountId || latestInbound?.accountId),
+    source: 'ai_auto',
+    signal: options.signal || null,
+    aggregateIncoming: true
+  });
+  return {
+    generated: true,
+    automationMode: 'AI_AUTO',
+    automationModeReceipt: { ...automation.receipt },
+    candidateId: clean(candidate?.candidateId),
+    taskId: clean(candidate?.taskId)
+  };
+}
+
 function analysisPrompt(conversation, messages) {
   return [
     '你是言策的本地会话理解引擎。只根据提供的真实消息做审慎分析，不编造事实。',
@@ -314,6 +367,11 @@ async function processConversation(conversationId, options = {}) {
       signal
     });
     throwIfAborted(signal);
+    // The existing durable ai.conversation-analysis operation may succeed only after
+    // an AI_AUTO reply candidate has itself reached the authoritative Store. This
+    // keeps restart recovery on one orchestrator instead of an ephemeral event bridge.
+    const automaticReply = await maybeGenerateAutomaticReplyCandidate(conversationId, conversation, latestInbound, { signal });
+    throwIfAborted(signal);
     const current = readDocument().status;
     await persistStatus({
       processed: Number(current.processed || 0) + 1,
@@ -331,9 +389,15 @@ async function processConversation(conversationId, options = {}) {
       model: clean(result.evidence?.selectedModel || result.model || result.model?.name),
       analysis: result.analysis,
       profile: result.profile,
-      insights: result.insights
+      insights: result.insights,
+      automaticReply
     });
-    return { processed: true, ...result, modelId: clean(result.evidence?.selectedModel || result.modelId || result.model?.id) };
+    return {
+      processed: true,
+      ...result,
+      automaticReply,
+      modelId: clean(result.evidence?.selectedModel || result.modelId || result.model?.id)
+    };
   } catch (error) {
     const current = readDocument().status;
     const cancellationCode = clean(error?.code || signal?.reason?.code).toUpperCase();

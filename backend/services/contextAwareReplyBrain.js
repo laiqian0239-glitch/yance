@@ -1,339 +1,4 @@
-'use strict';
-
-const crypto = require('node:crypto');
-const { selectCustomerSocialContext } = require('../store/selectors/customerSocialSelectors');
-const contactContextAuthority = require('./contactContextAuthority');
-const aiTaskRuntimeRegistry = require('./aiTaskRuntimeRegistry');
-const typingStateService = require('./typingStateService');
-const personaBrainModule = require('../personaBrain');
-const { validateFastReplyCandidate, validateReplyCandidate } = require('./replyQualityGuard');
-const { classifyFinancialContext, financialPromptGuidance } = require('./financialContextRisk');
-const replyPerformancePolicy = require('./replyPerformancePolicy');
-const modelTaskRuntimePolicy = require('./modelTaskRuntimePolicy');
-const conversationTurnCoordinator = require('./conversationTurnCoordinator');
-const bilingualUnderstandingService = require('./bilingualUnderstandingService');
-const memoryEvidenceGovernance = require('./memoryEvidenceGovernanceService');
-const contactLanguageAuthority = require('./contactLanguageAuthority');
-const replyLanguageAuthority = require('./replyLanguageAuthority');
-const logger = require('./logger');
-const whatsappReplyStyleAuthority = require('./whatsappReplyStyleAuthority');
-const aiTaskStageAuthority = require('./aiTaskStageAuthority');
-const aiDirectorStrategyAuthority = require('./aiDirectorStrategyAuthority').singleton;
-const aiWorkbenchDirectorRuleAuthority = require('./aiWorkbenchDirectorRuleAuthority');
-const goalDrivenMemoryRecall = require('./goalDrivenMemoryRecallService');
-const { singleton: platformCoreRepository } = require('../repositories/platformCoreRepository');
-const { createLearningPolicyRuntimeAdapter } = require('./learningPolicyRuntimeAdapter');
-const { createLearningPolicyDecisionContract } = require('./learningPolicyDecisionContract');
-
-function clean(value) {
-  return String(value == null ? '' : value).trim();
-}
-
-function createBrainError(code, message, details = {}) {
-  return Object.assign(new Error(message || code), { code, details });
-}
-
-function strategicDirectorInput(input = {}) {
-  const source = input && typeof input === 'object' ? input : {};
-  return {
-    ...source,
-    variant: '',
-    quickAdjustment: '',
-    avoidCandidates: [],
-    mergeMode: false,
-    mergeCandidates: []
-  };
-}
-
-function normalizeAxis(value, fallback = 0.5) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return fallback;
-  return Math.max(0, Math.min(1, numeric > 1 ? numeric / 100 : numeric));
-}
-
-function splitDirectiveList(value) {
-  return [...new Set(clean(value).split(/[\n,，;；]+/u).map(clean).filter(Boolean))];
-}
-
-function toneEnvelopeFromDirector(director = {}) {
-  const weights = director.styleWeights && typeof director.styleWeights === 'object' ? director.styleWeights : {};
-  return {
-    warmth: normalizeAxis(weights.warmth ?? weights.gentle ?? director.warmth, 0.6),
-    flirtation: normalizeAxis(weights.flirtation ?? weights.flirtier ?? director.flirtation, 0.35),
-    directness: normalizeAxis(weights.directness ?? director.directness, 0.4),
-    intimacyCeiling: normalizeAxis(weights.intimacy ?? director.intimacy, 0.55),
-    formality: normalizeAxis(weights.formality ?? director.formality, 0.1)
-  };
-}
-
-function memoryCandidatesForRecall(packet = {}) {
-  const source = packet.relevantMemories || {};
-  const groups = [
-    ['confirmedFacts', goalDrivenMemoryRecall.MEMORY_TYPE.CONFIRMED_FACT],
-    ['userNotes', goalDrivenMemoryRecall.MEMORY_TYPE.PREFERENCE],
-    ['importantEvents', goalDrivenMemoryRecall.MEMORY_TYPE.RELATIONSHIP_EVENT],
-    ['openLoops', goalDrivenMemoryRecall.MEMORY_TYPE.UNFINISHED_TOPIC],
-    ['promises', goalDrivenMemoryRecall.MEMORY_TYPE.COMMITMENT],
-    ['boundaries', goalDrivenMemoryRecall.MEMORY_TYPE.SENSITIVE_BOUNDARY],
-    ['sensitiveTopics', goalDrivenMemoryRecall.MEMORY_TYPE.SENSITIVE_BOUNDARY],
-    ['recurringInterests', goalDrivenMemoryRecall.MEMORY_TYPE.PREFERENCE]
-  ];
-  const rows = [];
-  for (const [key, type] of groups) {
-    const values = Array.isArray(source[key]) ? source[key] : [];
-    values.forEach((item, index) => {
-      const object = item && typeof item === 'object' ? item : { text: item };
-      rows.push({
-        memoryId: clean(object.memoryId || object.id || `${key}-${index + 1}`),
-        type,
-        text: clean(object.text || object.fact || object.label || object.value),
-        evidenceRef: clean(object.evidenceRef || object.evidenceId || object.messageId || object.sourceMessageId),
-        confidence: Number(object.confidence == null ? 0.5 : object.confidence),
-        conflictGroup: clean(object.conflictGroup || object.conflictKey),
-        state: clean(object.state || object.truthStatus),
-        payload: { sourceGroup: key }
-      });
-    });
-  }
-  return rows.filter(row => row.text);
-}
-
-function branchNameForVariant(value = '') {
-  const variant = clean(value).toLowerCase();
-  const exactAction = ['natural_hook', 'playful_attraction', 'direct_advance', 'screen_and_advance', 'leave_aftertaste']
-    .find(action => action === variant);
-  if (exactAction) return exactAction;
-  if (/情趣|暧昧|俏皮|妩媚|女人味|feminine|flirt/u.test(variant)) return 'playful_attraction';
-  if (/边界|筛选|screen/u.test(variant)) return 'screen_and_advance';
-  if (/直接|强势|direct/u.test(variant)) return 'direct_advance';
-  if (/不提问|余味|aftertaste/u.test(variant)) return 'leave_aftertaste';
-  if (/温暖|温柔|gentle|natural|自然/u.test(variant)) return 'natural_hook';
-  return 'natural_hook';
-}
-
-function learnedPolicyInteractionBand(context = {}) {
-  const interaction = context.interaction && typeof context.interaction === 'object' ? context.interaction : {};
-  const explicit = clean(interaction.engagementBand || interaction.responseBand || interaction.band).toLowerCase();
-  if (['low', 'balanced', 'high'].includes(explicit)) return explicit;
-  const score = Number(interaction.engagementScore ?? interaction.responseRate ?? interaction.reciprocity);
-  if (!Number.isFinite(score)) return 'balanced';
-  if (score < 0.35) return 'low';
-  if (score > 0.7) return 'high';
-  return 'balanced';
-}
-
-function candidateBranchPlanForCount(value = 3) {
-  const count = Math.max(1, Math.min(5, Number(value || 3)));
-  return ['natural_hook', 'playful_attraction', 'direct_advance', 'screen_and_advance', 'leave_aftertaste'].slice(0, count);
-}
-
-function applyCandidateBranch(director = {}, plan = {}, variant = '') {
-  const branches = Array.isArray(plan.branches) ? plan.branches : [];
-  const requested = branchNameForVariant(variant);
-  const branch = branches.find(row => clean(row.strategy) === requested) || branches[0] || null;
-  if (!branch) return { director: { ...director }, branch: null };
-  const questionPolicy = clean(branch.question);
-  const next = {
-    ...director,
-    strategy: director.strategy,
-    quickAdjustment: clean(variant || director.quickAdjustment),
-    directness: Number(branch.directness == null ? director.directness || 0 : branch.directness),
-    styleWeights: {
-      ...(director.styleWeights || {}),
-      warmth: Number(branch.warmth == null ? director.styleWeights?.warmth || 0 : branch.warmth),
-      flirtation: Number(branch.flirtation == null ? director.styleWeights?.flirtation || 0 : branch.flirtation),
-      directness: Number(branch.directness == null ? director.styleWeights?.directness || 0 : branch.directness)
-    },
-    maxQuestions: questionPolicy === 'none' ? 0 : [0, 1].includes(Number(director.maxQuestions)) ? Number(director.maxQuestions) : 1,
-    candidateStrategyBranch: clean(branch.strategy),
-    candidateAxisId: clean(branch.axisId),
-    candidatePurpose: clean(branch.purpose),
-    instruction: clean(director.instruction)
-  };
-  return { director: next, branch };
-}
-
-function personaContactScope(contactId, socialContext = {}) {
-  return clean(socialContext?.customer?.canonicalContactId || socialContext?.customer?.customerProfileId || contactId);
-}
-
-function assertSocialContext(context) {
-  if (!context?.found) throw createBrainError('CUSTOMER_NOT_FOUND', 'Customer social context was not found');
-  if (!context.ready) throw createBrainError('SOCIAL_CONTEXT_NOT_READY', 'Customer social context is still hydrating');
-  // Relationship-stage and interaction-policy judgments are advisory in dating mode.
-  // Only missing/unready contact context blocks candidate generation; the user decides tone and intent.
-}
-
-function buildSocialDecisionPacket(context, incomingMessage, director = {}) {
-  return Object.freeze({
-    contextVersion: context.contextVersion,
-    entityVersions: context.entityVersions,
-    contactId: context.contactId,
-    customer: {
-      name: clean(context.customer?.name || context.customer?.displayName),
-      platform: clean(context.customer?.platform),
-      sourceAccountId: clean(context.customer?.accountId || context.customer?.sourceAccountId)
-    },
-    relationshipStage: context.relationshipPotential.relationshipStage,
-    relationshipPotential: context.relationshipPotential,
-    relationshipAnalysis: context.relationshipAnalysis || {},
-    emotionalTrend: context.emotion.trend,
-    currentEmotion: context.emotion,
-    interaction: context.interaction,
-    preferences: context.preferences,
-    interactionPolicy: context.interactionPolicy,
-    replyStrategy: context.replyStrategy,
-    relevantMemories: {
-      confirmedFacts: memoryEvidenceGovernance.selectReplyFacts(context.memory.confirmedFacts || [], { cooldownMs: 0 }),
-      userNotes: context.memory.userNotes,
-      importantEvents: context.memory.importantEvents,
-      openLoops: context.memory.openLoops,
-      promises: context.memory.promises,
-      boundaries: context.memory.boundaries,
-      sensitiveTopics: context.memory.sensitiveTopics,
-      recurringInterests: context.memory.recurringInterests
-    },
-    relationshipTimeline: context.timeline,
-    recentSignals: context.recentSignals,
-    recentMessages: context.recentMessages,
-    director: {
-      goal: clean(director?.goal),
-      persona: clean(director?.persona),
-      pace: clean(director?.pace),
-      tone: clean(director?.tone),
-      strategy: clean(director?.strategy),
-      reasonZh: clean(director?.reasonZh),
-      instruction: clean(director?.instruction),
-      avoid: clean(director?.avoid),
-      targetLanguage: replyLanguageAuthority.normalizeLanguageCode(director?.targetLanguage),
-      maxQuestions: [0, 1].includes(Number(director?.maxQuestions)) ? Number(director.maxQuestions) : undefined,
-      variant: clean(director?.variant),
-      styleWeights: director?.styleWeights && typeof director.styleWeights === 'object' ? director.styleWeights : {},
-      styleIntensity: clean(director?.styleIntensity),
-      quickAdjustment: clean(director?.quickAdjustment),
-      initiative: Number(director?.initiative || 0),
-      brevity: Number(director?.brevity || 0),
-      directness: Number(director?.directness || 0),
-      strategyId: clean(director?.strategyId),
-      strategyVersion: Number(director?.strategyVersion || 0),
-      candidatePlanId: clean(director?.candidatePlanId),
-      candidateStrategyBranch: clean(director?.candidateStrategyBranch),
-      candidateAxisId: clean(director?.candidateAxisId),
-      candidatePurpose: clean(director?.candidatePurpose),
-      mustUseMemory: (Array.isArray(director?.mustUseMemory) ? director.mustUseMemory : []).map(clean).filter(Boolean).slice(0, 8),
-      candidateConstraints: director?.candidateConstraints && typeof director.candidateConstraints === 'object' ? director.candidateConstraints : {},
-      ruleStackReceipt: director?.ruleStackReceipt && typeof director.ruleStackReceipt === 'object' ? director.ruleStackReceipt : {},
-      appliedGlobalRules: (Array.isArray(director?.appliedGlobalRules) ? director.appliedGlobalRules : []).slice(0, 16),
-      appliedContactRules: (Array.isArray(director?.appliedContactRules) ? director.appliedContactRules : []).slice(0, 16),
-      avoidCandidates: (Array.isArray(director?.avoidCandidates) ? director.avoidCandidates : [])
-        .map(value => clean(value))
-        .filter(Boolean)
-        .slice(-5),
-      mergeMode: director?.mergeMode === true,
-      mergeCandidates: (Array.isArray(director?.mergeCandidates) ? director.mergeCandidates : [])
-        .map(value => clean(value))
-        .filter(Boolean)
-        .slice(0, 5)
-    },
-    incomingMessage: {
-      id: clean(incomingMessage?.id),
-      text: clean(incomingMessage?.text),
-      type: clean(incomingMessage?.type || 'text'),
-      sentAt: clean(incomingMessage?.sentAt || incomingMessage?.timestamp)
-    }
-  });
-}
-
-function truncateText(value, maxLength = 1200) {
-  const text = clean(value);
-  if (text.length <= maxLength) return text;
-  return `${text.slice(0, Math.max(0, maxLength - 1))}…`;
-}
-
-function compactContextValue(value, options = {}, depth = 0) {
-  const maxDepth = Number(options.maxDepth || 6);
-  const maxArray = Number(options.maxArray || 18);
-  const maxString = Number(options.maxString || 1200);
-  if (value == null) return value;
-  if (typeof value === 'string') return truncateText(value, maxString);
-  if (typeof value === 'number' || typeof value === 'boolean') return value;
-  if (depth >= maxDepth) return '[context-truncated]';
-  if (Array.isArray(value)) {
-    return value.slice(-maxArray).map(row => compactContextValue(row, options, depth + 1));
-  }
-  if (typeof value === 'object') {
-    const output = {};
-    for (const [key, child] of Object.entries(value)) {
-      if (child === undefined) continue;
-      output[key] = compactContextValue(child, options, depth + 1);
-    }
-    return output;
-  }
-  return truncateText(value, maxString);
-}
-
-function projectRecentMessageForModel(message = {}) {
-  return {
-    direction: clean(message.direction) || (message.fromMe === true ? 'outbound' : 'inbound'),
-    type: clean(message.type || message.messageType || 'text'),
-    text: truncateText(message.text || message.transcript || message.translation, 700),
-    sentAt: clean(message.sentAt || message.timestamp)
-  };
-}
-
-function parseRelationshipEventMetadata(value) {
-  if (value && typeof value === 'object' && !Array.isArray(value)) return value;
-  if (typeof value !== 'string' || !value.trim()) return {};
-  try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch (_) {
-    return {};
-  }
-}
-
-function projectRelationshipEventForModel(event = {}) {
-  const metadata = parseRelationshipEventMetadata(event.afterJson ?? event.after_json);
-  const confidenceStatus = clean(metadata.confidenceStatus);
-  const confidenceValue = event.confidence;
-  const hasNumericConfidence = confidenceStatus !== 'unscored'
-    && confidenceValue != null
-    && clean(confidenceValue) !== ''
-    && Number.isFinite(Number(confidenceValue));
-  const provenance = {
-    factId: clean(metadata.graphitiFactId) || undefined,
-    groupId: clean(metadata.graphitiGroupId) || undefined,
-    episodeUuid: clean(metadata.graphitiEpisodeUuid) || undefined,
-    referenceTime: clean(metadata.referenceTime) || undefined,
-    validAt: clean(metadata.validAt) || undefined,
-    invalidAt: metadata.invalidAt == null ? null : clean(metadata.invalidAt) || undefined
-  };
-  const hasProvenance = Object.values(provenance).some(value => value != null && value !== '');
-  return compactContextValue({
-    type: clean(event.type || event.eventType || event.event_type || event.signalType || event.signal_type || event.signal || event.name),
-    summary: truncateText(event.summary || event.interpretation || event.evidence?.summary || event.text || event.description || event.label, 420),
-    direction: clean(event.direction),
-    polarity: clean(event.polarity),
-    status: clean(event.status),
-    strength: event.strength != null && clean(event.strength) !== '' && Number.isFinite(Number(event.strength)) ? Number(event.strength) : undefined,
-    confidence: hasNumericConfidence ? Number(confidenceValue) : undefined,
-    confidenceStatus: confidenceStatus || undefined,
-    epistemicStatus: clean(metadata.sourceEpistemicStatus) || undefined,
-    engineVersion: clean(event.engineVersion || event.engine_version) || undefined,
-    provenance: hasProvenance ? provenance : undefined,
-    at: clean(event.at || event.confirmedAt || event.confirmed_at || event.observedAt || event.observed_at || event.startedAt || event.started_at || event.createdAt || event.created_at || event.timestamp || event.sentAt || event.sent_at)
-  }, { maxDepth: 4, maxArray: 4, maxString: 420 });
-}
-
-function compactSocialDecisionPacket(packet = {}, limits = {}) {
-  const memories = packet.relevantMemories || {};
-  const recentMessages = Math.max(6, Number(limits.recentMessages || 24));
-  const confirmedFacts = Math.max(2, Number(limits.confirmedFacts || 10));
-  const memoriesPerType = Math.max(2, Number(limits.memoriesPerType || 6));
-  const timelineEvents = Math.max(2, Number(limits.timelineEvents || 8));
-  const signals = Math.max(2, Number(limits.signals || 8));
-  return compactContextValue({
-    customer: packet.customer,
+ packet.customer,
     relationshipStage: packet.relationshipStage,
     relationshipPotential: packet.relationshipPotential,
     relationshipAnalysis: packet.relationshipAnalysis,
@@ -359,6 +24,7 @@ function compactSocialDecisionPacket(packet = {}, limits = {}) {
     incomingMessage: projectRecentMessageForModel(packet.incomingMessage),
     persona: packet.persona,
     contactLanguage: packet.contactLanguage,
+    temporalContext: packet.temporalContext,
     performanceMode: packet.performanceMode || ''
   }, { maxDepth: 7, maxArray: Math.max(recentMessages, memoriesPerType), maxString: 1000 });
 }
@@ -393,6 +59,7 @@ function serializeSocialDecisionPacket(packet = {}, maxChars = 24000, limits = {
     incomingMessage: compact.incomingMessage,
     persona: compact.persona,
     contactLanguage: compact.contactLanguage,
+    temporalContext: compact.temporalContext,
     performanceMode: compact.performanceMode
   }, { maxDepth: 6, maxArray: 10, maxString: 600 });
   serialized = JSON.stringify(reduced);
@@ -424,6 +91,7 @@ function serializeSocialDecisionPacket(packet = {}, maxChars = 24000, limits = {
       learned: reduced.persona?.learned
     },
     contactLanguage: compactContextValue(reduced.contactLanguage, { maxDepth: 2, maxArray: 4, maxString: 80 }),
+    temporalContext: compactContextValue(reduced.temporalContext, { maxDepth: 2, maxArray: 4, maxString: 80 }),
     performanceMode: reduced.performanceMode
   });
 }
@@ -644,6 +312,8 @@ function buildModelMessages(packet, options = {}) {
     '当前联系人上下文是唯一来源；不得串用其他联系人的姓名、经历、称呼或私人信息。',
     'confirmedFacts 可以作为事实使用；userNotes 和 AI 推测不能被当作确定事实。',
     '候选文本不得反向修改出生、家庭、创伤、医疗、职业、财富、旅行或机构履历；上下文未明确确认的内容必须保持未知。',
+    'temporalContext 只提供真实本地日期、时间、星期与时段用于自然措辞；不得根据时间编造用户当前活动、地点、作息、行程或状态。',
+    'persona.lifeStatus 仅来自 authoritative.personaProfile.lifeStatus；不得根据 temporalContext 推断或改写 lifeStatus。',
     '不得声称去过未确认地点，也不得把推测、玩笑、导演指令或其他联系人的经历写成当前人物的真实经历。',
     '导演参数用于调整语气、直接程度、暧昧程度和长度，最终判断由用户完成。',
     'persona.composition 是 Persona/Relationship/Locale/Register/Style/Examples 的结构化组合；保持各单元独立，禁止把 Style Overlay 重写成平铺权重提示词。',
@@ -900,9 +570,11 @@ function createContextAwareReplyBrain({
     const performanceMode = replyPerformancePolicy.inferMode(input, basePacket);
     const performancePolicy = replyPerformancePolicy.policyFor({ ...input, performanceMode }, basePacket);
     const contactLanguage = contactLanguageAuthority.read({ contactId, conversationId });
+    const temporalContext = buildTemporalContext(input);
     const packet = Object.assign({}, basePacket, {
       persona: personaCtx.context.persona,
       contactLanguage,
+      temporalContext,
       performanceMode,
       performancePolicy
     });
@@ -1505,6 +1177,7 @@ function createContextAwareReplyBrain({
         languageAuthority,
         languageValidation: quality.languageValidation,
         contactLanguage,
+        temporalContext,
         director: { ...effectiveDirector },
         directorModelId: clean(directorResult?.modelId),
         directorModel: clean(directorResult?.model),
@@ -1587,6 +1260,7 @@ module.exports = {
   inferTargetLanguage,
   applyReplyLanguageQuality,
   personaContactScope,
+  buildTemporalContext,
   selectReplyTask,
   resolveReplyGenerationOptions,
   parseDirectorJson,

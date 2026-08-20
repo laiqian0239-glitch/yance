@@ -355,6 +355,30 @@ router.put('/customers/:contactId/language', (req, res) => {
   res.json({ ok: true, contactId, requestedContactId: clean(req.params.contactId), languageProfile });
 });
 
+router.put('/conversations/:conversationId/automation-mode', asyncRoute(async (req, res) => {
+  const storeManager = getStoreManager();
+  const conversationId = clean(req.params.conversationId);
+  const contactId = await ensureCustomerContext(storeManager, conversationId, clean(req.body?.contactId));
+  const result = await storeManager.dispatch({
+    type: 'CONVERSATION_AI_AUTOMATION_MODE_SET',
+    source: 'conversation-center',
+    payload: {
+      conversationId,
+      contactId,
+      mode: req.body?.mode,
+      actor: clean(req.body?.actor) || 'user'
+    }
+  });
+  res.json({
+    ok: true,
+    conversationId,
+    contactId,
+    mode: result.result?.mode,
+    automationModeReceipt: result.result?.automationModeReceipt || null,
+    authority: 'Store.interactionPolicies'
+  });
+}));
+
 router.post('/replies/generate', asyncRoute(async (req, res) => {
   const requestAbort = createHttpAbortScope(req, res, { code: 'AI_REPLY_CLIENT_DISCONNECTED' });
   const operationId = productionDiagnostics.beginOperation({
