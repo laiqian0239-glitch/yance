@@ -1,7 +1,6 @@
 'use strict';
 
 const { assertStorageAccess } = require('./runtimeRoleGuard');
-assertStorageAccess('R32SqliteStore');
 
 const fs = require('fs');
 const path = require('path');
@@ -244,6 +243,7 @@ function closeStore(store) {
 }
 
 function initializeStore(store, options = {}) {
+  assertStorageAccess('R32SqliteStore.initialize');
   const dbPath = path.resolve(options.dbPath || path.join(process.cwd(), 'data', 'database', 'yance-r32.db'));
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   store.dbPath = dbPath;

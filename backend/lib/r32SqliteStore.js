@@ -1,7 +1,5 @@
 'use strict';
 
-const { assertStorageAccess } = require('./runtimeRoleGuard');
-assertStorageAccess('R32SqliteStore');
 
 const engine = require('./r32SqliteStoreEngine');
 const { assertCurrentAuthorityWriteHostToken } = require('../services/authorityWriteHost');

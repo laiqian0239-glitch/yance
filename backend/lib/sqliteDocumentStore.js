@@ -1,7 +1,6 @@
 'use strict';
 
 const { assertStorageAccess } = require('./runtimeRoleGuard');
-assertStorageAccess('SqliteDocumentStore');
 
 const { getDocumentPersistenceCapability } = require('../repositories/storeProvider');
 
@@ -29,6 +28,7 @@ function validatePersistenceCapability(value) {
 
 class SqliteDocumentStore {
   constructor(namespace, defaults = {}, options = {}) {
+    assertStorageAccess('SqliteDocumentStore.constructor');
     this.namespace = String(namespace || '').trim();
     if (!this.namespace) throw new Error('SQLITE_DOCUMENT_NAMESPACE_REQUIRED');
     this.defaults = clone(defaults);

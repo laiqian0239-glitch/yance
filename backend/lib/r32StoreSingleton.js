@@ -1,9 +1,12 @@
 'use strict';
 
 const { assertStorageAccess } = require('./runtimeRoleGuard');
-assertStorageAccess('getR32Store');
 
 function getR32Store() {
+  // Importing the singleton module must remain side-effect free for non-storage
+  // processes such as the Electron parent. The role boundary is enforced at
+  // the capability-use point, not while CommonJS resolves dependency graphs.
+  assertStorageAccess('getR32Store');
   const { getSqliteConnectionBroker } = require('./sqliteConnectionBroker');
   const broker = getSqliteConnectionBroker();
   if (!broker) {
@@ -15,6 +18,7 @@ function getR32Store() {
 }
 
 function closeR32Store() {
+  assertStorageAccess('closeR32Store');
   const { getSqliteConnectionBroker } = require('./sqliteConnectionBroker');
   const broker = getSqliteConnectionBroker({ optional: true });
   if (!broker) return;
