@@ -16,6 +16,16 @@ function normalizedConfidence(value) {
   return Math.max(0, Math.min(1, numeric > 1 ? numeric / 100 : numeric));
 }
 
+const CONTEXT_USABLE_IDENTITY_LINK_STATUSES = new Set(['observed', 'suggested', 'verified', 'merged']);
+function contextUsableIdentityLink(row = {}) {
+  return CONTEXT_USABLE_IDENTITY_LINK_STATUSES.has(clean(row.link_status || row.linkStatus).toLowerCase());
+}
+function conversationBindingMatchesIdentityLink(binding = {}, link = {}) {
+  return clean(binding.platform).toLowerCase() === clean(link.platform).toLowerCase()
+    && clean(binding.account_id || binding.accountId) === clean(link.source_account_id || link.sourceAccountId)
+    && clean(binding.external_id || binding.externalId) === clean(link.external_id || link.externalId);
+}
+
 const FACT_KEY_ALIASES = Object.freeze({
   age: 'age', '年龄': 'age',
   birthday: 'birthday', birthdate: 'birthday', date_of_birth: 'birthday', '生日': 'birthday',
@@ -28,7 +38,7 @@ const FACT_KEY_ALIASES = Object.freeze({
   family: 'family', family_status: 'family', '家庭': 'family', '家庭情况': 'family',
   interests: 'interests', interest: 'interests', hobbies: 'interests', hobby: 'interests', '兴趣': 'interests', '爱好': 'interests',
   company: 'company', employer: 'company', '公司': 'company',
-  timezone: 'timezone', time_zone: 'timezone', '时区': 'timezone',
+  timezone: 'timezone', time_zone: 'time_zone', '时区': 'timezone',
   stage: 'stage', relationship_stage: 'stage', '关系阶段': 'stage',
   note: 'note', notes: 'note', '备注': 'note', '长期备注': 'note'
 });
@@ -205,21 +215,52 @@ class PersonContextAuthority {
   constructor(options = {}) { this.repository = options.repository || repository; }
 
   resolve(input = {}) {
-    const contactId = clean(input.contactId); const conversationId = clean(input.conversationId);
-    let binding = contactId ? this.repository.getActivePersonForContact(contactId) : null;
-    if (!binding && conversationId) binding = this.repository.listConversationBindings({ conversationId, state: 'active', limit: 1 })[0] || null;
-    if (!binding) return { authority: AUTHORITY, found: false, contactId, conversationId, personId: '', contactIds: contactId ? [contactId] : [], conversationIds: conversationId ? [conversationId] : [] };
-    const personId = clean(binding.person_id);
+    const contactId = clean(input.contactId);
+    const conversationId = clean(input.conversationId);
+    const notFound = () => ({
+      authority: AUTHORITY,
+      found: false,
+      contactId,
+      conversationId,
+      personId: '',
+      contactIds: contactId ? [contactId] : [],
+      conversationIds: conversationId ? [conversationId] : []
+    });
+    const resolveCandidate = binding => {
+      const personId = clean(binding?.person_id);
+      if (!personId) return null;
+      const identityLinks = this.repository.listIdentityLinks(personId, { includeDetached: true });
+      const usableIdentityLinks = identityLinks.filter(contextUsableIdentityLink);
+      if (!usableIdentityLinks.length) return null;
+      if (clean(binding.conversation_id) && !usableIdentityLinks.some(link => conversationBindingMatchesIdentityLink(binding, link))) return null;
+      return { binding, personId, identityLinks, usableIdentityLinks };
+    };
+
+    let selected = null;
+    if (contactId) {
+      const candidates = this.repository.listPersonContactBindings({ contactId, state: 'active', limit: 10000 });
+      selected = candidates.map(resolveCandidate).find(Boolean) || null;
+    }
+    if (!selected && conversationId) {
+      const candidates = this.repository.listConversationBindings({ conversationId, state: 'active', limit: 10000 });
+      selected = candidates.map(resolveCandidate).find(Boolean) || null;
+    }
+    if (!selected) return notFound();
+
+    const { personId, identityLinks, usableIdentityLinks } = selected;
     const person = this.repository.getPerson(personId);
     const contactBindings = this.repository.listPersonContactBindings({ personId, state: 'active', limit: 10000 });
-    const conversationBindings = this.repository.listConversationBindings({ personId, state: 'active', limit: 10000 });
+    const conversationBindings = this.repository.listConversationBindings({ personId, state: 'active', limit: 10000 })
+      .filter(binding => usableIdentityLinks.some(link => conversationBindingMatchesIdentityLink(binding, link)));
+    const effectiveContactId = contactId && contactBindings.some(row => clean(row.contact_id) === contactId) ? contactId : '';
+    const effectiveConversationId = conversationId && conversationBindings.some(row => clean(row.conversation_id) === conversationId) ? conversationId : '';
     return {
       authority: AUTHORITY, found: true, personId, person,
-      contactId, conversationId,
-      contactIds: unique(contactBindings.map(row => row.contact_id).concat(contactId)),
-      conversationIds: unique(conversationBindings.map(row => row.conversation_id).concat(conversationId)),
+      contactId: effectiveContactId, conversationId: effectiveConversationId,
+      contactIds: unique(contactBindings.map(row => row.contact_id)),
+      conversationIds: unique(conversationBindings.map(row => row.conversation_id)),
       contactBindings, conversationBindings,
-      identityLinks: this.repository.listIdentityLinks(personId, { includeDetached: true })
+      identityLinks
     };
   }
 
