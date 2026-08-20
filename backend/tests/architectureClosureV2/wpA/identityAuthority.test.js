@@ -341,6 +341,31 @@ function detachAudit(at = '2026-08-02T10:01:00.000Z') {
   return { actor: 'release-closure', reason: 'identity detach invariant regression coverage', at };
 }
 
+function seedDetachScope(harness, input = {}) {
+  const platform = input.platform || 'whatsapp';
+  const accountId = input.accountId || 'wa-account-1';
+  const conversationId = input.conversationId || 'conversation-1';
+  const externalId = input.externalId || '491701234567@s.whatsapp.net';
+  harness.store.upsertAccount({
+    id: accountId,
+    accountId,
+    platform,
+    adapterAccountId: accountId,
+    displayName: `${platform} Detach Test`,
+    identityLabel: 'A5 detach fixture',
+    lifecycleState: 'active',
+    state: 'connected'
+  });
+  harness.store.upsertConversation({
+    sessionKey: conversationId,
+    accountId,
+    contactId: 'contact-1',
+    platform,
+    title: 'Detach Test',
+    payload: { externalId }
+  });
+}
+
 function seedDetachContact(harness) {
   harness.store.upsertContact({
     id: 'contact-1',
@@ -349,6 +374,7 @@ function seedDetachContact(harness) {
     externalId: '491701234567@s.whatsapp.net',
     displayName: 'Detach Test'
   });
+  seedDetachScope(harness);
 }
 
 function personContextFor(repository) {
@@ -397,6 +423,12 @@ test('A5 detach preserves Person contact reachability when another usable identi
   const harness = createHarness('yance-acv2-a5-detach-multi-link-');
   try {
     seedDetachContact(harness);
+    seedDetachScope(harness, {
+      platform: 'telegram',
+      accountId: 'tg-account-1',
+      conversationId: 'conversation-2',
+      externalId: 'telegram-user-1'
+    });
     const personContext = personContextFor(harness.repository);
     const first = harness.authority.observe(detachObservation());
     const second = harness.authority.observe(detachObservation({
