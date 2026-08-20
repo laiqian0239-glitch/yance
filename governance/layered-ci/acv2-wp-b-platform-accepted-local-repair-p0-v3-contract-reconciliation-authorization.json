@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-21T04:01:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "ACV2-WP-B-M3-PLATFORM-ACCEPTED-LOCAL-REPAIR-P0-V3-CONTRACT-RECONCILIATION",
-  "proposalRevision": 2,
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Exact-head v2 PR #555 preserves the authorized seven-path product/evidence implementation and is GREEN on all routed formal gates except WP-B M3 Authorization. Ubuntu and Windows deterministically fail the same local-contract step. Fast-Landing comparison against the last known GREEN M3 head 6a77e87bc8aab8bcb503d3f8cf74ceefedbd7e4c proved the M3 workflow and its three local contract files are unchanged, while .github/workflows/wp-b-m2-red.yml was intentionally hardened from the legacy direct isAuthorizedWpBImplementationBranch seam to trusted-main implementationBranchPolicy.isAuthorizedImplementationBranch(...delegatedGovernance). The first stale assertion is M3-AUTH-008:.github/workflows/wp-b-m2-red.yml:ACTIVE_AUTHORITY_REQUIRED, which still requires the retired function name rather than the stronger trusted-main delegated-governance semantics. This successor authorizes only semantic reconciliation of that M3 contract while preserving the v2 seven-path bytes and the newer M2 trusted-main security mechanism. No workflow weakening, UAT candidate mutation, dependency change, package change, routing change, schema change, or new infrastructure is authorized.",
   "supersedes": {
@@ -103,6 +103,14 @@
       "ACV2 WP-A GREEN"
     ]
   },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
   "mergePolicy": {
     "ordinaryMergeCommitRequired": true,
     "twoParentMergeRequired": true,
@@ -117,6 +125,7 @@
     "independentBranchAndPullRequestRequired": true,
     "historicalWpBBranchesImmutable": true,
     "v2HeadRemainsImmutableCausalEvidence": true,
+    "candidatePr555MustRemainUnmergedAfterV3Effectiveness": true,
     "desktopWindowsUatCandidateModificationAuthorized": false,
     "productionUseAuthorized": false,
     "formalReleaseAuthorized": false,
