@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const EVIDENCE_PATH = 'governance/architecture-closure-v2/wp-b-m1-red-evidence.json';
+const PACKAGED_RELEASE_AUTHORITY_PATH = 'release/architecture-closure-v2/wp-b-governance-package.json';
+const EXPECTED_EVIDENCE_GIT_BLOB_SHA = '49ad68fdc48f7023428fe23746f5f41d2b32235e';
 const EXPECTED_SOURCE_COMMIT = 'da773d5b29c1f54c6c14f6024c38b53ab7ca10bb';
 const EXPECTED_WORKFLOW = Object.freeze({
   workflowId: 325869061,
@@ -129,6 +131,85 @@ function verifyEvidence(evidence) {
     platformCount: Object.keys(EXPECTED_PLATFORMS).length,
     contractCount: EXPECTED_CONTRACTS.length,
     schema23StartupRegistrationAuthorized,
+    authoritySource: 'SOURCE_EVIDENCE',
+    violations: Object.freeze(violations)
+  });
+}
+
+function verifyPackagedReleaseBinding(repositoryRoot) {
+  const expectedRoot = path.resolve(repositoryRoot);
+  const packagePath = path.resolve(expectedRoot, PACKAGED_RELEASE_AUTHORITY_PATH);
+  if (packagePath !== path.join(expectedRoot, PACKAGED_RELEASE_AUTHORITY_PATH)) {
+    return failedVerification('WP_B_M1_PACKAGED_AUTHORITY_PATH_INVALID', { path: PACKAGED_RELEASE_AUTHORITY_PATH });
+  }
+
+  let document;
+  try {
+    const stat = fs.lstatSync(packagePath);
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      return failedVerification('WP_B_M1_PACKAGED_AUTHORITY_PATH_INVALID', { path: PACKAGED_RELEASE_AUTHORITY_PATH });
+    }
+    document = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  } catch (error) {
+    return failedVerification('WP_B_M1_PACKAGED_AUTHORITY_UNREADABLE', {
+      path: PACKAGED_RELEASE_AUTHORITY_PATH,
+      causeCode: String(error?.code || error?.name || 'UNKNOWN')
+    });
+  }
+
+  const violations = [];
+  if (document?.schemaVersion !== 1
+      || document?.documentType !== 'YANCE_ACV2_WP_B_APPLICATION_GOVERNANCE_PACKAGE'
+      || document?.workPackage !== 'WP-B'
+      || document?.status !== 'EVIDENCE_BOUND_RELEASE_CLOSED'
+      || document?.sourceAuthorityRoot !== 'governance/architecture-closure-v2') {
+    addViolation(violations, 'WP_B_M1_PACKAGED_AUTHORITY_IDENTITY_INVALID');
+  }
+
+  const packaging = document?.packaging || {};
+  if (packaging.applicationRoot !== 'resources/app'
+      || packaging.inclusionRoot !== 'release'
+      || packaging.packagedRelativePath !== PACKAGED_RELEASE_AUTHORITY_PATH
+      || packaging.bytesMustMatchReviewedPackage !== true
+      || packaging.symlinkAllowed !== false) {
+    addViolation(violations, 'WP_B_M1_PACKAGED_AUTHORITY_PACKAGING_INVALID');
+  }
+
+  const governance = document?.governance || {};
+  for (const field of ['productionUseAuthorized', 'formalRelease', 'publish', 'wpCAuthorized', 'temporaryBypassAllowed']) {
+    if (governance[field] !== false) addViolation(violations, 'WP_B_M1_PACKAGED_AUTHORITY_SCOPE_EXPANDED', { field, actual: governance[field] });
+  }
+
+  const bindings = Array.isArray(document?.sourceBindings) ? document.sourceBindings : [];
+  const matches = bindings.filter(binding => binding?.path === EVIDENCE_PATH);
+  if (matches.length !== 1) {
+    addViolation(violations, 'WP_B_M1_PACKAGED_EVIDENCE_BINDING_MISSING', { matchCount: matches.length });
+  } else {
+    const binding = matches[0];
+    if (binding.documentType !== 'YANCE_ACV2_WP_B_M1_RED_EVIDENCE') {
+      addViolation(violations, 'WP_B_M1_PACKAGED_EVIDENCE_DOCUMENT_TYPE_INVALID', { actual: binding.documentType || null });
+    }
+    if (binding.gitBlobSha !== EXPECTED_EVIDENCE_GIT_BLOB_SHA) {
+      addViolation(violations, 'WP_B_M1_PACKAGED_EVIDENCE_BLOB_INVALID', {
+        expected: EXPECTED_EVIDENCE_GIT_BLOB_SHA,
+        actual: binding.gitBlobSha || null
+      });
+    }
+  }
+
+  const schema23StartupRegistrationAuthorized = violations.length === 0;
+  return Object.freeze({
+    schemaVersion: 1,
+    documentType: 'YANCE_ACV2_WP_B_M1_RED_EVIDENCE_VERIFICATION',
+    ok: schema23StartupRegistrationAuthorized,
+    sourceCommit: EXPECTED_SOURCE_COMMIT,
+    workflowRunId: EXPECTED_WORKFLOW.workflowRunId,
+    platformCount: Object.keys(EXPECTED_PLATFORMS).length,
+    contractCount: EXPECTED_CONTRACTS.length,
+    schema23StartupRegistrationAuthorized,
+    authoritySource: 'PACKAGED_RELEASE_BINDING',
+    packagedAuthorityPath: PACKAGED_RELEASE_AUTHORITY_PATH,
+    evidenceGitBlobSha: EXPECTED_EVIDENCE_GIT_BLOB_SHA,
     violations: Object.freeze(violations)
   });
 }
@@ -142,6 +223,7 @@ function verifyFile(repositoryRoot = path.resolve(__dirname, '..', '..')) {
   try {
     return verifyEvidence(JSON.parse(fs.readFileSync(absolutePath, 'utf8')));
   } catch (error) {
+    if (error?.code === 'ENOENT') return verifyPackagedReleaseBinding(expectedRoot);
     return failedVerification('WP_B_M1_RED_EVIDENCE_UNREADABLE', {
       path: EVIDENCE_PATH,
       causeCode: String(error?.code || error?.name || 'UNKNOWN')
@@ -162,6 +244,8 @@ function requireSchema23StartupRegistration(repositoryRoot) {
 
 module.exports = Object.freeze({
   EVIDENCE_PATH,
+  PACKAGED_RELEASE_AUTHORITY_PATH,
+  EXPECTED_EVIDENCE_GIT_BLOB_SHA,
   EXPECTED_CONTRACTS,
   EXPECTED_PLATFORMS,
   EXPECTED_SOURCE_COMMIT,
@@ -169,6 +253,7 @@ module.exports = Object.freeze({
   canonical,
   same,
   verifyEvidence,
+  verifyPackagedReleaseBinding,
   verifyFile,
   requireSchema23StartupRegistration
 });
