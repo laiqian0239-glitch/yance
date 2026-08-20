@@ -38,7 +38,7 @@ const FACT_KEY_ALIASES = Object.freeze({
   family: 'family', family_status: 'family', '家庭': 'family', '家庭情况': 'family',
   interests: 'interests', interest: 'interests', hobbies: 'interests', hobby: 'interests', '兴趣': 'interests', '爱好': 'interests',
   company: 'company', employer: 'company', '公司': 'company',
-  timezone: 'timezone', time_zone: 'time_zone', '时区': 'timezone',
+  timezone: 'timezone', time_zone: 'timezone', '时区': 'timezone',
   stage: 'stage', relationship_stage: 'stage', '关系阶段': 'stage',
   note: 'note', notes: 'note', '备注': 'note', '长期备注': 'note'
 });
