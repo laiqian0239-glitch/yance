@@ -53,6 +53,16 @@ function fail(code, message, details = {}) {
 function requireThat(value, code, message, details = {}) {
   if (!value) fail(code, message, details);
 }
+function isHistoricalPrStateValidForBranch(historicalPr, currentBranch, historicalBranch = BRANCH) {
+  const openDraftUnmerged = historicalPr?.state === 'open'
+    && historicalPr?.draft === true
+    && historicalPr?.merged_at == null;
+  const closedMerged = historicalPr?.state === 'closed'
+    && historicalPr?.merged_at != null;
+  return currentBranch === historicalBranch
+    ? openDraftUnmerged
+    : (openDraftUnmerged || closedMerged);
+}
 function sortedUnique(values) {
   return [...new Set((Array.isArray(values) ? values : [])
     .map(value => String(value || '').trim().replace(/\\/gu, '/'))
@@ -297,8 +307,11 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
   requireThat(redArtifacts.has(red.ubuntuArtifactId) && redArtifacts.has(red.windowsArtifactId), 'WP_B_M2_REVIEW_REMOTE_RED_ARTIFACT_MISSING', 'RED artifacts changed');
 
   const historicalPr = await fetchJson(`${api}/pulls/${document.pullRequest}`, token, 'WP_B_M2_REVIEW_REMOTE_PR_REQUEST_FAILED');
-  requireThat(historicalPr.state === 'open' && historicalPr.draft === true && historicalPr.merged_at == null,
-    'WP_B_M2_REVIEW_REMOTE_PR_STATE_INVALID', 'Historical PR must remain Draft/open/unmerged');
+  requireThat(isHistoricalPrStateValidForBranch(historicalPr, currentBranch, BRANCH),
+    'WP_B_M2_REVIEW_REMOTE_PR_STATE_INVALID',
+    currentBranch === BRANCH
+      ? 'Historical branch PR must remain Draft/open/unmerged'
+      : 'Historical PR state is invalid for successor evidence');
   requireThat(historicalPr.head?.ref === document.branch && historicalPr.base?.ref === 'main',
     'WP_B_M2_REVIEW_REMOTE_PR_HEAD_INVALID', 'Historical PR refs changed');
 
@@ -336,4 +349,4 @@ if (require.main === module) main().catch(error => {
   process.stderr.write(`${JSON.stringify({ ok: false, code: error?.code || 'WP_B_M2_REVIEW_VERIFICATION_FAILED', message: error?.message || String(error), details: Object.fromEntries(Object.entries(error || {}).filter(([key]) => !['stack', 'message'].includes(key))) }, null, 2)}\n`);
   process.exitCode = 1;
 });
-module.exports = Object.freeze({ EXPECTED_FORMAL_WORKFLOWS, EXPECTED_OPERATION_KINDS, EXPECTED_POST_REVIEW_PATHS, changedFileSetSha256, readReceipt, sortedUnique, validateReceipt, verifyLocalRepository, verifyRemoteEvidence });
+module.exports = Object.freeze({ EXPECTED_FORMAL_WORKFLOWS, EXPECTED_OPERATION_KINDS, EXPECTED_POST_REVIEW_PATHS, changedFileSetSha256, isHistoricalPrStateValidForBranch, readReceipt, sortedUnique, validateReceipt, verifyLocalRepository, verifyRemoteEvidence });
