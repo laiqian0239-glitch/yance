@@ -164,6 +164,22 @@ function isSupersededAnalysisError(error) {
   return clean(error?.code).toUpperCase() === 'AI_STALE_RESULT';
 }
 
+const DETERMINISTIC_AUTO_REPLY_GENERATION_ERROR_CODES = new Set([
+  'AI_DIRECTOR_INVALID_OUTPUT',
+  'AI_DIRECTOR_INTERNAL_ID_LEAK',
+  'AI_DIRECTOR_LANGUAGE_MISMATCH',
+  'AI_DIRECTOR_LANGUAGE_UNVERIFIED',
+  'AI_REPLY_LANGUAGE_MISMATCH',
+  'AI_REPLY_QUALITY_REJECTED',
+  'REPLY_TECHNICAL_REJECTED',
+  'PERSONA_TRUTH_FIREWALL_BLOCKED',
+  'CUSTOMER_NOT_FOUND'
+]);
+
+function isDeterministicAutoReplyGenerationError(error) {
+  return DETERMINISTIC_AUTO_REPLY_GENERATION_ERROR_CODES.has(clean(error?.code).toUpperCase());
+}
+
 function automationIsolationDecision(snapshot = runtimeDomainIsolationAuthority.snapshot()) {
   const reasons = [...new Set((Array.isArray(snapshot?.aiIsolationReasons) ? snapshot.aiIsolationReasons : []).map(clean).filter(Boolean))];
   const blocked = snapshot?.aiAutomationBlocked === true;
@@ -449,6 +465,26 @@ async function processConversation(conversationId, options = {}) {
         staleReason: clean(error.reason || 'SOURCE_CHANGED')
       };
     }
+    if (isDeterministicAutoReplyGenerationError(error)) {
+      const errorCode = clean(error?.code).toUpperCase() || 'AI_AUTO_REPLY_GENERATION_FAILED';
+      await persistStatus({
+        failed: Number(current.failed || 0) + 1,
+        lastConversationId: conversationId,
+        lastError: clean(error.message || error),
+        lastSkipReason: ''
+      });
+      logger.warn('models', 'ai-automation-automatic-reply-generation-failed', {
+        conversationId,
+        error: error.message,
+        code: errorCode
+      });
+      return {
+        processed: false,
+        reason: 'automatic-reply-generation-failed',
+        error: error.message,
+        errorCode
+      };
+    }
     await persistStatus({ failed: Number(current.failed || 0) + 1, lastConversationId: conversationId, lastError: clean(error.message || error), lastSkipReason: '' });
     logger.warn('models', 'ai-automation-failed', { conversationId, error: error.message, code: error.code || '' });
     return { processed: false, reason: 'failed', error: error.message };
@@ -617,6 +653,11 @@ async function runScheduledAnalysis(conversationId, identity, lease, controller)
         retryable: true,
         retryDelayMs: 5_000
       });
+    } else if (result?.reason === 'automatic-reply-generation-failed') {
+      failCanonicalAnalysis(lease, { code: result?.errorCode || 'AI_AUTO_REPLY_GENERATION_FAILED' }, {
+        retryable: false,
+        reasonCode: result?.errorCode || 'AI_AUTO_REPLY_GENERATION_FAILED'
+      });
     } else if (result?.reason === 'failed') {
       failCanonicalAnalysis(lease, { code: 'AI_ANALYSIS_FAILED' }, {
         retryable: true,
@@ -657,7 +698,6 @@ function schedule(conversationId, options = {}) {
   }
   const identity = analysisJobIdentity(id, options);
   if (!identity) return false;
-
   const previous = timers.get(id);
   if (previous?.timer) clearTimeout(previous.timer);
   if (previous?.identity?.idempotencyKey && previous.identity.idempotencyKey !== identity.idempotencyKey) {
