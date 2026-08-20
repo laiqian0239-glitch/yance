@@ -285,31 +285,56 @@ test('M2-OUT-005 real platform facade preserves fenced persisted-attempt context
   assert.equal(observed[0].physicalContext.fencingToken, 11);
 });
 
-test('M2-OUT-006 Facebook Personal physical adapter rejects direct egress without a persisted attempt', async () => {
+test('M2-OUT-006 retired Facebook Personal experimental adapter owns zero physical egress authority', async () => {
   const previous = process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL;
   process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL = '1';
   const adapter = require('../../../services/facebookPersonalMessengerExperimentalAdapter');
-  const account = { id: 'facebook-personal-direct-guard-1' };
+  const account = { id: 'facebook-personal-retired-1' };
   let bridgeCalls = 0;
   try {
-    await adapter.connect(account, { secret: { browserSessionRef: 'browser-session-ref-1' } });
-    await assert.rejects(
-      () => adapter.sendText({
-        account,
-        accountId: account.id,
-        target: 'friend-1',
-        browserBridge: {
-          async sendText() {
-            bridgeCalls += 1;
-            return { accepted: true };
-          }
-        }
-      }, { text: 'hello' }),
-      error => error?.code === 'EGRESS_PERSISTED_ATTEMPT_REQUIRED'
-    );
+    assert.equal(Object.isFrozen(adapter), true);
+    assert.equal(adapter.enabled(), false);
+    assert.equal(adapter.credentialReady(account, { browserSessionRef: 'legacy-session-ref' }), false);
+    const status = adapter.status(account);
+    assert.equal(Object.isFrozen(status), true);
+    assert.deepEqual(status, {
+      state: 'retired',
+      canSend: false,
+      canReceive: false,
+      supportLevel: 'retired',
+      riskDisclosureRequired: false,
+      reasonCode: 'FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL_RETIRED',
+      replacementDriverId: 'facebook-personal-messenger-mautrix-meta'
+    });
+
+    const bridge = {
+      async sendText() {
+        bridgeCalls += 1;
+        return { accepted: true };
+      },
+      async sendMedia() {
+        bridgeCalls += 1;
+        return { accepted: true };
+      }
+    };
+    for (const [method, args] of [
+      ['connect', [account, { secret: { browserSessionRef: 'legacy-session-ref' } }]],
+      ['disconnect', [account]],
+      ['sync', [account]],
+      ['sendText', [{ account, accountId: account.id, target: 'friend-1', browserBridge: bridge }, { text: 'hello' }]],
+      ['sendMedia', [{ account, accountId: account.id, target: 'friend-1', browserBridge: bridge }, { mediaReference: 'media-ref-1' }]],
+      ['sendPresence', [{ account, accountId: account.id }, { state: 'typing' }]],
+      ['markRead', [{ account, accountId: account.id }, { messageId: 'remote-message-1' }]]
+    ]) {
+      await assert.rejects(
+        async () => adapter[method](...args),
+        error => error?.code === 'FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL_RETIRED'
+          && error?.status === 410,
+        method
+      );
+    }
     assert.equal(bridgeCalls, 0);
   } finally {
-    await adapter.disconnect(account);
     if (previous === undefined) delete process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL;
     else process.env.YANCE_FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL = previous;
   }
