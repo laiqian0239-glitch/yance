@@ -341,6 +341,16 @@ function detachAudit(at = '2026-08-02T10:01:00.000Z') {
   return { actor: 'release-closure', reason: 'identity detach invariant regression coverage', at };
 }
 
+function seedDetachContact(harness) {
+  harness.store.upsertContact({
+    id: 'contact-1',
+    platform: 'whatsapp',
+    accountId: 'wa-account-1',
+    externalId: '491701234567@s.whatsapp.net',
+    displayName: 'Detach Test'
+  });
+}
+
 function personContextFor(repository) {
   const { PersonContextAuthority } = require('../../../services/personContextAuthority');
   return new PersonContextAuthority({ repository });
@@ -349,6 +359,7 @@ function personContextFor(repository) {
 test('A5 detach invalidates the last identity bindings, blocks silent re-observe, and audited rollback restores them', () => {
   const harness = createHarness('yance-acv2-a5-detach-last-link-');
   try {
+    seedDetachContact(harness);
     const personContext = personContextFor(harness.repository);
     const observed = harness.authority.observe(detachObservation());
     assert.equal(personContext.resolve({ contactId: 'contact-1' }).found, true);
@@ -385,6 +396,7 @@ test('A5 detach invalidates the last identity bindings, blocks silent re-observe
 test('A5 detach preserves Person contact reachability when another usable identity remains', () => {
   const harness = createHarness('yance-acv2-a5-detach-multi-link-');
   try {
+    seedDetachContact(harness);
     const personContext = personContextFor(harness.repository);
     const first = harness.authority.observe(detachObservation());
     const second = harness.authority.observe(detachObservation({
@@ -414,6 +426,7 @@ test('A5 detach preserves Person contact reachability when another usable identi
 test('A5 PersonContext rejects disputed links until an audited verification makes the scope usable again', () => {
   const harness = createHarness('yance-acv2-a5-disputed-read-boundary-');
   try {
+    seedDetachContact(harness);
     const personContext = personContextFor(harness.repository);
     const observed = harness.authority.observe(detachObservation());
     harness.authority.dispute(observed.link.identityLinkId, detachAudit());
