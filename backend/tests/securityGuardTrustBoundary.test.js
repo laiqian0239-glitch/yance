@@ -55,6 +55,39 @@ test('safe-mode write exceptions are exact commands, never recovery prefixes', (
   );
 });
 
+test('caller supplied write hints cannot change command-owned write classification', () => {
+  let writePolicyCalls = 0;
+  const guard = createGuard({
+    systemPolicy: {
+      assertWriteAllowed() { writePolicyCalls += 1; }
+    }
+  });
+
+  const readDecision = guard.authorize('security.getState', { actor: 'external-caller', write: true });
+  assert.equal(readDecision.write, false);
+  assert.equal(writePolicyCalls, 0);
+
+  const writeDecision = guard.authorize('security.saveCredential', { actor: 'external-caller', write: false });
+  assert.equal(writeDecision.write, true);
+  assert.equal(writePolicyCalls, 1);
+});
+
+test('caller supplied write hints cannot probe lifecycle or safe-mode write policy', () => {
+  let writePolicyCalls = 0;
+  const guard = createGuard({
+    systemPolicy: {
+      assertWriteAllowed() { writePolicyCalls += 1; }
+    }
+  });
+  guard.setPolicyProviders({ safeModeProvider: () => true, lifecycleStateProvider: () => 'updating' });
+
+  const decision = guard.authorize('security.getState', { actor: 'external-caller', write: true });
+  assert.equal(decision.write, false);
+  assert.equal(decision.safeMode, true);
+  assert.equal(decision.lifecycleState, 'updating');
+  assert.equal(writePolicyCalls, 0);
+});
+
 test('credential references reject path syntax, traversal and control characters', async () => {
   const guard = createGuard();
   for (const ref of ['../vault', 'account/wa-1', 'account\\wa-1', 'account:..:wa-1', ' account:wa-1 ', 'account:\nwa-1']) {

@@ -34,13 +34,12 @@ function validateCredentialRef(value, options = {}) {
   return key;
 }
 
-function trustedInternalContext(actor, context = {}, write = false) {
+function trustedInternalContext(actor, context = {}) {
   const safeContext = context && typeof context === 'object' && !Array.isArray(context) ? context : {};
   const trusted = {
     actor,
     correlationId: clean(safeContext.correlationId),
-    requireInternal: true,
-    write: write === true
+    requireInternal: true
   };
   Object.defineProperty(trusted, INTERNAL_SECURITY_CONTEXT, {
     value: true,
@@ -98,7 +97,7 @@ class SecurityGuard {
     const correlationId = clean(context.correlationId) || randomUUID();
     const decision = { action: normalizedAction, actor, correlationId, at: new Date().toISOString(), allowed: true };
     try {
-      const write = isWriteCommand(normalizedAction) || context.write === true;
+      const write = isWriteCommand(normalizedAction);
       const lifecycleState = clean(this.lifecycleStateProvider?.() || '');
       const safeMode = this.safeModeProvider?.() === true;
       decision.write = write;
@@ -163,13 +162,13 @@ class SecurityGuard {
   readCredential(ref, context = {}) {
     const key = validateCredentialRef(ref, { allowEmpty: true });
     if (!key) return null;
-    this.authorize('security.credential.read', trustedInternalContext('backend-core', context, false));
+    this.authorize('security.credential.read', trustedInternalContext('backend-core', context));
     return this.secureBridge.get(key);
   }
 
   async persistCredential(ref, value, context = {}) {
     const key = validateCredentialRef(ref);
-    this.authorize('security.saveCredential', trustedInternalContext('backend-core', context, true));
+    this.authorize('security.saveCredential', trustedInternalContext('backend-core', context));
     const persisted = await this.secureBridge.persist(key, value || {});
     this.eventBus?.publish?.('security:credential-changed', { ref: key, action: 'persist', persisted: Boolean(persisted) });
     return persisted;
@@ -178,7 +177,7 @@ class SecurityGuard {
   async removeCredential(ref, context = {}) {
     const key = validateCredentialRef(ref, { allowEmpty: true });
     if (!key) return false;
-    this.authorize('security.deleteCredential', trustedInternalContext('backend-core', context, true));
+    this.authorize('security.deleteCredential', trustedInternalContext('backend-core', context));
     const removed = await this.secureBridge.remove(key);
     this.eventBus?.publish?.('security:credential-changed', { ref: key, action: 'remove', removed: Boolean(removed) });
     return removed;
