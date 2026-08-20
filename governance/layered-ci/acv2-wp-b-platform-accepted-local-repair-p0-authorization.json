@@ -58,6 +58,46 @@
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false
   },
+  "ossFit": {
+    "decision": "ADOPT_EXISTING_SCHEMA23_DURABLE_OUTBOUND_AND_LOCAL_REPAIR_SEAMS",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance existing local persistence repair durable queue seam",
+        "source": "backend/services/localPersistenceRepairService.js and backend/repositories/localPersistenceRepairRepository.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already owns the durable local repair queue and worker used to recover provider-accepted actions whose canonical local projection failed. The P0 needs only to enqueue the adapter-provided repair plan at the existing durable outbound boundary; adding another queue, scheduler, database or third-party framework would duplicate authority."
+      },
+      {
+        "name": "Yance existing Schema-23 OUTBOUND_MESSAGE_SEND durable operation seam",
+        "source": "backend/services/durableOperations/outboundMessageSendOperation.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The current Schema-23 operation already owns the persisted attempt, fencing identity, physical call, bounded observation and reconciliation boundary. Persisting the existing repair plan before success escapes belongs in this seam and requires no new execution engine or external infrastructure."
+      },
+      {
+        "name": "Mature external durable workflow or queue framework",
+        "source": "repository OSS-first adoption order review for external workflow, queue and retry frameworks",
+        "license": "varies by candidate; no new package selected",
+        "adoptionMode": "sidecar-service",
+        "fit": "GAP",
+        "reason": "External workflow or queue software cannot replace this repository-specific atomic handoff between the already-executed provider action and the existing local repair authority without adding a second execution/repair authority, new dependency surface and migration complexity."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second local persistence repair queue, worker, repository or scheduler.",
+      "Do not create a second outbound execution or reconciliation authority beside Schema-23 OUTBOUND_MESSAGE_SEND.",
+      "Do not restore the retired Facebook Personal experimental browser driver or its legacy session/egress authority.",
+      "Do not add a new third-party workflow, retry, queue or persistence dependency for this repository-specific handoff."
+    ],
+    "newThirdPartyDependencyRequired": false,
+    "basis": "This defect is a missing handoff between two already-authoritative repository seams, not an uncovered general-purpose capability. Reusing the existing Schema-23 outbound operation and existing local repair queue is the highest-ranked exact fit under the enforced OSS-first adoption order."
+  },
   "causalEvidence": {
     "candidatePullRequest": 549,
     "candidateBranch": "rebuild/windows-release-closure-20260820-platform-accepted-repair-durability-p0",
