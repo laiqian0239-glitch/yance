@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T04:01:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "ACV2-WP-B-M3-PLATFORM-ACCEPTED-LOCAL-REPAIR-P0-V3-CONTRACT-RECONCILIATION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Exact-head v2 PR #555 preserves the authorized seven-path product/evidence implementation and is GREEN on all routed formal gates except WP-B M3 Authorization. Ubuntu and Windows deterministically fail the same local-contract step. Fast-Landing comparison against the last known GREEN M3 head 6a77e87bc8aab8bcb503d3f8cf74ceefedbd7e4c proved the M3 workflow and its three local contract files are unchanged, while .github/workflows/wp-b-m2-red.yml was intentionally hardened from the legacy direct isAuthorizedWpBImplementationBranch seam to trusted-main implementationBranchPolicy.isAuthorizedImplementationBranch(...delegatedGovernance). The first stale assertion is M3-AUTH-008:.github/workflows/wp-b-m2-red.yml:ACTIVE_AUTHORITY_REQUIRED, which still requires the retired function name rather than the stronger trusted-main delegated-governance semantics. This successor authorizes only semantic reconciliation of that M3 contract while preserving the v2 seven-path bytes and the newer M2 trusted-main security mechanism. No workflow weakening, UAT candidate mutation, dependency change, package change, routing change, schema change, or new infrastructure is authorized.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/acv2-wp-b-platform-accepted-local-repair-p0-v2-authorization.json",
+    "implementationBranch": "product/acv2-wp-b-platform-accepted-local-repair-p0-v2",
+    "implementationPullRequest": 555,
+    "frozenHead": "c5e6a99b0e86092d5f72cb2fc529e80e6b614aa1",
+    "reason": "v2 remains immutable causal evidence. Its only formal RED is a base-owned stale M3 static contract discovered by the newly routed M3 gate."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "8ea9c494d17716c3d1666b11b21cb3f83d69fef6",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "8ea9c494d17716c3d1666b11b21cb3f83d69fef6",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/acv2-wp-b-platform-accepted-local-repair-p0-v3-contract-reconciliation-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/acv2-wp-b-platform-accepted-local-repair-p0-v3-contract-reconciliation-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "51df7684ee5376cb461a5a53e8545bfb472b416c1773696136f254d1b3b0696f",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "product/acv2-wp-b-platform-accepted-local-repair-p0-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "c5e6a99b0e86092d5f72cb2fc529e80e6b614aa1",
+      "predecessorMustRemainSecondParent": true,
+      "predecessorSevenPathsMustRemainByteIdentical": true
+    },
+    "allowedChangedPaths": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js",
+      "backend/tests/architectureClosureV2/wpB/m3Authorization.test.js",
+      "backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js",
+      "backend/tests/architectureClosureV2/wpB/outboundMessageDurableMigration.test.js",
+      "tests/wp0/platform-accepted-repair-durability.test.js",
+      "tests/wp0/wp-b-historical-pr-successor-state.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+      "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "2c947725526ac545f22103d1c11f49875de5d77ee0b83c5b4b5b853227fb0db9",
+    "newlyAuthorizedPaths": [
+      "backend/tests/architectureClosureV2/wpB/m3Authorization.test.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "workflowModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "causalEvidence": {
+    "lastKnownGreenM3": {
+      "head": "6a77e87bc8aab8bcb503d3f8cf74ceefedbd7e4c",
+      "runId": 32130054819,
+      "conclusion": "success"
+    },
+    "v2ExactHead": "c5e6a99b0e86092d5f72cb2fc529e80e6b614aa1",
+    "v2PullRequest": 555,
+    "m3RunId": 32414727118,
+    "ubuntuJobId": 96573158597,
+    "windowsJobId": 96573158928,
+    "commonFailedStep": "Run Milestone 3 authorization and WP0 wiring contracts",
+    "firstDeterministicContractFailure": "M3-AUTH-008:.github/workflows/wp-b-m2-red.yml:ACTIVE_AUTHORITY_REQUIRED",
+    "classification": "BASE_OWNED_STALE_STATIC_CONTRACT_AFTER_TRUSTED_MAIN_POLICY_HARDENING",
+    "unknownBlockers": 0
+  },
+  "mandatoryContracts": [
+    "Do not restore or require candidate-owned direct WP-B authorization in .github/workflows/wp-b-m2-red.yml.",
+    "M3-AUTH-008 must accept the current trusted-main delegated-governance M2 authorization path only when it proves event branch identity, trusted policy SHA, evaluated exact head, implementationBranchPolicy.isAuthorizedImplementationBranch, delegatedGovernance, trustedMainHead and evaluatedHead.",
+    "Historical hard-coded acv2/wp-b-durable-execution-outbox branch gates remain forbidden.",
+    "The other three successor workflows may continue using the direct active WP-B authority seam where currently authoritative.",
+    "All seven v2 product/evidence paths must remain byte-identical to frozen predecessor c5e6a99b0e86092d5f72cb2fc529e80e6b614aa1.",
+    "No Desktop/Windows UAT candidate, workflow, package, dependency, routing policy, database schema, repair queue, outbox, or product behavior may be modified."
+  ],
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m3Authorization.test.js tests/wp0/acv2-work-package-scope-wiring.test.js tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "formal": [
+      "WP-B M2 Contracts Ubuntu and Windows GREEN",
+      "WP-B M2 Independent Review Integrity Ubuntu and Windows GREEN including authenticated remote evidence",
+      "WP-B M3 Authorization Ubuntu and Windows GREEN including standalone local and remote verification",
+      "WP-B Validation GREEN",
+      "Stage WP0 GREEN",
+      "ACV2 WP-A GREEN"
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "historicalWpBBranchesImmutable": true,
+    "v2HeadRemainsImmutableCausalEvidence": true,
+    "desktopWindowsUatCandidateModificationAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  }
+}
