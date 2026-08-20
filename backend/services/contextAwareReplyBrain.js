@@ -157,6 +157,41 @@ function personaContactScope(contactId, socialContext = {}) {
   return clean(socialContext?.customer?.canonicalContactId || socialContext?.customer?.customerProfileId || contactId);
 }
 
+function buildTemporalContext(input = {}) {
+  const candidateZone = clean(input.timeZone || input.timezone || input.temporalContext?.timeZone);
+  let timeZone = candidateZone;
+  if (!timeZone) {
+    try { timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (_) { timeZone = 'UTC'; }
+  }
+  const nowValue = input.now instanceof Date ? input.now : new Date(input.now || Date.now());
+  const now = Number.isNaN(nowValue.getTime()) ? new Date() : nowValue;
+  let parts;
+  try {
+    parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', weekday: 'long'
+    }).formatToParts(now);
+  } catch (_) {
+    timeZone = 'UTC';
+    parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', weekday: 'long'
+    }).formatToParts(now);
+  }
+  const byType = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const hour = Number(byType.hour || 0);
+  const daypart = hour < 5 ? 'late_night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 22 ? 'evening' : 'late_night';
+  return Object.freeze({
+    localDate: `${byType.year}-${byType.month}-${byType.day}`,
+    localTime: `${byType.hour}:${byType.minute}:${byType.second}`,
+    weekday: byType.weekday || '',
+    daypart,
+    timeZone,
+    observedAt: now.toISOString(),
+    authority: 'runtime-clock-only'
+  });
+}
+
 function assertSocialContext(context) {
   if (!context?.found) throw createBrainError('CUSTOMER_NOT_FOUND', 'Customer social context was not found');
   if (!context.ready) throw createBrainError('SOCIAL_CONTEXT_NOT_READY', 'Customer social context is still hydrating');
@@ -359,6 +394,7 @@ function compactSocialDecisionPacket(packet = {}, limits = {}) {
     incomingMessage: projectRecentMessageForModel(packet.incomingMessage),
     persona: packet.persona,
     contactLanguage: packet.contactLanguage,
+    temporalContext: packet.temporalContext,
     performanceMode: packet.performanceMode || ''
   }, { maxDepth: 7, maxArray: Math.max(recentMessages, memoriesPerType), maxString: 1000 });
 }
@@ -393,6 +429,7 @@ function serializeSocialDecisionPacket(packet = {}, maxChars = 24000, limits = {
     incomingMessage: compact.incomingMessage,
     persona: compact.persona,
     contactLanguage: compact.contactLanguage,
+    temporalContext: compact.temporalContext,
     performanceMode: compact.performanceMode
   }, { maxDepth: 6, maxArray: 10, maxString: 600 });
   serialized = JSON.stringify(reduced);
@@ -424,6 +461,7 @@ function serializeSocialDecisionPacket(packet = {}, maxChars = 24000, limits = {
       learned: reduced.persona?.learned
     },
     contactLanguage: compactContextValue(reduced.contactLanguage, { maxDepth: 2, maxArray: 4, maxString: 80 }),
+    temporalContext: compactContextValue(reduced.temporalContext, { maxDepth: 2, maxArray: 4, maxString: 80 }),
     performanceMode: reduced.performanceMode
   });
 }
@@ -644,6 +682,8 @@ function buildModelMessages(packet, options = {}) {
     '当前联系人上下文是唯一来源；不得串用其他联系人的姓名、经历、称呼或私人信息。',
     'confirmedFacts 可以作为事实使用；userNotes 和 AI 推测不能被当作确定事实。',
     '候选文本不得反向修改出生、家庭、创伤、医疗、职业、财富、旅行或机构履历；上下文未明确确认的内容必须保持未知。',
+    'temporalContext 只提供真实本地日期、时间、星期与时段用于自然措辞；不得根据时间编造用户当前活动、地点、作息、行程或状态。',
+    'persona.lifeStatus 仅来自 authoritative.personaProfile.lifeStatus；不得根据 temporalContext 推断或改写 lifeStatus。',
     '不得声称去过未确认地点，也不得把推测、玩笑、导演指令或其他联系人的经历写成当前人物的真实经历。',
     '导演参数用于调整语气、直接程度、暧昧程度和长度，最终判断由用户完成。',
     'persona.composition 是 Persona/Relationship/Locale/Register/Style/Examples 的结构化组合；保持各单元独立，禁止把 Style Overlay 重写成平铺权重提示词。',
@@ -900,9 +940,11 @@ function createContextAwareReplyBrain({
     const performanceMode = replyPerformancePolicy.inferMode(input, basePacket);
     const performancePolicy = replyPerformancePolicy.policyFor({ ...input, performanceMode }, basePacket);
     const contactLanguage = contactLanguageAuthority.read({ contactId, conversationId });
+    const temporalContext = buildTemporalContext(input);
     const packet = Object.assign({}, basePacket, {
       persona: personaCtx.context.persona,
       contactLanguage,
+      temporalContext,
       performanceMode,
       performancePolicy
     });
@@ -1505,6 +1547,7 @@ function createContextAwareReplyBrain({
         languageAuthority,
         languageValidation: quality.languageValidation,
         contactLanguage,
+        temporalContext,
         director: { ...effectiveDirector },
         directorModelId: clean(directorResult?.modelId),
         directorModel: clean(directorResult?.model),
@@ -1587,6 +1630,7 @@ module.exports = {
   inferTargetLanguage,
   applyReplyLanguageQuality,
   personaContactScope,
+  buildTemporalContext,
   selectReplyTask,
   resolveReplyGenerationOptions,
   parseDirectorJson,

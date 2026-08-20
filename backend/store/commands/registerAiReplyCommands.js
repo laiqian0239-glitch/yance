@@ -2,6 +2,7 @@
 
 const replyLanguageAuthority = require('../../services/replyLanguageAuthority');
 const replyFeedbackLearningService = require('../../services/replyFeedbackLearningService');
+const { readConversationAutomationState } = require('./registerRuntimeStateCommands');
 
 function clean(value) {
   return String(value == null ? '' : value).trim();
@@ -14,6 +15,89 @@ function requireUserApproval(command, fail) {
   const approvedBy = clean(command.payload.approvedBy);
   if (!approvedBy) fail('APPROVER_REQUIRED', 'Explicit approver identity is required');
   return approvedBy;
+}
+
+function requireCandidateAuthorization(state, candidate, command, fail) {
+  const authorizationType = clean(command.payload.authorizationType).toLowerCase();
+  const machineRequested = authorizationType === 'machine' || authorizationType === 'automation' || command.payload.machineApproved === true;
+  if (!machineRequested) {
+    return {
+      authorizationType: 'human',
+      machineApproved: false,
+      userApproved: true,
+      approvedBy: requireUserApproval(command, fail),
+      automationReceipt: null
+    };
+  }
+
+  if (command.payload.machineApproved !== true) {
+    fail('AI_AUTO_MACHINE_APPROVAL_REQUIRED', 'AI_AUTO machine authorization requires machineApproved=true');
+  }
+  const currentAutomation = readConversationAutomationState(state, candidate.conversationId, candidate.contactId);
+  if (currentAutomation.mode !== 'AI_AUTO' || !currentAutomation.receipt?.id) {
+    fail('MANUAL_TAKEOVER', 'AI_AUTO authorization is no longer active for this conversation', {
+      conversationId: candidate.conversationId,
+      contactId: candidate.contactId,
+      automationMode: currentAutomation.mode
+    });
+  }
+  if (currentAutomation.policy?.blocked === true || currentAutomation.policy?.allowReplies === false) {
+    fail('AI_AUTO_INTERACTION_POLICY_BLOCKED', 'Existing interaction policy does not allow automatic replies', {
+      conversationId: candidate.conversationId,
+      contactId: candidate.contactId,
+      blocked: currentAutomation.policy?.blocked === true,
+      allowReplies: currentAutomation.policy?.allowReplies !== false
+    });
+  }
+  const suppliedReceipt = command.payload.automationReceipt && typeof command.payload.automationReceipt === 'object'
+    ? command.payload.automationReceipt
+    : {};
+  const candidateReceipt = candidate.automationModeReceipt && typeof candidate.automationModeReceipt === 'object'
+    ? candidate.automationModeReceipt
+    : candidate.generationMetadata?.automationModeReceipt || {};
+  const suppliedId = clean(suppliedReceipt.id);
+  const candidateId = clean(candidateReceipt.id);
+  const currentId = clean(currentAutomation.receipt.id);
+  if (!suppliedId || !candidateId || suppliedId !== currentId || candidateId !== currentId) {
+    fail('AI_AUTO_AUTOMATION_RECEIPT_STALE', 'AI_AUTO authorization receipt changed before candidate approval', {
+      conversationId: candidate.conversationId,
+      expectedReceiptId: candidateId,
+      suppliedReceiptId: suppliedId,
+      currentReceiptId: currentId
+    });
+  }
+  return {
+    authorizationType: 'machine',
+    machineApproved: true,
+    userApproved: false,
+    approvedBy: 'ai_auto',
+    automationReceipt: { ...currentAutomation.receipt }
+  };
+}
+
+function assertMachineOutboxAuthorization(state, outbox, fail) {
+  const currentAutomation = readConversationAutomationState(state, outbox.conversationId, outbox.contactId);
+  const expectedReceipt = outbox.automationReceipt && typeof outbox.automationReceipt === 'object'
+    ? outbox.automationReceipt
+    : outbox.metadata?.automationReceipt || {};
+  if (currentAutomation.mode !== 'AI_AUTO' || !currentAutomation.receipt?.id || clean(expectedReceipt.id) !== clean(currentAutomation.receipt.id)) {
+    fail('MANUAL_TAKEOVER', 'AI_AUTO was disabled or replaced before physical send authorization', {
+      conversationId: outbox.conversationId,
+      contactId: outbox.contactId,
+      expectedReceiptId: clean(expectedReceipt.id),
+      currentReceiptId: clean(currentAutomation.receipt?.id),
+      automationMode: currentAutomation.mode
+    });
+  }
+  if (currentAutomation.policy?.blocked === true || currentAutomation.policy?.allowReplies === false) {
+    fail('AI_AUTO_INTERACTION_POLICY_BLOCKED', 'Existing interaction policy no longer allows automatic replies', {
+      conversationId: outbox.conversationId,
+      contactId: outbox.contactId,
+      blocked: currentAutomation.policy?.blocked === true,
+      allowReplies: currentAutomation.policy?.allowReplies !== false
+    });
+  }
+  return currentAutomation;
 }
 
 function currentConversationRevision(state, conversationId) {
@@ -249,6 +333,9 @@ function registerAiReplyCommands(storeManager, options = {}) {
     const candidateId = createId();
     const createdAt = now();
     const generationMetadata = { ...(command.payload.generationMetadata || {}) };
+    const automationState = readConversationAutomationState(nextState, task.conversationId, task.contactId);
+    generationMetadata.automationMode = automationState.mode;
+    generationMetadata.automationModeReceipt = automationState.receipt ? { ...automationState.receipt } : null;
     const chineseUnderstanding = {
       sourceText: text,
       translatedZh: clean(command.payload.translatedZh),
@@ -272,6 +359,8 @@ function registerAiReplyCommands(storeManager, options = {}) {
         : [],
       performanceMode: clean(command.payload.performanceMode || task.performanceMode || 'balanced'),
       source: normalizeReplySource(command.payload.source || task.source),
+      automationMode: automationState.mode,
+      automationModeReceipt: automationState.receipt ? { ...automationState.receipt } : null,
       entityVersions: { ...(command.payload.entityVersions || task.entityVersions || {}) },
       translatedZh: chineseUnderstanding.translatedZh,
       translationStatus: chineseUnderstanding.translationStatus,
@@ -318,7 +407,7 @@ function registerAiReplyCommands(storeManager, options = {}) {
     return {
       nextState,
       changedDomains: ['aiBrain'],
-      result: { taskId, candidateId },
+      result: { taskId, candidateId, automationMode: automationState.mode, automationModeReceipt: automationState.receipt ? { ...automationState.receipt } : null, requiresUserApproval: automationState.mode !== 'AI_AUTO' },
       events: {
         type: 'ai.replyCandidate.ready',
         domain: 'aiBrain',
@@ -331,7 +420,9 @@ function registerAiReplyCommands(storeManager, options = {}) {
           taskId,
           candidateId,
           contactId: task.contactId,
-          requiresUserApproval: true
+          requiresUserApproval: automationState.mode !== 'AI_AUTO',
+          automationMode: automationState.mode,
+          automationModeReceipt: automationState.receipt ? { ...automationState.receipt } : null
         }
       },
       persist: transaction => {
@@ -367,7 +458,8 @@ function registerAiReplyCommands(storeManager, options = {}) {
         errors: Array.isArray(personaTruthReceipt.errors) ? personaTruthReceipt.errors : []
       });
     }
-    const approvedBy = requireUserApproval(command, fail);
+    const authorization = requireCandidateAuthorization(state, current, command, fail);
+    const approvedBy = authorization.approvedBy;
     const customer = state.customers.byId[current.contactId];
     if (!customer || customer.archived || customer.archivedAt) fail('ARCHIVED_CUSTOMER_READ_ONLY', 'Customer is no longer eligible for an AI reply', { contactId: current.contactId });
     // Background relationship/memory changes do not block approval on the fast path.
@@ -424,7 +516,10 @@ function registerAiReplyCommands(storeManager, options = {}) {
       text,
       originalText: candidate.originalText,
       state: 'approved',
-      userApproved: true,
+      authorizationType: authorization.authorizationType,
+      machineApproved: authorization.machineApproved,
+      userApproved: authorization.userApproved,
+      automationReceipt: authorization.automationReceipt ? { ...authorization.automationReceipt } : null,
       approvedAt,
       approvedBy,
       sendQueueId: '',
@@ -438,7 +533,11 @@ function registerAiReplyCommands(storeManager, options = {}) {
         performanceMode: clean(candidate.performanceMode || 'balanced'),
         learningMode,
         replySource,
-        explicitApproval: true,
+        authorizationType: authorization.authorizationType,
+        automationMode: authorization.authorizationType === 'machine' ? 'AI_AUTO' : readConversationAutomationState(state, candidate.conversationId, candidate.contactId).mode,
+        automationReceipt: authorization.automationReceipt ? { ...authorization.automationReceipt } : null,
+        explicitApproval: authorization.authorizationType === 'human',
+        machineApproved: authorization.machineApproved,
         personaProfileId: candidate.personaProfileId || 'owner',
         personaVersionId: candidate.personaVersionId,
         personaPolicyHash: candidate.personaPolicyHash || '',
@@ -487,9 +586,9 @@ function registerAiReplyCommands(storeManager, options = {}) {
     return {
       nextState,
       changedDomains: ['aiBrain', 'outbox'],
-      result: { candidateId, outboxId, state: outbox.state },
+      result: { candidateId, outboxId, state: outbox.state, authorizationType: authorization.authorizationType, automationReceipt: authorization.automationReceipt },
       events: {
-        type: 'ai.replyCandidate.userApproved',
+        type: authorization.authorizationType === 'machine' ? 'ai.replyCandidate.machineApproved' : 'ai.replyCandidate.userApproved',
         domain: 'outbox',
         entityId: outboxId,
         changedPaths: [
@@ -501,6 +600,9 @@ function registerAiReplyCommands(storeManager, options = {}) {
           outboxId,
           contactId: candidate.contactId,
           approvedBy,
+          authorizationType: authorization.authorizationType,
+          machineApproved: authorization.machineApproved,
+          automationReceipt: authorization.automationReceipt,
           requiresSendConfirmation: true
         }
       },
@@ -635,11 +737,19 @@ function registerAiReplyCommands(storeManager, options = {}) {
         'Persona 版本已更新，请重新批准回复候选人',
         { outboxId, personaVersionId: current.metadata?.personaVersionId, suggestedAction: 'REGENERATE_CANDIDATE' });
     }
-    if (current.state !== 'approved' || current.userApproved !== true) {
-      fail('OUTBOX_NOT_USER_APPROVED', 'Outbox item must be explicitly approved before send confirmation', { outboxId, state: current.state });
+    if (current.state !== 'approved') {
+      fail('OUTBOX_NOT_APPROVED', 'Outbox item must be approved before send confirmation', { outboxId, state: current.state });
     }
-    if (command.payload.confirmSend !== true) {
-      fail('EXPLICIT_SEND_CONFIRMATION_REQUIRED', 'The user must explicitly confirm sending');
+    const machineAuthorized = clean(current.authorizationType).toLowerCase() === 'machine' && current.machineApproved === true;
+    if (machineAuthorized) {
+      assertMachineOutboxAuthorization(state, current, fail);
+    } else {
+      if (current.userApproved !== true) {
+        fail('OUTBOX_NOT_USER_APPROVED', 'Outbox item must be explicitly approved before send confirmation', { outboxId, state: current.state });
+      }
+      if (command.payload.confirmSend !== true) {
+        fail('EXPLICIT_SEND_CONFIRMATION_REQUIRED', 'The user must explicitly confirm sending');
+      }
     }
     const customer = state.customers.byId[current.contactId];
     const account = state.auth.accountsById[current.accountId] || {};
@@ -675,7 +785,12 @@ function registerAiReplyCommands(storeManager, options = {}) {
     outbox.state = 'send_confirmed';
     outbox.sendConfirmedAt = now();
     outbox.updatedAt = now();
-    outbox.metadata = { ...(outbox.metadata || {}), quoted: normalizeQuotedContext(command.payload.quoted) };
+    outbox.metadata = {
+      ...(outbox.metadata || {}),
+      authorizationType: machineAuthorized ? 'machine' : 'human',
+      automationMode: machineAuthorized ? 'AI_AUTO' : readConversationAutomationState(state, outbox.conversationId, outbox.contactId).mode,
+      quoted: normalizeQuotedContext(command.payload.quoted)
+    };
     return {
       nextState,
       changedDomains: ['outbox'],
