@@ -8,6 +8,7 @@ const { SqliteStorePersistenceAdapter } = require('../store/adapters/SqliteStore
 const { registerAiReplyCommands } = require('../store/commands/registerAiReplyCommands');
 const { registerSocialIntelligenceCommands } = require('../store/commands/registerSocialIntelligenceCommands');
 const { registerRuntimeStateCommands } = require('../store/commands/registerRuntimeStateCommands');
+const { registerActiveSelectionCommands } = require('../store/commands/registerActiveSelectionCommands');
 const { StoreIntegrityMonitor } = require('../store/StoreIntegrityMonitor');
 const typingStateService = require('./typingStateService');
 const replyFeedbackLearningService = require('./replyFeedbackLearningService');
@@ -64,9 +65,18 @@ async function initialize(options = {}) {
     });
     const personaBrain = options.personaBrain || personaBrainModule.createPersonaBrain();
     registerRuntimeStateCommands(storeManager);
+    registerActiveSelectionCommands(storeManager);
     registerSocialIntelligenceCommands(storeManager, { governorConfig: options.governorConfig });
     registerAiReplyCommands(storeManager, { personaAuthority: personaBrain.service });
     await storeManager.hydrate();
+    // Persisted customer ordering is not selection authority. Start every
+    // process with no active runtime selection; the canonical renderer session
+    // will be mirrored through StoreProjectionCoordinator after UI selection.
+    await storeManager.dispatch({
+      type: 'SET_ACTIVE_CONVERSATION',
+      source: 'store-manager-startup',
+      payload: { conversationId: '' }
+    });
 
     // Model calls and controllers live in memory. Any durable task that was
     // running when the process stopped no longer has an executor and must be
