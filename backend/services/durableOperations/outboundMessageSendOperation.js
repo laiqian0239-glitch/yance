@@ -101,6 +101,10 @@ function validateAttemptEnvelope(envelope) {
   });
 }
 
+function defaultLocalPersistenceRepairEnqueue(input) {
+  return require('../localPersistenceRepairService').enqueue(input);
+}
+
 function validateDependencies(options = {}) {
   if (typeof options.resolveCommandReference !== 'function') {
     throw new TypeError('Outbound message operation requires a command custody resolver');
@@ -115,10 +119,15 @@ function validateDependencies(options = {}) {
       || typeof channelClient.lookup !== 'function') {
     throw new TypeError('Outbound message operation requires a frozen physical channel client');
   }
+  const enqueueLocalPersistenceRepair = options.enqueueLocalPersistenceRepair || defaultLocalPersistenceRepairEnqueue;
+  if (typeof enqueueLocalPersistenceRepair !== 'function') {
+    throw new TypeError('Outbound message operation requires a local persistence repair enqueue capability');
+  }
   return Object.freeze({
     channelClient,
     resolveCommandReference: options.resolveCommandReference,
-    resolveCredentialReference: options.resolveCredentialReference
+    resolveCredentialReference: options.resolveCredentialReference,
+    enqueueLocalPersistenceRepair
   });
 }
 
@@ -166,6 +175,65 @@ function physicalInput(attempt, capabilities = {}) {
     platformMessageId: attempt.platformMessageId,
     ...capabilities
   });
+}
+
+function localPersistenceRepairInput(attempt, observation = {}) {
+  if (observation.localPersistencePending !== true) return null;
+  const payload = observation.localPersistenceRepair;
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw outboundMessageOperationError(
+      'WP_B_OUTBOUND_LOCAL_REPAIR_PLAN_REQUIRED',
+      'Platform accepted the outbound action but no local persistence repair plan was returned',
+      { attemptId: attempt.attemptId }
+    );
+  }
+  const conversationId = optionalString(
+    payload.message?.conversationId
+      || payload.reaction?.conversationId
+      || payload.revoke?.conversationId,
+    'conversationId'
+  );
+  return Object.freeze({
+    id: `local-repair-${attempt.attemptId}`,
+    queueId: attempt.commandReference,
+    platform: attempt.platform,
+    accountId: attempt.accountReference,
+    conversationId,
+    payload
+  });
+}
+
+function persistLocalPersistenceRepair(dependencies, attempt, observation = {}) {
+  if (observation.localPersistencePending !== true) return null;
+  const platformMessageId = optionalString(observation.platformMessageId, 'platformMessageId');
+  try {
+    const repairInput = localPersistenceRepairInput(attempt, observation);
+    const repair = dependencies.enqueueLocalPersistenceRepair(repairInput);
+    if (!repair || typeof repair !== 'object') {
+      throw outboundMessageOperationError(
+        'WP_B_OUTBOUND_LOCAL_REPAIR_RECEIPT_REQUIRED',
+        'Local persistence repair enqueue did not return a durable repair receipt'
+      );
+    }
+    return repair;
+  } catch (cause) {
+    const wrapped = outboundMessageOperationError(
+      'WP_B_OUTBOUND_LOCAL_REPAIR_DURABILITY_UNCERTAIN',
+      'Platform accepted the outbound action but the local persistence repair plan could not be durably recorded',
+      {
+        attemptId: attempt.attemptId,
+        causeCode: String(cause?.code || ''),
+        causeMessage: String(cause?.message || cause)
+      }
+    );
+    wrapped.platformAccepted = true;
+    wrapped.platformMessageId = platformMessageId;
+    wrapped.remoteOutcomeUnknown = true;
+    wrapped.outcomeUnknown = true;
+    wrapped.automaticRetryBlocked = true;
+    wrapped.evidenceReference = `local-repair:${attempt.attemptId}:durability-uncertain`;
+    throw wrapped;
+  }
 }
 
 function redactedPhysicalObservation(value = {}) {
@@ -221,6 +289,7 @@ function createOutboundMessageSendOperation(options = {}) {
       const observation = await dependencies.channelClient.perform(
         physicalInput(attempt, { command, credential })
       );
+      persistLocalPersistenceRepair(dependencies, attempt, observation);
       return redactedPhysicalObservation(observation);
     },
 
@@ -248,6 +317,8 @@ module.exports = Object.freeze({
   OPERATION_KIND,
   createOutboundMessageSendOperation,
   outboundMessageOperationError,
+  localPersistenceRepairInput,
+  persistLocalPersistenceRepair,
   physicalInput,
   redactedPhysicalObservation,
   redactedReconciliationObservation,
