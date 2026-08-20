@@ -1,8 +1,5 @@
 'use strict';
 
-const { assertStorageAccess } = require('./runtimeRoleGuard');
-assertStorageAccess('R32SqliteStore');
-
 const crypto = require('crypto');
 const {
   applyStage634ArchitectureClosure,
