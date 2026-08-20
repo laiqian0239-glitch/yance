@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-20T15:34:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-AI-AUTO-CONVERSATION-P0-V1-AMENDMENT-4",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Issue #533 / CodeRabbit finding 4: deterministic AI_AUTO reply-generation failures are currently collapsed into ai.conversation-analysis failure and therefore reuse its 20-attempt retry policy. This amendment authorizes a narrow error-classification repair only: deterministic generation failures must fail the durable analysis operation non-retryably, while candidate persistence/staleness and unknown/transient failures retain their existing fail-closed/retry semantics. The repair does not weaken analysisSuccessRequiresAiAutoCandidatePersistence and does not introduce a second scheduler, queue, durable state machine, send authority, model authority, or dependency.",
   "base": {
@@ -82,6 +82,44 @@
       "node --test backend/tests/v21ProductAiAutoConversationP0.test.js"
     ],
     "exactHeadCiRequired": true
+  },
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_REPOSITORY_SEAMS_FOR_ERROR_CLASSIFICATION_ONLY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance aiBrainOrchestrator durable analysis authority",
+        "source": "backend/services/aiBrainOrchestrator.js@58354ae83d9ccad49b4aff4da87e81b898c00e33",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is caused by local error classification around the already authoritative durable analysis operation; extending this seam avoids a duplicate retry scheduler or durable operation."
+      },
+      {
+        "name": "Yance context-aware reply brain error and candidate-commit seam",
+        "source": "backend/services/contextAwareReplyBrain.js@58354ae83d9ccad49b4aff4da87e81b898c00e33",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already produces stable generation error codes and performs the authoritative AI_REPLY_CANDIDATE_READY commit, so the orchestrator can classify outcomes without adding a package or competing state machine."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test in the existing backend test stack",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The focused regression can use the repository's existing test runner with no new dependency or user-machine build requirement."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second candidate retry scheduler, queue, or durable-operation authority for this repair.",
+      "Do not replace or bypass the existing authoritative Store candidate commit and AI_STALE_RESULT recovery path.",
+      "Do not add a third-party dependency for deterministic error classification that can be expressed at the existing orchestrator seam.",
+      "Do not weaken analysisSuccessRequiresAiAutoCandidatePersistence or convert failed candidate persistence into successful durable analysis."
+    ]
   },
   "mergePolicy": {
     "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
