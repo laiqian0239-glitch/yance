@@ -328,3 +328,109 @@ test('legacy canonicalization refuses phone-only identity groups before any muta
   assert.equal(strongCalls[0].dryRun, true);
   assert.notEqual(strongCalls[1].dryRun, true);
 });
+
+function detachObservation(overrides = {}) {
+  return observation({
+    profileContactId: 'contact-1',
+    conversationId: 'conversation-1',
+    ...overrides
+  });
+}
+
+function detachAudit(at = '2026-08-02T10:01:00.000Z') {
+  return { actor: 'release-closure', reason: 'identity detach invariant regression coverage', at };
+}
+
+function personContextFor(repository) {
+  const { PersonContextAuthority } = require('../../../services/personContextAuthority');
+  return new PersonContextAuthority({ repository });
+}
+
+test('A5 detach invalidates the last identity bindings, blocks silent re-observe, and audited rollback restores them', () => {
+  const harness = createHarness('yance-acv2-a5-detach-last-link-');
+  try {
+    const personContext = personContextFor(harness.repository);
+    const observed = harness.authority.observe(detachObservation());
+    assert.equal(personContext.resolve({ contactId: 'contact-1' }).found, true);
+    assert.equal(personContext.resolve({ conversationId: 'conversation-1' }).found, true);
+
+    const detached = harness.authority.detach(observed.link.identityLinkId, detachAudit());
+    assert.equal(detached.link.linkStatus, 'detached');
+    assert.equal(harness.repository.listPersonContactBindings({ personId: observed.person.personId, contactId: 'contact-1', limit: 10 })[0]?.state, 'detached');
+    assert.equal(harness.repository.listConversationBindings({ personId: observed.person.personId, conversationId: 'conversation-1', limit: 10 })[0]?.state, 'detached');
+    assert.equal(personContext.resolve({ contactId: 'contact-1' }).found, false);
+    assert.equal(personContext.resolve({ conversationId: 'conversation-1' }).found, false);
+
+    assert.throws(
+      () => harness.authority.observe(detachObservation({ observedAt: '2026-08-02T10:02:00.000Z' })),
+      err => err?.code === 'IDENTITY_DETACHED_LINK_REOBSERVATION_FORBIDDEN'
+    );
+    assert.equal(harness.repository.listPersonContactBindings({ personId: observed.person.personId, contactId: 'contact-1', limit: 10 })[0]?.state, 'detached');
+    assert.equal(harness.repository.listConversationBindings({ personId: observed.person.personId, conversationId: 'conversation-1', limit: 10 })[0]?.state, 'detached');
+
+    harness.authority.rollbackAudit(detached.auditId, {
+      actor: 'release-closure',
+      reason: 'verify detach rollback restores bindings',
+      at: '2026-08-02T10:03:00.000Z'
+    });
+    assert.equal(harness.repository.listPersonContactBindings({ personId: observed.person.personId, contactId: 'contact-1', limit: 10 })[0]?.state, 'active');
+    assert.equal(harness.repository.listConversationBindings({ personId: observed.person.personId, conversationId: 'conversation-1', limit: 10 })[0]?.state, 'active');
+    assert.equal(personContext.resolve({ contactId: 'contact-1' }).found, true);
+    assert.equal(personContext.resolve({ conversationId: 'conversation-1' }).found, true);
+  } finally {
+    harness.close();
+  }
+});
+
+test('A5 detach preserves Person contact reachability when another usable identity remains', () => {
+  const harness = createHarness('yance-acv2-a5-detach-multi-link-');
+  try {
+    const personContext = personContextFor(harness.repository);
+    const first = harness.authority.observe(detachObservation());
+    const second = harness.authority.observe(detachObservation({
+      platform: 'telegram',
+      sourceAccountId: 'tg-account-1',
+      externalId: 'telegram-user-1',
+      conversationId: 'conversation-2',
+      personId: first.person.personId,
+      linkExistingPerson: true,
+      evidenceRefs: ['proof:explicit-cross-platform-link'],
+      actor: 'release-closure',
+      reason: 'explicitly link second platform identity'
+    }));
+
+    harness.authority.detach(first.link.identityLinkId, detachAudit());
+    assert.equal(harness.repository.listPersonContactBindings({ personId: first.person.personId, contactId: 'contact-1', limit: 10 })[0]?.state, 'active');
+    assert.equal(harness.repository.listConversationBindings({ personId: first.person.personId, conversationId: 'conversation-1', limit: 10 })[0]?.state, 'detached');
+    assert.equal(harness.repository.listConversationBindings({ personId: first.person.personId, conversationId: 'conversation-2', limit: 10 })[0]?.state, 'active');
+    assert.equal(personContext.resolve({ contactId: 'contact-1' }).found, true);
+    assert.equal(personContext.resolve({ conversationId: 'conversation-1' }).found, false);
+    assert.equal(personContext.resolve({ conversationId: 'conversation-2' }).personId, second.person.personId);
+  } finally {
+    harness.close();
+  }
+});
+
+test('A5 PersonContext rejects disputed links until an audited verification makes the scope usable again', () => {
+  const harness = createHarness('yance-acv2-a5-disputed-read-boundary-');
+  try {
+    const personContext = personContextFor(harness.repository);
+    const observed = harness.authority.observe(detachObservation());
+    harness.authority.dispute(observed.link.identityLinkId, detachAudit());
+
+    assert.equal(harness.repository.listPersonContactBindings({ personId: observed.person.personId, contactId: 'contact-1', limit: 10 })[0]?.state, 'active');
+    assert.equal(harness.repository.listConversationBindings({ personId: observed.person.personId, conversationId: 'conversation-1', limit: 10 })[0]?.state, 'active');
+    assert.equal(personContext.resolve({ contactId: 'contact-1' }).found, false);
+    assert.equal(personContext.resolve({ conversationId: 'conversation-1' }).found, false);
+
+    harness.authority.verify(observed.link.identityLinkId, {
+      ...detachAudit('2026-08-02T10:02:00.000Z'),
+      evidenceRefs: ['proof:manual-reverification'],
+      verificationMethod: 'manual-confirmation'
+    });
+    assert.equal(personContext.resolve({ contactId: 'contact-1' }).found, true);
+    assert.equal(personContext.resolve({ conversationId: 'conversation-1' }).found, true);
+  } finally {
+    harness.close();
+  }
+});
