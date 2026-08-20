@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const { configureStoreManager } = require('../../backend/store/storeManagerSingleton');
+const { registerRuntimeStateCommands } = require('../../backend/store/commands/registerRuntimeStateCommands');
 const { registerActiveSelectionCommands, activeSelection } = require('../../backend/store/commands/registerActiveSelectionCommands');
 const { StoreProjectionCoordinator } = require('../../backend/core/projections/storeProjectionCoordinator');
 
@@ -49,9 +50,13 @@ async function createManager(seed = seedState()) {
   let transactionCalls = 0;
   const persistence = {
     async loadSnapshot() { return seed; },
-    async transaction() { transactionCalls += 1; throw new Error('ephemeral active selection must not persist'); }
+    async transaction(operation) {
+      transactionCalls += 1;
+      return operation({});
+    }
   };
   const manager = configureStoreManager({ persistence, replace: true });
+  registerRuntimeStateCommands(manager);
   registerActiveSelectionCommands(manager);
   await manager.hydrate();
   return { manager, transactionCalls: () => transactionCalls };
@@ -114,6 +119,86 @@ test('unknown, archived, or ineligible exact sessions fail closed by clearing bo
     assert.equal(manager.select(state => state.conversations.currentId || ''), '');
     assert.equal(manager.select(state => state.customers.currentId || ''), '');
   }
+});
+
+test('generic customer context sync never claims active selection and keeps conversation indexes deduplicated', async () => {
+  const seed = seedState();
+  seed.customers.currentId = '';
+  seed.conversations.currentId = '';
+  const { manager } = await createManager(seed);
+  const command = {
+    type: 'SYNC_CUSTOMER_CONTEXT',
+    source: 'test-generic-context-sync',
+    payload: {
+      context: {
+        contact: { id: 'contact-b', displayName: 'Contact B', archived: false },
+        conversations: [{ sessionKey: 'session-b', contactId: 'contact-b' }]
+      }
+    }
+  };
+  const first = await manager.dispatch(command);
+  const second = await manager.dispatch({ ...command, id: 'sync-contact-b-repeat' });
+  assert.equal(first.result.selectionCleared, false);
+  assert.equal(second.result.selectionCleared, false);
+  assert.equal(manager.select(state => state.customers.currentId || ''), '');
+  assert.equal(manager.select(state => state.conversations.currentId || ''), '');
+  assert.deepEqual(manager.select(state => state.conversations.byContactId['contact-b']), ['session-b']);
+});
+
+test('customer context archival clears both active mirrors instead of leaving a split selection', async () => {
+  const { manager } = await createManager();
+  const result = await manager.dispatch({
+    type: 'SYNC_CUSTOMER_CONTEXT',
+    source: 'test-context-archive',
+    payload: {
+      context: {
+        contact: {
+          id: 'contact-a',
+          displayName: 'Contact A',
+          archived: true,
+          archivedAt: '2026-08-20T01:00:00.000Z'
+        },
+        conversations: [{ sessionKey: 'session-a1', contactId: 'contact-a' }]
+      }
+    }
+  });
+  assert.equal(result.result.selectionCleared, true);
+  assert.equal(manager.select(state => state.customers.currentId || ''), '');
+  assert.equal(manager.select(state => state.conversations.currentId || ''), '');
+  assert.deepEqual(manager.select(state => state.customers.activeIds), ['contact-b']);
+});
+
+test('customer archive clears canonical mirrors without guessing the next active customer', async () => {
+  const { manager } = await createManager();
+  const result = await manager.dispatch({
+    type: 'SYNC_CUSTOMER_ARCHIVE',
+    source: 'test-selected-archive',
+    payload: {
+      contactId: 'contact-a',
+      archived: true,
+      archivedAt: '2026-08-20T02:00:00.000Z',
+      reason: 'test'
+    }
+  });
+  assert.equal(result.result.selectionCleared, true);
+  assert.equal(manager.select(state => state.customers.currentId || ''), '');
+  assert.equal(manager.select(state => state.conversations.currentId || ''), '');
+  assert.deepEqual(manager.select(state => state.customers.activeIds), ['contact-b']);
+
+  const fresh = await createManager();
+  const unrelated = await fresh.manager.dispatch({
+    type: 'SYNC_CUSTOMER_ARCHIVE',
+    source: 'test-unselected-archive',
+    payload: {
+      contactId: 'contact-b',
+      archived: true,
+      archivedAt: '2026-08-20T03:00:00.000Z',
+      reason: 'test'
+    }
+  });
+  assert.equal(unrelated.result.selectionCleared, false);
+  assert.equal(fresh.manager.select(state => state.customers.currentId), 'contact-a');
+  assert.equal(fresh.manager.select(state => state.conversations.currentId), 'session-a1');
 });
 
 test('notification active-session event projects through the exact Store runtime authority', async () => {
