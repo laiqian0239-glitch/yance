@@ -318,3 +318,31 @@ function ensureSurface(){const panel=document.getElementById('aiwModelsPanel');i
 function boot(){const panel=document.getElementById('aiwModelsPanel');if(panel){new MutationObserver(()=>queueMicrotask(ensureSurface)).observe(panel,{childList:true,subtree:false});ensureSurface()}else setTimeout(boot,250)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
+
+/* V21 adaptive-local planner evidence consumer. The backend planner remains the sole planning authority; this surface only submits catalog facts and renders returned hardware/results/best evidence. */
+(()=>{
+'use strict';
+const ROOT='/api/r32/models';
+let inFlight=false;
+const clean=value=>String(value==null?'':value).trim();
+const candidatesFromCatalog=catalog=>(Array.isArray(catalog?.models)?catalog.models:[]).flatMap(model=>(Array.isArray(model.runtimeCandidates)?model.runtimeCandidates:[]).map(runtimeId=>({model:{id:clean(model.id),parameterCountB:Number(model.parameterCountB||0),quantizedBytes:Number(model.quantizedBytes||0)},runtime:{id:clean(runtimeId)},benchmark:{}})));
+const formatBytes=value=>{const bytes=Number(value||0);if(!Number.isFinite(bytes)||bytes<=0)return 'unknown';const gib=bytes/(1024**3);return `${gib.toFixed(gib>=10?0:1)} GiB`};
+async function readJson(url,options={}){const response=await fetch(url,{method:options.method||'GET',headers:{Accept:'application/json','Content-Type':'application/json'},body:options.body===undefined?undefined:JSON.stringify(options.body)}),payload=await response.json().catch(()=>({}));if(!response.ok||payload.ok===false)throw Object.assign(new Error(payload.message||payload.error||`HTTP ${response.status}`),{code:payload.code||payload.error||'ADAPTIVE_LOCAL_PLAN_FAILED'});return payload}
+function renderEvidence(plan){
+  const shell=document.querySelector('[data-adaptive-local-shell]');if(!shell)return false;
+  const body=shell.querySelector('.adaptive-local-body');if(!body)return false;
+  let node=body.querySelector('[data-adaptive-local-plan-evidence]');if(!node){node=document.createElement('div');node.className='adaptive-local-progress';node.dataset.adaptiveLocalPlanEvidence='1';const progress=body.querySelector('[data-adaptive-local-progress]');if(progress?.nextSibling)body.insertBefore(node,progress.nextSibling);else body.append(node)}
+  const hardware=plan?.hardware&&typeof plan.hardware==='object'?plan.hardware:{},results=Array.isArray(plan?.results)?plan.results:[],best=plan?.best&&typeof plan.best==='object'?plan.best:null,evidence=best?.evidence||{};
+  node.dataset.state=best?.capabilityClass==='incompatible'?'warning':best?'success':'idle';
+  node.textContent=best?`规划证据 · ${best.modelId||'model'} / ${best.runtimeId||'runtime'} · ${best.capabilityClass||'unknown'} · ${best.executionMode||'unknown'} · RAM free ${formatBytes(hardware.memoryFreeBytes||evidence.memoryFreeBytes)} · GPU VRAM ${formatBytes(evidence.gpuVramBytes)} · candidates ${results.length}`:`规划证据 · 暂无可评估本地运行时候选 · candidates ${results.length}`;
+  window.__YanceAdaptiveLocalPlannerEvidence={hardware,results,best,source:'POST /api/r32/models/adaptive-local/plan',formalReplyAuthority:'LiteLLM Model Brain v1.95.0'};
+  return true;
+}
+async function consumePlannerEvidence(){
+  const shell=document.querySelector('[data-adaptive-local-shell]');if(!shell||shell.querySelector('[data-adaptive-local-plan-evidence]')||inFlight)return;
+  inFlight=true;
+  try{const catalog=await readJson(`${ROOT}/adaptive-local/catalog`),candidates=candidatesFromCatalog(catalog),plan=candidates.length?await readJson(`${ROOT}/adaptive-local/plan`,{method:'POST',body:{candidates}}):{ok:true,hardware:null,results:[],best:null};renderEvidence(plan)}catch(error){renderEvidence({hardware:null,results:[],best:null});const node=document.querySelector('[data-adaptive-local-plan-evidence]');if(node){node.dataset.state='warning';node.textContent=`规划证据读取失败 · ${clean(error.code||'ADAPTIVE_LOCAL_PLAN_FAILED')} · ${clean(error.message)}`}}finally{inFlight=false}
+}
+function boot(){const panel=document.getElementById('aiwModelsPanel');if(!panel){setTimeout(boot,250);return}new MutationObserver(()=>queueMicrotask(consumePlannerEvidence)).observe(panel,{childList:true,subtree:true});consumePlannerEvidence()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
