@@ -556,6 +556,18 @@ function resolveFailureFirstCommitProtocol(implementation, implementationPaths) 
     || declaration.approvedChangedFileCount !== allowedChangedPaths.length
     || declaration.approvedChangedFileSetSha256 !== workPackageChangedFilesSha256(allowedChangedPaths)) return false;
 
+  let firstHeadTrustedMainGuard = null;
+  if (Object.prototype.hasOwnProperty.call(declaration, 'firstHeadTrustedMainGuard')) {
+    const guard = declaration.firstHeadTrustedMainGuard;
+    if (!isPlainJsonObject(guard)
+      || !sameJson(Object.keys(guard).sort(), ['required', 'trustedMainMustEqualAuthorizationMerge'])
+      || guard.required !== true
+      || guard.trustedMainMustEqualAuthorizationMerge !== true) return false;
+    firstHeadTrustedMainGuard = Object.freeze({
+      trustedMainMustEqualAuthorizationMerge: true
+    });
+  }
+
   let fastClosureV2 = null;
   if (Object.prototype.hasOwnProperty.call(declaration, 'fastClosureV2')) {
     const fastClosure = declaration.fastClosureV2;
@@ -572,6 +584,7 @@ function resolveFailureFirstCommitProtocol(implementation, implementationPaths) 
     allowedChangedPaths: Object.freeze([...allowedChangedPaths]),
     approvedChangedFileCount: declaration.approvedChangedFileCount,
     approvedChangedFileSetSha256: declaration.approvedChangedFileSetSha256,
+    firstHeadTrustedMainGuard,
     fastClosureV2
   });
 }
@@ -1625,6 +1638,12 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
       || new Set(firstParentCommits).size !== firstParentCommits.length
       || firstParentCommits[firstParentCommits.length - 1] !== evaluatedHead) {
       return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID');
+    }
+
+    if (failureFirstProtocol.firstHeadTrustedMainGuard
+      && firstParentCommits.length === 1
+      && trustedMainHead !== match.mergeCommit) {
+      return denyFailureFirst('WP0_DELEGATED_GOVERNANCE_FIRST_HEAD_MAIN_DRIFT');
     }
 
     const redHead = firstParentCommits[0];
