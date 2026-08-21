@@ -46,11 +46,11 @@
   "implementation": {
     "branch": "governance/v21-delegated-first-head-fresh-main-guard-p0",
     "allowedChangedPaths": [
-      "shared/release/implementationBranchPolicy.js",
+      "shared/release/implementationBranchPolicyLegacy.js",
       "tests/wp0/implementation-branch-policy.test.js"
     ],
     "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "approvedChangedFileSetSha256": "0457f5a3938ad78b638b12a7072a70d94e4ee5111c2fa2d6566f9a46ea2fc6b8",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "rootNpmManifestModificationAllowed": false,
@@ -68,7 +68,7 @@
     }
   },
   "policyContract": {
-    "existingAuthority": "shared/release/implementationBranchPolicy.js::evaluateTrustedDelegatedGovernanceBranch",
+    "existingAuthority": "shared/release/implementationBranchPolicyLegacy.js::evaluateTrustedDelegatedGovernanceBranch (re-exported by shared/release/implementationBranchPolicy.js)",
     "activation": "Prospective and optional. Only a delegated authorization whose implementation.failureFirstCommit contains the new exact first-head trusted-main guard declaration is subject to this additional check. Existing authorizations without the declaration preserve current trusted-main refresh semantics.",
     "newDeclaration": {
       "path": "implementation.failureFirstCommit.firstHeadTrustedMainGuard",
@@ -79,7 +79,7 @@
       "malformedDeclarationFailsAuthorizationValidation": true
     },
     "requiredSemantics": [
-      "When the opt-in guard is present and the evaluated implementation head is the unique first implementation descendant of the effective authorization merge, trusted main must equal that effective authorization merge commit.",
+      "When the opt-in guard is present and the evaluated implementation head is the unique first implementation descendant of the effective authorization merge, trusted main must still equal that effective authorization merge commit.",
       "If trusted main has advanced before that first implementation head is evaluated, fail closed with a stable delegated-governance reason code before accepting the failure-first head.",
       "The first implementation descendant must still satisfy the existing failure-first single-parent, exact tests-only path/count/digest and production-code-forbidden contracts.",
       "After a valid first failure-first head has been established, existing legitimate fresh-main refresh semantics remain unchanged; the new guard must not globally require trusted main to remain pinned to the authorization merge for later implementation heads.",
@@ -121,12 +121,12 @@
         "reason": "The evaluator already owns trusted main, authorization merge, first-parent history and exact Git topology. The guard needs no new service, dependency or mutable remote state."
       },
       {
-        "name": "Yance implementationBranchPolicy",
-        "source": "shared/release/implementationBranchPolicy.js@8cfdbee6e1549f0870f55998bedbe840be51ef70",
+        "name": "Yance delegated governance evaluator",
+        "source": "shared/release/implementationBranchPolicyLegacy.js@8cfdbee6e1549f0870f55998bedbe840be51ef70",
         "license": "repository-internal existing seam",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
-        "reason": "This is the single existing delegated authorization/topology authority and is the correct layer for an opt-in first-head anti-drift contract."
+        "reason": "At current main this file owns evaluateTrustedDelegatedGovernanceBranch and resolveFailureFirstCommitProtocol; shared/release/implementationBranchPolicy.js only re-exports/composes that authority, so the repair must modify the current owning evaluator seam."
       }
     ],
     "retireOrAvoid": [
@@ -139,7 +139,7 @@
   "mandatoryContracts": [
     "The authorization PR itself remains one governance JSON only.",
     "The implementation first commit changes only tests/wp0/implementation-branch-policy.test.js and obtains a fresh causal RED before policy code changes.",
-    "The repair changes only shared/release/implementationBranchPolicy.js plus its existing WP0 contract test.",
+    "The repair changes only shared/release/implementationBranchPolicyLegacy.js plus its existing WP0 contract test.",
     "The opt-in declaration is strict and malformed variants fail closed.",
     "Existing authorizations without the declaration preserve current behavior.",
     "A first failure-first head after trusted-main advancement is rejected before it can be treated as valid RED evidence.",
@@ -151,7 +151,7 @@
     "fresh main anti-drift -> explicit owner authorization -> ordinary two-parent authorization merge",
     "create governance/v21-delegated-first-head-fresh-main-guard-p0 from the exact authorization merge only after a fresh main preflight",
     "first implementation commit changes only tests/wp0/implementation-branch-policy.test.js and captures a fresh causal RED",
-    "root-fix implementationBranchPolicy with the minimal optional first-head trusted-main guard",
+    "root-fix implementationBranchPolicyLegacy with the minimal optional first-head trusted-main guard",
     "bind the exact RED evidence on the first policy implementation commit and run exact-head Stage/Layered/ACV2 plus independent review",
     "ordinary two-parent merge the policy repair after explicit owner authorization",
     "recreate the local-auxiliary successor authorization from the repaired fresh main; do not revive stale #570"
