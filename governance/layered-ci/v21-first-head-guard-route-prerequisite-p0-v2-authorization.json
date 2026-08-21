@@ -41,6 +41,35 @@
     "authorizationProposalTransportIsNotImplementationAuthority": true,
     "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TRUSTED_ROUTE_AND_SUPERSESSION_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance generic delegated route mutation guard",
+        "source": "shared/release/implementationBranchPolicyLegacy.js::validateDelegatedRoutePolicyMutation",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The trusted guard already enforces exact governanceBootstrapPaths count/digest closure and exact-add-only governanceExactPaths mutation, so this successor should reuse it rather than introduce another policy engine."
+      },
+      {
+        "name": "Yance generic delegated authority supersession graph",
+        "source": "shared/release/implementationBranchPolicyLegacy.js::evaluateTrustedDelegatedGovernanceBranch",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The trusted evaluator already supports immutable predecessor supersession and exact branch authority without rewriting published history, matching the #574 recovery requirement."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second route or policy engine.",
+      "Do not rewrite, revive or merge frozen PR #574.",
+      "Do not add workflows, dependencies, broad prefixes, Product changes or Desktop/Windows UAT changes."
+    ]
+  },
   "authorizationBranch": {
     "name": "governance/v21-first-head-guard-route-prerequisite-p0-v2-authorization",
     "allowedChangedPaths": [
