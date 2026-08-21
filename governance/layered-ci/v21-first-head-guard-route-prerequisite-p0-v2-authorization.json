@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FIRST-HEAD-GUARD-ROUTE-PREREQUISITE-P0-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing successor for the immutable #574 implementation history. The #572 route prerequisite correctly identified the missing governance exact-path classification, and #574 produced a valid tests-only causal RED plus a one-line route GREEN. Exact-head Stage then exposed two authority-level defects that cannot be repaired by appending another commit: the published second commit used Yance-Causal-RED trailers while the trusted legacy failure-first evaluator mechanically requires Yance-Failure-First-Red-Head/Run/Conclusion on that second commit, and the #572 authorization declared governanceBootstrapPaths without setting implementation.genericRouteMutationGuardRequired=true, so the trusted evaluator would not mechanically invoke the exact route-mutation guard. This V2 preserves #574 as historical evidence, supersedes the old implementation branch without rewriting it, and authorizes a fresh branch that closes both defects while keeping the same two-file route prerequisite scope.",
+  "base": {
+    "branch": "main",
+    "commit": "22b245861365cca820ef582233186b7410ffa99a"
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-delegated-first-head-fresh-main-guard-p0-authorization.json",
+    "implementationBranch": "governance/v21-delegated-first-head-fresh-main-guard-route-prerequisite-p0",
+    "reason": "The superseded branch remains immutable historical evidence: its route RED and one-line GREEN are causally valid, but its second commit cannot satisfy the legacy failure-first evidence protocol without forbidden history rewrite, and the predecessor authorization omitted the generic route-mutation guard activation bit. V2 creates a fresh implementation branch and mechanically activates the existing trusted route guard."
+  },
+  "historicalEvidence": {
+    "predecessorAuthorizationPullRequest": 572,
+    "predecessorAuthorizationMerge": "22b245861365cca820ef582233186b7410ffa99a",
+    "frozenImplementationPullRequest": 574,
+    "frozenImplementationState": "CLOSED_UNMERGED_HISTORICAL",
+    "testsOnlyRedHead": "978af3fc8281d290e233d51d84e298bef69bc50d",
+    "testsOnlyRedRun": 32460467304,
+    "testsOnlyRedJob": 96706267774,
+    "testsOnlyRedResult": "211 pass / 1 fail; actual PRODUCT_WP0, expected GOVERNANCE_WP0",
+    "routeGreenHead": "701def2a5d3b1e6d2b1bcb9019b53a1cd7ff7c99",
+    "routeGreenResult": "layered routing contracts 212/212 GREEN",
+    "authorityFailureRun": 32460673620,
+    "authorityFailureJob": 96706853388,
+    "authorityFailure": "implementation-branch-policy.test.js rejects the branch because commit 2 lacks the exact legacy Yance-Failure-First-Red-* evidence trailers",
+    "independentReviewResult": "P0=0 / P1=1",
+    "oldBranchMustNotBeRewritten": true,
+    "oldPullRequestMustNotMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "22b245861365cca820ef582233186b7410ffa99a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TRUSTED_ROUTE_AND_SUPERSESSION_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance generic delegated route mutation guard",
+        "source": "shared/release/implementationBranchPolicyLegacy.js::validateDelegatedRoutePolicyMutation",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The trusted guard already enforces exact governanceBootstrapPaths count/digest closure and exact-add-only governanceExactPaths mutation, so this successor should reuse it rather than introduce another policy engine."
+      },
+      {
+        "name": "Yance generic delegated authority supersession graph",
+        "source": "shared/release/implementationBranchPolicyLegacy.js::evaluateTrustedDelegatedGovernanceBranch",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The trusted evaluator already supports immutable predecessor supersession and exact branch authority without rewriting published history, matching the #574 recovery requirement."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second route or policy engine.",
+      "Do not rewrite, revive or merge frozen PR #574.",
+      "Do not add workflows, dependencies, broad prefixes, Product changes or Desktop/Windows UAT changes."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-first-head-guard-route-prerequisite-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-first-head-guard-route-prerequisite-p0-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b9cb672a66e1f60d4825c69717958491420569a388ea9bf3bffac3a07d6e33c8",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "governance/v21-first-head-guard-route-prerequisite-p0-v2",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d0bf4c9815a9d6a8ba8045d37741c4799a69a6b065e5332506f42f1703e9f887",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "genericRouteMutationGuardRequired": true,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/wp0-routing.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "0d247b29f8085396a9c5a15b92b23441cb4594a45081d7c79686e1e7e3265b8b",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    }
+  },
+  "governanceBootstrapPaths": [
+    "shared/release/implementationBranchPolicyLegacy.js"
+  ],
+  "governanceBootstrapPathCount": 1,
+  "governanceBootstrapPathSetSha256": "31ed3e9a456aed8516c290a8ae0774105bf597089924e71f3a641897d4606669",
+  "routeGuardContract": {
+    "existingTrustedGuard": "shared/release/implementationBranchPolicyLegacy.js::validateDelegatedRoutePolicyMutation",
+    "guardActivation": "implementation.genericRouteMutationGuardRequired=true",
+    "declarationField": "governanceBootstrapPaths",
+    "destinationPolicyField": "governanceExactPaths",
+    "exactAddedGovernancePath": "shared/release/implementationBranchPolicyLegacy.js",
+    "pairedExistingGovernancePath": "tests/wp0/implementation-branch-policy.test.js",
+    "currentExpectedRouteBeforeRepair": "PRODUCT_WP0",
+    "expectedRouteAfterRepair": "GOVERNANCE_WP0",
+    "matchingCountAndCanonicalSha256Required": true,
+    "exactAddOnly": true,
+    "allNonDestinationPolicyFieldsMustRemainSemanticallyEquivalent": true,
+    "governancePrefixMutationForbidden": true,
+    "productRouteMutationForbidden": true,
+    "unknownPathFailsClosedWeakeningForbidden": true,
+    "workflowModificationForbidden": true
+  },
+  "failureFirstEvidenceContract": {
+    "freshRedRequiredOnSuccessorBranch": true,
+    "historical574RedMayNotReplaceFreshSuccessorRed": true,
+    "recordLocation": "second first-parent implementation commit message",
+    "requiredTrailers": [
+      "Yance-Failure-First-Red-Head: <exact fresh tests-only successor head>",
+      "Yance-Failure-First-Red-Run: <positive decimal GitHub Actions run id>",
+      "Yance-Failure-First-Red-Conclusion: failure"
+    ],
+    "duplicateOrMalformedTrailersFailClosed": true,
+    "YanceCausalRedTrailerNamespaceIsNotASubstitute": true,
+    "amendRebaseForcePushForbidden": true
+  },
+  "deferredPolicyRepair": {
+    "authorizedByThisPullRequest": false,
+    "mustUseNewAuthorizationAfterPrerequisiteMerge": true,
+    "futureAllowedChangedPaths": [
+      "shared/release/implementationBranchPolicyLegacy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "futureApprovedChangedFileCount": 2,
+    "futureApprovedChangedFileSetSha256": "0457f5a3938ad78b638b12a7072a70d94e4ee5111c2fa2d6566f9a46ea2fc6b8",
+    "requiredDeclarationPath": "implementation.failureFirstCommit.firstHeadTrustedMainGuard",
+    "requiredDeclarationExactShape": {
+      "required": true,
+      "trustedMainMustEqualAuthorizationMerge": true
+    },
+    "failureCode": "WP0_DELEGATED_GOVERNANCE_FIRST_HEAD_MAIN_DRIFT"
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first V2 implementation commit changes only tests/layered-ci/wp0-routing.test.js and obtains a fresh causal RED on the V2 branch.",
+    "The second V2 implementation commit adds only shared/release/implementationBranchPolicyLegacy.js to governanceExactPaths and contains exactly one valid Yance-Failure-First-Red-Head, Yance-Failure-First-Red-Run and Yance-Failure-First-Red-Conclusion: failure trailer binding the fresh V2 RED.",
+    "The trusted generic route-mutation guard is mechanically activated and accepts only the declared governanceBootstrapPaths addition.",
+    "After GREEN the exact future evaluator pair implementationBranchPolicyLegacy.js plus tests/wp0/implementation-branch-policy.test.js selects GOVERNANCE_WP0 with productChangesPresent=false.",
+    "No governance prefix, product route, documentation route, mixed-change escalation, unknown-path fail-closed rule or workflow is modified.",
+    "The actual delegated first-head anti-drift evaluator repair remains outside this route prerequisite."
+  ],
+  "requiredSequence": [
+    "one-file V2 successor authorization from exact fresh main -> exact-head governance gates -> independent exact-head review",
+    "fresh main anti-drift -> ordinary two-parent V2 authorization merge",
+    "create governance/v21-first-head-guard-route-prerequisite-p0-v2 from the exact V2 authorization merge",
+    "first implementation commit changes only tests/layered-ci/wp0-routing.test.js and captures fresh causal RED",
+    "second commit adds only the Legacy exact governance path and binds the fresh RED using the exact legacy failure-first trailers",
+    "exact-head Stage/Layered/ACV2/Windows plus independent review and threads=0",
+    "ordinary two-parent merge the V2 route prerequisite",
+    "from the resulting new main create a new evaluator-repair authorization; do not revive #570 or #574"
+  ],
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
