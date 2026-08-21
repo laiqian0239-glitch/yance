@@ -6,6 +6,16 @@ import { YanceWorkspace } from "./YanceWorkspace";
 import { ProductComposerAccessory } from "./product-experience/ProductComposerAccessory";
 import type { RelationshipProjection } from "./product-experience/experienceTypes";
 
+type DesktopActivationProbe = {
+  id?: string;
+};
+
+type DesktopActivationBridge = {
+  getState?: () => Promise<{ backend?: { ready?: boolean } }>;
+  onActivationProbe?: (callback: (payload: DesktopActivationProbe) => void | Promise<void>) => (() => void) | void;
+  completeActivationProbe?: (payload: Record<string, unknown>) => void;
+};
+
 function validMatrixRoomId(value: string): boolean {
   return /^[!#][^:\s]+:[^\s]+$/u.test(value);
 }
@@ -74,6 +84,42 @@ class YanceElementModule implements Module {
     this.api.extras.addRoomHeaderButtonCallback(() => (
       <button type="button" aria-label="打开言策关系工作台" onClick={openGlobalRightPanel}>言策</button>
     ));
+
+    const yanceDesktop = (window as unknown as { yanceDesktop?: DesktopActivationBridge }).yanceDesktop;
+    if (typeof yanceDesktop?.onActivationProbe === "function" && typeof yanceDesktop.completeActivationProbe === "function") {
+      yanceDesktop.onActivationProbe(async (probe = {}) => {
+        const id = String(probe.id || "");
+        try {
+          const state = await yanceDesktop.getState?.();
+          const backendReady = state?.backend?.ready === true;
+          yanceDesktop.completeActivationProbe?.({
+            id,
+            ok: backendReady,
+            backendReady,
+            sessionReady: backendReady,
+            rendererReady: true,
+            workspaceReady: true,
+            ...(backendReady ? {} : {
+              reasonCode: "ELEMENT_BACKEND_NOT_READY",
+              message: "Desktop backend is not ready for Element activation."
+            }),
+            detail: { source: "element-module-load" }
+          });
+        } catch (error) {
+          yanceDesktop.completeActivationProbe?.({
+            id,
+            ok: false,
+            backendReady: false,
+            sessionReady: false,
+            rendererReady: true,
+            workspaceReady: true,
+            reasonCode: "ELEMENT_ACTIVATION_PROBE_FAILED",
+            message: error instanceof Error ? error.message : "Element activation probe failed.",
+            detail: { source: "element-module-load" }
+          });
+        }
+      });
+    }
   }
 }
 

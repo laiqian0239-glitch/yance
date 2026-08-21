@@ -59,9 +59,10 @@ function markReady(h) {
   h.controller.markPreloadReady(w);
   h.controller.markDidFinishLoad(w);
   h.controller.markRendererReady(w);
+  h.controller.markActivationProbeResponderReady(w, { source: 'test-element-module-load' });
 }
 
-test('activation waits for backend and all three renderer readiness phases', async () => {
+test('activation waits for backend and all renderer readiness phases', async () => {
   const h = harness({ backendReady: false });
   markReady(h);
   await h.controller.activate('tray-click', { view: 'system' });
@@ -88,6 +89,7 @@ test('renderer timeout reloads once and then recreates the window', async () => 
       controller.markPreloadReady(window);
       controller.markDidFinishLoad(window);
       controller.markRendererReady(window);
+      controller.markActivationProbeResponderReady(window, { source: 'test-element-module-load' });
     }
   });
   const first = h.getWindow();
@@ -123,6 +125,7 @@ test('runtime readiness failure reloads after immediate presentation without dup
       controller.markPreloadReady(window);
       controller.markDidFinishLoad(window);
       controller.markRendererReady(window);
+      controller.markActivationProbeResponderReady(window, { source: 'test-element-module-load' });
     }
   });
   markReady(h);

@@ -35,6 +35,7 @@ function createMainWindowActivationController(options = {}) {
       didFinishLoad: false,
       preloadReady: false,
       rendererReady: false,
+      activationProbeResponderReady: false,
       changedAt: Date.now()
     };
   }
@@ -50,6 +51,7 @@ function createMainWindowActivationController(options = {}) {
       && readiness.didFinishLoad
       && readiness.preloadReady
       && readiness.rendererReady
+      && readiness.activationProbeResponderReady
       && !window.webContents?.isDestroyed?.();
   }
 
@@ -66,7 +68,7 @@ function createMainWindowActivationController(options = {}) {
   function mark(window, phase, metadata = {}) {
     if (!currentWindowMatches(window)) return false;
     if (readiness.window !== window) readiness = freshReadiness(window, `window-bound:${phase}`);
-    if (!['didFinishLoad', 'preloadReady', 'rendererReady'].includes(phase)) return false;
+    if (!['didFinishLoad', 'preloadReady', 'rendererReady', 'activationProbeResponderReady'].includes(phase)) return false;
     readiness[phase] = true;
     readiness.changedAt = Date.now();
     readiness[`${phase}Metadata`] = metadata || {};
@@ -221,6 +223,7 @@ function createMainWindowActivationController(options = {}) {
     markDidFinishLoad: (window, metadata) => mark(window, 'didFinishLoad', metadata),
     markPreloadReady: (window, metadata) => mark(window, 'preloadReady', metadata),
     markRendererReady: (window, metadata) => mark(window, 'rendererReady', metadata),
+    markActivationProbeResponderReady: (window, metadata) => mark(window, 'activationProbeResponderReady', metadata),
     isReady,
     snapshot
   };
