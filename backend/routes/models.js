@@ -382,3 +382,178 @@ router.get('/jobs/:id', (req, res) => {
 router.post('/jobs/:id/cancel', (req, res) => res.json({ ok: true, cancelled: aiGateway.cancel(req.params.id) }));
 
 module.exports = router;
+
+// Adaptive local runtime P0 is deliberately appended to the existing model router so the
+// formal Model Brain/LiteLLM routes above remain unchanged and keep final reply authority.
+const adaptivePullControllers = new Map();
+const adaptiveRuntimeState = { pulls: new Map(), materializations: new Map() };
+function adaptiveRuntimeRoot() {
+  const path = require('path');
+  return path.resolve(process.env.YANCE_LOCAL_AI_RUNTIME_ROOT || path.join(process.cwd(), 'data', 'runtime', 'local-ai'));
+}
+function adaptiveTargetPath(name) {
+  const path = require('path');
+  const safe = path.basename(String(name || 'runtime.asset'));
+  return path.join(adaptiveRuntimeRoot(), safe);
+}
+
+router.get('/adaptive-local/catalog', (_req, res, next) => {
+  try {
+    const catalog = require('../services/localAiModelCatalog').loadCatalog();
+    res.json({ ok: true, ...catalog });
+  } catch (error) { next(error); }
+});
+
+router.get('/adaptive-local/hardware', (_req, res, next) => {
+  try {
+    const hardware = require('../services/localAiHardwareProfile').collectHardwareProfile({ runtimeRoot: adaptiveRuntimeRoot() });
+    res.json({ ok: true, hardware });
+  } catch (error) { next(error); }
+});
+
+router.post('/adaptive-local/plan', (req, res, next) => {
+  try {
+    const hardwareService = require('../services/localAiHardwareProfile');
+    const hardware = req.body?.hardware && typeof req.body.hardware === 'object'
+      ? hardwareService.normalizeHardwareProfile(req.body.hardware)
+      : hardwareService.collectHardwareProfile({ runtimeRoot: adaptiveRuntimeRoot() });
+    const planner = require('../services/adaptiveLocalRuntimePlanner');
+    const candidates = Array.isArray(req.body?.candidates) ? req.body.candidates : [{ hardware, runtime: req.body?.runtime || {}, model: req.body?.model || {}, benchmark: req.body?.benchmark || {} }];
+    const normalized = candidates.map(candidate => ({ ...candidate, hardware: candidate.hardware || hardware }));
+    const results = normalized.map(candidate => planner.classifyCandidate(candidate));
+    res.json({ ok: true, hardware, results, best: planner.rankCandidates(normalized)[0] || null });
+  } catch (error) { next(error); }
+});
+
+router.post('/adaptive-local/materialize', async (req, res, next) => {
+  try {
+    const service = require('../services/localAiRuntimeAssetService');
+    const targetName = clean(req.body?.targetName || req.body?.runtimeId || 'local-runtime.asset');
+    const result = await service.materializeLocalArtifact({
+      consent: req.body?.consent === true,
+      localAssetPath: clean(req.body?.localAssetPath),
+      destinationPath: adaptiveTargetPath(targetName),
+      expectedSha256: clean(req.body?.expectedSha256),
+      requiredBytes: Number(req.body?.requiredBytes || 0)
+    });
+    adaptiveRuntimeState.materializations.set(targetName, { ...result, targetName, at: new Date().toISOString() });
+    res.status(201).json({ ok: true, targetName, ...result });
+  } catch (error) { next(error); }
+});
+
+router.get('/adaptive-local/status', (_req, res, next) => {
+  try {
+    const assets = require('../services/localAiRuntimeAssetService');
+    const llama = require('../services/llamaCppRuntimeAdapter');
+    const persisted = assets.listMaterializedArtifacts(adaptiveRuntimeRoot());
+    const byTarget = new Map(persisted.map(row => [clean(row.targetName), row]));
+    for (const [targetName, row] of adaptiveRuntimeState.materializations.entries()) byTarget.set(targetName, { ...row, ...(byTarget.get(targetName) || {}) });
+    res.json({
+      ok: true,
+      materializations: [...byTarget.values()],
+      llamaCppServers: llama.status(),
+      pulls: [...adaptiveRuntimeState.pulls.values()]
+    });
+  } catch (error) { next(error); }
+});
+
+router.post('/adaptive-local/runtime/start', async (req, res, next) => {
+  try {
+    const runtimeTargetName = clean(req.body?.runtimeTargetName);
+    const modelPath = clean(req.body?.modelPath);
+    if (!runtimeTargetName || !modelPath) return res.status(400).json({ ok: false, error: 'LLAMA_CPP_RUNTIME_AND_MODEL_REQUIRED', message: '请选择已验证的 llama.cpp 本地运行时和本机模型文件。' });
+    const executablePath = adaptiveTargetPath(runtimeTargetName);
+    const started = await require('../services/llamaCppRuntimeAdapter').startServer({
+      runtimeId: clean(req.body?.runtimeId || runtimeTargetName),
+      executablePath,
+      modelPath,
+      port: Number(req.body?.port || 8081),
+      gpuLayers: req.body?.gpuLayers,
+      timeoutMs: Number(req.body?.timeoutMs || 60000)
+    });
+    res.status(201).json({ ok: true, ...started });
+  } catch (error) { next(error); }
+});
+
+router.post('/adaptive-local/runtime/unload', (req, res, next) => {
+  try {
+    const runtimeId = clean(req.body?.runtimeId);
+    if (!runtimeId) return res.status(400).json({ ok: false, error: 'LOCAL_RUNTIME_ID_REQUIRED' });
+    res.json(require('../services/llamaCppRuntimeAdapter').stopServer(runtimeId));
+  } catch (error) { next(error); }
+});
+
+router.post('/adaptive-local/execute', async (req, res, next) => {
+  try {
+    const provider = clean(req.body?.provider).toLowerCase();
+    if (!['llama.cpp', 'ktransformers', 'airllm'].includes(provider)) return res.status(400).json({ ok: false, error: 'ADAPTIVE_LOCAL_DIRECT_PROVIDER_FORBIDDEN' });
+    const executionSpec = require('../services/modelExecutionSpecResolver').resolveModelExecutionSpec({
+      id: clean(req.body?.modelId || `direct-${provider}`),
+      provider,
+      endpoint: clean(req.body?.endpoint),
+      name: clean(req.body?.modelName || req.body?.model),
+      runtime: req.body?.runtime || {}
+    });
+    const result = await require('../services/isolatedModelExecutor').executeIsolatedModel(
+      executionSpec,
+      Array.isArray(req.body?.messages) ? req.body.messages : [],
+      req.body?.options || {},
+      null
+    );
+    res.json({ ok: true, authority: 'direct-user-local-workbench', formalModelBrain: false, result });
+  } catch (error) { next(error); }
+});
+
+router.post('/adaptive-local/remove', (req, res, next) => {
+  try {
+    const service = require('../services/localAiRuntimeAssetService');
+    const targetName = clean(req.body?.targetName || req.body?.runtimeId);
+    if (!targetName) return res.status(400).json({ ok: false, error: 'LOCAL_RUNTIME_TARGET_REQUIRED' });
+    const result = service.removeMaterializedArtifact(adaptiveTargetPath(targetName));
+    adaptiveRuntimeState.materializations.delete(targetName);
+    res.json({ ok: true, targetName, ...result });
+  } catch (error) { next(error); }
+});
+
+router.post('/ollama/pull', async (req, res, next) => {
+  const model = clean(req.body?.model);
+  const endpoint = clean(req.body?.endpoint || 'http://127.0.0.1:11434');
+  const requestId = clean(req.body?.requestId) || require('crypto').randomUUID();
+  const controller = new AbortController();
+  adaptivePullControllers.set(requestId, controller);
+  adaptiveRuntimeState.pulls.set(requestId, { requestId, model, endpoint, status: 'starting', at: new Date().toISOString() });
+  try {
+    res.status(202);
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    const result = await require('../services/ollamaClient').pullModel({
+      endpoint,
+      model,
+      signal: controller.signal,
+      onProgress: row => {
+        const snapshot = { requestId, model, endpoint, ...row, at: new Date().toISOString() };
+        adaptiveRuntimeState.pulls.set(requestId, snapshot);
+        if (!res.writableEnded) res.write(`${JSON.stringify(snapshot)}\n`);
+      }
+    });
+    adaptiveRuntimeState.pulls.set(requestId, { requestId, model, endpoint, ...result, at: new Date().toISOString() });
+    if (!res.writableEnded) res.end(`${JSON.stringify({ requestId, ...result })}\n`);
+  } catch (error) {
+    adaptiveRuntimeState.pulls.set(requestId, { requestId, model, endpoint, status: error.code === 'MODEL_CANCELLED' ? 'cancelled' : 'failed', error: error.code || error.message, at: new Date().toISOString() });
+    if (!res.headersSent) return next(error);
+    if (!res.writableEnded) res.end(`${JSON.stringify({ requestId, ok: false, code: error.code || 'OLLAMA_PULL_FAILED', message: error.message })}\n`);
+  } finally {
+    adaptivePullControllers.delete(requestId);
+  }
+});
+
+router.post('/ollama/pull/cancel', (req, res) => {
+  const requestId = clean(req.body?.requestId);
+  const controller = adaptivePullControllers.get(requestId);
+  if (!controller) return res.json({ ok: true, requestId, cancelled: false });
+  controller.abort(Object.assign(new Error('MODEL_CANCELLED'), { code: 'MODEL_CANCELLED' }));
+  adaptivePullControllers.delete(requestId);
+  const current = adaptiveRuntimeState.pulls.get(requestId) || {};
+  adaptiveRuntimeState.pulls.set(requestId, { ...current, requestId, status: 'cancelled', at: new Date().toISOString() });
+  res.json({ ok: true, requestId, cancelled: true });
+});

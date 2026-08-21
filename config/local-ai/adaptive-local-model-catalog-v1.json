@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "title": "言策自适应本地模型目录",
+  "lowResourceDoesNotMeanSmallModelOnly": true,
+  "capabilityClasses": ["interactive", "usable", "background", "extreme", "incompatible"],
+  "models": [
+    {
+      "id": "qwen-14b-q4-local",
+      "displayName": "Qwen 14B Q4（本地）",
+      "parameterCountB": 14,
+      "quantizedBytes": 9126805504,
+      "runtimeCandidates": ["llama.cpp", "ktransformers"],
+      "recommendedFor": ["usable", "background"],
+      "download": {
+        "requiresExplicitConsent": true,
+        "progress": true,
+        "cancellable": true,
+        "diskPreflight": true,
+        "provenanceSha256Required": true
+      }
+    },
+    {
+      "id": "large-moe-user-managed",
+      "displayName": "大参数 MoE（用户管理）",
+      "parameterCountB": 32,
+      "runtimeCandidates": ["ktransformers", "airllm"],
+      "recommendedFor": ["background", "extreme"],
+      "download": {
+        "requiresExplicitConsent": true,
+        "progress": true,
+        "cancellable": true,
+        "diskPreflight": true,
+        "provenanceSha256Required": true
+      }
+    },
+    {
+      "id": "ollama-user-choice",
+      "displayName": "Ollama 本地模型（用户选择）",
+      "parameterCountB": 0,
+      "runtimeCandidates": ["ollama"],
+      "recommendedFor": ["interactive", "usable", "background"],
+      "download": {
+        "requiresExplicitConsent": true,
+        "progress": true,
+        "cancellable": true,
+        "diskPreflight": true,
+        "provenanceSha256Required": true
+      }
+    }
+  ]
+}

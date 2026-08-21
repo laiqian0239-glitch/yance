@@ -208,6 +208,74 @@ async function streamChat({ endpoint, model, messages, options = {}, signal }) {
   }
 }
 
+async function pullModel({ endpoint, model, signal, onProgress, fetchImpl = globalThis.fetch, timeoutMs = 60 * 60 * 1000 } = {}) {
+  const root = normalizeRoot(endpoint) || 'http://127.0.0.1:11434';
+  const name = String(model || '').trim();
+  if (!name) {
+    const error = new Error('模型名称不能为空');
+    error.code = 'OLLAMA_MODEL_NAME_REQUIRED';
+    throw error;
+  }
+  const timeout = signal ? null : timeoutSignal(Math.max(5000, Number(timeoutMs || 0)), null);
+  const requestSignal = signal || timeout.signal;
+  let last = { status: 'starting' };
+  try {
+    const response = await fetchImpl(`${root}/api/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json' },
+      body: JSON.stringify({ model: name, stream: true }),
+      signal: requestSignal
+    });
+    if (!response.ok) {
+      const error = new Error((await response.text()).slice(0, 1000) || `HTTP ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    const reader = response.body?.getReader?.();
+    if (!reader) {
+      const error = new Error('Ollama pull stream unavailable');
+      error.code = 'OLLAMA_PULL_STREAM_UNAVAILABLE';
+      throw error;
+    }
+    const decoder = new TextDecoder();
+    let pending = '';
+    const consumeRow = line => {
+      if (!String(line || '').trim()) return;
+      let row;
+      try { row = JSON.parse(line); } catch (_) { return; }
+      if (row.error) {
+        const error = new Error(String(row.error));
+        error.code = 'OLLAMA_PULL_FAILED';
+        throw error;
+      }
+      last = row;
+      if (typeof onProgress === 'function') {
+        try { onProgress(row); } catch (_) {}
+      }
+    };
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      pending += decoder.decode(value, { stream: true });
+      const lines = pending.split('\n');
+      pending = lines.pop() || '';
+      for (const line of lines) consumeRow(line);
+    }
+    pending += decoder.decode();
+    consumeRow(pending);
+    return { ok: true, endpoint: root, model: name, ...last };
+  } catch (error) {
+    if (requestSignal?.aborted) {
+      const reason = requestSignal.reason?.message || '';
+      const wrapped = new Error(reason === 'MODEL_TIMEOUT' ? '模型下载超时' : '模型下载已取消');
+      wrapped.code = reason === 'MODEL_TIMEOUT' ? 'MODEL_TIMEOUT' : 'MODEL_CANCELLED';
+      throw wrapped;
+    }
+    throw error;
+  } finally {
+    timeout?.cleanup();
+  }
+}
 
 async function remove(endpoint, model, signal) {
   const root = normalizeRoot(endpoint) || 'http://127.0.0.1:11434';
@@ -234,4 +302,4 @@ async function unload(endpoint, model, signal) {
   }, 15000, signal);
 }
 
-module.exports = { discover, streamChat, unload, remove, normalizeRoot, fetchJson, modelId };
+module.exports = { discover, streamChat, pullModel, unload, remove, normalizeRoot, fetchJson, modelId };
