@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T00:21:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "ACV2-WP-B-M3-PLATFORM-ACCEPTED-LOCAL-REPAIR-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Post-merge release-closure audit found a real Schema-23 outbound data-integrity gap: physical platform adapters can report provider acceptance together with localPersistencePending/localPersistenceRepair when the canonical local projection fails, but the durable OUTBOUND_MESSAGE_SEND operation currently redacts those repair facts before success escapes the physical boundary. Causal candidate PR #549 proves the narrow repair and upgraded Facebook Personal retirement contracts against the existing M2 matrix on Ubuntu and Windows, but its release-closure rebuild branch is not active WP-B implementation authority and must remain unmerged. This authorization creates a fresh-main successor that can persist the existing repair plan before durable success, fail closed to post-call uncertainty if repair durability is unavailable, and update only the exact stale M2 contracts required by the already-merged mautrix/meta retirement. No UAT candidate, package, dependency, workflow, routing policy, second outbox, second repair queue, or new general-purpose infrastructure is authorized.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/acv2-wp-b-m3-source-closure-successor-scope-amendment-2-v3-authorization.json",
+    "implementationBranch": "product/acv2-wp-b-m3-source-closure-successor-amendment-2-v3",
+    "reason": "The historical M3 source-closure successor completed and merged. This post-merge P0 must preserve that authority chain without reopening or force-updating the historical implementation branch, while granting only the four exact paths required for the newly discovered outbound repair durability defect."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "604946375fa2dd8ef59957b11f3b73e86fea2e53",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "604946375fa2dd8ef59957b11f3b73e86fea2e53",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/acv2-wp-b-platform-accepted-local-repair-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/acv2-wp-b-platform-accepted-local-repair-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a25f74e84a1642699bcf7a58d74363628e5aafa24931d1b1b20ad0bc1ea4ee50",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "product/acv2-wp-b-platform-accepted-local-repair-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js",
+      "backend/tests/architectureClosureV2/wpB/mandatoryOperationAdapters.test.js",
+      "backend/tests/architectureClosureV2/wpB/outboundMessageDurableMigration.test.js",
+      "tests/wp0/platform-accepted-repair-durability.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "f4f2066c4a438883f8ab896df6b230b3c4d586e540bdeb30b3de86e389516125",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "ossFit": {
+    "decision": "ADOPT_EXISTING_SCHEMA23_DURABLE_OUTBOUND_AND_LOCAL_REPAIR_SEAMS",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance existing local persistence repair durable queue seam",
+        "source": "backend/services/localPersistenceRepairService.js and backend/repositories/localPersistenceRepairRepository.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already owns the durable local repair queue and worker used to recover provider-accepted actions whose canonical local projection failed. The P0 needs only to enqueue the adapter-provided repair plan at the existing durable outbound boundary; adding another queue, scheduler, database or third-party framework would duplicate authority."
+      },
+      {
+        "name": "Yance existing Schema-23 OUTBOUND_MESSAGE_SEND durable operation seam",
+        "source": "backend/services/durableOperations/outboundMessageSendOperation.js",
+        "license": "repository-owned project code",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The current Schema-23 operation already owns the persisted attempt, fencing identity, physical call, bounded observation and reconciliation boundary. Persisting the existing repair plan before success escapes belongs in this seam and requires no new execution engine or external infrastructure."
+      },
+      {
+        "name": "Mature external durable workflow or queue framework",
+        "source": "repository OSS-first adoption order review for external workflow, queue and retry frameworks",
+        "license": "varies by candidate; no new package selected",
+        "adoptionMode": "sidecar-service",
+        "fit": "GAP",
+        "reason": "External workflow or queue software cannot replace this repository-specific atomic handoff between the already-executed provider action and the existing local repair authority without adding a second execution/repair authority, new dependency surface and migration complexity."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second local persistence repair queue, worker, repository or scheduler.",
+      "Do not create a second outbound execution or reconciliation authority beside Schema-23 OUTBOUND_MESSAGE_SEND.",
+      "Do not restore the retired Facebook Personal experimental browser driver or its legacy session/egress authority.",
+      "Do not add a new third-party workflow, retry, queue or persistence dependency for this repository-specific handoff."
+    ],
+    "newThirdPartyDependencyRequired": false,
+    "basis": "This defect is a missing handoff between two already-authoritative repository seams, not an uncovered general-purpose capability. Reusing the existing Schema-23 outbound operation and existing local repair queue is the highest-ranked exact fit under the enforced OSS-first adoption order."
+  },
+  "causalEvidence": {
+    "candidatePullRequest": 549,
+    "candidateBranch": "rebuild/windows-release-closure-20260820-platform-accepted-repair-durability-p0",
+    "candidateExactHead": "d201fc626f52561cf7697e2c8c5c2f5026c06399",
+    "candidateBase": "604946375fa2dd8ef59957b11f3b73e86fea2e53",
+    "candidateMustRemainUnmerged": true,
+    "candidateHistoryRewriteAllowed": false,
+    "wpBM2ContractRunId": 32397681596,
+    "wpBM2UbuntuJobId": 96518211719,
+    "wpBM2WindowsJobId": 96518211881,
+    "wpBM2UbuntuConclusion": "success",
+    "wpBM2WindowsConclusion": "success",
+    "priorFailureContractIds": [
+      "M2-OUT-006",
+      "M2-FB-008"
+    ],
+    "priorFailureDisposition": "Both were stale contracts that still modeled the pre-#507 experimental Facebook Personal browser adapter as live. Merged PR #507 intentionally retired that adapter to an immutable 410 stub and transferred production authority to facebook-personal-messenger-mautrix-meta; the upgraded contracts now require zero legacy session/egress authority rather than restoring the retired implementation."
+  },
+  "mandatoryContracts": [
+    "OUTBOUND_MESSAGE_SEND must not discard localPersistencePending/localPersistenceRepair after the provider accepted the external action.",
+    "If localPersistencePending is true, the existing local persistence repair plan must be durably enqueued before outbound success is returned to the external-action dispatcher.",
+    "Repair identity must be deterministic from the persisted outbound attempt so replay cannot allocate duplicate repair work.",
+    "If the provider accepted the action but the repair plan cannot be durably recorded, the operation must fail as post-call uncertainty with automatic retry blocked; it must never blind-resend the external action.",
+    "Normal outbound success without localPersistencePending must remain unchanged and must not allocate repair work.",
+    "The retired Facebook Personal experimental adapter must remain frozen, disabled, non-messaging, zero-session and zero-egress authority, with every former physical entrypoint failing 410 under FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL_RETIRED and replacement authority bound to facebook-personal-messenger-mautrix-meta.",
+    "No Desktop/Windows UAT candidate, packaged asset, dependency manifest, workflow, routing policy, channel driver, outbox authority, repair repository schema, or new queue may be modified by this work package."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "historicalWpBBranchesImmutable": true,
+    "candidatePr549MustRemainUnmerged": true,
+    "desktopWindowsUatCandidateModificationAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  }
+}

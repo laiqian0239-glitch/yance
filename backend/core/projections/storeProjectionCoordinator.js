@@ -98,6 +98,15 @@ class StoreProjectionCoordinator {
     });
     this.unsubscribers.push(removeAiCancellationProjection);
 
+    this.bindBus('system:notifications-updated', event => {
+      const conversationId = clean(event?.payload?.activeConversationId);
+      void this.dispatch(storeManager, {
+        type: 'SET_ACTIVE_CONVERSATION',
+        source: event.type || 'system-notification-selection-projection',
+        payload: { conversationId }
+      });
+    });
+
     this.bindBus('message:inserted', async event => {
       const message = event?.payload?.message || {};
       const conversation = event?.payload?.conversation || {};

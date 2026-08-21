@@ -74,3 +74,43 @@ test('subscribers observe immutable snapshots', () => {
   assert.equal(Object.isFrozen(snapshots[0]), true);
   assert.equal(snapshots[0].contactId, 'c1');
 });
+
+test('active conversation resolution is exact even when multiple conversations share one contact', () => {
+  const h = harness();
+  h.store.setActiveContact('c1', { source: 'conversation' });
+  const selection = h.store.resolveConversation({
+    conversations: {
+      byId: {
+        c1: { id: 'c1', contactId: 'person-1' },
+        c2: { id: 'c2', contactId: 'person-1' }
+      }
+    }
+  });
+  assert.deepEqual(selection, {
+    found: true,
+    requestedConversationId: 'c1',
+    conversationId: 'c1',
+    contactId: 'person-1',
+    reason: 'exact-conversation'
+  });
+  assert.equal(Object.isFrozen(selection), true);
+});
+
+test('active conversation resolution never falls back to another conversation for the same contact', () => {
+  const h = harness();
+  h.store.setActiveContact('c1', { source: 'conversation' });
+  const missingExact = h.store.resolveConversation({
+    conversations: {
+      byId: {
+        c2: { id: 'c2', contactId: 'person-1' }
+      }
+    }
+  });
+  assert.deepEqual(missingExact, {
+    found: false,
+    requestedConversationId: 'c1',
+    conversationId: '',
+    contactId: '',
+    reason: 'exact-conversation-not-found'
+  });
+});

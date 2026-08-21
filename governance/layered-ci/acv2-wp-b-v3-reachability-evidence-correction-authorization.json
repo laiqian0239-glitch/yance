@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T06:44:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "ACV2-WP-B-V3-REACHABILITY-EVIDENCE-CORRECTION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #557 ordinary-merged exact head 5cb7062c5a1104ad6caef75f4e27a9b84d54d299 as main merge be579863390da7dd63457bb644c0f8463f11fd83 with parents [1c9267c04dbaf3d0622dd63b81c9bbd5ce7ccea5, 5cb7062c5a1104ad6caef75f4e27a9b84d54d299]. The authorized forward-continuation ancestry intentionally contains frozen predecessor head c5e6a99b0e86092d5f72cb2fc529e80e6b614aa1. GitHub therefore marked historical PR #555 merged when that exact head became reachable from main, even though PR #555 was never directly merged. Repository successor-state contracts explicitly accept actually merged historical evidence for successor branches and reject only closed-but-unmerged, open non-Draft and contradictory lifecycle states. The existing v3 authorization governance field candidatePr555MustRemainUnmergedAfterV3Effectiveness is therefore semantically inaccurate after the authorized continuation merge. This work package authorizes only a single-file governance evidence correction so the merged authorization records the actual fail-closed lifecycle semantics. No product, workflow, dependency, routing, schema, UAT, release or runtime authority changes are authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "be579863390da7dd63457bb644c0f8463f11fd83",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "be579863390da7dd63457bb644c0f8463f11fd83",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/acv2-wp-b-v3-reachability-evidence-correction-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/acv2-wp-b-v3-reachability-evidence-correction-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "fe6c4b554fe09db09050547ff4c01d8524ab7d8915ea08f076d736a10f8cb91f",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "governance/acv2-wp-b-v3-reachability-evidence-correction",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "governance/layered-ci/acv2-wp-b-platform-accepted-local-repair-p0-v3-contract-reconciliation-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "51df7684ee5376cb461a5a53e8545bfb472b416c1773696136f254d1b3b0696f",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "testModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "correctionTarget": {
+    "authorizationPullRequest": 556,
+    "authorizationMergeCommit": "6d85412875e0ae858f22018d05e09e7adf1bdbc0",
+    "authorizationPath": "governance/layered-ci/acv2-wp-b-platform-accepted-local-repair-p0-v3-contract-reconciliation-authorization.json",
+    "jsonPointer": "/governance",
+    "consumerPullRequest": 557,
+    "consumerMergeCommit": "be579863390da7dd63457bb644c0f8463f11fd83",
+    "historicalPullRequest": 555,
+    "historicalExactHead": "c5e6a99b0e86092d5f72cb2fc529e80e6b614aa1"
+  },
+  "exactEvidenceMutation": {
+    "onlyJsonObjectMayChange": "/governance",
+    "allOtherTargetAuthorizationSemanticsMustRemainByteEquivalentAfterJsonProjection": true,
+    "remove": {
+      "candidatePr555MustRemainUnmergedAfterV3Effectiveness": true
+    },
+    "add": {
+      "candidatePr555DirectMergeActionForbiddenAfterV3Effectiveness": true,
+      "candidatePr555ReachabilityMergedStateAllowedAsImmutableHistoricalEvidence": true
+    }
+  },
+  "pinnedEvidence": {
+    "mainMergeCommit": "be579863390da7dd63457bb644c0f8463f11fd83",
+    "mainMergeParents": [
+      "1c9267c04dbaf3d0622dd63b81c9bbd5ce7ccea5",
+      "5cb7062c5a1104ad6caef75f4e27a9b84d54d299"
+    ],
+    "historicalPullRequest": 555,
+    "historicalPullRequestState": "closed",
+    "historicalPullRequestMerged": true,
+    "historicalPullRequestMergedAt": "2026-08-20T23:45:22Z",
+    "historicalExactHead": "c5e6a99b0e86092d5f72cb2fc529e80e6b614aa1",
+    "contractPath": "tests/wp0/wp-b-historical-pr-successor-state.test.js",
+    "contractSemantics": "successor accepts immutable merged historical evidence; closed-but-unmerged remains fail-closed"
+  },
+  "preservedAuthority": {
+    "v3ImplementationMergeRemainsEffective": true,
+    "v3ImplementationPullRequest": 557,
+    "v3ImplementationMergeCommit": "be579863390da7dd63457bb644c0f8463f11fd83",
+    "v3ImplementationAllowedChangedPathCount": 8,
+    "v3ImplementationChangedFileSetSha256": "2c947725526ac545f22103d1c11f49875de5d77ee0b83c5b4b5b853227fb0db9",
+    "productBehaviorChanged": false,
+    "workflowAuthorityChanged": false,
+    "dependencyAuthorityChanged": false,
+    "runtimeAuthorityChanged": false,
+    "desktopWindowsUatAuthorityChanged": false
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_GOVERNANCE_EVIDENCE_CORRECTION_PATTERN",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing delegated-governance evidence correction protocol",
+        "source": "repository precedent PR #523/#524 and PR #355/#356",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is inaccurate merged governance evidence, and the repository already has an accepted single-file authorization then single-file evidence-correction pattern."
+      },
+      {
+        "name": "Direct edit of merged authorization without correction authority",
+        "source": "hypothetical direct main mutation",
+        "license": "not applicable",
+        "adoptionMode": "minimal-proven-gap",
+        "fit": "GAP",
+        "reason": "It would bypass the repository's existing delegated-governance correction transport."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not reinterpret GitHub reachability merged state as a direct merge action on PR #555.",
+      "Do not weaken the successor historical PR lifecycle classifier.",
+      "Do not reopen, rewrite, force-push or directly merge historical PR #555.",
+      "Do not modify product code, workflows, tests, dependencies, routing, schema, UAT candidate or release assets."
+    ]
+  },
+  "requiredSequence": [
+    "This exact single-file correction authorization proposal passes applicable governance gates and independent review.",
+    "Authorization merges to trusted main by ordinary two-parent merge with first parent be579863390da7dd63457bb644c0f8463f11fd83.",
+    "Create governance/acv2-wp-b-v3-reachability-evidence-correction from that exact authorization merge.",
+    "Modify only governance/layered-ci/acv2-wp-b-platform-accepted-local-repair-p0-v3-contract-reconciliation-authorization.json and only the lifecycle semantics inside /governance specified by exactEvidenceMutation.",
+    "Verify all v3 implementation scope, formal-gate evidence and merge semantics remain unchanged.",
+    "Evidence-correction implementation passes applicable governance gates and independent review and merges by ordinary two-parent merge."
+  ],
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true
+  }
+}

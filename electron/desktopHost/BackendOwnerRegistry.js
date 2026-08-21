@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const properLockfile = require('proper-lockfile');
 
 const SCHEMA_VERSION = 1;
 const LIVE_STATES = new Set(['SPAWNED', 'STARTING', 'RUNNING', 'REJECTED', 'STOPPING']);
@@ -23,6 +24,28 @@ function registryValidationError(message, details = {}) {
   const error = new Error(message);
   error.reasonCode = 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_SEMANTIC_INVALID';
   error.details = details;
+  return error;
+}
+
+function ownerClaimError(cause, phase = 'acquire') {
+  const locked = cause?.code === 'ELOCKED';
+  const error = new Error(locked
+    ? 'Another DesktopHost process is currently claiming the backend owner registry'
+    : `Backend owner claim lock ${phase} failed`);
+  error.reasonCode = locked
+    ? 'WP4_DESKTOP_BACKEND_OWNER_CLAIM_LOCK_HELD'
+    : 'WP4_DESKTOP_BACKEND_OWNER_CLAIM_LOCK_FAILED';
+  error.code = cause?.code || '';
+  error.retryable = locked;
+  error.phase = phase;
+  error.causeMessage = cause?.message || String(cause || '');
+  return error;
+}
+
+function registryLoadFailureError(failure = {}) {
+  const error = new Error(failure.message || 'Backend owner registry cannot be trusted during owner claim');
+  error.reasonCode = failure.reasonCode || 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_INVALID';
+  error.registryFailure = clone(failure);
   return error;
 }
 
@@ -306,6 +329,8 @@ class BackendOwnerRegistry {
     });
     this.captureIdentity = options.captureIdentity || (pid => platformProcessIdentity(pid, { fs: this.fs }));
     this.processIdentityPlatform = options.processIdentityPlatform || (options.captureIdentity ? '' : process.platform);
+    this.lockfile = options.lockfile || properLockfile;
+    this.claimLockStaleMs = Math.max(5000, Number(options.claimLockStaleMs || 30000));
     this.record = null;
     this.loadFailure = null;
     this._load();
@@ -334,6 +359,13 @@ class BackendOwnerRegistry {
         atUtc: this.clock()
       };
     }
+  }
+
+  refresh() {
+    this.record = null;
+    this.loadFailure = null;
+    this._load();
+    return this.snapshot();
   }
 
   snapshot() { return this.record ? Object.freeze(clone(this.record)) : null; }
@@ -377,6 +409,40 @@ class BackendOwnerRegistry {
     return this.snapshot();
   }
 
+  _withOwnerClaimLock(operation) {
+    if (!this.enabled()) return operation();
+    this.fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    let release = null;
+    let operationError = null;
+    try {
+      release = this.lockfile.lockSync(this.file, {
+        realpath: false,
+        stale: this.claimLockStaleMs,
+        retries: 0,
+        fs: this.fs
+      });
+    } catch (cause) {
+      throw ownerClaimError(cause, 'acquire');
+    }
+    try {
+      return operation();
+    } catch (error) {
+      operationError = error;
+      throw error;
+    } finally {
+      try { release?.(); }
+      catch (cause) {
+        const releaseError = ownerClaimError(cause, 'release');
+        if (operationError) operationError.ownerClaimReleaseFailure = {
+          reasonCode: releaseError.reasonCode,
+          code: releaseError.code,
+          message: releaseError.message
+        };
+        else throw releaseError;
+      }
+    }
+  }
+
   register(context = {}) {
     const backendPid = context.backendPid;
     const capturedIdentity = this.captureIdentity(backendPid);
@@ -413,7 +479,23 @@ class BackendOwnerRegistry {
       spawnedAtUtc: typeof context.spawnedAtUtc === 'string' ? context.spawnedAtUtc : this.clock(),
       updatedAtUtc: this.clock()
     };
-    return this._write(record);
+    if (!this.enabled()) return this._write(record);
+    return this._withOwnerClaimLock(() => {
+      // Constructor-time state is only a hint. The claim boundary must reload
+      // the durable record while holding the cross-process lock, otherwise two
+      // DesktopHost processes can both observe an empty registry and overwrite
+      // each other after they fork.
+      this.refresh();
+      if (this.loadFailure) throw registryLoadFailureError(this.loadFailure);
+      if (this.record?.ownershipActive === true) {
+        const error = new Error('A backend owner claim already exists; refusing to overwrite it');
+        error.reasonCode = 'WP4_DESKTOP_BACKEND_OWNER_CLAIM_CONFLICT';
+        error.retryable = true;
+        error.existingOwner = this.snapshot();
+        throw error;
+      }
+      return this._write(record);
+    });
   }
 
   update(context = {}) {

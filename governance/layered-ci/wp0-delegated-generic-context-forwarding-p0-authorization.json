@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T04:52:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP0-DELEGATED-GENERIC-CONTEXT-FORWARDING-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #557 exact head 7ddbfb687daeca57671f94ab3f87d97cc5fbfdc4 is a correctly formed two-parent WP-B v3 forward continuation, and WP-B M2 Independent Review Integrity is GREEN on both Ubuntu and Windows including complete Milestone 2 contracts. However WP-B M2 Contracts run 32422539452 deterministically fails on both platforms before any M2 contract executes, at Establish exact trusted implementation branch, with WP_B_M2_IMPLEMENTATION_BRANCH_UNAUTHORIZED. The trusted workflow passes delegatedGovernance { trustedMainHead, evaluatedHead } to shared/release/implementationBranchPolicy.isAuthorizedImplementationBranch. The wrapper forwards that object unchanged to implementationBranchPolicyLegacy.isAuthorizedDelegatedGovernanceBranch, while the generic delegated branch evaluator consumes options.generic; its active WP-B fallback also invokes isAuthorizedWpBImplementationBranch without forwarding the caller options, causing evaluated-head context to fall back to the trusted-policy worktree HEAD instead of the reviewed candidate. This authorization permits only the minimal base-owned wrapper reconciliation and its focused contract. No workflow, WP-B product byte, Desktop/Windows UAT candidate, dependency, routing policy, database schema, package, or release state change is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "6d85412875e0ae858f22018d05e09e7adf1bdbc0",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "6d85412875e0ae858f22018d05e09e7adf1bdbc0",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/wp0-delegated-generic-context-forwarding-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-delegated-generic-context-forwarding-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8a8538a6fd71fbcad2c18f995a0ba83de5ad20c324cb96230d0f4dd711e51bb8",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "implementation": {
+    "branch": "fix/wp0-delegated-generic-context-forwarding-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c9ebb6397f260acd3447fa7691a53ec9c6478d1c375250dc3a07b61498cc03f2",
+    "workflowModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "ossFit": {
+    "decision": "Reuse and repair the existing repository-native implementation-branch policy seam; no external framework is appropriate for a two-line option-shape forwarding defect in trusted Git governance.",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Yance implementationBranchPolicy wrapper and Legacy generic delegated evaluator",
+        "source": "shared/release/implementationBranchPolicy.js and shared/release/implementationBranchPolicyLegacy.js",
+        "license": "Repository-native code under the Yance repository license",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The trusted evaluator and Git topology checks already exist and are authoritative; only caller context forwarding between the wrapper and the generic evaluator is defective."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not duplicate the trusted-main delegated evaluator inside WP-B workflows or add a parallel branch-authority mechanism."
+    ]
+  },
+  "causalEvidence": {
+    "blockedPullRequest": 557,
+    "blockedExactHead": "7ddbfb687daeca57671f94ab3f87d97cc5fbfdc4",
+    "m2ContractsRunId": 32422539452,
+    "ubuntuJobId": 96597437969,
+    "windowsJobId": 96597438105,
+    "commonFailedStep": "Establish exact trusted implementation branch",
+    "failureCode": "WP_B_M2_IMPLEMENTATION_BRANCH_UNAUTHORIZED",
+    "independentReviewRunId": 32422539350,
+    "independentReviewUbuntuConclusion": "success",
+    "independentReviewWindowsConclusion": "success",
+    "classification": "BASE_OWNED_DELEGATED_GOVERNANCE_CONTEXT_FORWARDING_DEFECT",
+    "unknownBlockers": 0
+  },
+  "mandatoryContracts": [
+    "Top-level delegatedGovernance trustedMainHead/evaluatedHead supplied to implementationBranchPolicy.isAuthorizedImplementationBranch must reach the generic delegated evaluator without weakening static delegated authority checks.",
+    "The active WP-B fallback must not silently discard caller-provided trusted/evaluated-head context when delegated evaluation is required.",
+    "Exact trusted-main generic delegated governance must remain fail-closed on branch, authorization, topology, scope, supersession, and forward-continuation violations.",
+    "No workflow call-site modification is authorized.",
+    "No WP-B product/evidence byte, Desktop/Windows UAT candidate, dependency, package, routing policy, database schema, or release state may change."
+  ],
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "formal": [
+      "Stage WP0 GREEN",
+      "Layered CI GREEN",
+      "all additionally routed exact-head governance checks GREEN"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "desktopWindowsUatCandidateModificationAuthorized": false,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false
+  }
+}

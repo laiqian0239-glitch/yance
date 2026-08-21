@@ -1,7 +1,6 @@
 'use strict';
 
-const path = require('node:path');
-const catalog = require(path.join(__dirname, '..', '..', 'frontend', 'theme-catalog.json'));
+const catalog = require('../../frontend/theme-catalog.json');
 
 function clean(value) {
   return String(value == null ? '' : value).trim();

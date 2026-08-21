@@ -14,7 +14,7 @@ const { validateProductionRuntimeSourceDependencies } = require('./runtime-sourc
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const PROJECT_ROOTS = Object.freeze(['backend', 'shared', 'electron', 'diagnostics', 'release', 'assets', 'vendor/sillytavern/1.18.0']);
-const PROJECT_FILES = Object.freeze(['package.json', 'package-lock.json', 'installer/installedIdentityReceipt.js']);
+const PROJECT_FILES = Object.freeze(['package.json', 'package-lock.json', 'installer/installedIdentityReceipt.js', 'frontend/theme-catalog.json']);
 const CONTROLLED_METADATA_PATHS = new Set([
   'resources/payload-files.json',
   'resources/release-manifest.json',

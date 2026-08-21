@@ -2,6 +2,7 @@
 (() => {
   if (window.YanceConversationCenterV3) return;
   const $ = id => document.getElementById(id);
+  const activeContactStore = window.YanceActiveContactStore || null;
   const state = { expanded: false, aiMode: 'daily', activeConversationId: '', activeContactId: '', automationMode: 'HUMAN', automationModeReceipt: null, automationModePendingReceipt: null, automationUpdating: false };
   const replySource='ai_routed_model';
   try { state.aiMode = localStorage.getItem('yance:r32:conversation-ai-mode:v3') === 'advanced' ? 'advanced' : 'daily'; } catch (_) {}
@@ -17,25 +18,33 @@
     div.textContent = String(value ?? '');
     return div.innerHTML;
   }
+  function exactConversationSelection(snapshot = {}) {
+    if (activeContactStore?.resolveConversation) return activeContactStore.resolveConversation(snapshot);
+    const requestedConversationId = String(state.activeConversationId || '').trim();
+    if (!requestedConversationId) return { found: false, requestedConversationId: '', conversationId: '', contactId: '', reason: 'no-active-conversation' };
+    const conversation = snapshot.conversations?.byId?.[requestedConversationId] || null;
+    if (!conversation || conversation.archived === true) {
+      return { found: false, requestedConversationId, conversationId: '', contactId: '', reason: conversation ? 'active-conversation-archived' : 'exact-conversation-not-found' };
+    }
+    const contactId = String(conversation.contactId || conversation.customerId || '').trim();
+    if (!contactId) return { found: false, requestedConversationId, conversationId: '', contactId: '', reason: 'active-conversation-contact-missing' };
+    return { found: true, requestedConversationId, conversationId: requestedConversationId, contactId, reason: 'exact-conversation' };
+  }
   function readConversationAutomationMode() {
     const store = window.YanceStoreClient;
     const snapshot = store?.snapshot?.() || {};
-    const conversations = snapshot.conversations?.byId || {};
-    const requestedId = String(state.activeConversationId || '').trim();
-    const requestedContactId = String(state.activeContactId || '').trim();
-    const conversation = conversations[requestedId] || Object.values(conversations).find(row => {
-      const rowId = String(row?.id || row?.conversationId || '').trim();
-      const rowContactId = String(row?.contactId || row?.customerId || '').trim();
-      return (requestedId && rowId === requestedId) || (requestedContactId && rowContactId === requestedContactId);
-    }) || null;
-    const conversationId = String(conversation?.id || conversation?.conversationId || requestedId).trim();
-    const contactId = String(conversation?.contactId || conversation?.customerId || requestedContactId).trim();
-    const policy = contactId ? (snapshot.interactionPolicies?.byContactId?.[contactId] || {}) : {};
-    const receipt = conversationId ? policy.config?.conversationAutomationModes?.[conversationId] : null;
+    const selection = exactConversationSelection(snapshot);
+    if (!selection.found) {
+      return { conversationId: '', contactId: '', mode: 'HUMAN', automationModeReceipt: null, selectionReason: selection.reason };
+    }
+    const conversationId = selection.conversationId;
+    const contactId = selection.contactId;
+    const policy = snapshot.interactionPolicies?.byContactId?.[contactId] || {};
+    const receipt = policy.config?.conversationAutomationModes?.[conversationId] || null;
     const mode = ['HUMAN', 'AI_ASSIST', 'AI_AUTO'].includes(String(receipt?.mode || '').toUpperCase())
       ? String(receipt.mode).toUpperCase()
       : 'HUMAN';
-    return { conversationId, contactId, mode, automationModeReceipt: receipt && typeof receipt === 'object' ? receipt : null };
+    return { conversationId, contactId, mode, automationModeReceipt: receipt && typeof receipt === 'object' ? receipt : null, selectionReason: selection.reason };
   }
 
   function automationReceiptVersion(receipt) {
@@ -95,8 +104,9 @@
     if (select) {
       select.value = current.mode;
       select.disabled = state.automationUpdating || !current.conversationId;
-      select.dataset.authority = 'Store.interactionPolicies';
+      select.dataset.authority = 'YanceActiveContactStore+Store.interactionPolicies';
       select.dataset.automationModeReceipt = String(current.automationModeReceipt?.id || '');
+      select.dataset.selectionReason = String(current.selectionReason || '');
     }
     if (takeover) {
       takeover.disabled = state.automationUpdating || !current.conversationId || current.mode === 'HUMAN';
@@ -320,16 +330,28 @@
       const node = $(id);
       if (node) new MutationObserver(syncDailyDashboard).observe(node, { childList: true, subtree: true, characterData: true, attributes: true });
     });
+    activeContactStore?.subscribe(snapshot => {
+      const conversationId = String(snapshot?.contactId || '').trim();
+      const changed = conversationId !== state.activeConversationId;
+      state.activeConversationId = conversationId;
+      if (changed) {
+        state.activeContactId = '';
+        state.automationModePendingReceipt = null;
+        state.expanded = false;
+      }
+      setTimeout(() => { syncAutomationMode(); syncDailyDashboard(); }, 0);
+    }, { fireImmediately: true });
     window.addEventListener('yance:r32-contact-selected', event => {
+      if (activeContactStore) return;
       const contact = event?.detail?.contact || {};
       state.activeConversationId = String(contact.conversationId || contact.id || '').trim();
-      state.activeContactId = String(contact.contactId || contact.customerId || contact.id || '').trim();
+      state.activeContactId = String(contact.contactId || contact.customerId || '').trim();
       state.expanded = false;
       setTimeout(() => { syncAutomationMode(); syncDailyDashboard(); }, 0);
     });
     window.addEventListener('yance:r32-data-ready', event => {
       const activeId = String(event?.detail?.activeId || '').trim();
-      if (activeId) state.activeConversationId = activeId;
+      if (!activeContactStore && activeId) state.activeConversationId = activeId;
       syncAutomationMode();
       syncDailyDashboard();
     });

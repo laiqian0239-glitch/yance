@@ -240,6 +240,11 @@ class IdentityAuthority {
     const operationAt = timestamp(input.observedAt);
     const suppliedEvidenceRefs = evidenceRefs(input.evidenceRefs);
     if (existing) {
+      if (clean(existing.link_status) === LINK_STATUS.DETACHED) {
+        throw error('IDENTITY_DETACHED_LINK_REOBSERVATION_FORBIDDEN', '已解除的身份链接不能通过 observe 静默重新激活；必须使用可审计的显式恢复流程。', 409, {
+          identityLinkId: clean(existing.identity_link_id), personId: clean(existing.person_id)
+        });
+      }
       if (clean(input.personId) && clean(input.personId) !== clean(existing.person_id)) {
         throw error('IDENTITY_OBSERVATION_PERSON_CONFLICT', '同一平台身份已经绑定到另一个 Person，不能静默复用。', 409, {
           identityLinkId: clean(existing.identity_link_id), existingPersonId: clean(existing.person_id), requestedPersonId: clean(input.personId)
@@ -351,6 +356,15 @@ class IdentityAuthority {
       const detachedConversationBindings = nextStatus === LINK_STATUS.DETACHED
         ? repo.listConversationBindings({ personId: link.person_id, state: 'active', limit: 10000 }).filter(row => clean(row.platform) === clean(link.platform) && clean(row.account_id) === clean(link.source_account_id) && clean(row.external_id) === clean(link.external_id))
         : [];
+      const remainingUsableIdentityLinks = nextStatus === LINK_STATUS.DETACHED
+        ? repo.listIdentityLinks(link.person_id, { includeDetached: true }).filter(row =>
+          clean(row.identity_link_id) !== identityLinkId
+          && ![LINK_STATUS.DETACHED, LINK_STATUS.DISPUTED].includes(clean(row.link_status))
+        )
+        : [];
+      const detachedPersonContactBindings = nextStatus === LINK_STATUS.DETACHED && !remainingUsableIdentityLinks.length
+        ? repo.listPersonContactBindings({ personId: link.person_id, state: 'active', limit: 10000 })
+        : [];
       const updated = repo.updateIdentityLink(identityLinkId, {
         linkStatus: nextStatus,
         confidence: confidence(input.confidence, Number(link.confidence || 0)),
@@ -361,11 +375,15 @@ class IdentityAuthority {
         updatedAt: operationAt
       });
       for (const binding of detachedConversationBindings) repo.updateConversationBinding(link.person_id, binding.conversation_id, { state: 'detached', source: 'identity-link-detach', updatedAt: operationAt });
+      for (const binding of detachedPersonContactBindings) repo.updatePersonContactBinding(link.person_id, binding.contact_id, { state: 'detached', source: 'identity-link-detach', updatedAt: operationAt });
       const auditId = `identity-audit-${crypto.randomUUID()}`;
       repo.insertIdentityAudit({
         auditId, operation, workspaceId: link.workspace_id, sourcePersonId: link.person_id, targetPersonId: link.person_id,
         identityLinkId, before, after: publicLink(updated), evidenceRefs: transitionEvidence,
-        rollbackPlan: { operation: 'restore-link', identityLinkId, beforeLink: before, expectedAfterLink: publicLink(updated), conversationBindings: detachedConversationBindings },
+        rollbackPlan: {
+          operation: 'restore-link', identityLinkId, beforeLink: before, expectedAfterLink: publicLink(updated),
+          personContactBindings: detachedPersonContactBindings, conversationBindings: detachedConversationBindings
+        },
         reason, actor, createdAt: operationAt
       });
       repo.insertIdentityOperationReceipt({ receiptId: `identity-receipt-${crypto.randomUUID()}`, auditId, operation, status: 'applied', before: { link: before }, after: { link: publicLink(updated) }, actor, reason, createdAt: operationAt });
@@ -540,6 +558,12 @@ class IdentityAuthority {
         verificationMethod: before.verificationMethod, evidenceRefs: before.evidenceRefs || [], createdBy: before.createdBy,
         supersededBy: before.supersededBy || '', payload: before.payload || {}, updatedAt: operationAt
       });
+      const restoredContactBindings = [];
+      for (const binding of Array.isArray(plan.personContactBindings) ? plan.personContactBindings : []) {
+        const currentBinding = repo.listPersonContactBindings({ personId: clean(before.personId), contactId: clean(binding.contact_id), limit: 10 }).find(row => clean(row.contact_id) === clean(binding.contact_id));
+        if (!currentBinding || clean(currentBinding.state) !== 'detached') throw error('IDENTITY_ROLLBACK_CONFLICT', '身份解除后的联系人绑定已发生变化，不能静默覆盖。', 409, { contactId: clean(binding.contact_id) });
+        restoredContactBindings.push(repo.updatePersonContactBinding(clean(before.personId), clean(binding.contact_id), { state: clean(binding.state) || 'active', source: 'identity-rollback', updatedAt: operationAt }));
+      }
       const restoredBindings = [];
       for (const binding of Array.isArray(plan.conversationBindings) ? plan.conversationBindings : []) {
         const currentBinding = repo.listConversationBindings({ personId: clean(before.personId), conversationId: clean(binding.conversation_id), limit: 10 }).find(row => clean(row.conversation_id) === clean(binding.conversation_id));
@@ -550,7 +574,7 @@ class IdentityAuthority {
       repo.insertIdentityAudit({
         auditId: rollbackAuditId, operation: 'rollback', workspaceId: audit.workspace_id,
         sourcePersonId: clean(before.personId), targetPersonId: clean(before.personId), identityLinkId,
-        before: { originalAuditId: auditId, link: currentPublic }, after: { link: after, conversationBindings: restoredBindings },
+        before: { originalAuditId: auditId, link: currentPublic }, after: { link: after, personContactBindings: restoredContactBindings, conversationBindings: restoredBindings },
         evidenceRefs: evidenceRefs(input.evidenceRefs), rollbackPlan: { operation: 'reapply-transition', originalAuditId: auditId },
         reason, actor, createdAt: operationAt
       });

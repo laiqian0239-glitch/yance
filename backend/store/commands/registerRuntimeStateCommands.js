@@ -60,6 +60,19 @@ function moveRecentTheme(ui, themeId) {
   ui.recentThemeIds = normalizeThemeIdList([themeId, ...(ui.recentThemeIds || [])], 12);
 }
 
+function clearActiveSelectionForContact(state, contactId) {
+  const id = clean(contactId);
+  if (!id) return false;
+  const currentConversationId = clean(state.conversations?.currentId);
+  const currentConversation = currentConversationId ? state.conversations?.byId?.[currentConversationId] : null;
+  const currentConversationContactId = clean(currentConversation?.contactId || currentConversation?.customerId || currentConversation?.contact_id);
+  const selectedCustomerId = clean(state.customers?.currentId);
+  if (selectedCustomerId !== id && currentConversationContactId !== id) return false;
+  state.customers.currentId = '';
+  state.conversations.currentId = '';
+  return true;
+}
+
 function registerRuntimeStateCommands(storeManager) {
   storeManager.registerCommand('SYNC_ACCOUNT_STATE', ({ command, cloneState }) => {
     const accountId = clean(command.payload.accountId || command.payload.id);
@@ -400,7 +413,7 @@ function registerRuntimeStateCommands(storeManager) {
     nextState.customers.activeIds = nextState.customers.activeIds.filter(id => id !== contactId);
     nextState.customers.archivedIds = nextState.customers.archivedIds.filter(id => id !== contactId);
     (archived ? nextState.customers.archivedIds : nextState.customers.activeIds).push(contactId);
-    if (!nextState.customers.currentId && !archived) nextState.customers.currentId = contactId;
+    const selectionCleared = archived && clearActiveSelectionForContact(nextState, contactId);
 
     const profile = context.profile || {};
     const previousMemory = nextState.memories.byContactId[contactId] || { version: 0, preferences: {} };
@@ -474,7 +487,7 @@ function registerRuntimeStateCommands(storeManager) {
     return {
       nextState,
       changedDomains: ['customers', 'conversations', 'memories', 'relationships'],
-      result: { contactId },
+      result: { contactId, selectionCleared },
       events: {
         type: 'customer.context.synced',
         domain: 'customers',
@@ -482,9 +495,10 @@ function registerRuntimeStateCommands(storeManager) {
         changedPaths: [
           `customers.byId.${contactId}`,
           `memories.byContactId.${contactId}`,
-          `relationships.byContactId.${contactId}`
+          `relationships.byContactId.${contactId}`,
+          ...(selectionCleared ? ['customers.currentId', 'conversations.currentId'] : [])
         ],
-        payload: { contactId }
+        payload: { contactId, selectionCleared }
       }
     };
   });
@@ -720,7 +734,7 @@ function registerRuntimeStateCommands(storeManager) {
     nextState.customers.activeIds = nextState.customers.activeIds.filter(id => id !== contactId);
     nextState.customers.archivedIds = nextState.customers.archivedIds.filter(id => id !== contactId);
     (archived ? nextState.customers.archivedIds : nextState.customers.activeIds).push(contactId);
-    if (archived && nextState.customers.currentId === contactId) nextState.customers.currentId = nextState.customers.activeIds[0] || '';
+    const selectionCleared = archived && clearActiveSelectionForContact(nextState, contactId);
     const policy = nextState.interactionPolicies.byContactId[contactId] || { version: 0 };
     policy.version = Number(policy.version || 0) + 1;
     policy.blocked = archived;
@@ -731,8 +745,8 @@ function registerRuntimeStateCommands(storeManager) {
     nextState.interactionPolicies.byContactId[contactId] = policy;
     return {
       nextState,
-      changedDomains: ['customers', 'interactionPolicies'],
-      result: { contactId, archived },
+      changedDomains: ['customers', 'interactionPolicies', ...(selectionCleared ? ['conversations'] : [])],
+      result: { contactId, archived, selectionCleared },
       events: {
         type: archived ? 'customer.archived' : 'customer.restored',
         domain: 'customers',
@@ -741,9 +755,10 @@ function registerRuntimeStateCommands(storeManager) {
           `customers.byId.${contactId}.archived`,
           'customers.activeIds',
           'customers.archivedIds',
+          ...(selectionCleared ? ['customers.currentId', 'conversations.currentId'] : []),
           `interactionPolicies.byContactId.${contactId}`
         ],
-        payload: { contactId, archived }
+        payload: { contactId, archived, selectionCleared }
       },
       persist: transaction => transaction?.upsertInteractionPolicy?.({ contactId, ...policy, calculatedAt: new Date().toISOString() })
     };

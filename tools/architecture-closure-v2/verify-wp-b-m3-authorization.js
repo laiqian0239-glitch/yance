@@ -268,6 +268,16 @@ function fail(code, message, details = {}) {
 function requireThat(value, code, message, details = {}) {
   if (!value) fail(code, message, details);
 }
+function isHistoricalPrStateValidForBranch(historicalPr, currentBranch, historicalBranch = EXPECTED_BRANCH) {
+  const openDraftUnmerged = historicalPr?.state === 'open'
+    && historicalPr?.draft === true
+    && historicalPr?.merged_at == null;
+  const closedMerged = historicalPr?.state === 'closed'
+    && historicalPr?.merged_at != null;
+  return currentBranch === historicalBranch
+    ? openDraftUnmerged
+    : (openDraftUnmerged || closedMerged);
+}
 function normalizeRepositoryPath(value) {
   const normalized = String(value || '').trim().replace(/\\/gu, '/').replace(/^\.\//u, '').replace(/\/$/u, '');
   if (!normalized || normalized.startsWith('/') || /^[A-Za-z]:\//u.test(normalized)) return '';
@@ -640,8 +650,11 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
     'WP_B_M3_AUTHORIZATION_REMOTE_BRANCH_INVALID', 'Current branch is not an authorized WP-B implementation branch');
 
   const historicalPr = await fetchJson(`${api}/pulls/${document.pullRequest}`, token, 'WP_B_M3_AUTHORIZATION_REMOTE_PR_REQUEST_FAILED');
-  requireThat(historicalPr.state === 'open' && historicalPr.draft === true && historicalPr.merged_at == null,
-    'WP_B_M3_AUTHORIZATION_REMOTE_PR_STATE_INVALID', 'Historical PR must remain Draft/open/unmerged');
+  requireThat(isHistoricalPrStateValidForBranch(historicalPr, currentBranch, EXPECTED_BRANCH),
+    'WP_B_M3_AUTHORIZATION_REMOTE_PR_STATE_INVALID',
+    currentBranch === EXPECTED_BRANCH
+      ? 'Historical branch PR must remain Draft/open/unmerged'
+      : 'Historical PR state is invalid for successor evidence');
   requireThat(historicalPr.head?.ref === document.branch && historicalPr.base?.ref === 'main',
     'WP_B_M3_AUTHORIZATION_REMOTE_PR_HEAD_INVALID', 'Historical PR refs changed');
 
@@ -706,6 +719,7 @@ module.exports = Object.freeze({
   SCOPE_004,
   SCOPE_005,
   isAuthorizedPath,
+  isHistoricalPrStateValidForBranch,
   normalizeRepositoryPath,
   pathSetSha256,
   readReceipt,

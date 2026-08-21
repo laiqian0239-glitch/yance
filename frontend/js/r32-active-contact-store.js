@@ -140,6 +140,59 @@
       });
     }
 
+    function resolveConversation(storeSnapshot = {}) {
+      // Historical naming: state.contactId is the selected workspace row id, which
+      // is the canonical conversation sessionKey produced by workspaceService.
+      // Never recover a missing conversation by scanning for another row that
+      // happens to share its customer/contact id.
+      const requestedConversationId = clean(state.contactId);
+      if (!requestedConversationId) {
+        return Object.freeze({
+          found: false,
+          requestedConversationId: '',
+          conversationId: '',
+          contactId: '',
+          reason: 'no-active-conversation'
+        });
+      }
+      const conversation = storeSnapshot?.conversations?.byId?.[requestedConversationId] || null;
+      if (!conversation) {
+        return Object.freeze({
+          found: false,
+          requestedConversationId,
+          conversationId: '',
+          contactId: '',
+          reason: 'exact-conversation-not-found'
+        });
+      }
+      if (conversation.archived === true) {
+        return Object.freeze({
+          found: false,
+          requestedConversationId,
+          conversationId: '',
+          contactId: '',
+          reason: 'active-conversation-archived'
+        });
+      }
+      const contactId = clean(conversation.contactId || conversation.customerId);
+      if (!contactId) {
+        return Object.freeze({
+          found: false,
+          requestedConversationId,
+          conversationId: '',
+          contactId: '',
+          reason: 'active-conversation-contact-missing'
+        });
+      }
+      return Object.freeze({
+        found: true,
+        requestedConversationId,
+        conversationId: requestedConversationId,
+        contactId,
+        reason: 'exact-conversation'
+      });
+    }
+
     function subscribe(listener, options = {}) {
       if (typeof listener !== 'function') throw new TypeError('ActiveContactStore listener must be a function');
       listeners.add(listener);
@@ -155,6 +208,7 @@
       setView,
       announceLegacy,
       hydrate,
+      resolveConversation,
       subscribe,
       getSnapshot: snapshot,
       getContact: id => contacts.get(clean(id))?.contact || null,
