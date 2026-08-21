@@ -180,7 +180,53 @@
     "windowsCi": {"mustLaunchPackagedYanceExe": true, "sourceElectronLaunchForbidden": true, "browserOnlySurrogateForbidden": true, "matrixLoginRequired": false, "isolatedDataRootRequired": true, "postInstallLaunchRequired": true, "freshPassReceiptRequired": true, "processTreeCleanupRequired": true, "implementationBranch": "fix/v21-product-experience-windows-uat-startup-p0", "workflowGateMustIncludeImplementationBranch": true, "requiredRoutedJobs": ["frozen-element-reproducibility", "materialized-desktop-uat"], "materializedDesktopUatMayBeSkipped": false},
     "windowsUatRunner": {"realProductDataMutationForbidden": true, "isolatedDataRootRequired": true, "postInstallLaunchRequired": true, "freshPassReceiptRequired": true, "processExitBeforeReceiptIsFailure": true, "greenOnStartProcessForbidden": true}
   },
-  "ossFit": {"decision": "REUSE_EXISTING_ELEMENT_ELECTRON_WP7_AND_PROBE_AUTHORITIES", "matureOssAvailable": true, "selectedAdoptionMode": "existing-repository-seam", "newGeneralPurposeInfrastructure": false, "thinYanceAdapterOnly": true},
+  "ossFit": {
+    "decision": "REUSE_EXISTING_ELEMENT_ELECTRON_WP7_AND_PROBE_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Web ModuleLoader + 18-load-element-modules.sh",
+        "source": "pinned element-hq/element-web v1.12.25",
+        "license": "existing reviewed upstream license closure",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already owns production module discovery/load before app/login; Yance only needs to register its responder in the existing module lifecycle."
+      },
+      {
+        "name": "Electron contextBridge/ipcMain + existing main-window activation controller",
+        "source": "repository-existing desktop runtime",
+        "license": "existing reviewed Electron/runtime closure",
+        "adoptionMode": "extend-existing-seam",
+        "fit": "FIT",
+        "reason": "Already owns trusted renderer identity, readiness and per-activation challenge; add only the missing registration acknowledgement and fourth readiness phase."
+      },
+      {
+        "name": "Existing post-install launch receipt + productionRuntimePathProbe",
+        "source": "electron/postInstallLaunchReceipt.js and backend/services/productionRuntimePathProbe.js",
+        "license": "repository code",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Together already provide a causally strong visible-window verdict and real production-path execution evidence; reuse instead of inventing new markers."
+      },
+      {
+        "name": "Pinned Node.js core HTTP server for CI-only Element static hosting",
+        "source": "trusted CI Node 22.23.1 already configured in Product Final",
+        "license": "Node.js existing trusted-CI dependency",
+        "adoptionMode": "validation-only-existing-runtime",
+        "fit": "FIT",
+        "reason": "Provides a dependency-free temporary static host for the exact freshly built Element webapp on windows-latest; it is not shipped or used as product runtime infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire GREEN-on-Start-Process semantics from the Product materialized-UAT runner.",
+      "Do not add sleeps or retries as a substitute for a responder-registration handshake.",
+      "Do not add a Yance-owned Element loader, web runtime, backend readiness service or new dependency.",
+      "Do not change pinned Element upstream patches, Matrix compose authority, productionRuntimePathProbe implementation or post-install receipt authority unless a fresh causal RED proves an amendment is necessary."
+    ],
+    "thinYanceAdapterOnly": true
+  },
   "requiredValidation": {
     "focused": [
       "node --test tests/desktop-fixes/main-window-activation-controller.test.js",
