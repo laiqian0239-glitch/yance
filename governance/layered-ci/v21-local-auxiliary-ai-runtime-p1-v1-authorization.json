@@ -225,6 +225,7 @@
       {
         "name": "KTransformers / AirLLM",
         "source": "kvcache-ai/ktransformers / lyogavin/airllm",
+        "license": "Apache-2.0",
         "adoptionMode": "not-admitted",
         "fit": "GAP",
         "reason": "Do not place experimental or higher-operational-risk large-model runtimes on the formal product path before Windows maturity, reproducibility and crash-isolation evidence exists."
