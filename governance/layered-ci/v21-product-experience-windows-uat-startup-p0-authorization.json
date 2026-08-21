@@ -4,9 +4,9 @@
   "requestedByUserAt": "2026-08-21T12:46:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-EXPERIENCE-WINDOWS-UAT-STARTUP-P0",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Close the current Product Experience Windows UAT startup P0 as one Fast Landing / batch-causal-closure work package. The same root graph contains a missing production Element activation responder, a responder-registration race between DOMContentLoaded renderer-ready and Element ModuleLoader startup, an unauthenticated-first-screen readiness requirement, a Product Final Windows job that builds but never starts the packaged Yance.exe, and a materialized-UAT runner that currently declares GREEN immediately after Start-Process. Reuse the existing Element v1.12.25 ModuleLoader lifecycle, Electron main-window activation/readiness authorities, post-install launch receipt, productionRuntimePathProbe, WP7 trusted-product packaging, and materialized Matrix topology. Do not add sleeps, fake readiness, a second loader, a second readiness protocol, a browser-only surrogate, or a new package/runtime dependency.",
+  "reason": "Close the current Product Experience Windows UAT startup P0 as one Fast Landing / batch-causal-closure work package. The same root graph contains a missing production Element activation responder, a responder-registration race between DOMContentLoaded renderer-ready and Element ModuleLoader startup, an unauthenticated-first-screen readiness requirement, a Product Final Windows job that builds but never starts the packaged Yance.exe, a Product Final branch gate that currently excludes the authorized implementation branch, and a materialized-UAT runner that currently declares GREEN immediately after Start-Process. Reuse the existing Element v1.12.25 ModuleLoader lifecycle, Electron main-window activation/readiness authorities, post-install launch receipt, productionRuntimePathProbe, WP7 trusted-product packaging, and materialized Matrix topology. Do not add sleeps, fake readiness, a second loader, a second readiness protocol, a browser-only surrogate, or a new package/runtime dependency.",
   "base": {
     "branch": "main",
     "commit": "0170c457929301d1f254a36364b5b189b9917eb5"
@@ -82,6 +82,7 @@
         "The production integration/element-module load path has no desktop activation-probe responder even though preload exposes the challenge bridge and main requires a successful challenge before activation dispatch.",
         "Main-window activation can treat DOMContentLoaded renderer-ready as sufficient before the Element module registers its probe listener, so the challenge can be sent before any production responder exists.",
         "The Product Final Windows materialized-desktop job builds and uploads the exact WP7 packaged payload but never executes its Yance.exe or proves an unauthenticated Element ModuleLoader startup.",
+        "The Product Final workflow currently excludes fix/v21-product-experience-windows-uat-startup-p0 from both frozen-element-reproducibility and materialized-desktop-uat job gates, so the exact implementation branch cannot produce required Product Final startup evidence until the authorized workflow change closes that routing gap.",
         "The materialized-UAT PowerShell runner writes evidence and prints GREEN immediately after Start-Process without waiting for the post-install activation receipt, process survival, or productionRuntimeProbe execution."
       ]
     },
@@ -130,6 +131,7 @@
       "Fresh source search re-proves the complete activation chain Element module load -> responder registration -> controller readiness -> activation challenge -> /api/ready -> post-install launch receipt.",
       "Fresh source search re-proves productionRuntimePathProbe is already executed by backend startup when YANCE_WP2_PRODUCTION_RUNTIME_PROBE=1 and does not require a second probe implementation.",
       "Fresh source search re-proves pinned Element v1.12.25 loadPlugins runs before loadApp/login and official 18-load-element-modules.sh remains the production module-discovery authority.",
+      "The current Product Final branch gate exclusion for fix/v21-product-experience-windows-uat-startup-p0 is classified as a known ROOT_IMPLEMENTATION item, is locked by tests/wp0/v21-product-experience-materialized-uat.test.js in the failure-first RED, and must be closed by the authorized workflow production batch before final exact-head Product Final evidence.",
       "Current Product UAT branch/artifacts remain untouched until this independent root repair is ordinarily merged to main and then forward-merged."
     ],
     "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
@@ -194,6 +196,12 @@
         "requiredClosure": "No upstream patch, config or loader modification."
       },
       {
+        "boundary": "Product Final implementation-branch routing gate",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "The current frozen-element-reproducibility and materialized-desktop-uat job conditions allow only five product/... branches and exclude fix/v21-product-experience-windows-uat-startup-p0, so the implementation branch would otherwise report Product Final as skipped instead of producing packaged startup evidence.",
+        "requiredClosure": "Within the already-authorized Product Final workflow path, add the exact implementation branch to both job gates while preserving every existing product branch entry; tests/wp0/v21-product-experience-materialized-uat.test.js must statically lock the routing contract and final exact-head CI must show materialized-desktop-uat success rather than skipped."
+      },
+      {
         "boundary": "Product Final Windows materialized-desktop job",
         "classification": "ROOT_IMPLEMENTATION",
         "evidence": "Current job materializes the exact WP7 payload and uploads it without executing Yance.exe.",
@@ -224,6 +232,7 @@
       "No sleep/retry window is used to conceal listener-registration ordering.",
       "A packaged process that starts and exits, never registers the responder, fails the activation challenge, fails /api/ready, or does not execute the production path probe cannot produce GREEN UAT evidence.",
       "The Windows CI startup proof launches the exact WP7 packaged Yance.exe rather than Electron source mode or a browser surrogate.",
+      "The exact implementation branch cannot satisfy Product Final with a skipped routing result; both Product Final jobs must recognize the exact branch, and materialized-desktop-uat must complete with success on the implementation exact head.",
       "No second Element loader, readiness state machine, backend path probe, package manager, dependency or generalized test server is introduced."
     ]
   },
@@ -258,7 +267,14 @@
       "isolatedDataRootRequired": true,
       "postInstallLaunchRequired": true,
       "freshPassReceiptRequired": true,
-      "processTreeCleanupRequired": true
+      "processTreeCleanupRequired": true,
+      "implementationBranch": "fix/v21-product-experience-windows-uat-startup-p0",
+      "workflowGateMustIncludeImplementationBranch": true,
+      "requiredRoutedJobs": [
+        "frozen-element-reproducibility",
+        "materialized-desktop-uat"
+      ],
+      "materializedDesktopUatMayBeSkipped": false
     },
     "windowsUatRunner": {
       "matrixAuthority": "existing sealed Matrix images + docker compose up --no-build",
@@ -328,15 +344,29 @@
       "node --test tests/wp0/v21-product-experience-materialized-uat.test.js",
       "node --test tests/wp0/v21-element-workspace-contract.test.js"
     ],
+    "productFinalRoutingContract": {
+      "workflowPath": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "implementationBranch": "fix/v21-product-experience-windows-uat-startup-p0",
+      "failureFirstTest": "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "requiredJobs": [
+        "frozen-element-reproducibility",
+        "materialized-desktop-uat"
+      ],
+      "requiredMachineChecks": [
+        "The failure-first test must parse or inspect the Product Final workflow and fail while either required job gate omits the exact implementation branch; the production workflow change must add that exact branch while preserving all existing product branch entries.",
+        "Final exact-head CI evidence must show V21 Product Experience Shell P0 Final Validation routed for the exact implementation head with materialized-desktop-uat conclusion success; skipped, neutralized or surrogate execution is not GREEN."
+      ]
+    },
     "exactHeadCi": [
       "Stage 6.4.5.9 WP0 Architecture Gates",
       "ACV2 WP-A Architecture Gates",
-      "V21 Product Experience Shell P0 Final Validation including real windows-latest packaged startup",
+      "V21 Product Experience Shell P0 Final Validation routed on fix/v21-product-experience-windows-uat-startup-p0, including real windows-latest packaged startup; materialized-desktop-uat must be success and must not be skipped",
       "V21 Model Brain P0 Windows when routed"
     ],
     "windowsStartupEvidence": [
       "Exact candidate commit/tree bound WP7 pre-review trusted-product payload.",
       "Fresh pinned Element webapp and @yance/element-module build from the same candidate.",
+      "Exact Product Final workflow gate recognizes fix/v21-product-experience-windows-uat-startup-p0 in both frozen-element-reproducibility and materialized-desktop-uat jobs, with final materialized-desktop-uat conclusion success rather than skipped.",
       "Exact packaged Yance.exe process identity and isolated YANCE_DATA_DIR.",
       "Fresh post-install PASS receipt produced only after activation validation.",
       "/api/ready productionRuntimeProbe enabled=true and executed=true enforced by Electron main while probe env is enabled."
