@@ -2199,3 +2199,219 @@ test('delegated npm lock-tree cleanup retries transient Windows busy handles and
   );
   assert.equal(permanentAttempts, 1);
 });
+
+const FIRST_HEAD_GUARD_AUTH_PATH = 'governance/layered-ci/first-head-guard-fixture-authorization.json';
+const FIRST_HEAD_GUARD_AUTH_BRANCH = 'governance/first-head-guard-fixture-authorization';
+const FIRST_HEAD_GUARD_IMPL_BRANCH = 'governance/first-head-guard-fixture';
+const FIRST_HEAD_GUARD_POLICY_PATH = 'shared/release/implementationBranchPolicyLegacy.js';
+const FIRST_HEAD_GUARD_TEST_PATH = 'tests/wp0/implementation-branch-policy.test.js';
+const FIRST_HEAD_GUARD_RED = '7'.repeat(40);
+const FIRST_HEAD_GUARD_GREEN = '8'.repeat(40);
+
+function firstHeadGuardAuthorization({ includeGuard = true } = {}) {
+  const allowedChangedPaths = [FIRST_HEAD_GUARD_POLICY_PATH, FIRST_HEAD_GUARD_TEST_PATH];
+  const failureFirstCommit = {
+    mustBeFirstImplementationCommit: true,
+    allowedChangedPaths: [FIRST_HEAD_GUARD_TEST_PATH],
+    approvedChangedFileCount: 1,
+    approvedChangedFileSetSha256: workPackageChangedFilesSha256([FIRST_HEAD_GUARD_TEST_PATH]),
+    productionCodeChanged: false,
+    freshCausalRedRequired: true
+  };
+  if (includeGuard) {
+    failureFirstCommit.firstHeadTrustedMainGuard = {
+      required: true,
+      trustedMainMustEqualAuthorizationMerge: true
+    };
+  }
+  return {
+    schemaVersion: 1,
+    documentType: 'YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION',
+    repository: 'laiqian0239-glitch/yance',
+    workPackage: 'FIRST-HEAD-GUARD-FIXTURE',
+    status: 'AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE',
+    base: { branch: 'main', commit: GENERIC_BASE },
+    effectiveness: {
+      effectiveBeforeMerge: false,
+      requiresOrdinaryTwoParentMainMerge: true,
+      implementationMayStartOnlyFromAuthorizationMergeCommit: true,
+      authorizationProposalTransportIsNotImplementationAuthority: true
+    },
+    authorizationBranch: {
+      name: FIRST_HEAD_GUARD_AUTH_BRANCH,
+      allowedChangedPaths: [FIRST_HEAD_GUARD_AUTH_PATH],
+      mustRemainSingleFile: true
+    },
+    implementation: {
+      branch: FIRST_HEAD_GUARD_IMPL_BRANCH,
+      allowedChangedPaths,
+      approvedChangedFileCount: allowedChangedPaths.length,
+      approvedChangedFileSetSha256: workPackageChangedFilesSha256(allowedChangedPaths),
+      newDependencyAllowed: false,
+      workflowModificationAllowed: false,
+      failureFirstCommit
+    },
+    governance: {
+      authorizationPredatesImplementation: true,
+      exactPathScopeOnly: true,
+      independentBranchAndPullRequestRequired: true,
+      productionUseAuthorized: false,
+      formalReleaseAuthorized: false,
+      publishAuthorized: false,
+      readyForPromotionAuthorized: false,
+      automaticNextWorkPackageAuthorizationAuthorized: false
+    }
+  };
+}
+
+function firstHeadGuardOptions(overrides = {}) {
+  const document = overrides.authorization || firstHeadGuardAuthorization();
+  const evaluatedHead = overrides.evaluatedHead || FIRST_HEAD_GUARD_RED;
+  const trustedMainHead = overrides.trustedMainHead || GENERIC_TRUSTED_MAIN;
+  return {
+    trustedMainHead,
+    evaluatedHead,
+    listAuthorizationPaths: () => [FIRST_HEAD_GUARD_AUTH_PATH],
+    loadAuthorizationAtTrustedHead: repositoryPath => (
+      repositoryPath === FIRST_HEAD_GUARD_AUTH_PATH ? document : null
+    ),
+    findAuthorizationIntroductionMerges: repositoryPath => (
+      repositoryPath === FIRST_HEAD_GUARD_AUTH_PATH ? [GENERIC_MERGE] : []
+    ),
+    resolveCommitParents: commit => {
+      if (Object.prototype.hasOwnProperty.call(overrides.parentsByCommit || {}, commit)) {
+        return overrides.parentsByCommit[commit];
+      }
+      if (commit === GENERIC_MERGE) return [GENERIC_BASE, GENERIC_REVIEWED_HEAD];
+      return [];
+    },
+    resolveCommitBlobSha: (commit, repositoryPath) => {
+      if (repositoryPath !== FIRST_HEAD_GUARD_AUTH_PATH) return null;
+      return [GENERIC_MERGE, GENERIC_REVIEWED_HEAD, GENERIC_TRUSTED_MAIN].includes(commit)
+        ? GENERIC_BLOB
+        : null;
+    },
+    resolveCommitPathMode: (_commit, repositoryPath) => (
+      repositoryPath === FIRST_HEAD_GUARD_AUTH_PATH ? '100644' : null
+    ),
+    resolveMergeBases: () => [GENERIC_MERGE],
+    resolveChangedFilesBetween: (base, head) => {
+      const key = `${base}:${head}`;
+      if (Object.prototype.hasOwnProperty.call(overrides.changedFilesByRange || {}, key)) {
+        return overrides.changedFilesByRange[key];
+      }
+      if (base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD) return [FIRST_HEAD_GUARD_AUTH_PATH];
+      if (base === GENERIC_BASE && head === GENERIC_MERGE) return [FIRST_HEAD_GUARD_AUTH_PATH];
+      if (base === GENERIC_MERGE && head === evaluatedHead) {
+        return overrides.implementationChangedFiles || document.implementation.allowedChangedPaths;
+      }
+      throw new Error(`unexpected first-head-guard diff request ${base}..${head}`);
+    },
+    resolveFirstParentCommitsBetween: () => overrides.firstParentCommits || [FIRST_HEAD_GUARD_RED],
+    resolveCommitMessage: commit => overrides.commitMessagesByCommit?.[commit] || '',
+    isTrustedAncestor: (base, head) => base === head
+      || (base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD)
+      || (base === GENERIC_MERGE && head === trustedMainHead)
+      || (base === GENERIC_MERGE && head === evaluatedHead)
+  };
+}
+
+test('delegated first-head trusted-main guard declaration is strict when opted in', () => {
+  const exact = firstHeadGuardAuthorization();
+  assert.equal(
+    isValidGenericDelegatedGovernanceAuthorization(exact, FIRST_HEAD_GUARD_AUTH_PATH),
+    true
+  );
+
+  for (const [name, declaration] of [
+    ['missing required', { trustedMainMustEqualAuthorizationMerge: true }],
+    ['required false', { required: false, trustedMainMustEqualAuthorizationMerge: true }],
+    ['trusted-main equality false', { required: true, trustedMainMustEqualAuthorizationMerge: false }],
+    ['extra key', { required: true, trustedMainMustEqualAuthorizationMerge: true, mode: 'loose' }]
+  ]) {
+    const candidate = clone(exact);
+    candidate.implementation.failureFirstCommit.firstHeadTrustedMainGuard = declaration;
+    assert.equal(
+      isValidGenericDelegatedGovernanceAuthorization(candidate, FIRST_HEAD_GUARD_AUTH_PATH),
+      false,
+      name
+    );
+  }
+});
+
+test('opted-in unique first failure-first head fails closed when trusted main moved after authorization merge', () => {
+  const result = evaluateTrustedDelegatedGovernanceBranch({
+    branch: FIRST_HEAD_GUARD_IMPL_BRANCH,
+    ...firstHeadGuardOptions({
+      implementationChangedFiles: [FIRST_HEAD_GUARD_TEST_PATH],
+      parentsByCommit: { [FIRST_HEAD_GUARD_RED]: [GENERIC_MERGE] },
+      changedFilesByRange: {
+        [`${GENERIC_MERGE}:${FIRST_HEAD_GUARD_RED}`]: [FIRST_HEAD_GUARD_TEST_PATH]
+      }
+    })
+  });
+  assert.equal(result.pass, false, JSON.stringify(result));
+  assert.equal(result.reasonCode, 'WP0_DELEGATED_GOVERNANCE_FIRST_HEAD_MAIN_DRIFT');
+});
+
+test('opted-in unique first failure-first head remains valid while trusted main equals authorization merge', () => {
+  const result = evaluateTrustedDelegatedGovernanceBranch({
+    branch: FIRST_HEAD_GUARD_IMPL_BRANCH,
+    ...firstHeadGuardOptions({
+      trustedMainHead: GENERIC_MERGE,
+      implementationChangedFiles: [FIRST_HEAD_GUARD_TEST_PATH],
+      parentsByCommit: { [FIRST_HEAD_GUARD_RED]: [GENERIC_MERGE] },
+      changedFilesByRange: {
+        [`${GENERIC_MERGE}:${FIRST_HEAD_GUARD_RED}`]: [FIRST_HEAD_GUARD_TEST_PATH]
+      }
+    })
+  });
+  assert.equal(result.pass, true, JSON.stringify(result));
+});
+
+test('first-head guard is opt-in and does not change undeclared failure-first semantics', () => {
+  const document = firstHeadGuardAuthorization({ includeGuard: false });
+  assert.equal(
+    isValidGenericDelegatedGovernanceAuthorization(document, FIRST_HEAD_GUARD_AUTH_PATH),
+    true
+  );
+  const result = evaluateTrustedDelegatedGovernanceBranch({
+    branch: FIRST_HEAD_GUARD_IMPL_BRANCH,
+    ...firstHeadGuardOptions({
+      authorization: document,
+      implementationChangedFiles: [FIRST_HEAD_GUARD_TEST_PATH],
+      parentsByCommit: { [FIRST_HEAD_GUARD_RED]: [GENERIC_MERGE] },
+      changedFilesByRange: {
+        [`${GENERIC_MERGE}:${FIRST_HEAD_GUARD_RED}`]: [FIRST_HEAD_GUARD_TEST_PATH]
+      }
+    })
+  });
+  assert.equal(result.pass, true, JSON.stringify(result));
+});
+
+test('first-head guard does not block legitimate post-RED trusted-main refresh semantics', () => {
+  const greenMessage = [
+    'fix(governance): enforce first-head trusted-main guard',
+    '',
+    `Yance-Failure-First-Red-Head: ${FIRST_HEAD_GUARD_RED}`,
+    'Yance-Failure-First-Red-Run: 32470000000',
+    'Yance-Failure-First-Red-Conclusion: failure'
+  ].join('\n');
+  const result = evaluateTrustedDelegatedGovernanceBranch({
+    branch: FIRST_HEAD_GUARD_IMPL_BRANCH,
+    ...firstHeadGuardOptions({
+      evaluatedHead: FIRST_HEAD_GUARD_GREEN,
+      implementationChangedFiles: [FIRST_HEAD_GUARD_POLICY_PATH, FIRST_HEAD_GUARD_TEST_PATH],
+      firstParentCommits: [FIRST_HEAD_GUARD_RED, FIRST_HEAD_GUARD_GREEN],
+      parentsByCommit: {
+        [FIRST_HEAD_GUARD_RED]: [GENERIC_MERGE],
+        [FIRST_HEAD_GUARD_GREEN]: [FIRST_HEAD_GUARD_RED]
+      },
+      changedFilesByRange: {
+        [`${GENERIC_MERGE}:${FIRST_HEAD_GUARD_RED}`]: [FIRST_HEAD_GUARD_TEST_PATH]
+      },
+      commitMessagesByCommit: { [FIRST_HEAD_GUARD_GREEN]: greenMessage }
+    })
+  });
+  assert.equal(result.pass, true, JSON.stringify(result));
+});
