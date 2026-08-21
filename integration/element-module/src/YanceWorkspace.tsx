@@ -1,4 +1,5 @@
 import React from "react";
+import { PersonalAccessSurface } from "./product-experience/PersonalAccessSurface";
 import { ProductExperienceShell, type ProductAppearanceHost } from "./product-experience/ProductExperienceShell";
 import type { RelationshipProjection } from "./product-experience/experienceTypes";
 
@@ -24,10 +25,12 @@ export function YanceWorkspace({
   readRoomStateEvents,
 }: YanceWorkspaceProps): React.JSX.Element {
   return (
-    <ProductExperienceShell
-      appearanceHost={appearanceHost}
-      navigateSearchResult={navigateSearchResult}
-      readRoomStateEvents={readRoomStateEvents}
-    />
+    <PersonalAccessSurface>
+      <ProductExperienceShell
+        appearanceHost={appearanceHost}
+        navigateSearchResult={navigateSearchResult}
+        readRoomStateEvents={readRoomStateEvents}
+      />
+    </PersonalAccessSurface>
   );
 }

@@ -99,7 +99,7 @@ export function LearningWorkspace(): React.JSX.Element {
 
       <nav aria-label="学习控制页面">
         {SURFACES.map((item) => (
-          <button key={item.id} type="button" title={item.id} aria-pressed={surface === item.id} onClick={() => setSurface(item.id)}>{item.label}</button>
+          <button key={item.id} type="button" title={item.label} aria-pressed={surface === item.id} onClick={() => setSurface(item.id)}>{item.label}</button>
         ))}
       </nav>
 

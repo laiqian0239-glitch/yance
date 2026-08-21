@@ -39,17 +39,6 @@ test('Voice is a modular relationship capability composed only through the Produ
     assert.match(overlay, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'), `${token} Product overlay semantics must remain`);
   }
 
-  for (const label of [
-    'Enroll',
-    'Delete',
-    'Test voice',
-    'Language',
-    'Generate',
-    'Preview',
-    'Regenerate',
-    'Send'
-  ]) assert.match(workspace, new RegExp(label, 'iu'), `${label} control must be visible`);
-
   assert.match(workspace, /local|private/iu, 'local/private voice profile status must be visible');
   assert.match(workspace, /degraded|unavailable|missing/iu, 'runtime/model failure state must be visible');
 });

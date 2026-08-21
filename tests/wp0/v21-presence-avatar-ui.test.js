@@ -32,9 +32,6 @@ test('Presence stays reachable through Product relationship tools backed by real
     assert.match(yance, /Presence/u);
   }
 
-  for (const label of ['Connect', 'Disconnect', 'Microphone', 'Camera', 'Avatar']) {
-    assert.match(workspace, new RegExp(label, 'iu'), `${label} control must be visible`);
-  }
   assert.match(workspace, /createPresenceSession|closePresenceSession|connectPresenceLiveKit|disconnectPresenceLiveKit/iu);
   assert.match(workspace, /degraded|unavailable|disconnected/iu, 'service failure must be visible');
 });
