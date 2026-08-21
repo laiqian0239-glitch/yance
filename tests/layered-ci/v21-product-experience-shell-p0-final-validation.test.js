@@ -27,6 +27,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-experience-windows-uat-startup-p0'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-experience-windows-uat-startup-p0-amendment-1-v2'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-experience-windows-uat-startup-p0-amendment-2'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
     'product/v21-product-experience-bilingual-search-translation-task-ux-p0',
@@ -35,7 +36,8 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3',
     'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0',
     'fix/v21-product-experience-windows-uat-startup-p0',
-    'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2'
+    'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2',
+    'fix/v21-product-experience-windows-uat-startup-p0-amendment-2'
   ].sort());
   assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
   assert.match(source, /runs-on:\s*windows-latest/u);
