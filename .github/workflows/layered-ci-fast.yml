@@ -11,6 +11,8 @@ on:
       - 'governance/layered-ci/**'
       - 'tools/layered-ci/**'
       - 'tests/layered-ci/**'
+      - 'shared/release/**'
+      - 'tests/wp0/**'
       - '.github/actions/resolve-diff-range/**'
       - '.github/workflows/layered-ci-*.yml'
       - '.github/workflows/stage-6459-wp0-gates.yml'
