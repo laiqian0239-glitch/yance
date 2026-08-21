@@ -18,6 +18,7 @@ const LOGICAL_GROUPS = Object.freeze({
   probe: 'yance.probe'
 });
 const FORMAL_REPLY_TASKS = Object.freeze(new Set(['quick_reply', 'deep_reply', 'director']));
+const AUXILIARY_RUNTIME_PROVIDERS = Object.freeze(new Set(['ollama', 'local']));
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function list(value) { return [...new Set((Array.isArray(value) ? value : []).map(clean).filter(Boolean))]; }
@@ -36,9 +37,7 @@ function isLoopbackHost(hostname) {
   return host === 'localhost' || host === '::1' || /^127(?:\.\d{1,3}){3}$/u.test(host);
 }
 function sourceType(model = {}) {
-  const providerValue = clean(model.provider || model.kind).toLowerCase();
   const endpoint = clean(model.endpoint || model.baseUrl);
-  if (providerValue === 'ollama' || providerValue === 'local') return 'local';
   return isLoopbackHost(endpointHost(endpoint)) ? 'local' : 'cloud';
 }
 function provider(model = {}) { return clean(model.provider || model.kind || model.providerId || 'unknown').toLowerCase(); }
@@ -71,6 +70,9 @@ function commercialBenchmarkQualifiedTasks(model = {}) {
   if (clean(benchmark.authority) !== 'YanceCommercialModelBenchmark') return [];
   if (clean(benchmark.status) !== 'COMMERCIAL_MODEL_QUALIFIED') return [];
   return list(benchmark.qualifyingTasks);
+}
+function isAuxiliaryRuntimeModel(model = {}) {
+  return sourceType(model) === 'local' || AUXILIARY_RUNTIME_PROVIDERS.has(provider(model));
 }
 function deploymentTags(model = {}) {
   const tags = new Set(list(model.tags));
@@ -120,7 +122,7 @@ function projectModel(model = {}) {
     modelName: clean(model.modelName || model.model || model.name || model.id),
     enabled: enabled(model),
     qualification: qualification(model),
-    localAuxiliarySlaTasks: Object.freeze(source === 'local' ? commercialBenchmarkQualifiedTasks(model) : []),
+    localAuxiliarySlaTasks: Object.freeze(isAuxiliaryRuntimeModel(model) ? commercialBenchmarkQualifiedTasks(model) : []),
     capabilities: Object.freeze({
       privacy: privacy(model),
       modalities: Object.freeze(modalities(model)),
@@ -153,11 +155,14 @@ function project(state = {}, request = {}) {
   const all = (Array.isArray(state.models) ? state.models : []).map(projectModel);
   const constraints = hardConstraints(request.constraints || request);
   const task = clean(request.task || request.modelGroup);
-  if (FORMAL_REPLY_TASKS.has(task)) constraints.tags = [...new Set([...constraints.tags, 'source:cloud'])].sort();
+  if (FORMAL_REPLY_TASKS.has(task)) {
+    constraints.tags = [...new Set([...constraints.tags, 'source:cloud'])].sort();
+    constraints.deniedProviders = [...new Set([...constraints.deniedProviders, ...AUXILIARY_RUNTIME_PROVIDERS])].sort();
+  }
   if (task && task !== 'probe') constraints.tags = [...new Set([...constraints.tags, `task:${task}`])].sort();
   const candidates = all.filter(row => {
     if (!deploymentEligible(row, constraints)) return false;
-    if (!task || task === 'probe' || row.sourceType !== 'local') return true;
+    if (!task || task === 'probe' || (row.sourceType !== 'local' && !AUXILIARY_RUNTIME_PROVIDERS.has(row.provider))) return true;
     return row.localAuxiliarySlaTasks.includes(task);
   }).map(row => {
     const materializedTags = new Set(row.tags || []);
@@ -180,4 +185,4 @@ function project(state = {}, request = {}) {
   });
 }
 
-module.exports = { LOGICAL_GROUPS, FORMAL_REPLY_TASKS, logicalModel, hardConstraints, projectModel, project, sourceType, deploymentTags, deploymentEligible, commercialBenchmarkQualifiedTasks };
+module.exports = { LOGICAL_GROUPS, FORMAL_REPLY_TASKS, AUXILIARY_RUNTIME_PROVIDERS, logicalModel, hardConstraints, projectModel, project, sourceType, deploymentTags, deploymentEligible, commercialBenchmarkQualifiedTasks, isAuxiliaryRuntimeModel };

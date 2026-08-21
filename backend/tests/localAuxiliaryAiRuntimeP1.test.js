@@ -50,7 +50,7 @@ function runtimeSnapshot() {
   };
 }
 
-test('formal quick/deep/director projection is cloud-only even when qualified local or remote-host Ollama models have matching task tags', () => {
+test('formal quick/deep/director preserves locality truth and denies Ollama even when a remote host is classified cloud', () => {
   for (const task of FORMAL_REPLY_TASKS) {
     const state = {
       models: [
@@ -63,7 +63,7 @@ test('formal quick/deep/director projection is cloud-only even when qualified lo
         qualifiedModel({
           id: `remote-ollama-${task}`,
           provider: 'ollama',
-          endpoint: 'http://ollama.internal:11434',
+          endpoint: 'https://remote-ollama.example',
           tasks: [task]
         }),
         qualifiedModel({
@@ -76,12 +76,11 @@ test('formal quick/deep/director projection is cloud-only even when qualified lo
     };
 
     const projection = modelBrainProjection.project(state, { task });
+    const catalog = new Map(projection.catalog.map(row => [row.id, row]));
+    assert.equal(catalog.get(`local-${task}`).sourceType, 'local');
+    assert.equal(catalog.get(`remote-ollama-${task}`).sourceType, 'cloud', 'local/cloud truth is endpoint locality, not provider identity');
     assert.ok(projection.tags.includes('source:cloud'), `${task} must materialize source:cloud as a hard constraint`);
-    assert.deepEqual(
-      projection.candidates.map(row => row.sourceType),
-      ['cloud'],
-      `${task} must never admit an Ollama deployment into formal reply authority`
-    );
+    assert.ok(projection.deniedProviders.includes('ollama'), `${task} must explicitly deny the auxiliary Ollama provider`);
     assert.deepEqual(projection.candidates.map(row => row.provider), ['openrouter']);
   }
 });
@@ -106,6 +105,16 @@ test('local auxiliary candidates require commercial benchmark/SLA evidence for t
   const admitted = modelBrainProjection.project({ models: [withBenchmark] }, { task: 'understanding' });
   assert.deepEqual(admitted.candidates.map(row => row.id), ['local-understanding']);
   assert.deepEqual(admitted.candidates[0].localAuxiliarySlaTasks, ['understanding']);
+
+  const remoteWithoutBenchmark = qualifiedModel({
+    id: 'remote-ollama-understanding',
+    provider: 'ollama',
+    endpoint: 'https://remote-ollama.example',
+    tasks: ['understanding']
+  });
+  const remoteNoEvidence = modelBrainProjection.project({ models: [remoteWithoutBenchmark] }, { task: 'understanding' });
+  assert.equal(remoteNoEvidence.catalog[0].sourceType, 'cloud');
+  assert.equal(remoteNoEvidence.candidates.length, 0, 'remote-host Ollama stays cloud for locality but remains an auxiliary runtime requiring benchmark evidence');
 });
 
 test('local auxiliary work owns a scheduler that is distinct from the interactive Model Brain queue', () => {

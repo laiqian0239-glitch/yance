@@ -42,7 +42,9 @@ test('formal reply remains LiteLLM cloud authority and local auxiliary schedulin
   assert.match(projection, /deep_reply/u);
   assert.match(projection, /director/u);
   assert.match(projection, /source:cloud/u, 'formal reply projection must materialize a cloud-only hard constraint');
-  assert.match(projection, /providerValue === 'ollama'/u, 'Ollama must remain local even when its configured host is non-loopback');
+  assert.match(projection, /AUXILIARY_RUNTIME_PROVIDERS/u, 'formal reply must explicitly deny auxiliary runtime providers rather than falsifying locality');
+  assert.match(projection, /deniedProviders/u);
+  assert.match(projection, /isLoopbackHost\(endpointHost\(endpoint\)\)/u, 'local/cloud truth must continue to use real endpoint locality');
   assert.match(projection, /localAuxiliarySlaTasks/u, 'local background admission must bind benchmark/SLA-qualified tasks');
   assert.match(projection, /YanceCommercialModelBenchmark/u);
   assert.match(gateway, /localAuxiliaryQueue/u, 'AiGateway must own a scheduler separate from the interactive Model Brain queue');
