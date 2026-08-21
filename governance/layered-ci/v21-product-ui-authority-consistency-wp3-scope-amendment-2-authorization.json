@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T06:03:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-UI-AUTHORITY-CONSISTENCY-WP3",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Same-work-package Fast Landing scope amendment after fresh exact-head final validation of the Amendment-1 candidate at b168e26f77f7674d73116064bf6a8923e2a1c54b. Stage run 32536014736 completed with 546 tests / 542 PASS / 4 FAIL after the routing prerequisite had landed and route/sealed-export execution reached the intended WP0 tests. Three failures are stale PRESERVE tests that simultaneously enforce Chinese-first UI while still requiring obsolete English source tokens in MediaWorkspace, PresenceWorkspace, and VoiceWorkspace; restoring those English native titles would directly violate the authorized WP3-B Product contract. The fourth failure is an over-broad regex inside the already-authorized WP3 test that scans from a relationship selector into a later accessibility-only visually-hidden rule and falsely treats its legitimate white-space: nowrap as user-visible clipping. Runtime/architecture evidence remains otherwise GREEN on Layered, ACV2/WP-A, WP-A post-merge, and Parlant; Product Final is correctly SKIPPED. Closure Matrix unknownBlockers=0 for the currently observable same-root graph. This amendment expands cumulative scope by exactly three test files, leaves the ten production-code paths unchanged, forbids restoring English-only native title leakage, and uses the repository canonical forwardContinuation protocol to preserve the frozen Amendment-1 candidate without rebase, squash, force-push, or history rewrite.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-ui-authority-consistency-wp3-scope-amendment-1-authorization.json",
+    "implementationBranch": "product/v21-product-ui-authority-consistency-wp3-amendment-1",
+    "reason": "Freeze Amendment-1 implementation head b168e26f77f7674d73116064bf6a8923e2a1c54b as exact-head causal evidence. Continue only on a fresh successor branch through the repository canonical forwardContinuation protocol after this authorization is ordinarily merged to trusted main."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "921dff1b4b085f1c3a3e0a5e52b1d9439ac7bfe5",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "921dff1b4b085f1c3a3e0a5e52b1d9439ac7bfe5",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ui-authority-consistency-wp3-scope-amendment-2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ui-authority-consistency-wp3-scope-amendment-2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "89c477089fe3569fe7bd692254e0f04b3eb719828d57b337b073a2a6f468b7c6",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-ui-authority-consistency-wp3-amendment-2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "b168e26f77f7674d73116064bf6a8923e2a1c54b"
+    },
+    "allowedChangedPaths": [
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-personal-access-control-p0.test.js",
+      "tests/wp0/v21-presence-avatar-ui.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tests/wp0/v21-voice-brain-ui.test.js"
+    ],
+    "approvedChangedFileCount": 15,
+    "approvedChangedFileSetSha256": "38a24b30b464fa4112d125228edb0dad4b33ae90a81756459b299ee9340f1ed4",
+    "newlyAuthorizedPaths": [
+      "tests/wp0/v21-media-brain-ui.test.js",
+      "tests/wp0/v21-presence-avatar-ui.test.js",
+      "tests/wp0/v21-voice-brain-ui.test.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 3,
+    "newlyAuthorizedChangedFileSetSha256": "c4cfed1ce0d8d311285f9f980f9e70ce0029c0166f67d4935781129cc868f389",
+    "productionAllowedChangedPaths": [
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css"
+    ],
+    "productionChangedFileCount": 10,
+    "productionChangedFileSetSha256": "e560bcd223670402427755e08d5a9dc9acc84a445ce49fca3bf4481490a3fd97",
+    "productionScopeAuthorized": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "backendEntitlementAuthorityModificationAllowed": false,
+    "workerOrD1ModificationAllowed": false,
+    "legacyFrontendReactivationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "b168e26f77f7674d73116064bf6a8923e2a1c54b",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "productionScopeExpansionForbidden": true,
+    "failureEvidenceMustBeInheritedNotRecreated": true
+  },
+  "redEvidence": {
+    "pullRequest": 604,
+    "exactHead": "b168e26f77f7674d73116064bf6a8923e2a1c54b",
+    "stageRun": 32536014736,
+    "stageJob": 96937014433,
+    "stageConclusion": "failure",
+    "stagePassCount": 542,
+    "stageFailCount": 4,
+    "presenceRun": 32536014547,
+    "presenceJob": 96936974985,
+    "presenceConclusion": "failure",
+    "unknownBlockers": 0,
+    "causalFailures": [
+      "tests/wp0/v21-media-brain-ui.test.js requires obsolete English action source tokens even though the same suite also requires Chinese-first controls.",
+      "tests/wp0/v21-presence-avatar-ui.test.js requires obsolete English action source tokens even though the same suite also requires Chinese-first controls.",
+      "tests/wp0/v21-voice-brain-ui.test.js requires obsolete English action source tokens even though the same suite also requires Chinese-first controls.",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js uses an over-broad selector-to-nowrap regex that crosses CSS rule boundaries and catches the legitimate accessibility-only visually-hidden nowrap rule."
+    ]
+  },
+  "causalRedClassification": {
+    "greenPreserveContracts": [
+      "WP3 production candidate remains exactly on the authorized ten production-code paths; no production scope expansion is required.",
+      "Layered exact-head validation is GREEN.",
+      "ACV2/WP-A exact-head validation is GREEN.",
+      "WP-A Main Post-Merge Validation is GREEN.",
+      "Parlant Windows Runtime exact-head validation is GREEN.",
+      "Product Final is correctly SKIPPED and is not counted as GREEN."
+    ],
+    "stalePreserveTestRoot": [
+      "Media PRESERVE test still requires Import/Search/People/Albums/Generate/Edit/Preview/Save back/Send English source tokens.",
+      "Presence PRESERVE test still requires Connect/Disconnect/Microphone/Camera/Avatar English source tokens.",
+      "Voice PRESERVE test still requires Enroll/Delete/Test voice/Language/Generate/Preview/Regenerate/Send English source tokens.",
+      "These token requirements conflict with the same suites' Chinese-first requirements and with WP3-B's prohibition on English-only native title leakage."
+    ],
+    "wp3TestRoot": [
+      "WP3-C already proves text-overflow: ellipsis is absent from the candidate CSS.",
+      "The remaining false positive is caused by a cross-rule [\\s\\S]*? regex that reaches the accessibility-only visually-hidden white-space: nowrap rule."
+    ],
+    "outOfRootCause": [
+      "Any restoration of English-only native title tooltips in production.",
+      "Any production path outside the existing ten production-code paths.",
+      "Learning durable approval/privacy/consent authority expansion.",
+      "Cloud backup/restore.",
+      "System-DPI automatic font mode.",
+      "Dependency/workflow/routing/database migration changes.",
+      "Release/publish and Desktop/Windows UAT candidate PR #538."
+    ],
+    "unknownBlockers": 0
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "Current Chinese Product controls remain Chinese-first and do not regain redundant English-only native title tooltips.",
+      "Media/Presence/Voice PRESERVE tests assert current user-visible Chinese controls plus their runtime/action authority rather than obsolete English title implementation details.",
+      "WP3-C clipping test scopes nowrap checks to the intended user-visible selector rule blocks and does not treat accessibility-only visually-hidden nowrap as clipping.",
+      "The existing WP3 production candidate bytes remain unchanged unless a new authorized causal production defect is independently observed."
+    ],
+    "forbiddenBehavior": [
+      "Do not restore English labels or title attributes solely to satisfy stale tests.",
+      "Do not weaken Chinese-first, Product authority, runtime authority, send authority, Personal Access, or accessibility contracts.",
+      "Do not modify workflows, routing policies, dependencies, backend entitlement/Worker/D1, retired frontend, release/publish, or PR #538."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TEST_AND_FORWARD_CONTINUATION_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing delegated forwardContinuation policy",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already enforces the exact two-parent successor topology needed to preserve a frozen predecessor without rewriting history."
+      },
+      {
+        "name": "Existing WP0 Product tests",
+        "source": "tests/wp0 plus current Element workspaces",
+        "license": "repository-existing",
+        "adoptionMode": "contract-reconciliation",
+        "fit": "FIT",
+        "reason": "The causal defect is stale/over-broad test contract encoding; no new framework, library, or production authority is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not mutate or force-update the frozen Amendment-1 branch.",
+      "Do not relax Stage or Presence gates.",
+      "Do not reintroduce obsolete English-only native title strings into production.",
+      "Do not add a new test framework or general-purpose infrastructure."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-media-brain-ui.test.js tests/wp0/v21-presence-avatar-ui.test.js tests/wp0/v21-voice-brain-ui.test.js tests/wp0/v21-product-ui-authority-consistency-wp3.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered",
+      "ACV2/WP-A when routed",
+      "WP-A Main Post-Merge Validation when routed",
+      "Model Brain Windows when routed",
+      "Presence/Media/Voice Windows runtime when routed",
+      "Product Final when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
