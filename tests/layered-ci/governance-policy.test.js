@@ -198,3 +198,66 @@ test('Product final Element dependency patch is classified at exact L2 risk', ()
   assert.equal(result.requiredLevel, 'L2', file);
   assert.equal(result.reasons[0].type, 'EXACT', file);
 });
+
+test('adaptive local LLM risk identities use exact L2 without broad-prefix expansion', () => {
+  const targetPaths = [
+    'config/local-ai/adaptive-local-model-catalog-v1.json',
+    'config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json',
+    'runtime/local-ai/airllm/yance_airllm_worker.py'
+  ];
+  for (const file of targetPaths) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, file);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'EXACT', file);
+  }
+
+  assert.deepEqual(risk.l2ExactPaths, [
+    '.gitattributes',
+    '.gitignore',
+    'THIRD_PARTY_NOTICES.md',
+    'config/local-ai/adaptive-local-model-catalog-v1.json',
+    'config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json',
+    'integration/element-module/src/YanceWorkspace.tsx',
+    'integration/element-module/src/index.tsx',
+    'integration/element-module/src/product-experience/BilingualSearchPanel.tsx',
+    'integration/element-module/src/product-experience/ProductExperienceShell.css',
+    'integration/element-module/src/product-experience/ProductExperienceShell.tsx',
+    'integration/element-module/src/product-experience/experienceProjection.ts',
+    'integration/element-module/src/product-experience/experienceTypes.ts',
+    'package-lock.json',
+    'package.json',
+    'release/electron-distribution-trust.json',
+    'runtime/local-ai/airllm/yance_airllm_worker.py',
+    'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch',
+    'vendor/electron/electron-v39.8.5-win32-x64.zip'
+  ]);
+  assert.deepEqual(risk.l2Prefixes, [
+    '.github/',
+    'backend/lib/sqlite',
+    'backend/runtime/',
+    'backend/migrations/',
+    'backend/services/authority',
+    'backend/services/backup',
+    'backend/services/recovery',
+    'electron/',
+    'governance/',
+    'shared/release/',
+    'third_party/',
+    'tools/layered-ci/',
+    'tools/wp0/'
+  ]);
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
+
+  for (const file of [
+    'config/local-ai/unregistered-adaptive-local.json',
+    'config/upstreams/unregistered-adaptive-local.json',
+    'runtime/local-ai/unregistered_worker.py'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, false, file);
+    assert.equal(result.reasonCode, 'CI_UNKNOWN_PATH', file);
+    assert.deepEqual(result.unknownPaths, [file], file);
+  }
+});
