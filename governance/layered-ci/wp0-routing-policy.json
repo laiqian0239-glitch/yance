@@ -20,6 +20,7 @@
     "governance/open-source-acceleration/open-source-work-package-registry.json",
     "governance/open-source-acceleration/oss-a-supply-chain-authorization.json",
     "shared/release/implementationBranchPolicy.js",
+    "shared/release/implementationBranchPolicyLegacy.js",
     "shared/release/openSourceWorkPackagePolicy.js",
     "tests/wp0/acv2-work-package-scope-wiring.test.js",
     "tests/wp0/base-owned-evaluated-repository-root.test.js",
