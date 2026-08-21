@@ -42,6 +42,13 @@ test('wp7-runtime-dependency-closure.test', async t => {
       specifier: '../shared/windows/pe-resource-identity',
       targetPath: 'shared/windows/pe-resource-identity.js'
     });
+    const themeCatalogDependency = result.records.find(row => row.sourcePath === 'backend/store/themeAppearancePolicy.js' && row.targetPath === 'frontend/theme-catalog.json');
+    assert.deepEqual(themeCatalogDependency, {
+      sourcePath: 'backend/store/themeAppearancePolicy.js',
+      kind: 'require',
+      specifier: '../../frontend/theme-catalog.json',
+      targetPath: 'frontend/theme-catalog.json'
+    });
 
     const expectedSillyTavernDependencies = [
       {
@@ -64,6 +71,13 @@ test('wp7-runtime-dependency-closure.test', async t => {
     for (const expected of expectedSillyTavernDependencies) {
       assert.ok(result.records.some(row => row.sourcePath === expected.sourcePath && row.targetPath === expected.targetPath), `${expected.sourcePath} -> ${expected.targetPath}`);
     }
+  });
+
+  await t.test('theme appearance policy uses a static payload-backed theme catalog dependency', () => {
+    const source = fs.readFileSync(path.join(REPO_ROOT, 'backend', 'store', 'themeAppearancePolicy.js'), 'utf8');
+    assert.match(source, /require\('\.\.\/\.\.\/frontend\/theme-catalog\.json'\)/);
+    assert.doesNotMatch(source, /require\s*\(\s*path\.join/);
+    assert.ok(RUNTIME_FILES.includes('frontend/theme-catalog.json'));
   });
 
   await t.test('production runtime no longer imports build tooling', () => {
@@ -113,6 +127,8 @@ test('wp7-runtime-dependency-closure.test', async t => {
     assert.deepEqual(policy.productionRuntimeRoots, [...RUNTIME_ROOTS, ...RUNTIME_FILES]);
     assert.deepEqual(policy.forbiddenRuntimeDependencyRoots, [...FORBIDDEN_TOP_LEVEL_ROOTS]);
     assert.equal(policy.originalFailure.source, 'electron/updateManager.js');
+    assert.equal(policy.packagedThemeCatalogFailure.source, 'backend/store/themeAppearancePolicy.js');
+    assert.equal(policy.packagedThemeCatalogFailure.payloadPath, 'resources/app/frontend/theme-catalog.json');
     assert.equal(policy.releasePolicy.formalInstallerAuthorizedBeforeUat, false);
     assert.equal(policy.releasePolicy.releaseApprovedBeforeUat, false);
   });
