@@ -25,13 +25,17 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-prelaunch-dating-ai-experience-amendment-wp1'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-experience-windows-uat-startup-p0'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-experience-windows-uat-startup-p0-amendment-1-v2'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
     'product/v21-product-experience-bilingual-search-translation-task-ux-p0',
     'product/v21-product-experience-shell-p0',
     'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1',
     'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3',
-    'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0'
+    'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0',
+    'fix/v21-product-experience-windows-uat-startup-p0',
+    'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2'
   ].sort());
   assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
   assert.match(source, /runs-on:\s*windows-latest/u);
@@ -65,11 +69,16 @@ test('Task 9 still runs two clean pinned Element materializations with pnpm 11.5
   assert.doesNotMatch(source, /pnpm\s+install[^\n]*--lockfile-only/u);
 });
 
-test('Task 9 pnpm shim invocations launch from neutral RUNNER_TEMP while --dir still targets Element', () => {
+test('Task 9 and packaged Element pnpm shims launch from exactly three neutral RUNNER_TEMP phases while --dir stays pinned', () => {
   const source = readWorkflow();
   assert.match(source, /Push-Location \$env:RUNNER_TEMP[\s\S]*?\$actualPnpm = \(pnpm --version\)\.Trim\(\)[\s\S]*?Pop-Location/u);
   assert.match(source, /Push-Location \$env:RUNNER_TEMP[\s\S]*?pnpm --dir \$element install --frozen-lockfile[\s\S]*?pnpm --dir \$element exec nx build yance-element-module[\s\S]*?pnpm --dir \$element exec nx run yance-element-module:lint:types[\s\S]*?Pop-Location/u);
-  assert.equal((source.match(/Push-Location \$env:RUNNER_TEMP/gu) || []).length, 2);
+  const packagedStepStart = source.indexOf('- name: Launch exact packaged Yance against exact Element ModuleLoader path and require fresh PASS receipt');
+  const packagedStepEnd = source.indexOf('\n      - name:', packagedStepStart + 1);
+  assert.ok(packagedStepStart >= 0 && packagedStepEnd > packagedStepStart, 'packaged Yance/Element validation step must exist');
+  const packagedStep = source.slice(packagedStepStart, packagedStepEnd);
+  assert.match(packagedStep, /Push-Location \$env:RUNNER_TEMP[\s\S]*?\$pnpmVersionLines = @\(pnpm --version\)[\s\S]*?IsNullOrWhiteSpace\(\$actualPnpm\)[\s\S]*?pnpm --dir \$element install --frozen-lockfile --store-dir \$pnpmStore[\s\S]*?pnpm --dir \$element exec nx build yance-element-module[\s\S]*?pnpm --dir \(Join-Path \$element 'apps\/web'\) build[\s\S]*?Pop-Location/u);
+  assert.equal((source.match(/Push-Location \$env:RUNNER_TEMP/gu) || []).length, 3);
   assert.match(source, /PNPM_VERSION:\s*11\.5\.2/u);
   assert.doesNotMatch(source, /packageManager[^\n]*pnpm/u);
   assert.doesNotMatch(source, /--no-frozen-lockfile|--lockfile-only/u);
