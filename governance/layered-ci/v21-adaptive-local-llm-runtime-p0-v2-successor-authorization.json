@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T04:29:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ADAPTIVE-LOCAL-LLM-RUNTIME-P0-V2-SUCCESSOR",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #596 produced a valid immutable failure-first RED at b133bf06a5c90a8b3061197fac9ab5a85b55283a and a cohesive first Product implementation at 4732ebae6d57ff724261df063156dc53e1d78076. Two independent base-owned prerequisites were subsequently required and have now landed by ordinary merges: exact WP0 route registration through PR #600 and exact Layered CI L2 risk registration through PR #602. The attempted ordinary fresh-main reconcile head a4154ee1ba48ad8a2a93d820c94f15d634df9f6f correctly preserved Product bytes but cannot remain valid under the original Fast Closure V2 authority because that authority requires each post-RED first-parent commit to have exactly one parent. The repository already provides the canonical supersedes plus implementation.forwardContinuation protocol for this exact immutable-history case. This V2 successor therefore supersedes only the original #596 authorization, freezes 4732ebae6d57ff724261df063156dc53e1d78076 as the last valid predecessor Product head, inherits rather than recreates its failure-first evidence, carries forward exactly the predecessor's actual 23-path Product diff, and permits root-fixing the remaining known AI Workbench adaptive-local planner consumption defect inside the already-in-scope frontend/js/r32-ai-workbench-runtime.js. No history rewrite, scope expansion, new dependency, workflow change, new inference authority, release/publish authority, or PR #538 mutation is authorized.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-adaptive-local-llm-runtime-p0-v1-authorization.json",
+    "implementationBranch": "product/v21-adaptive-local-llm-runtime-p0-v1",
+    "reason": "Replace the original V1 implementation authority through the repository's canonical forwardContinuation protocol after base-owned route and Layered-risk prerequisites landed. Preserve the original immutable RED and valid 4732ebae Product head; do not continue from the structurally invalid a4154ee1 reconcile head and do not rewrite predecessor history."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "49bd7927b18434ad1c2cd5369567491c64a4babc",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "49bd7927b18434ad1c2cd5369567491c64a4babc",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-adaptive-local-llm-runtime-p0-v2-successor-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-adaptive-local-llm-runtime-p0-v2-successor-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8196445b942a3951dff478c095e5c6ff4ae3121ed604097b71edece1ea966b70",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-adaptive-local-llm-runtime-p0-v2-successor",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "4732ebae6d57ff724261df063156dc53e1d78076"
+    },
+    "allowedChangedPaths": [
+      "THIRD_PARTY_NOTICES.md",
+      "backend/routes/models.js",
+      "backend/services/adaptiveLocalRuntimePlanner.js",
+      "backend/services/airllmRuntimeAdapter.js",
+      "backend/services/isolatedModelExecutor.js",
+      "backend/services/llamaCppRuntimeAdapter.js",
+      "backend/services/localAiHardwareProfile.js",
+      "backend/services/localAiModelCatalog.js",
+      "backend/services/localAiRuntimeAssetService.js",
+      "backend/services/modelExecutionSpecResolver.js",
+      "backend/services/modelRuntimeAuthority.js",
+      "backend/services/ollamaClient.js",
+      "backend/tests/adaptiveLocalLlmRuntimeP0.test.js",
+      "config/local-ai/adaptive-local-model-catalog-v1.json",
+      "config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json",
+      "frontend/js/r32-ai-workbench-runtime.js",
+      "frontend/r32-system-center.css",
+      "runtime/local-ai/airllm/yance_airllm_worker.py",
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "third_party/licenses/airllm-Apache-2.0.txt",
+      "third_party/licenses/ktransformers-Apache-2.0.txt",
+      "third_party/licenses/llama.cpp-MIT.txt",
+      "tools/local-ai/materialize-adaptive-runtimes.js"
+    ],
+    "approvedChangedFileCount": 23,
+    "approvedChangedFileSetSha256": "d8883df84bd82ae08ca2c2bbe46c1fdd0fe6395500eccd7ae5680402f281ec1e",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "layeredRiskPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "productionReleaseAuthorized": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "4732ebae6d57ff724261df063156dc53e1d78076",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true,
+    "invalidReconcileHeadMustNotBeUsedAsContinuationParent": "a4154ee1ba48ad8a2a93d820c94f15d634df9f6f"
+  },
+  "predecessorEvidence": {
+    "pullRequest": 596,
+    "originalAuthorizationPath": "governance/layered-ci/v21-adaptive-local-llm-runtime-p0-v1-authorization.json",
+    "originalAuthorizationMerge": "7ad15ec69b9d1fcba1eb1d2d590f48ddaad4bd44",
+    "immutableFailureFirstHead": "b133bf06a5c90a8b3061197fac9ab5a85b55283a",
+    "failureFirstStageRun": 32506698592,
+    "failureFirstConclusion": "failure",
+    "firstProductionHead": "4732ebae6d57ff724261df063156dc53e1d78076",
+    "firstProductionParent": "b133bf06a5c90a8b3061197fac9ab5a85b55283a",
+    "firstProductionChangedFileCount": 23,
+    "firstProductionChangedFileSetSha256": "d8883df84bd82ae08ca2c2bbe46c1fdd0fe6395500eccd7ae5680402f281ec1e",
+    "originalAuthorizedChangedFileCount": 32,
+    "originalAuthorizedChangedFileSetSha256": "14f928527e2371f353606c81ddac9e3c3bfcfe84569fd99d5c443a82c6be18dc",
+    "originalFailureFirstPathSetSha256": "238abb20b0b7447a621ddf044bee7a685f6cc7d5fe61e7575f48c21f92c94f8d",
+    "firstProductionTrailers": {
+      "redHead": "b133bf06a5c90a8b3061197fac9ab5a85b55283a",
+      "redRun": 32506698592,
+      "redConclusion": "failure",
+      "unknownBlockers": 0
+    },
+    "invalidForwardReconcileHead": "a4154ee1ba48ad8a2a93d820c94f15d634df9f6f",
+    "invalidForwardReconcileReason": "The original Fast Closure V2 evaluator requires every post-RED first-parent commit to be single-parent; a4154ee1 is an ordinary two-parent fresh-main reconcile and therefore must remain immutable evidence rather than be rewritten or continued under the V1 authority."
+  },
+  "landedPrerequisites": {
+    "wp0RouteBootstrap": {
+      "authorizationMerge": "23ff4e3f58e42698b1497f70feb24490a894c2be",
+      "implementationMerge": "7bf3541b84cd2d1373272f674a5e32293020a930",
+      "status": "LANDED"
+    },
+    "layeredRiskExactL2Repair": {
+      "authorizationMerge": "35ff994ddf7661d82e6b77539814b6656546fabf",
+      "implementationMerge": "49bd7927b18434ad1c2cd5369567491c64a4babc",
+      "status": "LANDED"
+    }
+  },
+  "remainingCausalWork": {
+    "unknownBlockers": 0,
+    "knownRootImplementation": [
+      {
+        "path": "frontend/js/r32-ai-workbench-runtime.js",
+        "contract": "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+        "observedFailure": "AI Workbench does not currently consume POST /adaptive-local/plan even though the backend planner endpoint is implemented.",
+        "requiredRootFix": "Integrate the existing adaptive-local planner into the Workbench model/runtime flow so catalog/hardware candidate evidence is submitted to POST /adaptive-local/plan and the returned results/best planning evidence is consumed by the user-visible model/runtime state. Do not add a second planner or inference authority."
+      }
+    ],
+    "preserve": [
+      "Formal quick_reply, deep_reply and director reply authority remains LiteLLM Model Brain with no silent local fallback.",
+      "llama.cpp, KTransformers and AirLLM remain upstream execution authorities; Yance remains a thin lifecycle/planning adapter.",
+      "Large runtimes/models remain outside Git and connector download flows.",
+      "PR #538 remains untouched."
+    ]
+  },
+  "productContract": {
+    "inheritsOriginalV1Contract": true,
+    "lowResourceDoesNotMeanSmallModelOnly": true,
+    "formalRealtimeReplyAuthority": "LiteLLM Model Brain",
+    "silentLocalFallbackForbidden": true,
+    "directUserWorkbenchLocalExecutionAllowed": true,
+    "plannerAuthority": "Yance thin policy adapter over measured evidence",
+    "plannerMayImplementInferenceKernel": false,
+    "plannerMayImplementQuantizer": false,
+    "plannerMayImplementTensorOrExpertScheduler": false,
+    "assetMaterializationRequiresExplicitUserConsent": true,
+    "largeArtifactsRemainOutsideGit": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_FORWARD_CONTINUATION_AND_ADAPTIVE_LOCAL_PLANNER_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "thinYanceAdapterOnly": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing delegated forwardContinuation policy",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already validates canonical supersession and the strict two-parent continuation topology needed to carry frozen predecessor Product bytes forward without rewriting history."
+      },
+      {
+        "name": "Existing adaptiveLocalRuntimePlanner and /adaptive-local/plan route",
+        "source": "backend/services/adaptiveLocalRuntimePlanner.js + backend/routes/models.js",
+        "license": "repository-existing thin adapter over pinned OSS runtimes",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The backend planner already exists and returns hardware/results/best evidence. The remaining defect is a missing Workbench consumer, so a second planner, scheduler, model router or inference engine would be incorrect."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not mutate or rewrite PR #596, b133bf06, 4732ebae or a4154ee1 history.",
+      "Do not continue from a4154ee1 under the superseded V1 authority.",
+      "Do not widen the actual inherited 23-path Product scope.",
+      "Do not modify WP0 routing policy, Layered CI risk policy, workflows, root package manifests or lockfile.",
+      "Do not introduce a second adaptive-local planner, provider router, inference engine, quantizer, tensor scheduler or expert scheduler.",
+      "Do not touch PR #538."
+    ]
+  },
+  "requiredSequence": [
+    "This successor authorization remains exactly one file on unchanged fresh trusted main and passes all applicable governance gates and review requirements.",
+    "Merge this authorization to main by ordinary two-parent merge only.",
+    "Create product/v21-adaptive-local-llm-runtime-p0-v2-successor from the exact successor authorization merge commit.",
+    "Create the first successor implementation commit with exactly two parents: first parent the successor authorization merge and second parent frozen predecessor 4732ebae6d57ff724261df063156dc53e1d78076. Failure-first evidence is inherited, not recreated.",
+    "Verify the continuation tree carries exactly the inherited 23 Product paths and fresh-main governance state with no stale-blob overwrite or unauthorized path.",
+    "Run all applicable exact-head routed gates. The known /adaptive-local/plan Workbench failure must be root-fixed inside frontend/js/r32-ai-workbench-runtime.js; any additional real red is classified and permanently fixed in its owning layer.",
+    "Reach exact-head GREEN, zero blocking review findings and zero unresolved threads.",
+    "Stop at the explicit OWNER merge boundary. Do not merge the successor Product PR without a fresh explicit owner authorization."
+  ],
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "EXPLICIT_OWNER_AUTHORIZATION_REQUIRED",
+    "explicitOwnerAuthorizationRequiredForImplementationMerge": true,
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
