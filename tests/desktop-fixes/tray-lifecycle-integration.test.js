@@ -38,6 +38,19 @@ test('every main-window activation shows a renderer-ready window immediately, th
   assert.match(renderer, /workspaceReady:true/);
 });
 
+test('production runtime probe is a fail-closed packaged startup requirement when enabled', () => {
+  const main = read('electron/main.js');
+  const start = main.indexOf('async function validateMainWindowRuntimeReady');
+  assert.notEqual(start, -1, 'main runtime validation function must exist');
+  const end = main.indexOf('\nfunction ', start + 1);
+  const block = main.slice(start, end === -1 ? undefined : end);
+
+  assert.match(block, /YANCE_WP2_PRODUCTION_RUNTIME_PROBE/u, 'packaged startup validation must inspect the production probe enable flag');
+  assert.match(block, /productionRuntimeProbe/u, 'packaged startup validation must consume /api/ready productionRuntimeProbe evidence');
+  assert.match(block, /enabled\s*===\s*true/u, 'production probe must report enabled=true');
+  assert.match(block, /executed\s*===\s*true/u, 'production probe must report executed=true');
+});
+
 test('legacy minimize-to-tray setting is migrated off and removed from visible settings UI', () => {
   const schema = require('../../electron/desktopSettingsSchema');
   assert.equal(schema.DEFAULTS.minimizeToTray, false);
