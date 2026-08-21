@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T17:22:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-FIRST-HEAD-FRESH-MAIN-GUARD-EVALUATOR-REPAIR-P0-V3",
+  "proposalRevision": 3,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main V3 successor for the delegated first-head evaluator repair. V2 authorization PR #579 merged validly at 56d2139e5d895b8175e8cce4f4ae37984f4ed870, but before any V2 implementation commit was created trusted main advanced to b04c3c96d68ad10aade80c89163fd0a10894dad0 through unrelated governed Windows UAT closure. V2 itself requires trusted main to still equal its authorization merge immediately before the immutable first tests-only head; that condition is now false, so V2 implementation must remain unstarted. The evaluator and paired policy-test blobs are unchanged across that main advance. This V3 therefore supersedes the unstarted V2 implementation authority without rebasing, refreshing or rewriting it, and preserves the exact same two-path causal repair scope.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-delegated-first-head-fresh-main-guard-evaluator-repair-p0-v2-authorization.json",
+    "implementationBranch": "governance/v21-delegated-first-head-fresh-main-guard-evaluator-repair-p0-v2",
+    "reason": "V2 merged validly but its implementation never started: fresh trusted main moved after the authorization merge and before the immutable first failure-first head, so its own firstHeadTrustedMainGuard requires a fresh successor authorization rather than a main refresh or history rewrite."
+  },
+  "preStartDriftedPredecessor": {
+    "authorizationPullRequest": 579,
+    "authorizationMerge": "56d2139e5d895b8175e8cce4f4ae37984f4ed870",
+    "implementationBranch": "governance/v21-delegated-first-head-fresh-main-guard-evaluator-repair-p0-v2",
+    "implementationBranchHead": "56d2139e5d895b8175e8cce4f4ae37984f4ed870",
+    "implementationCommitCount": 0,
+    "trustedMainAfterDrift": "b04c3c96d68ad10aade80c89163fd0a10894dad0",
+    "effectiveAuthorizationRemainsHistorical": true,
+    "implementationMayNotStart": true,
+    "mustNotRebaseMergeMainAmendOrForcePush": true
+  },
+  "prerequisiteClosure": {
+    "routeAuthorizationPullRequest": 575,
+    "routeAuthorizationMerge": "dc2c5e085f8f1c4d0609f820b1097b5882cc64a2",
+    "routeImplementationPullRequest": 576,
+    "routeImplementationMerge": "3074a5c1ed2d9c984aeed72aa7562bfcb3dde445",
+    "previousEvaluatorAuthorizationPullRequest": 579,
+    "previousEvaluatorAuthorizationMerge": "56d2139e5d895b8175e8cce4f4ae37984f4ed870",
+    "currentTrustedMain": "b04c3c96d68ad10aade80c89163fd0a10894dad0",
+    "routePolicyPath": "governance/layered-ci/wp0-routing-policy.json",
+    "routePolicyBlob": "77fc03ff74b859280b53980268fb32d7f5355af8",
+    "evaluatorPath": "shared/release/implementationBranchPolicyLegacy.js",
+    "evaluatorBlobUnchangedSinceV2AuthorizationMerge": "53b48f5a1b502318bd4f4a623d4ce43c94245065",
+    "pairedPolicyTestPath": "tests/wp0/implementation-branch-policy.test.js",
+    "pairedPolicyTestBlobUnchangedSinceV2AuthorizationMerge": "30014fd4953f22b1b9ad1abff638953d9fbbd249",
+    "evaluatorNowRoutes": "GOVERNANCE_WP0"
+  },
+  "base": {
+    "branch": "main",
+    "commit": "b04c3c96d68ad10aade80c89163fd0a10894dad0",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b04c3c96d68ad10aade80c89163fd0a10894dad0",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-first-head-fresh-main-guard-evaluator-repair-p0-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-first-head-fresh-main-guard-evaluator-repair-p0-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c528a5a28309812f3b033da3a71bea97c00d1fff5ae336237bfafc7818a16d85",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "governance/v21-delegated-first-head-fresh-main-guard-evaluator-repair-p0-v3",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicyLegacy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0457f5a3938ad78b638b12a7072a70d94e4ee5111c2fa2d6566f9a46ea2fc6b8",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/implementation-branch-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "7913275d3348e4c902aab19807e71fe0a02943be068cba5ef7f948eb9be7a7de",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      }
+    }
+  },
+  "evaluatorRepairContract": {
+    "owningEvaluator": "shared/release/implementationBranchPolicyLegacy.js::evaluateTrustedDelegatedGovernanceBranch",
+    "wrapperReExport": "shared/release/implementationBranchPolicy.js",
+    "declarationPath": "implementation.failureFirstCommit.firstHeadTrustedMainGuard",
+    "declarationExactShape": {
+      "required": true,
+      "trustedMainMustEqualAuthorizationMerge": true
+    },
+    "failureCode": "WP0_DELEGATED_GOVERNANCE_FIRST_HEAD_MAIN_DRIFT",
+    "optInOnly": true,
+    "requiredSemantics": [
+      "Only delegated authorizations that explicitly declare the exact first-head trusted-main guard are subject to the new behavior.",
+      "On the unique first failure-first implementation head, trusted main must still equal the effective authorization merge commit.",
+      "If trusted main advanced before that first head is evaluated, fail closed with WP0_DELEGATED_GOVERNANCE_FIRST_HEAD_MAIN_DRIFT before the head can count as causal RED evidence.",
+      "After a valid first failure-first head, existing delegated-governance fresh-main refresh semantics remain unchanged.",
+      "Existing authorizations without the declaration preserve current behavior.",
+      "The invariant is evaluated from trusted merged authorization data; candidate-owned text cannot weaken or bypass it."
+    ],
+    "forbiddenWeakening": [
+      "Do not weaken authorization introduction-merge or topology checks.",
+      "Do not permit candidate-owned main snapshots, PR prose, environment variables or branch naming to substitute for trusted main.",
+      "Do not mutate wp0-routing-policy.json, governance prefixes, product routing or unknown-path fail-closed behavior.",
+      "Do not change workflows, dependencies, Product, Model Brain, local auxiliary runtime or Desktop/Windows UAT candidate state."
+    ]
+  },
+  "failureFirstEvidenceContract": {
+    "freshRedRequired": true,
+    "recordLocation": "second first-parent implementation commit message",
+    "requiredTrailers": [
+      "Yance-Failure-First-Red-Head: <exact fresh tests-only implementation head>",
+      "Yance-Failure-First-Red-Run: <positive decimal GitHub Actions run id>",
+      "Yance-Failure-First-Red-Conclusion: failure"
+    ],
+    "duplicateOrMalformedTrailersFailClosed": true,
+    "amendRebaseForcePushForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TRUSTED_DELEGATED_GOVERNANCE_EVALUATOR",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance delegated governance evaluator",
+        "source": "shared/release/implementationBranchPolicyLegacy.js::evaluateTrustedDelegatedGovernanceBranch",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is one missing first-head invariant inside the existing trusted evaluator. Extending that evaluator and its established test suite is the smallest mechanically enforceable repair."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second delegated-governance evaluator or workflow.",
+      "Do not revive or mutate the unstarted V2 implementation branch.",
+      "Do not revive, merge, rebase or rewrite closed stale authorization PR #578.",
+      "Do not revive or rewrite frozen route implementation PR #574.",
+      "Do not revive stale local-auxiliary authorization PR #570.",
+      "Do not modify routing policy, dependencies, Product code or Desktop/Windows UAT candidate state."
+    ]
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first V3 implementation commit changes only tests/wp0/implementation-branch-policy.test.js and obtains a fresh causal behavior RED proving opted-in first-head trusted-main drift is currently accepted.",
+    "Immediately before creating that immutable tests-only head, fresh trusted main must still equal the exact V3 authorization merge; if not, V3 implementation does not start and no first implementation commit is created.",
+    "The GREEN commit changes only shared/release/implementationBranchPolicyLegacy.js and records exactly one valid Yance-Failure-First-Red-Head, Yance-Failure-First-Red-Run and Yance-Failure-First-Red-Conclusion: failure trailer binding the fresh RED.",
+    "The GREEN evaluator fails closed with WP0_DELEGATED_GOVERNANCE_FIRST_HEAD_MAIN_DRIFT on an opted-in authorization's unique first failure-first head when trusted main differs from the effective authorization merge.",
+    "After a valid first head, legitimate existing fresh-main refresh behavior remains unchanged and existing undeclared authorizations remain backward compatible.",
+    "No route, workflow, dependency, product or UAT candidate change is authorized."
+  ],
+  "requiredSequence": [
+    "one-file V3 evaluator-repair authorization from exact fresh main -> exact-head governance gates -> independent exact-head review",
+    "fresh main anti-drift -> ordinary two-parent V3 authorization merge",
+    "create governance/v21-delegated-first-head-fresh-main-guard-evaluator-repair-p0-v3 from the exact V3 authorization merge",
+    "freshly recheck trusted main equals the exact V3 authorization merge before creating the immutable first tests-only implementation commit",
+    "first implementation commit changes only tests/wp0/implementation-branch-policy.test.js and captures a fresh causal behavior RED",
+    "second commit changes only shared/release/implementationBranchPolicyLegacy.js and binds the exact fresh RED using the required legacy failure-first trailers",
+    "exact-head Stage/Layered/ACV2/Windows plus independent review and threads=0",
+    "fresh main anti-drift -> ordinary two-parent evaluator-repair implementation merge",
+    "only from the resulting new main may a new local-auxiliary successor authorization be proposed; do not revive stale #570"
+  ],
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
