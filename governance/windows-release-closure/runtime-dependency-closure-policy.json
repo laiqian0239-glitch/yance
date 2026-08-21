@@ -10,7 +10,8 @@
     "diagnostics",
     "release",
     "vendor/sillytavern/1.18.0",
-    "installer/installedIdentityReceipt.js"
+    "installer/installedIdentityReceipt.js",
+    "frontend/theme-catalog.json"
   ],
   "forbiddenRuntimeDependencyRoots": [
     "tools",
@@ -29,10 +30,25 @@
       "WINDOWS_ELECTRON_STARTUP_P0"
     ]
   },
+  "packagedThemeCatalogFailure": {
+    "source": "backend/store/themeAppearancePolicy.js",
+    "previousSpecifierForm": "require(path.join(__dirname, '..', '..', 'frontend', 'theme-catalog.json'))",
+    "requiredStaticSpecifier": "../../frontend/theme-catalog.json",
+    "payloadPath": "resources/app/frontend/theme-catalog.json",
+    "installedFailure": "Cannot find module '../../frontend/theme-catalog.json'",
+    "classification": [
+      "PRODUCT_SOURCE_DEFECT",
+      "PACKAGING_DEPENDENCY_CLOSURE_DEFECT",
+      "WINDOWS_OPERATING_MODE_RECONCILE_P0"
+    ]
+  },
   "closureRequirements": [
     "Production runtime files may not import or require excluded source roots",
     "Every static relative production runtime dependency must resolve to a packaged source path",
     "Separately authorized vendored runtime roots must remain path-exact and payload-backed",
+    "frontend/theme-catalog.json is the only frontend file admitted by this packaged-runtime repair",
+    "themeAppearancePolicy must require ../../frontend/theme-catalog.json with a static string literal so the runtime dependency gate can resolve it",
+    "WP7 assembly must copy frontend/theme-catalog.json to resources/app/frontend/theme-catalog.json without copying the frontend tree",
     "The packaged update manager must load with resources/app/tools absent",
     "WP7 build and packaged-payload validation must both enforce the dependency closure",
     "Build tooling and the installed updater must share the production-safe PE identity reader"
@@ -45,10 +61,12 @@
     "../tests/",
     "../evidence/",
     "../implementation/",
-    "../governance/"
+    "../governance/",
+    "require('../../frontend/theme-catalog.json')"
   ],
   "requiredRegressionTests": [
     "tests/wp7/wp7-runtime-dependency-closure.test.js",
+    "tests/wp7/wp7-installer-branding-ux.test.js",
     "tests/wp7/installed-application-probe-entry-integration.test.js"
   ],
   "releasePolicy": {
