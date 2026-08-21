@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-DELEGATED-FIRST-HEAD-FRESH-MAIN-GUARD-P0",
+  "workPackage": "V21-DELEGATED-FIRST-HEAD-FRESH-MAIN-GUARD-ROUTE-PREREQUISITE-P0",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "CodeRabbit exact-head review on frozen PR #570 found a real P1: the local-auxiliary V3 authorization declared a fail-closed pre-implementation anti-drift guard, but the trusted delegated-governance evaluator does not mechanically reject a first implementation head when trusted main has advanced beyond the effective authorization merge. PR #569 already demonstrated the resulting failure mode: a valid tests-only first commit can become non-ancestral to the pull-request base before Stage reaches behavior validation. Repair the owning generic trusted policy rather than weakening the local-auxiliary authorization, routing, or failure-first contract.",
+  "reason": "Independent exact-head review of PR #572 found that the actual delegated-governance evaluator now lives in shared/release/implementationBranchPolicyLegacy.js, but current trusted WP0 routing still classifies only shared/release/implementationBranchPolicy.js as an exact governance path. Because shared/ is otherwise a product prefix, the correct future evaluator repair (implementationBranchPolicyLegacy.js plus tests/wp0/implementation-branch-policy.test.js) currently selects PRODUCT_WP0. Repository precedent requires this bootstrap cycle to be split: first land only the missing exact governance ownership classification on trusted main, then authorize and implement the evaluator repair from that new main.",
   "base": {
     "branch": "main",
     "commit": "8cfdbee6e1549f0870f55998bedbe840be51ef70"
@@ -12,18 +12,18 @@
   "triggerEvidence": {
     "sourcePullRequest": 570,
     "sourceExactHead": "c61ed938bfa3e054ac82e089074c780ac521f505",
-    "independentReviewTriggerAccount": "wangyi198675-coder",
-    "independentReviewComment": 5366297952,
-    "independentReviewResult": "P0=0 / P1=1",
-    "validP1": "The declared pre-implementation anti-drift guard is not consumed by trusted policy, so the first implementation head can be created after trusted main has advanced beyond the authorization merge.",
-    "priorTopologyEvidencePullRequest": 569,
-    "priorTestsOnlyHead": "c981a80f531ae3cb4a921c2c98d6ab20fb2aa96b",
-    "priorStageRun": 32455446234,
-    "priorStageFailure": "wp0-route failed before policy/behavior execution because the PR event base was not an ancestor of the tests-only head after concurrent trusted-main advancement.",
-    "freshTrustedMain": "8cfdbee6e1549f0870f55998bedbe840be51ef70",
-    "freshTrustedMainCause": "PR #571 ordinary-merged an unrelated Windows UAT startup recovery authorization after #570 was created.",
-    "sourcePullRequestFrozen": true,
-    "sourcePullRequestMustNotMerge": true
+    "sourceCodeRabbitResult": "P0=0 / P1=1",
+    "sourceValidP1": "The declared pre-implementation anti-drift guard is not consumed by trusted policy.",
+    "currentAuthorizationPullRequest": 572,
+    "staleWrapperScopeHead": "a00e009fde38e4cbf8f739beec08cc18fba29eb8",
+    "staleWrapperScopeSelfReview": "P0=0 / P1=1",
+    "currentOwningSeamHead": "a6b4a4d8d650e55ba71604ceb4d3fb3e5aad45ca",
+    "currentOwningSeamSelfReview": "P0=0 / P1=1",
+    "currentOwningSeamP1": "implementationBranchPolicyLegacy.js is the correct evaluator owner, but base-owned wp0-routing-policy.json does not list it in governanceExactPaths, so the intended policy-repair pair routes PRODUCT_WP0.",
+    "trustedRoutingPolicyBlob": "5941cc4bf647aac5a056ddf3100bece2f4e4569f",
+    "historicalPrecedentWorkPackage": "V21-BASE-OWNED-WP0-GOVERNANCE-CLASSIFICATION-P0",
+    "historicalPrecedentAuthorization": "governance/layered-ci/v21-base-owned-wp0-governance-classification-p0-authorization.json",
+    "freshTrustedMain": "8cfdbee6e1549f0870f55998bedbe840be51ef70"
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
@@ -44,13 +44,13 @@
     "mustRemainCleanFromTrustedMain": true
   },
   "implementation": {
-    "branch": "governance/v21-delegated-first-head-fresh-main-guard-p0",
+    "branch": "governance/v21-delegated-first-head-fresh-main-guard-route-prerequisite-p0",
     "allowedChangedPaths": [
-      "shared/release/implementationBranchPolicyLegacy.js",
-      "tests/wp0/implementation-branch-policy.test.js"
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/wp0-routing.test.js"
     ],
     "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "0457f5a3938ad78b638b12a7072a70d94e4ee5111c2fa2d6566f9a46ea2fc6b8",
+    "approvedChangedFileSetSha256": "d0bf4c9815a9d6a8ba8045d37741c4799a69a6b065e5332506f42f1703e9f887",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "rootNpmManifestModificationAllowed": false,
@@ -59,102 +59,100 @@
     "failureFirstCommit": {
       "mustBeFirstImplementationCommit": true,
       "allowedChangedPaths": [
-        "tests/wp0/implementation-branch-policy.test.js"
+        "tests/layered-ci/wp0-routing.test.js"
       ],
       "approvedChangedFileCount": 1,
-      "approvedChangedFileSetSha256": "7913275d3348e4c902aab19807e71fe0a02943be068cba5ef7f948eb9be7a7de",
+      "approvedChangedFileSetSha256": "0d247b29f8085396a9c5a15b92b23441cb4594a45081d7c79686e1e7e3265b8b",
       "productionCodeChanged": false,
       "freshCausalRedRequired": true
     }
   },
-  "policyContract": {
-    "existingAuthority": "shared/release/implementationBranchPolicyLegacy.js::evaluateTrustedDelegatedGovernanceBranch (re-exported by shared/release/implementationBranchPolicy.js)",
-    "activation": "Prospective and optional. Only a delegated authorization whose implementation.failureFirstCommit contains the new exact first-head trusted-main guard declaration is subject to this additional check. Existing authorizations without the declaration preserve current trusted-main refresh semantics.",
-    "newDeclaration": {
-      "path": "implementation.failureFirstCommit.firstHeadTrustedMainGuard",
-      "exactShape": {
-        "required": true,
-        "trustedMainMustEqualAuthorizationMerge": true
-      },
-      "malformedDeclarationFailsAuthorizationValidation": true
-    },
-    "requiredSemantics": [
-      "When the opt-in guard is present and the evaluated implementation head is the unique first implementation descendant of the effective authorization merge, trusted main must still equal that effective authorization merge commit.",
-      "If trusted main has advanced before that first implementation head is evaluated, fail closed with a stable delegated-governance reason code before accepting the failure-first head.",
-      "The first implementation descendant must still satisfy the existing failure-first single-parent, exact tests-only path/count/digest and production-code-forbidden contracts.",
-      "After a valid first failure-first head has been established, existing legitimate fresh-main refresh semantics remain unchanged; the new guard must not globally require trusted main to remain pinned to the authorization merge for later implementation heads.",
-      "Authorizations without the new declaration retain existing behavior.",
-      "No mutable GitHub API or workflow-owned trust source is introduced; the check uses the existing trusted main head and effective authorization merge already available to the evaluator."
+  "governanceBootstrapPaths": [
+    "shared/release/implementationBranchPolicyLegacy.js"
+  ],
+  "governanceBootstrapPathCount": 1,
+  "governanceBootstrapPathSetSha256": "31ed3e9a456aed8516c290a8ae0774105bf597089924e71f3a641897d4606669",
+  "classificationContract": {
+    "exactAddedGovernancePath": "shared/release/implementationBranchPolicyLegacy.js",
+    "pairedExistingGovernancePath": "tests/wp0/implementation-branch-policy.test.js",
+    "currentExpectedRouteBeforeRepair": "PRODUCT_WP0",
+    "expectedRouteAfterRepair": "GOVERNANCE_WP0",
+    "governancePrefixMutationForbidden": true,
+    "productRouteMutationForbidden": true,
+    "mixedChangesEscalateToProductMustRemainTrue": true,
+    "unknownPathFailsClosedMustRemainTrue": true,
+    "workflowModificationForbidden": true,
+    "candidateOwnedRouteAuthorityForbidden": true
+  },
+  "deferredPolicyRepair": {
+    "authorizedByThisPullRequest": false,
+    "mustUseNewAuthorizationAfterPrerequisiteMerge": true,
+    "futureAllowedChangedPaths": [
+      "shared/release/implementationBranchPolicyLegacy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
     ],
+    "futureApprovedChangedFileCount": 2,
+    "futureApprovedChangedFileSetSha256": "0457f5a3938ad78b638b12a7072a70d94e4ee5111c2fa2d6566f9a46ea2fc6b8",
+    "existingAuthority": "shared/release/implementationBranchPolicyLegacy.js::evaluateTrustedDelegatedGovernanceBranch (re-exported by shared/release/implementationBranchPolicy.js)",
+    "requiredDeclarationPath": "implementation.failureFirstCommit.firstHeadTrustedMainGuard",
+    "requiredDeclarationExactShape": {
+      "required": true,
+      "trustedMainMustEqualAuthorizationMerge": true
+    },
     "failureCode": "WP0_DELEGATED_GOVERNANCE_FIRST_HEAD_MAIN_DRIFT",
-    "nonGoals": [
-      "Do not change Stage route ancestry semantics.",
-      "Do not remove or weaken the existing unique merge-base trusted-main refresh support.",
-      "Do not add candidate-specific branch or path exceptions.",
-      "Do not make historical authorizations opt in retroactively."
+    "requiredSemantics": [
+      "Only future delegated authorizations that explicitly opt in are subject to the new first-head trusted-main guard.",
+      "On the unique first failure-first implementation head, trusted main must still equal the effective authorization merge; drift fails closed before the head is accepted as RED evidence.",
+      "After a valid first failure-first head, existing legitimate fresh-main refresh semantics remain unchanged.",
+      "Existing authorizations without the declaration preserve current behavior."
     ]
   },
-  "failureFirst": {
-    "firstImplementationCommitTestsOnly": true,
-    "testPath": "tests/wp0/implementation-branch-policy.test.js",
-    "causalRedMustCover": [
-      "An opt-in delegated failure-first authorization is ordinary-merged and then trusted main advances on an unrelated commit before the first implementation head; the current evaluator accepts the otherwise-valid first tests-only head.",
-      "The same fixture must fail closed after the repair with WP0_DELEGATED_GOVERNANCE_FIRST_HEAD_MAIN_DRIFT.",
-      "The exact same first-head fixture passes when trusted main still equals the effective authorization merge.",
-      "A later implementation head after a previously valid first failure-first head continues to use the existing trusted-main refresh/unique-merge-base semantics rather than being rejected merely because main advanced later.",
-      "An authorization without firstHeadTrustedMainGuard preserves existing behavior."
-    ],
-    "testWeakeningForbidden": true
-  },
   "ossFit": {
-    "decision": "EXTEND_EXISTING_TRUSTED_GIT_POLICY_SEAM",
-    "matureOssAvailable": true,
+    "decision": "REUSE_EXISTING_ROUTING_SSOT_AND_GOVERNANCE_BOOTSTRAP_GUARD",
+    "matureOssAvailable": false,
     "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
     "reviewedCandidates": [
       {
-        "name": "Git ancestry/merge-base plumbing",
-        "source": "git/git via existing trustedGit seam",
-        "license": "GPL-2.0-only",
+        "name": "Existing WP0 routing policy SSOT",
+        "source": "governance/layered-ci/wp0-routing-policy.json",
+        "license": "repository-internal existing seam",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
-        "reason": "The evaluator already owns trusted main, authorization merge, first-parent history and exact Git topology. The guard needs no new service, dependency or mutable remote state."
+        "reason": "The missing capability is one exact governance ownership entry. Adding implementationBranchPolicyLegacy.js to governanceExactPaths is smaller and safer than a prefix, wildcard, new route or workflow change."
       },
       {
-        "name": "Yance delegated governance evaluator",
+        "name": "Existing delegated governance route mutation guard",
         "source": "shared/release/implementationBranchPolicyLegacy.js@8cfdbee6e1549f0870f55998bedbe840be51ef70",
         "license": "repository-internal existing seam",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
-        "reason": "At current main this file owns evaluateTrustedDelegatedGovernanceBranch and resolveFailureFirstCommitProtocol; shared/release/implementationBranchPolicy.js only re-exports/composes that authority, so the repair must modify the current owning evaluator seam."
+        "reason": "Current trusted policy already supports governanceBootstrapPaths with exact normalized path, count and canonical SHA-256 closure; no new policy engine is required."
       }
     ],
     "retireOrAvoid": [
-      "Do not create a local-auxiliary-only policy engine or branch whitelist.",
-      "Do not query mutable GitHub state from the offline trusted evaluator.",
-      "Do not alter UAT candidate lineage or artifacts.",
-      "Do not add dependencies, workflows, databases or general-purpose policy infrastructure."
+      "Do not combine the route bootstrap and evaluator implementation in one candidate-owned batch.",
+      "Do not add a governance prefix or wildcard.",
+      "Do not route the evaluator repair through PRODUCT_WP0 and trigger unrelated Electron/product work.",
+      "Do not modify any workflow, dependency, Product, Model Brain, local-auxiliary runtime or Desktop/Windows UAT candidate surface."
     ]
   },
-  "mandatoryContracts": [
-    "The authorization PR itself remains one governance JSON only.",
-    "The implementation first commit changes only tests/wp0/implementation-branch-policy.test.js and obtains a fresh causal RED before policy code changes.",
-    "The repair changes only shared/release/implementationBranchPolicyLegacy.js plus its existing WP0 contract test.",
-    "The opt-in declaration is strict and malformed variants fail closed.",
-    "Existing authorizations without the declaration preserve current behavior.",
-    "A first failure-first head after trusted-main advancement is rejected before it can be treated as valid RED evidence.",
-    "A valid earlier first failure-first head does not make later ordinary trusted-main refreshes invalid.",
-    "No workflow, dependency, Product, Model Brain, local-auxiliary runtime, Desktop/Windows UAT candidate, release or promotion behavior is changed."
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only tests/layered-ci/wp0-routing.test.js and proves the exact future policy-repair pair implementationBranchPolicyLegacy.js plus tests/wp0/implementation-branch-policy.test.js currently selects PRODUCT_WP0.",
+    "The GREEN repair adds only shared/release/implementationBranchPolicyLegacy.js to governanceExactPaths.",
+    "After the repair, the exact same future policy-repair pair selects GOVERNANCE_WP0 with governanceChangesPresent=true and productChangesPresent=false.",
+    "No governance prefix, product exact path, product prefix, product-documentation rule, mixed-change escalation, unknown-path fail-closed rule or workflow is changed.",
+    "The current prerequisite does not modify implementationBranchPolicyLegacy.js, implementationBranchPolicy.js or tests/wp0/implementation-branch-policy.test.js."
   ],
   "requiredSequence": [
-    "one-file authorization proposal from exact fresh main -> applicable governance gates -> independent exact-head review",
+    "one-file route-prerequisite authorization proposal from exact fresh main -> exact-head governance gates -> independent exact-head review",
     "fresh main anti-drift -> explicit owner authorization -> ordinary two-parent authorization merge",
-    "create governance/v21-delegated-first-head-fresh-main-guard-p0 from the exact authorization merge only after a fresh main preflight",
-    "first implementation commit changes only tests/wp0/implementation-branch-policy.test.js and captures a fresh causal RED",
-    "root-fix implementationBranchPolicyLegacy with the minimal optional first-head trusted-main guard",
-    "bind the exact RED evidence on the first policy implementation commit and run exact-head Stage/Layered/ACV2 plus independent review",
-    "ordinary two-parent merge the policy repair after explicit owner authorization",
-    "recreate the local-auxiliary successor authorization from the repaired fresh main; do not revive stale #570"
+    "create governance/v21-delegated-first-head-fresh-main-guard-route-prerequisite-p0 from the exact authorization merge",
+    "first implementation commit changes only tests/layered-ci/wp0-routing.test.js and captures the route-classification causal RED",
+    "add only shared/release/implementationBranchPolicyLegacy.js to governanceExactPaths and obtain exact-head GREEN",
+    "ordinary two-parent merge the route prerequisite after review and owner authorization",
+    "from that new main create a new evaluator-repair authorization for implementationBranchPolicyLegacy.js plus tests/wp0/implementation-branch-policy.test.js",
+    "only after the evaluator repair merges, recreate the local-auxiliary successor authorization; do not revive stale #570"
   ],
   "mergePolicy": {
     "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
