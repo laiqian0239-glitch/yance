@@ -1,0 +1,289 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T09:46:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LOCAL-AUXILIARY-AI-RUNTIME-P1-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Add a mature-OSS-first local auxiliary AI layer without changing Yance's authoritative real-time chat quality. The real-time reply path remains cloud Model Brain/LiteLLM only; local models are optional, asynchronous, independently scheduled helpers for background understanding, summarization, extraction and relationship intelligence. V1 extends the already-present Ollama integration instead of inventing a Yance inference engine, adds on-demand model asset management and capability/SLA evidence, and makes local runtime failure, slowness, missing models or missing Ollama zero-effect on formal real-time reply availability and latency. Low-resource machines may use quantized/larger local models only in background roles proven by benchmark/qualification; no local model is silently promoted into real-time reply authority.",
+  "base": {
+    "branch": "main",
+    "commit": "15b5612ae2d14a82814b31a1c0046794ac4d8463"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "15b5612ae2d14a82814b31a1c0046794ac4d8463",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-local-auxiliary-ai-runtime-p1-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-local-auxiliary-ai-runtime-p1-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "46005f79e366a61505d900d131e3f9fd80b3d9acea94e6462d2e6299f64bd543",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-local-auxiliary-ai-runtime-p1-v1",
+    "allowedChangedPaths": [
+      "backend/routes/models.js",
+      "backend/services/aiBrainOrchestrator.js",
+      "backend/services/aiGateway.js",
+      "backend/services/localAiHardwareProfile.js",
+      "backend/services/localAiModelCatalog.js",
+      "backend/services/localAuxiliaryRuntimeAuthority.js",
+      "backend/services/modelBrainProjection.js",
+      "backend/services/modelRegistry.js",
+      "backend/services/modelStatusProjection.js",
+      "backend/services/ollamaClient.js",
+      "backend/services/systemCenterService.js",
+      "backend/tests/localAuxiliaryAiRuntimeP1.test.js",
+      "config/upstreams/v21-local-auxiliary-ai-runtime-p1-v1.json",
+      "docs/superpowers/plans/2026-08-21-yance-v21-local-auxiliary-ai-runtime-p1-v1.md",
+      "docs/superpowers/specs/2026-08-21-yance-v21-local-auxiliary-ai-runtime-p1-v1-design.md",
+      "frontend/index.html",
+      "frontend/js/r32-ai-workbench-runtime.js",
+      "frontend/r32-system-center.css",
+      "frontend/r32-system-center.js",
+      "tests/wp0/v21-local-auxiliary-ai-runtime-p1.test.js"
+    ],
+    "approvedChangedFileCount": 20,
+    "approvedChangedFileSetSha256": "a29ac40f8a3c6278ffd4e97ef2ff727c4df59fabc51923069ec4e6e3141cca12",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "backend/tests/localAuxiliaryAiRuntimeP1.test.js",
+        "tests/wp0/v21-local-auxiliary-ai-runtime-p1.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "48ba5c30d321ddee9dc591081989f250af1c043219803bb13a4e9a67779a3727",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "A verified local Ollama deployment is currently eligible for formal reply logical groups when its task tags match; the new product contract requires formal quick/deep/director reply candidates to be cloud-only.",
+        "Current background AI jobs and formal reply jobs share the AiGateway Model Brain queue, so a slow local background execution can consume concurrency needed by interactive cloud work.",
+        "Ollama discovery exists but V1 has no governed on-demand pull/progress/cancel lifecycle for approved local model assets.",
+        "Current status surfaces do not distinguish local auxiliary capability/benchmark/SLA evidence from real-time reply authority."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "productionReleaseAuthorized": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Fresh trusted main still equals the authorization base before authorization merge; otherwise this proposal is stale and must be regenerated from fresh main.",
+      "The implementation branch starts exactly from the effective ordinary two-parent authorization merge commit.",
+      "The trusted implementationBranchPolicy parser recognizes the exact implementation path set, failure-first path set and Fast Closure V2 diagnostic-window semantics.",
+      "No active open PR mutates the authoritative Model Brain/local-model paths in this package.",
+      "Fresh source search exhausts formal reply producers, background AI producers, localOnly callers, Model Brain candidate projection, Ollama physical I/O, status consumers and model lifecycle endpoints before production implementation.",
+      "The current Product UAT exact-head branch/artifacts remain untouched; this P1 branch starts from trusted main and does not rewrite/reuse the UAT candidate lineage."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "formal quick_reply/deep_reply/director candidate projection and physical LiteLLM execution",
+      "ContextAwareReplyBrain and automatic-reply callers that require formal cloud reply quality",
+      "background understanding/summary/extraction/relationship workloads that may use local auxiliary execution",
+      "AiGateway interactive queue concurrency and any local/background work that can consume it",
+      "Ollama discovery, stream execution, unload, delete and new pull/cancel physical I/O boundaries",
+      "local model qualification, allowedTasks and lifecycle projection",
+      "local auxiliary runtime status/benchmark/SLA evidence",
+      "AI Workbench/System Center user controls and truthful degraded/unavailable states",
+      "negative proof that missing/slow/crashed local runtime cannot block or downgrade formal cloud reply",
+      "negative proof that no second Yance model router, inference engine, retry authority or provider-selection scorer is introduced"
+    ]
+  },
+  "productContract": {
+    "authoritativeRealtimeReply": {
+      "tasks": ["quick_reply", "deep_reply", "director"],
+      "sourceType": "cloud",
+      "physicalRoutingAuthority": "LiteLLM Model Brain",
+      "silentLocalFallbackForbidden": true,
+      "localPreconditionForbidden": true,
+      "localQueueContentionForbidden": true
+    },
+    "localAuxiliary": {
+      "optional": true,
+      "asynchronousByDefault": true,
+      "independentSchedulingRequired": true,
+      "mayRunWhenRealtimeReplyIdle": false,
+      "runtimeFailureMustNotAffectRealtimeReply": true,
+      "modelMissingMustNotAffectRealtimeReply": true,
+      "downloadFailureMustNotAffectRealtimeReply": true,
+      "slowInferenceMustNotAffectRealtimeReply": true,
+      "allowedRoleRequiresQualificationAndSlaEvidence": true,
+      "largeLowResourceModelRule": "A large/quantized local model may be admitted only to background tasks whose measured SLA it satisfies; runnable does not imply real-time eligible."
+    },
+    "assetLifecycle": {
+      "installTimeModelBundleRequired": false,
+      "onDemandDownload": true,
+      "explicitUserConsentRequired": true,
+      "progressAndCancellationRequired": true,
+      "resumeWhenUpstreamSupportsIt": true,
+      "deleteAndUnloadRequired": true,
+      "downloadedModelMustRemainOptional": true
+    },
+    "forbiddenBehavior": [
+      "Do not replace formal cloud reply with a local model because local hardware or a local model is available.",
+      "Do not make a formal reply wait for local inference, local model download, local benchmark or local runtime startup.",
+      "Do not silently downgrade reply quality to a smaller local model.",
+      "Do not implement a second physical model router or duplicate LiteLLM retry/fallback/provider-selection authority.",
+      "Do not add KTransformers, AirLLM, llama.cpp or another runtime in V1 without fresh OSS-fit evidence and a merged same-work-package scope amendment.",
+      "Do not weaken Model Brain qualification, durable AI execution authority, stale-generation fencing or current reply evidence contracts."
+    ]
+  },
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_OLLAMA_SEAM_AND_KEEP_LITELLM_CLOUD_REPLY_AUTHORITY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Ollama",
+        "source": "ollama/ollama",
+        "license": "MIT",
+        "adoptionMode": "extend-existing-user-managed-runtime-seam",
+        "fit": "FIT",
+        "reason": "Yance already discovers, streams, unloads and deletes Ollama models. V1 extends this mature runtime seam with governed pull/progress/cancel and auxiliary-only scheduling instead of adding a new inference engine."
+      },
+      {
+        "name": "LiteLLM",
+        "source": "BerriAI/litellm",
+        "upstreamVersion": "v1.95.0 repository pin",
+        "license": "MIT core",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already owns formal cloud model physical routing, retries, fallback, cooldown and health; V1 must preserve this authority for real-time replies."
+      },
+      {
+        "name": "llama.cpp",
+        "source": "ggml-org/llama.cpp",
+        "license": "MIT",
+        "adoptionMode": "reviewed-future-runtime",
+        "fit": "PARTIAL_FIT",
+        "reason": "Mature and valuable for low-resource GGUF execution, but V1 does not add a second runtime until packaged Windows provenance, lifecycle isolation and measurable benefit over the existing Ollama seam are proven in a separate exact-scope admission."
+      },
+      {
+        "name": "KTransformers / AirLLM",
+        "source": "kvcache-ai/ktransformers / lyogavin/airllm",
+        "license": "Apache-2.0",
+        "adoptionMode": "not-admitted",
+        "fit": "GAP",
+        "reason": "Do not place experimental or higher-operational-risk large-model runtimes on the formal product path before Windows maturity, reproducibility and crash-isolation evidence exists."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second Yance physical model router, provider scorer, retry/fallback authority or inference engine; preserve LiteLLM for formal cloud routing and extend the existing Ollama seam for local auxiliary execution.",
+      "Do not duplicate Ollama discovery, stream execution, unload or delete paths; extend backend/services/ollamaClient.js and the existing Model Brain projections instead.",
+      "Do not add KTransformers, AirLLM, llama.cpp or another local runtime in V1, and do not create any local prerequisite or fallback path for quick_reply, deep_reply or director."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test backend/tests/localAuxiliaryAiRuntimeP1.test.js",
+      "node --test tests/wp0/v21-local-auxiliary-ai-runtime-p1.test.js",
+      "node --test backend/tests/platformAiResilienceUnifiedClosure.test.js",
+      "node --test tests/wp0/v21-model-brain-p0.test.js",
+      "node --test tests/wp0/v21-model-brain-runtime.test.js",
+      "node --test tests/wp0/v21-model-brain-retirement.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "WP-A/Model Brain routes when triggered",
+      "Windows Product/runtime validation when routed"
+    ],
+    "negativeProofs": [
+      "With no Ollama service, formal cloud reply candidate projection and execution remain available.",
+      "With an intentionally hung/failing local auxiliary task, interactive cloud queue capacity and formal reply latency contract remain unaffected.",
+      "A qualified local model cannot become a quick_reply/deep_reply/director deployment.",
+      "Model download, benchmark and lifecycle operations are never prerequisites for formal reply.",
+      "No second physical routing/scoring authority appears outside LiteLLM."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
