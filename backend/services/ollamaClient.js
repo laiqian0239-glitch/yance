@@ -53,6 +53,26 @@ function normalizeRoot(value) {
   return raw.replace(/\/$/, '').replace(/\/(?:v1|api)$/i, '');
 }
 
+function endpointHost(value) {
+  const root = normalizeRoot(value);
+  if (!root) return '';
+  try { return String(new URL(root).hostname || '').toLowerCase().replace(/^\[|\]$/gu, ''); }
+  catch (_) { return ''; }
+}
+function isLoopbackHost(hostname) {
+  const host = String(hostname || '').trim().toLowerCase();
+  return host === 'localhost' || host === '::1' || /^127(?:\.\d{1,3}){3}$/u.test(host);
+}
+function authorizedPullRoot(value) {
+  const configured = [...new Set((Array.isArray(CONFIG.ollamaHosts) ? CONFIG.ollamaHosts : []).map(normalizeRoot).filter(Boolean))];
+  const root = normalizeRoot(value) || configured[0] || 'http://127.0.0.1:11434';
+  if (isLoopbackHost(endpointHost(root)) || configured.includes(root)) return root;
+  const error = new Error('Ollama 下载地址不在本地或受信运行时配置中');
+  error.code = 'OLLAMA_ENDPOINT_NOT_AUTHORIZED';
+  error.status = 400;
+  throw error;
+}
+
 function modelId(name) {
   return `ollama-${crypto.createHash('sha1').update(String(name).toLowerCase()).digest('hex').slice(0, 14)}`;
 }
@@ -209,7 +229,7 @@ async function streamChat({ endpoint, model, messages, options = {}, signal }) {
 }
 
 async function pull(endpoint, model, options = {}) {
-  const root = normalizeRoot(endpoint) || 'http://127.0.0.1:11434';
+  const root = authorizedPullRoot(endpoint);
   const name = String(model || '').trim();
   if (!name) {
     const error = new Error('模型名称不能为空');
@@ -249,8 +269,8 @@ async function pull(endpoint, model, options = {}) {
       try { row = JSON.parse(line); } catch (_) { return; }
       status = String(row.status || status);
       digest = String(row.digest || digest);
-      total = Number(row.total ?? total) || total;
-      completed = Number(row.completed ?? completed) || completed;
+      if (row.total != null && Number.isFinite(Number(row.total))) total = Number(row.total);
+      if (row.completed != null && Number.isFinite(Number(row.completed))) completed = Number(row.completed);
       if (row.error) {
         const error = new Error(String(row.error));
         error.code = 'OLLAMA_PULL_FAILED';
@@ -312,4 +332,4 @@ async function unload(endpoint, model, signal) {
   }, 15000, signal);
 }
 
-module.exports = { discover, streamChat, pull, unload, remove, normalizeRoot, fetchJson, modelId };
+module.exports = { discover, streamChat, pull, unload, remove, normalizeRoot, authorizedPullRoot, fetchJson, modelId };

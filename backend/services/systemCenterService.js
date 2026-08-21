@@ -237,6 +237,17 @@ function aiSummary() {
   const summary = state.summary || {};
   const catalog = state.catalog || {};
   const modelBrain = state.modelBrain || {};
+  const localAuxiliary = state.localAuxiliary && typeof state.localAuxiliary === 'object' ? state.localAuxiliary : {
+    authority: 'Local Auxiliary Runtime Authority',
+    runtime: 'Ollama',
+    optional: true,
+    runtimeAvailable: false,
+    realtimeReplyAuthority: false,
+    formalReplyFallback: false,
+    formalReplyDependency: false,
+    benchmark: { available: false, measuredModels: 0, qualifiedModels: 0, evidence: [] },
+    sla: { interactiveQueueShared: false, formalReplyDependency: false, formalReplyFallback: false, admissionRequiresQualificationAndBenchmarkEvidence: true, allowedTasks: [] }
+  };
   const taskReadiness = state.taskReadiness || { pass: false, tasks: [], missing: [] };
   const evidence = modelBrain.lastEvidence && typeof modelBrain.lastEvidence === 'object' ? modelBrain.lastEvidence : null;
   const assets = directorySize(PATHS.aiAssets);
@@ -261,6 +272,7 @@ function aiSummary() {
       complexityRouter: modelBrain.complexityRouter || 'ComplexityRouter',
       strictTagFiltering: modelBrain.strictTagFiltering || { enabled: true, matchAny: false }
     },
+    localAuxiliary,
     hardEligibility: {
       privacy: 'privacy/local-cloud',
       local: Number(summary.local || 0),

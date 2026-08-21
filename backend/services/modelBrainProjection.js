@@ -38,7 +38,7 @@ function isLoopbackHost(hostname) {
 function sourceType(model = {}) {
   const providerValue = clean(model.provider || model.kind).toLowerCase();
   const endpoint = clean(model.endpoint || model.baseUrl);
-  if (!endpoint && providerValue === 'ollama') return 'local';
+  if (providerValue === 'ollama' || providerValue === 'local') return 'local';
   return isLoopbackHost(endpointHost(endpoint)) ? 'local' : 'cloud';
 }
 function provider(model = {}) { return clean(model.provider || model.kind || model.providerId || 'unknown').toLowerCase(); }
@@ -65,6 +65,13 @@ function qualification(model = {}) {
 }
 function enabled(model = {}) { return model.userDisabled !== true && model.enabled !== false && model.revoked !== true; }
 function taskHints(model = {}) { return list(model.allowedTasks || model.taskHints || model.capabilities?.tasks); }
+function commercialBenchmarkQualifiedTasks(model = {}) {
+  const benchmark = model.lastCommercialBenchmark && typeof model.lastCommercialBenchmark === 'object' ? model.lastCommercialBenchmark : null;
+  if (!benchmark || benchmark.completed !== true || benchmark.pass !== true) return [];
+  if (clean(benchmark.authority) !== 'YanceCommercialModelBenchmark') return [];
+  if (clean(benchmark.status) !== 'COMMERCIAL_MODEL_QUALIFIED') return [];
+  return list(benchmark.qualifyingTasks);
+}
 function deploymentTags(model = {}) {
   const tags = new Set(list(model.tags));
   const source = sourceType(model);
@@ -102,16 +109,18 @@ function hardConstraints(input = {}) {
   };
 }
 function projectModel(model = {}) {
+  const source = sourceType(model);
   return Object.freeze({
     id: clean(model.id || model.name),
     name: clean(model.name || model.id),
     provider: provider(model),
-    sourceType: sourceType(model),
+    sourceType: source,
     endpoint: clean(model.endpoint || model.baseUrl),
     credentialRef: clean(model.credentialRef),
     modelName: clean(model.modelName || model.model || model.name || model.id),
     enabled: enabled(model),
     qualification: qualification(model),
+    localAuxiliarySlaTasks: Object.freeze(source === 'local' ? commercialBenchmarkQualifiedTasks(model) : []),
     capabilities: Object.freeze({
       privacy: privacy(model),
       modalities: Object.freeze(modalities(model)),
@@ -146,7 +155,11 @@ function project(state = {}, request = {}) {
   const task = clean(request.task || request.modelGroup);
   if (FORMAL_REPLY_TASKS.has(task)) constraints.tags = [...new Set([...constraints.tags, 'source:cloud'])].sort();
   if (task && task !== 'probe') constraints.tags = [...new Set([...constraints.tags, `task:${task}`])].sort();
-  const candidates = all.filter(row => deploymentEligible(row, constraints)).map(row => {
+  const candidates = all.filter(row => {
+    if (!deploymentEligible(row, constraints)) return false;
+    if (!task || task === 'probe' || row.sourceType !== 'local') return true;
+    return row.localAuxiliarySlaTasks.includes(task);
+  }).map(row => {
     const materializedTags = new Set(row.tags || []);
     for (const tag of constraints.tags || []) {
       if (tag.startsWith('language:') && materializedTags.has('language:multilingual')) materializedTags.add(tag);
@@ -163,8 +176,8 @@ function project(state = {}, request = {}) {
     deniedProviders: Object.freeze(constraints.deniedProviders),
     candidates: Object.freeze(candidates),
     catalog: Object.freeze(all),
-    hardEligibility: Object.freeze({ privacy: true, vision: true, audio: true, video: true, language: true, context: true, provider: true })
+    hardEligibility: Object.freeze({ privacy: true, vision: true, audio: true, video: true, language: true, context: true, provider: true, localAuxiliarySla: true })
   });
 }
 
-module.exports = { LOGICAL_GROUPS, FORMAL_REPLY_TASKS, logicalModel, hardConstraints, projectModel, project, sourceType, deploymentTags, deploymentEligible };
+module.exports = { LOGICAL_GROUPS, FORMAL_REPLY_TASKS, logicalModel, hardConstraints, projectModel, project, sourceType, deploymentTags, deploymentEligible, commercialBenchmarkQualifiedTasks };

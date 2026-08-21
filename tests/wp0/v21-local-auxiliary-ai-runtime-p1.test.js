@@ -42,18 +42,23 @@ test('formal reply remains LiteLLM cloud authority and local auxiliary schedulin
   assert.match(projection, /deep_reply/u);
   assert.match(projection, /director/u);
   assert.match(projection, /source:cloud/u, 'formal reply projection must materialize a cloud-only hard constraint');
+  assert.match(projection, /providerValue === 'ollama'/u, 'Ollama must remain local even when its configured host is non-loopback');
+  assert.match(projection, /localAuxiliarySlaTasks/u, 'local background admission must bind benchmark/SLA-qualified tasks');
+  assert.match(projection, /YanceCommercialModelBenchmark/u);
   assert.match(gateway, /localAuxiliaryQueue/u, 'AiGateway must own a scheduler separate from the interactive Model Brain queue');
   assert.match(gateway, /local-auxiliary/u, 'the auxiliary scheduler must have an explicit local-auxiliary identity');
   assert.match(gateway, /this\.localAuxiliaryQueue/u);
   assert.match(gateway, /this\.queue/u);
 });
 
-test('existing Ollama seam grows pull/progress/cancel lifecycle without introducing another local runtime', () => {
+test('existing Ollama seam grows pull/progress/cancel lifecycle without introducing another local runtime or arbitrary pull endpoint', () => {
   const ollama = read('backend/services/ollamaClient.js');
   const routes = read('backend/routes/models.js');
 
   assert.match(ollama, /\/api\/pull/u, 'on-demand model assets must reuse Ollama /api/pull');
   assert.match(ollama, /onProgress/u, 'physical pull must surface progress');
+  assert.match(ollama, /authorizedPullRoot/u, 'pull must constrain caller-supplied endpoints to loopback or trusted Ollama configuration');
+  assert.match(ollama, /OLLAMA_ENDPOINT_NOT_AUTHORIZED/u);
   assert.match(routes, /\/local\/pull/u, 'model routes must expose explicit user-consented local pull');
   assert.match(routes, /pull.*cancel|cancel.*pull/us, 'model routes must expose cancellation for an active pull');
   assert.match(routes, /unload/u);
@@ -74,12 +79,15 @@ test('local auxiliary authority, benchmark/SLA evidence and truthful UI status a
   const systemCenterUi = read('frontend/r32-system-center.js');
 
   assert.match(statusProjection, /localAuxiliary/u);
-  assert.match(statusProjection, /benchmark/u);
+  assert.match(statusProjection, /YanceCommercialModelBenchmark/u);
+  assert.match(statusProjection, /benchmarkPass/u);
   assert.match(statusProjection, /sla/iu);
   assert.match(systemCenter, /localAuxiliary/u);
   assert.match(workbench, /localAuxiliary/u);
   assert.match(workbench, /pull|download|下载/iu);
   assert.match(systemCenterUi, /localAuxiliary/u);
+  assert.match(systemCenterUi, /system-center-nine-tabs[\s\S]*TAB_META\.length === 9/u, 'System Center self-test must reflect the actual nine-tab metadata contract');
+  assert.doesNotMatch(systemCenterUi, /system-center-eight-tabs/u);
 });
 
 test('preserved formal reply caller does not grow a local precondition or local fallback', () => {

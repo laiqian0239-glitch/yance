@@ -10,7 +10,7 @@ const { AiGateway } = require('../services/aiGateway');
 
 const FORMAL_REPLY_TASKS = Object.freeze(['quick_reply', 'deep_reply', 'director']);
 
-function qualifiedModel({ id, provider, endpoint, tasks }) {
+function qualifiedModel({ id, provider, endpoint, tasks, benchmark = null }) {
   return {
     id,
     name: id,
@@ -21,7 +21,22 @@ function qualifiedModel({ id, provider, endpoint, tasks }) {
     available: true,
     qualification: 'verified',
     allowedTasks: [...tasks],
-    capabilities: { modalities: ['text'], languages: ['multilingual'] }
+    capabilities: { modalities: ['text'], languages: ['multilingual'] },
+    ...(benchmark ? { lastCommercialBenchmark: benchmark } : {})
+  };
+}
+
+function commercialBenchmark(tasks) {
+  return {
+    schemaVersion: 1,
+    authority: 'YanceCommercialModelBenchmark',
+    completed: true,
+    pass: true,
+    status: 'COMMERCIAL_MODEL_QUALIFIED',
+    score: 92,
+    testedAt: new Date(0).toISOString(),
+    qualifyingTasks: [...tasks],
+    scenarios: [{ id: 'evidence', task: tasks[0], pass: true, metrics: { totalMs: 1200, outputTokens: 64 } }]
   };
 }
 
@@ -35,7 +50,7 @@ function runtimeSnapshot() {
   };
 }
 
-test('formal quick/deep/director projection is cloud-only even when a qualified local model has matching task tags', () => {
+test('formal quick/deep/director projection is cloud-only even when qualified local or remote-host Ollama models have matching task tags', () => {
   for (const task of FORMAL_REPLY_TASKS) {
     const state = {
       models: [
@@ -43,6 +58,12 @@ test('formal quick/deep/director projection is cloud-only even when a qualified 
           id: `local-${task}`,
           provider: 'ollama',
           endpoint: 'http://127.0.0.1:11434',
+          tasks: [task]
+        }),
+        qualifiedModel({
+          id: `remote-ollama-${task}`,
+          provider: 'ollama',
+          endpoint: 'http://ollama.internal:11434',
           tasks: [task]
         }),
         qualifiedModel({
@@ -59,9 +80,32 @@ test('formal quick/deep/director projection is cloud-only even when a qualified 
     assert.deepEqual(
       projection.candidates.map(row => row.sourceType),
       ['cloud'],
-      `${task} must never admit a local deployment into formal reply authority`
+      `${task} must never admit an Ollama deployment into formal reply authority`
     );
+    assert.deepEqual(projection.candidates.map(row => row.provider), ['openrouter']);
   }
+});
+
+test('local auxiliary candidates require commercial benchmark/SLA evidence for the exact background task', () => {
+  const withoutBenchmark = qualifiedModel({
+    id: 'local-understanding',
+    provider: 'ollama',
+    endpoint: 'http://127.0.0.1:11434',
+    tasks: ['understanding']
+  });
+  const noEvidenceProjection = modelBrainProjection.project({ models: [withoutBenchmark] }, { task: 'understanding' });
+  assert.equal(noEvidenceProjection.candidates.length, 0, 'qualification + task tag alone must not admit local auxiliary work');
+
+  const withBenchmark = qualifiedModel({
+    id: 'local-understanding',
+    provider: 'ollama',
+    endpoint: 'http://127.0.0.1:11434',
+    tasks: ['understanding'],
+    benchmark: commercialBenchmark(['understanding'])
+  });
+  const admitted = modelBrainProjection.project({ models: [withBenchmark] }, { task: 'understanding' });
+  assert.deepEqual(admitted.candidates.map(row => row.id), ['local-understanding']);
+  assert.deepEqual(admitted.candidates[0].localAuxiliarySlaTasks, ['understanding']);
 });
 
 test('local auxiliary work owns a scheduler that is distinct from the interactive Model Brain queue', () => {
@@ -98,6 +142,7 @@ test('Ollama seam exposes governed on-demand pull with progress and caller cance
     observed = { url: String(url), init };
     const body = [
       JSON.stringify({ status: 'pulling manifest' }),
+      JSON.stringify({ status: 'downloading', digest: 'sha256:test', total: 100, completed: 0 }),
       JSON.stringify({ status: 'downloading', digest: 'sha256:test', total: 100, completed: 40 }),
       JSON.stringify({ status: 'success', total: 100, completed: 100 })
     ].join('\n') + '\n';
@@ -114,7 +159,8 @@ test('Ollama seam exposes governed on-demand pull with progress and caller cance
     assert.equal(observed.init.method, 'POST');
     assert.equal(JSON.parse(observed.init.body).stream, true);
     assert.ok(observed.init.signal, 'pull must pass an abortable signal to physical I/O');
-    assert.ok(progress.length >= 2, 'pull must surface upstream progress instead of hiding a long-running download');
+    assert.ok(progress.length >= 3, 'pull must surface upstream progress instead of hiding a long-running download');
+    assert.equal(progress[1].completed, 0, 'zero-valued upstream progress must be represented truthfully');
     assert.equal(result.ok, true);
     assert.equal(result.model, 'qwen-test:latest');
   } finally {
@@ -122,7 +168,14 @@ test('Ollama seam exposes governed on-demand pull with progress and caller cance
   }
 });
 
-test('status projection separates local auxiliary capability/benchmark/SLA from real-time reply authority', () => {
+test('Ollama pull refuses arbitrary remote endpoints that are not local or explicitly configured', async () => {
+  await assert.rejects(
+    ollamaClient.pull('http://203.0.113.77:11434', 'qwen-test:latest'),
+    error => error?.code === 'OLLAMA_ENDPOINT_NOT_AUTHORIZED' && error?.status === 400
+  );
+});
+
+test('status projection separates local auxiliary benchmark/SLA evidence from ordinary qualification and invocation evidence', () => {
   const state = {
     ollamaOnline: true,
     endpoint: 'http://127.0.0.1:11434',
@@ -136,12 +189,21 @@ test('status projection separates local auxiliary capability/benchmark/SLA from 
       tasks: ['summary']
     })]
   };
-  const projected = modelStatusProjection.project(state, { modelBrainRuntime: runtimeSnapshot() });
+  let projected = modelStatusProjection.project(state, { modelBrainRuntime: runtimeSnapshot() });
 
   assert.ok(projected.localAuxiliary && typeof projected.localAuxiliary === 'object', 'status must expose a dedicated localAuxiliary surface');
   assert.equal(projected.localAuxiliary.realtimeReplyAuthority, false);
   assert.equal(projected.localAuxiliary.optional, true);
+  assert.equal(projected.localAuxiliary.benchmark.measuredModels, 0, 'qualification alone is not benchmark evidence');
+  assert.equal(projected.localAuxiliary.benchmark.qualifiedModels, 0);
+  assert.deepEqual(projected.localAuxiliary.benchmark.evidence[0].allowedTasks, []);
+
+  state.models[0].lastCommercialBenchmark = commercialBenchmark(['summary']);
+  projected = modelStatusProjection.project(state, { modelBrainRuntime: runtimeSnapshot() });
+  assert.equal(projected.localAuxiliary.benchmark.measuredModels, 1);
+  assert.equal(projected.localAuxiliary.benchmark.qualifiedModels, 1);
+  assert.deepEqual(projected.localAuxiliary.benchmark.evidence[0].allowedTasks, ['summary']);
+  assert.equal(projected.localAuxiliary.benchmark.evidence[0].benchmarkPass, true);
   assert.ok(Object.prototype.hasOwnProperty.call(projected.localAuxiliary, 'runtimeAvailable'));
-  assert.ok(Object.prototype.hasOwnProperty.call(projected.localAuxiliary, 'benchmark'));
   assert.ok(Object.prototype.hasOwnProperty.call(projected.localAuxiliary, 'sla'));
 });

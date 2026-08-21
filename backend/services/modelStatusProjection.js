@@ -9,31 +9,50 @@ const aiTaskRoleReadinessAuthority = require('./aiTaskRoleReadinessAuthority');
 const LOCAL_AUXILIARY_TASKS = Object.freeze(['translation', 'understanding', 'relationship', 'quality_review', 'summary', 'fact_extraction', 'memory_extraction', 'media_analysis', 'material_analysis', 'persona_rewrite', 'speech_transcription']);
 
 function normalizeModel(model = {}) { return replyBrainAuthority.projectModel(modelBrainProjection.projectModel(model)); }
+function localAuxiliaryBenchmark(raw = {}) {
+  const benchmark = raw.lastCommercialBenchmark && typeof raw.lastCommercialBenchmark === 'object' ? raw.lastCommercialBenchmark : null;
+  const completed = benchmark?.completed === true;
+  const pass = completed
+    && benchmark?.pass === true
+    && String(benchmark?.authority || '') === 'YanceCommercialModelBenchmark'
+    && String(benchmark?.status || '') === 'COMMERCIAL_MODEL_QUALIFIED';
+  const qualifyingTasks = pass
+    ? [...new Set((Array.isArray(benchmark?.qualifyingTasks) ? benchmark.qualifyingTasks : []).map(String).filter(task => LOCAL_AUXILIARY_TASKS.includes(task)))]
+    : [];
+  const scenarios = Array.isArray(benchmark?.scenarios) ? benchmark.scenarios : [];
+  const totalMs = scenarios.reduce((max, scenario) => Math.max(max, Number(scenario?.metrics?.totalMs || 0)), 0);
+  const outputTokens = scenarios.reduce((sum, scenario) => sum + Number(scenario?.metrics?.outputTokens || 0), 0);
+  return { benchmark, completed, pass, qualifyingTasks, totalMs, outputTokens };
+}
 function localAuxiliaryProjection(state = {}, models = []) {
   const rawModels = Array.isArray(state.models) ? state.models : [];
   const rawById = new Map(rawModels.map(model => [String(model?.id || model?.name || ''), model]));
   const localModels = models.filter(model => model.sourceType === 'local');
   const evidence = localModels.map(model => {
     const raw = rawById.get(model.id) || {};
-    const qualification = raw.lastTest || raw.lastQualificationTest || null;
-    const benchmark = raw.lastCommercialBenchmark || null;
-    const invocation = raw.lastSuccessfulInvocation || null;
-    const measured = Boolean(qualification || benchmark || invocation);
+    const benchmarkState = localAuxiliaryBenchmark(raw);
+    const rawAllowedTasks = new Set(Array.isArray(raw.allowedTasks) ? raw.allowedTasks.map(String) : []);
+    const allowedTasks = benchmarkState.qualifyingTasks.filter(task => rawAllowedTasks.has(task));
+    const qualification = String(model.qualification || '').toLowerCase();
+    const qualified = ['verified', 'qualified'].includes(qualification) && benchmarkState.pass && allowedTasks.length > 0;
     return Object.freeze({
       modelId: model.id,
       model: model.name,
       qualification: model.qualification,
-      allowedTasks: Object.freeze((Array.isArray(raw.allowedTasks) ? raw.allowedTasks : []).filter(task => LOCAL_AUXILIARY_TASKS.includes(String(task)))),
-      measured,
-      testedAt: String(benchmark?.testedAt || raw.testedAt || raw.qualificationTestedAt || ''),
-      benchmarkStatus: String(raw.commercialBenchmarkStatus || benchmark?.status || ''),
-      score: Number(raw.commercialBenchmarkScore || benchmark?.score || 0),
-      latencyMs: Number(invocation?.latencyMs || 0),
-      outputTokens: Number(invocation?.outputTokens || 0)
+      allowedTasks: Object.freeze(allowedTasks),
+      measured: benchmarkState.completed,
+      qualified,
+      testedAt: String(benchmarkState.benchmark?.testedAt || ''),
+      benchmarkAuthority: String(benchmarkState.benchmark?.authority || ''),
+      benchmarkStatus: String(benchmarkState.benchmark?.status || ''),
+      benchmarkPass: benchmarkState.pass,
+      score: Number(benchmarkState.benchmark?.score || 0),
+      latencyMs: benchmarkState.totalMs,
+      outputTokens: benchmarkState.outputTokens
     });
   });
   const measured = evidence.filter(row => row.measured);
-  const qualified = localModels.filter(model => ['verified', 'qualified'].includes(String(model.qualification).toLowerCase()));
+  const qualified = evidence.filter(row => row.qualified);
   return Object.freeze({
     authority: 'Local Auxiliary Runtime Authority',
     runtime: 'Ollama',

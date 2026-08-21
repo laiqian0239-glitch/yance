@@ -248,7 +248,7 @@ function captureSystemCenterScroll(tab = state.tab) {
   if (!tab) return;
   const top = authority?.captureScroll?.(app, 'system') || 0;
   state.workspaceScrollTopByTab[tab] = top;
-  state.workspaceScrollTop = top; // legacy compatibility for prior saved state
+  state.workspaceScrollTop = top;
 }
 function restoreSystemCenterScroll(tab = state.tab, options = {}) {
   const authority = window.YanceWorkspaceRouteAuthority;
@@ -574,6 +574,9 @@ function renderData() {
 function renderAI() {
   const ai = state.overview.ai || {};
   const brain = ai.modelBrain || {};
+  const localAuxiliary = ai.localAuxiliary || {};
+  const localBenchmark = localAuxiliary.benchmark || {};
+  const localSla = localAuxiliary.sla || {};
   const eligibility = ai.hardEligibility || {};
   const evidence = ai.executionEvidence || {};
   const models = (ai.models || []).map(model => {
@@ -601,6 +604,15 @@ function renderAI() {
         ${fact('retry / fallback', `${Number(evidence.retryCount || 0)} / ${Number(evidence.fallbackCount || 0)}`)}
       </div>`
     : `<div class="sc32-empty compact"><b>尚无执行证据</b><p>运行一次 logical Model Brain test / probe 后，这里显示实际 selected model、provider、latency、tokens、cost、retry/fallback。</p></div>`;
+  const localAuxiliaryHtml = `<div class="sc32-service-grid">
+      ${service('运行时', localAuxiliary.runtime || 'Ollama', localAuxiliary.runtimeAvailable ? '本地辅助运行时可用' : '可选本地运行时当前不可用', localAuxiliary.optional === false ? '配置异常' : 'optional', localAuxiliary.optional === false ? 'bad' : '')}
+      ${service('正式回复权限', localAuxiliary.realtimeReplyAuthority === true ? '错误：已获得权限' : '无', 'quick_reply / deep_reply / director 始终由 cloud Model Brain / LiteLLM 执行', localAuxiliary.formalReplyFallback === true ? 'fallback 配置错误' : 'no local fallback', localAuxiliary.realtimeReplyAuthority === true || localAuxiliary.formalReplyFallback === true ? 'bad' : '')}
+      ${service('独立调度', localAuxiliary.scheduler || 'local-auxiliary', `interactiveQueueShared=${localSla.interactiveQueueShared === true}`, localSla.interactiveQueueShared === true ? '队列隔离失败' : 'independent scheduler', localSla.interactiveQueueShared === true ? 'bad' : '')}
+      ${service('benchmark / SLA', localBenchmark.available ? `${Number(localBenchmark.measuredModels || 0)} 个实测模型` : '尚无实测证据', `qualified ${Number(localBenchmark.qualifiedModels || 0)} · runnable 不等于后台角色合格`, localSla.admissionRequiresQualificationAndBenchmarkEvidence === false ? '资格门禁缺失' : 'qualification + benchmark required', localSla.admissionRequiresQualificationAndBenchmarkEvidence === false ? 'bad' : 'warn')}
+    </div><div class="sc32-list">
+      ${row('✓','按需模型资产','本地模型不随安装包强制捆绑；下载需要用户明确确认，并支持 progress、cancel、unload、delete。','可选能力')}
+      ${row('✓','正式回复隔离','本地运行时缺失、下载失败、慢推理或崩溃不会阻塞或降级正式云端回复。','fail isolated')}
+    </div>`;
   return `<div class="sc32-model-brain-shell"><div class="sc32-panel-head"><div><h2>Model Brain / LiteLLM</h2><p>Yance 只投影 privacy、local/cloud、modality、language、context 与 provider 硬资格；物理选择、重试与运行健康由 LiteLLM v1.95.0 负责。</p></div><div class="sc32-panel-actions">${actionButton('扫描 local Ollama','scan-models','warn')}${actionButton('打开AI工作台','open-ai','primary')}</div></div>
   <div class="sc32-grid">
     ${section('Model Brain 运行状态', brain.runtimeAvailable ? 'healthy' : (brain.health || 'unavailable'), `<div class="sc32-service-grid">
@@ -608,6 +620,7 @@ function renderAI() {
       ${service('ComplexityRouter', brain.complexityRouter || 'ComplexityRouter', `strict tags: ${brain.strictTagFiltering?.enabled === false ? 'off' : 'on'} · matchAny=${brain.strictTagFiltering?.matchAny === true}`, 'mandatory tags use AND semantics', brain.strictTagFiltering?.matchAny === true ? 'bad' : '')}
       ${service('hard eligibility', `${ai.verified || 0}/${ai.count || 0} verified`, `local ${ai.local || 0} · cloud ${ai.cloud || 0}`, ai.taskReadiness?.pass ? 'all logical tasks have qualified capability' : `${Number(ai.taskReadiness?.missing?.length || 0)} logical tasks degraded`, ai.taskReadiness?.pass ? '' : 'warn')}
     </div>`, true)}
+    ${section('Local Auxiliary Runtime', localAuxiliary.runtimeAvailable ? 'optional / available' : 'optional / unavailable', localAuxiliaryHtml, true)}
     ${section('硬资格与模型来源', `${ai.models?.length || 0} 个 catalog entries`, `<div class="sc32-facts">
       ${fact('privacy', eligibility.privacy || 'privacy/local-cloud')}
       ${fact('local / cloud', `${eligibility.local || ai.local || 0} / ${eligibility.cloud || ai.cloud || 0}`)}
@@ -628,6 +641,7 @@ function renderAI() {
     ${section('AI安全边界', 'Model Brain fail closed', `<div class="sc32-list">
       ${row(brain.runtimeAvailable?'✓':'×','单一模型执行权威',brain.runtimeAvailable?'Model Brain delegates physical selection to LiteLLM Router and ComplexityRouter.':'sealed LiteLLM runtime unavailable; legacy provider clients are not used as a substitute.',brain.runtimeAvailable?'已统一':'degraded',brain.runtimeAvailable?'':'bad')}
       ${row(ai.taskReadiness?.pass?'✓':'△','硬资格唯一事实源','System Center 与 AI Workbench 使用相同的 privacy/local/cloud/modality/language/context/provider qualification projection.',ai.taskReadiness?.pass?'ready':'degraded',ai.taskReadiness?.pass?'':'warn')}
+      ${row('✓','Local Auxiliary 无正式回复权限','本地辅助仅用于通过 qualification + benchmark/SLA 的后台角色；不会成为 quick/deep/director fallback。','已隔离')}
       ${row('✓','AI资产随恢复点保护','规则、知识、样本与客户记忆纳入Schema 3备份。','已升级')}
       ${row('✓','人工发送门禁','AI生成结果不会绕过全局写操作门禁自动发送。','已启用')}
     </div>`)}
@@ -650,7 +664,6 @@ function logAggregateCard(log) {
   const retry = log.retryable ? '系统可重试' : '需要人工检查';
   return `<article class="sc32-row sc32-log-card ${htmlAttr(cls)}"><i>${htmlText(severity === 'critical' || severity === 'high' ? '!' : severity === 'medium' || severity === 'low' ? '△' : 'i')}</i><div><b>${htmlText(log.titleZh || '运行状态')}</b><p>${htmlText(log.messageZh || '运行过程中出现需要关注的状态。')}</p><div class="sc32-log-meta"><span>${htmlText(logStateLabel(log.state))}</span><span>${htmlText(logSeverityLabel(severity))}</span><span>${htmlText(occurrence)} 次</span>${affected ? `<span>影响 ${htmlText(affected)} 个对象</span>` : ''}<span>${htmlText(retry)}</span><span>最近 ${htmlText(fmtDate(log.lastSeenAt))}</span></div><p class="sc32-log-action">建议：${htmlText(log.actionZh || '查看技术详情')}</p><details class="sc32-log-tech"><summary>技术详情</summary><div>${logTechnicalRows(log.technical)}</div></details></div><em>${htmlText(log.code || '')}</em></article>`;
 }
-
 
 function backgroundJobTypeLabel(value) {
   return ({ 'account-avatar-sync':'账号头像同步', 'media-materialization':'历史媒体恢复' })[value] || value || '后台任务';
@@ -1034,7 +1047,7 @@ async function execute(action, button) {
       setBusy('正在发现并读取本地Ollama模型');
       const result = await request('/api/r32/models/scan', { method: 'POST', body: {} });
       state.busy = '';
-      toast(`模型扫描完成：${result.registry?.models?.length || 0} 个模型`); return refresh(false);
+      toast(`模型扫描完成：${result.registry?.models?.length || result.models?.length || 0} 个模型`); return refresh(false);
     }
     if (action === 'load-logs') {
       const result = await api('/logs?limit=120');
@@ -1084,9 +1097,7 @@ async function executeBackupAction(action, name) {
       state.busy = ''; toast(`校验通过：${result.filesChecked || 0} 个文件`); return refresh(false);
     }
     if (action === 'restore') {
-      if (!await window.YanceDialogs.confirm({ title: '暂存恢复计划', message: `准备从恢复点“${name}”恢复吗？
-
-当前不会立即覆盖数据。系统只会验证并暂存恢复计划，重启时先创建保护备份，再执行原子恢复。`, submitLabel: '验证并暂存' })) return;
+      if (!await window.YanceDialogs.confirm({ title: '暂存恢复计划', message: `准备从恢复点“${name}”恢复吗？\n\n当前不会立即覆盖数据。系统只会验证并暂存恢复计划，重启时先创建保护备份，再执行原子恢复。`, submitLabel: '验证并暂存' })) return;
       setBusy('正在验证恢复点并创建安全恢复计划');
       await api(`/backups/${encodeURIComponent(name)}/restore`, { method: 'POST', body: {} });
       state.busy = ''; toast('恢复计划已暂存，重启后安全执行', 'warn'); return refresh(false);
@@ -1168,7 +1179,7 @@ function bindGlobal() {
   });
   window.yanceDesktop?.onDesktopEvent?.(event => {
     if (!state.view) return;
-    if (['accounts:summary','notification:settings','system:notifications-updated','system:performance-updated','system:restore-completed','models:scanned','model:test-complete','ai:job-complete','ai:automation-status'].includes(event?.type)) setTimeout(() => refresh(false), 200);
+    if (['accounts:summary','notification:settings','system:notifications-updated','system:performance-updated','system:restore-completed','models:scanned','model:test-complete','ai:job-complete','ai:automation-status','models:local-pull-started','models:local-pull-progress','models:local-pull-complete','models:local-pull-failed','models:local-pull-cancelled'].includes(event?.type)) setTimeout(() => refresh(false), 200);
   });
 }
 
@@ -1184,9 +1195,10 @@ if (window.__Y27) {
     const prior = typeof previous === 'function' ? await previous() : {};
     return { ...prior, systemCenter: [
       { name: 'system-center-present', pass: Boolean(document.getElementById('systemCenterWorkspace')) },
-      { name: 'system-center-eight-tabs', pass: TAB_META.length === 8 },
+      { name: 'system-center-nine-tabs', pass: TAB_META.length === 9 },
       { name: 'system-center-connections', pass: TAB_META.some(([id]) => id === 'connections') },
       { name: 'system-center-ai-assets', pass: TAB_META.some(([id]) => id === 'ai') },
+      { name: 'system-center-local-auxiliary', pass: state.overview?.ai?.localAuxiliary?.realtimeReplyAuthority === false },
       { name: 'desktop-state-bridge', pass: Boolean(window.yanceDesktop?.getState) },
       { name: 'desktop-settings-bridge', pass: Boolean(window.yanceDesktop?.getSettings && window.yanceDesktop?.updateSettings) },
       { name: 'sound-result-bridge', pass: Boolean(window.yanceDesktop?.playSound && window.yanceDesktop?.reportSoundResult) },
