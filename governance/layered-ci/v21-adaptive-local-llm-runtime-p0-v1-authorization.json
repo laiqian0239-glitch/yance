@@ -225,7 +225,7 @@
   "ossFit": {
     "decision": "ADOPT_PINNED_MATURE_OSS_LOCAL_RUNTIMES_THROUGH_THIN_ADAPTERS_NO_YANCE_INFERENCE_ENGINE",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "pinned-upstream-source-and-runtime-with-thin-adapters",
+    "selectedAdoptionMode": "source-module",
     "newGeneralPurposeInfrastructure": false,
     "matureOssDefault": true,
     "thinYanceAdapterOnly": true,
