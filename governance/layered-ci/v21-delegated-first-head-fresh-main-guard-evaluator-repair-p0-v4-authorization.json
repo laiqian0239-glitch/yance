@@ -135,6 +135,13 @@
         "fit": "FIT",
         "reason": "The defect is one missing first-head invariant inside the existing trusted evaluator; extending that evaluator and its established test suite is the smallest mechanically enforceable repair."
       }
+    ],
+    "retireOrAvoid": [
+      "Forbid a duplicate Yance delegated-governance evaluator or parallel workflow; reuse shared/release/implementationBranchPolicyLegacy.js.",
+      "Retire the unstarted V2 implementation branch from further mutation; do not rebase it, merge main into it, amend it, or force-push it.",
+      "Forbid revival, merge, rebase or rewrite of stale authorization PR #578 and stale V3 authorization PR #584.",
+      "Forbid revival or rewrite of frozen route implementation PR #574 and stale local-auxiliary authorization PR #570.",
+      "Forbid routing-policy, dependency, Product, Model Brain, local-auxiliary runtime, or Desktop/Windows UAT candidate changes in this work package."
     ]
   },
   "forbiddenChanges": [
