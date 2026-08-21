@@ -28,6 +28,8 @@
     ".gitattributes",
     ".gitignore",
     "THIRD_PARTY_NOTICES.md",
+    "config/local-ai/adaptive-local-model-catalog-v1.json",
+    "config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json",
     "integration/element-module/src/YanceWorkspace.tsx",
     "integration/element-module/src/index.tsx",
     "integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
@@ -38,6 +40,7 @@
     "package-lock.json",
     "package.json",
     "release/electron-distribution-trust.json",
+    "runtime/local-ai/airllm/yance_airllm_worker.py",
     "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
     "vendor/electron/electron-v39.8.5-win32-x64.zip"
   ],

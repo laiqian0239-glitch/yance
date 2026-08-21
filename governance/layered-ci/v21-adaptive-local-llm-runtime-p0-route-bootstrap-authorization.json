@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T00:38:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ADAPTIVE-LOCAL-LLM-RUNTIME-P0-ROUTE-BOOTSTRAP",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Adaptive local LLM implementation PR #596 reached exact production head 4732ebae6d57ff724261df063156dc53e1d78076 with its immutable failure-first RED head and first-production evidence preserved. Exact-head Stage run 32511015585 then failed closed in wp0-route job 96861905137 before product tests because trusted base-owned routing policy reports WP0_ROUTE_UNKNOWN_PATH for exactly six already-authorized adaptive-local provenance/runtime paths: the model catalog, upstream manifest, AirLLM worker and three OSS license copies. Candidate-owned routing edits inside PR #596 are forbidden and deleting those provenance/license paths would weaken the product contract. This independent prerequisite therefore authorizes only six literal PRODUCT_WP0 route additions plus one route regression contract. It creates no adaptive-local product authority, does not widen or reduce the existing 32-path implementation authorization, preserves immutable RED/production topology, and leaves PR #538 Windows UAT candidate untouched.",
+  "base": {
+    "branch": "main",
+    "commit": "913d8f723e9dc176ef3f03ae899d96ef3ef21693"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "913d8f723e9dc176ef3f03ae899d96ef3ef21693",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "evidence": {
+    "sourcePullRequest": 596,
+    "sourceAuthorizationMerge": "7ad15ec69b9d1fcba1eb1d2d590f48ddaad4bd44",
+    "sourceImmutableRedHead": "b133bf06a5c90a8b3061197fac9ab5a85b55283a",
+    "sourceFailureFirstStageRun": 32506698592,
+    "sourceProductionHead": "4732ebae6d57ff724261df063156dc53e1d78076",
+    "sourceChangedFileCount": 23,
+    "stageWp0Run": 32511015585,
+    "stageWp0RouteJob": 96861905137,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPathsObservedAtSourceExactHead": [
+      "config/local-ai/adaptive-local-model-catalog-v1.json",
+      "config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json",
+      "runtime/local-ai/airllm/yance_airllm_worker.py",
+      "third_party/licenses/airllm-Apache-2.0.txt",
+      "third_party/licenses/ktransformers-Apache-2.0.txt",
+      "third_party/licenses/llama.cpp-MIT.txt"
+    ],
+    "trustedRoutingPolicyCommit": "913d8f723e9dc176ef3f03ae899d96ef3ef21693",
+    "classifier": "tools/layered-ci/wp0-routing.js#classifyWp0Route",
+    "unknownPathFailsClosed": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-adaptive-local-llm-runtime-p0-route-bootstrap-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-adaptive-local-llm-runtime-p0-route-bootstrap-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9a096ba62f62eebdec2ede328698f2e4cea7f125df35ac56306c24d9e4bdee74",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-adaptive-local-llm-runtime-p0-route-bootstrap",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/v21-adaptive-local-llm-runtime-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0a234b025fd05639f8c5c0277ae50a2dbef2bb8c29bdcdba9233ff5b738be8be",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-adaptive-local-llm-runtime-p0-routing.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "87f344c645f83563330b1833eeb801115c989f7392ee0522ea78bdc39513de9d",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      }
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "productImplementationAllowed": false,
+    "genericRouteMutationGuardRequired": true
+  },
+  "bootstrapPaths": [
+    "config/local-ai/adaptive-local-model-catalog-v1.json",
+    "config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json",
+    "runtime/local-ai/airllm/yance_airllm_worker.py",
+    "third_party/licenses/airllm-Apache-2.0.txt",
+    "third_party/licenses/ktransformers-Apache-2.0.txt",
+    "third_party/licenses/llama.cpp-MIT.txt"
+  ],
+  "bootstrapPathCount": 6,
+  "bootstrapPathSetSha256": "746af0042f9ff9927d129fb3580da348ed12eca7afc7d22b0ab425bdcaca3a17",
+  "routePolicy": {
+    "targetCollection": "productExactPaths",
+    "broadPrefixExpansionForbidden": true,
+    "schemaVersionMustRemain": 2,
+    "unknownPathFailsClosedMustRemain": true,
+    "mixedChangesEscalateToProductMustRemain": true,
+    "genericRouteMutationGuardAlreadyEffective": true
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 596,
+    "candidateBranch": "product/v21-adaptive-local-llm-runtime-p0-v1",
+    "candidateObservedHead": "4732ebae6d57ff724261df063156dc53e1d78076",
+    "candidateAuthorizedChangedFileCountMustRemain": 32,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "14f928527e2371f353606c81ddac9e3c3bfcfe84569fd99d5c443a82c6be18dc",
+    "candidateFailureFirstPathSetSha256MustRemain": "238abb20b0b7447a621ddf044bee7a685f6cc7d5fe61e7575f48c21f92c94f8d",
+    "candidateFirstFailureHeadMustRemain": "b133bf06a5c90a8b3061197fac9ab5a85b55283a",
+    "candidateFirstProductionHeadMustRemain": "4732ebae6d57ff724261df063156dc53e1d78076",
+    "candidateWorkflowModificationAllowed": false,
+    "candidateHistoryRewriteAllowed": false,
+    "candidateScopeReductionOrExpansionAllowed": false,
+    "windowsUatCandidatePullRequest538MustRemainUntouched": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before route implementation, the trusted-main classifier reports WP0_ROUTE_UNKNOWN_PATH for each of the six exact adaptive-local bootstrap paths.",
+    "After route implementation each of the six exact bootstrap paths independently selects PRODUCT_WP0.",
+    "The bootstrap adds only the six frozen literals to productExactPaths and does not add config/, config/local-ai/, config/upstreams/, runtime/, runtime/local-ai/, third_party/, third_party/licenses/ or any other broad product prefix.",
+    "Adjacent unregistered adaptive-local config, runtime and license paths continue to fail closed as WP0_ROUTE_UNKNOWN_PATH.",
+    "Schema version 2, unknownPathFailsClosed=true, mixedChangesEscalateToProduct=true, governance precedence and product-documentation precedence remain unchanged.",
+    "No PR #596 product file, immutable RED evidence, first production commit, original 32-path authorization, dependency manifest, workflow, formal Model Brain authority, release/publish path or PR #538 file is modified by this bootstrap."
+  ],
+  "requiredSequence": [
+    "Authorization exact head remains one file, is based on unchanged trusted main and passes all applicable governance gates and review requirements.",
+    "Authorization PR merges to main by ordinary two-parent merge without rebase, squash, amend, force push or history rewrite.",
+    "Create fix/v21-adaptive-local-llm-runtime-p0-route-bootstrap from the exact authorization merge commit.",
+    "First implementation commit changes only tests/layered-ci/v21-adaptive-local-llm-runtime-p0-routing.test.js and obtains fresh causal RED proving all six frozen paths are WP0_ROUTE_UNKNOWN_PATH before policy implementation.",
+    "Add only the six frozen literals to governance/layered-ci/wp0-routing-policy.json productExactPaths; preserve the already-effective generic semantic route-mutation guard.",
+    "Route-bootstrap implementation exact head passes applicable Stage, Layered, ACV2 and independent review gates.",
+    "Route-bootstrap implementation PR merges to main by ordinary two-parent merge.",
+    "Ordinary-forward reconcile the resulting fresh main into candidate PR #596 without rebase, amend, force push or stale-blob overwrite; preserve its immutable RED and first-production topology.",
+    "Resume PR #596 exact-head routed gates and root-fix any remaining causal failures before its separate explicit owner merge boundary."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BASE_OWNED_EXACT_ROUTE_POLICY_AND_GENERIC_DELEGATED_MUTATION_GUARD",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Yance base-owned WP0 exact routing policy and delegated semantic mutation guard",
+        "source": "governance/layered-ci/wp0-routing-policy.json + shared/release/implementationBranchPolicy.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This gap is repository-specific trusted path classification, not a new infrastructure problem. The existing exact productExactPaths mechanism and already-effective delegated semantic mutation guard fully cover it; this bootstrap only registers six frozen literals and must not add a second router or broad prefix."
+      },
+      {
+        "name": "Open Policy Agent",
+        "source": "open-policy-agent/opa",
+        "license": "Apache-2.0",
+        "adoptionMode": "sidecar-service",
+        "fit": "PARTIAL_FIT",
+        "reason": "OPA is mature policy OSS, but introducing a second policy authority for six repository-internal path literals would duplicate the already-trusted Yance exact-route evaluator rather than close the narrow route-registration gap."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second route classifier, wildcard registry, OPA/Cedar/Casbin sidecar, broad config/runtime/third_party product prefix, or candidate-owned routing fallback."
+    ]
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "warningOnlyClosure": true,
+    "continueOnError": true,
+    "testSkipOrAssertionWeakening": true,
+    "wildcardAuthorization": true,
+    "productPrefixExpansionInBootstrap": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "squash": true,
+    "directCandidateSelfAuthorization": true,
+    "adaptiveLocalProductModification": true,
+    "dependencyManifestModification": true,
+    "workflowModification": true,
+    "candidateScopeReductionOrExpansion": true,
+    "windowsUatCandidateModification": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "ordinaryTwoParentMergeRequired": true
+  }
+}
