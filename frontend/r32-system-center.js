@@ -1202,3 +1202,210 @@ const params = new URLSearchParams(location.search);
 if (params.get('systemPreview') === '1') requestAnimationFrame(() => openSystemCenter(params.get('systemTab') || 'overview'));
 else if (state.view) requestAnimationFrame(() => openSystemCenter(state.tab));
 })();
+
+(() => {
+'use strict';
+
+const PERSONAL_ACCESS_API = '/api/r32/personal-access';
+const state = { status: null, ownerRequests: [], busy: false, error: '' };
+
+function text(value) { return String(value == null ? '' : value); }
+function reasonLabel(code) {
+  return ({
+    OWNER_PERMANENT_ACCESS: 'OWNER 永久可用',
+    TESTER_ACTIVE: 'TESTER 已批准并可用',
+    INSTALLATION_UNREGISTERED: '此安装尚未登记',
+    REQUEST_NOT_SUBMITTED: '尚未申请使用权限',
+    REQUEST_PENDING: '申请等待 OWNER 处理',
+    REQUEST_ASSIGNED: 'OWNER 已接单，等待批准',
+    REQUEST_REJECTED: '申请已被拒绝',
+    GRANT_SUSPENDED: 'TESTER 权限已暂停',
+    GRANT_REVOKED: 'TESTER 权限已撤销',
+    INSTALLATION_MISMATCH: '批准记录与当前安装不匹配',
+    REMOTE_AUTHORITY_UNAVAILABLE: '权限服务器暂时不可用'
+  })[code] || code || '等待权限状态';
+}
+
+async function accessRequest(path = '', options = {}) {
+  const response = await fetch(`${PERSONAL_ACCESS_API}${path}`, {
+    method: options.method || 'GET',
+    headers: { 'content-type': 'application/json' },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body)
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.ok === false) {
+    const error = new Error(payload.message || payload.reasonCode || payload.code || `请求失败（${response.status}）`);
+    error.code = payload.reasonCode || payload.code || 'PERSONAL_ACCESS_REQUEST_FAILED';
+    throw error;
+  }
+  return payload;
+}
+
+function el(tag, className = '', value = '') {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (value) node.textContent = value;
+  return node;
+}
+
+function ensureBlockingGate() {
+  let gate = document.getElementById('yancePersonalAccessGate');
+  if (state.status?.usable === true) {
+    gate?.remove();
+    return null;
+  }
+  if (gate) return gate;
+  gate = el('section');
+  gate.id = 'yancePersonalAccessGate';
+  Object.assign(gate.style, {
+    position: 'fixed', inset: '0', zIndex: '2147483000', display: 'grid', placeItems: 'center',
+    background: 'rgba(10,14,20,.82)', backdropFilter: 'blur(12px)', padding: '24px'
+  });
+  const card = el('div', 'sc32-section wide');
+  Object.assign(card.style, { width: 'min(640px, 92vw)', maxHeight: '88vh', overflow: 'auto' });
+  const title = el('h2', '', '言策个人使用权限');
+  const intro = el('p', '', 'OWNER 永久可用；TESTER 必须由 OWNER 批准，并绑定当前安装。复制到另一台安装不会自动获得权限。');
+  const status = el('div', 'sc32-result warn'); status.dataset.personalAccessStatus = '1';
+  const input = document.createElement('input');
+  input.id = 'yancePersonalAccessDisplayName'; input.placeholder = '你的名字或备注（给 OWNER 识别）'; input.maxLength = 120;
+  Object.assign(input.style, { width: '100%', boxSizing: 'border-box', margin: '12px 0', padding: '10px 12px' });
+  const actions = el('div', 'sc32-panel-actions');
+  const requestButton = el('button', 'sc32-button primary', '申请使用权限');
+  requestButton.type = 'button'; requestButton.dataset.personalAccessAction = 'submit';
+  const refreshButton = el('button', 'sc32-button', '刷新状态');
+  refreshButton.type = 'button'; refreshButton.dataset.personalAccessAction = 'refresh';
+  actions.append(requestButton, refreshButton);
+  card.append(title, intro, status, input, actions);
+  gate.append(card);
+  document.body.append(gate);
+  requestButton.onclick = () => submitTesterRequest();
+  refreshButton.onclick = () => refreshPersonalAccess(true);
+  return gate;
+}
+
+function renderBlockingGate() {
+  const gate = ensureBlockingGate();
+  if (!gate) return;
+  const statusNode = gate.querySelector('[data-personal-access-status]');
+  const button = gate.querySelector('[data-personal-access-action="submit"]');
+  if (statusNode) statusNode.textContent = state.error || reasonLabel(state.status?.reasonCode);
+  if (button) {
+    const pending = ['REQUEST_PENDING', 'REQUEST_ASSIGNED'].includes(state.status?.reasonCode);
+    button.disabled = state.busy || pending;
+    button.textContent = pending ? '申请处理中' : '申请使用权限';
+  }
+}
+
+function ensureSummaryCard() {
+  const summary = document.getElementById('sc32Summary');
+  if (!summary || !state.status) return;
+  let card = document.getElementById('yancePersonalAccessSummary');
+  if (!card) {
+    card = el('article', 'sc32-stat');
+    card.id = 'yancePersonalAccessSummary';
+    const label = el('span', '', '个人使用权限');
+    const role = el('b'); role.dataset.personalAccessRole = '1';
+    const detail = el('small'); detail.dataset.personalAccessDetail = '1';
+    const button = el('button', 'sc32-link'); button.type = 'button'; button.dataset.personalAccessManage = '1';
+    Object.assign(button.style, { marginTop: '8px' });
+    button.onclick = () => state.status?.role === 'OWNER' ? openOwnerManager() : refreshPersonalAccess(true);
+    card.append(label, role, detail, button);
+    summary.prepend(card);
+  }
+  const role = card.querySelector('[data-personal-access-role]');
+  const detail = card.querySelector('[data-personal-access-detail]');
+  const button = card.querySelector('[data-personal-access-manage]');
+  role.textContent = state.status.role || 'TESTER';
+  detail.textContent = reasonLabel(state.status.reasonCode);
+  button.textContent = state.status.role === 'OWNER' ? '管理 TESTER' : '刷新权限';
+  card.classList.toggle('warn', state.status.usable !== true);
+}
+
+async function submitTesterRequest() {
+  if (state.busy) return;
+  state.busy = true; state.error = ''; renderBlockingGate();
+  try {
+    const displayName = text(document.getElementById('yancePersonalAccessDisplayName')?.value).trim();
+    state.status = await accessRequest('/submit-request', { method: 'POST', body: { displayName } });
+  } catch (error) { state.error = error.message; }
+  finally { state.busy = false; renderBlockingGate(); ensureSummaryCard(); }
+}
+
+async function refreshPersonalAccess(userInitiated = false) {
+  if (state.busy) return;
+  state.busy = true; state.error = '';
+  try { state.status = await accessRequest(userInitiated ? '/refresh-request' : '/status', userInitiated ? { method: 'POST', body: {} } : {}); }
+  catch (error) { state.status ||= { role: 'TESTER', usable: false, reasonCode: error.code || 'REMOTE_AUTHORITY_UNAVAILABLE' }; state.error = error.message; }
+  finally { state.busy = false; renderBlockingGate(); ensureSummaryCard(); }
+}
+
+function ownerActionButton(label, action, id, kind = 'request', danger = false) {
+  const button = el('button', `sc32-button ${danger ? 'danger' : ''}`, label);
+  button.type = 'button';
+  button.onclick = async () => {
+    if (state.busy) return;
+    state.busy = true;
+    try {
+      const path = kind === 'grant' ? `/owner/grants/${encodeURIComponent(id)}/${action}` : `/owner/requests/${encodeURIComponent(id)}/${action}`;
+      await accessRequest(path, { method: 'POST', body: {} });
+      await loadOwnerRequests();
+    } catch (error) { state.error = error.message; renderOwnerManager(); }
+    finally { state.busy = false; }
+  };
+  return button;
+}
+
+async function loadOwnerRequests() {
+  const payload = await accessRequest('/owner/requests');
+  state.ownerRequests = Array.isArray(payload.requests) ? payload.requests : [];
+  state.error = '';
+  renderOwnerManager();
+}
+
+function openOwnerManager() {
+  let modal = document.getElementById('yancePersonalAccessOwnerManager');
+  if (!modal) {
+    modal = el('section'); modal.id = 'yancePersonalAccessOwnerManager';
+    Object.assign(modal.style, { position: 'fixed', inset: '0', zIndex: '2147483001', background: 'rgba(10,14,20,.78)', display: 'grid', placeItems: 'center', padding: '24px' });
+    const card = el('div', 'sc32-section wide'); card.dataset.ownerManagerCard = '1';
+    Object.assign(card.style, { width: 'min(860px, 94vw)', maxHeight: '88vh', overflow: 'auto' });
+    modal.append(card); document.body.append(modal);
+    modal.onclick = event => { if (event.target === modal) modal.remove(); };
+  }
+  renderOwnerManager();
+  loadOwnerRequests().catch(error => { state.error = error.message; renderOwnerManager(); });
+}
+
+function renderOwnerManager() {
+  const modal = document.getElementById('yancePersonalAccessOwnerManager');
+  const card = modal?.querySelector('[data-owner-manager-card]');
+  if (!card) return;
+  card.replaceChildren();
+  const head = el('div', 'sc32-panel-head');
+  const heading = el('div'); heading.append(el('h2', '', 'TESTER 权限管理'), el('p', '', 'OWNER 可分配申请、批准 / APPROVE、拒绝 / REJECT、暂停 / SUSPEND、撤销 / REVOKE。所有状态以共享权限服务器为准。'));
+  const close = el('button', 'sc32-button', '关闭'); close.onclick = () => modal.remove();
+  head.append(heading, close); card.append(head);
+  if (state.error) card.append(el('div', 'sc32-result bad', state.error));
+  const list = el('div', 'sc32-list');
+  for (const request of state.ownerRequests) {
+    const row = el('article', 'sc32-row');
+    const info = el('div');
+    info.append(el('b', '', request.display_name || request.displayName || 'TESTER'), el('p', '', `${request.state || request.requestState || 'PENDING'} · 安装 ${request.installation_id || request.installationId || '-'} · ${request.grant_state || request.grantState || '尚无 grant'}`));
+    const actions = el('div', 'sc32-panel-actions');
+    const requestId = request.id || request.requestId;
+    const grantId = request.grant_id || request.grantId;
+    if (request.state === 'PENDING') actions.append(ownerActionButton('分配', 'assign', requestId));
+    if (request.state === 'ASSIGNED') actions.append(ownerActionButton('批准', 'approve', requestId), ownerActionButton('拒绝', 'reject', requestId, 'request', true));
+    if (grantId && (request.grant_state === 'ACTIVE' || request.grantState === 'ACTIVE')) actions.append(ownerActionButton('暂停', 'suspend', grantId, 'grant'), ownerActionButton('撤销', 'revoke', grantId, 'grant', true));
+    if (grantId && (request.grant_state === 'SUSPENDED' || request.grantState === 'SUSPENDED')) actions.append(ownerActionButton('撤销', 'revoke', grantId, 'grant', true));
+    row.append(el('i', '', request.state === 'APPROVED' ? '✓' : '•'), info, actions); list.append(row);
+  }
+  if (!state.ownerRequests.length) list.append(el('div', 'sc32-empty compact', '当前没有 TESTER 申请。'));
+  card.append(list);
+}
+
+const observer = new MutationObserver(() => { if (state.status && !document.getElementById('yancePersonalAccessSummary')) ensureSummaryCard(); });
+observer.observe(document.documentElement, { childList: true, subtree: true });
+refreshPersonalAccess(false);
+window.__YancePersonalAccess = { refresh: refreshPersonalAccess, openOwnerManager, getState: () => ({ ...state }) };
+})();

@@ -1,0 +1,14 @@
+name = "yance-personal-access"
+main = "src/index.js"
+compatibility_date = "2026-08-21"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[[d1_databases]]
+binding = "DB"
+database_name = "yance-personal-access"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# OWNER_ADMIN_SECRET must be supplied with `wrangler secret put OWNER_ADMIN_SECRET`.
+# Never place the secret in this file or in D1.
