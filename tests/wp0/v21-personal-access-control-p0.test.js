@@ -73,15 +73,28 @@ test('Worker and D1 are a narrow shared entitlement authority, not a billing or 
   }
 });
 
-test('System Center exposes personal-use request and owner tester controls without claiming cloud backup', () => {
-  const source = read('frontend/r32-system-center.js');
-  assert.match(source, /personal-access/);
-  assert.match(source, /申请测试权限|申请使用权限|TESTER/);
-  assert.match(source, /批准|APPROVE/);
-  assert.match(source, /拒绝|REJECT/);
-  assert.match(source, /暂停|SUSPEND/);
-  assert.match(source, /撤销|REVOKE/);
-  assert.doesNotMatch(source, /个人数据云备份已启用|cloud backup enabled/i);
+test('active Element Product exposes personal-use request and owner tester controls without claiming cloud backup', () => {
+  const surface = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
+  const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
+  const preload = read('electron/preload.js');
+  const bridge = read('electron/r32StoreBridge.js');
+  assert.match(workspace, /PersonalAccessSurface/);
+  assert.match(surface, /申请使用权限/);
+  assert.match(surface, /批准/);
+  assert.match(surface, /拒绝/);
+  assert.match(surface, /暂停/);
+  assert.match(surface, /撤销/);
+  for (const api of [
+    'getPersonalAccessStatus',
+    'submitPersonalAccessRequest',
+    'refreshPersonalAccessRequest',
+    'listPersonalAccessOwnerRequests',
+    'mutatePersonalAccessOwnerRequest',
+    'mutatePersonalAccessOwnerGrant'
+  ]) assert.match(preload, new RegExp(`\\b${api}\\s*:`));
+  assert.match(bridge, /\/api\/r32\/personal-access\/status/);
+  assert.match(bridge, /\/api\/r32\/personal-access\/owner\/requests/);
+  assert.doesNotMatch(`${surface}\n${workspace}`, /个人数据云备份已启用|cloud backup enabled/i);
 });
 
 test('authorization explicitly keeps channel identity authorities and release work outside this batch', () => {

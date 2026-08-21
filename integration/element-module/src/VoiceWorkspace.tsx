@@ -248,7 +248,7 @@ export function VoiceWorkspace({
       <div className="yance-voice-grid">
         <fieldset>
           <legend>我的声音</legend>
-          <label title="Language">
+          <label title="语言">
             语言
             <select value={language} onChange={(event) => setLanguage(event.target.value)} disabled={busy}>
               {LANGUAGES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -270,8 +270,8 @@ export function VoiceWorkspace({
             </select>
           </label>
           <div className="yance-voice-actions">
-            <button type="button" title="Enroll" onClick={() => { void enroll(); }} disabled={busy}>录入声音</button>
-            <button type="button" title="Delete" onClick={() => { void deleteProfile(); }} disabled={busy || !profile}>删除</button>
+            <button type="button" title="录入声音" onClick={() => { void enroll(); }} disabled={busy}>录入声音</button>
+            <button type="button" title="删除声音档案" onClick={() => { void deleteProfile(); }} disabled={busy || !profile}>删除</button>
           </div>
           <dl>
             <dt>声音档案</dt><dd>{profile?.label || profile?.voiceProfileId || "尚未录入"}</dd>
@@ -297,11 +297,11 @@ export function VoiceWorkspace({
             />
           </label>
           <div className="yance-voice-actions">
-            <button type="button" title="Generate" onClick={() => { void generate("generate"); }} disabled={busy || !profile || !replyText.trim()}>生成</button>
-            <button type="button" title="Test voice" onClick={() => { void generate("test"); }} disabled={busy || !profile}>测试声音</button>
-            <button type="button" title="Regenerate" onClick={() => { void generate("regenerate"); }} disabled={busy || !profile || !replyText.trim()}>重新生成</button>
+            <button type="button" title="生成声音" onClick={() => { void generate("generate"); }} disabled={busy || !profile || !replyText.trim()}>生成</button>
+            <button type="button" title="测试声音" onClick={() => { void generate("test"); }} disabled={busy || !profile}>测试声音</button>
+            <button type="button" title="重新生成声音" onClick={() => { void generate("regenerate"); }} disabled={busy || !profile || !replyText.trim()}>重新生成</button>
           </div>
-          <div title="Preview">
+          <div title="声音预览">
             <strong>预览</strong>
             {output?.previewDataUrl ? <audio controls preload="metadata" src={output.previewDataUrl} /> : <p>还没有可预览的声音。</p>}
           </div>
@@ -327,7 +327,7 @@ export function VoiceWorkspace({
               {productRouteResolved ? "已绑定当前关系会话" : routeBinding?.reason || "当前关系会话路由不可用"}
             </p>
           )}
-          <button type="button" title="Send" onClick={() => { void send(); }} disabled={busy || !output || !routeReady}>发送</button>
+          <button type="button" title="发送声音" onClick={() => { void send(); }} disabled={busy || !output || !routeReady}>发送</button>
         </fieldset>
       </div>
     </section>

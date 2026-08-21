@@ -147,9 +147,10 @@
 
 .yance-person-copy strong,
 .yance-person-copy span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .yance-person-copy span,
@@ -475,8 +476,10 @@
 
 .yance-assistant-facts dd {
   margin: 3px 0 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: break-word;
   font-size: inherit;
 }
 
@@ -1087,9 +1090,10 @@
 
 .yance-relationship-universe__node-copy strong,
 .yance-relationship-universe__node-copy span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .yance-relationship-universe__node-copy strong {
@@ -1168,6 +1172,115 @@
   cursor: pointer;
 }
 
+.yance-personal-access {
+  display: grid;
+  gap: var(--yance-space-3);
+  max-width: 780px;
+  margin: 0 auto;
+  padding: var(--yance-space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-lg);
+  background: var(--surface-panel);
+  box-shadow: var(--yance-elevation-soft);
+}
+
+.yance-personal-access__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--yance-space-3);
+}
+
+.yance-personal-access__header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.yance-personal-access__header span,
+.yance-personal-access__status,
+.yance-personal-access__owner article span,
+.yance-personal-access__owner > p {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.yance-personal-access button,
+.yance-personal-access input {
+  min-height: var(--control-min-height);
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-sm);
+  color: inherit;
+  background: var(--surface-control);
+  font: inherit;
+}
+
+.yance-personal-access button {
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.yance-personal-access button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.yance-personal-access__request {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--yance-space-2);
+}
+
+.yance-personal-access__request label {
+  display: grid;
+  gap: var(--yance-space-1);
+}
+
+.yance-personal-access__request input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 9px;
+}
+
+.yance-personal-access__owner {
+  display: grid;
+  gap: var(--yance-space-2);
+}
+
+.yance-personal-access__owner h3,
+.yance-personal-access__owner p,
+.yance-personal-access__status {
+  margin: 0;
+}
+
+.yance-personal-access__owner article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--yance-space-3);
+  padding: var(--yance-space-2);
+  border-radius: var(--yance-radius-sm);
+  background: var(--surface-card);
+}
+
+.yance-personal-access__owner article > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.yance-personal-access__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--yance-space-1);
+}
+
+.yance-product-shell--access-owner {
+  min-height: auto;
+  padding-bottom: 0;
+}
+
 @media (max-width: 900px) {
   .yance-relationship-universe {
     grid-template-columns: 1fr;
@@ -1239,12 +1352,21 @@
   }
 
   .yance-relationship-universe__node-copy span {
-    display: none;
+    display: block;
   }
 
   .yance-relationship-universe__center {
     width: 62px;
     height: 62px;
+  }
+
+  .yance-personal-access__request,
+  .yance-personal-access__owner article {
+    grid-template-columns: 1fr;
+  }
+
+  .yance-personal-access__actions {
+    justify-content: flex-start;
   }
 }
 
