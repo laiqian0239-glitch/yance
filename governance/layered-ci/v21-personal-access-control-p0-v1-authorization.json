@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T16:50:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PERSONAL-ACCESS-CONTROL-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Implement the personal-use access loop requested by the owner without creating a commercial licensing platform. Yance gets one lightweight shared personal-access authority so the OWNER installation remains permanently usable, TESTER installations must submit an access request, the owner can move requests through ASSIGNED and APPROVE/REJECT, and approved testers can later be SUSPEND/REVOKE. Existing channel account/identity tables remain channel authorities and must not be relabeled as human product users. Existing SQLite/r32_meta is reused only for local installation/access receipts; the shared authority is a small package-specific Cloudflare Worker/D1 service with simple installation binding to discourage casual credential sharing. The access guard must fail closed for non-owner product API use when no active tester authority exists, while preserving a minimal access/status/request surface needed to obtain approval. This work package does not authorize cloud backup, billing, subscriptions, payment, anti-tamper DRM, formal release or publishing.",
+  "base": {
+    "branch": "main",
+    "commit": "b04c3c96d68ad10aade80c89163fd0a10894dad0"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b04c3c96d68ad10aade80c89163fd0a10894dad0",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-personal-access-control-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-personal-access-control-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "28fcc0cbcf928ae43a89079ee99758addde91edeba5bd5bc8343984b6bc1d370",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-personal-access-control-p0-v1",
+    "allowedChangedPaths": [
+      "backend/middleware/personalAccessGuard.js",
+      "backend/routes/personalAccess.js",
+      "backend/server.js",
+      "backend/services/personalAccessService.js",
+      "backend/tests/personalAccessControlP0.test.js",
+      "docs/superpowers/plans/2026-08-21-yance-v21-personal-access-control-p0-v1.md",
+      "docs/superpowers/specs/2026-08-21-yance-v21-personal-access-control-p0-v1-design.md",
+      "frontend/r32-system-center.css",
+      "frontend/r32-system-center.js",
+      "services/personal-access-worker/migrations/0001_personal_access.sql",
+      "services/personal-access-worker/src/index.js",
+      "services/personal-access-worker/tests/personal-access-worker.test.js",
+      "services/personal-access-worker/wrangler.toml",
+      "tests/wp0/v21-personal-access-control-p0.test.js"
+    ],
+    "approvedChangedFileCount": 14,
+    "approvedChangedFileSetSha256": "d834f945894d47c6d8102df79d6fa307c8d4fa003d68d5c6a6c6425974505fc5",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "backend/tests/personalAccessControlP0.test.js",
+        "services/personal-access-worker/tests/personal-access-worker.test.js",
+        "tests/wp0/v21-personal-access-control-p0.test.js"
+      ],
+      "approvedChangedFileCount": 3,
+      "approvedChangedFileSetSha256": "5a0151a72c0734461248eefe6ff6449913a091b3ded73af2f8da0c3bb4aab782",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "Current product has no OWNER/TESTER human access authority and therefore cannot distinguish the owner's permanent use from a tester requesting access.",
+        "Current product has no shared request lifecycle capable of PENDING/ASSIGNED/APPROVED/REJECTED and no tester grant lifecycle capable of ACTIVE/SUSPENDED/REVOKED.",
+        "Current local API security authenticates the desktop-local caller but does not enforce owner/tester product entitlement, so an unapproved copied installation is not product-access blocked."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageSpecificRemoteD1MigrationAllowed": true,
+    "productionReleaseAuthorized": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "requiredProofs": [
+      "Fresh trusted main still equals the authorization base before authorization merge; otherwise regenerate the proposal from fresh main.",
+      "The implementation branch starts exactly from the effective ordinary two-parent authorization merge commit.",
+      "Fresh source audit confirms channel accounts, external identities and Facebook OAuth remain platform/channel authorities and are not reused as Yance human entitlement truth.",
+      "Existing local API session security remains intact and personal access is an additional product-entitlement guard, not a replacement authentication mechanism.",
+      "No active open PR mutates the exact implementation paths of this package.",
+      "PR #538 and the completed Windows UAT candidate lineage remain untouched."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "productContract": {
+    "roles": {
+      "OWNER": {
+        "permanentUse": true,
+        "mayBeSuspendedOrRevokedByTesterLifecycle": false,
+        "mayAssignRequests": true,
+        "mayApproveRequests": true,
+        "mayRejectRequests": true,
+        "maySuspendTesters": true,
+        "mayRevokeTesters": true
+      },
+      "TESTER": {
+        "approvalRequiredBeforeProductUse": true,
+        "simpleInstallationBindingRequired": true,
+        "commercialLicenseSemanticsForbidden": true
+      }
+    },
+    "requestLifecycle": [
+      "PENDING",
+      "ASSIGNED",
+      "APPROVED",
+      "REJECTED"
+    ],
+    "grantLifecycle": [
+      "ACTIVE",
+      "SUSPENDED",
+      "REVOKED"
+    ],
+    "sharedAuthority": {
+      "shape": "package-specific Cloudflare Worker + D1",
+      "billingForbidden": true,
+      "subscriptionPlansForbidden": true,
+      "paymentIntegrationForbidden": true,
+      "generalPurposeIdentityPlatformForbidden": true,
+      "ownerAdminSecretMustNotBePersistedInPlaintextSQLite": true,
+      "testerStateMustBeServerAuthoritative": true
+    },
+    "localEnforcement": {
+      "existingLocalApiSessionSecurityPreserved": true,
+      "minimalUnauthenticatedEntitlementSurface": [
+        "status",
+        "submit-request",
+        "refresh-request"
+      ],
+      "allOtherProductApiRequiresOwnerOrActiveTester": true,
+      "pendingRejectedSuspendedRevokedMustNotAppearAsUsable": true,
+      "networkFailureMustNotSilentlyPromoteTester": true,
+      "ownerMustNotBeLockedOutByRemoteTesterState": true
+    },
+    "devicePolicy": {
+      "goal": "discourage casual sharing, not strong DRM",
+      "installationBinding": true,
+      "hardwareFingerprintCollectionForbidden": true,
+      "silentDeviceExpansionForbidden": true
+    },
+    "outOfScope": [
+      "cloud backup or restore",
+      "commercial licensing or subscriptions",
+      "payments",
+      "strong anti-tamper or hardware DRM",
+      "formal release",
+      "publishing"
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test backend/tests/personalAccessControlP0.test.js",
+      "node --test services/personal-access-worker/tests/personal-access-worker.test.js",
+      "node --test tests/wp0/v21-personal-access-control-p0.test.js"
+    ],
+    "negativeProofs": [
+      "A fresh unapproved installation cannot use protected product APIs and can only reach the entitlement request/status surface.",
+      "OWNER remains usable and can perform ASSIGN, APPROVE, REJECT, SUSPEND and REVOKE operations.",
+      "APPROVED creates an ACTIVE TESTER grant bound to the requesting installation; a different installation cannot silently reuse it.",
+      "SUSPENDED and REVOKED are enforced by the product guard and cannot be converted to ACTIVE by local cached state.",
+      "Worker/network failure never promotes PENDING, REJECTED, SUSPENDED or REVOKED tester state.",
+      "Channel account, external identity, Facebook OAuth and messaging route authority behavior is unchanged."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "relevant Windows/product gates when routed"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
