@@ -185,6 +185,9 @@ const { closeStore } = require('./repositories/storeProvider');
 const { createR32LocalApiSecurity } = require('./middleware/r32LocalApiSecurity');
 const { authorizeWebSocketRequest, getApiSessionAuthStats } = require('./security/apiSessionAuth');
 const { createR32LegacyRouteBlocker } = require('./middleware/r32LegacyRouteBlocker');
+const { createPersonalAccessGuard } = require('./middleware/personalAccessGuard');
+const { createPersonalAccessRouter } = require('./routes/personalAccess');
+const { createPersonalAccessService } = require('./services/personalAccessService');
 const { createR32ConversationRouter } = require('./routes/r32Conversations');
 const workspaceRouter = require('./routes/workspace');
 const conversationCapabilitiesRouter = require('./routes/conversationCapabilities');
@@ -466,9 +469,6 @@ app.get('/api/ready', (_req, res) => {
   res.status(backendReadiness.ready ? 200 : 503).json(payload);
 });
 
-app.use('/api/app/v2', createApiV2Router({ runtimeProvider: () => APP_RUNTIME }));
-app.use('/api/v2/persona', createPersonaBrainRouter({ initializeOwnerBaseline: true }));
-app.use('/api/core', coreRouter);
 const credentialAuthorityProjection = () => {
   const securityGuard = getSecurityGuard();
   return {
@@ -511,6 +511,12 @@ if (process.env.YANCE_WP4_CREDENTIAL_CUSTODY_PROBE === '1') {
     } catch (error) { next(error); }
   });
 }
+const personalAccessService = createPersonalAccessService();
+app.use('/api/r32/personal-access', createPersonalAccessRouter({ personalAccessService }));
+app.use(createPersonalAccessGuard({ personalAccessService }));
+app.use('/api/app/v2', createApiV2Router({ runtimeProvider: () => APP_RUNTIME }));
+app.use('/api/v2/persona', createPersonaBrainRouter({ initializeOwnerBaseline: true }));
+app.use('/api/core', coreRouter);
 app.use(createR32ConversationRouter());
 app.use('/api/r32/workspace', workspaceRouter);
 app.use('/api/r32/conversation', conversationCapabilitiesRouter);
