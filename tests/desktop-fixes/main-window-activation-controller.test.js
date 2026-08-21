@@ -145,3 +145,24 @@ test('renderer-ready window is shown before slow runtime validation completes', 
   await activation;
   assert.equal(h.activations.length, 1);
 });
+
+test('activation cannot enter runtime validation or dispatch before activation-probe responder registration', async () => {
+  const h = harness({ timeoutMs: 80 });
+  const window = h.getWindow();
+  h.controller.reset(window, 'probe-responder-race');
+  h.controller.markPreloadReady(window);
+  h.controller.markDidFinishLoad(window);
+  h.controller.markRendererReady(window);
+
+  const activation = h.controller.activate('tray-click');
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.equal(h.runtimeValidations.length, 0, 'three-phase renderer readiness must not start runtime validation before the production responder is registered');
+  assert.equal(h.activations.length, 0, 'activation dispatch must remain blocked before responder registration');
+  assert.equal(typeof h.controller.markActivationProbeResponderReady, 'function');
+
+  h.controller.markActivationProbeResponderReady(window, { source: 'element-module-load' });
+  await activation;
+  assert.equal(h.runtimeValidations.length, 1);
+  assert.equal(h.activations.length, 1);
+});
