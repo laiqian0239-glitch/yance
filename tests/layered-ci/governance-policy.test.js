@@ -218,9 +218,14 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'THIRD_PARTY_NOTICES.md',
     'config/local-ai/adaptive-local-model-catalog-v1.json',
     'config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json',
+    'integration/element-module/src/LearningWorkspace.tsx',
+    'integration/element-module/src/MediaWorkspace.tsx',
+    'integration/element-module/src/PresenceWorkspace.tsx',
+    'integration/element-module/src/VoiceWorkspace.tsx',
     'integration/element-module/src/YanceWorkspace.tsx',
     'integration/element-module/src/index.tsx',
     'integration/element-module/src/product-experience/BilingualSearchPanel.tsx',
+    'integration/element-module/src/product-experience/PersonalAccessSurface.tsx',
     'integration/element-module/src/product-experience/ProductExperienceShell.css',
     'integration/element-module/src/product-experience/ProductExperienceShell.tsx',
     'integration/element-module/src/product-experience/experienceProjection.ts',
@@ -260,4 +265,38 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     assert.equal(result.reasonCode, 'CI_UNKNOWN_PATH', file);
     assert.deepEqual(result.unknownPaths, [file], file);
   }
+});
+
+test('WP3 routing prerequisite Product identities use exact L2 without broad-prefix expansion', () => {
+  const targetPaths = [
+    'integration/element-module/src/LearningWorkspace.tsx',
+    'integration/element-module/src/MediaWorkspace.tsx',
+    'integration/element-module/src/PresenceWorkspace.tsx',
+    'integration/element-module/src/VoiceWorkspace.tsx',
+    'integration/element-module/src/product-experience/PersonalAccessSurface.tsx'
+  ];
+
+  for (const file of targetPaths) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'EXACT', file);
+  }
+
+  for (const prefix of ['integration/', 'integration/element-module/']) {
+    assert.equal(risk.l2Prefixes.includes(prefix), false, prefix);
+  }
+
+  for (const file of [
+    'integration/element-module/src/UnregisteredWorkspace.tsx',
+    'integration/element-module/src/product-experience/UnregisteredSurface.tsx'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, false, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.reasonCode, 'CI_UNKNOWN_PATH', file);
+    assert.deepEqual(result.unknownPaths, [file], file);
+  }
+
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
 });

@@ -179,6 +179,7 @@
     "integration/element-module/src/VoiceWorkspace.tsx",
     "config/upstreams/v21-product-experience-shell-p0.json",
     "integration/element-module/src/product-experience/BilingualSearchPanel.tsx",
+    "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
     "integration/element-module/src/product-experience/PeopleSurface.tsx",
     "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
     "integration/element-module/src/product-experience/ProductExperienceShell.css",
