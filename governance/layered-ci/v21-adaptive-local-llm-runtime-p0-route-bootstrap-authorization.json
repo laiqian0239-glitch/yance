@@ -76,12 +76,17 @@
       ],
       "approvedChangedFileCount": 1,
       "approvedChangedFileSetSha256": "87f344c645f83563330b1833eeb801115c989f7392ee0522ea78bdc39513de9d",
-      "productionCodeChanged": false
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      }
     },
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "newGeneralPurposeYanceInfrastructureAllowed": false,
-    "productImplementationAllowed": false
+    "productImplementationAllowed": false,
+    "genericRouteMutationGuardRequired": true
   },
   "bootstrapPaths": [
     "config/local-ai/adaptive-local-model-catalog-v1.json",
@@ -136,7 +141,7 @@
   ],
   "ossFit": {
     "decision": "REUSE_EXISTING_BASE_OWNED_EXACT_ROUTE_POLICY_AND_GENERIC_DELEGATED_MUTATION_GUARD",
-    "matureOssAvailable": false,
+    "matureOssAvailable": true,
     "newGeneralPurposeInfrastructure": false,
     "selectedAdoptionMode": "existing-repository-seam",
     "reviewedCandidates": [
@@ -147,10 +152,18 @@
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
         "reason": "This gap is repository-specific trusted path classification, not a new infrastructure problem. The existing exact productExactPaths mechanism and already-effective delegated semantic mutation guard fully cover it; this bootstrap only registers six frozen literals and must not add a second router or broad prefix."
+      },
+      {
+        "name": "Open Policy Agent",
+        "source": "open-policy-agent/opa",
+        "license": "Apache-2.0",
+        "adoptionMode": "sidecar-service",
+        "fit": "PARTIAL_FIT",
+        "reason": "OPA is mature policy OSS, but introducing a second policy authority for six repository-internal path literals would duplicate the already-trusted Yance exact-route evaluator rather than close the narrow route-registration gap."
       }
     ],
     "retireOrAvoid": [
-      "Do not create a second route classifier, wildcard registry, broad config/runtime/third_party product prefix, or candidate-owned routing fallback."
+      "Do not create a second route classifier, wildcard registry, OPA/Cedar/Casbin sidecar, broad config/runtime/third_party product prefix, or candidate-owned routing fallback."
     ]
   },
   "prohibitions": {
