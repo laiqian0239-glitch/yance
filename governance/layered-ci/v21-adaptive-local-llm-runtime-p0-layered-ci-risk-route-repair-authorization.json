@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T04:29:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ADAPTIVE-LOCAL-LLM-RUNTIME-P0-LAYERED-CI-RISK-ROUTE-REPAIR",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #596 was ordinarily forward-reconciled after the adaptive-local WP0 route bootstrap and reached exact head a4154ee1ba48ad8a2a93d820c94f15d634df9f6f. Stage route classification is now GREEN, but Layered CI Fast Feedback run 32529063344 job 96917239588 fails closed in Select required CI level with CI_UNKNOWN_PATH for exactly three already-authorized adaptive-local Product identities: the local model catalog, upstream manifest, and AirLLM worker. The original #596 product authorization does not authorize Layered risk-policy governance changes. This independent prerequisite therefore authorizes only an exact L2 risk classification repair plus its existing classifier regression test, while preserving #596 immutable RED/production ancestry, its original 32-path authorization, current 23-path Product diff, and PR #538.",
+  "base": {
+    "branch": "main",
+    "commit": "7bf3541b84cd2d1373272f674a5e32293020a930",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "7bf3541b84cd2d1373272f674a5e32293020a930",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "causalRedEvidence": {
+    "implementationPullRequest": 596,
+    "implementationExactHead": "a4154ee1ba48ad8a2a93d820c94f15d634df9f6f",
+    "implementationFirstFailureHead": "b133bf06a5c90a8b3061197fac9ab5a85b55283a",
+    "implementationFirstProductionHead": "4732ebae6d57ff724261df063156dc53e1d78076",
+    "freshMainReconcileSecondParent": "7bf3541b84cd2d1373272f674a5e32293020a930",
+    "workflow": "Layered CI Fast Feedback",
+    "runId": 32529063344,
+    "jobId": 96917239588,
+    "failedStep": "Select required CI level",
+    "reasonCode": "CI_UNKNOWN_PATH",
+    "policyJobPassed": true,
+    "stageWp0RoutePassed": true,
+    "failureOccurredBeforeL2Verification": true,
+    "unknownPaths": [
+      "config/local-ai/adaptive-local-model-catalog-v1.json",
+      "config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json",
+      "runtime/local-ai/airllm/yance_airllm_worker.py"
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-adaptive-local-llm-runtime-p0-layered-ci-risk-route-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-adaptive-local-llm-runtime-p0-layered-ci-risk-route-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "dd273b33fd88ea207e1dea44a233116404d20cf2e08787b60143f8579cb210ce",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "riskPolicyExactL2Paths": [
+    "config/local-ai/adaptive-local-model-catalog-v1.json",
+    "config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json",
+    "runtime/local-ai/airllm/yance_airllm_worker.py"
+  ],
+  "riskPolicyExactL2PathCount": 3,
+  "riskPolicyExactL2PathSetSha256": "402f7cce662c36da8aa30b8256a5c5f2e6035867dcd5e7c1b68e79309438a249",
+  "implementation": {
+    "branch": "fix/v21-adaptive-local-llm-runtime-p0-layered-ci-risk-route-repair",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/governance-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "dda3b27532f387c8ea4e78c3b63b62fc9b822d1efdf31ea6051fe6ea91f22633",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/governance-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "96590e18dd790ed9f84431e411beab59fb97e12dba1a186466800351673256f5",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailure": "The three frozen adaptive-local identities remain CI_UNKNOWN_PATH until governance/layered-ci/risk-policy.json receives the exact L2 repair."
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "riskPolicyMigration": {
+    "path": "governance/layered-ci/risk-policy.json",
+    "targetCollection": "l2ExactPaths",
+    "requiredLevel": "L2",
+    "requiredChange": "Add exactly the three riskPolicyExactL2Paths identities to l2ExactPaths in canonical sorted order.",
+    "baselineL2ExactPathCount": 15,
+    "baselineL2ExactPathSetSha256": "ade6c6e1d6b31628a0cbec696d47a96baab0afd3ce9df7558c360f8d9225f791",
+    "expectedPostRepairL2ExactPathCount": 18,
+    "expectedPostRepairL2ExactPathSetSha256": "1f1610d81926cbf32917728023136518b5c28810f5397cec3bca13de52bd5758",
+    "baselineL2PrefixCount": 13,
+    "baselineL2PrefixSetSha256": "bf08a55c081a48508dc5a5e2008bbb40a25ad135ed129fe6ee0068aecf6edebc",
+    "unknownPathFailsClosedMustRemain": true,
+    "l3AutomaticMustRemain": false,
+    "broadPrefixModificationAllowed": false,
+    "existingPrefixModificationAllowed": false,
+    "existingClassificationRemovalAllowed": false
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 596,
+    "candidateBranch": "product/v21-adaptive-local-llm-runtime-p0-v1",
+    "candidateObservedHead": "a4154ee1ba48ad8a2a93d820c94f15d634df9f6f",
+    "candidateOriginalAuthorizationMerge": "7ad15ec69b9d1fcba1eb1d2d590f48ddaad4bd44",
+    "candidateAuthorizedChangedFileCountMustRemain": 32,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "14f928527e2371f353606c81ddac9e3c3bfcfe84569fd99d5c443a82c6be18dc",
+    "candidateFailureFirstPathSetSha256MustRemain": "238abb20b0b7447a621ddf044bee7a685f6cc7d5fe61e7575f48c21f92c94f8d",
+    "candidateFirstFailureHeadMustRemain": "b133bf06a5c90a8b3061197fac9ab5a85b55283a",
+    "candidateFirstProductionHeadMustRemain": "4732ebae6d57ff724261df063156dc53e1d78076",
+    "candidateCurrentProductChangedFileCountMustRemain": 23,
+    "candidateWorkflowModificationAllowed": false,
+    "candidateHistoryRewriteAllowed": false,
+    "candidateScopeReductionOrExpansionAllowed": false,
+    "windowsUatCandidatePullRequest538MustRemainUntouched": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before risk-policy implementation, classifyChangedFiles reports CI_UNKNOWN_PATH for the three frozen adaptive-local identities while existing policy structure and unrelated classifications remain valid.",
+    "After implementation, each frozen identity independently classifies as exact L2 and l2ExactPaths equals the frozen baseline plus exactly those three identities.",
+    "No config/, config/local-ai/, config/upstreams/, runtime/, runtime/local-ai/ or other broad L2 prefix is added.",
+    "Adjacent unregistered adaptive-local config and runtime identities continue to fail closed as CI_UNKNOWN_PATH.",
+    "unknownPathFailsClosed=true, l3Automatic=false, existing L2 prefixes and existing exact classifications remain unchanged.",
+    "No #596 Product path, immutable RED evidence, first-production commit, original 32-path authorization, WP0 routing policy, workflow, dependency manifest, release/publish path or PR #538 file is modified."
+  ],
+  "requiredSequence": [
+    "Authorization remains exactly one governance file on unchanged fresh trusted main and passes all applicable governance gates.",
+    "Authorization PR merges to main by ordinary two-parent merge without rebase, squash, amend, force push or history rewrite.",
+    "Create the implementation branch exactly from the authorization merge commit.",
+    "First implementation commit changes only tests/layered-ci/governance-policy.test.js and obtains fresh causal RED proving the three frozen identities remain CI_UNKNOWN_PATH.",
+    "With Closure Matrix unknownBlockers=0, add exactly the three frozen identities to governance/layered-ci/risk-policy.json l2ExactPaths and preserve all frozen policy invariants.",
+    "Implementation exact head passes applicable Stage, Layered, ACV2 and independent review gates.",
+    "Implementation PR merges to main by ordinary two-parent merge.",
+    "Ordinary-forward reconcile fresh main into PR #596 without rebase, amend, force push or stale-blob overwrite, preserving immutable RED and first-production topology.",
+    "Resume #596 exact-head routed gates and root-fix remaining causal failures before its separate explicit owner merge boundary."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_LAYERED_CI_FAIL_CLOSED_EXACT_L2_CLASSIFIER",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "thinYanceAdapterOnly": true,
+    "reviewedCandidates": [
+      {
+        "name": "Yance Layered CI risk classifier",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The classifier is already fail-closed and correctly handles all other #596 paths; only three exact L2 identities are missing."
+      },
+      {
+        "name": "Open Policy Agent",
+        "source": "open-policy-agent/opa",
+        "license": "Apache-2.0",
+        "adoptionMode": "sidecar-service",
+        "fit": "PARTIAL_FIT",
+        "reason": "Adding a second CI policy authority for three repository-internal path identities would duplicate the trusted Layered classifier instead of closing this narrow gap."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add config/, config/local-ai/, config/upstreams/, runtime/ or runtime/local-ai/ as L2 prefixes.",
+      "Do not set unknownPathFailsClosed=false or l3Automatic=true.",
+      "Do not modify select-ci-level.js, workflows, #596 Product source, dependencies, WP0 routing policy, or PR #538.",
+      "Do not add a PR-specific bypass, alternate classifier, skip flag, warning-only closure, or second policy engine."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
