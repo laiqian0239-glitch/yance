@@ -4,12 +4,13 @@
   "requestedByUserAt": "2026-08-21T23:54:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-UI-AUTHORITY-CONSISTENCY-WP3",
-  "proposalRevision": 2,
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Fresh-main replacement for stale unmerged PR #594. Trusted main advanced before #594 could merge, so that proposal was closed as non-authority. The underlying fresh repository audit still proves current Product UI authority drift: Personal Access production authority and guard are implemented, but its tested request/OWNER administration controls remain in retired frontend/r32-system-center.js while the production renderer is Element ProductExperienceShell. The same current Element Product surface also leaks English-only title tooltips and uses user-visible ellipsis/no-wrap patterns that can truncate Chinese labels and relationship facts. This authorization remains diagnostic-only and authorizes one tests-only failure-first path so all currently observable Product-surface boundaries can be captured in one Fast Closure V2 diagnostic window before any production path is added by same-work-package amendment. It does not authorize Learning authority expansion, cloud backup/restore, system-DPI font automation, release/publish, workflow changes, dependency changes, legacy frontend reactivation, or a second Product renderer.",
+  "reason": "Fresh-main replacement for stale unmerged PR #594. Trusted main advanced before #594 could merge, so that proposal was closed as non-authority. The underlying fresh repository audit still proves current Product UI authority drift: Personal Access production authority and guard are implemented, but its tested request/OWNER administration controls remain in retired frontend/r32-system-center.js while the production renderer is Element ProductExperienceShell. The same current Element Product surface also leaks English-only title tooltips and uses user-visible ellipsis/no-wrap patterns that can truncate Chinese labels and relationship facts. This authorization remains diagnostic-only and authorizes one tests-only failure-first path so all currently observable Product-surface boundaries can be captured in one Fast Closure V2 diagnostic window before any production path is added by same-work-package amendment. Revision 3 additionally binds the current base-owned delegated first-head trusted-main guard contract before any immutable implementation head is created. It does not authorize Learning authority expansion, cloud backup/restore, system-DPI font automation, release/publish, workflow changes, dependency changes, legacy frontend reactivation, or a second Product renderer.",
   "base": {
     "branch": "main",
-    "commit": "7ad15ec69b9d1fcba1eb1d2d590f48ddaad4bd44"
+    "commit": "7ad15ec69b9d1fcba1eb1d2d590f48ddaad4bd44",
+    "requiredFreshAtAuthorizationMerge": true
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
@@ -19,7 +20,7 @@
     "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
     "authorizationProposalTransportIsNotImplementationAuthority": true,
     "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
-    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
     "ownerDelegatedContinuationAuthorizationCaptured": true
   },
   "staleProposal": {
@@ -49,6 +50,7 @@
   },
   "implementation": {
     "branch": "product/v21-product-ui-authority-consistency-wp3",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
     "allowedChangedPaths": [
       "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js"
     ],
@@ -64,6 +66,10 @@
       "approvedChangedFileCount": 1,
       "approvedChangedFileSetSha256": "248aac7fbe7c134fa758c98ad7056870ba2cc128b5524513f7cd518b043bb389",
       "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
       "fastClosureV2": {
         "enabled": true,
         "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
@@ -113,10 +119,12 @@
       "Trusted main is freshly read and equals base.commit before authorization merge.",
       "Authorization proposal remains exactly one governance file.",
       "Implementation branch starts exactly from the effective ordinary authorization merge.",
+      "Fresh trusted main still equals that exact authorization merge immediately before creating the immutable first tests-only implementation head.",
       "The one-path diagnostic set/count/SHA-256 exactly matches this document and is recognized by base-owned policy.",
       "Fresh source proves Element ProductExperienceShell is the active Product renderer and legacy frontend is retired from production authority.",
       "Fresh source proves Personal Access Product controls exist only on the retired frontend surface, while current Element modules expose no matching access UI.",
       "Fresh source proves English title leakage and ellipsis/no-wrap truncation on current production Element Product surfaces.",
+      "No active open PR mutates the exact implementation paths ultimately authorized for this package; PR #538 remains untouched.",
       "No production path, dependency, workflow, routing policy, database migration, service, sidecar or new infrastructure is authorized by this revision."
     ],
     "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
