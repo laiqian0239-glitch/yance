@@ -421,6 +421,20 @@ class AiGateway {
     const candidates = projection.catalog.filter(row => row.id === clean(modelId) && row.enabled);
     return Object.freeze({ ...projection, candidates: Object.freeze(candidates), catalog: Object.freeze(candidates) });
   }
+  _schedulerPlan(task, options = {}, modelId = '', background = false) {
+    if (background !== true) return Object.freeze({ scheduler: this.queue, options, localAuxiliary: false });
+    const baseConstraints = options.constraints && typeof options.constraints === 'object' ? options.constraints : {};
+    const auxiliaryOptions = {
+      ...options,
+      constraints: { ...baseConstraints, auxiliaryOnly: true }
+    };
+    const projection = this.projection(task, auxiliaryOptions, modelId);
+    const auxiliarySet = modelBrainProjection.AUXILIARY_RUNTIME_PROVIDERS;
+    const admitted = projection.candidates.length > 0
+      && projection.candidates.every(row => row.sourceType === 'local' || auxiliarySet.has(clean(row.provider).toLowerCase()));
+    if (!admitted) return Object.freeze({ scheduler: this.queue, options, localAuxiliary: false });
+    return Object.freeze({ scheduler: this.localAuxiliaryQueue, options: Object.freeze(auxiliaryOptions), localAuxiliary: true });
+  }
   _internalOperationAuthority() {
     const authority = this.internalOperationAuthorityProvider();
     if (!authority || typeof authority.create !== 'function' || typeof authority.start !== 'function'
@@ -700,9 +714,11 @@ class AiGateway {
     else externalSignal?.addEventListener?.('abort', relayExternal, { once: true });
     this.controllers.set(jobId, controller);
     this._pruneJobs();
-    this.jobs.set(jobId, { jobId, task, operationId, operationFingerprint, status: 'queued', createdAt: new Date().toISOString(), context, result: null, error: null, background: background === true });
-    const timeoutMs = Math.max(1000, Number(options.timeoutMs || TASK_QUEUE_TIMEOUT_FLOORS[clean(task)] || 180000));
-    const scheduler = background === true ? this.localAuxiliaryQueue : this.queue;
+    const schedulerPlan = this._schedulerPlan(task, options, modelId, background);
+    const effectiveOptions = schedulerPlan.options;
+    this.jobs.set(jobId, { jobId, task, operationId, operationFingerprint, status: 'queued', createdAt: new Date().toISOString(), context, result: null, error: null, background: background === true, localAuxiliary: schedulerPlan.localAuxiliary });
+    const timeoutMs = Math.max(1000, Number(effectiveOptions.timeoutMs || TASK_QUEUE_TIMEOUT_FLOORS[clean(task)] || 180000));
+    const scheduler = schedulerPlan.scheduler;
     const queued = scheduler.add(async ({ signal }) => {
       const relay = () => controller.abort(signal.reason || Object.assign(new Error('JOB_CANCELLED'), { code: 'JOB_CANCELLED' }));
       if (signal.aborted) relay(); else signal.addEventListener('abort', relay, { once: true });
@@ -712,7 +728,7 @@ class AiGateway {
       try {
         this.assertTaskContextCurrent(context);
         runningOperation = authority.start(operationId, { progress: 1 }).operation;
-        const result = await this._run({ jobId, task, messages, modelId, options: { ...options, timeoutMs }, signal: controller.signal, context, persistedOperation: runningOperation });
+        const result = await this._run({ jobId, task, messages, modelId, options: { ...effectiveOptions, timeoutMs }, signal: controller.signal, context, persistedOperation: runningOperation });
         authority.succeed(operationId, durableAiTerminalReceipt(result), {
           generation: runningOperation.generation,
           objectFingerprint: operationFingerprint,
@@ -764,11 +780,11 @@ class AiGateway {
       task,
       jobId,
       priority: taskPriority(task, { priority, background }),
-      queueTimeoutMs: resolveQueueTimeoutMs(task, { queueTimeoutMs, options: { ...options, timeoutMs }, background }),
+      queueTimeoutMs: resolveQueueTimeoutMs(task, { queueTimeoutMs, options: { ...effectiveOptions, timeoutMs }, background }),
       executionTimeoutMs: timeoutMs + 5000,
       executionTimeoutCode: 'AI_EXECUTION_TIMEOUT',
       background: background === true,
-      providerKey: background === true ? 'local-auxiliary' : 'model-brain',
+      providerKey: schedulerPlan.localAuxiliary ? 'local-auxiliary' : 'model-brain',
       signal: controller.signal
     });
     this.queueIds.set(jobId, queued.id);

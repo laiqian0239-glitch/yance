@@ -47,10 +47,14 @@ test('formal reply remains LiteLLM cloud authority and local auxiliary schedulin
   assert.match(projection, /isLoopbackHost\(endpointHost\(endpoint\)\)/u, 'local/cloud truth must continue to use real endpoint locality');
   assert.match(projection, /localAuxiliarySlaTasks/u, 'local background admission must bind benchmark/SLA-qualified tasks');
   assert.match(projection, /YanceCommercialModelBenchmark/u);
+  assert.match(projection, /auxiliaryOnly/u, 'Model Brain hard projection must expose an explicit auxiliary-only constraint for scheduler isolation');
   assert.match(gateway, /localAuxiliaryQueue/u, 'AiGateway must own a scheduler separate from the interactive Model Brain queue');
   assert.match(gateway, /local-auxiliary/u, 'the auxiliary scheduler must have an explicit local-auxiliary identity');
-  assert.match(gateway, /this\.localAuxiliaryQueue/u);
-  assert.match(gateway, /this\.queue/u);
+  assert.match(gateway, /_schedulerPlan/u, 'background queue choice must be gated by an admitted auxiliary-only projection');
+  assert.match(gateway, /auxiliaryOnly: true/u);
+  assert.match(gateway, /AUXILIARY_RUNTIME_PROVIDERS/u, 'scheduler admission must bind the same auxiliary provider authority as Model Brain projection');
+  assert.match(gateway, /providerKey: schedulerPlan\.localAuxiliary \? 'local-auxiliary' : 'model-brain'/u);
+  assert.doesNotMatch(gateway, /const scheduler = background === true \? this\.localAuxiliaryQueue : this\.queue/u, 'background=true alone must never move cloud-capable work onto the local auxiliary scheduler');
 });
 
 test('existing Ollama seam grows pull/progress/cancel lifecycle without introducing another local runtime or arbitrary pull endpoint', () => {
@@ -63,6 +67,8 @@ test('existing Ollama seam grows pull/progress/cancel lifecycle without introduc
   assert.match(ollama, /OLLAMA_ENDPOINT_NOT_AUTHORIZED/u);
   assert.match(routes, /\/local\/pull/u, 'model routes must expose explicit user-consented local pull');
   assert.match(routes, /pull.*cancel|cancel.*pull/us, 'model routes must expose cancellation for an active pull');
+  assert.match(routes, /pullLocalModel[\s\S]*controller\.signal\.aborted[\s\S]*pullControllers\.delete\(requestId\)[\s\S]*state: 'finalizing'[\s\S]*discoverLocalModels/u, 'accepted cancellation must be observed before cancellation authority ends, and finalization must begin only after physical pull completion');
+  assert.match(routes, /if \(!controller\) return res\.json\(\{ ok: true, requestId, cancelled: false/u, 'late cancellation during finalization must be reported as not applied');
   assert.match(routes, /unload/u);
   assert.match(routes, /delete|removeLocalModel/u);
 

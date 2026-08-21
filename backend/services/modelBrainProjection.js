@@ -107,7 +107,8 @@ function hardConstraints(input = {}) {
     tags: [...tags].sort(),
     allowedProviders,
     deniedProviders: list(constraints.deniedProviders).map(x => x.toLowerCase()),
-    allowExperimental: constraints.allowExperimental === true
+    allowExperimental: constraints.allowExperimental === true,
+    auxiliaryOnly: constraints.auxiliaryOnly === true
   };
 }
 function projectModel(model = {}) {
@@ -149,6 +150,7 @@ function deploymentEligible(row, constraints = {}) {
   }
   if ((constraints.allowedProviders || []).length && !(constraints.allowedProviders || []).includes(row.provider)) return false;
   if ((constraints.deniedProviders || []).includes(row.provider)) return false;
+  if (constraints.auxiliaryOnly === true && row.sourceType !== 'local' && !AUXILIARY_RUNTIME_PROVIDERS.has(row.provider)) return false;
   return true;
 }
 function project(state = {}, request = {}) {
@@ -179,6 +181,7 @@ function project(state = {}, request = {}) {
     tags: Object.freeze(constraints.tags),
     allowedProviders: Object.freeze(constraints.allowedProviders),
     deniedProviders: Object.freeze(constraints.deniedProviders),
+    auxiliaryOnly: constraints.auxiliaryOnly,
     candidates: Object.freeze(candidates),
     catalog: Object.freeze(all),
     hardEligibility: Object.freeze({ privacy: true, vision: true, audio: true, video: true, language: true, context: true, provider: true, localAuxiliarySla: true })

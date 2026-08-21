@@ -291,6 +291,10 @@ router.post('/local/pull', async (req, res, next) => {
         eventBus.publish('models:local-pull-progress', snapshot);
       }
     });
+    if (controller.signal.aborted) throw controller.signal.reason || Object.assign(new Error('MODEL_CANCELLED'), { code: 'MODEL_CANCELLED' });
+    pullControllers.delete(requestId);
+    const finalizing = rememberPullProgress(requestId, { ...result, state: 'finalizing', status: 'finalizing', model: name, endpoint });
+    eventBus.publish('models:local-pull-progress', finalizing);
     const discovery = await aiGateway.discoverLocalModels();
     let state = await registry.mergeDiscovered(discovery);
     state = await modelAutoActivation.run({ reason: 'local-pull-complete', state });

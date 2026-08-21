@@ -141,6 +141,66 @@ test('local auxiliary work owns a scheduler that is distinct from the interactiv
   assert.notEqual(gateway.localAuxiliaryQueue, gateway.queue, 'local auxiliary concurrency must not consume the interactive queue');
 });
 
+test('background scheduler isolates only an admitted auxiliary-only candidate projection', () => {
+  const interactiveQueue = { name: 'model-brain' };
+  const auxiliaryQueue = { name: 'local-auxiliary' };
+  const state = {
+    models: [qualifiedModel({
+      id: 'cloud-translation',
+      provider: 'openrouter',
+      endpoint: 'https://openrouter.ai/api/v1',
+      tasks: ['translation']
+    })]
+  };
+  const gateway = new AiGateway({
+    queue: interactiveQueue,
+    localAuxiliaryQueue: auxiliaryQueue,
+    registry: { read: () => state },
+    runtime: { status: runtimeSnapshot },
+    internalOperationAuthorityProvider: () => null
+  });
+
+  let plan = gateway._schedulerPlan('translation', {}, '', true);
+  assert.equal(plan.scheduler, interactiveQueue, 'cloud-capable background work must stay on the Model Brain scheduler when no auxiliary deployment is admitted');
+  assert.equal(plan.localAuxiliary, false);
+
+  state.models.push(qualifiedModel({
+    id: 'loopback-openai-translation',
+    provider: 'openai-compatible',
+    endpoint: 'http://127.0.0.1:18080/v1',
+    tasks: ['translation'],
+    benchmark: commercialBenchmark(['translation'])
+  }));
+  plan = gateway._schedulerPlan('translation', {}, '', true);
+  assert.equal(plan.scheduler, auxiliaryQueue, 'a benchmark-admitted loopback deployment must use the isolated auxiliary scheduler regardless of provider label');
+  assert.equal(plan.localAuxiliary, true);
+  assert.equal(plan.options.constraints.auxiliaryOnly, true);
+  let constrained = gateway.projection('translation', plan.options);
+  assert.equal(constrained.auxiliaryOnly, true);
+  assert.deepEqual(constrained.candidates.map(row => row.id), ['loopback-openai-translation'], 'cloud deployments must not share a local auxiliary queue admission');
+
+  state.models = [
+    qualifiedModel({
+      id: 'cloud-translation',
+      provider: 'openrouter',
+      endpoint: 'https://openrouter.ai/api/v1',
+      tasks: ['translation']
+    }),
+    qualifiedModel({
+      id: 'remote-ollama-translation',
+      provider: 'ollama',
+      endpoint: 'https://remote-ollama.example',
+      tasks: ['translation'],
+      benchmark: commercialBenchmark(['translation'])
+    })
+  ];
+  plan = gateway._schedulerPlan('translation', {}, '', true);
+  assert.equal(plan.scheduler, auxiliaryQueue, 'an admitted remote-host Ollama deployment remains an auxiliary runtime despite cloud locality');
+  constrained = gateway.projection('translation', plan.options);
+  assert.deepEqual(constrained.candidates.map(row => row.id), ['remote-ollama-translation']);
+  assert.equal(constrained.candidates[0].sourceType, 'cloud');
+});
+
 test('Ollama seam exposes governed on-demand pull with progress and caller cancellation', async () => {
   assert.equal(typeof ollamaClient.pull, 'function', 'Ollama client must expose the V1 pull lifecycle on the existing runtime seam');
 
