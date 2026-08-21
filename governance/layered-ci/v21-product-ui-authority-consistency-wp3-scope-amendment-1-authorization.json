@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T00:24:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-UI-AUTHORITY-CONSISTENCY-WP3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Same-work-package Fast Closure V2 scope amendment after fresh exact-head failure-first evidence. Immutable RED head bccf70056e7ee70a8cf595d83700c2a91e7a07aa produced Stage run 32507051371 with 542 PASS / 4 FAIL across the WP0 corpus; route and both sealed-export jobs stayed GREEN and all four failures are the new WP3 causal contracts. Source-graph closure proves the current Element Product lacks Personal Access status/request/OWNER management reachability and the required desktop bridge mappings, while the historical Personal Access UI still sits only on retired frontend/r32-system-center.js. The same current Product leaks English native title tooltips and clips relationship labels/facts with ellipsis. Existing Personal Access backend/guard/Worker/D1 and existing Product runtime authorities are PRESERVE. Learning authority expansion, cloud backup/restore, system-DPI automatic font mode, release/publish and PR #538 are OUT OF ROOT CAUSE. Closure Matrix unknownBlockers=0. This amendment uses the repository canonical delegated-governance authorization schema and authorizes only the exact cumulative twelve-path continuation required for one cohesive root-fix batch.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-ui-authority-consistency-wp3-authorization.json",
+    "implementationBranch": "product/v21-product-ui-authority-consistency-wp3",
+    "reason": "The original implementation branch is immutable tests-only failure-first evidence at bccf70056e7ee70a8cf595d83700c2a91e7a07aa. Production changes require this merged post-RED amendment and a new forward-only continuation branch; the RED branch must not receive further commits."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "2019f468ab0e7a6c1572e4f25d60bdb6e442e191"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "2019f468ab0e7a6c1572e4f25d60bdb6e442e191",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ui-authority-consistency-wp3-scope-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ui-authority-consistency-wp3-scope-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d94d446ce6b63165ff80d514455b3375355c196eae01e49f65c93161cf826203",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-ui-authority-consistency-wp3-amendment-1",
+    "allowedChangedPaths": [
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "tests/wp0/v21-personal-access-control-p0.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js"
+    ],
+    "approvedChangedFileCount": 12,
+    "approvedChangedFileSetSha256": "83b68cd516524b285ad86c7460b59c6a74eaf24d68502666d10c55b222563d55",
+    "newlyAuthorizedPaths": [
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "tests/wp0/v21-personal-access-control-p0.test.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 11,
+    "newlyAuthorizedChangedFileSetSha256": "2e7d704da0185d966bb71270b3dbbb48209ab79f9f0ec991bdea66cec7845a6d",
+    "productionAllowedChangedPaths": [
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css"
+    ],
+    "productionChangedFileCount": 10,
+    "productionChangedFileSetSha256": "e560bcd223670402427755e08d5a9dc9acc84a445ce49fca3bf4481490a3fd97",
+    "productionScopeAuthorized": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "backendEntitlementAuthorityModificationAllowed": false,
+    "workerOrD1ModificationAllowed": false,
+    "legacyFrontendReactivationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "postRedContinuation": {
+    "fastClosureV2": true,
+    "originalEffectiveAuthorizationMerge": "2019f468ab0e7a6c1572e4f25d60bdb6e442e191",
+    "originalImplementationBranch": "product/v21-product-ui-authority-consistency-wp3",
+    "originalFailureFirstHead": "bccf70056e7ee70a8cf595d83700c2a91e7a07aa",
+    "originalFailureFirstStageRun": 32507051371,
+    "originalFailureFirstStageJob": 96849526447,
+    "originalFailureFirstConclusion": "failure",
+    "originalFailureFirstStagePassCount": 542,
+    "originalFailureFirstStageFailCount": 4,
+    "unknownBlockers": 0,
+    "requiredFirstProductionTrailers": [
+      "Yance-Failure-First-Red-Head: bccf70056e7ee70a8cf595d83700c2a91e7a07aa",
+      "Yance-Failure-First-Red-Run: 32507051371",
+      "Yance-Failure-First-Red-Conclusion: failure",
+      "Yance-Closure-Matrix-Unknown-Blockers: 0"
+    ],
+    "requiredContinuationTopology": {
+      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
+      "firstContinuationCommitMustBeTwoParentMerge": true,
+      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
+      "firstContinuationCommitSecondParent": "bccf70056e7ee70a8cf595d83700c2a91e7a07aa",
+      "historyRewriteForbidden": true,
+      "cherryPickDuplicationForbidden": true,
+      "oldImplementationBranchMustNotReceiveFurtherCommits": true
+    }
+  },
+  "causalRedClassification": {
+    "greenPreserveContracts": [
+      "Element ProductExperienceShell remains the sole active Product renderer and retired frontend stays outside active mounts.",
+      "Existing Personal Access backend entitlement service, guard, Worker and D1 lifecycle remain canonical and unchanged.",
+      "Existing search/translation, relationship intelligence, appearance durability and Voice/Media/Presence runtime contracts remain GREEN."
+    ],
+    "personalAccessRoot": [
+      "The active Element Product has no Personal Access status/request/OWNER management surface.",
+      "The existing desktop Store bridge/preload/M2 manifest does not expose the six Personal Access operations required by the current Product.",
+      "The older Personal Access Product regression still treats retired frontend/r32-system-center.js as the UI surface."
+    ],
+    "presentationRoot": [
+      "Current Voice/Media/Presence/Learning Product controls leak English-only native title tooltips.",
+      "Current Product relationship list, assistant fact and relationship-universe selectors use ellipsis/no-wrap clipping for user-visible text."
+    ],
+    "outOfRootCause": [
+      "Learning durable approval/privacy/consent authority expansion.",
+      "Cloud backup/restore.",
+      "System-DPI automatic font mode.",
+      "Release/publish and Desktop/Windows UAT candidate PR #538."
+    ],
+    "unknownBlockers": 0
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "Current Element Product exposes Personal Access status, refresh, TESTER request, and OWNER approve/reject/assign/suspend/revoke controls through the existing authoritative backend seam.",
+      "Protected Product state is not treated as usable before entitlement status permits access.",
+      "No renderer-local entitlement truth or second Personal Access authority is created.",
+      "Current Chinese Product controls do not leak redundant English-only native title tooltips.",
+      "User-visible relationship labels and facts wrap/read fully without ellipsis clipping.",
+      "Personal Access regression tests point at the active Element Product and enforce the real bridge and UI behavior."
+    ],
+    "forbiddenBehavior": [
+      "Do not edit, reactivate or remount frontend/r32-system-center.js.",
+      "Do not modify Personal Access backend routes, service, guard, Worker or D1.",
+      "Do not create a second renderer, entitlement state store, backend route, IPC framework, dependency, migration or general-purpose infrastructure.",
+      "Do not weaken gates/scanners or touch PR #538."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_CURRENT_ELEMENT_PRODUCT_AND_EXISTING_PERSONAL_ACCESS_AUTHORITY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Product module",
+        "source": "@element-hq/element-web-module-api plus current Yance ProductExperienceShell",
+        "license": "existing reviewed repository authority",
+        "adoptionMode": "reuse-existing-authority",
+        "fit": "FIT",
+        "reason": "The missing root is Product reachability/presentation, not absence of a UI framework."
+      },
+      {
+        "name": "Existing Personal Access authority",
+        "source": "backend/services/personalAccessService.js plus backend/routes/personalAccess.js plus personal-access-worker",
+        "license": "repository-existing",
+        "adoptionMode": "reuse-existing-authority",
+        "fit": "FIT",
+        "reason": "The entitlement engine already exists; WP3 only surfaces it through the sole Product renderer and existing desktop seam."
+      }
+    ],
+    "retireOrAvoid": [
+      "frontend/r32-system-center.js is retired as Personal Access Product UI authority and must not be edited, reactivated, remounted, or used as the acceptance surface; integration/element-module/src/YanceWorkspace.tsx plus the current Element Product is the sole production UI path.",
+      "Any renderer-local Personal Access entitlement state, localStorage authority, or second entitlement store is forbidden; backend/services/personalAccessService.js remains the sole entitlement authority behind the existing desktop bridge.",
+      "Any second Product renderer or new general-purpose Yance IPC/UI framework duplicating integration/element-module or electron/r32StoreBridge.js is forbidden."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "node --test tests/wp0/v21-personal-access-control-p0.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered",
+      "ACV2/WP-A when routed",
+      "Model Brain Windows when routed",
+      "Product Final when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
