@@ -1,0 +1,428 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T12:46:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-WINDOWS-UAT-STARTUP-P0",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close the current Product Experience Windows UAT startup P0 as one Fast Landing / batch-causal-closure work package. The same root graph contains a missing production Element activation responder, a responder-registration race between DOMContentLoaded renderer-ready and Element ModuleLoader startup, an unauthenticated-first-screen readiness requirement, a Product Final Windows job that builds but never starts the packaged Yance.exe, a Product Final branch gate that currently excludes the authorized implementation branch, and a materialized-UAT runner that currently declares GREEN immediately after Start-Process. Reuse the existing Element v1.12.25 ModuleLoader lifecycle, Electron main-window activation/readiness authorities, post-install launch receipt, productionRuntimePathProbe, WP7 trusted-product packaging, and materialized Matrix topology. Do not add sleeps, fake readiness, a second loader, a second readiness protocol, a browser-only surrogate, or a new package/runtime dependency.",
+  "base": {
+    "branch": "main",
+    "commit": "0170c457929301d1f254a36364b5b189b9917eb5"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "0170c457929301d1f254a36364b5b189b9917eb5",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-windows-uat-startup-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-windows-uat-startup-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "6bb250704d291ef621987fb7267b6896b98e3ab04e3c71d3dc0ce8fa1ea00fdf",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-windows-uat-startup-p0",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "electron/main.js",
+      "electron/mainWindowActivationController.js",
+      "electron/preload.js",
+      "integration/element-module/src/index.tsx",
+      "tests/desktop-fixes/desktop-activation-wiring.test.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js",
+      "tests/desktop-fixes/tray-lifecycle-integration.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1"
+    ],
+    "approvedChangedFileCount": 10,
+    "approvedChangedFileSetSha256": "557107d99cb27a5fa08ba4656d90547a41d8f69b8f24e921cedc2977c73ce10d",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/desktop-fixes/desktop-activation-wiring.test.js",
+        "tests/desktop-fixes/main-window-activation-controller.test.js",
+        "tests/desktop-fixes/tray-lifecycle-integration.test.js",
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 4,
+      "approvedChangedFileSetSha256": "629ffca850eef9afa2ccdd485b052390496318a31e6356f743e0c925ec684785",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The production integration/element-module load path has no desktop activation-probe responder even though preload exposes the challenge bridge and main requires a successful challenge before activation dispatch.",
+        "Main-window activation can treat DOMContentLoaded renderer-ready as sufficient before the Element module registers its probe listener, so the challenge can be sent before any production responder exists.",
+        "The Product Final Windows materialized-desktop job builds and uploads the exact WP7 packaged payload but never executes its Yance.exe or proves an unauthenticated Element ModuleLoader startup.",
+        "The Product Final workflow currently excludes fix/v21-product-experience-windows-uat-startup-p0 from both frozen-element-reproducibility and materialized-desktop-uat job gates, so the exact implementation branch cannot produce required Product Final startup evidence until the authorized workflow change closes that routing gap.",
+        "The materialized-UAT PowerShell runner writes evidence and prints GREEN immediately after Start-Process without waiting for the post-install activation receipt, process survival, or productionRuntimeProbe execution."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "productRuntimeModificationAllowed": true,
+    "upstreamPatchModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "rootPackageManifestModificationAllowed": false,
+    "rootLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "productionReleaseAuthorized": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Fresh trusted main still equals 0170c457929301d1f254a36364b5b189b9917eb5 before authorization merge; otherwise regenerate this proposal from fresh main.",
+      "Implementation branch starts exactly from the ordinary two-parent authorization merge commit.",
+      "Trusted implementationBranchPolicy recognizes the exact implementation path set, failure-first path set, workflow permission and Fast Closure V2 diagnostic semantics.",
+      "No active open PR mutates electron/main.js, electron/preload.js, electron/mainWindowActivationController.js, integration/element-module/src/index.tsx, the Product Final workflow, or the materialized-UAT runner.",
+      "Fresh source search re-proves the complete activation chain Element module load -> responder registration -> controller readiness -> activation challenge -> /api/ready -> post-install launch receipt.",
+      "Fresh source search re-proves productionRuntimePathProbe is already executed by backend startup when YANCE_WP2_PRODUCTION_RUNTIME_PROBE=1 and does not require a second probe implementation.",
+      "Fresh source search re-proves pinned Element v1.12.25 loadPlugins runs before loadApp/login and official 18-load-element-modules.sh remains the production module-discovery authority.",
+      "The current Product Final branch gate exclusion for fix/v21-product-experience-windows-uat-startup-p0 is classified as a known ROOT_IMPLEMENTATION item, is locked by tests/wp0/v21-product-experience-materialized-uat.test.js in the failure-first RED, and must be closed by the authorized workflow production batch before final exact-head Product Final evidence.",
+      "Current Product UAT branch/artifacts remain untouched until this independent root repair is ordinarily merged to main and then forward-merged."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "observedUnknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "integration/element-module/src/index.tsx module load",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Pinned Element ModuleLoader invokes module.load() before loadApp/login; production module currently registers workspace/composer/button only and no activation responder.",
+        "requiredClosure": "Register exactly one production desktop activation responder during module load; it must not require Matrix authentication."
+      },
+      {
+        "boundary": "electron/preload.js responder registration",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "onActivationProbe currently only attaches the listener and emits no registration acknowledgement.",
+        "requiredClosure": "After the listener is attached, emit a trusted responder-ready IPC acknowledgement; no timer-based delay."
+      },
+      {
+        "boundary": "electron/mainWindowActivationController.js readiness",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Current readiness has didFinishLoad, preloadReady and rendererReady only.",
+        "requiredClosure": "Add activationProbeResponderReady as a fourth required readiness phase and reset it on reload/rebuild."
+      },
+      {
+        "boundary": "electron/main.js activation validation",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Main owns trusted renderer IPC, activation challenge and /api/ready validation.",
+        "requiredClosure": "Bind responder-ready to the exact BrowserWindow and, when the production path probe env is enabled, fail closed unless /api/ready reports productionRuntimeProbe enabled and executed."
+      },
+      {
+        "boundary": "electron/mainWindowRuntimeReadiness.js",
+        "classification": "PRESERVE",
+        "evidence": "Existing fresh per-activation challenge already binds exact sender/id and requires backendReady, sessionReady, rendererReady and workspaceReady.",
+        "requiredClosure": "Do not weaken or replace the challenge authority."
+      },
+      {
+        "boundary": "electron/postInstallLaunchReceipt.js",
+        "classification": "PRESERVE",
+        "evidence": "Receipt is written only from activation dispatch and PASS requires a visible, non-minimized, non-destroyed window.",
+        "requiredClosure": "Reuse this receipt as the Windows startup verdict; do not invent another GREEN marker."
+      },
+      {
+        "boundary": "backend/services/productionRuntimePathProbe.js + backend/server.js",
+        "classification": "PRESERVE",
+        "evidence": "Backend already executes the real production-path probe when YANCE_WP2_PRODUCTION_RUNTIME_PROBE=1 and surfaces its snapshot in /api/ready.",
+        "requiredClosure": "Enable it for CI/UAT launch and consume the existing snapshot; no backend production edit."
+      },
+      {
+        "boundary": "Element runtime delivery bootstrap/0012 patch/18-load-element-modules.sh",
+        "classification": "PRESERVE",
+        "evidence": "Existing authority builds /modules/yance and Element entrypoint injects its lib/index.js into config.json.modules.",
+        "requiredClosure": "No upstream patch, config or loader modification."
+      },
+      {
+        "boundary": "Product Final implementation-branch routing gate",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "The current frozen-element-reproducibility and materialized-desktop-uat job conditions allow only five product/... branches and exclude fix/v21-product-experience-windows-uat-startup-p0, so the implementation branch would otherwise report Product Final as skipped instead of producing packaged startup evidence.",
+        "requiredClosure": "Within the already-authorized Product Final workflow path, add the exact implementation branch to both job gates while preserving every existing product branch entry; tests/wp0/v21-product-experience-materialized-uat.test.js must statically lock the routing contract and final exact-head CI must show materialized-desktop-uat success rather than skipped."
+      },
+      {
+        "boundary": "Product Final Windows materialized-desktop job",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Current job materializes the exact WP7 payload and uploads it without executing Yance.exe.",
+        "requiredClosure": "Build the same pinned Element/Yance module on Windows, serve that exact webapp as a validation-only local host, launch the extracted exact packaged Yance.exe with isolated data, --post-install and production probe enabled, require fresh PASS receipt, then terminate the validation process tree before sealing/upload."
+      },
+      {
+        "boundary": "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Current runner prints GREEN immediately after Start-Process.",
+        "requiredClosure": "Launch --post-install with production probe enabled, wait boundedly for a fresh PASS launch receipt while failing immediately on process exit, validate receipt/process identity, and only then write GREEN evidence."
+      },
+      {
+        "boundary": "legacy frontend/js/r32-ui-runtime.js activation responder assumptions",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+        "evidence": "Legacy desktop tests still look for readiness behavior in the old frontend shell, but packaged Product main window loads Element at the configured Element URL.",
+        "requiredClosure": "Tests must bind the production Element module responder without deleting legacy-shell behavior."
+      },
+      {
+        "boundary": "Matrix authentication/session",
+        "classification": "NEGATIVE_PROOF",
+        "evidence": "Pinned Element loadPlugins completes before loadApp/login.",
+        "requiredClosure": "Desktop READY must succeed on the unauthenticated first screen and must not depend on a Matrix account or homeserver login."
+      }
+    ],
+    "requiredNegativeProofs": [
+      "No activation challenge is dispatched before a production responder listener has acknowledged registration.",
+      "No Matrix login, room, account or WhatsApp state is a prerequisite for Desktop READY.",
+      "No sleep/retry window is used to conceal listener-registration ordering.",
+      "A packaged process that starts and exits, never registers the responder, fails the activation challenge, fails /api/ready, or does not execute the production path probe cannot produce GREEN UAT evidence.",
+      "The Windows CI startup proof launches the exact WP7 packaged Yance.exe rather than Electron source mode or a browser surrogate.",
+      "The exact implementation branch cannot satisfy Product Final with a skipped routing result; both Product Final jobs must recognize the exact branch, and materialized-desktop-uat must complete with success on the implementation exact head.",
+      "No second Element loader, readiness state machine, backend path probe, package manager, dependency or generalized test server is introduced."
+    ]
+  },
+  "startupContract": {
+    "elementResponder": {
+      "authority": "integration/element-module module load through official Element ModuleLoader",
+      "registrationBeforeChallengeRequired": true,
+      "matrixAuthenticationRequired": false,
+      "completionFields": [
+        "id",
+        "ok",
+        "backendReady",
+        "sessionReady",
+        "rendererReady",
+        "workspaceReady"
+      ],
+      "localSessionProof": "Use the existing desktop/store bridge backed by the rotating local API session; do not equate Matrix login with the local desktop session."
+    },
+    "mainWindow": {
+      "existingChallengeAuthority": "electron/mainWindowRuntimeReadiness.js",
+      "newProtocolForbidden": true,
+      "productionProbeEnv": "YANCE_WP2_PRODUCTION_RUNTIME_PROBE=1",
+      "productionProbeRequiredWhenEnabled": true
+    },
+    "windowsCi": {
+      "mustLaunchPackagedYanceExe": true,
+      "sourceElectronLaunchForbidden": true,
+      "browserOnlySurrogateForbidden": true,
+      "elementSource": "same exact candidate via tools/matrix/bootstrap.js and pinned Element v1.12.25",
+      "elementHost": "validation-only pinned Node core HTTP static host over the freshly built Element webapp plus freshly built /modules/yance output",
+      "matrixLoginRequired": false,
+      "isolatedDataRootRequired": true,
+      "postInstallLaunchRequired": true,
+      "freshPassReceiptRequired": true,
+      "processTreeCleanupRequired": true,
+      "implementationBranch": "fix/v21-product-experience-windows-uat-startup-p0",
+      "workflowGateMustIncludeImplementationBranch": true,
+      "requiredRoutedJobs": [
+        "frozen-element-reproducibility",
+        "materialized-desktop-uat"
+      ],
+      "materializedDesktopUatMayBeSkipped": false
+    },
+    "windowsUatRunner": {
+      "matrixAuthority": "existing sealed Matrix images + docker compose up --no-build",
+      "realProductDataMutationForbidden": true,
+      "isolatedDataRootRequired": true,
+      "optionalStoppedCopyFromExistingDataRootPreserved": true,
+      "postInstallLaunchRequired": true,
+      "freshPassReceiptRequired": true,
+      "processExitBeforeReceiptIsFailure": true,
+      "greenOnStartProcessForbidden": true
+    }
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_ELEMENT_ELECTRON_WP7_AND_PROBE_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Web ModuleLoader + 18-load-element-modules.sh",
+        "source": "pinned element-hq/element-web v1.12.25",
+        "license": "existing reviewed upstream license closure",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already owns production module discovery/load before app/login; Yance only needs to register its responder in the existing module lifecycle."
+      },
+      {
+        "name": "Electron contextBridge/ipcMain + existing main-window activation controller",
+        "source": "repository-existing desktop runtime",
+        "license": "existing reviewed Electron/runtime closure",
+        "adoptionMode": "extend-existing-seam",
+        "fit": "FIT",
+        "reason": "Already owns trusted renderer identity, readiness and per-activation challenge; add only the missing registration acknowledgement and fourth readiness phase."
+      },
+      {
+        "name": "Existing post-install launch receipt + productionRuntimePathProbe",
+        "source": "electron/postInstallLaunchReceipt.js and backend/services/productionRuntimePathProbe.js",
+        "license": "repository code",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Together already provide a causally strong visible-window verdict and real production-path execution evidence; reuse instead of inventing new markers."
+      },
+      {
+        "name": "Pinned Node.js core HTTP server for CI-only Element static hosting",
+        "source": "trusted CI Node 22.23.1 already configured in Product Final",
+        "license": "Node.js existing trusted-CI dependency",
+        "adoptionMode": "validation-only-existing-runtime",
+        "fit": "FIT",
+        "reason": "Provides a dependency-free temporary static host for the exact freshly built Element webapp on windows-latest; it is not shipped or used as product runtime infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire GREEN-on-Start-Process semantics from the Product materialized-UAT runner.",
+      "Do not add sleeps or retries as a substitute for a responder-registration handshake.",
+      "Do not add a Yance-owned Element loader, web runtime, backend readiness service or new dependency.",
+      "Do not change pinned Element upstream patches, Matrix compose authority, productionRuntimePathProbe implementation or post-install receipt authority unless a fresh causal RED proves an amendment is necessary."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/desktop-fixes/main-window-activation-controller.test.js",
+      "node --test tests/desktop-fixes/desktop-activation-wiring.test.js",
+      "node --test tests/desktop-fixes/tray-lifecycle-integration.test.js",
+      "node --test tests/desktop-fixes/main-window-runtime-readiness.test.js",
+      "node --test tests/desktop-fixes/post-install-launch-receipt.test.js",
+      "node --test tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "node --test tests/wp0/v21-element-workspace-contract.test.js"
+    ],
+    "productFinalRoutingContract": {
+      "workflowPath": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "implementationBranch": "fix/v21-product-experience-windows-uat-startup-p0",
+      "failureFirstTest": "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "requiredJobs": [
+        "frozen-element-reproducibility",
+        "materialized-desktop-uat"
+      ],
+      "requiredMachineChecks": [
+        "The failure-first test must parse or inspect the Product Final workflow and fail while either required job gate omits the exact implementation branch; the production workflow change must add that exact branch while preserving all existing product branch entries.",
+        "Final exact-head CI evidence must show V21 Product Experience Shell P0 Final Validation routed for the exact implementation head with materialized-desktop-uat conclusion success; skipped, neutralized or surrogate execution is not GREEN."
+      ]
+    },
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "ACV2 WP-A Architecture Gates",
+      "V21 Product Experience Shell P0 Final Validation routed on fix/v21-product-experience-windows-uat-startup-p0, including real windows-latest packaged startup; materialized-desktop-uat must be success and must not be skipped",
+      "V21 Model Brain P0 Windows when routed"
+    ],
+    "windowsStartupEvidence": [
+      "Exact candidate commit/tree bound WP7 pre-review trusted-product payload.",
+      "Fresh pinned Element webapp and @yance/element-module build from the same candidate.",
+      "Exact Product Final workflow gate recognizes fix/v21-product-experience-windows-uat-startup-p0 in both frozen-element-reproducibility and materialized-desktop-uat jobs, with final materialized-desktop-uat conclusion success rather than skipped.",
+      "Exact packaged Yance.exe process identity and isolated YANCE_DATA_DIR.",
+      "Fresh post-install PASS receipt produced only after activation validation.",
+      "/api/ready productionRuntimeProbe enabled=true and executed=true enforced by Electron main while probe env is enabled."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true
+  },
+  "handoffBackToProduct": {
+    "productPullRequest": 538,
+    "productBranch": "product/v21-product-experience-shell-p0",
+    "rule": "After this independent startup-root repair ordinarily merges to fresh main, ordinary-forward merge fresh main into the Product UAT branch without rebase/history rewrite, regenerate both same-identity materialized artifacts, require Product Final exact-head GREEN including the new windows-latest packaged startup proof, and only then ask the user to download the formal Windows UAT candidate again."
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainRequiredBeforeMerge": true,
+    "freshThreadsRequiredBeforeMerge": true,
+    "explicitOwnerAuthorizationRequiredForAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForImplementationMerge": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "fakeReadyMarker": true,
+    "sleepAsReadinessAuthority": true,
+    "greenOnProcessSpawn": true,
+    "sourceModeSubstitutionForPackagedWindows": true,
+    "matrixLoginAsDesktopReadyPrerequisite": true,
+    "newDependency": true,
+    "rootManifestChange": true,
+    "rootLockRegeneration": true,
+    "forcePush": true,
+    "rebase": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
