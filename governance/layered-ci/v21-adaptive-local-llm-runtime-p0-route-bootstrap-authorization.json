@@ -134,6 +134,25 @@
     "Ordinary-forward reconcile the resulting fresh main into candidate PR #596 without rebase, amend, force push or stale-blob overwrite; preserve its immutable RED and first-production topology.",
     "Resume PR #596 exact-head routed gates and root-fix any remaining causal failures before its separate explicit owner merge boundary."
   ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BASE_OWNED_EXACT_ROUTE_POLICY_AND_GENERIC_DELEGATED_MUTATION_GUARD",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Yance base-owned WP0 exact routing policy and delegated semantic mutation guard",
+        "source": "governance/layered-ci/wp0-routing-policy.json + shared/release/implementationBranchPolicy.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This gap is repository-specific trusted path classification, not a new infrastructure problem. The existing exact productExactPaths mechanism and already-effective delegated semantic mutation guard fully cover it; this bootstrap only registers six frozen literals and must not add a second router or broad prefix."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second route classifier, wildcard registry, broad config/runtime/third_party product prefix, or candidate-owned routing fallback."
+    ]
+  },
   "prohibitions": {
     "temporaryBypass": true,
     "warningOnlyClosure": true,
