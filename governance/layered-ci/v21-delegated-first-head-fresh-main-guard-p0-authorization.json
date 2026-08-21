@@ -116,6 +116,7 @@
         "name": "Git ancestry/merge-base plumbing",
         "source": "git/git via existing trustedGit seam",
         "license": "GPL-2.0-only",
+        "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
         "reason": "The evaluator already owns trusted main, authorization merge, first-parent history and exact Git topology. The guard needs no new service, dependency or mutable remote state."
       },
@@ -123,6 +124,7 @@
         "name": "Yance implementationBranchPolicy",
         "source": "shared/release/implementationBranchPolicy.js@8cfdbee6e1549f0870f55998bedbe840be51ef70",
         "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
         "reason": "This is the single existing delegated authorization/topology authority and is the correct layer for an opt-in first-head anti-drift contract."
       }
