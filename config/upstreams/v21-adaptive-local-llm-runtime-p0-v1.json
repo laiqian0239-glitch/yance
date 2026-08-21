@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "workPackage": "V21-ADAPTIVE-LOCAL-LLM-RUNTIME-P0-V1",
+  "policy": {
+    "networkMaterialization": false,
+    "explicitUserConsentRequired": true,
+    "sha256Required": true,
+    "diskPreflightRequired": true,
+    "largeArtifactsCommitted": false
+  },
+  "runtimes": [
+    {
+      "id": "llama.cpp",
+      "repository": "ggml-org/llama.cpp",
+      "tag": "b10336",
+      "commit": "f401bb139016c7994298d21ebb1d07b8f9e4d50b",
+      "license": "MIT",
+      "nativeWindowsSupported": true,
+      "supportsCpuGpuHybrid": true,
+      "transport": "openai-compatible-local",
+      "artifacts": [
+        {
+          "name": "cudart-llama-bin-win-cuda-12.4-x64.zip",
+          "sha256": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+          "materialization": "user-local-file-only"
+        }
+      ]
+    },
+    {
+      "id": "ktransformers",
+      "repository": "kvcache-ai/ktransformers",
+      "commit": "95009ea6856c0799e517e93cb12be5e8494bc7ce",
+      "license": "Apache-2.0",
+      "nativeWindowsSupported": false,
+      "wslOrUserManaged": true,
+      "supportsCpuGpuHybrid": true,
+      "transport": "openai-compatible-local",
+      "artifacts": []
+    },
+    {
+      "id": "airllm",
+      "repository": "lyogavin/airllm",
+      "commit": "cfe456e5e1c28ea046f16cc835743f141e8ac9b8",
+      "packageVersion": "3.1.0",
+      "license": "Apache-2.0",
+      "supportsLayerStreaming": true,
+      "allowedCapabilityClasses": ["background", "extreme"],
+      "transport": "local-worker",
+      "artifacts": []
+    }
+  ]
+}
