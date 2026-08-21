@@ -266,6 +266,17 @@ test('GOVERNANCE_WP0 executes the implementation branch policy contract exactly 
   assert.doesNotMatch(job, /implementation-branch-policy\.test\.js\s*(?:\|\||;).*true/u);
 });
 
+test('delegated first-head guard evaluator repair scope selects GOVERNANCE_WP0', () => {
+  const result = classifyWp0Route(policy, [
+    'shared/release/implementationBranchPolicyLegacy.js',
+    'tests/wp0/implementation-branch-policy.test.js'
+  ]);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.route, ROUTES.GOVERNANCE, JSON.stringify(result));
+  assert.equal(result.governanceChangesPresent, true, JSON.stringify(result));
+  assert.equal(result.productChangesPresent, false, JSON.stringify(result));
+});
+
 test('base-owned evaluated repository root repair scope selects GOVERNANCE_WP0', () => {
   const result = classifyWp0Route(policy, [
     'tools/wp0/lib.js',
