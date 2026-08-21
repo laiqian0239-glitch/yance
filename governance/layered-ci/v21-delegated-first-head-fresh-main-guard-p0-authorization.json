@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-FIRST-HEAD-FRESH-MAIN-GUARD-ROUTE-PREREQUISITE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Independent exact-head review of PR #572 found that the actual delegated-governance evaluator now lives in shared/release/implementationBranchPolicyLegacy.js, but current trusted WP0 routing still classifies only shared/release/implementationBranchPolicy.js as an exact governance path. Because shared/ is otherwise a product prefix, the correct future evaluator repair (implementationBranchPolicyLegacy.js plus tests/wp0/implementation-branch-policy.test.js) currently selects PRODUCT_WP0. Repository precedent requires this bootstrap cycle to be split: first land only the missing exact governance ownership classification on trusted main, then authorize and implement the evaluator repair from that new main.",
+  "base": {
+    "branch": "main",
+    "commit": "8cfdbee6e1549f0870f55998bedbe840be51ef70"
+  },
+  "triggerEvidence": {
+    "sourcePullRequest": 570,
+    "sourceExactHead": "c61ed938bfa3e054ac82e089074c780ac521f505",
+    "sourceCodeRabbitResult": "P0=0 / P1=1",
+    "sourceValidP1": "The declared pre-implementation anti-drift guard is not consumed by trusted policy.",
+    "currentAuthorizationPullRequest": 572,
+    "staleWrapperScopeHead": "a00e009fde38e4cbf8f739beec08cc18fba29eb8",
+    "staleWrapperScopeSelfReview": "P0=0 / P1=1",
+    "currentOwningSeamHead": "a6b4a4d8d650e55ba71604ceb4d3fb3e5aad45ca",
+    "currentOwningSeamSelfReview": "P0=0 / P1=1",
+    "currentOwningSeamP1": "implementationBranchPolicyLegacy.js is the correct evaluator owner, but base-owned wp0-routing-policy.json does not list it in governanceExactPaths, so the intended policy-repair pair routes PRODUCT_WP0.",
+    "trustedRoutingPolicyBlob": "5941cc4bf647aac5a056ddf3100bece2f4e4569f",
+    "historicalPrecedentWorkPackage": "V21-BASE-OWNED-WP0-GOVERNANCE-CLASSIFICATION-P0",
+    "historicalPrecedentAuthorization": "governance/layered-ci/v21-base-owned-wp0-governance-classification-p0-authorization.json",
+    "freshTrustedMain": "8cfdbee6e1549f0870f55998bedbe840be51ef70"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "8cfdbee6e1549f0870f55998bedbe840be51ef70",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-first-head-fresh-main-guard-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-first-head-fresh-main-guard-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "eff2610521ae755ce723245241bb4d47ca2fd4ebcf65b8146bc8b354884d43c5",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "governance/v21-delegated-first-head-fresh-main-guard-route-prerequisite-p0",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d0bf4c9815a9d6a8ba8045d37741c4799a69a6b065e5332506f42f1703e9f887",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/wp0-routing.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "0d247b29f8085396a9c5a15b92b23441cb4594a45081d7c79686e1e7e3265b8b",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    }
+  },
+  "governanceBootstrapPaths": [
+    "shared/release/implementationBranchPolicyLegacy.js"
+  ],
+  "governanceBootstrapPathCount": 1,
+  "governanceBootstrapPathSetSha256": "31ed3e9a456aed8516c290a8ae0774105bf597089924e71f3a641897d4606669",
+  "classificationContract": {
+    "exactAddedGovernancePath": "shared/release/implementationBranchPolicyLegacy.js",
+    "pairedExistingGovernancePath": "tests/wp0/implementation-branch-policy.test.js",
+    "currentExpectedRouteBeforeRepair": "PRODUCT_WP0",
+    "expectedRouteAfterRepair": "GOVERNANCE_WP0",
+    "governancePrefixMutationForbidden": true,
+    "productRouteMutationForbidden": true,
+    "mixedChangesEscalateToProductMustRemainTrue": true,
+    "unknownPathFailsClosedMustRemainTrue": true,
+    "workflowModificationForbidden": true,
+    "candidateOwnedRouteAuthorityForbidden": true
+  },
+  "deferredPolicyRepair": {
+    "authorizedByThisPullRequest": false,
+    "mustUseNewAuthorizationAfterPrerequisiteMerge": true,
+    "futureAllowedChangedPaths": [
+      "shared/release/implementationBranchPolicyLegacy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "futureApprovedChangedFileCount": 2,
+    "futureApprovedChangedFileSetSha256": "0457f5a3938ad78b638b12a7072a70d94e4ee5111c2fa2d6566f9a46ea2fc6b8",
+    "existingAuthority": "shared/release/implementationBranchPolicyLegacy.js::evaluateTrustedDelegatedGovernanceBranch (re-exported by shared/release/implementationBranchPolicy.js)",
+    "requiredDeclarationPath": "implementation.failureFirstCommit.firstHeadTrustedMainGuard",
+    "requiredDeclarationExactShape": {
+      "required": true,
+      "trustedMainMustEqualAuthorizationMerge": true
+    },
+    "failureCode": "WP0_DELEGATED_GOVERNANCE_FIRST_HEAD_MAIN_DRIFT",
+    "requiredSemantics": [
+      "Only future delegated authorizations that explicitly opt in are subject to the new first-head trusted-main guard.",
+      "On the unique first failure-first implementation head, trusted main must still equal the effective authorization merge; drift fails closed before the head is accepted as RED evidence.",
+      "After a valid first failure-first head, existing legitimate fresh-main refresh semantics remain unchanged.",
+      "Existing authorizations without the declaration preserve current behavior."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_ROUTING_SSOT_AND_GOVERNANCE_BOOTSTRAP_GUARD",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP0 routing policy SSOT",
+        "source": "governance/layered-ci/wp0-routing-policy.json",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The missing capability is one exact governance ownership entry. Adding implementationBranchPolicyLegacy.js to governanceExactPaths is smaller and safer than a prefix, wildcard, new route or workflow change."
+      },
+      {
+        "name": "Existing delegated governance route mutation guard",
+        "source": "shared/release/implementationBranchPolicyLegacy.js@8cfdbee6e1549f0870f55998bedbe840be51ef70",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Current trusted policy already supports governanceBootstrapPaths with exact normalized path, count and canonical SHA-256 closure; no new policy engine is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not combine the route bootstrap and evaluator implementation in one candidate-owned batch.",
+      "Do not add a governance prefix or wildcard.",
+      "Do not route the evaluator repair through PRODUCT_WP0 and trigger unrelated Electron/product work.",
+      "Do not modify any workflow, dependency, Product, Model Brain, local-auxiliary runtime or Desktop/Windows UAT candidate surface."
+    ]
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only tests/layered-ci/wp0-routing.test.js and proves the exact future policy-repair pair implementationBranchPolicyLegacy.js plus tests/wp0/implementation-branch-policy.test.js currently selects PRODUCT_WP0.",
+    "The GREEN repair adds only shared/release/implementationBranchPolicyLegacy.js to governanceExactPaths.",
+    "After the repair, the exact same future policy-repair pair selects GOVERNANCE_WP0 with governanceChangesPresent=true and productChangesPresent=false.",
+    "No governance prefix, product exact path, product prefix, product-documentation rule, mixed-change escalation, unknown-path fail-closed rule or workflow is changed.",
+    "The current prerequisite does not modify implementationBranchPolicyLegacy.js, implementationBranchPolicy.js or tests/wp0/implementation-branch-policy.test.js."
+  ],
+  "requiredSequence": [
+    "one-file route-prerequisite authorization proposal from exact fresh main -> exact-head governance gates -> independent exact-head review",
+    "fresh main anti-drift -> explicit owner authorization -> ordinary two-parent authorization merge",
+    "create governance/v21-delegated-first-head-fresh-main-guard-route-prerequisite-p0 from the exact authorization merge",
+    "first implementation commit changes only tests/layered-ci/wp0-routing.test.js and captures the route-classification causal RED",
+    "add only shared/release/implementationBranchPolicyLegacy.js to governanceExactPaths and obtain exact-head GREEN",
+    "ordinary two-parent merge the route prerequisite after review and owner authorization",
+    "from that new main create a new evaluator-repair authorization for implementationBranchPolicyLegacy.js plus tests/wp0/implementation-branch-policy.test.js",
+    "only after the evaluator repair merges, recreate the local-auxiliary successor authorization; do not revive stale #570"
+  ],
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
