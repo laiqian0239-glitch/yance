@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T15:18:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-WINDOWS-UAT-STARTUP-P0-RECOVERY-V2",
+  "proposalRevision": 5,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main V2 of the same Fast Landing post-RED scope amendment. The first Amendment-1 proposal was created from main dc2c5e085f8f1c4d0609f820b1097b5882cc64a2, then trusted main concurrently advanced by ordinary merge #576 to 3074a5c1ed2d9c984aeed72aa7562bfcb3dde445 before that proposal could merge, so its own anti-drift contract makes it ineffective and it must remain historical. The causal need is unchanged: WP-A Main Post-Merge Validation run 32462512875 on implementation head 64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e exposed exactly two stale assertions owned by tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js. The same exact implementation head then produced Product Final run 32462512599: matrix materialization, frozen Element reproducibility, and WP7 build all passed, while the real packaged Windows launch job failed before Element build because pnpm --version was executed from the repository root whose packageManager is npm, yielding no usable stdout and a null Trim failure. That pnpm root cause is already inside the authorized workflow path and must be closed on the successor without adding scope. This V2 adds exactly one test path to the cumulative recovery-v2 implementation scope, requires exact Product Final routing for the successor branch, preserves the real packaged Element/Yance startup implementation unchanged, and authorizes no dependency, route weakening, browser surrogate, #538 mutation, or current Desktop/Windows UAT candidate mutation.",
+  "invalidPredecessorProposal": {
+    "authorizationPath": "governance/layered-ci/v21-product-experience-windows-uat-startup-p0-recovery-v2-scope-amendment-1-authorization.json",
+    "authorizationBranch": "governance/v21-product-experience-windows-uat-startup-p0-recovery-v2-scope-amendment-1-authorization",
+    "authorizationHead": "64e14a7bbb44280525a2e98f2a65e2a6f08560a1",
+    "declaredBase": "dc2c5e085f8f1c4d0609f820b1097b5882cc64a2",
+    "concurrentMainAdvancePullRequest": 576,
+    "concurrentMainAdvanceMerge": "3074a5c1ed2d9c984aeed72aa7562bfcb3dde445",
+    "effective": false,
+    "mustNotMerge": true,
+    "mustNotRebaseAmendOrForcePush": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-experience-windows-uat-startup-p0-recovery-v2-authorization.json",
+    "implementationBranch": "fix/v21-product-experience-windows-uat-startup-p0",
+    "implementationHead": "64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e",
+    "reason": "Freeze the valid failure-first and production closure history at 64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e. Continue only through the fresh-main Amendment-1-V2 successor after the corrected cumulative eleven-path scope enters trusted main."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "3074a5c1ed2d9c984aeed72aa7562bfcb3dde445",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "3074a5c1ed2d9c984aeed72aa7562bfcb3dde445",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-windows-uat-startup-p0-recovery-v2-scope-amendment-1-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-windows-uat-startup-p0-recovery-v2-scope-amendment-1-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "5d84de7cd4f74db685f3e88d644fc0f8c9a29831fc70a068b0a1851bd6ecfcbc",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2",
+    "requiredParent": "EFFECTIVE_AMENDMENT_MERGE",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "electron/main.js",
+      "electron/mainWindowActivationController.js",
+      "electron/preload.js",
+      "integration/element-module/src/index.tsx",
+      "tests/desktop-fixes/desktop-activation-wiring.test.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js",
+      "tests/desktop-fixes/tray-lifecycle-integration.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1"
+    ],
+    "approvedChangedFileCount": 11,
+    "approvedChangedFileSetSha256": "6eefa1b7a8ed31019e6a4f2f06c2c00d707d10ad5913916774e4a007d8f055dc",
+    "newlyAuthorizedPaths": [
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "1248eca9fee4a07fc2a0c5dd816c01de973d57ef003a3996926ca22ee3fb8d44",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e"
+    },
+    "productRuntimeModificationAllowed": true,
+    "upstreamPatchModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "rootPackageManifestModificationAllowed": false,
+    "rootLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "successorRoutingContract": {
+    "requiredExactSuccessorRoute": "fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2",
+    "mustRouteMaterializedDesktopUat": true,
+    "mustRouteMaterializedMatrixUat": true,
+    "predecessorExactRouteMayRemainDuringForwardContinuation": true,
+    "prefixWildcardOrContainsRoutingForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_NEUTRAL_PNPM_AND_NODE_ASSERT_CONTRACT_SEAMS",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product Final neutral RUNNER_TEMP pnpm invocation pattern",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml@64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already avoids root packageManager authority for the two established Element pnpm phases by launching pnpm from neutral RUNNER_TEMP while keeping --dir bound to Element. The packaged-launch phase should reuse the same seam, not introduce a package-manager wrapper or dependency."
+      },
+      {
+        "name": "Existing Node.js exact workflow contract test",
+        "source": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The stale assertions are already owned by the exact Product Final Layered contract. Updating that test to require the two exact recovery branches and all three neutral pnpm phases is smaller and safer than adding a new test harness or scanner."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add another package manager, wrapper dependency, package manifest change, or lockfile change.",
+      "Do not add a fourth redundant neutral RUNNER_TEMP pnpm block; perform the packaged pnpm identity check inside the existing packaged Element neutral block.",
+      "Do not weaken the exact branch allowlist into prefix, contains, startsWith, wildcard or regex-based broad routing.",
+      "Do not use a browser-only surrogate instead of packaged Yance.exe plus the official Element ModuleLoader path.",
+      "Do not touch #538 or the current Desktop/Windows UAT candidate."
+    ]
+  },
+  "postRedContinuation": {
+    "failureFirstEvidenceInherited": true,
+    "originalEffectiveAuthorizationMerge": "8cfdbee6e1549f0870f55998bedbe840be51ef70",
+    "originalImplementationBranch": "fix/v21-product-experience-windows-uat-startup-p0",
+    "failureFirstRedHead": "a9ce0b28fc137f0125005f92112a5b4229a3886d",
+    "failureFirstRedRun": 32457400881,
+    "failureFirstRedConclusion": "failure",
+    "failureFirstUnknownBlockers": 0,
+    "frozenPredecessorHead": "64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e",
+    "requiredContinuationTopology": {
+      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
+      "firstContinuationCommitMustBeTwoParentMerge": true,
+      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
+      "firstContinuationCommitSecondParent": "64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e",
+      "historyRewriteForbidden": true,
+      "cherryPickDuplicationForbidden": true,
+      "oldImplementationBranchMustNotReceiveFurtherCommits": true
+    }
+  },
+  "rootCauseEvidence": {
+    "freshCausalRedRun": 32462512875,
+    "freshCausalRedJob": 96712171052,
+    "freshCausalRedMergeCandidate": "f20215e9b74a6f38c961d18aec92c041297cfd30",
+    "implementationExactHead": "64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e",
+    "stageRun": 32462512772,
+    "stageConclusion": "success",
+    "observedFailures": [
+      "Product Experience final validation exact branch allowlist expected only five predecessor Product branches but the authorized workflow now also contains fix/v21-product-experience-windows-uat-startup-p0.",
+      "Task 9 neutral RUNNER_TEMP contract expected exactly two Push-Location occurrences but the authorized packaged Element materialization adds a third neutral-host pnpm block."
+    ],
+    "additionalFreshProductFinalRed": {
+      "run": 32462512599,
+      "job": 96712170422,
+      "implementationExactHead": "64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e",
+      "matrixMaterializationConclusion": "success",
+      "frozenElementReproducibilityConclusion": "success",
+      "wp7BundleBuildReached": true,
+      "failingPhase": "Launch exact packaged Yance against exact Element ModuleLoader path and require fresh PASS receipt",
+      "failure": "After corepack activated pnpm 11.5.2, pnpm --version ran from the repository root. The root packageManager declares npm, so the pnpm shim emitted the npm-authority diagnostic instead of a version value; PowerShell then called Trim() on null and failed before Element install or packaged Yance launch.",
+      "requiredFix": "Reuse the existing neutral RUNNER_TEMP pnpm authority seam: perform the exact pnpm version check inside the same packaged Element neutral block that performs frozen install and builds, preserving exactly three neutral pnpm phases overall. Keep --dir pinned to the materialized Element tree, keep pnpm 11.5.2 exact, and fail closed on missing or mismatched version output."
+    },
+    "requiredFix": "On the successor, update the trusted Product Final Layered contract test so it explicitly requires both exact recovery-v2 predecessor and Amendment-1-V2 successor routes and explicitly proves all three neutral RUNNER_TEMP pnpm phases. In the already-authorized Product Final workflow, route the successor branch exactly and move the packaged pnpm version identity check into the existing packaged Element neutral RUNNER_TEMP block before frozen install/build. Do not relax exact-branch matching, frozen install, pinned pnpm, packaged Yance launch, production probe, fresh PASS receipt or any production gate.",
+    "whyOriginalScopeIsInsufficient": "The stale Layered assertions are owned by tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js, which is outside recovery-v2's ten authorized paths. The Product Final pnpm root cause itself is inside the already-authorized workflow path and does not justify any additional path.",
+    "unknownBlockersForThisAuthorizationBoundary": 0
+  },
+  "preservedContracts": {
+    "browserOnlySurrogateForbidden": true,
+    "pinnedElementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "frozenElementInstallRequired": true,
+    "officialElementModuleLoaderRequired": true,
+    "packagedYanceExeLaunchRequired": true,
+    "postInstallRequired": true,
+    "productionRuntimeProbeRequired": true,
+    "freshPassReceiptRequired": true,
+    "isolatedDataRootRequired": true,
+    "greenOnProcessStartForbidden": true,
+    "exactBranchAllowlistRequired": true,
+    "successorProductFinalExactRouteRequired": true,
+    "neutralPnpmPhaseCountAfterClosure": 3,
+    "rootPackageManagerAuthorityBypassForbidden": true,
+    "noCurrentUatCandidateMutation": true,
+    "no538Mutation": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "WP-A Main Post-Merge Validation",
+      "V21 Product Experience Shell P0 Final Validation",
+      "ACV2 WP-A Architecture Gates",
+      "V21 Model Brain P0 Windows"
+    ],
+    "newRedPolicy": "Batch causal closure in the correct owning layer; no gate weakening, count-only workaround, surrogate launch or unauthorized path expansion."
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
