@@ -231,6 +231,11 @@
         "reason": "Do not place experimental or higher-operational-risk large-model runtimes on the formal product path before Windows maturity, reproducibility and crash-isolation evidence exists."
       }
     ],
+    "retireOrAvoid": [
+      "Do not create a second Yance physical model router, provider scorer, retry/fallback authority or inference engine; preserve LiteLLM for formal cloud routing and extend the existing Ollama seam for local auxiliary execution.",
+      "Do not duplicate Ollama discovery, stream execution, unload or delete paths; extend backend/services/ollamaClient.js and the existing Model Brain projections instead.",
+      "Do not add KTransformers, AirLLM, llama.cpp or another local runtime in V1, and do not create any local prerequisite or fallback path for quick_reply, deep_reply or director."
+    ],
     "thinYanceAdapterOnly": true
   },
   "requiredValidation": {
