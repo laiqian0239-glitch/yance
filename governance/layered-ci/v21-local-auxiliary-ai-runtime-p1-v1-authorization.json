@@ -219,14 +219,14 @@
         "source": "ggml-org/llama.cpp",
         "license": "MIT",
         "adoptionMode": "reviewed-future-runtime",
-        "fit": "DEFER_V1",
+        "fit": "PARTIAL_FIT",
         "reason": "Mature and valuable for low-resource GGUF execution, but V1 does not add a second runtime until packaged Windows provenance, lifecycle isolation and measurable benefit over the existing Ollama seam are proven in a separate exact-scope admission."
       },
       {
         "name": "KTransformers / AirLLM",
         "source": "kvcache-ai/ktransformers / lyogavin/airllm",
         "adoptionMode": "not-admitted",
-        "fit": "DEFER_V1",
+        "fit": "GAP",
         "reason": "Do not place experimental or higher-operational-risk large-model runtimes on the formal product path before Windows maturity, reproducibility and crash-isolation evidence exists."
       }
     ],
