@@ -194,6 +194,11 @@
         "reason": "The entitlement engine already exists; WP3 only surfaces it through the sole Product renderer and existing desktop seam."
       }
     ],
+    "retireOrAvoid": [
+      "frontend/r32-system-center.js is retired as Personal Access Product UI authority and must not be edited, reactivated, remounted, or used as the acceptance surface; integration/element-module/src/YanceWorkspace.tsx plus the current Element Product is the sole production UI path.",
+      "Any renderer-local Personal Access entitlement state, localStorage authority, or second entitlement store is forbidden; backend/services/personalAccessService.js remains the sole entitlement authority behind the existing desktop bridge.",
+      "Any second Product renderer or new general-purpose Yance IPC/UI framework duplicating integration/element-module or electron/r32StoreBridge.js is forbidden."
+    ],
     "thinYanceAdapterOnly": true
   },
   "requiredValidation": {
