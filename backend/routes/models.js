@@ -1,5 +1,6 @@
 'use strict';
 
+const { randomUUID } = require('crypto');
 const express = require('express');
 const registry = require('../services/modelRegistry');
 const modelStatus = require('../services/modelStatusService');
@@ -17,11 +18,18 @@ const openRouterOnboardingSmoke = require('../services/openRouterOnboardingSmoke
 const securityGuard = getSecurityGuard();
 const router = express.Router();
 const testControllers = new Map();
+const pullControllers = new Map();
+const pullProgress = new Map();
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function findModel(idOrName) {
   const state = registry.read();
   return (state.models || []).find(model => model.id === idOrName || model.name === idOrName);
+}
+function rememberPullProgress(requestId, value = {}) {
+  pullProgress.set(requestId, Object.freeze({ requestId, ...value, updatedAt: new Date().toISOString() }));
+  while (pullProgress.size > 50) pullProgress.delete(pullProgress.keys().next().value);
+  return pullProgress.get(requestId);
 }
 async function waitForCredential(credentialRef) {
   for (let attempt = 0; attempt < 10 && !securityGuard.credentials.has(credentialRef); attempt += 1) {
@@ -261,6 +269,58 @@ router.delete('/cloud/:id', async (req, res, next) => {
     if (req.body?.removeCredential === true && clean(model.credentialRef)) await securityGuard.credentials.remove(model.credentialRef, { actor: 'backend-core' });
     res.json({ ok: true, modelId: model.id, model: model.name });
   } catch (error) { next(error); }
+});
+
+router.post('/local/pull', async (req, res, next) => {
+  const name = clean(req.body?.model || req.body?.name);
+  const endpoint = clean(req.body?.endpoint || registry.read().endpoint || 'http://127.0.0.1:11434');
+  if (!name) return res.status(400).json({ ok: false, error: 'OLLAMA_MODEL_NAME_REQUIRED', message: '模型名称不能为空' });
+  if (req.body?.consent !== true) return res.status(409).json({ ok: false, error: 'LOCAL_MODEL_PULL_CONSENT_REQUIRED', message: '下载本地模型需要用户明确确认。' });
+  const requestId = clean(req.body?.requestId) || randomUUID();
+  if (pullControllers.has(requestId)) return res.status(409).json({ ok: false, error: 'LOCAL_MODEL_PULL_ALREADY_RUNNING', requestId });
+  const controller = new AbortController();
+  pullControllers.set(requestId, controller);
+  rememberPullProgress(requestId, { state: 'running', status: 'starting', model: name, endpoint, total: 0, completed: 0 });
+  eventBus.publish('models:local-pull-started', { requestId, model: name, endpoint });
+  try {
+    const result = await aiGateway.pullLocalModel(endpoint, name, {
+      signal: controller.signal,
+      timeoutMs: Number(req.body?.timeoutMs || 30 * 60 * 1000),
+      onProgress: progress => {
+        const snapshot = rememberPullProgress(requestId, { state: 'running', ...progress });
+        eventBus.publish('models:local-pull-progress', snapshot);
+      }
+    });
+    const discovery = await aiGateway.discoverLocalModels();
+    let state = await registry.mergeDiscovered(discovery);
+    state = await modelAutoActivation.run({ reason: 'local-pull-complete', state });
+    const projected = modelStatus.project(state);
+    const snapshot = rememberPullProgress(requestId, { state: 'completed', ...result });
+    eventBus.publish('models:local-pull-complete', snapshot);
+    return res.json({ ok: true, requestId, result, localAuxiliary: projected.localAuxiliary, models: projected.models });
+  } catch (error) {
+    const cancelled = error?.code === 'MODEL_CANCELLED' || controller.signal.aborted;
+    const snapshot = rememberPullProgress(requestId, { state: cancelled ? 'cancelled' : 'failed', status: cancelled ? 'cancelled' : 'failed', model: name, endpoint, error: clean(error?.code || error?.message) });
+    eventBus.publish(cancelled ? 'models:local-pull-cancelled' : 'models:local-pull-failed', snapshot);
+    if (cancelled) return res.status(409).json({ ok: false, error: 'MODEL_CANCELLED', message: '模型下载已取消', requestId });
+    return next(error);
+  } finally {
+    pullControllers.delete(requestId);
+  }
+});
+router.get('/local/pull/:requestId', (req, res) => {
+  const snapshot = pullProgress.get(clean(req.params.requestId));
+  if (!snapshot) return res.status(404).json({ ok: false, error: 'LOCAL_MODEL_PULL_NOT_FOUND' });
+  res.json({ ok: true, progress: snapshot, active: pullControllers.has(clean(req.params.requestId)) });
+});
+router.post('/local/pull/:requestId/cancel', (req, res) => {
+  const requestId = clean(req.params.requestId);
+  const controller = pullControllers.get(requestId);
+  if (!controller) return res.json({ ok: true, requestId, cancelled: false, progress: pullProgress.get(requestId) || null });
+  controller.abort(Object.assign(new Error('MODEL_CANCELLED'), { code: 'MODEL_CANCELLED' }));
+  const snapshot = rememberPullProgress(requestId, { ...(pullProgress.get(requestId) || {}), state: 'cancelling', status: 'cancelling' });
+  eventBus.publish('models:local-pull-cancelling', snapshot);
+  res.json({ ok: true, requestId, cancelled: true, progress: snapshot });
 });
 
 router.delete('/local/:id', async (req, res, next) => {

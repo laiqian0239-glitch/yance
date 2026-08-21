@@ -182,7 +182,7 @@ function credentialEnvelope(candidates = []) {
   for (const model of candidates) {
     const ref = clean(model.credentialRef);
     if (!ref || Object.prototype.hasOwnProperty.call(result, ref)) continue;
-    const row = this.securityGuard.credentials.get(ref) || {};
+    const row = securityGuard.credentials.get(ref) || {};
     result[ref] = {
       apiKey: clean(row.apiKey || row.key || row.token),
       endpoint: clean(row.endpoint || row.baseUrl || model.endpoint),
@@ -270,8 +270,6 @@ class PQueueSchedulerAdapter {
       }, queueTimeoutMs);
     }
 
-    // Keep running work inside p-queue until the task itself settles; execution deadlines and
-    // provider termination remain downstream runtime responsibilities, not scheduler authority.
     const promise = this._loadQueue().then(queue => queue.add(async ({ signal }) => {
       if (queueTimer) clearTimeout(queueTimer);
       detachExternalAbort();
@@ -306,7 +304,6 @@ class PQueueSchedulerAdapter {
 
     return Object.freeze({ id, promise });
   }
-  // Cancellation is intentionally queued-only. Running work retains its concurrency slot until settlement.
   cancel(id) {
     const key = clean(id);
     const controller = this.controllers.get(key);
@@ -362,14 +359,20 @@ class AiGateway {
     this.jobs = new Map();
     this.controllers = new Map();
     this.queueIds = new Map();
+    this.queueAuthorities = new Map();
     this.dedupe = new Map();
     this.latestContextGenerations = new Map();
     this.contextJobs = new Map();
     this.jobRetentionLimit = Math.max(50, Number(process.env.YANCE_AI_JOB_RETENTION || 500));
     const concurrency = Math.max(1, Number(options.concurrency || process.env.YANCE_AI_CONCURRENCY || 2));
+    const localAuxiliaryConcurrency = Math.max(1, Number(options.localAuxiliaryConcurrency || process.env.YANCE_AI_LOCAL_AUXILIARY_CONCURRENCY || 1));
     this.queue = options.queue || new PQueueSchedulerAdapter({
       concurrency,
       name: 'model-brain'
+    });
+    this.localAuxiliaryQueue = options.localAuxiliaryQueue || new PQueueSchedulerAdapter({
+      concurrency: localAuxiliaryConcurrency,
+      name: 'local-auxiliary'
     });
   }
   prepare() { return this.runtime.status(); }
@@ -458,12 +461,20 @@ class AiGateway {
       });
       return result;
     } catch (error) {
-      authority.fail(operationId, { errorCode: clean(error?.code || 'AI_PROVIDER_ADMIN_FAILED') }, {
-        retryable: false,
-        generation: running.generation,
-        objectFingerprint,
-        reasonCode: clean(error?.code || 'AI_PROVIDER_ADMIN_FAILED')
-      });
+      if (error?.code === 'MODEL_CANCELLED' && typeof authority.cancel === 'function') {
+        authority.cancel(operationId, { reasonCode: 'MODEL_CANCELLED' }, {
+          generation: running.generation,
+          objectFingerprint,
+          reasonCode: 'MODEL_CANCELLED'
+        });
+      } else {
+        authority.fail(operationId, { errorCode: clean(error?.code || 'AI_PROVIDER_ADMIN_FAILED') }, {
+          retryable: false,
+          generation: running.generation,
+          objectFingerprint,
+          reasonCode: clean(error?.code || 'AI_PROVIDER_ADMIN_FAILED')
+        });
+      }
       throw error;
     }
   }
@@ -507,6 +518,15 @@ class AiGateway {
       fingerprintParts: ['ollama'],
       work: () => this.ollamaClient.discover(),
       receipt: () => ({ status: 'completed' })
+    });
+  }
+  async pullLocalModel(endpoint, model, options = {}) {
+    return this._runDurableProviderAdmin({
+      operationType: 'ai.provider-admin.local-pull',
+      scopeKey: `local-model:${clean(model)}`,
+      fingerprintParts: [endpoint, model],
+      work: () => this.ollamaClient.pull(endpoint, model, options),
+      receipt: result => ({ status: 'completed', modelId: clean(result?.model || model) })
     });
   }
   async removeLocalModel(endpoint, model) {
@@ -680,9 +700,10 @@ class AiGateway {
     else externalSignal?.addEventListener?.('abort', relayExternal, { once: true });
     this.controllers.set(jobId, controller);
     this._pruneJobs();
-    this.jobs.set(jobId, { jobId, task, operationId, operationFingerprint, status: 'queued', createdAt: new Date().toISOString(), context, result: null, error: null });
+    this.jobs.set(jobId, { jobId, task, operationId, operationFingerprint, status: 'queued', createdAt: new Date().toISOString(), context, result: null, error: null, background: background === true });
     const timeoutMs = Math.max(1000, Number(options.timeoutMs || TASK_QUEUE_TIMEOUT_FLOORS[clean(task)] || 180000));
-    const queued = this.queue.add(async ({ signal }) => {
+    const scheduler = background === true ? this.localAuxiliaryQueue : this.queue;
+    const queued = scheduler.add(async ({ signal }) => {
       const relay = () => controller.abort(signal.reason || Object.assign(new Error('JOB_CANCELLED'), { code: 'JOB_CANCELLED' }));
       if (signal.aborted) relay(); else signal.addEventListener('abort', relay, { once: true });
       const row = this.jobs.get(jobId);
@@ -747,10 +768,11 @@ class AiGateway {
       executionTimeoutMs: timeoutMs + 5000,
       executionTimeoutCode: 'AI_EXECUTION_TIMEOUT',
       background: background === true,
-      providerKey: 'model-brain',
+      providerKey: background === true ? 'local-auxiliary' : 'model-brain',
       signal: controller.signal
     });
     this.queueIds.set(jobId, queued.id);
+    this.queueAuthorities.set(jobId, scheduler);
     queued.promise.catch(error => {
       const durable = authority.read?.(operationId);
       if (durable?.state === 'SCHEDULED') {
@@ -778,6 +800,7 @@ class AiGateway {
       logger.warn('ai', 'model-brain-job-failed', { jobId, task, reasonCode: error?.code || 'MODEL_BRAIN_QUEUE_FAILED', error: error?.message || String(error) });
     }).finally(() => {
       this.queueIds.delete(jobId);
+      this.queueAuthorities.delete(jobId);
       externalSignal?.removeEventListener?.('abort', relayExternal);
       this.controllers.delete(jobId);
       this.releaseTaskContext(jobId, context);
@@ -814,7 +837,8 @@ class AiGateway {
   cancel(jobId) {
     const controller = this.controllers.get(jobId);
     const queueId = this.queueIds.get(jobId);
-    const queued = queueId ? this.queue.cancel(queueId) : false;
+    const scheduler = this.queueAuthorities.get(jobId) || this.queue;
+    const queued = queueId ? scheduler.cancel(queueId) : false;
     if (controller) controller.abort(Object.assign(new Error('MODEL_CANCELLED'), { code: 'MODEL_CANCELLED' }));
     const row = this.jobs.get(jobId);
     if (row && !['completed', 'failed'].includes(row.status)) {
@@ -827,6 +851,7 @@ class AiGateway {
       modelBrain: this.runtime.status(),
       projection: { authority: 'LiteLLM v1.95.0', hardEligibility: ['privacy', 'local/cloud', 'modality', 'language', 'context', 'provider'] },
       queue: this.queue.status(),
+      localAuxiliaryQueue: this.localAuxiliaryQueue.status(),
       jobs: this.listJobs(),
       dedupe: [...this.dedupe.entries()].map(([key, value]) => ({ key, jobId: value.jobId, fingerprint: value.fingerprint })),
       taskContexts: [...this.latestContextGenerations.entries()].slice(-200).map(([scopeKey, generation]) => ({ scopeKey, generation, activeJobs: (this.contextJobs.get(scopeKey) || new Set()).size }))
