@@ -17,9 +17,11 @@ const STATES = Object.freeze({
   disabled: 'DISABLED'
 });
 
+const LOCAL_PROVIDERS = new Set(['ollama', 'llama.cpp', 'ktransformers', 'airllm']);
 const VALID_QUALIFICATIONS = new Set(Object.values(QUALIFICATION));
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
+function isLocalProvider(value) { return LOCAL_PROVIDERS.has(clean(value).toLowerCase()); }
 function normalizeQualification(value) {
   const normalized = clean(value || QUALIFICATION.untested).toLowerCase();
   return VALID_QUALIFICATIONS.has(normalized) ? normalized : QUALIFICATION.untested;
@@ -79,9 +81,7 @@ function normalizeQualificationFact(model = {}) {
 function normalizeInvocationFact(model = {}) {
   const success = normalizeSuccess(model);
   const status = clean(model.lastInvocationStatus || model.lastAttemptStatus || (model.lastFailedAt ? 'failed' : success ? 'success' : 'never')) || 'never';
-  const source = status === 'failed'
-    ? (model.lastInvocationError || model.lastError || '')
-    : '';
+  const source = status === 'failed' ? (model.lastInvocationError || model.lastError || '') : '';
   const normalized = normalizeModelError(source, { fallbackMessage: '', fallbackCode: '' });
   const error = status === 'failed' ? {
     at: clean(model.lastInvocationAt || model.lastFailedAt),
@@ -103,10 +103,7 @@ function routeFacts(assignments = [], qualification) {
 }
 
 function classify(input = {}) {
-  const {
-    configured, credentialReady, reachable, qualification, userDisabled,
-    qualificationFact, invocationFact, route
-  } = input;
+  const { configured, credentialReady, reachable, qualification, userDisabled, invocationFact, route } = input;
   if (userDisabled) return STATES.disabled;
   if (!configured) return STATES.unconfigured;
   if (!credentialReady) return STATES.credentialRequired;
@@ -130,9 +127,7 @@ function statePresentation(state, facts = {}) {
     status: facts.qualificationFact.httpStatus
   };
   const failureMessage = failure ? userErrorMessage(failure) : '';
-  const technicalPrefix = failure
-    ? [Number(failure.status || 0) ? `HTTP ${Number(failure.status)}` : '', clean(failure.code)].filter(Boolean).join(' · ')
-    : '';
+  const technicalPrefix = failure ? [Number(failure.status || 0) ? `HTTP ${Number(failure.status)}` : '', clean(failure.code)].filter(Boolean).join(' · ') : '';
   const visibleFailureMessage = [technicalPrefix, failureMessage].filter(Boolean).join(' · ');
   const labels = {
     [STATES.unconfigured]: ['未配置', '模型配置尚未完成。', 'neutral', '配置模型'],
@@ -150,19 +145,24 @@ function statePresentation(state, facts = {}) {
   return { label, summary: clean(summary), severity, actionLabel };
 }
 
+function localRuntimeOnline(provider, state = {}, model = {}) {
+  const normalized = clean(provider).toLowerCase();
+  if (state.localRuntimeOnline && typeof state.localRuntimeOnline === 'object' && state.localRuntimeOnline[normalized] !== undefined) return state.localRuntimeOnline[normalized] === true;
+  if (normalized === 'ollama') return state.ollamaOnline === true;
+  if (model.runtimeOnline !== undefined) return model.runtimeOnline === true;
+  return false;
+}
+
 function projectModel(model = {}, state = {}, options = {}) {
   const qualification = normalizeQualification(model.qualification);
-  const isLocal = model.provider === 'ollama';
-  const configured = isLocal
-    ? model.available !== false
-    : Boolean(model.configured !== false && model.endpoint && model.name && model.credentialRef);
+  const provider = clean(model.provider).toLowerCase();
+  const isLocal = isLocalProvider(provider);
+  const configured = isLocal ? model.available !== false : Boolean(model.configured !== false && model.endpoint && model.name && model.credentialRef);
   const discovered = isLocal ? model.available !== false : configured;
   const credentialReady = isLocal ? true : Boolean(options.credentialReady?.(model));
   const qualificationFact = normalizeQualificationFact(model);
   const invocationFact = normalizeInvocationFact(model);
-  const reachable = isLocal
-    ? discovered && state.ollamaOnline === true
-    : credentialReady && (qualificationFact.connectivityPass || Boolean(invocationFact.success));
+  const reachable = isLocal ? discovered && localRuntimeOnline(provider, state, model) : credentialReady && (qualificationFact.connectivityPass || Boolean(invocationFact.success));
   const route = routeFacts(options.routeAssignments || [], qualification);
   const runtimeState = classify({ configured, credentialReady, reachable, qualification, userDisabled: model.userDisabled === true, qualificationFact, invocationFact, route });
   const presentation = statePresentation(runtimeState, { qualificationFact, invocationFact, route });
@@ -183,11 +183,7 @@ function projectModel(model = {}, state = {}, options = {}) {
     STATES.configuredUnverified, STATES.unavailable, STATES.temporarilyBlocked, STATES.disabled
   ].includes(runtimeState);
   const capabilityProfile = modelCapabilityAuthority.classify(model);
-  const modelPurpose = capabilityProfile.batchOnly
-    ? 'batch-only'
-    : capabilityProfile.interactiveChat
-      ? 'interactive-reply'
-      : 'background-utility';
+  const modelPurpose = capabilityProfile.batchOnly ? 'batch-only' : capabilityProfile.interactiveChat ? 'interactive-reply' : 'background-utility';
   return {
     ...model,
     authority: 'ModelRuntimeAuthority',
@@ -262,6 +258,8 @@ function summarize(models = [], routesTotal = 0) {
 
 module.exports = {
   STATES,
+  LOCAL_PROVIDERS,
+  isLocalProvider,
   normalizeQualification,
   qualificationLabel,
   userErrorMessage,

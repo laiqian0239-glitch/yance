@@ -193,3 +193,128 @@ load();bindNav();document.querySelectorAll('.aiw30-tab').forEach(b=>b.onclick=()
 if(window.__Y27){window.__Y27.openAIWorkbench=openAIWorkbench;window.__Y27.renderAIWorkbench=()=>renderPanel(state.tab);const prev=window.__Y27.runSelfTest;window.__Y27.runSelfTest=async()=>({previous:await prev(),aiwork:[{name:'aiwork-services',pass:Array.isArray(state.services)},{name:'aiwork-model-brain',pass:Boolean(state.modelBrain)&&state.modelBrain.strictTagFiltering!==false},{name:'aiwork-shared-contact',pass:activeContacts(core()).length===0||activeContacts(core()).some(c=>c.id===state.selectedId)}]})}
 if(state.view)requestAnimationFrame(()=>openAIWorkbench(state.selectedId));
 })();
+
+/* V21 adaptive-local runtime product surface. Kept outside the Model Brain closure so local direct-use lifecycle cannot become a silent formal reply fallback. */
+(()=>{
+'use strict';
+const ROOT='/api/r32/models';
+const localState={catalog:null,runtime:null,modelStatus:null,pullId:'',progress:'尚未执行本地模型操作',progressState:'idle',loading:false};
+const clean=value=>String(value==null?'':value).trim();
+const notify=(message,tone='info')=>window.YanceNotificationLayoutAuthority?.show?.({message,tone,source:'adaptive-local',timeoutMs:tone==='error'?6500:3200});
+async function json(url,options={}){
+  const response=await fetch(url,{method:options.method||'GET',headers:{Accept:'application/json','Content-Type':'application/json',...(options.headers||{})},body:options.body===undefined?undefined:JSON.stringify(options.body)});
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok||payload.ok===false)throw Object.assign(new Error(payload.message||payload.error||`HTTP ${response.status}`),{code:payload.code||payload.error||'ADAPTIVE_LOCAL_REQUEST_FAILED',status:response.status,payload});
+  return payload;
+}
+async function ask(options={}){
+  if(window.YanceDialogs?.prompt)return window.YanceDialogs.prompt({title:options.title||'本地模型',message:options.message||'',label:options.label||'',value:options.value||'',placeholder:options.placeholder||''});
+  return window.prompt([options.message,options.label].filter(Boolean).join('\n'),options.value||'');
+}
+async function confirmAction(options={}){
+  if(window.YanceDialogs?.confirm)return window.YanceDialogs.confirm({title:options.title||'本地模型',message:options.message||'',submitLabel:options.submitLabel||'确认',danger:options.danger===true});
+  return window.confirm(options.message||'确认操作？');
+}
+function button(label,className,onClick,disabled=false){const el=document.createElement('button');el.type='button';el.textContent=label;if(className)el.className=className;el.disabled=disabled;el.addEventListener('click',onClick);return el}
+function text(tag,value,className=''){const el=document.createElement(tag);el.textContent=clean(value);if(className)el.className=className;return el}
+function setProgress(message,state='idle'){localState.progress=clean(message)||'本地模型状态已更新';localState.progressState=state;const node=document.querySelector('[data-adaptive-local-progress]');if(node){node.textContent=localState.progress;node.dataset.state=state}}
+async function refreshData(render=true){
+  if(localState.loading)return;
+  localState.loading=true;
+  try{
+    const [catalog,runtime,modelStatus]=await Promise.all([
+      json(`${ROOT}/adaptive-local/catalog`),
+      json(`${ROOT}/adaptive-local/status`),
+      json(`${ROOT}/status`)
+    ]);
+    localState.catalog=catalog;localState.runtime=runtime;localState.modelStatus=modelStatus;
+    if(render)renderSurface();
+  }catch(error){setProgress(`${error.code||'ADAPTIVE_LOCAL_STATUS_FAILED'} · ${error.message}`,'error');notify(error.message||'本地模型状态读取失败','error')}
+  finally{localState.loading=false}
+}
+async function installLocalRuntime(){
+  const localAssetPath=await ask({title:'安装本地运行时',message:'请选择已在本机准备好的、来自固定上游版本的运行时文件。言策不会通过 ChatGPT/GitHub connector 下载大包。',label:'本机文件完整路径'});
+  if(!clean(localAssetPath))return;
+  const targetName=await ask({title:'安装本地运行时',message:'安装目标保存在言策本地 runtime 目录，不能写到任意路径。',label:'本地目标文件名',value:clean(localAssetPath).split(/[\\/]/u).pop()||'local-runtime.asset'});
+  if(!clean(targetName))return;
+  const expectedSha256=await ask({title:'验证上游来源',message:'请输入该固定上游 artifact 的 SHA-256。校验不一致会 fail-closed，不会安装。',label:'SHA-256（64位十六进制）'});
+  if(!/^[a-f0-9]{64}$/iu.test(clean(expectedSha256))){notify('SHA-256 格式不正确，已取消安装','warning');return}
+  if(!await confirmAction({title:'确认安装本地运行时',message:'将先校验 SHA-256 和目标磁盘剩余空间，再把本机文件复制到言策 runtime 目录。是否继续？',submitLabel:'安装'}))return;
+  setProgress('正在校验本地 artifact、来源 SHA-256 与磁盘空间…','idle');
+  try{
+    const result=await json(`${ROOT}/adaptive-local/materialize`,{method:'POST',body:{consent:true,localAssetPath:clean(localAssetPath),targetName:clean(targetName),expectedSha256:clean(expectedSha256)}});
+    setProgress(`安装完成 · ${result.targetName||targetName} · SHA-256 已验证`,'success');notify('本地运行时安装完成，来源与磁盘预检均已通过','success');await refreshData();
+  }catch(error){setProgress(`${error.code||'LOCAL_RUNTIME_MATERIALIZE_FAILED'} · ${error.message}`,'error');notify(error.message||'本地运行时安装失败','error')}
+}
+async function pullOllama(){
+  const model=await ask({title:'下载 Ollama 本地模型',message:'Ollama 会从其上游模型仓库下载；进度会实时显示，可随时取消。',label:'模型名称',placeholder:'qwen3:14b'});
+  if(!clean(model))return;
+  const endpoint=await ask({title:'Ollama 地址',message:'只用于本机 Ollama 服务。',label:'本机地址',value:'http://127.0.0.1:11434'});
+  if(!clean(endpoint))return;
+  const requestId=globalThis.crypto?.randomUUID?.()||`pull-${Date.now()}`;
+  localState.pullId=requestId;setProgress(`准备下载 ${clean(model)}…`,'idle');renderSurface();
+  try{
+    const response=await fetch(`${ROOT}/ollama/pull`,{method:'POST',headers:{Accept:'application/x-ndjson','Content-Type':'application/json'},body:JSON.stringify({requestId,model:clean(model),endpoint:clean(endpoint)})});
+    if(!response.ok){const body=await response.text();throw new Error(body||`HTTP ${response.status}`)}
+    const reader=response.body?.getReader?.();const decoder=new TextDecoder();let pending='';
+    const consume=line=>{if(!clean(line))return;try{const row=JSON.parse(line);const completed=Number(row.completed||0),total=Number(row.total||0),percent=total>0?` ${Math.min(100,Math.round(completed/total*100))}%`:'';setProgress(`${row.status||'下载中'}${percent}${row.digest?` · ${row.digest}`:''}`,row.ok===false?'error':row.status==='success'?'success':'idle')}catch(_){}};
+    if(reader){while(true){const {value,done}=await reader.read();if(done)break;pending+=decoder.decode(value,{stream:true});const lines=pending.split('\n');pending=lines.pop()||'';for(const line of lines)consume(line)}pending+=decoder.decode();consume(pending)}
+    localState.pullId='';setProgress(`Ollama 模型 ${clean(model)} 下载完成`,'success');notify('Ollama 本地模型下载完成','success');await json(`${ROOT}/scan`,{method:'POST',body:{}}).catch(()=>{});await refreshData();
+  }catch(error){const cancelled=/cancel/iu.test(String(error.code||error.message||''));localState.pullId='';setProgress(cancelled?'下载已取消':`下载失败 · ${error.message}`,cancelled?'idle':'error');notify(cancelled?'Ollama 下载已取消':error.message||'Ollama 下载失败',cancelled?'warning':'error');renderSurface()}
+}
+async function cancelPull(){
+  const requestId=localState.pullId;if(!requestId)return;
+  try{const result=await json(`${ROOT}/ollama/pull/cancel`,{method:'POST',body:{requestId}});if(result.cancelled){setProgress('正在取消下载…','idle');notify('已发送取消下载请求','warning')}}catch(error){setProgress(`取消失败 · ${error.message}`,'error')}
+}
+async function unloadOllama(model){
+  try{await json(`${ROOT}/${encodeURIComponent(model.id)}/unload`,{method:'POST',body:{}});setProgress(`已卸载 ${model.name}，模型文件仍保留在本机`,'success');notify('本地模型已卸载','success')}catch(error){setProgress(`卸载失败 · ${error.message}`,'error');notify(error.message||'卸载失败','error')}
+}
+async function deleteOllama(model){
+  if(!await confirmAction({title:'删除本地模型',message:`永久删除 ${model.name} 及其 Ollama 磁盘文件？`,submitLabel:'删除',danger:true}))return;
+  try{
+    if(model.userDisabled!==true)await json(`${ROOT}/${encodeURIComponent(model.id)}/lifecycle`,{method:'PATCH',body:{enabled:false,reason:'用户在自适应本地模型面板永久删除'}});
+    await json(`${ROOT}/local/${encodeURIComponent(model.id)}`,{method:'DELETE',body:{confirmName:model.name}});
+    setProgress(`已删除 ${model.name}`,'success');notify('Ollama 本地模型已删除','success');await refreshData();
+  }catch(error){setProgress(`删除失败 · ${error.message}`,'error');notify(error.message||'删除失败','error')}
+}
+async function removeMaterialized(row){
+  const targetName=clean(row.targetName||row.destinationPath?.split(/[\\/]/u).pop());if(!targetName)return;
+  if(!await confirmAction({title:'删除本地运行时',message:`删除已安装的 ${targetName}？只删除言策 runtime 目录中的 materialized copy 与 provenance receipt。`,submitLabel:'删除',danger:true}))return;
+  try{await json(`${ROOT}/adaptive-local/remove`,{method:'POST',body:{targetName}});setProgress(`已删除本地运行时 ${targetName}`,'success');notify('本地运行时已删除','success');await refreshData()}catch(error){setProgress(`删除失败 · ${error.message}`,'error')}
+}
+function renderCatalogCard(model){
+  const card=document.createElement('article');card.className='adaptive-local-card';
+  card.append(text('small','自适应本地模型目录'));
+  card.append(text('b',model.displayName||model.id));
+  const params=Number(model.parameterCountB||0)>0?`${Number(model.parameterCountB)}B`:'用户选择';
+  card.append(text('p',`${params} · runtime: ${(model.runtimeCandidates||[]).join(' / ')||'待选择'} · 推荐 ${(model.recommendedFor||[]).join(' / ')||'按实测决定'}`));
+  card.append(text('p','低资源设备不会因为 VRAM 小就被强制限制为小模型；最终按 CPU/RAM/GPU/disk/实测吞吐与首 token 延迟分类。'));
+  return card;
+}
+function renderOllamaCard(model){
+  const card=document.createElement('article');card.className='adaptive-local-card';card.append(text('small','Ollama · 已发现本地模型'));card.append(text('b',model.name||model.id));card.append(text('p',`${model.endpoint||'本机 Ollama'} · ${model.qualificationLabel||model.qualification||'待资格测试'}`));
+  const actions=document.createElement('div');actions.className='adaptive-local-actions';actions.append(button('卸载','',()=>unloadOllama(model)));actions.append(button('删除','danger',()=>deleteOllama(model)));card.append(actions);return card;
+}
+function renderInstalledCard(row){
+  const card=document.createElement('article');card.className='adaptive-local-card';card.append(text('small','已安装本地运行时'));card.append(text('b',row.targetName||row.destinationPath||'local runtime'));card.append(text('p',row.sha256?`SHA-256 ${row.sha256} · provenance verified`:'本地 materialized artifact'));const actions=document.createElement('div');actions.className='adaptive-local-actions';actions.append(button('删除','danger',()=>removeMaterialized(row)));card.append(actions);return card;
+}
+function renderSurface(){
+  const panel=document.getElementById('aiwModelsPanel');if(!panel)return;
+  const grid=panel.querySelector('.aiw30-grid');if(!grid)return;
+  let shell=grid.querySelector('[data-adaptive-local-shell]');if(shell)shell.remove();
+  shell=document.createElement('article');shell.className='adaptive-local-shell';shell.dataset.adaptiveLocalShell='1';
+  const header=document.createElement('header'),titleBox=document.createElement('div');titleBox.append(text('h3','自适应本地模型'));titleBox.append(text('p','成熟 OSS 本地运行时：Ollama / llama.cpp / KTransformers（WSL/用户管理）/ AirLLM（后台极限模式）。正式 quick_reply / deep_reply / director 仍由 Model Brain / LiteLLM 决策，不会静默切成本地 fallback。'));header.append(titleBox);header.append(text('span','adaptive-local · 本地模型'));
+  const body=document.createElement('div');body.className='adaptive-local-body';
+  const actions=document.createElement('div');actions.className='adaptive-local-actions';actions.append(button('刷新本地模型','',()=>refreshData()));actions.append(button('安装本地运行时','primary',installLocalRuntime));actions.append(button('Ollama 下载','primary',pullOllama));actions.append(button('取消下载','warn',cancelPull,!localState.pullId));body.append(actions);
+  const progress=document.createElement('div');progress.className='adaptive-local-progress';progress.dataset.adaptiveLocalProgress='1';progress.dataset.state=localState.progressState;progress.textContent=localState.progress;body.append(progress);
+  const cards=document.createElement('div');cards.className='adaptive-local-grid';
+  const catalogRows=Array.isArray(localState.catalog?.models)?localState.catalog.models:[];for(const row of catalogRows)cards.append(renderCatalogCard(row));
+  const materialized=Array.isArray(localState.runtime?.materializations)?localState.runtime.materializations:[];for(const row of materialized)cards.append(renderInstalledCard(row));
+  const localModels=(Array.isArray(localState.modelStatus?.models)?localState.modelStatus.models:[]).filter(row=>String(row.provider||'').toLowerCase()==='ollama');for(const row of localModels)cards.append(renderOllamaCard(row));
+  if(!cards.childElementCount){const empty=document.createElement('article');empty.className='adaptive-local-card';empty.append(text('b','尚无已安装本地运行时'));empty.append(text('p','可以安装已经准备在本机的固定上游 artifact，或通过 Ollama 下载模型；安装前会验证来源、SHA-256 和磁盘空间。'));cards.append(empty)}
+  body.append(cards);shell.append(header,body);grid.append(shell);
+}
+function ensureSurface(){const panel=document.getElementById('aiwModelsPanel');if(!panel)return;const grid=panel.querySelector('.aiw30-grid');if(!grid)return;if(!grid.querySelector('[data-adaptive-local-shell]')){renderSurface();if(!localState.catalog&&!localState.loading)refreshData()}}
+function boot(){const panel=document.getElementById('aiwModelsPanel');if(panel){new MutationObserver(()=>queueMicrotask(ensureSurface)).observe(panel,{childList:true,subtree:false});ensureSurface()}else setTimeout(boot,250)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();

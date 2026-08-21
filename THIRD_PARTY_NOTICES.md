@@ -319,3 +319,34 @@ Exact Voice Brain source, model and build-tool pins are recorded in `config/upst
 - Commit: `85362b92fabe6009bc1a86b63d046263b1dc66b3`
 - License: Apache-2.0.
 - Adoption: Matrix client/sync/event/send/media/typing/read-receipt boundary; Yance does not implement a second Matrix `/sync` engine.
+
+## llama.cpp
+
+- Project: ggml-org/llama.cpp
+- Upstream: `https://github.com/ggml-org/llama.cpp.git`
+- Version/tag: `b10336`
+- Exact commit: `f401bb139016c7994298d21ebb1d07b8f9e4d50b`
+- License: `MIT`
+- License copy: `third_party/licenses/llama.cpp-MIT.txt`
+- Yance integration: user-materialized native Windows / loopback OpenAI-compatible runtime. llama.cpp remains the inference, quantized-model execution and CPU/GPU scheduling authority; Yance only plans from measured evidence and invokes its loopback API.
+
+## KTransformers
+
+- Project: kvcache-ai/ktransformers
+- Upstream: `https://github.com/kvcache-ai/ktransformers.git`
+- Exact commit: `95009ea6856c0799e517e93cb12be5e8494bc7ce`
+- License: `Apache-2.0`
+- License copy: `third_party/licenses/ktransformers-Apache-2.0.txt`
+- Yance integration: user-managed WSL/loopback OpenAI-compatible runtime for CPU/GPU hybrid and MoE execution. Native Windows support is not claimed. KTransformers remains the expert/tensor scheduling and inference authority.
+
+## AirLLM
+
+- Project: lyogavin/airllm
+- Upstream: `https://github.com/lyogavin/airllm.git`
+- Package version: `3.1.0`
+- Exact commit: `cfe456e5e1c28ea046f16cc835743f141e8ac9b8`
+- License: `Apache-2.0`
+- License copy: `third_party/licenses/airllm-Apache-2.0.txt`
+- Yance integration: optional user-materialized background/extreme local worker. AirLLM retains layer-streaming/model execution authority; Yance only owns process lifecycle, evidence projection and user-visible status.
+
+Exact adaptive-local runtime pins and materialization boundaries are recorded in `config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json`. Yance does not commit model/runtime binaries and does not download these OSS runtimes through connector flows; installation is explicit, local, disk-preflighted and SHA-256 fail-closed.
