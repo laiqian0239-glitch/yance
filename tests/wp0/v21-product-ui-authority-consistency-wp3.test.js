@@ -118,8 +118,16 @@ test('WP3-C RED: current Product relationship labels and facts must remain visua
   const css = read('integration/element-module/src/product-experience/ProductExperienceShell.css');
 
   assert.doesNotMatch(css, /text-overflow\s*:\s*ellipsis/u, 'current Product labels/facts must not be clipped to ellipsis');
-  assert.doesNotMatch(css, /\.yance-person-copy strong,[\s\S]*?white-space\s*:\s*nowrap/u, 'relationship list labels must wrap');
-  assert.doesNotMatch(css, /\.yance-relationship-universe__node-copy strong,[\s\S]*?white-space\s*:\s*nowrap/u, 'relationship universe labels must wrap');
+
+  const personCopyRule = css.match(/\.yance-person-copy strong,\s*\.yance-person-copy span\s*\{([^}]*)\}/u);
+  assert.ok(personCopyRule, 'relationship list label rule must remain present');
+  assert.match(personCopyRule[1], /white-space\s*:\s*normal/u, 'relationship list labels must wrap');
+  assert.doesNotMatch(personCopyRule[1], /white-space\s*:\s*nowrap/u, 'relationship list labels must not force nowrap');
+
+  const relationshipNodeRule = css.match(/\.yance-relationship-universe__node-copy strong,\s*\.yance-relationship-universe__node-copy span\s*\{([^}]*)\}/u);
+  assert.ok(relationshipNodeRule, 'relationship universe label rule must remain present');
+  assert.match(relationshipNodeRule[1], /white-space\s*:\s*normal/u, 'relationship universe labels must wrap');
+  assert.doesNotMatch(relationshipNodeRule[1], /white-space\s*:\s*nowrap/u, 'relationship universe labels must not force nowrap');
 });
 
 test('WP3 preserve: durable appearance, search/translation and relationship tool routing stay on their existing authorities', () => {
