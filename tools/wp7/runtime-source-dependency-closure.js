@@ -17,7 +17,7 @@ const RUNTIME_ROOTS = Object.freeze([
   'release',
   'vendor/sillytavern/1.18.0'
 ]);
-const RUNTIME_FILES = Object.freeze(['installer/installedIdentityReceipt.js']);
+const RUNTIME_FILES = Object.freeze(['installer/installedIdentityReceipt.js', 'frontend/theme-catalog.json']);
 const FORBIDDEN_TOP_LEVEL_ROOTS = Object.freeze(['tools', 'tests', 'evidence', 'implementation', 'governance']);
 const SOURCE_EXTENSIONS = new Set(['.js', '.cjs', '.mjs']);
 const RESOLUTION_EXTENSIONS = Object.freeze(['', '.js', '.cjs', '.mjs', '.json', '.node']);

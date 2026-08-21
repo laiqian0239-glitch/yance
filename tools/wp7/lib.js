@@ -563,8 +563,7 @@ function installReleasePlatformAuth(resourcesRoot, options = {}) {
   if (path.resolve(configInput) !== path.resolve(configPath)) fs.writeFileSync(configPath, bytes, { mode: 0o600 });
   else fs.chmodSync(configPath, 0o600);
   const digest = sha256Buffer(bytes);
-  fs.writeFileSync(hashPath, `${digest}  ${releasePlatformAuth.CONFIG_FILE}
-`, { mode: 0o600 });
+  fs.writeFileSync(hashPath, `${digest}  ${releasePlatformAuth.CONFIG_FILE}\n`, { mode: 0o600 });
   return Object.freeze({
     configured: true,
     sealed: loaded.sealed === true,
@@ -628,7 +627,7 @@ function assembleWindowsApplication(options = {}) {
   for (const rootName of ['backend', 'shared', 'electron', 'diagnostics', 'release', 'assets', 'vendor/sillytavern/1.18.0']) {
     copyTree(path.join(repoRoot, rootName), path.join(appRoot, rootName), { excludeNames: rootName === 'backend' ? ['tests'] : [] });
   }
-  for (const file of ['package.json', 'package-lock.json', 'installer/installedIdentityReceipt.js']) {
+  for (const file of ['package.json', 'package-lock.json', 'installer/installedIdentityReceipt.js', 'frontend/theme-catalog.json']) {
     const source = path.join(repoRoot, file);
     const destination = path.join(appRoot, file);
     fs.mkdirSync(path.dirname(destination), { recursive: true });
