@@ -22,7 +22,13 @@ const CHANNELS = Object.freeze({
   cancelThemePreview: 'store:cancel-theme-preview',
   applyTheme: 'store:apply-theme',
   setMotionLevel: 'store:set-motion-level',
-  setBackgroundEffect: 'store:set-background-effect'
+  setBackgroundEffect: 'store:set-background-effect',
+  personalAccessStatus: 'store:personal-access-status',
+  personalAccessSubmitRequest: 'store:personal-access-submit-request',
+  personalAccessRefreshRequest: 'store:personal-access-refresh-request',
+  personalAccessOwnerRequests: 'store:personal-access-owner-requests',
+  personalAccessOwnerRequestMutation: 'store:personal-access-owner-request-mutation',
+  personalAccessOwnerGrantMutation: 'store:personal-access-owner-grant-mutation'
 });
 
 function clean(value) {
@@ -74,6 +80,15 @@ function requiredIdentifier(value, name) {
   if (id) return id;
   const error = new Error(`${name} is required`);
   error.code = `${String(name || 'identifier').replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()}_REQUIRED`;
+  error.reasonCode = error.code;
+  throw error;
+}
+
+function requiredAction(value, allowed, name = 'action') {
+  const action = clean(value).toLowerCase();
+  if (allowed.includes(action)) return action;
+  const error = new Error(`${name} is invalid`);
+  error.code = `${String(name).replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()}_INVALID`;
   error.reasonCode = error.code;
   throw error;
 }
@@ -219,7 +234,29 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
     }),
     [CHANNELS.setBackgroundEffect]: (_event, input = {}) => apiRequest('/api/r32/store/ui/background-effect', {
       method: 'PUT', body: jsonBody(input)
-    })
+    }),
+    [CHANNELS.personalAccessStatus]: () => apiRequest('/api/r32/personal-access/status'),
+    [CHANNELS.personalAccessSubmitRequest]: (_event, input = {}) => apiRequest('/api/r32/personal-access/submit-request', {
+      method: 'POST', body: jsonBody(input)
+    }),
+    [CHANNELS.personalAccessRefreshRequest]: () => apiRequest('/api/r32/personal-access/refresh-request', {
+      method: 'POST', body: '{}'
+    }),
+    [CHANNELS.personalAccessOwnerRequests]: () => apiRequest('/api/r32/personal-access/owner/requests'),
+    [CHANNELS.personalAccessOwnerRequestMutation]: (_event, input = {}) => {
+      const requestId = requiredIdentifier(input.requestId, 'requestId');
+      const action = requiredAction(input.action, ['assign', 'approve', 'reject']);
+      return apiRequest(`/api/r32/personal-access/owner/requests/${encodeURIComponent(requestId)}/${encodeURIComponent(action)}`, {
+        method: 'POST', body: jsonBody({})
+      });
+    },
+    [CHANNELS.personalAccessOwnerGrantMutation]: (_event, input = {}) => {
+      const grantId = requiredIdentifier(input.grantId, 'grantId');
+      const action = requiredAction(input.action, ['suspend', 'revoke']);
+      return apiRequest(`/api/r32/personal-access/owner/grants/${encodeURIComponent(grantId)}/${encodeURIComponent(action)}`, {
+        method: 'POST', body: jsonBody({})
+      });
+    }
   };
   for (const [channel, handler] of Object.entries(handlers)) {
     ipcMain.handle(channel, async (...args) => {

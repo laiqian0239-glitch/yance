@@ -4696,6 +4696,260 @@
         "line": 88
       },
       "currentObservation": "Sends only an Immich asset through the existing Yance send-media-stream authority; main derives image/video kind from the Immich original MIME type."
+    },
+    {
+      "channel": "store:personal-access-status",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 237
+      },
+      "rendererExposure": {
+        "api": "getPersonalAccessStatus",
+        "file": "electron/preload.js",
+        "line": 137
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Projects the existing PersonalAccessService entitlement status into the sole active Element Product without renderer-local entitlement truth.",
+      "m2RequiredAction": "Keep PersonalAccessService and the remote Personal Access authority as the sole entitlement authority; M2 only routes the existing authenticated local API.",
+      "crossModuleDependency": "Existing M3 Personal Access backend authority; no second renderer-local entitlement state or backend route."
+    },
+    {
+      "channel": "store:personal-access-submit-request",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "displayName"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 238
+      },
+      "rendererExposure": {
+        "api": "submitPersonalAccessRequest",
+        "file": "electron/preload.js",
+        "line": 138
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Routes the TESTER request action to the existing Personal Access request endpoint; installation/request receipts remain owned by PersonalAccessService.",
+      "m2RequiredAction": "Keep PersonalAccessService and the remote Personal Access authority as the sole entitlement authority; validate only the bounded display name at the renderer boundary.",
+      "crossModuleDependency": "Existing M3 Personal Access backend authority; no second renderer-local entitlement state or backend route."
+    },
+    {
+      "channel": "store:personal-access-refresh-request",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 241
+      },
+      "rendererExposure": {
+        "api": "refreshPersonalAccessRequest",
+        "file": "electron/preload.js",
+        "line": 139
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Refreshes authoritative entitlement state through the existing Personal Access service; the renderer does not synthesize grant state.",
+      "m2RequiredAction": "Keep PersonalAccessService and the remote Personal Access authority as the sole entitlement authority; M2 only routes the refresh request.",
+      "crossModuleDependency": "Existing M3 Personal Access backend authority; no second renderer-local entitlement state or backend route."
+    },
+    {
+      "channel": "store:personal-access-owner-requests",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 244
+      },
+      "rendererExposure": {
+        "api": "listPersonalAccessOwnerRequests",
+        "file": "electron/preload.js",
+        "line": 140
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Lists OWNER-visible Personal Access request/grant state through the existing owner-authenticated backend authority.",
+      "m2RequiredAction": "Keep OWNER credential custody and request/grant state in the existing PersonalAccessService and remote authority; expose only the existing bounded projection.",
+      "crossModuleDependency": "Existing M3 Personal Access backend authority; OWNER secret remains outside renderer custody."
+    },
+    {
+      "channel": "store:personal-access-owner-request-mutation",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "assign",
+              "approve",
+              "reject"
+            ]
+          }
+        },
+        "required": [
+          "requestId",
+          "action"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "requestId"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 245
+      },
+      "rendererExposure": {
+        "api": "mutatePersonalAccessOwnerRequest",
+        "file": "electron/preload.js",
+        "line": 141
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Allows only the existing OWNER request transitions assign/approve/reject after renderer-boundary identifier/action validation.",
+      "m2RequiredAction": "Keep request transition semantics, OWNER authentication and persistence in the existing Personal Access backend/remote authority; M2 must not invent transitions.",
+      "crossModuleDependency": "Existing M3 Personal Access backend authority; OWNER secret remains outside renderer custody."
+    },
+    {
+      "channel": "store:personal-access-owner-grant-mutation",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "grantId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "suspend",
+              "revoke"
+            ]
+          }
+        },
+        "required": [
+          "grantId",
+          "action"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "grantId"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 252
+      },
+      "rendererExposure": {
+        "api": "mutatePersonalAccessOwnerGrant",
+        "file": "electron/preload.js",
+        "line": 142
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Allows only the existing OWNER grant transitions suspend/revoke after renderer-boundary identifier/action validation.",
+      "m2RequiredAction": "Keep grant transition semantics, OWNER authentication and persistence in the existing Personal Access backend/remote authority; M2 must not invent transitions.",
+      "crossModuleDependency": "Existing M3 Personal Access backend authority; OWNER secret remains outside renderer custody."
     }
   ],
   "outboundRendererChannels": [
@@ -4949,7 +5203,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 72,
+    "rendererToMainHandlerCount": 78,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,

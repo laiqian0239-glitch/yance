@@ -152,7 +152,7 @@ export function PresenceWorkspace(): React.JSX.Element {
       <div ref={mediaHostRef} className="presence-media" aria-label="实时形象画面" />
       {liveKit.state !== "connected" ? <p className="presence-media-placeholder">连接后，实时形象会显示在这里。</p> : null}
       <p className="presence-status" aria-live="polite">{status}</p>
-      <label title="Avatar">形象
+      <label title="形象">形象
         <select value={characterId} onChange={(event) => setCharacterId(event.target.value)} disabled={busy || Boolean(session) || !characters.length}>
           {characters.length
             ? characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)
@@ -160,11 +160,11 @@ export function PresenceWorkspace(): React.JSX.Element {
         </select>
       </label>
       <div className="presence-actions">
-        <button type="button" title="Connect" onClick={() => void connect()} disabled={busy || Boolean(session) || !ready || !characterId}>连接</button>
-        <button type="button" title="Disconnect" onClick={() => void disconnect()} disabled={busy || !session}>断开</button>
+        <button type="button" title="连接" onClick={() => void connect()} disabled={busy || Boolean(session) || !ready || !characterId}>连接</button>
+        <button type="button" title="断开" onClick={() => void disconnect()} disabled={busy || !session}>断开</button>
         {liveKit.state === "connected" && !liveKit.audioPlaybackEnabled ? <button type="button" onClick={() => void enableAudio()}>开启声音</button> : null}
-        <button type="button" title="Microphone" onClick={() => void setPresenceMicrophoneEnabled(!liveKit.microphoneEnabled)} disabled={liveKit.state !== "connected"}>麦克风 · {liveKit.microphoneEnabled ? "开" : "关"}</button>
-        <button type="button" title="Camera" onClick={() => void setPresenceCameraEnabled(!liveKit.cameraEnabled)} disabled={liveKit.state !== "connected"}>摄像头 · {liveKit.cameraEnabled ? "开" : "关"}</button>
+        <button type="button" title="麦克风" onClick={() => void setPresenceMicrophoneEnabled(!liveKit.microphoneEnabled)} disabled={liveKit.state !== "connected"}>麦克风 · {liveKit.microphoneEnabled ? "开" : "关"}</button>
+        <button type="button" title="摄像头" onClick={() => void setPresenceCameraEnabled(!liveKit.cameraEnabled)} disabled={liveKit.state !== "connected"}>摄像头 · {liveKit.cameraEnabled ? "开" : "关"}</button>
       </div>
       <dl>
         <div><dt>实时连接</dt><dd>{connectionStateLabel(liveKit.state)}</dd></div>

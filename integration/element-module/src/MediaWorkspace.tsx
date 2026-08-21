@@ -267,7 +267,7 @@ export function MediaWorkspace({
     <aside className="yance-media-workspace" aria-label="媒体">
       <header>
         <div><strong>媒体</strong><span>照片与视频 · 智能生成与编辑</span></div>
-        <button type="button" title="Health" onClick={() => void refreshHealth()} disabled={busy}>运行状态</button>
+        <button type="button" title="运行状态" onClick={() => void refreshHealth()} disabled={busy}>运行状态</button>
       </header>
       <p className={degraded ? "media-status degraded" : "media-status"} aria-live="polite">{status}{health.comfyui?.missingModel ? " · 生成模型缺失" : ""}</p>
 
@@ -287,11 +287,11 @@ export function MediaWorkspace({
       <section>
         <h3>媒体库</h3>
         <div className="media-actions">
-          <label className="media-file" title="Import">导入<input ref={importRef} type="file" accept="image/*,video/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importFile(file); }} /></label>
-          <input aria-label="搜索媒体" title="Search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索照片或视频" />
-          <button type="button" title="Search" onClick={() => void search()} disabled={busy}>搜索</button>
-          <button type="button" title="People" onClick={() => void loadPeople()}>人物</button>
-          <button type="button" title="Albums" onClick={() => void loadAlbums()}>相册</button>
+          <label className="media-file" title="导入媒体">导入<input ref={importRef} type="file" accept="image/*,video/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importFile(file); }} /></label>
+          <input aria-label="搜索媒体" title="搜索媒体" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索照片或视频" />
+          <button type="button" title="搜索媒体" onClick={() => void search()} disabled={busy}>搜索</button>
+          <button type="button" title="人物" onClick={() => void loadPeople()}>人物</button>
+          <button type="button" title="相册" onClick={() => void loadAlbums()}>相册</button>
         </div>
         <div className="media-summary">人物 {people.length} · 相册 {albums.length}</div>
         {people.length ? <div className="media-assets" aria-label="人物">
@@ -308,21 +308,21 @@ export function MediaWorkspace({
       <section>
         <h3>生成 / 编辑</h3>
         <div className="media-actions">
-          <button type="button" title="Generate" aria-pressed={workflowKind === "generate"} onClick={() => setWorkflowKind("generate")}>生成</button>
-          <button type="button" title="Edit" aria-pressed={workflowKind === "edit"} onClick={() => setWorkflowKind("edit")}>编辑</button>
+          <button type="button" title="生成" aria-pressed={workflowKind === "generate"} onClick={() => setWorkflowKind("generate")}>生成</button>
+          <button type="button" title="编辑" aria-pressed={workflowKind === "edit"} onClick={() => setWorkflowKind("edit")}>编辑</button>
           <span>{checkpoint ? "生成模型已就绪" : "生成模型缺失"}{workflowKind === "edit" && selectedIsVideo ? " · 编辑需要先选择图片资源" : ""}</span>
         </div>
         <textarea rows={3} value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="描述你希望生成的图片或编辑效果" />
         <div className="media-actions">
           <button type="button" onClick={() => void queueWorkflow()} disabled={busy || !prompt.trim() || !checkpoint || workflowKind === "edit" && (!selectedAsset || selectedIsVideo)}>提交任务</button>
-          <button type="button" title="Preview" onClick={() => void previewWorkflow()} disabled={!workflowPromptId || busy}>预览</button>
-          <button type="button" title="Save back" onClick={() => void saveBack()} disabled={!workflowPromptId || busy}>保存</button>
+          <button type="button" title="预览" onClick={() => void previewWorkflow()} disabled={!workflowPromptId || busy}>预览</button>
+          <button type="button" title="保存到媒体库" onClick={() => void saveBack()} disabled={!workflowPromptId || busy}>保存</button>
         </div>
       </section>
 
       <section>
         <h3>预览 / 选择 / 发送</h3>
-        <div className="media-actions"><button type="button" title="Preview" onClick={() => void previewAsset()} disabled={!selectedAsset || busy}>预览</button><span>{selectedAsset ? displayName(selectedAsset) : "尚未选择媒体资源"}</span></div>
+        <div className="media-actions"><button type="button" title="预览" onClick={() => void previewAsset()} disabled={!selectedAsset || busy}>预览</button><span>{selectedAsset ? displayName(selectedAsset) : "尚未选择媒体资源"}</span></div>
         {previewUrl ? <img className="media-preview" src={previewUrl} alt="媒体预览" /> : null}
         <div className="media-grid">
           {standaloneMode ? (
@@ -337,7 +337,7 @@ export function MediaWorkspace({
             </div>
           )}
           <label>附言<input value={caption} onChange={(event) => setCaption(event.target.value)} /></label>
-          <button type="button" title="Send" onClick={() => void send()} disabled={!selectedAsset || !routeReady || busy}>发送</button>
+          <button type="button" title="发送" onClick={() => void send()} disabled={!selectedAsset || !routeReady || busy}>发送</button>
         </div>
       </section>
     </aside>

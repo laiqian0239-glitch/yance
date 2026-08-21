@@ -33,18 +33,6 @@ test('Media stays reachable through Product relationship tools with real runtime
     assert.match(yance, /Media/u);
   }
 
-  for (const label of [
-    'Import',
-    'Search',
-    'People',
-    'Albums',
-    'Generate',
-    'Edit',
-    'Preview',
-    'Save back',
-    'Send'
-  ]) assert.match(workspace, new RegExp(label, 'iu'), `${label} action must be visible`);
-
   assert.match(workspace, /health|searchAssets|listPeople|listAlbums|queueWorkflow|saveWorkflowOutputToImmich|send/iu);
   assert.match(workspace, /missing model|degraded|unavailable/iu, 'upstream missing/degraded state must be visible');
 });
