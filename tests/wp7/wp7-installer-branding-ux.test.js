@@ -127,7 +127,7 @@ test('8. built Yance.exe branding passes when a Windows artifact is supplied', (
   assert.equal(res.groupIconSha256, res.approvedIconSha256);
 });
 
-test('9. non-Windows branding fixture remains explicitly review-only', () => {
+test('9. non-Windows branding fixture remains explicitly review-only and carries only the reviewed frontend catalog file', () => {
   const os = require('node:os');
   const { assembleWindowsApplication, createReviewFixtureBrandingOptions } = require('../../tools/wp7/lib');
   const { createFakeElectronDist, productionDependencyFixture, createFakeRceditRunner } = require('./helpers');
@@ -149,6 +149,11 @@ test('9. non-Windows branding fixture remains explicitly review-only', () => {
     const review = assembleWindowsApplication({ ...common, ...authorizedFixture, payloadRoot: path.join(root, 'review-payload'), allowNonWindows: true });
     assert.equal(review.status, 'PASS');
     assert.ok(fs.existsSync(path.join(review.payloadRoot, 'Yance.exe')));
+    const packagedFrontendRoot = path.join(review.appRoot, 'frontend');
+    const packagedThemeCatalog = path.join(packagedFrontendRoot, 'theme-catalog.json');
+    assert.ok(fs.existsSync(packagedThemeCatalog));
+    assert.deepEqual(JSON.parse(fs.readFileSync(packagedThemeCatalog, 'utf8')), JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'frontend', 'theme-catalog.json'), 'utf8')));
+    assert.deepEqual(fs.readdirSync(packagedFrontendRoot).sort(), ['theme-catalog.json']);
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
