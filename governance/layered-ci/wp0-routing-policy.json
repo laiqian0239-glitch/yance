@@ -209,7 +209,13 @@
     "runtime/deep-training/agent-lightning/pyproject.toml",
     "runtime/deep-training/agent-lightning/uv.lock",
     "third_party/licenses/agent-lightning-MIT.txt",
-    "third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt"
+    "third_party/licenses/vowpal-wabbit-BSD-3-Clause.txt",
+    "config/local-ai/adaptive-local-model-catalog-v1.json",
+    "config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json",
+    "runtime/local-ai/airllm/yance_airllm_worker.py",
+    "third_party/licenses/airllm-Apache-2.0.txt",
+    "third_party/licenses/ktransformers-Apache-2.0.txt",
+    "third_party/licenses/llama.cpp-MIT.txt"
   ],
   "productPrefixes": [
     ".github/",
