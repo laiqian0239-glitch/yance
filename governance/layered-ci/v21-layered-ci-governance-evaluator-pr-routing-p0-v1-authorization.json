@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T19:57:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LAYERED-CI-GOVERNANCE-EVALUATOR-PR-ROUTING-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing root repair for the current Layered CI routing gap exposed by implementation PR #590. Repository design requires shared/release/** to escalate to at least L2 and layered-ci-fast.yml to provide PR/push risk classification, but the current pull_request paths omit shared/release/** and tests/wp0/**. As a result, governance evaluator changes can satisfy Stage/ACV2/Windows while failing to produce an automatic exact-head Layered PR run and must fall back to the long-lived governance/layered-ci-reviewed-candidate push ref, whose prior tip can be stale and therefore does not provide the normal PR base/head diff-range semantics. The cohesive root fix is to strengthen Layered PR routing by adding exactly shared/release/** and tests/wp0/** to the existing pull_request path filter, with a permanent workflow contract. No shared-ref rewrite, diff-range weakening, product/runtime/dependency change, or new workflow framework is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "f7f6227deee5cd6ecb4d3f8e96a8c7294c5c1899",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "f7f6227deee5cd6ecb4d3f8e96a8c7294c5c1899",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-layered-ci-governance-evaluator-pr-routing-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-layered-ci-governance-evaluator-pr-routing-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ad2c50f32c09b28593f263cca611a05bf344cae7d6041161c9cae9e994516941",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-layered-ci-governance-evaluator-pr-routing-p0-v1",
+    "allowedChangedPaths": [
+      ".github/workflows/layered-ci-fast.yml",
+      "tests/layered-ci/workflow-contract.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "9dac985aab2879532120eaf8d6e03211721522deb98f4aef6a6d00b955adc5b1",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/layered-ci-fast.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "50eff8dcdf26b1527db7f777692e263c5f049a2af82af679d0bb601aeaff2d65"
+    },
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "releaseWorkflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/workflow-contract.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "49f7bd836baa652366bc724d659cfaab699c3c0f943887e4950fe731263ebcb8",
+      "productionCodeChanged": false,
+      "freshCausalRedRequired": true
+    }
+  },
+  "closureMatrix": {
+    "rootCause": "Layered PR routing omits governance evaluator and WP0 semantic test paths that repository design requires the Layered risk classifier to see.",
+    "boundaries": [
+      {
+        "path": ".github/workflows/layered-ci-fast.yml",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Current pull_request paths include governance/layered-ci/**, tools/layered-ci/**, tests/layered-ci/** and workflow/action paths but omit shared/release/** and tests/wp0/**."
+      },
+      {
+        "path": "tests/layered-ci/workflow-contract.test.js",
+        "classification": "NEGATIVE_PROOF",
+        "evidence": "Current workflow contract verifies jobs/risk selection but has no permanent assertion that shared/release/** and tests/wp0/** remain routed through Layered PR validation."
+      },
+      {
+        "path": ".github/actions/resolve-diff-range/action.yml",
+        "classification": "PRESERVE",
+        "evidence": "Once normal PR routing is restored, pull_request base/head SHA inputs already provide the correct exact range; no diff-range mutation is required."
+      },
+      {
+        "path": "governance/layered-ci-reviewed-candidate",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+        "evidence": "Long-lived shared validation ref remains a push fallback and is not rewritten or made authoritative for PR range selection by this repair."
+      }
+    ],
+    "unknownBlockers": 0
+  },
+  "requiredSemantics": [
+    "Layered CI Fast Feedback pull_request routing includes exact patterns shared/release/** and tests/wp0/** in addition to existing paths.",
+    "No existing Layered PR trigger path is removed or weakened.",
+    "A permanent layered workflow contract fails if either governance evaluator/WP0 pattern is removed.",
+    "Risk classification remains delegated to tools/layered-ci/select-ci-level.js and existing risk-policy.json; no L2 downgrade or promotion change is authorized.",
+    "Push fallback governance/layered-ci-reviewed-candidate remains available but is no longer required to obtain Layered runs for shared/release/** + tests/wp0/** PRs."
+  ],
+  "failureFirstEvidenceContract": {
+    "freshRedRequired": true,
+    "recordLocation": "second first-parent implementation commit message",
+    "requiredTrailers": [
+      "Yance-Failure-First-Red-Head: <exact fresh tests-only implementation head>",
+      "Yance-Failure-First-Red-Run: <positive decimal GitHub Actions run id>",
+      "Yance-Failure-First-Red-Conclusion: failure"
+    ],
+    "duplicateOrMalformedTrailersFailClosed": true,
+    "amendRebaseForcePushForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_LAYERED_CI_WORKFLOW_AND_RISK_CLASSIFIER",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Layered CI Fast Feedback",
+        "source": ".github/workflows/layered-ci-fast.yml",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing workflow already owns Layered PR/push policy, risk selection and L2 delegation; the defect is only an incomplete PR path trigger set."
+      },
+      {
+        "name": "Layered CI risk classifier",
+        "source": "tools/layered-ci/select-ci-level.js + governance/layered-ci/risk-policy.json",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The current classifier already treats shared/release authority changes as high risk; no second classifier is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second Layered workflow or validation service.",
+      "Do not weaken risk-policy.json, L2 selection, exact diff-range validation, or promotion=false invariants.",
+      "Do not force-move or rewrite governance/layered-ci-reviewed-candidate to simulate PR routing."
+    ]
+  },
+  "requiredSequence": [
+    "one-file authorization from exact fresh main -> exact-head governance gates -> independent exact-head review",
+    "fresh main anti-drift -> ordinary two-parent authorization merge",
+    "create fix/v21-layered-ci-governance-evaluator-pr-routing-p0-v1 from the exact authorization merge",
+    "first implementation commit changes only tests/layered-ci/workflow-contract.test.js and captures fresh causal RED proving the two missing PR route patterns",
+    "second commit changes only .github/workflows/layered-ci-fast.yml and binds the exact RED with legacy failure-first trailers",
+    "exact-head Stage/Layered/ACV2 plus independent review and threads=0",
+    "fresh main anti-drift -> ordinary two-parent implementation merge",
+    "refresh PR #590 from resulting fresh main through ordinary history, then require automatic exact-head Layered PR run plus its other final gates before #590 merge"
+  ],
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
