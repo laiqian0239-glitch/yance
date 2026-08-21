@@ -17,6 +17,7 @@ const LOGICAL_GROUPS = Object.freeze({
   speech_transcription: 'yance.speech-transcription',
   probe: 'yance.probe'
 });
+const FORMAL_REPLY_TASKS = Object.freeze(new Set(['quick_reply', 'deep_reply', 'director']));
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function list(value) { return [...new Set((Array.isArray(value) ? value : []).map(clean).filter(Boolean))]; }
@@ -143,6 +144,7 @@ function project(state = {}, request = {}) {
   const all = (Array.isArray(state.models) ? state.models : []).map(projectModel);
   const constraints = hardConstraints(request.constraints || request);
   const task = clean(request.task || request.modelGroup);
+  if (FORMAL_REPLY_TASKS.has(task)) constraints.tags = [...new Set([...constraints.tags, 'source:cloud'])].sort();
   if (task && task !== 'probe') constraints.tags = [...new Set([...constraints.tags, `task:${task}`])].sort();
   const candidates = all.filter(row => deploymentEligible(row, constraints)).map(row => {
     const materializedTags = new Set(row.tags || []);
@@ -165,4 +167,4 @@ function project(state = {}, request = {}) {
   });
 }
 
-module.exports = { LOGICAL_GROUPS, logicalModel, hardConstraints, projectModel, project, sourceType, deploymentTags, deploymentEligible };
+module.exports = { LOGICAL_GROUPS, FORMAL_REPLY_TASKS, logicalModel, hardConstraints, projectModel, project, sourceType, deploymentTags, deploymentEligible };

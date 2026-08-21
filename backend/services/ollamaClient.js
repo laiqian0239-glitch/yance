@@ -208,6 +208,84 @@ async function streamChat({ endpoint, model, messages, options = {}, signal }) {
   }
 }
 
+async function pull(endpoint, model, options = {}) {
+  const root = normalizeRoot(endpoint) || 'http://127.0.0.1:11434';
+  const name = String(model || '').trim();
+  if (!name) {
+    const error = new Error('模型名称不能为空');
+    error.code = 'OLLAMA_MODEL_NAME_REQUIRED';
+    throw error;
+  }
+  const timeout = timeoutSignal(Math.max(5000, Number(options.timeoutMs || 30 * 60 * 1000)), options.signal);
+  let status = 'starting';
+  let digest = '';
+  let total = 0;
+  let completed = 0;
+  const startedAt = Date.now();
+  try {
+    const response = await fetch(`${root}/api/pull`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json' },
+      body: JSON.stringify({ model: name, stream: true }),
+      signal: timeout.signal
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      const error = new Error(text.slice(0, 1000) || `HTTP ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    if (!response.body?.getReader) {
+      const error = new Error('Ollama pull response stream is unavailable');
+      error.code = 'OLLAMA_PULL_STREAM_UNAVAILABLE';
+      throw error;
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let pending = '';
+    const consumeRow = line => {
+      if (!String(line || '').trim()) return;
+      let row;
+      try { row = JSON.parse(line); } catch (_) { return; }
+      status = String(row.status || status);
+      digest = String(row.digest || digest);
+      total = Number(row.total ?? total) || total;
+      completed = Number(row.completed ?? completed) || completed;
+      if (row.error) {
+        const error = new Error(String(row.error));
+        error.code = 'OLLAMA_PULL_FAILED';
+        throw error;
+      }
+      if (typeof options.onProgress === 'function') {
+        try {
+          options.onProgress(Object.freeze({ status, digest, total, completed, model: name, endpoint: root }));
+        } catch (_) {}
+      }
+    };
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      pending += decoder.decode(value, { stream: true });
+      const lines = pending.split('\n');
+      pending = lines.pop() || '';
+      for (const line of lines) consumeRow(line);
+    }
+    pending += decoder.decode();
+    consumeRow(pending);
+    const result = { ok: true, endpoint: root, model: name, status, digest, total, completed, totalMs: Date.now() - startedAt };
+    logger.info('models', 'ollama-pull-complete', result);
+    return result;
+  } catch (error) {
+    const aborted = timeout.signal.aborted;
+    const wrapped = new Error(aborted ? (timeout.signal.reason?.message === 'MODEL_TIMEOUT' ? '模型下载超时' : '模型下载已取消') : error.message);
+    wrapped.code = aborted ? (timeout.signal.reason?.message === 'MODEL_TIMEOUT' ? 'MODEL_TIMEOUT' : 'MODEL_CANCELLED') : (error.code || 'OLLAMA_PULL_FAILED');
+    wrapped.status = error.status;
+    logger.error('models', 'ollama-pull-failed', { model: name, endpoint: root, code: wrapped.code, error: wrapped.message });
+    throw wrapped;
+  } finally {
+    timeout.cleanup();
+  }
+}
 
 async function remove(endpoint, model, signal) {
   const root = normalizeRoot(endpoint) || 'http://127.0.0.1:11434';
@@ -234,4 +312,4 @@ async function unload(endpoint, model, signal) {
   }, 15000, signal);
 }
 
-module.exports = { discover, streamChat, unload, remove, normalizeRoot, fetchJson, modelId };
+module.exports = { discover, streamChat, pull, unload, remove, normalizeRoot, fetchJson, modelId };
