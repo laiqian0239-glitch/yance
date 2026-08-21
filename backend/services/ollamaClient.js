@@ -239,8 +239,11 @@ async function pull(endpoint, model, options = {}) {
   const timeout = timeoutSignal(Math.max(5000, Number(options.timeoutMs || 30 * 60 * 1000)), options.signal);
   let status = 'starting';
   let digest = '';
+  let knownTotal = 0;
   let total = 0;
   let completed = 0;
+  let percent = 0;
+  const layers = new Map();
   const startedAt = Date.now();
   try {
     const response = await fetch(`${root}/api/pull`, {
@@ -268,9 +271,30 @@ async function pull(endpoint, model, options = {}) {
       let row;
       try { row = JSON.parse(line); } catch (_) { return; }
       status = String(row.status || status);
-      digest = String(row.digest || digest);
-      if (row.total != null && Number.isFinite(Number(row.total))) total = Number(row.total);
-      if (row.completed != null && Number.isFinite(Number(row.completed))) completed = Number(row.completed);
+      const rowDigest = String(row.digest || '').trim();
+      if (rowDigest) digest = rowDigest;
+      const progressDigest = rowDigest || digest;
+      const hasTotal = row.total != null && Number.isFinite(Number(row.total));
+      const hasCompleted = row.completed != null && Number.isFinite(Number(row.completed));
+      if (progressDigest && (hasTotal || hasCompleted)) {
+        const previous = layers.get(progressDigest) || { total: 0, completed: 0 };
+        layers.set(progressDigest, {
+          total: hasTotal ? Math.max(0, Number(row.total)) : previous.total,
+          completed: hasCompleted ? Math.max(0, Number(row.completed)) : previous.completed
+        });
+        knownTotal = [...layers.values()].reduce((sum, layer) => sum + layer.total, 0);
+        completed = [...layers.values()].reduce((sum, layer) => sum + layer.completed, 0);
+      } else {
+        if (hasTotal) knownTotal = Math.max(knownTotal, Math.max(0, Number(row.total)));
+        if (hasCompleted) completed = Math.max(0, Number(row.completed));
+      }
+      if (status.toLowerCase() === 'success') {
+        total = Math.max(knownTotal, completed);
+        percent = 100;
+      } else {
+        total = 0;
+        percent = 0;
+      }
       if (row.error) {
         const error = new Error(String(row.error));
         error.code = 'OLLAMA_PULL_FAILED';
@@ -278,7 +302,7 @@ async function pull(endpoint, model, options = {}) {
       }
       if (typeof options.onProgress === 'function') {
         try {
-          options.onProgress(Object.freeze({ status, digest, total, completed, model: name, endpoint: root }));
+          options.onProgress(Object.freeze({ status, digest, total, knownTotal, completed, percent, model: name, endpoint: root }));
         } catch (_) {}
       }
     };
@@ -292,7 +316,7 @@ async function pull(endpoint, model, options = {}) {
     }
     pending += decoder.decode();
     consumeRow(pending);
-    const result = { ok: true, endpoint: root, model: name, status, digest, total, completed, totalMs: Date.now() - startedAt };
+    const result = { ok: true, endpoint: root, model: name, status, digest, total, knownTotal, completed, percent, totalMs: Date.now() - startedAt };
     logger.info('models', 'ollama-pull-complete', result);
     return result;
   } catch (error) {

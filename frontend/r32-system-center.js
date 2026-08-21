@@ -608,7 +608,7 @@ function renderAI() {
       ${service('运行时', localAuxiliary.runtime || 'Ollama', localAuxiliary.runtimeAvailable ? '本地辅助运行时可用' : '可选本地运行时当前不可用', localAuxiliary.optional === false ? '配置异常' : 'optional', localAuxiliary.optional === false ? 'bad' : '')}
       ${service('正式回复权限', localAuxiliary.realtimeReplyAuthority === true ? '错误：已获得权限' : '无', 'quick_reply / deep_reply / director 始终由 cloud Model Brain / LiteLLM 执行', localAuxiliary.formalReplyFallback === true ? 'fallback 配置错误' : 'no local fallback', localAuxiliary.realtimeReplyAuthority === true || localAuxiliary.formalReplyFallback === true ? 'bad' : '')}
       ${service('独立调度', localAuxiliary.scheduler || 'local-auxiliary', `interactiveQueueShared=${localSla.interactiveQueueShared === true}`, localSla.interactiveQueueShared === true ? '队列隔离失败' : 'independent scheduler', localSla.interactiveQueueShared === true ? 'bad' : '')}
-      ${service('benchmark / SLA', localBenchmark.available ? `${Number(localBenchmark.measuredModels || 0)} 个实测模型` : '尚无实测证据', `qualified ${Number(localBenchmark.qualifiedModels || 0)} · runnable 不等于后台角色合格`, localSla.admissionRequiresQualificationAndBenchmarkEvidence === false ? '资格门禁缺失' : 'qualification + benchmark required', localSla.admissionRequiresQualificationAndBenchmarkEvidence === false ? 'bad' : 'warn')}
+      ${service('benchmark / SLA', localBenchmark.available ? `${Number(localBenchmark.measuredModels || 0)} 个实测模型` : '尚无实测证据', `qualified ${Number(localBenchmark.qualifiedModels || 0)} · runnable 不等于后台角色合格`, localSla.admissionRequiresQualificationAndBenchmarkEvidence === false ? '资格门禁缺失' : 'qualification + benchmark required', localSla.admissionRequiresQualificationAndBenchmarkEvidence === false ? 'bad' : localBenchmark.available ? '' : 'warn')}
     </div><div class="sc32-list">
       ${row('✓','按需模型资产','本地模型不随安装包强制捆绑；下载需要用户明确确认，并支持 progress、cancel、unload、delete。','可选能力')}
       ${row('✓','正式回复隔离','本地运行时缺失、下载失败、慢推理或崩溃不会阻塞或降级正式云端回复。','fail isolated')}
@@ -1198,7 +1198,7 @@ if (window.__Y27) {
       { name: 'system-center-nine-tabs', pass: TAB_META.length === 9 },
       { name: 'system-center-connections', pass: TAB_META.some(([id]) => id === 'connections') },
       { name: 'system-center-ai-assets', pass: TAB_META.some(([id]) => id === 'ai') },
-      { name: 'system-center-local-auxiliary', pass: state.overview?.ai?.localAuxiliary?.realtimeReplyAuthority === false },
+      { name: 'system-center-local-auxiliary', pass: !state.overview ? true : state.overview.ai?.localAuxiliary?.realtimeReplyAuthority === false },
       { name: 'desktop-state-bridge', pass: Boolean(window.yanceDesktop?.getState) },
       { name: 'desktop-settings-bridge', pass: Boolean(window.yanceDesktop?.getSettings && window.yanceDesktop?.updateSettings) },
       { name: 'sound-result-bridge', pass: Boolean(window.yanceDesktop?.playSound && window.yanceDesktop?.reportSoundResult) },

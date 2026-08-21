@@ -201,7 +201,7 @@ test('background scheduler isolates only an admitted auxiliary-only candidate pr
   assert.equal(constrained.candidates[0].sourceType, 'cloud');
 });
 
-test('Ollama seam exposes governed on-demand pull with progress and caller cancellation', async () => {
+test('Ollama pull aggregates truthful multi-layer bytes while global total stays unknown until success', async () => {
   assert.equal(typeof ollamaClient.pull, 'function', 'Ollama client must expose the V1 pull lifecycle on the existing runtime seam');
 
   const originalFetch = global.fetch;
@@ -211,9 +211,12 @@ test('Ollama seam exposes governed on-demand pull with progress and caller cance
     observed = { url: String(url), init };
     const body = [
       JSON.stringify({ status: 'pulling manifest' }),
-      JSON.stringify({ status: 'downloading', digest: 'sha256:test', total: 100, completed: 0 }),
-      JSON.stringify({ status: 'downloading', digest: 'sha256:test', total: 100, completed: 40 }),
-      JSON.stringify({ status: 'success', total: 100, completed: 100 })
+      JSON.stringify({ status: 'downloading', digest: 'sha256:layer-a', total: 100, completed: 0 }),
+      JSON.stringify({ status: 'downloading', digest: 'sha256:layer-a', total: 100, completed: 100 }),
+      JSON.stringify({ status: 'downloading', digest: 'sha256:layer-b', total: 50, completed: 0 }),
+      JSON.stringify({ status: 'downloading', digest: 'sha256:layer-b', total: 50, completed: 25 }),
+      JSON.stringify({ status: 'downloading', digest: 'sha256:layer-b', total: 50, completed: 50 }),
+      JSON.stringify({ status: 'success' })
     ].join('\n') + '\n';
     return new Response(body, { status: 200, headers: { 'content-type': 'application/x-ndjson' } });
   };
@@ -228,8 +231,24 @@ test('Ollama seam exposes governed on-demand pull with progress and caller cance
     assert.equal(observed.init.method, 'POST');
     assert.equal(JSON.parse(observed.init.body).stream, true);
     assert.ok(observed.init.signal, 'pull must pass an abortable signal to physical I/O');
-    assert.ok(progress.length >= 3, 'pull must surface upstream progress instead of hiding a long-running download');
+    assert.ok(progress.length >= 6, 'pull must surface upstream progress instead of hiding a long-running download');
     assert.equal(progress[1].completed, 0, 'zero-valued upstream progress must be represented truthfully');
+
+    const layerAComplete = progress.find(event => event.digest === 'sha256:layer-a' && event.completed === 100);
+    assert.equal(layerAComplete.knownTotal, 100);
+    assert.equal(layerAComplete.total, 0, 'global total is not knowable while future layers may still appear');
+    assert.equal(layerAComplete.percent, 0, 'active pull must not manufacture a global percentage from a partial layer set');
+
+    const secondLayerHalf = progress.find(event => event.digest === 'sha256:layer-b' && event.completed === 125);
+    assert.ok(secondLayerHalf, 'second layer progress must aggregate completed bytes from prior layers');
+    assert.equal(secondLayerHalf.knownTotal, 150);
+    assert.equal(secondLayerHalf.total, 0);
+    assert.equal(secondLayerHalf.percent, 0);
+
+    assert.equal(result.knownTotal, 150);
+    assert.equal(result.total, 150, 'terminal success may seal the final aggregate total');
+    assert.equal(result.completed, 150);
+    assert.equal(result.percent, 100, '100 percent is reserved for terminal success');
     assert.equal(result.ok, true);
     assert.equal(result.model, 'qwen-test:latest');
   } finally {
