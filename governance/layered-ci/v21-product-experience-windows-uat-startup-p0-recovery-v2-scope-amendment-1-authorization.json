@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T15:18:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-EXPERIENCE-WINDOWS-UAT-STARTUP-P0-RECOVERY-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing post-RED scope amendment for the same Windows UAT startup P0. Exact implementation head 64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e correctly extends Product Final routing and the real packaged Element/Yance startup path, and exact-head Stage is GREEN. Fresh WP-A Main Post-Merge Validation run 32462512875 then exposed two stale trusted contract assertions in tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js: the exact Product Final branch allowlist still enumerates only the five predecessor Product branches even though the recovery-v2 authorization explicitly requires fix/v21-product-experience-windows-uat-startup-p0 to route both required jobs, and the neutral RUNNER_TEMP pnpm assertion hard-codes two Push-Location occurrences even though the newly authorized packaged Element materialization adds a third legitimate neutral-host pnpm block. The failing test path is outside the recovery-v2 ten-path scope, so it may not be edited on the existing implementation branch. This amendment adds exactly that one trusted contract path and freezes 64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e as immutable post-RED evidence; no production path, dependency, route, workflow, release candidate, #538 state or current Desktop/Windows UAT candidate is added or weakened.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-experience-windows-uat-startup-p0-recovery-v2-authorization.json",
+    "implementationBranch": "fix/v21-product-experience-windows-uat-startup-p0",
+    "implementationHead": "64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e",
+    "reason": "Preserve the valid failure-first RED and production closure history without rewrite. Continue only through the Amendment-1 successor after the corrected cumulative eleven-path scope enters trusted main."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "dc2c5e085f8f1c4d0609f820b1097b5882cc64a2",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "dc2c5e085f8f1c4d0609f820b1097b5882cc64a2",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-experience-windows-uat-startup-p0-recovery-v2-scope-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-experience-windows-uat-startup-p0-recovery-v2-scope-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "3d2529b9543517e1364b901c49f212b766f9c476ee73eb111d4d3b3506494a9f",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-experience-windows-uat-startup-p0-amendment-1",
+    "requiredParent": "EFFECTIVE_AMENDMENT_MERGE",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "electron/main.js",
+      "electron/mainWindowActivationController.js",
+      "electron/preload.js",
+      "integration/element-module/src/index.tsx",
+      "tests/desktop-fixes/desktop-activation-wiring.test.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js",
+      "tests/desktop-fixes/tray-lifecycle-integration.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1"
+    ],
+    "approvedChangedFileCount": 11,
+    "approvedChangedFileSetSha256": "6eefa1b7a8ed31019e6a4f2f06c2c00d707d10ad5913916774e4a007d8f055dc",
+    "newlyAuthorizedPaths": [
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "1248eca9fee4a07fc2a0c5dd816c01de973d57ef003a3996926ca22ee3fb8d44",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "productRuntimeModificationAllowed": true,
+    "upstreamPatchModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "rootPackageManifestModificationAllowed": false,
+    "rootLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "postRedContinuation": {
+    "failureFirstEvidenceInherited": true,
+    "originalEffectiveAuthorizationMerge": "8cfdbee6e1549f0870f55998bedbe840be51ef70",
+    "originalImplementationBranch": "fix/v21-product-experience-windows-uat-startup-p0",
+    "failureFirstRedHead": "a9ce0b28fc137f0125005f92112a5b4229a3886d",
+    "failureFirstRedRun": 32457400881,
+    "failureFirstRedConclusion": "failure",
+    "failureFirstUnknownBlockers": 0,
+    "frozenPredecessorHead": "64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e",
+    "requiredContinuationTopology": {
+      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
+      "firstContinuationCommitMustBeTwoParentMerge": true,
+      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
+      "firstContinuationCommitSecondParent": "64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e",
+      "historyRewriteForbidden": true,
+      "cherryPickDuplicationForbidden": true,
+      "oldImplementationBranchMustNotReceiveFurtherCommits": true
+    }
+  },
+  "rootCauseEvidence": {
+    "freshCausalRedRun": 32462512875,
+    "freshCausalRedJob": 96712171052,
+    "freshCausalRedMergeCandidate": "f20215e9b74a6f38c961d18aec92c041297cfd30",
+    "implementationExactHead": "64dc872b9923e0d0e3a870a23b5f3f4ee9618b9e",
+    "stageRun": 32462512772,
+    "stageConclusion": "success",
+    "observedFailures": [
+      "Product Experience final validation exact branch allowlist expected only five predecessor Product branches but the authorized workflow now also contains fix/v21-product-experience-windows-uat-startup-p0.",
+      "Task 9 neutral RUNNER_TEMP contract expected exactly two Push-Location occurrences but the authorized packaged Element materialization adds a third neutral-host pnpm block."
+    ],
+    "requiredFix": "Update only the trusted Product Final Layered contract test so it explicitly requires the exact recovery-v2 implementation branch and explicitly proves all three neutral RUNNER_TEMP pnpm blocks, including the packaged Element install/build block. Do not relax exact-branch matching, frozen install, pinned pnpm, packaged Yance launch, PASS receipt or any production gate.",
+    "whyOriginalScopeIsInsufficient": "The only failing assertions are owned by tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js, which is not one of recovery-v2's ten authorized paths. Editing it on the predecessor implementation branch would violate exact-path governance.",
+    "unknownBlockersForThisAuthorizationBoundary": 0
+  },
+  "preservedContracts": {
+    "browserOnlySurrogateForbidden": true,
+    "pinnedElementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "frozenElementInstallRequired": true,
+    "officialElementModuleLoaderRequired": true,
+    "packagedYanceExeLaunchRequired": true,
+    "postInstallRequired": true,
+    "productionRuntimeProbeRequired": true,
+    "freshPassReceiptRequired": true,
+    "isolatedDataRootRequired": true,
+    "greenOnProcessStartForbidden": true,
+    "exactBranchAllowlistRequired": true,
+    "noCurrentUatCandidateMutation": true,
+    "no538Mutation": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "WP-A Main Post-Merge Validation",
+      "V21 Product Experience Shell P0 Final Validation",
+      "ACV2 WP-A Architecture Gates",
+      "V21 Model Brain P0 Windows"
+    ],
+    "newRedPolicy": "Batch causal closure in the correct owning layer; no gate weakening, count-only workaround, surrogate launch or unauthorized path expansion."
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
