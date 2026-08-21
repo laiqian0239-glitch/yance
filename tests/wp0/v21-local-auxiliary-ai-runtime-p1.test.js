@@ -5,6 +5,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const ollamaClient = require('../../backend/services/ollamaClient');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const read = repositoryPath => fs.readFileSync(path.join(ROOT, repositoryPath), 'utf8');
@@ -13,6 +14,22 @@ const AUTHORIZATION_PATH = 'governance/layered-ci/v21-local-auxiliary-ai-runtime
 function changedFileSetSha256(paths) {
   const normalized = [...new Set(paths)].sort();
   return crypto.createHash('sha256').update(`${normalized.join('\n')}\n`, 'utf8').digest('hex');
+}
+
+async function expectIncompletePull(body) {
+  const originalFetch = global.fetch;
+  global.fetch = async () => new Response(body, {
+    status: 200,
+    headers: { 'content-type': 'application/x-ndjson' }
+  });
+  try {
+    await assert.rejects(
+      ollamaClient.pull('http://127.0.0.1:11434', 'qwen-test:latest'),
+      error => error?.code === 'OLLAMA_PULL_INCOMPLETE'
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
 }
 
 test('delegated authorization seals the exact implementation and Fast Closure V2 failure-first path sets', () => {
@@ -66,6 +83,7 @@ test('existing Ollama seam grows truthful pull/progress/cancel lifecycle without
   assert.match(ollama, /onProgress/u, 'physical pull must surface progress');
   assert.match(ollama, /authorizedPullRoot/u, 'pull must constrain caller-supplied endpoints to loopback or trusted Ollama configuration');
   assert.match(ollama, /OLLAMA_ENDPOINT_NOT_AUTHORIZED/u);
+  assert.match(ollama, /OLLAMA_PULL_INCOMPLETE/u, 'physical pull must fail closed when the NDJSON stream ends without terminal success');
   assert.match(ollama, /const layers = new Map\(\)/u, 'multi-layer pulls must aggregate progress by digest rather than replace the previous layer');
   assert.match(ollama, /knownTotal = \[\.\.\.layers\.values\(\)\]\.reduce/u, 'known layer totals must aggregate without pretending to be a final global denominator');
   assert.match(ollama, /completed = \[\.\.\.layers\.values\(\)\]\.reduce/u, 'completed bytes must remain cumulative across layer boundaries');
@@ -89,6 +107,17 @@ test('existing Ollama seam grows truthful pull/progress/cancel lifecycle without
     read('backend/services/modelBrainProjection.js')
   ].join('\n');
   assert.doesNotMatch(runtimeSources, /ktransformers|airllm|llama\.cpp/iu, 'V1 must not admit a second local inference runtime');
+});
+
+test('Ollama pull rejects empty, malformed, and truncated 200 streams without terminal success', async () => {
+  await expectIncompletePull('');
+  await expectIncompletePull('{malformed ndjson}\n');
+  await expectIncompletePull(`${JSON.stringify({
+    status: 'downloading',
+    digest: 'sha256:partial',
+    total: 100,
+    completed: 60
+  })}\n`);
 });
 
 test('local auxiliary authority, benchmark/SLA evidence and truthful UI status are first-class but never reply authority', () => {
