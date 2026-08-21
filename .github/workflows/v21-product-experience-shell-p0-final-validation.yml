@@ -18,7 +18,8 @@ jobs:
         github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0' ||
         github.event.pull_request.head.ref == 'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0' ||
         github.event.pull_request.head.ref == 'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1' ||
-        github.event.pull_request.head.ref == 'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3'
+        github.event.pull_request.head.ref == 'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3' ||
+        github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0'
       )
     runs-on: windows-latest
     env:
@@ -121,7 +122,8 @@ jobs:
         github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0' ||
         github.event.pull_request.head.ref == 'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0' ||
         github.event.pull_request.head.ref == 'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1' ||
-        github.event.pull_request.head.ref == 'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3'
+        github.event.pull_request.head.ref == 'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3' ||
+        github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -132,6 +134,8 @@ jobs:
       NODE_ARCHIVE_SHA256: 7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29
       NODE_EXE_SHA256: f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed
       RCEDIT_SHA256: 3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a
+      ELEMENT_COMMIT: a2a996ae50d802878bf48e4bbf3730004bdcc55c
+      PNPM_VERSION: 11.5.2
     steps:
       - name: Checkout exact reviewed Product candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -420,6 +424,155 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'desktop candidate verification failed' }
           if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'desktop materialization must leave Product source clean' }
 
+      - name: Launch exact packaged Yance against exact Element ModuleLoader path and require fresh PASS receipt
+        shell: pwsh
+        env:
+          YANCE_WP2_PRODUCTION_RUNTIME_PROBE: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bundle = Join-Path $env:RUNNER_TEMP 'product-experience-materialized-desktop-uat'
+          $archive = Get-ChildItem -LiteralPath $bundle -Filter 'Yance_Stage6_4_5_9_WP7_PreReview_Trusted_Product_*.tar.gz' -File | Select-Object -First 1
+          if (-not $archive) { throw 'materialized desktop archive is missing before packaged launch validation' }
+
+          $applicationRoot = Join-Path $env:RUNNER_TEMP 'product-uat-packaged-launch'
+          $dataRoot = Join-Path $env:RUNNER_TEMP 'product-uat-packaged-data'
+          $hostRoot = Join-Path $env:RUNNER_TEMP 'product-uat-element-validation-host'
+          $pnpmStore = Join-Path $env:RUNNER_TEMP 'product-uat-element-pnpm-store'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $applicationRoot, $dataRoot, $hostRoot, $pnpmStore, services/matrix/.runtime
+          New-Item -ItemType Directory -Path $applicationRoot, $dataRoot, $hostRoot | Out-Null
+          tar.exe -xzf $archive.FullName -C $applicationRoot
+          if ($LASTEXITCODE -ne 0) { throw "materialized desktop extraction failed: $LASTEXITCODE" }
+          $yanceExe = Get-ChildItem -LiteralPath $applicationRoot -Filter 'Yance.exe' -File -Recurse | Select-Object -First 1
+          if (-not $yanceExe) { throw 'exact packaged Yance.exe is missing after trusted-product extraction' }
+
+          corepack enable
+          if ($LASTEXITCODE -ne 0) { throw 'corepack enable failed for exact Element host' }
+          corepack prepare pnpm@11.5.2 --activate
+          if ($LASTEXITCODE -ne 0) { throw 'failed to activate pnpm 11.5.2 for exact Element host' }
+          if ((pnpm --version).Trim() -ne $env:PNPM_VERSION) { throw "exact Element host pnpm mismatch: $(pnpm --version)" }
+
+          node tools/matrix/bootstrap.js
+          if ($LASTEXITCODE -ne 0) { throw 'exact Element materialization failed for packaged Windows validation' }
+          $element = (Resolve-Path services/matrix/.runtime/element-web).Path
+          $actualElementCommit = (git -C $element rev-parse HEAD).Trim()
+          if ($actualElementCommit -ne $env:ELEMENT_COMMIT) { throw "Element pin mismatch: expected=$env:ELEMENT_COMMIT actual=$actualElementCommit" }
+          if (-not (Select-String -Path "$element\apps\web\Dockerfile" -Pattern 'nx build yance-element-module' -Quiet)) { throw '0012 exact module build seam is missing' }
+          if (-not (Select-String -Path "$element\apps\web\Dockerfile" -Pattern '/modules/yance/package.json' -Quiet)) { throw '0012 exact module delivery seam is missing' }
+
+          Push-Location $env:RUNNER_TEMP
+          try {
+            pnpm --dir $element install --frozen-lockfile --store-dir $pnpmStore
+            if ($LASTEXITCODE -ne 0) { throw 'exact Element frozen install failed for packaged Windows validation' }
+            pnpm --dir $element exec nx build yance-element-module
+            if ($LASTEXITCODE -ne 0) { throw 'exact Yance Element module build failed for packaged Windows validation' }
+            $env:VERSION = '1.12.25'
+            pnpm --dir (Join-Path $element 'apps/web') build
+            if ($LASTEXITCODE -ne 0) { throw 'exact Element webapp build failed for packaged Windows validation' }
+          } finally {
+            Remove-Item Env:VERSION -ErrorAction SilentlyContinue
+            Pop-Location
+          }
+
+          $webapp = Join-Path $element 'apps/web/webapp'
+          $modulePackage = Join-Path $element 'modules/yance/package.json'
+          $moduleLib = Join-Path $element 'modules/yance/lib'
+          if (-not (Test-Path -LiteralPath (Join-Path $webapp 'index.html') -PathType Leaf)) { throw 'exact built Element webapp index is missing' }
+          if (-not (Test-Path -LiteralPath (Join-Path $moduleLib 'index.js') -PathType Leaf)) { throw 'exact built Yance Element module entrypoint is missing' }
+          Copy-Item -Path (Join-Path $webapp '*') -Destination $hostRoot -Recurse -Force
+          $servedModuleRoot = Join-Path $hostRoot 'modules\yance'
+          New-Item -ItemType Directory -Force -Path $servedModuleRoot | Out-Null
+          Copy-Item -LiteralPath $modulePackage -Destination (Join-Path $servedModuleRoot 'package.json') -Force
+          Copy-Item -LiteralPath $moduleLib -Destination $servedModuleRoot -Recurse -Force
+
+          $config = Get-Content -LiteralPath 'config/matrix/element-config.json' -Raw | ConvertFrom-Json
+          $config | Add-Member -NotePropertyName modules -NotePropertyValue @('/modules/yance/lib/index.js') -Force
+          $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $hostRoot 'config.json') -Encoding UTF8
+
+          $server = @'
+          const http = require('http');
+          const fs = require('fs');
+          const path = require('path');
+          const root = path.resolve(process.argv[2]);
+          const types = new Map([
+            ['.html', 'text/html; charset=utf-8'], ['.js', 'application/javascript; charset=utf-8'], ['.mjs', 'application/javascript; charset=utf-8'],
+            ['.json', 'application/json; charset=utf-8'], ['.css', 'text/css; charset=utf-8'], ['.svg', 'image/svg+xml'],
+            ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.gif', 'image/gif'], ['.webp', 'image/webp'],
+            ['.woff', 'font/woff'], ['.woff2', 'font/woff2'], ['.wasm', 'application/wasm'], ['.map', 'application/json; charset=utf-8']
+          ]);
+          function resolveRequest(url) {
+            const pathname = decodeURIComponent(String(url || '/').split('?')[0]).replace(/\\/g, '/');
+            const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+            const candidate = path.resolve(root, relative);
+            if (candidate !== root && !candidate.startsWith(root + path.sep)) return null;
+            return candidate;
+          }
+          const server = http.createServer((req, res) => {
+            let file = resolveRequest(req.url);
+            if (!file) { res.writeHead(400); res.end('bad request'); return; }
+            try {
+              if (fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
+            } catch {
+              if (!path.extname(file)) file = path.join(root, 'index.html');
+            }
+            fs.readFile(file, (error, body) => {
+              if (error) { res.writeHead(404); res.end('not found'); return; }
+              res.writeHead(200, { 'content-type': types.get(path.extname(file).toLowerCase()) || 'application/octet-stream', 'content-length': body.length, 'cache-control': 'no-cache' });
+              res.end(body);
+            });
+          });
+          server.listen(18080, '127.0.0.1');
+          '@
+          $serverPath = Join-Path $hostRoot 'server.cjs'
+          Set-Content -LiteralPath $serverPath -Value $server -Encoding UTF8
+          $hostProcess = Start-Process -FilePath (Get-Command node).Source -ArgumentList @($serverPath, $hostRoot) -PassThru -WindowStyle Hidden
+
+          $env:YANCE_DATA_DIR = $dataRoot
+          $env:YANCE_ELEMENT_URL = 'http://127.0.0.1:18080'
+          $env:YANCE_ELEMENT_HEALTH_URL = 'http://127.0.0.1:18080/config.json'
+          $receiptPath = Join-Path $dataRoot 'logs\post-install-launch.json'
+          Remove-Item -LiteralPath $receiptPath -Force -ErrorAction SilentlyContinue
+          $startedAt = [DateTimeOffset]::UtcNow
+          $process = $null
+          try {
+            $hostDeadline = [DateTimeOffset]::UtcNow.AddSeconds(20)
+            $hostReady = $false
+            while ([DateTimeOffset]::UtcNow -lt $hostDeadline) {
+              try {
+                $response = Invoke-WebRequest -UseBasicParsing -Uri $env:YANCE_ELEMENT_HEALTH_URL -TimeoutSec 2
+                if ($response.StatusCode -eq 200 -and $response.Content -match 'modules') { $hostReady = $true; break }
+              } catch {}
+              Start-Sleep -Milliseconds 100
+            }
+            if (-not $hostReady) { throw 'exact built Element validation host did not become ready with runtime module config' }
+
+            $process = Start-Process -FilePath $yanceExe.FullName -ArgumentList '--post-install' -WorkingDirectory $yanceExe.DirectoryName -PassThru
+            $deadline = [DateTimeOffset]::UtcNow.AddSeconds(120)
+            $receipt = $null
+            while ([DateTimeOffset]::UtcNow -lt $deadline) {
+              $process.Refresh()
+              if ($process.HasExited) { throw "packaged Yance.exe exited before post-install receipt: exitCode=$($process.ExitCode)" }
+              if (Test-Path -LiteralPath $receiptPath -PathType Leaf) {
+                $candidateReceipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
+                if ([int]$candidateReceipt.schemaVersion -ne 1 -or [string]$candidateReceipt.documentType -ne 'YANCE_POST_INSTALL_LAUNCH_RECEIPT') { throw 'post-install launch receipt schema mismatch' }
+                if ([string]$candidateReceipt.status -ne 'PASS') { throw "post-install launch receipt status is not PASS: $($candidateReceipt.status)" }
+                if ([int]$candidateReceipt.processId -ne [int]$process.Id) { throw "post-install receipt process mismatch: expected=$($process.Id) actual=$($candidateReceipt.processId)" }
+                $activatedAt = [DateTimeOffset]::Parse([string]$candidateReceipt.activatedAtUtc)
+                if ($activatedAt -lt $startedAt) { throw 'post-install launch receipt is stale' }
+                if ($candidateReceipt.window.destroyed -eq $true -or $candidateReceipt.window.visible -ne $true -or $candidateReceipt.window.minimized -eq $true) { throw 'post-install launch receipt window is not Desktop READY' }
+                $receipt = $candidateReceipt
+                break
+              }
+              Start-Sleep -Milliseconds 250
+            }
+            if (-not $receipt) { throw "timed out waiting for fresh post-install-launch.json: $receiptPath" }
+            Write-Host "GREEN: exact packaged Yance.exe reached post-install PASS against pinned Element ModuleLoader path with production runtime probe enabled at $($receipt.activatedAtUtc)"
+          } finally {
+            if ($process) { taskkill.exe /PID $process.Id /T /F 2>$null | Out-Null }
+            if ($hostProcess) { Stop-Process -Id $hostProcess.Id -Force -ErrorAction SilentlyContinue }
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue services/matrix/.runtime
+          }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'packaged launch validation must leave Product source clean' }
+
       - name: Upload materialized desktop UAT
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -436,7 +589,8 @@ jobs:
         github.event.pull_request.head.ref == 'product/v21-product-experience-bilingual-search-translation-task-ux-p0' ||
         github.event.pull_request.head.ref == 'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0' ||
         github.event.pull_request.head.ref == 'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1' ||
-        github.event.pull_request.head.ref == 'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3'
+        github.event.pull_request.head.ref == 'product/v21-product-prelaunch-dating-ai-experience-amendment-wp1-v3' ||
+        github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120

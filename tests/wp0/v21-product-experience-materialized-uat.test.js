@@ -441,3 +441,33 @@ test('WP7 archive ownership retires manual USTAR format code for exact locked no
   assert.equal(rootPackage.dependencies?.tar, undefined);
   assert.equal(rootPackage.devDependencies?.tar, undefined);
 });
+
+test('Product Final routes the Windows startup P0 branch through both required jobs and launches exact packaged Yance.exe', () => {
+  const source = read(WORKFLOW);
+  const implementationBranch = 'fix/v21-product-experience-windows-uat-startup-p0';
+  const escapedBranch = implementationBranch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const frozenStart = source.indexOf('  frozen-element-reproducibility:');
+  const materializedStart = source.indexOf('  materialized-desktop-uat:');
+  assert.ok(frozenStart >= 0 && materializedStart > frozenStart, 'required Product Final jobs must exist');
+  const frozenBlock = source.slice(frozenStart, materializedStart);
+  const materializedBlock = source.slice(materializedStart);
+
+  assert.match(frozenBlock, new RegExp(escapedBranch, 'u'), 'frozen Element reproducibility must route the exact implementation branch');
+  assert.match(materializedBlock, new RegExp(escapedBranch, 'u'), 'materialized desktop UAT must route the exact implementation branch');
+  assert.match(materializedBlock, /Yance\.exe/u, 'Windows Product Final must launch the exact packaged executable');
+  assert.match(materializedBlock, /--post-install/u, 'Windows Product Final must launch packaged Yance with post-install activation');
+  assert.match(materializedBlock, /YANCE_WP2_PRODUCTION_RUNTIME_PROBE/u, 'Windows Product Final must enable the existing production runtime probe');
+  assert.match(materializedBlock, /post-install-launch\.json/u, 'Windows Product Final must require the existing post-install PASS receipt');
+});
+
+test('materialized UAT GREEN is receipt-bound and fails if packaged Yance exits before readiness proof', () => {
+  const runner = read(RUNNER);
+  assert.match(runner, /YANCE_WP2_PRODUCTION_RUNTIME_PROBE/u, 'UAT runner must enable the production runtime path probe');
+  assert.match(runner, /--post-install/u, 'UAT runner must use the post-install activation path');
+  assert.match(runner, /post-install-launch\.json/u, 'UAT runner must wait for the existing post-install launch receipt');
+  assert.match(runner, /HasExited/u, 'UAT runner must fail immediately when packaged Yance exits before receipt');
+  assert.match(runner, /status[^\n]*PASS|PASS[^\n]*status/iu, 'UAT runner must require receipt status PASS');
+  const receiptIndex = runner.indexOf('post-install-launch.json');
+  const greenIndex = runner.indexOf('Write-Host "GREEN: verified same-identity materialized UAT candidate');
+  assert.ok(receiptIndex >= 0 && greenIndex > receiptIndex, 'GREEN evidence must be emitted only after receipt validation');
+});

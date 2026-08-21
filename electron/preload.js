@@ -17,6 +17,13 @@ function on(channel, callback) {
   return () => ipcRenderer.removeListener(channel, listener);
 }
 
+function onActivationProbe(callback) {
+  if (typeof callback !== 'function') return () => {};
+  const unsubscribe = on('desktop:activation-probe', callback);
+  ipcRenderer.send('desktop:activation-probe-responder-ready', { at: new Date().toISOString() });
+  return unsubscribe;
+}
+
 async function invokeStore(channel, input) {
   const result = await ipcRenderer.invoke(channel, input || {});
   if (!result?.__yanceBridgeError) return result;
@@ -137,7 +144,7 @@ contextBridge.exposeInMainWorld('yanceDesktop', Object.freeze({
   setUpdateWorkState: state => ipcRenderer.invoke('desktop:update-set-work-state', state || {}),
   onActivation: callback => on('desktop:activation', callback),
   onActivationRecovery: callback => on('desktop:activation-recovery', callback),
-  onActivationProbe: callback => on('desktop:activation-probe', callback),
+  onActivationProbe: callback => onActivationProbe(callback),
   completeActivationProbe: payload => ipcRenderer.send('desktop:activation-probe-complete', payload || {}),
   onOpenConversation: callback => on('desktop:open-conversation', callback),
   onOpenView: callback => on('desktop:open-view', callback),

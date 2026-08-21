@@ -164,9 +164,57 @@ if (-not [string]::IsNullOrWhiteSpace($ExistingDataRoot)) {
   New-Item -ItemType Directory -Force -Path $UatDataRoot | Out-Null
 }
 $env:YANCE_DATA_DIR = (Resolve-RealDirectory $UatDataRoot 'isolated Yance UAT data root')
+$env:YANCE_WP2_PRODUCTION_RUNTIME_PROBE = '1'
 
-$startedAtUtc = [DateTime]::UtcNow.ToString('o')
-$process = Start-Process -FilePath $yanceExe.FullName -WorkingDirectory $yanceExe.DirectoryName -PassThru
+$receiptPath = Join-Path $env:YANCE_DATA_DIR 'logs\post-install-launch.json'
+$receiptPassPath = Join-Path $env:YANCE_DATA_DIR 'logs\post-install-launch.pass'
+Remove-Item -LiteralPath $receiptPath, $receiptPassPath -Force -ErrorAction SilentlyContinue
+$startedAt = [DateTimeOffset]::UtcNow
+$startedAtUtc = $startedAt.ToString('o')
+$process = Start-Process -FilePath $yanceExe.FullName -ArgumentList '--post-install' -WorkingDirectory $yanceExe.DirectoryName -PassThru
+
+$receipt = $null
+$receiptDeadline = [DateTimeOffset]::UtcNow.AddSeconds(120)
+while ([DateTimeOffset]::UtcNow -lt $receiptDeadline) {
+  $process.Refresh()
+  if ($process.HasExited) {
+    throw "packaged Yance.exe exited before post-install readiness receipt: exitCode=$($process.ExitCode) receipt=$receiptPath"
+  }
+  if (Test-Path -LiteralPath $receiptPath -PathType Leaf) {
+    $candidateReceipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
+    $activatedAt = [DateTimeOffset]::Parse([string]$candidateReceipt.activatedAtUtc)
+    if ([int]$candidateReceipt.schemaVersion -ne 1 -or [string]$candidateReceipt.documentType -ne 'YANCE_POST_INSTALL_LAUNCH_RECEIPT') {
+      throw "post-install receipt schema/document type mismatch: $receiptPath"
+    }
+    if ([string]$candidateReceipt.status -ne 'PASS') {
+      throw "post-install receipt status is not PASS: status=$($candidateReceipt.status) receipt=$receiptPath"
+    }
+    if ([string]$candidateReceipt.reason -notmatch '^post-install(?:$|-)') {
+      throw "post-install receipt reason mismatch: $($candidateReceipt.reason)"
+    }
+    if ([int]$candidateReceipt.processId -ne [int]$process.Id) {
+      throw "post-install receipt process mismatch: expected=$($process.Id) actual=$($candidateReceipt.processId)"
+    }
+    if ($activatedAt -lt $startedAt) {
+      throw "post-install receipt is stale: started=$startedAtUtc activated=$($candidateReceipt.activatedAtUtc)"
+    }
+    if ($candidateReceipt.window.destroyed -eq $true -or $candidateReceipt.window.visible -ne $true -or $candidateReceipt.window.minimized -eq $true) {
+      throw "post-install receipt window state is not ready: $($candidateReceipt.window | ConvertTo-Json -Compress)"
+    }
+    $receipt = $candidateReceipt
+    break
+  }
+  Start-Sleep -Milliseconds 250
+}
+
+if (-not $receipt) {
+  $process.Refresh()
+  if ($process.HasExited) {
+    throw "packaged Yance.exe exited before post-install readiness receipt: exitCode=$($process.ExitCode) receipt=$receiptPath"
+  }
+  throw "timed out waiting for fresh post-install PASS receipt: $receiptPath"
+}
+
 $evidence = [ordered]@{
   schemaVersion = 1
   documentType = 'V21_PRODUCT_EXPERIENCE_MATERIALIZED_UAT_WINDOWS_EVIDENCE'
@@ -183,10 +231,14 @@ $evidence = [ordered]@{
   yanceDataDir = $env:YANCE_DATA_DIR
   startedAtUtc = $startedAtUtc
   processId = $process.Id
+  productionRuntimeProbeEnabled = $true
+  postInstallReceipt = $receiptPath
+  postInstallReceiptStatus = [string]$receipt.status
+  postInstallActivatedAtUtc = [string]$receipt.activatedAtUtc
 }
 $evidence | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $EvidenceRoot 'materialized-uat-evidence.json') -Encoding UTF8
 
-Write-Host "GREEN: verified same-identity materialized UAT candidate $($desktop.manifest.candidateCommit)"
+Write-Host "GREEN: verified same-identity materialized UAT candidate $($desktop.manifest.candidateCommit) with fresh post-install receipt status PASS"
 Write-Host "GREEN: Matrix images loaded and started with docker compose up --no-build"
-Write-Host "GREEN: already-built Yance.exe started with isolated data root $env:YANCE_DATA_DIR"
+Write-Host "GREEN: already-built Yance.exe reached Desktop READY with isolated data root $env:YANCE_DATA_DIR"
 Write-Host "Evidence: $(Join-Path $EvidenceRoot 'materialized-uat-evidence.json')"

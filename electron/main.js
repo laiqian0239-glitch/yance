@@ -1715,7 +1715,16 @@ async function waitForMainWindowSessionReady(request = {}) {
 async function validateMainWindowRuntimeReady(window, request = {}) {
   const sessionBefore = await waitForMainWindowSessionReady(request);
   const result = await ensureMainWindowRuntimeReadiness().probe(window, { ...request, sessionGeneration: sessionBefore.slice(0, 24) });
-  await apiRequest('/api/ready');
+  const ready = await apiRequest('/api/ready');
+  if (process.env.YANCE_WP2_PRODUCTION_RUNTIME_PROBE === '1') {
+    const productionRuntimeProbe = ready?.productionRuntimeProbe || {};
+    if (productionRuntimeProbe.enabled !== true || productionRuntimeProbe.executed !== true) {
+      const error = new Error('Production runtime path probe did not execute before packaged startup readiness');
+      error.reasonCode = 'WP2_PRODUCTION_PATH_PROBE_REQUIRED';
+      error.details = { productionRuntimeProbe };
+      throw error;
+    }
+  }
   const sessionAfter = currentApiSessionFingerprint();
   if (!sessionAfter || sessionAfter !== sessionBefore) {
     const error = new Error('Backend API session changed during desktop activation');
@@ -2411,7 +2420,8 @@ function backendEnvironment(launch = {}) {
   for (const key of [
     'WP7_PROBE_ID',
     'WP7_PROBE_EXECUTION_CLASS',
-    'WP7_PROBE_NETWORK_DISABLED_BEFORE_SPAWN'
+    'WP7_PROBE_NETWORK_DISABLED_BEFORE_SPAWN',
+    'YANCE_WP2_PRODUCTION_RUNTIME_PROBE'
   ]) {
     if (process.env[key]) env[key] = process.env[key];
   }
@@ -3808,6 +3818,10 @@ ipcGuardHandle('desktop:set-active-conversation', (_event, data = {}) => {
     if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
     ensureMainWindowActivationController().markRendererReady(mainWindow, payload);
   });
+  ipcMain.on('desktop:activation-probe-responder-ready', (event, payload = {}) => {
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    ensureMainWindowActivationController().markActivationProbeResponderReady(mainWindow, payload);
+  });
   ipcMain.on('desktop:activation-probe-complete', (event, payload = {}) => {
     if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
     ensureMainWindowRuntimeReadiness().complete(event.sender, payload);
@@ -4071,9 +4085,7 @@ app.on('will-quit', event => {
     onFailure: error => {
       quitting = false;
       desktopLog('error', 'fatal-backend-shutdown-failed', { reasonCode: error.reasonCode || 'DESKTOP_BACKEND_STOP_FAILED', backendPid: authoritativeBackend().backend.backendPid || backendPid || 0 });
-      dialog.showErrorBox('无法安全退出言策', `后台服务仍在运行，应用不会伪装为已退出。
-
-错误代码：${error.reasonCode || 'DESKTOP_BACKEND_STOP_FAILED'}`);
+      dialog.showErrorBox('无法安全退出言策', `后台服务仍在运行，应用不会伪装为已退出。\n\n错误代码：${error.reasonCode || 'DESKTOP_BACKEND_STOP_FAILED'}`);
     }
   }).finally(() => { shutdownInProgress = null; });
 });
