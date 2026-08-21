@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-21T13:46:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LOCAL-AUXILIARY-AI-RUNTIME-P1-V1-SUCCESSOR-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Clean-restart successor authorization after V2 implementation PR #569 became unusable before obtaining a causal RED. V2 authorization #568 was validly ordinary-merged at 9d00f3bd79b4aa0101fb64468ef784c5ff2389aa, and the V2 first tests-only implementation commit c981a80f531ae3cb4a921c2c98d6ab20fb2aa96b correctly used that merge as its sole parent and touched exactly the two authorized diagnostic paths. Before the PR could obtain behavior RED evidence, trusted main concurrently advanced via unrelated governance PR #567 to 0f801375de44e8f64203066b6e0d0c93ff46f1e9. Stage run 32455446234 therefore failed in route setup because the pull-request base was not an ancestor of the V2 head; implementation-branch policy and behavior tests never executed. That infrastructure/topology failure is not accepted as causal RED. A descendant trusted-main merge is not a valid repair because Fast Closure V2 requires post-red/diagnostic first-parent commits to be single-parent and evidence-bound. V3 preserves the identical twenty-path implementation scope, identical two-path diagnostic scope, existing Ollama terminal-success P1 root-fix contract, and all prior quality boundaries; only the successor authorization/implementation branch identities change. No V1/V2 poisoned implementation commit becomes a V3 implementation parent.",
+  "base": {
+    "branch": "main",
+    "commit": "0f801375de44e8f64203066b6e0d0c93ff46f1e9"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "0f801375de44e8f64203066b6e0d0c93ff46f1e9",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-local-auxiliary-ai-runtime-p1-v1-successor-v2-authorization.json",
+    "implementationBranch": "product/v21-local-auxiliary-ai-runtime-p1-v1-successor-v2",
+    "reason": "V2 first implementation head c981a80f531ae3cb4a921c2c98d6ab20fb2aa96b never obtained a valid causal RED because concurrent trusted-main advancement made the PR event base non-ancestral; Stage failed before policy/behavior execution, and Fast Closure V2 does not permit repairing that immutable first-commit surface with a descendant two-parent main-refresh commit."
+  },
+  "predecessorEvidence": {
+    "v1AuthorizationPullRequest": 565,
+    "v1AuthorizationMerge": "0170c457929301d1f254a36364b5b189b9917eb5",
+    "v1ImplementationPullRequest": 566,
+    "v1ReviewedExactHead": "08108ce52c7eeb16fa59d51b9e74567015c69ea0",
+    "independentReviewTriggerAccount": "wangyi198675-coder",
+    "v1IndependentReviewResult": "P0=0 / P1=1",
+    "v1IndependentReviewFinding": "Ollama pull accepted a 200 NDJSON stream ending without terminal status success, allowing false completion after empty, malformed or truncated transfer output.",
+    "v1RootFixCommit": "4dc37a99bc68cbea4996b0fa47303d021c7cf999",
+    "v1RootFixBehavior": "Require terminal status success before pull returns ok; otherwise fail closed with OLLAMA_PULL_INCOMPLETE.",
+    "v1PoisoningCommit": "c2dc9750de0cd8989ac67e45ea871f1034b05a43",
+    "v1UnauthorizedPath": "tests/wp0/v21-local-auxiliary-ai-runtime-p1-terminal-success.test.js",
+    "v1TopologyFailureStageRun": 32453727785,
+    "v2AuthorizationPullRequest": 568,
+    "v2AuthorizationHead": "3a72903d2fb4d1c88a892cda61cfa57a6842eb6c",
+    "v2AuthorizationMerge": "9d00f3bd79b4aa0101fb64468ef784c5ff2389aa",
+    "v2AuthorizationIndependentReview": "P0=0 / P1=0",
+    "v2ImplementationPullRequest": 569,
+    "v2FirstTestsOnlyHead": "c981a80f531ae3cb4a921c2c98d6ab20fb2aa96b",
+    "v2FirstTestsOnlyParent": "9d00f3bd79b4aa0101fb64468ef784c5ff2389aa",
+    "concurrentTrustedMainHead": "0f801375de44e8f64203066b6e0d0c93ff46f1e9",
+    "concurrentTrustedMainCause": "PR #567 ordinary-merged an unrelated Windows UAT startup P0 governance authorization after #568.",
+    "v2StageRun": 32455446234,
+    "v2StageRouteJob": 96691733560,
+    "v2StageFailure": "wp0-route failed in Resolve exact event diff range at git merge-base --is-ancestor PULL_REQUEST_BASE_SHA PULL_REQUEST_HEAD_SHA; implementation branch policy and behavior tests never executed.",
+    "v2CausalRedAccepted": false,
+    "policyRootCause": "The Stage pull-request route requires event base to be an ancestor of head. Fast Closure V2 also requires commits after the first tests-only red head to be single-parent and evidence-bound, so merging advanced main as a descendant cannot safely repair a first commit that never obtained causal RED.",
+    "recoveryRule": "Freeze #569/c981a80 ancestry and restart from fresh trusted main through V3 authorization. Do not amend, force-push, rebase, retarget to a synthetic base, fabricate RED evidence, weaken routing, or reuse V1/V2 implementation commits as parents."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-local-auxiliary-ai-runtime-p1-v1-successor-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-local-auxiliary-ai-runtime-p1-v1-successor-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "578c09df8c0da724865e238cc3223b8a679440cef8a9fcb21d48ee44e5b05f19",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-local-auxiliary-ai-runtime-p1-v1-successor-v3",
+    "allowedChangedPaths": [
+      "backend/routes/models.js",
+      "backend/services/aiBrainOrchestrator.js",
+      "backend/services/aiGateway.js",
+      "backend/services/localAiHardwareProfile.js",
+      "backend/services/localAiModelCatalog.js",
+      "backend/services/localAuxiliaryRuntimeAuthority.js",
+      "backend/services/modelBrainProjection.js",
+      "backend/services/modelRegistry.js",
+      "backend/services/modelStatusProjection.js",
+      "backend/services/ollamaClient.js",
+      "backend/services/systemCenterService.js",
+      "backend/tests/localAuxiliaryAiRuntimeP1.test.js",
+      "config/upstreams/v21-local-auxiliary-ai-runtime-p1-v1.json",
+      "docs/superpowers/plans/2026-08-21-yance-v21-local-auxiliary-ai-runtime-p1-v1.md",
+      "docs/superpowers/specs/2026-08-21-yance-v21-local-auxiliary-ai-runtime-p1-v1-design.md",
+      "frontend/index.html",
+      "frontend/js/r32-ai-workbench-runtime.js",
+      "frontend/r32-system-center.css",
+      "frontend/r32-system-center.js",
+      "tests/wp0/v21-local-auxiliary-ai-runtime-p1.test.js"
+    ],
+    "approvedChangedFileCount": 20,
+    "approvedChangedFileSetSha256": "a29ac40f8a3c6278ffd4e97ef2ff727c4df59fabc51923069ec4e6e3141cca12",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "backend/tests/localAuxiliaryAiRuntimeP1.test.js",
+        "tests/wp0/v21-local-auxiliary-ai-runtime-p1.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "48ba5c30d321ddee9dc591081989f250af1c043219803bb13a4e9a67779a3727",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "A verified local Ollama deployment is currently eligible for formal reply logical groups when its task tags match; the product contract requires formal quick/deep/director reply candidates to be cloud-only.",
+        "Current background AI jobs and formal reply jobs share the AiGateway Model Brain queue, so a slow local background execution can consume concurrency needed by interactive cloud work.",
+        "Ollama discovery exists but trusted main has no governed on-demand pull/progress/cancel lifecycle for approved local model assets.",
+        "Current status surfaces do not distinguish local auxiliary capability/benchmark/SLA evidence from real-time reply authority.",
+        "Trusted main does not fail closed with OLLAMA_PULL_INCOMPLETE when a 200 Ollama pull stream ends without terminal status success."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "databaseMigrationAllowed": false,
+    "productionReleaseAuthorized": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Fresh trusted main still equals the V3 authorization base before authorization merge; otherwise this proposal is stale and must be replaced before merge.",
+      "Immediately before creating the first V3 tests-only implementation commit, fresh trusted main must still equal the effective ordinary two-parent V3 authorization merge commit. If trusted main has advanced after authorization merge, stop before creating any implementation commit and regenerate from the fresh main rather than relying on Stage to detect non-ancestry.",
+      "The V3 implementation branch starts exactly from the effective ordinary two-parent V3 authorization merge commit and contains no #566 or #569 implementation ancestry.",
+      "The trusted implementationBranchPolicy parser recognizes the exact twenty-path implementation set, two-path Fast Closure V2 diagnostic scope, direct V2-to-V3 supersession edge and first-production evidence semantics.",
+      "The corrected diagnostic blobs are content-verified against frozen evidence before reuse; commit identities and ancestry are recreated fresh rather than cherry-picked as authority.",
+      "No active open PR mutates the authoritative Model Brain/local-model paths in this package.",
+      "The current Product/Desktop/Windows UAT candidate lineage and artifacts remain untouched."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "formal quick_reply/deep_reply/director candidate projection and physical LiteLLM execution",
+      "ContextAwareReplyBrain and automatic-reply callers that require formal cloud reply quality",
+      "background understanding/summary/extraction/relationship workloads that may use local auxiliary execution",
+      "AiGateway interactive queue concurrency and any local/background work that can consume it",
+      "Ollama discovery, stream execution, unload, delete and pull/cancel physical I/O boundaries",
+      "Ollama pull terminal-success truth: empty, malformed or truncated 200 streams must fail closed and cannot trigger discovery/activation/completion",
+      "local model qualification, allowedTasks and lifecycle projection",
+      "local auxiliary runtime status/benchmark/SLA evidence",
+      "AI Workbench/System Center user controls and truthful degraded/unavailable states",
+      "negative proof that missing/slow/crashed local runtime cannot block or downgrade formal cloud reply",
+      "negative proof that no second Yance model router, inference engine, retry authority or provider-selection scorer is introduced"
+    ]
+  },
+  "productContract": {
+    "authoritativeRealtimeReply": {
+      "tasks": ["quick_reply", "deep_reply", "director"],
+      "sourceType": "cloud",
+      "physicalRoutingAuthority": "LiteLLM Model Brain",
+      "silentLocalFallbackForbidden": true,
+      "localPreconditionForbidden": true,
+      "localQueueContentionForbidden": true
+    },
+    "localAuxiliary": {
+      "optional": true,
+      "asynchronousByDefault": true,
+      "independentSchedulingRequired": true,
+      "mayRunWhenRealtimeReplyIdle": false,
+      "runtimeFailureMustNotAffectRealtimeReply": true,
+      "modelMissingMustNotAffectRealtimeReply": true,
+      "downloadFailureMustNotAffectRealtimeReply": true,
+      "slowInferenceMustNotAffectRealtimeReply": true,
+      "allowedRoleRequiresQualificationAndSlaEvidence": true,
+      "largeLowResourceModelRule": "A large/quantized local model may be admitted only to background tasks whose measured SLA it satisfies; runnable does not imply real-time eligible."
+    },
+    "assetLifecycle": {
+      "installTimeModelBundleRequired": false,
+      "onDemandDownload": true,
+      "explicitUserConsentRequired": true,
+      "progressAndCancellationRequired": true,
+      "terminalSuccessRequired": true,
+      "incompleteOrMalformedStreamMustFailClosed": true,
+      "resumeWhenUpstreamSupportsIt": true,
+      "deleteAndUnloadRequired": true,
+      "downloadedModelMustRemainOptional": true
+    },
+    "forbiddenBehavior": [
+      "Do not replace formal cloud reply with a local model because local hardware or a local model is available.",
+      "Do not make a formal reply wait for local inference, local model download, local benchmark or local runtime startup.",
+      "Do not silently downgrade reply quality to a smaller local model.",
+      "Do not treat HTTP 200 or stream EOF alone as a successful Ollama pull; terminal status success is required.",
+      "Do not implement a second physical model router or duplicate LiteLLM retry/fallback/provider-selection authority.",
+      "Do not add KTransformers, AirLLM, llama.cpp or another runtime in this successor without fresh OSS-fit evidence and a merged same-work-package scope amendment.",
+      "Do not weaken Model Brain qualification, durable AI execution authority, stale-generation fencing or current reply evidence contracts."
+    ]
+  },
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_OLLAMA_SEAM_AND_RESTART_IMMUTABLE_FAST_CLOSURE_TOPOLOGY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "reviewedCandidates": [
+      {
+        "name": "Ollama",
+        "source": "ollama/ollama",
+        "license": "MIT",
+        "adoptionMode": "extend-existing-user-managed-runtime-seam",
+        "fit": "FIT",
+        "reason": "Yance already discovers, streams, unloads and deletes Ollama models. The successor extends this mature seam with governed pull/progress/cancel and terminal-success truth instead of adding a new inference engine."
+      },
+      {
+        "name": "LiteLLM",
+        "source": "BerriAI/litellm",
+        "upstreamVersion": "v1.95.0 repository pin",
+        "license": "MIT core",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Already owns formal cloud model physical routing, retries, fallback, cooldown and health; the successor preserves this authority for real-time replies."
+      },
+      {
+        "name": "llama.cpp",
+        "source": "ggml-org/llama.cpp",
+        "license": "MIT",
+        "adoptionMode": "reviewed-future-runtime",
+        "fit": "PARTIAL_FIT",
+        "reason": "Mature for low-resource GGUF execution but remains outside this unchanged successor scope."
+      },
+      {
+        "name": "KTransformers / AirLLM",
+        "source": "kvcache-ai/ktransformers / lyogavin/airllm",
+        "license": "Apache-2.0",
+        "adoptionMode": "not-admitted",
+        "fit": "GAP",
+        "reason": "No additional runtime is admitted by this topology-restart successor."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not amend, force-push, rebase, cherry-pick-as-authority or otherwise reuse the poisoned #566 or #569 implementation ancestry.",
+      "Do not create a second Yance physical model router, provider scorer, retry/fallback authority or inference engine.",
+      "Do not duplicate Ollama discovery, stream execution, unload or delete paths.",
+      "Do not add KTransformers, AirLLM, llama.cpp or another local runtime in this successor.",
+      "Do not weaken Stage, route ancestry checks, implementation-branch policy, failure-first evidence or terminal pull success validation."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test backend/tests/localAuxiliaryAiRuntimeP1.test.js",
+      "node --test tests/wp0/v21-local-auxiliary-ai-runtime-p1.test.js",
+      "node --test backend/tests/platformAiResilienceUnifiedClosure.test.js",
+      "node --test tests/wp0/v21-model-brain-p0.test.js",
+      "node --test tests/wp0/v21-model-brain-runtime.test.js",
+      "node --test tests/wp0/v21-model-brain-retirement.test.js"
+    ],
+    "exactHeadCi": ["Stage", "ACV2", "WP-A", "V21 Model Brain P0 Windows"],
+    "negativeProofs": [
+      "With no Ollama service, formal cloud reply candidate projection and execution remain available.",
+      "With an intentionally hung/failing local auxiliary task, interactive cloud queue capacity and formal reply latency remain unaffected.",
+      "A qualified local model cannot become a quick_reply/deep_reply/director deployment.",
+      "Model download, benchmark and lifecycle operations are never prerequisites for formal reply.",
+      "Empty, malformed and truncated HTTP 200 Ollama pull streams fail closed before discovery, activation or completion.",
+      "No second physical routing/scoring authority appears outside LiteLLM."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "V3 directly supersedes the effective V2 authorization using exactly authorizationPath, implementationBranch and reason.",
+      "Twenty-path implementation scope and two-path Fast Closure V2 diagnostic scope are unchanged; only branch identity and fresh base change.",
+      "The V2 route failure is not misrepresented as causal RED and no descendant main-refresh workaround is used.",
+      "No commit from #566 or #569 implementation ancestry becomes a V3 implementation parent.",
+      "Fresh V3 tests-only RED includes the corrected terminal-success regression within the already-authorized WP0 test path.",
+      "The first production commit binds the fresh latest RED and Yance-Closure-Matrix-Unknown-Blockers: 0.",
+      "Ollama pull requires terminal status success; empty, malformed and truncated streams fail closed.",
+      "Formal reply remains cloud LiteLLM authority and local auxiliary scheduling remains isolated."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
