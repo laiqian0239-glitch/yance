@@ -316,6 +316,11 @@ async function pull(endpoint, model, options = {}) {
     }
     pending += decoder.decode();
     consumeRow(pending);
+    if (String(status || '').toLowerCase() !== 'success') {
+      const error = new Error(`Ollama pull stream ended before terminal success (last status: ${status || 'unknown'})`);
+      error.code = 'OLLAMA_PULL_INCOMPLETE';
+      throw error;
+    }
     const result = { ok: true, endpoint: root, model: name, status, digest, total, knownTotal, completed, percent, totalMs: Date.now() - startedAt };
     logger.info('models', 'ollama-pull-complete', result);
     return result;
