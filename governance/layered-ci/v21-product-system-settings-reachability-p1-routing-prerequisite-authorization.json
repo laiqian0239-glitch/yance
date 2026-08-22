@@ -222,6 +222,11 @@
         "fit": "FIT",
         "reason": "The classifier already assigns L2 to the other Product/Electron authority paths; only the new active Element surface exact identity is missing."
       }
+    ],
+    "retireOrAvoid": [
+      "Avoid and forbid any duplicate Yance WP0 Product router or duplicate Layered CI risk classifier; reuse only the existing base-owned exact classifiers.",
+      "Avoid any broad integration/ or integration/element-module/ routing or L2 prefix introduced only to admit this one Product surface.",
+      "Avoid candidate-owned routing authority, alternate route policy SSOTs, or new general-purpose routing infrastructure."
     ]
   },
   "mergePolicy": {
