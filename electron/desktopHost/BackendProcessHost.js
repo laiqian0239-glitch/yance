@@ -390,6 +390,79 @@ class BackendProcessHost {
     this._transition(PROCESS_STATES.STOPPED, 'orphan-owner-exit-recovery-required', { backendPid: Number(record.backendPid || 0), identityReasonCode: probe.reasonCode });
   }
 
+  async _refreshRestoredOwnerIdentityForMutation() {
+    if (!this.rejectedOwner?.restoredFromOwnerRegistry) return null;
+    const record = this.ownerRegistry.snapshot();
+    if (!record || record.ownershipActive !== true) return null;
+    const currentReasonCode = String(this.ownerRegistryFailure?.reasonCode || '');
+    const needsAsyncIdentity = currentReasonCode === 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_UNVERIFIED_RECOVERY_REQUIRED'
+      || this.rejectedOwner.pidIdentityMatch == null;
+    if (!needsAsyncIdentity) return null;
+
+    const probe = await this.ownerRegistry.probeAsync(record);
+    this.orphanOwnerRecord = Object.freeze({ ...record, probe });
+    const backendPid = Number(record.backendPid || 0);
+    const base = {
+      ...this.rejectedOwner,
+      backendPid,
+      pidIdentityMatch: probe.identityMatch,
+      childStillLive: probe.alive === true && probe.identityMatch !== false,
+      restoredFromOwnerRegistry: true
+    };
+
+    if (probe.identityMatch === false) {
+      this.ownerRegistryFailure = {
+        reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_MISMATCH_RECOVERY_REQUIRED',
+        message: 'Persisted backend owner PID now resolves to a different process identity; explicit recovery is required',
+        backendPid,
+        probe,
+        recoveryRequired: true,
+        atUtc: new Date().toISOString()
+      };
+      this.rejectedOwner = Object.freeze({
+        ...base,
+        reasonCode: 'WP4_DESKTOP_ORPHAN_OWNER_PID_REUSED',
+        childStillLive: false
+      });
+      this._transition(PROCESS_STATES.STOPPED, 'orphan-owner-pid-reused-recovery-required', { backendPid });
+      return probe;
+    }
+
+    if (probe.alive === true && probe.identityMatch === null) {
+      this.ownerRegistryFailure = {
+        reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_UNVERIFIED_RECOVERY_REQUIRED',
+        message: 'Persisted backend owner is live but its process identity cannot be verified; replacement is fail-closed',
+        backendPid,
+        probe,
+        recoveryRequired: true,
+        atUtc: new Date().toISOString()
+      };
+      this.rejectedOwner = Object.freeze({
+        ...base,
+        reasonCode: probe.reasonCode === 'OWNER_LIVENESS_EPERM'
+          ? 'WP4_DESKTOP_ORPHAN_OWNER_LIVENESS_EPERM'
+          : 'WP4_DESKTOP_ORPHAN_OWNER_IDENTITY_UNVERIFIED'
+      });
+      this._transition(PROCESS_STATES.STOPPING, 'orphan-owner-identity-unverified', { backendPid, identityReasonCode: probe.reasonCode });
+      return probe;
+    }
+
+    this.ownerRegistryFailure = null;
+    if (probe.alive === true) {
+      this.rejectedOwner = Object.freeze({ ...base, reasonCode: 'WP4_DESKTOP_ORPHAN_OWNER_RESTORED' });
+      this._transition(PROCESS_STATES.STOPPING, 'orphan-owner-restored', { backendPid, identityReasonCode: probe.reasonCode });
+      return probe;
+    }
+
+    this.rejectedOwner = Object.freeze({
+      ...base,
+      reasonCode: 'WP4_DESKTOP_ORPHAN_OWNER_EXIT_RECOVERY_REQUIRED',
+      childStillLive: false
+    });
+    this._transition(PROCESS_STATES.STOPPED, 'orphan-owner-exit-recovery-required', { backendPid, identityReasonCode: probe.reasonCode });
+    return probe;
+  }
+
   _transition(state, reason, detail = {}) {
     this.state = state;
     this.stateHistory.push({ state, at: new Date().toISOString(), reason: String(reason || ''), ...detail });
@@ -677,6 +750,7 @@ class BackendProcessHost {
   }
 
   async _startUnlocked(options = {}) {
+    await this._refreshRestoredOwnerIdentityForMutation();
     if ((this.autoRecoverRejectedOwner || options.autoRecoverRejectedOwner === true) && (this.rejectedOwner || this.ownerRegistryFailure)) {
       await this._recoverRejectedOwnerForStartUnlocked(options);
     }
@@ -837,6 +911,7 @@ class BackendProcessHost {
       for (const stream of child.stdio || []) stream?.on?.('error', () => {});
       await this._awaitSpawnIdentity(child, attempt, options.spawnIdentityTimeoutMs);
       this._assertStartStillValid(child, attempt, 'after-lifecycle-bind');
+      const processIdentity = await this.ownerRegistry.captureIdentityAsync(child.pid);
       this.ownerRegistry.register({
         state: 'SPAWNED',
         ownershipActive: true,
@@ -845,6 +920,7 @@ class BackendProcessHost {
         startupNonce,
         backendSessionId,
         fd6PipeInstanceId,
+        processIdentity,
         reasonCode: 'BACKEND_SPAWNED'
       });
       this.orphanOwnerRecord = this.ownerRegistry.snapshot();
@@ -1154,6 +1230,7 @@ class BackendProcessHost {
   start(options = {}) { return this._enqueue(() => this._startUnlocked(options)); }
 
   async _recoverRejectedOwnerForStartUnlocked(options = {}) {
+    await this._refreshRestoredOwnerIdentityForMutation();
     const mismatchFailure = this.ownerRegistryFailure?.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_MISMATCH_RECOVERY_REQUIRED'
       && this.rejectedOwner?.pidIdentityMatch === false;
     if (mismatchFailure) {
@@ -1185,6 +1262,7 @@ class BackendProcessHost {
   }
 
   async _terminateOrphanOwner(options = {}) {
+    await this._refreshRestoredOwnerIdentityForMutation();
     if (this.ownerRegistryFailure) {
       return {
         stopped: false,
@@ -1196,7 +1274,7 @@ class BackendProcessHost {
       };
     }
     const record = this.ownerRegistry.snapshot() || this.orphanOwnerRecord || this.rejectedOwner;
-    const probe = this.ownerRegistry.probe(record);
+    const probe = await this.ownerRegistry.probeAsync(record);
     const backendPid = Number(record?.backendPid || 0);
     if (!probe.alive || probe.identityMatch === false) {
       this.ownerRegistry.markExited({ reasonCode: probe.identityMatch === false ? 'OWNER_PID_REUSED' : 'OWNER_ALREADY_EXITED' });
