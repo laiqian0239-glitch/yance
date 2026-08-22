@@ -65,6 +65,36 @@
       "No CLOSED status inferred from merge alone or from test-file presence without executed mandatory-gate evidence."
     ]
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_GOVERNANCE_AND_DOCUMENTATION_ROUTE",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing generic delegated governance authorization seam",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already validates single-file authorization transport, post-merge activation, exact implementation branch/path scope, and ordinary two-parent trusted-main introduction; release-closure documents require no new authorization mechanism."
+      },
+      {
+        "name": "Existing repository Markdown documentation route",
+        "source": "shared/release/riskPolicy.js and Stage GOVERNANCE_WP0 documentation contracts",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing route already treats regular UTF-8 Markdown documentation as non-executable while failing closed for executable, mixed, or unauthorized paths, matching the two-document work package."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a new documentation transport, authorization parser, workflow, release ledger service, database, or general-purpose release infrastructure.",
+      "Do not mix AGENTS.md root protocol transport back into this delegated two-document work package.",
+      "Do not use a wildcard docs prefix or add paths beyond the exact Release Closure Program and Ledger files.",
+      "Do not infer release closure from documentation, merge state, or test-file presence without executed exact-head evidence."
+    ]
+  },
   "requiredValidation": {
     "exactHeadCi": [
       "Stage",
