@@ -1068,7 +1068,6 @@ function resolveTrustedNpmInvocation(args, options = {}) {
   });
 }
 
-
 const DELEGATED_NPM_LOCK_TREE_RETRYABLE_CLEANUP_CODES = new Set([
   'EBUSY',
   'EPERM',
@@ -1315,9 +1314,6 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     });
   }
 
-  // Only the supersession component connected to a branch candidate can
-  // affect that candidate. Traversing unrelated authorization history is
-  // both semantically irrelevant and grows linearly with repository history.
   const topologyPaths = new Set(candidatePaths);
   let topologyExpanded = true;
 
@@ -1650,9 +1646,12 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
     const redParents = resolveParents(redHead);
     const redChangedFiles = resolveChangedFiles(match.mergeCommit, redHead);
     const redNormalized = normalizeChangedFiles(redChangedFiles);
+    const expectedRedParents = forwardContinuationProtocol
+      ? [match.mergeCommit, forwardContinuationProtocol.frozenPredecessorHead]
+      : [match.mergeCommit];
     if (!Array.isArray(redParents)
-      || redParents.length !== 1
-      || redParents[0] !== match.mergeCommit
+      || redParents.length !== expectedRedParents.length
+      || redParents.some((parent, index) => parent !== expectedRedParents[index])
       || !Array.isArray(redChangedFiles)
       || redNormalized.length !== redChangedFiles.length
       || !sameJson(redNormalized, redChangedFiles)
