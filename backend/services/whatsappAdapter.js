@@ -68,6 +68,39 @@ function assertOperationActive(signal, fallbackCode = 'WHATSAPP_OPERATION_ABORTE
   if (signal?.aborted) throw operationAbortError(signal, fallbackCode, details);
 }
 
+function structuredWhatsAppEgressError(message, code, status, details = {}) {
+  return Object.assign(new Error(message), { code, status, ...details });
+}
+
+function normalizeWhatsAppProviderEgressError(error, { accountId = '', operation = '', signal = null } = {}) {
+  const metadata = {
+    platform: 'whatsapp',
+    accountId: String(accountId || '').trim(),
+    operation: String(operation || '').trim(),
+    outcomeUnknown: true,
+    automaticRetryBlocked: true
+  };
+  if (signal?.aborted) return operationAbortError(signal, 'WHATSAPP_EGRESS_ABORTED', metadata);
+  const causeMessage = String(error?.message || error || 'unknown provider rejection')
+    .replace(/\s+/gu, ' ')
+    .trim()
+    .slice(0, 240);
+  return Object.assign(new Error('WhatsApp provider egress failed with uncertain outcome'), {
+    code: 'WHATSAPP_EGRESS_PROVIDER_REJECTED',
+    status: 502,
+    ...metadata,
+    causeMessage: causeMessage || 'unknown provider rejection'
+  });
+}
+
+async function performWhatsAppProviderEgress(invoke, context = {}) {
+  try {
+    return await invoke();
+  } catch (error) {
+    throw normalizeWhatsAppProviderEgressError(error, context);
+  }
+}
+
 function requirePersistedWhatsAppOperation(value, { accountId = '', operation = '' } = {}) {
   const fail = (message, details = {}) => {
     throw Object.assign(new Error(message), {
@@ -1884,9 +1917,9 @@ class WhatsAppAdapter {
   async sendText({ accountId = 'account-a', chatJid, text, quoted, localMessageId = '', sessionKey = '', signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
-    if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
+    if (!row?.socket || row.state !== 'online') throw structuredWhatsAppEgressError('WHATSAPP_NOT_CONNECTED', 'WHATSAPP_NOT_CONNECTED', 409);
     const body = String(text || '').trim();
-    if (!body) throw new Error('MESSAGE_TEXT_EMPTY');
+    if (!body) throw structuredWhatsAppEgressError('MESSAGE_TEXT_EMPTY', 'MESSAGE_TEXT_EMPTY', 400);
     const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
     validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const expectedSocket = row.socket;
@@ -1895,7 +1928,10 @@ class WhatsAppAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, signal, executionGeneration);
     let result;
     try {
-      result = await expectedSocket.sendMessage(target.chatJid, { text: body }, quoted ? { quoted } : undefined);
+      result = await performWhatsAppProviderEgress(
+        () => expectedSocket.sendMessage(target.chatJid, { text: body }, quoted ? { quoted } : undefined),
+        { accountId: databaseAccountId, operation: 'text', signal }
+      );
       this.assertEgressGenerationCurrent(accountId, row, expectedSocket, expectedRowGeneration, signal, executionGeneration, result, 'text');
     } finally { detachAbort(); }
     const messageId = result?.key?.id || '';
@@ -1946,7 +1982,7 @@ class WhatsAppAdapter {
   async markRead({ accountId = 'account-a', chatJid, messageKeys = [], signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
-    if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
+    if (!row?.socket || row.state !== 'online') throw structuredWhatsAppEgressError('WHATSAPP_NOT_CONNECTED', 'WHATSAPP_NOT_CONNECTED', 409);
     const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
     validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const keys = (Array.isArray(messageKeys) ? messageKeys : []).filter(key => key && key.id).map(key => ({ remoteJid: key.remoteJid || chatJid, id: key.id, fromMe: Boolean(key.fromMe), participant: key.participant || undefined }));
@@ -1955,7 +1991,10 @@ class WhatsAppAdapter {
     const expectedRowGeneration = Number(row.generation || this.generations.get(accountId) || 0);
     const detachAbort = this.bindEgressAbort(accountId, row, signal, executionGeneration);
     try {
-      await expectedSocket.readMessages(keys);
+      await performWhatsAppProviderEgress(
+        () => expectedSocket.readMessages(keys),
+        { accountId: databaseAccountId, operation: 'read', signal }
+      );
       this.assertEgressGenerationCurrent(accountId, row, expectedSocket, expectedRowGeneration, signal, executionGeneration, null, 'read');
     } finally {
       detachAbort();
@@ -2003,7 +2042,7 @@ class WhatsAppAdapter {
   async sendPresence({ accountId = 'account-a', chatJid, state = 'composing', signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
-    if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
+    if (!row?.socket || row.state !== 'online') throw structuredWhatsAppEgressError('WHATSAPP_NOT_CONNECTED', 'WHATSAPP_NOT_CONNECTED', 409);
     const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
     validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const allowed = new Set(['available', 'unavailable', 'composing', 'recording', 'paused']);
@@ -2015,7 +2054,10 @@ class WhatsAppAdapter {
       if (chatJid) await this.ensurePresenceSubscription(accountId, chatJid).catch(error => {
         logger.warn('whatsapp', 'send-presence-subscription-failed', { operation: 'ensurePresenceSubscription', accountId: row.databaseAccountId || accountId, conversationId: `${row.databaseAccountId || accountId}:${chatJid}`, reasonCode: error.code || 'WHATSAPP_PRESENCE_SUBSCRIPTION_FAILED', httpStatus: Number(error.status || 0), attempt: 1, nextRetryAt: '' });
       });
-      await expectedSocket.sendPresenceUpdate(presence, chatJid);
+      await performWhatsAppProviderEgress(
+        () => expectedSocket.sendPresenceUpdate(presence, chatJid),
+        { accountId: databaseAccountId, operation: 'presence', signal }
+      );
       this.assertEgressGenerationCurrent(accountId, row, expectedSocket, expectedRowGeneration, signal, executionGeneration, null, 'presence');
     } finally {
       detachAbort();
@@ -2027,7 +2069,7 @@ class WhatsAppAdapter {
   async sendReaction({ accountId = 'account-a', chatJid, targetId, emoji = '', targetFromMe = false, participant = '', signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
-    if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
+    if (!row?.socket || row.state !== 'online') throw structuredWhatsAppEgressError('WHATSAPP_NOT_CONNECTED', 'WHATSAPP_NOT_CONNECTED', 409);
     const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
     validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const key = { remoteJid: chatJid, id: String(targetId || ''), fromMe: Boolean(targetFromMe) };
@@ -2037,7 +2079,10 @@ class WhatsAppAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, signal, executionGeneration);
     let result;
     try {
-      result = await expectedSocket.sendMessage(chatJid, { react: { text: String(emoji || ''), key } });
+      result = await performWhatsAppProviderEgress(
+        () => expectedSocket.sendMessage(chatJid, { react: { text: String(emoji || ''), key } }),
+        { accountId: databaseAccountId, operation: 'reaction', signal }
+      );
       this.assertEgressGenerationCurrent(accountId, row, expectedSocket, expectedRowGeneration, signal, executionGeneration, result, 'reaction');
     } finally {
       detachAbort();
@@ -2059,7 +2104,7 @@ class WhatsAppAdapter {
   async revokeMessage({ accountId = 'account-a', chatJid, targetId, targetFromMe = true, participant = '', signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
-    if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
+    if (!row?.socket || row.state !== 'online') throw structuredWhatsAppEgressError('WHATSAPP_NOT_CONNECTED', 'WHATSAPP_NOT_CONNECTED', 409);
     const databaseAccountId = row.databaseAccountId || this.accountByAdapterId(accountId)?.id || accountId;
     validatePersistedEgressContext(physicalAttemptContext, { accountId: databaseAccountId, idempotencyKey: String(physicalAttemptContext?.idempotencyKey || '').trim() }, 'whatsapp');
     const key = { remoteJid: chatJid, id: String(targetId || ''), fromMe: Boolean(targetFromMe) };
@@ -2069,7 +2114,10 @@ class WhatsAppAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, signal, executionGeneration);
     let result;
     try {
-      result = await expectedSocket.sendMessage(chatJid, { delete: key });
+      result = await performWhatsAppProviderEgress(
+        () => expectedSocket.sendMessage(chatJid, { delete: key }),
+        { accountId: databaseAccountId, operation: 'revoke', signal }
+      );
       this.assertEgressGenerationCurrent(accountId, row, expectedSocket, expectedRowGeneration, signal, executionGeneration, result, 'revoke');
     } finally {
       detachAbort();
@@ -2091,7 +2139,7 @@ class WhatsAppAdapter {
   async sendMedia({ accountId = 'account-a', chatJid, kind, buffer, filePath = '', mimeType, filename, caption = '', quoted, localMessageId = '', sessionKey = '', expectedSha256 = '', signal = null, executionGeneration = '', physicalAttemptContext }) {
     accountId = this.resolveAccountKey(accountId);
     const row = this.accounts.get(accountId);
-    if (!row?.socket || row.state !== 'online') throw new Error('WHATSAPP_NOT_CONNECTED');
+    if (!row?.socket || row.state !== 'online') throw structuredWhatsAppEgressError('WHATSAPP_NOT_CONNECTED', 'WHATSAPP_NOT_CONNECTED', 409);
     const hasFile = Boolean(String(filePath || '').trim());
     if (hasFile) mediaPipeline.verifyFile(filePath);
     else mediaPipeline.verifyBuffer(buffer);
@@ -2110,7 +2158,10 @@ class WhatsAppAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, signal, executionGeneration);
     let result;
     try {
-      result = await expectedSocket.sendMessage(target.chatJid, content, quoted ? { quoted } : undefined);
+      result = await performWhatsAppProviderEgress(
+        () => expectedSocket.sendMessage(target.chatJid, content, quoted ? { quoted } : undefined),
+        { accountId: databaseAccountId, operation: 'media', signal }
+      );
       this.assertEgressGenerationCurrent(accountId, row, expectedSocket, expectedRowGeneration, signal, executionGeneration, result, 'media');
     } finally {
       detachAbort();
