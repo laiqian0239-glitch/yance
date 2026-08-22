@@ -526,7 +526,7 @@ router.post('/ollama/pull', async (req, res, next) => {
     res.status(202);
     res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
-    const result = await require('../services/ollamaClient').pullModel({
+    const result = await aiGateway.pullLocalModel({
       endpoint,
       model,
       signal: controller.signal,
