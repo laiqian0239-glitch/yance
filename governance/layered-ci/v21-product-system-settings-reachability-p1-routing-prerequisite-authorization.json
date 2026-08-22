@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T09:08:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-SYSTEM-SETTINGS-REACHABILITY-P1-ROUTING-PREREQUISITE",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing routing prerequisite discovered on preserved Product candidate PR #615 exact head d1c3627afb0f5dd31f2011b9a4ed635c04e37de7. Stage run 32544818874 job 96961324183 fails closed before WP0 tests with WP0_ROUTE_UNKNOWN_PATH for only integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx. Layered CI run 32544819030 job 96961324588 independently fails closed before L2 verification with CI_UNKNOWN_PATH for the same single path; all other seven authorized #615 paths are classified. Both failures are base-owned routing prerequisites outside the Product authorization merged by #614. This independent prerequisite authorizes only one exact PRODUCT_WP0 identity, the same one exact L2 risk identity, and two regression-test paths. No broad prefix, Product source, workflow, dependency, release/publish, database, backend authority, Electron runtime, or PR #538 mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "9b84a9543ba9b40bf3f8c84eb6534c03535f52dc",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "9b84a9543ba9b40bf3f8c84eb6534c03535f52dc",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "causalRedEvidence": {
+    "candidatePullRequest": 615,
+    "candidateBranch": "product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1",
+    "candidateExactHead": "d1c3627afb0f5dd31f2011b9a4ed635c04e37de7",
+    "candidateImmutableRedHead": "d25d3a2941a69bed16f99e7e08012a3a134a0839",
+    "candidateFirstProductionHead": "d1c3627afb0f5dd31f2011b9a4ed635c04e37de7",
+    "candidateEffectiveAmendmentMerge": "9b84a9543ba9b40bf3f8c84eb6534c03535f52dc",
+    "closureMatrixUnknownBlockersBeforeRoutingRuns": 0,
+    "stage": {
+      "workflow": "Stage 6.4.5.9 WP0 Architecture Gates",
+      "runId": 32544818874,
+      "jobId": 96961324183,
+      "failedStep": "Classify protected WP0 route from base-owned policy",
+      "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+      "failureOccurredBeforeWp0Tests": true,
+      "unknownPaths": [
+        "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+      ]
+    },
+    "layered": {
+      "workflow": "Layered CI Fast Feedback",
+      "runId": 32544819030,
+      "jobId": 96961324588,
+      "failedStep": "Select required CI level",
+      "reasonCode": "CI_UNKNOWN_PATH",
+      "policyJobPassed": true,
+      "failureOccurredBeforeL2Verification": true,
+      "unknownPaths": [
+        "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+      ]
+    }
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-system-settings-reachability-p1-routing-prerequisite-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-system-settings-reachability-p1-routing-prerequisite-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "46793515825d5a14415e5bb295c2cd144f1744fe90d2dd6520becfe13b1d15e1",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "bootstrapPaths": [
+    "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+  ],
+  "bootstrapPathCount": 1,
+  "bootstrapPathSetSha256": "36c080a62e589824801bf7ed47407f2b60148d5a059c39edc1a7e9d64f9b9e19",
+  "riskPolicyExactL2Paths": [
+    "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+  ],
+  "riskPolicyExactL2PathCount": 1,
+  "riskPolicyExactL2PathSetSha256": "36c080a62e589824801bf7ed47407f2b60148d5a059c39edc1a7e9d64f9b9e19",
+  "implementation": {
+    "branch": "fix/v21-product-system-settings-reachability-p1-routing-prerequisite",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-system-settings-reachability-p1-routing.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "f01263011f892adc764da15859856d7612251ddd911b2b22826dadcc3ed7b404",
+    "genericRouteMutationGuardRequired": true,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/governance-policy.test.js",
+        "tests/layered-ci/v21-product-system-settings-reachability-p1-routing.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "80ffc053006db11192ef864582a92a34b28b70a49ee970b5c65a9b13829ba34f",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailure": "The frozen ProductSystemSettingsSurface.tsx remains WP0_ROUTE_UNKNOWN_PATH and CI_UNKNOWN_PATH until the two base-owned exact-path policies are repaired."
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "broadPrefixModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "routePolicyMigration": {
+    "path": "governance/layered-ci/wp0-routing-policy.json",
+    "targetCollection": "productExactPaths",
+    "requiredRoute": "PRODUCT_WP0",
+    "requiredChange": "Add exactly bootstrapPaths to productExactPaths using the existing trusted generic delegated route-mutation guard.",
+    "baselineBlobSha": "99096008dbe887c1275587355511b8716495c509",
+    "schemaVersionMustRemain": 2,
+    "unknownPathFailsClosedMustRemain": true,
+    "mixedChangesEscalateToProductMustRemain": true,
+    "broadPrefixModificationAllowed": false,
+    "existingRouteRemovalAllowed": false
+  },
+  "riskPolicyMigration": {
+    "path": "governance/layered-ci/risk-policy.json",
+    "targetCollection": "l2ExactPaths",
+    "requiredLevel": "L2",
+    "requiredChange": "Add exactly riskPolicyExactL2Paths to l2ExactPaths in canonical sorted order.",
+    "baselineBlobSha": "3683a21265de7a03de2e3dcb04f2fedda3409631",
+    "baselineL2ExactPathCount": 23,
+    "baselineL2ExactPathSetSha256": "fffe6753de4ec84c76b1ea049000d54e18a540c393c11797e52f4615e7d3af9a",
+    "expectedPostRepairL2ExactPathCount": 24,
+    "expectedPostRepairL2ExactPathSetSha256": "61d4e9fd76f224f34878be9bb238a374698b4e917368a8d5fd14b5f7b0eb820b",
+    "baselineL2PrefixCount": 13,
+    "baselineL2PrefixSetSha256": "bf08a55c081a48508dc5a5e2008bbb40a25ad135ed129fe6ee0068aecf6edebc",
+    "unknownPathFailsClosedMustRemain": true,
+    "l3AutomaticMustRemain": false,
+    "broadPrefixModificationAllowed": false,
+    "existingPrefixModificationAllowed": false,
+    "existingClassificationRemovalAllowed": false
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 615,
+    "candidateBranch": "product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1",
+    "candidateObservedHead": "d1c3627afb0f5dd31f2011b9a4ed635c04e37de7",
+    "candidateOriginalAuthorizationMerge": "b37b414e9903adb22580f691924be6425d846d1c",
+    "candidateScopeAmendmentMerge": "9b84a9543ba9b40bf3f8c84eb6534c03535f52dc",
+    "candidateFirstFailureHeadMustRemain": "d25d3a2941a69bed16f99e7e08012a3a134a0839",
+    "candidateFirstProductionHeadMustRemain": "d1c3627afb0f5dd31f2011b9a4ed635c04e37de7",
+    "candidateAuthorizedChangedFileCountMustRemain": 8,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "08a5ea2bbd902797718380d53865ccb823ce517b336ff26831b3e93c3609ffef",
+    "candidateProductCodePathCountMustRemain": 4,
+    "candidateProductCodePathSetSha256MustRemain": "718d69414493c8b13b6fd10490f902e8b0601a329f095c35756111c3f0fa21f7",
+    "candidateWorkflowModificationAllowed": false,
+    "candidateHistoryRewriteAllowed": false,
+    "candidateScopeReductionOrExpansionAllowed": false,
+    "windowsUatCandidatePullRequest538MustRemainUntouched": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first prerequisite implementation commit changes only the two authorized test paths and obtains one fresh causal Stage RED before either policy file changes.",
+    "Before repair, ProductSystemSettingsSurface.tsx independently fails closed as WP0_ROUTE_UNKNOWN_PATH and CI_UNKNOWN_PATH.",
+    "After repair, ProductSystemSettingsSurface.tsx independently selects PRODUCT_WP0 and classifies as exact L2.",
+    "The WP0 policy change adds only the one frozen bootstrapPaths literal to productExactPaths; no integration/, integration/element-module/ or other broad product prefix is added.",
+    "The risk policy change adds only the one frozen riskPolicyExactL2Paths identity to l2ExactPaths; no integration/ or integration/element-module/ L2 prefix is added.",
+    "Adjacent unregistered Element Product paths remain fail-closed under both classifiers.",
+    "WP0 schemaVersion=2, unknownPathFailsClosed=true and mixedChangesEscalateToProduct=true remain unchanged; Layered unknownPathFailsClosed=true, l3Automatic=false and all existing L2 prefixes/classifications remain unchanged.",
+    "No #615 Product file, immutable RED evidence, first-production commit, eight-path authorization, workflow, dependency manifest, release/publish path, or PR #538 file is modified."
+  ],
+  "requiredSequence": [
+    "Authorization remains exactly one governance file on unchanged fresh trusted main and passes all applicable governance gates.",
+    "Authorization PR merges to main by ordinary two-parent merge only after explicit OWNER merge authorization.",
+    "Create the implementation branch exactly from the authorization merge commit.",
+    "First implementation commit changes only the two authorized test paths and obtains fresh causal Stage RED proving both frozen route gaps.",
+    "Build the Closure Matrix for all failures from that RED and require unknownBlockers=0 before production policy mutation.",
+    "Add only the one frozen PRODUCT_WP0 literal and the same one frozen exact L2 identity to the two base-owned policies, with the exact failure-first trailers on the production commit.",
+    "Implementation exact head passes applicable Stage, Layered, ACV2 and independent review gates.",
+    "Implementation PR merges to main by ordinary two-parent merge at its own explicit OWNER boundary.",
+    "Ordinary-forward reconcile the resulting fresh main into PR #615 without rebase, amend, force push or stale-blob overwrite, preserving immutable RED and first-production topology.",
+    "Resume #615 exact-head routed gates and close any remaining causal failures before its separate OWNER merge boundary."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BASE_OWNED_EXACT_ROUTE_AND_LAYERED_RISK_CLASSIFIERS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "thinYanceAdapterOnly": true,
+    "reviewedCandidates": [
+      {
+        "name": "Yance WP0 exact Product router",
+        "source": "governance/layered-ci/wp0-routing-policy.json + tools/layered-ci/wp0-routing.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The router already fails closed correctly and classifies every other #615 path; only one new exact Product identity is missing."
+      },
+      {
+        "name": "Yance Layered CI risk classifier",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The classifier already assigns L2 to the other Product/Electron authority paths; only the new active Element surface exact identity is missing."
+      }
+    ],
+    "retireOrAvoid": [
+      "Avoid and forbid any duplicate Yance WP0 Product router or duplicate Layered CI risk classifier; reuse only the existing base-owned exact classifiers.",
+      "Avoid any broad integration/ or integration/element-module/ routing or L2 prefix introduced only to admit this one Product surface.",
+      "Avoid candidate-owned routing authority, alternate route policy SSOTs, or new general-purpose routing infrastructure."
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
