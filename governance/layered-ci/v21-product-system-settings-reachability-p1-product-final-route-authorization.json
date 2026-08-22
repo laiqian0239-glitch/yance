@@ -3,9 +3,9 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-SYSTEM-SETTINGS-P1-PRODUCT-FINAL-ROUTE",
-  "proposalRevision": 2,
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "PR #615 exact reconciled head daafb6f13ce5f571a2d50a4ee372a7c82cd94a08 has GREEN WP0/Layered routing after #617, but Product Final run 32547173985 skips all three jobs because the base-owned workflow exact-branch allowlists omit only product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1. Authorize one dedicated failure-first static contract and one exact literal branch addition to the existing Product Final workflow. No wildcard/prefix, new workflow, Product/runtime/dependency/routing-policy change, gate weakening, fabricated UAT, or PR #538 mutation.",
+  "reason": "PR #615 exact reconciled head daafb6f13ce5f571a2d50a4ee372a7c82cd94a08 has GREEN WP0/Layered routing after #617, but Product Final run 32547173985 skips all three jobs because the base-owned workflow exact-branch allowlists omit only product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1. The existing Product Final static contract also freezes the same allowlist and would reject an unpaired workflow-only change. Authorize a tests-only failure-first update to that existing contract, then one exact literal branch addition to the existing Product Final workflow. No wildcard/prefix, new workflow, new test framework, Product/runtime/dependency/routing-policy change, gate weakening, fabricated UAT, or PR #538 mutation.",
   "base": {
     "branch": "main",
     "commit": "c161d1c6e19f78bff8e65b61475e4f2af2e1e7ef",
@@ -52,6 +52,11 @@
         96967627210
       ],
       "rootCause": "Exact branch product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1 is absent from all three hard-coded job allowlists."
+    },
+    "existingContract": {
+      "path": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "baselineBlobSha": "06b7367297977417fe15f436f682dd75158681a7",
+      "rootCause": "The existing exact allowedBranches contract intentionally freezes the same eight branch identities and therefore must move failure-first before the workflow can admit the ninth exact branch."
     }
   },
   "authorizationBranch": {
@@ -68,18 +73,18 @@
     "branch": "fix/v21-product-system-settings-reachability-p1-product-final-route",
     "allowedChangedPaths": [
       ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
-      "tests/layered-ci/v21-product-system-settings-reachability-p1-product-final-route.test.js"
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
     ],
     "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "c7ccdc8d486f66bf7c28a11598e90c5545b397b96352d3226d9f9194b7bdeca3",
+    "approvedChangedFileSetSha256": "0fe120e1cd4c2692f06a11c3becc1d5db4324efcbaf59f2cc62154b008fd9d6e",
     "failureFirstCommit": {
       "mustBeFirstImplementationCommit": true,
       "freshCausalRedRequired": true,
       "allowedChangedPaths": [
-        "tests/layered-ci/v21-product-system-settings-reachability-p1-product-final-route.test.js"
+        "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
       ],
       "approvedChangedFileCount": 1,
-      "approvedChangedFileSetSha256": "d64d5fcbffac02b920e5c106e08047d2d6c9dea78de90ebc3c0fa76eb2c8d4c3",
+      "approvedChangedFileSetSha256": "1248eca9fee4a07fc2a0c5dd816c01de973d57ef003a3996926ca22ee3fb8d44",
       "productionCodeChanged": false,
       "firstHeadTrustedMainGuard": {
         "required": true,
@@ -95,7 +100,7 @@
         "Yance-Failure-First-Red-Conclusion: failure",
         "Yance-Closure-Matrix-Unknown-Blockers: 0"
       ],
-      "expectedFailure": "Static contract requires exact branch product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1, absent from current Product Final selectors."
+      "expectedFailure": "The existing Product Final static contract requires the target exact branch in the workflow and exact allowedBranches set while the base-owned workflow still omits it from all three selectors."
     },
     "newDependencyAllowed": false,
     "workflowModificationAllowed": true,
@@ -112,6 +117,15 @@
     "newGeneralPurposeYanceInfrastructureAllowed": false,
     "forcePushAllowed": false,
     "historyRewriteAllowed": false
+  },
+  "staticContractMigration": {
+    "path": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+    "baselineBlobSha": "06b7367297977417fe15f436f682dd75158681a7",
+    "requiredChange": "Failure-first: add the target exact branch to the existing explicit match assertion and exact allowedBranches set; preserve the existing same-repository, pull-request-only, no wildcard/prefix, exact-head and trusted materializer assertions.",
+    "newTestFileAllowed": false,
+    "newTestFrameworkAllowed": false,
+    "existingAssertionsMayBeRemoved": false,
+    "existingAssertionsMayBeWeakened": false
   },
   "workflowMigration": {
     "path": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
@@ -139,7 +153,7 @@
     "windowsUatCandidatePullRequest538MustRemainUntouched": true
   },
   "ossFit": {
-    "decision": "REUSE_EXISTING_PRODUCT_FINAL_WORKFLOW_AND_STATIC_GOVERNANCE_CONTRACTS",
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_WORKFLOW_AND_EXISTING_STATIC_GOVERNANCE_CONTRACT",
     "matureOssAvailable": true,
     "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
@@ -153,17 +167,17 @@
         "reason": "The existing workflow already owns the Windows, Linux, and frozen Element Product Final validations; the only proven gap is one missing exact branch literal in its three existing selectors."
       },
       {
-        "name": "Node.js built-in test runner static workflow contract",
-        "source": "tests/layered-ci/*.test.js using node:test and node:assert/strict",
-        "license": "MIT-compatible repository test seam; Node.js core APIs",
+        "name": "Existing Product Final static governance contract",
+        "source": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js using node:test and node:assert/strict",
+        "license": "N/A (same-repository test seam; Node.js core APIs)",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
-        "reason": "Existing repository governance tests already statically verify workflow semantics, so one dedicated contract can prove the exact allowlist gap without adding a framework, service, or general-purpose infrastructure."
+        "reason": "The existing contract already freezes exact branches, same-repository routing, pull-request-only triggers, exact-head checkout, and trusted materializer semantics; moving this contract failure-first is the smallest auditable repair and avoids duplicate tests."
       }
     ],
     "retireOrAvoid": [
       "Do not create a second Product Final workflow, branch router, dispatch service, or generic branch-prefix admission mechanism; reuse the existing base-owned workflow.",
-      "Do not introduce wildcard or prefix branch matching, a new test framework, or any duplicate Yance validation infrastructure for this exact-route repair."
+      "Do not create a duplicate Product Final route test or new test framework; update only the existing exact allowlist contract failure-first."
     ]
   },
   "independentReview": {
