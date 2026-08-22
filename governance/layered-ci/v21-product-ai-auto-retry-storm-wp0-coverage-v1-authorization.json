@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-AI-AUTO-RETRY-STORM-WP0-COVERAGE-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Coverage prerequisite for the AI_AUTO retry-storm successor. PR #668 exact tests-only head caf8ec6dd13e0ecfd19a965313bb6cb8e70b8d46 produced a non-causal Stage GREEN because the trusted WP0 isolated runner never executes backend/tests/v21ProductAiAutoRetryStorm.test.js. This prerequisite extends only the existing exact-path WP0 coverage contract and isolated runner so the focused backend regression becomes mandatory. It does not authorize aiBrainOrchestrator or any production change. After this prerequisite lands, #668 remains frozen and a fresh canonical successor/continuation must preserve its tests-only blob on the new trusted main to obtain a genuine causal RED.",
+  "base": {
+    "branch": "main",
+    "commit": "68e7b6732c84393cfca7f8b482475b81f5794831",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "68e7b6732c84393cfca7f8b482475b81f5794831",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "predecessorEvidence": {
+    "retryStormAuthorizationPullRequest": 667,
+    "retryStormAuthorizationMerge": "94f0aae2f5c5aeec125dca97e8ef66e764bbde5a",
+    "retryStormImplementationPullRequest": 668,
+    "retryStormTestsOnlyHead": "caf8ec6dd13e0ecfd19a965313bb6cb8e70b8d46",
+    "retryStormStageRun": 32598832748,
+    "retryStormStageConclusion": "success",
+    "classification": "NON_CAUSAL_GREEN_NO_COVERAGE",
+    "coverageProof": [
+      "tools/wp0/run-tests.js enumerates tests/wp0 plus only three exact external diagnostics and does not reference backend/tests/v21ProductAiAutoRetryStorm.test.js.",
+      "tests/wp0/wp0-required-test-coverage.test.js enforces those same three exact external diagnostics and does not require the focused retry-storm test.",
+      "Repository search finds the focused retry-storm path in governance evidence but no mandatory WP0 runner reference."
+    ],
+    "recoveryRule": "Freeze #668 without production changes. Land this narrow coverage prerequisite, then authorize a canonical fresh-main successor/continuation that preserves #668's tests-only regression bytes and re-executes them through mandatory Stage."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ai-auto-retry-storm-wp0-coverage-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ai-auto-retry-storm-wp0-coverage-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "adac4c5efb91925dc78856f8246e9d116560f7d7c45e646d9a707b909224ebf4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-ai-auto-retry-storm-wp0-coverage-v1",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/wp0-required-test-coverage.test.js",
+      "tools/wp0/run-tests.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "69271d509a9192fede978c4b7adf88c22444ba8e78d9c63ff19badcdb8720e98",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/wp0-required-test-coverage.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "bdc5d31191a09154743dfc4eb07985a63a387525fe9464c85d43fe3b2b550d01",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The WP0 coverage contract must fail because tools/wp0/run-tests.js does not include the exact backend/tests/v21ProductAiAutoRetryStorm.test.js path.",
+        "All previously mandatory external diagnostics and implementation-branch policy must continue to pass."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "productionCodeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "coverageContract": {
+    "existingStageWorkflow": ".github/workflows/stage-6459-wp0-gates.yml",
+    "existingStageJob": "wp0-product",
+    "existingStageCommand": "npm run test:wp0",
+    "runnerPath": "tools/wp0/run-tests.js",
+    "coverageContractTestPath": "tests/wp0/wp0-required-test-coverage.test.js",
+    "preservedExistingExternalRequiredTests": [
+      "tests/wp2/desktop-host-process-lifecycle.test.js",
+      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js"
+    ],
+    "exactAdditionalRequiredTests": [
+      "backend/tests/v21ProductAiAutoRetryStorm.test.js"
+    ],
+    "broadBackendWildcardForbidden": true,
+    "existingWp0EnumerationMustRemain": true,
+    "isolatedChildProcessExecutionMustRemain": true,
+    "perFileTimeoutMustRemainBounded": true,
+    "continueOnErrorForbidden": true
+  },
+  "mandatoryContracts": [
+    "Authorization remains a one-file proposal from exact fresh main and must ordinary-merge before implementation.",
+    "The first implementation commit changes only tests/wp0/wp0-required-test-coverage.test.js and must produce a fresh Stage RED whose only causal blocker is the missing exact retry-storm backend test path.",
+    "No runner change may be committed until the coverage RED Closure Matrix reaches unknownBlockers=0.",
+    "The first post-RED root commit changes only tools/wp0/run-tests.js and records exact RED head/run/conclusion plus Yance-Closure-Matrix-Unknown-Blockers: 0.",
+    "The runner adds only backend/tests/v21ProductAiAutoRetryStorm.test.js and preserves the three existing exact external diagnostics plus isolated bounded execution.",
+    "After prerequisite merge, #668 remains frozen; a separate fresh-main successor/continuation must preserve its tests-only regression bytes and re-execute them causally before any aiBrainOrchestrator production change.",
+    "#615 remains frozen and #538 remains untouched."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_ISOLATED_RUNNER_AND_COVERAGE_CONTRACT",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance WP0 isolated required-test runner",
+        "source": "tools/wp0/run-tests.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Trusted Stage already executes exact external tests one-by-one through bounded child processes; adding one exact backend diagnostic path needs no new runner, workflow, package script, or dependency."
+      },
+      {
+        "name": "Yance WP0 required-test coverage contract",
+        "source": "tests/wp0/wp0-required-test-coverage.test.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing contract already prevents silent removal of exact external diagnostics and can guard the retry-storm regression with one additional exact path."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The focused retry-storm test already uses node:test; no new test framework is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second WP0 runner or backend-specific CI workflow.",
+      "Do not add a broad backend/tests wildcard.",
+      "Do not modify aiBrainOrchestrator under this prerequisite.",
+      "Do not weaken delegated failure-first or coverage policy."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "candidatePreservation": {
+    "retryStormPullRequest668MustRemainFrozen": true,
+    "retryStormHeadMustRemain": "caf8ec6dd13e0ecfd19a965313bb6cb8e70b8d46",
+    "productPullRequest615MustRemainFrozen": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
