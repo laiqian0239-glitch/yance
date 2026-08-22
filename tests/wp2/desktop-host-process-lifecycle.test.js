@@ -236,3 +236,18 @@ test('backend fork clears inherited Electron execArgv and launches the trusted N
   assert.equal(observed.options.serialization, 'json');
   await host.stop({ gracefulMs: 25, forceMs: 100 });
 });
+
+test('application-owned shutdown initiates independent runtime stops concurrently while preserving final fail-closed aggregation', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'electron/main.js'), 'utf8');
+  const marker = 'async function stopApplicationOwnedRuntimes(options = {}) {';
+  const start = src.indexOf(marker);
+  assert.ok(start >= 0);
+  const body = src.slice(start, start + 5000);
+  assert.doesNotMatch(body, /await\s+stopPresenceAvatarRuntime\s*\(/u);
+  assert.doesNotMatch(body, /await\s+stopLettaAgentRuntime\s*\(/u);
+  assert.doesNotMatch(body, /await\s+stopParlantRelationshipRuntime\s*\(/u);
+  assert.doesNotMatch(body, /await\s+stopGraphitiRelationshipRuntime\s*\(/u);
+  assert.doesNotMatch(body, /await\s+stopBackend\s*\(/u);
+  assert.match(body, /Promise\.allSettled\s*\(/u);
+  assert.match(body, /Application-owned runtime shutdown was not fully confirmed/u);
+});
