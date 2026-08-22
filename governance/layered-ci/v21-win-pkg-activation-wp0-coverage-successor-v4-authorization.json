@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WIN-PKG-ACTIVATION-WP0-COVERAGE-SUCCESSOR-V4",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main successor for V3 authorization-graph invalidity. V3 PR #663 merged with a supersedes object containing evidence fields beyond the trusted evaluator's exact three-key schema, so its first implementation head in #664 correctly failed closed with WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID alongside the intended coverage RED. V4 preserves the same two-path implementation scope and one-path failure-first scope, uses a unique clean implementation branch, and connects only to the earlier valid V2 authority while retaining V3/#664 facts as non-authoritative evidence.",
+  "base": {
+    "branch": "main",
+    "commit": "169124004f20b95c7b07ddcdbfde730738f72c16",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "169124004f20b95c7b07ddcdbfde730738f72c16",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-win-pkg-activation-delta-p0-wp0-coverage-v2-authorization.json",
+    "implementationBranch": "fix/v21-win-pkg-activation-delta-p0-wp0-coverage-v2",
+    "reason": "Replace the earlier valid V2 implementation authority on a fresh clean lineage after V2 post-RED trailer poisoning and V3 malformed supersession graph evidence; V3 is intentionally not an authoritative supersession target because its own supersedes declaration is graph-invalid."
+  },
+  "predecessorEvidence": {
+    "validV2AuthorizationPullRequest": 661,
+    "validV2AuthorizationMerge": "ee7bccc0b689df0bb9f839caaad75b13c39e6eb6",
+    "v2ImplementationPullRequest": 662,
+    "v2ValidRedHead": "73748b70483e216761d4dd42b154465c54837bb0",
+    "v2ValidRedStageRun": 32593141452,
+    "v2ValidRedStageJob": 97079982856,
+    "v2PoisonedFirstPostRedHead": "98f04dbe85f1477e94c505fc8ed9be5477fddf52",
+    "v2PoisoningReasonCode": "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID",
+    "v3AuthorizationPullRequest": 663,
+    "v3AuthorizationMerge": "169124004f20b95c7b07ddcdbfde730738f72c16",
+    "v3AuthorizationPath": "governance/layered-ci/v21-win-pkg-activation-wp0-coverage-successor-v3-authorization.json",
+    "v3ImplementationPullRequest": 664,
+    "v3FirstImplementationHead": "a92862346509a06c5fa97820e9387ae495d1f201",
+    "v3StageRun": 32594080653,
+    "v3StageJob": 97082250316,
+    "v3StageSummary": "609 tests / 607 pass / 2 fail",
+    "v3CoverageFailure": "WP0 required-test runner is missing exact diagnostic path: tests/desktop-fixes/main-window-activation-controller.test.js",
+    "v3AuthorityFailure": "WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID",
+    "v3AuthorityRootCause": "The V3 supersedes object contained authorizationPullRequest, authorizationMerge, and implementationPullRequest in addition to the trusted exact authorizationPath, implementationBranch, and reason keys.",
+    "v3RunnerRootFixCommitted": false,
+    "recoveryRule": "Keep #662 and #664 closed/unmerged. No amend, rebase, force-push, descendant workaround, policy weakening, or reuse of their implementation ancestry. V4 must independently produce a fresh tests-only causal RED with implementation policy PASS before any runner root fix."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-win-pkg-activation-wp0-coverage-successor-v4-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-win-pkg-activation-wp0-coverage-successor-v4-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "519d61200c26622d26ba37a79fb636a662fdd2e6925253b1c30391c6aa0fba1a",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-win-pkg-activation-wp0-coverage-successor-v4",
+    "allowedChangedPaths": [
+      "tests/wp0/wp0-required-test-coverage.test.js",
+      "tools/wp0/run-tests.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "69271d509a9192fede978c4b7adf88c22444ba8e78d9c63ff19badcdb8720e98",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/wp0-required-test-coverage.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "bdc5d31191a09154743dfc4eb07985a63a387525fe9464c85d43fe3b2b550d01",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      }
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "coverageContract": {
+    "existingStageWorkflow": ".github/workflows/stage-6459-wp0-gates.yml",
+    "existingStageJob": "wp0-product",
+    "existingStageCommand": "npm run test:wp0",
+    "existingPackageScriptAuthority": "node tools/wp0/run-tests.js && npm run test:acv2:wp-a:a0",
+    "runnerPath": "tools/wp0/run-tests.js",
+    "coverageContractTestPath": "tests/wp0/wp0-required-test-coverage.test.js",
+    "preservedExistingExternalRequiredTests": [
+      "tests/wp2/desktop-host-process-lifecycle.test.js",
+      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js"
+    ],
+    "exactAdditionalRequiredTests": [
+      "tests/desktop-fixes/main-window-activation-controller.test.js"
+    ],
+    "broadDesktopFixesWildcardForbidden": true,
+    "existingWp0EnumerationMustRemain": true,
+    "isolatedChildProcessExecutionMustRemain": true,
+    "perFileTimeoutMustRemainBounded": true,
+    "continueOnErrorForbidden": true
+  },
+  "mandatoryContracts": [
+    "V4 authorization remains a one-file proposal from exact fresh main and must ordinary-merge before implementation.",
+    "The authoritative supersedes declaration contains exactly authorizationPath, implementationBranch, and reason and targets the earlier valid V2 authority; V3/#664 evidence remains outside the supersession graph.",
+    "The first V4 implementation commit changes only tests/wp0/wp0-required-test-coverage.test.js and must produce a fresh Stage RED where implementation-branch-policy passes and the only causal blocker is the missing activation diagnostic path.",
+    "No runner root fix may be committed until the V4 RED Closure Matrix reaches unknownBlockers=0.",
+    "The first post-RED commit changes only tools/wp0/run-tests.js and records exact V4 RED head/run/conclusion plus Yance-Closure-Matrix-Unknown-Blockers: 0 in its commit message.",
+    "The runner adds only tests/desktop-fixes/main-window-activation-controller.test.js and preserves the two existing exact external diagnostics and isolated bounded execution model.",
+    "After prerequisite merge, #659 is forward-reconciled from fresh main without changing its diagnostic test blob; #615 and #538 remain untouched until their true prerequisite boundary."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_ISOLATED_RUNNER_AND_TRUSTED_DELEGATED_AUTHORITY_GRAPH",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance WP0 isolated required-test runner",
+        "source": "tools/wp0/run-tests.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Stage already invokes this bounded isolated child-process runner through npm run test:wp0, and predecessor evidence proved that adding one exact path executes the activation diagnostic without a new runner, workflow, route, package script, or dependency."
+      },
+      {
+        "name": "Yance trusted delegated authorization graph",
+        "source": "shared/release/implementationBranchPolicy.js and shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The trusted evaluator already owns exact supersession, implementation scope, failure-first topology, and RED-evidence binding; V4 corrects only its authorization data shape instead of adding a second policy engine."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The existing coverage and activation diagnostics already use node:test, so no new test framework or package is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second WP0 runner or a package-specific coverage engine.",
+      "Do not weaken or duplicate trusted delegated supersession or failure-first policy.",
+      "Do not add a new workflow, route, package script, dependency, or broad desktop-fixes wildcard."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "candidatePreservation": {
+    "predecessorPullRequest662MustRemainUnmerged": true,
+    "predecessorPullRequest664MustRemainUnmerged": true,
+    "deltaPullRequest659MustRemainFrozenUntilPrerequisiteMerge": true,
+    "deltaImmutableDiagnosticHeadMustRemain": "f8bf466d8dd0cbf02235b697d8fa478210ef8e6f",
+    "deltaDiagnosticBlobMustRemainUnchanged": true,
+    "productPullRequest615MustRemainUntouched": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  }
+}

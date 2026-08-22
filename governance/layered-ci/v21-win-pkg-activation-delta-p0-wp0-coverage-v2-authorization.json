@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T02:08:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WIN-PKG-ACTIVATION-DELTA-P0-WP0-COVERAGE-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Replacement authorization for the WP0 executed-test coverage prerequisite discovered from PR #659. The predecessor proposal on PR #660, head 770e51d1080f4267036292a2ded476a7822081ce, is structurally invalid because its 74-character workPackage exceeds the trusted parser's 64-character maximum and therefore produced Stage run 32592379191 failure with WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID. Trusted main remains 36d3e5f34ac8e27c7e9ec4dd14a9496d443f9afa. The underlying coverage evidence is unchanged: Stage run 32591675618 on PR #659 was GREEN only because tools/wp0/run-tests.js did not enumerate tests/desktop-fixes/main-window-activation-controller.test.js. This replacement authorizes only the existing WP0 isolated-runner coverage prerequisite; it does not authorize Product/Electron production changes, workflow/routing/package changes, dependency changes, release/publish, or mutation of PR #615/#538.",
+  "base": {
+    "branch": "main",
+    "commit": "36d3e5f34ac8e27c7e9ec4dd14a9496d443f9afa",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "36d3e5f34ac8e27c7e9ec4dd14a9496d443f9afa",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-win-pkg-activation-delta-p0-wp0-coverage-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-win-pkg-activation-delta-p0-wp0-coverage-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d34a9530d20c55ddaf355d26418b91b41ecee02cc8cb06446b96b5cf71759931",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-win-pkg-activation-delta-p0-wp0-coverage-v2",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/wp0-required-test-coverage.test.js",
+      "tools/wp0/run-tests.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "69271d509a9192fede978c4b7adf88c22444ba8e78d9c63ff19badcdb8720e98",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/wp0-required-test-coverage.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "bdc5d31191a09154743dfc4eb07985a63a387525fe9464c85d43fe3b2b550d01",
+      "productionCodeChanged": false,
+      "expectedFailure": "The WP0 coverage contract fails on the authorization merge because tools/wp0/run-tests.js does not enumerate tests/desktop-fixes/main-window-activation-controller.test.js."
+    },
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "coverageContract": {
+    "existingStageWorkflow": ".github/workflows/stage-6459-wp0-gates.yml",
+    "existingStageJob": "wp0-product",
+    "existingStageCommand": "npm run test:wp0",
+    "existingPackageScriptAuthority": "node tools/wp0/run-tests.js && npm run test:acv2:wp-a:a0",
+    "runnerPath": "tools/wp0/run-tests.js",
+    "coverageContractTestPath": "tests/wp0/wp0-required-test-coverage.test.js",
+    "preservedExistingExternalRequiredTests": [
+      "tests/wp2/desktop-host-process-lifecycle.test.js",
+      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js"
+    ],
+    "exactAdditionalRequiredTests": [
+      "tests/desktop-fixes/main-window-activation-controller.test.js"
+    ],
+    "exactAdditionalRequiredTestCount": 1,
+    "broadDesktopFixesWildcardForbidden": true,
+    "existingWp0EnumerationMustRemain": true,
+    "isolatedChildProcessExecutionMustRemain": true,
+    "perFileTimeoutMustRemainBounded": true,
+    "continueOnErrorForbidden": true
+  },
+  "priorDiagnosticEvidence": {
+    "windowsPackagedActivationPullRequest": 659,
+    "immutableTestsOnlyHead": "f8bf466d8dd0cbf02235b697d8fa478210ef8e6f",
+    "stageRun": 32591675618,
+    "stageJob": 97076415086,
+    "stageConclusion": "success",
+    "classification": "NON_CAUSAL_GREEN_DUE_TO_WP0_REQUIRED_TEST_COVERAGE_GAP",
+    "releaseClassification": "NO_COVERAGE",
+    "mustNotBeClaimedAsFailureFirstRed": true
+  },
+  "replacementEvidence": {
+    "replacesPullRequest": 660,
+    "replacesHead": "770e51d1080f4267036292a2ded476a7822081ce",
+    "failedStageRun": 32592379191,
+    "failedStageJob": 97078114270,
+    "failedReasonCode": "WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID",
+    "rootCause": "PREDECESSOR_WORK_PACKAGE_IDENTIFIER_EXCEEDED_TRUSTED_64_CHARACTER_LIMIT",
+    "predecessorMustNotMerge": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first prerequisite implementation commit changes only tests/wp0/wp0-required-test-coverage.test.js and obtains a fresh causal Stage RED because the current runner lacks the exact activation diagnostic path.",
+    "The root fix changes only tools/wp0/run-tests.js after the prerequisite RED and preserves the existing two exact Electron lifecycle external tests.",
+    "The runner adds only tests/desktop-fixes/main-window-activation-controller.test.js as the new exact external required test; no tests/desktop-fixes wildcard or directory-wide broadening is allowed.",
+    "Stage remains on the existing PRODUCT_WP0 route and workflow; package.json and wp0-routing-policy.json remain unchanged.",
+    "PR #659 remains frozen until this prerequisite ordinarily lands on main, then fresh main is ordinary-forward reconciled into #659 without changing the diagnostic test blob.",
+    "The reconciled #659 Stage run must actually execute main-window-activation-controller.test.js and produce a genuine causal failure before any Delta-P0 production scope amendment.",
+    "PR #615 and historical Windows UAT PR #538 remain untouched."
+  ],
+  "requiredSequence": [
+    "Replacement authorization remains exactly one governance file on unchanged fresh trusted main and passes applicable governance gates.",
+    "Replacement authorization PR merges to main by ordinary two-parent merge only at its OWNER merge boundary.",
+    "Create the prerequisite implementation branch exactly from the replacement authorization merge commit.",
+    "First implementation commit changes only tests/wp0/wp0-required-test-coverage.test.js and obtains fresh causal Stage RED.",
+    "Change only tools/wp0/run-tests.js to add the one exact activation diagnostic path while preserving the existing isolated runner and prior two external tests.",
+    "Prerequisite exact head passes Stage, applicable Layered/ACV2 gates and independent review with zero P0/P1 findings.",
+    "Prerequisite implementation PR merges to main by ordinary two-parent merge at its OWNER boundary.",
+    "Ordinary-forward reconcile fresh main into PR #659 without rebase, amend, force push or diagnostic blob mutation.",
+    "Require a new #659 Stage run that executes the activation diagnostic and fails causally before any Electron production implementation is authorized."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_ISOLATED_TEST_RUNNER",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing tools/wp0/run-tests.js isolated runner",
+        "source": "tools/wp0/run-tests.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Stage already invokes this runner through npm run test:wp0 and the repository already used this exact prerequisite pattern for Electron lifecycle diagnostics. Adding one exact path is smaller and safer than changing workflow, route or package authority."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project licensing",
+        "adoptionMode": "existing-runtime-api",
+        "fit": "FIT",
+        "reason": "The activation diagnostic already uses node:test and requires no new framework or dependency."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a new Stage route or workflow.",
+      "Do not broaden tests/desktop-fixes into WP0.",
+      "Do not alter package.json test:wp0 authority.",
+      "Do not bypass the existing isolated child-process runner."
+    ]
+  },
+  "verification": {
+    "mandatory": [
+      "fresh prerequisite tests-only Stage RED on the exact first implementation head",
+      "focused WP0 coverage contract GREEN after root fix",
+      "Stage exact prerequisite implementation head GREEN",
+      "applicable Layered CI and ACV2 exact implementation head GREEN",
+      "independent review with zero unresolved P0/P1 findings",
+      "ordinary two-parent prerequisite implementation merge",
+      "fresh-main ordinary-forward reconcile of PR #659 preserving its exact diagnostic blob",
+      "new PR #659 Stage run must execute the activation diagnostic and produce genuine causal failure before any Delta-P0 production amendment"
+    ],
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "candidateSelfAuthorization": true,
+    "newWp0Route": true,
+    "newWorkflow": true,
+    "routingPolicyChange": true,
+    "packageScriptChange": true,
+    "broadTestWildcard": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "candidatePreservation": {
+    "predecessorAuthorizationPullRequest660MustRemainUnmerged": true,
+    "deltaPullRequest659MustRemainFrozenUntilPrerequisiteMerge": true,
+    "deltaImmutableDiagnosticHeadMustRemain": "f8bf466d8dd0cbf02235b697d8fa478210ef8e6f",
+    "deltaDiagnosticBlobMustRemainUnchanged": true,
+    "productPullRequest615MustRemainUntouched": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  }
+}
