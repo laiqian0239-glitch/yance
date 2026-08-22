@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-22T18:19:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-WHATSAPP-STRUCTURED-EGRESS-ERROR-AUDIT-CLOSURE-PRODUCTION-AMENDMENT-1",
+  "workPackage": "V21-WHATSAPP-STRUCTURED-EGRESS-ERROR-PROD-A1",
   "proposalRevision": 1,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Fresh causal RED on frozen PR #647 proved the WhatsApp structured-egress P0 is owned by backend/services/whatsappAdapter.js. Exact head c6cd39ca8676964e6d533080da5ce81828e05eda passed implementation-branch policy and every unrelated WP0 contract, then failed only the new WhatsApp diagnostic: six disconnected physical egress methods expose message-only WHATSAPP_NOT_CONNECTED errors, empty sendText exposes a message-only MESSAGE_TEXT_EMPTY error, and a fake Baileys sendReaction rejection escapes as the identical raw provider Error. The Stage run had 601 tests / 592 pass / 9 fail, all nine failures inside the authorized diagnostic. This amendment adds exactly the owning adapter path, preserves the immutable RED head, and requires the repository forwardContinuation protocol rather than recreating or rewriting failure-first evidence.",
