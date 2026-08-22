@@ -84,6 +84,35 @@ function assertOperationActive(signal, fallbackCode = 'TELEGRAM_OPERATION_ABORTE
   if (signal?.aborted) throw operationAbortError(signal, fallbackCode, details);
 }
 
+function normalizeTelegramProviderEgressError(error, { accountId = '', operation = '', signal = null } = {}) {
+  const metadata = {
+    platform: 'telegram',
+    accountId: clean(accountId),
+    operation: clean(operation),
+    outcomeUnknown: true,
+    automaticRetryBlocked: true
+  };
+  if (signal?.aborted) return operationAbortError(signal, 'TELEGRAM_EGRESS_ABORTED', metadata);
+  const causeMessage = String(error?.message || error || 'unknown provider rejection')
+    .replace(/\s+/gu, ' ')
+    .trim()
+    .slice(0, 240);
+  return Object.assign(new Error('Telegram provider egress failed with uncertain outcome'), {
+    code: 'TELEGRAM_EGRESS_PROVIDER_REJECTED',
+    status: 502,
+    ...metadata,
+    causeMessage: causeMessage || 'unknown provider rejection'
+  });
+}
+
+async function performTelegramProviderEgress(invoke, context = {}) {
+  try {
+    return await invoke();
+  } catch (error) {
+    throw normalizeTelegramProviderEgressError(error, context);
+  }
+}
+
 function telegramTimestamp(value) {
   if (value instanceof Date && Number.isFinite(value.getTime())) return value.toISOString();
   const number = Number(value);
@@ -1594,13 +1623,16 @@ class TelegramAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, options);
     let result;
     try {
-      result = await row.client.sendFile(targetId(chatId), {
-        file: resolved.document,
-        caption,
-        ...(replyTo ? { replyTo: messageId(replyTo) } : {}),
-        forceDocument: false,
-        supportsStreaming: kind === 'gif' || resolved.metadata?.mimeType === 'video/webm'
-      });
+      result = await performTelegramProviderEgress(
+        () => row.client.sendFile(targetId(chatId), {
+          file: resolved.document,
+          caption,
+          ...(replyTo ? { replyTo: messageId(replyTo) } : {}),
+          forceDocument: false,
+          supportsStreaming: kind === 'gif' || resolved.metadata?.mimeType === 'video/webm'
+        }),
+        { accountId, operation: 'native-expression', signal: options.signal }
+      );
       this.assertEgressActive(accountId, row, options, true);
     } finally {
       detachAbort();
@@ -1647,7 +1679,10 @@ class TelegramAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, options);
     let result;
     try {
-      result = await row.client.sendMessage(targetId(chatId), { message: String(text || ''), ...(replyTo ? { replyTo: messageId(replyTo) } : {}) });
+      result = await performTelegramProviderEgress(
+        () => row.client.sendMessage(targetId(chatId), { message: String(text || ''), ...(replyTo ? { replyTo: messageId(replyTo) } : {}) }),
+        { accountId, operation: 'text', signal: options.signal }
+      );
       this.assertEgressActive(accountId, row, options, true);
     } finally {
       detachAbort();
@@ -1682,10 +1717,13 @@ class TelegramAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, input);
     let result;
     try {
-      result = await row.client.sendFile(targetId(chatId), {
-        file: filePath, caption: clean(input.caption), ...(replyTo ? { replyTo: messageId(replyTo) } : {}),
-        forceDocument: kind === 'document', voiceNote: kind === 'voice', supportsStreaming: kind === 'video' || kind === 'gif'
-      });
+      result = await performTelegramProviderEgress(
+        () => row.client.sendFile(targetId(chatId), {
+          file: filePath, caption: clean(input.caption), ...(replyTo ? { replyTo: messageId(replyTo) } : {}),
+          forceDocument: kind === 'document', voiceNote: kind === 'voice', supportsStreaming: kind === 'video' || kind === 'gif'
+        }),
+        { accountId, operation: 'media', signal: input.signal }
+      );
       this.assertEgressActive(accountId, row, input, true);
     } finally {
       detachAbort();
@@ -1732,10 +1770,16 @@ class TelegramAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, options);
     let result;
     try {
-      const peer = await row.client.getInputEntity(targetId(chatId));
+      const peer = await performTelegramProviderEgress(
+        () => row.client.getInputEntity(targetId(chatId)),
+        { accountId, operation: 'reaction', signal: options.signal }
+      );
       this.assertEgressActive(accountId, row, options, false);
       const reaction = clean(emoji) ? [new Api.ReactionEmoji({ emoticon: clean(emoji) })] : [];
-      result = await row.client.invoke(new Api.messages.SendReaction({ peer, msgId: messageId(targetMessageId), reaction, addToRecent: true }));
+      result = await performTelegramProviderEgress(
+        () => row.client.invoke(new Api.messages.SendReaction({ peer, msgId: messageId(targetMessageId), reaction, addToRecent: true })),
+        { accountId, operation: 'reaction', signal: options.signal }
+      );
       this.assertEgressActive(accountId, row, options, true);
     } finally {
       detachAbort();
@@ -1753,7 +1797,10 @@ class TelegramAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, options);
     let result;
     try {
-      result = await row.client.deleteMessages(targetId(chatId), [messageId(targetMessageId)], { revoke: true });
+      result = await performTelegramProviderEgress(
+        () => row.client.deleteMessages(targetId(chatId), [messageId(targetMessageId)], { revoke: true }),
+        { accountId, operation: 'revoke', signal: options.signal }
+      );
       this.assertEgressActive(accountId, row, options, true);
     } finally {
       detachAbort();
@@ -1772,7 +1819,10 @@ class TelegramAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, options);
     let value;
     try {
-      value = await row.client.markAsRead(targetId(chatId), ids.length ? ids : undefined);
+      value = await performTelegramProviderEgress(
+        () => row.client.markAsRead(targetId(chatId), ids.length ? ids : undefined),
+        { accountId, operation: 'read', signal: options.signal }
+      );
       this.assertEgressActive(accountId, row, options, true);
     } finally {
       detachAbort();
@@ -1785,10 +1835,16 @@ class TelegramAdapter {
     const detachAbort = this.bindEgressAbort(accountId, row, options);
     let result;
     try {
-      const peer = await row.client.getInputEntity(targetId(chatId));
+      const peer = await performTelegramProviderEgress(
+        () => row.client.getInputEntity(targetId(chatId)),
+        { accountId, operation: 'presence', signal: options.signal }
+      );
       this.assertEgressActive(accountId, row, options, false);
       const action = ['paused', 'available', 'cancel'].includes(clean(state).toLowerCase()) ? new Api.SendMessageCancelAction({}) : new Api.SendMessageTypingAction({});
-      result = await row.client.invoke(new Api.messages.SetTyping({ peer, action }));
+      result = await performTelegramProviderEgress(
+        () => row.client.invoke(new Api.messages.SetTyping({ peer, action })),
+        { accountId, operation: 'presence', signal: options.signal }
+      );
       this.assertEgressActive(accountId, row, options, true);
     } finally {
       detachAbort();
