@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-DELEGATED-FORWARD-CONTINUATION-FAILURE-FIRST-COMPOSITION-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #670 proves a base-owned delegated-policy composition defect. Its canonical successor head b62dda18f819dc3fc9cad54d6b295bc9aad66650 has the exact required two-parent forwardContinuation topology and preserves the packaged-activation diagnostic blob, and the forwardContinuation-specific contract passes, but live checkRuntimeTargetGate still rejects the branch. The trusted evaluator first requires the initial successor implementation commit to have exactly two parents for forwardContinuation, then the generic failure-first block rejects that same RED head unless it has exactly one parent. This work package authorizes only the minimum policy/test repair so forwardContinuation and failure-first compose without weakening either contract. No product, workflow, dependency, routing, database, release, or production scope is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "7815fe513c759d5eea9d3c25c45e8d301fbe66e9",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "7815fe513c759d5eea9d3c25c45e8d301fbe66e9",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "diagnosticEvidence": {
+    "packagedActivationSuccessorPullRequest": 670,
+    "packagedActivationSuccessorHead": "b62dda18f819dc3fc9cad54d6b295bc9aad66650",
+    "authorizationMerge": "68e7b6732c84393cfca7f8b482475b81f5794831",
+    "frozenPredecessorHead": "b46c74916f37b15cfd01e6c91653f0307d1c5758",
+    "preservedDiagnosticBlob": "539a5a44f7c7b01b4c89b5ac4f34fa4ffbada5c7",
+    "freshStageRun": 32599397317,
+    "freshStageJob": 97095319285,
+    "classification": "MIXED_RED_POLICY_COMPOSITION_BLOCKER",
+    "targetActivationFailure": "activation must not start a second fixed backend deadline while the backend lifecycle authority is still inside its own startup budget",
+    "policyFailureLocation": "tests/wp0/implementation-branch-policy.test.js:1148",
+    "outerReasonCode": "WP0_REJECTED_STAGE_TARGET_DENIED",
+    "innerCausalReasonCode": "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID",
+    "mechanicalCause": [
+      "forwardContinuation requires the first successor implementation commit to have exactly two parents: authorization merge first and frozen predecessor second.",
+      "The later failure-first RED-head validation requires redParents.length === 1 and redParents[0] === authorization merge without a forwardContinuation exception.",
+      "Therefore a valid first RED head cannot satisfy both trusted conditions simultaneously."
+    ]
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-delegated-forward-continuation-failure-first-composition-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-delegated-forward-continuation-failure-first-composition-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "08e934cb70bfbb346fca6fea6db7dc679ee70a2d8ec258211d5917c2d1b9f538",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-delegated-forward-continuation-failure-first-composition-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "shared/release/implementationBranchPolicyLegacy.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0457f5a3938ad78b638b12a7072a70d94e4ee5111c2fa2d6566f9a46ea2fc6b8",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/implementation-branch-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "7913275d3348e4c902aab19807e71fe0a02943be068cba5ef7f948eb9be7a7de",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "A focused composition contract must fail because a valid forwardContinuation first implementation RED head has two exact parents while the generic failure-first validator currently insists on one parent.",
+        "The failure must remain WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID; unrelated implementation-policy, routing, dependency, workflow, or product failures are blockers."
+      ]
+    },
+    "rootFix": {
+      "allowedChangedPaths": [
+        "shared/release/implementationBranchPolicyLegacy.js"
+      ],
+      "requiredBehavior": "When forwardContinuation is active, failure-first must require the RED head parents to equal [authorization ordinary merge, declared frozen predecessor head]. Without forwardContinuation, the existing single-parent failure-first rule remains exact and unchanged.",
+      "forwardContinuationValidationMustRemainFailClosed": true,
+      "ordinaryFailureFirstSingleParentRuleMustRemain": true,
+      "newReasonCodeForbidden": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "productionCodeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "mandatoryContracts": [
+    "Authorization remains a one-file proposal from exact fresh main and ordinary-merges before implementation.",
+    "The first implementation commit changes only tests/wp0/implementation-branch-policy.test.js and adds a focused composition contract for forwardContinuation plus failure-first.",
+    "Fresh Stage must RED because the trusted evaluator rejects the exact valid two-parent first RED head with WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID and no unrelated blocker is allowed.",
+    "No policy implementation change may be committed until the RED Closure Matrix reaches unknownBlockers=0.",
+    "The first post-RED root commit changes only shared/release/implementationBranchPolicyLegacy.js and records the exact RED head/run/conclusion plus Yance-Closure-Matrix-Unknown-Blockers: 0.",
+    "The root fix may only make failure-first parent validation conditional on the already-validated forwardContinuation protocol; it may not accept arbitrary second parents, extra parents, reordered parents, one-parent continuation, or unrelated ancestry.",
+    "Authorizations without forwardContinuation must retain the exact existing single-parent failure-first semantics.",
+    "PR #670 remains frozen as mixed-RED evidence; do not mutate its diagnostic bytes or misclassify it as a clean causal RED.",
+    "After this prerequisite lands, packaged activation must use a new successor authorization and canonical two-parent continuation from frozen #670 head b62dda18f819dc3fc9cad54d6b295bc9aad66650 before production is considered.",
+    "#615 remains frozen and #538 remains untouched."
+  ],
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "negativeProofs": [
+      "Valid forwardContinuation plus failure-first composition passes only after the root repair.",
+      "Substituted, reversed, extra-parent, one-parent, unrelated-predecessor and malformed continuation cases remain denied.",
+      "Existing non-forwardContinuation failure-first fixtures remain unchanged.",
+      "Only the two authorized policy/test paths change."
+    ],
+    "exactHeadCiRequired": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_GOVERNANCE_EVALUATOR_AND_CONTRACT_SUITE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance delegated-governance evaluator",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "extend-existing-authority",
+        "fit": "FIT",
+        "reason": "The contradiction is inside the existing evaluator that already owns forwardContinuation and failure-first parent validation; the repair belongs there rather than in a second policy engine."
+      },
+      {
+        "name": "Yance implementation-branch policy contract suite",
+        "source": "tests/wp0/implementation-branch-policy.test.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "extend-existing-contract",
+        "fit": "FIT",
+        "reason": "The suite already contains real Git fixtures for exact forwardContinuation topology and failure-first trusted-main guards, so the missing composition can be proven in the same seam."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "No new test framework or dependency is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not special-case PR #670, a branch name, or a diagnostic SHA in runtime policy.",
+      "Do not bypass failure-first or reinterpret mixed RED as clean RED.",
+      "Do not weaken exact two-parent forwardContinuation validation.",
+      "Do not create a second governance evaluator or workflow."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "candidatePreservation": {
+    "packagedActivationPullRequest670MustRemainFrozen": true,
+    "packagedActivationHeadMustRemain": "b62dda18f819dc3fc9cad54d6b295bc9aad66650",
+    "packagedActivationDiagnosticBlobMustRemain": "539a5a44f7c7b01b4c89b5ac4f34fa4ffbada5c7",
+    "predecessorPullRequest659MustRemainFrozen": true,
+    "productPullRequest615MustRemainFrozen": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
