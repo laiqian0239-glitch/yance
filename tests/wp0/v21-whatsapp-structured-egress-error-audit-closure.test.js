@@ -26,16 +26,20 @@ function persistedAttempt(overrides = {}) {
   });
 }
 
+function isolatedAdapter() {
+  const adapter = new WhatsAppAdapter();
+  adapter.resolveAccountKey = () => ACCOUNT_ID;
+  return adapter;
+}
+
 function installOnlineSocket(adapter, socket) {
-  const accountKey = adapter.resolveAccountKey(ACCOUNT_ID);
-  adapter.accounts.set(accountKey, {
+  adapter.accounts.set(ACCOUNT_ID, {
     socket,
     state: 'online',
     databaseAccountId: ACCOUNT_ID,
     generation: 1
   });
-  adapter.generations.set(accountKey, 1);
-  return accountKey;
+  adapter.generations.set(ACCOUNT_ID, 1);
 }
 
 test('WhatsApp physical egress disconnected failures expose one stable structured contract', async t => {
@@ -50,10 +54,11 @@ test('WhatsApp physical egress disconnected failures expose one stable structure
 
   for (const [method, input] of cases) {
     await t.test(method, async () => {
-      const adapter = new WhatsAppAdapter();
+      const adapter = isolatedAdapter();
       await assert.rejects(
         () => adapter[method](input),
         error => {
+          assert.notEqual(error?.code, 'SQLITE_BROKER_NOT_READY', `${method}: diagnostic must not depend on SQLite broker state`);
           assert.equal(error?.code, 'WHATSAPP_NOT_CONNECTED', `${method}: stable code required`);
           assert.equal(error?.status, 409, `${method}: stable status required`);
           return true;
@@ -64,12 +69,13 @@ test('WhatsApp physical egress disconnected failures expose one stable structure
 });
 
 test('WhatsApp local message validation failure is structured before any provider call', async () => {
-  const adapter = new WhatsAppAdapter();
+  const adapter = isolatedAdapter();
   installOnlineSocket(adapter, Object.freeze({}));
 
   await assert.rejects(
     () => adapter.sendText({ accountId: ACCOUNT_ID, chatJid: CHAT_JID, text: '   ' }),
     error => {
+      assert.notEqual(error?.code, 'SQLITE_BROKER_NOT_READY', 'local validation diagnostic must not depend on SQLite broker state');
       assert.equal(error?.code, 'MESSAGE_TEXT_EMPTY', 'empty text must expose stable code');
       assert.equal(error?.status, 400, 'empty text must expose local-validation status');
       return true;
@@ -78,7 +84,7 @@ test('WhatsApp local message validation failure is structured before any provide
 });
 
 test('WhatsApp provider rejection is conservatively normalized at the physical adapter boundary', async () => {
-  const adapter = new WhatsAppAdapter();
+  const adapter = isolatedAdapter();
   const providerError = new Error('simulated-provider-reject');
   const socket = Object.freeze({
     async sendMessage() {
@@ -97,6 +103,7 @@ test('WhatsApp provider rejection is conservatively normalized at the physical a
       physicalAttemptContext: persistedAttempt()
     }),
     error => {
+      assert.notEqual(error?.code, 'SQLITE_BROKER_NOT_READY', 'provider diagnostic must not depend on SQLite broker state');
       assert.notEqual(error, providerError, 'raw provider error must not escape unchanged');
       assert.equal(typeof error?.code, 'string', 'provider rejection requires stable code');
       assert.ok(error.code.startsWith('WHATSAPP_EGRESS_'), 'provider rejection code must remain WhatsApp egress scoped');
