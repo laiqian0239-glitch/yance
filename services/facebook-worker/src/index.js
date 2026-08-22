@@ -4,10 +4,10 @@ import { errorResponse, html, json, text, withSecurityHeaders } from './response
 import { GatewayError } from './errors.js';
 import { beginOAuth, cancelOAuthResult, handleOAuthCallback, pollOAuthResult, selectOAuthPage } from './oauth.js';
 import { ingestWebhook, verifyWebhookChallenge } from './webhook.js';
-import { acknowledgeEvents, avatarResponse, disconnectAccount, health, history, historyMessages, listAccounts, profile, pullEvents, refreshPermissions, sendMessage } from './desktopApi.js';
+import { acknowledgeEvents, avatarResponse, disconnectAccount, health, history, historyMessages, listAccounts, profile, pullEvents, refreshPermissions, renewEvents, sendMessage } from './desktopApi.js';
 import { authenticateDesktop } from './desktopAuth.js';
 import { cacheEventMedia, getMediaObject } from './media.js';
-import { clean, randomId } from './utils.js';
+import { clean, randomId, sha256Base64Url } from './utils.js';
 import { all } from './db.js';
 
 async function readBody(request, maximumBytes) {
@@ -22,21 +22,46 @@ function parseJson(bytes) {
   try { return JSON.parse(new TextDecoder().decode(bytes)); }
   catch (_) { throw new GatewayError('FACEBOOK_REQUEST_JSON_INVALID', '请求正文不是有效 JSON', 400); }
 }
-function requirePersistedAttemptQuery(url) {
-  const required = {
-    executionId: 'wpb_execution_id', attemptId: 'wpb_attempt_id', claimId: 'wpb_claim_id', ownerId: 'wpb_owner_id'
-  };
+const PERSISTED_ATTEMPT_HEADERS = Object.freeze([
+  ['executionId', 'x-yance-wpb-execution-id'],
+  ['attemptId', 'x-yance-wpb-attempt-id'],
+  ['claimId', 'x-yance-wpb-claim-id'],
+  ['ownerId', 'x-yance-wpb-owner-id']
+]);
+const PERSISTED_FENCING_HEADERS = Object.freeze([
+  ['generation', 'x-yance-wpb-generation'],
+  ['hostGeneration', 'x-yance-wpb-host-generation'],
+  ['fencingToken', 'x-yance-wpb-fencing-token']
+]);
+function persistedAttemptBindingText(result) {
+  return [
+    `x-yance-wpb-execution-id:${result.executionId}`,
+    `x-yance-wpb-attempt-id:${result.attemptId}`,
+    `x-yance-wpb-claim-id:${result.claimId}`,
+    `x-yance-wpb-owner-id:${result.ownerId}`,
+    `x-yance-wpb-generation:${result.generation}`,
+    `x-yance-wpb-host-generation:${result.hostGeneration}`,
+    `x-yance-wpb-fencing-token:${result.fencingToken}`,
+    `x-yance-wpb-operation-kind:${result.operationKind}`
+  ].join('\n');
+}
+async function requirePersistedAttemptHeaders(request) {
   const result = {};
-  for (const [field, key] of Object.entries(required)) {
-    result[field] = clean(url.searchParams.get(key));
+  for (const [field, key] of PERSISTED_ATTEMPT_HEADERS) {
+    result[field] = clean(request.headers.get(key));
     if (!result[field] || result[field].length > 200) throw new GatewayError('FACEBOOK_WORKER_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Worker 请求缺少持久化 attempt identity', 409, { field });
   }
-  for (const [field, key] of [['generation','wpb_generation'], ['hostGeneration','wpb_host_generation'], ['fencingToken','wpb_fencing_token']]) {
-    const value = Number(url.searchParams.get(key));
+  for (const [field, key] of PERSISTED_FENCING_HEADERS) {
+    const value = Number(request.headers.get(key));
     if (!Number.isSafeInteger(value) || value < 1) throw new GatewayError('FACEBOOK_WORKER_PERSISTED_ATTEMPT_REQUIRED', 'Facebook Worker fencing identity 无效', 409, { field });
     result[field] = value;
   }
-  result.operationKind = clean(url.searchParams.get('wpb_operation_kind'));
+  result.operationKind = clean(request.headers.get('x-yance-wpb-operation-kind'));
+  const requestId = clean(request.headers.get('x-yance-request-id'));
+  const binding = await sha256Base64Url(persistedAttemptBindingText(result));
+  if (!requestId || !requestId.endsWith(`.${binding}`)) {
+    throw new GatewayError('FACEBOOK_WORKER_PERSISTED_ATTEMPT_BINDING_INVALID', 'Facebook Worker 持久化 attempt metadata 未绑定到设备签名请求', 409);
+  }
   return Object.freeze(result);
 }
 
@@ -111,7 +136,7 @@ function oauthCallbackErrorMessage(error) {
 }
 
 function isPhysicalDesktopRoute(path, method) {
-  if (method === 'POST' && ['/api/desktop/send', '/api/desktop/permissions/refresh', '/api/desktop/disconnect'].includes(path)) return true;
+  if (method === 'POST' && ['/api/desktop/send', '/api/desktop/permissions/refresh', '/api/desktop/disconnect', '/api/desktop/events/renew'].includes(path)) return true;
   if (method === 'GET' && ['/api/desktop/history', '/api/desktop/history/messages', '/api/desktop/profile', '/api/desktop/avatar/page', '/api/desktop/avatar/profile'].includes(path)) return true;
   return method === 'GET' && /^\/api\/desktop\/media\/[^/]+\/\d+$/u.test(path);
 }
@@ -122,7 +147,7 @@ async function route(request, env, ctx, dependencies = {}) {
   const config = workerConfig(env);
   const url = new URL(request.url);
   const path = url.pathname;
-  const persistedAttempt = isPhysicalDesktopRoute(path, request.method) ? requirePersistedAttemptQuery(url) : null;
+  const persistedAttempt = isPhysicalDesktopRoute(path, request.method) ? await requirePersistedAttemptHeaders(request) : null;
 
   if (request.method === 'GET' && path === '/webhooks/facebook') return text(verifyWebhookChallenge(url, config.verifyToken));
   if (request.method === 'POST' && path === '/webhooks/facebook') {
@@ -150,6 +175,10 @@ async function route(request, env, ctx, dependencies = {}) {
   }
 
   if (path === '/api/desktop/events' && request.method === 'GET') return json({ ok: true, ...(await pullEvents(request, env, config)) });
+  if (path === '/api/desktop/events/renew' && request.method === 'POST') {
+    const bytes = await readBody(request, 256 * 1024);
+    return json({ ok: true, ...(await renewEvents(request, env, config, bytes, parseJson(bytes))) });
+  }
   if (path === '/api/desktop/ack' && request.method === 'POST') {
     const bytes = await readBody(request, 256 * 1024);
     return json({ ok: true, ...(await acknowledgeEvents(request, env, config, bytes, parseJson(bytes))) });
