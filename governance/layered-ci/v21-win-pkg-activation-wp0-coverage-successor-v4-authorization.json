@@ -116,9 +116,40 @@
   ],
   "ossFit": {
     "decision": "REUSE_EXISTING_WP0_ISOLATED_RUNNER_AND_TRUSTED_DELEGATED_AUTHORITY_GRAPH",
+    "matureOssAvailable": true,
     "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
-    "newDependency": false
+    "reviewedCandidates": [
+      {
+        "name": "Yance WP0 isolated required-test runner",
+        "source": "tools/wp0/run-tests.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Stage already invokes this bounded isolated child-process runner through npm run test:wp0, and predecessor evidence proved that adding one exact path executes the activation diagnostic without a new runner, workflow, route, package script, or dependency."
+      },
+      {
+        "name": "Yance trusted delegated authorization graph",
+        "source": "shared/release/implementationBranchPolicy.js and shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The trusted evaluator already owns exact supersession, implementation scope, failure-first topology, and RED-evidence binding; V4 corrects only its authorization data shape instead of adding a second policy engine."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The existing coverage and activation diagnostics already use node:test, so no new test framework or package is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second WP0 runner or a package-specific coverage engine.",
+      "Do not weaken or duplicate trusted delegated supersession or failure-first policy.",
+      "Do not add a new workflow, route, package script, dependency, or broad desktop-fixes wildcard."
+    ]
   },
   "governance": {
     "authorizationPredatesImplementation": true,
