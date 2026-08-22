@@ -11,7 +11,8 @@ const TEST_ROOT = path.join(REPO_ROOT, 'tests', 'wp0');
 const REQUIRED_EXTERNAL_TEST_PATHS = Object.freeze([
   'tests/wp2/desktop-host-process-lifecycle.test.js',
   'tests/wp4/evidence-platform-identity-and-windows-collector.test.js',
-  'tests/desktop-fixes/main-window-activation-controller.test.js'
+  'tests/desktop-fixes/main-window-activation-controller.test.js',
+  'backend/tests/v21ProductAiAutoRetryStorm.test.js'
 ]);
 
 function metricFromTap(stdout, label) {
