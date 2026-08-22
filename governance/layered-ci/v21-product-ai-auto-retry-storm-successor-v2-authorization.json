@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T03:42:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-AI-AUTO-RETRY-STORM-SUCCESSOR-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main successor to the merged #536 / Amendment-5 repair for issue #533. Current production still emits SOCIAL_CONTEXT_NOT_READY, STALE_CONVERSATION_CONTEXT, and STALE_PERSONA_PROFILE from contextAwareReplyBrain, but aiBrainOrchestrator's explicit non-analysis-retry generation classification covers only the earlier nine codes. The successor must prove in one tests-only causal batch that these three production outcomes cannot fall through to the generic retryable durable-analysis failure path, while preserving candidate-persistence, stale-result, cancellation, and unknown/transient fail-closed semantics. No second scheduler or durable operation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "5952edc00d5077aeaf9e2181282f8d15778ca968",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "5952edc00d5077aeaf9e2181282f8d15778ca968",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-ai-auto-conversation-p0-v1-scope-amendment-5-authorization.json",
+    "implementationBranch": "product/v21-product-ai-auto-conversation-p0-v1-amendment-5",
+    "reason": "Continue the already-merged #536 narrow retry-storm repair on fresh main only for three production generation outcomes omitted from the earlier explicit classification; do not reopen or rewrite #536 history."
+  },
+  "predecessorEvidence": {
+    "issue": 533,
+    "predecessorImplementationPullRequest": 536,
+    "predecessorMerge": "973a940d0c25460b75d40c3fe2ede0b3931fef3e",
+    "currentExplicitGenerationCodes": [
+      "AI_DIRECTOR_INVALID_OUTPUT",
+      "AI_DIRECTOR_INTERNAL_ID_LEAK",
+      "AI_DIRECTOR_LANGUAGE_MISMATCH",
+      "AI_DIRECTOR_LANGUAGE_UNVERIFIED",
+      "AI_REPLY_LANGUAGE_MISMATCH",
+      "AI_REPLY_QUALITY_REJECTED",
+      "REPLY_TECHNICAL_REJECTED",
+      "PERSONA_TRUTH_FIREWALL_BLOCKED",
+      "CUSTOMER_NOT_FOUND"
+    ],
+    "freshProductionOmissions": [
+      "SOCIAL_CONTEXT_NOT_READY",
+      "STALE_CONVERSATION_CONTEXT",
+      "STALE_PERSONA_PROFILE"
+    ],
+    "existingFocusedTest": "backend/tests/v21ProductAiAutoRetryStorm.test.js",
+    "existingRootAuthority": "backend/services/aiBrainOrchestrator.js"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ai-auto-retry-storm-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ai-auto-retry-storm-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "97c360ee06ed3e0a1b04a9565f0ef3287df5d200f37a59d1793c54da505d0d42",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-ai-auto-retry-storm-successor-v2",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "backend/services/aiBrainOrchestrator.js",
+      "backend/tests/v21ProductAiAutoRetryStorm.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "5730ca64ca7f8527a51d122e35796e532d8bece7b9c28830ad20d9f1e51d0bcf",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "backend/tests/v21ProductAiAutoRetryStorm.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "29868de524000d3cef17551d2a227b4a5f00e12a16852834bf87e0bdd2b8abdd",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The focused retry-storm contract does not require SOCIAL_CONTEXT_NOT_READY to be classified outside the generic retryable durable-analysis failure path.",
+        "The focused retry-storm contract does not require STALE_CONVERSATION_CONTEXT to preserve stale-generation semantics without re-running the completed analysis.",
+        "The focused retry-storm contract does not require STALE_PERSONA_PROFILE to preserve stale-generation semantics without re-running the completed analysis."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "backend/services/contextAwareReplyBrain.js production throw sites for SOCIAL_CONTEXT_NOT_READY, STALE_CONVERSATION_CONTEXT, and STALE_PERSONA_PROFILE",
+      "backend/services/aiBrainOrchestrator.js explicit generation-error classification and processConversation catch semantics",
+      "runScheduledAnalysis mapping for automatic-reply-generation-failed, superseded/deferred outcomes, generic failed, and retryable flags",
+      "candidate persistence / analysisSuccessRequiresAiAutoCandidatePersistence restart-no-drop contract",
+      "AI_STALE_RESULT existing superseded recovery and stale conversation/persona cancellation semantics",
+      "unknown or genuinely transient generation errors retaining fail-closed behavior without silently succeeding analysis",
+      "negative proof that no second candidate scheduler, queue, durable operation, provider router, workflow, dependency, or database path is introduced"
+    ]
+  },
+  "defectContract": {
+    "issue": 533,
+    "fullAnalysisRetryStormForKnownGenerationOutcomeForbidden": true,
+    "socialContextNotReadyMustNotFallThroughToGenericRetryableAnalysisFailure": true,
+    "staleConversationMustNotFallThroughToGenericRetryableAnalysisFailure": true,
+    "stalePersonaMustNotFallThroughToGenericRetryableAnalysisFailure": true,
+    "analysisSuccessStillRequiresAiAutoCandidatePersistence": true,
+    "aiStaleResultExistingRecoveryMustRemain": true,
+    "staleConversationAndPersonaSemanticsMustRemainFailClosed": true,
+    "unknownOrTransientGenerationFailureMayNotBeSilentlyConvertedToSuccess": true,
+    "noIndependentCandidateSchedulerIntroduced": true,
+    "noSecondDurableOperationIntroduced": true
+  },
+  "requiredValidation": {
+    "failureFirst": "Extend backend/tests/v21ProductAiAutoRetryStorm.test.js in one same-root batch to require all three omitted production outcomes to avoid the generic retryable durable-analysis failure path; the authorization-merge base must fail causally before production changes.",
+    "focused": [
+      "node --test backend/tests/v21ProductAiAutoRetryStorm.test.js",
+      "node --test backend/tests/v21ProductAiAutoConversationP0.test.js"
+    ],
+    "exactHeadCiRequired": true
+  },
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_REPOSITORY_ERROR_CLASSIFICATION_AND_FOCUSED_TEST_SEAMS_ONLY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance aiBrainOrchestrator durable analysis authority",
+        "source": "backend/services/aiBrainOrchestrator.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is local classification at the existing durable analysis boundary; a second retry subsystem is unnecessary and forbidden."
+      },
+      {
+        "name": "Yance focused retry-storm regression",
+        "source": "backend/tests/v21ProductAiAutoRetryStorm.test.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The mature focused test already encodes #536 semantics and can expose all three omitted production outcomes in one causal batch."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "No new test dependency is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second candidate retry scheduler, queue, or durable-operation authority.",
+      "Do not weaken candidate persistence, AI_STALE_RESULT recovery, or stale-generation cancellation semantics.",
+      "Do not classify unknown/transient generation errors as success merely to suppress retries.",
+      "Do not add a workflow, dependency, database migration, provider router, or unrelated Product change."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "candidatePreservation": {
+    "productPullRequest615MustRemainFrozen": true,
+    "productPullRequest615ExactRedHead": "7de4291dc93b87472eb365f8a4b68e0a7c13b0a7",
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true,
+    "predecessorPullRequest536HistoryMustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
