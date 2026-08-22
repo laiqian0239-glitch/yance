@@ -10,7 +10,8 @@ const runner = fs.readFileSync(path.join(ROOT, 'tools/wp0/run-tests.js'), 'utf8'
 const REQUIRED_EXTERNAL_TESTS = [
   'tests/wp2/desktop-host-process-lifecycle.test.js',
   'tests/wp4/evidence-platform-identity-and-windows-collector.test.js',
-  'tests/desktop-fixes/main-window-activation-controller.test.js'
+  'tests/desktop-fixes/main-window-activation-controller.test.js',
+  'backend/tests/v21ProductAiAutoRetryStorm.test.js'
 ];
 
 test('WP0 required runner executes exact external diagnostics through its isolated child model', () => {
