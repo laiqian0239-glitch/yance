@@ -1,0 +1,322 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T08:05:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-SYSTEM-SETTINGS-REACHABILITY-P1-SUCCESSOR-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Same-work-package Fast Closure V2 scope amendment after a clean successor failure-first RED. Immutable RED head d25d3a2941a69bed16f99e7e08012a3a134a0839 produced Stage run 32542547372: the base-owned route, candidate/base roots, official Electron asset, locked dependencies and both sealed exports were GREEN; implementation-branch-policy, delegated topology, base-owned repository root and OSS-first contracts passed; the WP0 corpus ended 555 PASS / 4 FAIL, and all four failures are the new Product reachability assertions. Closure Matrix unknownBlockers=0. Existing backup/recovery/portable-backup services, Electron portable file custody, Adaptive Local runtime authorities, Ollama/llama.cpp/KTransformers/AirLLM and LiteLLM Model Brain are PRESERVE. The causal production gap is only active Element Product reachability through the already-adopted authenticated Electron Store bridge, plus executable acceptance/inventory that still points at retired frontend/. This amendment authorizes one cohesive eight-path continuation: four runtime Product/bridge paths, three WP0 acceptance paths including the original diagnostic, and one WP2 inventory path. It does not authorize backend authority replacement, Electron main changes, M2 manifest changes, a generic arbitrary-URL bridge, a second renderer/router/recovery engine, dependencies, workflow/routing changes, database migration, release/publish or PR #538 mutation.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-system-settings-reachability-p1-successor-v2-authorization.json",
+    "implementationBranch": "product/v21-product-system-settings-reachability-p1-successor-v2",
+    "reason": "The original successor implementation branch is immutable tests-only RED evidence at d25d3a2941a69bed16f99e7e08012a3a134a0839. Its one-path authorization intentionally forbids production; the fresh causal RED proved the exact additional Product/bridge/evidence paths required for closure. Production must continue on a new forward-only branch after this amendment merges, with the RED branch receiving no further commits."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "b37b414e9903adb22580f691924be6425d846d1c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b37b414e9903adb22580f691924be6425d846d1c",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-system-settings-reachability-p1-successor-v2-scope-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-system-settings-reachability-p1-successor-v2-scope-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8d44ac0ee87429d30dce9dc1161303cbacb9fb05b3bb0328fd9ef0d230594cc4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1",
+    "allowedChangedPaths": [
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "tests/wp0/v21-model-brain-ui.test.js",
+      "tests/wp0/v21-product-system-settings-reachability-p1.test.js",
+      "tools/wp2/command-path-inventory.js"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "08a5ea2bbd902797718380d53865ccb823ce517b336ff26831b3e93c3609ffef",
+    "newlyAuthorizedPaths": [
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "tests/wp0/v21-model-brain-ui.test.js",
+      "tools/wp2/command-path-inventory.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 7,
+    "newlyAuthorizedChangedFileSetSha256": "a82494f055ae3d98e327484509ed04edb78d0a85b5912d80f6e6e1c7f3f46f21",
+    "productionAllowedChangedPaths": [
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+    ],
+    "productionChangedFileCount": 4,
+    "productionChangedFileSetSha256": "718d69414493c8b13b6fd10490f902e8b0601a329f095c35756111c3f0fa21f7",
+    "productionScopeAuthorized": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "backendAuthorityModificationAllowed": false,
+    "electronMainModificationAllowed": false,
+    "m2ManifestModificationAllowed": false,
+    "legacyFrontendReactivationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "genericArbitraryUrlBridgeAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "postRedContinuation": {
+    "fastClosureV2": true,
+    "originalEffectiveAuthorizationMerge": "b37b414e9903adb22580f691924be6425d846d1c",
+    "originalImplementationPullRequest": 613,
+    "originalImplementationBranch": "product/v21-product-system-settings-reachability-p1-successor-v2",
+    "originalFailureFirstHead": "d25d3a2941a69bed16f99e7e08012a3a134a0839",
+    "originalFailureFirstStageRun": 32542547372,
+    "originalFailureFirstStageJob": 96955227830,
+    "originalFailureFirstConclusion": "failure",
+    "originalFailureFirstStagePassCount": 555,
+    "originalFailureFirstStageFailCount": 4,
+    "unknownBlockers": 0,
+    "requiredFirstProductionTrailers": [
+      "Yance-Failure-First-Red-Head: d25d3a2941a69bed16f99e7e08012a3a134a0839",
+      "Yance-Failure-First-Red-Run: 32542547372",
+      "Yance-Failure-First-Red-Conclusion: failure",
+      "Yance-Closure-Matrix-Unknown-Blockers: 0"
+    ],
+    "requiredContinuationTopology": {
+      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
+      "firstContinuationCommitMustBeTwoParentMerge": true,
+      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
+      "firstContinuationCommitSecondParent": "d25d3a2941a69bed16f99e7e08012a3a134a0839",
+      "historyRewriteForbidden": true,
+      "cherryPickDuplicationForbidden": true,
+      "oldImplementationBranchMustNotReceiveFurtherCommits": true
+    }
+  },
+  "causalRedClassification": {
+    "greenPreserveContracts": [
+      "Existing backend system routes own backup list/create/verify, staged restore/cancel/history, retention and portable backup list/create/verify/stage/delete.",
+      "Existing portableBackupService owns encrypted package verification/import/staged restore; Electron main already owns file chooser/import custody and save/export custody.",
+      "Existing models routes and adopted runtimes own Adaptive Local catalog/hardware/plan/materialize/status/remove, Ollama lifecycle and direct-user local execution.",
+      "LiteLLM Model Brain remains formal quick_reply/deep_reply/director physical routing authority; no local silent fallback is introduced.",
+      "The active Product remains integration/element-module YanceWorkspace -> ProductExperienceShell; retired frontend remains outside active mounts.",
+      "Trusted delegated governance/topology/base-owned-root/OSS-first tests all passed on the clean successor RED head."
+    ],
+    "dataProtectionRoot": [
+      "The active Element Product has no reachable data-protection surface for backup verification, pending/staged restore cancellation, restore history, retention or portable backup lifecycle.",
+      "The required backend and Electron file-custody authorities already exist, so the missing layer is only the active Product projection/control plus fixed authenticated forwarding."
+    ],
+    "modelRuntimeRoot": [
+      "The active Element Product does not consume Adaptive Local catalog/hardware/status/plan/materialize/remove truth and has no governed local-model lifecycle controls.",
+      "The active Element Product does not expose Model Brain/LiteLLM runtime truth even though backend Model Brain status and execution evidence exist.",
+      "The fix must preserve LiteLLM formal routing and may not add a renderer-local model router, provider scorer, retry authority or silent local fallback."
+    ],
+    "acceptanceEvidenceRoot": [
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js still proves user-facing Adaptive Local behavior through retired System Center/AI Workbench files.",
+      "tests/wp0/v21-model-brain-ui.test.js still proves Model Brain UI behavior through retired frontend/index.html, AI Workbench and System Center.",
+      "tools/wp2/command-path-inventory.js rendererLocations scans frontend JavaScript only and therefore can stay GREEN without observing the sole active Element TypeScript/TSX Product."
+    ],
+    "outOfRootCause": [
+      "Backend backup/recovery/portable-backup service replacement or a second backup engine.",
+      "Backend model route/runtime replacement or a second model gateway/router/inference engine.",
+      "Electron main file-custody changes, M2 manifest expansion, generic arbitrary-URL IPC, cloud sync, Learning expansion, system-DPI automatic font mode, release/publish and PR #538."
+    ],
+    "unknownBlockers": 0
+  },
+  "bridgeContract": {
+    "authority": "electron/r32StoreBridge.js authenticated apiRequest forwarding",
+    "rendererExposure": "electron/preload.js explicit yanceDesktop methods",
+    "fixedCapabilities": [
+      {
+        "channel": "store:product-system-data-protection-state",
+        "rendererMethod": "getProductDataProtectionState",
+        "allowedBackendReads": [
+          "/api/r32/system/backups",
+          "/api/r32/system/portable-backups"
+        ]
+      },
+      {
+        "channel": "store:product-system-data-protection-mutation",
+        "rendererMethod": "mutateProductDataProtection",
+        "allowedActions": [
+          "create-backup",
+          "verify-backup",
+          "stage-restore",
+          "cancel-restore",
+          "create-portable-backup",
+          "verify-portable-backup",
+          "stage-portable-restore",
+          "delete-portable-backup"
+        ]
+      },
+      {
+        "channel": "store:product-system-model-runtime-state",
+        "rendererMethod": "getProductModelRuntimeState",
+        "allowedBackendReads": [
+          "/api/r32/models/model-brain/status",
+          "/api/r32/models/adaptive-local/catalog",
+          "/api/r32/models/adaptive-local/hardware",
+          "/api/r32/models/adaptive-local/status"
+        ]
+      },
+      {
+        "channel": "store:product-system-model-runtime-mutation",
+        "rendererMethod": "mutateProductModelRuntime",
+        "allowedActions": [
+          "plan-adaptive-local",
+          "materialize-adaptive-runtime",
+          "remove-adaptive-runtime",
+          "pull-ollama-model",
+          "cancel-ollama-pull"
+        ]
+      }
+    ],
+    "existingElectronCustodyMethodsToReuse": [
+      "selectPortableBackup",
+      "savePortableBackup"
+    ],
+    "arbitraryUrlOrMethodForwardingForbidden": true,
+    "rendererDirectBackendCredentialAccessForbidden": true
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "The sole active Element Product exposes a reachable system-settings/data-protection surface that reads backup/portable-backup truth and offers create, verify, staged restore, cancel, history/retention, import and export flows through existing authorities.",
+      "Portable backup import/export reuses Electron file custody; passphrases and sensitive restore inputs are not persisted as renderer authority.",
+      "The sole active Element Product exposes Adaptive Local catalog/hardware/status and governed plan/materialize/remove/Ollama pull lifecycle controls through fixed authenticated bridge actions.",
+      "The same active Product exposes current Model Brain status and identifies LiteLLM as preserved formal routing authority, including truthful degraded/unavailable state rather than fabricated local fallback.",
+      "Product UI acceptance for Adaptive Local and Model Brain binds active integration/element-module source and the explicit bridge instead of retired frontend files.",
+      "WP2 renderer reachability inventory scans integration/element-module/src TypeScript/TSX and classifies the fixed Product system bridge channels with their actual backend authority paths."
+    ],
+    "forbiddenBehavior": [
+      "Do not edit, reactivate or remount retired frontend/ as Product authority.",
+      "Do not modify backend backup/recovery/portable-backup/model authorities or Electron main custody in this amendment.",
+      "Do not add a generic arbitrary-route HTTP bridge, renderer-held backend credential/token, second IPC framework or second Product renderer.",
+      "Do not add a second model router, inference engine, provider scorer, retry/fallback authority or silent local fallback; formal quick/deep/director remains LiteLLM Model Brain.",
+      "Do not add a second backup/encryption/restore engine, dependency, workflow, routing policy, migration, release/publish change or PR #538 mutation."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_ACTIVE_ELEMENT_PRODUCT_EXISTING_AUTHENTICATED_STORE_BRIDGE_AND_EXISTING_BACKEND_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Product module",
+        "source": "@element-hq/element-web-module-api plus current Yance ProductExperienceShell",
+        "license": "existing reviewed repository authority",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The sole active renderer already exists; the RED proves missing settings reachability inside that adopted Product seam, not a missing UI framework."
+      },
+      {
+        "name": "Existing authenticated Electron Store bridge",
+        "source": "electron/r32StoreBridge.js plus electron/preload.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This bridge already provides explicit fixed IPC -> authenticated apiRequest forwarding for Store and Personal Access. Extending it with four fixed Product system capabilities avoids a second HTTP/IPC framework and keeps backend credentials out of the renderer."
+      },
+      {
+        "name": "Existing recovery and portable backup authorities",
+        "source": "backend/routes/system.js + backend/services/backupService.js + backend/services/portableBackupService.js + existing Electron portable file custody",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Backup verification, staged/cancelled restore, restore history, retention, AES-256-GCM portable packages and file import/export custody are already implemented; only Product reachability is missing."
+      },
+      {
+        "name": "Adaptive Local runtimes and LiteLLM Model Brain",
+        "source": "Ollama + ggml-org/llama.cpp + kvcache-ai/ktransformers + lyogavin/airllm + BerriAI/litellm v1.95.0 repository authorities",
+        "license": "existing reviewed upstream/repository licenses",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Mature upstream/runtime authorities already own execution and formal routing. The amendment only projects their existing lifecycle/truth into the active Product and explicitly forbids a duplicate Yance router or inference engine."
+      },
+      {
+        "name": "Existing WP0/WP2 executable evidence infrastructure",
+        "source": "tests/wp0 + tools/wp2/command-path-inventory.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The audit framework exists; the proven defect is stale retired-renderer source coverage. Repairing its active Element source graph is smaller and more authoritative than creating a second evidence system."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retired frontend System Center/AI Workbench/index remain negative proof only and must not regain Product acceptance authority.",
+      "Avoid any renderer-generic backend request helper that accepts arbitrary URLs or methods.",
+      "Avoid duplicate backup, encryption, restore, model gateway/router, inference, downloader/materializer or Product-renderer authorities.",
+      "Avoid adding an alternate command-path inventory or audit framework; repair the existing WP2 inventory."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-product-system-settings-reachability-p1.test.js",
+      "node --test tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "node --test tests/wp0/v21-model-brain-ui.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2/WP-A when routed",
+      "WP-A post-merge when routed",
+      "Model Brain Windows when routed",
+      "Product Final when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "ordinaryMergeCommitRequired": true,
+    "twoParentMergeRequired": true,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
