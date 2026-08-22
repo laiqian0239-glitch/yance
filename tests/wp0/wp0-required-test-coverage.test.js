@@ -9,10 +9,11 @@ const ROOT = path.resolve(__dirname, '../..');
 const runner = fs.readFileSync(path.join(ROOT, 'tools/wp0/run-tests.js'), 'utf8');
 const REQUIRED_EXTERNAL_TESTS = [
   'tests/wp2/desktop-host-process-lifecycle.test.js',
-  'tests/wp4/evidence-platform-identity-and-windows-collector.test.js'
+  'tests/wp4/evidence-platform-identity-and-windows-collector.test.js',
+  'tests/desktop-fixes/main-window-activation-controller.test.js'
 ];
 
-test('WP0 required runner executes the exact Electron lifecycle diagnostics through its isolated child model', () => {
+test('WP0 required runner executes exact external diagnostics through its isolated child model', () => {
   for (const repoPath of REQUIRED_EXTERNAL_TESTS) {
     assert.equal(
       runner.includes(`'${repoPath}'`) || runner.includes(`"${repoPath}"`),
@@ -25,4 +26,5 @@ test('WP0 required runner executes the exact Electron lifecycle diagnostics thro
   assert.match(runner, /spawnSync\(process\.execPath, \['--test', '--test-concurrency=1', file\]/);
   assert.doesNotMatch(runner, /tests\/wp2\/\*\.test\.js/);
   assert.doesNotMatch(runner, /tests\/wp4\/\*\.test\.js/);
+  assert.doesNotMatch(runner, /tests\/desktop-fixes\/\*\.test\.js/);
 });
