@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T00:50:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WINDOWS-PACKAGED-ACTIVATION-DELTA-P0-V1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Authorize a tests-only failure-first diagnostic for the fresh-main packaged Windows activation regression discovered by the Release Closure Program. The last known packaged Windows PASS was Product Final run 32468944921 on Windows UAT startup successor head b5a0d2a23e6599ee4ceda07036b237e566e031f2. Product system-settings PR #615 later reproduced the same current-base failure twice: all materialization/build/reproducibility work passed, while only real packaged Yance.exe --post-install activation failed to produce the required fresh PASS receipt. The subsequent Electron lifecycle closure #643 changed Windows backend-owner identity collection from blocking synchronous PowerShell to bounded asynchronous collection, but Product Final was skipped on that exact head. This authorization does not assume that change is the root cause. It authorizes one existing activation-controller test path to establish fresh causal RED and mechanically classify the deadline/readiness composition before any production path can be authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "9dee3c65709271cd97a84702aa1c96146917c05d",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "9dee3c65709271cd97a84702aa1c96146917c05d",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-windows-packaged-activation-delta-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-windows-packaged-activation-delta-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "16e986438304189fa770592c2abdc0e0f1bdc8764dd6d3d3e4ab728483824ed3",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-windows-packaged-activation-delta-p0-v1",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/desktop-fixes/main-window-activation-controller.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "0a08f6ff1b6bdaba928318aa3569916934d04d98a6dae52f779847e01bcc1f6e",
+    "productionScopeAuthorized": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/desktop-fixes/main-window-activation-controller.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "0a08f6ff1b6bdaba928318aa3569916934d04d98a6dae52f779847e01bcc1f6e",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailureClass": [
+        "The current packaged-activation readiness/deadline composition must not permit an activation-level deadline to expire while the same backend startup remains within its own authorized lifecycle budget.",
+        "The diagnostic must distinguish backend-owner identity acquisition, backend READY/session establishment, renderer readiness, runtime challenge and receipt production rather than asserting that an arbitrary larger timeout is the fix.",
+        "The diagnostic must preserve the already-closed Element responder-registration, production-runtime-probe and exact packaged-receipt semantics from the Windows UAT Startup P0 lineage."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true,
+      "newImplementationContinuationRequiredAfterAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Fresh trusted main still equals the authorization merge before the unique first diagnostic head; otherwise freeze and replace from fresh main.",
+      "The implementation branch is created exactly from the ordinary authorization merge and contains no PR #615 implementation ancestry.",
+      "The first implementation commit changes only tests/desktop-fixes/main-window-activation-controller.test.js and zero production/workflow/routing/dependency paths.",
+      "PR #615 remains frozen at its current causal packaged-launch evidence until the independent prerequisite is closed on trusted main.",
+      "PR #538 remains historical UAT evidence only."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "observedRegressionEvidence": {
+    "lastKnownPackagedPass": {
+      "workPackage": "V21-PRODUCT-EXPERIENCE-WINDOWS-UAT-STARTUP-P0",
+      "sourceHead": "b5a0d2a23e6599ee4ceda07036b237e566e031f2",
+      "productFinalRun": 32468944921,
+      "result": "success"
+    },
+    "currentProductLine": {
+      "pullRequest": 615,
+      "firstFailingProductHead": "7c78dbae79198f3c784c5a3f233a70a47b2709ee",
+      "firstFailingProductFinalRun": 32586226966,
+      "firstFailingWindowsJob": 97062886738,
+      "reconciledFailingProductHead": "8bf31a7480d98ddabec8b60575cdbe97940b45a6",
+      "reconciledProductFinalRun": 32588314223,
+      "reconciledWindowsJob": 97067957949,
+      "stableFailureStep": "Launch exact packaged Yance against exact Element ModuleLoader path and require fresh PASS receipt",
+      "preservedGreenBoundaries": [
+        "frozen-element-reproducibility",
+        "materialized-matrix-uat",
+        "Windows dependency/runtime materialization",
+        "WP7 PAX long-path and deterministic archive contract",
+        "trusted desktop build and Product bundle seal"
+      ]
+    },
+    "coverageSeam": {
+      "electronLifecyclePullRequest": 643,
+      "electronLifecycleHead": "b44a1670a7f308ff89f8fd8d262993075d2eac89",
+      "electronLifecycleMerge": "384eb133e8e0871873b271a13bd94f999c6abeb6",
+      "productFinalOnElectronLifecycleHead": "skipped",
+      "classification": "MANDATORY_EXECUTED_TEST_COVERAGE_BLIND_SPOT_CANDIDATE"
+    }
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "electron/desktopHost/BackendOwnerRegistry.js bounded Windows process-identity acquisition",
+      "electron/desktopHost/BackendProcessHost.js startup identity/READY/session lifecycle",
+      "electron/main.js backend-ready wait, renderer activation and runtime session challenge",
+      "electron/mainWindowActivationController.js four-phase renderer readiness and activation recovery",
+      "electron/mainWindowRuntimeReadiness.js fresh runtime challenge",
+      "electron/postInstallLaunchReceipt.js PASS receipt authority",
+      "integration/element-module/src/index.tsx production activation-probe responder",
+      "V21 Product Final real packaged Windows launch step and its 120-second external observation window"
+    ],
+    "preserve": [
+      "single-instance desktop authority",
+      "production Element ModuleLoader path",
+      "fresh runtime readiness challenge",
+      "backend/session fingerprint stability check",
+      "production runtime path probe fail-closed behavior",
+      "post-install receipt must reflect a visible non-minimized real packaged window",
+      "async nonblocking Windows process identity collection",
+      "proper-lockfile backend-owner claim and PID-reuse fencing"
+    ],
+    "negativeProofs": [
+      "No browser-only surrogate or source-mode substitution.",
+      "No sleep-based readiness or PASS receipt fabrication.",
+      "No Product Final gate weakening, timeout-only workaround, disabled runtime probe or responder-readiness bypass.",
+      "No dependency/workflow/routing/Product settings mutation before fresh RED proves it necessary.",
+      "No mutation of PR #615 or historical PR #538 in this diagnostic phase."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DESKTOP_LIFECYCLE_AND_PACKAGED_UAT_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing desktop activation and runtime readiness authorities",
+        "source": "electron/mainWindowActivationController.js + electron/mainWindowRuntimeReadiness.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing authorities already own activation readiness and recovery. The diagnostic must compose their deadlines with the backend lifecycle instead of adding a second readiness protocol."
+      },
+      {
+        "name": "Existing BackendProcessHost and BackendOwnerRegistry lifecycle authorities",
+        "source": "electron/desktopHost/BackendProcessHost.js + electron/desktopHost/BackendOwnerRegistry.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "These existing authorities already own backend startup, owner identity and process fencing; any proven repair must remain inside those seams."
+      },
+      {
+        "name": "Existing Product Final packaged Windows UAT",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The workflow already performs the required real packaged Yance.exe launch and receipt check; it must remain the executable closure evidence rather than being weakened or replaced."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second desktop readiness protocol, lifecycle scheduler or process-owner authority.",
+      "Do not restore synchronous PowerShell or Atomics.wait blocking behavior.",
+      "Do not solve the failure by merely inflating unrelated timeouts without a shared lifecycle budget contract.",
+      "Do not modify Product settings code to compensate for a base-owned packaged-startup regression."
+    ]
+  },
+  "requiredValidation": {
+    "focusedAfterDiagnostic": [
+      "node --test tests/desktop-fixes/main-window-activation-controller.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2",
+      "WP-A when routed",
+      "Model Brain Windows when routed",
+      "Product Final only after a post-RED production amendment authorizes an exact Product Final route or the implementation branch is already routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "candidatePreservation": {
+    "productPullRequest615MustRemainUntouched": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  }
+}
