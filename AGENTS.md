@@ -156,6 +156,22 @@ If a published commit violates an immutable first-commit/first-production/topolo
 - Fresh-verify `main`, exact PR head/base, CI/check conclusions, review state, and mergeability immediately before merge.
 - Do not cross an explicit owner-authorization merge boundary without the required owner authorization.
 
+## V21 Release Closure Program (mandatory)
+
+For V21 final release closure, `docs/uat/V21_RELEASE_CLOSURE_PROGRAM.md` and `docs/uat/V21_RELEASE_CLOSURE_LEDGER.md` are mandatory operating inputs in addition to this protocol.
+
+- The 2026-08-20 audit is `Known Findings V1`, not an exhaustive bug universe. All of its P0/P1 findings must be reconciled, but release work must also perform a new independent fresh-main audit.
+- A finding is not closed merely because a PR merged. Closure must reach the relevant chain: `finding -> causal RED -> root cause -> authorized fix -> mandatory executed test -> exact-head GREEN -> packaged/UAT evidence when applicable`.
+- Test-file presence is not coverage. Critical release requirements require proof that the test is actually enumerated by a runner, invoked by a mandatory gate on the exact head, executed, and PASS. Missing links are `NO_COVERAGE` release blockers.
+- Run three independent release-discovery views before RC freeze: Known Findings V1 reconciliation, Fresh-main Release Audit V2, and a production Delta Regression Audit from the 2026-08-20 audited baseline to the final candidate main.
+- Independent P0/P1 buckets and release-preparation work remain parallel by default under Fast Landing. Do not serialize unrelated buckets behind CI latency.
+- PR #538 is historical UAT/provenance evidence only and must not be treated as the current or final V21 release candidate. Preserve its history; generate the final release candidate from a new fresh-main RC freeze point.
+- The final release candidate must be validated as the actual packaged Windows product. Source/browser/runtime surrogates are supporting evidence, not a substitute for release-level packaged UAT.
+- Any packaged-UAT P0/P1 returns to Fast Landing causal closure. If candidate bytes change, stale final-RC evidence must not be reused.
+- Formal release/publish remains blocked until the Release Closure Ledger has zero open P0/P1, zero critical `NO_COVERAGE`, applicable exact-head gates are GREEN, independent review is P0=0/P1=0 with zero unresolved threads, packaged Windows RC UAT passes, provenance is bound to the exact RC, fresh-main anti-drift is clean, and the owner authorizes the final release boundary.
+
+The Release Closure Ledger is the global operational SSOT for final release readiness. Individual PR descriptions and chat/session summaries are evidence inputs, not substitutes for the ledger.
+
 ## Session re-entry / handoff
 
 At the start of a new chat/session, do not continue from remembered status alone. Recover the relevant branch/PR/authorization from GitHub, then fresh-verify:
