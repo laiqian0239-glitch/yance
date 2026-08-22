@@ -25,9 +25,16 @@ function harness(options = {}) {
   let controller;
   const activations = [];
   const runtimeValidations = [];
+  const backendWaits = [];
   controller = createMainWindowActivationController({
     getBackendReady: () => backendReady,
-    waitForBackendReady: async () => { backendReady = true; },
+    waitForBackendReady: async waitOptions => {
+      backendWaits.push({ ...waitOptions });
+      if (typeof options.waitForBackendReady === 'function') {
+        await options.waitForBackendReady(waitOptions);
+      }
+      backendReady = true;
+    },
     getWindow: () => window,
     createWindow: () => {
       window = fakeWindow(window ? window.id + 1 : 1);
@@ -48,9 +55,10 @@ function harness(options = {}) {
     destroyWindow: target => { target.destroy(); window = null; },
     validateRuntimeReady: async (target, request) => { runtimeValidations.push({ target, request }); return options.validateRuntimeReady ? options.validateRuntimeReady(target, request) : { ok: true }; },
     rendererReadyTimeoutMs: options.timeoutMs || 50,
+    backendReadyTimeoutMs: options.backendReadyTimeoutMs,
     log: () => {}
   });
-  return { controller, getWindow: () => window, activations, runtimeValidations };
+  return { controller, getWindow: () => window, activations, runtimeValidations, backendWaits };
 }
 
 function markReady(h) {
@@ -69,6 +77,24 @@ test('activation waits for backend and all renderer readiness phases', async () 
   assert.equal(h.getWindow().shown, 1);
   assert.equal(h.activations.length, 1);
   assert.equal(h.activations[0].reason, 'tray-click');
+});
+
+test('activation does not impose a second fixed deadline ahead of the backend lifecycle authority', async () => {
+  const h = harness({
+    backendReady: false,
+    waitForBackendReady: async waitOptions => {
+      assert.equal(
+        Object.prototype.hasOwnProperty.call(waitOptions, 'timeoutMs'),
+        false,
+        'activation must not start a second fixed backend deadline while the backend lifecycle authority is still inside its own startup budget'
+      );
+    }
+  });
+  markReady(h);
+  await h.controller.activate('post-install', { postInstall: true });
+  assert.equal(h.backendWaits.length, 1);
+  assert.equal(h.runtimeValidations.length, 1);
+  assert.equal(h.activations.length, 1);
 });
 
 test('rapid activation requests are coalesced without creating a second window', async () => {
