@@ -509,6 +509,15 @@ class AiGateway {
       receipt: () => ({ status: 'completed' })
     });
   }
+  async pullLocalModel({ endpoint = '', model = '', signal = null, onProgress } = {}) {
+    return this._runDurableProviderAdmin({
+      operationType: 'ai.provider-admin.local-pull',
+      scopeKey: `local-model:${clean(model)}`,
+      fingerprintParts: [endpoint, model],
+      work: () => this.ollamaClient.pullModel({ endpoint, model, signal, onProgress }),
+      receipt: () => ({ status: 'completed', modelId: clean(model) })
+    });
+  }
   async removeLocalModel(endpoint, model) {
     return this._runDurableProviderAdmin({
       operationType: 'ai.provider-admin.local-remove',

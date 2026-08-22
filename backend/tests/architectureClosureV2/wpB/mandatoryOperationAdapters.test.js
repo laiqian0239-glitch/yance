@@ -508,21 +508,52 @@ test('M2-FB-001 Facebook OAuth worker probes require one persisted operation and
   assert.match(source, /deadlineAt:\s*persisted\.deadlineAt/u, 'M2-FB-001:PERSISTED_DEADLINE_REQUIRED');
 });
 
-test('M2-FB-002 legacy Facebook relay binds every signed request to a persisted attempt and owns no poll retry loop', () => {
+test('M2-FB-002 Facebook relay binds every signed request to persisted WP-B headers and owns no poll retry loop', () => {
   const source = fs.readFileSync(path.join(servicesRoot, 'facebookRelayClient.js'), 'utf8');
   assert.match(source, /function\s+persistedOperationIdentity/u, 'M2-FB-002:PERSISTED_IDENTITY_REQUIRED');
-  assert.match(source, /function\s+appendPersistedOperationIdentity/u, 'M2-FB-002:SIGNED_QUERY_IDENTITY_REQUIRED');
+  assert.match(source, /const\s+PERSISTED_OPERATION_HEADER_KEYS\s*=\s*Object\.freeze/u, 'M2-FB-002:PERSISTED_HEADER_VOCABULARY_REQUIRED');
+  for (const header of [
+    'x-yance-wpb-execution-id',
+    'x-yance-wpb-attempt-id',
+    'x-yance-wpb-claim-id',
+    'x-yance-wpb-owner-id',
+    'x-yance-wpb-generation',
+    'x-yance-wpb-host-generation',
+    'x-yance-wpb-fencing-token'
+  ]) assert.match(source, new RegExp(`['"]${header}['"]`, 'u'), `M2-FB-002:${header}:SIGNED_HEADER_REQUIRED`);
+  assert.match(source, /function\s+persistedOperationHeaders\(persisted\)/u, 'M2-FB-002:PERSISTED_HEADER_PROJECTION_REQUIRED');
+  assert.match(source, /function\s+persistedOperationBinding\(headers\s*=\s*\{\}\)/u, 'M2-FB-002:CANONICAL_BINDING_REQUIRED');
   assert.match(source, /async\s+request\([^)]*options[\s\S]*?persistedOperationIdentity\(options/u, 'M2-FB-002:REQUEST_FAIL_CLOSED_REQUIRED');
-  assert.match(source, /appendPersistedOperationIdentity\([^,]+,\s*persisted/u, 'M2-FB-002:IDENTITY_MUST_ENTER_SIGNED_URL');
+  assert.match(source, /signedHeaders\(secret,\s*url,\s*method,\s*bodyText,\s*clean\(options\.idempotencyKey\),\s*persistedOperationHeaders\(persisted\)\)/u, 'M2-FB-002:PERSISTED_HEADERS_MUST_ENTER_SIGNATURE_BOUNDARY');
+  assert.match(source, /const\s+metadataBinding\s*=\s*persistedOperationBinding\(authenticatedMetadata\)/u, 'M2-FB-002:AUTHENTICATED_METADATA_BINDING_REQUIRED');
+  assert.match(source, /requestId\s*=\s*metadataBinding\s*\?\s*`\$\{crypto\.randomUUID\(\)\}\.\$\{sha256Base64Url\(metadataBinding\)\}`/u, 'M2-FB-002:SIGNED_REQUEST_ID_BINDING_REQUIRED');
+  assert.match(source, /canonicalRequest\(\{\s*deviceId,\s*timestamp,\s*requestId,\s*method,\s*path,\s*bodySha256,\s*idempotencyKey\s*\}\)/u, 'M2-FB-002:REQUEST_ID_MUST_ENTER_ED25519_CANONICAL_REQUEST');
+  assert.match(source, /'x-yance-request-id':\s*requestId[\s\S]*?\.\.\.authenticatedMetadata/u, 'M2-FB-002:SIGNED_HEADERS_MUST_CARRY_AUTHENTICATED_METADATA');
+  assert.doesNotMatch(source, /function\s+appendPersistedOperationIdentity|searchParams\.set\([^\n]*x-yance-wpb/u, 'M2-FB-002:PERSISTED_QUERY_IDENTITY_FORBIDDEN');
   assert.doesNotMatch(source, /row\.timer|row\.backoff|setTimeout\(loop/u, 'M2-FB-002:RELAY_RETRY_LOOP_FORBIDDEN');
 });
 
-test('M2-FB-003 Facebook Worker desktop physical routes require signed persisted-attempt query identity', () => {
+test('M2-FB-003 Facebook Worker desktop physical routes require signed persisted-attempt header identity', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', '..', '..', '..', 'services', 'facebook-worker', 'src', 'index.js'), 'utf8');
-  assert.match(source, /function\s+requirePersistedAttemptQuery/u, 'M2-FB-003:WORKER_ATTEMPT_QUERY_VALIDATOR_REQUIRED');
+  assert.match(source, /const\s+PERSISTED_ATTEMPT_HEADERS\s*=\s*Object\.freeze/u, 'M2-FB-003:ATTEMPT_HEADER_VOCABULARY_REQUIRED');
+  assert.match(source, /const\s+PERSISTED_FENCING_HEADERS\s*=\s*Object\.freeze/u, 'M2-FB-003:FENCING_HEADER_VOCABULARY_REQUIRED');
+  assert.match(source, /function\s+persistedAttemptBindingText\(result\)/u, 'M2-FB-003:CANONICAL_BINDING_REQUIRED');
+  assert.match(source, /async\s+function\s+requirePersistedAttemptHeaders\(request\)/u, 'M2-FB-003:WORKER_ATTEMPT_HEADER_VALIDATOR_REQUIRED');
+  for (const header of [
+    'x-yance-wpb-execution-id',
+    'x-yance-wpb-attempt-id',
+    'x-yance-wpb-claim-id',
+    'x-yance-wpb-owner-id',
+    'x-yance-wpb-generation',
+    'x-yance-wpb-host-generation',
+    'x-yance-wpb-fencing-token'
+  ]) assert.match(source, new RegExp(`['\"]${header}['\"]`, 'u'), `M2-FB-003:${header}:HEADER_REQUIRED`);
+  assert.match(source, /request\.headers\.get\('x-yance-request-id'\)/u, 'M2-FB-003:SIGNED_REQUEST_ID_REQUIRED');
+  assert.match(source, /await\s+sha256Base64Url\(persistedAttemptBindingText\(result\)\)/u, 'M2-FB-003:BINDING_HASH_REQUIRED');
+  assert.match(source, /requestId\.endsWith\(`\.\$\{binding\}`\)/u, 'M2-FB-003:SIGNED_REQUEST_ID_SUFFIX_VALIDATION_REQUIRED');
   assert.match(source, /function\s+isPhysicalDesktopRoute/u, 'M2-FB-003:PHYSICAL_ROUTE_CLASSIFIER_REQUIRED');
-  assert.match(source, /isPhysicalDesktopRoute\(path, request\.method\)\s*\?\s*requirePersistedAttemptQuery\(url\)/u, 'M2-FB-003:PHYSICAL_ROUTE_GUARD_REQUIRED');
-  assert.doesNotMatch(source, /path\.startsWith\('\/api\/desktop\/'\)\s*\?\s*requirePersistedAttemptQuery/u, 'M2-FB-003:READ_ONLY_DESKTOP_GUARD_FORBIDDEN');
+  assert.match(source, /isPhysicalDesktopRoute\(path,\s*request\.method\)\s*\?\s*await\s+requirePersistedAttemptHeaders\(request\)\s*:\s*null/u, 'M2-FB-003:PHYSICAL_ROUTE_GUARD_REQUIRED');
+  assert.doesNotMatch(source, /function\s+requirePersistedAttemptQuery|path\.startsWith\('\/api\/desktop\/'\)\s*\?\s*await?\s*requirePersistedAttemptHeaders/u, 'M2-FB-003:QUERY_OR_BROAD_READ_ONLY_GUARD_FORBIDDEN');
   assert.match(source, /authenticateDesktop/u, 'M2-FB-003:MEDIA_SIGNATURE_AUTH_REQUIRED');
   assert.match(source, /cacheEventMedia\([^)]*persistedAttempt/u, 'M2-FB-003:MEDIA_FETCH_ATTEMPT_REQUIRED');
 });

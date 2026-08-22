@@ -181,3 +181,45 @@ test('Facebook relay readiness remains permission/subscription scoped and state 
   assert.match(relay, /worker-state-listener-failed/u);
   assert.match(relay, /row\.workerStatus = 'unreachable'/u);
 });
+
+test('persisted WP-B attempt identity leaves Worker URLs and remains explicit signed request metadata', async t => {
+  patch(t, platformAuthConfig, 'facebook', () => ({ configured: false, workerBaseUrl: '', graphVersion: 'v25.0' }));
+  const identity = relayModule.generateDeviceIdentity();
+  const observed = {};
+  patch(t, global, 'fetch', async (url, options = {}) => {
+    observed.url = String(url);
+    observed.headers = options.headers || {};
+    return response(200, { ok: true, status: 'ready' });
+  });
+  const physicalAttemptContext = Object.freeze({
+    executionId: 'exec-facebook-red',
+    attemptId: 'attempt-facebook-red',
+    claimId: 'claim-facebook-red',
+    ownerId: 'owner-facebook-red',
+    generation: 3,
+    hostGeneration: 5,
+    fencingToken: 7,
+    state: 'RUNNING',
+    platform: 'facebook',
+    operationKind: 'HISTORY_SYNCHRONIZATION'
+  });
+  const client = new relayModule.FacebookRelayClient();
+  await client.request({
+    workerBaseUrl: 'https://worker.test',
+    deviceId: identity.deviceId,
+    devicePrivateKeyPkcs8: identity.privateKeyPkcs8
+  }, '/api/desktop/health', { physicalAttemptContext });
+  const target = new URL(observed.url);
+  for (const key of [
+    'wpb_execution_id', 'wpb_attempt_id', 'wpb_claim_id', 'wpb_owner_id',
+    'wpb_generation', 'wpb_host_generation', 'wpb_fencing_token'
+  ]) assert.equal(target.searchParams.has(key), false, `${key} must not appear in the Worker URL`);
+  assert.equal(observed.headers['x-yance-wpb-execution-id'], physicalAttemptContext.executionId);
+  assert.equal(observed.headers['x-yance-wpb-attempt-id'], physicalAttemptContext.attemptId);
+  assert.equal(observed.headers['x-yance-wpb-claim-id'], physicalAttemptContext.claimId);
+  assert.equal(observed.headers['x-yance-wpb-owner-id'], physicalAttemptContext.ownerId);
+  assert.equal(observed.headers['x-yance-wpb-generation'], String(physicalAttemptContext.generation));
+  assert.equal(observed.headers['x-yance-wpb-host-generation'], String(physicalAttemptContext.hostGeneration));
+  assert.equal(observed.headers['x-yance-wpb-fencing-token'], String(physicalAttemptContext.fencingToken));
+  assert.match(String(observed.headers['x-yance-signature'] || ''), /^[A-Za-z0-9_-]+$/u);
+});

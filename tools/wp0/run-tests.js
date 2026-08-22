@@ -8,6 +8,10 @@ const { spawnSync } = require('node:child_process');
 
 const REPO_ROOT = path.resolve(__dirname, '../..');
 const TEST_ROOT = path.join(REPO_ROOT, 'tests', 'wp0');
+const REQUIRED_EXTERNAL_TEST_PATHS = Object.freeze([
+  'tests/wp2/desktop-host-process-lifecycle.test.js',
+  'tests/wp4/evidence-platform-identity-and-windows-collector.test.js'
+]);
 
 function metricFromTap(stdout, label) {
   const matches = [...String(stdout || '').matchAll(new RegExp(`^# ${label} (\\d+)$`, 'gm'))];
@@ -41,10 +45,14 @@ function runIsolatedTest(file, rawRoot, timeout = 600000) {
 }
 
 function main() {
-  const files = fs.readdirSync(TEST_ROOT)
+  const wp0Files = fs.readdirSync(TEST_ROOT)
     .filter((name) => name.endsWith('.test.js'))
     .sort()
     .map((name) => path.join('tests', 'wp0', name));
+  const files = [
+    ...wp0Files,
+    ...REQUIRED_EXTERNAL_TEST_PATHS.map((repoPath) => path.join(...repoPath.split('/')))
+  ];
   const rawRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'wp0-isolated-tests-'));
   const started = Date.now();
   const totals = { tests: 0, passed: 0, failed: 0, cancelled: 0, skipped: 0, todo: 0 };
