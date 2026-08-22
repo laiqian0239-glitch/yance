@@ -1,0 +1,336 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T07:03:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-SYSTEM-SETTINGS-REACHABILITY-P1",
+  "proposalRevision": 3,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main Final Capability Completeness / Release Readiness delta audit originally began on main@29c032d0216bf551519245c1d0bfe67273205f24 and remains content-equivalent after the recorded forward-only recovery pair now ending at main@62f3935605dac9ab96f76f80cee88943dfae1a2c. The audit proves one same-root post-retirement Product reachability class. First, Yance already has authoritative local backup, verification, staged restore, encrypted portable .yancebackup export/import/verification/restore, retention and recovery services plus Electron file-dialog seams. A tray action still exposes quick backup, but the sole active Element Product has no data-protection/system-settings surface for backup verification, restore, portable import/export or restore-state visibility after #428 retired frontend/ as Product authority; those controls remain concentrated in retired frontend/r32-system-center.js. Second, Adaptive Local LLM / local auxiliary runtime Product reachability has the same defect: tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js still treats retired frontend/r32-system-center.js and frontend/js/r32-ai-workbench-runtime.js as the user-facing acceptance surface, while the current Element module has no adaptive-local planner/catalog/materialize/status consumer. Third, core Model Brain UI acceptance remains bound to the same retired surface: tests/wp0/v21-model-brain-ui.test.js reads frontend/index.html, frontend/js/r32-ai-workbench-runtime.js and frontend/r32-system-center.js to prove visible Model Brain/LiteLLM controls, eligibility, health and execution evidence. The current Element Product has no equivalent Model Brain admin/health surface. The LiteLLM physical routing and backend model authorities are real and must be preserved; this diagnostic does not authorize a second router or inference authority. Fourth, tools/wp2/command-path-inventory.js still discovers renderer call locations only by walking retired frontend/, so executable command-path evidence can report historical renderer reachability without proving the sole active Element Product. These are classified together as a P1 release-readiness post-retirement reachability batch, not missing backend engines. This revision remains diagnostic-only and authorizes one tests-only Fast Closure V2 path to capture all currently observable same-root boundaries before any production path is authorized. Cloud synchronization, public-release updater work, Learning authority expansion, system-DPI font automation, new channel expansion, formal SBOM/provenance distribution closure, Issue #1 real Windows UAT, release/publish, dependencies, workflows, database migrations and PR #538 are outside this diagnostic root.",
+  "base": {
+    "branch": "main",
+    "commit": "62f3935605dac9ab96f76f80cee88943dfae1a2c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "62f3935605dac9ab96f76f80cee88943dfae1a2c",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "mainRecoveryEvidence": {
+    "accidentalPlaceholderCommit": "e5ddb9ca6a722b0c85cbea9a2fb8757957ea206d",
+    "forwardRemovalCommit": "62f3935605dac9ab96f76f80cee88943dfae1a2c",
+    "preAccidentMain": "29c032d0216bf551519245c1d0bfe67273205f24",
+    "preAccidentTree": "8ecee7dd643fad46646bb8212fd318fe7464782e",
+    "recoveredTree": "8ecee7dd643fad46646bb8212fd318fe7464782e",
+    "historyRewriteUsed": false,
+    "classification": "FORWARD_ONLY_TREE_RESTORATION_WITH_ZERO_NET_REPOSITORY_CONTENT_CHANGE",
+    "reuseRule": "All later work binds fresh main 62f3935605dac9ab96f76f80cee88943dfae1a2c; no force-push/rebase/amend may erase the recorded pair."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-system-settings-reachability-p1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-system-settings-reachability-p1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9b49d160d1ade4b8f53c9f6ff4e47632859fd69dcc994fe72fcb5418d1b82dbf",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-system-settings-reachability-p1",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-system-settings-reachability-p1.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "63c03ef23bf154acafb9e38e3379905d6cb642f24294eacb81c879d5da662086",
+    "productionScopeAuthorized": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-system-settings-reachability-p1.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "63c03ef23bf154acafb9e38e3379905d6cb642f24294eacb81c879d5da662086",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The sole active Element Product has no user-reachable data-protection/system-settings surface for listing backups, verifying a backup, staging/cancelling restore, showing restore history, or creating/verifying/restoring encrypted portable backups even though the backend authorities already exist.",
+        "Portable backup file import/export Electron seams exist in preload/main but are not consumed by the active Element Product; retired frontend/r32-system-center.js remains the only substantial user-facing data-protection surface.",
+        "Adaptive Local LLM / local auxiliary model lifecycle is still accepted as user-facing through retired frontend/r32-system-center.js and frontend/js/r32-ai-workbench-runtime.js; current Element Product does not consume adaptive-local catalog/plan/materialize/status/remove or Ollama pull lifecycle despite the backend authorities existing.",
+        "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js explicitly reads retired frontend Product files to prove user-facing lifecycle controls, so the executable regression contract can stay GREEN while the sole active Product has no equivalent entry.",
+        "Core Model Brain UI acceptance remains bound to retired frontend/index.html, frontend/js/r32-ai-workbench-runtime.js and frontend/r32-system-center.js through tests/wp0/v21-model-brain-ui.test.js; current Element Product has no equivalent visible Model Brain/LiteLLM credential/eligibility/health/execution-evidence control surface.",
+        "tools/wp2/command-path-inventory.js discovers renderer locations only under retired frontend/, so formal command-path evidence does not prove active Element Product reachability and can be satisfied by historical renderer calls."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true,
+      "newImplementationContinuationRequiredAfterAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "backendAuthorityReplacementAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Trusted main is freshly read and equals base.commit before authorization merge.",
+      "Authorization proposal remains exactly one governance file.",
+      "Implementation branch starts exactly from the effective ordinary authorization merge.",
+      "Fresh trusted main still equals that exact authorization merge immediately before creating the immutable first tests-only implementation head.",
+      "The one-path diagnostic set/count/SHA-256 exactly matches this document and is recognized by base-owned delegated implementation policy.",
+      "Element ProductExperienceShell/YanceWorkspace remains the sole active Product renderer and frontend/ remains retired from Product authority.",
+      "Current backend/routes/system.js plus backupService/portableBackupService already provide real backup, verification and restore authority and must be preserved rather than reimplemented.",
+      "Electron preload/main already provide portable backup file-dialog custody while the active Element Product has no consumer for those seams.",
+      "Current backend/routes/models.js and adaptive-local planner/runtime services already provide real catalog/plan/materialize/status/remove and local execution authority and must be preserved rather than duplicated.",
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js still reads retired frontend/r32-system-center.js and frontend/js/r32-ai-workbench-runtime.js for its user-facing lifecycle acceptance while active Element sources contain no adaptive-local consumer.",
+      "tools/wp2/command-path-inventory.js currently walks frontend/ only for rendererLocations and therefore does not establish active Element reachability.",
+      "tests/wp0/v21-model-brain-ui.test.js currently proves visible Model Brain/LiteLLM controls by reading retired frontend/index.html, frontend/js/r32-ai-workbench-runtime.js and frontend/r32-system-center.js; current Element sources must be checked for real replacement reachability.",
+      "Tray quick backup, restart local service and open-data/open-logs entries are alternate reachable controls and must be classified as PRESERVE rather than duplicated.",
+      "No production path, dependency, workflow, routing policy, database migration, backend authority replacement or release/publish change is authorized by this revision.",
+      "PR #538 remains untouched."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "auditInventory": {
+    "productRendererAuthority": "Element / Matrix ProductExperienceShell",
+    "retiredLegacyFrontendClassification": "HISTORICAL_SOURCE_ONLY_NEGATIVE_PROOF",
+    "releaseMode": "LOCAL_PRIVATE_UNSIGNED / INTERNAL_TEST_ONLY",
+    "buckets": [
+      {
+        "id": "SYS-P1-A",
+        "name": "Active Product data-protection and portable-recovery reachability",
+        "classification": "CAUSAL_RED_CANDIDATE"
+      },
+      {
+        "id": "SYS-P1-B",
+        "name": "WP2 renderer reachability evidence follows sole active Element Product",
+        "classification": "CAUSAL_RED_CANDIDATE"
+      },
+      {
+        "id": "SYS-P1-C",
+        "name": "Adaptive Local LLM / local auxiliary lifecycle reachability follows sole active Element Product instead of retired AI Workbench/System Center",
+        "classification": "CAUSAL_RED_CANDIDATE"
+      },
+      {
+        "id": "SYS-P1-D",
+        "name": "Core Model Brain visible configuration/eligibility/health/execution-evidence reachability follows sole active Element Product",
+        "classification": "CAUSAL_RED_CANDIDATE"
+      },
+      {
+        "id": "SYS-P1-PRESERVE-1",
+        "name": "backupService / portableBackupService / recovery authority and integrity checks",
+        "classification": "PRESERVE_PENDING_EXECUTABLE_REGRESSION"
+      },
+      {
+        "id": "SYS-P1-PRESERVE-2",
+        "name": "tray quick backup, restart local service, open data/log directories and existing Electron file custody",
+        "classification": "PRESERVE_PENDING_EXECUTABLE_REGRESSION"
+      },
+      {
+        "id": "SYS-P1-PRESERVE-3",
+        "name": "adaptiveLocalRuntimePlanner, local runtime asset services, Ollama/llama.cpp/KTransformers/AirLLM execution authorities and formal LiteLLM separation",
+        "classification": "PRESERVE_PENDING_EXECUTABLE_REGRESSION"
+      },
+      {
+        "id": "SYS-P1-PRESERVE-4",
+        "name": "LiteLLM v1.95.0 Model Brain physical routing, strict eligibility, runtime health and execution-evidence backend authorities",
+        "classification": "PRESERVE_PENDING_EXECUTABLE_REGRESSION"
+      },
+      {
+        "id": "SYS-P1-OUT-1",
+        "name": "cloud synchronization, Learning authority expansion and system-DPI automatic font mode",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+      },
+      {
+        "id": "SYS-P1-OUT-2",
+        "name": "formal public distribution SBOM/provenance closure and new platform-channel expansion",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+      },
+      {
+        "id": "SYS-P1-OUT-3",
+        "name": "Issue #1 real Windows model-worker UAT and PR #538 candidate",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+      }
+    ]
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "Element YanceWorkspace/ProductExperienceShell active Product mount and current settings surfaces.",
+      "backend/routes/system.js backup, portable-backup and restore endpoints.",
+      "backend/services/backupService.js consistent snapshot, manifest, verification, staged restore, retention and restore-history authority.",
+      "backend/services/portableBackupService.js encrypted portable backup/export/import/verification/restore authority.",
+      "electron/main.js and electron/preload.js portable backup file-dialog custody and existing operational IPC seams.",
+      "tray quick-backup/restart/open-directory controls as preserved alternate reachability.",
+      "backend/routes/models.js adaptive-local catalog/plan/materialize/status/remove/execute and Ollama pull/cancel endpoints.",
+      "adaptiveLocalRuntimePlanner, localAiHardwareProfile, localAiModelCatalog, localAiRuntimeAssetService, llamaCppRuntimeAdapter, airllmRuntimeAdapter, isolatedModelExecutor/model authority and Ollama client as preserved execution/planning authorities.",
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js user-facing acceptance contract and any other executable consumer that treats retired frontend as Product reachability.",
+      "retired frontend/js/r32-ai-workbench-runtime.js and frontend/r32-system-center.js adaptive-local controls as negative proof only; do not reactivate them as Product authority.",
+      "retired frontend/index.html, frontend/js/r32-ai-workbench-runtime.js, frontend/js/r32-model-runtime-snapshot-authority.js, frontend/js/r32-openrouter-presentation-authority.js and frontend/r32-system-center.js Model Brain presentation as negative proof only.",
+      "backend Model Brain/LiteLLM runtime, credential/onboarding, eligibility, status and execution-evidence authorities as PRESERVE; no physical routing rewrite.",
+      "tests/wp0/v21-model-brain-ui.test.js and related current executable Model Brain UI acceptance contracts.",
+      "tools/wp2/command-path-inventory.js rendererLocations source graph and tests/wp2 executable validation consumers.",
+      "retired frontend/r32-system-center.js data-protection UI as negative proof only.",
+      "current release-source/stage-policy private local distribution mode when classifying updater/public-distribution scope.",
+      "negative proof that no cloud sync, second backup engine, second adaptive-local planner/router/inference engine, backend authority replacement, second Product renderer, workflow/dependency/database change, release/publish change or PR #538 mutation is introduced."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_CURRENT_ELEMENT_PRODUCT_AND_EXISTING_RECOVERY_AND_ADAPTIVE_LOCAL_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Product module",
+        "source": "@element-hq/element-web-module-api + current Yance ProductExperienceShell",
+        "license": "existing reviewed repository authority",
+        "adoptionMode": "reuse-existing-authority",
+        "fit": "FIT",
+        "reason": "The defect is missing active Product reachability after legacy surface retirement, not absence of a UI framework."
+      },
+      {
+        "name": "Existing recovery/data-protection authorities",
+        "source": "backend/services/backupService.js + portableBackupService.js + recoveryManager/dataProtectionAuthority + backend/routes/system.js",
+        "license": "repository-existing",
+        "adoptionMode": "reuse-existing-authority",
+        "fit": "FIT",
+        "reason": "Backup, verification and restore logic already exists with integrity and encryption boundaries; a second backup/recovery engine would be incorrect."
+      },
+      {
+        "name": "Existing adaptive local/runtime authorities",
+        "source": "backend/routes/models.js + adaptiveLocalRuntimePlanner/local runtime adapters + pinned llama.cpp/KTransformers/AirLLM/Ollama seams",
+        "license": "existing reviewed repository/upstream licenses",
+        "adoptionMode": "reuse-existing-authority",
+        "fit": "FIT",
+        "reason": "The planner, lifecycle and upstream execution authorities already exist; the missing root is active Element Product consumption, not another local AI framework."
+      },
+      {
+        "name": "Existing LiteLLM Model Brain authorities",
+        "source": "backend Model Brain runtime/status/onboarding/evidence seams + BerriAI/litellm v1.95.0",
+        "license": "MIT core plus repository-existing adapters",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Physical model selection/retry/fallback/complexity routing already belongs to LiteLLM; the reachability repair must project/control existing authority without recreating routing."
+      },
+      {
+        "name": "Existing command-path evidence infrastructure",
+        "source": "tools/wp2/command-path-inventory.js + tests/wp2",
+        "license": "repository-existing",
+        "adoptionMode": "repair-existing-authority",
+        "fit": "FIT",
+        "reason": "The correct root fix is to make current reachability evidence follow the sole active Element Product instead of introducing another audit framework."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not reactivate frontend/r32-system-center.js, frontend/js/r32-ai-workbench-runtime.js or any frontend/ surface as Product authority.",
+      "Do not create a second backup, restore, encryption, retention or migration authority.",
+      "Do not create a second adaptive-local planner, provider router, inference engine, quantizer, tensor/expert scheduler or silent local fallback.",
+      "Do not bypass authenticated backend recovery/model routes with renderer-local filesystem or execution logic.",
+      "Do not treat preload/API existence, tray quick-backup, or retired Workbench controls alone as proof that current Product lifecycle is user-reachable.",
+      "Do not treat retired Model Brain UI tests or legacy Workbench/System Center visibility as proof of active Element Product reachability.",
+      "Do not move LiteLLM physical routing/scoring into the Element renderer or add a second model gateway while repairing UI reachability.",
+      "Do not expand this diagnostic into cloud sync, public update distribution, Learning, font automation, channel expansion or supply-chain implementation."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focusedAfterDiagnostic": [
+      "node --test tests/wp0/v21-product-system-settings-reachability-p1.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2/WP-A when routed",
+      "WP-A post-merge when routed",
+      "Model Brain Windows when routed",
+      "Product Final when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
