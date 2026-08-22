@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T11:47:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELECTRON-LIFECYCLE-WP0-TEST-COVERAGE-PREREQUISITE",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The immutable Electron lifecycle diagnostic head 1b2ea484d77c479f571d1bce2f1752ed95cd4427 produced Stage run 32552176759 with conclusion success even though fresh main still contains both diagnostic target defects. Exact workflow inspection proves Stage PRODUCT_WP0 invokes npm run test:wp0, package.json delegates that command to tools/wp0/run-tests.js, and the runner enumerates only tests/wp0/*.test.js. Therefore the two authorized diagnostics in tests/wp2/desktop-host-process-lifecycle.test.js and tests/wp4/evidence-platform-identity-and-windows-collector.test.js were not executed. This prerequisite repairs only the existing WP0 required-test runner coverage so those exact two diagnostics execute through the existing PRODUCT_WP0 route. No workflow, routing policy, package script, product source, runtime source, dependency, release or publish change is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "30a6ca10e9a644907d9400d691b14910613e9436",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "30a6ca10e9a644907d9400d691b14910613e9436",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-electron-lifecycle-wp0-test-coverage-prerequisite-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-electron-lifecycle-wp0-test-coverage-prerequisite-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "fce888cf09a2b5fdbd5c3f6c6fc9e4c264a39752b45453a5277f7f60b4f672a1",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-electron-lifecycle-wp0-test-coverage-prerequisite",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/wp0-required-test-coverage.test.js",
+      "tools/wp0/run-tests.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "69271d509a9192fede978c4b7adf88c22444ba8e78d9c63ff19badcdb8720e98",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/wp0-required-test-coverage.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "bdc5d31191a09154743dfc4eb07985a63a387525fe9464c85d43fe3b2b550d01",
+      "productionCodeChanged": false,
+      "expectedFailure": "The new WP0 coverage contract must fail on the authorization merge because tools/wp0/run-tests.js currently enumerates only tests/wp0/*.test.js and does not include the two exact Electron lifecycle diagnostic paths."
+    },
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "coverageContract": {
+    "existingStageWorkflow": ".github/workflows/stage-6459-wp0-gates.yml",
+    "existingStageJob": "wp0-product",
+    "existingStageCommand": "npm run test:wp0",
+    "existingPackageScriptAuthority": "node tools/wp0/run-tests.js && npm run test:acv2:wp-a:a0",
+    "runnerPath": "tools/wp0/run-tests.js",
+    "exactAdditionalRequiredTests": [
+      "tests/wp2/desktop-host-process-lifecycle.test.js",
+      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js"
+    ],
+    "exactAdditionalRequiredTestCount": 2,
+    "broadWp2WildcardForbidden": true,
+    "broadWp4WildcardForbidden": true,
+    "existingWp0EnumerationMustRemain": true,
+    "isolatedChildProcessExecutionMustRemain": true,
+    "perFileTimeoutMustRemainBounded": true,
+    "continueOnErrorForbidden": true
+  },
+  "priorDiagnosticEvidence": {
+    "electronLifecyclePullRequest": 621,
+    "immutableTestsOnlyHead": "1b2ea484d77c479f571d1bce2f1752ed95cd4427",
+    "stageRun": 32552176759,
+    "stageConclusion": "success",
+    "classification": "NON_CAUSAL_GREEN_DUE_TO_WP0_REQUIRED_TEST_COVERAGE_GAP",
+    "mustNotBeClaimedAsFailureFirstRed": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The first prerequisite implementation commit adds only tests/wp0/wp0-required-test-coverage.test.js and fails because the current runner lacks both exact external diagnostic paths.",
+    "The root fix changes only tools/wp0/run-tests.js after the prerequisite RED and preserves the existing sorted tests/wp0 enumeration and isolated bounded spawnSync execution.",
+    "The runner adds only tests/wp2/desktop-host-process-lifecycle.test.js and tests/wp4/evidence-platform-identity-and-windows-collector.test.js as exact external required tests; no wp2/wp4 wildcard or directory-wide broadening is allowed.",
+    "Stage remains on the existing PRODUCT_WP0 route and workflow; package.json and wp0-routing-policy.json remain unchanged.",
+    "PR #621 remains frozen until this prerequisite ordinarily lands on main, then it must be fresh-main reconciled without changing its two diagnostic blobs before a new causal Stage RED is accepted.",
+    "PR #615 and Desktop/Windows UAT candidate PR #538 remain untouched."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_ISOLATED_TEST_RUNNER",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing tools/wp0/run-tests.js isolated runner",
+        "source": "tools/wp0/run-tests.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Stage already invokes this runner through npm run test:wp0. Adding two exact paths to its existing isolated per-file execution is smaller and safer than changing the workflow, routing policy or package script."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project licensing",
+        "adoptionMode": "existing-runtime-api",
+        "fit": "FIT",
+        "reason": "Both diagnostic files already use node:test and require no new framework or dependency."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a new Stage route or workflow.",
+      "Do not broaden all tests/wp2 or tests/wp4 into WP0.",
+      "Do not alter package.json test:wp0 authority.",
+      "Do not bypass the existing isolated child-process runner."
+    ]
+  },
+  "verification": {
+    "mandatory": [
+      "fresh prerequisite tests-only Stage RED on the exact first implementation head",
+      "focused WP0 coverage contract GREEN after root fix",
+      "Stage exact implementation head GREEN",
+      "Layered CI and ACV2 exact implementation head GREEN",
+      "independent review contract and zero unresolved P0/P1 findings",
+      "ordinary two-parent prerequisite implementation merge",
+      "fresh-main reconcile of PR #621 preserving its two exact diagnostic blobs",
+      "new PR #621 Stage run must execute both diagnostic files and produce genuine causal failure before any Electron lifecycle production scope amendment"
+    ],
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "candidateSelfAuthorization": true,
+    "newWp0Route": true,
+    "newWorkflow": true,
+    "routingPolicyChange": true,
+    "packageScriptChange": true,
+    "broadTestWildcard": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "candidatePreservation": {
+    "electronLifecyclePullRequest621MustRemainFrozenUntilPrerequisiteMerge": true,
+    "productPullRequest615MustRemainUntouched": true,
+    "windowsUatCandidatePullRequest538MustRemainUntouched": true
+  }
+}
