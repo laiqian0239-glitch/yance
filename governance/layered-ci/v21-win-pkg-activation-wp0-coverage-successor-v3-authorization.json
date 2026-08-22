@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WIN-PKG-ACTIVATION-WP0-COVERAGE-SUCCESSOR-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main successor for immutable failure-first topology poisoning on prerequisite PR #662. The predecessor produced a valid tests-only causal RED and verified the intended two-file coverage root content, but its first post-RED implementation commit omitted the mandatory exact RED-head/run/conclusion trailers. Trusted V3 failure-first topology binds those trailers to the first post-RED first-parent implementation commit, so a later descendant cannot repair the published ancestry. This successor preserves the identical two-path implementation scope and one-path diagnostic scope, changes only to a unique successor implementation branch, and restarts from fresh trusted main without reusing poisoned #662 ancestry.",
+  "base": {
+    "branch": "main",
+    "commit": "ee7bccc0b689df0bb9f839caaad75b13c39e6eb6",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "ee7bccc0b689df0bb9f839caaad75b13c39e6eb6",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-win-pkg-activation-delta-p0-wp0-coverage-v2-authorization.json",
+    "authorizationPullRequest": 661,
+    "authorizationMerge": "ee7bccc0b689df0bb9f839caaad75b13c39e6eb6",
+    "implementationBranch": "fix/v21-win-pkg-activation-delta-p0-wp0-coverage-v2",
+    "implementationPullRequest": 662,
+    "reason": "PR #662 first post-RED commit 98f04dbe85f1477e94c505fc8ed9be5477fddf52 omitted mandatory V3 failure-first RED evidence trailers; descendant repair is forbidden because the trusted evaluator validates the first post-RED first-parent commit itself."
+  },
+  "predecessorEvidence": {
+    "predecessorImplementationPullRequest": 662,
+    "predecessorMustRemainUnmerged": true,
+    "authorizationMerge": "ee7bccc0b689df0bb9f839caaad75b13c39e6eb6",
+    "validRedHead": "73748b70483e216761d4dd42b154465c54837bb0",
+    "validRedStageRun": 32593141452,
+    "validRedStageJob": 97079982856,
+    "validRedConclusion": "failure",
+    "validRedFailure": "WP0 required-test runner is missing exact diagnostic path: tests/desktop-fixes/main-window-activation-controller.test.js",
+    "validRedSummary": "609 tests / 608 pass / 1 fail; the sole failure was wp0-required-test-coverage.test and the two pre-existing external diagnostics still passed.",
+    "poisonedFirstPostRedHead": "98f04dbe85f1477e94c505fc8ed9be5477fddf52",
+    "poisonedStageRun": 32593329453,
+    "poisonedStageJob": 97080435019,
+    "poisoningReasonCode": "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID",
+    "poisoningRootCause": "FIRST_POST_RED_COMMIT_OMITTED_REQUIRED_RED_EVIDENCE_TRAILERS",
+    "rootContentVerified": true,
+    "rootContentVerification": "On 98f04dbe85f1477e94c505fc8ed9be5477fddf52 the WP0 runner actually executed and passed wp0-required-test-coverage.test, desktop-host-process-lifecycle.test, evidence-platform-identity-and-windows-collector.test, and main-window-activation-controller.test; the sole aggregate failure moved to implementation-branch-policy.test.",
+    "trustedMainAtFailure": "ee7bccc0b689df0bb9f839caaad75b13c39e6eb6",
+    "trustedMainDriftRuledOut": true,
+    "recoveryRule": "Freeze PR #662 ancestry. No amend, force-push, rebase, policy weakening or descendant workaround. Recreate equivalent tests-only RED and runner root fix on the clean successor lineage with exact RED evidence trailers on the first post-RED commit."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-win-pkg-activation-wp0-coverage-successor-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-win-pkg-activation-wp0-coverage-successor-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a2f7a4b2f6b026d2d9a0dd1fa9326186f60702711cc881178f8bb0d19326cd18",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-win-pkg-activation-wp0-coverage-successor-v3",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/wp0-required-test-coverage.test.js",
+      "tools/wp0/run-tests.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "69271d509a9192fede978c4b7adf88c22444ba8e78d9c63ff19badcdb8720e98",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/wp0-required-test-coverage.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "bdc5d31191a09154743dfc4eb07985a63a387525fe9464c85d43fe3b2b550d01",
+      "productionCodeChanged": false,
+      "expectedFailure": "The WP0 coverage contract must fail on the successor authorization merge because tools/wp0/run-tests.js still does not enumerate tests/desktop-fixes/main-window-activation-controller.test.js.",
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex successor RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing successor Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ]
+    },
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "coverageContract": {
+    "existingStageWorkflow": ".github/workflows/stage-6459-wp0-gates.yml",
+    "existingStageJob": "wp0-product",
+    "existingStageCommand": "npm run test:wp0",
+    "existingPackageScriptAuthority": "node tools/wp0/run-tests.js && npm run test:acv2:wp-a:a0",
+    "runnerPath": "tools/wp0/run-tests.js",
+    "coverageContractTestPath": "tests/wp0/wp0-required-test-coverage.test.js",
+    "preservedExistingExternalRequiredTests": [
+      "tests/wp2/desktop-host-process-lifecycle.test.js",
+      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js"
+    ],
+    "exactAdditionalRequiredTests": [
+      "tests/desktop-fixes/main-window-activation-controller.test.js"
+    ],
+    "exactAdditionalRequiredTestCount": 1,
+    "broadDesktopFixesWildcardForbidden": true,
+    "existingWp0EnumerationMustRemain": true,
+    "isolatedChildProcessExecutionMustRemain": true,
+    "perFileTimeoutMustRemainBounded": true,
+    "continueOnErrorForbidden": true
+  },
+  "mandatoryFailureFirstContracts": [
+    "The successor implementation branch starts exactly from the effective successor authorization merge and contains no #662 implementation ancestry.",
+    "The first successor implementation commit changes only tests/wp0/wp0-required-test-coverage.test.js and obtains a fresh causal Stage RED because the current runner lacks the exact activation diagnostic path.",
+    "The first post-RED implementation commit changes only tools/wp0/run-tests.js and must record the exact successor RED head, exact successor failing Stage run id, conclusion=failure, and Yance-Closure-Matrix-Unknown-Blockers: 0 trailers in that commit message.",
+    "The runner adds only tests/desktop-fixes/main-window-activation-controller.test.js as the new exact external required test and preserves both pre-existing exact external tests.",
+    "Stage remains on the existing PRODUCT_WP0 route and workflow; package.json and wp0-routing-policy.json remain unchanged.",
+    "PR #659 remains frozen until this successor prerequisite ordinarily lands on main, then fresh main is ordinary-forward reconciled into #659 without changing its diagnostic test blob.",
+    "The reconciled #659 Stage run must actually execute main-window-activation-controller.test.js and produce a genuine causal failure before any Delta-P0 production scope amendment.",
+    "PR #615 and historical Windows UAT PR #538 remain untouched."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_ISOLATED_TEST_RUNNER_AND_TRUSTED_FAILURE_FIRST_TOPOLOGY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing tools/wp0/run-tests.js isolated runner",
+        "source": "tools/wp0/run-tests.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Stage already invokes this runner through npm run test:wp0; the predecessor root-content head proved that adding the one exact path executes all three external diagnostics without workflow, route or package changes."
+      },
+      {
+        "name": "Existing delegated failure-first topology evaluator",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "same-repository",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The trusted evaluator already enforces immutable RED topology and exact post-RED evidence trailers. Recovery must comply with it rather than weaken or duplicate it."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project licensing",
+        "adoptionMode": "existing-runtime-api",
+        "fit": "FIT",
+        "reason": "The coverage and activation diagnostics already use node:test and require no new dependency."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not repair #662 with a descendant commit, amend, force-push or rebase.",
+      "Do not weaken implementationBranchPolicy or delegated-failure-first-topology contracts.",
+      "Do not add a new Stage route or workflow.",
+      "Do not broaden tests/desktop-fixes into WP0.",
+      "Do not alter package.json test:wp0 authority.",
+      "Do not bypass the existing isolated child-process runner."
+    ]
+  },
+  "verification": {
+    "mandatory": [
+      "fresh successor tests-only Stage RED on the exact first implementation head",
+      "first post-RED root-fix commit contains exact RED head/run/conclusion and closure-matrix trailers",
+      "focused WP0 coverage contract GREEN after root fix",
+      "Stage exact successor implementation head GREEN with the activation diagnostic actually executed and PASS",
+      "applicable Layered CI and ACV2 exact successor implementation head GREEN",
+      "independent review with zero unresolved P0/P1 findings",
+      "ordinary two-parent successor prerequisite implementation merge",
+      "fresh-main ordinary-forward reconcile of PR #659 preserving its exact diagnostic blob",
+      "new PR #659 Stage run must execute the activation diagnostic and produce genuine causal failure before any Delta-P0 production amendment"
+    ],
+    "ordinaryTwoParentImplementationMergeRequired": true,
+    "postMergeGreenRequired": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "candidateSelfAuthorization": true,
+    "newWp0Route": true,
+    "newWorkflow": true,
+    "routingPolicyChange": true,
+    "packageScriptChange": true,
+    "broadTestWildcard": true,
+    "testWeakening": true,
+    "policyWeakening": true,
+    "forcePush": true,
+    "rebaseOrAmendPublishedHistory": true,
+    "squashMerge": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "candidatePreservation": {
+    "predecessorImplementationPullRequest662MustRemainUnmerged": true,
+    "deltaPullRequest659MustRemainFrozenUntilSuccessorPrerequisiteMerge": true,
+    "deltaImmutableDiagnosticHeadMustRemain": "f8bf466d8dd0cbf02235b697d8fa478210ef8e6f",
+    "deltaDiagnosticBlobMustRemainUnchanged": true,
+    "productPullRequest615MustRemainUntouched": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  }
+}
