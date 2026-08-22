@@ -228,6 +228,7 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'integration/element-module/src/product-experience/PersonalAccessSurface.tsx',
     'integration/element-module/src/product-experience/ProductExperienceShell.css',
     'integration/element-module/src/product-experience/ProductExperienceShell.tsx',
+    'integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx',
     'integration/element-module/src/product-experience/experienceProjection.ts',
     'integration/element-module/src/product-experience/experienceTypes.ts',
     'package-lock.json',
@@ -289,6 +290,36 @@ test('WP3 routing prerequisite Product identities use exact L2 without broad-pre
 
   for (const file of [
     'integration/element-module/src/UnregisteredWorkspace.tsx',
+    'integration/element-module/src/product-experience/UnregisteredSurface.tsx'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, false, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.reasonCode, 'CI_UNKNOWN_PATH', file);
+    assert.deepEqual(result.unknownPaths, [file], file);
+  }
+
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
+});
+
+test('Product system settings routing prerequisite identity uses exact L2 without broad-prefix expansion', () => {
+  const targetPaths = [
+    'integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx'
+  ];
+
+  for (const file of targetPaths) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'EXACT', file);
+  }
+
+  for (const prefix of ['integration/', 'integration/element-module/']) {
+    assert.equal(risk.l2Prefixes.includes(prefix), false, prefix);
+  }
+
+  for (const file of [
+    'integration/element-module/src/product-experience/ProductSystemSettingsSurface.unapproved.tsx',
     'integration/element-module/src/product-experience/UnregisteredSurface.tsx'
   ]) {
     const result = classifyChangedFiles(risk, [file]);
