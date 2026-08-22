@@ -173,30 +173,40 @@
         "name": "Element Product module",
         "source": "@element-hq/element-web-module-api + current Yance ProductExperienceShell",
         "license": "existing reviewed repository authority",
-        "adoptionMode": "reuse-existing-authority",
-        "fit": "FIT"
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The sole production renderer already exists; the gap is reachability inside that adopted Element seam, so another UI framework or renderer would duplicate authority."
       },
       {
         "name": "Existing recovery and portable backup authorities",
         "source": "backend recovery services/routes + Electron file custody",
         "license": "repository-existing",
-        "adoptionMode": "reuse-existing-authority",
-        "fit": "FIT"
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Consistent backup, verification, staged restore, encrypted portable backup, retention and Electron file custody already exist; only active Product projection/control is missing."
       },
       {
         "name": "Existing local model and LiteLLM authorities",
         "source": "Adaptive Local runtime seams + Ollama/llama.cpp/KTransformers/AirLLM + LiteLLM v1.95.0",
         "license": "existing reviewed upstream/repository licenses",
-        "adoptionMode": "preserve-existing-authority",
-        "fit": "FIT"
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Mature upstream runtimes and LiteLLM already own execution/routing; this work must surface their existing lifecycle and truth without rebuilding a model gateway or inference engine."
       },
       {
         "name": "Existing WP0/WP2 executable evidence infrastructure",
         "source": "tests/wp0 + tools/wp2/command-path-inventory.js",
         "license": "repository-existing",
-        "adoptionMode": "repair-existing-authority",
-        "fit": "FIT"
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Repository-native executable evidence already exists; the proven gap is that its renderer source graph still points at retired frontend/, so the correct action is to repair that seam rather than add a second audit framework."
       }
+    ],
+    "retireOrAvoid": [
+      "Do not reactivate retired frontend/ as Product authority.",
+      "Do not add a second backup/recovery/encryption authority.",
+      "Do not add a second model router, model gateway, inference engine, materializer framework or silent local fallback.",
+      "Do not create a second Product renderer or parallel command-path evidence system."
     ],
     "thinYanceAdapterOnly": true
   },
