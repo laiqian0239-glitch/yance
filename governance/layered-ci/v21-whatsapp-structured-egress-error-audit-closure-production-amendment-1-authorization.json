@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T18:19:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WHATSAPP-STRUCTURED-EGRESS-ERROR-AUDIT-CLOSURE-PRODUCTION-AMENDMENT-1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh causal RED on frozen PR #647 proved the WhatsApp structured-egress P0 is owned by backend/services/whatsappAdapter.js. Exact head c6cd39ca8676964e6d533080da5ce81828e05eda passed implementation-branch policy and every unrelated WP0 contract, then failed only the new WhatsApp diagnostic: six disconnected physical egress methods expose message-only WHATSAPP_NOT_CONNECTED errors, empty sendText exposes a message-only MESSAGE_TEXT_EMPTY error, and a fake Baileys sendReaction rejection escapes as the identical raw provider Error. The Stage run had 601 tests / 592 pass / 9 fail, all nine failures inside the authorized diagnostic. This amendment adds exactly the owning adapter path, preserves the immutable RED head, and requires the repository forwardContinuation protocol rather than recreating or rewriting failure-first evidence.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-whatsapp-structured-egress-error-audit-closure-successor-v2-authorization.json",
+    "implementationBranch": "fix/v21-whatsapp-structured-egress-error-audit-closure-v2",
+    "reason": "Supersede the tests-only V2 implementation authority after frozen pure causal RED c6cd39ca8676964e6d533080da5ce81828e05eda proved backend/services/whatsappAdapter.js is the single required production root. The predecessor branch and PR #647 remain immutable evidence and are not rewritten."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "d9da59cb3502937e0db430c78d7b919e5f8031ed",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "d9da59cb3502937e0db430c78d7b919e5f8031ed",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-whatsapp-structured-egress-error-audit-closure-production-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-whatsapp-structured-egress-error-audit-closure-production-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2c5e6f01fc9c1a49d28076044e4c32ca5ac5f1ca4d0cee20815e09f34fea8d91",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-whatsapp-structured-egress-error-audit-closure-production-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "c6cd39ca8676964e6d533080da5ce81828e05eda"
+    },
+    "allowedChangedPaths": [
+      "backend/services/whatsappAdapter.js",
+      "tests/wp0/v21-whatsapp-structured-egress-error-audit-closure.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "858a8b89ae32add054560933999450c263a21fff02bb1009aeb31bdb8f471bd0",
+    "newlyAuthorizedPaths": [
+      "backend/services/whatsappAdapter.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "f477b2044af697552f51be50720a1b88731b931d45b2e5fc497eed2d1d7e44cb",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 647,
+    "branch": "fix/v21-whatsapp-structured-egress-error-audit-closure-v2",
+    "frozenHead": "c6cd39ca8676964e6d533080da5ce81828e05eda",
+    "effectiveAuthorizationMerge": "d9da59cb3502937e0db430c78d7b919e5f8031ed",
+    "stageRun": 32570813989,
+    "stageJob": 97025918363,
+    "stageConclusion": "failure",
+    "result": "601 tests / 592 pass / 9 fail; implementation-branch-policy.test PASS; all nine failures are the authorized WhatsApp structured-egress diagnostic; no SQLite, governance, or unrelated regression",
+    "provenNewScopePaths": [
+      "backend/services/whatsappAdapter.js"
+    ],
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "c6cd39ca8676964e6d533080da5ce81828e05eda",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true
+  },
+  "causalRedClassification": {
+    "rootCause": "WhatsApp physical egress methods use message-only local errors and allow provider transport rejection objects to escape raw at the adapter boundary, so durable callers cannot rely on stable error code/status or conservative remote-outcome/retry semantics.",
+    "requiredOwningLayerChange": "Change only backend/services/whatsappAdapter.js: normalize disconnected/local validation failures and provider-call rejection at the existing physical adapter boundary while preserving persisted WP-B attempt validation, generation fencing, late-result quarantine, abort handling, and platformAccepted local-persistence-repair durability.",
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementation": [
+      "backend/services/whatsappAdapter.js"
+    ],
+    "preserve": [
+      "Persisted WP-B physical egress attempt validation before provider calls",
+      "Socket/execution generation fencing, bindEgressAbort and late-result quarantine",
+      "platformAccepted local-persistence-repair durability and automatic retry blocking"
+    ],
+    "negativeProof": [
+      "No autonomous retry loop, scheduler, queue, second durable authority, dependency, workflow, routing, schema, package or lockfile mutation",
+      "No PR #615 or Desktop/Windows UAT candidate PR #538 mutation"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WHATSAPP_PHYSICAL_EGRESS_BOUNDARY",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WhatsApp adapter egress/fencing seam",
+        "source": "backend/services/whatsappAdapter.js",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "It already owns the physical provider boundary, generation fencing, abort cleanup and late-result semantics; structured error normalization belongs at this seam."
+      },
+      {
+        "name": "Existing WP-B outbound operation and platform adapter ports",
+        "source": "backend/services/durableOperations/outboundMessageSendOperation.js + backend/services/platformAdapterPorts.js",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "They already own persisted-attempt validation and durable lifecycle; fresh RED does not justify changing them."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a retry library, scheduler, queue or second durable egress authority.",
+      "Do not weaken persisted-attempt validation or generation fencing.",
+      "Do not classify uncertain provider rejection as proven remote failure or safe automatic retry.",
+      "Do not move adapter-local normalization into routes, registry or durable operation layers."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-whatsapp-structured-egress-error-audit-closure.test.js"
+    ],
+    "negativeProofs": [
+      "All six disconnected WhatsApp physical egress methods expose stable WHATSAPP_NOT_CONNECTED code/status.",
+      "Empty sendText exposes stable MESSAGE_TEXT_EMPTY code/status before provider call.",
+      "Provider rejection is normalized at the physical adapter boundary with WhatsApp-scoped code, stable status, outcomeUnknown=true, automaticRetryBlocked=true, platform/account/operation and bounded cause evidence.",
+      "Persisted WP-B validation, generation fencing, late-result quarantine and platformAccepted local-repair durability remain intact.",
+      "No retry loop/scheduler/dependency/workflow/routing/schema/package/lockfile/PR #615/PR #538 mutation."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-B M2 when routed",
+      "WP-B Validation when routed",
+      "relevant Windows runtime gates when routed",
+      "Product Final only when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "autonomousRetryAuthority": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "candidatePreservation": {
+    "productPullRequest615MustRemainUntouched": true,
+    "windowsUatCandidatePullRequest538MustRemainUntouched": true
+  }
+}
