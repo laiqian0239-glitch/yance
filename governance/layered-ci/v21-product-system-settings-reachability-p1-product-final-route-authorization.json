@@ -3,7 +3,7 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-SYSTEM-SETTINGS-P1-PRODUCT-FINAL-ROUTE",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "PR #615 exact reconciled head daafb6f13ce5f571a2d50a4ee372a7c82cd94a08 has GREEN WP0/Layered routing after #617, but Product Final run 32547173985 skips all three jobs because the base-owned workflow exact-branch allowlists omit only product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1. Authorize one dedicated failure-first static contract and one exact literal branch addition to the existing Product Final workflow. No wildcard/prefix, new workflow, Product/runtime/dependency/routing-policy change, gate weakening, fabricated UAT, or PR #538 mutation.",
   "base": {
@@ -137,6 +137,34 @@
     "candidateAuthorizedChangedFileSetSha256MustRemain": "08a5ea2bbd902797718380d53865ccb823ce517b336ff26831b3e93c3609ffef",
     "candidateScopeReductionOrExpansionAllowed": false,
     "windowsUatCandidatePullRequest538MustRemainUntouched": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_WORKFLOW_AND_STATIC_GOVERNANCE_CONTRACTS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance Product Final exact-branch selector seam",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "N/A (same-repository workflow seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing workflow already owns the Windows, Linux, and frozen Element Product Final validations; the only proven gap is one missing exact branch literal in its three existing selectors."
+      },
+      {
+        "name": "Node.js built-in test runner static workflow contract",
+        "source": "tests/layered-ci/*.test.js using node:test and node:assert/strict",
+        "license": "MIT-compatible repository test seam; Node.js core APIs",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing repository governance tests already statically verify workflow semantics, so one dedicated contract can prove the exact allowlist gap without adding a framework, service, or general-purpose infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second Product Final workflow, branch router, dispatch service, or generic branch-prefix admission mechanism; reuse the existing base-owned workflow.",
+      "Do not introduce wildcard or prefix branch matching, a new test framework, or any duplicate Yance validation infrastructure for this exact-route repair."
+    ]
   },
   "independentReview": {
     "required": true,
