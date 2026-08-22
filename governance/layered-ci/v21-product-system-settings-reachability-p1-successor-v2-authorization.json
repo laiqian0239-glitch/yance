@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-22T07:37:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-SYSTEM-SETTINGS-REACHABILITY-P1-SUCCESSOR-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh successor authorization for the post-retirement Product reachability P1 batch after PR #611 exposed immutable authorization-path introduction ambiguity. The predecessor Product diagnosis is still valid in substance, but its implementation authority is unusable because the predecessor authorization repository path was introduced once by accidental single-parent commit e5ddb9ca6a722b0c85cbea9a2fb8757957ea206d, deleted by forward-only recovery 62f3935605dac9ab96f76f80cee88943dfae1a2c, then reintroduced by ordinary authorization merge 2dbdc148bab0c3bf51adcd64e38077e48a567ca2. The trusted evaluator intentionally requires exactly one path introduction and therefore rejects that lineage. This successor uses a never-before-used authorization path and a new implementation branch, does not formally supersede the invalid predecessor because that target cannot form an effective delegated-governance record, and recreates the one-path failure-first diagnostic from fresh trusted main before any production scope is authorized. The causal Product root remains: active Element Product reachability for data protection/portable recovery, Adaptive Local/local auxiliary lifecycle, Model Brain/LiteLLM runtime truth, and executable WP0/WP2 acceptance that must stop treating retired frontend/ as Product authority. Existing backend/runtime authorities remain PRESERVE. No production path is authorized by this proposal.",
+  "base": {
+    "branch": "main",
+    "commit": "2dbdc148bab0c3bf51adcd64e38077e48a567ca2",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "2dbdc148bab0c3bf51adcd64e38077e48a567ca2",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "invalidPredecessor": {
+    "authorizationPath": "governance/layered-ci/v21-product-system-settings-reachability-p1-authorization.json",
+    "authorizationMerge": "2dbdc148bab0c3bf51adcd64e38077e48a567ca2",
+    "implementationBranch": "product/v21-product-system-settings-reachability-p1",
+    "implementationPullRequest": 611,
+    "immutableDiagnosticHead": "c2f9a42284f53f04bc6fefa459edbcbf3bdc1ec4",
+    "stageRedRun": 32541096182,
+    "stageRedConclusion": "failure",
+    "invalidity": "AUTHORIZATION_PATH_MULTIPLE_FIRST_PARENT_INTRODUCTIONS",
+    "firstHistoricalIntroduction": "e5ddb9ca6a722b0c85cbea9a2fb8757957ea206d",
+    "forwardDeletion": "62f3935605dac9ab96f76f80cee88943dfae1a2c",
+    "laterMergeIntroduction": "2dbdc148bab0c3bf51adcd64e38077e48a567ca2",
+    "formalSupersessionDeclared": false,
+    "reasonFormalSupersessionOmitted": "The generic evaluator requires the superseded target to resolve to an effective record. The predecessor cannot resolve because its authorization path has more than one first-parent introduction; adding a supersession edge would poison the successor graph as well.",
+    "reuseRule": "Do not continue, merge, rebase, amend or force-update PR #611. Recreate diagnostic intent only on this fresh successor lineage."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-system-settings-reachability-p1-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-system-settings-reachability-p1-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e893de8276bd5f426cc71bdc8ee9b33c7009d9582a880681aa230951aef074a0",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "product/v21-product-system-settings-reachability-p1-successor-v2",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-system-settings-reachability-p1.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "63c03ef23bf154acafb9e38e3379905d6cb642f24294eacb81c879d5da662086",
+    "productionScopeAuthorized": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-system-settings-reachability-p1.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "63c03ef23bf154acafb9e38e3379905d6cb642f24294eacb81c879d5da662086",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The sole active Element Product has no user-reachable data-protection surface for backup verification, staged/cancelled restore, restore history, and encrypted portable backup import/export/verify/restore even though existing backend and Electron authorities are real.",
+        "Adaptive Local LLM / local auxiliary model lifecycle is still accepted as user-facing through retired frontend/r32-system-center.js and frontend/js/r32-ai-workbench-runtime.js while the active Element Product has no equivalent adaptive-local consumer.",
+        "Core Model Brain UI acceptance still proves Model Brain/LiteLLM visibility, eligibility, health and execution evidence using retired frontend/index.html, AI Workbench and System Center rather than the active Element Product.",
+        "tools/wp2/command-path-inventory.js still derives rendererLocations from retired frontend/ only, so executable reachability evidence can remain GREEN without proving the sole active Element Product.",
+        "Existing WP0 Adaptive Local and Model Brain UI acceptance contracts still reference retired frontend Product surfaces and must be migrated rather than weakened."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true,
+      "newImplementationContinuationRequiredAfterAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "backendAuthorityReplacementAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Fresh trusted main equals base.commit before authorization merge; otherwise replace this proposal rather than reconciling it.",
+      "This successor authorization repository path has no prior first-parent introduction in trusted main history before its ordinary authorization merge.",
+      "Authorization proposal remains exactly one governance file and its path digest matches this document.",
+      "The successor implementation branch is unique and starts exactly from the effective ordinary authorization merge.",
+      "Fresh trusted main still equals that authorization merge immediately before creating the immutable first tests-only head.",
+      "The one-path diagnostic set/count/SHA-256 exactly matches this document and is recognized by base-owned delegated policy.",
+      "PR #611 remains frozen and its ancestry is not reused as implementation authority.",
+      "Element ProductExperienceShell/YanceWorkspace remains the sole active Product renderer and frontend/ remains retired from Product authority.",
+      "Existing recovery, portable backup, Adaptive Local, Ollama/llama.cpp/KTransformers/AirLLM and LiteLLM Model Brain backend authorities remain PRESERVE.",
+      "No production path, dependency, workflow, routing policy, database migration, release/publish or PR #538 mutation is authorized by this proposal."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "active Element Product mount and existing Product settings surfaces",
+      "backend recovery/backup/portable-backup routes and services",
+      "Electron portable backup file custody and preserved tray operational controls",
+      "Adaptive Local catalog/plan/materialize/status/remove and local runtime authorities",
+      "LiteLLM Model Brain runtime/status/onboarding/eligibility/execution-evidence authorities",
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js and tests/wp0/v21-model-brain-ui.test.js active Product acceptance",
+      "tools/wp2/command-path-inventory.js renderer source graph and consumers",
+      "retired frontend System Center/AI Workbench/legacy index as negative proof only",
+      "negative proof of no second backup engine, model router, inference engine, Product renderer, cloud sync, Learning expansion, system-DPI font work, formal public distribution change or PR #538 mutation"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_ACTIVE_ELEMENT_PRODUCT_AND_EXISTING_RECOVERY_AND_MODEL_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Product module",
+        "source": "@element-hq/element-web-module-api + current Yance ProductExperienceShell",
+        "license": "existing reviewed repository authority",
+        "adoptionMode": "reuse-existing-authority",
+        "fit": "FIT"
+      },
+      {
+        "name": "Existing recovery and portable backup authorities",
+        "source": "backend recovery services/routes + Electron file custody",
+        "license": "repository-existing",
+        "adoptionMode": "reuse-existing-authority",
+        "fit": "FIT"
+      },
+      {
+        "name": "Existing local model and LiteLLM authorities",
+        "source": "Adaptive Local runtime seams + Ollama/llama.cpp/KTransformers/AirLLM + LiteLLM v1.95.0",
+        "license": "existing reviewed upstream/repository licenses",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT"
+      },
+      {
+        "name": "Existing WP0/WP2 executable evidence infrastructure",
+        "source": "tests/wp0 + tools/wp2/command-path-inventory.js",
+        "license": "repository-existing",
+        "adoptionMode": "repair-existing-authority",
+        "fit": "FIT"
+      }
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focusedAfterDiagnostic": [
+      "node --test tests/wp0/v21-product-system-settings-reachability-p1.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2/WP-A when routed",
+      "WP-A post-merge when routed",
+      "Model Brain Windows when routed",
+      "Product Final when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
