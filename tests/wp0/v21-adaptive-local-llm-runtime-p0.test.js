@@ -90,15 +90,31 @@ test('models API exposes catalog, plan, materialize/status/remove and Ollama pul
   ]) assert.match(source, new RegExp(route.replaceAll('/', '\\/'), 'u'));
 });
 
-test('System Center and AI Workbench surface adaptive runtime state and user-controlled install/remove actions', () => {
-  const system = read('frontend/r32-system-center.js');
-  const css = read('frontend/r32-system-center.css');
-  const workbench = read('frontend/js/r32-ai-workbench-runtime.js');
-  for (const token of ['adaptive-local', '本地模型', '安装', '取消', '卸载', '删除']) assert.equal(system.includes(token) || workbench.includes(token), true, `missing user-facing token ${token}`);
-  assert.match(workbench, /adaptive-local\/catalog/u);
-  assert.match(workbench, /adaptive-local\/plan/u);
-  assert.match(workbench, /adaptive-local\/materialize/u);
-  assert.match(css, /adaptive-local/u);
+test('active Element Product surfaces adaptive runtime state and user-controlled install/remove/download actions', () => {
+  const surface = read('integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx');
+  const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+  const bridge = read('electron/r32StoreBridge.js');
+  const preload = read('electron/preload.js');
+
+  assert.match(shell, /ProductSystemSettingsSurface/u);
+  for (const token of ['自适应本地', '本地模型', '安装', '取消', '移除', '下载']) {
+    assert.match(surface, new RegExp(token, 'u'), `missing active Product token ${token}`);
+  }
+  for (const action of [
+    'plan-adaptive-local',
+    'materialize-adaptive-runtime',
+    'remove-adaptive-runtime',
+    'pull-ollama-model',
+    'cancel-ollama-pull'
+  ]) assert.match(surface + bridge, new RegExp(action, 'u'));
+  for (const channel of [
+    'store:product-system-model-runtime-state',
+    'store:product-system-model-runtime-mutation'
+  ]) assert.match(bridge + preload, new RegExp(channel, 'u'));
+  assert.match(bridge, /\/api\/r32\/models\/adaptive-local\/catalog/u);
+  assert.match(bridge, /\/api\/r32\/models\/adaptive-local\/plan/u);
+  assert.match(bridge, /\/api\/r32\/models\/adaptive-local\/materialize/u);
+  assert.match(bridge, /\/api\/r32\/models\/adaptive-local\/remove/u);
 });
 
 test('formal quick/deep/director Model Brain authority stays LiteLLM and local runtime cannot become a silent formal fallback', () => {

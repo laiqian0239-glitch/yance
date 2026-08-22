@@ -6,6 +6,7 @@ import { PeopleSurface, type PeopleHomeView } from "./PeopleSurface";
 import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
 import { RelationshipWorld } from "./RelationshipWorld";
+import { ProductSystemSettingsSurface } from "./ProductSystemSettingsSurface";
 import {
   loadProductAppearance,
   loadRelationshipProjections,
@@ -352,6 +353,9 @@ export function ProductExperienceShell({
         </div>
         <p className="yance-appearance-status" role="status" aria-live="polite">{appearanceStatus}</p>
         {preferences.reducedMotion ? <p className="yance-reduced-motion-note">已启用减少动效；状态变化仍会清晰显示，但不会进行空间移动。</p> : null}
+
+        <ProductSystemSettingsSurface />
+
         <div className="yance-learning-settings-actions">
           {learningAdminVisible ? (
             <button type="button" aria-expanded="true" onClick={() => setLearningAdminVisible(false)}>收起学习控制</button>
