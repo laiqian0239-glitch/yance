@@ -1074,22 +1074,62 @@ async function stopPresenceAvatarRuntime() {
   };
 }
 
+function stopRuntimeWithDeadline(name, operation, timeoutMs) {
+  const boundedMs = Math.min(30000, Math.max(250, Number(timeoutMs || 15000)));
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (error, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve(value);
+    };
+    const timer = setTimeout(() => {
+      const error = new Error(`${name} shutdown exceeded its independent deadline`);
+      error.reasonCode = `DESKTOP_${String(name || 'RUNTIME').toUpperCase().replace(/[^A-Z0-9]+/g, '_')}_STOP_TIMEOUT`;
+      error.timeoutMs = boundedMs;
+      finish(error);
+    }, boundedMs);
+    Promise.resolve()
+      .then(operation)
+      .then(value => finish(null, value), error => finish(error));
+  });
+}
+
 async function stopApplicationOwnedRuntimes(options = {}) {
-  let presenceStop = null;
-  let presenceError = null;
-  let lettaStop = null;
-  let lettaError = null;
-  let parlantStop = null;
-  let parlantError = null;
-  let graphitiStop = null;
-  let graphitiError = null;
-  let backendStop = null;
-  let backendError = null;
-  try { presenceStop = await stopPresenceAvatarRuntime(); } catch (error) { presenceError = error; }
-  try { lettaStop = await stopLettaAgentRuntime(); } catch (error) { lettaError = error; }
-  try { parlantStop = await stopParlantRelationshipRuntime(); } catch (error) { parlantError = error; }
-  try { graphitiStop = await stopGraphitiRelationshipRuntime(); } catch (error) { graphitiError = error; }
-  try { backendStop = await stopBackend({ forShutdown: true, reason: String(options.reason || 'application-shutdown') }); } catch (error) { backendError = error; }
+  const reason = String(options.reason || 'application-shutdown');
+  const runtimeStopTimeoutMs = Math.min(30000, Math.max(250, Number(options.runtimeStopTimeoutMs || 15000)));
+  const backendStopTimeoutMs = Math.min(30000, Math.max(250, Number(options.backendStopTimeoutMs || runtimeStopTimeoutMs)));
+
+  const operations = [
+    ['presence', stopRuntimeWithDeadline('presence-avatar', () => stopPresenceAvatarRuntime(), runtimeStopTimeoutMs)],
+    ['letta', stopRuntimeWithDeadline('letta', () => stopLettaAgentRuntime(), runtimeStopTimeoutMs)],
+    ['parlant', stopRuntimeWithDeadline('parlant', () => stopParlantRelationshipRuntime(), runtimeStopTimeoutMs)],
+    ['graphiti', stopRuntimeWithDeadline('graphiti', () => stopGraphitiRelationshipRuntime(), runtimeStopTimeoutMs)],
+    ['backend', stopRuntimeWithDeadline('backend', () => stopBackend({ forShutdown: true, reason }), backendStopTimeoutMs)]
+  ];
+  const settled = await Promise.allSettled(operations.map(([, operation]) => operation));
+  const resultByName = new Map(operations.map(([name], index) => [name, settled[index]]));
+
+  const valueFor = name => resultByName.get(name)?.status === 'fulfilled'
+    ? resultByName.get(name).value
+    : null;
+  const errorFor = name => resultByName.get(name)?.status === 'rejected'
+    ? resultByName.get(name).reason
+    : null;
+
+  const presenceStop = valueFor('presence');
+  const presenceError = errorFor('presence');
+  const lettaStop = valueFor('letta');
+  const lettaError = errorFor('letta');
+  const parlantStop = valueFor('parlant');
+  const parlantError = errorFor('parlant');
+  const graphitiStop = valueFor('graphiti');
+  const graphitiError = errorFor('graphiti');
+  const backendStop = valueFor('backend');
+  const backendError = errorFor('backend');
+
   if (presenceError || lettaError || parlantError || graphitiError || backendError) {
     const error = new Error('Application-owned runtime shutdown was not fully confirmed');
     error.reasonCode = presenceError?.reasonCode || lettaError?.reasonCode || parlantError?.reasonCode || graphitiError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
