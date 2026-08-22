@@ -193,6 +193,50 @@ export async function acknowledgeEvents(request, env, config, bodyBytes, body) {
   return { acked, failed, ok: failed.length === 0 };
 }
 
+export async function renewEvents(request, env, config, bodyBytes, body) {
+  const auth = await authenticateDesktop(request, env, config, bodyBytes);
+  const renewals = Array.isArray(body?.renewals) ? body.renewals.slice(0, 100) : [];
+  invariant(renewals.length, 'FACEBOOK_RENEW_EMPTY', '续租列表不能为空', 400);
+  const renewed = []; const failed = [];
+  for (const item of renewals) {
+    const deliveryId = clean(item?.delivery_id);
+    const leaseToken = clean(item?.lease_token);
+    const leaseSeconds = boundedInteger(item?.lease_seconds, 120, 30, 600);
+    if (!deliveryId || !leaseToken) { failed.push({ delivery_id: deliveryId, code: 'FACEBOOK_RENEW_INVALID' }); continue; }
+
+    const now = utcNow();
+    const current = await first(env.DB, `SELECT status,lease_token,lease_expires_at FROM facebook_event_deliveries WHERE id=? AND device_id=?`, [deliveryId, auth.deviceId]);
+    if (!current || clean(current.status) !== 'leased' || clean(current.lease_token) !== leaseToken) {
+      failed.push({ delivery_id: deliveryId, code: 'FACEBOOK_RENEW_LEASE_MISMATCH' });
+      continue;
+    }
+    const currentExpiry = Date.parse(clean(current.lease_expires_at));
+    if (!Number.isFinite(currentExpiry) || currentExpiry <= Date.now()) {
+      failed.push({ delivery_id: deliveryId, code: 'FACEBOOK_RENEW_LEASE_EXPIRED' });
+      continue;
+    }
+
+    const leaseExpiresAt = addSeconds(now, leaseSeconds);
+    const result = await run(env.DB, `UPDATE facebook_event_deliveries SET lease_expires_at=?,updated_at=? WHERE id=? AND device_id=? AND status='leased' AND lease_token=? AND lease_expires_at>?`, [
+      leaseExpiresAt, now, deliveryId, auth.deviceId, leaseToken, now
+    ]);
+    if (changes(result) !== 1) {
+      const latest = await first(env.DB, `SELECT status,lease_token,lease_expires_at FROM facebook_event_deliveries WHERE id=? AND device_id=?`, [deliveryId, auth.deviceId]);
+      const latestExpiry = Date.parse(clean(latest?.lease_expires_at));
+      const code = latest
+        && clean(latest.status) === 'leased'
+        && clean(latest.lease_token) === leaseToken
+        && (!Number.isFinite(latestExpiry) || latestExpiry <= Date.now())
+        ? 'FACEBOOK_RENEW_LEASE_EXPIRED'
+        : 'FACEBOOK_RENEW_LEASE_MISMATCH';
+      failed.push({ delivery_id: deliveryId, code });
+      continue;
+    }
+    renewed.push(deliveryId);
+  }
+  return { renewed, failed, ok: failed.length === 0 };
+}
+
 function normalizeSend(body) {
   const kind = clean(body?.kind).toLowerCase();
   invariant(['text','media','typing_on','typing_off','mark_seen'].includes(kind), 'FACEBOOK_SEND_OPERATION_UNSUPPORTED', '不支持的 Facebook 发送操作', 400);

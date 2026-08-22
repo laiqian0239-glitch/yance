@@ -36,20 +36,32 @@ function persistedOperationIdentity(options = {}) {
     operationKind: clean(source.operationKind), deadlineAt: clean(source.deadlineAt), accountId: clean(source.accountId || source.accountReference)
   });
 }
-function appendPersistedOperationIdentity(value, persisted) {
-  const url = new URL(value);
-  const fields = {
-    wpb_execution_id: persisted.executionId,
-    wpb_attempt_id: persisted.attemptId,
-    wpb_claim_id: persisted.claimId,
-    wpb_owner_id: persisted.ownerId,
-    wpb_generation: String(persisted.generation),
-    wpb_host_generation: String(persisted.hostGeneration),
-    wpb_fencing_token: String(persisted.fencingToken)
-  };
-  if (persisted.operationKind) fields.wpb_operation_kind = persisted.operationKind;
-  for (const [key, value] of Object.entries(fields)) url.searchParams.set(key, value);
-  return url.toString();
+const PERSISTED_OPERATION_HEADER_KEYS = Object.freeze([
+  'x-yance-wpb-execution-id',
+  'x-yance-wpb-attempt-id',
+  'x-yance-wpb-claim-id',
+  'x-yance-wpb-owner-id',
+  'x-yance-wpb-generation',
+  'x-yance-wpb-host-generation',
+  'x-yance-wpb-fencing-token',
+  'x-yance-wpb-operation-kind'
+]);
+function persistedOperationHeaders(persisted) {
+  return Object.freeze({
+    'x-yance-wpb-execution-id': persisted.executionId,
+    'x-yance-wpb-attempt-id': persisted.attemptId,
+    'x-yance-wpb-claim-id': persisted.claimId,
+    'x-yance-wpb-owner-id': persisted.ownerId,
+    'x-yance-wpb-generation': String(persisted.generation),
+    'x-yance-wpb-host-generation': String(persisted.hostGeneration),
+    'x-yance-wpb-fencing-token': String(persisted.fencingToken),
+    'x-yance-wpb-operation-kind': persisted.operationKind
+  });
+}
+function persistedOperationBinding(headers = {}) {
+  const required = PERSISTED_OPERATION_HEADER_KEYS.slice(0, 7);
+  if (!required.every(key => clean(headers[key]))) return '';
+  return PERSISTED_OPERATION_HEADER_KEYS.map(key => `${key}:${clean(headers[key])}`).join('\n');
 }
 async function readRawBodyWithDeadline(response, options = {}) {
   try {
@@ -138,12 +150,13 @@ function relayManagementUrl(value, pageId) {
 function canonicalRequest({ deviceId, timestamp, requestId, method, path, bodySha256, idempotencyKey = '' }) {
   return ['YANCE-FACEBOOK-DESKTOP-V1', clean(deviceId), clean(timestamp), clean(requestId), clean(method).toUpperCase(), clean(path), clean(bodySha256), clean(idempotencyKey)].join('\n');
 }
-function signedHeaders(secret, url, method, bodyText = '', idempotencyKey = '') {
+function signedHeaders(secret, url, method, bodyText = '', idempotencyKey = '', authenticatedMetadata = {}) {
   const deviceId = clean(secret.deviceId);
   const privateBytes = Buffer.from(clean(secret.devicePrivateKeyPkcs8), 'base64url');
   if (!deviceId || !privateBytes.length) throw Object.assign(new Error('Facebook 设备身份未就绪，请重新授权'), { code: 'FACEBOOK_DEVICE_IDENTITY_MISSING', status: 409 });
   const timestamp = new Date().toISOString();
-  const requestId = crypto.randomUUID();
+  const metadataBinding = persistedOperationBinding(authenticatedMetadata);
+  const requestId = metadataBinding ? `${crypto.randomUUID()}.${sha256Base64Url(metadataBinding)}` : crypto.randomUUID();
   const bodySha256 = sha256Base64Url(Buffer.from(bodyText));
   const parsed = new URL(url);
   const path = `${parsed.pathname}${parsed.search}`;
@@ -156,7 +169,8 @@ function signedHeaders(secret, url, method, bodyText = '', idempotencyKey = '') 
     'x-yance-request-id': requestId,
     'x-yance-body-sha256': bodySha256,
     'x-yance-signature': signature,
-    ...(idempotencyKey ? { 'x-yance-idempotency-key': idempotencyKey } : {})
+    ...(idempotencyKey ? { 'x-yance-idempotency-key': idempotencyKey } : {}),
+    ...authenticatedMetadata
   };
 }
 
@@ -180,17 +194,16 @@ class FacebookRelayClient {
   async request(secret, endpoint, options = {}, timeoutMs = 30000) {
     const persisted = persistedOperationIdentity(options);
     const base = assertReleaseWorkerBinding(secret.workerBaseUrl);
-    const unsignedUrl = new URL(endpoint, `${base}/`).toString();
-    const url = appendPersistedOperationIdentity(unsignedUrl, persisted);
+    const url = new URL(endpoint, `${base}/`).toString();
     const method = clean(options.method || 'GET').toUpperCase();
     const bodyText = options.body == null ? '' : typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
-    const signatureHeaders = signedHeaders(secret, url, method, bodyText, clean(options.idempotencyKey));
+    const signatureHeaders = signedHeaders(secret, url, method, bodyText, clean(options.idempotencyKey), persistedOperationHeaders(persisted));
     const localRequestId = clean(signatureHeaders['x-yance-request-id']);
     const headers = {
       accept: options.accept || 'application/json',
-      ...signatureHeaders,
       ...(bodyText ? { 'content-type': 'application/json' } : {}),
       ...(options.headers || {}),
+      ...signatureHeaders,
       'user-agent': 'Yance-FacebookWorkerClient/1'
     };
     return executeWithDeadline(async ({ signal }) => {
@@ -233,6 +246,69 @@ class FacebookRelayClient {
     return { buffer, mimeType: clean(response.headers?.get?.('content-type')), requestId: clean(response.yanceRequestId || response.headers?.get?.('x-yance-request-id')) };
   }
 
+  async _processEventWithLeaseRenewal(secret, event, onWebhook, options, isCurrent, signal) {
+    const deliveryId = clean(event?.delivery_id);
+    const leaseToken = clean(event?.lease_token);
+    let leaseExpiresAt = Date.parse(clean(event?.lease_expires_at));
+    if (!deliveryId || !leaseToken || !Number.isFinite(leaseExpiresAt)) {
+      await onWebhook(event?.payload || {});
+      return;
+    }
+
+    let done = false;
+    let timer = null;
+    let wake = null;
+    let renewalError = null;
+    const stop = () => {
+      done = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (wake) { const resolve = wake; wake = null; resolve(); }
+    };
+    const abort = () => stop();
+    if (signal?.aborted) stop();
+    else signal?.addEventListener?.('abort', abort, { once: true });
+
+    const heartbeat = (async () => {
+      while (!done && isCurrent()) {
+        const remainingMs = leaseExpiresAt - Date.now();
+        const delayMs = Math.max(1_000, Math.min(60_000, remainingMs - 60_000));
+        await new Promise(resolve => {
+          wake = resolve;
+          timer = setTimeout(() => { timer = null; wake = null; resolve(); }, delayMs);
+        });
+        if (done || !isCurrent()) break;
+        const renewal = await this.request(secret, '/api/desktop/events/renew', {
+          ...options,
+          method: 'POST',
+          body: { renewals: [{ delivery_id: deliveryId, lease_token: leaseToken, lease_seconds: 240 }] },
+          signal: options.signal || signal
+        }, 30000);
+        const renewed = Array.isArray(renewal.renewed) && renewal.renewed.includes(deliveryId);
+        if (!renewed) {
+          const failure = Array.isArray(renewal.failed)
+            ? renewal.failed.find(item => clean(item?.delivery_id) === deliveryId)
+            : null;
+          throw Object.assign(new Error('Facebook Worker event lease renewal rejected'), {
+            code: clean(failure?.code) || 'FACEBOOK_RENEW_FAILED', status: 409,
+            details: { deliveryId }
+          });
+        }
+        leaseExpiresAt = Date.now() + 240_000;
+      }
+    })().catch(error => { renewalError = error; });
+
+    let processingError = null;
+    try { await onWebhook(event.payload || {}); }
+    catch (error) { processingError = error; }
+    finally {
+      stop();
+      signal?.removeEventListener?.('abort', abort);
+    }
+    await heartbeat;
+    if (renewalError) throw renewalError;
+    if (processingError) throw processingError;
+  }
+
   async syncOnce(account, secret, onWebhook, options = {}) {
     const row = this.sessions.get(account.id);
     const fence = row?.sessionFence || null;
@@ -249,7 +325,7 @@ class FacebookRelayClient {
     for (const event of Array.isArray(result.events) ? result.events : []) {
       if (!isCurrent()) return staleResult();
       try {
-        await onWebhook(event.payload || {});
+        await this._processEventWithLeaseRenewal(secret, event, onWebhook, options, isCurrent, options.signal || signal);
         if (!isCurrent()) return staleResult();
         acknowledgements.push({ delivery_id: event.delivery_id, lease_token: event.lease_token });
       } catch (error) {
