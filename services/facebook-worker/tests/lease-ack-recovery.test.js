@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { workerConfig } from '../src/config.js';
 import { acknowledgeEvents, pullEvents } from '../src/desktopApi.js';
 import { deviceKeys, seedAccountDevice, signedRequest, testEnv } from './testHarness.js';
@@ -107,4 +108,36 @@ test('Webhook delivery order follows event timestamp even when D1 insertion orde
   const request = await signedRequest('https://worker.test/api/desktop/events?limit=10', { deviceId: 'device-100', privateKey: keys.privateKey });
   const result = await pullEvents(request.request, env, config, request.bodyBytes);
   assert.deepEqual(result.events.map(row => row.event_id), ['later-inserted-older', 'late-inserted-newer']);
+});
+
+test('leased deliveries expose a bounded matching-device renewal authority and route', async () => {
+  const api = await import('../src/desktopApi.js');
+  const indexSource = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8');
+  assert.equal(typeof api.renewEvents, 'function', 'desktopApi must expose the lease-renew mutation');
+  assert.match(indexSource, /\/api\/desktop\/events\/renew/u);
+
+  const { env, keys, config } = await setup();
+  const pullRequest = await signedRequest('https://worker.test/api/desktop/events?limit=1&lease_seconds=60', { deviceId: 'device-100', privateKey: keys.privateKey });
+  const event = (await pullEvents(pullRequest.request, env, config, pullRequest.bodyBytes)).events[0];
+  const before = env.DB.database.prepare('SELECT lease_token,lease_expires_at FROM facebook_event_deliveries WHERE id=?').get(event.delivery_id);
+  const body = { renewals: [{ delivery_id: event.delivery_id, lease_token: event.lease_token, lease_seconds: 240 }] };
+  const renewRequest = await signedRequest('https://worker.test/api/desktop/events/renew', { method: 'POST', body, deviceId: 'device-100', privateKey: keys.privateKey });
+  const renewed = await api.renewEvents(renewRequest.request, env, config, renewRequest.bodyBytes, body);
+  assert.deepEqual(renewed.renewed, [event.delivery_id]);
+  const after = env.DB.database.prepare('SELECT lease_token,lease_expires_at,status FROM facebook_event_deliveries WHERE id=?').get(event.delivery_id);
+  assert.equal(after.status, 'leased');
+  assert.equal(after.lease_token, before.lease_token);
+  assert.ok(Date.parse(after.lease_expires_at) > Date.parse(before.lease_expires_at));
+
+  const badBody = { renewals: [{ delivery_id: event.delivery_id, lease_token: 'wrong', lease_seconds: 240 }] };
+  const badRequest = await signedRequest('https://worker.test/api/desktop/events/renew', { method: 'POST', body: badBody, deviceId: 'device-100', privateKey: keys.privateKey });
+  const rejected = await api.renewEvents(badRequest.request, env, config, badRequest.bodyBytes, badBody);
+  assert.equal(rejected.renewed.length, 0);
+  assert.equal(rejected.failed[0].code, 'FACEBOOK_RENEW_LEASE_MISMATCH');
+
+  env.DB.database.prepare(`UPDATE facebook_event_deliveries SET lease_expires_at='2000-01-01T00:00:00.000Z' WHERE id=?`).run(event.delivery_id);
+  const expiredRequest = await signedRequest('https://worker.test/api/desktop/events/renew', { method: 'POST', body, deviceId: 'device-100', privateKey: keys.privateKey });
+  const expired = await api.renewEvents(expiredRequest.request, env, config, expiredRequest.bodyBytes, body);
+  assert.equal(expired.renewed.length, 0);
+  assert.equal(expired.failed[0].code, 'FACEBOOK_RENEW_LEASE_EXPIRED');
 });
