@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T00:27:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-CLOSURE-DOCUMENTS-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Land the V21 Release Closure Program and Release Closure Ledger as exact-path operational release documents after the root AGENTS.md release protocol was independently merged by PR #655. This authorization is intentionally separate from root protocol transport and grants no production, release, publish, dependency, workflow, or arbitrary documentation authority.",
+  "base": {
+    "branch": "main",
+    "commit": "67c68279a4c10416bb22a3ee267a82cdf8a5b5ad"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-documents-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-closure-documents-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "0ec394e6ca238107f59df5d26c0f14327fe97506e9b0f05cd2a8656cefe0e856",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "docs/v21-release-closure-documents-p0",
+    "allowedChangedPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md",
+      "docs/uat/V21_RELEASE_CLOSURE_PROGRAM.md"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "979216336c1bcad785412b68ad8454d8a4678e2a060b9618dfed44c63cf1df40",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "documentScope": {
+    "documentPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md",
+      "docs/uat/V21_RELEASE_CLOSURE_PROGRAM.md"
+    ],
+    "requiredSemantics": [
+      "Import every P0 and P1 finding from the 2026-08-20 Known Findings V1 audit individually rather than using bucket placeholders.",
+      "Keep Known Findings V1 reconciliation separate from Fresh-main Release Audit V2, Mandatory Executed-Test Coverage Audit, and Aug-20-to-final-RC Delta Regression Audit.",
+      "A finding may be CLOSED only after the applicable finding-to-causal-RED-to-root-fix-to-executed-mandatory-test-to-exact-head-GREEN-to-packaged-UAT chain is evidenced.",
+      "PR #538 is historical UAT evidence only; the final release candidate must be rebuilt from fresh main.",
+      "Formal release and publish authority remain outside this work package."
+    ],
+    "forbiddenSemantics": [
+      "No AGENTS.md change.",
+      "No product, runtime, test, workflow, dependency, routing-policy, authorization-parser, release binary, or publish mutation.",
+      "No wildcard docs authority and no additional documentation path.",
+      "No CLOSED status inferred from merge alone or from test-file presence without executed mandatory-gate evidence."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_GOVERNANCE_AND_DOCUMENTATION_ROUTE",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing generic delegated governance authorization seam",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already validates single-file authorization transport, post-merge activation, exact implementation branch/path scope, and ordinary two-parent trusted-main introduction; release-closure documents require no new authorization mechanism."
+      },
+      {
+        "name": "Existing repository Markdown documentation route",
+        "source": "shared/release/riskPolicy.js and Stage GOVERNANCE_WP0 documentation contracts",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing route already treats regular UTF-8 Markdown documentation as non-executable while failing closed for executable, mixed, or unauthorized paths, matching the two-document work package."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a new documentation transport, authorization parser, workflow, release ledger service, database, or general-purpose release infrastructure.",
+      "Do not mix AGENTS.md root protocol transport back into this delegated two-document work package.",
+      "Do not use a wildcard docs prefix or add paths beyond the exact Release Closure Program and Ledger files.",
+      "Do not infer release closure from documentation, merge state, or test-file presence without executed exact-head evidence."
+    ]
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "Layered when triggered",
+      "Model when triggered"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "exact two-document scope only",
+      "all Aug-20 P0/P1 findings imported individually",
+      "no false closure from merge-only or test-file-only evidence",
+      "fresh-main audit, coverage audit, delta audit, and packaged Windows RC remain mandatory",
+      "no release or publish authority granted"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
