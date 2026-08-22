@@ -116,3 +116,16 @@ test('legacy Facebook OAuth regression migrates Page assertions to Chatwoot owne
   assert.doesNotMatch(source, /test\('Facebook Page selection (?:completes credential replacement|persists cloud account)/u);
   assert.match(source, /test\('official Facebook personal identity login completes without Page selection and never grants Messenger capability'/u);
 });
+
+test('legacy Facebook Worker transport keeps persisted WP-B identity out of URLs and exposes bounded lease renewal', () => {
+  const relay = readText('backend/services/facebookRelayClient.js');
+  const desktopApi = readText('services/facebook-worker/src/desktopApi.js');
+  const workerIndex = readText('services/facebook-worker/src/index.js');
+
+  assert.doesNotMatch(relay, /wpb_execution_id|wpb_attempt_id|wpb_claim_id|wpb_owner_id|wpb_generation|wpb_host_generation|wpb_fencing_token/u);
+  assert.match(relay, /x-yance-wpb-execution-id/u);
+  assert.match(relay, /x-yance-wpb-attempt-id/u);
+  assert.match(relay, /\/api\/desktop\/events\/renew/u);
+  assert.match(desktopApi, /export\s+async\s+function\s+renewEvents/u);
+  assert.match(workerIndex, /\/api\/desktop\/events\/renew/u);
+});
