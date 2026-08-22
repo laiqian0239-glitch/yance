@@ -1647,6 +1647,18 @@ test('delegated forward continuation requires the exact frozen predecessor two-p
           forwardContinuation: {
             required: true,
             frozenPredecessorHead
+          },
+          failureFirstCommit: {
+            mustBeFirstImplementationCommit: true,
+            allowedChangedPaths,
+            approvedChangedFileCount: allowedChangedPaths.length,
+            approvedChangedFileSetSha256: workPackageChangedFilesSha256(allowedChangedPaths),
+            productionCodeChanged: false,
+            freshCausalRedRequired: true,
+            firstHeadTrustedMainGuard: {
+              required: true,
+              trustedMainMustEqualAuthorizationMerge: true
+            }
           }
         })
       }
