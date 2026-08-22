@@ -184,6 +184,7 @@
     "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
     "integration/element-module/src/product-experience/ProductExperienceShell.css",
     "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+    "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
     "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
     "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
     "integration/element-module/src/product-experience/RelationshipWorld.tsx",
