@@ -595,6 +595,7 @@ test('M2-AI-012 model route has no direct provider client ownership and request 
   assert.doesNotMatch(routeSource, /req\.once\(['"]aborted['"]/u);
   assert.match(routeSource, /aiGateway\.listCloudModels/u);
   assert.match(routeSource, /aiGateway\.discoverLocalModels/u);
+  assert.match(routeSource, /aiGateway\.pullLocalModel/u);
   assert.match(routeSource, /aiGateway\.unloadLocalModel/u);
 });
 
