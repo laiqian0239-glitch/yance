@@ -65,3 +65,10 @@ test('collector execution writes the real result and rejects false PASS classifi
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
+
+test('production Windows backend-owner identity collection contains no synchronous child process or blocking retry sleep', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', '..', 'electron', 'desktopHost', 'BackendOwnerRegistry.js'), 'utf8');
+  assert.doesNotMatch(source, /\bexecFileSync\b/u);
+  assert.doesNotMatch(source, /\bAtomics\.wait\s*\(/u);
+  assert.match(source, /proper-lockfile/u);
+});
