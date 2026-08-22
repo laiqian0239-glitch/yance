@@ -45,7 +45,7 @@ async function runLiveEvidence(root) {
   });
   const file = path.join(root, 'live-owner.json');
   try {
-    const captured = identity(child.pid);
+    const captured = await identity(child.pid);
     assert.ok(captured, 'Windows CIM identity must be readable for the evidence child');
     validOwner(file, child.pid, captured);
 
@@ -53,9 +53,9 @@ async function runLiveEvidence(root) {
     const restoredSnapshot = restored.snapshot();
     assert.equal(restoredSnapshot.ownerTrusted, false);
     assert.equal(restoredSnapshot.rejectedOwner?.restoredFromOwnerRegistry, true);
-    assert.equal(restoredSnapshot.rejectedOwner?.pidIdentityMatch, true);
     const restoredStartReason = await startBlockReason(restored);
     assert.match(restoredStartReason, /REJECTED_OWNER/);
+    assert.equal(restored.snapshot().rejectedOwner?.pidIdentityMatch, true);
 
     const mismatchFile = path.join(root, 'pid-reuse-simulation.json');
     const altered = { ...captured, creationTimeUtc: `${captured.creationTimeUtc}-mismatch` };
@@ -67,9 +67,9 @@ async function runLiveEvidence(root) {
       isProcessAlive: isAlive,
       captureProcessIdentity: identity
     });
-    assert.equal(mismatch.snapshot().ownerRegistryFailure?.reasonCode, 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_MISMATCH_RECOVERY_REQUIRED');
     const mismatchStop = await mismatch.stop();
     assert.equal(mismatchStop.stopped, false);
+    assert.equal(mismatch.snapshot().ownerRegistryFailure?.reasonCode, 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_MISMATCH_RECOVERY_REQUIRED');
     assert.equal(signals.length, 0, 'PID reuse containment must not signal the unrelated live process');
     assert.throws(() => mismatch.clearRejectedOwner(), error => error?.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
     assert.equal(mismatch.clearRejectedOwner({ force: true }), true);
@@ -106,9 +106,9 @@ async function runLiveEvidence(root) {
   }
 }
 
-function prepareReboot(root) {
+async function prepareReboot(root) {
   const file = path.join(root, 'reboot-owner.json');
-  const captured = identity(process.pid);
+  const captured = await identity(process.pid);
   assert.ok(captured, 'Current Windows process identity must be readable');
   validOwner(file, process.pid, captured);
   return {
@@ -159,7 +159,7 @@ async function main() {
     process.exit(2);
   }
   fs.mkdirSync(root, { recursive: true });
-  const value = mode === '--prepare-reboot' ? prepareReboot(root)
+  const value = mode === '--prepare-reboot' ? await prepareReboot(root)
     : mode === '--verify-reboot' ? await verifyReboot(root)
       : await runLiveEvidence(root);
   value.generatedAtUtc = new Date().toISOString();

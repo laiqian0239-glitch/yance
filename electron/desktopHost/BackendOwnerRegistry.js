@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { execFileSync } = require('node:child_process');
+const { execFile } = require('node:child_process');
 const properLockfile = require('proper-lockfile');
 
 const SCHEMA_VERSION = 1;
@@ -19,6 +19,8 @@ function clone(value) { return value == null ? value : JSON.parse(JSON.stringify
 function nonEmptyString(value) { return typeof value === 'string' && value.trim().length > 0; }
 function plainObject(value) { return Boolean(value && typeof value === 'object' && !Array.isArray(value)); }
 function sha256(value) { return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex'); }
+function promiseLike(value) { return Boolean(value && typeof value.then === 'function'); }
+function asyncDelay(ms) { return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms || 0)))); }
 
 function registryValidationError(message, details = {}) {
   const error = new Error(message);
@@ -202,7 +204,7 @@ function linuxProcessIdentity(pid, fsApi = fs) {
   }
 }
 
-function windowsProcessIdentity(pid, execFile = execFileSync, platform = process.platform) {
+function windowsProcessIdentity(pid, execFileImpl = null, platform = process.platform) {
   const debugLog = (msg, data) => {
     try {
       const logDir = path.join(process.env.APPDATA || process.env.HOME || '.', 'Yance', 'debug');
@@ -211,15 +213,8 @@ function windowsProcessIdentity(pid, execFile = execFileSync, platform = process
       fs.appendFileSync(logPath, `${JSON.stringify({ timestamp: new Date().toISOString(), msg, data })}\n`, 'utf8');
     } catch (_) {}
   };
-  const sleepSync = ms => {
-    const value = Math.max(0, Number(ms || 0));
-    if (!value) return;
-    // Synchronous because BackendOwnerRegistry is intentionally synchronous and
-    // writes an atomic owner record before startup continues.
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, value);
-  };
 
-  debugLog('windowsProcessIdentity called', { pid, platform, expectedPlatform: 'win32', execFileType: typeof execFile });
+  debugLog('windowsProcessIdentity called', { pid, platform, expectedPlatform: 'win32', execFileType: typeof execFileImpl });
   if (platform !== 'win32') {
     debugLog('platform is not win32', { platform });
     return null;
@@ -231,7 +226,7 @@ function windowsProcessIdentity(pid, execFile = execFileSync, platform = process
   }
 
   const script = [
-    `$p = Get-CimInstance Win32_Process -Filter \"ProcessId = ${value}\" -ErrorAction Stop`,
+    `$p = Get-CimInstance Win32_Process -Filter "ProcessId = ${value}" -ErrorAction Stop`,
     'if ($null -eq $p) { exit 3 }',
     '$o = [ordered]@{ ProcessId = [int]$p.ProcessId; CreationDate = $p.CreationDate.ToUniversalTime().ToString("o"); ExecutablePath = [string]$p.ExecutablePath; CommandLine = [string]$p.CommandLine }',
     '$o | ConvertTo-Json -Compress'
@@ -239,66 +234,115 @@ function windowsProcessIdentity(pid, execFile = execFileSync, platform = process
   const powershellPath = process.env.SystemRoot
     ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
     : 'powershell.exe';
+  const args = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script];
+  const execOptions = {
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 5000,
+    maxBuffer: 1024 * 1024
+  };
 
-  const maxAttempts = Math.max(1, Number(process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS || 8));
-  const delayMs = Math.max(0, Number(process.env.YANCE_WIN_PROCESS_IDENTITY_RETRY_MS || 125));
-  let lastError = null;
-  let lastRaw = '';
+  const configuredAttempts = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS || 8);
+  const configuredDelay = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_RETRY_MS || 125);
+  const maxAttempts = Math.min(8, Math.max(1, Number.isFinite(configuredAttempts) ? Math.trunc(configuredAttempts) : 8));
+  const delayMs = Math.min(1000, Math.max(0, Number.isFinite(configuredDelay) ? Math.trunc(configuredDelay) : 125));
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      debugLog('executing PowerShell', { attempt, maxAttempts, powershellPath });
-      const raw = execFile(powershellPath, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script], {
-        encoding: 'utf8',
-        windowsHide: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        timeout: 5000
-      }).trim();
-      lastRaw = raw;
-      debugLog('PowerShell output', { attempt, raw: raw.slice(0, 500) });
-      const row = JSON.parse(raw);
-      if (Number(row.ProcessId) !== value || !nonEmptyString(row.CreationDate) || !nonEmptyString(row.ExecutablePath) || !nonEmptyString(row.CommandLine)) {
-        lastError = new Error('Windows process identity CIM row is incomplete or mismatched');
-        debugLog('validation failed', { attempt, row });
-      } else {
-        const result = {
-          platform: 'win32',
-          creationTimeUtc: String(row.CreationDate),
-          executablePathDigest: sha256(String(row.ExecutablePath).toLowerCase()),
-          commandDigest: sha256(row.CommandLine)
-        };
-        debugLog('returning result', { attempt, result });
-        return result;
-      }
-    } catch (error) {
-      lastError = error;
-      debugLog('PowerShell execution failed', {
-        attempt,
-        name: error.name || '',
-        message: error.message || '',
-        code: error.code || '',
-        status: error.status ?? null,
-        signal: error.signal || '',
-        stdout: String(error.stdout || '').slice(0, 500),
-        stderr: String(error.stderr || '').slice(0, 500)
-      });
+  const parseRaw = (raw, attempt) => {
+    const text = String(raw || '').trim();
+    debugLog('PowerShell output', { attempt, raw: text.slice(0, 500) });
+    const row = JSON.parse(text);
+    if (Number(row.ProcessId) !== value || !nonEmptyString(row.CreationDate) || !nonEmptyString(row.ExecutablePath) || !nonEmptyString(row.CommandLine)) {
+      const error = new Error('Windows process identity CIM row is incomplete or mismatched');
+      error.identityRow = row;
+      throw error;
     }
-    if (attempt < maxAttempts) sleepSync(delayMs);
+    const result = {
+      platform: 'win32',
+      creationTimeUtc: String(row.CreationDate),
+      executablePathDigest: sha256(String(row.ExecutablePath).toLowerCase()),
+      commandDigest: sha256(row.CommandLine)
+    };
+    debugLog('returning result', { attempt, result });
+    return result;
+  };
+
+  const logFailure = (attempt, error) => {
+    debugLog('PowerShell execution failed', {
+      attempt,
+      name: error?.name || '',
+      message: error?.message || '',
+      code: error?.code || '',
+      status: error?.status ?? null,
+      signal: error?.signal || '',
+      stdout: String(error?.stdout || '').slice(0, 500),
+      stderr: String(error?.stderr || '').slice(0, 500)
+    });
+  };
+
+  // Existing tests inject a synchronous fake collector. Production leaves
+  // execFileImpl null and therefore uses the non-blocking callback API below.
+  if (typeof execFileImpl === 'function') {
+    let lastError = null;
+    let lastRaw = '';
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        debugLog('executing injected Windows identity collector', { attempt, maxAttempts, powershellPath });
+        const raw = execFileImpl(powershellPath, args, execOptions);
+        lastRaw = String(raw || '');
+        return parseRaw(lastRaw, attempt);
+      } catch (error) {
+        lastError = error;
+        logFailure(attempt, error);
+      }
+    }
+    debugLog('returning null after injected collector retries', {
+      pid: value,
+      attempts: maxAttempts,
+      lastError: lastError ? { message: lastError.message || '', code: lastError.code || '', status: lastError.status ?? null } : null,
+      lastRaw: lastRaw.slice(0, 500)
+    });
+    return null;
   }
 
-  debugLog('returning null after retries', {
-    pid: value,
-    attempts: maxAttempts,
-    lastError: lastError ? { message: lastError.message || '', code: lastError.code || '', status: lastError.status ?? null } : null,
-    lastRaw: lastRaw.slice(0, 500)
-  });
-  return null;
+  return (async () => {
+    let lastError = null;
+    let lastRaw = '';
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        debugLog('executing PowerShell asynchronously', { attempt, maxAttempts, powershellPath });
+        const raw = await new Promise((resolve, reject) => {
+          execFile(powershellPath, args, execOptions, (error, stdout, stderr) => {
+            if (error) {
+              error.stdout = stdout;
+              error.stderr = stderr;
+              reject(error);
+              return;
+            }
+            resolve(stdout);
+          });
+        });
+        lastRaw = String(raw || '');
+        return parseRaw(lastRaw, attempt);
+      } catch (error) {
+        lastError = error;
+        logFailure(attempt, error);
+      }
+      if (attempt < maxAttempts && delayMs > 0) await asyncDelay(delayMs);
+    }
+    debugLog('returning null after async retries', {
+      pid: value,
+      attempts: maxAttempts,
+      lastError: lastError ? { message: lastError.message || '', code: lastError.code || '', status: lastError.status ?? null } : null,
+      lastRaw: lastRaw.slice(0, 500)
+    });
+    return null;
+  })();
 }
 
 function platformProcessIdentity(pid, options = {}) {
   const platform = options.platform || process.platform;
   if (platform === 'linux') return linuxProcessIdentity(pid, options.fs || fs);
-  if (platform === 'win32') return windowsProcessIdentity(pid, options.execFile || execFileSync, platform);
+  if (platform === 'win32') return windowsProcessIdentity(pid, options.execFile || null, platform);
   return null;
 }
 
@@ -328,6 +372,9 @@ class BackendOwnerRegistry {
       catch (cause) { return cause?.code !== 'ESRCH'; }
     });
     this.captureIdentity = options.captureIdentity || (pid => platformProcessIdentity(pid, { fs: this.fs }));
+    this.captureIdentityIsAsync = options.captureIdentityIsAsync === true
+      || (!options.captureIdentity && process.platform === 'win32')
+      || options.captureIdentity?.constructor?.name === 'AsyncFunction';
     this.processIdentityPlatform = options.processIdentityPlatform || (options.captureIdentity ? '' : process.platform);
     this.lockfile = options.lockfile || properLockfile;
     this.claimLockStaleMs = Math.max(5000, Number(options.claimLockStaleMs || 30000));
@@ -370,6 +417,12 @@ class BackendOwnerRegistry {
 
   snapshot() { return this.record ? Object.freeze(clone(this.record)) : null; }
 
+  async captureIdentityAsync(pid) {
+    const captured = this.captureIdentity(pid);
+    if (promiseLike(captured)) this.captureIdentityIsAsync = true;
+    return Promise.resolve(captured);
+  }
+
   probe(record = this.record) {
     if (!record) return { alive: false, identityMatch: null, reasonCode: 'NO_OWNER_RECORD' };
     const pid = Number(record.backendPid || 0);
@@ -381,7 +434,39 @@ class BackendOwnerRegistry {
     }
     if (!alive) return { alive: false, identityMatch: true, reasonCode: 'OWNER_NOT_LIVE', backendPid: pid };
     const expected = record.processIdentity || null;
+    if (this.captureIdentityIsAsync) {
+      return { alive: true, identityMatch: null, reasonCode: 'OWNER_IDENTITY_ASYNC_REQUIRED', backendPid: pid, expected, actual: null };
+    }
     const actual = this.captureIdentity(pid);
+    if (promiseLike(actual)) {
+      this.captureIdentityIsAsync = true;
+      actual.catch?.(() => {});
+      return { alive: true, identityMatch: null, reasonCode: 'OWNER_IDENTITY_ASYNC_REQUIRED', backendPid: pid, expected, actual: null };
+    }
+    if (!expected || !actual) return { alive: true, identityMatch: null, reasonCode: 'OWNER_IDENTITY_UNVERIFIED', backendPid: pid, expected, actual };
+    const identityMatch = processIdentityMatches(expected, actual);
+    return {
+      alive: true,
+      identityMatch,
+      reasonCode: identityMatch ? 'OWNER_IDENTITY_MATCH' : 'OWNER_PID_REUSED',
+      backendPid: pid,
+      expected,
+      actual
+    };
+  }
+
+  async probeAsync(record = this.record) {
+    if (!record) return { alive: false, identityMatch: null, reasonCode: 'NO_OWNER_RECORD' };
+    const pid = Number(record.backendPid || 0);
+    if (!Number.isInteger(pid) || pid < 1) return { alive: false, identityMatch: null, reasonCode: 'OWNER_PID_INVALID', backendPid: pid };
+    let alive = false;
+    try { alive = this.isProcessAlive(pid) === true; }
+    catch (cause) {
+      return { alive: true, identityMatch: null, reasonCode: cause?.code === 'EPERM' ? 'OWNER_LIVENESS_EPERM' : 'OWNER_LIVENESS_UNKNOWN', backendPid: pid };
+    }
+    if (!alive) return { alive: false, identityMatch: true, reasonCode: 'OWNER_NOT_LIVE', backendPid: pid };
+    const expected = record.processIdentity || null;
+    const actual = await this.captureIdentityAsync(pid);
     if (!expected || !actual) return { alive: true, identityMatch: null, reasonCode: 'OWNER_IDENTITY_UNVERIFIED', backendPid: pid, expected, actual };
     const identityMatch = processIdentityMatches(expected, actual);
     return {
@@ -445,7 +530,14 @@ class BackendOwnerRegistry {
 
   register(context = {}) {
     const backendPid = context.backendPid;
-    const capturedIdentity = this.captureIdentity(backendPid);
+    const capturedIdentity = Object.prototype.hasOwnProperty.call(context, 'processIdentity')
+      ? context.processIdentity
+      : this.captureIdentity(backendPid);
+    if (promiseLike(capturedIdentity)) {
+      const error = new Error('Async backend owner identity must be resolved before synchronous owner registration');
+      error.reasonCode = 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_ASYNC_REQUIRED';
+      throw error;
+    }
     // Debug logging
     try {
       const logDir = path.join(process.env.APPDATA || process.env.HOME || '.', 'Yance', 'debug');
