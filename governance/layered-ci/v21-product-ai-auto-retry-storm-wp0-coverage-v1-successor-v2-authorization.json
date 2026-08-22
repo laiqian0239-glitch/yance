@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-AI-AUTO-RETRY-STORM-WP0-COVERAGE-V1-SUCCESSOR-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main forward-continuation successor for the completed AI_AUTO retry-storm WP0 coverage prerequisite. PR #672 already established a clean causal RED at bca0deba912dce4d3c6f0fe60f8caf83e0fdc7e1 / Stage 32600685786 with Closure Matrix unknownBlockers=0, then applied the exact runner root fix at 4603bf5193244e81a57a8e6734f14bb8e6c6dd93. Trusted main advanced independently through the delegated forwardContinuation/failure-first composition prerequisite, so the stale #672 branch must not be rebased or merged directly. This successor preserves the exact completed two-file coverage bytes on fresh main via a canonical two-parent forward continuation; it authorizes no new root fix, no backend production change, no workflow change and no scope expansion.",
+  "base": {
+    "branch": "main",
+    "commit": "5388d9167693c0bea657b60222443d12a1d6feec",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "5388d9167693c0bea657b60222443d12a1d6feec",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-ai-auto-retry-storm-wp0-coverage-v1-authorization.json",
+    "implementationBranch": "fix/v21-product-ai-auto-retry-storm-wp0-coverage-v1",
+    "reason": "Freeze PR #672 as completed RED-to-root-fix evidence and transport its exact two-file result onto fresh trusted main without rebase, amend, force-push, squash, reset or predecessor mutation."
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 671,
+    "authorizationMerge": "7815fe513c759d5eea9d3c25c45e8d301fbe66e9",
+    "implementationPullRequest": 672,
+    "cleanCausalRedHead": "bca0deba912dce4d3c6f0fe60f8caf83e0fdc7e1",
+    "cleanCausalRedRun": 32600685786,
+    "cleanCausalRedConclusion": "failure",
+    "closureMatrixUnknownBlockers": 0,
+    "completedRootFixHead": "4603bf5193244e81a57a8e6734f14bb8e6c6dd93",
+    "completedRootFixPaths": [
+      "tests/wp0/wp0-required-test-coverage.test.js",
+      "tools/wp0/run-tests.js"
+    ],
+    "classification": "COMPLETED_CAUSAL_RED_AND_ROOT_FIX_REQUIRING_FRESH_MAIN_FORWARD_CONTINUATION"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ai-auto-retry-storm-wp0-coverage-v1-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ai-auto-retry-storm-wp0-coverage-v1-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "faf07415ab6b78b199a18d9a84b8fac678078151dba15235f719ec990af2092f",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-ai-auto-retry-storm-wp0-coverage-v1-successor-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "4603bf5193244e81a57a8e6734f14bb8e6c6dd93"
+    },
+    "allowedChangedPaths": [
+      "tests/wp0/wp0-required-test-coverage.test.js",
+      "tools/wp0/run-tests.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "69271d509a9192fede978c4b7adf88c22444ba8e78d9c63ff19badcdb8720e98",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "productionCodeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "4603bf5193244e81a57a8e6734f14bb8e6c6dd93",
+    "preserveCompletedCoverageBytes": true,
+    "preserveOriginalFailureFirstEvidence": true,
+    "newFailureFirstRedRequired": false,
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true
+  },
+  "coverageContract": {
+    "runnerPath": "tools/wp0/run-tests.js",
+    "coverageContractTestPath": "tests/wp0/wp0-required-test-coverage.test.js",
+    "preservedExistingExternalRequiredTests": [
+      "tests/wp2/desktop-host-process-lifecycle.test.js",
+      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js"
+    ],
+    "exactAdditionalRequiredTests": [
+      "backend/tests/v21ProductAiAutoRetryStorm.test.js"
+    ],
+    "broadBackendWildcardForbidden": true,
+    "isolatedChildProcessExecutionMustRemain": true,
+    "perFileTimeoutMustRemainBounded": true,
+    "continueOnErrorForbidden": true
+  },
+  "mandatoryContracts": [
+    "The first successor implementation commit must have exactly two ordered parents: the effective successor authorization merge and frozen predecessor 4603bf5193244e81a57a8e6734f14bb8e6c6dd93.",
+    "Against fresh main, the successor may change only tests/wp0/wp0-required-test-coverage.test.js and tools/wp0/run-tests.js and must preserve the exact completed predecessor blobs for both files.",
+    "The runner must enumerate backend/tests/v21ProductAiAutoRetryStorm.test.js exactly while preserving the existing three external diagnostics and bounded isolated execution.",
+    "No backend production file, workflow, routing policy, package manifest, dependency, database, release/publish surface, PR #615 or PR #538 may change.",
+    "PR #668 remains frozen until this coverage prerequisite is ordinarily merged into main; only then may a separate retry-storm successor preserve #668 test bytes and obtain a true causal RED before aiBrainOrchestrator production work."
+  ],
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/wp0-required-test-coverage.test.js",
+      "node --test --test-concurrency=1 backend/tests/v21ProductAiAutoRetryStorm.test.js"
+    ],
+    "formal": [
+      "Stage WP0 GREEN with the retry-storm backend diagnostic actually enumerated by the trusted runner",
+      "Layered CI GREEN",
+      "ACV2 WP-A GREEN",
+      "Model Brain Windows GREEN when routed",
+      "Product Final SKIPPED only when governance routing intentionally excludes it"
+    ],
+    "exactHeadCiRequired": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_ISOLATED_RUNNER_AND_COVERAGE_CONTRACT",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance WP0 isolated required-test runner",
+        "source": "tools/wp0/run-tests.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The predecessor already completed the exact one-path runner extension; the successor only transports those reviewed bytes onto fresh main."
+      },
+      {
+        "name": "Yance WP0 required-test coverage contract",
+        "source": "tests/wp0/wp0-required-test-coverage.test.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The predecessor already hardened this exact existing contract; no second coverage framework is needed."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "No new test framework or dependency is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second WP0 runner or backend-specific CI workflow.",
+      "Do not add a broad backend/tests wildcard.",
+      "Do not modify aiBrainOrchestrator under this prerequisite.",
+      "Do not weaken delegated forwardContinuation, coverage or failure-first policy."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "candidatePreservation": {
+    "predecessorPullRequest672MustRemainFrozen": true,
+    "predecessorRootFixHeadMustRemain": "4603bf5193244e81a57a8e6734f14bb8e6c6dd93",
+    "retryStormPullRequest668MustRemainFrozen": true,
+    "retryStormHeadMustRemain": "caf8ec6dd13e0ecfd19a965313bb6cb8e70b8d46",
+    "productPullRequest615MustRemainFrozen": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
