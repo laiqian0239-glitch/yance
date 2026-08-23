@@ -3,8 +3,8 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-23T22:01:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-WP-B-M3-M2-REVIEW-TRUSTED-ROUTE-CONTRACT-RECONCILIATION-P0-V1",
-  "proposalRevision": 1,
+  "workPackage": "V21-WP-B-M3-M2-REVIEW-ROUTE-CONTRACT-RECONCILIATION-P0-V1",
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "PR #711 exact forwardContinuation head 76c3c33072594a3cf3958ab1770cc4ab29f6699c proves the WP-B M2 independent-review workflow now correctly admits delegated successor branches through the trusted-main generic implementation policy. Stage, M1, M2 Contracts, M2 Independent Review on Ubuntu and Windows, WP-B Validation, ACV2 WP-A, WP-A Main Post-Merge and Model Brain Windows are GREEN. M3 Authorization run 32647081892 fails only the stale static M3-AUTH-008 assertion because backend/tests/architectureClosureV2/wpB/m3Authorization.test.js still classifies .github/workflows/wp-b-m2-independent-review-integrity.yml as a direct active-WP-B-authority workflow. This prerequisite reconciles that one tests-only contract with the already-proven production workflow semantics. It does not alter the workflow, verifier, generic policy, active WP-B authority, Product/runtime, dependencies, routing, schema, package or release surfaces.",
   "base": {
@@ -48,13 +48,13 @@
       "Keep M3-AUTH-009 historical direct active-WP-B authority preservation and the M3 shared fail-closed trusted helper assertions unchanged.",
       "Do not modify any workflow or verifier in this prerequisite."
     ],
+    "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "routingPolicyModificationAllowed": false,
     "sharedImplementationPolicyModificationAllowed": false,
     "activeWpBAuthorityModificationAllowed": false,
     "productRuntimeModificationAllowed": false,
     "databaseMigrationAllowed": false,
-    "dependencyModificationAllowed": false,
     "packageOrLockfileModificationAllowed": false,
     "newGeneralPurposeYanceInfrastructureAllowed": false,
     "gateOrScannerWeakeningAllowed": false,
@@ -141,5 +141,20 @@
     "exactHeadGreenRequired": true,
     "freshMainAntiDriftRequired": true,
     "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
   }
 }
