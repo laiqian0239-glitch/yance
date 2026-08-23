@@ -28,7 +28,11 @@ const CHANNELS = Object.freeze({
   personalAccessRefreshRequest: 'store:personal-access-refresh-request',
   personalAccessOwnerRequests: 'store:personal-access-owner-requests',
   personalAccessOwnerRequestMutation: 'store:personal-access-owner-request-mutation',
-  personalAccessOwnerGrantMutation: 'store:personal-access-owner-grant-mutation'
+  personalAccessOwnerGrantMutation: 'store:personal-access-owner-grant-mutation',
+  productDataProtectionState: 'store:product-system-data-protection-state',
+  productDataProtectionMutation: 'store:product-system-data-protection-mutation',
+  productModelRuntimeState: 'store:product-system-model-runtime-state',
+  productModelRuntimeMutation: 'store:product-system-model-runtime-mutation'
 });
 
 function clean(value) {
@@ -91,6 +95,10 @@ function requiredAction(value, allowed, name = 'action') {
   error.code = `${String(name).replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase()}_INVALID`;
   error.reasonCode = error.code;
   throw error;
+}
+
+function safeRouteSegment(value, name) {
+  return encodeURIComponent(requiredIdentifier(value, name));
 }
 
 function serializeBridgeError(error) {
@@ -255,6 +263,139 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       const action = requiredAction(input.action, ['suspend', 'revoke']);
       return apiRequest(`/api/r32/personal-access/owner/grants/${encodeURIComponent(grantId)}/${encodeURIComponent(action)}`, {
         method: 'POST', body: jsonBody({})
+      });
+    },
+    [CHANNELS.productDataProtectionState]: async () => {
+      const [backups, portableBackups] = await Promise.all([
+        apiRequest('/api/r32/system/backups'),
+        apiRequest('/api/r32/system/portable-backups')
+      ]);
+      return { ok: true, backups: objectRecord(backups), portableBackups: objectRecord(portableBackups) };
+    },
+    [CHANNELS.productDataProtectionMutation]: (_event, input = {}) => {
+      const action = requiredAction(input.action, [
+        'create-backup',
+        'verify-backup',
+        'stage-restore',
+        'cancel-restore',
+        'create-portable-backup',
+        'verify-portable-backup',
+        'stage-portable-restore',
+        'delete-portable-backup'
+      ]);
+      if (action === 'create-backup') {
+        return apiRequest('/api/r32/system/backups', {
+          method: 'POST',
+          body: jsonBody({
+            label: clean(input.label) || 'product-system-settings',
+            profile: clean(input.profile) || undefined,
+            roots: Array.isArray(input.roots) ? input.roots.map(clean).filter(Boolean) : undefined
+          })
+        });
+      }
+      if (action === 'verify-backup') {
+        const name = safeRouteSegment(input.name, 'name');
+        return apiRequest(`/api/r32/system/backups/${name}/verify`, { method: 'POST', body: '{}' });
+      }
+      if (action === 'stage-restore') {
+        const name = safeRouteSegment(input.name, 'name');
+        return apiRequest(`/api/r32/system/backups/${name}/restore`, { method: 'POST', body: '{}' });
+      }
+      if (action === 'cancel-restore') {
+        return apiRequest('/api/r32/system/restore/pending', { method: 'DELETE' });
+      }
+      if (action === 'create-portable-backup') {
+        return apiRequest('/api/r32/system/portable-backups', {
+          method: 'POST',
+          body: jsonBody({
+            passphrase: String(input.passphrase || ''),
+            profile: clean(input.profile) || 'data-only',
+            label: clean(input.label) || 'product-system-settings'
+          })
+        });
+      }
+      if (action === 'verify-portable-backup') {
+        const name = safeRouteSegment(input.name, 'name');
+        return apiRequest(`/api/r32/system/portable-backups/${name}/verify`, {
+          method: 'POST', body: jsonBody({ passphrase: String(input.passphrase || '') })
+        });
+      }
+      if (action === 'stage-portable-restore') {
+        const name = safeRouteSegment(input.name, 'name');
+        return apiRequest(`/api/r32/system/portable-backups/${name}/restore`, {
+          method: 'POST', body: jsonBody({ passphrase: String(input.passphrase || '') })
+        });
+      }
+      const name = safeRouteSegment(input.name, 'name');
+      return apiRequest(`/api/r32/system/portable-backups/${name}`, { method: 'DELETE' });
+    },
+    [CHANNELS.productModelRuntimeState]: async () => {
+      const [modelBrain, catalog, hardware, adaptiveLocal] = await Promise.all([
+        apiRequest('/api/r32/models/model-brain/status'),
+        apiRequest('/api/r32/models/adaptive-local/catalog'),
+        apiRequest('/api/r32/models/adaptive-local/hardware'),
+        apiRequest('/api/r32/models/adaptive-local/status')
+      ]);
+      return {
+        ok: true,
+        modelBrain: objectRecord(modelBrain),
+        catalog: objectRecord(catalog),
+        hardware: objectRecord(hardware),
+        adaptiveLocal: objectRecord(adaptiveLocal)
+      };
+    },
+    [CHANNELS.productModelRuntimeMutation]: (_event, input = {}) => {
+      const action = requiredAction(input.action, [
+        'plan-adaptive-local',
+        'materialize-adaptive-runtime',
+        'remove-adaptive-runtime',
+        'pull-ollama-model',
+        'cancel-ollama-pull'
+      ]);
+      if (action === 'plan-adaptive-local') {
+        const hardware = objectRecord(input.hardware);
+        return apiRequest('/api/r32/models/adaptive-local/plan', {
+          method: 'POST',
+          body: jsonBody({
+            hardware: Object.keys(hardware).length ? hardware : undefined,
+            candidates: Array.isArray(input.candidates) ? input.candidates : undefined,
+            runtime: objectRecord(input.runtime),
+            model: objectRecord(input.model),
+            benchmark: objectRecord(input.benchmark)
+          })
+        });
+      }
+      if (action === 'materialize-adaptive-runtime') {
+        return apiRequest('/api/r32/models/adaptive-local/materialize', {
+          method: 'POST',
+          body: jsonBody({
+            consent: input.consent === true,
+            targetName: clean(input.targetName),
+            runtimeId: clean(input.runtimeId),
+            localAssetPath: clean(input.localAssetPath),
+            expectedSha256: clean(input.expectedSha256),
+            requiredBytes: Math.max(0, Number(input.requiredBytes || 0))
+          })
+        });
+      }
+      if (action === 'remove-adaptive-runtime') {
+        return apiRequest('/api/r32/models/adaptive-local/remove', {
+          method: 'POST',
+          body: jsonBody({ targetName: clean(input.targetName), runtimeId: clean(input.runtimeId) })
+        });
+      }
+      if (action === 'pull-ollama-model') {
+        return apiRequest('/api/r32/models/ollama/pull', {
+          method: 'POST',
+          body: jsonBody({
+            model: requiredIdentifier(input.model, 'model'),
+            endpoint: clean(input.endpoint) || 'http://127.0.0.1:11434',
+            requestId: clean(input.requestId)
+          })
+        });
+      }
+      return apiRequest('/api/r32/models/ollama/pull/cancel', {
+        method: 'POST', body: jsonBody({ requestId: requiredIdentifier(input.requestId, 'requestId') })
       });
     }
   };

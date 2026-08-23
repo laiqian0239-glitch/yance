@@ -50,6 +50,8 @@ function collectPreloadMappings(repoRoot) {
   const mappings = new Map();
   const invoke = /([A-Za-z0-9_]+)\s*:\s*[^\n]*?ipcRenderer\.invoke\(\s*['"]([^'"]+)['"]/g;
   for (const match of source.matchAll(invoke)) mappings.set(match[2], { method: match[1], location: `electron/preload.js:${source.slice(0, match.index).split('\n').length}` });
+  const invokeStore = /([A-Za-z0-9_]+)\s*:\s*[^\n]*?invokeStore\(\s*['"]([^'"]+)['"]/g;
+  for (const match of source.matchAll(invokeStore)) mappings.set(match[2], { method: match[1], location: `electron/preload.js:${source.slice(0, match.index).split('\n').length}` });
   const onCalls = /([A-Za-z0-9_]+)\s*:\s*callback\s*=>\s*on\(\s*['"]([^'"]+)['"]/g;
   for (const match of source.matchAll(onCalls)) mappings.set(match[2], { method: match[1], location: `electron/preload.js:${source.slice(0, match.index).split('\n').length}` });
   const send = /([A-Za-z0-9_]+)\s*:\s*[^\n]*?ipcRenderer\.send\(\s*['"]([^'"]+)['"]/g;
@@ -57,13 +59,27 @@ function collectPreloadMappings(repoRoot) {
   return mappings;
 }
 
+const ACTIVE_ELEMENT_PRODUCT_ROOT = 'integration/element-module/src';
+
 function rendererLocations(repoRoot, method) {
   if (!method) return [];
   const pattern = new RegExp(`yanceDesktop(?:\\?\\.)?\\.${method}\\b|yanceDesktop(?:\\?\\.)?${method}\\b`);
   const rows = [];
-  for (const file of walk(path.join(repoRoot, 'frontend')).filter(file => /\.js$/.test(file))) {
-    const lines = fs.readFileSync(file, 'utf8').split('\n');
-    lines.forEach((line, index) => { if (pattern.test(line)) rows.push(`${rel(repoRoot, file)}:${index + 1}`); });
+  const roots = [
+    {
+      dir: path.join(repoRoot, ...ACTIVE_ELEMENT_PRODUCT_ROOT.split('/')),
+      include: file => /\.(?:ts|tsx)$/.test(file)
+    },
+    {
+      dir: path.join(repoRoot, 'frontend'),
+      include: file => /\.js$/.test(file)
+    }
+  ];
+  for (const root of roots) {
+    for (const file of walk(root.dir).filter(root.include)) {
+      const lines = fs.readFileSync(file, 'utf8').split('\n');
+      lines.forEach((line, index) => { if (pattern.test(line)) rows.push(`${rel(repoRoot, file)}:${index + 1}`); });
+    }
   }
   return rows;
 }
@@ -100,6 +116,29 @@ const MAIN_IPC = Object.freeze({
   'desktop:set-active-conversation': ['electron/main.js#soundNotificationService.setWindowState', false, null, null, 'ELECTRON_DESKTOP_AUDIO'],
   'desktop:save-credential': ['electron/main.js#CredentialVault', false, null, null, 'ELECTRON_CREDENTIAL_CUSTODY'],
   'desktop:delete-credential': ['electron/main.js#CredentialVault', false, null, null, 'ELECTRON_CREDENTIAL_CUSTODY']
+});
+
+const FIXED_PRODUCT_SYSTEM_STORE = Object.freeze({
+  [CHANNELS.productDataProtectionState]: {
+    backendRoute: '/api/r32/system/backups + /api/r32/system/portable-backups',
+    backendExecutionModule: 'backend/routes/system.js',
+    producesBusinessSideEffect: false
+  },
+  [CHANNELS.productDataProtectionMutation]: {
+    backendRoute: 'fixed data-protection actions -> /api/r32/system/backups, /portable-backups, /restore/pending',
+    backendExecutionModule: 'backend/routes/system.js',
+    producesBusinessSideEffect: true
+  },
+  [CHANNELS.productModelRuntimeState]: {
+    backendRoute: '/api/r32/models/model-brain/status + /adaptive-local/catalog + /hardware + /status',
+    backendExecutionModule: 'backend/routes/models.js',
+    producesBusinessSideEffect: false
+  },
+  [CHANNELS.productModelRuntimeMutation]: {
+    backendRoute: 'fixed model-runtime actions -> /api/r32/models/adaptive-local/* and /ollama/pull*',
+    backendExecutionModule: 'backend/routes/models.js',
+    producesBusinessSideEffect: true
+  }
 });
 
 function storeRoute(channel) {
@@ -148,6 +187,12 @@ function buildCommandPathInventory(repoRoot) {
       throw error;
     }
     const [module, forwardingOnly, backendRoute, backendCommand, authority] = main || ['electron/r32StoreBridge.js', true, storeRoute(row.channel), null, 'BACKEND_BUSINESS_RUNTIME'];
+    const fixedProductSystem = FIXED_PRODUCT_SYSTEM_STORE[row.channel] || null;
+    const resolvedBackendRoute = fixedProductSystem?.backendRoute || backendRoute;
+    const resolvedBackendExecutionModule = fixedProductSystem?.backendExecutionModule
+      || (resolvedBackendRoute ? (isStore ? 'backend/routes/store.js or mapped store service' : row.channel === 'desktop:export-chat' ? 'backend/services/chatExportService.js' : 'backend/core/updateManager.js') : null);
+    const producesBusinessSideEffect = fixedProductSystem?.producesBusinessSideEffect
+      ?? (authority === 'BACKEND_BUSINESS_RUNTIME' || Boolean(backendCommand));
     return {
       entryKind: 'ELECTRON_IPC',
       channelOrCommandName: row.channel,
@@ -159,12 +204,12 @@ function buildCommandPathInventory(repoRoot) {
       electronIpcRegistration: row.electronIpcRegistration,
       electronExecutionModule: module,
       forwardingOnly,
-      backendRoute,
+      backendRoute: resolvedBackendRoute,
       backendCoreCommand: backendCommand,
-      backendExecutionModule: backendRoute ? (isStore ? 'backend/routes/store.js or mapped store service' : row.channel === 'desktop:export-chat' ? 'backend/services/chatExportService.js' : 'backend/core/updateManager.js') : null,
+      backendExecutionModule: resolvedBackendExecutionModule,
       stateAuthorityOwner: authority,
-      producesBusinessSideEffect: authority === 'BACKEND_BUSINESS_RUNTIME' || Boolean(backendCommand),
-      finalAuthoritativePath: forwardingOnly ? `${mapping?.location || 'renderer'} -> ${row.electronIpcRegistration} -> authenticated backend route ${backendRoute || ''}` : `${mapping?.location || row.channel} -> ${row.electronIpcRegistration} -> ${module}`,
+      producesBusinessSideEffect,
+      finalAuthoritativePath: forwardingOnly ? `${mapping?.location || 'renderer'} -> ${row.electronIpcRegistration} -> authenticated backend route ${resolvedBackendRoute || ''}` : `${mapping?.location || row.channel} -> ${row.electronIpcRegistration} -> ${module}`,
       deletedOrDisabledLegacyPath: 'Electron business CoreRuntime and generic desktop:core-command removed'
     };
   });
