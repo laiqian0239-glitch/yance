@@ -4,9 +4,9 @@
   "requestedByUserAt": "2026-08-23T16:00:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-WIN-PKG-PREACTIVATION-DIAGNOSTIC-P0-V1",
-  "proposalRevision": 2,
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Failure-first diagnostic successor for frozen Product PR #615 after exact Product Final run 32615334130 / Windows job 97135022629 proved the exact packaged Yance.exe remains alive for the complete receipt observation window while no post-install receipt is produced. Source-order audit disproved the prior activation-adapter-deadline hypothesis before implementation and closed #685 unmerged. Initial --post-install startup awaits Letta and backend launch before createWindow/activateMainWindow, so the next required causal boundary is pre-activation startup. Existing production desktop.jsonl and Windows owner-identity debug logs contain the fail-closed reason but the Product Final workflow does not surface them on receipt timeout. Revision 2 adds the repository-required exact workflowModificationPolicy after Stage correctly rejected revision 1 as authorization proposal transport invalid. This diagnostic changes only the Product Final workflow to route one independent diagnostic branch and emit existing local logs/process evidence on failure; it changes no production bytes, timeout, readiness authority, dependency, routing policy, or Product #615 path.",
+  "reason": "Failure-first diagnostic successor for frozen Product PR #615 after exact Product Final run 32615334130 / Windows job 97135022629 proved the exact packaged Yance.exe remains alive for the complete receipt observation window while no post-install receipt is produced. Source-order audit disproved the prior activation-adapter-deadline hypothesis before implementation and closed #685 unmerged. Initial --post-install startup awaits Letta and backend launch before createWindow/activateMainWindow, so the next required causal boundary is pre-activation startup. Existing production desktop.jsonl and Windows owner-identity debug logs contain the fail-closed reason but the Product Final workflow does not surface them on receipt timeout. Revision 2 added the repository-required exact workflowModificationPolicy; revision 3 records the repository-required OSS-first fit evidence for the diagnostic-only use of existing repository logging and GitHub Actions/PowerShell seams. This diagnostic changes only the Product Final workflow to route one independent diagnostic branch and emit existing local logs/process evidence on failure; it changes no production bytes, timeout, readiness authority, dependency, routing policy, or Product #615 path.",
   "base": {
     "branch": "main",
     "commit": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
@@ -116,6 +116,35 @@
       "all mandatory governance / implementation-branch-policy gates GREEN"
     ],
     "postRed": "Use the surfaced reason code/event to create a new exact-path production prerequisite authorization. Do not mutate this diagnostic head into production."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DIAGNOSTIC_AND_CI_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance desktop and backend-owner diagnostic logs",
+        "source": "electron/main.js and electron/desktopHost/BackendOwnerRegistry.js existing desktop.jsonl and Windows debug-log seams",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The missing evidence already exists on disk in production-owned diagnostics; the narrow fix is to surface it from trusted CI instead of adding a new logger or telemetry subsystem."
+      },
+      {
+        "name": "GitHub Actions PowerShell runtime",
+        "source": "Existing v21 Product Final Windows workflow using PowerShell 7 on github-hosted windows-latest",
+        "license": "existing CI platform and PowerShell runtime",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The current workflow can read the exact repository-owned log files and process metadata on failure without any new dependency, package, native build, or user-machine prerequisite."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second diagnostic logging framework or telemetry service.",
+      "Do not add a new process-inspection dependency when PowerShell and existing repository logs already expose the required causal boundary.",
+      "Do not increase Product Final timeouts, weaken receipt semantics, or modify production code in this diagnostic batch."
+    ]
   },
   "mergePolicy": {
     "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
