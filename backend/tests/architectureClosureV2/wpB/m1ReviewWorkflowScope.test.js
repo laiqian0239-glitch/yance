@@ -22,6 +22,8 @@ const EXACT_M2_REVIEW_WORKFLOW = '.github/workflows/wp-b-m2-independent-review-i
 const EXACT_M2_REVIEW_VERIFIER = 'tools/architecture-closure-v2/verify-wp-b-m2-review.js';
 const EXACT_M3_AUTHORIZATION_WORKFLOW = '.github/workflows/wp-b-m3-authorization.yml';
 const EXACT_M3_POST_MERGE_WORKFLOW = '.github/workflows/wp-b-post-merge-validation.yml';
+const EXACT_M3_VERIFIER = 'tools/architecture-closure-v2/verify-wp-b-m3-authorization.js';
+const EXACT_M3_CONTRACT = 'backend/tests/architectureClosureV2/wpB/m3Authorization.test.js';
 
 function withDetachedWorktree(ref, callback) {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-m2-review-authority-'));
@@ -203,4 +205,67 @@ test('WP-B M2 review verifier preserves WP-B admission and fail-closed trusted d
       }), false);
     });
   });
+});
+
+test('WP-B M3 authorization shared-verifier route uses base-owned generic authority and preserves complete validation', () => {
+  const workflow = fs.readFileSync(path.join(__dirname, '../../../../', EXACT_M3_AUTHORIZATION_WORKFLOW), 'utf8');
+
+  assert.match(workflow, /- tools\/architecture-closure-v2\/verify-wp-b-m2-review\.js/u);
+  assert.match(workflow, /EVENT_NAME:\s*\$\{\{ github\.event_name \}\}/u);
+  assert.match(workflow, /PULL_REQUEST_BASE_SHA:\s*\$\{\{ github\.event\.pull_request\.base\.sha \}\}/u);
+  assert.match(workflow, /TRUSTED_POLICY_SHA/u);
+  assert.match(workflow, /TRUSTED_POLICY_ROOT/u);
+  assert.match(workflow, /shared\/release\/implementationBranchPolicy\.js/u);
+  assert.match(workflow, /shared\/release\/implementationBranchPolicyLegacy\.js/u);
+  assert.match(workflow, /release\/release-source\.json/u);
+  assert.match(workflow, /policy\.isAuthorizedImplementationBranch/u);
+  assert.match(workflow, /delegatedGovernance:\s*\{\s*trustedMainHead\s*,\s*evaluatedHead\s*\}/u);
+  assert.doesNotMatch(workflow, /isAuthorizedWpBImplementationBranch/u);
+  assert.match(workflow, /refs\/remotes\/origin\/\$\{IMPLEMENTATION_BRANCH\}/u);
+  assert.match(workflow, /GITHUB_ENV/u);
+  assert.match(workflow, /ubuntu-latest/u);
+  assert.match(workflow, /windows-latest/u);
+  assert.match(workflow, /backend\/tests\/architectureClosureV2\/wpB\/m3Authorization\.test\.js/u);
+  assert.match(workflow, /tests\/wp0\/acv2-work-package-scope-wiring\.test\.js/u);
+  assert.match(workflow, /tests\/wp0\/implementation-branch-policy\.test\.js/u);
+  assert.match(workflow, /verify-wp-b-m3-authorization\.js --remote/u);
+  assert.match(workflow, /git diff --check/u);
+});
+
+test('WP-B M3 verifier centralizes local and remote branch admission on exact trusted policy context', () => {
+  const verifierPath = path.join(__dirname, '../../../../', EXACT_M3_VERIFIER);
+  const source = fs.readFileSync(verifierPath, 'utf8');
+
+  assert.match(source, /function isAuthorizedM3ImplementationBranch\(currentBranch, options = \{\}\)/u);
+  assert.match(source, /isAuthorizedWpBImplementationBranch/u);
+  assert.match(source, /TRUSTED_POLICY_ROOT/u);
+  assert.match(source, /TRUSTED_POLICY_SHA/u);
+  assert.match(source, /VALIDATION_SHA/u);
+  assert.match(source, /shared\/release\/implementationBranchPolicy\.js/u);
+  assert.match(source, /shared\/release\/implementationBranchPolicyLegacy\.js/u);
+  assert.match(source, /release\/release-source\.json/u);
+  assert.match(source, /policy\.isAuthorizedImplementationBranch/u);
+  assert.match(source, /delegatedGovernance:\s*\{\s*trustedMainHead\s*,\s*evaluatedHead\s*\}/u);
+  assert.equal((source.match(/requireThat\(isAuthorizedM3ImplementationBranch\(currentBranch\)/gu) || []).length, 2,
+    'local and remote verification must share one branch-admission helper');
+  assert.match(source, /catch \(_\) \{\s*return false;\s*\}/u);
+  assert.match(source, /WP_B_M3_AUTHORIZATION_REMOTE_SUCCESSOR_PR_INVALID/u);
+  assert.match(source, /matches\[0\]\.draft === true/u);
+  assert.match(source, /matches\[0\]\.merged_at == null/u);
+  assert.match(source, /matches\[0\]\.head\?\.sha === currentHead/u);
+  assert.match(source, /module\.exports[\s\S]*isAuthorizedM3ImplementationBranch/u);
+});
+
+test('WP-B M3 permanent contracts require trusted delegated routing without retiring active WP-B authority', () => {
+  const contract = fs.readFileSync(path.join(__dirname, '../../../../', EXACT_M3_CONTRACT), 'utf8');
+
+  assert.match(contract, /M3-AUTH-008/u);
+  assert.match(contract, /M3-AUTH-009/u);
+  assert.match(contract, /TRUSTED_POLICY_SHA/u);
+  assert.match(contract, /isAuthorizedImplementationBranch/u);
+  assert.match(contract, /isAuthorizedM3ImplementationBranch/u);
+  assert.match(contract, /HISTORICAL_AUTHORITY_PRESERVED/u);
+  assert.doesNotMatch(contract,
+    /M3-AUTH-009:[^\n]*ACTIVE_AUTHORITY_REQUIRED/u,
+    'M3 verifier contract must no longer require direct-only branch admission');
 });
