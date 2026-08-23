@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T16:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WIN-PKG-PREACTIVATION-DIAGNOSTIC-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Failure-first diagnostic successor for frozen Product PR #615 after exact Product Final run 32615334130 / Windows job 97135022629 proved the exact packaged Yance.exe remains alive for the complete receipt observation window while no post-install receipt is produced. Source-order audit disproved the prior activation-adapter-deadline hypothesis before implementation and closed #685 unmerged. Initial --post-install startup awaits Letta and backend launch before createWindow/activateMainWindow, so the next required causal boundary is pre-activation startup. Existing production desktop.jsonl and Windows owner-identity debug logs contain the fail-closed reason but the Product Final workflow does not surface them on receipt timeout. This diagnostic changes only the Product Final workflow to route one independent diagnostic branch and emit existing local logs/process evidence on failure; it changes no production bytes, timeout, readiness authority, dependency, routing policy, or Product #615 path.",
+  "base": {
+    "branch": "main",
+    "commit": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-win-pkg-preactivation-diagnostic-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-win-pkg-preactivation-diagnostic-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "12cc27ab73fadad71c7aee1a90cbb16241c1b19c4aa0695597630e17c26d1601",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-win-pkg-preactivation-diagnostic-p0-v1",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322",
+    "productionCodeChanged": false,
+    "diagnosticOnly": true,
+    "workflowModificationAllowed": true,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "diagnosticContract": {
+    "failureFirst": true,
+    "freshCausalRedRequired": true,
+    "productionForbidden": true,
+    "candidateProductionBytesMustEqualEffectiveAuthorizationMerge": true,
+    "routeOnlyBranch": "fix/v21-win-pkg-preactivation-diagnostic-p0-v1",
+    "requiredFailureStep": "Launch exact packaged Yance against exact Element ModuleLoader path and require fresh PASS receipt",
+    "preserveReceiptObservationSeconds": 120,
+    "timeoutIncreaseForbidden": true,
+    "receiptSemanticsWeakeningForbidden": true,
+    "requiredOnFailureEvidence": [
+      "<YANCE_DATA_DIR>/logs/desktop.jsonl",
+      "<YANCE_DATA_DIR>/logs/server.jsonl when present",
+      "%APPDATA%/Yance/debug/windowsProcessIdentity_debug.jsonl when present",
+      "%APPDATA%/Yance/debug/backend-owner-registry-debug.jsonl when present",
+      "live Yance/backend process snapshot before cleanup"
+    ],
+    "sanitization": "Print only repository-owned runtime diagnostics and process metadata; do not print credential values, environment dumps, secret stores, tokens, or hashes derived from secrets."
+  },
+  "causalBoundary": {
+    "alreadyProven": [
+      "exact Product candidate identity was 90015565d5c3916dfc963ac2e0eff85800ca79c8",
+      "exact pinned Element materialization/module build/webapp build completed",
+      "exact packaged Yance.exe existed and remained alive through the external receipt observation loop",
+      "post-install-launch.json was never observed",
+      "initial post-install activation starts only after ensureLettaAgentRuntime().start(), launchBackend(), refreshTraySnapshot() and createWindow()",
+      "the closed-unmerged #685 activation-adapter timer hypothesis cannot explain initial startup"
+    ],
+    "toDiscriminate": [
+      "pre-activation startup fail-closed error blocked behind a GUI modal/error surface",
+      "Windows backend-owner process identity collection/registration failure or excessive pre-control-frame latency",
+      "backend startup/session lifecycle failure after owner registration",
+      "other pre-activation startup failure recorded by desktop.jsonl"
+    ],
+    "unknownBlockersBeforeFreshDiagnostic": 0,
+    "note": "The discriminator set is exhaustive for the observed no-receipt/process-alive boundary after the source-order audit; any newly observed unrelated failure makes unknownBlockers nonzero and forbids production."
+  },
+  "requiredValidation": {
+    "exactHeadCiRequired": true,
+    "formal": [
+      "Fresh Product Final run on the exact diagnostic head",
+      "frozen-element-reproducibility GREEN",
+      "materialized-matrix-uat GREEN",
+      "materialized-desktop-uat causal RED at the preserved packaged receipt boundary with newly surfaced pre-activation evidence",
+      "all mandatory governance / implementation-branch-policy gates GREEN"
+    ],
+    "postRed": "Use the surfaced reason code/event to create a new exact-path production prerequisite authorization. Do not mutate this diagnostic head into production."
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "diagnosticImplementationMerge": "FORBIDDEN_DIAGNOSTIC_EVIDENCE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequiredForAuthorization": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "candidatePreservation": {
+    "productPullRequest615MustRemainFrozen": true,
+    "productPullRequest615HeadMustRemain": "90015565d5c3916dfc963ac2e0eff85800ca79c8",
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true,
+    "rejectedDiagnosticPullRequest685MustRemainClosedUnmerged": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
