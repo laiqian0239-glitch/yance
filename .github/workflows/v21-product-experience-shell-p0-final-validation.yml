@@ -582,6 +582,18 @@ jobs:
           }
           if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'packaged launch validation must leave Product source clean' }
 
+      - name: Upload packaged startup diagnostics after Product Final RED
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Product-Experience-Packaged-Startup-Diagnostics-${{ github.event.pull_request.head.sha }}
+          path: |
+            ${{ runner.temp }}\product-uat-packaged-data\logs\desktop-bootstrap.jsonl
+            ${{ runner.temp }}\product-uat-packaged-data\logs\desktop.jsonl
+            ${{ runner.temp }}\product-uat-packaged-data\logs\server.jsonl
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Upload materialized desktop UAT
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
