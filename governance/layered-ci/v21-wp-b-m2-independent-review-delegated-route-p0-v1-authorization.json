@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T18:21:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP-B-M2-INDEPENDENT-REVIEW-DELEGATED-ROUTE-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen PR #701 exact production head f213ad7545d4e15bff5b034b0673324a9269aba3 is a legitimate delegated implementation and exact-head Stage is GREEN, but changing shared backend/server.js correctly triggers WP-B M2 Independent Review Integrity. That workflow then rejects the non-WP-B delegated branch before any review contract executes because its branch-establishment step hard-codes isAuthorizedWpBImplementationBranch(). The same owning-layer defect was already repaired in WP-B M2 Contracts by retaining shared-path triggers and full contract execution while reusing the trusted-main generic implementationBranchPolicy.isAuthorizedImplementationBranch() authority. This prerequisite authorizes the identical minimum pattern for the Independent Review workflow only; it does not alter #701 product code, remove server.js routing, skip review, widen WP-B authority, or weaken any review assertion.",
+  "base": {
+    "branch": "main",
+    "commit": "52f0b39d1f66e772e6a40771dc96450d94535eb6",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "52f0b39d1f66e772e6a40771dc96450d94535eb6",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp-b-m2-independent-review-delegated-route-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp-b-m2-independent-review-delegated-route-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ba399823d05b50feedb5c7d2628cc18fadd5fe5b1d893217290238ecfbb43f5f",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp-b-m2-independent-review-delegated-route-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/wp-b-m2-independent-review-integrity.yml",
+      "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "091d3fa6a1c9f181b02de10a1d1450b8ba8d800381d3761e7779301d3ef82c30",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "25c7d20c001d156b8bb147721af1d3e01e58f58e7d78261668fa14abc6e94a05",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The static WP-B workflow-scope contract must RED because WP-B M2 Independent Review Integrity still uses isAuthorizedWpBImplementationBranch for pull_request candidates on shared server paths instead of the trusted-main generic implementation authority.",
+        "No review assertion, WP-B authority, product runtime, dependency, routing-policy or unrelated WP0 failure is permitted."
+      ]
+    },
+    "productionRootFix": {
+      "productionAllowedChangedPaths": [
+        ".github/workflows/wp-b-m2-independent-review-integrity.yml"
+      ],
+      "requiredBehavior": [
+        "Preserve pull_request path routing including backend/server.js and preserve the push route for the active WP-B branch.",
+        "Preserve exact VALIDATION_SHA checkout, remote branch-head equality, Ubuntu/Windows matrix, independent source-bound integrity contracts, seal mutation/exact-delta contracts, complete Milestone 2 contracts, eighteen-scenario process matrix, local reviewed-head receipt, authenticated remote receipt and clean-workspace check.",
+        "For pull_request candidates, resolve the generic implementation authority only from the trusted base/main policy root and evaluate the exact candidate head and head branch; do not let candidate-owned policy self-authorize.",
+        "Reuse the same trusted-policy worktree and implementationBranchPolicy.isAuthorizedImplementationBranch pattern already landed in .github/workflows/wp-b-m2-red.yml.",
+        "Do not widen shared/release/acv2ActiveWorkPackageAuthority.js or isAuthorizedWpBImplementationBranch()."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/wp-b-m2-independent-review-integrity.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "756e8cb9c90b874c01aea17801edb8f32387f149937b52f7e4a74e327c193972"
+    },
+    "routingPolicyModificationAllowed": false,
+    "sharedImplementationBranchPolicyModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageOrLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureEvidence": {
+    "frozenImplementationPullRequest": 701,
+    "frozenImplementationHead": "f213ad7545d4e15bff5b034b0673324a9269aba3",
+    "triggeringChangedPath": "backend/server.js",
+    "productStageRun": 32636984986,
+    "productStageConclusion": "success",
+    "wpBM2IndependentReviewRun": 32636984964,
+    "ubuntuJob": 97188120559,
+    "windowsJob": 97188120615,
+    "failedStep": "Establish exact trusted implementation branch",
+    "failureCode": "WP_B_ACTIVE_IMPLEMENTATION_BRANCH_UNAUTHORIZED",
+    "reviewContractsExecuted": false,
+    "rootCause": "The workflow correctly routes on shared backend/server.js but uses a WP-B-specific implementation branch authority before executing review contracts, making every legitimate non-WP-B delegated shared-server PR fail by construction."
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "shared backend/server.js review routing",
+        "classification": "PRESERVE",
+        "evidence": "The workflow path filter correctly includes backend/server.js because shared runtime changes must receive the M2 independent-review matrix.",
+        "requiredClosure": "Do not remove or narrow the shared path trigger."
+      },
+      {
+        "boundary": "pull-request branch authority selector",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Run 32636984964 checks out exact #701 head successfully, then both platforms fail only isAuthorizedWpBImplementationBranch() before all review contracts.",
+        "requiredClosure": "Use the existing trusted-base generic implementationBranchPolicy authority exactly as WP-B M2 Contracts already does."
+      },
+      {
+        "boundary": "WP-B-specific branch authority",
+        "classification": "PRESERVE",
+        "evidence": "isAuthorizedWpBImplementationBranch intentionally names the active WP-B authority and must not be widened for unrelated delegated work packages.",
+        "requiredClosure": "No shared authority mutation or special-case #701 branch allowlist."
+      },
+      {
+        "boundary": "M2 independent review matrix and receipts",
+        "classification": "PRESERVE",
+        "evidence": "All substantive review steps were skipped only because branch establishment failed.",
+        "requiredClosure": "After branch admission, execute every existing Ubuntu/Windows review, seal, M2 contract, process matrix and receipt step unchanged."
+      },
+      {
+        "boundary": "frozen #701 product bytes",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+        "evidence": "#701 exact production Stage 32636984986 is GREEN; route failure occurs before any WP-B review test executes.",
+        "requiredClosure": "Do not mutate #701 while prerequisite lands; preserve exact head f213ad7545d4e15bff5b034b0673324a9269aba3."
+      }
+    ],
+    "negativeProofs": [
+      "No backend/server.js or other Product runtime modification in this prerequisite.",
+      "No removal/narrowing of workflow path triggers, no workflow-level skip and no review-matrix weakening.",
+      "No widening of WP-B branch authority, wildcard branch family or candidate-owned policy evaluation.",
+      "No dependency, package, lockfile, routing-policy, scanner, release or #615/#538 change."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2IndependentReviewIntegrity.test.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js"
+    ],
+    "formal": [
+      "Stage 6.4.5.9 WP0 Architecture Gates GREEN on exact implementation head",
+      "WP-B M2 Independent Review Integrity GREEN on both Ubuntu and Windows when triggered",
+      "WP-B M2 Contracts GREEN when triggered",
+      "Layered CI GREEN when routed",
+      "ACV2 WP-A Architecture Gates GREEN when routed",
+      "independent review P0=0/P1=0 with zero unresolved threads"
+    ],
+    "exactHeadCiRequired": true,
+    "postMergeProof": "After this prerequisite ordinary-merges, continue frozen #701 from fresh trusted main according to delegated forward-continuation policy without rewriting its preserved RED or production evidence; then require all routed exact-head gates before #701 ordinary merge."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TRUSTED_MAIN_GENERIC_BRANCH_AUTHORITY_PATTERN",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP-B M2 Contracts trusted-policy branch admission",
+        "source": ".github/workflows/wp-b-m2-red.yml",
+        "license": "repository-existing/GitHub Actions hosted CI",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already solves the identical shared-path delegated-branch problem with a base-owned policy worktree, exact head/ref equality and generic implementationBranchPolicy authority."
+      },
+      {
+        "name": "Existing generic implementationBranchPolicy",
+        "source": "shared/release/implementationBranchPolicy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It composes trusted delegated governance, canonical Stage, OSS and active WP-B authority without widening the WP-B-specific branch helper."
+      },
+      {
+        "name": "Existing WP-B workflow scope contract",
+        "source": "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already owns M2 workflow path/authority invariants and is the minimum failure-first companion."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not remove backend/server.js from WP-B independent-review routing.",
+      "Do not widen isAuthorizedWpBImplementationBranch or hard-code #701 as an exception.",
+      "Do not skip any review, seal, contract, process matrix or receipt step.",
+      "Do not create a second router/workflow or duplicate generic branch-policy implementation."
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "requiredMergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "amendForbidden": true,
+    "forcePushForbidden": true,
+    "historyRewriteForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "candidatePreservation": {
+    "productPullRequest701MustRemainFrozen": true,
+    "productPullRequest701HeadMustRemain": "f213ad7545d4e15bff5b034b0673324a9269aba3",
+    "productPullRequest615MustRemainFrozen": true,
+    "frozenPullRequest699MustRemainUntouched": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  }
+}
