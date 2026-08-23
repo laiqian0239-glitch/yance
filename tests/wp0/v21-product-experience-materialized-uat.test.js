@@ -471,3 +471,36 @@ test('materialized UAT GREEN is receipt-bound and fails if packaged Yance exits 
   const greenIndex = runner.indexOf('Write-Host "GREEN: verified same-identity materialized UAT candidate');
   assert.ok(receiptIndex >= 0 && greenIndex > receiptIndex, 'GREEN evidence must be emitted only after receipt validation');
 });
+
+test('Product Final preserves packaged startup diagnostics after a failing receipt-bound launch', () => {
+  const source = read(WORKFLOW);
+  const materializedStart = source.indexOf('  materialized-desktop-uat:');
+  const matrixStart = source.indexOf('  materialized-matrix-uat:', materializedStart);
+  assert.ok(materializedStart >= 0 && matrixStart > materializedStart, 'materialized desktop Product Final job must exist');
+  const materializedBlock = source.slice(materializedStart, matrixStart);
+
+  const launchMarker = '      - name: Launch exact packaged Yance against exact Element ModuleLoader path and require fresh PASS receipt';
+  const normalUploadMarker = '      - name: Upload materialized desktop UAT';
+  const launchStart = materializedBlock.indexOf(launchMarker);
+  const normalUploadStart = materializedBlock.indexOf(normalUploadMarker, launchStart + launchMarker.length);
+  assert.ok(launchStart >= 0 && normalUploadStart > launchStart, 'receipt-bound packaged launch and normal desktop upload steps must remain ordered');
+
+  const postLaunch = materializedBlock.slice(launchStart + launchMarker.length, normalUploadStart);
+  const pinnedUpload = /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/gu;
+  const diagnosticUploads = postLaunch.match(pinnedUpload) || [];
+  assert.equal(diagnosticUploads.length, 1, 'causal RED: Product Final must add exactly one pinned diagnostic upload after the receipt-bound launch so startup logs survive launch failure');
+
+  const diagnosticUploadIndex = postLaunch.indexOf('actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02');
+  const diagnosticStepStart = postLaunch.lastIndexOf('      - name:', diagnosticUploadIndex);
+  assert.ok(diagnosticStepStart >= 0, 'diagnostic upload must be an independent post-launch step');
+  const diagnosticStep = postLaunch.slice(diagnosticStepStart);
+
+  assert.match(diagnosticStep, /if:\s*\$\{\{\s*always\(\)\s*\}\}/u, 'diagnostic upload must execute after a failing packaged launch');
+  assert.match(diagnosticStep, /uses:\s*actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/u);
+  assert.match(diagnosticStep, /\$\{\{\s*runner\.temp\s*\}\}[\\/]product-uat-packaged-data[\\/]logs[\\/]desktop-bootstrap\.jsonl/u);
+  assert.match(diagnosticStep, /\$\{\{\s*runner\.temp\s*\}\}[\\/]product-uat-packaged-data[\\/]logs[\\/]desktop\.jsonl/u);
+  assert.match(diagnosticStep, /\$\{\{\s*runner\.temp\s*\}\}[\\/]product-uat-packaged-data[\\/]logs[\\/]server\.jsonl/u);
+  assert.equal((diagnosticStep.match(/\.jsonl/gu) || []).length, 3, 'diagnostic artifact must preserve exactly the three authorized internal logs');
+  assert.match(diagnosticStep, /if-no-files-found:\s*warn/u, 'diagnostic upload must tolerate logs that do not yet exist');
+  assert.doesNotMatch(diagnosticStep, /post-install-launch\.json|product-experience-materialized-desktop-uat[\\/]\*\*/u, 'diagnostic artifact must not become a readiness receipt or broad payload authority');
+});
