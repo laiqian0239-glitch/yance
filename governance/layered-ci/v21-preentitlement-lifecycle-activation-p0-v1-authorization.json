@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T00:08:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PREENTITLEMENT-LIFECYCLE-ACTIVATION-P0-V1",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing causal prerequisite for frozen Product PR #615 after exact-head Product Final run 32650900956, Windows job 97222220683 step 15. Exact packaged Yance at 44d7263ebae76dc5a65f266c7cc848a11599b3dc starts the pinned release identity and backend, establishes the fresh TESTER owner/bootstrap projection, then never creates the BrowserWindow/Element ModuleLoader activation receipt before the 120-second deadline. Complete same-root startup audit identifies two already-visible pre-window human-entitlement consumers in electron/main.js: (1) finalizeTrustedBackendReady synchronously awaits routeDesktopLifecycleViaApiV2(net.isOnline/offline), which invokes RuntimeProjectionCoordinator.setNetwork -> entitled /api/app/v2/commands; (2) the startup flow synchronously awaits refreshTraySnapshot immediately before createWindow, while that function awaits accounts/notifications/models/core API reads behind Personal Access through the generic apiRequest transport. Later lifecycle observation already has the non-blocking observeLifecycle seam and later tray refresh already has scheduleTrayRefresh. This prerequisite strengthens the existing pre-entitlement bootstrap contract first, then atomically removes both startup-only entitlement waits while preserving local owner security, Product entitlement, steady-state Runtime API v2 authority, tray/lifecycle observers and all #615 bytes.",
+  "base": {
+    "branch": "main",
+    "commit": "d70898f930b797d7eafbc936963d455bd40cbfd5",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "d70898f930b797d7eafbc936963d455bd40cbfd5",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-preentitlement-lifecycle-activation-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-preentitlement-lifecycle-activation-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e1f383aebf555f44e0989d2ff1e30107d651c1f27425bf44184cb4afbee2cc54",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-preentitlement-lifecycle-activation-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "electron/main.js",
+      "tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "efeef916f41ce0f69be210b1a7c860229f208b215910b4977c64227538d82c61",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "cfab2f1d33cd37092367bb18d52f9000b876c676f79fa24e373c156245281d4c",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing owner workflow run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The strengthened pre-entitlement bootstrap contract must RED because finalizeTrustedBackendReady still synchronously awaits the entitled initial runtime.setNetwork lifecycle mutation instead of using the existing non-blocking lifecycle observer.",
+        "The same diagnostic must RED because startup still awaits refreshTraySnapshot before createWindow, and that snapshot consumes human-entitled Product API reads instead of the existing non-blocking tray refresh scheduler.",
+        "No unrelated Stage, Product implementation, dependency, routing, owner-security or policy failure is permitted."
+      ]
+    },
+    "productionRootFix": {
+      "productionAllowedChangedPaths": [
+        "electron/main.js"
+      ],
+      "approvedProductionPathCount": 1,
+      "approvedProductionPathSetSha256": "43ce975bc84933badefa45876797e6f3825ca8b1f65367d9fe6cd7d179e1f598",
+      "atomicCommitRequired": true,
+      "requiredBehavior": [
+        "After the trusted bootstrap projection is bound, initial network lifecycle observation must use the existing non-blocking lifecycle observer and must not synchronously block Desktop window/Element ModuleLoader activation on human Product entitlement.",
+        "Startup must not await the Product tray snapshot before createWindow; preserve tray refresh through the existing non-blocking scheduler/observer seam.",
+        "Preserve /api/app/v2 and all Product API reads behind Personal Access; do not move runtime mutation or tray read authority to a pre-entitlement backend route.",
+        "Preserve later online/offline/suspend/resume observation through the existing RuntimeProjectionCoordinator/API v2 seam, preserve later tray refresh behavior, and preserve real error logging.",
+        "Preserve post-install PASS as a visible Desktop READY/Element activation verdict; do not weaken, bypass, lengthen or fabricate the receipt.",
+        "Do not modify #615 Product paths, workflows, guards, backend routes, dependencies, package/lock files or release identity."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "personalAccessGuardModificationAllowed": false,
+    "backendRouteModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageOrLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureEvidence": {
+    "frozenPullRequest": 615,
+    "frozenHead": "44d7263ebae76dc5a65f266c7cc848a11599b3dc",
+    "workflow": "V21 Product Experience Shell P0 Final Validation",
+    "run": 32650900956,
+    "job": 97222220683,
+    "failedStep": "Launch exact packaged Yance against exact Element ModuleLoader path and require fresh PASS receipt",
+    "receiptDeadlineSeconds": 120,
+    "observedReleaseIdentityExact": true,
+    "packagedBackendReady": true,
+    "runtimeProjectionValidated": true,
+    "freshPostInstallPassReceipt": false,
+    "diagnosticLastDesktopState": "START_BACKEND NEW_OWNER_READY -> IDLE/coordinator-idle; no later BrowserWindow/Element activation receipt event",
+    "rootCause": "Trusted owner/bootstrap now succeeds. Before BrowserWindow creation, electron/main.js still has two synchronous Product-entitlement dependencies: the initial Runtime API v2 network mutation and the initial Product tray snapshot. Both already have repository-existing non-blocking observation/scheduling seams used later. Those two startup awaits explain why a fresh TESTER can reach NEW_OWNER_READY yet never reach Element activation/PASS."
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "Exact packaged release/backend/bootstrap",
+        "classification": "PRESERVE",
+        "evidence": "Run 32650900956 diagnostics show exact head release identity, packaged backend ready, NEW_OWNER_READY and runtimeProjectionValidated=true.",
+        "requiredClosure": "No backend startup/identity/bootstrap changes."
+      },
+      {
+        "boundary": "Startup initial network lifecycle mutation",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "electron/main.js finalizeTrustedBackendReady synchronously awaits routeDesktopLifecycleViaApiV2(net.isOnline/offline); route invokes RuntimeProjectionCoordinator.setNetwork, whose client transport is /api/app/v2/commands behind Personal Access.",
+        "requiredClosure": "Use the repository-existing non-blocking lifecycle observer so this entitled mutation cannot gate window activation."
+      },
+      {
+        "boundary": "Startup tray snapshot before createWindow",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "The startup flow executes await refreshTraySnapshot() immediately before createWindow(); refreshTraySnapshot awaits accounts, notifications, models and core Product API reads through generic apiRequest, while Personal Access intentionally gates remaining /api routes.",
+        "requiredClosure": "Do not await Product tray reads before BrowserWindow creation; preserve them through the existing non-blocking tray refresh seam."
+      },
+      {
+        "boundary": "Later online/offline/suspend/resume observers",
+        "classification": "PRESERVE",
+        "evidence": "observeLifecycle already calls routeDesktopLifecycleViaApiV2 asynchronously and catches/logs errors, so later lifecycle events do not block initial window activation.",
+        "requiredClosure": "Preserve existing observer routing and failure logging."
+      },
+      {
+        "boundary": "Desktop smoke lifecycle route",
+        "classification": "PRESERVE",
+        "evidence": "desktop smoke explicitly exercises offline/online after Desktop/runtime availability and is not the pre-window launch dependency.",
+        "requiredClosure": "Preserve smoke semantics."
+      },
+      {
+        "boundary": "Product entitlement and /api/app/v2 guard",
+        "classification": "NEGATIVE_PROOF",
+        "evidence": "Merged bootstrap contract requires /api/app/v2 to remain behind createPersonalAccessGuard; fresh TESTER permission UI must remain reachable while Product children stay blocked.",
+        "requiredClosure": "No guard or backend route widening."
+      },
+      {
+        "boundary": "#615 eight Product paths",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+        "evidence": "#615 exact head already passes every routed gate except packaged Product Final step 15; diagnostic stops before BrowserWindow/Element activation and the blocking awaits are electron/main.js outside its scope.",
+        "requiredClosure": "Freeze #615 at 44d7263... until prerequisite ordinary-merges, then append-only fresh-main reconcile preserving exact eight-path diff."
+      }
+    ],
+    "negativeProofs": [
+      "No workflow, routing-policy, Personal Access guard, backend route, dependency, package, lockfile, database or Product renderer modification.",
+      "No receipt weakening, warning-only closure, timeout increase or fabricated PASS.",
+      "No squash, rebase, amend, force-push or history rewrite.",
+      "PR #538 remains untouched."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-control-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/personalAccessControlP0.test.js",
+      "node --test --test-concurrency=1 tests/wp6/electron-api-v2-only.test.js",
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "formal": [
+      "Stage 6.4.5.9 WP0 Architecture Gates GREEN on exact implementation head",
+      "Layered CI and ACV2 WP-A Architecture Gates GREEN when routed",
+      "V21 Model Brain P0 Windows GREEN when routed",
+      "WP-B review/contracts GREEN when routed",
+      "independent review P0=0/P1=0 and zero unresolved threads"
+    ],
+    "exactHeadCiRequired": true,
+    "postMergeProof": "After ordinary merge, append-only reconcile frozen #615 to fresh main while preserving its exact original eight-path net diff, then rerun all real Product Final jobs and require the Windows exact packaged Element ModuleLoader fresh PASS receipt before #615 ordinary merge."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DESKTOP_LIFECYCLE_OBSERVER_AND_RUNTIME_API_V2_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing observeLifecycle non-blocking wrapper",
+        "source": "electron/main.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing wrapper already preserves Runtime API v2 routing and logs failures without synchronously blocking Electron activation."
+      },
+      {
+        "name": "Existing Personal Access and Runtime API v2 authority",
+        "source": "backend/middleware/personalAccessGuard.js + electron/desktopHost/RuntimeProjectionCoordinator.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The fix must preserve these authorities rather than create a pre-entitlement mutation bypass."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second lifecycle router, pre-entitlement mutation endpoint, retry framework or arbitrary bypass.",
+      "Do not alter Product Final timeout or receipt verdict."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "tests-only fresh causal RED",
+      "single electron/main.js production root",
+      "Product entitlement remains fail-closed",
+      "packaged activation no longer waits on human-entitled lifecycle mutation"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "candidatePreservation": {
+    "pullRequest615MustRemainFrozen": true,
+    "pullRequest615ExactHead": "44d7263ebae76dc5a65f266c7cc848a11599b3dc",
+    "pullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
