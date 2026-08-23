@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T02:44:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELECTRON-SUPPORTED-RUNTIME-P0",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Same-work-package post-RED production amendment. Fresh exact-head diagnostics on PR #720 closed the Electron supported-runtime Closure Matrix: Stage run 32662426611 at 86da6cbabda271c81558a2a59c36e480c04ce069 produced only the six authorized Electron causal failures while every unrelated WP0 file stayed green. The active root is the package/lock identity, official distribution trust, three active workflows, Windows preview/assisted/runtime identity helpers, WP7 blocker generation, runtime-delivery trust contracts, dependency seed authority, and the exact L2 risk contract. Historical 39.8.5 reports, older authorizations, Fix6O evidence, the synthetic WP7 pre-review fixture, and the retired vendor/electron source-custody absence proof remain evidence and are not rewritten. The reviewed target is official Electron 43.4.1. The successor may update only the exact active roots and exact npm seed tarballs listed here, inheriting rather than recreating the frozen failure-first evidence.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-electron-supported-runtime-p0-authorization.json",
+    "implementationBranch": "fix/v21-electron-supported-runtime-p0",
+    "reason": "Supersede the diagnostic-only implementation authority after frozen fresh causal RED 86da6cbabda271c81558a2a59c36e480c04ce069 proved the exact production root. PR #720 and both diagnostic heads remain immutable evidence."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "66f4eb17114a119c7b5e5983654c01f99632fa2d",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "66f4eb17114a119c7b5e5983654c01f99632fa2d",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-electron-supported-runtime-p0-production-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-electron-supported-runtime-p0-production-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8c6ddde2d68082d3498a95321440985fd26c319ebbc58c50a14489efa54f0ad7",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-electron-supported-runtime-p0-production-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "86da6cbabda271c81558a2a59c36e480c04ce069"
+    },
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      ".github/workflows/windows-production-release.yml",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "governance/layered-ci/risk-policy.json",
+      "package-lock.json",
+      "package.json",
+      "release/electron-distribution-trust.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/runtime-delivery/source-uat-delivery.test.js",
+      "tests/wp0/v21-electron-supported-runtime-p0.test.js",
+      "tools/release-closure/RUN_WINDOWS_ASSISTED_PIPELINE.ps1",
+      "tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1",
+      "tools/windows/VERIFY_RUNTIME_IDENTITY.ps1",
+      "tools/wp7/generate-trusted-product-probe-blocker.js",
+      "vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz",
+      "vendor/npm/_at_electron__get-5.0.0.tgz",
+      "vendor/npm/_at_types__node-24.10.13.tgz",
+      "vendor/npm/electron-43.4.1.tgz",
+      "vendor/npm/env-paths-3.0.0.tgz",
+      "vendor/npm/undici-7.25.0.tgz",
+      "vendor/npm/undici-types-7.16.0.tgz"
+    ],
+    "approvedChangedFileCount": 24,
+    "approvedChangedFileSetSha256": "e323647c839af2f9d6ea2e255ea0ac198f5328c1a0e0aeb70ff066bd4382d009",
+    "newlyAuthorizedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      ".github/workflows/windows-production-release.yml",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "governance/layered-ci/risk-policy.json",
+      "package-lock.json",
+      "package.json",
+      "release/electron-distribution-trust.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/runtime-delivery/source-uat-delivery.test.js",
+      "tools/release-closure/RUN_WINDOWS_ASSISTED_PIPELINE.ps1",
+      "tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1",
+      "tools/windows/VERIFY_RUNTIME_IDENTITY.ps1",
+      "tools/wp7/generate-trusted-product-probe-blocker.js",
+      "vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz",
+      "vendor/npm/_at_electron__get-5.0.0.tgz",
+      "vendor/npm/_at_types__node-24.10.13.tgz",
+      "vendor/npm/electron-43.4.1.tgz",
+      "vendor/npm/env-paths-3.0.0.tgz",
+      "vendor/npm/undici-7.25.0.tgz",
+      "vendor/npm/undici-types-7.16.0.tgz"
+    ],
+    "newlyAuthorizedChangedFileCount": 23,
+    "newlyAuthorizedChangedFileSetSha256": "516939737dda0b5e0918018347062608159c66213e1e386d43e2b2420aba1fb2",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "newDependencyAllowed": true,
+    "workflowModificationAllowed": true,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": true,
+    "lockfileModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 720,
+    "branch": "fix/v21-electron-supported-runtime-p0",
+    "frozenHead": "86da6cbabda271c81558a2a59c36e480c04ce069",
+    "effectiveAuthorizationMerge": "66f4eb17114a119c7b5e5983654c01f99632fa2d",
+    "stageRun": 32662426611,
+    "stageJob": 97250543431,
+    "stageConclusion": "failure",
+    "result": "648 tests / 642 pass / 6 fail; all six failures are authorized Electron supported-runtime assertions in tests/wp0/v21-electron-supported-runtime-p0.test.js; every unrelated WP0 file is green",
+    "provenNewScopePaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      ".github/workflows/windows-production-release.yml",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "governance/layered-ci/risk-policy.json",
+      "package-lock.json",
+      "package.json",
+      "release/electron-distribution-trust.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/runtime-delivery/source-uat-delivery.test.js",
+      "tools/release-closure/RUN_WINDOWS_ASSISTED_PIPELINE.ps1",
+      "tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1",
+      "tools/windows/VERIFY_RUNTIME_IDENTITY.ps1",
+      "tools/wp7/generate-trusted-product-probe-blocker.js",
+      "vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz",
+      "vendor/npm/_at_electron__get-5.0.0.tgz",
+      "vendor/npm/_at_types__node-24.10.13.tgz",
+      "vendor/npm/electron-43.4.1.tgz",
+      "vendor/npm/env-paths-3.0.0.tgz",
+      "vendor/npm/undici-7.25.0.tgz",
+      "vendor/npm/undici-types-7.16.0.tgz"
+    ],
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "86da6cbabda271c81558a2a59c36e480c04ce069",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true
+  },
+  "causalRedClassification": {
+    "rootCause": "Trusted production authority still converges on EOL electron@39.8.5 across package/lock, official distribution trust, active release/UAT workflows, Windows runtime identity helpers and trusted dependency cache seeds. The refined exact-head diagnostic also proves the new npm tarball custody path must be exact L2 while existing vendor/ Product routing is already sufficient.",
+    "requiredOwningLayerChange": "Migrate the exact active authority graph to official Electron 43.4.1 and its actual npm dependency graph, bind official release archive SHA-256/asset metadata, refresh exact trusted npm seed custody, and update only contracts that actively verify those identities. Preserve historical/synthetic 39.8.5 evidence and the retired source-archive absence proof.",
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementation": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      ".github/workflows/windows-production-release.yml",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "governance/layered-ci/risk-policy.json",
+      "package-lock.json",
+      "package.json",
+      "release/electron-distribution-trust.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/runtime-delivery/source-uat-delivery.test.js",
+      "tools/release-closure/RUN_WINDOWS_ASSISTED_PIPELINE.ps1",
+      "tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1",
+      "tools/windows/VERIFY_RUNTIME_IDENTITY.ps1",
+      "tools/wp7/generate-trusted-product-probe-blocker.js"
+    ],
+    "exactNpmSeedInputs": [
+      "vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz",
+      "vendor/npm/_at_electron__get-5.0.0.tgz",
+      "vendor/npm/_at_types__node-24.10.13.tgz",
+      "vendor/npm/electron-43.4.1.tgz",
+      "vendor/npm/env-paths-3.0.0.tgz",
+      "vendor/npm/undici-7.25.0.tgz",
+      "vendor/npm/undici-types-7.16.0.tgz"
+    ],
+    "preserve": [
+      "PR #720 frozen diagnostic history and RED heads remain immutable evidence",
+      "Stage retired source-custody absence proof for vendor/electron/electron-v39.8.5-win32-x64.zip",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js retired ELECTRON_ARCHIVE path as negative proof while active trust assertions migrate",
+      "tests/wp7/pre-review-evidence-package.test.js synthetic electronVersion 39.8.5 fixture",
+      "tests/layered-ci/wp0-routing.test.js and existing risk negative proof for the retired vendor/electron archive",
+      "historical reports, plans, older authorization documents and Fix6O evidence",
+      "official Electron Release provenance, SHA-256 verification, fail-closed package/lock/trust agreement and existing Product routing"
+    ],
+    "negativeProof": [
+      "No wp0-routing-policy.json change: existing vendor/ Product prefix already owns the exact npm seed paths.",
+      "No reintroduction of vendor/electron Electron Release ZIP source custody.",
+      "No alternate Electron mirror, source rebuild, unsigned archive, checksum weakening, continue-on-error or release-gate bypass.",
+      "No modification of historical reports, older authorizations, Fix6O evidence, PR #720 history or unrelated Product candidate history.",
+      "No force push, rebase, amend, squash merge, cherry-pick or history rewrite."
+    ]
+  },
+  "electronTarget": {
+    "version": "43.4.1",
+    "npm": {
+      "resolved": "https://registry.npmjs.org/electron/-/electron-43.4.1.tgz",
+      "integrity": "sha512-5b+EuiwkgG5iRcsEL34rimgRpkYp15SsfZOa0pC5kXs0Tb82TH4n95rpQzTZa7yRCbA7tm0WoEbuBL6NaAhAcA==",
+      "directDependencies": {
+        "@electron-internal/extract-zip": "^1.0.1",
+        "@electron/get": "^5.0.0",
+        "@types/node": "^24.9.0"
+      },
+      "reviewedResolvedGraph": {
+        "@electron-internal/extract-zip": "1.0.3",
+        "@electron/get": "5.0.0",
+        "@types/node": "24.10.13",
+        "env-paths": "3.0.0",
+        "undici": "7.25.0",
+        "undici-types": "7.16.0"
+      }
+    },
+    "officialRelease": {
+      "repository": "electron/electron",
+      "releaseTag": "v43.4.1",
+      "win32-x64": {
+        "fileName": "electron-v43.4.1-win32-x64.zip",
+        "downloadUrl": "https://github.com/electron/electron/releases/download/v43.4.1/electron-v43.4.1-win32-x64.zip",
+        "sha256": "c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a",
+        "assetId": "MUST_BE_READ_FROM_OFFICIAL_GITHUB_RELEASE_API_BEFORE_PRODUCTION_COMMIT",
+        "sizeBytes": "MUST_BE_READ_FROM_OFFICIAL_GITHUB_RELEASE_API_BEFORE_PRODUCTION_COMMIT"
+      },
+      "linux-x64": {
+        "fileName": "electron-v43.4.1-linux-x64.zip",
+        "downloadUrl": "https://github.com/electron/electron/releases/download/v43.4.1/electron-v43.4.1-linux-x64.zip",
+        "sha256": "79d4efd69f0ccf1fc11891ea5075329c7b3faddad79a08d9fb395bbd63169acf"
+      }
+    }
+  },
+  "dependencySeedContract": {
+    "exactAddedOrReplacedArchives": [
+      "vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz",
+      "vendor/npm/_at_electron__get-5.0.0.tgz",
+      "vendor/npm/_at_types__node-24.10.13.tgz",
+      "vendor/npm/electron-43.4.1.tgz",
+      "vendor/npm/env-paths-3.0.0.tgz",
+      "vendor/npm/undici-7.25.0.tgz",
+      "vendor/npm/undici-types-7.16.0.tgz"
+    ],
+    "policyAndBatchManifestMustMatchFinalLock": true,
+    "eachSeedMustMatchFinalLockVersionResolvedAndIntegrity": true,
+    "eachSeedArchiveSha256AndNpmIntegrityMustBeVerified": true,
+    "oldUnreferencedSeedArchivesMayRemainUnmodifiedAsHistoricalCacheEvidence": true,
+    "noBroadVendorCustodyExpansion": true
+  },
+  "ossFit": {
+    "decision": "USE_OFFICIAL_ELECTRON_43_4_1_AND_EXISTING_YANCE_TRUST_PIPELINE",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "reviewedCandidates": [
+      {
+        "name": "Electron 43.4.1",
+        "source": "electron/electron official stable release and npm package",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Fresh causal diagnostics proved the Yance migration root and no repository-specific replacement runtime is needed."
+      },
+      {
+        "name": "Existing Yance Electron distribution and dependency trust pipeline",
+        "source": "release/electron-distribution-trust.json + dependency-install authority + current Windows/Product gates",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Existing fail-closed checksum, lock, npm-integrity and packaged-runtime verification seams should be updated, not replaced."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not keep Electron 39 as active authority.",
+      "Do not add an alternate mirror, custom downloader, source rebuild or second Electron trust authority.",
+      "Do not weaken official Release SHA-256, npm integrity, package metadata or packaged runtime identity verification.",
+      "Do not rewrite historical evidence merely to replace old version text."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-electron-supported-runtime-p0.test.js",
+      "node --test tests/runtime-delivery/electron-archive-tracking-authority.test.js tests/runtime-delivery/source-uat-delivery.test.js",
+      "node --test tests/layered-ci/governance-policy.test.js"
+    ],
+    "negativeProofs": [
+      "Exact final diff equals the 24-path authorization set and no routing-policy or historical-evidence path is changed.",
+      "Final lock resolves electron@43.4.1 and the reviewed supported Electron graph; policy and batch-manifest seeds exactly match their final lock entries and local tarballs.",
+      "Official win32-x64 Electron 43.4.1 Release URL, SHA-256, exact GitHub asset id and exact byte size are independently read and bound before the production commit.",
+      "All active Stage/Product Final/Windows release/preview/assisted/runtime identity consumers bind 43.4.1 while the retired vendor/electron 39.8.5 absence proof remains intact.",
+      "No alternate mirror, source rebuild, routing expansion, gate weakening, database/schema change or unrelated release closure mutation."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Validation when routed",
+      "V21 Model validation when routed",
+      "Product Final when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "alternateElectronMirror": true,
+    "electronSourceRebuild": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
