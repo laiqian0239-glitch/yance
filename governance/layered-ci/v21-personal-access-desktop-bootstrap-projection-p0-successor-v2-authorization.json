@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T17:49:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PERSONAL-ACCESS-DESKTOP-BOOTSTRAP-P0-SUCCESSOR-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Restart the pre-entitlement DesktopHost bootstrap projection causal closure from fresh trusted main after frozen PR #699 violated immutable Fast Closure V2 diagnostic topology. No production code was committed. The successor does not inherit the poisoned ancestry and requires the complete corrected same-root diagnostic graph in one new first tests-only commit before one cohesive production batch.",
+  "base": {
+    "branch": "main",
+    "commit": "4f9bc42ad0686cc0ea44766c15ef7e54c8b99498",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "4f9bc42ad0686cc0ea44766c15ef7e54c8b99498",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-personal-access-desktop-bootstrap-projection-p0-v1-authorization.json",
+    "implementationBranch": "fix/v21-personal-access-desktop-bootstrap-projection-p0-v1",
+    "reason": "Freeze PR #699 at 0786ae9120142fd0fa27dfe1b5ac86d264f082a2. Its second diagnostic commit omitted the previous RED evidence trailers and must not be amended, rebased, force-pushed, merged, or inherited."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-personal-access-desktop-bootstrap-projection-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-personal-access-desktop-bootstrap-projection-p0-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "3a7a80ddc1666e64c348845452db0584b6b4ffeda36e210a5884be0a8a9d07a3",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-personal-access-desktop-bootstrap-projection-p0-successor-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "electron/desktopHost/ApiV2RuntimeClient.js",
+      "electron/desktopHost/RuntimeProjectionCoordinator.js",
+      "tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "7ccb512418f84846592941ff5a5a5f05028321219cc26d0eaad07f25305d3ee5",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "cfab2f1d33cd37092367bb18d52f9000b876c676f79fa24e373c156245281d4c",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "Missing local-control bootstrap runtime snapshot endpoint and client method.",
+        "Candidate and trusted-owner baseline still consume the human-entitlement product snapshot.",
+        "Pre-entitlement event polling lacks a bounded WAITING_FOR_PRODUCT_ENTITLEMENT backoff state while retaining trusted owner baseline.",
+        "No implementation-policy, routing, dependency, activation, personal-access UI, or unrelated WP0 failure is permitted."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true,
+      "batchIntent": "Commit the complete currently observable same-root graph in the first successor diagnostic commit. Do not serialize already-discoverable boundaries into extra RED commits."
+    },
+    "productionRootFix": {
+      "productionAllowedChangedPaths": [
+        "backend/server.js",
+        "electron/desktopHost/ApiV2RuntimeClient.js",
+        "electron/desktopHost/RuntimeProjectionCoordinator.js"
+      ],
+      "requiredBehavior": [
+        "Expose read-only /api/desktop/runtime-projection-snapshot returning APP_RUNTIME.snapshot() after existing local API session security and before createPersonalAccessGuard.",
+        "Keep /api/app/v2 and all product APIs behind human personal-access entitlement; do not modify personalAccessGuard or PersonalAccessService.",
+        "Add ApiV2RuntimeClient.getBootstrapSnapshot using the existing API session, stale-response, build and snapshot validation machinery.",
+        "Use getBootstrapSnapshot only for validateCandidateProjection and bindTrustedOwnerBaseline; normal, already-ready, stale-exit and restart generations remain fail-closed through shared owner validation.",
+        "Keep event-gap recovery, persisted events, event reconciliation, command reconciliation and runtime mutations on /api/app/v2.",
+        "Treat human entitlement denial as WAITING_FOR_PRODUCT_ENTITLEMENT for polling only: retain trusted baseline, suppress overlapping poll ticks, apply bounded backoff, and clear wait state on successful entitled poll or baseline discard/rebind.",
+        "Do not weaken activation readiness, post-install PASS receipt, owner containment, session binding, stale-owner detection, build identity or rollback checks."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "personalAccessGuardModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageOrLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 698,
+    "authorizationMerge": "4f9bc42ad0686cc0ea44766c15ef7e54c8b99498",
+    "frozenImplementationPullRequest": 699,
+    "frozenImplementationHead": "0786ae9120142fd0fa27dfe1b5ac86d264f082a2",
+    "firstDiagnosticHead": "4ba2b5aaf104846e8b5ab41ea72ff59262d8554f",
+    "firstDiagnosticRun": 32634914942,
+    "secondDiagnosticHead": "0786ae9120142fd0fa27dfe1b5ac86d264f082a2",
+    "secondDiagnosticRun": 32635249741,
+    "productionCodeChanged": false,
+    "predecessorAncestryMayBeInherited": false
+  },
+  "failureEvidence": {
+    "productPullRequest": 615,
+    "frozenProductHead": "2db31247e39f95da5863d9d9d536ae399aedb1e8",
+    "productFinalRun": 32632936616,
+    "windowsDesktopJob": 97178349759,
+    "diagnosticArtifactId": 9491702572,
+    "firstInternalFailureEvent": "backend-process-ready-owner-untrusted",
+    "firstInternalFailureReasonCode": "INSTALLATION_UNREGISTERED",
+    "outerReceiptTimeoutIsRootCause": false,
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "packaged backend startup",
+        "classification": "PRESERVE",
+        "evidence": "server.jsonl proves packaged backend reaches ready before DesktopHost terminates it.",
+        "requiredClosure": "No packaging, dependency, Node, backend timeout or startup weakening."
+      },
+      {
+        "boundary": "candidate and trusted-owner bootstrap projection",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Both owner-establishment reads currently use /api/app/v2/snapshot; candidate already fails INSTALLATION_UNREGISTERED and trusted baseline is the statically discoverable next blocker.",
+        "requiredClosure": "Move only the two owner-establishment reads to local-control bootstrap snapshot."
+      },
+      {
+        "boundary": "owner generation and recovery paths",
+        "classification": "PRESERVE",
+        "evidence": "Normal, already-ready and stale-exit paths validate runtime projection before acceptBackendOwner.",
+        "requiredClosure": "Preserve shared fail-closed validation for every generation."
+      },
+      {
+        "boundary": "personal-access product enforcement and UI",
+        "classification": "PRESERVE",
+        "evidence": "PersonalAccessSurface wraps ProductExperienceShell; /api/app/v2 is behind createPersonalAccessGuard while /api/desktop is under local-session security.",
+        "requiredClosure": "Fresh TESTER reaches blocking request/refresh UI; Product children remain blocked until usable."
+      },
+      {
+        "boundary": "pre-entitlement persisted-event polling timer",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "startPolling begins after trusted baseline and calls /api/app/v2/events; denial preserves baseline today but repeats at normal cadence and overlapping ticks can fan out failure callbacks.",
+        "requiredClosure": "Retain owner, suppress overlap and back off entitlement polling without moving events outside /api/app/v2."
+      },
+      {
+        "boundary": "steady-state runtime API v2",
+        "classification": "PRESERVE",
+        "evidence": "Event-gap recovery, event reconciliation, command reconciliation and mutations must stay product-entitlement protected.",
+        "requiredClosure": "No product API exemption or duplicate projection protocol."
+      },
+      {
+        "boundary": "Element activation and post-install receipt",
+        "classification": "PRESERVE",
+        "evidence": "Activation uses backend/session/renderer/workspace readiness, /api/ready and production runtime probe; PASS receipt is desktop activation, not entitlement grant.",
+        "requiredClosure": "Unregistered TESTER must survive through permission UI and exact packaged activation."
+      },
+      {
+        "boundary": "#615 Product candidate",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+        "evidence": "All production root files are outside #615's authorized eight paths.",
+        "requiredClosure": "Keep #615 frozen; ordinary-forward-reconcile after prerequisite merge."
+      },
+      {
+        "boundary": "#699 poisoned ancestry and #538",
+        "classification": "NEGATIVE_PROOF",
+        "evidence": "#699 has no production code and must not be inherited; no causal path touches #538.",
+        "requiredClosure": "Keep both untouched."
+      }
+    ],
+    "negativeProofs": [
+      "No /api/app/v2 entitlement exemption or personalAccessGuard modification.",
+      "No owner-trust fail-open, receipt timeout increase, fake PASS or workflow retry workaround.",
+      "No workflow, dependency, package, lockfile, database, renderer Product, #615 eight-path or #538 modification.",
+      "No squash, rebase, amend, force-push, history rewrite or poisoned-ancestry continuation."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-control-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/personalAccessControlP0.test.js",
+      "node --test --test-concurrency=1 tests/wp6/electron-api-v2-only.test.js",
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js",
+      "npm run test:wp0"
+    ],
+    "formal": [
+      "Stage 6.4.5.9 WP0 Architecture Gates GREEN on stable exact production head",
+      "Layered CI GREEN when routed",
+      "ACV2 WP-A Architecture Gates GREEN when routed",
+      "Model Brain Windows GREEN when routed",
+      "independent review P0=0/P1=0 with zero unresolved threads"
+    ],
+    "exactHeadCiRequired": true,
+    "postMergeProof": "Ordinary forward-reconcile frozen #615 to the prerequisite merge, prove fresh-main net diff remains exactly the original eight paths, then run all three Product Final jobs and every routed final gate before #615 merge."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_LOCAL_CONTROL_RUNTIME_API_V2_AND_TIMER_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "R32 local API session security",
+        "source": "backend/middleware/r32LocalApiSecurity.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing /api/desktop loopback plus API-session-token boundary is the correct bootstrap security seam."
+      },
+      {
+        "name": "Runtime API v2 snapshot contract",
+        "source": "shared/runtimeApiV2Contract.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "APP_RUNTIME.snapshot and assertSnapshot already provide canonical projection and build validation."
+      },
+      {
+        "name": "Node.js timers and node:test",
+        "source": "Node.js runtime",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Existing coordinator timer and built-in test runner cover bounded polling and causal validation without a new dependency."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second authentication mechanism, projection protocol, polling library or entitlement cache.",
+      "Do not move persisted events/commands to /api/desktop.",
+      "Do not inherit frozen #699 ancestry."
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "requiredMergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "amendForbidden": true,
+    "forcePushForbidden": true,
+    "historyRewriteForbidden": true,
+    "productPullRequest615MustRemainFrozenUntilPrerequisiteMerge": true,
+    "frozenPredecessorPullRequest699MustRemainUntouched": true,
+    "pullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
