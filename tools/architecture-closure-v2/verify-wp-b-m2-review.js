@@ -16,6 +16,11 @@ const M1_SEAL = '1e3d600f0647af35e737ff92a200c67e69224c82';
 const FULL_SHA = /^[a-f0-9]{40}$/u;
 const SHA256 = /^[a-f0-9]{64}$/u;
 const DIGEST = /^sha256:[a-f0-9]{64}$/u;
+const TRUSTED_POLICY_PATHS = Object.freeze([
+  'shared/release/implementationBranchPolicy.js',
+  'shared/release/implementationBranchPolicyLegacy.js',
+  'release/release-source.json'
+]);
 const EXPECTED_OPERATION_KINDS = Object.freeze([
   'AI_PROVIDER_EXECUTION',
   'OUTBOUND_MESSAGE_SEND',
@@ -74,6 +79,41 @@ function changedFileSetSha256(values) {
 }
 function git(args) {
   return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+}
+function gitAt(root, args) {
+  return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+}
+function isAuthorizedReviewImplementationBranch(currentBranch, options = {}) {
+  const repositoryRoot = path.resolve(options.repositoryRoot || ROOT);
+  try {
+    if (isAuthorizedWpBImplementationBranch(currentBranch, undefined, { repositoryRoot })) return true;
+
+    const trustedPolicyRootValue = String(options.trustedPolicyRoot || process.env.TRUSTED_POLICY_ROOT || '').trim();
+    const trustedMainHead = String(options.trustedMainHead || process.env.TRUSTED_POLICY_SHA || '').trim();
+    const evaluatedHead = String(options.evaluatedHead || process.env.VALIDATION_SHA || '').trim();
+    if (!trustedPolicyRootValue || !FULL_SHA.test(trustedMainHead) || !FULL_SHA.test(evaluatedHead)) return false;
+
+    const repositoryRealRoot = fs.realpathSync(repositoryRoot);
+    const trustedPolicyRoot = fs.realpathSync(path.resolve(trustedPolicyRootValue));
+    if (repositoryRealRoot === trustedPolicyRoot) return false;
+    if (gitAt(repositoryRealRoot, ['rev-parse', 'HEAD']) !== evaluatedHead) return false;
+    if (gitAt(trustedPolicyRoot, ['rev-parse', 'HEAD']) !== trustedMainHead) return false;
+    gitAt(trustedPolicyRoot, ['cat-file', '-e', `${trustedMainHead}^{commit}`]);
+
+    for (const repoPath of TRUSTED_POLICY_PATHS) {
+      const expectedBlob = gitAt(trustedPolicyRoot, ['rev-parse', `${trustedMainHead}:${repoPath}`]);
+      const actualBlob = gitAt(trustedPolicyRoot, ['hash-object', repoPath]);
+      if (actualBlob !== expectedBlob) return false;
+    }
+
+    const releaseSource = JSON.parse(fs.readFileSync(path.join(trustedPolicyRoot, 'release', 'release-source.json'), 'utf8'));
+    const policy = require(path.join(trustedPolicyRoot, 'shared', 'release', 'implementationBranchPolicy'));
+    return policy.isAuthorizedImplementationBranch(currentBranch, releaseSource.stageVersion, {
+      delegatedGovernance: { trustedMainHead, evaluatedHead }
+    }) === true;
+  } catch (_) {
+    return false;
+  }
 }
 function readJson(file, code) {
   try {
@@ -237,7 +277,7 @@ function verifyLocalRepository(document = readReceipt()) {
   requireThat(redReceipt.platforms?.ubuntu?.jobId === red.ubuntuJobId && redReceipt.platforms?.windows?.jobId === red.windowsJobId, 'WP_B_M2_REVIEW_RED_JOB_MISMATCH', 'RED jobs changed');
   requireThat(redReceipt.platforms?.ubuntu?.artifactId === red.ubuntuArtifactId && redReceipt.platforms?.windows?.artifactId === red.windowsArtifactId, 'WP_B_M2_REVIEW_RED_ARTIFACT_MISMATCH', 'RED artifacts changed');
   const currentBranch = git(['branch', '--show-current']);
-  requireThat(isAuthorizedWpBImplementationBranch(currentBranch, undefined, { repositoryRoot: ROOT }),
+  requireThat(isAuthorizedReviewImplementationBranch(currentBranch),
     'WP_B_M2_REVIEW_BRANCH_CHECKOUT_INVALID', 'Wrong or unauthorized branch');
   const status = git(['status', '--porcelain=v1', '--untracked-files=all']);
   requireThat(status === '', 'WP_B_M2_REVIEW_WORKTREE_DIRTY', 'Worktree must be clean', { status });
@@ -287,7 +327,7 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
   const repository = String(options.repository || process.env.GITHUB_REPOSITORY || document.repository || '');
   const currentHead = String(options.currentHead || git(['rev-parse', 'HEAD']));
   const currentBranch = String(options.currentBranch || git(['branch', '--show-current']));
-  requireThat(isAuthorizedWpBImplementationBranch(currentBranch, undefined, { repositoryRoot: ROOT }),
+  requireThat(isAuthorizedReviewImplementationBranch(currentBranch),
     'WP_B_M2_REVIEW_REMOTE_BRANCH_INVALID', 'Current branch is not an authorized WP-B implementation branch');
   requireThat(token && repository === REPOSITORY, 'WP_B_M2_REVIEW_REMOTE_TOKEN_REQUIRED', 'Authenticated repository token is required');
   const api = `https://api.github.com/repos/${repository}`;
@@ -349,4 +389,4 @@ if (require.main === module) main().catch(error => {
   process.stderr.write(`${JSON.stringify({ ok: false, code: error?.code || 'WP_B_M2_REVIEW_VERIFICATION_FAILED', message: error?.message || String(error), details: Object.fromEntries(Object.entries(error || {}).filter(([key]) => !['stack', 'message'].includes(key))) }, null, 2)}\n`);
   process.exitCode = 1;
 });
-module.exports = Object.freeze({ EXPECTED_FORMAL_WORKFLOWS, EXPECTED_OPERATION_KINDS, EXPECTED_POST_REVIEW_PATHS, changedFileSetSha256, isHistoricalPrStateValidForBranch, readReceipt, sortedUnique, validateReceipt, verifyLocalRepository, verifyRemoteEvidence });
+module.exports = Object.freeze({ EXPECTED_FORMAL_WORKFLOWS, EXPECTED_OPERATION_KINDS, EXPECTED_POST_REVIEW_PATHS, changedFileSetSha256, isAuthorizedReviewImplementationBranch, isHistoricalPrStateValidForBranch, readReceipt, sortedUnique, validateReceipt, verifyLocalRepository, verifyRemoteEvidence });
