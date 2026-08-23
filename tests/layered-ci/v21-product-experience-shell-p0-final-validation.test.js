@@ -168,15 +168,35 @@ test('trusted Linux CI delegates CRLF apply semantics to Matrix bootstrap, then 
   assert.match(source, /PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);
 });
 
-test('Product final validation retires source-UAT handoff and emits exactly the two same-head materialized UAT artifacts', () => {
+test('Product final validation keeps exactly two materialized UAT artifacts and permits only the authorized packaged-startup diagnostic artifact', () => {
   const source = readWorkflow();
   assert.doesNotMatch(source, /create-round12-13-windows-uat-package\.js/u);
   assert.doesNotMatch(source, /start-source-uat\.js/u);
   assert.doesNotMatch(source, /NOT_REAL_ELECTRON_UAT/u);
   assert.doesNotMatch(source, /ROUND12_13_UAT_MANIFEST\.json/u);
-  assert.equal((source.match(/actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/gu) || []).length, 2);
+
+  const pinnedUploadCount = (source.match(/actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/gu) || []).length;
+  const diagnosticNames = source.match(/name: Product-Experience-Packaged-Startup-Diagnostics-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || [];
+  assert.ok(diagnosticNames.length === 0 || diagnosticNames.length === 1, 'only one authorized packaged-startup diagnostic artifact may exist');
+  assert.equal(pinnedUploadCount, 2 + diagnosticNames.length, 'every pinned upload beyond the two materialized UAT artifacts must be the one authorized diagnostic artifact');
   assert.equal((source.match(/name: Product-Experience-Materialized-Desktop-UAT-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || []).length, 1);
   assert.equal((source.match(/name: Product-Experience-Materialized-Matrix-UAT-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || []).length, 1);
+
+  if (diagnosticNames.length === 1) {
+    const diagnosticStepStart = source.indexOf('- name: Upload packaged startup diagnostics after Product Final RED');
+    const diagnosticStepEnd = source.indexOf('\n      - name:', diagnosticStepStart + 1);
+    assert.ok(diagnosticStepStart >= 0 && diagnosticStepEnd > diagnosticStepStart, 'authorized packaged-startup diagnostic upload step must be independently bounded');
+    const diagnosticStep = source.slice(diagnosticStepStart, diagnosticStepEnd);
+    assert.match(diagnosticStep, /if:\s*\$\{\{\s*always\(\)\s*\}\}/u);
+    assert.match(diagnosticStep, /uses:\s*actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/u);
+    assert.equal((diagnosticStep.match(/actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/gu) || []).length, 1);
+    assert.match(diagnosticStep, /name: Product-Experience-Packaged-Startup-Diagnostics-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/u);
+    const diagnosticLogs = [...diagnosticStep.matchAll(/\$\{\{ runner\.temp \}\}\\product-uat-packaged-data\\logs\\([a-z-]+\.jsonl)/gu)].map((match) => match[1]);
+    assert.deepEqual(diagnosticLogs, ['desktop-bootstrap.jsonl', 'desktop.jsonl', 'server.jsonl']);
+    assert.match(diagnosticStep, /if-no-files-found:\s*warn/u);
+    assert.doesNotMatch(diagnosticStep, /continue-on-error/u);
+  }
+
   assert.match(source, /create-materialized-uat-candidate\.js seal/u);
   assert.match(source, /create-materialized-uat-candidate\.js verify/u);
   assert.match(source, /RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT\.ps1/u);
