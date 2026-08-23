@@ -296,6 +296,27 @@ test('main activation and post-install PASS remain independent from human entitl
     'post-install PASS remains a visible-window activation verdict, not a personal-entitlement bypass');
 });
 
+test('trusted backend readiness observes initial lifecycle without blocking activation on product entitlement', () => {
+  const mainSource = read('electron/main.js');
+  const finalizeStart = mainSource.indexOf('async function finalizeTrustedBackendReady(');
+  const connectIndex = mainSource.indexOf('connectEventSocket();', finalizeStart);
+  assert.ok(finalizeStart >= 0 && connectIndex > finalizeStart,
+    'trusted backend readiness block must remain discoverable before event-socket connection');
+  const finalizeBlock = mainSource.slice(finalizeStart, connectIndex);
+  assert.doesNotMatch(finalizeBlock, /await\s+routeDesktopLifecycleViaApiV2\(/u,
+    'initial entitled Runtime API v2 network mutation must not synchronously block BrowserWindow activation');
+  assert.match(finalizeBlock, /observeLifecycle\(net\.isOnline\(\) \? 'online' : 'offline'/u,
+    'initial network state must reuse the existing non-blocking lifecycle observer');
+});
+
+test('startup schedules Product tray refresh without awaiting it before createWindow', () => {
+  const mainSource = read('electron/main.js');
+  assert.doesNotMatch(mainSource, /await\s+refreshTraySnapshot\(\);\s*createWindow\(\);/u,
+    'human-entitled Product tray reads must not synchronously gate BrowserWindow creation');
+  assert.match(mainSource, /scheduleTrayRefresh\(\);\s*createWindow\(\);/u,
+    'startup must reuse the existing non-blocking tray refresh scheduler before creating the window');
+});
+
 test('fresh TESTER permission UI remains reachable while Product children stay blocked', () => {
   const workspaceSource = read('integration/element-module/src/YanceWorkspace.tsx');
   const accessSource = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
