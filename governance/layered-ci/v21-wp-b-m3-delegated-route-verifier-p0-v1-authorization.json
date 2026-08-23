@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T20:05:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP-B-M3-DELEGATED-ROUTE-VERIFIER-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing batch causal closure for the next statically discoverable routed authority boundary exposed by frozen #707. #707 production changes tools/architecture-closure-v2/verify-wp-b-m2-review.js, which is intentionally a pull_request trigger of WP-B M3 Authorization. Exact-head run 32640959840 then rejects the legitimate delegated #707 branch on both platforms in Establish exact trusted implementation branch because wp-b-m3-authorization.yml hard-codes isAuthorizedWpBImplementationBranch before any M3 contract executes. Static same-root audit proves the next two boundaries are already visible: verify-wp-b-m3-authorization.js repeats direct WP-B-only admission in local and remote verification, while m3Authorization.test.js permanently asserts those direct checks. These three layers must be migrated atomically after one failure-first owner contract so the route repair does not serialize already-known blockers. No M3 receipt, shared branch policy, active WP-B authority, Product runtime, dependency, schema, UAT or release authority change is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "89e654e9cd5406671a0ab5eaa65d10e70a4fe751",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "89e654e9cd5406671a0ab5eaa65d10e70a4fe751",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp-b-m3-delegated-route-verifier-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp-b-m3-delegated-route-verifier-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "1106e2930736ae2e94aa65211c2268a5b8ccd7e3e73c383a7d0c7c7953becef9",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp-b-m3-delegated-route-verifier-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/wp-b-m3-authorization.yml",
+      "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+      "backend/tests/architectureClosureV2/wpB/m3Authorization.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "10debff13cd16ad1e6ac3b786fb2bc8525409a53ae1e2132f767bf7c1ad3463e",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "25c7d20c001d156b8bb147721af1d3e01e58f58e7d78261668fa14abc6e94a05",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing owner workflow run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The owner static contract must RED because WP-B M3 Authorization still uses direct isAuthorizedWpBImplementationBranch for a pull_request path set that includes shared delegated verifier paths.",
+        "The same owner contract must RED because the M3 authorization verifier still hard-calls direct WP-B branch authority in both local and remote evidence instead of one fail-closed trusted delegated helper.",
+        "The same owner contract must RED because m3Authorization.test.js still encodes direct M3 workflow/verifier authority as the permanent expectation.",
+        "The first diagnostic path itself must not trigger WP-B M3 Authorization, so no old M3 branch-establishment failure is permitted on the first RED.",
+        "No unrelated Stage, Product, dependency, schema, review, routing or policy failure is permitted."
+      ]
+    },
+    "productionRootFix": {
+      "productionAllowedChangedPaths": [
+        ".github/workflows/wp-b-m3-authorization.yml",
+        "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js"
+      ],
+      "approvedProductionPathCount": 2,
+      "approvedProductionPathSetSha256": "65a80aa0107824efff07d12f242d7a6736377f02a0e9c2b520c15e035b1c9388",
+      "atomicCommitRequired": true,
+      "requiredBehavior": [
+        "Preserve every current M3 pull_request path trigger including tools/architecture-closure-v2/verify-wp-b-m2-review.js, preserve the active WP-B push route, exact candidate ref/head equality, Ubuntu/Windows matrix, M3 authorization/WP0 wiring contracts, local+remote standalone verification and clean-workspace checks.",
+        "For pull_request candidates, materialize generic implementation authority only from the trusted PR base policy root, verify exact policy blobs and evaluate the exact candidate head through implementationBranchPolicy.isAuthorizedImplementationBranch with delegatedGovernance trustedMainHead/evaluatedHead; candidate-owned policy must never self-authorize.",
+        "For push/workflow_dispatch, use freshly fetched origin/main as trusted policy authority.",
+        "Persist the verified trusted policy root and head for later verifier steps so local and remote verification evaluate the same trusted context.",
+        "M3 verifier must preserve direct active WP-B lineage admission but allow a non-WP-B delegated successor only through one shared fail-closed helper bound to exact trusted policy root, trusted main head, evaluated head and verified policy blobs.",
+        "Keep historical M3 PR, successor Draft/open/unmerged exact-head, RED run/job, authorization receipt, inventory, scope-amendment and downstream-closure semantics unchanged.",
+        "Do not widen shared/release/acv2ActiveWorkPackageAuthority.js or mutate shared implementation branch policy."
+      ]
+    },
+    "contractMigration": {
+      "allowedChangedPaths": [
+        "backend/tests/architectureClosureV2/wpB/m3Authorization.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "43bf648bb2f7b599247db2b19556684ba2a03520a9935136866f28c6804a7615",
+      "requiredBehavior": [
+        "Retire only the obsolete assertions that M3 workflow/verifier must directly call isAuthorizedWpBImplementationBranch for all successors.",
+        "Require trusted-base generic delegated authority, exact head context and fail-closed behavior while preserving historical active WP-B authority and all M3 governance semantics.",
+        "Do not weaken M3 authorization receipt, scope, source-closure, inventory or downstream-closed assertions."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/wp-b-m3-authorization.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "c370f08b82daa5a62ca2c418e7bf81df883fb271d5cf71a15d824ef6b7feac61"
+    },
+    "sharedImplementationBranchPolicyModificationAllowed": false,
+    "activeWpBAuthorityModificationAllowed": false,
+    "reviewReceiptModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageOrLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureEvidence": {
+    "frozenPullRequest": 707,
+    "frozenHead": "7162f062085aae82da393a9a535888bd4924a034",
+    "triggeringChangedPath": "tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+    "wpBM3AuthorizationRun": 32640959840,
+    "ubuntuJob": 97197863162,
+    "windowsJob": 97197863000,
+    "failedStep": "Establish exact trusted implementation branch",
+    "failureCode": "WP_B_ACTIVE_IMPLEMENTATION_BRANCH_UNAUTHORIZED",
+    "m3ContractsExecuted": false,
+    "rootCause": "The M3 workflow intentionally routes on the shared M2 review verifier path but hard-codes WP-B-specific branch authority before any M3 validation, so a legitimate delegated route/verifier repair is rejected by construction. Static audit shows the M3 verifier and its permanent test repeat the same direct-authority assumption."
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "M3 shared verifier-path routing",
+        "classification": "PRESERVE",
+        "evidence": "wp-b-m3-authorization.yml intentionally includes tools/architecture-closure-v2/verify-wp-b-m2-review.js because changes to historical M2 review evidence can affect M3 authority verification.",
+        "requiredClosure": "Do not remove or narrow that trigger."
+      },
+      {
+        "boundary": "M3 workflow pull-request branch admission",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Run 32640959840 checks out #707 exact head and both platforms fail only direct WP-B branch admission before syntax/contracts.",
+        "requiredClosure": "Use the repository-existing trusted-base generic delegated implementation authority pattern."
+      },
+      {
+        "boundary": "M3 verifier local/remote branch admission",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Static source audit finds direct isAuthorizedWpBImplementationBranch calls in both verifyLocalRepository and verifyRemoteEvidence.",
+        "requiredClosure": "Centralize one fail-closed helper that preserves active WP-B and accepts delegated successors only from exact trusted context."
+      },
+      {
+        "boundary": "M3 permanent authority contracts",
+        "classification": "CONTRACT_MIGRATION",
+        "evidence": "M3-AUTH-008/009 currently require direct authority in M3 workflow/verifier and would contradict the secure delegated route repair once the workflow reaches them.",
+        "requiredClosure": "Migrate only those obsolete authority assertions to the trusted delegated equivalent; preserve every M3 governance invariant."
+      },
+      {
+        "boundary": "frozen #707 bytes",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+        "evidence": "Stage, M1, M2 Contracts, WP-B Validation, WP-A and ACV2 are GREEN at #707 production head; M3 failure occurs before M3 contracts and outside #707 authorized paths.",
+        "requiredClosure": "Keep #707 frozen at 7162f062085aae82da393a9a535888bd4924a034 until this prerequisite ordinary-merges, then continue by fresh-main forward-continuation without rewriting history."
+      }
+    ],
+    "negativeProofs": [
+      "No Product runtime, #701, #615 or #538 mutation.",
+      "No M3 trigger deletion, workflow skip, verifier bypass or warning-only closure.",
+      "No shared branch-policy or active WP-B authority widening and no exact branch allowlist.",
+      "No dependency, package, lockfile, schema, receipt or release mutation.",
+      "No squash, rebase, amend, force-push or history rewrite."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m3Authorization.test.js",
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js",
+      "node tools/architecture-closure-v2/verify-wp-b-m3-authorization.js"
+    ],
+    "formal": [
+      "Stage 6.4.5.9 WP0 Architecture Gates GREEN on exact implementation head",
+      "WP-B M1 Independent Review Integrity GREEN when first diagnostic path routes it",
+      "WP-B M3 Authorization GREEN on Ubuntu and Windows including local and authenticated remote verification when production paths route it",
+      "WP-B M2 Contracts and WP-B Validation GREEN when routed",
+      "Layered CI and ACV2 WP-A Architecture Gates GREEN when routed",
+      "independent review P0=0/P1=0 with zero unresolved threads"
+    ],
+    "exactHeadCiRequired": true,
+    "postMergeProof": "After this prerequisite ordinary-merges, continue frozen #707 from fresh trusted main through canonical delegated forward-continuation without mutating its preserved first RED or production commit; then require every routed exact-head gate before #707 ordinary merge."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TRUSTED_MAIN_GENERIC_BRANCH_AUTHORITY_AND_M3_VERIFIER_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP-B M2 Contracts trusted-policy branch admission",
+        "source": ".github/workflows/wp-b-m2-red.yml",
+        "license": "repository-existing/GitHub Actions hosted CI",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already implements exact candidate-ref equality, trusted-base policy worktree/blob verification and generic delegated authority without widening WP-B authority."
+      },
+      {
+        "name": "Existing M3 authorization verifier",
+        "source": "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already owns historical/current PR, RED, receipt, inventory and scope evidence; only its branch-admission seam must be generalized securely."
+      },
+      {
+        "name": "Existing WP-B owner workflow scope contract",
+        "source": "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It is not an M3 workflow trigger and can therefore create a clean failure-first RED before the old M3 branch gate is changed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not remove tools/architecture-closure-v2/verify-wp-b-m2-review.js from M3 routing.",
+      "Do not widen isAuthorizedWpBImplementationBranch or add #707/successor branch allowlists.",
+      "Do not skip M3 validation or remote evidence.",
+      "Do not create a new shared branch-policy implementation or third-party dependency."
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "requiredMergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "amendForbidden": true,
+    "forcePushForbidden": true,
+    "historyRewriteForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "candidatePreservation": {
+    "pullRequest707MustRemainFrozen": true,
+    "pullRequest707HeadMustRemain": "7162f062085aae82da393a9a535888bd4924a034",
+    "productPullRequest701MustRemainFrozen": true,
+    "productPullRequest701HeadMustRemain": "f213ad7545d4e15bff5b034b0673324a9269aba3",
+    "productPullRequest615MustRemainFrozen": true,
+    "frozenPullRequest699MustRemainUntouched": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  }
+}
