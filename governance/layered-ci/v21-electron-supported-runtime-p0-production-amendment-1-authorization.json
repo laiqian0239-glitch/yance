@@ -4,9 +4,9 @@
   "requestedByUserAt": "2026-08-24T02:44:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-ELECTRON-SUPPORTED-RUNTIME-P0",
-  "proposalRevision": 3,
+  "proposalRevision": 4,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Same-work-package post-RED production continuation for Electron 43.4.1. Fresh exact-head diagnostics on PR #720 at 86da6cbabda271c81558a2a59c36e480c04ce069 produced only the six authorized Electron causal failures while every unrelated WP0 file stayed green. This revision preserves that frozen RED and adds the exact dependency-control and workflow-control policies required by trusted delegated governance; unknownBlockers remains zero.",
+  "reason": "Same-work-package post-RED production continuation for Electron 43.4.1. Fresh exact-head diagnostics on PR #720 at 86da6cbabda271c81558a2a59c36e480c04ce069 produced only the six authorized Electron causal failures while every unrelated WP0 file stayed green. This revision preserves that frozen RED, exact dependency/workflow control policies, and auditable OSS-first fit evidence for the official supported Electron release; unknownBlockers remains zero.",
   "supersedes": {
     "authorizationPath": "governance/layered-ci/v21-electron-supported-runtime-p0-authorization.json",
     "implementationBranch": "fix/v21-electron-supported-runtime-p0",
@@ -135,6 +135,36 @@
     "officialWin32X64Sha256": "c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a",
     "officialLinuxX64Sha256": "79d4efd69f0ccf1fc11891ea5075329c7b3faddad79a08d9fb395bbd63169acf",
     "exactGitHubAssetIdAndByteSizeMustBeBoundBeforeProductionCommit": true
+  },
+  "ossFit": {
+    "decision": "ADOPT_OFFICIAL_SUPPORTED_ELECTRON_43_4_1_THROUGH_EXISTING_YANCE_TRUST_PIPELINE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Electron 43.4.1",
+        "source": "electron/electron official stable release",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Frozen fresh causal RED proved the active Yance authority graph can migrate by binding the official supported Electron runtime and its exact npm/release identities without a replacement runtime or new general-purpose infrastructure."
+      },
+      {
+        "name": "Existing Yance Electron distribution trust verifier",
+        "source": "release/electron-distribution-trust.json + existing WP7/runtime-delivery trust seams",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing fail-closed checksum, package/lock/trust agreement and packaged-runtime verification seams remain the correct authority; this batch updates exact identities rather than inventing parallel infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire Electron 39.8.5 from active package, lock, workflow and runtime identity authority only; preserve historical evidence verbatim.",
+      "Do not add an alternate Electron mirror, custom downloader, source rebuild or unsigned archive path.",
+      "Do not weaken official archive SHA-256, package-lock integrity, WP7 provenance or exact runtime identity checks.",
+      "Do not duplicate existing Yance Electron trust or packaged-runtime verification infrastructure."
+    ]
   },
   "requiredValidation": {
     "focused": [
