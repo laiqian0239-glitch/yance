@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T13:34:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WINDOWS-PACKAGED-STARTUP-FRAME-DEADLINE-AUTHORITY-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Product Final run 32615334130 job 97135022629 on Product PR #615 exact head 90015565d5c3916dfc963ac2e0eff85800ca79c8 proves a packaged Windows pre-activation failure: the exact Yance.exe remains alive for the full outer 120-second receipt window but never reaches post-install receipt creation. Exact-head source closure identifies the causal deadline composition introduced after the last known packaged GREEN: BackendProcessHost awaits asynchronous Windows owner process identity before writing the child startup frame, while backend/bootstrap/desktopStartupPipe.js independently starts a fixed 10-second readStartupFrame deadline immediately in the child. Windows identity acquisition is authorized for up to eight bounded PowerShell attempts at five seconds each, while electron/main.js owns a 60-second backend lifecycle budget. The child can therefore fail with BOOT_DESKTOP_STARTUP_TIMEOUT while the parent remains inside the authoritative lifecycle budget. Electron startup failure then enters the existing modal dialog path on the headless runner, explaining why the packaged process remains alive while no receipt is produced. PR #615's authorized eight paths do not include these root files, so #615 is frozen and this independent prerequisite is required before ordinary forward reconciliation.",
+  "base": {
+    "branch": "main",
+    "commit": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-windows-packaged-startup-frame-deadline-authority-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-windows-packaged-startup-frame-deadline-authority-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "442e9e52474bd057e8b362a3cbff03a1568e069018460844ee87dbbee69b3714",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "observedFailure": {
+    "productPullRequest": 615,
+    "productExactHead": "90015565d5c3916dfc963ac2e0eff85800ca79c8",
+    "productFinalRun": 32615334130,
+    "windowsDesktopJob": 97135022629,
+    "failedStep": "Launch exact packaged Yance against exact Element ModuleLoader path and require fresh PASS receipt",
+    "outerFailure": "timed out waiting for fresh post-install-launch.json",
+    "processExitedBeforeReceipt": false,
+    "elementBuildSucceeded": true,
+    "candidateMaterializationSucceeded": true,
+    "lastKnownPackagedGreenHead": "b5a0d2a23e6599ee4ceda07036b237e566e031f2"
+  },
+  "causalClosure": {
+    "regressionSeam": "PR #643 changed Windows owner identity capture from synchronous execution to bounded asynchronous capture and BackendProcessHost now awaits captureIdentityAsync(child.pid) before owner registration and before writing the startup frame.",
+    "conflictingDeadline": "backend/bootstrap/desktopStartupPipe.js readStartupFrame defaults to 10000ms from child process entry while electron/main.js backendStartupTimeoutMs defaults to 60000ms and Windows identity acquisition can legally consume more than 10000ms before the frame is sent.",
+    "headlessHangExplanation": "A pre-window startup exception is handled by electron/main.js through dialog.showErrorBox before application exit; on GitHub Windows CI this modal has no operator, leaving Yance.exe alive while receipt creation is unreachable.",
+    "priorRepairBoundary": "PR #684 removed the later main-window activation controller's private backend deadline, but it does not alter the earlier child startup-frame deadline and therefore cannot close this pre-activation race.",
+    "unknownBlockers": 0
+  },
+  "implementation": {
+    "branch": "fix/v21-windows-packaged-startup-frame-deadline-authority-p0",
+    "allowedChangedPaths": [
+      "backend/bootstrap/desktopStartupPipe.js",
+      "electron/main.js",
+      "tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "c4bc288938218f6e2b84c5a21484cc30a5fc31e3903c09ac64713c4d038b3552",
+    "failureFirst": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js"
+      ],
+      "expectedFailure": "The child startup-frame deadline is still a private 10000ms budget and electron/main.js does not propagate its authoritative backend lifecycle timeout to the child.",
+      "requiredPostRedTrailers": [
+        "Yance-Failure-First-Red-Head: <exact RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ]
+    },
+    "rootFix": {
+      "productionAllowedChangedPaths": [
+        "backend/bootstrap/desktopStartupPipe.js",
+        "electron/main.js"
+      ],
+      "requiredBehavior": [
+        "electron/main.js must propagate the exact backendStartupTimeoutMs value into the spawned backend environment as the startup-frame lifecycle authority.",
+        "backend/bootstrap/desktopStartupPipe.js must derive its default startup-frame wait from that propagated authoritative lifecycle budget instead of an independent fixed 10000ms deadline.",
+        "Explicit focused-test timeout injection must remain supported.",
+        "Backend owner process identity must still be acquired before durable owner registration and startup-frame dispatch; PID identity fencing may not be weakened or reordered away.",
+        "The Product Final outer 120-second post-install receipt contract must not be inflated or weakened.",
+        "No receipt fabrication, modal-dialog bypass, dependency, routing, database, package, lockfile, or workflow change is authorized."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageOrLockfileModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementationPaths": [
+      "backend/bootstrap/desktopStartupPipe.js",
+      "electron/main.js"
+    ],
+    "causalTestPath": "tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js",
+    "negativeProofs": [
+      "No new timeout authority is introduced; the child consumes the existing backend lifecycle budget.",
+      "No Windows owner identity or owner-registry fencing is weakened.",
+      "No Product #615 authorized product bytes are changed in the prerequisite.",
+      "No Product Final receipt acceptance is weakened and the exact packaged desktop job remains the final proof."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js",
+      "node --test --test-concurrency=1 tests/wp2/desktop-host-process-lifecycle.test.js",
+      "npm run test:wp0"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A when routed",
+      "Model Brain Windows when routed",
+      "Product Final when routed"
+    ],
+    "finalProof": "After prerequisite ordinary merge, PR #615 must be ordinary forward-reconciled from fresh main without rewriting its authorized eight-path Product candidate and Product Final must show all three actual jobs GREEN."
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "candidatePreservation": {
+    "productPullRequest615MustRemainFrozenUntilPrerequisiteLands": true,
+    "productExactHeadBeforeReconcile": "90015565d5c3916dfc963ac2e0eff85800ca79c8",
+    "productPullRequest614OwnerApprovalStillRequiredBeforeFinalImplementationMerge": true,
+    "windowsUatCandidatePullRequest538MustRemainUntouched": true
+  }
+}
