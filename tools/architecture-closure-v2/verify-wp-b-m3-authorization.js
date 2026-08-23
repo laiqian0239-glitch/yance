@@ -472,6 +472,41 @@ function git(root, args) {
     timeout: 15000, maxBuffer: 4 * 1024 * 1024, windowsHide: true
   }).trim();
 }
+function isAuthorizedM3ImplementationBranch(currentBranch, options = {}) {
+  try {
+    const root = path.resolve(options.repositoryRoot || REPOSITORY_ROOT);
+    if (currentBranch === EXPECTED_BRANCH) {
+      return isAuthorizedWpBImplementationBranch(currentBranch, undefined, { repositoryRoot: root });
+    }
+
+    const trustedPolicyRootValue = String(options.trustedPolicyRoot || process.env.TRUSTED_POLICY_ROOT || '').trim();
+    const trustedMainHead = String(options.trustedMainHead || process.env.TRUSTED_POLICY_SHA || '').trim();
+    const evaluatedHead = String(options.evaluatedHead || process.env.VALIDATION_SHA || '').trim();
+    if (!trustedPolicyRootValue || !FULL_SHA.test(trustedMainHead) || !FULL_SHA.test(evaluatedHead)) return false;
+
+    const trustedPolicyRoot = path.resolve(trustedPolicyRootValue);
+    if (git(root, ['rev-parse', 'HEAD']) !== evaluatedHead) return false;
+    if (git(trustedPolicyRoot, ['rev-parse', 'HEAD']) !== trustedMainHead) return false;
+
+    for (const repositoryPath of [
+      'shared/release/implementationBranchPolicy.js',
+      'shared/release/implementationBranchPolicyLegacy.js',
+      'release/release-source.json'
+    ]) {
+      const expectedBlob = git(root, ['rev-parse', `${trustedMainHead}:${repositoryPath}`]);
+      const actualBlob = git(root, ['hash-object', path.join(trustedPolicyRoot, ...repositoryPath.split('/'))]);
+      if (expectedBlob !== actualBlob) return false;
+    }
+
+    const releaseSource = require(path.join(trustedPolicyRoot, 'release/release-source.json'));
+    const policy = require(path.join(trustedPolicyRoot, 'shared/release/implementationBranchPolicy.js'));
+    return Boolean(policy.isAuthorizedImplementationBranch(currentBranch, releaseSource.stageVersion, {
+      delegatedGovernance: { trustedMainHead, evaluatedHead }
+    }));
+  } catch (_) {
+    return false;
+  }
+}
 function verifyLocalRepository(document = readReceipt(), options = {}) {
   const validation = validateReceipt(document);
   const root = path.resolve(options.repositoryRoot || REPOSITORY_ROOT);
@@ -505,7 +540,7 @@ function verifyLocalRepository(document = readReceipt(), options = {}) {
   requireThat(git(root, ['rev-parse', `${EXPECTED.m2EvidenceHead}:${INVENTORY_PATH}`]) === EXPECTED.inventoryAnchorBlob,
     'WP_B_M3_AUTHORIZATION_INVENTORY_ANCHOR_INVALID', 'Inventory anchor blob changed');
   const currentBranch = git(root, ['branch', '--show-current']);
-  requireThat(isAuthorizedWpBImplementationBranch(currentBranch, undefined, { repositoryRoot: root }),
+  requireThat(isAuthorizedM3ImplementationBranch(currentBranch),
     'WP_B_M3_AUTHORIZATION_BRANCH_CHECKOUT_INVALID', 'Wrong or unauthorized branch checked out');
   requireThat(git(root, ['status', '--porcelain=v1', '--untracked-files=all']) === '',
     'WP_B_M3_AUTHORIZATION_WORKTREE_DIRTY', 'Authorization verification requires clean worktree');
@@ -646,7 +681,7 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
 
   const currentHead = String(options.currentHead || git(REPOSITORY_ROOT, ['rev-parse', 'HEAD']));
   const currentBranch = String(options.currentBranch || git(REPOSITORY_ROOT, ['branch', '--show-current']));
-  requireThat(isAuthorizedWpBImplementationBranch(currentBranch, undefined, { repositoryRoot: REPOSITORY_ROOT }),
+  requireThat(isAuthorizedM3ImplementationBranch(currentBranch),
     'WP_B_M3_AUTHORIZATION_REMOTE_BRANCH_INVALID', 'Current branch is not an authorized WP-B implementation branch');
 
   const historicalPr = await fetchJson(`${api}/pulls/${document.pullRequest}`, token, 'WP_B_M3_AUTHORIZATION_REMOTE_PR_REQUEST_FAILED');
@@ -718,6 +753,7 @@ module.exports = Object.freeze({
   SCOPE_003,
   SCOPE_004,
   SCOPE_005,
+  isAuthorizedM3ImplementationBranch,
   isAuthorizedPath,
   isHistoricalPrStateValidForBranch,
   normalizeRepositoryPath,
