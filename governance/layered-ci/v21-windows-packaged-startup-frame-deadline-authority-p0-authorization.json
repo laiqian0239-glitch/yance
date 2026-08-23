@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-23T13:34:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-WINDOWS-PACKAGED-STARTUP-FRAME-DEADLINE-AUTHORITY-P0",
-  "proposalRevision": 2,
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Product Final run 32615334130 job 97135022629 on Product PR #615 exact head 90015565d5c3916dfc963ac2e0eff85800ca79c8 proves a packaged Windows pre-activation failure: the exact Yance.exe remains alive for the full outer 120-second receipt window but never reaches post-install receipt creation. Exact-head source closure identifies the causal deadline composition introduced after the last known packaged GREEN: BackendProcessHost awaits asynchronous Windows owner process identity before writing the child startup frame, while backend/bootstrap/desktopStartupPipe.js independently starts a fixed 10-second readStartupFrame deadline immediately in the child. Windows identity acquisition is authorized for up to eight bounded PowerShell attempts at five seconds each, while electron/main.js owns a 60-second backend lifecycle budget. The child can therefore fail with BOOT_DESKTOP_STARTUP_TIMEOUT while the parent remains inside the authoritative lifecycle budget. Electron startup failure then enters the existing modal dialog path on the headless runner, explaining why the packaged process remains alive while no receipt is produced. PR #615's authorized eight paths do not include these root files, so #615 is frozen and this independent prerequisite is required before ordinary forward reconciliation.",
   "base": {
@@ -134,6 +134,34 @@
       "No Windows owner identity or owner-registry fencing is weakened.",
       "No Product #615 authorized product bytes are changed in the prerequisite.",
       "No Product Final receipt acceptance is weakened and the exact packaged desktop job remains the final proof."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_YANCE_BACKEND_LIFECYCLE_TIMEOUT_AND_NODE_CHILD_ENVIRONMENT",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance backend lifecycle timeout authority",
+        "source": "electron/main.js backendStartupTimeoutMs + BackendProcessHost startBackend lifecycle",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The parent already owns the exact bounded startup lifecycle budget; the child startup-frame wait should consume that authority rather than invent a second deadline."
+      },
+      {
+        "name": "Node.js child-process environment propagation",
+        "source": "node:child_process spawn environment inherited through existing BackendProcessHost env seam",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The existing Node runtime can carry the authoritative timeout into the child with no new dependency, protocol service, scheduler, or general-purpose infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire the independent production 10000ms startup-frame default as a competing lifecycle authority.",
+      "Avoid adding another timeout scheduler, workflow retry, outer Product Final timeout inflation, receipt bypass, dependency, or process-lifecycle authority."
     ]
   },
   "requiredValidation": {
