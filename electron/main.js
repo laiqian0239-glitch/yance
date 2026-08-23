@@ -2430,7 +2430,7 @@ function packagedBackendNodePath() {
   return [...new Set(paths.filter(Boolean))].join(path.delimiter);
 }
 
-function backendEnvironment(launch = {}) {
+function backendEnvironment(launch = {}, startupTimeoutMs = backendStartupTimeoutMs()) {
   const allowedPassthrough = ['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'PATH', 'ComSpec', 'PATHEXT', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432', 'LOCALAPPDATA', 'APPDATA', 'USERPROFILE'];
   const env = {};
   for (const key of allowedPassthrough) if (process.env[key]) env[key] = process.env[key];
@@ -2456,6 +2456,7 @@ function backendEnvironment(launch = {}) {
     env.YANCE_PLATFORM_AUTH_CONFIG_SHA256_PATH = path.resolve(explicitPlatformAuthHash || releasePlatformAuthHash);
   }
   env.YANCE_PORT = String(new URL(YANCE_BACKEND_URL).port);
+  env.YANCE_BACKEND_STARTUP_TIMEOUT_MS = String(startupTimeoutMs);
   env.YANCE_AUTO_START_WHATSAPP = '0';
   for (const key of [
     'WP7_PROBE_ID',
@@ -2858,7 +2859,7 @@ function startBackendProcessForCoordinator(options = {}) {
         execPath: launch.nodeRuntimeExecutablePath,
         nodeRuntimeExecutablePath: launch.nodeRuntimeExecutablePath,
         cwd: launch.cwd,
-        env: backendEnvironment(launch),
+        env: backendEnvironment(launch, startupTimeoutMs),
         windowsHide: true,
         readyTimeoutMs: startupTimeoutMs,
         launchTimeoutMs: startupTimeoutMs,
