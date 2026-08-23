@@ -140,6 +140,7 @@ test('M3-AUTH-007 successor branch authority is delegated by trusted main, never
 test('M3-AUTH-008 WP-B successor workflows derive branch identity from active trusted authority seams', () => {
   const trustedMainDelegatedWorkflows = new Set([
     '.github/workflows/wp-b-m2-red.yml',
+    '.github/workflows/wp-b-m2-independent-review-integrity.yml',
     '.github/workflows/wp-b-m3-authorization.yml'
   ]);
   const workflowPaths = [
