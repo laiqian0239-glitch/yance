@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T16:23:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-DIAGNOSTIC-ARTIFACT-LAYERED-CONTRACT-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #692 exact production head 8171590ce4548463ce59bed773f577e8c02a1026 correctly implements the already-merged #691 observability authority by adding one pinned always-running diagnostic artifact in addition to the two existing materialized UAT artifacts. Layered CI run 32630505228 job 97172459457 then failed one base-owned static contract because tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js still hard-codes exactly two total actions/upload-artifact uses, producing actual 3 versus expected 2. The root cause is therefore stale Layered static artifact-cardinality authority, not the #692 workflow implementation, Product runtime, routing, receipt semantics, or artifact pin. This prerequisite reconciles only that Layered contract so it continues to require exactly the two same-head materialized UAT artifacts while additionally permitting and positively constraining exactly one pinned diagnostic artifact. It must not modify the workflow or weaken any existing Product Final verdict or UAT identity contract.",
+  "base": {
+    "branch": "main",
+    "commit": "b106eea0be338281ef33ba1a73a44763daa49429",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b106eea0be338281ef33ba1a73a44763daa49429",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-diagnostic-artifact-layered-contract-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-diagnostic-artifact-layered-contract-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "f4f9525bff6c82309b7468127df72b85ff2d0e32923d5cd9e9bd0834aa27a0c5",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-diagnostic-artifact-layered-contract-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "1248eca9fee4a07fc2a0c5dd816c01de973d57ef003a3996926ca22ee3fb8d44",
+    "rootFixIsTestsOnlyContractReconciliation": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageOrLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureFirstEvidence": {
+    "externalExactHead": "8171590ce4548463ce59bed773f577e8c02a1026",
+    "pullRequest": 692,
+    "workflow": "Layered CI Fast Feedback",
+    "run": 32630505228,
+    "job": 97172459457,
+    "conclusion": "failure",
+    "failingTest": "Product final validation retires source-UAT handoff and emits exactly the two same-head materialized UAT artifacts",
+    "failure": "AssertionError: actual 3 !== expected 2 for pinned actions/upload-artifact occurrences",
+    "causal": true,
+    "unknownBlockers": 0
+  },
+  "requiredRootFix": [
+    "Preserve the existing requirement that Product Final emits exactly one Product-Experience-Materialized-Desktop-UAT artifact and exactly one Product-Experience-Materialized-Matrix-UAT artifact at the same exact PR head.",
+    "Replace the stale assertion that the workflow contains exactly two total pinned actions/upload-artifact uses with a contract that distinguishes the two materialized UAT artifacts from exactly one additional diagnostic artifact.",
+    "Require the diagnostic artifact to use the already-pinned actions/upload-artifact identity and remain an independent diagnostic artifact rather than reclassifying either materialized UAT artifact.",
+    "Do not modify .github/workflows/v21-product-experience-shell-p0-final-validation.yml in this prerequisite.",
+    "Do not weaken branch routing, exact-head checkout, receipt verdict, process survival, Element materialization, production runtime probe, or any Product Final UAT identity check."
+  ],
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "Layered total upload-artifact cardinality assertion",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Run 32630505228 job 97172459457 failed only at tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js with actual 3 versus expected 2 after #692 added the separately authorized diagnostic artifact.",
+        "requiredClosure": "Reconcile the static contract to distinguish two materialized UAT artifacts plus one diagnostic artifact."
+      },
+      {
+        "boundary": "Two same-head materialized UAT artifacts",
+        "classification": "PRESERVE",
+        "evidence": "The same failing test already separately asserts exactly one Desktop UAT artifact and exactly one Matrix UAT artifact.",
+        "requiredClosure": "Keep both exact one-count assertions unchanged."
+      },
+      {
+        "boundary": "#692 Product Final diagnostic workflow implementation",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+        "evidence": "#691 explicitly requires adding exactly one independent always-running diagnostic artifact; #692 implements that behavior without changing launch verdict semantics.",
+        "requiredClosure": "Do not modify #692 workflow content in this prerequisite."
+      },
+      {
+        "boundary": "Product/runtime/routing/dependency surfaces",
+        "classification": "NEGATIVE_PROOF",
+        "evidence": "Layered run 32630505228 reports one failing test and all surrounding governance/routing contracts pass; the failure is a static count mismatch only.",
+        "requiredClosure": "No Product/runtime/routing/dependency changes."
+      }
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "node --test --test-concurrency=1 tests/layered-ci/*.test.js"
+    ],
+    "exactHeadCiRequired": true,
+    "requiredGates": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "Layered CI Fast Feedback",
+      "Architecture Closure V2 when routed",
+      "Model Brain Windows when routed"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "candidatePreservation": {
+    "pullRequest692MustRemainFrozenUntilPrerequisiteLands": true,
+    "pullRequest692ExactHead": "8171590ce4548463ce59bed773f577e8c02a1026",
+    "productPullRequest615MustRemainFrozen": true,
+    "productPullRequest615ExactHead": "45b95868cb0402bda2c3846621eb5e1ca2e4d412",
+    "windowsUatCandidatePullRequest538MustRemainUntouched": true,
+    "pullRequest614OwnerBoundaryMustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
