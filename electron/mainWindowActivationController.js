@@ -20,7 +20,6 @@ function createMainWindowActivationController(options = {}) {
   const notifyRecovery = options.notifyRecovery || (() => {});
   const log = options.log || (() => {});
   const rendererReadyTimeoutMs = Math.max(25, Number(options.rendererReadyTimeoutMs || 8000));
-  const backendReadyTimeoutMs = Math.max(500, Number(options.backendReadyTimeoutMs || 60000));
 
   let readiness = freshReadiness(null, 'initial');
   let pending = null;
@@ -121,7 +120,7 @@ function createMainWindowActivationController(options = {}) {
       return true;
     };
 
-    await waitForBackendReady({ reason, timeoutMs: backendReadyTimeoutMs });
+    await waitForBackendReady({ reason });
     if (!getBackendReady()) throw timeoutError('DESKTOP_BACKEND_NOT_READY', 'Backend is not ready for main-window activation', { reason });
 
     let window = getWindow();
