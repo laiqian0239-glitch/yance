@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T12:33:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WIN-PKG-ACTIVATION-BACKEND-WAITER-P0-SUCCESSOR-V4",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor root closure for the real Product Final packaged Windows failure on PR #615 head 90015565d5c3916dfc963ac2e0eff85800ca79c8, run 32615334130, job 97135022629. Yance.exe remained alive for the full harness window but no post-install-launch.json was emitted. Fresh source audit proves electron/main.js waitForBackendReadyForActivation silently creates a default 60000 ms timer when activation deliberately supplies no timeout after #684 delegated timing authority to the backend lifecycle. The 60 s rejection aborts activation before sendActivation/writePostInstallLaunchReceipt while the process remains alive; Product Final then times out at 120 s. Close only this residual same-root authority composition defect. No timeout inflation, Product Final weakening, browser/source surrogate, workflow change, new readiness authority, or unrelated scope expansion is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 683,
+    "authorizationMerge": "f4b46589923ed91124e1e33c4947ee07393f3003",
+    "implementationPullRequest": 684,
+    "implementationMerge": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
+    "predecessorProductionHead": "d57e656ad08504263d1186516b9e1f9de464d0e9",
+    "productPullRequest": 615,
+    "productHead": "90015565d5c3916dfc963ac2e0eff85800ca79c8",
+    "productFinalRun": "32615334130",
+    "productFinalJob": "97135022629",
+    "observedFailure": "timed out waiting for fresh post-install-launch.json: D:\\a\\_temp\\product-uat-packaged-data\\logs\\post-install-launch.json",
+    "processStayedAlive": true,
+    "receiptWasNeverWritten": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-win-pkg-activation-backend-waiter-p0-successor-v4-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-win-pkg-activation-backend-waiter-p0-successor-v4-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "453c7da0591239f01e2f8192bd017ee69ab01c4633ba4aefea0a9aa2fccca176",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-win-pkg-activation-backend-waiter-p0-successor-v4",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "electron/main.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "30c6ce5a681e4972fac62b8b53cddb5a0db55af8c186b219d0e6c83c6683ad97",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/desktop-fixes/main-window-activation-controller.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "0a08f6ff1b6bdaba928318aa3569916934d04d98a6dae52f779847e01bcc1f6e",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "Mandatory activation test must prove that an activation call with no explicit timeout cannot be assigned the hidden 60000 ms adapter deadline in electron/main.js.",
+        "Implementation-branch policy and required-test coverage must pass."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true
+    },
+    "productionRootFix": {
+      "allowedAfterFreshCausalRedOnly": true,
+      "allowedChangedPaths": [
+        "electron/main.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "43ce975bc84933badefa45876797e6f3825ca8b1f65367d9fe6cd7d179e1f598",
+      "requiredBehavior": "waitForBackendReadyForActivation must create a local timer only when the caller supplies an explicit timeoutMs. Calls from main-window activation without timeoutMs must wait on the existing backend lifecycle authority and its success/failure signals instead of inventing a fixed 60 s budget. Existing explicit timeout callers remain bounded.",
+      "timeoutOnlyIncreaseForbidden": true,
+      "newBackendReadinessAuthorityForbidden": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "electron/desktopHost/BackendProcessHost.js authoritative backend startup/readiness lifecycle and budget — PRESERVE",
+      "electron/main.js waitForBackendReadyForActivation implicit default timeout — ROOT_IMPLEMENTATION",
+      "electron/mainWindowActivationController.js no independent timeoutMs composition after #684 — PRESERVE",
+      "electron/mainWindowRuntimeReadiness.js post-backend fresh runtime/session validation — PRESERVE",
+      "electron/postInstallLaunchReceipt.js PASS receipt emission after activation dispatch — PRESERVE",
+      "Product Final packaged Windows harness 120 s outer evidence window — PRESERVE"
+    ]
+  },
+  "defectContract": {
+    "activationMustNotPreemptBackendLifecycleBudget": true,
+    "implicitAdapterTimeoutForbidden": true,
+    "explicitTimeoutCallersMustRemainBounded": true,
+    "timeoutOnlyIncreaseForbidden": true,
+    "productFinalWeakeningForbidden": true,
+    "browserOrSourceSurrogateForbidden": true,
+    "singleInstanceSemanticsMustRemain": true,
+    "productionElementModuleLoaderMustRemain": true,
+    "freshRuntimeChallengeMustRemain": true,
+    "visibleRealPackagedReceiptRequired": true
+  },
+  "requiredValidation": {
+    "failureFirst": "Create a tests-only first head on the effective authorization merge and obtain fresh Stage RED proving only the hidden default backend activation timer contract while policy/coverage pass.",
+    "focused": [
+      "node --test tests/desktop-fixes/main-window-activation-controller.test.js",
+      "node --test tests/wp0/implementation-branch-policy.test.js",
+      "node --test tests/wp0/wp0-required-test-coverage.test.js"
+    ],
+    "formal": [
+      "Stage WP0 fresh causal RED on exact first head, then GREEN on exact production head",
+      "ACV2 WP-A GREEN on exact production head when routed",
+      "Model Brain Windows GREEN when routed",
+      "Layered CI GREEN when routed",
+      "Product Final real packaged Windows validation GREEN when routed"
+    ],
+    "exactHeadCiRequired": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BACKEND_LIFECYCLE_AUTHORITY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance backend lifecycle authority",
+        "source": "electron/desktopHost/BackendProcessHost.js + electron/main.js lifecycle signals",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is only an adapter-imposed duplicate deadline around an already authoritative lifecycle."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The existing mandatory activation test file can carry the causal contract without new infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add another backend readiness authority.",
+      "Do not increase the fixed timeout.",
+      "Do not weaken Product Final.",
+      "Do not mutate PR #615 while the prerequisite is open."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": false
+  },
+  "candidatePreservation": {
+    "productPullRequest615MustRemainFrozen": true,
+    "productHeadAtDiscovery": "90015565d5c3916dfc963ac2e0eff85800ca79c8",
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
