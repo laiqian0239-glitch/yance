@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T02:14:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELECTRON-SUPPORTED-RUNTIME-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main Release Closure prerequisite for KF-P0-05. Trusted main still declares Electron 39.8.5 across the package/runtime trust graph. Electron 39 reached upstream end-of-life on 2026-05-05, and current upstream security advisory GHSA-9f4c-93c8-jc8g classifies versions below 39.8.10 as affected by a High-severity sandboxed-iframe popup-boundary bypass. The release closure may not ship an EOL runtime with unresolved High advisory exposure. This revision is diagnostic-only: it authorizes one tests-only failure-first path so the complete active Electron dependency, archive trust, workflow, Windows harness and reproducibility source graph can be measured on one immutable exact head before any dependency, workflow, trust metadata or runtime bytes are modified. The reviewed current migration candidate is upstream stable Electron 43.4.1, but this revision grants no dependency or production modification authority; exact production paths and dependency identity require a same-work-package post-RED amendment after the Closure Matrix reaches unknownBlockers=0.",
+  "base": {
+    "branch": "main",
+    "commit": "b89d7390df69b9100311644b9d934e6ce443e2ac",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b89d7390df69b9100311644b9d934e6ce443e2ac",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-electron-supported-runtime-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-electron-supported-runtime-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "6df1e0b8428fcc5e9bf30abca37698c49f05a5f024bacab727c61bf14d6bffc4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-electron-supported-runtime-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-electron-supported-runtime-p0.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "85aec66e93ed9c871e9129b2d78a25df88dc9ae4e8b597c1b40d76175ee6f7f4",
+    "productionScopeAuthorized": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-electron-supported-runtime-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "85aec66e93ed9c871e9129b2d78a25df88dc9ae4e8b597c1b40d76175ee6f7f4",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "Current package and lock authority still resolve electron@39.8.5 rather than the reviewed supported stable migration candidate.",
+        "Current Electron distribution trust and active release/UAT authority surfaces still bind the 39.8.5 archive/version identity.",
+        "The complete active source graph has not yet proved one exact supported Electron version and archive identity across dependency, trust, workflows and Windows runtime verification."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true,
+      "newImplementationContinuationRequiredAfterAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Trusted main is freshly read and equals base.commit before authorization merge.",
+      "Authorization proposal remains exactly one governance file.",
+      "Implementation branch starts exactly from the effective ordinary authorization merge.",
+      "Fresh trusted main still equals that exact authorization merge immediately before creating the immutable first tests-only implementation head.",
+      "The one-path diagnostic set/count/SHA-256 exactly matches this document and is recognized by base-owned policy.",
+      "Fresh package.json, package-lock.json and release/electron-distribution-trust.json still bind Electron 39.8.5.",
+      "Fresh active release/UAT workflow and Windows harness scan records every runtime-version/archive identity still coupled to Electron 39.8.5.",
+      "Historical Fix6O reports, prior Electron-custody authorization documents and archived plans are evidence only and are not promoted into the active production root merely because they contain 39.8.5.",
+      "No dependency, workflow, production runtime, archive trust, vendor binary, routing policy or release/publish byte is authorized by this revision."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "root package and lock Electron dependency identity",
+      "official Electron distribution trust metadata and checksums",
+      "active Stage/Product Final/Windows release workflow Electron version and archive identity",
+      "runtime-delivery and WP7 trust contracts that verify official Electron archive provenance",
+      "Windows preview, assisted-validation and runtime-identity helpers that bind the packaged Electron runtime",
+      "dependency-cache/reproducibility policy only where the Electron package graph actually requires change",
+      "Layered risk/routing authority only where a new exact runtime/custody path is proven necessary",
+      "historical scripts/reports/authorizations remain immutable evidence unless an active caller proves otherwise",
+      "no security-gate weakening, alternate mirror, source rebuild, unsigned archive, broad path prefix, force push, rebase or history rewrite"
+    ]
+  },
+  "ossFit": {
+    "decision": "USE_OFFICIAL_SUPPORTED_ELECTRON_RELEASE_AND_EXISTING_YANCE_TRUST_PIPELINE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Electron 43.4.1",
+        "source": "electron/electron official stable release",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "PARTIAL_FIT",
+        "reason": "Current supported stable Electron line and preferred upstream runtime candidate; exact Yance source-graph compatibility remains to be established by the authorized fresh causal RED before production scope is granted."
+      },
+      {
+        "name": "Existing Yance Electron distribution trust verifier",
+        "source": "release/electron-distribution-trust.json + tools/wp7/packaged-product-trust.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Current verifier already requires lock/package/trust agreement and official checksum binding; migration should update identities, not replace this authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not keep Electron 39 merely because historical custody evidence is green.",
+      "Do not add an alternate Electron mirror, custom downloader or source rebuild.",
+      "Do not weaken official archive SHA/checksum verification.",
+      "Do not rewrite old authorization or historical UAT evidence to make it mention the new version."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focusedAfterDiagnostic": [
+      "node --test tests/wp0/v21-electron-supported-runtime-p0.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "ACV2",
+      "Layered/WP-A validation when triggered",
+      "Model validation when triggered",
+      "Product Final contracts when triggered"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
