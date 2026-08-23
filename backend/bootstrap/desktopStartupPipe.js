@@ -20,7 +20,8 @@ class BackendStartupPipeError extends Error {
 
 function readStartupFrame(options = {}) {
   const fd = Number.isInteger(options.fd) ? options.fd : CONTROL_PIPE_FD;
-  const timeoutMs = Math.max(100, Number(options.timeoutMs || 10000));
+  const configuredTimeoutMs = options.timeoutMs ?? process.env.YANCE_BACKEND_STARTUP_TIMEOUT_MS ?? 60_000;
+  const timeoutMs = Math.max(100, Number(configuredTimeoutMs));
   const expectedPid = Number(options.expectedPid || process.pid);
   return new Promise((resolve, reject) => {
     let bytes = 0;
