@@ -32,6 +32,27 @@ function sealedShape(receipt = readReceipt()) {
   return result;
 }
 
+function withDetachedWorktree(ref, callback) {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-m2-review-'));
+  const worktree = path.join(parent, 'worktree');
+  execFileSync('git', ['worktree', 'add', '--detach', worktree, ref], {
+    cwd: repoRoot,
+    env: { ...process.env, GIT_LFS_SKIP_SMUDGE: '1' },
+    stdio: 'ignore'
+  });
+  try {
+    return callback(worktree);
+  } finally {
+    try {
+      execFileSync('git', ['worktree', 'remove', '--force', worktree], { cwd: repoRoot, stdio: 'ignore' });
+    } finally {
+      fs.rmSync(parent, { recursive: true, force: true });
+    }
+  }
+}
+
 test('M2-SEAL-001 current Gate 2 receipt state is valid and all downstream authority remains closed', () => {
   const receipt = readReceipt();
   const result = validateReceipt(receipt);
@@ -161,4 +182,73 @@ test('M2-SEAL-007 standalone verifier emits machine-readable evidence for the cu
   assert.equal(report.local.ok, true);
   assert.equal(report.local.sealStatus, receipt.seal.status);
   assert.deepEqual(report.local.postReviewFiles, EXPECTED_POST_REVIEW_PATHS);
+});
+
+test('M2-SEAL-008 local and remote evidence share one delegated review branch admission helper', () => {
+  const fs = require('node:fs');
+  const source = fs.readFileSync(verifierPath, 'utf8');
+  assert.match(source, /function isAuthorizedReviewImplementationBranch\(currentBranch, options = \{\}\)/u);
+  assert.equal((source.match(/requireThat\(isAuthorizedReviewImplementationBranch\(currentBranch\)/gu) || []).length, 2);
+  assert.equal((source.match(/requireThat\(isAuthorizedWpBImplementationBranch\(currentBranch/gu) || []).length, 0);
+});
+
+test('M2-SEAL-009 delegated review admission is pinned to trusted policy root, exact heads and policy blobs', () => {
+  const fs = require('node:fs');
+  const source = fs.readFileSync(verifierPath, 'utf8');
+  for (const token of [
+    'TRUSTED_POLICY_ROOT',
+    'TRUSTED_POLICY_SHA',
+    'VALIDATION_SHA',
+    'shared/release/implementationBranchPolicy.js',
+    'shared/release/implementationBranchPolicyLegacy.js',
+    'release/release-source.json',
+    'isAuthorizedImplementationBranch',
+    'trustedMainHead',
+    'evaluatedHead'
+  ]) assert.equal(source.includes(token), true, token);
+});
+
+test('M2-SEAL-010 active WP-B lineage remains accepted without delegated context', () => {
+  const verifier = require('../../../../tools/architecture-closure-v2/verify-wp-b-m2-review');
+  assert.equal(typeof verifier.isAuthorizedReviewImplementationBranch, 'function');
+  const currentBranch = execFileSync('git', ['branch', '--show-current'], { cwd: repoRoot, encoding: 'utf8' }).trim();
+  assert.equal(verifier.isAuthorizedReviewImplementationBranch(currentBranch, { repositoryRoot: repoRoot }), true);
+});
+
+test('M2-SEAL-011 non-WP-B delegated successor requires exact trusted-main policy and rejects candidate-owned trust', () => {
+  const verifier = require('../../../../tools/architecture-closure-v2/verify-wp-b-m2-review');
+  assert.equal(typeof verifier.isAuthorizedReviewImplementationBranch, 'function');
+
+  const delegatedBranch = 'fix/v21-wp-b-m2-independent-review-delegated-route-p0-v1';
+  const delegatedHead = 'e912a0e48003b22976da8c1f04a86e57f581fc4c';
+  const trustedMainHead = '2a486df96b53c5b86065e0e9b67badd4469e2a24';
+
+  withDetachedWorktree(delegatedHead, candidateRoot => {
+    withDetachedWorktree(trustedMainHead, trustedPolicyRoot => {
+      assert.equal(verifier.isAuthorizedReviewImplementationBranch(delegatedBranch, {
+        repositoryRoot: candidateRoot,
+        trustedPolicyRoot,
+        trustedMainHead,
+        evaluatedHead: delegatedHead
+      }), true);
+
+      assert.equal(verifier.isAuthorizedReviewImplementationBranch(delegatedBranch, {
+        repositoryRoot: candidateRoot,
+        trustedPolicyRoot: candidateRoot,
+        trustedMainHead,
+        evaluatedHead: delegatedHead
+      }), false);
+
+      assert.equal(verifier.isAuthorizedReviewImplementationBranch(delegatedBranch, {
+        repositoryRoot: candidateRoot,
+        trustedPolicyRoot,
+        trustedMainHead,
+        evaluatedHead: '0'.repeat(40)
+      }), false);
+
+      assert.equal(verifier.isAuthorizedReviewImplementationBranch(delegatedBranch, {
+        repositoryRoot: candidateRoot
+      }), false);
+    });
+  });
 });
