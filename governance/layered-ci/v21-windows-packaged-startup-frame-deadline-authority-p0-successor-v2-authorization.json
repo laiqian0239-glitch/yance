@@ -3,10 +3,10 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "requestedByUserAt": "2026-08-23T14:40:00+07:00",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-WINDOWS-PACKAGED-STARTUP-FRAME-DEADLINE-AUTHORITY-P0-SUCCESSOR-V2",
-  "proposalRevision": 1,
+  "workPackage": "V21-WIN-PKG-STARTUP-FRAME-DEADLINE-P0-SUCCESSOR-V2",
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Successor recovery for PR #688 after the causal production bytes were uploaded correctly but the first post-RED production commit 759b9fe01f1fd84ab96f8e7d0d1c815eaf8b400b omitted the exact failure-first RED evidence and Fast Closure V2 trailers required by the already-merged authorization and trusted-main evaluator. The immutable clean causal RED head cacdd68e0ad98d8a02321bcbccc40cd09b19bd99 and Stage run 32624076416 remain valid with unknownBlockers=0. History rewrite, amend, rebase, reset, force-push and predecessor mutation are forbidden. Freeze the invalid post-RED sequence and continue from the clean RED through the repository's existing forwardContinuation plus failure-first composition mechanism, then reapply only the same authorized two-file production root fix with exact fresh successor RED trailers.",
+  "reason": "Successor recovery for PR #688 after the causal two-file production fix was uploaded correctly but the first post-RED production commit omitted the exact failure-first RED evidence and Fast Closure V2 trailers required by trusted-main policy. Preserve immutable clean causal RED head cacdd68e0ad98d8a02321bcbccc40cd09b19bd99 and Stage RED run 32624076416 with unknownBlockers=0, freeze the invalid post-RED sequence without rewriting history, continue through the repository's existing forwardContinuation plus failure-first two-parent mechanism, re-execute a fresh clean successor RED, then reapply only the same authorized startup-frame deadline root fix with exact successor RED trailers.",
   "base": {
     "branch": "main",
     "commit": "d3f6530bd384c6ead79e27bc13a77c5bf09a8e5c",
@@ -26,8 +26,7 @@
   "supersedes": {
     "authorizationPath": "governance/layered-ci/v21-windows-packaged-startup-frame-deadline-authority-p0-authorization.json",
     "implementationBranch": "fix/v21-windows-packaged-startup-frame-deadline-authority-p0",
-    "implementationPullRequest": 688,
-    "reason": "Freeze PR #688 without rewriting or mutating its history because its first post-RED production commit lacks mandatory evidence trailers. Continue from the last valid clean causal RED on a fresh successor branch."
+    "reason": "Freeze PR #688 at its last valid clean causal RED and continue on a fresh successor branch. No force-push, reset, rebase, amend, squash, or predecessor mutation is permitted."
   },
   "predecessorEvidence": {
     "authorizationPullRequest": 687,
@@ -39,9 +38,8 @@
     "closureMatrixUnknownBlockers": 0,
     "invalidPostRedHead": "759b9fe01f1fd84ab96f8e7d0d1c815eaf8b400b",
     "invalidPostRedCommitMessage": "fix(v21): enforce packaged startup frame deadline authority",
-    "invalidPostRedProductionBytesCausalCorrect": true,
-    "classification": "CLEAN_CAUSAL_RED_FROZEN_BEFORE_INVALID_POST_RED_EVIDENCE_SEQUENCE",
-    "requiredReasonCode": "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID",
+    "classification": "CLEAN_CAUSAL_RED_FROZEN_BEFORE_INVALID_POST_RED_SEQUENCE",
+    "requiredReasonCode": "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_INVALID",
     "observedOuterGate": "WP_B_M2_IMPLEMENTATION_BRANCH_UNAUTHORIZED",
     "observedWpBRun": 32626187672
   },
@@ -95,14 +93,15 @@
         "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
       },
       "requiredPostRedEvidenceTrailers": [
-        "Yance-Failure-First-Red-Head: <exact successor RED head>",
-        "Yance-Failure-First-Red-Run: <exact fresh successor failing Stage run id>",
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
         "Yance-Failure-First-Red-Conclusion: failure",
         "Yance-Closure-Matrix-Unknown-Blockers: 0"
       ],
       "expectedFailures": [
         "The child startup-frame deadline remains an independent 10000ms production budget instead of consuming the authoritative Electron backend lifecycle budget.",
-        "electron/main.js does not yet propagate its exact backendStartupTimeoutMs value into the spawned backend environment."
+        "electron/main.js does not yet propagate its exact backendStartupTimeoutMs value into the spawned backend environment.",
+        "No unrelated implementation-policy, routing, dependency, workflow, or product failure is permitted."
       ]
     },
     "productionRootFix": {
@@ -134,7 +133,6 @@
     "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
     "requiredSecondParent": "cacdd68e0ad98d8a02321bcbccc40cd09b19bd99",
     "preserveFrozenRedTestBlob": true,
-    "discardInvalidPostRedProductionCommitWithoutHistoryRewrite": true,
     "historyRewriteForbidden": true,
     "predecessorMutationForbidden": true,
     "freshCleanRedMustBeReexecuted": true
@@ -160,15 +158,13 @@
       "node --test --test-concurrency=1 tests/wp2/desktop-host-process-lifecycle.test.js",
       "npm run test:wp0"
     ],
-    "exactHeadCi": [
-      "Stage",
-      "Layered CI",
-      "ACV2",
-      "WP-A when routed",
-      "Model Brain Windows when routed",
-      "WP-B M2 Contracts when routed",
-      "Product Final when routed"
+    "negativeProofs": [
+      "The successor first head is an exact two-parent continuation of the authorization merge and frozen clean RED head.",
+      "The fresh successor RED fails only for the startup-frame deadline causal contract.",
+      "The first post-RED production commit carries exact RED head, run, conclusion and Fast Closure V2 trailers.",
+      "Only the three authorized implementation paths change."
     ],
+    "exactHeadCiRequired": true,
     "finalProof": "After successor prerequisite ordinary merge, PR #615 must be ordinary forward-reconciled from fresh main without rewriting its authorized eight-path Product candidate and Product Final must show all three actual jobs GREEN."
   },
   "ossFit": {
@@ -180,7 +176,7 @@
       {
         "name": "Yance delegated forwardContinuation evaluator",
         "source": "shared/release/implementationBranchPolicyLegacy.js",
-        "license": "repository-existing",
+        "license": "repository-internal existing seam",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
         "reason": "The repository already has a fail-closed two-parent continuation mechanism specifically for preserving clean causal RED after an invalid post-RED sequence."
@@ -188,7 +184,7 @@
       {
         "name": "Existing Yance backend lifecycle timeout authority",
         "source": "electron/main.js backendStartupTimeoutMs + BackendProcessHost startBackend lifecycle",
-        "license": "repository-existing",
+        "license": "repository-internal existing seam",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
         "reason": "The parent already owns the exact bounded startup lifecycle budget; the child must consume that authority rather than invent a second deadline."
