@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T06:32:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-AI-AUTO-RETRY-STORM-SUCCESSOR-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main failure-first continuation for the remaining AI_AUTO retry-storm generation-code gap after the WP0 coverage prerequisite landed on main. Frozen PR #668 already carries the exact focused test bytes adding SOCIAL_CONTEXT_NOT_READY, STALE_CONVERSATION_CONTEXT, and STALE_PERSONA_PROFILE, but its earlier Stage GREEN was non-causal because the trusted WP0 runner did not execute that backend test. Main now includes the exact required-test coverage and isolated runner entry, so this successor must preserve the #668 test blob as a canonical two-parent first implementation commit and obtain a true fresh causal Stage RED before any production change to aiBrainOrchestrator.js.",
+  "base": {
+    "branch": "main",
+    "commit": "1c54b2c1a4adad122c927cbb1485692e4bd9f0ac",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "1c54b2c1a4adad122c927cbb1485692e4bd9f0ac",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-ai-auto-retry-storm-successor-v2-authorization.json",
+    "implementationBranch": "fix/v21-product-ai-auto-retry-storm-successor-v2",
+    "reason": "Freeze PR #668 as non-causal historical evidence and continue from its exact tests-only head on fresh main after the trusted WP0 runner coverage prerequisite landed. Do not rewrite, rebase, amend, force-push, squash or otherwise mutate #668 history."
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 667,
+    "authorizationMerge": "94f0aae2f5c5aeec125dca97e8ef66e764bbde5a",
+    "implementationPullRequest": 668,
+    "frozenPredecessorHead": "caf8ec6dd13e0ecfd19a965313bb6cb8e70b8d46",
+    "frozenFocusedTestBlob": "cd14beba1ed7282030d094cb118323f702c32774",
+    "oldStageClassification": "NON_CAUSAL_NO_COVERAGE",
+    "coveragePrerequisiteMerge": "1c54b2c1a4adad122c927cbb1485692e4bd9f0ac",
+    "coveragePrerequisitePullRequest": 678,
+    "coverageProof": "Trusted WP0 product route enumerates and executes backend/tests/v21ProductAiAutoRetryStorm.test.js in an isolated bounded child process."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-ai-auto-retry-storm-successor-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-ai-auto-retry-storm-successor-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8d5cfb2c9693f26eb2a06cfd6a5b29b18393afd33fcc291544a54253c61a48c6",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-ai-auto-retry-storm-successor-v3",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "caf8ec6dd13e0ecfd19a965313bb6cb8e70b8d46"
+    },
+    "allowedChangedPaths": [
+      "backend/services/aiBrainOrchestrator.js",
+      "backend/tests/v21ProductAiAutoRetryStorm.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "5730ca64ca7f8527a51d122e35796e532d8bece7b9c28830ad20d9f1e51d0bcf",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "backend/tests/v21ProductAiAutoRetryStorm.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "29868de524000d3cef17551d2a227b4a5f00e12a16852834bf87e0bdd2b8abdd",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "firstHeadContract": {
+    "mustPreserveExactFrozenFocusedTestBlob": "cd14beba1ed7282030d094cb118323f702c32774",
+    "mustHaveExactlyTwoOrderedParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "caf8ec6dd13e0ecfd19a965313bb6cb8e70b8d46",
+    "expectedFreshCausalFailure": "Current backend/services/aiBrainOrchestrator.js omits SOCIAL_CONTEXT_NOT_READY, STALE_CONVERSATION_CONTEXT, and STALE_PERSONA_PROFILE from isDeterministicAutoReplyGenerationError, so the trusted WP0 runner must now fail the focused contract before production changes.",
+    "productionCodeMustRemainUnchanged": true
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "backend/services/contextAwareReplyBrain.js production throw sites for SOCIAL_CONTEXT_NOT_READY, STALE_CONVERSATION_CONTEXT, and STALE_PERSONA_PROFILE",
+      "backend/services/aiBrainOrchestrator.js explicit generation-error classification and processConversation catch semantics",
+      "runScheduledAnalysis mapping for automatic-reply-generation-failed, superseded/deferred outcomes, generic failed, and retryable flags",
+      "candidate persistence / analysisSuccessRequiresAiAutoCandidatePersistence restart-no-drop contract",
+      "AI_STALE_RESULT existing superseded recovery and stale conversation/persona cancellation semantics",
+      "unknown or genuinely transient generation errors retaining fail-closed behavior without silently succeeding analysis",
+      "negative proof that no second candidate scheduler, queue, durable operation, provider router, workflow, dependency, database, routing or Product path is introduced"
+    ]
+  },
+  "defectContract": {
+    "issue": 533,
+    "fullAnalysisRetryStormForKnownGenerationOutcomeForbidden": true,
+    "socialContextNotReadyMustNotFallThroughToGenericRetryableAnalysisFailure": true,
+    "staleConversationMustNotFallThroughToGenericRetryableAnalysisFailure": true,
+    "stalePersonaMustNotFallThroughToGenericRetryableAnalysisFailure": true,
+    "analysisSuccessStillRequiresAiAutoCandidatePersistence": true,
+    "aiStaleResultExistingRecoveryMustRemain": true,
+    "staleConversationAndPersonaSemanticsMustRemainFailClosed": true,
+    "unknownOrTransientGenerationFailureMayNotBeSilentlyConvertedToSuccess": true,
+    "noIndependentCandidateSchedulerIntroduced": true,
+    "noSecondDurableOperationIntroduced": true
+  },
+  "requiredValidation": {
+    "failureFirst": "Use the exact frozen #668 focused-test blob as the canonical two-parent first implementation head; trusted Stage must now execute it and fail causally before production changes.",
+    "focused": [
+      "node --test backend/tests/v21ProductAiAutoRetryStorm.test.js",
+      "node --test backend/tests/v21ProductAiAutoConversationP0.test.js"
+    ],
+    "formal": [
+      "Stage WP0 must establish fresh causal RED on the exact first head, then GREEN on the exact production head",
+      "Layered CI GREEN on exact production head",
+      "ACV2 WP-A GREEN on exact production head",
+      "Model Brain Windows GREEN when routed",
+      "Product Final may be SKIPPED only when route intentionally excludes it"
+    ],
+    "exactHeadCiRequired": true
+  },
+  "ossFit": {
+    "decision": "EXTEND_EXISTING_REPOSITORY_ERROR_CLASSIFICATION_AND_FOCUSED_TEST_SEAMS_ONLY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance aiBrainOrchestrator durable analysis authority",
+        "source": "backend/services/aiBrainOrchestrator.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect remains a local classification gap at the existing durable analysis boundary; a second retry subsystem is unnecessary and forbidden."
+      },
+      {
+        "name": "Yance focused retry-storm regression",
+        "source": "backend/tests/v21ProductAiAutoRetryStorm.test.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The exact frozen #668 blob already encodes the three omitted production outcomes and is now causally runnable through WP0."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "No new test framework or dependency is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second candidate retry scheduler, queue, or durable-operation authority.",
+      "Do not weaken candidate persistence, AI_STALE_RESULT recovery, or stale-generation cancellation semantics.",
+      "Do not classify unknown/transient generation errors as success merely to suppress retries.",
+      "Do not add a workflow, dependency, database migration, provider router, routing policy or unrelated Product change."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "candidatePreservation": {
+    "frozenPullRequest668MustRemainUnmodified": true,
+    "frozenPullRequest668Head": "caf8ec6dd13e0ecfd19a965313bb6cb8e70b8d46",
+    "productPullRequest615MustRemainFrozen": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true,
+    "coveragePrerequisitePullRequest678HistoryMustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}

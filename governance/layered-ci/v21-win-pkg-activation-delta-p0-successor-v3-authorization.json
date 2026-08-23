@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T10:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WIN-PKG-ACTIVATION-DELTA-P0-SUCCESSOR-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main forward-only continuation for packaged Windows activation after the delegated forwardContinuation/failure-first composition prerequisite landed. Freeze PR #670 at its exact mixed-RED head and preserve the activation diagnostic bytes. Re-establish a clean activation-only causal RED on current main, then apply only the narrow activation-side backend deadline-composition root fix in electron/mainWindowActivationController.js. No timeout inflation, workflow weakening, browser/source surrogate, history rewrite, or unrelated scope expansion is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "f01bb27d3460dbb7efcb226c5b0a1316f0c8ffb0",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "f01bb27d3460dbb7efcb226c5b0a1316f0c8ffb0",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-win-pkg-activation-delta-p0-successor-v2-authorization.json",
+    "implementationBranch": "fix/v21-win-pkg-activation-delta-p0-successor-v2",
+    "reason": "PR #670 is frozen unmerged at b62dda18f819dc3fc9cad54d6b295bc9aad66650 because its historical Stage RED contained the intended activation failure plus the now-fixed delegated failure-first composition policy failure. Continue from that exact frozen evidence only; do not mutate predecessor history."
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 669,
+    "authorizationMerge": "68e7b6732c84393cfca7f8b482475b81f5794831",
+    "implementationPullRequest": 670,
+    "frozenHead": "b62dda18f819dc3fc9cad54d6b295bc9aad66650",
+    "frozenDiagnosticBlob": "539a5a44f7c7b01b4c89b5ac4f34fa4ffbada5c7",
+    "frozenHeadParents": [
+      "68e7b6732c84393cfca7f8b482475b81f5794831",
+      "b46c74916f37b15cfd01e6c91653f0307d1c5758"
+    ],
+    "historicalStageRun": "32599397317",
+    "historicalStageJob": "97095319285",
+    "historicalStageSummary": "617 tests / 615 pass / 2 fail",
+    "historicalTargetFailure": "activation must not start a second fixed backend deadline while the backend lifecycle authority is still inside its own startup budget",
+    "historicalTargetStack": "electron/mainWindowActivationController.js:124:11",
+    "historicalPolicyFailure": "implementation-branch-policy.test aggregate at tests/wp0/implementation-branch-policy.test.js:1148",
+    "historicalMixedRedMustNotBeMisrepresentedAsClean": true,
+    "forwardContinuationFailureFirstCompositionRepairMerge": "5388d9167693c0bea657b60222443d12a1d6feec",
+    "freshMainAtProposal": "f01bb27d3460dbb7efcb226c5b0a1316f0c8ffb0"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-win-pkg-activation-delta-p0-successor-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-win-pkg-activation-delta-p0-successor-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "30d6bbfc1e126da02daffcb0e5fa0735603ad11b2131870b4aed84a12bf966e3",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-win-pkg-activation-delta-p0-successor-v3",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "b62dda18f819dc3fc9cad54d6b295bc9aad66650"
+    },
+    "allowedChangedPaths": [
+      "electron/mainWindowActivationController.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c017bccb0f3fccead053d003a5db6854a39df3d452696167d933cb622617a0ff",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/desktop-fixes/main-window-activation-controller.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "0a08f6ff1b6bdaba928318aa3569916934d04d98a6dae52f779847e01bcc1f6e",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The preserved packaged-activation diagnostic must fail because mainWindowActivationController passes timeoutMs into the authoritative backend lifecycle wait.",
+        "The delegated implementation-branch policy must pass; any policy/topology failure keeps production forbidden."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticMustCarryPriorRedEvidence": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true
+    },
+    "productionRootFix": {
+      "allowedAfterFreshCausalRedOnly": true,
+      "allowedChangedPaths": [
+        "electron/mainWindowActivationController.js"
+      ],
+      "requiredBehavior": "Activation must delegate backend startup/readiness timing to the existing backend lifecycle authority and must not impose an independent fixed timeoutMs budget.",
+      "timeoutOnlyIncreaseForbidden": true,
+      "newBackendReadinessAuthorityForbidden": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "firstHeadContract": {
+    "mustPreserveExactFrozenFocusedTestBlob": "539a5a44f7c7b01b4c89b5ac4f34fa4ffbada5c7",
+    "mustHaveExactlyTwoOrderedParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "b62dda18f819dc3fc9cad54d6b295bc9aad66650",
+    "expectedFreshCausalFailure": "Stage must fail only the packaged activation deadline-composition diagnostic while implementation-branch-policy and mandatory coverage pass.",
+    "productionCodeMustRemainUnchanged": true
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "electron/desktopHost/BackendOwnerRegistry.js asynchronous Windows owner-identity lifecycle",
+      "electron/desktopHost/BackendProcessHost.js authoritative backend startup/readiness budget",
+      "electron/main.js backend process startup and wait authority",
+      "electron/mainWindowActivationController.js activation-side backend wait composition",
+      "electron/mainWindowRuntimeReadiness.js fresh runtime/session readiness validation",
+      "electron/postInstallLaunchReceipt.js real visible packaged receipt emission",
+      "integration/element-module/src/index.tsx production Element ModuleLoader activation surface",
+      "Product Final real packaged Windows launch and fresh visible receipt"
+    ]
+  },
+  "defectContract": {
+    "activationMustNotPreemptBackendLifecycleBudget": true,
+    "activationMayNotPassIndependentTimeoutMsToBackendLifecycleWait": true,
+    "timeoutOnlyIncreaseForbidden": true,
+    "productFinalWeakeningForbidden": true,
+    "browserOrSourceSurrogateForbidden": true,
+    "syncPowerShellOrAtomicsWaitRestorationForbidden": true,
+    "singleInstanceSemanticsMustRemain": true,
+    "productionElementModuleLoaderMustRemain": true,
+    "freshRuntimeChallengeMustRemain": true,
+    "backendSessionFingerprintStabilityMustRemain": true,
+    "visibleRealPackagedReceiptRequired": true,
+    "properLockfileAndPidReuseFencingMustRemain": true
+  },
+  "requiredValidation": {
+    "failureFirst": "Create the canonical successor first head with exact ordered parents [authorization merge, b62dda18f819dc3fc9cad54d6b295bc9aad66650], preserve diagnostic blob 539a5a44f7c7b01b4c89b5ac4f34fa4ffbada5c7, and obtain a fresh Stage RED where implementation-branch-policy passes and the only causal blocker is the activation deadline-composition diagnostic.",
+    "focused": [
+      "node --test tests/desktop-fixes/main-window-activation-controller.test.js",
+      "node --test tests/wp0/implementation-branch-policy.test.js",
+      "node --test tests/wp0/wp0-required-test-coverage.test.js"
+    ],
+    "formal": [
+      "Stage WP0 fresh causal RED on the exact first head, then GREEN on the exact production head",
+      "ACV2 WP-A GREEN on the exact production head",
+      "Model Brain Windows GREEN when routed",
+      "Layered CI GREEN when routed by base-owned path policy",
+      "Product Final real packaged Windows validation GREEN when routed; SKIPPED is acceptable only when the base-owned route intentionally excludes it"
+    ],
+    "exactHeadCiRequired": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BACKEND_LIFECYCLE_AND_FORWARD_CONTINUATION_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance delegated forwardContinuation policy",
+        "source": "shared/release/implementationBranchPolicy.js and shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already defines the exact forward-only two-parent successor topology and now composes it correctly with failure-first."
+      },
+      {
+        "name": "Yance backend lifecycle authority",
+        "source": "electron/desktopHost/BackendProcessHost.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The causal defect is activation-side deadline composition around the existing authoritative startup lifecycle; no new timeout framework is needed."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The exact activation diagnostic is already in the mandatory WP0 runner."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create another backend readiness authority.",
+      "Do not enlarge a fixed timeout as the root fix.",
+      "Do not weaken Product Final or replace packaged launch with browser/source validation.",
+      "Do not mutate #670 or any predecessor history."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": false
+  },
+  "candidatePreservation": {
+    "predecessorPullRequest670MustRemainFrozen": true,
+    "predecessorHeadMustRemain": "b62dda18f819dc3fc9cad54d6b295bc9aad66650",
+    "predecessorDiagnosticBlobMustRemain": "539a5a44f7c7b01b4c89b5ac4f34fa4ffbada5c7",
+    "productPullRequest615MustRemainFrozen": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
