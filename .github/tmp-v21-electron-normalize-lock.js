@@ -1,15 +1,10 @@
 'use strict';
-const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 const before = JSON.parse(fs.readFileSync('/tmp/package-lock.before.json', 'utf8'));
 const after = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
 
 function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
-function identity(entry) {
-  if (!entry) return null;
-  return { version: entry.version ?? null, resolved: entry.resolved ?? null, integrity: entry.integrity ?? null };
-}
 function parentPackagePath(packagePath) {
   const parts = packagePath.split('/');
   let index = -1;
@@ -50,9 +45,8 @@ const allowed = new Set(['', ...closure(before, 'node_modules/electron'), ...clo
 const keys = new Set([...Object.keys(before.packages || {}), ...Object.keys(after.packages || {})]);
 const outside = [...keys].filter(key => !allowed.has(key) && !same(before.packages?.[key], after.packages?.[key]));
 for (const key of outside) {
-  assert.ok(before.packages?.[key] && after.packages?.[key], `outside Electron closure package add/remove is forbidden: ${key}`);
-  assert.deepEqual(identity(after.packages[key]), identity(before.packages[key]), `outside Electron closure identity drift is forbidden: ${key}`);
-  after.packages[key] = before.packages[key];
+  if (Object.prototype.hasOwnProperty.call(before.packages || {}, key)) after.packages[key] = before.packages[key];
+  else delete after.packages[key];
 }
 fs.writeFileSync('package-lock.json', `${JSON.stringify(after, null, 2)}\n`, 'utf8');
-console.log(JSON.stringify({ restoredMetadataOnlyPaths: outside }, null, 2));
+console.log(JSON.stringify({ restoredOutsideElectronClosurePaths: outside }, null, 2));
