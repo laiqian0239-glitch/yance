@@ -234,6 +234,10 @@
         "fit": "FIT",
         "reason": "Existing repository tests use node:test; no new test dependency is needed."
       }
+    ],
+    "retireOrAvoid": [
+      "Forbid a second bootstrap authentication mechanism or duplicate runtime projection protocol; reuse the existing /api/desktop local session security and Runtime API v2 snapshot contract.",
+      "Forbid any /api/app/v2 personal-access exemption or duplicate APP_RUNTIME projection implementation as a workaround for DesktopHost bootstrap."
     ]
   },
   "mergePolicy": {
