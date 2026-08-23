@@ -19,7 +19,10 @@ test('deterministic AI_AUTO generation failures are classified separately from a
     'AI_REPLY_QUALITY_REJECTED',
     'REPLY_TECHNICAL_REJECTED',
     'PERSONA_TRUTH_FIREWALL_BLOCKED',
-    'CUSTOMER_NOT_FOUND'
+    'CUSTOMER_NOT_FOUND',
+    'SOCIAL_CONTEXT_NOT_READY',
+    'STALE_CONVERSATION_CONTEXT',
+    'STALE_PERSONA_PROFILE'
   ]) {
     assert.match(orchestrator, new RegExp(code));
   }
