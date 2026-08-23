@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T02:44:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELECTRON-SUPPORTED-RUNTIME-P0",
+  "proposalRevision": 4,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Same-work-package post-RED production continuation for Electron 43.4.1. Fresh exact-head diagnostics on PR #720 at 86da6cbabda271c81558a2a59c36e480c04ce069 produced only the six authorized Electron causal failures while every unrelated WP0 file stayed green. This revision preserves that frozen RED, exact dependency/workflow control policies, and auditable OSS-first fit evidence for the official supported Electron release; unknownBlockers remains zero.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-electron-supported-runtime-p0-authorization.json",
+    "implementationBranch": "fix/v21-electron-supported-runtime-p0",
+    "reason": "Supersede the diagnostic-only implementation authority after frozen causal RED proved the production authority root. PR #720 and its diagnostic history remain immutable evidence."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "66f4eb17114a119c7b5e5983654c01f99632fa2d"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-electron-supported-runtime-p0-production-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-electron-supported-runtime-p0-production-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8c6ddde2d68082d3498a95321440985fd26c319ebbc58c50a14489efa54f0ad7",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-electron-supported-runtime-p0-production-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "86da6cbabda271c81558a2a59c36e480c04ce069"
+    },
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      ".github/workflows/windows-production-release.yml",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "governance/layered-ci/risk-policy.json",
+      "package-lock.json",
+      "package.json",
+      "release/electron-distribution-trust.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/runtime-delivery/source-uat-delivery.test.js",
+      "tests/wp0/v21-electron-supported-runtime-p0.test.js",
+      "tools/release-closure/RUN_WINDOWS_ASSISTED_PIPELINE.ps1",
+      "tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1",
+      "tools/windows/VERIFY_RUNTIME_IDENTITY.ps1",
+      "tools/wp7/generate-trusted-product-probe-blocker.js",
+      "vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz",
+      "vendor/npm/_at_electron__get-5.0.0.tgz",
+      "vendor/npm/_at_types__node-24.10.13.tgz",
+      "vendor/npm/electron-43.4.1.tgz",
+      "vendor/npm/env-paths-3.0.0.tgz",
+      "vendor/npm/undici-7.25.0.tgz",
+      "vendor/npm/undici-types-7.16.0.tgz"
+    ],
+    "approvedChangedFileCount": 24,
+    "approvedChangedFileSetSha256": "e323647c839af2f9d6ea2e255ea0ac198f5328c1a0e0aeb70ff066bd4382d009",
+    "newDependencyAllowed": true,
+    "workflowModificationAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/stage-6459-wp0-gates.yml",
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        ".github/workflows/windows-production-release.yml"
+      ],
+      "approvedWorkflowPathCount": 3,
+      "approvedWorkflowPathSetSha256": "cc24f95c9f3fa077cba66a3b002297271adb4303576a1abdd61791cb1e59de69"
+    },
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "packageManifestModificationAllowed": true,
+    "lockfileModificationAllowed": true,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 720,
+    "branch": "fix/v21-electron-supported-runtime-p0",
+    "frozenHead": "86da6cbabda271c81558a2a59c36e480c04ce069",
+    "effectiveAuthorizationMerge": "66f4eb17114a119c7b5e5983654c01f99632fa2d",
+    "stageRun": 32662426611,
+    "stageJob": 97250543431,
+    "stageConclusion": "failure",
+    "result": "648 tests / 642 pass / 6 fail; all six failures are the authorized Electron supported-runtime assertions and every unrelated WP0 file is green",
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "86da6cbabda271c81558a2a59c36e480c04ce069",
+    "failureFirstEvidenceInheritedFromFrozenPredecessor": true,
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "activeRoot": "Migrate only the exact active package/lock, official Electron distribution trust, three active workflows, Windows identity helpers, WP7 blocker generation, runtime-delivery contracts, dependency seed authority and exact L2 risk contract to Electron 43.4.1.",
+    "preserve": [
+      "PR #720 frozen diagnostic history and causal RED",
+      "historical and synthetic 39.8.5 evidence",
+      "retired vendor/electron 39.8.5 source-custody absence proof",
+      "existing Product routing and fail-closed checksum/integrity gates"
+    ]
+  },
+  "electronTarget": {
+    "version": "43.4.1",
+    "npmResolved": "https://registry.npmjs.org/electron/-/electron-43.4.1.tgz",
+    "npmIntegrity": "sha512-5b+EuiwkgG5iRcsEL34rimgRpkYp15SsfZOa0pC5kXs0Tb82TH4n95rpQzTZa7yRCbA7tm0WoEbuBL6NaAhAcA==",
+    "officialWin32X64Asset": "electron-v43.4.1-win32-x64.zip",
+    "officialWin32X64Sha256": "c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a",
+    "officialLinuxX64Sha256": "79d4efd69f0ccf1fc11891ea5075329c7b3faddad79a08d9fb395bbd63169acf",
+    "exactGitHubAssetIdAndByteSizeMustBeBoundBeforeProductionCommit": true
+  },
+  "ossFit": {
+    "decision": "ADOPT_OFFICIAL_SUPPORTED_ELECTRON_43_4_1_THROUGH_EXISTING_YANCE_TRUST_PIPELINE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Electron 43.4.1",
+        "source": "electron/electron official stable release",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Frozen fresh causal RED proved the active Yance authority graph can migrate by binding the official supported Electron runtime and its exact npm/release identities without a replacement runtime or new general-purpose infrastructure."
+      },
+      {
+        "name": "Existing Yance Electron distribution trust verifier",
+        "source": "release/electron-distribution-trust.json + existing WP7/runtime-delivery trust seams",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing fail-closed checksum, package/lock/trust agreement and packaged-runtime verification seams remain the correct authority; this batch updates exact identities rather than inventing parallel infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire Electron 39.8.5 from active package, lock, workflow and runtime identity authority only; preserve historical evidence verbatim.",
+      "Do not add an alternate Electron mirror, custom downloader, source rebuild or unsigned archive path.",
+      "Do not weaken official archive SHA-256, package-lock integrity, WP7 provenance or exact runtime identity checks.",
+      "Do not duplicate existing Yance Electron trust or packaged-runtime verification infrastructure."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-electron-supported-runtime-p0.test.js",
+      "node --test tests/runtime-delivery/electron-archive-tracking-authority.test.js tests/runtime-delivery/source-uat-delivery.test.js",
+      "node --test tests/layered-ci/governance-policy.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Validation when routed",
+      "V21 Model validation when routed",
+      "Product Final when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
