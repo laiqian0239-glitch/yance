@@ -145,22 +145,22 @@
   "ossFit": {
     "decision": "USE_OFFICIAL_SUPPORTED_ELECTRON_RELEASE_AND_EXISTING_YANCE_TRUST_PIPELINE",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "official-upstream-release-plus-existing-trust-verifier",
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
     "newGeneralPurposeInfrastructure": false,
     "reviewedCandidates": [
       {
         "name": "Electron 43.4.1",
         "source": "electron/electron official stable release",
         "license": "MIT",
-        "adoptionMode": "exact-version migration candidate",
-        "fit": "FIT_PENDING_CAUSAL_RED",
-        "reason": "Current supported stable Electron line; reuse the existing package lock, official archive custody and distribution-trust verifier rather than adding a Yance runtime/downloader."
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "PARTIAL_FIT",
+        "reason": "Current supported stable Electron line and preferred upstream runtime candidate; exact Yance source-graph compatibility remains to be established by the authorized fresh causal RED before production scope is granted."
       },
       {
         "name": "Existing Yance Electron distribution trust verifier",
         "source": "release/electron-distribution-trust.json + tools/wp7/packaged-product-trust.js",
         "license": "repository-existing",
-        "adoptionMode": "reuse-existing-authority",
+        "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
         "reason": "Current verifier already requires lock/package/trust agreement and official checksum binding; migration should update identities, not replace this authority."
       }
