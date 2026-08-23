@@ -2797,7 +2797,7 @@ async function finalizeTrustedBackendReady(result = {}) {
   backendRestarting = false;
   backendRestartAttempt = 0;
   backendLastFailure = null;
-  await routeDesktopLifecycleViaApiV2(net.isOnline() ? 'online' : 'offline', { source: backendReadySource });
+  observeLifecycle(net.isOnline() ? 'online' : 'offline', { source: backendReadySource });
   connectEventSocket();
   sendToRenderer('desktop:backend-state', {
     ready: true,
@@ -4037,7 +4037,7 @@ if (!app.requestSingleInstanceLock()) {
         await completeWp7ProbeAndExit(0);
         return;
       }
-      await refreshTraySnapshot();
+      scheduleTrayRefresh();
       createWindow();
       if (!DESKTOP_SMOKE && !MEMORY_SOAK) {
         const settings = settingsStore.read();
