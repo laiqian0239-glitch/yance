@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T17:20:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PERSONAL-ACCESS-DESKTOP-BOOTSTRAP-PROJECTION-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close the fresh internal Product Final causal RED exposed by run 32632936616 / Windows materialized-desktop-uat job 97178349759 at frozen Product head 2db31247e39f95da5863d9d9d536ae399aedb1e8. The always-running startup diagnostic artifact proves the packaged backend reaches ready, then DesktopHost rejects that ready owner with INSTALLATION_UNREGISTERED while establishing the Runtime API v2 candidate baseline, terminates the backend fail-closed, and only afterward the outer post-install receipt deadline expires. The personal-access design intentionally keeps /api/app/v2 behind human product entitlement, while /api/desktop/* retains local-control semantics behind the existing loopback/session-token security. A fresh unregistered TESTER must be able to reach the personal-access acquisition UI before product entitlement exists, so trusted-owner bootstrap must not depend on the entitlement-protected product snapshot. This independent prerequisite adds one read-only DesktopHost bootstrap projection endpoint under /api/desktop, consumes it only for pre-entitlement candidate/trusted baseline establishment, and preserves /api/app/v2 entitlement enforcement for steady-state events, snapshots and commands.",
+  "base": {
+    "branch": "main",
+    "commit": "92b147c2def31767d45ae510358873456197495e",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "92b147c2def31767d45ae510358873456197495e",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": false
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-personal-access-desktop-bootstrap-projection-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-personal-access-desktop-bootstrap-projection-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "eae7136e06b670f5ba742fd1719815eb62c8b491e841364855d298f4bfbf2815",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-personal-access-desktop-bootstrap-projection-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "electron/desktopHost/ApiV2RuntimeClient.js",
+      "electron/desktopHost/RuntimeProjectionCoordinator.js",
+      "tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "7ccb512418f84846592941ff5a5a5f05028321219cc26d0eaad07f25305d3ee5",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "cfab2f1d33cd37092367bb18d52f9000b876c676f79fa24e373c156245281d4c",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The new WP0 causal contract must fail because DesktopHost candidate/trusted baseline establishment still consumes /api/app/v2/snapshot before personal entitlement exists.",
+        "The backend must not yet expose a read-only /api/desktop/runtime-projection-snapshot local-control endpoint.",
+        "No unrelated Stage, routing-policy, dependency, Product, database, or governance failure is permitted."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "productionRootFix": {
+      "productionAllowedChangedPaths": [
+        "backend/server.js",
+        "electron/desktopHost/ApiV2RuntimeClient.js",
+        "electron/desktopHost/RuntimeProjectionCoordinator.js"
+      ],
+      "requiredBehavior": [
+        "Expose one read-only /api/desktop/runtime-projection-snapshot endpoint that returns APP_RUNTIME.snapshot() for DesktopHost bootstrap only.",
+        "Keep the endpoint under the existing /api/desktop local-control boundary so createR32LocalApiSecurity enforces loopback plus the exact API session token before it can be read.",
+        "Do not add the endpoint to the human personal-access acquisition surface and do not weaken createPersonalAccessGuard or isProductApiPath.",
+        "Add an explicit ApiV2RuntimeClient bootstrap-snapshot method that reads only the /api/desktop bootstrap endpoint and validates the same runtime API v2 snapshot contract/build identity.",
+        "Use the bootstrap-snapshot method only for RuntimeProjectionCoordinator validateCandidateProjection and bindTrustedOwnerBaseline, the two steps required to establish the trusted backend owner before human entitlement can be acquired.",
+        "Keep steady-state persisted events, post-baseline snapshot reconciliation and every runtime mutation on /api/app/v2 behind personal entitlement.",
+        "Do not weaken DesktopCredentialApplicationCoordinator fail-closed owner rejection, API session binding, stale-response detection, build identity validation, runtime state rollback checks, or Product Final receipt verdicts."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "personalAccessGuardModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageOrLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureEvidence": {
+    "productPullRequest": 615,
+    "frozenProductHead": "2db31247e39f95da5863d9d9d536ae399aedb1e8",
+    "productFinalRun": 32632936616,
+    "windowsDesktopJob": 97178349759,
+    "diagnosticArtifactId": 9491702572,
+    "diagnosticArtifactName": "Product-Experience-Packaged-Startup-Diagnostics-2db31247e39f95da5863d9d9d536ae399aedb1e8",
+    "firstInternalFailureLog": "desktop.jsonl",
+    "firstInternalFailureEvent": "backend-process-ready-owner-untrusted",
+    "firstInternalFailureReasonCode": "INSTALLATION_UNREGISTERED",
+    "causalSequence": [
+      "backend reaches ready and DesktopHost observes the exact ready owner",
+      "DesktopHost RuntimeProjectionCoordinator validates the untrusted candidate through ApiV2RuntimeClient.getSnapshot",
+      "GET /api/app/v2/snapshot passes local API-session authentication but is then intentionally intercepted by createPersonalAccessGuard",
+      "fresh packaged data has no owner credential or tester installation receipt, so PersonalAccessService returns INSTALLATION_UNREGISTERED",
+      "DesktopCredentialApplicationCoordinator rejects the owner fail-closed and terminates the otherwise-ready backend",
+      "post-install-launch.json is never written and the outer Product Final receipt deadline expires as a downstream consequence"
+    ],
+    "serverIndependentCrashExcluded": true,
+    "outerReceiptTimeoutIsRootCause": false,
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "Product Final packaged backend startup",
+        "classification": "PRESERVE",
+        "evidence": "server.jsonl proves the exact packaged backend reaches ready before DesktopHost requests termination; frozen-element-reproducibility and materialized-matrix-uat are GREEN.",
+        "requiredClosure": "No backend-startup timeout, dependency, packaging, Node, Element materialization, or receipt-deadline change."
+      },
+      {
+        "boundary": "DesktopHost trusted-owner bootstrap projection",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "desktop.jsonl first fails at backend-process-ready-owner-untrusted with INSTALLATION_UNREGISTERED immediately after ready-owner observation; RuntimeProjectionCoordinator candidate validation calls ApiV2RuntimeClient.getSnapshot before owner trust can be established.",
+        "requiredClosure": "Read the bootstrap candidate/baseline snapshot through the existing /api/desktop local-control trust boundary rather than the human-entitlement product boundary."
+      },
+      {
+        "boundary": "personal access product enforcement",
+        "classification": "PRESERVE_SECURITY_BOUNDARY",
+        "evidence": "The accepted Personal Access P0 design explicitly mounts /api/app/v2 and other product routes after createPersonalAccessGuard while /api/desktop keeps local-control semantics.",
+        "requiredClosure": "Do not exempt /api/app/v2, do not alter PersonalAccessService entitlement decisions, and do not treat an unregistered TESTER as usable."
+      },
+      {
+        "boundary": "fresh unregistered TESTER acquisition path",
+        "classification": "ROOT_REACHABILITY_INVARIANT",
+        "evidence": "PersonalAccessSurface and the accepted design require an unapproved/unregistered TESTER to reach a blocking request/refresh UI before product entitlement can exist; the current owner-bootstrap cycle terminates backend before that UI can become usable.",
+        "requiredClosure": "Allow only DesktopHost owner/bootstrap projection to complete under local session authority; keep human product operations denied until entitlement becomes usable."
+      },
+      {
+        "boundary": "#615 Product system settings reachability eight-path candidate",
+        "classification": "OUT_OF_SCOPE_PREREQUISITE",
+        "evidence": "The root files are backend/server.js and DesktopHost runtime projection files, none of which are among #615's eight authorized paths.",
+        "requiredClosure": "Keep #615 frozen and byte-stable; ordinary-forward-reconcile it only after this prerequisite ordinary-merges."
+      },
+      {
+        "boundary": "PR #538",
+        "classification": "NEGATIVE_PROOF",
+        "evidence": "No causal path or authorized file touches #538.",
+        "requiredClosure": "Keep #538 untouched."
+      }
+    ],
+    "negativeProofs": [
+      "No /api/app/v2 personal-entitlement exemption.",
+      "No owner-trust fail-open behavior.",
+      "No Product Final timeout increase, retry, continue-on-error, fake receipt, or source-mode surrogate.",
+      "No workflow, package, lockfile, dependency, database, renderer Product, or #615 eight-path modification in this prerequisite.",
+      "No squash, rebase, amend, force-push, or history rewrite."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-control-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/personalAccessControlP0.test.js",
+      "node --test --test-concurrency=1 tests/wp6/electron-api-v2-only.test.js",
+      "npm run test:wp0"
+    ],
+    "formal": [
+      "Stage 6.4.5.9 WP0 Architecture Gates GREEN on the exact implementation head",
+      "Layered CI GREEN when routed",
+      "ACV2 WP-A Architecture Gates GREEN when routed",
+      "WP6/runtime projection gates GREEN when routed",
+      "Product Final remains a post-prerequisite proof on the forward-reconciled exact #615 head, not on this prerequisite branch unless routing explicitly includes it"
+    ],
+    "exactHeadCiRequired": true,
+    "postMergeProof": "After this prerequisite ordinary-merges, ordinary forward-reconcile frozen #615 with parent1 equal to its exact frozen head and parent2 equal to the prerequisite ordinary main merge, prove the net diff from fresh main remains exactly the original eight #614-authorized paths, then rerun all three Product Final jobs plus all routed gates/review/thread/fresh-main anti-drift before any #615 merge."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_LOCAL_CONTROL_AND_RUNTIME_API_V2_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "R32 local API session security",
+        "source": "backend/middleware/r32LocalApiSecurity.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already authenticates every /api/desktop request with loopback plus the unexposed API session token, so no second bootstrap authentication system is needed."
+      },
+      {
+        "name": "Runtime API v2 snapshot contract",
+        "source": "shared/runtimeApiV2Contract.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The bootstrap endpoint can return the same APP_RUNTIME.snapshot projection and the DesktopHost client can keep the existing assertSnapshot/build-identity validation."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Existing repository tests use node:test; no new test dependency is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Forbid a second bootstrap authentication mechanism or duplicate runtime projection protocol; reuse the existing /api/desktop local session security and Runtime API v2 snapshot contract.",
+      "Forbid any /api/app/v2 personal-access exemption or duplicate APP_RUNTIME projection implementation as a workaround for DesktopHost bootstrap."
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "requiredMergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "amendForbidden": true,
+    "forcePushForbidden": true,
+    "historyRewriteForbidden": true,
+    "productPullRequest615MustRemainFrozenUntilPrerequisiteMerge": true,
+    "pullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
