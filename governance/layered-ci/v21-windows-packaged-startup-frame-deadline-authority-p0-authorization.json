@@ -4,13 +4,32 @@
   "requestedByUserAt": "2026-08-23T13:34:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-WINDOWS-PACKAGED-STARTUP-FRAME-DEADLINE-AUTHORITY-P0",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Product Final run 32615334130 job 97135022629 on Product PR #615 exact head 90015565d5c3916dfc963ac2e0eff85800ca79c8 proves a packaged Windows pre-activation failure: the exact Yance.exe remains alive for the full outer 120-second receipt window but never reaches post-install receipt creation. Exact-head source closure identifies the causal deadline composition introduced after the last known packaged GREEN: BackendProcessHost awaits asynchronous Windows owner process identity before writing the child startup frame, while backend/bootstrap/desktopStartupPipe.js independently starts a fixed 10-second readStartupFrame deadline immediately in the child. Windows identity acquisition is authorized for up to eight bounded PowerShell attempts at five seconds each, while electron/main.js owns a 60-second backend lifecycle budget. The child can therefore fail with BOOT_DESKTOP_STARTUP_TIMEOUT while the parent remains inside the authoritative lifecycle budget. Electron startup failure then enters the existing modal dialog path on the headless runner, explaining why the packaged process remains alive while no receipt is produced. PR #615's authorized eight paths do not include these root files, so #615 is frozen and this independent prerequisite is required before ordinary forward reconciliation.",
   "base": {
     "branch": "main",
     "commit": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
     "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
   },
   "authorizationBranch": {
     "name": "governance/v21-windows-packaged-startup-frame-deadline-authority-p0-authorization",
@@ -21,16 +40,6 @@
     "approvedChangedFileSetSha256": "442e9e52474bd057e8b362a3cbff03a1568e069018460844ee87dbbee69b3714",
     "mustRemainSingleFile": true,
     "mustRemainCleanFromTrustedMain": true
-  },
-  "effectiveness": {
-    "effectiveBeforeMerge": false,
-    "requiresOrdinaryTwoParentMainMerge": true,
-    "requiredFirstParent": "fa3db995ce1d2bf841a9e669ce50e7248e1503e3",
-    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
-    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
-    "authorizationProposalTransportIsNotImplementationAuthority": true,
-    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
-    "ownerDelegatedContinuationAuthorizationCaptured": true
   },
   "observedFailure": {
     "productPullRequest": 615,
@@ -53,6 +62,7 @@
   },
   "implementation": {
     "branch": "fix/v21-windows-packaged-startup-frame-deadline-authority-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
     "allowedChangedPaths": [
       "backend/bootstrap/desktopStartupPipe.js",
       "electron/main.js",
@@ -60,21 +70,35 @@
     ],
     "approvedChangedFileCount": 3,
     "approvedChangedFileSetSha256": "c4bc288938218f6e2b84c5a21484cc30a5fc31e3903c09ac64713c4d038b3552",
-    "failureFirst": {
+    "failureFirstCommit": {
       "mustBeFirstImplementationCommit": true,
       "freshCausalRedRequired": true,
+      "productionCodeChanged": false,
       "allowedChangedPaths": [
         "tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js"
       ],
-      "expectedFailure": "The child startup-frame deadline is still a private 10000ms budget and electron/main.js does not propagate its authoritative backend lifecycle timeout to the child.",
-      "requiredPostRedTrailers": [
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "6026988a9619be9980e0627de642748e5c8482b41f30c32623799d4be9f64763",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "expectedFailures": [
+        "The child startup-frame deadline remains an independent 10000ms production budget instead of consuming the authoritative Electron backend lifecycle budget.",
+        "electron/main.js does not yet propagate its exact backendStartupTimeoutMs value into the spawned backend environment."
+      ],
+      "requiredPostRedEvidenceTrailers": [
         "Yance-Failure-First-Red-Head: <exact RED head>",
         "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
         "Yance-Failure-First-Red-Conclusion: failure",
         "Yance-Closure-Matrix-Unknown-Blockers: 0"
       ]
     },
-    "rootFix": {
+    "productionRootFix": {
       "productionAllowedChangedPaths": [
         "backend/bootstrap/desktopStartupPipe.js",
         "electron/main.js"
@@ -93,6 +117,8 @@
     "routingPolicyModificationAllowed": false,
     "databaseMigrationAllowed": false,
     "packageOrLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
     "forcePushAllowed": false,
     "historyRewriteAllowed": false
   },
@@ -135,6 +161,16 @@
     "historyRewriteAllowed": false,
     "exactHeadGreenRequired": true,
     "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   },
   "candidatePreservation": {
     "productPullRequest615MustRemainFrozenUntilPrerequisiteLands": true,
