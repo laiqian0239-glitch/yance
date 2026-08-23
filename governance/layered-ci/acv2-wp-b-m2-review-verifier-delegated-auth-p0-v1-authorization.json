@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T19:08:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "ACV2-WP-B-M2-REVIEW-VERIFIER-DELEGATED-AUTH-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen PR #703 exact production head e912a0e48003b22976da8c1f04a86e57f581fc4c proves its workflow-level delegated branch admission repair on both platforms: exact trusted branch establishment, syntax and source-bound integrity are GREEN. The next deterministic boundary is inside tools/architecture-closure-v2/verify-wp-b-m2-review.js, where both verifyLocalRepository() and verifyRemoteEvidence() still call the WP-B-specific branch helper without the trusted delegated context required by a legitimate non-WP-B successor. Ubuntu and Windows therefore fail the same seal contracts with WP_B_M2_REVIEW_BRANCH_CHECKOUT_INVALID even though the verifier already contains fail-closed successor-PR remote-evidence semantics. This authorization permits only the existing M2 review verifier and its existing seal owner contract to reconcile branch admission with the repository's trusted-main generic delegated policy seam. The implementation branch is intentionally connected to the canonical WP-B M3 successor lineage so the currently trusted M2 Independent Review workflow can execute the failure-first seal contract before the workflow-level #703 prerequisite itself is mergeable. No workflow, shared branch policy, review receipt, product runtime, dependency, routing, schema, UAT or release authority change is authorized.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/acv2-wp-b-platform-accepted-local-repair-p0-v3-contract-reconciliation-authorization.json",
+    "implementationBranch": "product/acv2-wp-b-platform-accepted-local-repair-p0-v3",
+    "reason": "This is a narrow WP-B-lineage verifier successor required only to make the existing fail-closed M2 review evidence authority usable by legitimate delegated successor PRs. The merged v3 product/evidence implementation remains immutable historical authority and is not replayed or modified."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "2a486df96b53c5b86065e0e9b67badd4469e2a24",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "2a486df96b53c5b86065e0e9b67badd4469e2a24",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/acv2-wp-b-m2-review-verifier-delegated-auth-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/acv2-wp-b-m2-review-verifier-delegated-auth-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "3d0c2466a52cc8d50757b914395e95dbf9a92a697ca00cbc89d917bc0162ada4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "implementation": {
+    "branch": "product/acv2-wp-b-m2-review-verifier-delegated-auth-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-m2-review.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "187754cafaf4e123224be2cda5b800b9be9a43fe026fe45f43c76200d17622bf",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "c18b559a785deb1221bbe3f06cfd15b0be84e713f3a36923becb335362c5b918",
+      "productionCodeChanged": false,
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing routed run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The existing M2 review verifier does not expose a trusted delegated branch-admission helper and still rejects a legitimate delegated successor branch with WP_B_M2_REVIEW_BRANCH_CHECKOUT_INVALID.",
+        "The historical canonical WP-B branch and WP-B-lineage successors must remain accepted by the existing active WP-B authority path.",
+        "Missing or mismatched trusted-main/evaluated-head context and candidate-owned policy roots must remain rejected."
+      ]
+    },
+    "productionRootFix": {
+      "productionAllowedChangedPaths": [
+        "tools/architecture-closure-v2/verify-wp-b-m2-review.js"
+      ],
+      "requiredBehavior": [
+        "Preserve direct acceptance of the canonical active WP-B branch and already-authorized WP-B-lineage successors through isAuthorizedWpBImplementationBranch.",
+        "For a non-WP-B delegated successor, require exact trustedMainHead and evaluatedHead identities and evaluate the branch only through the trusted-base implementationBranchPolicy.isAuthorizedImplementationBranch delegatedGovernance seam.",
+        "Use only a trusted policy root whose Git HEAD equals trustedMainHead and whose implementationBranchPolicy.js, implementationBranchPolicyLegacy.js and release/release-source.json blob identities equal the same trusted commit; never authorize from candidate-owned policy bytes.",
+        "Reuse the trusted policy worktree already materialized by the repaired M2 Independent Review workflow when present; fail closed when trusted delegated context is absent or inconsistent.",
+        "Apply the same branch-admission helper to both verifyLocalRepository() and verifyRemoteEvidence() so local and authenticated remote evidence cannot diverge.",
+        "Preserve all reviewed-head ancestry, changed-file digest, blob identity, RED evidence, seal scope, run/job/artifact identity, historical PR lifecycle, exact current successor PR and downstream-authority closure checks."
+      ]
+    },
+    "workflowModificationAllowed": false,
+    "sharedImplementationBranchPolicyModificationAllowed": false,
+    "reviewReceiptModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalEvidence": {
+    "blockedPullRequest": 703,
+    "blockedExactHead": "e912a0e48003b22976da8c1f04a86e57f581fc4c",
+    "workflow": "WP-B M2 Independent Review Integrity",
+    "runId": 32638327456,
+    "ubuntuJobId": 97191319651,
+    "windowsJobId": 97191319790,
+    "workflowBranchAdmissionGreenBothPlatforms": true,
+    "sourceBoundIntegrityGreenBothPlatforms": true,
+    "failedStep": "Run seal mutation and exact-delta contracts",
+    "failingContracts": [
+      "M2-SEAL-002",
+      "M2-SEAL-007"
+    ],
+    "failureCode": "WP_B_M2_REVIEW_BRANCH_CHECKOUT_INVALID",
+    "firstInternalSource": "tools/architecture-closure-v2/verify-wp-b-m2-review.js:verifyLocalRepository",
+    "copiedRemoteBoundary": "tools/architecture-closure-v2/verify-wp-b-m2-review.js:verifyRemoteEvidence",
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "M2 Independent Review workflow branch establishment",
+        "classification": "PRESERVE_ALREADY_FIXED_ON_FROZEN_703",
+        "evidence": "Run 32638327456 proves trusted generic workflow branch establishment GREEN on Ubuntu and Windows.",
+        "requiredClosure": "Do not modify the workflow in this prerequisite."
+      },
+      {
+        "boundary": "M2 verifier local branch admission",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "M2-SEAL-002 fails in verifyLocalRepository with WP_B_M2_REVIEW_BRANCH_CHECKOUT_INVALID.",
+        "requiredClosure": "Admit only trusted delegated successor authority while preserving active WP-B admission."
+      },
+      {
+        "boundary": "M2 verifier authenticated remote branch admission",
+        "classification": "SAME_ROOT_STATIC_CLOSURE",
+        "evidence": "verifyRemoteEvidence repeats the same WP-B-only branch helper before its already-existing successor PR logic.",
+        "requiredClosure": "Use the same trusted delegated admission helper as local verification."
+      },
+      {
+        "boundary": "reviewed seal and evidence integrity",
+        "classification": "PRESERVE",
+        "evidence": "M2-SEAL-001/003/004/005/006 remain GREEN and the verifier retains exact ancestry/blob/receipt/run/job/artifact checks.",
+        "requiredClosure": "No seal, receipt, artifact or downstream-authority weakening."
+      },
+      {
+        "boundary": "frozen upstream PRs",
+        "classification": "NEGATIVE_PROOF",
+        "evidence": "The new root is outside #703 and unrelated to the Product runtime root already fixed on #701.",
+        "requiredClosure": "Keep #703, #701, #615 and #699 frozen; keep #538 untouched."
+      }
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP_B_REVIEW_VERIFIER_AND_TRUSTED_DELEGATED_POLICY_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP-B M2 review verifier",
+        "source": "tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is two stale branch-admission calls inside the single existing local/remote evidence authority."
+      },
+      {
+        "name": "Existing trusted-main delegated implementation policy",
+        "source": "shared/release/implementationBranchPolicy.js and implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already validates exact delegated authorization and supersession using trustedMainHead and evaluatedHead without widening WP-B-specific authority."
+      },
+      {
+        "name": "Existing M2 review seal contract",
+        "source": "backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already owns verifier mutation, seal and standalone evidence invariants and is the correct failure-first owner."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not widen isAuthorizedWpBImplementationBranch to unrelated branches.",
+      "Do not trust candidate-owned implementationBranchPolicy bytes.",
+      "Do not add a second review verifier, policy engine, workflow, receipt or evidence protocol.",
+      "Do not skip local or authenticated remote evidence checks."
+    ],
+    "newThirdPartyDependencyRequired": false,
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "failureFirst": [
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js"
+    ],
+    "focused": [
+      "node --check tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2IndependentReviewIntegrity.test.js",
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "formal": [
+      "WP-B M1 Independent Review Integrity GREEN when routed",
+      "WP-B M2 Contracts Ubuntu and Windows GREEN when routed",
+      "WP-B M2 Independent Review Integrity Ubuntu and Windows GREEN including local and authenticated remote evidence",
+      "WP-B Validation GREEN",
+      "Stage WP0 GREEN",
+      "ACV2 WP-A GREEN when routed"
+    ],
+    "exactHeadCiRequired": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "p0MustEqual": 0,
+    "p1MustEqual": 0,
+    "unresolvedReviewThreadsMustEqual": 0,
+    "codeRabbitQuotaOrAvailabilityIsNotSoleBlockingAuthority": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "historicalWpBBranchesImmutable": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "temporaryBypassAllowed": false,
+    "warningOnlyClosureAllowed": false,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "squashForbidden": true
+  }
+}
