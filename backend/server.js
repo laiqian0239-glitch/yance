@@ -480,6 +480,7 @@ const credentialAuthorityProjection = () => {
   };
 };
 app.get('/api/desktop/credential-authority-state', (_req, res) => res.json(credentialAuthorityProjection()));
+app.get('/api/desktop/runtime-projection-snapshot', (_req, res) => res.json(APP_RUNTIME.snapshot()));
 // M4: owner re-attach handshake. The relaunched DesktopHost calls this over the
 // loopback control channel to resume credential custody after it restarted while
 // the backend kept running. Same trust boundary as the WebSocket control socket
