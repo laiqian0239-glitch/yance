@@ -12,6 +12,10 @@ function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
 }
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function runtimeSnapshot() {
   return {
     contractVersion: 2,
@@ -142,19 +146,133 @@ test('fresh unregistered TESTER can establish owner baseline without product ent
   assert.equal(calls.product, 0, 'human-entitlement product snapshot must not be touched during owner bootstrap');
 });
 
-test('steady-state reconciliation remains on entitled Runtime API v2 after owner baseline', () => {
-  const coordinatorSource = read('electron/desktopHost/RuntimeProjectionCoordinator.js');
-  const refetchStart = coordinatorSource.indexOf('async _refetchAfterGap(');
-  const commandEnd = coordinatorSource.indexOf('setOperatingMode(', refetchStart);
-  assert.ok(refetchStart >= 0 && commandEnd > refetchStart);
-  const steadyStateBlock = coordinatorSource.slice(refetchStart, commandEnd);
-  const productSnapshotCalls = steadyStateBlock.match(/this\.client\.getSnapshot\(/gu) || [];
-  assert.ok(productSnapshotCalls.length >= 3,
-    'gap recovery, event reconciliation, and post-command reconciliation must keep using entitled product snapshots');
+test('steady-state reconciliation remains entirely on entitled Runtime API v2', () => {
+  const source = read('electron/desktopHost/RuntimeProjectionCoordinator.js');
+  const refetchStart = source.indexOf('async _refetchAfterGap(');
+  const pollStart = source.indexOf('async pollOnce(', refetchStart);
+  const commandStart = source.indexOf('async _command(', pollStart);
+  const setterStart = source.indexOf('\n  setOperatingMode(', commandStart);
+  assert.ok(refetchStart >= 0 && pollStart > refetchStart && commandStart > pollStart && setterStart > commandStart);
+
+  assert.match(source.slice(refetchStart, pollStart), /this\.client\.getSnapshot\(/u,
+    'event-gap recovery must use the entitled product snapshot');
+  assert.match(source.slice(pollStart, commandStart), /this\.client\.getEvents\(/u,
+    'steady-state polling must use entitled product events');
+  assert.match(source.slice(pollStart, commandStart), /this\.client\.getSnapshot\(/u,
+    'event reconciliation must use the entitled product snapshot');
+  assert.match(source.slice(commandStart, setterStart), /this\.client\.getSnapshot\(/u,
+    'post-command reconciliation must use the entitled product snapshot');
 
   const clientSource = read('electron/desktopHost/ApiV2RuntimeClient.js');
-  const productStart = clientSource.indexOf('async getSnapshot(');
-  const eventsStart = clientSource.indexOf('async getEvents(');
-  assert.match(clientSource.slice(productStart, eventsStart), /\/api\/app\/v2\/snapshot/u,
-    'steady-state product snapshot endpoint must not be exempted from personal-access enforcement');
+  assert.match(clientSource, /\/api\/app\/v2\/snapshot/u);
+  assert.match(clientSource, /\/api\/app\/v2\/events/u);
+  assert.match(clientSource, /\/api\/app\/v2\/commands/u);
+});
+
+test('pre-entitlement event polling retains the trusted owner baseline and backs off instead of creating a retry storm', async () => {
+  const backend = {
+    running: true,
+    apiSessionEstablished: true,
+    ownerTrusted: false,
+    backendPid: 4201,
+    startupNonce: 'bootstrap-nonce-1',
+    backendSessionId: 'bootstrap-session-1'
+  };
+  const snapshot = runtimeSnapshot();
+  let eventCalls = 0;
+  let failureCallbacks = 0;
+  const client = {
+    currentBinding() { return activeBinding(); },
+    async getSnapshot() { return snapshot; },
+    async getEvents() {
+      eventCalls += 1;
+      const error = new Error('Product entitlement is not available yet');
+      error.reasonCode = 'INSTALLATION_UNREGISTERED';
+      throw error;
+    },
+    abortAll() {}
+  };
+  const coordinator = new RuntimeProjectionCoordinator({
+    client,
+    backendSnapshot: () => ({ ...backend }),
+    expectedBuildId: 'wp6-test-build',
+    pollIntervalMs: 50,
+    entitlementPollBackoffMs: 1000,
+    clock: () => '2026-08-23T00:00:00.000Z',
+    onFailure: () => { failureCallbacks += 1; }
+  });
+
+  const candidate = await coordinator.validateCandidateProjection({ ready: { backend: { backendPid: 4201 } } });
+  backend.ownerTrusted = true;
+  await coordinator.bindTrustedOwnerBaseline(candidate);
+  coordinator.startPolling();
+  await delay(240);
+  coordinator.stopPolling();
+
+  const projection = coordinator.snapshot();
+  assert.equal(projection.trustedOwnerBound, true,
+    'human entitlement denial must never discard the trusted backend owner baseline');
+  assert.equal(projection.state, 'WAITING_FOR_PRODUCT_ENTITLEMENT',
+    'projection must distinguish product-entitlement wait from API-session or owner failure');
+  assert.equal(projection.lastFailure?.reasonCode, 'INSTALLATION_UNREGISTERED');
+  assert.ok(eventCalls <= 1,
+    `pre-entitlement polling must be backed off instead of hammering /api/app/v2/events; calls=${eventCalls}`);
+  assert.ok(failureCallbacks <= 1,
+    `pre-entitlement denial must not create repeated failure-log callbacks; callbacks=${failureCallbacks}`);
+});
+
+test('all backend-generation acceptance and recovery paths preserve fail-closed owner validation before acceptance', () => {
+  const source = read('electron/desktopHost/DesktopCredentialApplicationCoordinator.js');
+  const normalValidation = source.indexOf('runtimeProjection = this._assertRuntimeProjection(await this.validateRuntimeProjection({ result, ready');
+  const normalAccept = source.indexOf('ownerAcceptance = this.desktopHost.acceptBackendOwner?.', normalValidation);
+  assert.ok(normalValidation >= 0 && normalAccept > normalValidation,
+    'normal new-owner path must validate runtime projection before accepting the backend owner');
+
+  const alreadyReady = source.indexOf('alreadyReady: true');
+  const alreadyReadyAccept = source.indexOf('this.desktopHost.acceptBackendOwner?.', alreadyReady);
+  assert.ok(alreadyReady >= 0 && alreadyReadyAccept > alreadyReady,
+    'already-ready recovery must funnel through the same runtime projection validation before owner acceptance');
+
+  const staleExit = source.indexOf('staleExit: true');
+  assert.ok(staleExit >= 0,
+    'stale-exit recovery must revalidate the surviving/new backend owner rather than bypassing runtime projection validation');
+  assert.match(source.slice(Math.max(0, staleExit - 500), staleExit + 250), /validateRuntimeProjection/u);
+  assert.match(source, /_cleanupRejectedNewOwner\(token, cause, options\)/u,
+    'real validation failures must continue to enter rejected-owner containment');
+});
+
+test('main activation and post-install PASS remain independent from human entitlement after trusted bootstrap', () => {
+  const mainSource = read('electron/main.js');
+  assert.doesNotMatch(mainSource, /\/api\/app\/v2/u,
+    'Electron main activation must not directly consume human-entitlement product API v2 routes');
+  assert.match(mainSource, /apiRequest\('\/api\/desktop\/credential-authority-state'\)/u,
+    'owner validation may use the existing DesktopHost local-control authority projection');
+  assert.match(mainSource, /runtimeProjectionCoordinator\.validateCandidateProjection\(context\)/u);
+
+  const bindIndex = mainSource.indexOf('await runtimeProjectionCoordinator.bindTrustedOwnerBaseline(');
+  const pollIndex = mainSource.indexOf('runtimeProjectionCoordinator.startPolling()', bindIndex);
+  const readyIndex = mainSource.indexOf('backendReady = true', bindIndex);
+  assert.ok(bindIndex >= 0 && pollIndex > bindIndex && readyIndex > pollIndex,
+    'backend activation must bind trusted owner baseline before polling and publishing Desktop READY');
+  assert.match(mainSource, /apiRequest\('\/api\/ready'\)/u,
+    'activation readiness must stay on the local ready endpoint');
+  assert.match(mainSource, /YANCE_POST_INSTALL_LAUNCH_RECEIPT/u);
+  assert.match(mainSource, /status:\s*'PASS'/u,
+    'post-install receipt remains a desktop activation verdict, not a personal-entitlement bypass');
+});
+
+test('fresh TESTER permission UI remains reachable while Product children stay blocked', () => {
+  const workspaceSource = read('integration/element-module/src/YanceWorkspace.tsx');
+  const accessSource = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
+  const guardSource = read('backend/middleware/personalAccessGuard.js');
+
+  assert.match(workspaceSource, /<PersonalAccessSurface>[\s\S]*<ProductExperienceShell/u,
+    'personal-access surface must remain outside ProductExperienceShell');
+  assert.match(accessSource, /case "INSTALLATION_UNREGISTERED"/u);
+  assert.match(accessSource, /if \(!usable\) return/u,
+    'unregistered TESTER must see the permission surface without mounting Product children');
+  assert.match(guardSource, /pathname\.startsWith\('\/api\/desktop\/'\)/u,
+    'DesktopHost local-control endpoints must remain outside human product entitlement');
+  assert.match(guardSource, /pathname\.startsWith\('\/api\/'\)/u,
+    'all remaining product API routes must remain fail-closed behind personal access');
 });
