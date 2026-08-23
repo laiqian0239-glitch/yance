@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP-B-M2-REVIEW-FORWARD-CONTINUATION-P0-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Continue the already failure-first-proven WP-B M2 independent-review route/verifier closure from fresh trusted main after the independent M3 delegated-route prerequisite landed. PR #707 is frozen at exact head e5514d95c9b5e40786c204ed9bb49d25ff45cab4. Fresh Stage on that append-only forward attempt executes 622 tests with 621 pass and only implementation-branch-policy.test failing because the original #706 authority has no forwardContinuation declaration; M2 review, M2 contracts and M3 authorization all fail at the same delegated branch-admission boundary, while M1 and WP-B Validation are GREEN. Reuse the repository canonical new-branch forwardContinuation protocol, preserve the exact three implementation paths and inherit the original clean RED evidence without mutating #707, weakening policy or expanding scope.",
+  "base": {
+    "branch": "main",
+    "commit": "d3c0800966c3bd25cfc6c7547f49360b898e42d6",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "d3c0800966c3bd25cfc6c7547f49360b898e42d6",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-wp-b-m2-review-batch-route-verifier-p0-successor-v2-authorization.json",
+    "implementationBranch": "fix/v21-wp-b-m2-review-batch-route-verifier-p0-successor-v2",
+    "reason": "Freeze PR #707 at append-only exact head e5514d95c9b5e40786c204ed9bb49d25ff45cab4 after its fresh-main authority-only RED. Preserve its implementation bytes and inherited failure-first evidence exactly; only a new successor branch may continue them from current trusted main under forwardContinuation."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp-b-m2-review-batch-route-verifier-p0-successor-v3-forward-continuation-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp-b-m2-review-batch-route-verifier-p0-successor-v3-forward-continuation-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "5fcb79467e7288afdf5a0fb369068e44b14dd7137c1ff9af9e448f7a68f17d08",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp-b-m2-review-batch-route-verifier-p0-successor-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "e5514d95c9b5e40786c204ed9bb49d25ff45cab4"
+    },
+    "allowedChangedPaths": [
+      ".github/workflows/wp-b-m2-independent-review-integrity.yml",
+      "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-m2-review.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "edf086e8dac80c2f8f5df961e56117cb3143de20d07179988b916e3918ae2cb6",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/wp-b-m2-independent-review-integrity.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "756e8cb9c90b874c01aea17801edb8f32387f149937b52f7e4a74e327c193972"
+    },
+    "routingPolicyModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageOrLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 706,
+    "authorizationMerge": "89e654e9cd5406671a0ab5eaa65d10e70a4fe751",
+    "implementationPullRequest": 707,
+    "branch": "fix/v21-wp-b-m2-review-batch-route-verifier-p0-successor-v2",
+    "frozenHead": "e5514d95c9b5e40786c204ed9bb49d25ff45cab4",
+    "preservedProductionHead": "7162f062085aae82da393a9a535888bd4924a034",
+    "originalFailureFirstHead": "cf8ee88559be7dd2ae92543a4da2469123732b99",
+    "originalFailureFirstRun": 32640193651,
+    "originalFailureFirstConclusion": "failure",
+    "originalClosureMatrixUnknownBlockers": 0,
+    "freshMainTrustedHead": "d3c0800966c3bd25cfc6c7547f49360b898e42d6",
+    "freshMainForwardHeadParents": [
+      "7162f062085aae82da393a9a535888bd4924a034",
+      "d3c0800966c3bd25cfc6c7547f49360b898e42d6"
+    ],
+    "freshMainForwardHead": "e5514d95c9b5e40786c204ed9bb49d25ff45cab4",
+    "freshMainStageRun": 32646461238,
+    "freshMainStageJob": 97211387140,
+    "freshMainStageSummary": "622 tests / 621 pass / 1 fail",
+    "freshMainOnlyFailure": "implementation-branch-policy.test live checkRuntimeTargetGate returned pass=false at tests/wp0/implementation-branch-policy.test.js:1148",
+    "freshM2IndependentReviewRun": 32646461226,
+    "freshM2IndependentReviewUbuntuJob": 97211362419,
+    "freshM2ContractsRun": 32646461222,
+    "freshM3AuthorizationRun": 32646461254,
+    "freshM1Run": 32646461235,
+    "freshM1Conclusion": "success",
+    "freshWpBValidationRun": 32646461196,
+    "freshWpBValidationConclusion": "success",
+    "policyRedIsAuthorityContinuationEvidenceNotNewImplementationRed": true
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "e5514d95c9b5e40786c204ed9bb49d25ff45cab4",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true,
+    "firstSuccessorTreeMustPreservePredecessorAuthorizedBlobs": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "#707 M2 review route/verifier implementation bytes",
+        "classification": "PRESERVE",
+        "evidence": "Fresh Stage run 32646461238 passes every WP0 test except live implementation-branch-policy admission, and compare from trusted main to e5514d95 changes exactly the original three #706-authorized paths.",
+        "requiredClosure": "Preserve all three authorized path blobs exactly in the first successor head."
+      },
+      {
+        "boundary": "delegated implementation authority after trusted-main movement",
+        "classification": "ROOT_GOVERNANCE_CONTINUATION",
+        "evidence": "Stage 32646461238 is 622/621/1; M2 review 32646461226, M2 contracts 32646461222 and M3 authorization 32646461254 fail at the same branch-admission boundary because #706 has no implementation.forwardContinuation declaration.",
+        "requiredClosure": "Use the existing new-branch forwardContinuation successor topology; do not modify the evaluator policy."
+      },
+      {
+        "boundary": "M3 delegated-route prerequisite",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+        "evidence": "PR #709 ordinary-merged as d3c0800966c3bd25cfc6c7547f49360b898e42d6 after exact-head M1, M2, M3 Ubuntu+Windows, WP-B Validation, Stage, ACV2 WP-A, WP-A Main Post-Merge and Model Brain gates were GREEN.",
+        "requiredClosure": "No further M3 route/verifier changes."
+      },
+      {
+        "boundary": "Product/runtime/dependency/routing surfaces",
+        "classification": "NEGATIVE_PROOF",
+        "evidence": "Fresh-main e5514d95 changes only the three M2 review paths; M1 32646461235 and WP-B Validation 32646461196 are GREEN, and Product Final is route-skipped rather than treated as evidence.",
+        "requiredClosure": "No Product/runtime/dependency/routing changes."
+      }
+    ]
+  },
+  "requiredValidation": {
+    "firstSuccessorHead": "Create the exact two-parent successor head [authorization ordinary merge, e5514d95c9b5e40786c204ed9bb49d25ff45cab4] with the three predecessor authorized blobs preserved and no new implementation edits.",
+    "focused": [
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m3Authorization.test.js",
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "formal": [
+      "Stage 6.4.5.9 WP0 Architecture Gates GREEN on the exact successor head",
+      "WP-B M1 Independent Review Integrity GREEN when routed",
+      "WP-B M2 Independent Review Integrity GREEN on Ubuntu and Windows including local and authenticated remote verifier evidence",
+      "WP-B M2 Contracts GREEN when routed",
+      "WP-B M3 Authorization GREEN on Ubuntu and Windows when routed",
+      "WP-B Validation GREEN when routed",
+      "Layered CI GREEN when routed",
+      "ACV2 WP-A Architecture Gates GREEN when routed",
+      "WP-A Main Post-Merge Validation GREEN when routed",
+      "V21 Model Brain P0 Windows GREEN when routed",
+      "Product Final may be skipped only when existing base-owned exact path routing excludes it; skipped is never GREEN evidence"
+    ],
+    "exactHeadCiRequired": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_FORWARD_CONTINUATION_AND_WP_B_REVIEW_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance delegated forwardContinuation policy",
+        "source": "shared/release/implementationBranchPolicy.js and shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already defines the fail-closed new-branch two-parent continuation topology needed after trusted main moves."
+      },
+      {
+        "name": "Yance WP-B M2 review verifier",
+        "source": "tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+        "license": "repository-internal existing seam",
+        "adoptionMode": "preserve-existing-implementation",
+        "fit": "FIT",
+        "reason": "The frozen predecessor already contains the causal-correct delegated verifier root fix; no new verifier or policy implementation is required."
+      },
+      {
+        "name": "Node.js built-in test runner",
+        "source": "node:test",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Existing mandatory contracts are sufficient; no new framework or dependency is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not modify implementationBranchPolicy to admit #707.",
+      "Do not mutate or reset the #707 branch after e5514d95.",
+      "Do not recreate the already-clean failure-first RED.",
+      "Do not rebase, squash, amend, force-push, or expand beyond the three original authorized paths."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "exact three-path scope preserved",
+      "forwardContinuation frozen predecessor is exact e5514d95 head",
+      "original failure-first evidence is inherited rather than recreated",
+      "no evaluator, Product, routing, runtime, dependency or verdict weakening",
+      "ordinary two-parent topology only"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "candidatePreservation": {
+    "predecessorPullRequest707MustRemainFrozen": true,
+    "predecessorHeadMustRemain": "e5514d95c9b5e40786c204ed9bb49d25ff45cab4",
+    "downstreamPullRequest701MustRemainFrozenUntilSuccessorLands": true,
+    "productPullRequest615MustRemainFrozenUntilSuccessorLands": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}

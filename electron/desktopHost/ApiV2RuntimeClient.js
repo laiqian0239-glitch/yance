@@ -120,6 +120,12 @@ class ApiV2RuntimeClient {
     }
   }
 
+  async getBootstrapSnapshot(options = {}) {
+    return assertSnapshot(await this._request('/api/desktop/runtime-projection-snapshot', { requireTrusted: options.requireTrusted === true, signal: options.signal, timeoutMs: options.timeoutMs }), {
+      expectedBuildId: options.expectedBuildId || this.expectedBuildId
+    });
+  }
+
   async getSnapshot(options = {}) {
     return assertSnapshot(await this._request('/api/app/v2/snapshot', { requireTrusted: options.requireTrusted === true, signal: options.signal, timeoutMs: options.timeoutMs }), {
       expectedBuildId: options.expectedBuildId || this.expectedBuildId

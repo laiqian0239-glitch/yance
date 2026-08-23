@@ -138,10 +138,14 @@ test('M3-AUTH-007 successor branch authority is delegated by trusted main, never
 });
 
 test('M3-AUTH-008 WP-B successor workflows derive branch identity from active trusted authority seams', () => {
-  const trustedMainDelegatedWorkflow = '.github/workflows/wp-b-m2-red.yml';
+  const trustedMainDelegatedWorkflows = new Set([
+    '.github/workflows/wp-b-m2-red.yml',
+    '.github/workflows/wp-b-m2-independent-review-integrity.yml',
+    '.github/workflows/wp-b-m3-authorization.yml'
+  ]);
   const workflowPaths = [
     '.github/workflows/wp-b-m2-authorization.yml',
-    trustedMainDelegatedWorkflow,
+    '.github/workflows/wp-b-m2-red.yml',
     '.github/workflows/wp-b-m2-independent-review-integrity.yml',
     '.github/workflows/wp-b-m3-authorization.yml'
   ];
@@ -153,7 +157,7 @@ test('M3-AUTH-008 WP-B successor workflows derive branch identity from active tr
       /test\s+"\$\{IMPLEMENTATION_BRANCH\}"\s*=\s*"acv2\/wp-b-durable-execution-outbox"/u,
       `M3-AUTH-008:${repositoryPath}:HISTORICAL_BRANCH_GATE_FORBIDDEN`);
 
-    if (repositoryPath === trustedMainDelegatedWorkflow) {
+    if (trustedMainDelegatedWorkflows.has(repositoryPath)) {
       assert.match(source,
         /VALIDATION_SHA:\s*\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\|\|\s*github\.sha\s*\}\}/u,
         `M3-AUTH-008:${repositoryPath}:EXACT_HEAD_REQUIRED`);
@@ -181,15 +185,29 @@ test('M3-AUTH-008 WP-B successor workflows derive branch identity from active tr
   }
 });
 
-test('M3-AUTH-009 historical M2/M3 verifiers accept a successor only through active WP-B branch authority', () => {
-  for (const repositoryPath of [
-    'tools/architecture-closure-v2/verify-wp-b-m2-review.js',
-    'tools/architecture-closure-v2/verify-wp-b-m3-authorization.js'
-  ]) {
-    const source = fs.readFileSync(path.join(repoRoot, repositoryPath), 'utf8');
-    assert.match(source, /isAuthorizedWpBImplementationBranch/u,
-      `M3-AUTH-009:${repositoryPath}:ACTIVE_AUTHORITY_REQUIRED`);
-  }
+test('M3-AUTH-009 historical M2 authority is preserved while M3 delegated successors use one fail-closed trusted helper', () => {
+  const m2RepositoryPath = 'tools/architecture-closure-v2/verify-wp-b-m2-review.js';
+  const m2Source = fs.readFileSync(path.join(repoRoot, m2RepositoryPath), 'utf8');
+  assert.match(m2Source, /isAuthorizedWpBImplementationBranch/u,
+    `M3-AUTH-009:${m2RepositoryPath}:HISTORICAL_AUTHORITY_PRESERVED`);
+
+  const m3RepositoryPath = 'tools/architecture-closure-v2/verify-wp-b-m3-authorization.js';
+  const m3Source = fs.readFileSync(path.join(repoRoot, m3RepositoryPath), 'utf8');
+  assert.match(m3Source, /function isAuthorizedM3ImplementationBranch\(currentBranch, options = \{\}\)/u,
+    `M3-AUTH-009:${m3RepositoryPath}:SHARED_HELPER_REQUIRED`);
+  assert.match(m3Source, /isAuthorizedWpBImplementationBranch/u,
+    `M3-AUTH-009:${m3RepositoryPath}:HISTORICAL_AUTHORITY_PRESERVED`);
+  assert.match(m3Source, /TRUSTED_POLICY_SHA/u,
+    `M3-AUTH-009:${m3RepositoryPath}:TRUSTED_MAIN_CONTEXT_REQUIRED`);
+  assert.match(m3Source, /policy\.isAuthorizedImplementationBranch/u,
+    `M3-AUTH-009:${m3RepositoryPath}:TRUSTED_DELEGATED_AUTHORITY_REQUIRED`);
+  assert.equal(
+    (m3Source.match(/requireThat\(isAuthorizedM3ImplementationBranch\(currentBranch\)/gu) || []).length,
+    2,
+    `M3-AUTH-009:${m3RepositoryPath}:LOCAL_REMOTE_SHARED_HELPER_REQUIRED`
+  );
+  assert.match(m3Source, /catch \(_\) \{\s*return false;\s*\}/u,
+    `M3-AUTH-009:${m3RepositoryPath}:FAIL_CLOSED`);
 });
 
 test('M3-SC-DIAG-015 legacy send-queue startup owns no retry timer', () => {

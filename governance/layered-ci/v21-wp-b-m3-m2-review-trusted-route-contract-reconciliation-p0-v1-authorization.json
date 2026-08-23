@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T22:01:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP-B-M3-M2-REVIEW-ROUTE-CONTRACT-RECONCILIATION-P0-V1",
+  "proposalRevision": 3,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #711 exact forwardContinuation head 76c3c33072594a3cf3958ab1770cc4ab29f6699c proves the WP-B M2 independent-review workflow now correctly admits delegated successor branches through the trusted-main generic implementation policy. Stage, M1, M2 Contracts, M2 Independent Review on Ubuntu and Windows, WP-B Validation, ACV2 WP-A, WP-A Main Post-Merge and Model Brain Windows are GREEN. M3 Authorization run 32647081892 fails only the stale static M3-AUTH-008 assertion because backend/tests/architectureClosureV2/wpB/m3Authorization.test.js still classifies .github/workflows/wp-b-m2-independent-review-integrity.yml as a direct active-WP-B-authority workflow. This prerequisite reconciles that one tests-only contract with the already-proven production workflow semantics. It does not alter the workflow, verifier, generic policy, active WP-B authority, Product/runtime, dependencies, routing, schema, package or release surfaces.",
+  "base": {
+    "branch": "main",
+    "commit": "31d55572017d15e506e5f440a265add88ed89b86",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "31d55572017d15e506e5f440a265add88ed89b86",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp-b-m3-m2-review-trusted-route-contract-reconciliation-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp-b-m3-m2-review-trusted-route-contract-reconciliation-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "dc78a732e937303bb0bf934637a55af1b9a6e33e9bec0c0d311088ac370edb1c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp-b-m3-m2-review-trusted-route-contract-reconciliation-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/architectureClosureV2/wpB/m3Authorization.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "43bf648bb2f7b599247db2b19556684ba2a03520a9935136866f28c6804a7615",
+    "rootFixIsTestsOnlyContractReconciliation": true,
+    "requiredRootFix": [
+      "Add .github/workflows/wp-b-m2-independent-review-integrity.yml to the M3-AUTH-008 trustedMainDelegatedWorkflows set.",
+      "Keep the exact-head, trusted PR-base or fresh-main policy root, verified generic policy blob, trustedMainHead, evaluatedHead, branch and isAuthorizedImplementationBranch delegatedGovernance assertions unchanged.",
+      "Keep M3-AUTH-009 historical direct active-WP-B authority preservation and the M3 shared fail-closed trusted helper assertions unchanged.",
+      "Do not modify any workflow or verifier in this prerequisite."
+    ],
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "sharedImplementationPolicyModificationAllowed": false,
+    "activeWpBAuthorityModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageOrLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "externalFailureFirstEvidence": {
+    "pullRequest": 711,
+    "exactHead": "76c3c33072594a3cf3958ab1770cc4ab29f6699c",
+    "workflow": "WP-B M3 Authorization",
+    "run": 32647081892,
+    "ubuntuJob": 97212876685,
+    "windowsJob": 97212876602,
+    "conclusion": "failure",
+    "firstFailingContract": "M3-AUTH-008 WP-B successor workflows derive branch identity from active trusted authority seams",
+    "failureReason": "M3-AUTH-008:.github/workflows/wp-b-m2-independent-review-integrity.yml:ACTIVE_AUTHORITY_REQUIRED",
+    "causal": true,
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "M2 independent-review workflow delegated branch admission",
+        "classification": "PRESERVE_PROVEN_GREEN",
+        "evidence": "PR #711 M2 Independent Review run 32647081922 passes Ubuntu and Windows including exact trusted branch establishment, complete contracts, eighteen-scenario matrix, local receipt and authenticated remote evidence.",
+        "requiredClosure": "Do not modify workflow or verifier behavior."
+      },
+      {
+        "boundary": "M3-AUTH-008 workflow classification",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "Run 32647081892 fails only because the static trustedMainDelegatedWorkflows set omits .github/workflows/wp-b-m2-independent-review-integrity.yml even though that workflow now uses the same trusted generic delegated policy seam already required for M2 Red and M3 Authorization.",
+        "requiredClosure": "Classify the M2 independent-review workflow as trusted-main delegated in the static contract."
+      },
+      {
+        "boundary": "M3 verifier historical/direct authority behavior",
+        "classification": "PRESERVE",
+        "evidence": "M3-AUTH-009 passes on PR #711 and proves direct active WP-B authority plus delegated successor helper semantics remain intact.",
+        "requiredClosure": "Leave M3-AUTH-009 and verify-wp-b-m3-authorization.js unchanged."
+      },
+      {
+        "boundary": "Other exact-head gates",
+        "classification": "PRESERVE_PROVEN_GREEN",
+        "evidence": "Stage, M1, M2 Contracts, WP-B Validation, ACV2 WP-A, WP-A Main Post-Merge and Model Brain Windows are GREEN on exact head 76c3c33072594a3cf3958ab1770cc4ab29f6699c.",
+        "requiredClosure": "No adjacent changes."
+      }
+    ],
+    "negativeProofs": [
+      "No workflow or verifier modification.",
+      "No generic implementation policy or active WP-B authority modification.",
+      "No Product/runtime/routing/dependency/database/package/release change.",
+      "No squash, rebase, amend, force-push or history rewrite."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m3Authorization.test.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "formal": [
+      "WP-B M3 Authorization GREEN on Ubuntu and Windows when routed",
+      "WP-B M2 Independent Review Integrity GREEN on Ubuntu and Windows when routed",
+      "Stage 6.4.5.9 WP0 Architecture Gates GREEN",
+      "ACV2 WP-A Architecture Gates GREEN when routed",
+      "Model Brain Windows GREEN when routed",
+      "independent review P0=0/P1=0 and zero unresolved threads"
+    ],
+    "exactHeadCiRequired": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_NODE_TEST_STATIC_CONTRACT_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Node.js built-in node:test and node:assert/strict",
+        "source": "Node.js runtime and the existing backend/tests/architectureClosureV2/wpB/m3Authorization.test.js static-contract seam",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The causal gap is one stale Set membership in an existing static workflow contract. The built-in test/assert seam already validates the exact workflow text and delegated-policy invariants, so no parser, dependency, service or new infrastructure is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a YAML parser, third-party test framework, service or general-purpose workflow inspection layer for a one-line static contract reconciliation.",
+      "Do not duplicate or replace the already-proven M2 review workflow, verifier, generic implementation policy or active WP-B authority."
+    ]
+  },
+  "candidatePreservation": {
+    "pullRequest711MustRemainFrozen": true,
+    "pullRequest711ExactHead": "76c3c33072594a3cf3958ab1770cc4ab29f6699c",
+    "pullRequest701MustRemainFrozen": true,
+    "pullRequest615MustRemainFrozen": true,
+    "pullRequest538MustRemainUntouched": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
