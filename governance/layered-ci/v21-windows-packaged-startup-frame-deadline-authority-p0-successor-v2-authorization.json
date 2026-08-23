@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-23T14:40:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WINDOWS-PACKAGED-STARTUP-FRAME-DEADLINE-AUTHORITY-P0-SUCCESSOR-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor recovery for PR #688 after the causal production bytes were uploaded correctly but the first post-RED production commit 759b9fe01f1fd84ab96f8e7d0d1c815eaf8b400b omitted the exact failure-first RED evidence and Fast Closure V2 trailers required by the already-merged authorization and trusted-main evaluator. The immutable clean causal RED head cacdd68e0ad98d8a02321bcbccc40cd09b19bd99 and Stage run 32624076416 remain valid with unknownBlockers=0. History rewrite, amend, rebase, reset, force-push and predecessor mutation are forbidden. Freeze the invalid post-RED sequence and continue from the clean RED through the repository's existing forwardContinuation plus failure-first composition mechanism, then reapply only the same authorized two-file production root fix with exact fresh successor RED trailers.",
+  "base": {
+    "branch": "main",
+    "commit": "d3f6530bd384c6ead79e27bc13a77c5bf09a8e5c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "d3f6530bd384c6ead79e27bc13a77c5bf09a8e5c",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-windows-packaged-startup-frame-deadline-authority-p0-authorization.json",
+    "implementationBranch": "fix/v21-windows-packaged-startup-frame-deadline-authority-p0",
+    "implementationPullRequest": 688,
+    "reason": "Freeze PR #688 without rewriting or mutating its history because its first post-RED production commit lacks mandatory evidence trailers. Continue from the last valid clean causal RED on a fresh successor branch."
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 687,
+    "authorizationMerge": "d3f6530bd384c6ead79e27bc13a77c5bf09a8e5c",
+    "implementationPullRequest": 688,
+    "cleanCausalRedHead": "cacdd68e0ad98d8a02321bcbccc40cd09b19bd99",
+    "cleanCausalRedRun": 32624076416,
+    "cleanCausalRedConclusion": "failure",
+    "closureMatrixUnknownBlockers": 0,
+    "invalidPostRedHead": "759b9fe01f1fd84ab96f8e7d0d1c815eaf8b400b",
+    "invalidPostRedCommitMessage": "fix(v21): enforce packaged startup frame deadline authority",
+    "invalidPostRedProductionBytesCausalCorrect": true,
+    "classification": "CLEAN_CAUSAL_RED_FROZEN_BEFORE_INVALID_POST_RED_EVIDENCE_SEQUENCE",
+    "requiredReasonCode": "WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID",
+    "observedOuterGate": "WP_B_M2_IMPLEMENTATION_BRANCH_UNAUTHORIZED",
+    "observedWpBRun": 32626187672
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-windows-packaged-startup-frame-deadline-authority-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-windows-packaged-startup-frame-deadline-authority-p0-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a11a1d142e738259dc2f47201c912eab18cdc91f8e5bb7cf8caf52bfb97ee372",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-windows-packaged-startup-frame-deadline-authority-p0-successor-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "cacdd68e0ad98d8a02321bcbccc40cd09b19bd99"
+    },
+    "allowedChangedPaths": [
+      "backend/bootstrap/desktopStartupPipe.js",
+      "electron/main.js",
+      "tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "c4bc288938218f6e2b84c5a21484cc30a5fc31e3903c09ac64713c4d038b3552",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "6026988a9619be9980e0627de642748e5c8482b41f30c32623799d4be9f64763",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact successor RED head>",
+        "Yance-Failure-First-Red-Run: <exact fresh successor failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The child startup-frame deadline remains an independent 10000ms production budget instead of consuming the authoritative Electron backend lifecycle budget.",
+        "electron/main.js does not yet propagate its exact backendStartupTimeoutMs value into the spawned backend environment."
+      ]
+    },
+    "productionRootFix": {
+      "productionAllowedChangedPaths": [
+        "backend/bootstrap/desktopStartupPipe.js",
+        "electron/main.js"
+      ],
+      "requiredBehavior": [
+        "electron/main.js must propagate the exact backendStartupTimeoutMs value into the spawned backend environment as the startup-frame lifecycle authority.",
+        "backend/bootstrap/desktopStartupPipe.js must derive its default startup-frame wait from that propagated authoritative lifecycle budget instead of an independent fixed 10000ms deadline.",
+        "Explicit focused-test timeout injection must remain supported.",
+        "Backend owner process identity must still be acquired before durable owner registration and startup-frame dispatch; PID identity fencing may not be weakened or reordered away.",
+        "The Product Final outer 120-second post-install receipt contract must not be inflated or weakened.",
+        "No receipt fabrication, modal-dialog bypass, dependency, routing, database, package, lockfile, or workflow change is authorized."
+      ]
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageOrLockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "cacdd68e0ad98d8a02321bcbccc40cd09b19bd99",
+    "preserveFrozenRedTestBlob": true,
+    "discardInvalidPostRedProductionCommitWithoutHistoryRewrite": true,
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "freshCleanRedMustBeReexecuted": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementationPaths": [
+      "backend/bootstrap/desktopStartupPipe.js",
+      "electron/main.js"
+    ],
+    "causalTestPath": "tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js",
+    "negativeProofs": [
+      "No new timeout authority is introduced; the child consumes the existing backend lifecycle budget.",
+      "No Windows owner identity or owner-registry fencing is weakened.",
+      "No Product #615 authorized product bytes are changed in the prerequisite.",
+      "No Product Final receipt acceptance is weakened and the exact packaged desktop job remains the final proof.",
+      "The invalid post-RED commit is not amended, rebased, reset, force-pushed, squashed, or otherwise rewritten."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js",
+      "node --test --test-concurrency=1 tests/wp2/desktop-host-process-lifecycle.test.js",
+      "npm run test:wp0"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A when routed",
+      "Model Brain Windows when routed",
+      "WP-B M2 Contracts when routed",
+      "Product Final when routed"
+    ],
+    "finalProof": "After successor prerequisite ordinary merge, PR #615 must be ordinary forward-reconciled from fresh main without rewriting its authorized eight-path Product candidate and Product Final must show all three actual jobs GREEN."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_FORWARD_CONTINUATION_AND_BACKEND_LIFECYCLE_TIMEOUT_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance delegated forwardContinuation evaluator",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already has a fail-closed two-parent continuation mechanism specifically for preserving clean causal RED after an invalid post-RED sequence."
+      },
+      {
+        "name": "Existing Yance backend lifecycle timeout authority",
+        "source": "electron/main.js backendStartupTimeoutMs + BackendProcessHost startBackend lifecycle",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The parent already owns the exact bounded startup lifecycle budget; the child must consume that authority rather than invent a second deadline."
+      },
+      {
+        "name": "Node.js child-process environment propagation",
+        "source": "node:child_process spawn environment through existing BackendProcessHost env seam",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "No new dependency or lifecycle infrastructure is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not bypass failure-first evidence validation.",
+      "Do not amend or rewrite the invalid predecessor commit.",
+      "Do not add another timeout scheduler, workflow retry, Product Final timeout inflation, receipt bypass, dependency, or process-lifecycle authority."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": false
+  },
+  "candidatePreservation": {
+    "predecessorPullRequest688MustRemainFrozen": true,
+    "lastValidPredecessorHeadMustRemain": "cacdd68e0ad98d8a02321bcbccc40cd09b19bd99",
+    "invalidPredecessorPostRedHeadMustRemainUnrewritten": "759b9fe01f1fd84ab96f8e7d0d1c815eaf8b400b",
+    "productPullRequest615MustRemainFrozenUntilPrerequisiteLands": true,
+    "productExactHeadBeforeReconcile": "90015565d5c3916dfc963ac2e0eff85800ca79c8",
+    "productPullRequest614OwnerApprovalStillRequiredBeforeFinalImplementationMerge": true,
+    "windowsUatCandidatePullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
