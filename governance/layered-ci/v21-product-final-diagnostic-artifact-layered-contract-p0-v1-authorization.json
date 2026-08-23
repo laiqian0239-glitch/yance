@@ -122,6 +122,26 @@
       "Model Brain Windows when routed"
     ]
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_NODE_TEST_ASSERTION_SEAM_FOR_STATIC_WORKFLOW_CONTRACT_RECONCILIATION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Node.js built-in node:test and node:assert/strict",
+        "source": "Node.js built-in test and strict assertion modules already used by tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The root fix is a static assertion reconciliation inside an existing Node.js contract. The mature built-in test/assert seam already expresses exact cardinality and regex identity checks without any new parser, dependency, service, runtime, or general-purpose infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a YAML parser, custom workflow scanner, third-party test library, service, or new general-purpose artifact-validation infrastructure for this one static contract.",
+      "Do not duplicate the two existing materialized-UAT identity assertions or move the diagnostic-artifact requirement into Product runtime code."
+    ]
+  },
   "mergePolicy": {
     "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
     "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
