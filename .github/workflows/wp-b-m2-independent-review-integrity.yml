@@ -57,7 +57,9 @@ permissions:
   pull-requests: read
 
 env:
+  EVENT_NAME: ${{ github.event_name }}
   IMPLEMENTATION_BRANCH: ${{ github.head_ref || github.ref_name }}
+  PULL_REQUEST_BASE_SHA: ${{ github.event.pull_request.base.sha }}
   VALIDATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
@@ -91,10 +93,63 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node -e "const authority=require('./shared/release/acv2ActiveWorkPackageAuthority');if(!authority.isAuthorizedWpBImplementationBranch(process.env.IMPLEMENTATION_BRANCH)){console.error('WP_B_ACTIVE_IMPLEMENTATION_BRANCH_UNAUTHORIZED');process.exit(1)}"
           test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
           git fetch --no-tags --force origin "${IMPLEMENTATION_BRANCH}:refs/remotes/origin/${IMPLEMENTATION_BRANCH}"
           test "$(git rev-parse refs/remotes/origin/${IMPLEMENTATION_BRANCH})" = "${VALIDATION_SHA}"
+
+          case "${EVENT_NAME}" in
+            pull_request)
+              TRUSTED_POLICY_SHA="${PULL_REQUEST_BASE_SHA}"
+              ;;
+            push|workflow_dispatch)
+              git fetch --no-tags --force origin main:refs/remotes/origin/main
+              TRUSTED_POLICY_SHA="$(git rev-parse refs/remotes/origin/main)"
+              ;;
+            *)
+              echo "WP_B_M2_REVIEW_UNSUPPORTED_EVENT=${EVENT_NAME}" >&2
+              exit 1
+              ;;
+          esac
+          [[ "${TRUSTED_POLICY_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          git cat-file -e "${TRUSTED_POLICY_SHA}^{commit}"
+
+          TRUSTED_POLICY_ROOT="../yance-wp-b-m2-review-trusted-policy"
+          git worktree remove --force "${TRUSTED_POLICY_ROOT}" >/dev/null 2>&1 || true
+          rm -rf "${TRUSTED_POLICY_ROOT}"
+          GIT_LFS_SKIP_SMUDGE=1 git worktree add --detach "${TRUSTED_POLICY_ROOT}" "${TRUSTED_POLICY_SHA}"
+          test "$(git -C "${TRUSTED_POLICY_ROOT}" rev-parse HEAD)" = "${TRUSTED_POLICY_SHA}"
+          for repo_path in \
+            shared/release/implementationBranchPolicy.js \
+            shared/release/implementationBranchPolicyLegacy.js \
+            release/release-source.json
+          do
+            expected_blob="$(git rev-parse "${TRUSTED_POLICY_SHA}:${repo_path}")"
+            actual_blob="$(git hash-object "${TRUSTED_POLICY_ROOT}/${repo_path}")"
+            test "${actual_blob}" = "${expected_blob}"
+          done
+          TRUSTED_POLICY_ROOT="$(cd "${TRUSTED_POLICY_ROOT}" && pwd -P)"
+          export TRUSTED_POLICY_ROOT TRUSTED_POLICY_SHA
+          {
+            echo "TRUSTED_POLICY_ROOT=${TRUSTED_POLICY_ROOT}"
+            echo "TRUSTED_POLICY_SHA=${TRUSTED_POLICY_SHA}"
+          } >> "${GITHUB_ENV}"
+          node <<'NODE'
+          const path = require('node:path');
+          const root = process.env.TRUSTED_POLICY_ROOT;
+          const trustedMainHead = process.env.TRUSTED_POLICY_SHA;
+          const evaluatedHead = process.env.VALIDATION_SHA;
+          const branch = process.env.IMPLEMENTATION_BRANCH;
+          const releaseSource = require(path.join(root, 'release/release-source.json'));
+          const policy = require(path.join(root, 'shared/release/implementationBranchPolicy'));
+          const authorized = policy.isAuthorizedImplementationBranch(branch, releaseSource.stageVersion, {
+            delegatedGovernance: { trustedMainHead, evaluatedHead }
+          });
+          if (!authorized) {
+            console.error('WP_B_M2_REVIEW_IMPLEMENTATION_BRANCH_UNAUTHORIZED');
+            process.exit(1);
+          }
+          NODE
+
           git switch --force-create "${IMPLEMENTATION_BRANCH}" "${VALIDATION_SHA}"
           test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
 
