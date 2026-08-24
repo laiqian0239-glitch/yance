@@ -11,6 +11,8 @@ const OLD_SHA = '0a2b707e766b0005fac99f6a7b818aa407882e27';
 const NEW_SHA = '4cdc0258d163014f28105aec71ddf620eccbf7a8';
 const OLD_BRANCH = 'fix/v21-electron-supported-runtime-p0-production-amendment-3';
 const NEW_BRANCH = 'fix/v21-electron-supported-runtime-p0-production-amendment-5';
+const OLD_REGEX_BRANCH = String.raw`fix\/v21-electron-supported-runtime-p0-production-amendment-3`;
+const NEW_REGEX_BRANCH = String.raw`fix\/v21-electron-supported-runtime-p0-production-amendment-5`;
 
 function count(haystack, needle) {
   return haystack.split(needle).length - 1;
@@ -31,6 +33,21 @@ function replaceExact(path, expectedOldCount, expectedNewCount) {
   throw new Error(`${path}: unexpected branch token counts old=${oldCount} new=${newCount}`);
 }
 
+function replaceExactLiteral(path, oldValue, newValue, expectedOldCount, expectedNewCount) {
+  const source = fs.readFileSync(path, 'utf8');
+  const oldCount = count(source, oldValue);
+  const newCount = count(source, newValue);
+  if (oldCount === expectedOldCount && newCount === 0) {
+    const next = source.split(oldValue).join(newValue);
+    assert.equal(count(next, oldValue), 0, `${path}: stale escaped Electron successor remains`);
+    assert.equal(count(next, newValue), expectedNewCount, `${path}: unexpected escaped amendment-5 occurrence count after patch`);
+    fs.writeFileSync(path, next, 'utf8');
+    return;
+  }
+  if (oldCount === 0 && newCount === expectedNewCount) return;
+  throw new Error(`${path}: unexpected escaped branch token counts old=${oldCount} new=${newCount}`);
+}
+
 const pkg = JSON.parse(fs.readFileSync(PACKAGE, 'utf8'));
 assert.ok(Array.isArray(pkg.sourceBindings), 'WP-B governance package must define sourceBindings');
 const matches = pkg.sourceBindings.filter((row) => row?.path === BINDING_PATH);
@@ -44,5 +61,6 @@ if (matches[0].gitBlobSha === OLD_SHA) {
 
 replaceExact(WORKFLOW, 3, 3);
 replaceExact(CONTRACT, 1, 1);
+replaceExactLiteral(CONTRACT, OLD_REGEX_BRANCH, NEW_REGEX_BRANCH, 1, 1);
 
 console.log('GREEN: amendment-5 mechanical root fix is exact and idempotent');
