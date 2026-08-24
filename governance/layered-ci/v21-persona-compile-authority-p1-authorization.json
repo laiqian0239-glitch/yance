@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PERSONA-COMPILE-AUTHORITY-P1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main Release Audit V2 confirms Known Finding KF-P1-08 remains active at main 7802e99d759edb7c2210d49bf8a09142da9217c6. Persona compilation exposes conflicting runtime semantics: compiler.js still names profile-only compileContext as the canonical runtime entry, createPersonaBrain exposes both compileContext and compileEffectiveContext, contextAwareReplyBrain prefers compileEffectiveContext but falls back to compileContext, and the public /:profileId/compile-context route directly selects profile-only compileContext. Because compileEffectiveContext resolves global/contact/conversation bindings while compileContextForProfile does not, callers can bypass scoped Persona authority. This work package locks the ambiguity with one mandatory WP0 causal contract and converges only the three already-proven runtime call seams onto compileEffectiveContext while preserving the low-level pure compiler primitive, Persona persistence, validators, truth firewall, candidate/outbox binding, AI gateway, and HTTP endpoint identity.",
+  "base": {
+    "branch": "main",
+    "commit": "7802e99d759edb7c2210d49bf8a09142da9217c6",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-persona-compile-authority-p1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-persona-compile-authority-p1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9543c8bb8f0eff77832f1e82fd41281838d21527cf52c692fd461739c25c0fee",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-persona-compile-authority-p1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/personaBrain/index.js",
+      "backend/routes/personaBrain.js",
+      "backend/services/contextAwareReplyBrain.js",
+      "tests/wp0/v21-persona-compile-authority-p1.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "97b206f76e5fdc4e816066994938083b201f7997f74f4f24ea81734f59c2ff53",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-persona-compile-authority-p1.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "3e8aa5ce487ccdca2114eec5e8841bd3dc2020b4e5e77d14cbae175e68266300",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "expectedFailures": [
+        "createPersonaBrain().compileContext still bypasses service.compileEffectiveContext and compiles only the selected profile version.",
+        "backend/routes/personaBrain.js /:profileId/compile-context still calls brain.compileContext rather than the scoped effective compiler.",
+        "backend/services/contextAwareReplyBrain.js still permits a runtime fallback from compileEffectiveContext to profile-only compileContext."
+      ]
+    },
+    "requiredBehavior": [
+      "service.compileEffectiveContext is the single runtime Persona compilation authority for Product/AI execution and HTTP runtime compilation.",
+      "createPersonaBrain().compileContext remains only a compatibility facade and delegates to compileEffectiveContext instead of compiling profile state independently.",
+      "The existing /:profileId/compile-context endpoint remains available but delegates to compileEffectiveContext and carries profile/contact/conversation/global scope inputs without bypassing bindings.",
+      "contextAwareReplyBrain requires the effective compiler and cannot silently downgrade to profile-only compilation.",
+      "compilePersonaContext remains the low-level pure compilation primitive used inside the effective compiler and is not replaced by a second compiler.",
+      "No Persona storage, mutation, validator, truth-firewall, candidate/outbox binding, model routing, workflow, dependency, or database authority changes."
+    ],
+    "productionCodeChanged": true,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "auditEvidence": {
+    "releaseLedgerFinding": "KF-P1-08",
+    "freshMain": "7802e99d759edb7c2210d49bf8a09142da9217c6",
+    "canonicalRuntimeOwner": "backend/personaBrain/service.js#compileEffectiveContext",
+    "compatibilityFacade": "backend/personaBrain/index.js#createPersonaBrain.compileContext",
+    "httpRuntimeConsumer": "backend/routes/personaBrain.js#POST /:profileId/compile-context",
+    "replyRuntimeConsumer": "backend/services/contextAwareReplyBrain.js",
+    "pureCompiler": "backend/personaBrain/compiler.js#compilePersonaContext",
+    "sourceGraphDisposition": "SAME_ROOT_GRAPH_EXHAUSTED"
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "backend/personaBrain/index.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "The public brain facade currently exposes profile-only compileContext beside scoped compileEffectiveContext; compatibility must delegate to the canonical effective compiler."
+      },
+      {
+        "path": "backend/routes/personaBrain.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "The public compile-context route explicitly selects the profile-only facade and can bypass scoped bindings."
+      },
+      {
+        "path": "backend/services/contextAwareReplyBrain.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "The production reply runtime still contains a semantic downgrade fallback from effective compilation to profile-only compilation."
+      },
+      {
+        "path": "backend/personaBrain/service.js",
+        "classification": "PRESERVE",
+        "reason": "compileEffectiveContext already owns global/contact/conversation binding resolution and compiles through the existing pure compiler."
+      },
+      {
+        "path": "backend/personaBrain/compiler.js",
+        "classification": "PRESERVE",
+        "reason": "compilePersonaContext is the existing low-level pure primitive; the defect is runtime facade/caller authority, not compilation implementation."
+      },
+      {
+        "path": "tests/wp0/v21-persona-compile-authority-p1.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "New mandatory WP0 regression locks one effective runtime compiler authority and prohibits silent downgrade."
+      }
+    ],
+    "negativeProofs": [
+      "No Persona data schema or migration change.",
+      "No new compiler, model gateway, routing layer or inference authority.",
+      "No change to authoritative Persona writes, validators, truth firewall, candidate/outbox fencing or policy hashes.",
+      "No removal of the existing compile-context HTTP endpoint is required.",
+      "No workflow, dependency, package manifest, lockfile or database path is required."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_EFFECTIVE_PERSONA_COMPILER_AND_PUBLIC_FACADES",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "PersonaBrainService.compileEffectiveContext",
+        "source": "backend/personaBrain/service.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already resolves scoped bindings and calls the current pure Persona compiler; closure requires converging callers, not adding a framework."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second Persona compiler or policy resolver.",
+      "Do not duplicate scoped binding resolution in routes or reply code.",
+      "Do not weaken truth-safe compilation or version/policy-hash binding."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-persona-compile-authority-p1.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
