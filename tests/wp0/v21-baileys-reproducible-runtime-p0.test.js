@@ -72,7 +72,7 @@ test('runtime consumes upstream-fixed rc14 semantics without the retired Yance p
   assert.equal(installedPackage.version, TARGET_VERSION);
   assert.match(chats, /const picture = \{ tag: 'picture', attrs: \{ type, query: 'url' \} \};/u);
   assert.match(chats, /picture\.content = tcTokenContent/u);
-  assert.match(chats, /content: \[picture\]/u);
+  assert.match(chats, /return \[picture\]/u);
   assert.match(tokenUtils, /const timestamp = entry\?\.timestamp/u);
   assert.match(tokenUtils, /timestamp === undefined/u);
   assert.match(tokenUtils, /attrs: \{ t: String\(timestamp\) \}/u);
