@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCTION-DEPENDENCY-HIGH-ADVISORY-P0-SUCCESSOR-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main restart after frozen successor-v2 PR #761. Its exact production head 9d34c5d64d4858e5a8be4014942e30b5498e0b00 proved the three authorized High-advisory roots can be closed in the existing exact 12-path scope: v21-production-dependency-high-advisory-p0, Letta, Baileys and Electron owner regressions all passed. Fresh Stage 32743484082 failed only because the then-current trusted-seed authority still contained the independent orphan json-buffer seed. That out-of-scope prerequisite is now closed by authorization #766 and implementation #767, ordinary-merged as c35b02166f8a2db9adc86f9e211494f54615dff5. PR #761 therefore remains frozen evidence; this V3 restarts from current trusted main with the same one-path tests-only RED and exact 12-path final scope, without reusing predecessor ancestry.",
+  "base": {
+    "branch": "main",
+    "commit": "c35b02166f8a2db9adc86f9e211494f54615dff5",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "c35b02166f8a2db9adc86f9e211494f54615dff5",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-production-dependency-high-advisory-p0-successor-v2-authorization.json",
+    "implementationBranch": "fix/v21-production-dependency-high-advisory-p0-successor-v2",
+    "reason": "Freeze PR #761 at exact head 9d34c5d64d4858e5a8be4014942e30b5498e0b00. Its sole Stage blocker was the independent json-buffer trusted-seed mismatch, now closed on trusted main by #767. Restart the same causal batch from fresh main rather than reconciling or mutating the frozen predecessor."
+  },
+  "predecessorEvidence": {
+    "frozenPr": 761,
+    "frozenHead": "9d34c5d64d4858e5a8be4014942e30b5498e0b00",
+    "stageRun": 32743484082,
+    "stageOwnerJob": 97483385009,
+    "stageSummary": "669 tests / 668 pass / 1 fail",
+    "soleFailure": "v21-trusted-seed-count-contract-p0.test: dependency seed and lock mismatch for json-buffer",
+    "authorizedHighAdvisoryContractPassed": true,
+    "lettaContractPassed": true,
+    "baileysContractPassed": true,
+    "electronContractPassed": true,
+    "unknownBlockers": 0,
+    "disposition": "FROZEN_PREDECESSOR_BLOCKED_ONLY_BY_INDEPENDENT_PREREQUISITE"
+  },
+  "prerequisiteEvidence": {
+    "authorizationPr": 766,
+    "authorizationMerge": "a6dab178b188ca38902f307ccb623f6335af1382",
+    "implementationPr": 767,
+    "implementationHead": "6079cfea083e62bb430d757ccb37ab75afd62551",
+    "ordinaryMerge": "c35b02166f8a2db9adc86f9e211494f54615dff5",
+    "stageRun": 32766626626,
+    "stageConclusion": "success",
+    "stageSummary": "666 / 666 pass",
+    "disposition": "JSON_BUFFER_TRUSTED_SEED_PREREQUISITE_CLOSED"
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-production-dependency-high-advisory-p0-successor-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-production-dependency-high-advisory-p0-successor-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7904ca870761ceaac5988be6c27af50727aa818a1f04513da2956903287387d6",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-production-dependency-high-advisory-p0-successor-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "governance/layered-ci/risk-policy.json",
+      "package-lock.json",
+      "package.json",
+      "release/architecture-closure-v2/wp-b-governance-package.json",
+      "release/production-dependency-binding.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/wp0/v21-production-dependency-high-advisory-p0.test.js",
+      "vendor/npm/ip-address-10.3.1.tgz",
+      "vendor/npm/js-yaml-4.3.1.tgz"
+    ],
+    "approvedChangedFileCount": 12,
+    "approvedChangedFileSetSha256": "39f0f5b6c2b3c9d360df05ecea91ad21ddec6c1acb2d58efd64655e1111216b3",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-production-dependency-high-advisory-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "82032b8bd0ccc93176eda3f2052325cf0c4f3ca677f8bb875395f2d213ec6535",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "expectedFailures": [
+        "Letta Code still resolves nested sharp 0.34.5 below patched sharp >=0.35.0.",
+        "Production lock and trusted dependency seed authority still resolve ip-address 10.2.0 instead of 10.3.1.",
+        "Production lock and trusted dependency seed authority still resolve js-yaml 4.3.0 instead of 4.3.1."
+      ]
+    },
+    "requiredBehavior": [
+      "Preserve direct @letta-ai/letta-agent-sdk 0.6.2 and @letta-ai/letta-code 0.30.5 authorities.",
+      "Add only the scoped @letta-ai/letta-code -> sharp 0.35.3 override and use the already-merged fail-closed stale-lock reconciliation helper without modifying that helper.",
+      "Regenerate package-lock.json with exact npm@10.9.2; no sharp <0.35.0 may remain in the Letta Code runtime graph.",
+      "Move only ip-address 10.2.0 -> 10.3.1 and js-yaml 4.3.0 -> 4.3.1 under existing compatible parent ranges.",
+      "Replace only active ip-address/js-yaml trusted seed identities in dependency policy and manifest; preserve unrelated seed authority including the now-retired json-buffer state established by #767.",
+      "Add exact official npm ip-address-10.3.1 and js-yaml-4.3.1 archives and classify only those two paths at Layered L2.",
+      "Regenerate production-dependency-binding with the existing WP7 generator under exact npm@10.9.2; refresh only package/package-lock repository byte facts in WP-B receipts.",
+      "Production-only npm audit must report zero High and zero Critical; no audit suppression or accepted-risk waiver."
+    ],
+    "productionCodeChanged": true,
+    "routingPolicyModificationAllowed": true,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": true,
+    "lockfileModificationAllowed": true,
+    "dependencyTrustPolicyModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "auditEvidence": {
+    "roots": [
+      {
+        "name": "sharp",
+        "advisory": "GHSA-f88m-g3jw-g9cj",
+        "current": "0.34.5",
+        "target": "0.35.3"
+      },
+      {
+        "name": "ip-address",
+        "advisory": "GHSA-mwp4-54f8-5fhr",
+        "current": "10.2.0",
+        "target": "10.3.1"
+      },
+      {
+        "name": "js-yaml",
+        "advisory": "GHSA-5p4m-2wfm-xmqj",
+        "current": "4.3.0",
+        "target": "4.3.1"
+      }
+    ],
+    "unknownHighOrCriticalBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "negativeProofs": [
+      "#761 is frozen and no predecessor history is reused.",
+      "#767 closes the sole independent json-buffer blocker observed on #761.",
+      "No direct Letta, MCP SDK, electron-updater, Electron, Baileys, XState, database, workflow, Store, adapter or schema version change is authorized.",
+      "No broad vendor/npm classification, scanner bypass, audit suppression, manual lock hash patch, force push, rebase, squash, amend or cherry-pick is authorized."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_NPM_10_9_2_AND_EXISTING_FAIL_CLOSED_LOCK_RECONCILIATION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "npm CLI",
+        "version": "10.9.2",
+        "source": "https://github.com/npm/cli",
+        "license": "Artistic-2.0",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "npm remains authority for final dependency resolution and lock bytes; the existing repository helper only removes the exact stale Letta-local lock inputs."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second lockfile generator.",
+      "Do not globally override sharp or fork Letta Code.",
+      "Do not suppress High/Critical findings or hand-author target lock identities."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-production-dependency-high-advisory-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-letta-sharp-lock-reconciliation-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-production-dependency-binding-lifecycle.test.js",
+      "node --test --test-concurrency=1 tests/layered-ci/governance-policy.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed",
+      "Product Final when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
