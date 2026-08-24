@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-24T15:01:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-TRUSTED-SEED-SENTINEL-CONTRACT-P0",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Fast Landing prerequisite for #745. The local exact production candidate exposed a trusted-main failure in backend/tests/cleanInstallAuthority.test.js after #743 repaired the historical 307 seed count but left two retired http-cache-semantics package sentinels. The verifier still returns the expected 262 unique trusted seeds; only the hard-coded sentinel identities are stale. Repair the sentinel contract independently before resuming #745.",
   "base": {
@@ -159,6 +159,11 @@
         "fit": "FIT",
         "reason": "The verifier is correct; only two historical sentinel identities in its regression contract are stale."
       }
+    ],
+    "retireOrAvoid": [
+      "Retire the two stale backend sentinel expectations for @types/http-cache-semantics@4.2.0 and http-cache-semantics@4.2.0; do not resurrect retired trusted seeds merely to satisfy historical test text.",
+      "Do not duplicate or replace verifyTrustedDependencySeeds, dependency-install policy, manifest, lockfile, or trusted archive custody.",
+      "Do not fold the Baileys #745 production change into this prerequisite."
     ]
   },
   "mergePolicy": {
