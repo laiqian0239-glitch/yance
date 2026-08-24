@@ -1,0 +1,157 @@
+name: TEMP observable V21 Electron 43.4.1 amendment-3 root-fix factory v2
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-root-fixes-amendment-3-v2:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'staging/v21-electron-43.4.1-seed-factory'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact staging execution head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up exact Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22.23.1'
+          package-manager-cache: false
+
+      - name: Restore complete frozen predecessor production baseline in worktree only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object release/production-dependency-binding.json)" = "b79d186317070f068286ab0131ab397082697f12"
+          git restore --source=ed372f216a3cb2b56438175fa31d4aeddf271d5a --worktree -- \
+            .github/workflows/stage-6459-wp0-gates.yml \
+            .github/workflows/v21-product-experience-shell-p0-final-validation.yml \
+            .github/workflows/windows-production-release.yml \
+            governance/dependency-install-batch-manifest.json \
+            governance/dependency-install-policy.json \
+            governance/layered-ci/risk-policy.json \
+            package-lock.json \
+            package.json \
+            release/electron-distribution-trust.json \
+            tests/layered-ci/governance-policy.test.js \
+            tests/runtime-delivery/electron-archive-tracking-authority.test.js \
+            tests/runtime-delivery/source-uat-delivery.test.js \
+            tests/wp0/v21-electron-supported-runtime-p0.test.js \
+            tools/release-closure/RUN_WINDOWS_ASSISTED_PIPELINE.ps1 \
+            tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1 \
+            tools/windows/VERIFY_RUNTIME_IDENTITY.ps1 \
+            tools/wp7/generate-trusted-product-probe-blocker.js \
+            vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz \
+            vendor/npm/_at_electron__get-5.0.0.tgz \
+            vendor/npm/_at_types__node-24.10.13.tgz \
+            vendor/npm/electron-43.4.1.tgz \
+            vendor/npm/env-paths-3.0.0.tgz \
+            vendor/npm/undici-7.25.0.tgz \
+            vendor/npm/undici-types-7.16.0.tgz \
+            governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json \
+            tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js \
+            tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js
+          test "$(git hash-object package.json)" = "e54002c894cb42ffc93ad94b1341f87b53e60728"
+          test "$(git hash-object package-lock.json)" = "d485f45673eeb4a7293a389ffcd28d3ff7c0b56d"
+          test "$(git hash-object release/production-dependency-binding.json)" = "b79d186317070f068286ab0131ab397082697f12"
+          test -z "$(git diff --cached --name-only)"
+
+      - name: Generate exact amendment-3 owner fixes from frozen predecessor bytes
+        shell: bash
+        run: node .github/tmp-v21-electron-amendment3-root-fix.js
+
+      - name: Require exact seven-path production delta from frozen predecessor
+        shell: bash
+        run: |
+          set -euo pipefail
+          paths=(
+            '.github/workflows/stage-6459-wp0-gates.yml'
+            '.github/workflows/v21-product-experience-shell-p0-final-validation.yml'
+            '.github/workflows/windows-production-release.yml'
+            'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json'
+            'governance/dependency-install-batch-manifest.json'
+            'governance/dependency-install-policy.json'
+            'governance/layered-ci/risk-policy.json'
+            'package-lock.json'
+            'package.json'
+            'release/electron-distribution-trust.json'
+            'release/production-dependency-binding.json'
+            'tests/layered-ci/governance-policy.test.js'
+            'tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js'
+            'tests/runtime-delivery/electron-archive-tracking-authority.test.js'
+            'tests/runtime-delivery/source-uat-delivery.test.js'
+            'tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js'
+            'tests/wp0/v21-electron-supported-runtime-p0.test.js'
+            'tools/release-closure/RUN_WINDOWS_ASSISTED_PIPELINE.ps1'
+            'tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1'
+            'tools/windows/VERIFY_RUNTIME_IDENTITY.ps1'
+            'tools/wp7/generate-trusted-product-probe-blocker.js'
+            'vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz'
+            'vendor/npm/_at_electron__get-5.0.0.tgz'
+            'vendor/npm/_at_types__node-24.10.13.tgz'
+            'vendor/npm/electron-43.4.1.tgz'
+            'vendor/npm/env-paths-3.0.0.tgz'
+            'vendor/npm/undici-7.25.0.tgz'
+            'vendor/npm/undici-types-7.16.0.tgz'
+          )
+          actual="$(git diff --name-only ed372f216a3cb2b56438175fa31d4aeddf271d5a -- "${paths[@]}" | LC_ALL=C sort)"
+          expected="$(printf '%s\n' \
+            '.github/workflows/v21-product-experience-shell-p0-final-validation.yml' \
+            'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json' \
+            'governance/layered-ci/risk-policy.json' \
+            'release/production-dependency-binding.json' \
+            'tests/layered-ci/governance-policy.test.js' \
+            'tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js' \
+            'tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js' | LC_ALL=C sort)"
+          if [ "$actual" != "$expected" ]; then
+            printf 'EXPECTED PRODUCTION DELTA:\n%s\nACTUAL PRODUCTION DELTA:\n%s\n' "$expected" "$actual" >&2
+            exit 1
+          fi
+          test -z "$(git diff --cached --name-only)"
+
+      - name: Run focused causal closure tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/layered-ci/governance-policy.test.js
+          node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js
+          node --test backend/tests/architectureClosureV2/wpB/xstateAdoptionCurrentStatus.test.js
+          node tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
+          node --test tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js
+          node --test tests/wp0/v21-production-dependency-binding-lifecycle.test.js
+          node --test tests/wp0/v21-electron-supported-runtime-p0.test.js
+          node --test tests/runtime-delivery/electron-archive-tracking-authority.test.js tests/runtime-delivery/source-uat-delivery.test.js
+
+      - name: Commit only verified production owner blobs to staging transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Yance Temporary Amendment-3 Factory'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -- \
+            .github/workflows/v21-product-experience-shell-p0-final-validation.yml \
+            governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json \
+            governance/layered-ci/risk-policy.json \
+            tests/layered-ci/governance-policy.test.js \
+            tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js \
+            tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js
+          staged="$(git diff --cached --name-only | LC_ALL=C sort)"
+          expected="$(printf '%s\n' \
+            '.github/workflows/v21-product-experience-shell-p0-final-validation.yml' \
+            'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json' \
+            'governance/layered-ci/risk-policy.json' \
+            'tests/layered-ci/governance-policy.test.js' \
+            'tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js' \
+            'tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js' | LC_ALL=C sort)"
+          test "$staged" = "$expected"
+          git commit -m '[TEMP] Generate verified complete-baseline amendment-3 root-fix blobs'
+          git push origin HEAD:refs/heads/staging/v21-electron-43.4.1-seed-factory
