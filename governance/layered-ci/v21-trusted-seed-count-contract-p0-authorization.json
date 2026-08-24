@@ -22,7 +22,7 @@
       "governance/layered-ci/v21-trusted-seed-count-contract-p0-authorization.json"
     ],
     "approvedChangedFileCount": 1,
-    "approvedChangedFileSetSha256": "24a49a3c71218462aa0183e5471ebcfc831f7e63dbe6b7bb66777293bc71950a",
+    "approvedChangedFileSetSha256": "2bd2482163fbefa35167f616595f9b03a19477ca7cd09135f9392f79522827f1",
     "mustRemainSingleFile": true,
     "mustRemainCleanFromTrustedMain": true
   },
@@ -34,7 +34,7 @@
       "tests/wp0/v21-trusted-seed-count-contract-p0.test.js"
     ],
     "approvedChangedFileCount": 2,
-    "approvedChangedFileSetSha256": "8375c073480728f040240b0a80ae6cbc23d13477c418639981bc8bce04edcb83",
+    "approvedChangedFileSetSha256": "25041b33a6acc90e6346dd00e47311d7c7981dc51ae431816d45f5a6f35b7570",
     "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
     "failureFirstCommit": {
@@ -45,7 +45,7 @@
         "tests/wp0/v21-trusted-seed-count-contract-p0.test.js"
       ],
       "approvedChangedFileCount": 1,
-      "approvedChangedFileSetSha256": "3282f33d240ea393eac0b702a3265ae5b375bb51c84412ba073e5bb9bb1cbd89",
+      "approvedChangedFileSetSha256": "ea08b2ea75503aa3e89aa1a065c4e4d2f08493f92f379dc093f5b2ec955361d1",
       "firstHeadTrustedMainGuard": {
         "required": true,
         "trustedMainMustEqualAuthorizationMerge": true
