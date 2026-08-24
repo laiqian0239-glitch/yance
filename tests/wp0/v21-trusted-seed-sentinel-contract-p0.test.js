@@ -22,6 +22,6 @@ test('clean-install trusted seed sentinels are active policy identities', () => 
   const sentinels = [...source.matchAll(/packageVersions\.has\('([^']+)'\)/gu)].map(match => match[1]);
   const retired = sentinels.filter(identity => !active.has(identity));
 
-  assert.equal(active.size, 262);
+  assert.equal(active.size, 261);
   assert.deepEqual(retired, []);
 });
