@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T15:01:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-TRUSTED-SEED-SENTINEL-CONTRACT-P0",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing prerequisite for #745. The local exact production candidate exposed a trusted-main failure in backend/tests/cleanInstallAuthority.test.js after #743 repaired the historical 307 seed count but left two retired http-cache-semantics package sentinels. The verifier still returns the expected 262 unique trusted seeds; only the hard-coded sentinel identities are stale. Repair the sentinel contract independently before resuming #745.",
+  "base": {
+    "branch": "main",
+    "commit": "5b78c545341fcba9b359477aa3eb03df11a39c66",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "5b78c545341fcba9b359477aa3eb03df11a39c66",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-trusted-seed-sentinel-contract-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-trusted-seed-sentinel-contract-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "aa8b5e875ee6626fef8d35a0384b13d40cb8c10a874ee0ca8f260f5ef4c7c94c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-trusted-seed-sentinel-contract-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/cleanInstallAuthority.test.js",
+      "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "b90cf15a57ac754580807b3bfb15b1e892fec6ed8092c8537bc2a1fb91aa3cce",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "1b9a5c6441d33f6c11c962074b386d4458c5d69e8af7b14162a77f3bc323f13e",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The production clean-install authority test still references retired @types/http-cache-semantics@4.2.0 and http-cache-semantics@4.2.0 sentinels that are absent from the current trustedCacheSeeds set."
+      ]
+    },
+    "requiredBehavior": [
+      "Keep verification.seedCount exactly 262 and packageVersions.size exactly 262.",
+      "Keep the existing active write-file-atomic@1.3.4 and yauzl@2.10.0 sentinel assertions.",
+      "Replace only the two retired http-cache-semantics sentinel assertions with active current trusted policy sentinels @borewit/text-codec@0.2.2 and @electron/get@5.0.0.",
+      "Do not change dependency policy, manifest, lockfile, verifier logic, or any runtime code.",
+      "The repaired backend test must pass against trusted main before #745 production resumes."
+    ],
+    "productionCodeChanged": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "dependencyTrustPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "backend/tests/cleanInstallAuthority.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Repair only stale hard-coded trusted seed sentinels while preserving the 262-count completeness contract."
+      },
+      {
+        "path": "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Failure-first proof that backend sentinel identities must exist in the active trusted seed policy."
+      },
+      {
+        "path": "governance/dependency-install-policy.json",
+        "classification": "READ_ONLY_EVIDENCE",
+        "reason": "Current active seed identities are evidence only and must not change."
+      },
+      {
+        "path": "fix/v21-baileys-reproducible-runtime-p0-successor-v2",
+        "classification": "FROZEN_CALLER",
+        "reason": "PR #745 remains frozen at diagnostic RED head 269fc0c428b731da5ba1f34b3f26bfdead5e2371 until this prerequisite ordinary-merges."
+      }
+    ],
+    "negativeProofs": [
+      "No dependency, lockfile, policy, manifest, vendor archive, workflow, runtime, database, product, or routing change.",
+      "No weakening of verifyTrustedDependencySeeds or trusted-cache integrity checks.",
+      "No mutation of PR #745 while this prerequisite is open.",
+      "No squash, rebase, amend, force-push, cherry-pick, or history rewrite."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/cleanInstallAuthority.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "ossFit": {
+    "decision": "EXISTING_REPOSITORY_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "existing verifyTrustedDependencySeeds + cleanInstallAuthority contract",
+        "version": "current trusted main",
+        "source": "repository seam",
+        "license": "repository-owned",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The verifier is correct; only two historical sentinel identities in its regression contract are stale."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire the two stale backend sentinel expectations for @types/http-cache-semantics@4.2.0 and http-cache-semantics@4.2.0; do not resurrect retired trusted seeds merely to satisfy historical test text.",
+      "Do not duplicate or replace verifyTrustedDependencySeeds, dependency-install policy, manifest, lockfile, or trusted archive custody.",
+      "Do not fold the Baileys #745 production change into this prerequisite."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
