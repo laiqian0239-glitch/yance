@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T06:12:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-CLOSURE-LANE-C-AUDIT-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Run the V21 Release Closure Program Lane C audits in one evidence batch on fresh trusted main: Fresh-main Release Audit V2, Mandatory Executed-Test Coverage Audit, and Aug-20-to-current-main Delta Regression Audit. This work package may update only the Release Closure Ledger with mechanically verified audit results; executable/source repairs discovered by the audit require independent causal work packages.",
+  "base": {
+    "branch": "main",
+    "commit": "3ea08cb774d03099211b9ab56d07b3bd491fce4e"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-lane-c-audit-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-closure-lane-c-audit-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c6d5c8543a53bd6b4c7e37e1584cbe8e1d6f05c751941559ffd45437f33cf2c8",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "docs/v21-release-closure-lane-c-audit-p0",
+    "allowedChangedPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f5a5ea40aa811612913eb20a8d039f69161f875a62e260361e84f9dabc0010e",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "documentScope": {
+    "requiredSemantics": [
+      "Audit fresh trusted main independently across renderer and reachable controls, Electron/backend ownership and lifecycle, credential/security boundaries, Store/identity/conversation truth, physical adapters and durable repair, Durable Execution, AI Core, dependency/supply-chain state, and release packaging/sealed-runtime boundaries.",
+      "For every release-critical contract inspected, distinguish executed exact-head coverage from file presence or stale ancestor evidence.",
+      "Audit post-2026-08-20 changes for regressions, authority duplication, contract drift, dependency/postinstall/dynamic-download changes, unreachable Product surfaces, and stale tests.",
+      "Append immutable A2-P0/A2-P1 or DELTA-P0/DELTA-P1 rows for newly discovered blockers rather than hiding them inside narrative text.",
+      "Where an audit exposes an executable/source blocker, record it and require a separate failure-first causal repair batch; this documentation work package grants no repair authority.",
+      "Do not mark the fresh Windows RC, final ledger closure, release readiness, formal release, or publish complete."
+    ],
+    "forbiddenSemantics": [
+      "No product/runtime/test/workflow/dependency/routing/packaging/release-binary mutation.",
+      "No CLOSED or PACKAGED_RC_PASS without the future fresh packaged Windows RC evidence.",
+      "No coverage PASS inferred from test-file presence, workflow existence, skipped applicable tests, or ancestor runs.",
+      "No audit-complete claim while an identified audit surface remains uninspected or a discovered P0/P1 lacks an explicit ledger row."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_GOVERNANCE_AND_DOCUMENTATION_ROUTE",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Release Closure Ledger and GitHub exact-head evidence",
+        "source": "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md and repository-native GitHub Actions evidence",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The required audits are evidence reconciliation over existing source, tests, workflows, commits and release documents; no new audit framework is required."
+      },
+      {
+        "name": "Existing delegated governance documentation transport",
+        "source": "shared/release/implementationBranchPolicyLegacy.js and shared/release/riskPolicy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already enforces exact path scope, post-merge activation and fail-closed documentation routing."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not build a new audit service, scanner framework, release database, scheduler, workflow, or general-purpose Yance infrastructure.",
+      "Do not use external audit tooling as authority over repository-native executed evidence.",
+      "Do not mutate executable code inside this audit evidence batch."
+    ]
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "audit completeness and explicit surface accounting",
+      "executed exact-head evidence rather than file presence",
+      "new P0/P1 rows are not suppressed",
+      "no false final-RC or release claim",
+      "single-ledger-path scope"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
