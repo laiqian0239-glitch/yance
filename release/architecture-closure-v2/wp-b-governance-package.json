@@ -33,7 +33,7 @@
     {
       "path": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
       "documentType": "YANCE_ACV2_WP_B_XSTATE_SUPPLY_CHAIN_LOCK",
-      "gitBlobSha": "0a2b707e766b0005fac99f6a7b818aa407882e27"
+      "gitBlobSha": "4cdc0258d163014f28105aec71ddf620eccbf7a8"
     },
     {
       "path": "governance/architecture-closure-v2/wp-b-m1-red-evidence.json",

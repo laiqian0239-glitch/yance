@@ -86,16 +86,16 @@
   },
   "repositoryBinding": {
     "packageManifestPath": "package.json",
-    "packageManifestBlobSha": "86f6a940ab889bbb2303b2f52522e29ced602277",
+    "packageManifestBlobSha": "e54002c894cb42ffc93ad94b1341f87b53e60728",
     "packageLockPath": "package-lock.json",
-    "packageLockBlobSha": "fadef0ad6bc492f762b7ac99c0862712b3a5a6f3",
-    "packageLockSha256": "6d03b9d9b479e17278e6fc492897a86080abe3b00eee0201cacf030bbe40112e",
-    "expectedPackageLockBlobSha": "fadef0ad6bc492f762b7ac99c0862712b3a5a6f3",
-    "expectedPackageLockSha256": "6d03b9d9b479e17278e6fc492897a86080abe3b00eee0201cacf030bbe40112e",
-    "repairedAtHead": "5813135f6386a235a85a5a580dc370bd89093422",
+    "packageLockBlobSha": "d485f45673eeb4a7293a389ffcd28d3ff7c0b56d",
+    "packageLockSha256": "62fedf96db695b1f8da9b7966627f6100939053a95bf4ed8324d814328117198",
+    "expectedPackageLockBlobSha": "d485f45673eeb4a7293a389ffcd28d3ff7c0b56d",
+    "expectedPackageLockSha256": "62fedf96db695b1f8da9b7966627f6100939053a95bf4ed8324d814328117198",
+    "repairedAtHead": "ed372f216a3cb2b56438175fa31d4aeddf271d5a",
     "rejectedPackageLockBlobSha": "467c23fa24b94a256f733c02315d4b6e79258dbe",
     "rejectedPackageLockSha256": "ce962941efa555d782e17909efad33db2f04e02c2aded0a585ae199698978dc5",
-    "differencePolicy": "FRESH_MAIN_LOCKFILE_REBIND_PRESERVED_XSTATE_5_32_5_ARTIFACT"
+    "differencePolicy": "ELECTRON_43_4_1_REPOSITORY_REBIND_PRESERVED_XSTATE_5_32_5_ARTIFACT"
   },
   "supersededObservation": {
     "reason": "RECORDED_FACTS_DID_NOT_MATCH_THE_PHYSICAL_ARTIFACT_FETCHED_IDENTICALLY_ON_UBUNTU_AND_WINDOWS",
