@@ -2894,23 +2894,23 @@
     },
     {
       "packageName": "ip-address",
-      "version": "10.2.0",
+      "version": "10.3.1",
       "lockPath": "node_modules/ip-address",
-      "resolved": "https://registry.npmjs.org/ip-address/-/ip-address-10.2.0.tgz",
-      "integrity": "sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==",
-      "archivePath": "vendor/npm/ip-address-10.2.0.tgz",
-      "archiveSha256": "37e0ddc03f4d1576c11b4405b022c41cdbcdcf1347f07fa96ea03d75f9a7c0ba",
+      "resolved": "https://registry.npmjs.org/ip-address/-/ip-address-10.3.1.tgz",
+      "integrity": "sha512-1e9d3kb97NHJTIJDZW9rKqW2h6+dFa50Dy0fpPSMQp2ADje5gvKsXmdiK6dwY5t76TaTt5+P5N1Y/LoToIxP6g==",
+      "archivePath": "vendor/npm/ip-address-10.3.1.tgz",
+      "archiveSha256": "ad1790063beea11a312c801df30d58e147de762f4f77787552376eb7424623e5",
       "license": "MIT",
       "source": "npm-official-tarball",
       "allMatchingLockPaths": [
         "node_modules/ip-address"
       ],
-      "inputSource": "新建文件夹(1).zip:新建文件夹/ip-address-10.2.0.tgz",
-      "archiveBytes": 59066,
+      "inputSource": "npm-official:ip-address@10.3.1",
+      "archiveBytes": 65455,
       "optionalOnly": false,
       "os": [],
       "cpu": [],
-      "mirrorObservation": "CONFIRMED_MIRROR_404"
+      "mirrorObservation": "OFFICIAL_NPM_TARBALL_VERIFIED"
     },
     {
       "packageName": "ipaddr.js",
@@ -2974,23 +2974,23 @@
     },
     {
       "packageName": "js-yaml",
-      "version": "4.3.0",
+      "version": "4.3.1",
       "lockPath": "node_modules/js-yaml",
-      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.0.tgz",
-      "integrity": "sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q==",
-      "archivePath": "vendor/npm/js-yaml-4.3.0.tgz",
-      "archiveSha256": "8594ee34496dd2e41ec934fd202843dc993be9ab2d7d5d47579146962fbdfae6",
+      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.1.tgz",
+      "integrity": "sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==",
+      "archivePath": "vendor/npm/js-yaml-4.3.1.tgz",
+      "archiveSha256": "08d6282b77a3e7242061f6dd5516c019b25c53041ad267bca3b790d79ddd5f34",
       "license": "MIT",
       "source": "npm-official-tarball",
       "allMatchingLockPaths": [
         "node_modules/js-yaml"
       ],
-      "inputSource": "新建文件夹(1).zip:新建文件夹/js-yaml-4.3.0.tgz",
-      "archiveBytes": 226823,
+      "inputSource": "npm-official:js-yaml@4.3.1",
+      "archiveBytes": 226859,
       "optionalOnly": false,
       "os": [],
       "cpu": [],
-      "mirrorObservation": "CONFIRMED_MIRROR_404"
+      "mirrorObservation": "OFFICIAL_NPM_TARBALL_VERIFIED"
     },
     {
       "packageName": "json-buffer",
