@@ -1,0 +1,36 @@
+name: TEMP exact Layered binding L2 patch
+
+on:
+  push:
+    branches:
+      - staging/v21-electron-43.4.1-layered-binding-l2
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact temp branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: staging/v21-electron-43.4.1-layered-binding-l2
+          fetch-depth: 0
+      - name: Apply exact two-file Layered contract patch and verify
+        run: node .github/tmp-v21-electron-layered-binding-l2.js
+      - name: Commit verified temp blobs only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Yance Temporary Layered Contract Factory'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -- governance/layered-ci/risk-policy.json tests/layered-ci/governance-policy.test.js
+          mapfile -t staged < <(git diff --cached --name-only | sort)
+          expected=(governance/layered-ci/risk-policy.json tests/layered-ci/governance-policy.test.js)
+          [[ "${#staged[@]}" -eq 2 ]]
+          [[ "${staged[0]}" == "${expected[0]}" ]]
+          [[ "${staged[1]}" == "${expected[1]}" ]]
+          git commit -m '[TEMP] Verify exact canonical binding L2 contract blobs'
+          git push origin HEAD:staging/v21-electron-43.4.1-layered-binding-l2
