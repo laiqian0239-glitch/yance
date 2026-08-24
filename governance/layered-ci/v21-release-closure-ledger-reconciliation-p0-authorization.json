@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T05:49:37+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-CLOSURE-LEDGER-RECONCILIATION-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Reconcile the stale V21 Release Closure Ledger against trusted-main source and exact-head gate evidence after the final known dependency P0 successor merged. This work package is documentation evidence only: it may advance source/gate states where mechanical evidence exists, but it may not claim packaged-RC closure, formal release, publish authority, or mutate product/runtime/tests/workflows/dependencies.",
+  "base": {
+    "branch": "main",
+    "commit": "2faa2a92d476a45bc08b58d33c877b6930e08897"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-ledger-reconciliation-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-closure-ledger-reconciliation-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ffd7fbd36d8acb3a6cc41cb406d6ac931dbbb52cd338b43bbd43580f62c2d84e",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "docs/v21-release-closure-ledger-reconciliation-p0",
+    "allowedChangedPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f5a5ea40aa811612913eb20a8d039f69161f875a62e260361e84f9dabc0010e",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "documentScope": {
+    "requiredSemantics": [
+      "Reconcile all 31 Known Findings V1 P0 rows, all 8 explicit Known Findings V1 P1 rows, Audit V2 finding A2-P1-001, and UAT obligations using trusted-main source and executed exact-head evidence.",
+      "Advance a row only to SOURCE_GATE_CLOSED_RC_PENDING when source closure and applicable exact-head gate evidence are mechanically established.",
+      "Keep every Known Finding unresolved for final release until a new fresh-main packaged Windows RC closes its packaged evidence layer.",
+      "Record PR #538 as historical evidence only and keep UAT-001/UAT-002 pending/enforced for the new final RC.",
+      "Keep formal release, publish, promotion, dependency, workflow, product, runtime and test authority closed."
+    ],
+    "forbiddenSemantics": [
+      "No CLOSED or PACKAGED_RC_PASS status without new fresh-main packaged RC evidence.",
+      "No source closure inferred from merge-only or test-file-only evidence.",
+      "No change outside docs/uat/V21_RELEASE_CLOSURE_LEDGER.md in the implementation.",
+      "No AGENTS.md, program document, product, runtime, test, workflow, dependency, routing policy, release binary or publish mutation."
+    ]
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "mechanical finding-to-source-to-gate evidence mapping",
+      "no false packaged-RC closure",
+      "one-document exact scope",
+      "fresh final Windows RC remains mandatory"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
