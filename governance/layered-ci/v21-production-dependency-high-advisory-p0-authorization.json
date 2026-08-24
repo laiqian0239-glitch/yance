@@ -1,0 +1,325 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCTION-DEPENDENCY-HIGH-ADVISORY-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh production-only npm@10.9.2 audit on exact trusted main 5e394ae19410f04d42661e12e40ae0b3d04f8969 reports 0 critical and 5 high findings. The five high records collapse to three concrete dependency advisory roots: (1) @letta-ai/letta-agent-sdk 0.6.2 -> @letta-ai/letta-code 0.30.5 -> sharp 0.34.5, where GHSA-f88m-g3jw-g9cj affects sharp <0.35.0; (2) the Letta Code @modelcontextprotocol/sdk 1.30.0 graph resolves ip-address 10.2.0, where GHSA-mwp4-54f8-5fhr affects <=10.3.0; and (3) direct electron-updater 6.8.9 resolves js-yaml 4.3.0, where GHSA-5p4m-2wfm-xmqj affects >=4.0.0 <4.3.1. The SDK and Letta Code high records are propagation of the sharp root, not independent blockers. Current upstream letta-code releases still declare sharp ^0.34.5, so an upstream Letta version bump does not close the sharp advisory. The repository already trusts sharp 0.35.3 and its platform artifacts, so the narrow root fix is a scoped Letta Code override to exact sharp 0.35.3 plus compatible lock-only patch refreshes to ip-address 10.3.1 and js-yaml 4.3.1. Known deterministic package/lock fallout—trusted seed identities, exact-L2 vendor routing, canonical WP7 binding, and WP-B package/lock repository receipts—is batched now so it cannot become a serial post-production prerequisite.",
+  "base": {
+    "branch": "main",
+    "commit": "5e394ae19410f04d42661e12e40ae0b3d04f8969",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-production-dependency-high-advisory-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-production-dependency-high-advisory-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d713879c68cfdae56799e4586711004cc20353ab724d881711a35f9a31222255",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-production-dependency-high-advisory-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "governance/layered-ci/risk-policy.json",
+      "package-lock.json",
+      "package.json",
+      "release/architecture-closure-v2/wp-b-governance-package.json",
+      "release/production-dependency-binding.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/wp0/v21-production-dependency-high-advisory-p0.test.js",
+      "vendor/npm/ip-address-10.3.1.tgz",
+      "vendor/npm/js-yaml-4.3.1.tgz"
+    ],
+    "approvedChangedFileCount": 12,
+    "approvedChangedFileSetSha256": "39f0f5b6c2b3c9d360df05ecea91ad21ddec6c1acb2d58efd64655e1111216b3",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-production-dependency-high-advisory-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "82032b8bd0ccc93176eda3f2052325cf0c4f3ca677f8bb875395f2d213ec6535",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "expectedFailures": [
+        "Letta Code still resolves nested sharp 0.34.5, below the patched sharp >=0.35.0 boundary for GHSA-f88m-g3jw-g9cj, and no scoped safe sharp override exists.",
+        "Production lock and trusted dependency seed authority still resolve ip-address 10.2.0, affected by GHSA-mwp4-54f8-5fhr (patched 10.3.1).",
+        "Production lock and trusted dependency seed authority still resolve js-yaml 4.3.0, affected by GHSA-5p4m-2wfm-xmqj (patched 4.3.1)."
+      ]
+    },
+    "requiredBehavior": [
+      "Preserve direct @letta-ai/letta-agent-sdk 0.6.2 and @letta-ai/letta-code 0.30.5 authorities; do not use a cosmetic parent-package upgrade that still declares sharp ^0.34.5.",
+      "Add only a scoped package.json override for @letta-ai/letta-code -> sharp exact 0.35.3. Do not globally override unrelated sharp consumers.",
+      "Regenerate package-lock.json with exact npm@10.9.2 so the Letta Code runtime no longer resolves any sharp <0.35.0 identity. Reuse the already-trusted sharp 0.35.3/platform graph where npm can deduplicate it.",
+      "Refresh ip-address only from 10.2.0 to exact 10.3.1 under existing compatible transitive ranges; do not upgrade @modelcontextprotocol/sdk, express-rate-limit, socks, Letta Code, or other unrelated parents.",
+      "Refresh js-yaml only from 4.3.0 to exact 4.3.1 under electron-updater 6.8.9's existing ^4.1.0 range; do not upgrade electron-updater or unrelated parents.",
+      "Replace only the active ip-address and js-yaml identities in governance/dependency-install-policy.json and governance/dependency-install-batch-manifest.json, preserving the total trusted seed count and all unrelated entries.",
+      "Add vendor/npm/ip-address-10.3.1.tgz and vendor/npm/js-yaml-4.3.1.tgz as exact official npm trusted seeds; preserve historical 10.2.0/4.3.0 archives as immutable evidence rather than deleting them for cleanup.",
+      "Classify exactly the two new vendor seed paths at Layered L2 in governance/layered-ci/risk-policy.json and permanently assert those two exact paths in tests/layered-ci/governance-policy.test.js; no vendor/npm prefix or wildcard is permitted.",
+      "Regenerate the complete release/production-dependency-binding.json using the existing tools/wp7/generate-production-dependency-binding.js under exact npm@10.9.2 for the reviewed Linux x64 and Windows x64 graphs; manual hash-only patching is forbidden.",
+      "Refresh only package/package-lock repository byte facts in governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json, preserving all XState 5.32.5 artifact/upstream/gate facts, then refresh only its exact sourceBinding blob in release/architecture-closure-v2/wp-b-governance-package.json.",
+      "After the stable production head, production-only npm audit must report zero high and zero critical vulnerabilities. The existing single low finding is not a release-blocking High/Critical root and receives no mutation in this batch.",
+      "Existing Letta P0 runtime/CLI probe, clean-install dependency authority, WP7 lifecycle, WP-B OSS-adoption, Layered exact-L2, and all routed exact-head gates must remain GREEN."
+    ],
+    "productionCodeChanged": true,
+    "routingPolicyModificationAllowed": true,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": true,
+    "lockfileModificationAllowed": true,
+    "dependencyTrustPolicyModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "auditEvidence": {
+    "releaseLedgerFindings": [
+      "KF-P0-06",
+      "KF-P1-03"
+    ],
+    "freshMain": "5e394ae19410f04d42661e12e40ae0b3d04f8969",
+    "command": "npx -y npm@10.9.2 audit --omit=dev --json",
+    "vulnerabilityCounts": {
+      "info": 0,
+      "low": 1,
+      "moderate": 0,
+      "high": 5,
+      "critical": 0,
+      "total": 6
+    },
+    "highRecords": [
+      {
+        "name": "@letta-ai/letta-agent-sdk",
+        "severity": "high",
+        "range": "*",
+        "via": [
+          "@letta-ai/letta-code"
+        ],
+        "rootDisposition": "PROPAGATED_FROM_SHARP"
+      },
+      {
+        "name": "@letta-ai/letta-code",
+        "severity": "high",
+        "range": ">=0.13.6",
+        "via": [
+          "sharp"
+        ],
+        "rootDisposition": "PROPAGATED_FROM_SHARP"
+      },
+      {
+        "name": "sharp",
+        "severity": "high",
+        "range": "<0.35.0",
+        "advisory": "GHSA-f88m-g3jw-g9cj",
+        "current": "0.34.5",
+        "target": "0.35.3"
+      },
+      {
+        "name": "ip-address",
+        "severity": "high",
+        "range": "<=10.3.0",
+        "advisory": "GHSA-mwp4-54f8-5fhr",
+        "current": "10.2.0",
+        "target": "10.3.1"
+      },
+      {
+        "name": "js-yaml",
+        "severity": "high",
+        "range": "4.0.0 - 4.3.0",
+        "advisory": "GHSA-5p4m-2wfm-xmqj",
+        "current": "4.3.0",
+        "target": "4.3.1"
+      }
+    ],
+    "sourceGraphDisposition": "THREE_ROOT_GRAPH_EXHAUSTED",
+    "unknownHighOrCriticalBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "tests/wp0/v21-production-dependency-high-advisory-p0.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Mandatory failure-first contract binds all three current High advisory roots before dependency bytes change."
+      },
+      {
+        "path": "package.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Adds the narrow Letta Code -> sharp 0.35.3 scoped override while preserving direct Letta versions."
+      },
+      {
+        "path": "package-lock.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Must materialize the exact safe sharp/ip-address/js-yaml graph with no unrelated transitive churn."
+      },
+      {
+        "path": "governance/dependency-install-policy.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Active trusted seed authority must move ip-address/js-yaml to patched official identities."
+      },
+      {
+        "path": "governance/dependency-install-batch-manifest.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Trusted dependency materialization must mirror the same patched seed identities."
+      },
+      {
+        "path": "vendor/npm/ip-address-10.3.1.tgz",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Official patched ip-address archive becomes the active trusted seed."
+      },
+      {
+        "path": "vendor/npm/js-yaml-4.3.1.tgz",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Official patched js-yaml archive becomes the active trusted seed."
+      },
+      {
+        "path": "governance/layered-ci/risk-policy.json",
+        "classification": "CAUSAL_COMPOSITION",
+        "reason": "New exact vendor seed paths are otherwise CI_UNKNOWN_PATH; exact L2 classification is deterministic same-batch fallout."
+      },
+      {
+        "path": "tests/layered-ci/governance-policy.test.js",
+        "classification": "CAUSAL_COMPOSITION",
+        "reason": "Permanently locks exact-L2 classification for only the two new vendor identities and rejects broad prefix expansion."
+      },
+      {
+        "path": "release/production-dependency-binding.json",
+        "classification": "RECEIPT_CLOSURE",
+        "reason": "Canonical WP7 graph receipt necessarily changes when package/lock production bytes change."
+      },
+      {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+        "classification": "RECEIPT_CLOSURE",
+        "reason": "RepositoryBinding package/package-lock byte facts necessarily change; XState semantic/artifact facts must remain unchanged."
+      },
+      {
+        "path": "release/architecture-closure-v2/wp-b-governance-package.json",
+        "classification": "RECEIPT_CLOSURE",
+        "reason": "Packaged governance must bind the refreshed XState supply-chain-lock blob."
+      }
+    ],
+    "negativeProofs": [
+      "All five High npm-audit records are accounted for by three concrete advisory roots; the SDK and Letta Code records are propagation of sharp rather than unknown additional defects.",
+      "The one remaining Low audit record is explicitly non-blocking for this High/Critical P0 batch and is not silently classified as GREEN or fixed by unrelated churn.",
+      "Current upstream Letta Code still declares sharp ^0.34.5, so a Letta package bump is not used as a false closure.",
+      "No direct Letta, MCP SDK, electron-updater, express-rate-limit, socks, Electron, Baileys, XState, database, workflow, product runtime, Store, adapter, or schema version change is authorized.",
+      "No broad vendor/npm Layered prefix, scanner bypass, audit suppression, npm-force-resolution, manual lock hash patch, or accepted-risk waiver is authorized.",
+      "Historical vulnerable vendor archives remain preserved as evidence; active trust moves only to the two patched archives.",
+      "Known WP7 and WP-B receipt fallout is included now rather than deferred into serial prerequisite PRs."
+    ]
+  },
+  "ossFit": {
+    "decision": "PATCH_TRANSITIVE_IDENTITIES_WITH_EXISTING_COMPATIBLE_RANGES_AND_SCOPED_OVERRIDE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "sharp",
+        "version": "0.35.3",
+        "source": "official npm/GitHub advisory patched release",
+        "license": "Apache-2.0",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Patched >=0.35.0; 0.35.3 is already present in Yance trusted dependency authority, enabling a narrow scoped Letta override without a private fork."
+      },
+      {
+        "name": "ip-address",
+        "version": "10.3.1",
+        "source": "official npm/GitHub advisory patched release",
+        "license": "MIT",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Exact patched version and both current parent ranges already admit it."
+      },
+      {
+        "name": "js-yaml",
+        "version": "4.3.1",
+        "source": "official npm v4 legacy patched release",
+        "license": "MIT",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Exact patched v4 legacy version remains inside electron-updater 6.8.9's existing ^4.1.0 range."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not fork Letta Code solely to change its sharp semver when an exact scoped npm override is sufficient and testable.",
+      "Do not upgrade parent packages whose existing ranges already admit patched ip-address/js-yaml identities.",
+      "Do not add audit ignores or accepted-risk metadata for these High findings."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-production-dependency-high-advisory-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-letta-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/cleanInstallAuthority.test.js",
+      "node --test --test-concurrency=1 tests/layered-ci/governance-policy.test.js",
+      "node tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-production-dependency-binding-lifecycle.test.js",
+      "npx -y npm@10.9.2 audit --omit=dev --json"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "WP-B Validation when routed",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed",
+      "Product Final when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
