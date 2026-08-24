@@ -111,9 +111,18 @@
   "ossFit": {
     "decision": "REUSE_EXISTING_REPOSITORY_TEST_AUTHORITY",
     "matureOssAvailable": false,
-    "selectedAdoptionMode": "existing-repository-test-contract",
+    "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
-    "reviewedCandidates": [],
+    "reviewedCandidates": [
+      {
+        "name": "verifyTrustedDependencySeeds + cleanInstallAuthority exact-count seam",
+        "source": "existing Yance repository trusted dependency verifier and regression seam",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is only a stale static expected count in the existing regression. Reusing the current verifier and exact-count test seam closes the gap without creating or replacing dependency infrastructure."
+      }
+    ],
     "retireOrAvoid": [
       "Do not generate new dependency seed infrastructure for a stale regression constant.",
       "Do not weaken verifyTrustedDependencySeeds or derive the expected count from the function under test."
