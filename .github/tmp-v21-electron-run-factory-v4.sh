@@ -43,6 +43,7 @@ curl -fsSL \
 node .github/tmp-v21-electron-allow-trusted-reuse.js
 node .github/tmp-v21-electron-43-4-1-factory.js
 node .github/tmp-v21-electron-post-generate-fix.js
+node .github/tmp-v21-electron-fix-source-test-import.js
 
 node --test tests/wp0/v21-electron-supported-runtime-p0.test.js
 node --test tests/runtime-delivery/electron-archive-tracking-authority.test.js tests/runtime-delivery/source-uat-delivery.test.js
