@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T09:21:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELECTRON-SUPPORTED-RUNTIME-P0",
+  "proposalRevision": 9,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing amendment-4 continuation after frozen PR #727 exact head bbabe2619d3a9324803189838bb3466598a4e37f. Fresh exact-head WP-B Validation run 32683185598 exposed one newly classified out-of-scope causal blocker with unknownBlockers=0: release/architecture-closure-v2/wp-b-governance-package.json still binds governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json to stale Git blob 0a2b707e766b0005fac99f6a7b818aa407882e27 while the already-authorized amendment-3 repository rebind produces exact blob 4cdc0258d163014f28105aec71ddf620eccbf7a8. Amendment-4 adds only that packaged-governance owner path and authorizes exact successor branch admission updates in the already-authorized Product Final workflow/test seams.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-electron-supported-runtime-p0-production-amendment-3-authorization.json",
+    "implementationBranch": "fix/v21-electron-supported-runtime-p0-production-amendment-3",
+    "frozenPredecessorPullRequest": 727,
+    "frozenPredecessorHead": "bbabe2619d3a9324803189838bb3466598a4e37f",
+    "reason": "PR #727 remains immutable failure-first evidence. Its exact-head Layered blocker was closed, then fresh cross-platform WP-B governance validation exposed only the stale packaged sourceBinding for the already-authorized XState supply-chain lock mutation."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "e3565189307cd59faf70ad8f2530dbeea8f48246",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "e3565189307cd59faf70ad8f2530dbeea8f48246",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-electron-supported-runtime-p0-production-amendment-4-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-electron-supported-runtime-p0-production-amendment-4-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c0adb37675298070e507ca84d3c8c21e989a5802a7e9f27dc33f909063c0d3d6",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-electron-supported-runtime-p0-production-amendment-4",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "bbabe2619d3a9324803189838bb3466598a4e37f"
+    },
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      ".github/workflows/windows-production-release.yml",
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "governance/layered-ci/risk-policy.json",
+      "package-lock.json",
+      "package.json",
+      "release/architecture-closure-v2/wp-b-governance-package.json",
+      "release/electron-distribution-trust.json",
+      "release/production-dependency-binding.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/runtime-delivery/source-uat-delivery.test.js",
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "tests/wp0/v21-electron-supported-runtime-p0.test.js",
+      "tools/release-closure/RUN_WINDOWS_ASSISTED_PIPELINE.ps1",
+      "tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1",
+      "tools/windows/VERIFY_RUNTIME_IDENTITY.ps1",
+      "tools/wp7/generate-trusted-product-probe-blocker.js",
+      "vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz",
+      "vendor/npm/_at_electron__get-5.0.0.tgz",
+      "vendor/npm/_at_types__node-24.10.13.tgz",
+      "vendor/npm/electron-43.4.1.tgz",
+      "vendor/npm/env-paths-3.0.0.tgz",
+      "vendor/npm/undici-7.25.0.tgz",
+      "vendor/npm/undici-types-7.16.0.tgz"
+    ],
+    "approvedChangedFileCount": 29,
+    "approvedChangedFileSetSha256": "084ef622d219df587d7ab9f8be11e48c149ea6f924252872754716943e8574ec",
+    "newlyAuthorizedPaths": [
+      "release/architecture-closure-v2/wp-b-governance-package.json"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "ec73130633c15884d429124fbecdd74c8c54a823b34f10ac2d602548d867b537",
+    "newDependencyAllowed": true,
+    "workflowModificationAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/stage-6459-wp0-gates.yml",
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        ".github/workflows/windows-production-release.yml"
+      ],
+      "approvedWorkflowPathCount": 3,
+      "approvedWorkflowPathSetSha256": "cc24f95c9f3fa077cba66a3b002297271adb4303576a1abdd61791cb1e59de69"
+    },
+    "newlyAuthorizedRootFixes": {
+      "wpBPackagedGovernanceSourceBinding": {
+        "path": "release/architecture-closure-v2/wp-b-governance-package.json",
+        "requiredBehavior": "Update only the sourceBindings row for governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json from stale Git blob 0a2b707e766b0005fac99f6a7b818aa407882e27 to exact amendment-3 blob 4cdc0258d163014f28105aec71ddf620eccbf7a8. Preserve every other sourceBinding, XState 5.32.5 observation, packaging identity, release-closed governance flag and no-production-use state byte-for-byte except normal JSON serialization if required by the existing repository style."
+      },
+      "productFinalSuccessorBranchContract": {
+        "paths": [
+          ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+          "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+        ],
+        "requiredBehavior": "Replace only the exact amendment-3 successor branch admission with fix/v21-electron-supported-runtime-p0-production-amendment-4 across all three Product Final jobs and the permanent exact-allowlist contract. Do not add wildcard, prefix or generic Electron successor admission."
+      }
+    },
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "packageManifestModificationAllowed": true,
+    "lockfileModificationAllowed": true,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalRedEvidence": {
+    "frozenPredecessorPullRequest": 727,
+    "frozenPredecessorHead": "bbabe2619d3a9324803189838bb3466598a4e37f",
+    "wpBValidationRun": 32683185598,
+    "ubuntuGovernanceJob": 97303321756,
+    "windowsGovernanceJob": 97303321628,
+    "failureCode": "WP_B_GOVERNANCE_SOURCE_BINDING_MISMATCH",
+    "bindingPath": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+    "staleExpectedGitBlobSha": "0a2b707e766b0005fac99f6a7b818aa407882e27",
+    "actualGitBlobSha": "4cdc0258d163014f28105aec71ddf620eccbf7a8",
+    "newlyExposedOwnerPath": "release/architecture-closure-v2/wp-b-governance-package.json",
+    "crossPlatformReproduced": true,
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "bbabe2619d3a9324803189838bb3466598a4e37f",
+    "failureFirstEvidenceInheritedFromFrozenPredecessor": true,
+    "requiredInheritedRedHead": "bbabe2619d3a9324803189838bb3466598a4e37f",
+    "requiredInheritedRedRun": 32683185598,
+    "requiredInheritedRedConclusion": "failure",
+    "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionBeyond29Forbidden": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "negativeProofs": [
+      "No #720, #722, #725 or #727 history mutation.",
+      "Only one newly authorized production path: release/architecture-closure-v2/wp-b-governance-package.json.",
+      "No mutation of WP-B verifier or governancePackagingContract test is required.",
+      "No change to XState 5.32.5 artifact, registry, evidence, operation inventory, production authorization or release status.",
+      "No broad Product Final branch wildcard or route-policy expansion.",
+      "No squash, rebase, amend, force-push, cherry-pick or history rewrite."
+    ]
+  },
+  "ossFit": {
+    "decision": "PRESERVE_EXISTING_WP_B_PACKAGED_GOVERNANCE_BINDING_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP-B packaged governance verifier",
+        "source": "tools/architecture-closure-v2/verify-wp-b-governance-release-package.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The verifier already fails closed on source byte identity and correctly exposed the stale package binding on both platforms; the minimal repair is to refresh the exact reviewed sourceBinding, not replace or weaken the verifier."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not bypass or relax WP_B_GOVERNANCE_SOURCE_BINDING_MISMATCH.",
+      "Do not modify the verifier or governance packaging test merely to accept stale bytes.",
+      "Do not authorize production use, formal release, publish, WP-C, symlinks or non-identical packaged bytes."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
