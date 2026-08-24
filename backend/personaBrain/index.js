@@ -24,9 +24,9 @@ function createPersonaBrain(options = {}) {
     service,
     candidateCoordinator,
     validator,
-    // OD-004 规范运行时 API：编译活跃 persona 上下文（AI task 入口）
+    // OD-004 规范运行时 API：兼容入口也必须委派到 effective scoped authority。
     compileContext: (profileId = 'owner', compileOptions = {}) =>
-      compiler.compileContextForProfile(service, profileId, compileOptions),
+      service.compileEffectiveContext({ profileId }, compileOptions),
     compileEffectiveContext: (scope = {}, compileOptions = {}) =>
       service.compileEffectiveContext(scope, compileOptions),
     compilePersonaContext: compiler.compilePersonaContext
