@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - staging/v21-electron-43.4.1-layered-binding-l2
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
