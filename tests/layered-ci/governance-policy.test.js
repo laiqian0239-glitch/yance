@@ -121,7 +121,8 @@ test('Electron custody and source-control authority paths escalate to L2', () =>
     '.gitattributes',
     '.gitignore',
     'release/electron-distribution-trust.json',
-    'vendor/electron/electron-v39.8.5-win32-x64.zip'
+    'vendor/electron/electron-v39.8.5-win32-x64.zip',
+    'vendor/npm/electron-43.4.1.tgz'
   ]) {
     const result = classifyChangedFiles(risk, [file]);
     assert.equal(result.pass, true, file);
@@ -236,7 +237,8 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'release/electron-distribution-trust.json',
     'runtime/local-ai/airllm/yance_airllm_worker.py',
     'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch',
-    'vendor/electron/electron-v39.8.5-win32-x64.zip'
+    'vendor/electron/electron-v39.8.5-win32-x64.zip',
+    'vendor/npm/electron-43.4.1.tgz'
   ]);
   assert.deepEqual(risk.l2Prefixes, [
     '.github/',

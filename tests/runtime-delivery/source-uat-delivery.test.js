@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { spawnSync } = require('node:child_process');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
@@ -285,14 +286,14 @@ test('npm ci retry records every failed attempt and succeeds without hiding inst
   assert.equal(fs.existsSync(result.attempts[0].stderrPath), true);
 });
 
-test('Electron local archive recovery is bound to the reviewed Windows SHA-256', () => {
+test('Electron local archive recovery is trust-bound without checked-in Release ZIP custody', () => {
   const artifact = expectedElectronArtifact(repoRoot, 'win32', 'x64');
-  assert.equal(artifact.fileName, 'electron-v39.8.5-win32-x64.zip');
-  assert.match(artifact.sha256, /^[0-9a-f]{64}$/u);
-  const expectedArchive = path.join(repoRoot, 'vendor', 'electron', artifact.fileName);
+  assert.equal(artifact.fileName, 'electron-v43.4.1-win32-x64.zip');
+  assert.equal(artifact.sha256, 'c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a');
+  const retiredSourceCandidate = path.join(repoRoot, 'vendor', 'electron', artifact.fileName);
   const discovered = discoverElectronArchive(repoRoot, { platform: 'win32', arch: 'x64', electronZip: path.join(tempRoot(), 'missing.zip') });
-  assert.equal(discovered.archivePath, expectedArchive);
-  assert.equal(discovered.actualSha256, artifact.sha256);
+  assert.equal(discovered.archivePath, '');
+  assert.ok(discovered.candidates.includes(retiredSourceCandidate));
   assert.equal(discovered.artifact.sha256, artifact.sha256);
 });
 
@@ -303,24 +304,24 @@ test('Electron ZIP extraction rejects traversal and absolute entries', () => {
   assert.doesNotThrow(() => secureZipEntryPath(root, 'locales/zh-CN.pak'));
 });
 
-test('FIX6O Windows launcher uses the trusted install authority without sandbox bypasses', () => {
+test('FIX6O Windows launcher remains byte-for-byte historical evidence without becoming active Electron authority', () => {
   const cmdPath = path.join(repoRoot, 'RUN_FIX6O_GATE0_WINDOWS_UAT.cmd');
   const ps1Path = path.join(repoRoot, 'RUN_FIX6O_GATE0_WINDOWS_UAT.ps1');
   assert.equal(fs.existsSync(cmdPath), true);
   assert.equal(fs.existsSync(ps1Path), true);
 
-  const cmdBytes = fs.readFileSync(cmdPath);
-  const forbiddenControlBytes = [...cmdBytes].filter(byte => byte < 32 && ![9, 10, 13].includes(byte));
-  assert.deepEqual(forbiddenControlBytes, [], 'launcher must not contain embedded control characters');
-  const cmd = cmdBytes.toString('utf8');
-  assert.doesNotMatch(cmd, /(?<!\r)\n/u, 'launcher must use CRLF line endings');
+  const cmdBlob = spawnSync('git', ['rev-parse', 'HEAD:RUN_FIX6O_GATE0_WINDOWS_UAT.cmd'], { cwd: repoRoot, encoding: 'utf8' });
+  const ps1Blob = spawnSync('git', ['rev-parse', 'HEAD:RUN_FIX6O_GATE0_WINDOWS_UAT.ps1'], { cwd: repoRoot, encoding: 'utf8' });
+  assert.equal(cmdBlob.status, 0);
+  assert.equal(ps1Blob.status, 0);
+  assert.equal(cmdBlob.stdout.trim(), '9ff34efd68e0d187fb8136513d9759436e6693c8');
+  assert.equal(ps1Blob.stdout.trim(), '6be5138e41c6ec2b10e041c0288011f522e2ab47');
+
+  const cmd = fs.readFileSync(cmdPath, 'utf8');
+  const ps1 = fs.readFileSync(ps1Path, 'utf8');
   assert.match(cmd, /RUN_FIX6O_GATE0_WINDOWS_UAT\.ps1/u);
   assert.match(cmd, /pause[\s\S]*exit \/b %YANCE_EXIT%/u, 'launcher must remain visible after failure or normal exit');
-
-  const ps1 = fs.readFileSync(ps1Path, 'utf8');
   assert.match(ps1, /tools[\\/]runtime-delivery[\\/]start-source-uat\.js/u);
-  assert.match(ps1, /vendor[\\/]electron[\\/]electron-v39\.8\.5-win32-x64\.zip/u);
-  assert.match(ps1, /d75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34/u);
   assert.match(ps1, /gate0-windows-launcher/u);
   assert.match(ps1, /Start-Process/u);
   assert.match(ps1, /RedirectStandardOutput/u);
@@ -328,7 +329,6 @@ test('FIX6O Windows launcher uses the trusted install authority without sandbox 
   assert.match(ps1, /--install/u);
   assert.doesNotMatch(`${cmd}\n${ps1}`, /--no-sandbox|ELECTRON_DISABLE_SANDBOX/iu);
 });
-
 test('obsolete root launchers remain quarantined and npm scripts use the source UAT authority', () => {
   for (const file of ['START_YANCE_SOURCE_UAT.cmd', 'INSTALL_AND_START_YANCE_SOURCE_UAT.cmd', 'START_YANCE_SOURCE_UAT_EXISTING_DATA.cmd', 'START_YANCE_SOURCE_UAT_LARGEST_EXISTING_DATA.cmd', 'INSTALL_AND_START_YANCE_SOURCE_UAT_LARGEST_EXISTING_DATA.cmd', 'INSTALL_AND_START_YANCE_SOURCE_UAT_LARGEST_EXISTING_DATA.ps1']) {
     assert.equal(fs.existsSync(path.join(repoRoot, file)), false, `${file} must not remain in the product source root`);
