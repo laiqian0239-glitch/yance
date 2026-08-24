@@ -46,6 +46,7 @@
     "package-lock.json",
     "package.json",
     "release/electron-distribution-trust.json",
+    "release/architecture-closure-v2/wp-b-governance-package.json",
     "release/production-dependency-binding.json",
     "runtime/local-ai/airllm/yance_airllm_worker.py",
     "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
