@@ -4,7 +4,7 @@ param(
   [string]$ConfigPath = '',
   [string]$NodeRoot = 'D:\node-v22.16.0-win-x64',
   [string]$RunRoot = '',
-  [string]$ElectronArchive = 'D:\Yance-Build-Tools\electron-v39.8.5-win32-x64.zip',
+  [string]$ElectronArchive = 'D:\Yance-Build-Tools\electron-v43.4.1-win32-x64.zip',
   [string]$MakensisPath = 'D:\Yance-Build-Tools\NSIS\makensis.exe',
   [switch]$DiagnosticOnly,
   [switch]$SkipBuilder

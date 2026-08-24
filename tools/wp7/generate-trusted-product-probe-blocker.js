@@ -40,7 +40,7 @@ try {
     packagedPayloadRootAvailable: arg('--payload-root-available') === 'true',
     packagedResourcesRootAvailable: arg('--resources-root-available') === 'true',
     requiredElectronArchive: {
-      fileName: arg('--electron-archive-file', 'electron-v39.8.5-linux-x64.zip'),
+      fileName: arg('--electron-archive-file', 'electron-v43.4.1-linux-x64.zip'),
       sha256: arg('--electron-archive-sha256', 'dd5f4b21682e9d031defff525809dc58028521925f42ec9caa5ca6535d1524e7'),
       executableEntry: arg('--electron-executable-entry', 'electron')
     }
