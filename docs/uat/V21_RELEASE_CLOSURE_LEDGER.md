@@ -123,13 +123,13 @@ Additional Audit V2 findings must be appended here with immutable IDs. Completio
 | Electron/backend ownership, startup, shutdown and process identity | Current main contains the async owner/process lifecycle lineage and Electron 43.4.1 closure; packaged start/restart/stop evidence is still absent. | KF-P0-01..03 and UAT obligations remain unresolved; no false packaged claim. |
 | Credential/security boundaries | SecurityGuard exact-command/internal/write-classification source closures are merged, while all-write-entrypoint packaged proof remains outstanding. | KF-P0-08..10 / KF-P1-01 remain authoritative rows. |
 | Store/identity/conversation truth | Fresh source inspection verified `SYNC_CUSTOMER_CONTEXT` deduplicates `conversations.byContactId`; active selection and typing authority code is also present. Exact finding-specific execution mapping is incomplete. | KF-P0-18 advances only to `EVIDENCE_RECONCILIATION`; KF-P0-04/17 and KF-P1-05 retain their stricter states. |
-| Physical adapters and durable repair | WhatsApp/Telegram/Facebook durable repair and fencing work is present, but Facebook missing-`worker_media` legacy URL fallback remains unresolved on the current source path. | KF-P0-25 remains `OPEN`; no duplicate A2 row because this is the immutable V1 finding itself. |
+| Physical adapters and durable repair | WhatsApp/Telegram/Facebook durable repair and fencing work is present, but Facebook missing-`worker_media` legacy URL fallback remains unresolved on the current source path. Facebook Worker's own media regression suite is stale against the current attempt-authority API. | KF-P0-25 remains `OPEN`; `DELTA-P1-001` records the independent stale-test delta. |
 | Durable Execution | Schema-23 operations, heartbeat and retry/fencing paths exist on fresh main; exact finding-specific lineage remains incomplete for the broad historical rows. | KF-P0-26..28 remain `EVIDENCE_RECONCILIATION`. |
 | AI Core cancellation/stale/retry/authority/persistence | AI_AUTO retry-storm subset is mechanically closed at source/gate level; broader scheduled/cancel-vs-succeed/stale-layer rows remain unmapped. | A2-P1-001 remains source-gate closed RC pending; KF-P0-29..31 and KF-P1-07 remain unresolved. |
 | Dependency / supply chain | Electron 43.4.1, Baileys rc14, Letta sharp reconciliation and High-advisory closure are present; adaptive local runtime materialization is local-file-only, explicit-consent and SHA-256 checked rather than an implicit runtime downloader. | KF-P0-05..07 / KF-P1-03 retain source-gate-closed-RC-pending; no new Delta P0/P1 from this inspected materialization path. |
 | Release packaging / sealed runtime / real Windows launch | No new final fresh-main packaged Windows RC exists after the later source merges. | UAT-001/UAT-002 remain blocking; `freshPackagedWindowsRcPass=false`. |
 
-This is an exact-base **surface scan checkpoint**, not release completion. Existing V1/A2 blockers are not duplicated merely to make the Audit V2 list longer. Fresh-main Audit V2 cannot become complete while A2-P1-001 still lacks its future packaged RC evidence and the release program still has unresolved P0/P1 obligations.
+This is an exact-base **surface scan checkpoint**, not release completion. Existing V1/A2 blockers are not duplicated merely to make the Audit V2 list longer. Fresh-main Audit V2 cannot become complete while A2-P1-001 still lacks its future packaged RC evidence, `DELTA-P1-001` is unresolved, and the release program still has unresolved P0/P1 obligations.
 
 ## 5. Release/UAT obligations not equivalent to new source defects
 
@@ -159,8 +159,9 @@ Presence of a test file is not sufficient. The following rows are mechanically b
 | COV-KF-P1-08 | `tests/wp0/v21-persona-compile-authority-p1.test.js` | Stage WP0 | RED `32691739045`; final Stage `32692383958` | `561d931aeaed89667dfaedbb985c58f99a3ee762` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-A2-P1-001 | `backend/tests/v21ProductAiAutoRetryStorm.test.js` | Stage WP0 required-test runner | RED `32613800942`; final Stage `32613979019` | `3231ba426c8e3976afd302cb2e2eaa160c957c1a` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-GAP-KF-P0-25 | `backend/tests/facebookProductionReadinessRegression.test.js` legacy-media/fallback coverage | Present in `package.json` scripts, but absent from `tools/wp0/run-tests.js` WP0 glob/external required list | Repository search found no mandatory workflow invocation of `test:facebook-contracts` / `test:platform-production-readiness` | `760c45a9a03305882249ffd3673a64baa6c29fa0` | no mandatory exact-head execution bound | no | BLOCKED — separate coverage/repair causal package required |
+| COV-GAP-DELTA-P1-001 | `services/facebook-worker/tests/media-r2-retention.test.js` | Facebook Worker package-local `node --test tests/*.test.js`; not Stage WP0 | No mandatory exact-head workflow invocation found | `760c45a9a03305882249ffd3673a64baa6c29fa0` | no mandatory exact-head execution bound | no | BLOCKED — stale contract must be repaired and routed/proven |
 
-`tools/wp0/run-tests.js` mechanically executes every `tests/wp0/*.test.js` plus exactly four external tests: desktop-host lifecycle, Windows owner evidence, main-window activation, and `backend/tests/v21ProductAiAutoRetryStorm.test.js`. Therefore a backend regression test is **not** mandatory Stage coverage merely because a package script names it. KF-P0-25 currently demonstrates this blind spot.
+`tools/wp0/run-tests.js` mechanically executes every `tests/wp0/*.test.js` plus exactly four external tests: desktop-host lifecycle, Windows owner evidence, main-window activation, and `backend/tests/v21ProductAiAutoRetryStorm.test.js`. Therefore a backend/Worker regression test is **not** mandatory Stage coverage merely because a package script names it. KF-P0-25 and DELTA-P1-001 demonstrate this blind spot.
 
 Every remaining release-critical contract must eventually receive the same mechanical binding. Rules:
 
@@ -171,11 +172,15 @@ Every remaining release-critical contract must eventually receive the same mecha
 5. platform-specific behavior requires the applicable platform job to execute;
 6. final RC packaging/launch assertions require the fresh RC source/package identity, not a historical candidate.
 
-Because `COV-GAP-KF-P0-25` is unresolved, `mandatoryExecutedTestCoverageComplete=false` remains fail-closed.
+Because `COV-GAP-KF-P0-25` and `COV-GAP-DELTA-P1-001` are unresolved, `mandatoryExecutedTestCoverageComplete=false` remains fail-closed.
 
 ## 8. Delta Regression register
 
 All changes after the 2026-08-20 audit through final RC must be independently scanned. Add immutable `DELTA-P0-*` / `DELTA-P1-*` rows here when discovered.
+
+| ID | Severity | Delta finding | State | Exact evidence / next action |
+|---|---|---|---|---|
+| DELTA-P1-001 | P1 | Facebook Worker media regression suite is stale against the current persisted-attempt media authority | OPEN | On exact base `760c45a9…`, `services/facebook-worker/tests/media-r2-retention.test.js` imports `retryPendingMedia` and asserts the pre-migration eager `cacheEventMedia(...)` result, while current `services/facebook-worker/src/media.js` no longer exports `retryPendingMedia` and a call without persisted attempt identity intentionally records metadata-only references. `services/facebook-worker/package.json` still includes this file in `node --test tests/*.test.js`, but repository search found no mandatory exact-head workflow execution. Repair test semantics against the persisted-attempt Worker authority and bind mandatory exact-head execution in a separate failure-first causal batch. |
 
 ### 8.1 Exact current-main checkpoint
 
@@ -186,9 +191,10 @@ Mechanical compare baseline `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0` → exact
 - changed surfaces include Stage/Layered/Product/WP-B workflows; SecurityGuard; Electron owner/process/main/preload/store bridge; Store active-selection/runtime-state commands; WhatsApp/Telegram/Facebook adapter paths; Durable Execution and AI orchestration/gateway/reply paths; dependency policy/package lock/release binding; renderer/Product surfaces; tests; and sealed/vendor runtime inputs;
 - focused checks of changed supply-chain/runtime materialization found no implicit adaptive-runtime download: materialization requires an already-local file, explicit consent and an expected SHA-256 match;
 - focused Store inspection reclassified KF-P0-18 to evidence reconciliation rather than inventing a Delta row;
-- focused Facebook inspection confirmed KF-P0-25 remains the existing V1 source blocker and exposed the executed-test coverage gap above rather than inventing a duplicate Delta row.
+- focused Facebook inspection confirmed KF-P0-25 remains the existing V1 source blocker and exposed the executed-test coverage gap above;
+- direct Worker media source/test comparison exposed `DELTA-P1-001`, so the audit does not suppress the stale-test regression behind a generic narrative statement.
 
-No new `DELTA-P0-*` / `DELTA-P1-*` row is declared from this current-main checkpoint because every blocking condition found here maps to an existing immutable Known Finding or coverage obligation. This is not a claim that the final Delta audit is complete: the required audit window ends at the future final RC, which does not exist yet.
+No additional `DELTA-P0-*` / `DELTA-P1-*` row is declared from this current-main checkpoint beyond `DELTA-P1-001`. This is not a claim that the final Delta audit is complete: the required audit window ends at the future final RC, which does not exist yet.
 
 No Delta finding is declared CLOSED merely because its introducing PR was reviewed.
 
@@ -203,6 +209,7 @@ knownFindingsP1Total=8
 knownFindingsP1SourceGateClosedRcPending=4
 knownFindingsFinalClosed=0
 freshMainAuditV2KnownRowsSourceGateClosedRcPending=1
+deltaRegressionKnownP1=1
 freshMainAuditV2Complete=false
 mandatoryExecutedTestCoverageComplete=false
 deltaRegressionAuditComplete=false
@@ -213,4 +220,4 @@ formalReleaseAuthorized=false
 publishAuthorized=false
 ```
 
-These values may only advance from fresh, exact, mechanically verified evidence. The next source action exposed by this audit is **not** authorized by this documentation batch: KF-P0-25 / `COV-GAP-KF-P0-25` requires an independent failure-first causal authorization and repair package.
+These values may only advance from fresh, exact, mechanically verified evidence. The next source action exposed by this audit is **not** authorized by this documentation batch: KF-P0-25 + DELTA-P1-001 + their coverage gaps form one Facebook media-authority causal bucket and require an independent failure-first authorization and repair package.
