@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-LETTA-SHARP-LOCK-RECONCILIATION-P0-SUCCESSOR",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #757 preserved the intended tests-only prerequisite implementation at exact head ece5735c030ce2e3f3aa5670139ebad29975a543, but Stage run 32731508409 completed GREEN because backend/tests/lettaSharpLockReconciliation.test.js is not part of the WP0 required-test discovery surface. Therefore #757 did not establish a failure-first RED and production implementation is forbidden under #756. This successor changes only the diagnostic route: the same repository-specific fail-closed Letta sharp stale-lock reconciliation contract must live at tests/wp0/v21-letta-sharp-lock-reconciliation-p0.test.js so Stage actually executes it. The helper scope and technical remedy remain unchanged.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-letta-sharp-lock-reconciliation-p0-authorization.json",
+    "implementationBranch": "fix/v21-letta-sharp-lock-reconciliation-p0",
+    "reason": "The predecessor authorization selected a tests-only path outside Stage WP0 discovery, so its implementation head stayed GREEN and cannot satisfy failure-first. Preserve PR #757 as immutable routing evidence and restart from this successor authorization with a Stage-routed WP0 test path."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "594773cd9e5a4d602509ec10ffe30862acc4ce7d",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "predecessorEvidence": {
+    "frozenPr": 757,
+    "frozenHead": "ece5735c030ce2e3f3aa5670139ebad29975a543",
+    "stageRun": 32731508409,
+    "stageConclusion": "success",
+    "failureFirstEstablished": false,
+    "unknownBlockers": 0,
+    "disposition": "TEST_PATH_NOT_EXECUTED_BY_STAGE_WP0_DISCOVERY"
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-letta-sharp-lock-reconciliation-p0-successor-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-letta-sharp-lock-reconciliation-p0-successor-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "81eaaf753903ad29494d7dc63520a8a8237fe520adcbfd1d6519cdda52aeae9d",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-letta-sharp-lock-reconciliation-p0-successor",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "scripts/dependencies/reconcile-letta-sharp-lock.js",
+      "tests/wp0/v21-letta-sharp-lock-reconciliation-p0.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "23f0378377788ad43d9f3a27b7a8cd3e679c771cf7caeb527c4d471ba66064c0",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-letta-sharp-lock-reconciliation-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "114594f92dac0444adbcd58f82072187e9412940d8a45a0d7a71b7956b756e7b",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "expectedFailures": [
+        "Stage WP0 executes tests/wp0/v21-letta-sharp-lock-reconciliation-p0.test.js and fails because scripts/dependencies/reconcile-letta-sharp-lock.js does not yet exist."
+      ]
+    },
+    "requiredBehavior": [
+      "Provide a repository-specific helper at scripts/dependencies/reconcile-letta-sharp-lock.js; do not introduce general-purpose dependency-resolution infrastructure.",
+      "The helper must accept an explicit package-lock path and operate only on lockfileVersion 3 JSON; it must never invoke npm itself.",
+      "Before mutation, require @letta-ai/letta-code exact 0.30.5 with declared sharp range ^0.34.5, root node_modules/sharp exact 0.35.3, and nested node_modules/@letta-ai/letta-code/node_modules/sharp exact 0.34.5.",
+      "Delete only node_modules/@letta-ai/letta-code/node_modules/sharp and nested node_modules/@letta-ai/letta-code/node_modules/@img/sharp* or @img/sharp-libvips* entries whose reviewed stale versions are sharp platform 0.34.5 or libvips 1.2.4.",
+      "Do not delete unrelated Letta-local packages such as semver, detect-libc, @img/colour, MCP, React, ws, node-pty, or any package outside the exact Letta Code nested prefix.",
+      "Refuse to mutate if any target stale node has an unexpected version, if root sharp is not exact 0.35.3, if Letta Code is not exact 0.30.5, or if the nested sharp node is already absent or safe.",
+      "Write canonical two-space JSON with one trailing LF only after all preconditions pass; expose a pure planning function so tests can prove the exact deletion set without filesystem mutation.",
+      "The helper must not write 0.35.3, any resolved URL, integrity, package dependency, override, or final package-lock identity; the later dependency-security successor must still use exact npm@10.9.2 to regenerate and validate final lock bytes.",
+      "Tests must prove exact stale fixture deletion, refusal on version drift, refusal on safe or already-reconciled input, preservation of unrelated nested entries, deterministic output, and no mutation before full validation."
+    ],
+    "productionCodeChanged": true,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "dependencyTrustPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "rootCauseEvidence": {
+    "npmAuthority": "10.9.2",
+    "reviewedPackageGraph": {
+      "lettaCode": "0.30.5",
+      "lettaDeclaredSharp": "^0.34.5",
+      "rootSharp": "0.35.3",
+      "staleNestedSharp": "0.34.5"
+    },
+    "dependencyRootDisposition": "STALE_EXISTING_LOCK_SUBTREE_PREVENTS_AUTHORIZED_OVERRIDE_FROM_MATERIALIZING",
+    "routingRootDisposition": "PREDECESSOR_FAILURE_FIRST_TEST_PATH_NOT_EXECUTED_BY_STAGE",
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "tests/wp0/v21-letta-sharp-lock-reconciliation-p0.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Stage-routed failure-first contract for exact stale-state detection, deletion boundary, and fail-closed behavior."
+      },
+      {
+        "path": "scripts/dependencies/reconcile-letta-sharp-lock.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Repository-specific prerequisite normalizes only the stale npm lock state that prevented the scoped override from materializing."
+      }
+    ],
+    "negativeProofs": [
+      "No package.json, package-lock.json, dependency seed, vendor archive, Layered policy, WP7 binding, WP-B receipt, workflow, runtime, database, or product byte may change in this prerequisite PR.",
+      "The helper is not permission to hand-author the final lock; npm@10.9.2 remains the sole authority that may regenerate final dependency identities in the later dependency-security successor.",
+      "No global sharp override, Letta fork, npm version change, audit ignore, accepted-risk waiver, force resolution package, or parent dependency upgrade is authorized here.",
+      "Frozen PRs #755 and #757 remain evidence only and must not be rewritten, amended, rebased, force-pushed, or cleaned up for PR-list appearance."
+    ]
+  },
+  "ossFit": {
+    "decision": "KEEP_NPM_AS_RESOLUTION_AUTHORITY_AND_ROUTE_THE_FAIL_CLOSED_INPUT_RECONCILIATION_TEST_THROUGH_STAGE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "npm CLI",
+        "version": "10.9.2",
+        "source": "https://github.com/npm/cli",
+        "license": "Artistic-2.0",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "npm remains final dependency-tree and lockfile authority; the repository helper only removes the exact stale input subtree that npm 10 demonstrably keeps despite root override policy."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not replace npm with a second package manager or lockfile generator.",
+      "Do not regenerate the whole lock from scratch and accept unrelated semver drift.",
+      "Do not manually write target sharp versions, resolved URLs, integrity hashes, or platform identities into the final lock.",
+      "Do not add a global sharp override or fork Letta Code without separate causal evidence and authorization."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-letta-sharp-lock-reconciliation-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed",
+      "Product Final when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
