@@ -10,9 +10,9 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const ELECTRON_ARCHIVE = 'vendor/electron/electron-v39.8.5-win32-x64.zip';
 const RCEDIT_ARCHIVE = 'vendor/rcedit/rcedit-v2.0.0-x64.exe';
 const FUTURE_RCEDIT_ARCHIVE = 'vendor/rcedit/future-unreviewed.exe';
-const EXPECTED_ELECTRON_SHA256 = 'd75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34';
-const EXPECTED_ELECTRON_SIZE = 136644393;
-const EXPECTED_RELEASE_URL = 'https://github.com/electron/electron/releases/download/v39.8.5/electron-v39.8.5-win32-x64.zip';
+const EXPECTED_ELECTRON_SHA256 = 'c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a';
+const EXPECTED_ELECTRON_SIZE = 150154788;
+const EXPECTED_RELEASE_URL = 'https://github.com/electron/electron/releases/download/v43.4.1/electron-v43.4.1-win32-x64.zip';
 
 function lines(fileName) {
   return fs.readFileSync(path.join(REPO_ROOT, fileName), 'utf8')
@@ -79,15 +79,15 @@ test('Electron is no longer Git LFS custody while broad future rcedit remains LF
   assert.match(rceditAttributes.stdout, /text: unset/u);
 });
 
-test('Electron trust authority binds the exact official v39.8.5 GitHub Release asset identity', () => {
+test('Electron trust authority binds the exact official v43.4.1 GitHub Release asset identity', () => {
   const trust = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'release/electron-distribution-trust.json'), 'utf8'));
   const archive = trust.archives?.['win32-x64'];
   assert.ok(archive);
-  assert.equal(archive.fileName, 'electron-v39.8.5-win32-x64.zip');
+  assert.equal(archive.fileName, 'electron-v43.4.1-win32-x64.zip');
   assert.equal(archive.sha256, EXPECTED_ELECTRON_SHA256);
   assert.equal(archive.sizeBytes, EXPECTED_ELECTRON_SIZE);
   assert.equal(archive.sourceRepository, 'electron/electron');
-  assert.equal(archive.releaseTag, 'v39.8.5');
-  assert.equal(archive.assetId, 382512506);
+  assert.equal(archive.releaseTag, 'v43.4.1');
+  assert.equal(archive.assetId, 520075991);
   assert.equal(archive.downloadUrl, EXPECTED_RELEASE_URL);
 });

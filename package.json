@@ -6,27 +6,27 @@
   "main": "electron/main.js",
   "type": "commonjs",
   "dependencies": {
+    "@langfuse/client": "5.10.0",
+    "@langfuse/otel": "5.10.0",
+    "@langfuse/tracing": "5.10.0",
     "@letta-ai/letta-agent-sdk": "0.6.2",
     "@letta-ai/letta-code": "0.30.5",
+    "@openfeature/flagd-core": "4.0.0",
+    "@openfeature/flagd-provider": "0.16.0",
+    "@openfeature/server-sdk": "1.23.0",
     "@whiskeysockets/baileys": "7.0.0-rc13",
     "crc": "4.3.2",
     "electron-updater": "6.8.9",
     "express": "^4.21.2",
+    "matrix-js-sdk": "42.0.0",
+    "p-queue": "9.3.1",
     "png-chunk-text": "1.0.0",
     "png-chunks-extract": "1.0.0",
+    "proper-lockfile": "4.1.2",
     "qrcode": "^1.5.4",
     "telegram": "^2.26.22",
     "ws": "^8.18.3",
-    "@langfuse/client": "5.10.0",
-    "@langfuse/otel": "5.10.0",
-    "@langfuse/tracing": "5.10.0",
-    "@openfeature/flagd-core": "4.0.0",
-    "@openfeature/flagd-provider": "0.16.0",
-    "@openfeature/server-sdk": "1.23.0",
-    "proper-lockfile": "4.1.2",
-    "p-queue": "9.3.1",
-    "xstate": "5.32.5",
-    "matrix-js-sdk": "42.0.0"
+    "xstate": "5.32.5"
   },
   "engines": {
     "node": ">=22.19.0",
@@ -185,8 +185,22 @@
   },
   "releaseIdentitySource": "release/release-source.json",
   "devDependencies": {
-    "electron": "39.8.5",
+    "electron": "43.4.1",
     "yauzl": "^2.10.0"
   },
-  "license": "AGPL-3.0-only"
+  "license": "AGPL-3.0-only",
+  "overrides": {
+    "electron": {
+      "@electron-internal/extract-zip": "1.0.3",
+      "@electron/get": {
+        ".": "5.0.0",
+        "env-paths": "3.0.0",
+        "undici": "7.25.0"
+      },
+      "@types/node": {
+        ".": "24.10.13",
+        "undici-types": "7.16.0"
+      }
+    }
+  }
 }

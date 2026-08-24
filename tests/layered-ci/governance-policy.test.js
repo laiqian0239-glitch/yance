@@ -121,7 +121,15 @@ test('Electron custody and source-control authority paths escalate to L2', () =>
     '.gitattributes',
     '.gitignore',
     'release/electron-distribution-trust.json',
-    'vendor/electron/electron-v39.8.5-win32-x64.zip'
+    'release/production-dependency-binding.json',
+    'vendor/electron/electron-v39.8.5-win32-x64.zip',
+    'vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz',
+    'vendor/npm/_at_electron__get-5.0.0.tgz',
+    'vendor/npm/_at_types__node-24.10.13.tgz',
+    'vendor/npm/electron-43.4.1.tgz',
+    'vendor/npm/env-paths-3.0.0.tgz',
+    'vendor/npm/undici-7.25.0.tgz',
+    'vendor/npm/undici-types-7.16.0.tgz'
   ]) {
     const result = classifyChangedFiles(risk, [file]);
     assert.equal(result.pass, true, file);
@@ -234,9 +242,17 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'package-lock.json',
     'package.json',
     'release/electron-distribution-trust.json',
+    'release/production-dependency-binding.json',
     'runtime/local-ai/airllm/yance_airllm_worker.py',
     'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch',
-    'vendor/electron/electron-v39.8.5-win32-x64.zip'
+    'vendor/electron/electron-v39.8.5-win32-x64.zip',
+    'vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz',
+    'vendor/npm/_at_electron__get-5.0.0.tgz',
+    'vendor/npm/_at_types__node-24.10.13.tgz',
+    'vendor/npm/electron-43.4.1.tgz',
+    'vendor/npm/env-paths-3.0.0.tgz',
+    'vendor/npm/undici-7.25.0.tgz',
+    'vendor/npm/undici-types-7.16.0.tgz'
   ]);
   assert.deepEqual(risk.l2Prefixes, [
     '.github/',
