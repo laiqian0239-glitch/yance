@@ -70,6 +70,42 @@
       "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
     },
     "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "backend/tests/baileysProfilePictureTokenPatch.test.js",
+        "governance/dependency-install-batch-manifest.json",
+        "governance/dependency-install-policy.json",
+        "package-lock.json",
+        "package.json",
+        "scripts/dependencies/apply-baileys-profile-picture-token-fix.js",
+        "tests/wp0/v21-baileys-reproducible-runtime-p0.test.js",
+        "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz"
+      ],
+      "approvedChangedFileCount": 8,
+      "approvedChangedFileSetSha256": "3761b1bed254c5cf3c5419567fb025d3ad0c78659d7e813bcf0591efdeab576d",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex successor first head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "Stage must fail only on stale WP7 production dependency binding / Adaptive Local LLM package binding receipts caused by the candidate package graph.",
+        "WP-B must fail only on WP_B_XSTATE_PACKAGE_LOCK_DIGEST_MISMATCH caused by the same candidate package-lock bytes.",
+        "Layered CI exact-L2 route must be GREEN through inherited #751 policy and no unrelated failure is permitted."
+      ]
+    },
     "newlyAuthorizedReceiptClosure": {
       "wp7ProductionDependencyBinding": {
         "path": "release/production-dependency-binding.json",
@@ -195,39 +231,39 @@
     "boundaries": [
       {
         "path": "backend/tests/baileysProfilePictureTokenPatch.test.js",
-        "classification": "ROOT_OR_INHERITED_IMPLEMENTATION"
+        "classification": "PRESERVE"
       },
       {
         "path": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
-        "classification": "ROOT_OR_INHERITED_IMPLEMENTATION"
+        "classification": "ROOT_IMPLEMENTATION"
       },
       {
         "path": "governance/dependency-install-batch-manifest.json",
-        "classification": "ROOT_OR_INHERITED_IMPLEMENTATION"
+        "classification": "PRESERVE"
       },
       {
         "path": "governance/dependency-install-policy.json",
-        "classification": "ROOT_OR_INHERITED_IMPLEMENTATION"
+        "classification": "PRESERVE"
       },
       {
         "path": "package-lock.json",
-        "classification": "ROOT_OR_INHERITED_IMPLEMENTATION"
+        "classification": "PRESERVE"
       },
       {
         "path": "package.json",
-        "classification": "ROOT_OR_INHERITED_IMPLEMENTATION"
+        "classification": "PRESERVE"
       },
       {
         "path": "release/architecture-closure-v2/wp-b-governance-package.json",
-        "classification": "ROOT_OR_INHERITED_IMPLEMENTATION"
+        "classification": "ROOT_IMPLEMENTATION"
       },
       {
         "path": "release/production-dependency-binding.json",
-        "classification": "ROOT_OR_INHERITED_IMPLEMENTATION"
+        "classification": "ROOT_IMPLEMENTATION"
       },
       {
         "path": "scripts/dependencies/apply-baileys-profile-picture-token-fix.js",
-        "classification": "ROOT_OR_INHERITED_IMPLEMENTATION"
+        "classification": "PRESERVE"
       },
       {
         "path": "tests/wp0/v21-baileys-reproducible-runtime-p0.test.js",
@@ -235,7 +271,7 @@
       },
       {
         "path": "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz",
-        "classification": "ROOT_OR_INHERITED_IMPLEMENTATION"
+        "classification": "PRESERVE"
       }
     ],
     "negativeProofs": [
