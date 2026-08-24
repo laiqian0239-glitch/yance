@@ -60,6 +60,36 @@
       "No AGENTS.md, program document, product, runtime, test, workflow, dependency, routing policy, release binary or publish mutation."
     ]
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_GOVERNANCE_AND_DOCUMENTATION_ROUTE",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing generic delegated governance authorization seam",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already validates single-file authorization transport, post-merge activation, exact implementation branch/path scope, and ordinary two-parent trusted-main introduction; release-ledger reconciliation requires no new authorization mechanism."
+      },
+      {
+        "name": "Existing repository Markdown documentation route",
+        "source": "shared/release/riskPolicy.js and Stage GOVERNANCE_WP0 documentation contracts",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing route already treats regular UTF-8 Markdown documentation as non-executable while failing closed for executable, mixed, or unauthorized paths, matching this single-ledger-document work package."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a new release-ledger service, database, documentation transport, authorization parser, workflow, or general-purpose release infrastructure.",
+      "Do not use a wildcard docs authority or add paths beyond docs/uat/V21_RELEASE_CLOSURE_LEDGER.md.",
+      "Do not mutate product, runtime, tests, dependencies, routing, release binaries, or publish behavior in this reconciliation work package.",
+      "Do not infer source or packaged release closure from documentation, merge state, or test-file presence without executed exact-head evidence."
+    ]
+  },
   "requiredValidation": {
     "exactHeadCi": [
       "Stage",
