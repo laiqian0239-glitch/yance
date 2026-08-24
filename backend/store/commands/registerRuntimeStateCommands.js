@@ -627,9 +627,9 @@ function registerRuntimeStateCommands(storeManager) {
     nextState.typingState.byContactId[contactId] = {
       ...previous,
       contactId,
-      conversationId: self.conversationId || previous.conversationId || '',
-      accountId: self.accountId || previous.accountId || '',
-      platform: self.platform || previous.platform || '',
+      conversationId: clean(contact.conversationId),
+      accountId: clean(contact.accountId),
+      platform: clean(contact.platform),
       isTyping: contact.isTyping === true,
       lastUpdated: contact.lastUpdated || '',
       expiresAt: contact.expiresAt || '',
