@@ -82,9 +82,57 @@ git ls-files --modified --others --exclude-standard \
 sort -o /tmp/expected-production-paths.txt /tmp/expected-production-paths.txt
 diff -u /tmp/expected-production-paths.txt /tmp/actual-production-paths.txt
 
+node <<'NODE'
+'use strict';
+const fs = require('node:fs');
+const crypto = require('node:crypto');
+const paths = [
+  '.github/workflows/stage-6459-wp0-gates.yml',
+  '.github/workflows/v21-product-experience-shell-p0-final-validation.yml',
+  '.github/workflows/windows-production-release.yml'
+];
+const workflows = {};
+for (const file of paths) {
+  const content = fs.readFileSync(file, 'utf8');
+  workflows[file] = {
+    content,
+    sha256: crypto.createHash('sha256').update(Buffer.from(content, 'utf8')).digest('hex')
+  };
+}
+fs.writeFileSync('.github/tmp-v21-electron-workflow-candidate.json', `${JSON.stringify({ schemaVersion: 1, workflows }, null, 2)}\n`, 'utf8');
+NODE
+
+git restore --source=HEAD -- \
+  .github/workflows/stage-6459-wp0-gates.yml \
+  .github/workflows/v21-product-experience-shell-p0-final-validation.yml \
+  .github/workflows/windows-production-release.yml
+
+cat > /tmp/transport-production-paths.txt <<'EOF'
+governance/dependency-install-batch-manifest.json
+governance/dependency-install-policy.json
+governance/layered-ci/risk-policy.json
+package-lock.json
+package.json
+release/electron-distribution-trust.json
+tests/layered-ci/governance-policy.test.js
+tests/runtime-delivery/electron-archive-tracking-authority.test.js
+tests/runtime-delivery/source-uat-delivery.test.js
+tools/release-closure/RUN_WINDOWS_ASSISTED_PIPELINE.ps1
+tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1
+tools/windows/VERIFY_RUNTIME_IDENTITY.ps1
+tools/wp7/generate-trusted-product-probe-blocker.js
+vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz
+vendor/npm/_at_electron__get-5.0.0.tgz
+vendor/npm/_at_types__node-24.10.13.tgz
+vendor/npm/electron-43.4.1.tgz
+vendor/npm/env-paths-3.0.0.tgz
+vendor/npm/undici-7.25.0.tgz
+vendor/npm/undici-types-7.16.0.tgz
+EOF
+
 git config user.name 'github-actions[bot]'
 git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-git add -- $(cat /tmp/expected-production-paths.txt)
-git diff --cached --quiet && { echo 'Exact production tree already generated.'; exit 0; }
-git commit -m '[staging] Generate exact Electron 43.4.1 production tree'
+git add -- $(cat /tmp/transport-production-paths.txt) .github/tmp-v21-electron-workflow-candidate.json
+git diff --cached --quiet && { echo 'Exact transport tree already generated.'; exit 0; }
+git commit -m '[staging] Transport exact Electron 43.4.1 production blobs'
 git push origin HEAD:"$GITHUB_HEAD_REF"
