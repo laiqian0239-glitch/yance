@@ -43,6 +43,6 @@ if (matches[0].gitBlobSha === OLD_SHA) {
 }
 
 replaceExact(WORKFLOW, 3, 3);
-replaceExact(CONTRACT, 2, 2);
+replaceExact(CONTRACT, 1, 1);
 
 console.log('GREEN: amendment-5 mechanical root fix is exact and idempotent');
