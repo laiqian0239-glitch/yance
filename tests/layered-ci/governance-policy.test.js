@@ -349,3 +349,24 @@ test('Product system settings routing prerequisite identity uses exact L2 withou
   assert.equal(risk.unknownPathFailsClosed, true);
   assert.equal(risk.l3Automatic, false);
 });
+
+test('Baileys rc14 trusted vendor seed requires exact L2 classification without broad-prefix expansion', () => {
+  const file = 'vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz';
+  const result = classifyChangedFiles(risk, [file]);
+  assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+  assert.equal(result.requiredLevel, 'L2', file);
+  assert.equal(result.reasons[0].type, 'EXACT', file);
+
+  for (const prefix of ['vendor/', 'vendor/npm/']) {
+    assert.equal(risk.l2Prefixes.includes(prefix), false, prefix);
+  }
+
+  const adjacent = 'vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc15.tgz';
+  const denied = classifyChangedFiles(risk, [adjacent]);
+  assert.equal(denied.pass, false, JSON.stringify(denied));
+  assert.equal(denied.reasonCode, 'CI_UNKNOWN_PATH');
+  assert.deepEqual(denied.unknownPaths, [adjacent]);
+
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
+});
