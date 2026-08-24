@@ -1,0 +1,10 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const file = 'tests/runtime-delivery/source-uat-delivery.test.js';
+let text = fs.readFileSync(file, 'utf8');
+const needle = "const fs = require('node:fs');\n";
+assert.equal(text.split(needle).length - 1, 1, 'source UAT fs import must be exact');
+assert.equal(text.includes("const { spawnSync } = require('node:child_process');"), false, 'spawnSync import must not already exist');
+text = text.replace(needle, `${needle}const { spawnSync } = require('node:child_process');\n`);
+fs.writeFileSync(file, text, 'utf8');
