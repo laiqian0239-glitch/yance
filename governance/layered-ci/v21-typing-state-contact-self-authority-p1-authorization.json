@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T10:52:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-TYPING-STATE-CONTACT-SELF-AUTHORITY-P1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main V21 Release Closure Lane C audit at main 9e510b66a8fa4e103ca6466bab081fb4a02e8f6c confirms Known Finding KF-P1-05 remains active. UPDATE_SELF_TYPING_STATE writes self-side conversationId/accountId/platform back into the shared top-level typingState.byContactId row aliases, while UPDATE_CONTACT_TYPING_STATE owns those aliases for contact-side conversation identity and selectConversationTypingState uses the top-level conversationId as its fail-closed identity. Existing WhatsApp human-typing tests prove service dispatch but do not cover this Store authority collision, creating a release-critical executed-coverage gap. This work package adds one mandatory WP0 causal contract and repairs the single Store command owner without changing TypingStateService, selectors, workflows, dependencies, persistence, adapter behavior, or release packaging.",
+  "base": {
+    "branch": "main",
+    "commit": "9e510b66a8fa4e103ca6466bab081fb4a02e8f6c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-typing-state-contact-self-authority-p1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-typing-state-contact-self-authority-p1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "98bb149bd51ddcb12eba3d4316c7c3dc83ab9420329e8947fc65d60f62290215",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-typing-state-contact-self-authority-p1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/store/commands/registerRuntimeStateCommands.js",
+      "tests/wp0/v21-typing-state-contact-self-authority.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "90426b56b382204697a8181e92a6c15aa65fc045ed9b8b577b572cac3b5b69af",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-typing-state-contact-self-authority.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "2aeacc3a6b9a6ecaa6b7fefbf268d29fb2bd8424922e945481da382456216f97",
+      "firstHeadTrustedMainGuard": {
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      }
+    },
+    "requiredBehavior": [
+      "Contact-side conversationId/accountId/platform remain the sole owners of the shared top-level typing row identity aliases.",
+      "UPDATE_SELF_TYPING_STATE may update only nested self identity/state and must not overwrite shared top-level contact identity aliases.",
+      "When no contact-side identity exists, a self-only update must not manufacture top-level conversation/account/platform identity.",
+      "UPDATE_CONTACT_TYPING_STATE continues to update the top-level compatibility aliases from the contact side and preserves nested self state.",
+      "selectConversationTypingState continues to fail closed against the contact-owned top-level conversation identity.",
+      "The new regression lives under tests/wp0 so tools/wp0/run-tests.js enumerates it into mandatory Stage PRODUCT_WP0 execution."
+    ],
+    "productionCodeChanged": true,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "auditEvidence": {
+    "releaseLedgerFinding": "KF-P1-05",
+    "freshMain": "9e510b66a8fa4e103ca6466bab081fb4a02e8f6c",
+    "rootOwnerPath": "backend/store/commands/registerRuntimeStateCommands.js",
+    "serviceWriterPath": "backend/services/typingStateService.js",
+    "selectorPath": "backend/store/selectors/typingSelectors.js",
+    "existingRelatedTestPath": "backend/tests/whatsappHumanTypingPolicy.test.js",
+    "coverageDisposition": "NO_OWNER_LEVEL_REGRESSION_ON_CURRENT_MAIN",
+    "sourceGraphDisposition": "SAME_ROOT_GRAPH_EXHAUSTED"
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "backend/store/commands/registerRuntimeStateCommands.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "UPDATE_CONTACT_TYPING_STATE and UPDATE_SELF_TYPING_STATE compose the shared row and currently assign conflicting top-level identity ownership."
+      },
+      {
+        "path": "backend/services/typingStateService.js",
+        "classification": "PRESERVE",
+        "reason": "The service correctly sends self identity inside UPDATE_SELF_TYPING_STATE payloads; it need not own shared Store row alias semantics."
+      },
+      {
+        "path": "backend/store/selectors/typingSelectors.js",
+        "classification": "PRESERVE",
+        "reason": "selectConversationTypingState correctly fails closed using the shared top-level conversation identity once that alias remains contact-owned."
+      },
+      {
+        "path": "backend/tests/whatsappHumanTypingPolicy.test.js",
+        "classification": "NEGATIVE_PROOF",
+        "reason": "Existing tests cover TypingStateService dispatch/lifecycle but do not execute the Store command composition that causes KF-P1-05."
+      },
+      {
+        "path": "tests/wp0/v21-typing-state-contact-self-authority.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "New failure-first mandatory WP0 contract proves the identity collision and closes the executed-test coverage gap."
+      }
+    ],
+    "negativeProofs": [
+      "No TypingStateService behavior change is required.",
+      "No selector behavior change is required.",
+      "No persistence/database migration is involved because typing state is ephemeral.",
+      "No WhatsApp/Telegram/Facebook adapter protocol or physical egress change is required.",
+      "No workflow change is required because tests/wp0 is already enumerated by tools/wp0/run-tests.js and Stage executes npm run test:wp0.",
+      "No broad Store refactor or compatibility-alias removal is authorized."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_STORE_COMMAND_AND_MANDATORY_WP0_TEST_SEAMS",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing StoreManager command composition",
+        "source": "backend/store/commands/registerRuntimeStateCommands.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is an ownership assignment inside an existing ephemeral state command; external state infrastructure would add a duplicate authority rather than repair the owner."
+      },
+      {
+        "name": "Existing mandatory WP0 test runner",
+        "source": "tools/wp0/run-tests.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already enumerates every tests/wp0/*.test.js file and Stage executes npm run test:wp0, so no new test runner or workflow is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second typing-state store or selector authority.",
+      "Do not move identity ownership into TypingStateService.",
+      "Do not remove fail-closed selector behavior.",
+      "Do not add a new workflow or external state library."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-typing-state-contact-self-authority.test.js",
+      "node --test --test-concurrency=1 backend/tests/whatsappHumanTypingPolicy.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
