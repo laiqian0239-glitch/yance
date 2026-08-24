@@ -1588,17 +1588,6 @@
       "source": "npm-official-tarball"
     },
     {
-      "packageName": "json-buffer",
-      "version": "3.0.1",
-      "lockPath": "node_modules/json-buffer",
-      "resolved": "https://registry.npmjs.org/json-buffer/-/json-buffer-3.0.1.tgz",
-      "integrity": "sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==",
-      "archivePath": "vendor/npm/json-buffer-3.0.1.tgz",
-      "archiveSha256": "d1f7464db9713c5f73c919da72de334fce0bcbd76fb08727d36712ef5dfef5a5",
-      "license": "MIT",
-      "source": "npm-official-tarball"
-    },
-    {
       "packageName": "jsonfile",
       "version": "6.2.1",
       "lockPath": "node_modules/electron-updater/node_modules/jsonfile",
