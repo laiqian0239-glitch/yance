@@ -41,7 +41,15 @@
     ],
     "approvedChangedFileCount": 8,
     "approvedChangedFileSetSha256": "3761b1bed254c5cf3c5419567fb025d3ad0c78659d7e813bcf0591efdeab576d",
-    "newDependencyAllowed": false,
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
     "workflowModificationAllowed": false,
     "failureFirstCommit": {
       "freshCausalRedRequired": true,
@@ -143,7 +151,7 @@
       }
     ],
     "negativeProofs": [
-      "No new dependency is introduced; this is an in-place Baileys rc13 to rc14 upgrade.",
+      "No new package name is introduced; newDependencyAllowed is enabled only because the delegated-governance schema requires it for exact package.json/package-lock.json identity modification authority during the in-place rc13 to rc14 upgrade.",
       "Upstream rc13 and rc14 production dependency ranges are identical, so unrelated transitive lock churn is not authorized.",
       "No workflow, database, adapter, Store, Electron, Facebook, Telegram, Persona, AI gateway, or product routing change is required.",
       "No dependency verifier weakening or general-purpose supply-chain framework change is authorized.",
