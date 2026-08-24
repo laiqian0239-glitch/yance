@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-TRUSTED-SEED-SENTINEL-COUNT-261-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen prerequisite implementation PR #763 reached exact production head 362760756c1edc185b82c0754425a3565e596af0 and fresh Stage run 32750463109 proved one additional same-root contract blocker outside its four-path authorization: tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js still statically requires active trusted seed count 262 after the authorized json-buffer trust retirement moves active authority to 261. Under the project out-of-scope rule, #763 is frozen as evidence and this independent prerequisite migrates only that stale sentinel count contract before the json-buffer retirement work restarts from fresh trusted main.",
+  "base": {
+    "branch": "main",
+    "commit": "b873cd957aa331d52f9baefb7a47bf22e27bd12c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "predecessorEvidence": {
+    "frozenPr": 763,
+    "frozenHead": "362760756c1edc185b82c0754425a3565e596af0",
+    "freshExactHeadStageRun": 32750463109,
+    "freshExactHeadStageJob": 97506149925,
+    "freshExactHeadStageConclusion": "failure",
+    "root": "TRUSTED_SEED_SENTINEL_STATIC_COUNT_STALE_AFTER_JSON_BUFFER_RETIREMENT",
+    "observedFacts": {
+      "failingTest": "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js",
+      "actualActiveSeedCount": 261,
+      "staleExpectedSeedCount": 262,
+      "wp0TotalTests": 666,
+      "wp0Pass": 665,
+      "wp0Fail": 1,
+      "unknownBlockers": 0
+    }
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-trusted-seed-sentinel-count-261-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-trusted-seed-sentinel-count-261-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "cb4428a0056edb1fd9f4858b2bc64a0c432cc964f8962859cb97241ea4b8c827",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-trusted-seed-sentinel-count-261-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "1b9a5c6441d33f6c11c962074b386d4458c5d69e8af7b14162a77f3bc323f13e",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "productionCodeChanged": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "dependencyTrustPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "requiredBehavior": [
+      "Treat PR #763 head 362760756c1edc185b82c0754425a3565e596af0 and Stage run 32750463109 as frozen fresh causal RED evidence only; do not amend, rebase, force-push, cherry-pick, or otherwise rewrite that branch.",
+      "Change only the stale static active trusted seed count assertion in tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js from 262 to 261.",
+      "Preserve the sentinel identity extraction and retired-sentinel assertion semantics unchanged; this prerequisite must not weaken sentinel membership validation.",
+      "Do not modify dependency-install policy, batch manifest, package.json, package-lock.json, vendor archives, runtime code, workflows, routing policy, or any other test.",
+      "After this prerequisite ordinary-merges, restart the frozen json-buffer retirement implementation from then-current trusted main under fresh successor authorization; do not forward-reconcile or mutate #763."
+    ]
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Fresh exact-head Stage proved this stale static count is the only remaining WP0 failure after active trust moves to 261."
+      },
+      {
+        "path": "governance/dependency-install-policy.json",
+        "classification": "PRESERVE",
+        "reason": "This prerequisite does not change trusted dependency authority; it only migrates the stale sentinel regression contract."
+      },
+      {
+        "path": "backend/tests/cleanInstallAuthority.test.js",
+        "classification": "PRESERVE",
+        "reason": "The predecessor #763 candidate already proves the active count transition; this prerequisite does not alter that frozen implementation."
+      }
+    ],
+    "negativeProofs": [
+      "No dependency authority, package manifest, lockfile, vendor archive, workflow, routing policy, runtime code, or unrelated test changes are permitted.",
+      "No sentinel identity membership assertion is weakened or removed.",
+      "Frozen PR #763 remains evidence-only and is not repaired for PR list cleanliness."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
