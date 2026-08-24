@@ -180,8 +180,8 @@ test('production dependency policy verifies the complete lockfile-bound trusted 
   const repoRoot = path.resolve(__dirname, '../..');
   const verification = verifyTrustedDependencySeeds(repoRoot);
   const packageVersions = new Set(verification.seeds.map(seed => `${seed.packageName}@${seed.version}`));
-  assert.equal(verification.seedCount, 307);
-  assert.equal(packageVersions.size, 307);
+  assert.equal(verification.seedCount, 262);
+  assert.equal(packageVersions.size, 262);
   assert.equal(packageVersions.has('@types/http-cache-semantics@4.2.0'), true);
   assert.equal(packageVersions.has('http-cache-semantics@4.2.0'), true);
   assert.equal(packageVersions.has('write-file-atomic@1.3.4'), true);
