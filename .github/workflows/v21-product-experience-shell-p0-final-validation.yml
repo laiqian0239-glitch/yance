@@ -22,7 +22,8 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2' ||
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0-amendment-2' ||
-        github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1'
+        github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1' ||
+        github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-1'
       )
     runs-on: windows-latest
     env:
@@ -129,7 +130,8 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2' ||
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0-amendment-2' ||
-        github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1'
+        github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1' ||
+        github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-1'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -181,20 +183,20 @@ jobs:
           $trustPath = 'release/electron-distribution-trust.json'
           $trust = Get-Content -LiteralPath $trustPath -Raw | ConvertFrom-Json
           $archive = $trust.archives.'win32-x64'
-          $expectedUrl = 'https://github.com/electron/electron/releases/download/v39.8.5/electron-v39.8.5-win32-x64.zip'
-          if ([string]$trust.electronVersion -ne '39.8.5') { throw "unexpected Electron trust version: $($trust.electronVersion)" }
-          if (-not $archive -or [string]$archive.fileName -ne 'electron-v39.8.5-win32-x64.zip') { throw "missing exact win32-x64 Electron Release trust record: $trustPath" }
+          $expectedUrl = 'https://github.com/electron/electron/releases/download/v43.4.1/electron-v43.4.1-win32-x64.zip'
+          if ([string]$trust.electronVersion -ne '43.4.1') { throw "unexpected Electron trust version: $($trust.electronVersion)" }
+          if (-not $archive -or [string]$archive.fileName -ne 'electron-v43.4.1-win32-x64.zip') { throw "missing exact win32-x64 Electron Release trust record: $trustPath" }
           if ([string]$archive.sourceRepository -ne 'electron/electron') { throw "unexpected Electron source repository: $($archive.sourceRepository)" }
-          if ([string]$archive.releaseTag -ne 'v39.8.5') { throw "unexpected Electron release tag: $($archive.releaseTag)" }
-          if ([int64]$archive.assetId -ne 382512506) { throw "unexpected Electron release asset id: $($archive.assetId)" }
+          if ([string]$archive.releaseTag -ne 'v43.4.1') { throw "unexpected Electron release tag: $($archive.releaseTag)" }
+          if ([int64]$archive.assetId -ne 520075991) { throw "unexpected Electron release asset id: $($archive.assetId)" }
           if ([string]$archive.downloadUrl -ne $expectedUrl) { throw "unexpected Electron Release URL: $($archive.downloadUrl)" }
           if ([System.IO.Path]::GetFileName([string]$archive.fileName) -ne [string]$archive.fileName) { throw 'Electron trust fileName must be a basename' }
 
           $expectedSha256 = ([string]$archive.sha256).ToLowerInvariant()
-          if ($expectedSha256 -ne 'd75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34') { throw "unexpected Electron trust SHA-256: $expectedSha256" }
+          if ($expectedSha256 -ne 'c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a') { throw "unexpected Electron trust SHA-256: $expectedSha256" }
           if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Electron trust SHA-256 is malformed' }
           $expectedSize = [int64]$archive.sizeBytes
-          if ($expectedSize -ne 136644393) { throw "unexpected Electron Release asset size: $expectedSize" }
+          if ($expectedSize -ne 150154788) { throw "unexpected Electron Release asset size: $expectedSize" }
 
           $archivePath = Join-Path $env:RUNNER_TEMP ([string]$archive.fileName)
           Remove-Item -LiteralPath $archivePath -Force -ErrorAction SilentlyContinue
@@ -614,7 +616,8 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2' ||
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0-amendment-2' ||
-        github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1'
+        github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1' ||
+        github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-1'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120

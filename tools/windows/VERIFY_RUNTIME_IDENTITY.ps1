@@ -6,7 +6,7 @@ param(
   [string]$ExpectedTree = '',
 
   [string]$ExpectedProductVersion = '29.2.7',
-  [string]$ExpectedElectron = '39.8.5',
+  [string]$ExpectedElectron = '43.4.1',
 
   [string]$ExpectedExecutablePath = '',
 
