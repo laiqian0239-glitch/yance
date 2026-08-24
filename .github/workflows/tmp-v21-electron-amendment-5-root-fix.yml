@@ -21,7 +21,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
@@ -40,25 +40,49 @@ jobs:
             'tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js'
           ].sort();
           const actual = execFileSync('git', ['diff', '--name-only'], {encoding:'utf8'}).trim().split(/\r?\n/u).filter(Boolean).sort();
-          if (actual.length === 0) {
-            console.log('GREEN: production patch already materialized on temp branch');
-          } else if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+          if (JSON.stringify(actual) !== JSON.stringify(expected)) {
             throw new Error(`unexpected production diff: ${JSON.stringify(actual)}`);
           }
           NODE
           node --test backend/tests/architectureClosureV2/wpB/governancePackagingContract.test.js
           node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js
-      - name: Commit generated production blobs once
+      - name: Create verified content-addressed Git blobs without updating refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          if test -n "$(git diff --name-only)"; then
-            git config user.name 'yance-temp-factory'
-            git config user.email 'yance-temp-factory@users.noreply.github.com'
-            git add -- \
-              .github/workflows/v21-product-experience-shell-p0-final-validation.yml \
-              release/architecture-closure-v2/wp-b-governance-package.json \
-              tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js
-            git diff --cached --name-only
-            git commit -m '[TEMP][DO NOT MERGE] Materialize amendment-5 exact production blobs'
-            git push origin HEAD:${{ github.event.pull_request.head.ref }}
-          fi
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const paths = [
+            '.github/workflows/v21-product-experience-shell-p0-final-validation.yml',
+            'release/architecture-closure-v2/wp-b-governance-package.json',
+            'tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js'
+          ];
+          async function main() {
+            for (const path of paths) {
+              const bytes = fs.readFileSync(path);
+              const body = JSON.stringify({content: bytes.toString('base64'), encoding: 'base64'});
+              const response = await fetch(`https://api.github.com/repos/${process.env.GH_REPOSITORY}/git/blobs`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${process.env.GH_TOKEN}`,
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                  'Content-Type': 'application/json'
+                },
+                body
+              });
+              const text = await response.text();
+              if (!response.ok) throw new Error(`blob create failed for ${path}: HTTP ${response.status} ${text}`);
+              const parsed = JSON.parse(text);
+              if (!/^[a-f0-9]{40}$/.test(parsed.sha || '')) throw new Error(`invalid blob sha for ${path}: ${text}`);
+              const gitHeader = Buffer.from(`blob ${bytes.length}\0`, 'utf8');
+              const expectedSha = crypto.createHash('sha1').update(gitHeader).update(bytes).digest('hex');
+              if (parsed.sha !== expectedSha) throw new Error(`Git blob identity mismatch for ${path}: expected ${expectedSha}, got ${parsed.sha}`);
+              console.log(`VERIFIED_BLOB ${path} ${parsed.sha}`);
+            }
+          }
+          main().catch((error) => { console.error(error); process.exit(1); });
+          NODE
