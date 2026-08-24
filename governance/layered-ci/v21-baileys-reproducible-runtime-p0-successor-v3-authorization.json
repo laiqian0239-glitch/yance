@@ -1,0 +1,308 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T15:28:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BAILEYS-REPRODUCIBLE-RUNTIME-P0-SUCCESSOR-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Freeze PR #745 at its latest clean tests-only diagnostic RED head 269fc0c428b731da5ba1f34b3f26bfdead5e2371, consume the independently ordinary-merged trusted-seed sentinel prerequisite #747 at main 99f94b273b95bcdadff608dbac8e81b75b46640a, and continue KF-P0-07 only through canonical forwardContinuation. Preserve the corrected upstream rc14 return [picture] diagnostic blob and the original eight-path Baileys production scope. Production remains forbidden until the successor first head re-executes a fresh clean three-failure causal RED with unknownBlockers=0.",
+  "base": {
+    "branch": "main",
+    "commit": "99f94b273b95bcdadff608dbac8e81b75b46640a",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "99f94b273b95bcdadff608dbac8e81b75b46640a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-baileys-reproducible-runtime-p0-successor-v2-authorization.json",
+    "implementationBranch": "fix/v21-baileys-reproducible-runtime-p0-successor-v2",
+    "reason": "PR #745 is frozen at tests-only diagnostic head 269fc0c428b731da5ba1f34b3f26bfdead5e2371 after its local production preflight exposed an unrelated stale trusted-seed sentinel contract. That prerequisite is now closed by #746/#747 on trusted main; do not mutate or rewrite #745."
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 744,
+    "authorizationMerge": "5b78c545341fcba9b359477aa3eb03df11a39c66",
+    "implementationPullRequest": 745,
+    "branch": "fix/v21-baileys-reproducible-runtime-p0-successor-v2",
+    "frozenDiagnosticHead": "269fc0c428b731da5ba1f34b3f26bfdead5e2371",
+    "frozenDiagnosticTestBlob": "37fb7e504f1abc84c842589cc7bec33e4ab5cfef",
+    "freshCausalRedStageRun": 32703204602,
+    "freshCausalRedWp0Job": 97358839895,
+    "freshCausalRedConclusion": "failure",
+    "freshCausalRedWp0Tests": 658,
+    "freshCausalRedWp0Pass": 655,
+    "freshCausalRedWp0Fail": 3,
+    "expectedBaileysFailures": 3,
+    "closureMatrixUnknownBlockers": 0,
+    "diagnosticCorrection": "The frozen test already asserts the actual upstream rc14 executable shape return [picture]."
+  },
+  "prerequisiteEvidence": {
+    "authorizationPullRequest": 746,
+    "authorizationHead": "0bd55715d390bc2efc89a85f32b6db2e0b4cfae7",
+    "authorizationOrdinaryMerge": "cd47ac72a52c201ea7c7b7a672b09223fecbae60",
+    "implementationPullRequest": 747,
+    "implementationExactHead": "149cba6cfa0882bd9d305e4ed6fe9b868db78f87",
+    "implementationOrdinaryMerge": "99f94b273b95bcdadff608dbac8e81b75b46640a",
+    "stageRun": 32705930157,
+    "layeredRun": 32705930378,
+    "acv2Run": 32705930138,
+    "wpAMainPostMergeRun": 32705930121,
+    "modelBrainRun": 32705930148,
+    "productFinalRun": 32705930089,
+    "productFinalDisposition": "SKIPPED_BY_BASE_OWNED_ROUTE_NOT_GREEN_EVIDENCE",
+    "unknownBlockers": 0
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-baileys-reproducible-runtime-p0-successor-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-baileys-reproducible-runtime-p0-successor-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7e17ad9817200e1a24c0c7997051171d4eb7085ac24332d2ddd0e58b0f370bfb",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-baileys-reproducible-runtime-p0-successor-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "269fc0c428b731da5ba1f34b3f26bfdead5e2371"
+    },
+    "allowedChangedPaths": [
+      "backend/tests/baileysProfilePictureTokenPatch.test.js",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "package-lock.json",
+      "package.json",
+      "scripts/dependencies/apply-baileys-profile-picture-token-fix.js",
+      "tests/wp0/v21-baileys-reproducible-runtime-p0.test.js",
+      "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "3761b1bed254c5cf3c5419567fb025d3ad0c78659d7e813bcf0591efdeab576d",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-baileys-reproducible-runtime-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "5acec33187205968465de2d55c1c7221996064a44a0c4ec40abbf6e5e3ac32c5",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "Root package authority still pins @whiskeysockets/baileys 7.0.0-rc13 and declares the postinstall mutation hook.",
+        "Active trusted dependency seed authority still binds the rc13 archive rather than the official rc14 runtime identity.",
+        "The current source still requires scripts/dependencies/apply-baileys-profile-picture-token-fix.js instead of consuming upstream-fixed runtime bytes directly."
+      ]
+    },
+    "diagnosticWindow": {
+      "additionalTestsOnlyCommitsAllowed": false,
+      "preservedCorrectedDiagnosticBlob": "37fb7e504f1abc84c842589cc7bec33e4ab5cfef",
+      "freshFirstHeadCausalRedRequired": true,
+      "productionForbiddenUntilWindowClosed": true,
+      "windowClosesWhenExpectedThreeFailuresOnlyAndUnknownBlockersZero": true
+    },
+    "requiredBehavior": [
+      "Pin @whiskeysockets/baileys exactly to 7.0.0-rc14 in package.json and package-lock.json.",
+      "The installed Baileys runtime must already implement nested profile-picture tctoken content and timestamp-bearing tctoken nodes before any Yance mutation; no root postinstall patch is permitted.",
+      "Replace the active trusted Baileys seed identity in dependency-install policy and batch manifest with the official rc14 npm tarball, binding lock tuple, npm integrity, archive SHA256, package name, and version.",
+      "Add vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz as the trusted official npm seed and preserve the historical rc13 archive as non-active evidence.",
+      "Delete scripts/dependencies/apply-baileys-profile-picture-token-fix.js and migrate backend/tests/baileysProfilePictureTokenPatch.test.js from mutation-mechanics coverage to upstream-runtime semantic coverage.",
+      "The root package-lock entry must no longer claim a root install script after the mutation hook is retired.",
+      "The mandatory WP0 regression must prove exact rc14 package authority, absence of the postinstall mutation path, trusted seed binding, and installed rc14 tctoken semantics.",
+      "Because rc13 and rc14 declare identical production dependency ranges, package-lock generation must not introduce unrelated transitive package identity changes. Any such change is a separate prerequisite blocker."
+    ],
+    "productionCodeChanged": true,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": true,
+    "lockfileModificationAllowed": true,
+    "dependencyTrustPolicyModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "269fc0c428b731da5ba1f34b3f26bfdead5e2371",
+    "mustPreserveExactFrozenFocusedTestBlob": "37fb7e504f1abc84c842589cc7bec33e4ab5cfef",
+    "preserveFrozenRedTestBlobInFirstSuccessorHead": true,
+    "freshCleanRedMustBeReexecuted": true,
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "package.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Pin rc14 and retire the root postinstall mutation hook."
+      },
+      {
+        "path": "package-lock.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Bind official rc14 identity without unrelated transitive churn and remove obsolete root hasInstallScript authority."
+      },
+      {
+        "path": "governance/dependency-install-policy.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Move the active trusted Baileys seed identity from rc13 to rc14."
+      },
+      {
+        "path": "governance/dependency-install-batch-manifest.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Materialize the same exact rc14 trusted seed."
+      },
+      {
+        "path": "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Official npm archive becomes the immutable trusted runtime seed."
+      },
+      {
+        "path": "scripts/dependencies/apply-baileys-profile-picture-token-fix.js",
+        "classification": "RETIRE",
+        "reason": "The post-install source mutation is the reproducibility defect and is redundant in rc14."
+      },
+      {
+        "path": "backend/tests/baileysProfilePictureTokenPatch.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Migrate the legacy mutation regression to direct upstream-runtime semantics."
+      },
+      {
+        "path": "tests/wp0/v21-baileys-reproducible-runtime-p0.test.js",
+        "classification": "PRESERVE",
+        "reason": "Preserve the corrected frozen failure-first contract from #745 exactly in the successor first head."
+      },
+      {
+        "path": "backend/tests/cleanInstallAuthority.test.js",
+        "classification": "PREREQUISITE_CLOSED",
+        "reason": "The stale trusted-seed sentinel contract was repaired independently by #746/#747 and is inherited only from trusted main."
+      }
+    ],
+    "negativeProofs": [
+      "No change to backend/tests/cleanInstallAuthority.test.js in this successor.",
+      "No workflow, database, adapter, Store, Electron, Facebook, Telegram, Persona, AI gateway, or product-routing change.",
+      "No dependency-verifier weakening or new general-purpose supply-chain framework.",
+      "No unrelated transitive lock identity churn.",
+      "No mutation of PR #745, PR #741, or the historical rc13 vendor archive."
+    ]
+  },
+  "requiredValidation": {
+    "failureFirst": "Create the canonical successor first head with exact ordered parents [authorization merge, 269fc0c428b731da5ba1f34b3f26bfdead5e2371], preserve test blob 37fb7e504f1abc84c842589cc7bec33e4ab5cfef, and obtain a fresh Stage RED with exactly the three expected Baileys failures and no unrelated blocker.",
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-baileys-reproducible-runtime-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/baileysProfilePictureTokenPatch.test.js",
+      "node --test --test-concurrency=1 backend/tests/cleanInstallAuthority.test.js",
+      "node --test --test-concurrency=1 tests/runtime-delivery/source-uat-delivery.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "ossFit": {
+    "decision": "UPGRADE_TO_UPSTREAM_FIXED_OFFICIAL_RELEASE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "@whiskeysockets/baileys",
+        "version": "7.0.0-rc14",
+        "source": "WhiskeySockets/Baileys tag v7.0.0-rc14 and npm official release",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The official rc14 release contains the required trusted-contact-token semantics and keeps the rc13 production dependency ranges."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire postinstall mutation of node_modules.",
+      "Do not create a private patched Baileys tarball.",
+      "Do not broaden this batch into unrelated dependency upgrades or verifier redesign."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true,
+    "explicitOwnerAuthorizationRequired": true
+  },
+  "candidatePreservation": {
+    "predecessorPullRequest745MustRemainFrozen": true,
+    "predecessorHeadMustRemain": "269fc0c428b731da5ba1f34b3f26bfdead5e2371",
+    "predecessorDiagnosticBlobMustRemain": "37fb7e504f1abc84c842589cc7bec33e4ab5cfef",
+    "originalPullRequest741MustRemainFrozen": true,
+    "historicalWindowsUatPullRequest538MustRemainUntouched": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
