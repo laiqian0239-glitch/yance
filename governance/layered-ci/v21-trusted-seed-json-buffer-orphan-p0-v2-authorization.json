@@ -142,5 +142,61 @@
       "Historical json-buffer tarball evidence remains preserved.",
       "Frozen PR #761 and the unused polluted v1 authorization transport remain evidence-only and are not repaired for list cleanliness."
     ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_TEST_AUTHORITY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "verifyTrustedDependencySeeds + trusted seed policy exact-lock seam",
+        "source": "existing Yance repository trusted dependency verifier and exact-count regressions",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The prerequisite removes one stale active trusted seed identity using the repository's existing policy and fail-closed verifier; no new dependency infrastructure is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not fabricate json-buffer back into canonical npm lock authority.",
+      "Do not weaken verifyTrustedDependencySeeds or derive the expected seed count dynamically."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-trusted-seed-count-contract-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/cleanInstallAuthority.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
   }
 }
