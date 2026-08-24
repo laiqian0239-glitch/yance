@@ -1,0 +1,196 @@
+name: TEMP observable V21 Electron 43.4.1 amendment-2 root-fix factory
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-root-fixes:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'staging/v21-electron-43.4.1-seed-factory'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact staging execution head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up exact Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22.23.1'
+          package-manager-cache: false
+
+      - name: Verify inherited production identities and canonical binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object package.json)" = "e54002c894cb42ffc93ad94b1341f87b53e60728"
+          test "$(git hash-object package-lock.json)" = "d485f45673eeb4a7293a389ffcd28d3ff7c0b56d"
+          test "$(git hash-object release/production-dependency-binding.json)" = "b79d186317070f068286ab0131ab397082697f12"
+
+      - name: Generate exact amendment-2 owner fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          'use strict';
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          function read(file) { return fs.readFileSync(file, 'utf8'); }
+          function write(file, source) { fs.writeFileSync(file, source); }
+          function replaceCount(source, before, after, expected, label) {
+            const actual = source.split(before).length - 1;
+            if (actual !== expected) throw new Error(`${label}: expected ${expected} replacements, found ${actual}`);
+            return source.split(before).join(after);
+          }
+
+          const successor = 'fix/v21-electron-supported-runtime-p0-production-amendment-2';
+          const predecessor = 'fix/v21-electron-supported-runtime-p0-production-amendment-1';
+
+          // Product Final: replace the frozen predecessor with only the exact active successor in all three jobs.
+          {
+            const file = '.github/workflows/v21-product-experience-shell-p0-final-validation.yml';
+            let source = read(file);
+            source = replaceCount(source, `github.event.pull_request.head.ref == '${predecessor}'`, `github.event.pull_request.head.ref == '${successor}'`, 3, 'Product Final exact branch admission');
+            write(file, source);
+          }
+
+          // Permanent Product Final contract: freeze the exact successor and exact static allowlist.
+          {
+            const file = 'tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js';
+            let source = read(file);
+            const assertAnchor = "  assert.match(source, /github\\.event\\.pull_request\\.head\\.ref\\s*==\\s*'product\\/v21-product-system-settings-reachability-p1-successor-v2-amendment-1'/u);";
+            const successorAssert = "  assert.match(source, /github\\.event\\.pull_request\\.head\\.ref\\s*==\\s*'fix\\/v21-electron-supported-runtime-p0-production-amendment-2'/u);";
+            source = replaceCount(source, assertAnchor, `${assertAnchor}\n${successorAssert}`, 1, 'Product Final permanent successor assertion');
+            const listAnchor = "    'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1',\n    'fix/v21-product-experience-windows-uat-startup-p0',";
+            const listReplacement = "    'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1',\n    'fix/v21-electron-supported-runtime-p0-production-amendment-2',\n    'fix/v21-product-experience-windows-uat-startup-p0',";
+            source = replaceCount(source, listAnchor, listReplacement, 1, 'Product Final exact allowlist');
+            write(file, source);
+          }
+
+          const seedPaths = [
+            'vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz',
+            'vendor/npm/_at_electron__get-5.0.0.tgz',
+            'vendor/npm/_at_types__node-24.10.13.tgz',
+            'vendor/npm/env-paths-3.0.0.tgz',
+            'vendor/npm/undici-7.25.0.tgz',
+            'vendor/npm/undici-types-7.16.0.tgz'
+          ];
+
+          // Layered CI risk authority: exact L2 only, no vendor/npm prefix.
+          {
+            const file = 'governance/layered-ci/risk-policy.json';
+            const policy = JSON.parse(read(file));
+            for (const seed of seedPaths) {
+              if (!policy.l2ExactPaths.includes(seed)) policy.l2ExactPaths.push(seed);
+            }
+            policy.l2ExactPaths.sort();
+            if (policy.l2Prefixes.includes('vendor/') || policy.l2Prefixes.includes('vendor/npm/')) throw new Error('broad vendor risk prefix is forbidden');
+            write(file, `${JSON.stringify(policy, null, 2)}\n`);
+          }
+
+          // Layered CI permanent tests: add the same six exact seed identities in both frozen lists.
+          {
+            const file = 'tests/layered-ci/governance-policy.test.js';
+            let source = read(file);
+            const before = "    'vendor/electron/electron-v39.8.5-win32-x64.zip',\n    'vendor/npm/electron-43.4.1.tgz'";
+            const after = [
+              "    'vendor/electron/electron-v39.8.5-win32-x64.zip',",
+              "    'vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz',",
+              "    'vendor/npm/_at_electron__get-5.0.0.tgz',",
+              "    'vendor/npm/_at_types__node-24.10.13.tgz',",
+              "    'vendor/npm/electron-43.4.1.tgz',",
+              "    'vendor/npm/env-paths-3.0.0.tgz',",
+              "    'vendor/npm/undici-7.25.0.tgz',",
+              "    'vendor/npm/undici-types-7.16.0.tgz'"
+            ].join('\n');
+            source = replaceCount(source, before, after, 2, 'Layered exact Electron seed lists');
+            write(file, source);
+          }
+
+          // WP-B XState authority: rebind repository package facts only; preserve all XState artifact/evidence facts.
+          {
+            const file = 'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json';
+            const lock = JSON.parse(read(file));
+            const binding = lock.repositoryBinding;
+            binding.packageManifestBlobSha = 'e54002c894cb42ffc93ad94b1341f87b53e60728';
+            binding.packageLockBlobSha = 'd485f45673eeb4a7293a389ffcd28d3ff7c0b56d';
+            binding.packageLockSha256 = '62fedf96db695b1f8da9b7966627f6100939053a95bf4ed8324d814328117198';
+            binding.expectedPackageLockBlobSha = 'd485f45673eeb4a7293a389ffcd28d3ff7c0b56d';
+            binding.expectedPackageLockSha256 = '62fedf96db695b1f8da9b7966627f6100939053a95bf4ed8324d814328117198';
+            binding.repairedAtHead = 'b0d9bb68fe1273ffbcc44f9bc6040ddb7a7b5267';
+            binding.differencePolicy = 'ELECTRON_43_4_1_REPOSITORY_REBIND_PRESERVED_XSTATE_5_32_5_ARTIFACT';
+            write(file, `${JSON.stringify(lock, null, 2)}\n`);
+          }
+
+          // Adaptive-local artifact guard: preserve forbidden binary classes; exempt only exact cryptographically-bound official npm seeds.
+          {
+            const file = 'tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js';
+            let source = read(file);
+            source = replaceCount(source, "const fs = require('node:fs');\nconst path = require('node:path');", "const fs = require('node:fs');\nconst crypto = require('node:crypto');\nconst path = require('node:path');", 1, 'adaptive crypto import');
+            const marker = "test('implementation diff does not contain committed model/runtime binaries or oversized runtime archives', () => {";
+            const start = source.indexOf(marker);
+            if (start < 0) throw new Error('adaptive artifact guard marker missing');
+            const replacement = `test('implementation diff does not contain committed model/runtime binaries or oversized runtime archives', () => {\n  let changed = [];\n  try {\n    changed = execFileSync('git', ['diff', '--name-only', \`\${AUTHORIZATION_MERGE}...HEAD\`], { cwd: ROOT, encoding: 'utf8' }).split(/\\r?\\n/u).filter(Boolean);\n  } catch (error) {\n    assert.fail(\`git diff against authorization merge must be available: \${error.message}\`);\n  }\n\n  const forbidden = /\\.(?:gguf|ggml|safetensors|bin|onnx|pt|pth|zip|7z|tar|gz|xz|dll|exe|so|dylib)$/iu;\n  assert.deepEqual(changed.filter(file => forbidden.test(file)), []);\n\n  const dependencyPolicy = json('governance/dependency-install-policy.json');\n  assert.equal(Array.isArray(dependencyPolicy.trustedCacheSeeds), true);\n  const trustedSeeds = new Map(dependencyPolicy.trustedCacheSeeds.map(seed => [seed.archivePath, seed]));\n  assert.equal(trustedSeeds.size, dependencyPolicy.trustedCacheSeeds.length, 'trusted cache seed archive paths must be unique');\n\n  for (const file of changed) {\n    const absolute = path.join(ROOT, file);\n    if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) continue;\n    if (fs.statSync(absolute).size < 1024 * 1024) continue;\n\n    const seed = trustedSeeds.get(file);\n    assert.ok(seed, \`\${file} unexpectedly carries a large artifact without exact trusted cache-seed authority\`);\n    assert.equal(seed.archivePath, file);\n    assert.equal(seed.source, 'npm-official-tarball', \`\${file} must use official npm tarball custody\`);\n    assert.match(seed.resolved, /^https:\\/\\/registry\\.npmjs\\.org\\/.+\\.tgz$/u, \`\${file} must bind an official npm registry tarball\`);\n    assert.match(seed.integrity, /^sha512-[A-Za-z0-9+/]+={0,2}$/u, \`\${file} must bind npm SHA-512 integrity\`);\n    assert.match(seed.archiveSha256, /^[0-9a-f]{64}$/u, \`\${file} must bind archive SHA-256\`);\n    const actualSha256 = crypto.createHash('sha256').update(fs.readFileSync(absolute)).digest('hex');\n    assert.equal(actualSha256, seed.archiveSha256, \`\${file} physical bytes must match trusted cache-seed SHA-256\`);\n  }\n});\n`;
+            source = source.slice(0, start) + replacement;
+            write(file, source);
+          }
+          NODE
+
+      - name: Require exact six textual owner-path mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=$(cat <<'EOF'
+          .github/workflows/v21-product-experience-shell-p0-final-validation.yml
+          governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json
+          governance/layered-ci/risk-policy.json
+          tests/layered-ci/governance-policy.test.js
+          tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js
+          tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js
+          EOF
+          )
+          actual="$(git diff --name-only | LC_ALL=C sort)"
+          expected="$(printf '%s\n' "$expected" | sed 's/^          //' | sed '/^$/d' | LC_ALL=C sort)"
+          if [ "$actual" != "$expected" ]; then
+            echo 'Unexpected root-fix mutation set' >&2
+            printf 'EXPECTED:\n%s\nACTUAL:\n%s\n' "$expected" "$actual" >&2
+            exit 1
+          fi
+
+      - name: Run focused causal closure tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/layered-ci/governance-policy.test.js
+          node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js
+          node --test backend/tests/architectureClosureV2/wpB/xstateAdoptionCurrentStatus.test.js
+          node tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
+          node --test tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js
+          node --test tests/wp0/v21-production-dependency-binding-lifecycle.test.js
+          node --test tests/wp0/v21-electron-supported-runtime-p0.test.js
+          node --test tests/runtime-delivery/electron-archive-tracking-authority.test.js tests/runtime-delivery/source-uat-delivery.test.js
+
+      - name: Commit only verified production owner blobs to staging transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Yance Temporary Amendment-2 Factory'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -- \
+            .github/workflows/v21-product-experience-shell-p0-final-validation.yml \
+            governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json \
+            governance/layered-ci/risk-policy.json \
+            tests/layered-ci/governance-policy.test.js \
+            tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js \
+            tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js
+          git commit -m '[TEMP] Generate verified amendment-2 root-fix blobs'
+          git push origin HEAD:refs/heads/staging/v21-electron-43.4.1-seed-factory
