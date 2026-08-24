@@ -75,7 +75,10 @@ vendor/npm/env-paths-3.0.0.tgz
 vendor/npm/undici-7.25.0.tgz
 vendor/npm/undici-types-7.16.0.tgz
 EOF
-git diff --name-only | sort > /tmp/actual-production-paths.txt
+git ls-files --modified --others --exclude-standard \
+  | grep -v '^\.github/tmp-v21-electron-' \
+  | grep -v '^\.github/workflows/tmp-v21-electron-' \
+  | sort > /tmp/actual-production-paths.txt
 sort -o /tmp/expected-production-paths.txt /tmp/expected-production-paths.txt
 diff -u /tmp/expected-production-paths.txt /tmp/actual-production-paths.txt
 
