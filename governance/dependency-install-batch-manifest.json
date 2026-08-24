@@ -3,8 +3,8 @@
   "documentType": "YANCE_GATE0_TRUSTED_DEPENDENCY_BATCH_MANIFEST",
   "mode": "FAIL_CLOSED",
   "existingSeedCount": 6,
-  "batchSeedCount": 250,
-  "totalSeedCount": 256,
+  "batchSeedCount": 249,
+  "totalSeedCount": 255,
   "sourceArchives": [
     "/mnt/data/新建文件夹(1).zip",
     "/mnt/data/downloaded-tarballs(1).zip",
@@ -2987,26 +2987,6 @@
       ],
       "inputSource": "新建文件夹(1).zip:新建文件夹/js-yaml-4.3.0.tgz",
       "archiveBytes": 226823,
-      "optionalOnly": false,
-      "os": [],
-      "cpu": [],
-      "mirrorObservation": "CONFIRMED_MIRROR_404"
-    },
-    {
-      "packageName": "json-buffer",
-      "version": "3.0.1",
-      "lockPath": "node_modules/json-buffer",
-      "resolved": "https://registry.npmjs.org/json-buffer/-/json-buffer-3.0.1.tgz",
-      "integrity": "sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==",
-      "archivePath": "vendor/npm/json-buffer-3.0.1.tgz",
-      "archiveSha256": "d1f7464db9713c5f73c919da72de334fce0bcbd76fb08727d36712ef5dfef5a5",
-      "license": "MIT",
-      "source": "npm-official-tarball",
-      "allMatchingLockPaths": [
-        "node_modules/json-buffer"
-      ],
-      "inputSource": "新建文件夹(1).zip:新建文件夹/json-buffer-3.0.1.tgz",
-      "archiveBytes": 2618,
       "optionalOnly": false,
       "os": [],
       "cpu": [],
