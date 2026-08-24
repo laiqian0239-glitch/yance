@@ -161,7 +161,7 @@
   "ossFit": {
     "decision": "UPGRADE_TO_UPSTREAM_FIXED_OFFICIAL_RELEASE",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "official-upstream-release",
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
     "newGeneralPurposeInfrastructure": false,
     "reviewedCandidates": [
       {
@@ -169,7 +169,7 @@
         "version": "7.0.0-rc14",
         "source": "WhiskeySockets/Baileys tag v7.0.0-rc14 and npm official release",
         "license": "MIT",
-        "adoptionMode": "official-upstream-release",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
         "fit": "FIT",
         "reason": "The released tag contains both Yance rc13 compatibility patch semantics natively and keeps the same production dependency ranges."
       }
