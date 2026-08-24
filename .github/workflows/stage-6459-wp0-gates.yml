@@ -173,14 +173,14 @@ jobs:
           const fs = require('node:fs');
           const trust = JSON.parse(fs.readFileSync(process.env.ELECTRON_TRUST_PATH, 'utf8'));
           const archive = trust.archives?.['win32-x64'];
-          const expectedUrl = 'https://github.com/electron/electron/releases/download/v39.8.5/electron-v39.8.5-win32-x64.zip';
-          if (trust.electronVersion !== '39.8.5'
-            || archive?.fileName !== 'electron-v39.8.5-win32-x64.zip'
-            || archive?.sha256 !== 'd75c0057fd58c08023ff82ed9dd38443f90b4a962c9a9359aa74d9070f4add34'
-            || archive?.sizeBytes !== 136644393
+          const expectedUrl = 'https://github.com/electron/electron/releases/download/v43.4.1/electron-v43.4.1-win32-x64.zip';
+          if (trust.electronVersion !== '43.4.1'
+            || archive?.fileName !== 'electron-v43.4.1-win32-x64.zip'
+            || archive?.sha256 !== 'c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a'
+            || archive?.sizeBytes !== 150154788
             || archive?.sourceRepository !== 'electron/electron'
-            || archive?.releaseTag !== 'v39.8.5'
-            || archive?.assetId !== 382512506
+            || archive?.releaseTag !== 'v43.4.1'
+            || archive?.assetId !== 520075991
             || archive?.downloadUrl !== expectedUrl) {
             throw new Error('Electron official Release trust authority mismatch');
           }
