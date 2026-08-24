@@ -48,11 +48,6 @@
     "approvedChangedFileCount": 2,
     "approvedChangedFileSetSha256": "e82ca13c1f7836c3efdf32ce6cb84b83323b1c0077f16732c75f418446479ef7",
     "newDependencyAllowed": false,
-    "dependencyModificationPolicy": {
-      "allowedDependencyPaths": [],
-      "approvedDependencyPathCount": 0,
-      "approvedDependencyPathSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
     "workflowModificationAllowed": false,
     "failureFirstCommit": {
       "freshCausalRedRequired": true,
