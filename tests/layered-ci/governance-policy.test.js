@@ -129,6 +129,8 @@ test('Electron custody and source-control authority paths escalate to L2', () =>
     'vendor/npm/_at_types__node-24.10.13.tgz',
     'vendor/npm/electron-43.4.1.tgz',
     'vendor/npm/env-paths-3.0.0.tgz',
+    'vendor/npm/ip-address-10.3.1.tgz',
+    'vendor/npm/js-yaml-4.3.1.tgz',
     'vendor/npm/undici-7.25.0.tgz',
     'vendor/npm/undici-types-7.16.0.tgz'
   ]) {
@@ -254,6 +256,8 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz',
     'vendor/npm/electron-43.4.1.tgz',
     'vendor/npm/env-paths-3.0.0.tgz',
+    'vendor/npm/ip-address-10.3.1.tgz',
+    'vendor/npm/js-yaml-4.3.1.tgz',
     'vendor/npm/undici-7.25.0.tgz',
     'vendor/npm/undici-types-7.16.0.tgz'
   ]);
