@@ -1,0 +1,50 @@
+name: TEMP expose verified Electron workflow blobs
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    if: github.head_ref == 'staging/v21-electron-43.4.1-seed-factory'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Expose workflow payload as ordinary blobs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/yance-unpack"
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$work"
+          cd "$work"
+          git checkout "$GITHUB_HEAD_REF"
+          node <<'NODE'
+          'use strict';
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const payload = JSON.parse(fs.readFileSync('.github/tmp-v21-electron-workflow-candidate.json', 'utf8'));
+          const mapping = {
+            '.github/workflows/stage-6459-wp0-gates.yml': '.github/tmp-v21-electron-candidate-stage.txt',
+            '.github/workflows/v21-product-experience-shell-p0-final-validation.yml': '.github/tmp-v21-electron-candidate-product-final.txt',
+            '.github/workflows/windows-production-release.yml': '.github/tmp-v21-electron-candidate-windows-release.txt'
+          };
+          for (const [source, target] of Object.entries(mapping)) {
+            const row = payload.workflows?.[source];
+            if (!row || typeof row.content !== 'string' || !/^[0-9a-f]{64}$/.test(row.sha256 || '')) throw new Error(`invalid payload row: ${source}`);
+            const actual = crypto.createHash('sha256').update(Buffer.from(row.content, 'utf8')).digest('hex');
+            if (actual !== row.sha256) throw new Error(`payload SHA mismatch: ${source}`);
+            fs.writeFileSync(target, row.content, 'utf8');
+          }
+          NODE
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/tmp-v21-electron-candidate-stage.txt .github/tmp-v21-electron-candidate-product-final.txt .github/tmp-v21-electron-candidate-windows-release.txt
+          git diff --cached --quiet && exit 0
+          git commit -m '[staging] Expose verified Electron workflow candidate blobs'
+          git push origin HEAD:"$GITHUB_HEAD_REF"
