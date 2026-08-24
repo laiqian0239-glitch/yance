@@ -46,6 +46,7 @@
     "package-lock.json",
     "package.json",
     "release/electron-distribution-trust.json",
+    "release/production-dependency-binding.json",
     "runtime/local-ai/airllm/yance_airllm_worker.py",
     "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
     "vendor/electron/electron-v39.8.5-win32-x64.zip",
