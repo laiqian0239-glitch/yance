@@ -1,0 +1,28 @@
+name: TEMP observable V21 Electron 43.4.1 factory v4
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  factory:
+    if: github.head_ref == 'staging/v21-electron-43.4.1-seed-factory'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Generate and push isolated candidate tree
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/yance-factory"
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$work"
+          cd "$work"
+          git checkout "$GITHUB_HEAD_REF"
+          test "$(git branch --show-current)" = 'staging/v21-electron-43.4.1-seed-factory'
+          bash .github/tmp-v21-electron-run-factory-v4.sh
