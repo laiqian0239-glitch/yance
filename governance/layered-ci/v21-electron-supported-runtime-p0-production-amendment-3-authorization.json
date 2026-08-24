@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T08:53:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELECTRON-SUPPORTED-RUNTIME-P0",
+  "proposalRevision": 8,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing amendment-3 continuation after frozen PR #725 exact head ed372f216a3cb2b56438175fa31d4aeddf271d5a and isolated fresh causal RED run 32680983772 / job 97297535173 proved one additional semantic authorization gap with unknownBlockers=0: the canonical generator-produced release/production-dependency-binding.json is intentionally larger than the historical generic 1 MiB artifact ceiling. Amendment-3 preserves the exact 28-path implementation scope and authorizes only a fail-closed exact canonical-binding exception in the already-authorized adaptive-local guard.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-electron-supported-runtime-p0-production-amendment-2-authorization.json",
+    "implementationBranch": "fix/v21-electron-supported-runtime-p0-production-amendment-2",
+    "frozenPredecessorPullRequest": 725,
+    "frozenPredecessorHead": "ed372f216a3cb2b56438175fa31d4aeddf271d5a",
+    "reason": "Amendment-2 remains immutable evidence. Its isolated root-fix candidate passed the already-authorized governance/Product/WP-B checks and then failed only because the canonical WP7 binding itself exceeded the historical generic file-size contract, a semantic allowance not granted by amendment-2."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "b0494c260490fecae47ce45c455474e490514ee9",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b0494c260490fecae47ce45c455474e490514ee9",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-electron-supported-runtime-p0-production-amendment-3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-electron-supported-runtime-p0-production-amendment-3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "504a08c5e3bcbab48e61e119256b1092ec15150971474e3abfd7e1d4a7b24801",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-electron-supported-runtime-p0-production-amendment-3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "ed372f216a3cb2b56438175fa31d4aeddf271d5a"
+    },
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      ".github/workflows/windows-production-release.yml",
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "governance/layered-ci/risk-policy.json",
+      "package-lock.json",
+      "package.json",
+      "release/electron-distribution-trust.json",
+      "release/production-dependency-binding.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/runtime-delivery/electron-archive-tracking-authority.test.js",
+      "tests/runtime-delivery/source-uat-delivery.test.js",
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "tests/wp0/v21-electron-supported-runtime-p0.test.js",
+      "tools/release-closure/RUN_WINDOWS_ASSISTED_PIPELINE.ps1",
+      "tools/release-closure/WINDOWS_PREVIEW_UAT_RUNNER.template.ps1",
+      "tools/windows/VERIFY_RUNTIME_IDENTITY.ps1",
+      "tools/wp7/generate-trusted-product-probe-blocker.js",
+      "vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz",
+      "vendor/npm/_at_electron__get-5.0.0.tgz",
+      "vendor/npm/_at_types__node-24.10.13.tgz",
+      "vendor/npm/electron-43.4.1.tgz",
+      "vendor/npm/env-paths-3.0.0.tgz",
+      "vendor/npm/undici-7.25.0.tgz",
+      "vendor/npm/undici-types-7.16.0.tgz"
+    ],
+    "approvedChangedFileCount": 28,
+    "approvedChangedFileSetSha256": "f9f824346e6262485f2f48e32215b34fb6d43937341f7f2fd83c8a6bbe0330f1",
+    "newDependencyAllowed": true,
+    "workflowModificationAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/stage-6459-wp0-gates.yml",
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        ".github/workflows/windows-production-release.yml"
+      ],
+      "approvedWorkflowPathCount": 3,
+      "approvedWorkflowPathSetSha256": "cc24f95c9f3fa077cba66a3b002297271adb4303576a1abdd61791cb1e59de69"
+    },
+    "newlyAuthorizedRootFixes": {
+      "productFinalBranchContract": {
+        "path": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "requiredBehavior": "Admit only the exact amendment-3 successor across the permanent contract and all three Product Final jobs; preserve exact allowlists and fail-closed checks."
+      },
+      "wpBXStateRepositoryBinding": {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+        "requiredBehavior": "Rebind only repository package.json/package-lock facts to inherited frozen predecessor bytes; preserve XState 5.32.5 artifact, registry, evidence and governance facts.",
+        "frozenPredecessorFacts": {
+          "packageJsonBlobSha": "e54002c894cb42ffc93ad94b1341f87b53e60728",
+          "packageLockBlobSha": "d485f45673eeb4a7293a389ffcd28d3ff7c0b56d",
+          "packageLockSha256": "62fedf96db695b1f8da9b7966627f6100939053a95bf4ed8324d814328117198"
+        }
+      },
+      "wp7ProductionDependencyBinding": {
+        "path": "release/production-dependency-binding.json",
+        "requiredBehavior": "Regenerate the complete reviewed cross-platform binding with existing tools/wp7/generate-production-dependency-binding.js under exact npm@10.9.2 after inheriting the frozen predecessor; manual hash-only edits are forbidden.",
+        "requiredCanonicalIdentity": {
+          "documentType": "YANCE_PRODUCTION_DEPENDENCY_EXTERNAL_BINDING",
+          "generatedBy": "tools/wp7/generate-production-dependency-binding.js",
+          "packageManager": "npm@10.9.2",
+          "canonicalBlobSha": "b79d186317070f068286ab0131ab397082697f12"
+        }
+      },
+      "adaptiveLocalArtifactContract": {
+        "path": "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+        "requiredBehavior": "Keep the general oversized-artifact and forbidden-binary guards. The only permitted oversized exceptions are (1) an exact trustedCacheSeeds archivePath with official npm source, bound integrity and SHA-256 matching physical bytes, or (2) the single exact path release/production-dependency-binding.json only when it parses as documentType YANCE_PRODUCTION_DEPENDENCY_EXTERNAL_BINDING, generatedBy tools/wp7/generate-production-dependency-binding.js, packageManager npm@10.9.2, is bound to the current package.json/package-lock.json identities by the existing lifecycle verifier, and remains JSON text rather than a binary payload. No broad release/, JSON, vendor/npm, extension, size, or generated-file exemption."
+      },
+      "layeredRiskClassification": {
+        "paths": [
+          "governance/layered-ci/risk-policy.json",
+          "tests/layered-ci/governance-policy.test.js"
+        ],
+        "requiredBehavior": "Add exact L2 classification/assertions for the six newly trusted Electron-closure npm seeds, preserving electron-43.4.1.tgz and retired Electron absence-proof entries; no broad pattern or downgrade."
+      }
+    },
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "packageManifestModificationAllowed": true,
+    "lockfileModificationAllowed": true,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 725,
+    "branch": "fix/v21-electron-supported-runtime-p0-production-amendment-2",
+    "frozenHead": "ed372f216a3cb2b56438175fa31d4aeddf271d5a",
+    "effectiveAuthorizationMerge": "b0494c260490fecae47ce45c455474e490514ee9",
+    "unknownBlockers": 0,
+    "runs": [
+      {
+        "workflow": "Stage 6.4.5.9 WP0 Architecture Gates",
+        "run": 32680764576,
+        "conclusion": "failure",
+        "classifiedRoots": [
+          "frozen amendment-2 first head correctly routes Product and reproduces inherited Electron root-fix failures"
+        ]
+      },
+      {
+        "workflow": "TEMP observable V21 Electron 43.4.1 amendment-2 root-fix factory v2",
+        "run": 32680983772,
+        "job": 97297535173,
+        "conclusion": "failure",
+        "failureCode": "CANONICAL_WP7_BINDING_EXCEEDS_HISTORICAL_GENERIC_ARTIFACT_CEILING",
+        "classifiedRoots": [
+          "exact six textual owner-path mutations were established",
+          "Layered governance policy tests passed",
+          "Product Final permanent contract tests passed",
+          "WP-B XState current-status and open-source adoption checks passed",
+          "the only focused RED was tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js rejecting release/production-dependency-binding.json as an oversized artifact",
+          "canonical binding blob b79d186317070f068286ab0131ab397082697f12 is generated by the existing WP7 generator under exact npm@10.9.2"
+        ]
+      }
+    ]
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "ed372f216a3cb2b56438175fa31d4aeddf271d5a",
+    "failureFirstEvidenceInheritedFromFrozenPredecessor": true,
+    "requiredInheritedRedHead": "ed372f216a3cb2b56438175fa31d4aeddf271d5a",
+    "requiredInheritedRedRun": 32680764576,
+    "requiredInheritedRedConclusion": "failure",
+    "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "negativeProofs": [
+      "No #720, #722 or #725 history mutation.",
+      "No production path expansion beyond the already-authorized canonical 28-path set.",
+      "No broad release/, JSON, vendor/npm, file-extension, generated-file or size-threshold exemption.",
+      "No WP7 generator, lifecycle verifier, dependency package/lock, XState artifact/evidence, risk level or Product Final security weakening.",
+      "No manual production-dependency-binding hash-only patch; canonical generator output remains required.",
+      "No squash, rebase, amend, force-push, cherry-pick or history rewrite."
+    ]
+  },
+  "electronTarget": {
+    "version": "43.4.1",
+    "npmIntegrity": "sha512-5b+EuiwkgG5iRcsEL34rimgRpkYp15SsfZOa0pC5kXs0Tb82TH4n95rpQzTZa7yRCbA7tm0WoEbuBL6NaAhAcA==",
+    "officialWin32X64Asset": "electron-v43.4.1-win32-x64.zip",
+    "officialWin32X64Sha256": "c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a",
+    "officialWin32X64AssetId": 520075991,
+    "officialWin32X64ByteSize": 150154788,
+    "officialLinuxX64Sha256": "79d4efd69f0ccf1fc11891ea5075329c7b3faddad79a08d9fb395bbd63169acf"
+  },
+  "ossFit": {
+    "decision": "CONTINUE_OFFICIAL_ELECTRON_43_4_1_ADOPTION_THROUGH_EXISTING_YANCE_TRUST_AND_BINDING_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Electron 43.4.1",
+        "source": "electron/electron official stable release and official npm distribution",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The fresh RED is not a runtime capability gap; it is a stale local size-policy assumption around an existing canonical generated binding for the already selected official Electron runtime."
+      },
+      {
+        "name": "Existing Yance WP7 production dependency binding seam",
+        "source": "tools/wp7/generate-production-dependency-binding.js + release/production-dependency-binding.json + existing lifecycle verifier",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The minimal repair is an exact identity-bound exception for the existing canonical generated authority, not a new storage format, compression layer, downloader, mirror or parallel binding subsystem."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not introduce a compressed, split, externalized or custom replacement for the existing canonical production dependency binding merely to evade the historical 1 MiB test.",
+      "Do not create a broad large-JSON, release-directory, generated-file or extension exemption.",
+      "Do not duplicate or bypass the WP7 binding generator/lifecycle verifier.",
+      "Do not weaken checksums, npm integrity, exact-path L2 classification, Product Final branch admission, trusted-cache-seed verification or packaged activation gates."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/layered-ci/governance-policy.test.js",
+      "node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "node --test backend/tests/architectureClosureV2/wpB/xstateAdoptionCurrentStatus.test.js",
+      "node tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js",
+      "node --test tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "node --test tests/wp0/v21-production-dependency-binding-lifecycle.test.js",
+      "node --test tests/wp0/v21-electron-supported-runtime-p0.test.js",
+      "node --test tests/runtime-delivery/electron-archive-tracking-authority.test.js tests/runtime-delivery/source-uat-delivery.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage 6.4.5.9 WP0 Architecture Gates",
+      "Layered CI Fast Feedback",
+      "WP-B Validation when routed",
+      "WP-A Main Post-Merge Validation when routed",
+      "ACV2 WP-A Architecture Gates when routed",
+      "V21 Model Brain P0 Windows when routed",
+      "V21 Product Experience Shell P0 Final Validation",
+      "V2.1 Parlant P0 Windows Runtime when routed"
+    ],
+    "productFinalWindowsPackagedActivationRequired": true,
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
