@@ -1,0 +1,64 @@
+name: TEMP V21 Electron amendment-5 root-fix factory
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/tmp-v21-electron-amendment-5-root-fix.yml'
+      - '.github/tmp-v21-electron-amendment-5-root-fix.js'
+      - 'release/architecture-closure-v2/wp-b-governance-package.json'
+      - '.github/workflows/v21-product-experience-shell-p0-final-validation.yml'
+      - 'tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js'
+
+permissions:
+  contents: write
+
+jobs:
+  factory:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout temp factory branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Apply exact three-file mechanical patch
+        run: node .github/tmp-v21-electron-amendment-5-root-fix.js
+      - name: Require exact production diff and run focused contracts
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const {execFileSync} = require('node:child_process');
+          const expected = [
+            '.github/workflows/v21-product-experience-shell-p0-final-validation.yml',
+            'release/architecture-closure-v2/wp-b-governance-package.json',
+            'tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js'
+          ].sort();
+          const actual = execFileSync('git', ['diff', '--name-only'], {encoding:'utf8'}).trim().split(/\r?\n/u).filter(Boolean).sort();
+          if (actual.length === 0) {
+            console.log('GREEN: production patch already materialized on temp branch');
+          } else if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+            throw new Error(`unexpected production diff: ${JSON.stringify(actual)}`);
+          }
+          NODE
+          node --test backend/tests/architectureClosureV2/wpB/governancePackagingContract.test.js
+          node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js
+      - name: Commit generated production blobs once
+        run: |
+          set -euo pipefail
+          if test -n "$(git diff --name-only)"; then
+            git config user.name 'yance-temp-factory'
+            git config user.email 'yance-temp-factory@users.noreply.github.com'
+            git add -- \
+              .github/workflows/v21-product-experience-shell-p0-final-validation.yml \
+              release/architecture-closure-v2/wp-b-governance-package.json \
+              tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js
+            git diff --cached --name-only
+            git commit -m '[TEMP][DO NOT MERGE] Materialize amendment-5 exact production blobs'
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
