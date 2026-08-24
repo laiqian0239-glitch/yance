@@ -48,6 +48,7 @@
       "approvedChangedFileCount": 1,
       "approvedChangedFileSetSha256": "2aeacc3a6b9a6ecaa6b7fefbf268d29fb2bd8424922e945481da382456216f97",
       "firstHeadTrustedMainGuard": {
+        "required": true,
         "trustedMainMustEqualAuthorizationMerge": true
       },
       "fastClosureV2": {
