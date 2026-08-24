@@ -242,7 +242,7 @@
   "ossFit": {
     "decision": "PATCH_TRANSITIVE_IDENTITIES_WITH_EXISTING_COMPATIBLE_RANGES_AND_SCOPED_OVERRIDE",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "official-npm-patched-transitives",
+    "selectedAdoptionMode": "source-module",
     "newGeneralPurposeInfrastructure": false,
     "reviewedCandidates": [
       {
@@ -250,6 +250,7 @@
         "version": "0.35.3",
         "source": "official npm/GitHub advisory patched release",
         "license": "Apache-2.0",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
         "fit": "FIT",
         "reason": "Patched >=0.35.0; 0.35.3 is already present in Yance trusted dependency authority, enabling a narrow scoped Letta override without a private fork."
       },
@@ -258,6 +259,7 @@
         "version": "10.3.1",
         "source": "official npm/GitHub advisory patched release",
         "license": "MIT",
+        "adoptionMode": "source-module",
         "fit": "FIT",
         "reason": "Exact patched version and both current parent ranges already admit it."
       },
@@ -266,6 +268,7 @@
         "version": "4.3.1",
         "source": "official npm v4 legacy patched release",
         "license": "MIT",
+        "adoptionMode": "source-module",
         "fit": "FIT",
         "reason": "Exact patched v4 legacy version remains inside electron-updater 6.8.9's existing ^4.1.0 range."
       }
