@@ -1,0 +1,47 @@
+name: TEMP V21 Electron amendment-4 authority probe
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/tmp-v21-electron-amendment-4-authority-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact amendment-4 first head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 8bd624954121aec82802819ca3d6516491365a7c
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Print exact delegated authority verdict
+        env:
+          IMPLEMENTATION_BRANCH: fix/v21-electron-supported-runtime-p0-production-amendment-4
+          EVALUATED_HEAD: 8bd624954121aec82802819ca3d6516491365a7c
+          TRUSTED_MAIN_HEAD: e8fb8a8c9eab30008c88d76a42390d7af8c6419b
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const policy = require('./shared/release/implementationBranchPolicyLegacy');
+          const result = policy.evaluateTrustedDelegatedGovernanceBranch({
+            branch: process.env.IMPLEMENTATION_BRANCH,
+            evaluatedHead: process.env.EVALUATED_HEAD,
+            trustedMainHead: process.env.TRUSTED_MAIN_HEAD,
+            evaluatedRepositoryRoot: process.cwd(),
+            trustedPolicyRoot: process.cwd()
+          });
+          console.log('AUTHORITY_PROBE_RESULT=' + JSON.stringify(result));
+          if (result.pass === true) {
+            console.error('Unexpected PASS: Stage failure must have a different caller-context cause.');
+            process.exit(2);
+          }
+          NODE
