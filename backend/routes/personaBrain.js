@@ -175,7 +175,13 @@ function safePublish(eventBus, type, payload) {
 function compilePersonaContext(brain, profileIdValue, body = {}) {
   const profileId = normalizeProfileId(profileIdValue);
   const compileOptions = body && typeof body === 'object' ? body : {};
-  return { ok: true, ...brain.compileContext(profileId, compileOptions) };
+  const scope = {
+    profileId,
+    contactId: compileOptions.contactId,
+    conversationId: compileOptions.conversationId,
+    globalScopeId: compileOptions.globalScopeId
+  };
+  return { ok: true, ...brain.compileEffectiveContext(scope, compileOptions) };
 }
 
 function createPersonaBrainRouter(options = {}) {

@@ -744,6 +744,16 @@ function createContextAwareReplyBrain({
   const learnedPolicyRuntime = learningPolicyRuntimeAdapter || createLearningPolicyRuntimeAdapter();
   const learnedPolicyDecisions = learningPolicyDecisionContract || createLearningPolicyDecisionContract();
 
+  function compileEffectivePersona(scope, compileOptions) {
+    if (typeof persona.compileEffectiveContext !== 'function') {
+      throw createBrainError(
+        'PERSONA_EFFECTIVE_COMPILER_REQUIRED',
+        'Effective Persona compiler is required for runtime reply generation'
+      );
+    }
+    return persona.compileEffectiveContext(scope, compileOptions);
+  }
+
   function currentConversationRevision(conversationId) {
     const selected = storeManager.select(state => Number(state.conversations?.byId?.[conversationId]?.version || 0));
     const revision = Number(selected);
@@ -803,10 +813,7 @@ function createContextAwareReplyBrain({
         metrics: quality.metrics
       });
     }
-    const compileEffective = typeof persona.compileEffectiveContext === 'function'
-      ? (scope, compileOptions) => persona.compileEffectiveContext(scope, compileOptions)
-      : (_scope, compileOptions) => persona.compileContext('owner', compileOptions);
-    const personaCtx = compileEffective({ contactId: personaContactScope(contactId, socialContext), conversationId }, {
+    const personaCtx = compileEffectivePersona({ contactId: personaContactScope(contactId, socialContext), conversationId }, {
       baseContext: { directorPersona: clean(input.director?.persona) },
       socialContext,
       mode: 'live'
@@ -919,10 +926,7 @@ function createContextAwareReplyBrain({
       brevity: governedDirector.brevity,
       directness: governedDirector.directness
     };
-    const compileEffective = typeof persona.compileEffectiveContext === 'function'
-      ? (scope, compileOptions) => persona.compileEffectiveContext(scope, compileOptions)
-      : (_scope, compileOptions) => persona.compileContext('owner', compileOptions);
-    const personaCtx = compileEffective({ contactId: personaContactScope(contactId, socialContext), conversationId }, {
+    const personaCtx = compileEffectivePersona({ contactId: personaContactScope(contactId, socialContext), conversationId }, {
       baseContext: { directorPersona: clean(governedDirector.persona) },
       socialContext,
       mode: 'live',
@@ -1326,7 +1330,7 @@ function createContextAwareReplyBrain({
         });
       }
 
-      const currentPersona = compileEffective({ contactId: personaContactScope(contactId, socialContext), conversationId }, {
+      const currentPersona = compileEffectivePersona({ contactId: personaContactScope(contactId, socialContext), conversationId }, {
         baseContext: { directorPersona: clean(governedDirector.persona) },
         socialContext: currentContext,
         mode: 'live',
