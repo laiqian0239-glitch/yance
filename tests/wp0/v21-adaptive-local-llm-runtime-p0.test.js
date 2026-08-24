@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const crypto = require('node:crypto');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
@@ -135,11 +136,42 @@ test('implementation diff does not contain committed model/runtime binaries or o
   } catch (error) {
     assert.fail(`git diff against authorization merge must be available: ${error.message}`);
   }
+
   const forbidden = /\.(?:gguf|ggml|safetensors|bin|onnx|pt|pth|zip|7z|tar|gz|xz|dll|exe|so|dylib)$/iu;
   assert.deepEqual(changed.filter(file => forbidden.test(file)), []);
+
+  const dependencyPolicy = json('governance/dependency-install-policy.json');
+  assert.equal(Array.isArray(dependencyPolicy.trustedCacheSeeds), true);
+  const trustedSeeds = new Map(dependencyPolicy.trustedCacheSeeds.map(seed => [seed.archivePath, seed]));
+  assert.equal(trustedSeeds.size, dependencyPolicy.trustedCacheSeeds.length, 'trusted cache seed archive paths must be unique');
+
   for (const file of changed) {
     const absolute = path.join(ROOT, file);
     if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) continue;
-    assert.ok(fs.statSync(absolute).size < 1024 * 1024, `${file} unexpectedly carries a large artifact`);
+    if (fs.statSync(absolute).size < 1024 * 1024) continue;
+
+    const seed = trustedSeeds.get(file);
+    if (seed) {
+      assert.equal(seed.archivePath, file);
+      assert.equal(seed.source, 'npm-official-tarball', `${file} must use official npm tarball custody`);
+      assert.match(seed.resolved, /^https:\/\/registry\.npmjs\.org\/.+\.tgz$/u, `${file} must bind an official npm registry tarball`);
+      assert.match(seed.integrity, /^sha512-[A-Za-z0-9+/]+={0,2}$/u, `${file} must bind npm SHA-512 integrity`);
+      assert.match(seed.archiveSha256, /^[0-9a-f]{64}$/u, `${file} must bind archive SHA-256`);
+      const actualSha256 = crypto.createHash('sha256').update(fs.readFileSync(absolute)).digest('hex');
+      assert.equal(actualSha256, seed.archiveSha256, `${file} physical bytes must match trusted cache-seed SHA-256`);
+      continue;
+    }
+
+    assert.equal(file, 'release/production-dependency-binding.json', `${file} unexpectedly carries a large artifact without exact trusted authority`);
+    const binding = json(file);
+    assert.equal(binding.documentType, 'YANCE_PRODUCTION_DEPENDENCY_EXTERNAL_BINDING');
+    assert.equal(binding.generatedBy, 'tools/wp7/generate-production-dependency-binding.js');
+    assert.equal(binding.packageManager, 'npm@10.9.2');
+    assert.equal(binding.lockfileVersion, 3);
+    assert.deepEqual(binding.platformKeys, ['linux-x64', 'win32-x64']);
+    const packageJsonSha256 = crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'package.json'))).digest('hex');
+    const packageLockSha256 = crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'package-lock.json'))).digest('hex');
+    assert.equal(binding.packageJsonSha256, packageJsonSha256, 'canonical binding must match current package.json SHA-256');
+    assert.equal(binding.packageLockSha256, packageLockSha256, 'canonical binding must match current package-lock.json SHA-256');
   }
 });
