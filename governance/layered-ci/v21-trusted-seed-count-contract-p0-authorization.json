@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-TRUSTED-SEED-COUNT-CONTRACT-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh focused validation of frozen Baileys PR #741 exposed an out-of-scope pre-existing trusted dependency test defect: backend/tests/cleanInstallAuthority.test.js still hard-codes verification.seedCount === 307, while the current trusted dependency policy verifies 262 seeds. This mismatch predates #741 and is rooted in the Electron 43.4.1 migration commit b0d9bb68fe1273ffbcc44f9bc6040ddb7a7b5267, which intentionally reduced the active Electron dependency batch from 301 to 250 and the manifest total from 307 to 256 while preserving the new supported Electron graph. The Baileys candidate proved no unrelated package, lock, policy, or manifest churn before the focused failure, so #741 remains frozen and this independent prerequisite repairs only the stale test contract without modifying dependency identity, trust policy, lockfile, manifest, runtime, or workflow behavior.",
+  "base": {
+    "branch": "main",
+    "commit": "2f1b4dd89cbc1d5268aba2ca4cbca381d579b238",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-trusted-seed-count-contract-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-trusted-seed-count-contract-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2bd2482163fbefa35167f616595f9b03a19477ca7cd09135f9392f79522827f1",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-trusted-seed-count-contract-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/cleanInstallAuthority.test.js",
+      "tests/wp0/v21-trusted-seed-count-contract-p0.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "25041b33a6acc90e6346dd00e47311d7c7981dc51ae431816d45f5a6f35b7570",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-trusted-seed-count-contract-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "ea08b2ea75503aa3e89aa1a065c4e4d2f08493f92f379dc093f5b2ec955361d1",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "expectedFailures": [
+        "Current trusted dependency policy verifies 262 seeds, but backend/tests/cleanInstallAuthority.test.js still requires the superseded pre-Electron-43 count 307."
+      ]
+    },
+    "requiredBehavior": [
+      "Preserve the current package.json, package-lock.json, governance/dependency-install-policy.json, governance/dependency-install-batch-manifest.json, vendor archives, workflows, and runtime bytes exactly.",
+      "Prove the current trusted policy contains 262 active seed entries and the production verifier returns the same 262 count before changing the stale regression expectation.",
+      "Reconcile only backend/tests/cleanInstallAuthority.test.js from the superseded static seed count 307 to the current trusted count 262.",
+      "Keep the regression fail-closed with a static exact count; do not replace the count assertion with a tautological or dynamically self-derived expectation.",
+      "The mandatory WP0 regression must fail on the stale 307 assertion and pass only after that exact contract is reconciled to 262."
+    ],
+    "productionCodeChanged": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "dependencyTrustPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "auditEvidence": {
+    "blockedWorkPackage": "V21-BAILEYS-REPRODUCIBLE-RUNTIME-P0",
+    "blockedPullRequest": 741,
+    "blockedRemoteHead": "04dd8ca9ad5e90769986abf258247a2523cd6189",
+    "focusedFailure": "backend/tests/cleanInstallAuthority.test.js: verification.seedCount actual 262 != expected 307",
+    "rootCauseCommit": "b0d9bb68fe1273ffbcc44f9bc6040ddb7a7b5267",
+    "rootCauseEvidence": "Electron 43.4.1 migration changed governance/dependency-install-batch-manifest.json batchSeedCount 301 -> 250 and totalSeedCount 307 -> 256 but did not reconcile the legacy cleanInstallAuthority static 307 expectation.",
+    "currentVerifiedSeedCount": 262,
+    "supersededExpectedSeedCount": 307,
+    "sourceGraphDisposition": "OUTSIDE_BLOCKED_PR_SCOPE_PREREQUISITE_REQUIRED"
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "backend/tests/cleanInstallAuthority.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Contains the stale static 307 seed-count contract that now contradicts the current trusted policy verifier result 262."
+      },
+      {
+        "path": "tests/wp0/v21-trusted-seed-count-contract-p0.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Mandatory failure-first regression isolates the stale count contract against the current 262-entry trusted policy."
+      }
+    ],
+    "negativeProofs": [
+      "The Baileys candidate's structural verifier proved package, lock, dependency policy, and batch manifest had no unrelated churn before the focused failure.",
+      "No missing Baileys rc14 dependency or transitive identity caused the 262 versus 307 mismatch.",
+      "No package, lockfile, trusted seed policy, batch manifest, vendor archive, workflow, runtime, Electron version, or Baileys version change is authorized in this prerequisite.",
+      "The existing verifier and exact static-count behavior remain fail-closed; only the stale constant is reconciled."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_TEST_AUTHORITY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "verifyTrustedDependencySeeds + cleanInstallAuthority exact-count seam",
+        "source": "existing Yance repository trusted dependency verifier and regression seam",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is only a stale static expected count in the existing regression. Reusing the current verifier and exact-count test seam closes the gap without creating or replacing dependency infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not generate new dependency seed infrastructure for a stale regression constant.",
+      "Do not weaken verifyTrustedDependencySeeds or derive the expected count from the function under test."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-trusted-seed-count-contract-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/cleanInstallAuthority.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
