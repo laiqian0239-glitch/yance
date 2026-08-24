@@ -1,0 +1,360 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T16:48:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BAILEYS-REPRODUCIBLE-RUNTIME-P0-SUCCESSOR-V4",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Freeze PR #749 at production exact head 13816fc5f08b28ce72981f7a34cb9ed42a5f13d1. Its original Baileys rc14 production root fix is preserved exactly. The independently scoped Layered CI CI_UNKNOWN_PATH prerequisite is now closed on trusted main by authorization #750 and implementation #751 ordinary merge 4e4b7af69df856ed78bf82c2a3165797daad6826. Exhaustive exact-head audit of #749 also proved two candidate-state dependency authority receipts stale because the Baileys rc13 to rc14 package/package-lock transition changed their canonical package bindings: release/production-dependency-binding.json and governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json. Those receipts cannot be validly merged before the candidate package/package-lock bytes exist. Therefore continue the frozen candidate through canonical forwardContinuation, re-execute a fresh causal RED with Layered fixed and only the classified stale-receipt failures remaining, then regenerate/rebind exactly those two receipts in the same causal successor. Closure Matrix unknownBlockers=0.",
+  "base": {
+    "branch": "main",
+    "commit": "4e4b7af69df856ed78bf82c2a3165797daad6826",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "4e4b7af69df856ed78bf82c2a3165797daad6826",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-baileys-reproducible-runtime-p0-successor-v3-authorization.json",
+    "authorizationPullRequest": 748,
+    "implementationPullRequest": 749,
+    "implementationBranch": "fix/v21-baileys-reproducible-runtime-p0-successor-v3",
+    "reason": "PR #749 is frozen at its immutable production exact head after exact-head gates exposed out-of-scope candidate-state authority receipts. Do not mutate, rebase, amend, force-push, cherry-pick, or otherwise rewrite #749."
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 748,
+    "authorizationMerge": "d9f4ba26a994c3a4e505eb4a4da109ed1ba93e3a",
+    "implementationPullRequest": 749,
+    "branch": "fix/v21-baileys-reproducible-runtime-p0-successor-v3",
+    "canonicalFirstRedHead": "2451e52ee88f029d1f76a37be04c2ea319138a62",
+    "freshCausalRedStageRun": 32708088591,
+    "freshCausalRedConclusion": "failure",
+    "freshCausalRedWp0Tests": 659,
+    "freshCausalRedWp0Pass": 656,
+    "freshCausalRedWp0Fail": 3,
+    "expectedBaileysFailures": 3,
+    "closureMatrixUnknownBlockers": 0,
+    "frozenProductionHead": "13816fc5f08b28ce72981f7a34cb9ed42a5f13d1",
+    "frozenProductionParent": "2451e52ee88f029d1f76a37be04c2ea319138a62",
+    "originalAuthorizedChangedFileCount": 8,
+    "originalAuthorizedChangedFileSetSha256": "3761b1bed254c5cf3c5419567fb025d3ad0c78659d7e813bcf0591efdeab576d"
+  },
+  "exactHeadBlockerEvidence": {
+    "layered": {
+      "runId": 32712804316,
+      "riskJobId": 97387640744,
+      "policyJobId": 97387640980,
+      "failedStep": "Select required CI level",
+      "reasonCode": "CI_UNKNOWN_PATH",
+      "unknownPaths": [
+        "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz"
+      ],
+      "classification": "PREREQUISITE_CLOSED_BY_750_751"
+    },
+    "stage": {
+      "runId": 32712804061,
+      "wp0ProductJobId": 97387696975,
+      "classifiedFailures": [
+        "Adaptive Local LLM package.json canonical binding remains bound to the pre-Baileys package manifest digest.",
+        "WP7 reviewed production dependency binding no longer equals a complete fresh isolated generator output after the Baileys package/package-lock transition.",
+        "WP7 production dependency binding lifecycle metadata is stale for the same candidate dependency graph."
+      ]
+    },
+    "wpB": {
+      "runId": 32712804078,
+      "jobId": 97387640135,
+      "reasonCode": "WP_B_XSTATE_PACKAGE_LOCK_DIGEST_MISMATCH",
+      "candidatePackageJsonBlobSha": "a5cd5316fac765bf079c68b645b86f3a20ea1713",
+      "candidatePackageJsonSha256": "5b56b9d6e879f0257bda4bd05f1ccefb2185ccb92d3bbaa58d95049bb72c94d8",
+      "candidatePackageLockBlobSha": "08763c8e2371926b71ae7c2016f9984f1054e260",
+      "candidatePackageLockSha256": "fef6858042331db693994c210b0bad62bac9745ad80cefd45e45a5a11ad4dafb"
+    },
+    "unknownBlockers": 0
+  },
+  "prerequisiteEvidence": {
+    "authorizationPullRequest": 750,
+    "authorizationExactHead": "5c19350a74f16b4cc7ccb1677d3d74a4f885073f",
+    "authorizationOrdinaryMerge": "d9f858e9225b953f96f768bfc7c64ca5d283fdaa",
+    "implementationPullRequest": 751,
+    "implementationFirstRedHead": "c7b467ff25ae680575d430dee16723e22609d8f2",
+    "implementationFirstRedRun": 32714645873,
+    "implementationProductionExactHead": "f0f2704313ba2a75ac2d0f8185ddebbb4f64d1db",
+    "implementationOrdinaryMerge": "4e4b7af69df856ed78bf82c2a3165797daad6826",
+    "mergedTopologyParents": [
+      "d9f858e9225b953f96f768bfc7c64ca5d283fdaa",
+      "f0f2704313ba2a75ac2d0f8185ddebbb4f64d1db"
+    ],
+    "stageRun": 32715026083,
+    "layeredRun": 32715026570,
+    "acv2Run": 32715025974,
+    "modelBrainRun": 32715025991,
+    "allApplicableExactHeadGatesGreen": true,
+    "unknownBlockers": 0
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-baileys-reproducible-runtime-p0-successor-v4-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-baileys-reproducible-runtime-p0-successor-v4-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "68093a80c0824bbb4a86770826c4c03ab4b518b67bce64b03f88336377b2472a",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-baileys-reproducible-runtime-p0-successor-v4",
+    "requiredParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "13816fc5f08b28ce72981f7a34cb9ed42a5f13d1",
+      "firstSuccessorHeadMustBeMergeCommit": true,
+      "freshCausalRedRequiredBeforeReceiptImplementation": true
+    },
+    "allowedChangedPaths": [
+      "backend/tests/baileysProfilePictureTokenPatch.test.js",
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "package-lock.json",
+      "package.json",
+      "release/production-dependency-binding.json",
+      "scripts/dependencies/apply-baileys-profile-picture-token-fix.js",
+      "tests/wp0/v21-baileys-reproducible-runtime-p0.test.js",
+      "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz"
+    ],
+    "approvedChangedFileCount": 10,
+    "approvedChangedFileSetSha256": "ed530a7810184ba2cc75cd75fbb0b84898c1771b74634689463f7dbee7a7d550",
+    "preservedPredecessorChangedPaths": [
+      "backend/tests/baileysProfilePictureTokenPatch.test.js",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "package-lock.json",
+      "package.json",
+      "scripts/dependencies/apply-baileys-profile-picture-token-fix.js",
+      "tests/wp0/v21-baileys-reproducible-runtime-p0.test.js",
+      "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz"
+    ],
+    "preservedPredecessorChangedFileCount": 8,
+    "preservedPredecessorChangedFileSetSha256": "3761b1bed254c5cf3c5419567fb025d3ad0c78659d7e813bcf0591efdeab576d",
+    "scopeAmendmentPaths": [
+      "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+      "release/production-dependency-binding.json"
+    ],
+    "scopeAmendmentFileCount": 2,
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "package-lock.json",
+        "package.json"
+      ],
+      "approvedDependencyPathCount": 2,
+      "approvedDependencyPathSetSha256": "3a91d218beeaf6db0adeada91763ad528830a37c39fe81733e2f0b201ed47cb2"
+    },
+    "failureFirstContinuation": {
+      "freshCausalRedRequired": true,
+      "productionReceiptWriteForbiddenBeforeFreshRed": true,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "expectedBlockerFamilies": [
+        "WP7 production dependency binding and Adaptive Local LLM package.json canonical binding stale against the candidate dependency graph.",
+        "WP-B XState supply-chain receipt stale against the candidate package-lock identity."
+      ],
+      "layeredCiUnknownPathMustBeClosed": true,
+      "unknownBlockersRequired": 0,
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex successor first head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ]
+    },
+    "requiredBehavior": [
+      "Preserve all eight frozen #749 Baileys production path states exactly in the first successor continuation head.",
+      "Layered CI must classify the official rc14 vendor tarball at exact L2 through inherited trusted-main policy; do not modify Layered policy in this successor.",
+      "After fresh successor RED, regenerate release/production-dependency-binding.json through the existing WP7 canonical generator using the candidate package.json/package-lock.json/vendor context and the repository-pinned npm authority. Hand-pruned or partial binding output is forbidden.",
+      "The regenerated WP7 binding must bind candidate package.json SHA-256 5b56b9d6e879f0257bda4bd05f1ccefb2185ccb92d3bbaa58d95049bb72c94d8 and the corresponding candidate lock/install graph while preserving lifecycle policy invariants.",
+      "Rebind governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json to package.json blob a5cd5316fac765bf079c68b645b86f3a20ea1713 and package-lock blob 08763c8e2371926b71ae7c2016f9984f1054e260 / SHA-256 fef6858042331db693994c210b0bad62bac9745ad80cefd45e45a5a11ad4dafb while preserving the xstate@5.32.5 artifact identity and all unrelated receipt fields.",
+      "No unrelated dependency, transitive identity, workflow, Layered route, product runtime, database, adapter, or release/publish authority change is permitted."
+    ],
+    "productionCodeChanged": true,
+    "routingPolicyModificationAllowed": false,
+    "layeredRiskPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": true,
+    "lockfileModificationAllowed": true,
+    "dependencyTrustPolicyModificationAllowed": true,
+    "dependencyReceiptModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "13816fc5f08b28ce72981f7a34cb9ed42a5f13d1",
+    "firstSuccessorTreeMustPreserveFrozenPredecessorCandidateChanges": true,
+    "freshCleanRedMustBeReexecuted": true,
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "backend/tests/baileysProfilePictureTokenPatch.test.js",
+        "classification": "PRESERVE_FROZEN_ROOT_IMPLEMENTATION"
+      },
+      {
+        "path": "governance/dependency-install-batch-manifest.json",
+        "classification": "PRESERVE_FROZEN_ROOT_IMPLEMENTATION"
+      },
+      {
+        "path": "governance/dependency-install-policy.json",
+        "classification": "PRESERVE_FROZEN_ROOT_IMPLEMENTATION"
+      },
+      {
+        "path": "package-lock.json",
+        "classification": "PRESERVE_FROZEN_ROOT_IMPLEMENTATION"
+      },
+      {
+        "path": "package.json",
+        "classification": "PRESERVE_FROZEN_ROOT_IMPLEMENTATION"
+      },
+      {
+        "path": "scripts/dependencies/apply-baileys-profile-picture-token-fix.js",
+        "classification": "PRESERVE_FROZEN_RETIREMENT"
+      },
+      {
+        "path": "tests/wp0/v21-baileys-reproducible-runtime-p0.test.js",
+        "classification": "PRESERVE_FROZEN_FAILURE_FIRST_CONTRACT"
+      },
+      {
+        "path": "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz",
+        "classification": "PRESERVE_FROZEN_TRUSTED_SEED"
+      },
+      {
+        "path": "release/production-dependency-binding.json",
+        "classification": "SUCCESSOR_SCOPE_AMENDMENT",
+        "reason": "Canonical WP7 dependency authority receipt must be generated from the candidate dependency graph, so it cannot precede the candidate package/package-lock bytes on main."
+      },
+      {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+        "classification": "SUCCESSOR_SCOPE_AMENDMENT",
+        "reason": "WP-B XState receipt must bind the candidate package/package-lock identity while preserving xstate@5.32.5."
+      },
+      {
+        "path": "governance/layered-ci/risk-policy.json",
+        "classification": "PREREQUISITE_CLOSED",
+        "reason": "Exact rc14 vendor L2 identity was independently repaired and ordinary-merged by #750/#751; inherit only from trusted main."
+      }
+    ],
+    "negativeProofs": [
+      "No mutation of frozen PR #749 or its published commits.",
+      "No Layered risk-policy, classifier, workflow, selector, broad prefix, or fail-closed weakening in successor-v4.",
+      "No hand-edited partial WP7 dependency binding: existing generator output is authoritative.",
+      "No change to xstate package/version/integrity; only candidate package/package-lock receipt binding may refresh.",
+      "No unrelated transitive lock identity churn and no new general-purpose supply-chain framework.",
+      "No squash, rebase, amend, force-push, cherry-pick, or history rewrite."
+    ]
+  },
+  "requiredValidation": {
+    "failureFirst": "Create the canonical successor first head with exact ordered parents [authorization ordinary merge, 13816fc5f08b28ce72981f7a34cb9ed42a5f13d1]. Before either receipt is changed, obtain fresh exact-head evidence that Layered is GREEN and the only remaining failures are the classified WP7/Adaptive binding and WP-B XState receipt families with unknownBlockers=0.",
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-baileys-reproducible-runtime-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/baileysProfilePictureTokenPatch.test.js",
+      "node --test --test-concurrency=1 backend/tests/cleanInstallAuthority.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-production-dependency-binding-lifecycle.test.js",
+      "node --test --test-concurrency=1 tests/runtime-delivery/source-uat-delivery.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed",
+      "V21 Product Experience Shell P0 Final Validation when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_CANONICAL_DEPENDENCY_RECEIPT_GENERATORS_AND_VERIFIERS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seams",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "thinYanceAdapterOnly": true,
+    "reviewedCandidates": [
+      {
+        "name": "WP7 production dependency binding generator",
+        "source": "tools/wp7/generate-production-dependency-binding.js",
+        "fit": "FIT",
+        "reason": "Existing canonical isolated generator already owns complete reviewed binding output and lifecycle semantics."
+      },
+      {
+        "name": "WP-B open-source adoption verifier",
+        "source": "tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js",
+        "fit": "FIT",
+        "reason": "Existing verifier already binds package/package-lock receipt identity and preserves XState artifact authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second dependency binding generator.",
+      "Do not manually omit graph entries from the canonical WP7 output.",
+      "Do not weaken WP7 lifecycle or WP-B digest checks.",
+      "Do not modify workflows or Layered CI routing to bypass the receipts."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "cherryPickForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "governance": {
+    "authorizationPredatesScopeAmendmentImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
