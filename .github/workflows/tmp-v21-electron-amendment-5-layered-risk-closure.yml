@@ -1,0 +1,96 @@
+name: TEMP V21 Electron amendment-5 Layered risk closure
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/tmp-v21-electron-amendment-5-layered-risk-closure.yml'
+      - '.github/tmp-v21-electron-amendment-5-layered-risk-closure.js'
+      - 'governance/layered-ci/risk-policy.json'
+      - 'tests/layered-ci/governance-policy.test.js'
+
+permissions:
+  contents: write
+
+jobs:
+  factory:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout temp factory branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Apply exact two-file Layered classification patch
+        run: node .github/tmp-v21-electron-amendment-5-layered-risk-closure.js
+      - name: Require exact production diff and run focused Layered contracts
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const {execFileSync} = require('node:child_process');
+          const expected = [
+            'governance/layered-ci/risk-policy.json',
+            'tests/layered-ci/governance-policy.test.js'
+          ].sort();
+          const actual = execFileSync('git', ['diff', '--name-only'], {encoding:'utf8'}).trim().split(/\r?\n/u).filter(Boolean).sort();
+          if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+            throw new Error(`unexpected production diff: ${JSON.stringify(actual)}`);
+          }
+          NODE
+          node --test tests/layered-ci/governance-policy.test.js
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const {classifyChangedFiles} = require('./tools/layered-ci/governance-policy');
+          const risk = JSON.parse(fs.readFileSync('governance/layered-ci/risk-policy.json', 'utf8'));
+          const target = 'release/architecture-closure-v2/wp-b-governance-package.json';
+          const result = classifyChangedFiles(risk, [target]);
+          if (!result.pass || result.requiredLevel !== 'L2' || result.reasons?.[0]?.type !== 'EXACT') {
+            throw new Error(`target classification mismatch: ${JSON.stringify(result)}`);
+          }
+          if (risk.l2Prefixes.includes('release/')) throw new Error('broad release/ prefix forbidden');
+          console.log(`GREEN_CLASSIFICATION ${target} L2 EXACT`);
+          NODE
+      - name: Create verified content-addressed Git blobs without updating refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const paths = [
+            'governance/layered-ci/risk-policy.json',
+            'tests/layered-ci/governance-policy.test.js'
+          ];
+          async function main() {
+            for (const path of paths) {
+              const bytes = fs.readFileSync(path);
+              const body = JSON.stringify({content: bytes.toString('base64'), encoding: 'base64'});
+              const response = await fetch(`https://api.github.com/repos/${process.env.GH_REPOSITORY}/git/blobs`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${process.env.GH_TOKEN}`,
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                  'Content-Type': 'application/json'
+                },
+                body
+              });
+              const text = await response.text();
+              if (!response.ok) throw new Error(`blob create failed for ${path}: HTTP ${response.status} ${text}`);
+              const parsed = JSON.parse(text);
+              if (!/^[a-f0-9]{40}$/.test(parsed.sha || '')) throw new Error(`invalid blob sha for ${path}: ${text}`);
+              const header = Buffer.from(`blob ${bytes.length}\0`, 'utf8');
+              const expectedSha = crypto.createHash('sha1').update(header).update(bytes).digest('hex');
+              if (parsed.sha !== expectedSha) throw new Error(`Git blob identity mismatch for ${path}: expected ${expectedSha}, got ${parsed.sha}`);
+              console.log(`VERIFIED_BLOB ${path} ${parsed.sha}`);
+            }
+          }
+          main().catch((error) => { console.error(error); process.exit(1); });
+          NODE
