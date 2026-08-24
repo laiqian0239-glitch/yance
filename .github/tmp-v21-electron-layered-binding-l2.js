@@ -17,11 +17,21 @@ risk.l2ExactPaths.splice(anchorIndex + 1, 0, bindingPath);
 fs.writeFileSync(riskPath, `${JSON.stringify(risk, null, 2)}\n`);
 
 let testSource = fs.readFileSync(testPath, 'utf8');
-const needle = "    'release/electron-distribution-trust.json',\n    'vendor/electron/electron-v39.8.5-win32-x64.zip',";
-const replacement = "    'release/electron-distribution-trust.json',\n    'release/production-dependency-binding.json',\n    'vendor/electron/electron-v39.8.5-win32-x64.zip',";
-const matches = testSource.split(needle).length - 1;
-if (matches !== 2) throw new Error(`expected exactly 2 governance-test anchors, got ${matches}`);
-testSource = testSource.split(needle).join(replacement);
+const anchors = [
+  {
+    needle: "    'release/electron-distribution-trust.json',\n    'vendor/electron/electron-v39.8.5-win32-x64.zip',",
+    replacement: "    'release/electron-distribution-trust.json',\n    'release/production-dependency-binding.json',\n    'vendor/electron/electron-v39.8.5-win32-x64.zip',"
+  },
+  {
+    needle: "    'release/electron-distribution-trust.json',\n    'runtime/local-ai/airllm/yance_airllm_worker.py',",
+    replacement: "    'release/electron-distribution-trust.json',\n    'release/production-dependency-binding.json',\n    'runtime/local-ai/airllm/yance_airllm_worker.py',"
+  }
+];
+for (const { needle, replacement } of anchors) {
+  const matches = testSource.split(needle).length - 1;
+  if (matches !== 1) throw new Error(`expected exactly 1 governance-test anchor, got ${matches}: ${needle}`);
+  testSource = testSource.replace(needle, replacement);
+}
 fs.writeFileSync(testPath, testSource);
 
 execFileSync(process.execPath, ['--test', testPath], { stdio: 'inherit' });
