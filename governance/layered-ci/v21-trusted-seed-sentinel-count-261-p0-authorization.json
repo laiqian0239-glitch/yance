@@ -96,6 +96,26 @@
       "Frozen PR #763 remains evidence-only and is not repaired for PR list cleanliness."
     ]
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_TEST_AUTHORITY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "existing trusted-seed sentinel contract",
+        "source": "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The prerequisite only corrects one stale static expected count in the repository's existing fail-closed sentinel regression; no external dependency, library, or new infrastructure is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not replace the existing sentinel contract with a new framework or dependency.",
+      "Do not derive the expected active seed count dynamically or weaken the retired-sentinel membership assertion."
+    ]
+  },
   "requiredValidation": {
     "focused": [
       "node --test --test-concurrency=1 tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js"
