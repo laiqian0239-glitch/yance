@@ -1150,23 +1150,23 @@
     },
     {
       "packageName": "@whiskeysockets/baileys",
-      "version": "7.0.0-rc13",
+      "version": "7.0.0-rc14",
       "lockPath": "node_modules/@whiskeysockets/baileys",
-      "resolved": "https://registry.npmjs.org/@whiskeysockets/baileys/-/baileys-7.0.0-rc13.tgz",
-      "integrity": "sha512-8JPc8gaaCRykkjW2jxLGQ7/RZGrc7awO7WU+QJocf58eSUI9jAdcuYLynzhAbyU4UWvJJsHImZ+5E/JaZj5ypA==",
-      "archivePath": "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc13.tgz",
-      "archiveSha256": "f22b8e7009771967afac6454d7b922409b772ee04e4a534b00391d6f68529dea",
+      "resolved": "https://registry.npmjs.org/@whiskeysockets/baileys/-/baileys-7.0.0-rc14.tgz",
+      "integrity": "sha512-WK+X8ju8TPGxvWIsP8hrY6JB6FltYuFe+vsqKfjOYX25JObij9qLf2c3ZGdl1Q+vhFwbnT+AZmWAB5pTvzmSiQ==",
+      "archivePath": "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz",
+      "archiveSha256": "86e1108018c12c6a71302055d794024d6efd6b65edf6687cd72168aeb428129f",
       "license": "MIT",
       "source": "npm-official-tarball",
       "allMatchingLockPaths": [
         "node_modules/@whiskeysockets/baileys"
       ],
-      "inputSource": "新建文件夹(1).zip:新建文件夹/baileys-7.0.0-rc13.tgz",
-      "archiveBytes": 999256,
+      "inputSource": "npm-official:@whiskeysockets/baileys@7.0.0-rc14",
+      "archiveBytes": 999670,
       "optionalOnly": false,
       "os": [],
       "cpu": [],
-      "mirrorObservation": "CONFIRMED_MIRROR_404"
+      "mirrorObservation": "OFFICIAL_NPM_TARBALL_VERIFIED"
     },
     {
       "packageName": "accepts",
