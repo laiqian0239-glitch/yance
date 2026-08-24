@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-TRUSTED-SEED-JSON-BUFFER-ORPHAN-P0-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen production dependency advisory PR #761 reached exact production head 9d34c5d64d4858e5a8be4014942e30b5498e0b00 and fresh Stage run 32743484082 proved a new prerequisite root: exact npm@10.9.2 canonical lock regeneration prunes stale orphan node node_modules/json-buffer@3.0.1 while active trusted-seed authority still requires that exact lockPath. The High-advisory authorization simultaneously requires exact npm to remain final lock authority and all unrelated trusted seeds to remain active, so #761 cannot lawfully repair the contradiction in-place. A prior unused v1 authorization transport branch is frozen after accidental out-of-scope transport pollution and is not repaired or reused. This clean v2 prerequisite closes only the stale active json-buffer trusted-seed identity while preserving its vendor archive as historical evidence, after which the advisory batch must restart under fresh successor authorization.",
+  "base": {
+    "branch": "main",
+    "commit": "371d9efbbee4781bb29ed81eccf9f6ef230891e2",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "predecessorEvidence": {
+    "frozenPr": 761,
+    "frozenHead": "9d34c5d64d4858e5a8be4014942e30b5498e0b00",
+    "freshExactHeadStageRun": 32743484082,
+    "freshExactHeadStageConclusion": "failure",
+    "root": "ACTIVE_TRUSTED_SEED_REQUIRES_ORPHAN_JSON_BUFFER_LOCK_NODE_PRUNED_BY_EXACT_NPM",
+    "observedFacts": {
+      "packageName": "json-buffer",
+      "version": "3.0.1",
+      "lockPath": "node_modules/json-buffer",
+      "trustedPolicyActive": true,
+      "canonicalRegeneratedLockContainsPath": false,
+      "npmVersion": "10.9.2"
+    },
+    "frozenUnusedAuthorizationTransport": {
+      "branch": "governance/v21-trusted-seed-json-buffer-orphan-p0-authorization",
+      "disposition": "FROZEN_UNUSED_DO_NOT_REPAIR_OR_REUSE"
+    }
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-trusted-seed-json-buffer-orphan-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-trusted-seed-json-buffer-orphan-p0-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "0c2a4ff500c335158cf4d6d4d36cd6710701ca73cd3a5f0ef559b96e8493a2fe",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-trusted-seed-json-buffer-orphan-p0-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/cleanInstallAuthority.test.js",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "tests/wp0/v21-trusted-seed-count-contract-p0.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "1a3ab4427c87e8dfacc07b687c001ebf3e6a774824420602878a572f17724541",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-trusted-seed-count-contract-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "ea08b2ea75503aa3e89aa1a065c4e4d2f08493f92f379dc093f5b2ec955361d1",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "expectedFailures": [
+        "The current trusted dependency policy still actively requires json-buffer@3.0.1 at node_modules/json-buffer even though exact npm@10.9.2 canonical regeneration demonstrated that this orphan lock node is pruned.",
+        "The current static trusted seed count remains 262 and therefore still includes the stale json-buffer active seed."
+      ]
+    },
+    "requiredBehavior": [
+      "Treat PR #761 head 9d34c5d64d4858e5a8be4014942e30b5498e0b00 and Stage run 32743484082 as frozen causal evidence only; do not modify, amend, rebase, force-push, cherry-pick, or otherwise rewrite that branch while this prerequisite is open.",
+      "Remove exactly json-buffer@3.0.1 with lockPath node_modules/json-buffer from governance/dependency-install-policy.json active trustedCacheSeeds and preserve every other trusted seed entry semantically unchanged.",
+      "Remove exactly the matching json-buffer@3.0.1 entry from governance/dependency-install-batch-manifest.json, keep existingSeedCount at 6, decrement batchSeedCount from 250 to 249 and totalSeedCount from 256 to 255, and preserve sourceArchives plus every unrelated manifest entry semantically unchanged.",
+      "Preserve vendor/npm/json-buffer-3.0.1.tgz as immutable historical evidence; deleting or rewriting the archive is forbidden.",
+      "Update tests/wp0/v21-trusted-seed-count-contract-p0.test.js and backend/tests/cleanInstallAuthority.test.js so active trusted dependency authority requires exactly 261 seeds after stale json-buffer trust is removed.",
+      "Do not modify package.json, package-lock.json, npm authority, dependency versions, vendor archives, runtime code, workflows, routing policy, Layered policy, WP7 receipts, WP-B receipts, or product behavior in this prerequisite.",
+      "After production implementation, verifyTrustedDependencySeeds must pass against current main package-lock.json with 261 active seeds, while the exact json-buffer archive remains present only as inactive historical evidence.",
+      "After this prerequisite ordinary-merges, frozen High-advisory PR #761 must remain frozen and the advisory work package must restart through a fresh successor authorization from then-current trusted main."
+    ],
+    "productionCodeChanged": true,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "dependencyTrustPolicyModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "tests/wp0/v21-trusted-seed-count-contract-p0.test.js",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Failure-first executable contract proves active seed count must fall from 262 to 261 and json-buffer must leave active trust."
+      },
+      {
+        "path": "governance/dependency-install-policy.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Active trusted seed authority currently requires the npm-pruned orphan json-buffer lock identity."
+      },
+      {
+        "path": "governance/dependency-install-batch-manifest.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "The same stale json-buffer identity remains present in trusted batch materialization authority."
+      },
+      {
+        "path": "backend/tests/cleanInstallAuthority.test.js",
+        "classification": "CAUSAL_COMPOSITION",
+        "reason": "The clean-install regression statically binds the current active trusted seed count and must follow exact 261-seed authority."
+      },
+      {
+        "path": "vendor/npm/json-buffer-3.0.1.tgz",
+        "classification": "PRESERVE",
+        "reason": "Archive remains historical evidence only and must stay untouched while active trust is removed."
+      },
+      {
+        "path": "package-lock.json",
+        "classification": "NEGATIVE_PROOF",
+        "reason": "No lock mutation is authorized in the prerequisite; active trust is corrected instead of fabricating an npm-unstable orphan lock node."
+      }
+    ],
+    "negativeProofs": [
+      "No unrelated trusted seed identity or archive is removed or rewritten.",
+      "No package manifest or lockfile dependency identity changes are permitted.",
+      "No scanner, clean-install verifier, Layered gate, routing gate, or exact-head gate is weakened.",
+      "Historical json-buffer tarball evidence remains preserved.",
+      "Frozen PR #761 and the unused polluted v1 authorization transport remain evidence-only and are not repaired for list cleanliness."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_TEST_AUTHORITY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "verifyTrustedDependencySeeds + trusted seed policy exact-lock seam",
+        "source": "existing Yance repository trusted dependency verifier and exact-count regressions",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The prerequisite removes one stale active trusted seed identity using the repository's existing policy and fail-closed verifier; no new dependency infrastructure is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not fabricate json-buffer back into canonical npm lock authority.",
+      "Do not weaken verifyTrustedDependencySeeds or derive the expected seed count dynamically."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-trusted-seed-count-contract-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/cleanInstallAuthority.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
