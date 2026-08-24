@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-TRUSTED-SEED-JSON-BUFFER-RETIREMENT-ATOMIC-P0-V3",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Two frozen exact-head causal batches prove the trusted-seed retirement must land as one synchronized authority transition. Frozen PR #763 head 362760756c1edc185b82c0754425a3565e596af0 / Stage 32750463109 moves active trusted-seed policy and clean-install count from 262 to 261 but fails only because tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js remains statically bound to 262 outside that authorization. Frozen PR #765 head b9187815e6200d7738409917ae55f53096bdba9f / Stage 32751957825 moves that sentinel contract alone to 261 but fails only because current trusted main still has 262 active seeds. Therefore neither side may ordinary-merge independently: the only causal closure is an atomic successor that first proves the stale active json-buffer trust on fresh main, then in one production transition retires json-buffer active trust, updates the manifest and clean-install count, and updates the sentinel static count to 261 while preserving sentinel membership semantics and the historical vendor archive.",
+  "base": {
+    "branch": "main",
+    "commit": "34ebdf434c9df484a119680521d84c7b67403f95",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "predecessorEvidence": {
+    "frozenPolicyRetirementPr": {
+      "pr": 763,
+      "head": "362760756c1edc185b82c0754425a3565e596af0",
+      "stageRun": 32750463109,
+      "stageJob": 97506149925,
+      "stageConclusion": "failure",
+      "wp0TotalTests": 666,
+      "wp0Pass": 665,
+      "wp0Fail": 1,
+      "soleFailure": "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js expected active size 262 while candidate active size is 261"
+    },
+    "frozenSentinelOnlyPr": {
+      "pr": 765,
+      "head": "b9187815e6200d7738409917ae55f53096bdba9f",
+      "stageRun": 32751957825,
+      "stageJob": 97510873328,
+      "stageConclusion": "failure",
+      "wp0TotalTests": 666,
+      "wp0Pass": 665,
+      "wp0Fail": 1,
+      "soleFailure": "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js expected active size 261 while current trusted-main active size is 262"
+    },
+    "root": "JSON_BUFFER_ACTIVE_TRUST_RETIREMENT_AND_SENTINEL_COUNT_MUST_TRANSITION_ATOMICALLY",
+    "unknownBlockers": 0
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-trusted-seed-json-buffer-retirement-atomic-p0-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-trusted-seed-json-buffer-retirement-atomic-p0-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "caefe95b7b38cbfb615409516fe270aa02488f08b9935561c98cc206996843f9",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-trusted-seed-json-buffer-retirement-atomic-p0-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/cleanInstallAuthority.test.js",
+      "governance/dependency-install-batch-manifest.json",
+      "governance/dependency-install-policy.json",
+      "tests/wp0/v21-trusted-seed-count-contract-p0.test.js",
+      "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "8c216b10463cdbde34d94c2fc6d2d617b3b148007b4535b9862da6becc8be74c",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-trusted-seed-count-contract-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "ea08b2ea75503aa3e89aa1a065c4e4d2f08493f92f379dc093f5b2ec955361d1",
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "expectedFailures": [
+        "Current active trusted dependency authority still contains exactly 262 seeds instead of the required 261.",
+        "json-buffer@3.0.1 at node_modules/json-buffer still remains active trusted seed authority on fresh main.",
+        "The clean-install regression still statically binds the active trusted seed count to 262 instead of 261."
+      ]
+    },
+    "requiredBehavior": [
+      "Treat frozen PR #763 head 362760756c1edc185b82c0754425a3565e596af0 / Stage 32750463109 and frozen PR #765 head b9187815e6200d7738409917ae55f53096bdba9f / Stage 32751957825 as causal evidence only; do not amend, rebase, force-push, cherry-pick, forward-reconcile, or otherwise rewrite either frozen branch.",
+      "The first implementation commit must change only tests/wp0/v21-trusted-seed-count-contract-p0.test.js and produce a fresh causal RED from the authorization ordinary-merge commit before any production authority changes.",
+      "After a clean fresh RED with unknownBlockers=0, make one ordinary descendant production transition that changes exactly the four remaining authorized paths together: governance/dependency-install-policy.json, governance/dependency-install-batch-manifest.json, backend/tests/cleanInstallAuthority.test.js, and tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js.",
+      "Remove exactly json-buffer@3.0.1 with lockPath node_modules/json-buffer from governance/dependency-install-policy.json active trustedCacheSeeds and preserve every unrelated trusted seed entry semantically unchanged.",
+      "Remove exactly the matching json-buffer@3.0.1 entry from governance/dependency-install-batch-manifest.json, keep existingSeedCount at 6, decrement batchSeedCount from 250 to 249 and totalSeedCount from 256 to 255, and preserve sourceArchives plus every unrelated manifest entry semantically unchanged.",
+      "Update backend/tests/cleanInstallAuthority.test.js static complete active trusted seed assertions from 262 to 261 without removing any existing sentinel identity assertion.",
+      "Update tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js static active size assertion from 262 to 261 while preserving sentinel identity extraction and assert.deepEqual(retired, []) unchanged.",
+      "Preserve vendor/npm/json-buffer-3.0.1.tgz byte-for-byte as inactive historical evidence.",
+      "Do not modify package.json, package-lock.json, dependency versions, npm authority, vendor archives, runtime code, workflows, routing policy, Layered policy, WP7 receipts, WP-B receipts, or product behavior.",
+      "After production implementation, verifyTrustedDependencySeeds must pass against the unchanged current package-lock.json with exactly 261 active trusted seeds and no active json-buffer@3.0.1 authority."
+    ],
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "productionCodeChanged": true,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "dependencyTrustPolicyModificationAllowed": true,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "tests/wp0/v21-trusted-seed-count-contract-p0.test.js",
+        "classification": "FAILURE_FIRST_ROOT_CONTRACT",
+        "reason": "Fresh tests-only head must prove current 262/json-buffer active trust contradicts required 261 authority before production mutation."
+      },
+      {
+        "path": "governance/dependency-install-policy.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "Active policy still trusts the npm-pruned orphan json-buffer identity and must retire it."
+      },
+      {
+        "path": "governance/dependency-install-batch-manifest.json",
+        "classification": "ROOT_IMPLEMENTATION",
+        "reason": "The matching stale batch materialization identity and counts must move atomically with active policy."
+      },
+      {
+        "path": "backend/tests/cleanInstallAuthority.test.js",
+        "classification": "CAUSAL_COMPOSITION",
+        "reason": "Static complete-set authority must track the exact 261 active trusted seeds after retirement."
+      },
+      {
+        "path": "tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js",
+        "classification": "CAUSAL_COMPOSITION",
+        "reason": "Frozen #763/#765 prove its static count cannot transition before or after policy retirement; it must move in the same production commit while retaining membership semantics."
+      },
+      {
+        "path": "vendor/npm/json-buffer-3.0.1.tgz",
+        "classification": "PRESERVE",
+        "reason": "Historical archive evidence remains immutable and inactive."
+      },
+      {
+        "path": "package-lock.json",
+        "classification": "NEGATIVE_PROOF",
+        "reason": "The prerequisite corrects active trust authority instead of fabricating an npm-unstable orphan lock node."
+      }
+    ],
+    "negativeProofs": [
+      "No unrelated trusted seed identity, metadata, or archive is removed or rewritten.",
+      "No package manifest, lockfile, dependency version, npm authority, workflow, routing policy, Layered policy, WP7 receipt, WP-B receipt, runtime, or product behavior changes are permitted.",
+      "The historical json-buffer tarball remains byte-identical.",
+      "Sentinel identity extraction and retired-sentinel fail-closed membership validation remain unchanged.",
+      "Frozen PRs #763 and #765 remain evidence-only and are not repaired for PR-list cleanliness."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_TRUST_AUTHORITY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "verifyTrustedDependencySeeds plus existing static trusted-seed regressions",
+        "source": "tools/runtime-delivery/dependency-install-authority.js and existing WP0/clean-install tests",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The atomic successor changes repository-owned trust metadata and exact-count regressions only; existing fail-closed verifier and tests already provide the complete enforcement seam, so no external library or new infrastructure is warranted."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not fabricate json-buffer back into canonical npm lock authority.",
+      "Do not derive expected active seed counts dynamically.",
+      "Do not weaken sentinel membership assertions or introduce a second trust verifier."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-trusted-seed-count-contract-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-trusted-seed-sentinel-contract-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/cleanInstallAuthority.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge Validation when routed",
+      "V21 Model Brain P0 Windows when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredP0": 0,
+    "requiredP1": 0
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
