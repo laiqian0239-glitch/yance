@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-24T16:48:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BAILEYS-REPRODUCIBLE-RUNTIME-P0-LAYERED-CI-RISK-ROUTE-REPAIR",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #749 is frozen at production exact head 13816fc5f08b28ce72981f7a34cb9ed42a5f13d1 after fresh exact-head Layered CI Fast Feedback run 32712804316 job 97387640744 failed closed in Select required CI level with CI_UNKNOWN_PATH for exactly vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz. The Layered policy job 97387640980 is GREEN, so the classifier is healthy and only the new trusted official npm Baileys rc14 vendor identity is unregistered. PR #749 authorization does not permit Layered risk-policy changes. This independent prerequisite therefore authorizes one exact L2 classification plus the existing classifier regression seam. The same #749 exact-head audit also exposed two candidate-state dependency-receipt rebinding blockers outside this prerequisite: release/production-dependency-binding.json and governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json. Those receipts bind the candidate-only package/package-lock bytes and therefore cannot be independently merged into current main; they are classified as a subsequent Baileys forwardContinuation successor scope amendment. No blocker remains unclassified.",
+  "base": {
+    "branch": "main",
+    "commit": "d9f4ba26a994c3a4e505eb4a4da109ed1ba93e3a",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "d9f4ba26a994c3a4e505eb4a4da109ed1ba93e3a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "causalRedEvidence": {
+    "implementationPullRequest": 749,
+    "implementationExactHead": "13816fc5f08b28ce72981f7a34cb9ed42a5f13d1",
+    "implementationCanonicalFirstRedHead": "2451e52ee88f029d1f76a37be04c2ea319138a62",
+    "implementationCanonicalFirstRedRun": 32708088591,
+    "workflow": "Layered CI Fast Feedback",
+    "runId": 32712804316,
+    "riskJobId": 97387640744,
+    "policyJobId": 97387640980,
+    "failedStep": "Select required CI level",
+    "reasonCode": "CI_UNKNOWN_PATH",
+    "policyJobPassed": true,
+    "unknownPaths": [
+      "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz"
+    ],
+    "failureOccurredBeforeL2Verification": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "boundaries": [
+      {
+        "path": "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz",
+        "classification": "INDEPENDENT_PREREQUISITE_ROOT",
+        "reason": "Existing fail-closed Layered classifier needs one exact L2 identity."
+      },
+      {
+        "path": "release/production-dependency-binding.json",
+        "classification": "CANDIDATE_SUCCESSOR_SCOPE_AMENDMENT",
+        "reason": "WP7 reviewed binding must be completely regenerated from #749 candidate package/package-lock bytes and cannot precede those bytes on main."
+      },
+      {
+        "path": "governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json",
+        "classification": "CANDIDATE_SUCCESSOR_SCOPE_AMENDMENT",
+        "reason": "XState receipt must rebind to #749 candidate package-lock bytes while preserving xstate@5.32.5 artifact identity."
+      }
+    ],
+    "negativeProofs": [
+      "No #749 implementation path is modified by this prerequisite.",
+      "No release/production-dependency-binding.json or WP-B XState receipt is written before the candidate package/package-lock state exists in its successor.",
+      "No workflow, route selector, classifier implementation, package manifest, lockfile, dependency identity, or broad L2 prefix is changed."
+    ]
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-baileys-reproducible-runtime-p0-layered-ci-risk-route-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-baileys-reproducible-runtime-p0-layered-ci-risk-route-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a0ecd9440a19b8a8b6337846dc60f7f8cf84678cacdbf3213ae0e675dba6a27b",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "riskPolicyExactL2Paths": [
+    "vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz"
+  ],
+  "riskPolicyExactL2PathCount": 1,
+  "riskPolicyExactL2PathSetSha256": "b988654e03d1536864431999e7cd9636b82553b5690a58afb2bf20ab263e43df",
+  "implementation": {
+    "branch": "fix/v21-baileys-reproducible-runtime-p0-layered-ci-risk-route-repair",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/governance-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "dda3b27532f387c8ea4e78c3b63b62fc9b822d1efdf31ea6051fe6ea91f22633",
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/governance-policy.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "96590e18dd790ed9f84431e411beab59fb97e12dba1a186466800351673256f5",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailure": "The frozen Baileys rc14 official vendor tarball identity remains CI_UNKNOWN_PATH until governance/layered-ci/risk-policy.json receives the exact L2 repair."
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "riskPolicyMigration": {
+    "path": "governance/layered-ci/risk-policy.json",
+    "targetCollection": "l2ExactPaths",
+    "requiredLevel": "L2",
+    "requiredChange": "Add exactly vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz to l2ExactPaths without changing unrelated ordering or classifications.",
+    "baselineL2ExactPathCount": 33,
+    "baselineL2ExactPathSetSha256": "bb5e6546f062638ae5b1ef98551ae4e368919ab901fd93b177f097ecb2e3204c",
+    "expectedPostRepairL2ExactPathCount": 34,
+    "expectedPostRepairL2ExactPathSetSha256": "bf14c1ec2e7cf4751e37256a988863d972752eed3e671971e6e3447fc8166bc4",
+    "baselineL2PrefixCount": 13,
+    "baselineL2PrefixSetSha256": "bf08a55c081a48508dc5a5e2008bbb40a25ad135ed129fe6ee0068aecf6edebc",
+    "unknownPathFailsClosedMustRemain": true,
+    "l3AutomaticMustRemain": false,
+    "broadPrefixModificationAllowed": false,
+    "existingPrefixModificationAllowed": false,
+    "existingClassificationRemovalAllowed": false
+  },
+  "candidatePreservation": {
+    "candidatePullRequest": 749,
+    "candidateBranch": "fix/v21-baileys-reproducible-runtime-p0-successor-v3",
+    "candidateFrozenExactHead": "13816fc5f08b28ce72981f7a34cb9ed42a5f13d1",
+    "candidateCanonicalFirstRedHead": "2451e52ee88f029d1f76a37be04c2ea319138a62",
+    "candidateAuthorizedChangedFileCountMustRemain": 8,
+    "candidateAuthorizedChangedFileSetSha256MustRemain": "3761b1bed254c5cf3c5419567fb025d3ad0c78659d7e813bcf0591efdeab576d",
+    "candidateHistoryRewriteAllowed": false,
+    "candidateMutationAllowed": false
+  },
+  "mandatoryFailureFirstContracts": [
+    "Before risk-policy implementation, classifyChangedFiles reports CI_UNKNOWN_PATH for vendor/npm/_at_whiskeysockets__baileys-7.0.0-rc14.tgz while existing policy structure and unrelated classifications remain valid.",
+    "After implementation, the exact rc14 vendor identity independently classifies as exact L2 and l2ExactPaths equals the frozen baseline plus exactly that identity.",
+    "No vendor/, vendor/npm/ or other broad L2 prefix is added.",
+    "An adjacent unregistered Baileys vendor identity continues to fail closed as CI_UNKNOWN_PATH.",
+    "unknownPathFailsClosed=true, l3Automatic=false, existing L2 prefixes and existing exact classifications remain unchanged.",
+    "No #749 implementation path, package/lock byte, immutable RED evidence, workflow, dependency receipt, release/publish path, or frozen historical PR is modified."
+  ],
+  "requiredSequence": [
+    "Authorization remains exactly one governance file on unchanged fresh trusted main and passes all applicable governance gates.",
+    "Authorization PR merges to main by ordinary two-parent merge without rebase, squash, amend, force push or history rewrite.",
+    "Create the implementation branch exactly from the authorization merge commit.",
+    "First implementation commit changes only tests/layered-ci/governance-policy.test.js and obtains fresh causal RED proving the frozen rc14 vendor identity remains CI_UNKNOWN_PATH.",
+    "With Closure Matrix unknownBlockers=0, add exactly that identity to governance/layered-ci/risk-policy.json l2ExactPaths and preserve all frozen policy invariants.",
+    "Implementation exact head passes applicable Stage, Layered, ACV2 and independent review gates.",
+    "Implementation PR merges to main by ordinary two-parent merge.",
+    "Create a separate append-only Baileys successor authorization from the new trusted main for candidate-only WP7 and WP-B dependency receipt rebinding, then continue frozen #749 through canonical forwardContinuation."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_LAYERED_CI_FAIL_CLOSED_EXACT_L2_CLASSIFIER",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "matureOssDefault": true,
+    "thinYanceAdapterOnly": true,
+    "reviewedCandidates": [
+      {
+        "name": "Yance Layered CI risk classifier",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The classifier already fails closed and treats existing checked-in vendor npm custody identities as exact L2; only the new rc14 Baileys identity is missing."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add vendor/ or vendor/npm/ as L2 prefixes.",
+      "Do not set unknownPathFailsClosed=false or l3Automatic=true.",
+      "Do not modify select-ci-level.js, workflows, #749 Product paths, package manifests, dependency receipts, or routing policy.",
+      "Do not add a PR-specific bypass, alternate classifier, skip flag, warning-only closure, or second policy engine."
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
