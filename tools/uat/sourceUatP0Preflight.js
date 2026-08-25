@@ -9,7 +9,7 @@ const { discoverExistingDataRoots } = require('../runtime-delivery/source-uat-de
 const EXPECTED_WORKER_AVATAR_CONTRACT = 11;
 const EXPECTED_WORKER_EVIDENCE_CONTRACT = 6;
 const EXPECTED_WORKER_DEPLOYMENT_MARKER = 'facebook-avatar-translation-persistence-fix13-20260724';
-const EXPECTED_D1_SCHEMA_VERSION = 5;
+const EXPECTED_D1_SCHEMA_VERSION = 6;
 const DEFAULT_WORKER = 'https://yance-facebook-gateway.wangyi198675.workers.dev';
 
 const REQUIRED_LOCAL_COLUMNS = Object.freeze({
@@ -333,11 +333,19 @@ async function runPreflight(options = {}) {
   const deploymentMarker = clean(worker?.avatarProxyContract?.deploymentMarker);
   add('worker-avatar-deployment-marker', deploymentMarker === EXPECTED_WORKER_DEPLOYMENT_MARKER, true, { expected: EXPECTED_WORKER_DEPLOYMENT_MARKER, actual: deploymentMarker, workerBase }, 'P0_WORKER_DEPLOYMENT_MARKER_MISMATCH');
   const d1Version = Number(worker?.d1Schema?.version || 0);
-  const d1Ready = d1Version >= EXPECTED_D1_SCHEMA_VERSION && worker?.d1Schema?.ready === true && worker?.d1Schema?.pagePictureColumn === true;
+  const latestRequiredMigration = clean(worker?.d1Schema?.latestRequiredMigration);
+  const permissionAuthorityColumns = worker?.d1Schema?.permissionAuthorityColumns === true;
+  const d1Ready = d1Version === EXPECTED_D1_SCHEMA_VERSION
+    && latestRequiredMigration === '0006_permission_authority.sql'
+    && permissionAuthorityColumns === true
+    && worker?.d1Schema?.ready === true
+    && worker?.d1Schema?.pagePictureColumn === true;
   const legacyIndirect = options.allowLegacyHealthz === true && worker?.avatarProxyContract?.persistentPageReference === true;
   const d1Evidence = {
     expected: EXPECTED_D1_SCHEMA_VERSION,
     actual: d1Version || null,
+    latestRequiredMigration,
+    permissionAuthorityColumns,
     ready: worker?.d1Schema?.ready === true,
     pagePictureColumn: worker?.d1Schema?.pagePictureColumn === true,
     legacyIndirect
