@@ -107,6 +107,10 @@ test('MEDIA_TRANSFER physical execution has an implemented account-owned media-t
     /async\s+mediaTransfer\([\s\S]*?messageStore\.getExternalMessage[\s\S]*?facebookAdapter\.cacheWebhookAttachments/u,
     'AccountManager must resolve persisted Facebook media and invoke the existing signed Worker materializer'
   );
+  assert.match(manager, /expectedSourceScopeReference\s*=\s*`facebook:\$\{id\}:webhook:\$\{externalMessageId\}`/u);
+  assert.match(manager, /expectedDestinationScopeReference\s*=\s*`conversation:\$\{conversationId\}:message:\$\{externalMessageId\}`/u);
+  assert.match(manager, /expectedMetadataSha256\s*=\s*crypto\.createHash\(['"]sha256['"]\)[\s\S]*?\['facebook', id, conversationId, externalMessageId\]/u);
+  assert.match(manager, /FACEBOOK_MEDIA_TRANSFER_SCOPE_MISMATCH/u);
   assert.doesNotMatch(
     ports,
     /function\s+(?:scheduleFacebookWebhookMediaTransfer|materializeFacebookMediaTransfer|facebookMediaTransferCommand)\b/u,
