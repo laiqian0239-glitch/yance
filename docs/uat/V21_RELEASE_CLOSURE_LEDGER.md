@@ -18,6 +18,10 @@ Post-backend-startup audit authorization / exact implementation base: `a5be524b6
 
 Post-backend-startup audited trusted main: `944474ab3e04913e55019526640ee76afe1ada73` (#783 ordinary two-parent merge)
 
+Post-KF-P0-12 audit authorization / exact implementation base: `2ff6def7a406bb9e93dedbb8b00f2df1d184fe78` (#791 ordinary two-parent merge)
+
+Post-KF-P0-12 audited trusted main: `06b1cb20452ec928b0316733bf5d1533cee37f23` (#790 ordinary two-parent merge)
+
 Delta Regression historical baseline: `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0` (`docs(audit): deliver comprehensive status audit report 2026-08-20`).
 
 Known Findings source: 2026-08-20 comprehensive feature review (historical audit baseline).
@@ -59,6 +63,15 @@ Rows not explicitly advanced above were rechecked and remain `OPEN` or `EVIDENCE
 
 All other previously unresolved V1/A2/Delta/coverage rows remain fail-closed unless their own finding-specific evidence is independently complete. This checkpoint does not authorize or claim a packaged Windows RC.
 
+### 2026-08-25 post-KF-P0-12 mechanical reconciliation checkpoint
+
+- KF-P0-12 now has a complete finding-specific source/gate chain. Frozen tests-only #788 exact head `50e7368b2dd257cc17d14d7030f42abef48cc1ae` produced Stage RED `32816626246` / `wp0-product` job `97706179103`: 680 mandatory WP0 tests, 678 pass and exactly two failures — release preflight accepted a D1 floor instead of exact permission-authority schema v6, and Desktop Worker clients allowed non-`FACEBOOK_*` remote codes to escape. All unrelated WP0 tests and sealed-export checks passed, so `unknownBlockers=0`.
+- #789 production authorization ordinary-merged as `c6f335f17d0692a8f3cbf654a32e741cc14bedca`. The successor continuation preserved the frozen RED ancestry, and final #790 exact head `39103fd91aac0f6736f758a579a1c8fbda1673cb` remained inside exactly four authorized paths.
+- #790 exact head passed Stage `32818897944` (`wp0-product` job `97712758362`, `Run WP0 required tests` SUCCESS), Layered `32818898132`, ACV2 `32818897926`, WP-A `32818897971`, and Model Windows `32818897945`; Product Final `32818897930` was correctly route-skipped and is not counted as GREEN. #790 then ordinary-merged as `06b1cb20452ec928b0316733bf5d1533cee37f23` with strict parents `c6f335f17d0692a8f3cbf654a32e741cc14bedca` + `39103fd91aac0f6736f758a579a1c8fbda1673cb`.
+- This mechanically advances KF-P0-12 to source/gate closed RC pending. It does not advance KF-P0-11: exact-main inspection still shows the default `platformAdapterPorts` singleton wiring auth/reconcile without an explicit Facebook physical egress handler, while the generic authorizer makes the public binding appear present; that separate finding still requires its own fresh causal package.
+
+All other previously unresolved V1/A2/Delta/coverage rows remain fail-closed unless their own finding-specific evidence is independently complete. No final packaged Windows RC exists, so Fresh-main Audit V2, global mandatory executed-test coverage, final Delta audit, packaged RC and release/publish flags remain false.
+
 ## 2. Known Findings V1 — 31 P0 rows
 
 | ID | Bucket | Finding | Current state | Evidence / next closure action |
@@ -73,8 +86,8 @@ All other previously unresolved V1/A2/Delta/coverage rows remain fail-closed unl
 | KF-P0-08 | SecurityGuard | 调用方可伪造 actor 通过 `requireInternal` | SOURCE_GATE_CLOSED_RC_PENDING | #541 merged as `2b8e648f…`; source exact head `f5c09b10…`; Stage `32379500018`, ACV2 `32379500208`, WP-A `32379500226`, Model `32379500114` GREEN. Final packaged security regression still required. |
 | KF-P0-09 | SecurityGuard | Safe Mode 对 `recovery.*` 使用宽前缀白名单 | SOURCE_GATE_CLOSED_RC_PENDING | #541 replaces prefix matching with exact command set; same exact-head GREEN evidence as KF-P0-08. Final packaged safe-mode write-path evidence required. |
 | KF-P0-10 | SecurityGuard | `context.write=true` 可篡改 command-owned 写分类 | SOURCE_GATE_CLOSED_RC_PENDING | #543 merged as `9a2a696a…`; source head `ced882e1…`; Stage `32385443466`, ACV2 `32385443458`, WP-A `32385443619`, Model `32385443480` GREEN. Final packaged regression required. |
-| KF-P0-11 | Adapter Ports / Facebook Worker | `platformAdapterPorts` 默认 registry 未显式闭合 Facebook egress handler | EVIDENCE_RECONCILIATION | Facebook Worker production closures are merged, including #639 and #777, but this exact default-registry/egress finding still lacks a mechanically bound finding-specific RED → exact-head test chain. Do not infer closure from interface presence. |
-| KF-P0-12 | Adapter Ports / Facebook Worker | Desktop 与 Worker oauth/avatar/D1 契约版本及 `FACEBOOK_*` 错误码未强制对齐 | EVIDENCE_RECONCILIATION | Later Facebook contract work exists; exact oauth/avatar/D1 version and `FACEBOOK_*` error-family conformance still needs a finding-specific executed contract mapping. |
+| KF-P0-11 | Adapter Ports / Facebook Worker | `platformAdapterPorts` 默认 registry 未显式闭合 Facebook egress handler | EVIDENCE_RECONCILIATION | Exact-main source inspection after #790 confirms the default singleton injects only auth/reconcile handlers; `contract().bindings.egress` can still evaluate true through the persisted-outbox authorizer while `executeEgress()` falls through to the generic `sendMessageService` physical fallback. This is a concrete candidate root, but it still requires a separate finding-specific fresh causal RED and authorized root fix; do not infer closure from interface presence. |
+| KF-P0-12 | Adapter Ports / Facebook Worker | Desktop 与 Worker oauth/avatar/D1 契约版本及 `FACEBOOK_*` 错误码未强制对齐 | SOURCE_GATE_CLOSED_RC_PENDING | Frozen tests-only #788 exact head `50e7368b2dd257cc17d14d7030f42abef48cc1ae`, Stage `32816626246` / job `97706179103`, ran 680 mandatory WP0 tests with 678 pass and exactly the D1 exact-contract plus Worker error-family failures; `unknownBlockers=0`. #789 ordinary-merged production authority as `c6f335f1…`. Final #790 head `39103fd9…` requires exact D1 v6 / `0006_permission_authority.sql` / permission-authority columns and normalizes remote Worker codes fail-closed to the `FACEBOOK_*` family; Stage `32818897944` / job `97712758362`, Layered `32818898132`, ACV2 `32818897926`, WP-A `32818897971`, Model `32818897945` all pass, Product Final is correctly skipped, and #790 ordinary-merges as `06b1cb20…`. Final packaged Facebook contract/UAT evidence remains mandatory. |
 | KF-P0-13 | Adapter Ports / Facebook Worker | `pullEvents` 一次性 lease 无续约导致长事件处理重复投递/状态延迟 | SOURCE_GATE_CLOSED_RC_PENDING | #639 merged as `347097a6…`; frozen RED `b4bab02a…`, Stage RED `32564194421`, `unknownBlockers=0`; source head `eedb4e09…` exact Stage/Layered/ACV2/WP-A/Model GREEN. Root fix adds bounded event lease renewal. Final packaged evidence pending. |
 | KF-P0-14 | Identity / Person Context | Identity detach 后 `person_contact_bindings` 未同步失效 | SOURCE_GATE_CLOSED_RC_PENDING | #542 merged as `f978a4dc…`; source head `0173cba4…` adds last-usable-link contact binding detach and audited rollback. Packaged identity flow pending. |
 | KF-P0-15 | Identity / Person Context | 再次 `observe` 可静默重新激活已 detached scope binding | SOURCE_GATE_CLOSED_RC_PENDING | #542 explicitly rejects detached-link silent re-observe and adds regression coverage. Final packaged flow pending. |
@@ -98,7 +111,7 @@ All other previously unresolved V1/A2/Delta/coverage rows remain fail-closed unl
 ### P0 accounting
 
 - imported P0 rows: **31**
-- `SOURCE_GATE_CLOSED_RC_PENDING`: **14**
+- `SOURCE_GATE_CLOSED_RC_PENDING`: **15**
 - finally `CLOSED`: **0**
 - unresolved for final release: **31**
 
@@ -132,9 +145,9 @@ These rows are independent of Known Findings V1. Do not renumber or rewrite the 
 |---|---|---|---|---|
 | A2-P1-001 | P1 | AI_AUTO deterministic reply-generation failures historically re-entered the 20-attempt durable analysis retry loop (issue #533) | SOURCE_GATE_CLOSED_RC_PENDING | After the WP0 coverage prerequisite, #682 V4 first head `2b0e2a19…` produced fresh Stage RED `32613800942` for the remaining `SOCIAL_CONTEXT_NOT_READY`, `STALE_CONVERSATION_CONTEXT`, `STALE_PERSONA_PROFILE` classification gap with `unknownBlockers=0`. Final head `3231ba42…` passed Stage `32613979019`, ACV2 `32613978971`, WP-A `32613978900`, Model `32613978924` and merged as `f01bb27d…`; these deterministic generation errors now terminate the canonical analysis non-retryably. Fresh final RC remains required. |
 
-No new A2-P0/A2-P1 row is added by the `760c45a9… → f8d0a736…` source segment: it consists of the Lane C ledger checkpoint and the already-accounted Facebook causal closure. The subsequent #781→#783 backend startup-admission closure is reconciled into KF-P0-01 rather than duplicated as a new A2 row. This is not a declaration that Fresh-main Audit V2 is complete; unresolved V1 evidence rows remain fail-closed.
+No new A2-P0/A2-P1 row is added by the `760c45a9… → f8d0a736…` source segment: it consists of the Lane C ledger checkpoint and the already-accounted Facebook causal closure. The subsequent #781→#783 backend startup-admission closure is reconciled into KF-P0-01 rather than duplicated as a new A2 row. The #788→#790 contract-alignment closure is reconciled into KF-P0-12 rather than duplicated as a new A2 row. This is not a declaration that Fresh-main Audit V2 is complete; unresolved V1 evidence rows remain fail-closed.
 
-### 4.1 Post-Facebook exact-main surface accounting — `f8d0a73603e4e4ff3f6207db80bcc9b60c7f15b7`
+### 4.1 Post-KF-P0-12 exact-main surface accounting — `06b1cb20452ec928b0316733bf5d1533cee37f23`
 
 | Audit surface | Exact-main inspection result | Ledger disposition |
 |---|---|---|
@@ -142,11 +155,11 @@ No new A2-P0/A2-P1 row is added by the `760c45a9… → f8d0a736…` source segm
 | Electron/backend ownership, startup, shutdown and process identity | The #620→#628→#643 causal chain mechanically closes the synchronous owner-identity and serial-shutdown source defects. The later #781→#783 causal chain independently closes the KF-P0-01 startup-admission race at source/gate level with the same immutable RED test executing GREEN; the historical register-level cross-process-lock row remains unmapped. | KF-P0-01, KF-P0-02 and KF-P1-02 are source-gate closed RC pending; KF-P0-03 remains evidence reconciliation; packaged start/restart/stop and multi-instance evidence remains pending. |
 | Credential/security boundaries | SecurityGuard exact-command/internal/write-classification source closures are merged, while all-write-entrypoint packaged proof remains outstanding. | KF-P0-08..10 retain source-gate-closed-RC-pending; KF-P1-01 remains evidence reconciliation. |
 | Store/identity/conversation truth | `SYNC_CUSTOMER_CONTEXT` dedupe and active-session single-writer source shapes are present, but no new finding-specific causal RED was reconstructed for KF-P0-04/17/18. | Keep KF-P0-04/17/18 fail-closed at evidence reconciliation; do not infer closure from source shape. |
-| Physical adapters and durable repair | #775/#777 closes the supported Facebook media path through persisted durable `MEDIA_TRANSFER` + signed Worker/R2 custody and repairs the stale Worker media regression/mandatory coverage blind spot. Direct desktop legacy Meta-CDN fetch remains intentionally retired. Other broad adapter/local-repair findings are not mechanically subsumed. | KF-P0-25 and DELTA-P1-001 advance to source-gate closed RC pending; KF-P0-11/12/20/23/24 and KF-P1-06 remain unresolved on their own evidence requirements. |
+| Physical adapters and durable repair | #775/#777 closes supported Facebook media through persisted durable `MEDIA_TRANSFER` + signed Worker/R2 custody. #788/#790 now closes exact D1 permission-authority preflight and Desktop Worker `FACEBOOK_*` error-family alignment. Exact-main inspection separately confirms the KF-P0-11 default-registry physical-egress wiring gap remains a live candidate root. | KF-P0-12 and KF-P0-25 are source-gate closed RC pending; DELTA-P1-001 remains source-gate closed RC pending; KF-P0-11/20/23/24 and KF-P1-06 remain unresolved on their own evidence requirements. |
 | Durable Execution | Schema-23 operations, heartbeat and retry/fencing paths exist and historical #17 contains broad M2 evidence, but per-finding ordinary-merged causal lineage was not reconstructed for the three historical rows. | KF-P0-26..28 remain `EVIDENCE_RECONCILIATION`. |
 | AI Core cancellation/stale/retry/authority/persistence | AI_AUTO retry-storm subset is mechanically closed at source/gate level; broader scheduled/cancel-vs-succeed/stale-layer/deep-latency rows remain unmapped. | A2-P1-001 remains source-gate closed RC pending; KF-P0-29..31 and KF-P1-07 remain unresolved. |
-| Dependency / supply chain | Electron 43.4.1, Baileys rc14, Letta sharp reconciliation and High-advisory closure remain on exact main; the post-Lane-C Facebook segment introduces no dependency/lock/runtime-downloader change. | KF-P0-05..07 / KF-P1-03 retain source-gate-closed-RC-pending; no new Delta dependency P0/P1. |
-| Release packaging / sealed runtime / real Windows launch | No new final fresh-main packaged Windows RC exists after #783. | UAT-001/UAT-002 remain blocking; `freshPackagedWindowsRcPass=false`. |
+| Dependency / supply chain | Electron 43.4.1, Baileys rc14, Letta sharp reconciliation and High-advisory closure remain on exact main; the post-backend-startup/KF-P0-12 segment introduces no dependency, lockfile or runtime-downloader change. | KF-P0-05..07 / KF-P1-03 retain source-gate-closed-RC-pending; no new Delta dependency P0/P1. |
+| Release packaging / sealed runtime / real Windows launch | No new final fresh-main packaged Windows RC exists after #790. | UAT-001/UAT-002 remain blocking; `freshPackagedWindowsRcPass=false`. |
 
 This is an exact-main **surface scan checkpoint**, not release completion. Existing V1/A2 blockers are not duplicated merely to make the Audit V2 list longer. `freshMainAuditV2Complete=false` remains fail-closed while unresolved source/evidence P0/P1 rows remain.
 
@@ -175,6 +188,7 @@ Presence of a test file is not sufficient. The following rows are mechanically b
 | COV-KF-P0-05 | `tests/wp0/v21-electron-supported-runtime-p0.test.js` | Stage WP0 | RED `32662426611`; final Stage `32686449711` | `91a14bed0fb242b5fcf5b85c166735c757c4f46b` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-KF-P0-06/P1-03 | `tests/wp0/v21-production-dependency-high-advisory-p0.test.js` | Stage WP0 | RED `32782570846`; final Stage `32784038864` | `95c60e647a0551e9780c611a0151d196449f84af` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-KF-P0-07 | `tests/wp0/v21-baileys-reproducible-runtime-p0.test.js` | Stage WP0 | first RED `32695056263`; final Stage `32722313094` | `bbfb49438b0fc65738d540df56620b128592102b` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
+| COV-KF-P0-12 | `tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js` exact D1 permission-authority and Worker error-family contracts | Stage WP0: `package.json` `test:wp0` → `tools/wp0/run-tests.js` enumerates every `tests/wp0/*.test.js` | RED Stage `32816626246` / job `97706179103`; final Stage `32818897944` / `wp0-product` job `97712758362`, `Run WP0 required tests` SUCCESS | `39103fd91aac0f6736f758a579a1c8fbda1673cb` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-KF-P1-05 | `tests/wp0/v21-typing-state-contact-self-authority.test.js` | Stage WP0 | RED `32690111693`; final Stage `32690592676` | `a20285f0d8db3f6841450c07f35d112f4b9a0917` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-KF-P1-08 | `tests/wp0/v21-persona-compile-authority-p1.test.js` | Stage WP0 | RED `32691739045`; final Stage `32692383958` | `561d931aeaed89667dfaedbb985c58f99a3ee762` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-A2-P1-001 | `backend/tests/v21ProductAiAutoRetryStorm.test.js` | Stage WP0 required-test runner | RED `32613800942`; final Stage `32613979019` | `3231ba426c8e3976afd302cb2e2eaa160c957c1a` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
@@ -182,6 +196,8 @@ Presence of a test file is not sufficient. The following rows are mechanically b
 | COV-GAP-DELTA-P1-001 | `services/facebook-worker/tests/media-r2-retention.test.js` persisted-attempt/no-local-retry regression | Mandatory Stage transitively through `tests/wp0/v21-facebook-media-authority-release-closure-p0.test.js`, which synchronously spawns this exact Worker test and requires exit status 0 | RED Stage `32794003597`; final Stage `32805044852`, job `97673481882`, required-test step SUCCESS | `2df6bbb586c5f81a9e420571d4a32fe59d5684e7` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING — historical gap repaired by #775/#777 |
 
 The Facebook execution binding is mechanical rather than inferred from file presence: exact-head Stage job `97673481882` completed `Run WP0 required tests` successfully; `package.json :: test:wp0` invokes `tools/wp0/run-tests.js`; that runner unconditionally enumerates every `tests/wp0/*.test.js`; the Facebook WP0 contract itself synchronously executes `services/facebook-worker/tests/media-r2-retention.test.js` and fails unless the subprocess exits 0.
+
+KF-P0-12 is also mechanically bound: the same Stage WP0 runner executes `tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js` at frozen RED head #788 and final exact head #790; final `wp0-product` job `97712758362` completed `Run WP0 required tests` successfully. The exact final test therefore executes and passes rather than merely existing in the tree.
 
 KF-P0-01 is likewise mechanically bound without inventing a new historical coverage-gap identifier: frozen #781 and final #783 contain the exact same test blob `eeae851be411baa8aae376a00d7f55116a047c7e`; #781 Stage executes it RED with exactly the two startup-admission failures, while #783 exact-head Stage job `97688349946` executes the mandatory WP0 suite successfully. `mandatoryExecutedTestCoverageComplete=false` remains fail-closed because many other release-critical `EVIDENCE_RECONCILIATION` rows still lack equivalent bindings.
 
@@ -194,7 +210,7 @@ Every remaining release-critical contract must eventually receive the same mecha
 5. platform-specific behavior requires the applicable platform job to execute;
 6. final RC packaging/launch assertions require the fresh RC source/package identity, not a historical candidate.
 
-The two Facebook coverage gaps are repaired, and KF-P0-01 now has an exact executed-test binding, but `mandatoryExecutedTestCoverageComplete=false` remains fail-closed because many remaining `EVIDENCE_RECONCILIATION` release-critical findings have not yet received equivalent finding-specific exact executable bindings.
+The two historical Facebook media coverage gaps are repaired, KF-P0-01 and KF-P0-12 now have exact executed-test bindings, but `mandatoryExecutedTestCoverageComplete=false` remains fail-closed because many remaining `EVIDENCE_RECONCILIATION` release-critical findings have not yet received equivalent finding-specific exact executable bindings.
 
 ## 8. Delta Regression register
 
@@ -222,15 +238,19 @@ Mechanical compare `760c45a9a03305882249ffd3673a64baa6c29fa0` → `f8d0a73603e4e
 
 Mechanical reconciliation of `f8d0a73603e4e4ff3f6207db80bcc9b60c7f15b7` through #783 audited main `944474ab3e04913e55019526640ee76afe1ada73` identifies the backend startup-admission causal bucket as the only newly advanced historical finding in this audit batch: KF-P0-01. The #781→#783 scope is limited to the dedicated WP0 test, the two backend startup/owner production roots and governance authorization evidence. No new dependency, package-lock, release binary, Facebook driver authority, scheduler/retry engine or unrelated Product surface is introduced, and no new `DELTA-P0-*` / `DELTA-P1-*` row is discovered from this reconciliation.
 
+### 8.4 Post-backend-startup audited main → post-KF-P0-12 audited main
+
+Mechanical compare `944474ab3e04913e55019526640ee76afe1ada73` → `06b1cb20452ec928b0316733bf5d1533cee37f23` reports `status=ahead`, `ahead_by=17`, `behind_by=0`. Exact changed paths are the prior ledger/audit authorization, two KF-P0-12 governance authorizations, `backend/services/facebookOAuthService.js`, `backend/services/facebookRelayClient.js`, `tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js`, and `tools/uat/sourceUatP0Preflight.js`. The segment introduces no dependency, package-lock, workflow, routing-policy, schema migration, release binary, `platformDriverRegistry`, scheduler/retry engine, or unrelated Product mutation. The source changes are the already-accounted KF-P0-12 causal closure; no additional `DELTA-P0-*` / `DELTA-P1-*` row is discovered from this 17-commit segment.
+
 `deltaRegressionAuditComplete=false` remains required because the formal Delta audit window extends through the future final RC; that RC does not exist yet. No Delta finding is declared finally `CLOSED` merely because its source repair merged.
 
 ## 9. Final release counters
 
-Current strict counters after the post-backend-startup exact-main checkpoint:
+Current strict counters after the post-KF-P0-12 exact-main checkpoint:
 
 ```text
 knownFindingsP0Total=31
-knownFindingsP0SourceGateClosedRcPending=14
+knownFindingsP0SourceGateClosedRcPending=15
 knownFindingsP1Total=8
 knownFindingsP1SourceGateClosedRcPending=5
 knownFindingsFinalClosed=0
@@ -247,4 +267,4 @@ formalReleaseAuthorized=false
 publishAuthorized=false
 ```
 
-These values advance only from fresh, exact, mechanically verified evidence. KF-P0-01 now joins the source/gate-closed RC-pending set, but unresolved finding-specific evidence mappings remain across the historical Electron register-level lock row, Store truth, adapters/local repair, Durable Execution and broader AI contracts. Those unresolved rows prevent RC freeze under the Release Closure Program; any newly proven executable defect requires a separate authorized failure-first causal work package. This documentation batch does not authorize such repairs, the final Windows RC, release, promotion or publish.
+These values advance only from fresh, exact, mechanically verified evidence. KF-P0-12 now joins the source/gate-closed RC-pending set, but unresolved finding-specific evidence mappings remain across the historical Electron register-level lock row, Store truth, adapters/local repair, Durable Execution and broader AI contracts. Those unresolved rows prevent RC freeze under the Release Closure Program; exact-main review also exposes KF-P0-11's default-registry physical-egress wiring as the next concrete source-level candidate. Any newly proven executable defect requires a separate authorized failure-first causal work package. This documentation batch does not authorize such repairs, the final Windows RC, release, promotion or publish.
