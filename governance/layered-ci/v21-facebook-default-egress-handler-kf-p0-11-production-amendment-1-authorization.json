@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T14:27:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FACEBOOK-DEFAULT-EGRESS-HANDLER-KF-P0-11-PROD-A1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh exact-head Stage RED on frozen PR #794 proved KF-P0-11 has exactly one same-root default-registry ownership gap. Head a60eee882e0b286d94f505de0faf737c90c664f0 changes only the single tests-only path authorized by #793. Stage run 32822680009 / wp0-product job 97724027664 executed 682 WP0 tests with 681 pass and exactly 1 fail: the default Facebook adapter reports egress bound because persisted Outbox authorization exists, while its physical egressHandler is null and execution silently falls through to the generic sendMessageService path. The paired preserve subtest proves facebook-page-official remains bound to Chatwoot Matrix. Every other WP0 test file passed; sealed-export Ubuntu/Windows, Layered 32822680135, ACV2 32822679943, WP-A 32822679931, and Model Windows 32822679905 passed, so unknownBlockers=0. The repair is narrow and same-root: explicitly bind the existing canonical sendMessageService physical dispatch as the default Facebook egress handler inside platformAdapterPorts without changing platformDriverRegistry or creating a second driver/queue/scheduler/retry authority.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-facebook-default-egress-handler-kf-p0-11-authorization.json",
+    "implementationBranch": "test/v21-facebook-default-egress-handler-kf-p0-11-causal-red",
+    "reason": "Supersede tests-only implementation authority after pure causal RED a60eee882e0b286d94f505de0faf737c90c664f0 proved the production root. PR #794 and its RED head remain immutable evidence; no amend, rebase, squash, cherry-pick, force-push or history rewrite is permitted."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "4ac4fe200ac95a53e88ffc0cb9666bfab181cfa7",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "4ac4fe200ac95a53e88ffc0cb9666bfab181cfa7",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-default-egress-handler-kf-p0-11-production-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-default-egress-handler-kf-p0-11-production-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "14146429a4c12446789de3034a1e02e2c110f537decc0b3f0f19a0b0b1000d0e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-facebook-default-egress-handler-kf-p0-11-production-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "a60eee882e0b286d94f505de0faf737c90c664f0"
+    },
+    "allowedChangedPaths": [
+      "backend/services/platformAdapterPorts.js",
+      "tests/wp0/v21-facebook-default-egress-handler-kf-p0-11.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "cfb9aaa768595bd40546c0586cc90a5dbbc446ffb0f1ddbaca8e1aa3aeb1673f",
+    "newlyAuthorizedPaths": [
+      "backend/services/platformAdapterPorts.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "1a788ef850b5848efe1de7525df1aa1535e6324b56ab8b5df15e4f192b9316ed",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 794,
+    "branch": "test/v21-facebook-default-egress-handler-kf-p0-11-causal-red",
+    "frozenHead": "a60eee882e0b286d94f505de0faf737c90c664f0",
+    "effectiveAuthorizationMerge": "4ac4fe200ac95a53e88ffc0cb9666bfab181cfa7",
+    "stageRun": 32822680009,
+    "stageJob": 97724027664,
+    "stageConclusion": "failure",
+    "result": "682 tests / 681 pass / exactly 1 fail. The only failure is KF-P0-11 explicit default Facebook physical egress ownership; the paired Chatwoot Matrix preserve subtest and all other WP0 files pass. Stage sealed-export Ubuntu/Windows pass; Layered, ACV2, WP-A, and Model Windows pass.",
+    "provenNewScopePaths": [
+      "backend/services/platformAdapterPorts.js"
+    ],
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "a60eee882e0b286d94f505de0faf737c90c664f0",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true
+  },
+  "causalRedClassification": {
+    "rootCause": "The default adapter contract treats persisted Outbox authorization as sufficient evidence that egress is bound, while the default Facebook facade has no physical egressHandler and therefore silently falls through to generic sendMessageService dispatch. This splits declared adapter ownership from actual physical ownership even though the downstream Chatwoot Matrix route itself is correct.",
+    "requiredOwningLayerChange": "Inside backend/services/platformAdapterPorts.js only, reuse the existing canonical sendMessageService operation dispatch as one thin explicit Facebook egress handler and bind it into the default singleton. Preserve Outbox authorization, persisted-attempt validation, deadline semantics, delivery evidence, generic fallback compatibility, and the facebook-page-official Chatwoot Matrix driver.",
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementation": [
+      "backend/services/platformAdapterPorts.js"
+    ],
+    "preserve": [
+      "authorizePersistedOutbox remains the persisted Outbox gate before physical egress",
+      "validatePersistedEgressContext remains mandatory before any physical platform call",
+      "sendMessageService remains the canonical message-dispatch seam",
+      "platformMessagingService remains the canonical driver-selection consumer",
+      "facebook-page-official remains the official Facebook Page driver and remains bound to Chatwoot Matrix",
+      "delivery success/failure evidence and egress deadline semantics remain unchanged",
+      "generic fallback remains compatible for facades that do not receive an explicit handler unless exact tests prove retirement is safe"
+    ],
+    "negativeProof": [
+      "No platformDriverRegistry mutation",
+      "No second Facebook driver, adapter registry, queue, scheduler, retry engine or contract registry",
+      "No dependency, workflow, routing, schema, package or lockfile mutation",
+      "No weakening of persisted Outbox, persisted-attempt, deadline, delivery-evidence or Chatwoot Matrix authority",
+      "No squash, rebase, cherry-pick, amend, force-push or history rewrite"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PLATFORM_ADAPTER_AND_SEND_MESSAGE_SEAMS",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing PlatformAdapterFacade egress handler seam",
+        "source": "backend/services/platformAdapterPorts.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The adapter facade already supports an explicit egressHandler and already owns persisted Outbox authorization, attempt validation, deadlines and delivery evidence. KF-P0-11 requires binding the existing physical dispatch into that seam, not adding infrastructure."
+      },
+      {
+        "name": "Existing sendMessageService physical dispatch",
+        "source": "backend/services/sendMessageService.js -> backend/services/platformMessagingService.js -> backend/services/platformDriverRegistry.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This route already lands Facebook Page traffic on the official Chatwoot Matrix driver and carries persisted-attempt context. The repair must reuse it unchanged as the explicit adapter handler."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a new platform driver, adapter registry, dispatcher, queue, scheduler, retry engine or generalized transport abstraction.",
+      "Do not mutate platformDriverRegistry or replace facebook-page-official / Chatwoot Matrix authority.",
+      "Do not duplicate persisted Outbox authorization or persisted-attempt signing inside the new handler.",
+      "Do not alter dependencies, workflows, routing policy, schemas, package manifests or lockfiles."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-facebook-default-egress-handler-kf-p0-11.test.js"
+    ],
+    "negativeProofs": [
+      "The default Facebook singleton exposes an explicit egressHandler.",
+      "The explicit handler reuses the existing sendMessageService physical dispatch and does not bypass persisted-attempt context.",
+      "facebook-page-official remains bound to Chatwoot Matrix and platformDriverRegistry is byte-for-byte outside scope.",
+      "No second driver, queue, scheduler, retry or adapter registry is introduced."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "WP-A Main Post-Merge when routed",
+      "Model Brain Windows when routed",
+      "Product Final only when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "newContractRegistry": true,
+    "platformDriverMutation": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
