@@ -152,117 +152,6 @@ function executePortWithDeadline(executor, context = {}) {
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function error(code, message, status = 400, details = {}) { return Object.assign(new Error(message), { code, status, ...details }); }
 
-function facebookMediaTransferCommand(payload = {}) {
-  const accountId = clean(payload.accountId);
-  const conversationId = clean(payload.conversationId);
-  const messageId = clean(payload.messageId);
-  if (!accountId || !conversationId || !messageId) {
-    throw error('FACEBOOK_MEDIA_DELEGATION_REFERENCE_REQUIRED', 'Facebook delegated media requires persisted account, conversation, and message references.', 409);
-  }
-  return Object.freeze({
-    transferKind: 'FETCH',
-    mediaReference: messageId,
-    sourceScopeReference: `facebook:${accountId}:webhook:${messageId}`,
-    destinationScopeReference: `conversation:${conversationId}:message:${messageId}`,
-    metadataSha256: sha256({ platform: 'facebook', accountId, conversationId, messageId }),
-    custodyReference: `facebook:${accountId}`
-  });
-}
-
-function scheduleFacebookWebhookMediaTransfer(event = {}) {
-  const payload = event?.payload && typeof event.payload === 'object' ? event.payload : {};
-  try {
-    const command = facebookMediaTransferCommand(payload);
-    const mediaPipeline = require('./mediaPipeline');
-    const scheduled = mediaPipeline.prepareMediaTransfer({
-      idempotencyKey: `facebook:webhook-media:${clean(payload.accountId)}:${clean(payload.messageId)}`,
-      traceId: clean(event.id) || `facebook-webhook-media:${clean(payload.messageId)}`,
-      command,
-      maxAttempts: 3
-    });
-    eventBus.publish('facebook:webhook-media-scheduled', {
-      accountId: clean(payload.accountId),
-      conversationId: clean(payload.conversationId),
-      messageId: clean(payload.messageId),
-      operationKind: 'MEDIA_TRANSFER',
-      executionId: clean(scheduled.executionId),
-      intentId: clean(scheduled.intentId),
-      idempotencyKey: clean(scheduled.idempotencyKey)
-    });
-    return scheduled;
-  } catch (cause) {
-    eventBus.publish('facebook:webhook-media-schedule-failed', {
-      accountId: clean(payload.accountId),
-      conversationId: clean(payload.conversationId),
-      messageId: clean(payload.messageId),
-      operationKind: 'MEDIA_TRANSFER',
-      reasonCode: clean(cause?.code) || 'FACEBOOK_MEDIA_TRANSFER_SCHEDULE_FAILED'
-    });
-    return null;
-  }
-}
-
-eventBus.on('facebook:webhook-media-delegated', scheduleFacebookWebhookMediaTransfer);
-
-async function materializeFacebookMediaTransfer(input = {}) {
-  const accountId = clean(input.accountId);
-  const account = accountStore.get(accountId);
-  if (!account || clean(account.platform).toLowerCase() !== 'facebook') {
-    throw error('FACEBOOK_MEDIA_ACCOUNT_NOT_FOUND', 'Facebook media transfer account is unavailable.', 404, { accountId });
-  }
-  if (clean(input.transferKind).toUpperCase() !== 'FETCH') {
-    throw error('FACEBOOK_MEDIA_TRANSFER_KIND_UNSUPPORTED', 'Facebook Worker media materialization only accepts FETCH.', 409);
-  }
-  const messageId = clean(input.mediaReference);
-  const messageStore = require('./messageStore');
-  const persisted = messageStore.getExternalMessage({ accountId, targetId: messageId });
-  if (!persisted) {
-    throw error('FACEBOOK_MEDIA_MESSAGE_NOT_FOUND', 'Facebook media reference did not resolve to a persisted message.', 404, { accountId, messageId });
-  }
-  const allAttachments = Array.isArray(persisted.attachments) ? persisted.attachments : [];
-  const workerAttachments = allAttachments.filter(attachment => {
-    const worker = attachment?.workerMedia || attachment?.payload?.worker_media || null;
-    return Boolean(clean(worker?.eventId || worker?.event_id));
-  });
-  if (!workerAttachments.length) {
-    throw error('FACEBOOK_WORKER_MEDIA_REFERENCE_NOT_FOUND', 'Persisted Facebook message has no Worker media reference; direct Meta CDN fetch remains retired.', 409, { accountId, messageId });
-  }
-  const physicalAttachments = workerAttachments.map((attachment, index) => {
-    const worker = attachment?.workerMedia || attachment?.payload?.worker_media || {};
-    const workerEventId = clean(worker.eventId || worker.event_id);
-    const workerIndex = Number.isSafeInteger(Number(worker.index)) && Number(worker.index) >= 0 ? Number(worker.index) : index;
-    return {
-      ...attachment,
-      payload: {
-        ...(attachment?.payload || {}),
-        worker_media: Object.freeze({ event_id: workerEventId, index: workerIndex })
-      }
-    };
-  });
-  const facebookAdapter = require('./facebookAdapter');
-  const externalMessageId = clean(persisted.externalMessageId || messageId);
-  const conversationId = clean(persisted.conversationId || persisted.sessionKey);
-  await facebookAdapter.cacheWebhookAttachments(account, {
-    ...persisted,
-    accountId,
-    platform: 'facebook',
-    externalMessageId,
-    conversationId
-  }, physicalAttachments, {
-    signal: input.signal || null,
-    physicalOperationContext: input.physicalOperationContext
-  });
-  return {
-    status: 'completed',
-    remoteTransferId: '',
-    providerRequestId: '',
-    outputReference: `message:${accountId}:${externalMessageId}`,
-    evidenceReference: `facebook-worker-media:${clean(input.operationId || input.mediaReference)}`,
-    failureCode: '',
-    uncertain: false
-  };
-}
-
 function requirePlatform(value) {
   const platform = clean(value).toLowerCase();
   if (!PLATFORMS.includes(platform)) throw error('PLATFORM_ADAPTER_UNSUPPORTED', `不支持的平台适配器：${platform || 'unknown'}`, 409);
@@ -547,7 +436,18 @@ function createAccountManagerReconcileHandler(managerProvider = defaultAccountMa
     const accountId = clean(input.accountId);
     switch (operation) {
       case 'sync': return manager.sync(accountId, { signal: input.signal, executionGeneration: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
-      case 'media-transfer': return materializeFacebookMediaTransfer(input);
+      case 'media-transfer': return manager.mediaTransfer(accountId, {
+        transferKind: input.transferKind,
+        mediaReference: input.mediaReference,
+        sourceScopeReference: input.sourceScopeReference,
+        destinationScopeReference: input.destinationScopeReference,
+        metadataSha256: input.metadataSha256,
+        custodyReference: input.custodyReference,
+        operationId: input.operationId,
+        signal: input.signal,
+        operationGeneration: input.operationGeneration,
+        physicalOperationContext: input.physicalOperationContext
+      });
       case 'facebook.avatar-import.start': return { session: manager.startFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
       case 'facebook.avatar-import.status': return { session: manager.getFacebookBusinessSuiteAvatarImportStatus(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
       case 'facebook.avatar-import.stop': return { session: manager.stopFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
@@ -686,7 +586,7 @@ class PlatformAdapterFacade {
   }
   async authCancel(input = {}) {
     assertDomainDto(input, 'AuthCancelRequest');
-    try { return await this.executeAuth({ ...input, operation: clean(input.operation) || 'cancel' }); }
+    try { return await this.executeAuth({ ...input, operation: clean(input.operation) || 'cancel' });
     catch (cause) {
       if (clean(cause.code) !== 'PLATFORM_AUTH_OPERATION_NOT_BOUND') throw cause;
       return { schemaVersion: ADAPTER_SCHEMA_VERSION, platform: this.platform, accountId: clean(input.accountId), cancelled: false, reasonCode: 'PLATFORM_AUTH_CANCEL_NOT_BOUND' };
