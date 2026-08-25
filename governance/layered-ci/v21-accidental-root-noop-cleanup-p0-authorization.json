@@ -89,12 +89,13 @@
     "decision": "NO_NEW_INFRASTRUCTURE",
     "matureOssAvailable": true,
     "newGeneralPurposeInfrastructure": false,
-    "selectedAdoptionMode": "repository-native-git-cleanup",
+    "selectedAdoptionMode": "existing-repository-seam",
     "reviewedCandidates": [
       {
         "name": "Git ordinary pull-request merge",
         "source": "existing repository workflow",
         "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
         "reason": "The defect is two accidental tracked files; normal Git deletion through authorized PR is the smallest auditable repair."
       }
