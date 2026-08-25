@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T10:18:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-CLOSURE-POST-FACEBOOK-AUDIT-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Run one fresh-main post-Facebook Lane C evidence batch before final RC freeze. Mechanically reconcile the merged Facebook media authority closure, exhaust remaining Known Findings V1 evidence mappings, rerun Fresh-main Release Audit V2, Mandatory Executed-Test Coverage Audit, and the Aug-20-to-current-main Delta Regression Audit against exact trusted main f8d0a73603e4e4ff3f6207db80bcc9b60c7f15b7. This work package may update only the Release Closure Ledger; any newly discovered executable/source P0/P1 requires an independent failure-first causal work package.",
+  "base": {
+    "branch": "main",
+    "commit": "f8d0a73603e4e4ff3f6207db80bcc9b60c7f15b7"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-post-facebook-audit-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-closure-post-facebook-audit-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "12e7eb8ae9d88dfdf9feb5580e3e68f906d99104128cf8f5be0a4e9b9e8de7e9",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "docs/v21-release-closure-post-facebook-audit-p0",
+    "allowedChangedPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f5a5ea40aa811612913eb20a8d039f69161f875a62e260361e84f9dabc0010e",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "documentScope": {
+    "requiredSemantics": [
+      "Audit exact trusted main f8d0a73603e4e4ff3f6207db80bcc9b60c7f15b7 independently across renderer/reachable controls, Electron/backend ownership and lifecycle, credential/security boundaries, Store/identity/conversation truth, physical adapters and durable repair, Durable Execution, AI Core, dependency/supply-chain state, and release packaging/sealed-runtime boundaries.",
+      "Mechanically bind KF-P0-25, DELTA-P1-001, COV-GAP-KF-P0-25, and COV-GAP-DELTA-P1-001 to the immutable #775 causal RED and #777 exact-head GREEN ordinary-merge chain only where the exact evidence supports that disposition.",
+      "Reconstruct every remaining Known Findings V1 P0/P1 evidence-reconciliation row from exact failure-first, root-fix, mandatory executed-test, exact-head gate, and ordinary-merge evidence; do not infer source closure from current source shape or a related historical merge alone.",
+      "Repeat the Fresh-main Release Audit V2 against the exact post-Facebook trusted main and append immutable A2-P0/A2-P1 rows for any newly discovered blockers rather than hiding them in narrative text.",
+      "Repeat the Mandatory Executed-Test Coverage Audit and prove test path -> runner -> workflow/job -> exact SHA -> executed result -> PASS for every release-critical source contract claimed source-gate closed.",
+      "Repeat the Aug-20 Delta Regression Audit through exact trusted main and append immutable DELTA-P0/DELTA-P1 rows for any newly discovered blocker.",
+      "If evidence reconciliation exposes a source/test/workflow/packaging defect, record it fail-closed and require a separate failure-first causal work package; this documentation batch grants no repair authority.",
+      "Only declare source/audit readiness for RC freeze if no unresolved source/evidence P0/P1 or critical NO_COVERAGE blocker remains; do not create or claim the final RC inside this batch.",
+      "Do not mark freshPackagedWindowsRcPass, releaseLedgerClosed, releaseReady, formalReleaseAuthorized, or publishAuthorized true in this documentation batch."
+    ],
+    "forbiddenSemantics": [
+      "No product/runtime/test/workflow/dependency/routing/packaging/release-binary mutation.",
+      "No CLOSED or PACKAGED_RC_PASS inferred from source merge or historical UAT evidence.",
+      "No coverage PASS inferred from test-file presence, workflow existence, skipped applicable tests, or ancestor runs.",
+      "No suppression of remaining Known Finding, A2, Delta, or coverage blockers to accelerate RC freeze.",
+      "No mutation or cleanup of frozen PR #775 or other historical evidence PRs."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DELEGATED_GOVERNANCE_AND_DOCUMENTATION_ROUTE",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Release Closure Ledger and GitHub exact-head evidence",
+        "source": "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md and repository-native GitHub Actions evidence",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The post-Facebook audit is evidence reconciliation over repository-native commits, tests, workflows and release documents; no new audit infrastructure is required."
+      },
+      {
+        "name": "Existing delegated governance documentation transport",
+        "source": "shared/release/implementationBranchPolicyLegacy.js and shared/release/riskPolicy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing governance route already enforces exact-path documentation scope and ordinary-merge discipline."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not build a new audit service, scanner framework, release database, scheduler, workflow, or general-purpose Yance infrastructure.",
+      "Do not use external audit tooling as authority over repository-native executed evidence.",
+      "Do not mutate executable code inside this audit evidence batch."
+    ]
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "post-Facebook audit completeness and explicit surface accounting",
+      "exact failure-first and mandatory executed-test evidence rather than source-shape inference",
+      "new P0/P1 and NO_COVERAGE rows are not suppressed",
+      "no false final-RC or release claim",
+      "single-ledger-path scope"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
