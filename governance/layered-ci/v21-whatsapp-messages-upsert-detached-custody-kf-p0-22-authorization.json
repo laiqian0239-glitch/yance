@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T19:36:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WHATSAPP-MESSAGES-UPSERT-DETACHED-CUSTODY-KF-P0-22",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close KF-P0-22 by failure-first proof against exact trusted main 4d8c7c33af673edd20ff170e47a71632cecbfcb5. Fresh same-root review of backend/services/whatsappAdapter.js proves messages.upsert itself is registered through createSocketGenerationGuard, but several continuations are detached from the returned handler promise: media materialization is launched through setImmediate(async ...), avatarService.enqueueWhatsApp(...).then(...), and ensurePresenceSubscription(...).catch(...). Because createSocketGenerationGuard only holds in-flight custody for the promise returned by the handler, stop().drain() can observe zero after the main messages.upsert promise settles while those detached continuations still execute against the retiring socket generation. The first implementation must remain tests-only and prove these real post-await/detached boundaries in one diagnostic window. Production remains forbidden until fresh exact-head causal RED evidence, Closure Matrix completion and unknownBlockers=0, followed by a separate same-work-package production amendment ordinary merge.",
+  "base": {
+    "branch": "main",
+    "commit": "4d8c7c33af673edd20ff170e47a71632cecbfcb5"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a140209a16e1bdd6ae248f3219df6fc97897347356182812f24391a68f0d20d3",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "test/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-causal-red",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "52f0411fc7e5b2522e00a149a7bbf58adc5cf95f7cd03a2282338b45cb52564c",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "diagnosticScope": {
+    "requiredSemantics": [
+      "Use the existing sessionGenerationFence/createSocketGenerationGuard and WhatsAppAdapter messages.upsert seams; do not create a second generation manager, scheduler, queue, retry engine or lock authority.",
+      "Prove that messages.upsert detached media materialization launched through setImmediate can outlive the guarded handler promise and therefore escape stop().drain() custody on the retiring generation.",
+      "Prove that messages.upsert detached avatar continuation launched through avatarService.enqueueWhatsApp(...).then(...) can outlive the guarded handler promise and perform identity side effects after generation retirement unless it is owned by the same custody boundary.",
+      "Prove that messages.upsert detached presence subscription work can remain in flight outside the guarded handler promise; classify its concrete side-effect boundary and preserve only finding-specific failures.",
+      "Batch any additional detached continuation inside the same messages.upsert authority graph discovered by the diagnostic window when fresh evidence shows it can execute a real side effect after the guarded handler promise settles.",
+      "Preserve primary message/reaction/revoke persistence, receipt checkpoint semantics, notification behavior, media repairability, avatar identity semantics and current stale-at-entry rejection.",
+      "The first implementation commit must change only the dedicated authorized WP0 test path and contain no production mutation.",
+      "Stage WP0 must isolate only KF-P0-22 detached-custody failures; all unrelated mandatory WP0 tests must pass before unknownBlockers may be recorded as zero."
+    ],
+    "forbiddenSemantics": [
+      "No production fix before fresh exact-head causal RED evidence and unknownBlockers=0.",
+      "No assertion-only workaround that merely checks socketGuard before scheduling a detached continuation while still allowing the continuation to outlive generation drain.",
+      "No removal of media/avatar/presence product behavior solely to make the diagnostic pass.",
+      "No new queue, scheduler, generation manager, credential store, lock authority or general-purpose infrastructure.",
+      "No Facebook, Telegram, platformDriverRegistry, dependency, workflow, routing, schema, package or lockfile change.",
+      "No weakening of KF-P0-19 in-flight custody, stop/restart fail-closed behavior, batch39 stale-callback contracts, or existing mandatory WP0 coverage."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_SESSION_GENERATION_FENCE_AND_WHATSAPP_HANDLER_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance sessionGenerationFence/createSocketGenerationGuard plus WhatsApp messages.upsert and Stage WP0 runner",
+        "source": "backend/services/sessionGenerationFence.js + backend/services/whatsappAdapter.js + backend/tests/batch39WhatsappSessionFence.test.js + tests/wp0 + tools/wp0/run-tests.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is detached asynchronous work escaping an existing generation-custody boundary. Existing session fence and handler seams are sufficient for diagnosis; no new dependency or generalized infrastructure is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a parallel session-generation manager.",
+      "Do not add a second media/avatar repair queue solely for generation custody.",
+      "Do not infer safety from a pre-schedule isCurrent check when the scheduled continuation can outlive stop().drain()."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
