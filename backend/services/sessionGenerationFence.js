@@ -91,9 +91,24 @@ function createSessionGenerationFence(isAuthoritative = () => true, options = {}
   return Object.freeze({ token, isCurrent, assertCurrent, invalidate, enter, drain });
 }
 
+function assertSocketFenceCustody(fence) {
+  const valid = fence
+    && typeof fence.isCurrent === 'function'
+    && typeof fence.invalidate === 'function'
+    && typeof fence.enter === 'function'
+    && typeof fence.drain === 'function';
+  if (valid) return fence;
+  throw Object.assign(
+    new Error('Socket generation fence does not provide required in-flight custody'),
+    { code: 'SESSION_GENERATION_FENCE_INVALID' }
+  );
+}
+
 function createSocketGenerationGuard(fence, isSocketAuthoritative) {
+  assertSocketFenceCustody(fence);
+
   function isCurrent() {
-    return fence?.isCurrent?.() === true && isSocketAuthoritative() === true;
+    return fence.isCurrent() === true && isSocketAuthoritative() === true;
   }
 
   function assertCurrent(details = {}) {
@@ -102,7 +117,7 @@ function createSocketGenerationGuard(fence, isSocketAuthoritative) {
       new Error('Socket generation is no longer authoritative'),
       {
         code: 'SOCKET_GENERATION_STALE',
-        sessionGeneration: fence?.token || '',
+        sessionGeneration: fence.token || '',
         ...details
       }
     );
@@ -111,7 +126,7 @@ function createSocketGenerationGuard(fence, isSocketAuthoritative) {
   function wrap(handler) {
     return (...args) => {
       if (!isCurrent()) return undefined;
-      const release = typeof fence?.enter === 'function' ? fence.enter() : () => {};
+      const release = fence.enter();
       if (!release) return undefined;
       let result;
       try {
