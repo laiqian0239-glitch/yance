@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T16:54:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WHATSAPP-STALE-SOCKET-INFLIGHT-CUSTODY-KF-P0-19-PROD-A1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen tests-only PR #800 established a fresh exact-head causal RED for KF-P0-19. Exact head d8833aad6f3a098ddde1ba231e30782536b70130 changes only the dedicated authorized WP0 test. Stage run 32833803435 / wp0-product job 97758162718 executed 685 mandatory WP0 tests with 683 pass and exactly two finding-specific failures: createSessionGenerationFence exposes no in-flight drain boundary, and WhatsApp stop invalidates a generation without awaiting already-started guarded handlers before row retirement / replacement restart. The existing batch39 stale-at-entry quarantine regression and all unrelated WP0 files pass. Layered 32833803570, ACV2 32833803462, WP-A 32833803488 and Model Windows 32833803454 pass on the same RED head; Product Final 32833803432 is route-skipped. unknownBlockers=0. Same-root source discovery exhausts the production root to the existing sessionGenerationFence/createSocketGenerationGuard seam and WhatsAppAdapter stop/restart lifecycle. Facebook Relay and Telegram use the same fence but do not require production mutation because this root is specifically replacement-generation quiescence after WhatsApp stop returns.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19-authorization.json",
+    "implementationBranch": "test/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19-causal-red",
+    "reason": "Supersede tests-only authority only after clean causal RED d8833aad6f3a098ddde1ba231e30782536b70130 proved the exact production root. PR #800 and its RED head remain immutable evidence; no amend, rebase, squash, cherry-pick, force-push or history rewrite is permitted."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "b6c665f1b757eccadcad3f53a31fea43b94f3a67",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b6c665f1b757eccadcad3f53a31fea43b94f3a67",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19-production-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19-production-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2d0be0f51dc6b7afa70757c38cc4f69405474f22c73b459a9bdb395c87c11d1e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19-production-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "d8833aad6f3a098ddde1ba231e30782536b70130"
+    },
+    "allowedChangedPaths": [
+      "backend/services/sessionGenerationFence.js",
+      "backend/services/whatsappAdapter.js",
+      "tests/wp0/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19.test.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "706bba4f827034c74821f5df2d5dcab88b7a76f275df94bebdb352bcbe302104",
+    "newlyAuthorizedPaths": [
+      "backend/services/sessionGenerationFence.js",
+      "backend/services/whatsappAdapter.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 2,
+    "newlyAuthorizedChangedFileSetSha256": "1ec74f421de35c13f6fd2d03d300bf2918b89e7a40f7f4a7a00bd4236b9f965e",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 800,
+    "branch": "test/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19-causal-red",
+    "frozenHead": "d8833aad6f3a098ddde1ba231e30782536b70130",
+    "effectiveAuthorizationMerge": "b6c665f1b757eccadcad3f53a31fea43b94f3a67",
+    "stageRun": 32833803435,
+    "stageJob": 97758162718,
+    "stageConclusion": "failure",
+    "result": "685 tests / 683 pass / exactly 2 fail. Failure 1: session generation fence has no in-flight drain boundary. Failure 2: WhatsApp stop does not await old guarded in-flight work after generation invalidation before active-row retirement/restart replacement. Existing batch39 stale-at-entry quarantine and all unrelated WP0 tests pass. Layered, ACV2, WP-A and Model Windows pass; Product Final is route-skipped.",
+    "provenNewScopePaths": [
+      "backend/services/sessionGenerationFence.js",
+      "backend/services/whatsappAdapter.js"
+    ],
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "d8833aad6f3a098ddde1ba231e30782536b70130",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true
+  },
+  "causalRedClassification": {
+    "rootCause": "createSocketGenerationGuard rejects work already stale at callback entry but does not place an async callback under in-flight custody once it starts. WhatsApp stop invalidates the current session fence and can retire the row / return before already-started guarded asynchronous work settles; restart awaits stop and can therefore start a replacement generation while old-generation work is still completing.",
+    "requiredOwningLayerChange": "Extend the existing session generation fence only: track guarded async work and expose a bounded fail-closed drain. WhatsApp stop must invalidate first, terminate/logout the old socket, then await that old fence's in-flight drain before retiring the account row and permitting restart to create a replacement generation. Preserve existing stale-entry rejection and stale-error quarantine; do not introduce a second generation manager, queue, scheduler or retry authority.",
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementation": [
+      "backend/services/sessionGenerationFence.js",
+      "backend/services/whatsappAdapter.js"
+    ],
+    "preserve": [
+      "createSocketGenerationGuard entry-time stale callback rejection",
+      "SOCKET_GENERATION_STALE late-completion quarantine without unhandled stale errors",
+      "backend/tests/batch39WhatsappSessionFence.test.js existing WhatsApp stale-callback regressions",
+      "backend/tests/batch39FacebookRelayFence.test.js existing Facebook Relay fence regressions",
+      "Facebook Relay and Telegram existing sessionGenerationFence consumers without production mutation",
+      "WhatsApp restart sequencing that awaits stop before start",
+      "Baileys creds.update -> await saveCreds(update) credential persistence seam"
+    ],
+    "negativeProof": [
+      "No new generation manager, scheduler, queue, retry engine, credential store or lock authority",
+      "No Facebook Relay, Telegram, platformDriverRegistry, adapter-registry or physical-egress mutation",
+      "No dependency, workflow, routing, database schema, package or lockfile mutation",
+      "No assertion-only workaround that merely moves a generation check before an async side effect while permitting old-generation overlap after stop returns",
+      "No squash, rebase, cherry-pick, amend, force-push or history rewrite"
+    ],
+    "outOfRootCauseWithEvidence": [
+      "WhatsApp connect-abort, QR-start-timeout and provider connection-close fence invalidations do not form the same stop-returns-then-immediate-replacement lifecycle boundary proven by #800; no production path expansion is authorized for them without new causal evidence."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_SESSION_GENERATION_FENCE_AND_WHATSAPP_LIFECYCLE",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance sessionGenerationFence/createSocketGenerationGuard and WhatsAppAdapter stop/restart lifecycle",
+        "source": "backend/services/sessionGenerationFence.js + backend/services/whatsappAdapter.js",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "The causal defect is missing lifecycle custody in an existing fence. A small extension of the existing authority is sufficient; adding another framework or dependency would create parallel authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second session-generation authority or lifecycle scheduler.",
+      "Do not add a new credential persistence wrapper around Baileys.",
+      "Do not make restart proceed after a drain timeout."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19.test.js",
+      "node --test backend/tests/batch39WhatsappSessionFence.test.js",
+      "node --test backend/tests/batch39FacebookRelayFence.test.js"
+    ],
+    "negativeProofs": [
+      "An old-generation async guarded callback remains counted after generation invalidation until it settles.",
+      "drain cannot resolve while old guarded async work is pending.",
+      "WhatsApp stop invalidates before drain and drain completes before active-row retirement / restart replacement.",
+      "A bounded drain failure prevents restart from creating a replacement generation.",
+      "Existing stale-at-entry callback quarantine remains unchanged.",
+      "Facebook Relay and Telegram fence behavior remains compatible without production path mutation."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge when routed",
+      "WP-B when routed",
+      "Model Brain Windows when routed",
+      "Product Final only when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "newSessionGenerationAuthority": true,
+    "newSchedulerOrQueue": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "releaseEvidenceParallelism": {
+    "duringCiMayReconcileRemainingEvidence": true,
+    "sourceGreenDoesNotAuthorizeFreshMainRcUntilAllSourceEvidenceP0P1Close": true,
+    "mayNotClaimFreshPackagedWindowsRcPassBeforeFreshRc": true
+  }
+}
