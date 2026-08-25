@@ -8,6 +8,10 @@ const { executeWithDeadline } = require('./executionDeadline');
 const { createSessionGenerationFence } = require('./sessionGenerationFence');
 
 function clean(value) { return value == null ? '' : String(value).trim(); }
+function workerErrorCode(value, fallback = 'FACEBOOK_WORKER_REQUEST_FAILED') {
+  const code = clean(value);
+  return /^FACEBOOK_[A-Z0-9_]+$/u.test(code) ? code : fallback;
+}
 function persistedOperationIdentity(options = {}) {
   const source = options.physicalAttemptContext || options.physicalOperationContext;
   if (!source || typeof source !== 'object' || Array.isArray(source) || !Object.isFrozen(source)) {
@@ -211,14 +215,14 @@ class FacebookRelayClient {
       if (options.raw === true) {
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
-          throw Object.assign(new Error(data.message || `Facebook 云端媒体请求失败（HTTP ${response.status}）`), { code: data.code || 'FACEBOOK_WORKER_REQUEST_FAILED', status: response.status, details: { ...(data.details || {}), requestId: clean(data.details?.requestId || response.headers?.get?.('x-yance-request-id') || localRequestId) } });
+          throw Object.assign(new Error(data.message || `Facebook 云端媒体请求失败（HTTP ${response.status}）`), { code: workerErrorCode(data.code), status: response.status, details: { ...(data.details || {}), requestId: clean(data.details?.requestId || response.headers?.get?.('x-yance-request-id') || localRequestId) } });
         }
         Object.defineProperty(response, 'yanceRequestId', { value: clean(response.headers?.get?.('x-yance-request-id') || localRequestId), enumerable: false });
         return response;
       }
       const data = await response.json().catch(() => ({}));
       const providerRequestId = clean(response.headers?.get?.('x-yance-request-id') || data?.providerRequestId || localRequestId);
-      if (!response.ok || data.ok === false) throw Object.assign(new Error(data.message || `Facebook 云端服务返回 HTTP ${response.status}`), { code: data.code || 'FACEBOOK_WORKER_REQUEST_FAILED', status: response.status, details: { ...(data.details || {}), requestId: clean(data.details?.requestId || providerRequestId) } });
+      if (!response.ok || data.ok === false) throw Object.assign(new Error(data.message || `Facebook 云端服务返回 HTTP ${response.status}`), { code: workerErrorCode(data.code), status: response.status, details: { ...(data.details || {}), requestId: clean(data.details?.requestId || providerRequestId) } });
       return { ...data, providerRequestId };
     }, {
       deadlineAt: persisted.deadlineAt,
@@ -289,7 +293,7 @@ class FacebookRelayClient {
             ? renewal.failed.find(item => clean(item?.delivery_id) === deliveryId)
             : null;
           throw Object.assign(new Error('Facebook Worker event lease renewal rejected'), {
-            code: clean(failure?.code) || 'FACEBOOK_RENEW_FAILED', status: 409,
+            code: workerErrorCode(failure?.code, 'FACEBOOK_RENEW_FAILED'), status: 409,
             details: { deliveryId }
           });
         }
@@ -430,7 +434,7 @@ class FacebookRelayClient {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) {
           throw Object.assign(new Error(data.message || `Facebook Relay 凭据撤销失败（HTTP ${response.status}）`), {
-            code: data.code || 'FACEBOOK_RELAY_REVOKE_FAILED', status: response.status, details: { pageId: legacyPageId }
+            code: workerErrorCode(data.code, 'FACEBOOK_RELAY_REVOKE_FAILED'), status: response.status, details: { pageId: legacyPageId }
           });
         }
         logger.info('facebook', 'relay-credential-revoked', { accountId, pageId: legacyPageId });
