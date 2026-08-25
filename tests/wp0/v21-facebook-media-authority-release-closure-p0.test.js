@@ -45,6 +45,16 @@ test('facebook webhook media delegation has a production consumer that enters du
     /eventBus\.publish\(\s*['"]facebook:webhook-media-delegated['"]/u,
     'Facebook webhook adapter must retain the post-persistence delegation event'
   );
+  assert.match(
+    adapter,
+    /eventBus\.(?:on|subscribe)\(\s*['"]facebook:webhook-media-delegated['"][\s\S]*?scheduleWebhookMediaTransfer/u,
+    'Facebook webhook adapter must own the production delegated-media consumer'
+  );
+  assert.match(
+    adapter,
+    /scheduleWebhookMediaTransfer[\s\S]*?mediaPipeline\.prepareMediaTransfer\(/u,
+    'delegated Facebook Worker media must enter the existing durable MEDIA_TRANSFER scheduler'
+  );
 
   const servicesRoot = repositoryPath('backend/services');
   const consumers = fs.readdirSync(servicesRoot)
@@ -61,19 +71,46 @@ test('facebook webhook media delegation has a production consumer that enters du
   );
 });
 
-test('MEDIA_TRANSFER physical execution has an implemented media-transfer ReconcilePort dispatch', () => {
+test('legacy Facebook URL-only media cannot remain pending or re-enter direct CDN fetch', () => {
+  const adapter = readText('backend/services/facebookAdapter.js');
+  assert.match(adapter, /workerMediaCount\s*=\s*rawAttachments\.filter[\s\S]*?event_id[\s\S]*?status\s*!==\s*['"]failed['"]/u);
+  assert.match(adapter, /workerReady\s*=\s*Boolean\(workerEventId[\s\S]*?status\s*!==\s*['"]failed['"]\)/u);
+  assert.match(adapter, /status:\s*workerReady\s*\?\s*['"]pending['"]\s*:\s*['"]unavailable['"]/u);
+  assert.match(adapter, /downloadError:\s*workerReady\s*\?\s*['"]['"]\s*:\s*['"]FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED['"]/u);
+  assert.match(adapter, /sourceUrl:\s*['"]['"][\s\S]*?url:\s*['"]['"][\s\S]*?mediaUrl:\s*['"]['"]/u);
+  assert.match(adapter, /if\s*\(hasWorkerMedia\)\s*\{[\s\S]*?facebook:webhook-media-delegated/u);
+  assert.doesNotMatch(
+    adapter,
+    /if\s*\(hasWorkerMedia\s*\|\|\s*hasLegacyRemoteMedia\)[\s\S]*?facebook:webhook-media-delegated/u,
+    'legacy URL-only media must not schedule a durable transfer that has no Worker custody reference'
+  );
+  assert.match(adapter, /FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED/u);
+});
+
+test('MEDIA_TRANSFER physical execution has an implemented account-owned media-transfer ReconcilePort dispatch', () => {
   const composition = readText('backend/runtime/AppRuntimeComposition.js');
   const ports = readText('backend/services/platformAdapterPorts.js');
+  const manager = readText('backend/services/accountManagerCore.js');
 
   assert.match(
     composition,
-    /operation:\s*['"]media-transfer['"]/u,
-    'AppRuntimeComposition must preserve the MEDIA_TRANSFER -> ReconcilePort physical operation'
+    /accountId[\s\S]*?operation:\s*['"]media-transfer['"]/u,
+    'AppRuntimeComposition must project account-scoped custody into the MEDIA_TRANSFER ReconcilePort call'
   );
   assert.match(
     ports,
-    /case\s+['"]media-transfer['"]\s*:/u,
-    'default platform reconcile authority must implement the media-transfer operation used by AppRuntimeComposition'
+    /case\s+['"]media-transfer['"]\s*:\s*return\s+manager\.mediaTransfer/u,
+    'generic ReconcilePort must stay a thin dispatch into the account owning layer'
+  );
+  assert.match(
+    manager,
+    /async\s+mediaTransfer\([\s\S]*?messageStore\.getExternalMessage[\s\S]*?facebookAdapter\.cacheWebhookAttachments/u,
+    'AccountManager must resolve persisted Facebook media and invoke the existing signed Worker materializer'
+  );
+  assert.doesNotMatch(
+    ports,
+    /function\s+(?:scheduleFacebookWebhookMediaTransfer|materializeFacebookMediaTransfer|facebookMediaTransferCommand)\b/u,
+    'generic platform ports must not own Facebook-specific scheduling or materialization'
   );
 });
 
