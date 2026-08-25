@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T02:34:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-CLOSURE-GLOBAL-MANDATORY-EXECUTED-TEST-COVERAGE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After Fresh-main Audit V2 ordinary-merged complete with unknownBlockers=0, run one ledger-only global mandatory executed-test coverage reconciliation against exact trusted main 41c54fe71c2913db44330b7746ce712076644832. Mechanically bind every release-critical finding/obligation to an actually selected and passing exact-head mandatory contract or preserve the row as an explicit coverage gap. Do not infer execution from file presence, create speculative production repairs, mutate tests, or start a packaged Windows RC.",
+  "base": {
+    "branch": "main",
+    "commit": "41c54fe71c2913db44330b7746ce712076644832"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-global-mandatory-executed-test-coverage-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-closure-global-mandatory-executed-test-coverage-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "aa1e3c5611886f8468e741616e2cc7686f0a4fa5d3f7e2ff39fde2d1652cfed4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "docs/v21-release-closure-global-mandatory-executed-test-coverage-p0",
+    "allowedChangedPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f5a5ea40aa811612913eb20a8d039f69161f875a62e260361e84f9dabc0010e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "coverageScope": {
+    "exactTrustedMain": "41c54fe71c2913db44330b7746ce712076644832",
+    "freshMainAuditAuthorizationMerge": "3865bb079b29f49553dc265ac5340b8e58c27ec9",
+    "freshMainAuditSuccessorMerge": "41c54fe71c2913db44330b7746ce712076644832",
+    "freshMainAuditSuccessorHead": "563db4e8ee3b2b49e8db18ca9245f8e9e26cc4cc",
+    "freshMainAuditV2Complete": true,
+    "targetEvidenceRows": [
+      "KF-P0-03",
+      "KF-P0-04",
+      "KF-P0-17",
+      "KF-P0-18",
+      "KF-P0-23",
+      "KF-P0-26",
+      "KF-P0-27",
+      "KF-P0-28",
+      "KF-P0-29",
+      "KF-P0-30",
+      "KF-P0-31",
+      "KF-P1-01",
+      "KF-P1-06",
+      "KF-P1-07"
+    ],
+    "alreadyBoundCoverageMustRemainPreserved": [
+      "KF-P0-01",
+      "KF-P0-02",
+      "KF-P0-05",
+      "KF-P0-06",
+      "KF-P0-07",
+      "KF-P0-11",
+      "KF-P0-12",
+      "KF-P0-19",
+      "KF-P0-20",
+      "KF-P0-22",
+      "KF-P0-24",
+      "KF-P1-02",
+      "KF-P1-03",
+      "KF-P1-05",
+      "KF-P1-08",
+      "A2-P1-001",
+      "COV-GAP-KF-P0-25",
+      "COV-GAP-DELTA-P1-001"
+    ],
+    "requiredChecklist": [
+      "Freeze exact trusted main 41c54fe71c2913db44330b7746ce712076644832 and preserve Fresh-main Audit V2 complete status without changing any Known Finding state.",
+      "Enumerate every release-critical Known Finding, A2 finding, Delta finding and packaged-UAT obligation that requires an executable contract before RC freeze; do not silently omit evidence-reconciliation rows.",
+      "For each of the fourteen target evidence rows, identify the exact test/contract path, the mandatory runner that selects it, the exact workflow/job and exact head on which it actually executes, and PASS status. File presence alone is not execution proof.",
+      "Prefer this successor's own exact-head mandatory Stage/ACV2/Model execution when the relevant contract is unconditionally selected there; historical exact-head execution may be used only when the runner-to-test selection and production identity are mechanically bound.",
+      "For platform-specific contracts, require the applicable platform job to execute and PASS; a Linux-only run cannot prove a Windows-only contract.",
+      "A workflow-level GREEN result does not prove a target contract executed unless the runner selection is mechanically established or filename/subtest execution is directly logged.",
+      "Skipped execution counts only when skip is the contractually correct route for that exact surface and the skip itself is not being used as PASS evidence for an applicable test.",
+      "Preserve all existing coverage-register bindings already recorded in the ledger and detect any stale/missing binding instead of overwriting it narratively.",
+      "For KF-P0-03 bind owner-lock/multi-process exclusivity coverage only from a selected owner-lock contract; lifecycle proximity alone is insufficient.",
+      "For KF-P0-04/KF-P0-17/KF-P0-18 bind active-selection, exact-session target, Store mirror and dedupe coverage only where the selected contract actually asserts the named semantics.",
+      "For KF-P0-23/KF-P1-06 bind cross-platform public/durable/physical adapter capability coverage only where Telegram and Facebook sides are both exercised by mandatory selected contracts.",
+      "For KF-P0-26/KF-P0-27/KF-P0-28 bind Durable Execution operation, transaction/sequence, heartbeat/lease/retry/dead-letter semantics to actually executed contracts; BEGIN IMMEDIATE source shape alone is not execution proof.",
+      "For KF-P0-29/KF-P0-30/KF-P0-31/KF-P1-07 bind scheduled admission terminalization, cancel-vs-succeed fencing, stale/superseded generation and bounded reply-failure behavior to actually executed contracts.",
+      "For KF-P1-01 bind Safe Mode backend write-boundary coverage to actually executed backend security contracts; a UI banner or source scan is insufficient.",
+      "Set mandatoryExecutedTestCoverageComplete=true only if every release-critical applicable contract is mechanically bound to actual PASS execution with no unclassified coverage gap; otherwise keep it false and list every residual gap exactly.",
+      "Reach unknownBlockers=0 by classifying each residual as covered, coverage-gap prerequisite, evidence-only historical mapping, or packaged-RC-only obligation.",
+      "Keep deltaRegressionAuditComplete=false until a separate final Delta package freezes its right endpoint.",
+      "Keep freshPackagedWindowsRcPass=false, releaseLedgerClosed=false, releaseReady=false, formalReleaseAuthorized=false and publishAuthorized=false. No fresh packaged Windows RC/UAT may start in this package."
+    ]
+  },
+  "completionSemantics": {
+    "mandatoryExecutedTestCoverageCompleteMayBecomeTrue": true,
+    "condition": "Every release-critical applicable contract has mechanically proven selected execution and PASS, with exact head/platform/runner identity and unknownBlockers=0.",
+    "ifIncomplete": "Keep mandatoryExecutedTestCoverageComplete=false and record exact residual coverage gaps; any needed executable coverage addition requires a separate prerequisite authorization rather than mutating tests here.",
+    "freshMainAuditV2CompleteMustRemain": true,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "freshPackagedWindowsRcPassMustRemain": false,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false
+  },
+  "forbiddenSemantics": [
+    "No production/runtime/test/workflow/dependency/routing/manifest/lockfile/packaging/release-binary mutation.",
+    "No claim that test-file presence equals execution.",
+    "No claim that workflow GREEN equals a target contract executed without runner-selection proof.",
+    "No use of ancestor GREEN as exact-head evidence when the coverage contract requires current exact-head execution.",
+    "No use of skipped applicable tests as PASS evidence.",
+    "No promotion of any EVIDENCE_RECONCILIATION Known Finding merely because coverage executes; finding closure status and test-coverage completeness are independent dimensions.",
+    "No fabrication of test path, workflow run, job, exact head, platform applicability, subtest count or PASS result.",
+    "No new packaged Windows RC/UAT execution or candidate creation.",
+    "No mutation, reconciliation, close or merge action against frozen historical evidence PRs."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_TEST_RUNNERS_AND_RELEASE_LEDGER",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance mandatory test runners and Release Closure Ledger",
+        "source": "tools/wp0/run-tests.js + existing Stage/ACV2/Model workflows + docs/uat/V21_RELEASE_CLOSURE_LEDGER.md",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The package reconciles execution evidence already generated by repository-owned mandatory runners; no external coverage database or generalized evidence system is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a parallel coverage database, test inventory service, runner or evidence scanner.",
+      "Do not create fourteen fragmented evidence PRs when one ledger-only batch can classify all rows.",
+      "Do not add tests inside this reconciliation authorization; missing mandatory coverage becomes a separate prerequisite causal/coverage package.",
+      "Do not start the final Delta or packaged RC from this coverage package."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
