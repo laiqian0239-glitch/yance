@@ -129,3 +129,31 @@ test('legacy Facebook Worker transport keeps persisted WP-B identity out of URLs
   assert.match(desktopApi, /export\s+async\s+function\s+renewEvents/u);
   assert.match(workerIndex, /\/api\/desktop\/events\/renew/u);
 });
+
+test('KF-P0-12 release preflight binds the exact Worker OAuth, avatar and D1 permission-authority contracts', () => {
+  const preflight = readText('tools/uat/sourceUatP0Preflight.js');
+  const workerIndex = readText('services/facebook-worker/src/index.js');
+  const workerConfig = readText('services/facebook-worker/src/config.js');
+  const oauth = readText('backend/services/facebookOAuthService.js');
+
+  assert.match(workerConfig, /OAUTH_CONTRACT_VERSION\s*=\s*6/u);
+  assert.match(oauth, /IDENTITY_WORKER_OAUTH_CONTRACT_VERSION\s*=\s*6/u);
+  assert.match(preflight, /EXPECTED_WORKER_AVATAR_CONTRACT\s*=\s*11/u);
+  assert.match(preflight, /EXPECTED_WORKER_EVIDENCE_CONTRACT\s*=\s*6/u);
+  assert.match(workerIndex, /latestRequiredMigration:\s*'0006_permission_authority\.sql'/u);
+  assert.match(workerIndex, /permissionAuthorityColumns/u);
+  assert.match(preflight, /EXPECTED_D1_SCHEMA_VERSION\s*=\s*6/u);
+  assert.match(preflight, /d1Version\s*===\s*EXPECTED_D1_SCHEMA_VERSION/u);
+  assert.match(preflight, /latestRequiredMigration\s*===\s*'0006_permission_authority\.sql'/u);
+  assert.match(preflight, /permissionAuthorityColumns\s*===\s*true/u);
+});
+
+test('KF-P0-12 Desktop rejects unknown Worker error codes outside the FACEBOOK_* family', () => {
+  const relay = readText('backend/services/facebookRelayClient.js');
+  const oauth = readText('backend/services/facebookOAuthService.js');
+
+  assert.doesNotMatch(relay, /code:\s*data\.code\s*\|\|\s*'FACEBOOK_WORKER_REQUEST_FAILED'/u);
+  assert.doesNotMatch(oauth, /code:\s*data\.code\s*\|\|\s*'FACEBOOK_OAUTH_WORKER_ERROR'/u);
+  assert.match(relay, /function\s+workerErrorCode[\s\S]*?\^FACEBOOK_/u);
+  assert.match(oauth, /function\s+workerErrorCode[\s\S]*?\^FACEBOOK_/u);
+});
