@@ -626,9 +626,7 @@ class FacebookAdapter {
             const to = Array.isArray(message?.to?.data) ? message.to.data : [];
             for (const participant of [from, ...to]) {
               const candidateId = clean(participant?.id);
-              if (candidateId && candidateId !== pageId && /^\d{3,64}$/u.test(candidateId)) {
-                candidates.push(candidateId);
-              }
+              if (candidateId && candidateId !== pageId && /^\d{3,64}$/u.test(candidateId)) candidates.push(candidateId);
             }
           }
           if (candidates.length) {
@@ -1568,17 +1566,27 @@ class FacebookAdapter {
         );
         const avatarUrl = clean(currentConversation?.avatarUrl);
         const messageWithContact = { ...baseMessage, contactName: fallbackName, avatarUrl };
-        const workerMediaCount = rawAttachments.filter(attachment => attachment?.payload?.worker_media && attachment.payload.worker_media.status !== 'failed').length;
+        const workerMediaCount = rawAttachments.filter(attachment => {
+          const workerMedia = attachment?.payload?.worker_media || null;
+          return clean(workerMedia?.event_id) && workerMedia?.status !== 'failed';
+        }).length;
         const legacyRemoteMediaCount = rawAttachments.filter(attachment => attachment?.payload?.url).length;
         const hasWorkerMedia = workerMediaCount > 0;
-        const hasLegacyRemoteMedia = legacyRemoteMediaCount > 0;
-        const pendingAttachments = attachments.map((attachment, index) => ({
-          ...attachment,
-          id: attachment.id || `${externalId}:${index}`,
-          status: 'pending',
-          downloadStatus: 'pending',
-          downloadError: ''
-        }));
+        const pendingAttachments = attachments.map((attachment, index) => {
+          const workerMedia = rawAttachments[index]?.payload?.worker_media || null;
+          const workerEventId = clean(workerMedia?.event_id);
+          const workerReady = Boolean(workerEventId && workerMedia?.status !== 'failed');
+          return {
+            ...attachment,
+            id: attachment.id || `${externalId}:${index}`,
+            sourceUrl: '',
+            url: '',
+            mediaUrl: '',
+            status: workerReady ? 'pending' : 'unavailable',
+            downloadStatus: workerReady ? 'pending' : 'unavailable',
+            downloadError: workerReady ? '' : 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED'
+          };
+        });
         const outcome = await messageStore.upsert({
           ...messageWithContact,
           attachments: pendingAttachments.length ? pendingAttachments : messageWithContact.attachments
@@ -1616,7 +1624,7 @@ class FacebookAdapter {
             facebookReferralUpdatedAt: baseMessage.timestamp
           }).catch(error => logCriticalFailure('webhook.referralMetadata', error, { accountId: account.id, conversationId }));
         }
-        if (hasWorkerMedia || hasLegacyRemoteMedia) {
+        if (hasWorkerMedia) {
           eventBus.publish('facebook:webhook-media-delegated', {
             accountId: account.id,
             conversationId,
