@@ -74,6 +74,28 @@
       "KF-P0-19 and KF-P0-22 WhatsApp generation-custody closures must remain intact."
     ]
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_REPAIR_AUTHORITY",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance durable local-persistence repair seam",
+        "source": "backend/services/localPersistenceRepairService.js + backend/repositories/localPersistenceRepairRepository.js + backend/services/durableOperations/outboundMessageSendOperation.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already owns durable repair identity, SQLite persistence, restart recovery, retry scheduling, terminalization and buffer-backed media reconstruction. KF-P0-20 is a narrow custody gap at this existing seam, so the failure-first test and any later authorized repair must reuse it rather than introduce a second queue, scheduler, database, worker or generalized storage layer."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not introduce a second local-persistence repair queue, worker, scheduler, database or workflow engine.",
+      "Do not add a new dependency or generalized blob-custody subsystem for this finding before the fresh causal RED proves such a gap.",
+      "Do not resend an already provider-accepted WhatsApp message merely to reconstruct the local projection."
+    ],
+    "thinYanceAdapterOnly": true
+  },
   "failureFirst": {
     "freshExactHeadRedRequired": true,
     "mandatoryWp0ExecutionRequired": true,
