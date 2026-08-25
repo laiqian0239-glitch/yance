@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T22:50:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WHATSAPP-LOCAL-PERSISTENCE-REPAIR-KF-P0-20",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh trusted-main inspection after KF-P0-22 ledger closure found a live KF-P0-20 durability root: when WhatsApp file-backed media is accepted by the provider but canonical local projection fails, whatsappAdapter returns an outbound-media-upsert repair plan containing only the original filePath/expectedSha256. The existing durable repair record persists that path but does not custody the source bytes. localPersistenceRepairService later requires that path to still exist and terminalizes LOCAL_REPAIR_MEDIA_SOURCE_MISSING when it does not. A restart or transient upload/source-file cleanup can therefore strand an already-provider-accepted outbound message without a repairable local projection. This authorization grants only a fresh tests-only causal RED; no production fix is authorized until exact mandatory execution proves only this root with unknownBlockers=0 and a separate production scope amendment is ordinary-merged.",
+  "base": {
+    "branch": "main",
+    "commit": "18db4b0442fb8aeee6b42161aba5337049e8efd6",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "18db4b0442fb8aeee6b42161aba5337049e8efd6",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-whatsapp-local-persistence-repair-kf-p0-20-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-whatsapp-local-persistence-repair-kf-p0-20-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "adee316ec673ac8a8b45970b39d299e1eca234e1e68fb8dad3617d1e5fa2eb9c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "test/v21-whatsapp-local-persistence-repair-kf-p0-20-causal-red",
+    "initialPhase": "TESTS_ONLY_CAUSAL_RED",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-whatsapp-local-persistence-repair-kf-p0-20.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a80ddfab57fa4c392e5250b87f3594af662f9da72817cae10fdf3073553b0fd2",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "causalHypothesis": {
+    "findingId": "KF-P0-20",
+    "surface": "WhatsApp provider-accepted local persistence repair",
+    "currentRoot": "File-backed outbound-media-upsert repair durability is path-only: the persisted repair payload retains source.filePath but the repair authority does not take durable custody of source bytes before provider success escapes. After the source path disappears, restart recovery requeues the repair but apply() terminalizes LOCAL_REPAIR_MEDIA_SOURCE_MISSING.",
+    "requiredFreshRed": [
+      "Prove a file-backed WhatsApp repair plan can be durably enqueued while its source is still only a path reference.",
+      "Delete or otherwise make the original source path unavailable before repair execution/restart recovery and require the durable repair to remain capable of completing the canonical local projection without a second network send.",
+      "Prove the current implementation fails only this durability contract, not generic text/reaction/revoke repair or provider-send idempotency contracts.",
+      "Require unknownBlockers=0 before any production scope amendment."
+    ],
+    "preserve": [
+      "Provider-accepted outbound attempts must never be blindly re-sent when local persistence fails.",
+      "Existing deterministic repair identity local-repair-${attemptId} remains the idempotency seam unless fresh RED proves it insufficient.",
+      "Text message-upsert, reaction-apply, message-revoke and buffer-backed media repair behavior must remain unchanged unless independently proven causal.",
+      "Existing localPersistenceRepairService/repository is the only repair authority; no second queue, worker, scheduler, database or workflow engine may be introduced.",
+      "KF-P0-19 and KF-P0-22 WhatsApp generation-custody closures must remain intact."
+    ]
+  },
+  "failureFirst": {
+    "freshExactHeadRedRequired": true,
+    "mandatoryWp0ExecutionRequired": true,
+    "unknownBlockersRequired": 0,
+    "productionMutationBeforeRedForbidden": true,
+    "productionScopeAmendmentRequiredAfterRed": true,
+    "frozenRedMustRemainImmutable": true
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "amendAllowed": false,
+    "cherryPickAllowed": false,
+    "historyRewriteAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
