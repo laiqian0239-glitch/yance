@@ -381,6 +381,8 @@ function persistWhatsAppDirectorySnapshot({ databaseAccountId, contacts = [], ch
       stats.conversations += 1;
     }
   });
+  // Directory snapshots can contain both a private LID and a phone-number JID.
+  // Reconcile after the write transaction so aliases become one persisted conversation.
   try { whatsappConversationMerge.reconcileAccount(databaseAccountId); }
   catch (error) { logger.warn('whatsapp', 'directory-conversation-merge-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }); }
   return stats;
@@ -587,6 +589,8 @@ async function hydrateWhatsAppBusinessProfiles({ databaseAccountId, socket, limi
     try {
       const profile = await socket.getBusinessProfile(jid);
       if (!profile) { stats.unavailable += 1; continue; }
+      // Baileys versions expose different verified-name fields. Accept only a
+      // real value returned by WhatsApp; never derive a name from avatar pixels.
       const displayName = bestWhatsAppDisplayName([
         profile.verifiedBizName, profile.verifiedName, profile.businessName,
         profile.displayName, profile.name, conversation.title
@@ -693,6 +697,8 @@ async function requestLegacyWhatsAppMediaHistory({ databaseAccountId, socket, ta
 
 async function enrichWhatsAppMessageIdentity({ socket, databaseAccountId, info, message } = {}) {
   if (!message) return message;
+  // Outbound Baileys rows may carry the owner's pushName. Never let that name
+  // overwrite the peer identity. The target JID/aliases remain authoritative.
   const peerInfo = message.fromMe ? {
     ...info,
     pushName: '',
@@ -900,6 +906,7 @@ class WhatsAppAdapter {
     });
   }
 
+
   async reconcileKnownIdentities(adapterAccountId, databaseAccountId, socket, options = {}) {
     const runtimeRow = this.accounts.get(adapterAccountId) || [...this.accounts.values()].find(item => item.databaseAccountId === databaseAccountId) || null;
     if (runtimeRow) {
@@ -944,6 +951,9 @@ class WhatsAppAdapter {
       try {
         const conversationId = conversation.id || conversation.sessionKey || conversation.conversationId;
         const historicalMessages = messageStore.listMessages(conversationId, { limit: 500 }).slice().reverse();
+        // Outbound rows often carry the connected account's own name. They are not
+        // evidence for the peer identity and previously caused contacts to become
+        // "me" or the account owner's name after reconciliation.
         const inboundHistoricalMessages = historicalMessages.filter(message => (
           message.direction === 'inbound' || message.side === 'in' || message.fromMe === false
         ));
@@ -1504,6 +1514,8 @@ class WhatsAppAdapter {
               socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'messages.upsert', phase: 'message-persisted' });
               persisted = true;
             } else {
+              // Persist the message and notify immediately. Media download is a
+              // separate repairable projection and must never block later text.
               const descriptor = { ...message.attachments[0], status: 'pending', downloadStatus: 'pending', downloadError: '' };
               message.attachments = [descriptor];
               outcome = await messageStore.upsert(message);
