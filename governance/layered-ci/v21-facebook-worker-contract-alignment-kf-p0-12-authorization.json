@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T13:03:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FACEBOOK-WORKER-CONTRACT-ALIGNMENT-KF-P0-12",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close KF-P0-12 by failure-first proof against exact trusted main. Fresh source review shows the Worker health contract now requires D1 permission-authority migration 0006 while release preflight still declares EXPECTED_D1_SCHEMA_VERSION=5 and does not explicitly bind latestRequiredMigration/permissionAuthorityColumns. Desktop Worker clients also propagate arbitrary remote data.code values instead of enforcing the FACEBOOK_* error family. First implementation must remain tests-only and prove these exact seams through the existing Stage-routed Facebook WP0 contract test; production remains forbidden until a fresh causal RED with unknownBlockers=0 is recorded and a separate same-root production amendment ordinary-merges.",
+  "base": {
+    "branch": "main",
+    "commit": "28d9b61137dad44f0989e74e31cfedaba29ca40a"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-worker-contract-alignment-kf-p0-12-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-worker-contract-alignment-kf-p0-12-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8fcd40d3909ab10f298913139efdb2552c32ca6bc103f175296b567137cc0a6a",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-facebook-worker-contract-alignment-kf-p0-12-v2",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b3a77b0ad78e1ee8e592ae86674503d8e966a557f825f4a294c27d6b2be697d1",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "diagnosticScope": {
+    "requiredSemantics": [
+      "Preserve the existing official Facebook Page Chatwoot Matrix driver authority and do not mutate platformDriverRegistry.",
+      "Preserve Page OAuth retirement at the Desktop legacy Worker boundary; only Personal Identity Worker OAuth remains reachable and must require Worker OAuth contract version 6 or newer.",
+      "Preserve exact avatarProxyContract version 11, evidenceContractVersion 6 and the existing deployment marker.",
+      "Expose a causal RED proving release preflight does not yet require the Worker D1 permission-authority contract: schema version 6, latestRequiredMigration 0006_permission_authority.sql and permissionAuthorityColumns=true.",
+      "Expose a causal RED proving Desktop Worker error propagation does not yet fail closed to the FACEBOOK_* error family when an upstream Worker returns an unrecognized code.",
+      "Keep the existing lease-renewal, persisted-attempt header binding, signed request and Chatwoot ownership assertions GREEN.",
+      "The first implementation commit must change only the authorized existing WP0 test path and must contain no production mutation."
+    ],
+    "forbiddenSemantics": [
+      "No production fix before a fresh exact-head causal RED and unknownBlockers=0.",
+      "No platformDriverRegistry mutation.",
+      "No second Facebook driver, queue, scheduler, retry engine or contract registry.",
+      "No dependency, workflow, routing, schema, package or lockfile change.",
+      "No weakening of persisted-attempt, device-signature, D1 fencing, OAuth ownership or Chatwoot Matrix authority."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_CONTRACT_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Facebook Worker health contracts and Stage-routed WP0 integration test",
+        "source": "services/facebook-worker/src/index.js + backend/services/facebookOAuthService.js + backend/services/facebookRelayClient.js + tools/uat/sourceUatP0Preflight.js + tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The finding concerns alignment of existing Desktop/Worker contracts and error classification; no new dependency or generalized infrastructure is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second Facebook contract registry.",
+      "Do not revive legacy Page Worker OAuth.",
+      "Do not infer conformance from string presence without an executable Stage-routed assertion."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
