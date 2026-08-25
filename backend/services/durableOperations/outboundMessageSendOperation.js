@@ -209,18 +209,19 @@ function sha256(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
-function takeWhatsAppFileRepairCustody(attempt, repairInput) {
-  if (!repairInput || attempt.platform !== 'whatsapp') return repairInput;
+function takeFileRepairCustody(attempt, repairInput) {
+  if (!repairInput || !['whatsapp', 'telegram'].includes(attempt.platform)) return repairInput;
   const payload = repairInput.payload;
   if (!payload || String(payload.kind || '').trim() !== 'outbound-media-upsert') return repairInput;
-  const source = payload.source;
-  if (!source || typeof source !== 'object' || Array.isArray(source)) return repairInput;
+  const source = payload.source && typeof payload.source === 'object' && !Array.isArray(payload.source)
+    ? payload.source
+    : null;
 
-  const filePath = String(source.filePath == null ? '' : source.filePath).trim();
+  const filePath = String(source?.filePath || payload.sourceFile || '').trim();
   if (!filePath) return repairInput;
 
   const bytes = fs.readFileSync(filePath);
-  const expectedSha256 = String(source.expectedSha256 == null ? '' : source.expectedSha256).trim().toLowerCase();
+  const expectedSha256 = String(source?.expectedSha256 || payload.expectedSha256 || '').trim().toLowerCase();
   if (expectedSha256 && (!/^[a-f0-9]{64}$/u.test(expectedSha256) || sha256(bytes) !== expectedSha256)) {
     throw outboundMessageOperationError(
       'WP_B_OUTBOUND_LOCAL_REPAIR_MEDIA_HASH_MISMATCH',
@@ -229,10 +230,14 @@ function takeWhatsAppFileRepairCustody(attempt, repairInput) {
     );
   }
 
+  const canonicalPayload = { ...payload };
+  delete canonicalPayload.sourceFile;
+  delete canonicalPayload.expectedSha256;
+
   return Object.freeze({
     ...repairInput,
     payload: Object.freeze({
-      ...payload,
+      ...canonicalPayload,
       source: Object.freeze({
         bufferBase64: bytes.toString('base64'),
         ...(expectedSha256 ? { expectedSha256 } : {})
@@ -245,7 +250,7 @@ function persistLocalPersistenceRepair(dependencies, attempt, observation = {}) 
   if (observation.localPersistencePending !== true) return null;
   const platformMessageId = optionalString(observation.platformMessageId, 'platformMessageId');
   try {
-    const repairInput = takeWhatsAppFileRepairCustody(
+    const repairInput = takeFileRepairCustody(
       attempt,
       localPersistenceRepairInput(attempt, observation)
     );
