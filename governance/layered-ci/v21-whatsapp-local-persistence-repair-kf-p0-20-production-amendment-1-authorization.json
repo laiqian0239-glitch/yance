@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T23:06:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WHATSAPP-LOCAL-PERSISTENCE-REPAIR-KF-P0-20-PROD-A1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen tests-only PR #812 established a fresh exact-head causal RED for KF-P0-20. Exact head d03a37347966d9931224e4681a0233efd0696277 changes only tests/wp0/v21-whatsapp-local-persistence-repair-kf-p0-20.test.js, frozen blob 78d5a3f996a22e87227fe7d987a09f69c402ba22. Stage run 32869936201 / wp0-product job 97874553963 executed 695 mandatory WP0 tests with 694 pass and exactly one finding-specific failure. The dedicated test ran 3 subtests / 2 pass / 1 fail: file-backed provider-accepted media fails after the original source path disappears, while buffer-backed repair and deterministic non-media repair identity remain GREEN. Every unrelated mandatory WP0 file passed, including KF-P0-19 and KF-P0-22; Ubuntu and Windows sealed exports passed; Layered, ACV2, WP-A post-merge and Model Brain routed exact-head workflows passed; Product Final was correctly skipped. unknownBlockers=0. The frozen RED directly proves the durability boundary in backend/services/durableOperations/outboundMessageSendOperation.js must take byte custody before durable repair enqueue returns: changing only the downstream worker cannot satisfy the frozen test because the test serializes the repair input at persistLocalPersistenceRepair(). Production closure is therefore limited to that existing durable outbound operation seam, converting file-backed outbound-media-upsert repair source into durable byte custody with integrity verification before enqueue, preserving provider-accepted no-resend semantics and all existing repair authority.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-whatsapp-local-persistence-repair-kf-p0-20-authorization.json",
+    "implementationBranch": "test/v21-whatsapp-local-persistence-repair-kf-p0-20-causal-red",
+    "reason": "Supersede tests-only authority only after clean causal RED d03a37347966d9931224e4681a0233efd0696277 proved the exact production root. PR #812 and frozen blob 78d5a3f996a22e87227fe7d987a09f69c402ba22 remain immutable evidence; no amend, rebase, squash, cherry-pick, force-push or history rewrite is permitted."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "a1a4c84dd5eab9700c555178646339ddabca8231",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "a1a4c84dd5eab9700c555178646339ddabca8231",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-whatsapp-local-persistence-repair-kf-p0-20-production-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-whatsapp-local-persistence-repair-kf-p0-20-production-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d5666b04efdb063f2457287d7061ee1ea63a341aa85bdb4301aa51183ce275e9",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-whatsapp-local-persistence-repair-kf-p0-20-production-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "d03a37347966d9931224e4681a0233efd0696277"
+    },
+    "allowedChangedPaths": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js",
+      "tests/wp0/v21-whatsapp-local-persistence-repair-kf-p0-20.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0161fe8598c23c3b54ac50bcd32afa3b0a61265d677c1d700d1ee8a359661371",
+    "newlyAuthorizedPaths": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "ce60b4e1343a9c170a38a0e2b497d286ab80cc054351739edcc9c1892e17a989",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 812,
+    "branch": "test/v21-whatsapp-local-persistence-repair-kf-p0-20-causal-red",
+    "frozenHead": "d03a37347966d9931224e4681a0233efd0696277",
+    "frozenTestPath": "tests/wp0/v21-whatsapp-local-persistence-repair-kf-p0-20.test.js",
+    "frozenTestBlob": "78d5a3f996a22e87227fe7d987a09f69c402ba22",
+    "effectiveAuthorizationMerge": "a1a4c84dd5eab9700c555178646339ddabca8231",
+    "stageRun": 32869936201,
+    "stageJob": 97874553963,
+    "stageConclusion": "failure",
+    "result": "695 mandatory WP0 tests / 694 pass / exactly 1 finding-specific failure. The dedicated test ran 3 subtests / 2 pass / 1 fail. File-backed provider-accepted media crosses durable enqueue as a path-only source and fails with ENOENT after the original source is deleted. Buffer-backed media and non-media deterministic repair identity preserve proofs pass. Every unrelated mandatory WP0 file passes, including KF-P0-19 and KF-P0-22. Ubuntu and Windows sealed exports pass.",
+    "provenNewScopePaths": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js"
+    ],
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "d03a37347966d9931224e4681a0233efd0696277",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true,
+    "frozenTestBlobMustRemain": "78d5a3f996a22e87227fe7d987a09f69c402ba22"
+  },
+  "causalRedClassification": {
+    "rootCause": "For file-backed WhatsApp media, provider acceptance can occur before canonical local media projection succeeds. The resulting outbound-media-upsert repair plan retains only the caller-owned filePath and expectedSha256. persistLocalPersistenceRepair durably enqueues that path reference without taking ownership of the bytes. If the transient source disappears before repair or restart recovery, LocalPersistenceRepairService.apply follows source.filePath and cannot reconstruct the local projection. The frozen RED serializes repairInput exactly at persistLocalPersistenceRepair and then deletes the path, proving that downstream worker-only changes cannot close the durability contract.",
+    "requiredOwningLayerChange": "Change backend/services/durableOperations/outboundMessageSendOperation.js only. Before enqueueLocalPersistenceRepair returns a durable receipt, detect outbound-media-upsert with a non-empty source.filePath, synchronously read the source bytes while they are still available, verify expectedSha256 when provided, and replace the path-only source with existing bufferBase64 byte custody. Preserve the same repair id/queue/platform/account/message/descriptor contract. Any custody read or integrity failure after provider acceptance must flow through the existing WP_B_OUTBOUND_LOCAL_REPAIR_DURABILITY_UNCERTAIN fail-closed wrapper with automatic resend blocked. Do not alter localPersistenceRepairService, repository schema or WhatsApp provider dispatch.",
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementation": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js"
+    ],
+    "rootSeams": [
+      "persistLocalPersistenceRepair: provider-accepted repair durability boundary",
+      "outbound-media-upsert filePath to durable bufferBase64 custody",
+      "expectedSha256 verification before durable repair receipt"
+    ],
+    "preserve": [
+      "Provider-accepted outbound attempts are never blindly re-sent because local persistence failed.",
+      "Existing deterministic repair identity local-repair-${attemptId} remains unchanged.",
+      "Buffer-backed outbound-media-upsert repair keeps existing semantics and remains GREEN.",
+      "message-upsert, reaction-apply and message-revoke repair plans retain pass-through semantics.",
+      "LocalPersistenceRepairService and localPersistenceRepairRepository remain the sole queue/worker/persistence authority.",
+      "KF-P0-19 and KF-P0-22 generation-custody closures remain GREEN."
+    ],
+    "negativeProof": [
+      "No second repair queue, worker, scheduler, database, blob service or workflow engine.",
+      "No backend/services/localPersistenceRepairService.js or repository mutation is required by the frozen RED.",
+      "No WhatsApp provider-send behavior or network retry mutation.",
+      "No dependency, workflow, routing, schema, package manifest or lockfile mutation.",
+      "No test mutation; frozen test blob remains exact."
+    ],
+    "outOfRootCauseWithEvidence": [
+      "backend/services/localPersistenceRepairService.js already knows how to reconstruct an outbound-media-upsert from bufferBase64 and the frozen buffer-backed preserve subtest passes.",
+      "backend/repositories/localPersistenceRepairRepository.js already durably serializes repair payloads; the failure is that the persisted payload carries only caller-owned filePath rather than owned bytes.",
+      "backend/services/whatsappAdapter.js already reports provider-accepted localPersistencePending without resending; changing adapter dispatch is unnecessary for the proven durability boundary."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DURABLE_OUTBOUND_REPAIR_BOUNDARY",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance outbound-message durable local-repair seam",
+        "source": "backend/services/durableOperations/outboundMessageSendOperation.js + backend/services/localPersistenceRepairService.js + backend/repositories/localPersistenceRepairRepository.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already provides deterministic repair identity, durable payload persistence, restart recovery and a bufferBase64 media-reconstruction path. The RED proves only a narrow pre-enqueue byte-custody gap, so the minimum fit is to reuse this seam and convert file-path repair input into the existing byte-backed representation before the durable receipt escapes."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not introduce a second media-custody subsystem, repair queue, scheduler, database or worker.",
+      "Do not add an OSS dependency for byte copying or hashing because Node built-ins and the existing repair payload format already cover the proven gap.",
+      "Do not resend an already provider-accepted WhatsApp message to compensate for local repair failure."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-whatsapp-local-persistence-repair-kf-p0-20.test.js",
+      "node --test tests/wp0/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19.test.js",
+      "node --test tests/wp0/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22.test.js",
+      "node --test backend/tests/platformAcceptedLocalPendingRepair.test.js"
+    ],
+    "negativeProofs": [
+      "Frozen KF-P0-20 test blob 78d5a3f996a22e87227fe7d987a09f69c402ba22 becomes fully GREEN without modification.",
+      "File-backed repair survives original path deletion because durable repair input owns exact bytes.",
+      "expectedSha256 mismatch fails before a durable repair receipt can claim custody.",
+      "Buffer-backed and non-media repair behavior remains unchanged.",
+      "No second network send is introduced and provider-accepted durability uncertainty remains fail-closed.",
+      "KF-P0-19 and KF-P0-22 remain GREEN."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge when routed",
+      "WP-B when routed",
+      "Model Brain Windows when routed",
+      "Product Final only when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "newRepairQueueOrWorker": true,
+    "newGeneralPurposeMediaCustodyInfrastructure": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "cherryPickForbidden": true,
+    "historyRewriteForbidden": true,
+    "freshMainAntiDriftRequired": true,
+    "exactHeadGreenRequired": true
+  }
+}
