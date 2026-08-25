@@ -528,7 +528,7 @@ class BackendOwnerRegistry {
     }
   }
 
-  register(context = {}) {
+  _registrationRecord(context = {}) {
     const backendPid = context.backendPid;
     const capturedIdentity = Object.prototype.hasOwnProperty.call(context, 'processIdentity')
       ? context.processIdentity
@@ -538,13 +538,10 @@ class BackendOwnerRegistry {
       error.reasonCode = 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_ASYNC_REQUIRED';
       throw error;
     }
-    // Debug logging
     try {
       const logDir = path.join(process.env.APPDATA || process.env.HOME || '.', 'Yance', 'debug');
       const logPath = path.join(logDir, 'register_debug.jsonl');
-      if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir, { recursive: true });
-      }
+      if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
       const entry = JSON.stringify({
         timestamp: new Date().toISOString(),
         backendPid,
@@ -556,7 +553,7 @@ class BackendOwnerRegistry {
     } catch (e) {
       console.error('[register debug log failed]', e.message);
     }
-    const record = {
+    return {
       schemaVersion: SCHEMA_VERSION,
       state: context.state === undefined ? 'SPAWNED' : context.state,
       ownershipActive: true,
@@ -571,6 +568,110 @@ class BackendOwnerRegistry {
       spawnedAtUtc: typeof context.spawnedAtUtc === 'string' ? context.spawnedAtUtc : this.clock(),
       updatedAtUtc: this.clock()
     };
+  }
+
+  _assertClaimAvailable() {
+    if (this.loadFailure) throw registryLoadFailureError(this.loadFailure);
+    if (this.record?.ownershipActive === true) {
+      const error = new Error('A backend owner claim already exists; refusing to overwrite it');
+      error.reasonCode = 'WP4_DESKTOP_BACKEND_OWNER_CLAIM_CONFLICT';
+      error.retryable = true;
+      error.existingOwner = this.snapshot();
+      throw error;
+    }
+  }
+
+  async acquireStartupAdmission() {
+    if (!this.enabled()) {
+      let active = true;
+      let registered = false;
+      return Object.freeze({
+        register: context => {
+          if (!active) {
+            const error = new Error('Backend startup admission is no longer active');
+            error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_CLOSED';
+            throw error;
+          }
+          if (registered) {
+            const error = new Error('Backend startup admission may register exactly one owner');
+            error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_ALREADY_REGISTERED';
+            throw error;
+          }
+          const result = this._write(this._registrationRecord(context));
+          registered = true;
+          return result;
+        },
+        release: async () => { active = false; }
+      });
+    }
+
+    if (typeof this.lockfile.lock !== 'function') {
+      const error = new Error('Backend owner claim lock does not provide the required asynchronous admission API');
+      error.reasonCode = 'WP4_DESKTOP_BACKEND_OWNER_ASYNC_CLAIM_UNAVAILABLE';
+      throw error;
+    }
+
+    this.fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    let releaseImpl = null;
+    try {
+      releaseImpl = await this.lockfile.lock(this.file, {
+        realpath: false,
+        stale: this.claimLockStaleMs,
+        retries: 0,
+        fs: this.fs
+      });
+    } catch (cause) {
+      throw ownerClaimError(cause, 'acquire');
+    }
+
+    let active = true;
+    let registered = false;
+    let released = false;
+    const release = async () => {
+      if (released) return;
+      released = true;
+      active = false;
+      try { await releaseImpl?.(); }
+      catch (cause) { throw ownerClaimError(cause, 'release'); }
+    };
+
+    try {
+      this.refresh();
+      this._assertClaimAvailable();
+    } catch (error) {
+      try { await release(); }
+      catch (releaseError) {
+        error.ownerClaimReleaseFailure = {
+          reasonCode: releaseError.reasonCode,
+          code: releaseError.code,
+          message: releaseError.message
+        };
+      }
+      throw error;
+    }
+
+    return Object.freeze({
+      register: context => {
+        if (!active) {
+          const error = new Error('Backend startup admission is no longer active');
+          error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_CLOSED';
+          throw error;
+        }
+        if (registered) {
+          const error = new Error('Backend startup admission may register exactly one owner');
+          error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_ALREADY_REGISTERED';
+          throw error;
+        }
+        const result = this._write(this._registrationRecord(context));
+        registered = true;
+        return result;
+      },
+      release
+    });
+  }
+
+  register(context = {}) {
+    const record = this._registrationRecord(context);
     if (!this.enabled()) return this._write(record);
     return this._withOwnerClaimLock(() => {
       // Constructor-time state is only a hint. The claim boundary must reload
@@ -578,14 +679,7 @@ class BackendOwnerRegistry {
       // DesktopHost processes can both observe an empty registry and overwrite
       // each other after they fork.
       this.refresh();
-      if (this.loadFailure) throw registryLoadFailureError(this.loadFailure);
-      if (this.record?.ownershipActive === true) {
-        const error = new Error('A backend owner claim already exists; refusing to overwrite it');
-        error.reasonCode = 'WP4_DESKTOP_BACKEND_OWNER_CLAIM_CONFLICT';
-        error.retryable = true;
-        error.existingOwner = this.snapshot();
-        throw error;
-      }
+      this._assertClaimAvailable();
       return this._write(record);
     });
   }
