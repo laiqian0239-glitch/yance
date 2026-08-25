@@ -1194,12 +1194,26 @@ class FacebookAdapter {
     const attachments = await Promise.all(rawAttachments.map((attachment, index) => {
       const workerMedia = attachment?.payload?.worker_media || attachment?.workerMedia || null;
       const workerEventId = clean(workerMedia?.eventId || workerMedia?.event_id);
-      if (!workerEventId) {
+      const downloadState = clean(attachment?.downloadStatus || attachment?.status).toLowerCase();
+      if (downloadState === 'ready') return Promise.resolve(attachment);
+      if (['failed', 'unavailable'].includes(downloadState)) {
+        return Promise.resolve({
+          ...attachment,
+          sourceUrl: '', url: '', mediaUrl: '',
+          status: downloadState,
+          downloadStatus: downloadState,
+          downloadError: clean(
+            attachment?.downloadError,
+            downloadState === 'failed' ? 'FACEBOOK_WORKER_MEDIA_FAILED' : 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED'
+          )
+        });
+      }
+      if (!workerEventId || !['pending', 'remote'].includes(downloadState)) {
         return Promise.resolve({
           ...attachment,
           sourceUrl: '', url: '', mediaUrl: '',
           status: 'unavailable', downloadStatus: 'unavailable',
-          downloadError: 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED'
+          downloadError: workerEventId ? 'FACEBOOK_WORKER_MEDIA_STATE_INVALID' : 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED'
         });
       }
       return this.downloadRemoteAttachment({
