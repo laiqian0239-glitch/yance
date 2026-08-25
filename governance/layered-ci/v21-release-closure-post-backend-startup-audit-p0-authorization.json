@@ -71,6 +71,28 @@
       "No mutation of frozen evidence PR #781 or historical frozen PRs."
     ]
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_RELEASE_LEDGER_EVIDENCE",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance Release Closure Ledger and exact-head evidence chain",
+        "source": "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md + governance/layered-ci + GitHub Actions exact-head evidence",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This package only reconciles existing repository-owned release evidence; no new software capability, dependency or generalized infrastructure is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a new release ledger, evidence database, scanner or reconciliation service.",
+      "Do not infer closure from source shape or historical test presence.",
+      "Do not create a parallel RC authority inside this documentation audit."
+    ],
+    "thinYanceAdapterOnly": true
+  },
   "requiredValidation": {
     "exactHeadCi": [
       "Stage",
