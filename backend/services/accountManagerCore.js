@@ -579,6 +579,59 @@ class AccountManager {
     return { account: this.publicAccount(accountStore.get(id)), result };
   }
 
+  async mediaTransfer(id, input = {}) {
+    assertOperationActive(input.signal, 'ACCOUNT_MEDIA_TRANSFER_ABORTED');
+    const account = accountStore.get(id);
+    if (!account || account.platform !== 'facebook') {
+      throw Object.assign(new Error('Facebook媒体账号不存在'), { code: 'FACEBOOK_MEDIA_ACCOUNT_NOT_FOUND', status: 404 });
+    }
+    if (String(input.transferKind || '').trim().toUpperCase() !== 'FETCH') {
+      throw Object.assign(new Error('Facebook Worker媒体物化仅支持FETCH'), { code: 'FACEBOOK_MEDIA_TRANSFER_KIND_UNSUPPORTED', status: 409 });
+    }
+    const messageId = String(input.mediaReference || '').trim();
+    const persisted = messageStore.getExternalMessage({ accountId: id, targetId: messageId });
+    if (!persisted) {
+      throw Object.assign(new Error('Facebook媒体引用未解析到已持久化消息'), { code: 'FACEBOOK_MEDIA_MESSAGE_NOT_FOUND', status: 404, accountId: id, messageId });
+    }
+    const attachments = Array.isArray(persisted.attachments) ? persisted.attachments : [];
+    const hasWorkerMedia = attachments.some(attachment => {
+      const worker = attachment?.workerMedia || attachment?.payload?.worker_media || null;
+      return Boolean(String(worker?.eventId || worker?.event_id || '').trim());
+    });
+    if (!hasWorkerMedia) {
+      throw Object.assign(new Error('已持久化Facebook消息没有Worker媒体引用；Windows直连Meta CDN仍保持退役'), {
+        code: 'FACEBOOK_WORKER_MEDIA_REFERENCE_NOT_FOUND', status: 409, accountId: id, messageId
+      });
+    }
+    const conversationId = String(persisted.conversationId || persisted.sessionKey || '').trim();
+    const externalMessageId = String(persisted.externalMessageId || messageId).trim();
+    const facebookAdapter = require('./facebookAdapter');
+    await withAbortSignal(
+      facebookAdapter.cacheWebhookAttachments(account, {
+        ...persisted,
+        accountId: id,
+        platform: 'facebook',
+        externalMessageId,
+        conversationId
+      }, attachments, {
+        signal: input.signal || null,
+        physicalOperationContext: input.physicalOperationContext
+      }),
+      input.signal,
+      'ACCOUNT_MEDIA_TRANSFER_ABORTED'
+    );
+    assertOperationActive(input.signal, 'ACCOUNT_MEDIA_TRANSFER_ABORTED');
+    return {
+      status: 'completed',
+      remoteTransferId: '',
+      providerRequestId: '',
+      outputReference: `message:${id}:${externalMessageId}`,
+      evidenceReference: `facebook-worker-media:${String(input.operationId || messageId).trim()}`,
+      failureCode: '',
+      uncertain: false
+    };
+  }
+
   async syncAll() {
     const results = [];
     for (const account of accountStore.list().filter(row => accountLifecycle.eligibility(row, { manual: false }).eligible)) {
