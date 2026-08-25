@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T19:36:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WHATSAPP-MESSAGES-UPSERT-DETACHED-CUSTODY-KF-P0-22-PROD-A1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen tests-only PR #806 established a fresh exact-head causal RED for KF-P0-22 and the complete currently observable same-root WhatsApp socket-generation detached-continuation graph. Exact head 622692023b2c50ae988398b3822dd7d2e044e3ed changes only the dedicated authorized WP0 test, blob d3d5994fab8a801fc9f2533fb358fc1c93360dc5. Stage run 32850513145 / wp0-product job 97810153689 executed 692 mandatory WP0 tests with 689 pass and exactly three finding-specific grouped failures, while every unrelated mandatory WP0 file and both sealed-export jobs passed. The three RED categories are connection.update detached Promise/timer work, messaging-history.set/messages.upsert detached avatar/presence/media work, and presence.update/nested identity-avatar detached work. Passing preserve proofs establish that createSocketGenerationGuard already owns explicitly wrapped background Promises, returned-Promise chats/contacts handlers remain generation-owned, durable history-media recovery has independent durable operation generation/fingerprint fencing, and the existing KF-P0-19 stop/drain + stale-entry contracts remain GREEN. unknownBlockers=0. Same-root production closure is exhausted to backend/services/whatsappAdapter.js: reuse the existing socketGuard to launch every non-durable asynchronous socket-event continuation under generation custody, and join nested avatar work before its parent generation task settles. No sessionGenerationFence change is required because the RED preserve proof demonstrates the existing fence can already provide the needed custody semantics.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-authorization.json",
+    "implementationBranch": "test/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-causal-red",
+    "reason": "Supersede tests-only authority only after clean causal RED 622692023b2c50ae988398b3822dd7d2e044e3ed proved the exact production root. PR #806 and its test blob remain immutable evidence; no amend, rebase, squash, cherry-pick, force-push or history rewrite is permitted."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "97f6235b25eec72a3d17734bcedf2fcec5ce581a",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "97f6235b25eec72a3d17734bcedf2fcec5ce581a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-production-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-production-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "1aa34ad77bbd79eb31cfdb173905024ed04409a31fd6a3c2a6d954c7d4255451",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-production-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "622692023b2c50ae988398b3822dd7d2e044e3ed"
+    },
+    "allowedChangedPaths": [
+      "backend/services/whatsappAdapter.js",
+      "tests/wp0/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "6e6898dbb8619f901ef665b086a54e5e5df81fb60be47365b7889f4f57dd59f0",
+    "newlyAuthorizedPaths": [
+      "backend/services/whatsappAdapter.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "2d65320f1a33441aa41b21f1b1c7a2d4354a70ce7854a6ce001f2bc576f6a3e0",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 806,
+    "branch": "test/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-causal-red",
+    "frozenHead": "622692023b2c50ae988398b3822dd7d2e044e3ed",
+    "frozenTestPath": "tests/wp0/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22.test.js",
+    "frozenTestBlob": "d3d5994fab8a801fc9f2533fb358fc1c93360dc5",
+    "effectiveAuthorizationMerge": "97f6235b25eec72a3d17734bcedf2fcec5ce581a",
+    "stageRun": 32850513145,
+    "stageJob": 97810153689,
+    "stageConclusion": "failure",
+    "result": "692 mandatory WP0 tests / 689 pass / exactly 3 finding-specific grouped failures. The dedicated test itself ran 7 subtests / 4 pass / 3 fail. Category 1 reports all six connection.update detached async seams. Category 2 fails first at messaging-history.set avatar sync and the same immutable test subsequently requires messages.upsert presence/media/avatar seams. Category 3 fails first at presence.update metadata persistence and the same immutable test subsequently requires nested reconcileKnownIdentities avatar joining. Explicit socketGuard background-custody, returned-Promise chats/contacts, durable media fencing, KF-P0-19 stop/drain and all unrelated mandatory WP0 contracts pass. Ubuntu and Windows sealed exports pass.",
+    "provenNewScopePaths": [
+      "backend/services/whatsappAdapter.js"
+    ],
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "622692023b2c50ae988398b3822dd7d2e044e3ed",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true,
+    "frozenTestBlobMustRemain": "d3d5994fab8a801fc9f2533fb358fc1c93360dc5"
+  },
+  "causalRedClassification": {
+    "rootCause": "createSocketGenerationGuard correctly owns a callback only for the lifetime of the Promise returned by that callback. Several WhatsApp socket callbacks instead start non-durable Promise/timer work and return before those continuations settle. Once the parent handler returns, sessionGenerationFence in-flight custody is released; stop can invalidate and drain the generation while those old-generation continuations still have pending socket/state side effects. The same pattern also appears inside reconcileKnownIdentities, where avatar Promises are detached from the parent async method. Durable history-media recovery is not part of this root because it has its own persistent durable-operation generation/objectFingerprint fencing and is explicitly preserved by the RED negative proof.",
+    "requiredOwningLayerChange": "Change backend/services/whatsappAdapter.js only. Reuse createSocketGenerationGuard by introducing narrow local generation-owned launch/schedule helpers that ultimately invoke socketGuard.wrap(task)(). Route connection.update, messaging-history.set, messages.upsert and presence.update non-durable background asynchronous continuations through those helpers. Join nested reconcileKnownIdentities avatar work before the parent generation task settles. Preserve nonblocking callback responsiveness, existing logging/error quarantine, durable media recovery authority and current product behavior. Do not add or modify generation infrastructure.",
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementation": [
+      "backend/services/whatsappAdapter.js"
+    ],
+    "rootSeams": [
+      "connection.update: reconcileKnownIdentities",
+      "connection.update: subscribeKnownConversations",
+      "connection.update: queueKnownAvatarSync connection-ready",
+      "connection.update timer: hydrateWhatsAppBusinessProfiles",
+      "connection.update timer: requestLegacyWhatsAppMediaHistory",
+      "connection.update timer: resyncAppState + app-state version persistence",
+      "messaging-history.set: queueKnownAvatarSync history-sync",
+      "messages.upsert: ensurePresenceSubscription",
+      "messages.upsert: mediaPipeline.materializeBaileys + messageStore update/event",
+      "messages.upsert: avatarService.enqueueWhatsApp + identity recording",
+      "presence.update: messageStore.updateConversationMetadata + presence refresh",
+      "reconcileKnownIdentities: nested avatarService.enqueueWhatsApp Promises"
+    ],
+    "preserve": [
+      "backend/services/sessionGenerationFence.js unchanged; RED proves explicit socketGuard.wrap async tasks remain counted through drain",
+      "KF-P0-19 stop/drain fail-closed row quarantine and stale-at-entry rejection",
+      "messages.upsert primary message/reaction/revoke persistence and syncCheckpoint commit/fail semantics",
+      "returned-Promise chats.upsert/chats.update/contacts.upsert/contacts.update queueAvatarRows handlers",
+      "mobile-echo synchronous current-check-only cleanup boundary",
+      "presence, avatar, profile, history, app-state and notification product behavior",
+      "existing logging/error quarantine without unhandled rejected detached Promises"
+    ],
+    "negativeProof": [
+      "No second generation manager, scheduler, queue, retry engine, credential store or lock authority",
+      "No production change to backend/services/sessionGenerationFence.js because explicit background custody already passes",
+      "No Facebook, Telegram, platformDriverRegistry, dependency, workflow, routing, schema, package or lockfile mutation",
+      "No behavior removal or assertion-only pre-schedule isCurrent workaround",
+      "No squash, rebase, cherry-pick, amend, force-push or history rewrite"
+    ],
+    "outOfRootCauseWithEvidence": [
+      "backend/services/whatsappHistoryMediaRecovery.js remains unchanged. Its persistent durable operation authority uses currentRuntimeInternalOperationAuthority, begin/fail/succeed lifecycle, operation generation and objectFingerprint fencing; the frozen RED negative-proof subtest passes. Socket generation custody must not replace this cross-generation durable repair authority.",
+      "chats/contacts directory avatar callbacks already return their queueAvatarRows Promise to createSocketGenerationGuard and pass the frozen negative-proof subtest.",
+      "mobile-echo placeholder repair does not cross an asynchronous await boundary after its current-generation check and is preserved without speculative custody infrastructure."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_SOCKET_GENERATION_GUARD",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance createSocketGenerationGuard and WhatsApp onSocket handlers",
+        "source": "backend/services/sessionGenerationFence.js + backend/services/whatsappAdapter.js",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "The RED directly proves the existing guard already provides correct custody when a background Promise is explicitly wrapped. The root is caller detachment, so a thin adapter-level launch/schedule seam is sufficient."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a parallel session-generation authority.",
+      "Do not add a second media/avatar/presence queue solely for generation custody.",
+      "Do not serialize all background work into the main socket callback when an explicitly guard-owned parallel task preserves responsiveness.",
+      "Do not replace durable media-operation fencing with socket-generation fencing."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22.test.js",
+      "node --test tests/wp0/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19.test.js",
+      "node --test backend/tests/batch39WhatsappSessionFence.test.js"
+    ],
+    "negativeProofs": [
+      "Every frozen KF-P0-22 generation-owned source assertion becomes GREEN without changing the frozen test blob.",
+      "An explicitly launched socket-generation background Promise keeps drain pending until settle.",
+      "Connection-ready timers that fire after invalidation cannot enter; timers/tasks that entered before invalidation remain counted until their async work settles.",
+      "Nested reconcileKnownIdentities avatar Promises settle before the parent generation-owned reconciliation task completes.",
+      "Returned-Promise chats/contacts handlers remain unchanged and GREEN.",
+      "Durable history-media recovery retains its own persistent generation/objectFingerprint fencing and remains unchanged.",
+      "KF-P0-19 stop/drain + stale-entry contracts remain GREEN."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge when routed",
+      "WP-B when routed",
+      "Model Brain Windows when routed",
+      "Product Final only when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "newSessionGenerationAuthority": true,
+    "newSchedulerOrQueue": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "releaseEvidenceParallelism": {
+    "duringCiMayReconcileRemainingEvidence": true,
+    "sourceGreenDoesNotAuthorizeFreshMainRcUntilAllSourceEvidenceP0P1Close": true,
+    "mayNotClaimFreshPackagedWindowsRcPassBeforeFreshRc": true
+  }
+}
