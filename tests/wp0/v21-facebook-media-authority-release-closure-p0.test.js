@@ -87,6 +87,32 @@ test('legacy Facebook URL-only media cannot remain pending or re-enter direct CD
   assert.match(adapter, /FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED/u);
 });
 
+test('mixed Facebook media materialization performs physical I/O only for pending or remote Worker custody', () => {
+  const adapter = readText('backend/services/facebookAdapter.js');
+  assert.match(
+    adapter,
+    /downloadState\s*=\s*clean\(attachment\?\.downloadStatus\s*\|\|\s*attachment\?\.status\)\.toLowerCase\(\)/u
+  );
+  assert.match(
+    adapter,
+    /if\s*\(downloadState\s*===\s*['"]ready['"]\)\s*return\s+Promise\.resolve\(attachment\)/u,
+    'already materialized attachments must be idempotent and must not call Worker again'
+  );
+  assert.match(
+    adapter,
+    /if\s*\(\[['"]failed['"],\s*['"]unavailable['"]\]\.includes\(downloadState\)\)[\s\S]*?return\s+Promise\.resolve/u,
+    'failed or unavailable persisted attachments must never perform Worker I/O'
+  );
+  assert.match(
+    adapter,
+    /if\s*\(!workerEventId\s*\|\|\s*!\[['"]pending['"],\s*['"]remote['"]\]\.includes\(downloadState\)\)[\s\S]*?FACEBOOK_WORKER_MEDIA_STATE_INVALID/u,
+    'only pending or remote attachments with a Worker event reference may reach physical materialization'
+  );
+  const guardedDispatch = adapter.match(/async\s+cacheWebhookAttachments[\s\S]*?return\s+this\.downloadRemoteAttachment\(/u)?.[0] || '';
+  assert.match(guardedDispatch, /downloadState/u);
+  assert.match(guardedDispatch, /\[['"]pending['"],\s*['"]remote['"]\]/u);
+});
+
 test('MEDIA_TRANSFER physical execution has an implemented account-owned media-transfer ReconcilePort dispatch', () => {
   const composition = readText('backend/runtime/AppRuntimeComposition.js');
   const ports = readText('backend/services/platformAdapterPorts.js');
