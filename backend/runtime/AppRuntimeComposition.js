@@ -602,6 +602,17 @@ function persistedMediaAttempt(input) {
   });
 }
 
+function mediaCustodyAccountReference(custody = {}, platform = '') {
+  const normalizedPlatform = String(platform || '').trim().toLowerCase();
+  const explicit = String(custody?.accountId || custody?.accountReference || '').trim();
+  if (explicit) return explicit;
+  const reference = String(custody?.reference || '').trim();
+  const prefix = `${normalizedPlatform}:`;
+  return normalizedPlatform && reference.startsWith(prefix)
+    ? reference.slice(prefix.length).trim()
+    : '';
+}
+
 function createMediaClient() {
   return Object.freeze({
     async transfer(input) {
@@ -613,18 +624,28 @@ function createMediaClient() {
           409
         );
       }
+      const accountId = mediaCustodyAccountReference(input.custody, platform);
+      if (!accountId) {
+        throw gatewayError(
+          'WP_B_MEDIA_ACCOUNT_CAPABILITY_REQUIRED',
+          'Media transfer custody must identify one account-scoped platform capability',
+          409
+        );
+      }
       const result = await platformReconciliationPort(platform).execute(Object.freeze({
         ...input,
+        accountId,
         operation: 'media-transfer'
       }));
+      const failureCode = String(result?.failureCode || result?.reasonCode || '').trim();
       return Object.freeze({
         status: String(result?.status || '').trim(),
         remoteTransferId: String(result?.remoteTransferId || '').trim(),
         providerRequestId: String(result?.providerRequestId || '').trim(),
         outputReference: String(result?.outputReference || '').trim(),
         evidenceReference: String(result?.evidenceReference || ('media:' + input.attemptId)).trim(),
-        failureCode: String(result?.failureCode || '').trim(),
-        uncertain: result?.uncertain === true
+        failureCode,
+        uncertain: result?.uncertain === true || /(?:DEADLINE|OUTCOME_UNKNOWN|ABORT)/u.test(failureCode)
       });
     },
     async transcribe(input) {
