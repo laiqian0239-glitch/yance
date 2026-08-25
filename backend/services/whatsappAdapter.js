@@ -381,8 +381,6 @@ function persistWhatsAppDirectorySnapshot({ databaseAccountId, contacts = [], ch
       stats.conversations += 1;
     }
   });
-  // Directory snapshots can contain both a private LID and a phone-number JID.
-  // Reconcile after the write transaction so aliases become one persisted conversation.
   try { whatsappConversationMerge.reconcileAccount(databaseAccountId); }
   catch (error) { logger.warn('whatsapp', 'directory-conversation-merge-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }); }
   return stats;
@@ -589,8 +587,6 @@ async function hydrateWhatsAppBusinessProfiles({ databaseAccountId, socket, limi
     try {
       const profile = await socket.getBusinessProfile(jid);
       if (!profile) { stats.unavailable += 1; continue; }
-      // Baileys versions expose different verified-name fields. Accept only a
-      // real value returned by WhatsApp; never derive a name from avatar pixels.
       const displayName = bestWhatsAppDisplayName([
         profile.verifiedBizName, profile.verifiedName, profile.businessName,
         profile.displayName, profile.name, conversation.title
@@ -697,8 +693,6 @@ async function requestLegacyWhatsAppMediaHistory({ databaseAccountId, socket, ta
 
 async function enrichWhatsAppMessageIdentity({ socket, databaseAccountId, info, message } = {}) {
   if (!message) return message;
-  // Outbound Baileys rows may carry the owner's pushName. Never let that name
-  // overwrite the peer identity. The target JID/aliases remain authoritative.
   const peerInfo = message.fromMe ? {
     ...info,
     pushName: '',
@@ -906,7 +900,6 @@ class WhatsAppAdapter {
     });
   }
 
-
   async reconcileKnownIdentities(adapterAccountId, databaseAccountId, socket, options = {}) {
     const runtimeRow = this.accounts.get(adapterAccountId) || [...this.accounts.values()].find(item => item.databaseAccountId === databaseAccountId) || null;
     if (runtimeRow) {
@@ -945,15 +938,13 @@ class WhatsAppAdapter {
     ));
     let resolved = 0;
     let failed = 0;
+    const avatarJobs = [];
     for (const conversation of rows) {
       const jid = historyJid(conversation.chatJid || conversation.externalId || String(conversation.id || conversation.sessionKey || '').split(':').slice(1).join(':'));
       if (!jid) continue;
       try {
         const conversationId = conversation.id || conversation.sessionKey || conversation.conversationId;
         const historicalMessages = messageStore.listMessages(conversationId, { limit: 500 }).slice().reverse();
-        // Outbound rows often carry the connected account's own name. They are not
-        // evidence for the peer identity and previously caused contacts to become
-        // "me" or the account owner's name after reconciliation.
         const inboundHistoricalMessages = historicalMessages.filter(message => (
           message.direction === 'inbound' || message.side === 'in' || message.fromMe === false
         ));
@@ -1002,17 +993,19 @@ class WhatsAppAdapter {
           force: options.force === true, reason: options.reason || 'identity-reconcile'
         });
         if (task.conversationId && task.jid) {
-          avatarService.enqueueWhatsApp(task).then(result => {
-            if (result?.avatarUrl) recordWhatsAppAvatarIdentity({
-              accountId: databaseAccountId,
-              aliases: task.jidCandidates,
-              canonicalJid: result.resolvedJid || task.jid,
-              avatarUrl: result.avatarUrl,
-              source: 'whatsapp-profile'
-            });
-          }).catch(error => {
-            logger.warn('whatsapp', 'identity-reconcile-avatar-failed', { operation: 'avatarService.enqueueWhatsApp', accountId: databaseAccountId, conversationId: task.conversationId, reasonCode: error.code || 'WHATSAPP_AVATAR_RECONCILE_FAILED', httpStatus: Number(error.status || 0), attempt: Number(error.attempt || 1), nextRetryAt: error.nextRetryAt || '' });
-          });
+          avatarJobs.push(
+            avatarService.enqueueWhatsApp(task).then(result => {
+              if (result?.avatarUrl) recordWhatsAppAvatarIdentity({
+                accountId: databaseAccountId,
+                aliases: task.jidCandidates,
+                canonicalJid: result.resolvedJid || task.jid,
+                avatarUrl: result.avatarUrl,
+                source: 'whatsapp-profile'
+              });
+            }).catch(error => {
+              logger.warn('whatsapp', 'identity-reconcile-avatar-failed', { operation: 'avatarService.enqueueWhatsApp', accountId: databaseAccountId, conversationId: task.conversationId, reasonCode: error.code || 'WHATSAPP_AVATAR_RECONCILE_FAILED', httpStatus: Number(error.status || 0), attempt: Number(error.attempt || 1), nextRetryAt: error.nextRetryAt || '' });
+            })
+          );
         }
         resolved += 1;
       } catch (error) {
@@ -1020,6 +1013,7 @@ class WhatsAppAdapter {
         logger.warn('whatsapp', 'identity-reconcile-item-failed', { accountId: databaseAccountId, conversationId: conversation.id || conversation.sessionKey || '', errorCode: error.code || error.message });
       }
     }
+    await Promise.allSettled(avatarJobs);
     let conversationMerges = [];
     try { conversationMerges = whatsappConversationMerge.reconcileAccount(databaseAccountId); }
     catch (error) { logger.warn('whatsapp', 'account-conversation-merge-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }); }
@@ -1130,10 +1124,6 @@ class WhatsAppAdapter {
       logger.warn('whatsapp', 'stale-startup-replaced', { accountId, databaseAccountId: context.databaseAccountId || '', state: existing.state || '', startupAgeMs });
       await this.stop(accountId, false);
     }
-
-    // stop() invalidates the old socket generation and leaves an explicit stop
-    // marker. Clear those markers only for the replacement instance, then
-    // allocate its generation. Late events from the old socket stay isolated.
     this.stopping.delete(accountId);
     this.stoppedAccounts.delete(accountId);
     const generation = Number(this.generations.get(accountId) || 0) + 1;
@@ -1290,6 +1280,18 @@ class WhatsAppAdapter {
     row.socket = socket;
     const socketGuard = createSocketGenerationGuard(row.sessionFence, () => row.socket === socket);
     const onSocket = (eventName, handler) => socketGuard.bind(socket.ev, eventName, handler);
+    const launchSocketGenerationTask = (task, onError) => Promise.resolve()
+      .then(() => socketGuard.wrap(task)())
+      .catch(error => {
+        if (!socketGuard.isCurrent() || error?.code === 'SOCKET_GENERATION_STALE') return undefined;
+        onError?.(error);
+        return undefined;
+      });
+    const scheduleSocketGenerationTask = (scheduler, task, onError) => {
+      const handle = scheduler(() => { void launchSocketGenerationTask(task, onError); });
+      handle?.unref?.();
+      return handle;
+    };
     row.startupTimer = setTimeout(() => {
       if (this.accounts.get(accountId) !== row || row.state !== 'connecting') return;
       row.state = 'offline';
@@ -1347,11 +1349,11 @@ class WhatsAppAdapter {
         await this.recordLiveValidationSuccess(accountId, row.user).catch(error => logger.error('whatsapp', 'account-live-validation-update-failed', { accountId, error: error.message }));
         socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'connection.update', phase: 'validation-recorded' });
         eventBus.publish('whatsapp:state', { accountId, databaseAccountId, state: 'online', user: row.user, attemptId: String(options.attemptId || '') });
-        // The socket is already usable. Identity, avatar, history and media
-        // recovery are independent background capabilities and may not roll
-        // the account back from online when one of them fails.
-        setImmediate(() => socketGuard.isCurrent() && this.reconcileKnownIdentities(accountId, databaseAccountId, socket, { force: true, reason: 'connection-ready' })
-          .catch(error => logger.warn('whatsapp', 'connection-identity-reconcile-failed', { accountId: databaseAccountId, errorCode: error.code || error.message })));
+        scheduleSocketGenerationTask(
+          setImmediate,
+          () => this.reconcileKnownIdentities(accountId, databaseAccountId, socket, { force: true, reason: 'connection-ready' }),
+          error => logger.warn('whatsapp', 'connection-identity-reconcile-failed', { accountId: databaseAccountId, errorCode: error.code || error.message })
+        );
         setImmediate(() => {
           if (!socketGuard.isCurrent()) return;
           try {
@@ -1361,47 +1363,47 @@ class WhatsAppAdapter {
             logger.warn('whatsapp', 'mobile-device-echo-repair-failed', { accountId: databaseAccountId, errorCode: error.code || error.message });
           }
         });
-        this.subscribeKnownConversations(accountId).catch(error => logger.warn('whatsapp', 'presence-subscribe-known-failed', { accountId, error: error.message }));
-        this.queueKnownAvatarSync(accountId, databaseAccountId, socket, { reason: 'connection-ready' });
+        void launchSocketGenerationTask(
+          () => this.subscribeKnownConversations(accountId),
+          error => logger.warn('whatsapp', 'presence-subscribe-known-failed', { accountId, error: error.message })
+        );
+        void launchSocketGenerationTask(() => this.queueKnownAvatarSync(accountId, databaseAccountId, socket, { reason: 'connection-ready' }));
         let durableMedia = { missingEnvelope: 0 };
         try { durableMedia = whatsappHistoryMediaRecovery.queue.resumeAccount({ accountId: databaseAccountId, socket, limit: 800 }); }
         catch (error) { logger.warn('whatsapp', 'durable-media-resume-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }); }
-        const profileTimer = setTimeout(() => {
-          if (!socketGuard.isCurrent()) return;
-          hydrateWhatsAppBusinessProfiles({ databaseAccountId, socket, limit: 30 })
-            .catch(error => logger.warn('whatsapp', 'business-profile-hydration-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
-        }, 900);
-        profileTimer.unref?.();
+        scheduleSocketGenerationTask(
+          callback => setTimeout(callback, 900),
+          () => hydrateWhatsAppBusinessProfiles({ databaseAccountId, socket, limit: 30 }),
+          error => logger.warn('whatsapp', 'business-profile-hydration-failed', { accountId: databaseAccountId, errorCode: error.code || error.message })
+        );
         if (durableMedia.missingEnvelope > 0) {
-          const mediaTimer = setTimeout(() => {
-            if (!socketGuard.isCurrent()) return;
-            requestLegacyWhatsAppMediaHistory({ databaseAccountId, socket, maxRequests: 12, count: 50 })
-              .catch(error => logger.warn('whatsapp', 'legacy-media-history-plan-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
-          }, 1800);
-          mediaTimer.unref?.();
+          scheduleSocketGenerationTask(
+            callback => setTimeout(callback, 1800),
+            () => requestLegacyWhatsAppMediaHistory({ databaseAccountId, socket, maxRequests: 12, count: 50 }),
+            error => logger.warn('whatsapp', 'legacy-media-history-plan-failed', { accountId: databaseAccountId, errorCode: error.code || error.message })
+          );
         }
         if (typeof socket.resyncAppState === 'function' && row.appStateCollections.length) {
-          const timer = setTimeout(() => {
-            if (!socketGuard.isCurrent()) return;
-            socket.resyncAppState(row.appStateCollections, true)
+          scheduleSocketGenerationTask(
+            callback => setTimeout(callback, 250),
+            () => socket.resyncAppState(row.appStateCollections, true)
               .then(() => new Promise(resolve => setTimeout(resolve, 1200)))
               .then(() => socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'connection.update', phase: 'app-state-resynced' }))
               .then(() => this.reconcileKnownIdentities(accountId, databaseAccountId, socket, {
                 force: true,
                 reason: 'connection-app-state-ready'
               }))
-              .then(() => hydrateWhatsAppBusinessProfiles({ databaseAccountId, socket, limit: 30 }))
-              .catch(error => logger.warn('whatsapp', 'app-state-resync-failed', {
-                operation: 'socket.resyncAppState.reconcileKnownIdentities',
-                accountId: databaseAccountId,
-                reasonCode: error.code || 'WHATSAPP_APP_STATE_RECONCILIATION_FAILED',
-                httpStatus: Number(error.status || 0),
-                attempt: 1,
-                nextRetryAt: '',
-                error: error.message
-              }));
-          }, 250);
-          timer.unref?.();
+              .then(() => hydrateWhatsAppBusinessProfiles({ databaseAccountId, socket, limit: 30 })),
+            error => logger.warn('whatsapp', 'app-state-resync-failed', {
+              operation: 'socket.resyncAppState.reconcileKnownIdentities',
+              accountId: databaseAccountId,
+              reasonCode: error.code || 'WHATSAPP_APP_STATE_RECONCILIATION_FAILED',
+              httpStatus: Number(error.status || 0),
+              attempt: 1,
+              nextRetryAt: '',
+              error: error.message
+            })
+          );
         }
       }
       if (connection === 'close') {
@@ -1452,7 +1454,7 @@ class WhatsAppAdapter {
         } else {
           eventBus.publish('whatsapp:history-synced', result);
           logger.info('whatsapp', 'history-sync-completed', result);
-          this.queueKnownAvatarSync(accountId, databaseAccountId, socket, { reason: 'history-sync' });
+          void launchSocketGenerationTask(() => this.queueKnownAvatarSync(accountId, databaseAccountId, socket, { reason: 'history-sync' }));
         }
       } catch (error) {
         if (!socketGuard.isCurrent() || error?.code === 'SOCKET_GENERATION_STALE') return;
@@ -1484,9 +1486,10 @@ class WhatsAppAdapter {
           lastRemoteMessageId = remoteMessageId || lastRemoteMessageId;
           lastRemoteTimestamp = String(message.timestamp || message.sentAt || lastRemoteTimestamp);
           if (message.chatJid && message.direction === 'inbound') {
-            this.ensurePresenceSubscription(accountId, message.chatJid).catch(error => {
-              logger.warn('whatsapp', 'presence-subscription-failed', { operation: 'ensurePresenceSubscription', accountId: databaseAccountId, conversationId: message.conversationId, reasonCode: error.code || 'WHATSAPP_PRESENCE_SUBSCRIPTION_FAILED', httpStatus: Number(error.status || 0), attempt: 1, nextRetryAt: '' });
-            });
+            void launchSocketGenerationTask(
+              () => this.ensurePresenceSubscription(accountId, message.chatJid),
+              error => logger.warn('whatsapp', 'presence-subscription-failed', { operation: 'ensurePresenceSubscription', accountId: databaseAccountId, conversationId: message.conversationId, reasonCode: error.code || 'WHATSAPP_PRESENCE_SUBSCRIPTION_FAILED', httpStatus: Number(error.status || 0), attempt: 1, nextRetryAt: '' })
+            );
           }
           if (message.type === 'reaction') {
             await messageStore.applyReaction({ accountId: databaseAccountId, chatJid: message.chatJid, targetId: message.targetId, emoji: message.text, actor: message.fromMe ? 'me' : message.chatJid });
@@ -1514,15 +1517,12 @@ class WhatsAppAdapter {
               socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'messages.upsert', phase: 'message-persisted' });
               persisted = true;
             } else {
-              // Persist the message and notify immediately. Media download is a
-              // separate repairable projection and must never block later text.
               const descriptor = { ...message.attachments[0], status: 'pending', downloadStatus: 'pending', downloadError: '' };
               message.attachments = [descriptor];
               outcome = await messageStore.upsert(message);
               socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'messages.upsert', phase: 'message-persisted' });
               persisted = true;
-              setImmediate(async () => {
-                if (!socketGuard.isCurrent()) return;
+              scheduleSocketGenerationTask(setImmediate, async () => {
                 try {
                   const attachment = await mediaPipeline.materializeBaileys({
                     accountId: databaseAccountId,
@@ -1573,15 +1573,18 @@ class WhatsAppAdapter {
               conversation: { ...(outcome.conversation || {}), id: message.conversationId, chatJid: message.rawMeta?.canonicalJid || message.chatJid, contactId: message.contactId || outcome.conversation?.contactId || '' },
               reason: outcome.inserted ? 'new-contact-message' : 'inbound-message'
             });
-            avatarService.enqueueWhatsApp(task).then(result => {
-              if (result?.avatarUrl) recordWhatsAppAvatarIdentity({
-                accountId: databaseAccountId,
-                aliases: task.jidCandidates,
-                canonicalJid: result.resolvedJid || task.jid,
-                avatarUrl: result.avatarUrl,
-                source: 'whatsapp-profile'
-              });
-            }).catch(error => logger.warn('whatsapp', 'avatar-queue-failed', { accountId: databaseAccountId, conversationId: message.conversationId, jidHash: require('crypto').createHash('sha256').update(task.jid).digest('hex').slice(0, 16), errorCode: error.code || error.message }));
+            void launchSocketGenerationTask(
+              () => avatarService.enqueueWhatsApp(task).then(result => {
+                if (result?.avatarUrl) recordWhatsAppAvatarIdentity({
+                  accountId: databaseAccountId,
+                  aliases: task.jidCandidates,
+                  canonicalJid: result.resolvedJid || task.jid,
+                  avatarUrl: result.avatarUrl,
+                  source: 'whatsapp-profile'
+                });
+              }),
+              error => logger.warn('whatsapp', 'avatar-queue-failed', { accountId: databaseAccountId, conversationId: message.conversationId, jidHash: require('crypto').createHash('sha256').update(task.jid).digest('hex').slice(0, 16), errorCode: error.code || error.message })
+            );
           }
           const avatarUrl = outcome.conversation?.avatarUrl || message.avatarUrl || '';
           if (outcome.inserted && message.direction === 'inbound') {
@@ -1687,20 +1690,22 @@ class WhatsAppAdapter {
         };
         const conversation = messageStore.getConversation(requestedConversationId);
         if (!terminalState || !conversation) { publishPresence(conversation); continue; }
-        messageStore.updateConversationMetadata(conversation.id || conversation.sessionKey || requestedConversationId, {
-          online: terminalState === 'available',
-          presence: terminalState,
-          presenceState: terminalState === 'available' ? 'online' : 'offline',
-          presenceUpdatedAt: new Date().toISOString(),
-          lastSeenAt: lastSeenAt || conversation.lastSeenAt || conversation.last_seen_at || ''
-        }).then(updated => {
-          socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'presence.update', phase: 'metadata-persisted' });
-          publishPresence(updated);
-        }).catch(error => {
-          if (!socketGuard.isCurrent() || error?.code === 'SOCKET_GENERATION_STALE') return;
-          logger.warn('whatsapp', 'presence-persist-failed', { accountId: databaseAccountId, conversationId: requestedConversationId, errorCode: error.code || 'WHATSAPP_PRESENCE_PERSIST_FAILED', error: error.message });
-          publishPresence(conversation);
-        });
+        void launchSocketGenerationTask(
+          () => messageStore.updateConversationMetadata(conversation.id || conversation.sessionKey || requestedConversationId, {
+            online: terminalState === 'available',
+            presence: terminalState,
+            presenceState: terminalState === 'available' ? 'online' : 'offline',
+            presenceUpdatedAt: new Date().toISOString(),
+            lastSeenAt: lastSeenAt || conversation.lastSeenAt || conversation.last_seen_at || ''
+          }).then(updated => {
+            socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'presence.update', phase: 'metadata-persisted' });
+            publishPresence(updated);
+          }),
+          error => {
+            logger.warn('whatsapp', 'presence-persist-failed', { accountId: databaseAccountId, conversationId: requestedConversationId, errorCode: error.code || 'WHATSAPP_PRESENCE_PERSIST_FAILED', error: error.message });
+            publishPresence(conversation);
+          }
+        );
       }
     });
 
@@ -1812,10 +1817,10 @@ class WhatsAppAdapter {
     await Promise.all(tasks.map(task => {
       assertOperationActive(options.signal, 'WHATSAPP_SYNC_ABORTED', { accountId: databaseAccountId, conversationId: task.conversationId });
       return messageStore.updateConversationMetadata(task.conversationId, {
-      accountId: databaseAccountId,
-      platform: 'whatsapp',
-      chatJid: task.jid,
-      lastSyncAt: syncedAt
+        accountId: databaseAccountId,
+        platform: 'whatsapp',
+        chatJid: task.jid,
+        lastSyncAt: syncedAt
       }).catch(error => logger.warn('whatsapp', 'conversation-sync-metadata-failed', { accountId: databaseAccountId, conversationId: task.conversationId, errorCode: error.code || error.message }));
     }));
     assertOperationActive(options.signal, 'WHATSAPP_SYNC_ABORTED', { accountId: databaseAccountId });
@@ -1849,8 +1854,6 @@ class WhatsAppAdapter {
     authChallenges.clear(row.databaseAccountId || accountId);
     this.invalidateCredentialState(row.databaseAccountId || accountId);
     this.accounts.delete(accountId);
-    // Keep the stop marker until an explicit start clears it. This invalidates
-    // delayed close events emitted after socket.end().
     eventBus.publish('whatsapp:state', { accountId, state: 'stopped' });
     return { ok: true, state: 'stopped' };
   }
