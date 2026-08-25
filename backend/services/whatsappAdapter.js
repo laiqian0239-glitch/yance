@@ -1119,9 +1119,9 @@ class WhatsAppAdapter {
   }
 
   async prepareStartGeneration(accountId, existing, context = {}) {
-    if (existing?.socket) {
+    if (existing) {
       const startupAgeMs = Date.now() - Number(existing.startedAtMs || Date.now());
-      const reusable = existing.state === 'online' || existing.state === 'qr' || (existing.state === 'connecting' && startupAgeMs < WHATSAPP_QR_STARTUP_TIMEOUT_MS);
+      const reusable = Boolean(existing.socket) && (existing.state === 'online' || existing.state === 'qr' || (existing.state === 'connecting' && startupAgeMs < WHATSAPP_QR_STARTUP_TIMEOUT_MS));
       if (reusable) {
         this.stopping.delete(accountId);
         this.stoppedAccounts.delete(accountId);
@@ -1723,22 +1723,22 @@ class WhatsAppAdapter {
     onSocket('chats.upsert', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, chats: rows, source: 'chats.upsert' });
       eventBus.publish('conversations:upsert', { accountId: databaseAccountId, platform: 'whatsapp', rows, persisted });
-      this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'chats.upsert').catch(error => logger.warn('whatsapp', 'avatar-chat-upsert-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
+      return this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'chats.upsert').catch(error => logger.warn('whatsapp', 'avatar-chat-upsert-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
     onSocket('chats.update', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, chats: rows, source: 'chats.update' });
       eventBus.publish('conversations:update', { accountId: databaseAccountId, platform: 'whatsapp', rows, persisted });
-      this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'chats.update').catch(error => logger.warn('whatsapp', 'avatar-chat-update-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
+      return this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'chats.update').catch(error => logger.warn('whatsapp', 'avatar-chat-update-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
     onSocket('contacts.upsert', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, contacts: rows, source: 'contacts.upsert' });
       eventBus.publish('contacts:upsert', { accountId: databaseAccountId, rows, persisted });
-      this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'contacts.upsert').catch(error => logger.warn('whatsapp', 'avatar-contact-upsert-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
+      return this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'contacts.upsert').catch(error => logger.warn('whatsapp', 'avatar-contact-upsert-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
     onSocket('contacts.update', rows => {
       const persisted = persistWhatsAppDirectorySnapshot({ databaseAccountId, contacts: rows, source: 'contacts.update' });
       eventBus.publish('contacts:update', { accountId: databaseAccountId, rows, persisted });
-      this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'contacts.update').catch(error => logger.warn('whatsapp', 'avatar-contact-update-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
+      return this.queueAvatarRows(accountId, databaseAccountId, socket, rows, 'contacts.update').catch(error => logger.warn('whatsapp', 'avatar-contact-update-failed', { accountId: databaseAccountId, errorCode: error.code || error.message }));
     });
 
     assertOperationActive(options.signal, 'WHATSAPP_CONNECT_ABORTED', { accountId: databaseAccountId, attemptId: row.attemptId });
@@ -1832,13 +1832,20 @@ class WhatsAppAdapter {
     if (!row) return { ok: true, state: 'stopped' };
     this.stopping.add(accountId);
     clearStartupWatchdog(row);
-    row.sessionFence?.invalidate?.(logout ? 'WHATSAPP_LOGOUT' : 'WHATSAPP_STOP');
+    const stoppingSocket = row.socket;
+    row.state = logout ? 'logging-out' : 'stopping';
+    row.socket = null;
+    if (typeof row.sessionFence?.invalidate !== 'function' || typeof row.sessionFence?.drain !== 'function') {
+      throw Object.assign(new Error('WhatsApp runtime row is missing generation drain custody'), { code: 'SESSION_GENERATION_FENCE_INVALID' });
+    }
+    row.sessionFence.invalidate(logout ? 'WHATSAPP_LOGOUT' : 'WHATSAPP_STOP');
     try {
-      if (logout && row.socket?.logout) await row.socket.logout();
-      else row.socket?.end?.(new Error('YANCE_STOP'));
+      if (logout && stoppingSocket?.logout) await stoppingSocket.logout();
+      else stoppingSocket?.end?.(new Error('YANCE_STOP'));
     } catch (error) {
       logger.warn('whatsapp', 'account-stop-failed', { operation: logout ? 'socket.logout' : 'socket.end', accountId: row.databaseAccountId || accountId, reasonCode: error.code || 'WHATSAPP_ACCOUNT_STOP_FAILED', httpStatus: Number(error.status || 0), attempt: 1, nextRetryAt: '' });
     }
+    await row.sessionFence.drain();
     authChallenges.clear(row.databaseAccountId || accountId);
     this.invalidateCredentialState(row.databaseAccountId || accountId);
     this.accounts.delete(accountId);
