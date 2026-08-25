@@ -15,11 +15,14 @@
     "requiresOrdinaryTwoParentMainMerge": true,
     "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
     "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
     "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
   },
   "digestCanonicalization": {
     "algorithm": "SHA-256",
     "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
     "separator": "LF (\\n)",
     "trailingNewline": true
   },
@@ -30,7 +33,8 @@
     ],
     "approvedChangedFileCount": 1,
     "approvedChangedFileSetSha256": "ca75d1b590c27b6f6099f9585f68c3999066877c1b05360f7d923234621924d2",
-    "mustRemainSingleFile": true
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
   },
   "implementation": {
     "branch": "fix/v21-accidental-root-noop-cleanup-p0",
@@ -40,13 +44,15 @@
     ],
     "approvedChangedFileCount": 2,
     "approvedChangedFileSetSha256": "a286347fa6435d90d8daaf84d9f4d08a7eb1f9505b33f397805ad5f09b0c6c62",
+    "productionScopeAuthorized": false,
     "productionCodeChanged": false,
     "testModificationAllowed": false,
+    "newDependencyAllowed": false,
     "workflowModificationAllowed": false,
-    "dependencyModificationAllowed": false,
     "routingPolicyModificationAllowed": false,
     "packageManifestModificationAllowed": false,
-    "lockfileModificationAllowed": false
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
   },
   "cleanupContract": {
     "accidentalCommits": [
@@ -102,7 +108,20 @@
   "mergePolicy": {
     "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
     "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
     "exactHeadGreenRequired": true,
     "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
