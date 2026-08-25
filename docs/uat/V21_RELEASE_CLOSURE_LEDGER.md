@@ -38,6 +38,10 @@ Post-KF-P0-20 audit authorization / exact implementation base: `e61deb5539ecb778
 
 Post-KF-P0-20 audited trusted main: `e498acafabc3804302e3e1149441e5d81c96f596` (#814 ordinary two-parent merge)
 
+Post-KF-P0-24 evidence-batch authorization / exact implementation base: `6e53bfef4e3340879a04194fd3bd9130e8ca3728` (#821 ordinary two-parent merge)
+
+Post-KF-P0-24 audited trusted main: `b53745a3c52429464e1f7498b70d4548594563ac` (#820 ordinary two-parent merge)
+
 Delta Regression historical baseline: `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0` (`docs(audit): deliver comprehensive status audit report 2026-08-20`).
 
 Known Findings source: 2026-08-20 comprehensive feature review (historical audit baseline).
@@ -106,7 +110,6 @@ All other previously unresolved V1/A2/Delta/coverage rows remain fail-closed unl
 
 All other previously unresolved V1/A2/Delta/coverage rows remain fail-closed unless their own finding-specific evidence is independently complete. No final packaged Windows RC exists, so Fresh-main Audit V2, global mandatory executed-test coverage, final Delta audit, packaged RC and release/publish flags remain false.
 
-
 ### 2026-08-25 post-KF-P0-22 mechanical reconciliation checkpoint
 
 - KF-P0-22 now has a complete finding-specific source/gate chain. Frozen tests-only #806 exact head `622692023b2c50ae988398b3822dd7d2e044e3ed` preserved immutable test blob `d3d5994fab8a801fc9f2533fb358fc1c93360dc5` and produced Stage RED `32850513145` / `wp0-product` job `97810153689`: 692 mandatory WP0 tests, 689 pass and exactly three same-root detached-generation-custody failures. All unrelated tests passed, so `unknownBlockers=0`.
@@ -124,6 +127,16 @@ All other unresolved V1/A2/Delta/coverage rows remain fail-closed. No final fres
 - #814 ordinary-merges as `e498acafabc3804302e3e1149441e5d81c96f596` with strict parents `a19ff971e0dcf3d1ed38a52ab2521639628549ea` + `fe57672d3e23e339af487017d47f7b2f91be4df5`. This mechanically advances KF-P0-20 only; final fresh packaged WhatsApp local-repair evidence remains mandatory.
 
 Every other unresolved V1/A2/Delta/coverage row remains fail-closed. No final fresh-main packaged Windows RC exists; Fresh-main Audit V2, global mandatory executed-test coverage, final Delta audit, RC, release and publish flags remain false.
+
+### 2026-08-26 post-KF-P0-24 evidence-batch mechanical reconciliation checkpoint
+
+- KF-P0-24 now has a complete finding-specific source/gate chain. Frozen tests-only #818 exact head `74e4c41bcb224bf31df0905ecf5296303414bf90` preserves immutable test blob `9234cb97630bb9683d9dd669ea941530617e0473` and produced Stage `32880426330` / `wp0-product` job `97908412835`: 698 mandatory WP0 tests, 697 pass and exactly one Telegram media repair custody failure; the dedicated file reports 3 subtests / 2 pass / 1 fail and `unknownBlockers=0`.
+- #819 production authorization ordinary-merged as `bc56bcc237b30c0853d1bb0a7c9dec909fc5de19`. #820 exact head `d17a0aa89c72f787f3af70fb8911339708a5db69` is the required ordinary two-parent continuation from the authorization merge plus frozen RED head and retains the immutable RED test.
+- #820 normalizes Telegram root-level `sourceFile` / `expectedSha256` into the canonical durable local-repair source representation and takes byte custody before durable enqueue returns, preserving the one-provider-send invariant. Its mandatory `wp0-product` job `97913443279` and all routed exact-head gates pass; autonomous exact-head review is P0=0/P1=0.
+- #820 ordinary-merges as `b53745a3c52429464e1f7498b70d4548594563ac` with strict parents `bc56bcc237b30c0853d1bb0a7c9dec909fc5de19` + `d17a0aa89c72f787f3af70fb8911339708a5db69`. This mechanically advances KF-P0-24 only; final fresh packaged Telegram restart/local-repair custody evidence remains mandatory.
+- The remaining evidence-only rows are not upgraded by source shape or broad historical packages. Store truth #544/#545/#547 has final exact-head GREEN evidence but no mechanically recovered finding-specific historical RED for KF-P0-04/17/18. Historical M2 #17 corroborates Durable Execution but does not individually close KF-P0-26/27/28. #682 exactly closes A2-P1-001's deterministic AI_AUTO retry-storm subset, but broad KF-P1-07 still includes unmapped general/deep-latency semantics. KF-P0-03, KF-P1-01, KF-P0-23, KF-P1-06 and KF-P0-29/30/31 likewise remain fail-closed on their own exact lineage or packaged obligations.
+
+No fresh source scan found another executable production root in this evidence batch. This is not permission to fabricate historical RED evidence. Fresh-main Audit V2, global mandatory executed-test coverage, final Delta audit, packaged RC, release and publish flags remain false.
 
 ## 2. Known Findings V1 — 31 P0 rows
 
@@ -152,7 +165,7 @@ Every other unresolved V1/A2/Delta/coverage row remains fail-closed. No final fr
 | KF-P0-21 | WhatsApp | 物理 egress 错误码/HTTP status 不统一 | SOURCE_GATE_CLOSED_RC_PENDING | #647 immutable RED `c6cd39ca…`, Stage RED `32570813989`, `unknownBlockers=0`; #649 source head `f10a2785…` merged as `c6e1e7d8…`, structures disconnected/local/provider egress errors. Final packaged egress evidence pending. |
 | KF-P0-22 | WhatsApp | `messages.upsert` 长 await 边界前后 socket generation/fence 校验不足 | SOURCE_GATE_CLOSED_RC_PENDING | Frozen #806 head `62269202…`, immutable blob `d3d5994f…`, Stage `32850513145` / job `97810153689`: 692 mandatory WP0 / 689 pass / exactly three finding-specific failures, `unknownBlockers=0`. #807 authorization ordinary-merged as `0fe404bc…`; continuation `f086baa4…` preserves RED. #808 exact head `3fbabb2d…` retains the same blob; Stage `32854806433` / job `97824125452` explicitly reports `ok 107 - v21-whatsapp-messages-upsert-detached-custody-kf-p0-22.test`; Layered/ACV2/WP-A/Model pass, Product Final correctly skips, autonomous review P0=0/P1=0, then ordinary merge `0a5f0f5f…`. Final packaged WhatsApp generation-custody evidence remains mandatory. |
 | KF-P0-23 | Telegram / Facebook | 跨平台 egress 公共接口签名/能力不统一 | EVIDENCE_RECONCILIATION | #653 proves a Telegram provider-error subset and later Facebook/adapter work exists, but the broad cross-platform public-interface finding still lacks one exact failure-first/executed contract. |
-| KF-P0-24 | Telegram / Facebook | `localPersistencePending` / `localPersistenceRepair` 有契约但无自动幂等修复闭环 | EVIDENCE_RECONCILIATION | WP-B durable local-repair authority is merged, but Telegram and Facebook still need finding-specific terminal/restart/idempotency causal mappings before this row advances. |
+| KF-P0-24 | Telegram / Facebook | `localPersistencePending` / `localPersistenceRepair` 有契约但无自动幂等修复闭环 | SOURCE_GATE_CLOSED_RC_PENDING | Frozen #818 head `74e4c41bcb224bf31df0905ecf5296303414bf90`, immutable blob `9234cb97630bb9683d9dd669ea941530617e0473`, Stage `32880426330` / job `97908412835`: 698 mandatory WP0 / 697 pass / exactly one finding-specific Telegram media repair failure, dedicated file 3/2/1, `unknownBlockers=0`. #819 production authorization ordinary-merges as `bc56bcc2…`; #820 exact head `d17a0aa8…` preserves the frozen contract and normalizes/custodies Telegram media before durable enqueue. Mandatory `wp0-product` `97913443279` and all routed exact-head gates pass, autonomous review P0=0/P1=0, and #820 ordinary-merges as `b53745a3…`. Final fresh packaged Telegram restart/local-repair evidence remains mandatory. |
 | KF-P0-25 | Telegram / Facebook | Facebook `worker_media` 缺失时缺少传统媒体 URL fallback | SOURCE_GATE_CLOSED_RC_PENDING | Historical wording is retained as the immutable 8/20 finding, but the supported closure intentionally does **not** restore direct desktop Meta-CDN URL fetching. #775 exact tests-only head `6ac2e468…` produced Stage RED `32794003597` with exactly the missing delegated durable `MEDIA_TRANSFER` consumer and missing physical `media-transfer` dispatch, `unknownBlockers=0`. #777 exact head `2df6bbb5…` closes those roots, keeps URL-only legacy media fail-closed/unavailable, materializes only Worker-custodied pending/remote media through persisted-attempt signed Worker/R2 authority, passes mandatory Stage `32805044852` and all routed exact-head gates, then ordinary-merges as `f8d0a736…`. Final packaged Facebook media evidence remains required. |
 | KF-P0-26 | Durable Execution | M2 heartbeat/succeed/fail/waitRemote/cancel/retry/deadLetter 等关键操作未实现 | EVIDENCE_RECONCILIATION | Historical #17 records a broad credible M2 RED and later exact dual-platform seals, but this historical row still requires per-operation finding-specific ordinary-merged lineage rather than treating the whole 190-path work package as one finding closure. |
 | KF-P0-27 | Durable Execution | `appendV2Event MAX(sequence)+1` 再 INSERT 存在并发 sequence 完整性风险 | EVIDENCE_RECONCILIATION | Current transaction/fencing infrastructure is stronger than the audit baseline, but no exact finding-specific concurrency sequence RED/root-fix/gate chain has yet been bound. |
@@ -164,7 +177,7 @@ Every other unresolved V1/A2/Delta/coverage row remains fail-closed. No final fr
 ### P0 accounting
 
 - imported P0 rows: **31**
-- `SOURCE_GATE_CLOSED_RC_PENDING`: **19**
+- `SOURCE_GATE_CLOSED_RC_PENDING`: **20**
 - finally `CLOSED`: **0**
 - unresolved for final release: **31**
 
@@ -180,7 +193,7 @@ This count is intentionally strict: `SOURCE_GATE_CLOSED_RC_PENDING` is still unr
 | KF-P1-04 | Adapter Ports / Facebook Worker | WP-B execution/fencing identity 暴露在 Worker URL query | SOURCE_GATE_CLOSED_RC_PENDING | #639 removes persisted WP-B identity from URL query and moves it to signed `x-yance-wpb-*` metadata; source head `eedb4e09…` exact gates GREEN. Final packaged/log-leak evidence pending. |
 | KF-P1-05 | Store truth source | `UPDATE_SELF_TYPING_STATE` 顶层 conversation/account/platform 字段可能覆盖 contact 侧最新会话 | SOURCE_GATE_CLOSED_RC_PENDING | #737 first tests-only head `58fcc598…` produced Stage RED `32690111693` for the two KF-P1-05 collisions. Production head `a20285f0…` passed Stage `32690592676`, Layered `32690592902`, ACV2 `32690592696`, WP-A `32690592688`, Model `32690592737` and merged as `7802e99d…`. Final packaged typing/targeting regression remains required. |
 | KF-P1-06 | Telegram / Facebook | Facebook 本地适配器退化为 Worker/Durable Authority 投影，闭环能力弱于 Telegram | EVIDENCE_RECONCILIATION | #777 intentionally strengthens the Worker/Durable projection and retires duplicate direct-CDN authority; that does not by itself establish the broad historical capability-intent finding. A finding-specific supported-capability contract is still required. |
-| KF-P1-07 | AI Core | reply generation 链过长，任一环失败导致整体失败与 deep latency 风险 | EVIDENCE_RECONCILIATION | #682 closes the deterministic AI_AUTO retry-storm subset, but this broader finding also covers general failure-family and deep-latency/bounded-behavior semantics. Keep under reconciliation until those remaining semantics are executed and mapped. |
+| KF-P1-07 | AI Core | reply generation 链过长，任一环失败导致整体失败与 deep latency 风险 | EVIDENCE_RECONCILIATION | #682 exact RED `2b0e2a19ceb7e90f18b692428da8665420f5e168`, Stage `32613800942`, final head `3231ba426c8e3976afd302cb2e2eaa160c957c1a`, Stage `32613979019` and ordinary merge `f01bb27d3460dbb7efcb226c5b0a1316f0c8ffb0` mechanically close the deterministic AI_AUTO retry-storm subset. The broader historical row also covers general failure-family and deep-latency/bounded-behavior semantics, so it remains fail-closed until those semantics are finding-specifically mapped. |
 | KF-P1-08 | AI Core | `personaBrain` 多个 `compile*` 入口并存，调用方可能混用语义 | SOURCE_GATE_CLOSED_RC_PENDING | #739 first tests-only head `e480e555…` produced Stage RED `32691739045` for facade/route/reply-brain compile authority split. Production head `561d931a…` passed Stage `32692383958`, Layered `32692384194`, ACV2 `32692383967`, WP-A `32692383978`, Model `32692383893` and merged as `3ba89409…`. Final packaged Persona/reply path evidence remains required. |
 
 ### P1 accounting
@@ -198,7 +211,7 @@ These rows are independent of Known Findings V1. Do not renumber or rewrite the 
 |---|---|---|---|---|
 | A2-P1-001 | P1 | AI_AUTO deterministic reply-generation failures historically re-entered the 20-attempt durable analysis retry loop (issue #533) | SOURCE_GATE_CLOSED_RC_PENDING | After the WP0 coverage prerequisite, #682 V4 first head `2b0e2a19…` produced fresh Stage RED `32613800942` for the remaining `SOCIAL_CONTEXT_NOT_READY`, `STALE_CONVERSATION_CONTEXT`, `STALE_PERSONA_PROFILE` classification gap with `unknownBlockers=0`. Final head `3231ba42…` passed Stage `32613979019`, ACV2 `32613978971`, WP-A `32613978900`, Model `32613978924` and merged as `f01bb27d…`; these deterministic generation errors now terminate the canonical analysis non-retryably. Fresh final RC remains required. |
 
-No new A2-P0/A2-P1 row is added by the `760c45a9… → f8d0a736…` source segment: it consists of the Lane C ledger checkpoint and the already-accounted Facebook causal closure. The subsequent #781→#783 backend startup-admission closure is reconciled into KF-P0-01 rather than duplicated as a new A2 row. The #788→#790 contract-alignment closure is reconciled into KF-P0-12 rather than duplicated as a new A2 row. The #794→#796 default-Facebook-egress closure is reconciled into KF-P0-11 rather than duplicated as a new A2 row. The #800→#802 stale-socket in-flight-custody closure is reconciled into KF-P0-19 rather than duplicated as a new A2 row. The #806→#808 detached generation-custody closure is reconciled into KF-P0-22 rather than duplicated as a new A2 row. The #812→#814 durable WhatsApp local-repair closure is reconciled into KF-P0-20 rather than duplicated as a new A2 row. This is not a declaration that Fresh-main Audit V2 is complete; unresolved V1 evidence rows remain fail-closed.
+No new A2-P0/A2-P1 row is added by the `760c45a9… → f8d0a736…` source segment: it consists of the Lane C ledger checkpoint and the already-accounted Facebook causal closure. The subsequent #781→#783 backend startup-admission closure is reconciled into KF-P0-01 rather than duplicated as a new A2 row. The #788→#790 contract-alignment closure is reconciled into KF-P0-12 rather than duplicated as a new A2 row. The #794→#796 default-Facebook-egress closure is reconciled into KF-P0-11 rather than duplicated as a new A2 row. The #800→#802 stale-socket in-flight-custody closure is reconciled into KF-P0-19 rather than duplicated as a new A2 row. The #806→#808 detached generation-custody closure is reconciled into KF-P0-22 rather than duplicated as a new A2 row. The #812→#814 durable WhatsApp local-repair closure is reconciled into KF-P0-20 rather than duplicated as a new A2 row. The #818→#820 Telegram media local-repair closure is reconciled into KF-P0-24 rather than duplicated as a new A2 row. This is not a declaration that Fresh-main Audit V2 is complete; unresolved V1 evidence rows remain fail-closed.
 
 ### 4.1 Post-KF-P0-12 exact-main surface accounting — `06b1cb20452ec928b0316733bf5d1533cee37f23`
 
@@ -246,7 +259,6 @@ Mechanical compare `29ce90a772be28cbddc925459721045b086f8104` → `682cdce54d0e9
 
 This is an exact-main **surface scan checkpoint**, not release completion. Existing V1/A2 blockers are not duplicated merely to make the Audit V2 list longer. `freshMainAuditV2Complete=false` remains fail-closed while unresolved source/evidence P0/P1 rows remain.
 
-
 ### 4.4 Post-KF-P0-22 exact-main surface accounting — `0a5f0f5fefa7f851eb130927a12e18d3214993db`
 
 Mechanical compare `4d8c7c33af673edd20ff170e47a71632cecbfcb5` → `0a5f0f5fefa7f851eb130927a12e18d3214993db` is `status=ahead`, `ahead_by=9`, `behind_by=0`, changing exactly the two KF-P0-22 governance authorizations, `backend/services/whatsappAdapter.js`, and the immutable KF-P0-22 WP0 test. No dependency, lockfile, workflow, routing, release-binary, Electron/backend lifecycle, Durable Execution, AI or unrelated Product surface changed.
@@ -270,6 +282,12 @@ Mechanical compare `18db4b0442fb8aeee6b42161aba5337049e8efd6` → `e498acafabc38
 | Release packaging / sealed runtime / real Windows launch | No new final fresh-main packaged Windows RC exists after #814. | UAT-001/UAT-002 remain blocking; `freshPackagedWindowsRcPass=false`. |
 
 No new A2-P0/A2-P1 row is discovered by this finding-specific segment. `freshMainAuditV2Complete=false` remains fail-closed because unresolved source/evidence P0/P1 rows remain.
+
+### 4.6 Post-KF-P0-24 exact-main surface accounting — `b53745a3c52429464e1f7498b70d4548594563ac`
+
+Mechanical compare `e498acafabc3804302e3e1149441e5d81c96f596` → `b53745a3c52429464e1f7498b70d4548594563ac` is `status=ahead`, `ahead_by=12`, `behind_by=0`, changing exactly six paths: `backend/services/durableOperations/outboundMessageSendOperation.js`, the prior post-KF-P0-20 ledger, three KF-P0-24 governance authorizations, and `tests/wp0/v21-telegram-media-local-persistence-repair-kf-p0-24.test.js`. No dependency, package-lock, workflow, routing-policy, release-binary, Electron/backend lifecycle, AI or unrelated Product source changed.
+
+This segment mechanically closes only KF-P0-24 at source/gate level. The 14 evidence-only historical rows remain independently fail-closed unless their own exact lineage is mechanically recoverable. No new A2-P0/A2-P1 finding is discovered, and no final fresh packaged Windows RC exists.
 
 ## 5. Release/UAT obligations not equivalent to new source defects
 
@@ -300,6 +318,7 @@ Presence of a test file is not sufficient. The following rows are mechanically b
 | COV-KF-P0-12 | `tests/wp0/v21-facebook-page-chatwoot-integration-p0.test.js` exact D1 permission-authority and Worker error-family contracts | Stage WP0: `package.json` `test:wp0` → `tools/wp0/run-tests.js` enumerates every `tests/wp0/*.test.js` | RED Stage `32816626246` / job `97706179103`; final Stage `32818897944` / `wp0-product` job `97712758362`, `Run WP0 required tests` SUCCESS | `39103fd91aac0f6736f758a579a1c8fbda1673cb` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-KF-P0-19 | `tests/wp0/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19.test.js` in-flight drain + WhatsApp stop/restart custody + batch39 stale-entry preservation contracts | Stage WP0: `package.json` `test:wp0` → `tools/wp0/run-tests.js` enumerates every `tests/wp0/*.test.js` | RED Stage `32833803435` / job `97758162718`; final Stage `32845544408` / `wp0-product` job `97794318087`, `Run WP0 required tests` SUCCESS | `1c72ee9854b2a9290fc2b834b5688921897c11fc` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-KF-P0-20 | `tests/wp0/v21-whatsapp-local-persistence-repair-kf-p0-20.test.js` durable repair-consumer/restart/idempotency contract | Stage WP0: `package.json` `test:wp0` → `tools/wp0/run-tests.js` exhaustively enumerates and isolates every `tests/wp0/*.test.js` | RED Stage `32869936201` / job `97874553963`; final Stage `32871718250` / `wp0-product` job `97880159827`, `Run WP0 required tests` SUCCESS | `fe57672d3e23e339af487017d47f7b2f91be4df5` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
+| COV-KF-P0-24 | `tests/wp0/v21-telegram-media-local-persistence-repair-kf-p0-24.test.js` provider-accepted Telegram media durable restart/custody + no-second-send contract, immutable blob `9234cb97630bb9683d9dd669ea941530617e0473` | Stage WP0: `package.json` `test:wp0` → `tools/wp0/run-tests.js` exhaustively enumerates and isolates every `tests/wp0/*.test.js` | RED Stage `32880426330` / job `97908412835`; final #820 `wp0-product` job `97913443279`, `Run WP0 required tests` SUCCESS | `d17a0aa89c72f787f3af70fb8911339708a5db69` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-KF-P0-22 | `tests/wp0/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22.test.js` | Stage WP0 mandatory runner | RED Stage `32850513145` / job `97810153689`; final Stage `32854806433` / job `97824125452`, explicit `ok 107 - v21-whatsapp-messages-upsert-detached-custody-kf-p0-22.test` | `3fbabb2d57454586f003548941288db69738f891` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-KF-P1-05 | `tests/wp0/v21-typing-state-contact-self-authority.test.js` | Stage WP0 | RED `32690111693`; final Stage `32690592676` | `a20285f0d8db3f6841450c07f35d112f4b9a0917` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
 | COV-KF-P1-08 | `tests/wp0/v21-persona-compile-authority-p1.test.js` | Stage WP0 | RED `32691739045`; final Stage `32692383958` | `561d931aeaed89667dfaedbb985c58f99a3ee762` | yes | yes | SOURCE_GATE_CLOSED_RC_PENDING |
@@ -317,6 +336,8 @@ KF-P0-19 is mechanically bound the same way: frozen #800 and final #802 contain 
 
 KF-P0-20 is mechanically bound by the mandatory runner contract: frozen #812 exact head `d03a37347966d9931224e4681a0233efd0696277` and final #814 exact head `fe57672d3e23e339af487017d47f7b2f91be4df5` preserve the finding-specific immutable blob `78d5a3f996a22e87227fe7d987a09f69c402ba22`; #812 Stage job `97874553963` executes it RED with exactly one expected failure, while #814 exact-head Stage job `97880159827` completes `Run WP0 required tests` successfully. Because `tools/wp0/run-tests.js` exhaustively enumerates and isolates every `tests/wp0/*.test.js`, the final exact file executes and passes even though its title is not printed by the aggregate owner log.
 
+KF-P0-24 is mechanically bound the same way: frozen #818 exact head `74e4c41bcb224bf31df0905ecf5296303414bf90` and final #820 exact head `d17a0aa89c72f787f3af70fb8911339708a5db69` preserve immutable blob `9234cb97630bb9683d9dd669ea941530617e0473`; #818 Stage job `97908412835` executes it RED with exactly one expected failure and `unknownBlockers=0`, while #820 exact-head `wp0-product` job `97913443279` completes `Run WP0 required tests` successfully. The canonical runner exhaustively enumerates the exact file, so this is executed GREEN evidence rather than file-presence inference.
+
 KF-P0-22 is mechanically bound with filename-level execution proof: frozen #806 and final #808 preserve identical blob `d3d5994fab8a801fc9f2533fb358fc1c93360dc5`; #806 executes the three causal RED failures with `unknownBlockers=0`, while #808 Stage job `97824125452` explicitly emits `ok 107 - v21-whatsapp-messages-upsert-detached-custody-kf-p0-22.test`.
 
 KF-P0-01 is likewise mechanically bound without inventing a new historical coverage-gap identifier: frozen #781 and final #783 contain the exact same test blob `eeae851be411baa8aae376a00d7f55116a047c7e`; #781 Stage executes it RED with exactly the two startup-admission failures, while #783 exact-head Stage job `97688349946` executes the mandatory WP0 suite successfully. `mandatoryExecutedTestCoverageComplete=false` remains fail-closed because many other release-critical `EVIDENCE_RECONCILIATION` rows still lack equivalent bindings.
@@ -330,7 +351,7 @@ Every remaining release-critical contract must eventually receive the same mecha
 5. platform-specific behavior requires the applicable platform job to execute;
 6. final RC packaging/launch assertions require the fresh RC source/package identity, not a historical candidate.
 
-The two historical Facebook media coverage gaps are repaired, KF-P0-01, KF-P0-11, KF-P0-12, KF-P0-19, KF-P0-20 and KF-P0-22 now have exact executed-test bindings, but `mandatoryExecutedTestCoverageComplete=false` remains fail-closed because many remaining `EVIDENCE_RECONCILIATION` release-critical findings have not yet received equivalent finding-specific exact executable bindings.
+The two historical Facebook media coverage gaps are repaired, KF-P0-01, KF-P0-11, KF-P0-12, KF-P0-19, KF-P0-20, KF-P0-22 and KF-P0-24 now have exact executed-test bindings, but `mandatoryExecutedTestCoverageComplete=false` remains fail-closed because many remaining `EVIDENCE_RECONCILIATION` release-critical findings have not yet received equivalent finding-specific exact executable bindings.
 
 ## 8. Delta Regression register
 
@@ -370,7 +391,6 @@ Mechanical compare `06b1cb20452ec928b0316733bf5d1533cee37f23` → `28f394e8be6d4
 
 Mechanical compare `29ce90a772be28cbddc925459721045b086f8104` → `682cdce54d0e9fac919f57fb0354992a1770d48e` reports `status=ahead`, `ahead_by=13`, `behind_by=0`. Exact changed paths are only the two KF-P0-19 governance authorizations, `backend/services/sessionGenerationFence.js`, `backend/services/whatsappAdapter.js`, and `tests/wp0/v21-whatsapp-stale-socket-inflight-custody-kf-p0-19.test.js`. There is no dependency, package-lock, workflow, routing-policy, schema migration, release binary, scheduler/retry engine or unrelated Product mutation. The source changes are the already-accounted KF-P0-19 causal closure; no additional `DELTA-P0-*` / `DELTA-P1-*` row is discovered from this 13-commit segment.
 
-
 ### 8.7 Post-KF-P0-19 audited ledger → post-KF-P0-22 audited main
 
 Mechanical compare `4d8c7c33af673edd20ff170e47a71632cecbfcb5` → `0a5f0f5fefa7f851eb130927a12e18d3214993db` reports `status=ahead`, `ahead_by=9`, `behind_by=0`. Exact changed paths are the two KF-P0-22 governance authorizations, `backend/services/whatsappAdapter.js`, and the finding-specific WP0 test. No additional `DELTA-P0-*` / `DELTA-P1-*` finding is discovered in this segment.
@@ -379,15 +399,19 @@ Mechanical compare `4d8c7c33af673edd20ff170e47a71632cecbfcb5` → `0a5f0f5fefa7f
 
 Mechanical compare `18db4b0442fb8aeee6b42161aba5337049e8efd6` → `e498acafabc3804302e3e1149441e5d81c96f596` reports `status=ahead`, `ahead_by=9`, `behind_by=0`. Exact changed paths are `backend/services/durableOperations/outboundMessageSendOperation.js`, the two KF-P0-20 governance authorizations, and `tests/wp0/v21-whatsapp-local-persistence-repair-kf-p0-20.test.js`. There is no dependency, package-lock, workflow, routing-policy, release-binary, Electron/backend lifecycle, AI or unrelated Product mutation. The source change is the already-accounted KF-P0-20 causal closure; no additional `DELTA-P0-*` / `DELTA-P1-*` finding is discovered in this segment.
 
+### 8.9 Post-KF-P0-20 audited ledger → post-KF-P0-24 audited main
+
+Mechanical compare `e498acafabc3804302e3e1149441e5d81c96f596` → `b53745a3c52429464e1f7498b70d4548594563ac` reports `status=ahead`, `ahead_by=12`, `behind_by=0`. Exact changed paths are `backend/services/durableOperations/outboundMessageSendOperation.js`, the prior release ledger, `governance/layered-ci/v21-release-closure-post-kf-p0-20-audit-p0-authorization.json`, `governance/layered-ci/v21-telegram-media-local-repair-kf-p0-24-diagnostic-p0-authorization.json`, `governance/layered-ci/v21-telegram-media-local-repair-kf-p0-24-production-amendment-1-authorization.json`, and `tests/wp0/v21-telegram-media-local-persistence-repair-kf-p0-24.test.js`. The only new production source is the already-accounted KF-P0-24 durable outbound repair-custody seam; no dependency, lockfile, workflow, routing-policy, release-binary, Electron/backend lifecycle, AI or unrelated Product production surface changes. No additional `DELTA-P0-*` / `DELTA-P1-*` finding is discovered in this interim window.
+
 `deltaRegressionAuditComplete=false` remains required because the formal Delta audit window extends through the future final RC; that RC does not exist yet. No Delta finding is declared finally `CLOSED` merely because its source repair merged.
 
 ## 9. Final release counters
 
-Current strict counters after the post-KF-P0-20 exact-main checkpoint:
+Current strict counters after the post-KF-P0-24 exact-main checkpoint:
 
 ```text
 knownFindingsP0Total=31
-knownFindingsP0SourceGateClosedRcPending=19
+knownFindingsP0SourceGateClosedRcPending=20
 knownFindingsP1Total=8
 knownFindingsP1SourceGateClosedRcPending=5
 knownFindingsFinalClosed=0
@@ -404,4 +428,4 @@ formalReleaseAuthorized=false
 publishAuthorized=false
 ```
 
-These values advance only from fresh, exact, mechanically verified evidence. KF-P0-20 now joins the source/gate-closed RC-pending set, but unresolved finding-specific evidence mappings remain across the historical Electron register-level lock row, Store truth, cross-platform adapters, Durable Execution and broader AI contracts. Those unresolved rows prevent RC freeze under the Release Closure Program. Any newly proven executable defect requires a separate authorized failure-first causal work package. This documentation batch does not authorize such repairs, the final Windows RC, release, promotion or publish.
+These values advance only from fresh, exact, mechanically verified evidence. KF-P0-24 now joins the source/gate-closed RC-pending set, but unresolved finding-specific evidence mappings remain across the historical Electron register-level lock row, Store truth, cross-platform adapters, Durable Execution and broader AI contracts. Those unresolved rows prevent RC freeze under the Release Closure Program. Any newly proven executable defect requires a separate authorized failure-first causal work package. This documentation batch does not authorize such repairs, the final Windows RC, release, promotion or publish.
