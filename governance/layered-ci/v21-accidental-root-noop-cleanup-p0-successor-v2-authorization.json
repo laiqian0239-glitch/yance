@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T06:42:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ACCIDENTAL-ROOT-NOOP-CLEANUP-P0-SUCCESSOR-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After #829 ordinary-merged the base-owned fail-closed authorized-deletion router, carry frozen cleanup RED #827 forward without mutating it. Authorize a successor-v2 whose first implementation commit has exactly two parents [this authorization ordinary merge, frozen #827 head], inherits the deletion state of noop/noop2, and proves on fresh exact-head CI that those otherwise-unknown root deletions route through strongest PRODUCT_WP0 only under exact merged delegated authority.",
+  "base": {
+    "branch": "main",
+    "commit": "63ae03cdb97f5b954af3c5f385d3ba5cda755b3d"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-accidental-root-noop-cleanup-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-accidental-root-noop-cleanup-p0-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "4ed829e1a9ee5304eabb19ee0ae2bc3d072d6394ef21fc57933c6f113aa16527",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-accidental-root-noop-cleanup-p0-successor-v2",
+    "allowedChangedPaths": [
+      "noop",
+      "noop2"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "a286347fa6435d90d8daaf84d9f4d08a7eb1f9505b33f397805ad5f09b0c6c62",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "forwardContinuation": {
+    "required": true,
+    "frozenPredecessorPullRequest": 827,
+    "frozenPredecessorHead": "ca8e0577ed72d2398d1cb2deec4a46a9dd816296",
+    "firstSuccessorCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "ca8e0577ed72d2398d1cb2deec4a46a9dd816296",
+    "requiredChangedPathsRelativeToAuthorizationMerge": [
+      "noop",
+      "noop2"
+    ],
+    "requiredPathStatus": "DELETED",
+    "historyRewriteAllowed": false,
+    "frozenPredecessorModificationAllowed": false
+  },
+  "causalEvidence": {
+    "preAccidentTrustedMain": "cf734b04ebb69e5a07dd71b3db6fa27401d36a93",
+    "accidentalCommits": [
+      "3ccb7c43b9f38218bbef2ea5c592ec5aa3d83bf7",
+      "c0f76033a08aa7b02df61b7f884e99d09609ea50"
+    ],
+    "cleanupAuthorizationMerge": "d458ce3ad6a065c88bcba8b342a5818d7da89a3c",
+    "frozenCleanupRed": {
+      "pullRequest": 827,
+      "exactHead": "ca8e0577ed72d2398d1cb2deec4a46a9dd816296",
+      "stageRun": 32910157700,
+      "routeJob": 98002568114,
+      "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+      "unknownPaths": [
+        "noop",
+        "noop2"
+      ],
+      "unknownBlockers": 0,
+      "mustRemainUnmodified": true
+    },
+    "routingPrerequisiteAuthorizationMerge": "6ef1bca902e22fd51981cecde060b9771bd5e2a6",
+    "routingPrerequisiteImplementationMerge": "63ae03cdb97f5b954af3c5f385d3ba5cda755b3d",
+    "routingPrerequisiteImplementationHead": "6a9afd750a55e8142702bbd7813228a0841fd4cd"
+  },
+  "requiredSemantics": [
+    "The first successor-v2 implementation commit must have exactly two parents in order: the successor-v2 authorization ordinary merge commit, then frozen #827 head ca8e0577ed72d2398d1cb2deec4a46a9dd816296.",
+    "Relative to the successor-v2 authorization merge, the implementation tree may change exactly noop and noop2, both by deletion, and no other path.",
+    "Frozen #827 remains immutable historical RED evidence; its branch/head/test evidence must not be modified or recreated.",
+    "Fresh Stage route on successor-v2 must select PRODUCT_WP0 through the merged-authorized deletion fallback rather than WP0_ROUTE_UNKNOWN_PATH.",
+    "All routed PRODUCT_WP0 substantive gates required by exact-head policy must pass; unknownBlockers must remain zero.",
+    "After successor-v2 ordinary merge, noop and noop2 must be absent from trusted main while accidental commits remain preserved in history."
+  ],
+  "forbiddenSemantics": [
+    "No mutation of routing source, routing policy, tests, workflows, production/runtime code, dependencies, manifests, lockfiles, release ledger, or RC/UAT surfaces in successor-v2.",
+    "No permanent noop/noop2 routing exception, wildcard/root routing, candidate-owned authorization, or weakening of fail-closed behavior.",
+    "No reset, force-push, amend, rebase, squash, cherry-pick, or history rewrite.",
+    "No fresh Windows RC/UAT."
+  ],
+  "requiredValidation": {
+    "freshFailureFirstEvidence": "#827 exact head ca8e0577ed72d2398d1cb2deec4a46a9dd816296 / Stage 32910157700 / route job 98002568114 / WP0_ROUTE_UNKNOWN_PATH",
+    "expectedFreshRoute": "PRODUCT_WP0",
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "WP-A when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ],
+    "autonomousIndependentReview": true,
+    "blockingFindings": "P0=0/P1=0",
+    "unknownBlockers": 0,
+    "freshMainAntiDriftRequired": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BASE_OWNED_AUTHORIZED_DELETION_ROUTER",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance ordinary-merge forward-continuation and authorized-deletion routing seams",
+        "source": "Git ordinary two-parent commits + merged delegated authorization + tools/layered-ci authorized-deletion router",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The cleanup successor needs no new infrastructure: it only composes already-landed ordinary-merge topology and the exact base-owned deletion routing prerequisite."
+      }
+    ],
+    "retireOrAvoid": [
+      "Avoid modifying frozen #827.",
+      "Avoid permanent root-path routing exceptions or a parallel router.",
+      "Avoid history rewrite or direct-main cleanup."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
