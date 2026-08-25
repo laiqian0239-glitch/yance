@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T02:09:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-CLOSURE-FRESH-MAIN-AUDIT-V2-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After the post-KF-P0-24 evidence-batch successor ordinary-merged, run one fresh-main Release Audit V2 against exact trusted main fefd92e33954e392bb9a437b3e67237148b62f73. This is a read-only source/evidence audit with a ledger-only successor. It must classify every audit surface and unknown blocker without fabricating historical RED evidence, opening speculative production repairs, or starting a packaged Windows RC.",
+  "base": {
+    "branch": "main",
+    "commit": "fefd92e33954e392bb9a437b3e67237148b62f73"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-fresh-main-audit-v2-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-closure-fresh-main-audit-v2-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "98d8c1b42fea52f47558946059e147e901cea76a864b647e8aa571eece86f91c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "docs/v21-release-closure-fresh-main-audit-v2-p0",
+    "allowedChangedPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f5a5ea40aa811612913eb20a8d039f69161f875a62e260361e84f9dabc0010e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "auditScope": {
+    "exactAuditHead": "fefd92e33954e392bb9a437b3e67237148b62f73",
+    "previousAuditedProductionHead": "b53745a3c52429464e1f7498b70d4548594563ac",
+    "postKfP024EvidenceAuthorizationMerge": "6e53bfef4e3340879a04194fd3bd9130e8ca3728",
+    "postKfP024EvidenceLedgerMerge": "fefd92e33954e392bb9a437b3e67237148b62f73",
+    "requiredChecklist": [
+      "Freeze and record the exact fresh-main SHA plus strict ordinary two-parent ancestry for the post-KF-P0-24 evidence ledger merge.",
+      "Re-evaluate the Known Finding Closure Matrix and distinguish live executable production defects from EVIDENCE_RECONCILIATION and RC-pending rows; do not infer closure from source shape.",
+      "Audit Electron/backend startup, owner exclusivity, lifecycle, shutdown, supported-runtime and process-identity authority on exact fresh main.",
+      "Audit Store active-selection, conversation/session targeting, automation truth, ephemeral mirrors, dedupe and archive clearing on exact fresh main.",
+      "Audit WhatsApp, Telegram and Facebook public-to-durable-to-physical egress plus provider-accepted local-repair/restart custody boundaries on exact fresh main.",
+      "Audit Durable Execution transaction, BEGIN IMMEDIATE write custody, CAS/fencing, lease/heartbeat, retry/dead-letter and reconciliation authority on exact fresh main.",
+      "Audit AI scheduled-operation terminalization, cancel-vs-succeed fencing, stale/superseded generation, persistence, retry classification and bounded timeout behavior on exact fresh main.",
+      "Audit dependency, lockfile, supported runtime, native payload and runtime-downloader/reproducibility surfaces on exact fresh main.",
+      "Audit release packaging and sealed-runtime source surface without creating or executing a new packaged Windows RC candidate.",
+      "Require all routed exact-head gates for this audit successor plus autonomous independent exact-head review P0=0/P1=0.",
+      "Verify that all historical evidence mappings currently claimed by the ledger remain mechanically present and that unresolved evidence-only rows remain explicitly fail-closed rather than being silently promoted.",
+      "Reach unknownBlockers=0: every observed issue must be classified as already closed, evidence reconciliation, RC-only obligation, or a newly discovered executable defect requiring a separate failure-first causal package."
+    ],
+    "completionSemantics": [
+      "freshMainAuditV2Complete may become true only if all twelve audit dimensions are mechanically evaluated on exact head fefd92e33954e392bb9a437b3e67237148b62f73, independent exact-head review is P0=0/P1=0, and unknownBlockers=0.",
+      "Setting freshMainAuditV2Complete=true does not close any EVIDENCE_RECONCILIATION or SOURCE_GATE_CLOSED_RC_PENDING finding and does not authorize RC. Remaining known evidence gaps must stay visible and continue to block release through their own rows and the global mandatory-coverage gate.",
+      "If the audit discovers a fresh executable production defect, keep freshMainAuditV2Complete=false, record the exact root candidate, and require a separate authorized failure-first tests-only causal package before any production mutation.",
+      "Keep mandatoryExecutedTestCoverageComplete=false in this package; global mandatory executed-test coverage is the next independent package after Audit V2.",
+      "Keep deltaRegressionAuditComplete=false because the final Delta right endpoint is not frozen until after the subsequent coverage/audit work and before fresh RC.",
+      "Keep freshPackagedWindowsRcPass=false, releaseLedgerClosed=false, releaseReady=false, formalReleaseAuthorized=false and publishAuthorized=false."
+    ]
+  },
+  "knownResidualClassification": {
+    "sourceGateClosedP0": 20,
+    "sourceGateClosedP1": 5,
+    "evidenceOnlyRows": [
+      "KF-P0-03",
+      "KF-P0-04",
+      "KF-P0-17",
+      "KF-P0-18",
+      "KF-P0-23",
+      "KF-P0-26",
+      "KF-P0-27",
+      "KF-P0-28",
+      "KF-P0-29",
+      "KF-P0-30",
+      "KF-P0-31",
+      "KF-P1-01",
+      "KF-P1-06",
+      "KF-P1-07"
+    ],
+    "packagedRcOnlyRows": 0,
+    "rule": "These fourteen rows are not authorization to create production discovery PRs. Preserve EVIDENCE_RECONCILIATION unless this exact fresh-main audit identifies a new executable source root."
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 821,
+    "authorizationMerge": "6e53bfef4e3340879a04194fd3bd9130e8ca3728",
+    "ledgerPullRequest": 822,
+    "ledgerHead": "3f9cd57e8cd2325dd679bdd0baf4a50d4e9fd862",
+    "ledgerMerge": "fefd92e33954e392bb9a437b3e67237148b62f73",
+    "ledgerMergeParents": [
+      "6e53bfef4e3340879a04194fd3bd9130e8ca3728",
+      "3f9cd57e8cd2325dd679bdd0baf4a50d4e9fd862"
+    ],
+    "ledgerOutcome": "KF-P0-24 is SOURCE_GATE_CLOSED_RC_PENDING; P0 source-gate count is 20, P1 source-gate count is 5; fourteen evidence-only rows remain explicitly fail-closed; freshMainAuditV2Complete, mandatoryExecutedTestCoverageComplete, deltaRegressionAuditComplete and freshPackagedWindowsRcPass remain false."
+  },
+  "forbiddenSemantics": [
+    "No production/runtime/test/workflow/dependency/routing/manifest/lockfile/packaging/release-binary mutation.",
+    "No new packaged Windows RC/UAT execution or candidate creation.",
+    "No promotion of an evidence-only finding from source shape, current test presence, ancestor GREEN or broad historical work-package proximity.",
+    "No fabrication of historical RED head, immutable test blob, workflow run, exact-head GREEN or ordinary-merge lineage.",
+    "No speculative production discovery PR for any of the fourteen evidence-only rows absent a newly demonstrated executable root.",
+    "No CLOSED or PACKAGED_RC_PASS finding state, release authorization, promotion or publish authority.",
+    "No mutation, reconcile, close or merge action against frozen historical evidence PRs."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_RELEASE_LEDGER_EVIDENCE",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance Release Closure Ledger and exact-head evidence chain",
+        "source": "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md + governance/layered-ci + repository exact-head gates",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Fresh-main Audit V2 only reconciles and classifies repository-owned evidence; no external infrastructure or dependency is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a parallel release ledger, scanner, evidence database or audit service.",
+      "Do not create one PR per historical evidence-only finding.",
+      "Do not use source shape as a substitute for failure-first lineage.",
+      "Do not create RC, Delta-completion or publish authority inside this audit authorization."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
