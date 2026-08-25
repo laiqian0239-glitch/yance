@@ -9,7 +9,7 @@ const { discoverExistingDataRoots } = require('../runtime-delivery/source-uat-de
 const EXPECTED_WORKER_AVATAR_CONTRACT = 11;
 const EXPECTED_WORKER_EVIDENCE_CONTRACT = 6;
 const EXPECTED_WORKER_DEPLOYMENT_MARKER = 'facebook-avatar-translation-persistence-fix13-20260724';
-const EXPECTED_D1_SCHEMA_VERSION = 5;
+const EXPECTED_D1_SCHEMA_VERSION = 6;
 const DEFAULT_WORKER = 'https://yance-facebook-gateway.wangyi198675.workers.dev';
 
 const REQUIRED_LOCAL_COLUMNS = Object.freeze({
@@ -333,24 +333,22 @@ async function runPreflight(options = {}) {
   const deploymentMarker = clean(worker?.avatarProxyContract?.deploymentMarker);
   add('worker-avatar-deployment-marker', deploymentMarker === EXPECTED_WORKER_DEPLOYMENT_MARKER, true, { expected: EXPECTED_WORKER_DEPLOYMENT_MARKER, actual: deploymentMarker, workerBase }, 'P0_WORKER_DEPLOYMENT_MARKER_MISMATCH');
   const d1Version = Number(worker?.d1Schema?.version || 0);
-  const d1Ready = d1Version >= EXPECTED_D1_SCHEMA_VERSION && worker?.d1Schema?.ready === true && worker?.d1Schema?.pagePictureColumn === true;
-  const legacyIndirect = options.allowLegacyHealthz === true && worker?.avatarProxyContract?.persistentPageReference === true;
+  const latestRequiredMigration = clean(worker?.d1Schema?.latestRequiredMigration);
+  const permissionAuthorityColumns = worker?.d1Schema?.permissionAuthorityColumns === true;
+  const d1Ready = d1Version === EXPECTED_D1_SCHEMA_VERSION
+    && latestRequiredMigration === '0006_permission_authority.sql'
+    && permissionAuthorityColumns === true
+    && worker?.d1Schema?.ready === true
+    && worker?.d1Schema?.pagePictureColumn === true;
   const d1Evidence = {
     expected: EXPECTED_D1_SCHEMA_VERSION,
     actual: d1Version || null,
+    latestRequiredMigration,
+    permissionAuthorityColumns,
     ready: worker?.d1Schema?.ready === true,
-    pagePictureColumn: worker?.d1Schema?.pagePictureColumn === true,
-    legacyIndirect
+    pagePictureColumn: worker?.d1Schema?.pagePictureColumn === true
   };
-  if (d1Ready) add('worker-d1-schema', true, true, d1Evidence, '');
-  else if (legacyIndirect) checks.push({
-    id: 'worker-d1-schema',
-    status: 'warning',
-    blocking: false,
-    reasonCode: 'P0_D1_SCHEMA_EVIDENCE_LEGACY_INDIRECT',
-    evidence: d1Evidence
-  });
-  else add('worker-d1-schema', false, true, d1Evidence, 'P0_D1_SCHEMA_MISMATCH');
+  add('worker-d1-schema', d1Ready, true, d1Evidence, 'P0_D1_SCHEMA_MISMATCH');
   add('facebook-account-avatar-persistence', local.facebookAccountAvatars.total === 0 || local.facebookAccountAvatars.ready === local.facebookAccountAvatars.total, false, local.facebookAccountAvatars, 'P0_FACEBOOK_ACCOUNT_AVATAR_INCOMPLETE');
   add('facebook-contact-avatar-persistence', local.facebookContactAvatars.total === 0 || (local.facebookContactAvatars.ready === local.facebookContactAvatars.total && local.facebookContactAvatars.missingLocalFiles === 0), false, local.facebookContactAvatars, 'P0_FACEBOOK_CONTACT_AVATAR_INCOMPLETE');
 

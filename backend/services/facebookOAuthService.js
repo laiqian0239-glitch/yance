@@ -22,6 +22,10 @@ const flows = new Map();
 const FLOW_FILE_PREFIX = 'facebook-oauth-flow-';
 
 function clean(value, fallback = '') { const normalized = value == null ? '' : String(value).trim(); return normalized || fallback; }
+function workerErrorCode(value, fallback = 'FACEBOOK_OAUTH_WORKER_ERROR') {
+  const code = clean(value);
+  return /^FACEBOOK_[A-Z0-9_]+$/u.test(code) ? code : fallback;
+}
 function operationAbortError(signal, fallbackCode = 'FACEBOOK_OAUTH_ABORTED') {
   const reason = signal?.reason instanceof Error ? signal.reason : Object.assign(new Error('Facebook OAuth operation aborted'), { code: fallbackCode });
   if (!reason.code) reason.code = fallbackCode;
@@ -200,7 +204,7 @@ async function workerRequest(url, options = {}, timeoutMs = 15000, operation = {
     assertOperationActive(operation.signal, 'FACEBOOK_OAUTH_WORKER_ABORTED');
     const data = await response.json().catch(() => ({}));
     assertOperationActive(operation.signal, 'FACEBOOK_OAUTH_WORKER_ABORTED');
-    if (!response.ok || data.ok === false) throw Object.assign(new Error(data.message || `Facebook 云端授权服务返回 HTTP ${response.status}`), { code: data.code || 'FACEBOOK_OAUTH_WORKER_ERROR', status: response.status, details: data.details || {} });
+    if (!response.ok || data.ok === false) throw Object.assign(new Error(data.message || `Facebook 云端授权服务返回 HTTP ${response.status}`), { code: workerErrorCode(data.code), status: response.status, details: data.details || {} });
     return data;
   }, {
     deadlineAt: persisted.deadlineAt,
@@ -302,7 +306,7 @@ async function poll(accountId, flowId, options = {}) {
     flow.status = status;
     flow.diagnostics = data.diagnostics && typeof data.diagnostics === 'object' ? data.diagnostics : null;
     flow.error = clean(data.message || data.errorCode, 'Facebook 授权未完成');
-    return { flowId, mode: 'identity', status, error: flow.error, errorCode: clean(data.errorCode), diagnostics: flow.diagnostics };
+    return { flowId, mode: 'identity', status, error: flow.error, errorCode: workerErrorCode(data.errorCode), diagnostics: flow.diagnostics };
   }
   if (status !== 'authorized') return { flowId, mode: 'identity', status: 'pending', expiresAt: clean(data.expiresAt, new Date(flow.createdMs + FLOW_TTL_MS).toISOString()) };
   const mode = clean(data.mode, flow.mode || 'identity');
