@@ -7,6 +7,9 @@ const ROUTES = Object.freeze({
 });
 
 const PATH_CONTROL_OR_GLOB = /[\u0000-\u001F\u007F*?\[\]]/u;
+const BRANCH_CONTROL_OR_GLOB = /[\u0000-\u0020\u007F~^:?*\[\]\\]/u;
+const DELEGATED_AUTHORIZATION_DOCUMENT_TYPE = 'YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION';
+const DELEGATED_AUTHORIZATION_STATUS = 'AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE';
 
 function outcome(values = {}) {
   return Object.freeze({
@@ -55,6 +58,33 @@ function normalizePath(value) {
   const raw = String(value || '');
   if (hasInvalidPathIdentity(raw) || hasInvalidSegments(raw)) return '';
   return raw;
+}
+
+function isExactBranch(value) {
+  const branch = String(value || '');
+  return Boolean(branch
+    && branch === branch.trim()
+    && !branch.startsWith('/')
+    && !branch.endsWith('/')
+    && !branch.includes('//')
+    && !BRANCH_CONTROL_OR_GLOB.test(branch)
+    && branch.split('/').every(part => part && part !== '.' && part !== '..' && !part.endsWith('.lock')));
+}
+
+function exactPathSet(values) {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  const normalized = values.map(normalizePath);
+  if (normalized.some(value => !value) || new Set(normalized).size !== normalized.length) return null;
+  return [...normalized].sort();
+}
+
+function sameExactPathSet(left, right) {
+  const leftSet = exactPathSet(left);
+  const rightSet = exactPathSet(right);
+  return Boolean(leftSet
+    && rightSet
+    && leftSet.length === rightSet.length
+    && leftSet.every((value, index) => value === rightSet[index]));
 }
 
 function validRules(values, { prefixRules = false } = {}) {
@@ -168,9 +198,63 @@ function classifyWp0Route(policy, changedFiles = []) {
   });
 }
 
+function isTrustedDelegatedAuthorization(authorization) {
+  return Boolean(
+    authorization
+      && typeof authorization === 'object'
+      && !Array.isArray(authorization)
+      && authorization.trustedMergedBaseAuthorization === true
+      && authorization.schemaVersion === 1
+      && authorization.documentType === DELEGATED_AUTHORIZATION_DOCUMENT_TYPE
+      && authorization.status === DELEGATED_AUTHORIZATION_STATUS
+      && authorization.implementation
+      && typeof authorization.implementation === 'object'
+      && !Array.isArray(authorization.implementation)
+      && isExactBranch(authorization.implementation.branch)
+      && exactPathSet(authorization.implementation.allowedChangedPaths)
+  );
+}
+
+function classifyAuthorizedDeletionFallback(normalResult, context = {}) {
+  if (!normalResult
+    || normalResult.pass !== false
+    || normalResult.reasonCode !== 'WP0_ROUTE_UNKNOWN_PATH') return normalResult;
+
+  const changedFiles = exactPathSet(context.changedFiles);
+  const deletedFiles = exactPathSet(context.deletedFiles);
+  const branch = String(context.branch || '');
+  if (!changedFiles
+    || !deletedFiles
+    || !isExactBranch(branch)
+    || !sameExactPathSet(changedFiles, deletedFiles)) return normalResult;
+
+  const authorizations = Array.isArray(context.authorizations) ? context.authorizations : [];
+  const matches = authorizations.filter(authorization => (
+    isTrustedDelegatedAuthorization(authorization)
+      && authorization.implementation.branch === branch
+      && sameExactPathSet(authorization.implementation.allowedChangedPaths, changedFiles)
+  ));
+  if (matches.length !== 1) return normalResult;
+
+  return outcome({
+    pass: true,
+    reasonCode: null,
+    route: ROUTES.PRODUCT,
+    changedFiles,
+    governanceChangesPresent: false,
+    productDocumentationChangesPresent: false,
+    productChangesPresent: true,
+    authorizedDeletionFallback: true,
+    delegatedAuthorizationPath: String(matches[0].authorizationPath || '')
+  });
+}
+
 module.exports = {
   ROUTES,
+  classifyAuthorizedDeletionFallback,
   classifyWp0Route,
+  isExactBranch,
   normalizePath,
+  sameExactPathSet,
   validateWp0RoutingPolicy
 };
