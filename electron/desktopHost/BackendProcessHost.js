@@ -591,10 +591,36 @@ class BackendProcessHost {
       if (this.rejectedOwner && Number(this.rejectedOwner.backendPid || 0) === Number(child.pid || 0)) {
         this.rejectedOwner = Object.freeze({ ...this.rejectedOwner, childStillLive: false, exitedAtUtc: new Date().toISOString(), exitCode: exitCode ?? null, signalCode: signalCode || null });
       }
-      try {
-        this.ownerRegistry.markExited({ exitCode, signalCode, reasonCode: expected ? 'OWNER_EXIT_CONFIRMED' : 'OWNER_EXIT_UNEXPECTED' });
-      } catch (registryCause) {
-        this.ownerRegistryFailure = { reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_EXIT_WRITE_FAILED', message: registryCause.message, atUtc: new Date().toISOString() };
+      const durableOwner = this.ownerRegistry.snapshot();
+      const exitingChildOwnsDurableClaim = Boolean(
+        durableOwner?.ownershipActive === true
+        && Number(durableOwner.backendPid || 0) === Number(child.pid || 0)
+        && String(durableOwner.startupNonce || '') === String(attempt.startupNonce || '')
+        && String(durableOwner.backendSessionId || '') === String(attempt.backendSessionId || '')
+      );
+      if (exitingChildOwnsDurableClaim) {
+        try {
+          this.ownerRegistry.markExited({ exitCode, signalCode, reasonCode: expected ? 'OWNER_EXIT_CONFIRMED' : 'OWNER_EXIT_UNEXPECTED' });
+        } catch (registryCause) {
+          this.ownerRegistryFailure = { reasonCode: 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_EXIT_WRITE_FAILED', message: registryCause.message, atUtc: new Date().toISOString() };
+        }
+      } else {
+        this.log('backend-owner-exit-record-skip', {
+          backendPid: Number(child.pid || 0),
+          durableBackendPid: Number(durableOwner?.backendPid || 0),
+          reasonCode: 'EXITING_CHILD_DOES_NOT_OWN_DURABLE_CLAIM'
+        });
+      }
+      if (attempt.startupAdmission && attempt.ownerClaimRegistered !== true) {
+        const admission = attempt.startupAdmission;
+        attempt.startupAdmission = null;
+        Promise.resolve(admission.release()).catch(registryCause => {
+          this.ownerRegistryFailure = {
+            reasonCode: registryCause.reasonCode || 'WP4_DESKTOP_BACKEND_OWNER_CLAIM_LOCK_FAILED',
+            message: registryCause.message,
+            atUtc: new Date().toISOString()
+          };
+        });
       }
       this.orphanOwnerRecord = this.ownerRegistry.snapshot();
       this.child = null;
@@ -783,6 +809,8 @@ class BackendProcessHost {
       exit: null,
       listeners: null,
       ownerContext: null,
+      startupAdmission: null,
+      ownerClaimRegistered: false,
       abortController: new AbortController(),
       handleBackendOwnerExit: options.handleBackendOwnerExit || defaultOwnerExitRecovery
     };
@@ -876,6 +904,7 @@ class BackendProcessHost {
         nodeRuntimeExecutablePath: launchContract.nodeRuntimeExecutablePath,
         nodeRuntimeVersion: runtimeProbe.version
       });
+      attempt.startupAdmission = await this.ownerRegistry.acquireStartupAdmission();
       this.log('backend-process-fork-dispatch', {
         nodeRuntimeExecutablePath: launchContract.nodeRuntimeExecutablePath,
         backendEntryPath: options.entry,
@@ -912,7 +941,7 @@ class BackendProcessHost {
       await this._awaitSpawnIdentity(child, attempt, options.spawnIdentityTimeoutMs);
       this._assertStartStillValid(child, attempt, 'after-lifecycle-bind');
       const processIdentity = await this.ownerRegistry.captureIdentityAsync(child.pid);
-      this.ownerRegistry.register({
+      attempt.startupAdmission.register({
         state: 'SPAWNED',
         ownershipActive: true,
         trusted: false,
@@ -923,7 +952,10 @@ class BackendProcessHost {
         processIdentity,
         reasonCode: 'BACKEND_SPAWNED'
       });
+      attempt.ownerClaimRegistered = true;
       this.orphanOwnerRecord = this.ownerRegistry.snapshot();
+      await attempt.startupAdmission.release();
+      attempt.startupAdmission = null;
 
       const controlPipe = child.stdio?.[CONTROL_PIPE_FD];
       const credentialPipe = child.stdio?.[CREDENTIAL_PIPE_FD];
@@ -1196,6 +1228,24 @@ class BackendProcessHost {
           });
         } catch (cleanupError) {
           error.cleanupReasonCode = cleanupError.reasonCode || cleanupError.code || 'DESKTOP_BACKEND_EXIT_NOT_CONFIRMED';
+        }
+      }
+
+      if (attempt.startupAdmission) {
+        const durableClaimNowBlocksReplacement = attempt.ownerClaimRegistered === true;
+        const preClaimChildContained = !child || processExited(child) || !Number.isInteger(child.pid) || child.pid < 1;
+        if (durableClaimNowBlocksReplacement || preClaimChildContained) {
+          try { await attempt.startupAdmission.release(); }
+          catch (releaseError) {
+            error.ownerClaimReleaseFailure = {
+              reasonCode: releaseError.reasonCode || releaseError.code || 'WP4_DESKTOP_BACKEND_OWNER_CLAIM_LOCK_FAILED',
+              message: releaseError.message
+            };
+          }
+          attempt.startupAdmission = null;
+        } else {
+          error.startupAdmissionRetained = true;
+          error.startupAdmissionRetainedReason = 'PRECLAIM_CHILD_EXIT_NOT_CONFIRMED';
         }
       }
 
