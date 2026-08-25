@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T01:30:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-CLOSURE-POST-KF-P0-24-EVIDENCE-BATCH-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After KF-P0-24 ordinary-merged on fresh trusted main b53745a3c52429464e1f7498b70d4548594563ac, run one ledger-only batch that mechanically binds the complete KF-P0-24 failure-first chain and reconstructs exact historical executed evidence for the remaining fourteen EVIDENCE_ONLY Known Finding rows. A row may advance only from mechanically recovered immutable RED/test/run plus final exact-head mandatory GREEN evidence; source shape or test-file presence alone is not closure. No executable repair, Fresh-main Audit completion, Delta completion, packaged RC or release authority is granted.",
+  "base": {"branch": "main", "commit": "b53745a3c52429464e1f7498b70d4548594563ac"},
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-post-kf-p0-24-evidence-batch-p0-authorization",
+    "allowedChangedPaths": ["governance/layered-ci/v21-release-closure-post-kf-p0-24-evidence-batch-p0-authorization.json"],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c0efdbb22c6e9562ec77b2919f5b58c2235915e6daf7c4fa4f41839b15fa4fbc",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "docs/v21-release-closure-post-kf-p0-24-evidence-batch-p0",
+    "allowedChangedPaths": ["docs/uat/V21_RELEASE_CLOSURE_LEDGER.md"],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f5a5ea40aa811612913eb20a8d039f69161f875a62e260361e84f9dabc0010e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "documentScope": {
+    "requiredSemantics": [
+      "Audit exact trusted main b53745a3c52429464e1f7498b70d4548594563ac and record the post-KF-P0-24 checkpoint without claiming packaged RC completion.",
+      "Mechanically advance KF-P0-24 only if frozen #818 head 74e4c41bcb224bf31df0905ecf5296303414bf90 / immutable test blob 9234cb97630bb9683d9dd669ea941530617e0473 / Stage 32880426330 / wp0-product 97908412835 clean causal RED with unknownBlockers=0 is bound through #819 production authorization ordinary merge bc56bcc237b30c0853d1bb0a7c9dec909fc5de19 to #820 exact production head d17a0aa89c72f787f3af70fb8911339708a5db69, mandatory Stage 32881962154 / wp0-product 97913443279 SUCCESS, autonomous exact-head P0=0/P1=0 review and ordinary merge b53745a3c52429464e1f7498b70d4548594563ac.",
+      "Preserve the #820 merge ancestry exactly: parent1 bc56bcc237b30c0853d1bb0a7c9dec909fc5de19 and parent2 d17a0aa89c72f787f3af70fb8911339708a5db69; record the frozen diagnostic blob unchanged.",
+      "For KF-P0-03, KF-P0-04, KF-P0-17, KF-P0-18, KF-P0-23, KF-P0-26, KF-P0-27, KF-P0-28, KF-P0-29, KF-P0-30, KF-P0-31, KF-P1-01, KF-P1-06 and KF-P1-07, reconstruct exact historical finding-specific RED head/test blob/workflow run/final exact-head GREEN/ordinary-merge evidence in one batch.",
+      "Advance an EVIDENCE_ONLY row to SOURCE_GATE_CLOSED_RC_PENDING only when its exact finding-specific causal/executed chain is mechanically complete. If any required identity or execution proof cannot be recovered, leave that row EVIDENCE_RECONCILIATION and explicitly record the missing evidence.",
+      "Use current mandatory tests only as coverage corroboration, never as a substitute for historical failure-first lineage. Current source shape, broad work-package proximity, or file presence alone does not prove closure.",
+      "Batch Store-truth evidence for KF-P0-04/KF-P0-17/KF-P0-18 using the #544/#545/#547/#615 lineage plus active-selection-runtime-mirror executed evidence only where exact finding mapping can be proven.",
+      "Batch cross-platform evidence for KF-P0-23 using the #653 Telegram provider-rejection subset, #777 Facebook durable media subset and mandatory operation-adapter evidence only where the broad finding mapping is complete; bind KF-P1-06 mechanically to the #775 frozen RED -> #777 production closure chain where finding-specific identity is proven.",
+      "Batch Durable Execution evidence for KF-P0-26/KF-P0-27/KF-P0-28 using the historical #17 M2 failure-first/89-of-89 closure plus durableExecutionCas/schema23 transaction evidence, while recording MAX(sequence)+1 under the root BEGIN IMMEDIATE write transaction as negative proof rather than inventing a new race fix.",
+      "Batch AI evidence for KF-P0-29/KF-P0-30/KF-P0-31/KF-P1-07 using exact AI Gateway/Orchestrator/stale-context executed evidence and the #682 causal chain for P1-07; do not split these into new production work packages absent a fresh executable defect.",
+      "Bind KF-P0-03 only from its own historical register/filesystem cross-process-owner failure-first/executed chain; #643 lifecycle work is corroboration and must not substitute for KF-P0-03 evidence. Bind KF-P1-01 only from its own Safe Mode write-boundary failure-first/executed lineage.",
+      "Recalculate Known Finding counters strictly from rows actually advanced by complete evidence. Do not force the expected counts from the discovery matrix.",
+      "Keep freshMainAuditV2Complete=false, mandatoryExecutedTestCoverageComplete=false and deltaRegressionAuditComplete=false in this evidence batch; those are subsequent exact-main audit packages after the fourteen-row mechanical reconciliation.",
+      "Keep freshPackagedWindowsRcPass=false, releaseLedgerClosed=false, releaseReady=false, formalReleaseAuthorized=false and publishAuthorized=false. No fresh packaged Windows RC/UAT may start in this batch."
+    ],
+    "forbiddenSemantics": [
+      "No production/runtime/test/workflow/dependency/routing/packaging/release-binary mutation.",
+      "No new production discovery PR for any of the fourteen EVIDENCE_ONLY rows unless this ledger reconstruction mechanically exposes a fresh executable defect outside this authorization.",
+      "No status advancement inferred solely from fresh source graph, test-file presence, workflow existence, ancestor GREEN, skipped applicable tests or broad neighboring PRs.",
+      "No fabricated RED head, immutable blob, workflow run, test count, exact-head GREEN or finding mapping.",
+      "No CLOSED or PACKAGED_RC_PASS before a fresh final packaged Windows candidate is created from a later explicitly authorized fresh main.",
+      "No mutation, reconciliation, closure or merge of frozen #818 or any historical frozen evidence PR."
+    ]
+  },
+  "evidenceBatch": {
+    "classification": {"EVIDENCE_ONLY": 14, "REAL_CAUSAL_DEFECT_ALREADY_MAINLINE_CLOSED_AT_SOURCE": 1, "PACKAGED_RC_ONLY": 0},
+    "evidenceOnlyRows": [
+      {"finding": "KF-P0-03", "candidateEvidence": ["backend-owner-claim-lock executed evidence", "#546 finding-specific owner-lock lineage", "#643 lifecycle corroboration"], "requiredResidual": "final packaged Windows multi-instance exclusivity remains RC pending"},
+      {"finding": "KF-P0-04", "candidateEvidence": ["#544 renderer exact canonical selection", "#545 SET_ACTIVE_CONVERSATION ephemeral Store mirror", "#547 single-writer/dedupe/archive clear", "#615 related exact-session lineage", "active-selection-runtime-mirror executed evidence"]},
+      {"finding": "KF-P0-17", "candidateEvidence": ["#544/#545/#547/#615 selection-target lineage", "active-selection-runtime-mirror wrong-target coverage"]},
+      {"finding": "KF-P0-18", "candidateEvidence": ["#547 generic SYNC_CUSTOMER_CONTEXT dedupe/selection preservation", "active-selection-runtime-mirror executed evidence"]},
+      {"finding": "KF-P0-23", "candidateEvidence": ["#653 Telegram provider-rejection subset", "#777 Facebook durable-media physical authority", "mandatoryOperationAdapters executed evidence"]},
+      {"finding": "KF-P0-26", "candidateEvidence": ["#17 M2 failure-first and 89/89 closure", "DurableInternalOperationAuthority lifecycle/heartbeat executed evidence"]},
+      {"finding": "KF-P0-27", "candidateEvidence": ["#17 M2 failure-first and 89/89 closure", "durableExecutionCas/schema23 transaction tests", "BEGIN IMMEDIATE negative proof for MAX(sequence)+1"]},
+      {"finding": "KF-P0-28", "candidateEvidence": ["#17 M2 failure-first and 89/89 closure", "durableExecutionCas lease/heartbeat/fencing tests"]},
+      {"finding": "KF-P0-29", "candidateEvidence": ["AI Gateway scheduled admission/terminalization executed tests"]},
+      {"finding": "KF-P0-30", "candidateEvidence": ["AiBrainOrchestrator generation/objectFingerprint terminal fencing executed tests"]},
+      {"finding": "KF-P0-31", "candidateEvidence": ["TurnCoordinator revision cancellation", "ContextAwareReplyBrain stale precommit fence", "AiGateway task context/generation fence"]},
+      {"finding": "KF-P1-01", "candidateEvidence": ["#541/#543 Safe Mode write-boundary lineage", "backend/tests/securityGuardTrustBoundary.test.js executed evidence"], "requiredResidual": "final packaged all-write-entrypoint exercise remains RC pending"},
+      {"finding": "KF-P1-06", "candidateEvidence": ["#775 frozen Facebook durable-media RED", "#777 exact production closure"]},
+      {"finding": "KF-P1-07", "candidateEvidence": ["#682 RED head 2b0e2a19... / run 32613800942 / production commit 3231ba426... / ordinary merge f01bb27d...", "v21ProductAiAutoRetryStorm.test.js", "v21ProductAiAutoConversationP0.test.js", "bounded timeout preservation"]}
+    ]
+  },
+  "predecessorEvidence": {
+    "finding": "KF-P0-24",
+    "frozenPullRequest": 818,
+    "frozenHead": "74e4c41bcb224bf31df0905ecf5296303414bf90",
+    "frozenTestPath": "tests/wp0/v21-telegram-media-local-persistence-repair-kf-p0-24.test.js",
+    "frozenTestBlob": "9234cb97630bb9683d9dd669ea941530617e0473",
+    "frozenStageRun": 32880426330,
+    "frozenStageJob": 97908412835,
+    "frozenResult": "698 mandatory WP0 tests / 697 pass / exactly one finding-specific failure; dedicated KF-P0-24 file 3 subtests / 2 pass / 1 fail; unknownBlockers=0",
+    "productionAuthorizationPullRequest": 819,
+    "productionAuthorizationMerge": "bc56bcc237b30c0853d1bb0a7c9dec909fc5de19",
+    "implementationPullRequest": 820,
+    "implementationHead": "d17a0aa89c72f787f3af70fb8911339708a5db69",
+    "implementationStageRun": 32881962154,
+    "implementationStageJob": 97913443279,
+    "implementationExactHeadWorkflows": {
+      "Stage": "SUCCESS",
+      "Layered": "32881962462 SUCCESS",
+      "ACV2": "32881962180 SUCCESS",
+      "ModelWindows": "32881962146 SUCCESS",
+      "WPA": "32881962161 SUCCESS",
+      "WPBM2Contracts": "32881962162 SUCCESS",
+      "WPBM2IndependentReviewIntegrity": "32881962130 SUCCESS",
+      "ProductFinal": "32881962243 correctly skipped"
+    },
+    "implementationMerge": "b53745a3c52429464e1f7498b70d4548594563ac",
+    "implementationMergeParents": ["bc56bcc237b30c0853d1bb0a7c9dec909fc5de19", "d17a0aa89c72f787f3af70fb8911339708a5db69"],
+    "unknownBlockers": 0
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_RELEASE_LEDGER_EVIDENCE",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [{
+      "name": "Existing Yance Release Closure Ledger and exact-head evidence chain",
+      "source": "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md + governance/layered-ci + GitHub Actions exact-head evidence",
+      "license": "repository-existing",
+      "adoptionMode": "existing-repository-seam",
+      "fit": "FIT",
+      "reason": "This package only reconciles existing repository-owned release evidence; no new software capability, dependency or generalized infrastructure is required."
+    }],
+    "retireOrAvoid": [
+      "Do not add a new release ledger, evidence database, scanner or reconciliation service.",
+      "Do not create fourteen production discovery PRs for evidence-only rows.",
+      "Do not infer closure from source shape, historical test presence or broad neighboring merges.",
+      "Do not create a parallel Fresh-main Audit, Delta or RC authority inside this documentation evidence batch."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {"exactHeadCi": ["Stage", "Layered when triggered", "ACV2 when triggered", "Model when triggered", "Product Final only when routed"]},
+  "independentReview": {"required": true, "exactHeadRequired": true, "blockingSeverities": ["P0", "P1"], "requiredZeroBlockingFindings": true},
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
