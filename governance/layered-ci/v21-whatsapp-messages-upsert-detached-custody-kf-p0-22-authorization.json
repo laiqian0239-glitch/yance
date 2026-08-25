@@ -5,7 +5,7 @@
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-WHATSAPP-MESSAGES-UPSERT-DETACHED-CUSTODY-KF-P0-22",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Close KF-P0-22 by failure-first proof against exact trusted main 4d8c7c33af673edd20ff170e47a71632cecbfcb5. Fresh same-root review of backend/services/whatsappAdapter.js proves messages.upsert itself is registered through createSocketGenerationGuard, but several continuations are detached from the returned handler promise: media materialization is launched through setImmediate(async ...), avatarService.enqueueWhatsApp(...).then(...), and ensurePresenceSubscription(...).catch(...). Because createSocketGenerationGuard only holds in-flight custody for the promise returned by the handler, stop().drain() can observe zero after the main messages.upsert promise settles while those detached continuations still execute against the retiring socket generation. The first implementation must remain tests-only and prove these real post-await/detached boundaries in one diagnostic window. Production remains forbidden until fresh exact-head causal RED evidence, Closure Matrix completion and unknownBlockers=0, followed by a separate same-work-package production amendment ordinary merge.",
+  "reason": "Close KF-P0-22 and exhaust the same-root WhatsApp socket-generation detached-continuation graph by failure-first proof against exact trusted main 4d8c7c33af673edd20ff170e47a71632cecbfcb5. Fresh source review proves all Baileys events bind through createSocketGenerationGuard, but several callbacks launch async continuations that are not part of the Promise returned to the guard. The live graph includes connection.update background identity/avatar/presence/profile/media/app-state work, messaging-history.set avatar sync, messages.upsert presence/media/avatar work, presence.update metadata persistence, and the nested avatar continuation inside reconcileKnownIdentities. Because stop().drain() counts only guard-owned work, a detached continuation that starts while current can keep old-generation socket or state side effects alive after the guarded parent settles and across retirement/replacement. Already-returned Promise handlers such as chats/contacts queueAvatarRows are negative proof and must remain tracked. The first implementation must remain tests-only and lock the complete observable same-root graph in one diagnostic window. Production remains forbidden until fresh exact-head causal RED evidence, Closure Matrix completion and unknownBlockers=0, followed by a separate same-work-package production amendment ordinary merge.",
   "base": {
     "branch": "main",
     "commit": "4d8c7c33af673edd20ff170e47a71632cecbfcb5"
@@ -55,19 +55,21 @@
   },
   "diagnosticScope": {
     "requiredSemantics": [
-      "Use the existing sessionGenerationFence/createSocketGenerationGuard and WhatsAppAdapter messages.upsert seams; do not create a second generation manager, scheduler, queue, retry engine or lock authority.",
-      "Prove that messages.upsert detached media materialization launched through setImmediate can outlive the guarded handler promise and therefore escape stop().drain() custody on the retiring generation.",
-      "Prove that messages.upsert detached avatar continuation launched through avatarService.enqueueWhatsApp(...).then(...) can outlive the guarded handler promise and perform identity side effects after generation retirement unless it is owned by the same custody boundary.",
-      "Prove that messages.upsert detached presence subscription work can remain in flight outside the guarded handler promise; classify its concrete side-effect boundary and preserve only finding-specific failures.",
-      "Batch any additional detached continuation inside the same messages.upsert authority graph discovered by the diagnostic window when fresh evidence shows it can execute a real side effect after the guarded handler promise settles.",
-      "Preserve primary message/reaction/revoke persistence, receipt checkpoint semantics, notification behavior, media repairability, avatar identity semantics and current stale-at-entry rejection.",
+      "Use the existing sessionGenerationFence/createSocketGenerationGuard and WhatsAppAdapter onSocket seams; do not create a second generation manager, scheduler, queue, retry engine or lock authority.",
+      "Prove the historical KF-P0-22 messages.upsert boundary: detached media setImmediate, avatar enqueue Promise and presence-subscription Promise work can outlive the guarded parent handler unless each continuation itself enters generation custody.",
+      "Exhaust the same-root connection.update graph: background reconcileKnownIdentities, subscribeKnownConversations, queueKnownAvatarSync, business-profile hydration, legacy-media history planning and app-state resync continuations must not execute old-generation async side effects outside drain custody.",
+      "Prove messaging-history.set background avatar sync and presence.update asynchronous conversation metadata persistence are generation-owned for their full async lifetime.",
+      "Prove nested reconcileKnownIdentities avatar continuation cannot escape the custody of the parent generation task.",
+      "Preserve returned-Promise handlers such as chats.upsert/chats.update/contacts.upsert/contacts.update as negative proof that createSocketGenerationGuard already tracks async work when the callback actually returns its Promise.",
+      "Preserve synchronous current-check-only background work where no asynchronous continuation can overlap stop, including the mobile-echo repair callback; do not convert negative proof into speculative infrastructure.",
+      "Preserve primary message/reaction/revoke persistence, receipt checkpoints, notifications, media repairability, avatar identity semantics, presence semantics, history sync, connection-online responsiveness and current stale-at-entry rejection.",
       "The first implementation commit must change only the dedicated authorized WP0 test path and contain no production mutation.",
-      "Stage WP0 must isolate only KF-P0-22 detached-custody failures; all unrelated mandatory WP0 tests must pass before unknownBlockers may be recorded as zero."
+      "Stage WP0 must isolate only same-root detached-generation custody failures; all unrelated mandatory WP0 tests must pass before unknownBlockers may be recorded as zero."
     ],
     "forbiddenSemantics": [
       "No production fix before fresh exact-head causal RED evidence and unknownBlockers=0.",
-      "No assertion-only workaround that merely checks socketGuard before scheduling a detached continuation while still allowing the continuation to outlive generation drain.",
-      "No removal of media/avatar/presence product behavior solely to make the diagnostic pass.",
+      "No assertion-only workaround that merely checks socketGuard before scheduling a detached asynchronous continuation while still allowing that continuation to outlive generation drain after it starts.",
+      "No removal of media/avatar/presence/history/profile/app-state product behavior solely to make the diagnostic pass.",
       "No new queue, scheduler, generation manager, credential store, lock authority or general-purpose infrastructure.",
       "No Facebook, Telegram, platformDriverRegistry, dependency, workflow, routing, schema, package or lockfile change.",
       "No weakening of KF-P0-19 in-flight custody, stop/restart fail-closed behavior, batch39 stale-callback contracts, or existing mandatory WP0 coverage."
@@ -80,18 +82,18 @@
     "selectedAdoptionMode": "existing-repository-seam",
     "reviewedCandidates": [
       {
-        "name": "Existing Yance sessionGenerationFence/createSocketGenerationGuard plus WhatsApp messages.upsert and Stage WP0 runner",
+        "name": "Existing Yance sessionGenerationFence/createSocketGenerationGuard plus WhatsApp onSocket handlers and Stage WP0 runner",
         "source": "backend/services/sessionGenerationFence.js + backend/services/whatsappAdapter.js + backend/tests/batch39WhatsappSessionFence.test.js + tests/wp0 + tools/wp0/run-tests.js",
         "license": "repository-existing",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
-        "reason": "The defect is detached asynchronous work escaping an existing generation-custody boundary. Existing session fence and handler seams are sufficient for diagnosis; no new dependency or generalized infrastructure is required."
+        "reason": "The defect is asynchronous work being detached from an existing generation-custody boundary. createSocketGenerationGuard already proves it can own an explicitly wrapped async task, so the diagnostic should reuse that seam rather than add infrastructure."
       }
     ],
     "retireOrAvoid": [
       "Do not add a parallel session-generation manager.",
-      "Do not add a second media/avatar repair queue solely for generation custody.",
-      "Do not infer safety from a pre-schedule isCurrent check when the scheduled continuation can outlive stop().drain()."
+      "Do not add a second media/avatar/presence repair queue solely for generation custody.",
+      "Do not infer safety from a pre-schedule isCurrent check when an asynchronous task can start current and then outlive stop().drain()."
     ],
     "thinYanceAdapterOnly": true
   },
