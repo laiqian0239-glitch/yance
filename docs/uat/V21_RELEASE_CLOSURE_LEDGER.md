@@ -42,6 +42,10 @@ Post-KF-P0-24 evidence-batch authorization / exact implementation base: `6e53bfe
 
 Post-KF-P0-24 audited trusted main: `b53745a3c52429464e1f7498b70d4548594563ac` (#820 ordinary two-parent merge)
 
+Fresh-main Audit V2 authorization / successor implementation base: `3865bb079b29f49553dc265ac5340b8e58c27ec9` (#823 ordinary two-parent merge)
+
+Fresh-main Audit V2 exact audited target: `fefd92e33954e392bb9a437b3e67237148b62f73` (#822 ordinary two-parent merge)
+
 Delta Regression historical baseline: `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0` (`docs(audit): deliver comprehensive status audit report 2026-08-20`).
 
 Known Findings source: 2026-08-20 comprehensive feature review (historical audit baseline).
@@ -211,7 +215,7 @@ These rows are independent of Known Findings V1. Do not renumber or rewrite the 
 |---|---|---|---|---|
 | A2-P1-001 | P1 | AI_AUTO deterministic reply-generation failures historically re-entered the 20-attempt durable analysis retry loop (issue #533) | SOURCE_GATE_CLOSED_RC_PENDING | After the WP0 coverage prerequisite, #682 V4 first head `2b0e2a19…` produced fresh Stage RED `32613800942` for the remaining `SOCIAL_CONTEXT_NOT_READY`, `STALE_CONVERSATION_CONTEXT`, `STALE_PERSONA_PROFILE` classification gap with `unknownBlockers=0`. Final head `3231ba42…` passed Stage `32613979019`, ACV2 `32613978971`, WP-A `32613978900`, Model `32613978924` and merged as `f01bb27d…`; these deterministic generation errors now terminate the canonical analysis non-retryably. Fresh final RC remains required. |
 
-No new A2-P0/A2-P1 row is added by the `760c45a9… → f8d0a736…` source segment: it consists of the Lane C ledger checkpoint and the already-accounted Facebook causal closure. The subsequent #781→#783 backend startup-admission closure is reconciled into KF-P0-01 rather than duplicated as a new A2 row. The #788→#790 contract-alignment closure is reconciled into KF-P0-12 rather than duplicated as a new A2 row. The #794→#796 default-Facebook-egress closure is reconciled into KF-P0-11 rather than duplicated as a new A2 row. The #800→#802 stale-socket in-flight-custody closure is reconciled into KF-P0-19 rather than duplicated as a new A2 row. The #806→#808 detached generation-custody closure is reconciled into KF-P0-22 rather than duplicated as a new A2 row. The #812→#814 durable WhatsApp local-repair closure is reconciled into KF-P0-20 rather than duplicated as a new A2 row. The #818→#820 Telegram media local-repair closure is reconciled into KF-P0-24 rather than duplicated as a new A2 row. This is not a declaration that Fresh-main Audit V2 is complete; unresolved V1 evidence rows remain fail-closed.
+No new A2-P0/A2-P1 row is added by the `760c45a9… → f8d0a736…` source segment: it consists of the Lane C ledger checkpoint and the already-accounted Facebook causal closure. The subsequent #781→#783 backend startup-admission closure is reconciled into KF-P0-01 rather than duplicated as a new A2 row. The #788→#790 contract-alignment closure is reconciled into KF-P0-12 rather than duplicated as a new A2 row. The #794→#796 default-Facebook-egress closure is reconciled into KF-P0-11 rather than duplicated as a new A2 row. The #800→#802 stale-socket in-flight-custody closure is reconciled into KF-P0-19 rather than duplicated as a new A2 row. The #806→#808 detached generation-custody closure is reconciled into KF-P0-22 rather than duplicated as a new A2 row. The #812→#814 durable WhatsApp local-repair closure is reconciled into KF-P0-20 rather than duplicated as a new A2 row. The #818→#820 Telegram media local-repair closure is reconciled into KF-P0-24 rather than duplicated as a new A2 row. The Fresh-main Audit V2 checkpoint below completes the exact-main audit without promoting any unresolved historical evidence row.
 
 ### 4.1 Post-KF-P0-12 exact-main surface accounting — `06b1cb20452ec928b0316733bf5d1533cee37f23`
 
@@ -288,6 +292,29 @@ No new A2-P0/A2-P1 row is discovered by this finding-specific segment. `freshMai
 Mechanical compare `e498acafabc3804302e3e1149441e5d81c96f596` → `b53745a3c52429464e1f7498b70d4548594563ac` is `status=ahead`, `ahead_by=12`, `behind_by=0`, changing exactly six paths: `backend/services/durableOperations/outboundMessageSendOperation.js`, the prior post-KF-P0-20 ledger, three KF-P0-24 governance authorizations, and `tests/wp0/v21-telegram-media-local-persistence-repair-kf-p0-24.test.js`. No dependency, package-lock, workflow, routing-policy, release-binary, Electron/backend lifecycle, AI or unrelated Product source changed.
 
 This segment mechanically closes only KF-P0-24 at source/gate level. The 14 evidence-only historical rows remain independently fail-closed unless their own exact lineage is mechanically recoverable. No new A2-P0/A2-P1 finding is discovered, and no final fresh packaged Windows RC exists.
+
+### 4.7 Fresh-main Audit V2 exact-main checkpoint — `fefd92e33954e392bb9a437b3e67237148b62f73`
+
+Authorization #823 ordinary-merged as `3865bb079b29f49553dc265ac5340b8e58c27ec9` with strict parents `fefd92e33954e392bb9a437b3e67237148b62f73` + `b9d4036a04dcc709a461f29687db51d0c670ffe6`. The exact audit target is the immediately preceding trusted main `fefd92e33954e392bb9a437b3e67237148b62f73`; #822 itself ordinary-merged with strict parents `6e53bfef4e3340879a04194fd3bd9130e8ca3728` + `3f9cd57e8cd2325dd679bdd0baf4a50d4e9fd862`.
+
+Mechanical compare `b53745a3c52429464e1f7498b70d4548594563ac` → `fefd92e33954e392bb9a437b3e67237148b62f73` is `status=ahead`, `ahead_by=4`, `behind_by=0`, changing only `docs/uat/V21_RELEASE_CLOSURE_LEDGER.md` and `governance/layered-ci/v21-release-closure-post-kf-p0-24-evidence-batch-p0-authorization.json`. Therefore no production, test, workflow, routing, dependency, manifest, lockfile, packaging or release-binary authority drift exists between the last audited production head and the Fresh-main Audit V2 target.
+
+| Audit dimension | Exact-main result | Classification |
+|---|---|---|
+| 1. Exact ancestry / candidate identity | `fefd92e3…` is the verified ordinary #822 merge above; the audit is bound to that exact commit, not a moving branch tip. | COMPLETE |
+| 2. Known Finding closure matrix | 31 P0 rows remain 20 source-gate-closed / 11 evidence-reconciliation; 8 P1 rows remain 5 source-gate-closed / 3 evidence-reconciliation. The 14 historical evidence-only rows are unchanged and no row is promoted from source shape. | COMPLETE; no new A2 row |
+| 3. Electron/backend ownership and lifecycle | Exact-main source still contains `BackendOwnerRegistry` / `BackendProcessHost`, proper-lockfile-backed ownership and the already-merged async owner identity, startup admission and bounded concurrent shutdown closures. No Electron/backend production path changed after #820. KF-P0-03 remains historical evidence reconciliation; packaged multi-instance/lifecycle proof remains RC-layer work. | NO NEW EXECUTABLE ROOT |
+| 4. Store / identity / conversation truth | Exact-main still contains the active-selection runtime mirror, `SYNC_CUSTOMER_CONTEXT` projection/command seams, exact-session selection and dedupe source shape. KF-P0-04/17/18 remain fail-closed because their historical finding-specific RED/execution lineage is incomplete; KF-P1-05 remains source-gate closed. | NO NEW EXECUTABLE ROOT |
+| 5. WhatsApp / Telegram / Facebook egress and durable repair | Exact-main contains default Facebook `egressHandler`, canonical outbound durable operation, Telegram/WhatsApp local-repair custody and frozen mandatory contracts, plus Facebook Worker/R2 durable media authority. KF-P0-23 and KF-P1-06 remain evidence reconciliation because the broad historical cross-platform capability contracts are not mechanically complete. | NO NEW EXECUTABLE ROOT |
+| 6. Durable Execution transaction / CAS / lease authority | Exact-main contains `durableExecutionAuthority`, `appendV2Event`, the repository write-transaction coordinator using `BEGIN IMMEDIATE`, heartbeat/lease and retry/dead-letter authority. Current source does not demonstrate the historical KF-P0-27 race as a fresh executable defect under the root write transaction. KF-P0-26/27/28 nevertheless remain evidence reconciliation because their own historical finding-specific ordinary-merged causal lineage is incomplete. | NO NEW EXECUTABLE ROOT |
+| 7. AI scheduled terminalization / fencing / stale semantics | Exact-main contains `aiGateway` scheduled admission/terminalization, orchestrator generation/object-fingerprint fencing and stale/superseded guards; A2-P1-001's deterministic AI_AUTO retry subset is already source-gate closed. KF-P0-29/30/31 and broad KF-P1-07 retain evidence-reconciliation status because exact finding-specific historical chains remain incomplete. | NO NEW EXECUTABLE ROOT |
+| 8. Security / credential boundaries | SecurityGuard exact internal actor, exact Safe Mode command set and command-owned write classification closures remain present; no boundary path changed after #820. KF-P1-01 remains evidence reconciliation / packaged all-write-entrypoint obligation rather than a newly observed source defect. | NO NEW EXECUTABLE ROOT |
+| 9. Dependency / supported runtime / reproducibility | Exact target still carries Baileys `7.0.0-rc14`, proper-lockfile `4.1.2`, protected npm build/package/release commands and Electron 43.4.1 distribution-trust identity. No package, lockfile, downloader or native-runtime path changed in the `b53745a3… → fefd92e3…` window. | NO NEW DELTA P0/P1 |
+| 10. Release packaging / sealed-runtime source surface | Protected build/package/release routing, source-UAT/preflight tooling and sealed-runtime checks remain present. No fresh final Windows package was created by this audit; historical #538 cannot satisfy candidate identity. | UAT-001/UAT-002 remain blocking; `freshPackagedWindowsRcPass=false` |
+| 11. Historical evidence / mandatory-execution mapping | All ledger mappings already claimed for KF-P0-01/02/05/06/07/11/12/19/20/22/24, KF-P1-02/03/05/08, A2-P1-001 and the Facebook coverage gaps remain present. The remaining evidence-only rows are explicitly preserved; no RED/blob/run/merge identity is fabricated. | COMPLETE; global coverage still false |
+| 12. Unknown blocker classification | Every observed residual is classified as `SOURCE_GATE_CLOSED_RC_PENDING`, `EVIDENCE_RECONCILIATION`, Delta source-gate pending, or UAT/RC obligation. The audit found no unclassified or fresh executable P0/P1 root. | `unknownBlockers=0` |
+
+This checkpoint asserts `freshMainAuditV2Complete=true` as a **classification/audit gate only**. It becomes effective only when this ledger-only successor itself passes all routed exact-head gates, autonomous independent exact-head review reaches P0=0/P1=0, and the successor ordinary-merges. It does not close any Known Finding, does not make mandatory executed-test coverage complete, does not finalize the Delta window, and does not authorize a packaged RC, release, promotion or publish.
 
 ## 5. Release/UAT obligations not equivalent to new source defects
 
@@ -407,7 +434,7 @@ Mechanical compare `e498acafabc3804302e3e1149441e5d81c96f596` → `b53745a3c5242
 
 ## 9. Final release counters
 
-Current strict counters after the post-KF-P0-24 exact-main checkpoint:
+Current strict counters after the Fresh-main Audit V2 exact target `fefd92e33954e392bb9a437b3e67237148b62f73`:
 
 ```text
 knownFindingsP0Total=31
@@ -418,7 +445,7 @@ knownFindingsFinalClosed=0
 freshMainAuditV2KnownRowsSourceGateClosedRcPending=1
 deltaRegressionKnownP1=1
 deltaRegressionKnownP1SourceGateClosedRcPending=1
-freshMainAuditV2Complete=false
+freshMainAuditV2Complete=true
 mandatoryExecutedTestCoverageComplete=false
 deltaRegressionAuditComplete=false
 freshPackagedWindowsRcPass=false
@@ -428,4 +455,4 @@ formalReleaseAuthorized=false
 publishAuthorized=false
 ```
 
-These values advance only from fresh, exact, mechanically verified evidence. KF-P0-24 now joins the source/gate-closed RC-pending set, but unresolved finding-specific evidence mappings remain across the historical Electron register-level lock row, Store truth, cross-platform adapters, Durable Execution and broader AI contracts. Those unresolved rows prevent RC freeze under the Release Closure Program. Any newly proven executable defect requires a separate authorized failure-first causal work package. This documentation batch does not authorize such repairs, the final Windows RC, release, promotion or publish.
+Fresh-main Audit V2 is complete as an exact-head classification/surface audit with `unknownBlockers=0`; it does not erase unresolved finding-specific evidence mappings. Those mappings remain across the historical Electron register-level lock row, Store truth, cross-platform adapters, Durable Execution, SecurityGuard all-write-entrypoint proof and broader AI contracts. They keep `mandatoryExecutedTestCoverageComplete=false` and, together with the still-open final Delta and packaged-UAT layers, prevent RC freeze and all release/publish authority. Any newly proven executable defect still requires a separate authorized failure-first causal work package. This documentation batch does not authorize production repair, the final Windows RC, release, promotion or publish.
