@@ -109,6 +109,11 @@
         "reason": "This package only reconciles existing repository-owned release evidence; no new software capability, dependency or generalized infrastructure is required."
       }
     ],
+    "retireOrAvoid": [
+      "Do not add a new release ledger, evidence database, scanner or reconciliation service.",
+      "Do not infer closure from source shape or historical test presence.",
+      "Do not create a parallel RC authority inside this documentation audit."
+    ],
     "thinYanceAdapterOnly": true
   },
   "requiredValidation": {
