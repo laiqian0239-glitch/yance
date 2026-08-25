@@ -641,7 +641,7 @@ class PlatformAdapterFacade {
   }
   async authCancel(input = {}) {
     assertDomainDto(input, 'AuthCancelRequest');
-    try { return await this.executeAuth({ ...input, operation: clean(input.operation) || 'cancel' });
+    try { return await this.executeAuth({ ...input, operation: clean(input.operation) || 'cancel' }); }
     catch (cause) {
       if (clean(cause.code) !== 'PLATFORM_AUTH_OPERATION_NOT_BOUND') throw cause;
       return { schemaVersion: ADAPTER_SCHEMA_VERSION, platform: this.platform, accountId: clean(input.accountId), cancelled: false, reasonCode: 'PLATFORM_AUTH_CANCEL_NOT_BOUND' };
@@ -651,7 +651,7 @@ class PlatformAdapterFacade {
   normalizeIngress(input = {}) {
     assertDomainDto(input, 'IngressRequest');
     const normalized = assertDomainDto(this.normalizer(input), 'NormalizedIngressEvent');
-    if (clean(normalized.platform).toLowerCase() !== this.platform) throw error('INGRESS_PLATFORM_MISMATCH', 'OutboxCommand 与平台适配器不一致。', 409);
+    if (clean(normalized.platform).toLowerCase() !== this.platform) throw error('INGRESS_PLATFORM_MISMATCH', '归一化事件的平台与适配器不一致。', 409);
     if (!clean(normalized.sourceAccountId) || !clean(normalized.eventType)) throw error('INGRESS_EVENT_INCOMPLETE', '归一化事件缺少来源账号或事件类型。');
     return normalized;
   }
