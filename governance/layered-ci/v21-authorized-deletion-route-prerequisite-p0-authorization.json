@@ -39,12 +39,12 @@
   "implementation": {
     "branch": "fix/v21-authorized-deletion-route-prerequisite-p0",
     "allowedChangedPaths": [
-      "tests/layered-ci/wp0-routing.test.js",
+      "tests/layered-ci/authorized-deletion-routing.test.js",
       "tools/layered-ci/select-wp0-route.js",
       "tools/layered-ci/wp0-routing.js"
     ],
     "approvedChangedFileCount": 3,
-    "approvedChangedFileSetSha256": "5f3e31eba83c9af022b03b74f015aefc874cec0f7bc01bd0ca25eb555de96f7c",
+    "approvedChangedFileSetSha256": "de6bf7546b4fe155f352c2b3a6cb10e382f9556d9e0eb6238e2cb5894a75ff0a",
     "productionScopeAuthorized": false,
     "productionCodeChanged": false,
     "testModificationAllowed": true,
@@ -75,7 +75,7 @@
     "Require a unique matching merged delegated authorization on the exact base; zero or ambiguous matches fail closed.",
     "On success route to PRODUCT_WP0, never to GOVERNANCE_WP0 or PRODUCT_DOCUMENTATION_WP0, so the strongest substantive gates execute.",
     "Preserve all existing known-path routing semantics and all invalid/unknown-path failure behavior outside this exact fallback.",
-    "Add regressions for authorized exact deletion success plus unauthorized branch, partial set, superset, addition/modification and non-WP0 unknown path failure preservation."
+    "Add dedicated regressions for authorized exact deletion success plus unauthorized branch, partial set, superset, addition/modification and non-WP0 unknown path failure preservation."
   ],
   "forbiddenSemantics": [
     "Do not add noop or noop2 as permanent routing-policy exact paths.",
