@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T06:20:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-AUTHORIZED-DELETION-ROUTE-PREREQUISITE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen cleanup successor #827 exact head ca8e0577ed72d2398d1cb2deec4a46a9dd816296 produced a fresh fail-closed Stage RED at run 32910157700 / route job 98002568114: the base-owned WP0 selector returned WP0_ROUTE_UNKNOWN_PATH for the two authorized root deletions noop and noop2 before any substantive gate could run. The cleanup itself is correctly scoped and must remain frozen. Authorize a reusable base-owned routing prerequisite that permits an otherwise-unknown diff to escalate to the strongest PRODUCT_WP0 route only when every changed path is a deletion, the exact changed-path set equals a merged delegated authorization implementation.allowedChangedPaths set, and the implementation branch identity matches exactly. All other unknown paths remain fail-closed.",
+  "base": {
+    "branch": "main",
+    "commit": "d458ce3ad6a065c88bcba8b342a5818d7da89a3c"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-authorized-deletion-route-prerequisite-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-authorized-deletion-route-prerequisite-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "62b580216f0f66b6200816cc478a3ccbe7e828368c03fd91033087b37cc17895",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-authorized-deletion-route-prerequisite-p0",
+    "allowedChangedPaths": [
+      "tests/layered-ci/authorized-deletion-routing.test.js",
+      "tools/layered-ci/select-wp0-route.js",
+      "tools/layered-ci/wp0-routing.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "de6bf7546b4fe155f352c2b3a6cb10e382f9556d9e0eb6238e2cb5894a75ff0a",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": true,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "frozenCausalRed": {
+    "pullRequest": 827,
+    "exactHead": "ca8e0577ed72d2398d1cb2deec4a46a9dd816296",
+    "stageRun": 32910157700,
+    "routeJob": 98002568114,
+    "reasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "unknownPaths": ["noop", "noop2"],
+    "unknownBlockers": 0,
+    "mustRemainUnmodified": true
+  },
+  "requiredSemantics": [
+    "Keep the existing base-owned static routing policy and unknownPathFailsClosed=true as the first routing authority.",
+    "Attempt the delegated deletion fallback only when normal classification fails specifically with WP0_ROUTE_UNKNOWN_PATH.",
+    "Resolve authorization evidence from the exact base commit, never from candidate head content.",
+    "Require exact implementation.branch equality with the current implementation branch identity.",
+    "Require the complete changed path set to equal the authorization implementation.allowedChangedPaths set; subsets, supersets and duplicates fail closed.",
+    "Require every changed path to be deleted in the exact base-to-head diff; additions, modifications, renames or mixed status fail closed.",
+    "Require a unique matching merged delegated authorization on the exact base; zero or ambiguous matches fail closed.",
+    "On success route to PRODUCT_WP0, never to GOVERNANCE_WP0 or PRODUCT_DOCUMENTATION_WP0, so the strongest substantive gates execute.",
+    "Preserve all existing known-path routing semantics and all invalid/unknown-path failure behavior outside this exact fallback.",
+    "Add dedicated regressions for authorized exact deletion success plus unauthorized branch, partial set, superset, addition/modification and non-WP0 unknown path failure preservation."
+  ],
+  "forbiddenSemantics": [
+    "Do not add noop or noop2 as permanent routing-policy exact paths.",
+    "Do not add a wildcard or root-path prefix to product routing.",
+    "Do not trust authorization JSON introduced or modified by the candidate head.",
+    "Do not permit unknown additions or modifications through the deletion fallback.",
+    "Do not weaken unknownPathFailsClosed or readyForPromotion=false.",
+    "Do not mutate #827 or either accidental historical commit.",
+    "No production/runtime/dependency/manifest/lockfile/release/ledger/RC mutation and no fresh Windows RC/UAT."
+  ],
+  "requiredValidation": {
+    "freshFailureFirstEvidence": "#827 exact head ca8e0577ed72d2398d1cb2deec4a46a9dd816296 / Stage 32910157700 / route job 98002568114",
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ],
+    "autonomousIndependentReview": true,
+    "blockingFindings": "P0=0/P1=0",
+    "unknownBlockers": 0,
+    "freshMainAntiDriftRequired": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BASE_OWNED_ROUTING_AND_DELEGATED_AUTHORIZATION_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance base-owned WP0 router plus delegated governance authorization documents",
+        "source": "tools/layered-ci/select-wp0-route.js + tools/layered-ci/wp0-routing.js + governance/layered-ci/*.json",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The missing behavior is a narrow composition seam between two existing trusted authorities: base-owned path routing and already-merged exact implementation authorization."
+      }
+    ],
+    "retireOrAvoid": [
+      "Avoid permanent noop/noop2 routing exceptions.",
+      "Avoid wildcard root routing or a parallel routing engine.",
+      "Avoid candidate-owned authorization parsing and any weaker route than PRODUCT_WP0 for authorized unknown deletions."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
