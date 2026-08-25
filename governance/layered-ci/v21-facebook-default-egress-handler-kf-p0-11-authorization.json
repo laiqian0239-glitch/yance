@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T14:20:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FACEBOOK-DEFAULT-EGRESS-HANDLER-KF-P0-11",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close KF-P0-11 by failure-first proof against exact trusted main. Post-KF-P0-12 Release Closure Ledger reconciliation ordinary-merged as 928d68a274cf2715487d000e1dfc62fe746e7742 and exact-main source review shows backend/services/platformAdapterPorts.js constructs the default PlatformAdapterRegistryV2 singleton with authHandler and reconcileHandler only. PlatformAdapterFacade still defaults egressAuthorizer=authorizePersistedOutbox, so contract().bindings.egress can report true while the Facebook adapter has no explicit physical egressHandler and executeEgress falls through to generic sendMessageService dispatch. First implementation must remain tests-only and prove this exact default Facebook physical-egress binding seam through a dedicated Stage-routed WP0 contract. Production remains forbidden until a fresh causal RED with unknownBlockers=0 is recorded and a separate same-root production amendment ordinary-merges.",
+  "base": {
+    "branch": "main",
+    "commit": "928d68a274cf2715487d000e1dfc62fe746e7742"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-facebook-default-egress-handler-kf-p0-11-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-facebook-default-egress-handler-kf-p0-11-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "25d33bbeece68a7dc3373a692bc449302589ef234ba44f6e9679938903eb1a0d",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "test/v21-facebook-default-egress-handler-kf-p0-11-causal-red",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-facebook-default-egress-handler-kf-p0-11.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8c42d9e98b3c14bfaadf60aa8107ed386a2f346c47ad1a43890f180040cdc355",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "diagnosticScope": {
+    "requiredSemantics": [
+      "Preserve the existing official Facebook Page Chatwoot Matrix driver authority and do not mutate platformDriverRegistry.",
+      "Expose a fresh causal RED proving the default platformAdapterPorts singleton Facebook adapter lacks an explicit physical egressHandler even though its persisted-outbox authorizer makes the public egress binding appear present.",
+      "Use the existing PlatformAdapterRegistryV2/PlatformAdapterFacade runtime seam; do not add a second registry or mock production routing.",
+      "Keep persisted OutboxCommand authorization, persisted-attempt identity/fencing, delivery evidence and egress deadline semantics untouched and GREEN.",
+      "The first implementation commit must change only the dedicated authorized WP0 test path and must contain no production mutation.",
+      "Stage WP0 must isolate only the finding-specific default Facebook physical-egress binding failure; all unrelated mandatory WP0 tests must pass before unknownBlockers may be recorded as zero."
+    ],
+    "forbiddenSemantics": [
+      "No production fix before a fresh exact-head causal RED and unknownBlockers=0.",
+      "No platformDriverRegistry mutation or Facebook Page driver replacement.",
+      "No second Facebook driver, queue, scheduler, retry engine, adapter registry or physical-send authority.",
+      "No direct Desktop Meta-CDN media fetching or Worker/R2 custody bypass.",
+      "No dependency, workflow, routing, schema, package or lockfile change.",
+      "No weakening of persisted Outbox, persisted-attempt, fencing, deadline or delivery-ack authority."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_ADAPTER_PORT_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing PlatformAdapterRegistryV2 / PlatformAdapterFacade and Stage-routed WP0 contract runner",
+        "source": "backend/services/platformAdapterPorts.js + backend/services/sendMessageService.js + backend/services/platformMessagingService.js + tests/wp0 + tools/wp0/run-tests.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The finding is a missing explicit binding inside an existing adapter-port runtime seam. Existing persisted-outbox, physical messaging and Stage WP0 mechanisms are sufficient; no dependency or generalized infrastructure is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a parallel platform registry or Facebook physical-send subsystem.",
+      "Do not treat egressAuthorizer presence alone as proof that a default physical egress handler is bound.",
+      "Do not mutate platformDriverRegistry to satisfy the diagnostic."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
