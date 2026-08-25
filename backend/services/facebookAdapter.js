@@ -76,8 +76,6 @@ function avatarErrorEvidence(error = {}) {
     code: clean(error.code || error.message, 'FACEBOOK_AVATAR_FAILED'),
     status: Number(error.status || 0) || 0,
     requestId: clean(details.requestId || error.requestId),
-    // Worker V9 evidence contract. Keep Picture Edge, generic id,picture,
-    // and Messenger profile fallback failures separate.
     pictureEdgeCode,
     pictureEdgeStatus,
     pictureEdgeMetaCode: Number(details.pictureEdgeMetaCode || 0) || 0,
@@ -95,7 +93,6 @@ function avatarErrorEvidence(error = {}) {
     profileMetaReason: clean(details.profileMetaReason),
     profileDiagnosis: clean(details.diagnosis),
     profileOriginalCode: clean(details.originalCode),
-    // Backward-compatible aliases for older reports and UI consumers.
     primaryCode: pictureEdgeCode,
     primaryStatus: pictureEdgeStatus,
     messengerProfileCode: profileCode,
@@ -817,6 +814,47 @@ class FacebookAdapter {
     return null;
   }
 
+  scheduleWebhookMediaTransfer(payload = {}, traceId = '') {
+    const accountId = clean(payload.accountId);
+    const conversationId = clean(payload.conversationId);
+    const messageId = clean(payload.messageId);
+    const workerMediaCount = Math.max(0, Number(payload.workerMediaCount || 0));
+    if (!accountId || !conversationId || !messageId) {
+      throw Object.assign(new Error('Facebook delegated media requires persisted account, conversation, and message references'), {
+        code: 'FACEBOOK_MEDIA_DELEGATION_REFERENCE_REQUIRED', status: 409
+      });
+    }
+    if (workerMediaCount < 1) {
+      logger.info('facebook', 'legacy-media-transfer-not-scheduled', {
+        accountId, conversationId, messageId, reasonCode: 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED'
+      });
+      return null;
+    }
+    const metadataSha256 = crypto.createHash('sha256')
+      .update(['facebook', accountId, conversationId, messageId].join('\n'))
+      .digest('hex');
+    const scheduled = mediaPipeline.prepareMediaTransfer({
+      idempotencyKey: `facebook:webhook-media:${accountId}:${messageId}`,
+      traceId: clean(traceId, `facebook-webhook-media:${messageId}`),
+      maxAttempts: 3,
+      command: Object.freeze({
+        transferKind: 'FETCH',
+        mediaReference: messageId,
+        sourceScopeReference: `facebook:${accountId}:webhook:${messageId}`,
+        destinationScopeReference: `conversation:${conversationId}:message:${messageId}`,
+        metadataSha256,
+        custodyReference: `facebook:${accountId}`
+      })
+    });
+    eventBus.publish('facebook:webhook-media-scheduled', {
+      accountId, conversationId, messageId,
+      operationKind: 'MEDIA_TRANSFER',
+      executionId: clean(scheduled.executionId),
+      intentId: clean(scheduled.intentId),
+      idempotencyKey: clean(scheduled.idempotencyKey)
+    });
+    return scheduled;
+  }
 
   async connect(account, options = {}) {
     requirePersistedLegacyFacebookOperation(options, account);
@@ -859,8 +897,6 @@ class FacebookAdapter {
           avatarUpdatedAt: clean(account.metadata?.avatarUpdatedAt),
           avatarSource: clean(account.metadata?.avatarSource)
         };
-        // Avatar enrichment is never a realtime connection prerequisite. Keep
-        // the last local picture and refresh only after the relay is usable.
         row.permissions = permissionList({ permissions: remote.grantedScopes || remote.permissions || secret.permissions });
         row.permissionCheckedAt = clean(remote.lastPermissionCheckAt || secret.permissionCheckedAt);
         row.permissionSource = clean(remote.permissionSource || secret.permissionSource);
@@ -1008,9 +1044,6 @@ class FacebookAdapter {
     const idempotencyKey = clean(options.localMessageId, `yance-text-${crypto.randomUUID()}`);
     const result = await relayClient.send(secret, { kind: 'text', recipientId: recipient, text: String(text || ''), replyToMessageId: clean(options.quoted?.externalMessageId || options.quoted?.id) }, idempotencyKey, { ...options, signal: options.signal, executionGeneration: options.executionGeneration });
     this.assertEgressCurrent(account, session, options.signal, options.executionGeneration, result, 'text');
-    // Queue-backed sends already own the local outbound projection. The queue
-    // checkpoints delivery in one SQLite transaction after the remote receipt;
-    // the adapter must not write sent after the outer deadline expires.
     if (options.localProjectionOwnedByQueue === true) return { messageId: clean(result.messageId), raw: null, localPersistencePending: false, localPersistenceErrorCode: '', localPersistenceRepair: null };
     let localPersistencePending = false;
     let localPersistenceErrorCode = '';
@@ -1020,9 +1053,6 @@ class FacebookAdapter {
       try {
         await messageStore.upsert(localMessage);
       } catch (error) {
-        // Meta has already accepted this idempotent send. A local contact/message
-        // persistence failure must never turn the queue back into a network
-        // retry, otherwise the user sees a false failure and may send a duplicate.
         localPersistencePending = true;
         localPersistenceErrorCode = clean(error?.code || error?.message, 'FACEBOOK_LOCAL_PERSISTENCE_FAILED').split(/\s+/u)[0];
         localPersistenceRepair = { kind: 'message-upsert', message: localMessage };
@@ -1129,12 +1159,12 @@ class FacebookAdapter {
     });
   }
 
-
   async downloadRemoteAttachment({ account, accountId, conversationId, messageId, attachment, index = 0, physicalOperationContext = null, signal = null }) {
     const options = Object.freeze({ physicalOperationContext, signal, account });
     requirePersistedLegacyFacebookOperation(options, account);
     const workerMedia = attachment?.payload?.worker_media || attachment?.workerMedia || null;
-    if (!workerMedia) {
+    const workerEventId = clean(workerMedia?.eventId || workerMedia?.event_id);
+    if (!workerMedia || !workerEventId) {
       throw Object.assign(new Error('Legacy Facebook remote media URL fetch is retired; a Worker media reference is required'), {
         code: 'FACEBOOK_LEGACY_MEDIA_REFERENCE_REQUIRED', status: 409
       });
@@ -1143,15 +1173,15 @@ class FacebookAdapter {
     const tempFile = path.join(PATHS.tmp, `facebook-${crypto.randomUUID()}-${index}.download`);
     try {
       const { secret } = this.credentials(account);
-      const result = await relayClient.downloadMedia(secret, clean(workerMedia.event_id), Number(workerMedia.index ?? index), tempFile, options);
+      const result = await relayClient.downloadMedia(secret, workerEventId, Number(workerMedia.index ?? index), tempFile, options);
       if (Number(result.bytes || 0) > CONFIG.mediaMaxBytes) throw Object.assign(new Error('Facebook媒体超过大小限制'), { code: 'MEDIA_TOO_LARGE' });
       return mediaPipeline.saveFile({
         accountId, conversationId, messageId: `${messageId}-${index}`, filePath: tempFile,
         descriptor: {
           id: `${messageId}:${index}`, kind: this.attachmentType(attachment),
-          mimeType: clean(result.mimeType, clean(workerMedia?.mime_type, 'application/octet-stream')),
+          mimeType: clean(result.mimeType, clean(workerMedia?.mime_type || workerMedia?.mimeType, 'application/octet-stream')),
           filename: clean(workerMedia?.filename || attachment?.name, `facebook-${messageId}-${index}`),
-          sourceUrl: '', workerMedia: { eventId: clean(workerMedia.event_id), index: Number(workerMedia.index ?? index) },
+          sourceUrl: '', workerMedia: { eventId: workerEventId, index: Number(workerMedia.index ?? index) },
           ...facebookExpressionDescriptor(attachment), status: 'ready', downloadStatus: 'ready'
         }
       });
@@ -1160,20 +1190,31 @@ class FacebookAdapter {
     }
   }
 
-
   async cacheWebhookAttachments(account, baseMessage, rawAttachments = [], options = {}) {
     requirePersistedLegacyFacebookOperation(options, account);
     if (!rawAttachments.length) return baseMessage;
-    const attachments = await Promise.all(rawAttachments.map((attachment, index) => this.downloadRemoteAttachment({
-      account,
-      accountId: account.id,
-      conversationId: baseMessage.conversationId,
-      messageId: baseMessage.externalMessageId,
-      attachment,
-      index,
-      physicalOperationContext: options.physicalOperationContext,
-      signal: options.signal
-    })));
+    const attachments = await Promise.all(rawAttachments.map((attachment, index) => {
+      const workerMedia = attachment?.payload?.worker_media || attachment?.workerMedia || null;
+      const workerEventId = clean(workerMedia?.eventId || workerMedia?.event_id);
+      if (!workerEventId) {
+        return Promise.resolve({
+          ...attachment,
+          sourceUrl: '', url: '', mediaUrl: '',
+          status: 'unavailable', downloadStatus: 'unavailable',
+          downloadError: 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED'
+        });
+      }
+      return this.downloadRemoteAttachment({
+        account,
+        accountId: account.id,
+        conversationId: baseMessage.conversationId,
+        messageId: baseMessage.externalMessageId,
+        attachment,
+        index,
+        physicalOperationContext: options.physicalOperationContext,
+        signal: options.signal
+      });
+    }));
     const outcome = await messageStore.upsert({ ...baseMessage, attachments });
     eventBus.publish('facebook:media-cached', { accountId: account.id, conversationId: baseMessage.conversationId, messageId: baseMessage.externalMessageId, attachments });
     return outcome;
@@ -1391,12 +1432,7 @@ class FacebookAdapter {
           lastSyncAt: new Date().toISOString(),
           reconciliationSource: syncSource
         }), { attempts: 12, baseDelayMs: 40, signal: options.signal });
-        // History cursors must advance independently of optional profile/avatar
-        // APIs. Enrichment is deduplicated and bounded so a large account does
-        // not create one simultaneous Worker/Graph request per conversation.
         assertOperationActive(options.signal, 'FACEBOOK_SYNC_ABORTED', { accountId: account.id, conversationId });
-        // Contact/profile enrichment is a separate persisted HISTORY_SYNCHRONIZATION attempt;
-        // this legacy facade records only the projection observed by this attempt.
         synchronized += 1;
       } catch (error) {
         if (options.signal?.aborted) {
@@ -1410,8 +1446,6 @@ class FacebookAdapter {
     assertOperationActive(options.signal, 'FACEBOOK_SYNC_ABORTED', { accountId: account.id });
     const syncedAt = new Date().toISOString();
     if (checkpointBatch) {
-      // A failed conversation is retried from the same page on the next cycle;
-      // otherwise rotate to the next page and reset after the final page.
       syncCheckpoint.commit({
         platform: 'facebook',
         accountId: account.id,
@@ -1445,7 +1479,6 @@ class FacebookAdapter {
       code: 'FACEBOOK_WEBHOOK_PROFILE_ENRICHMENT_DELEGATED'
     });
   }
-
 
   async handleWebhook(body, accounts) {
     const entries = Array.isArray(body?.entry) ? body.entry : []; let accepted = 0;
@@ -1528,9 +1561,6 @@ class FacebookAdapter {
           acquisitionSource: referral?.source === 'ADS' ? 'facebook-ad' : referral ? 'facebook-referral' : '',
           rawMessage: null
         };
-        // The trusted Facebook message path must persist and notify before any optional
-        // profile/avatar enrichment. Meta profile access can be slow or denied and must
-        // never block first-contact creation, unread counters, or desktop notifications.
         const receivedAtMs = Date.now();
         const fallbackName = clean(
           currentConversation?.title || currentConversation?.contactName,
@@ -1538,8 +1568,10 @@ class FacebookAdapter {
         );
         const avatarUrl = clean(currentConversation?.avatarUrl);
         const messageWithContact = { ...baseMessage, contactName: fallbackName, avatarUrl };
-        const hasWorkerMedia = rawAttachments.some(attachment => attachment?.payload?.worker_media && attachment.payload.worker_media.status !== 'failed');
-        const hasLegacyRemoteMedia = rawAttachments.some(attachment => attachment?.payload?.url);
+        const workerMediaCount = rawAttachments.filter(attachment => attachment?.payload?.worker_media && attachment.payload.worker_media.status !== 'failed').length;
+        const legacyRemoteMediaCount = rawAttachments.filter(attachment => attachment?.payload?.url).length;
+        const hasWorkerMedia = workerMediaCount > 0;
+        const hasLegacyRemoteMedia = legacyRemoteMediaCount > 0;
         const pendingAttachments = attachments.map((attachment, index) => ({
           ...attachment,
           id: attachment.id || `${externalId}:${index}`,
@@ -1585,7 +1617,14 @@ class FacebookAdapter {
           }).catch(error => logCriticalFailure('webhook.referralMetadata', error, { accountId: account.id, conversationId }));
         }
         if (hasWorkerMedia || hasLegacyRemoteMedia) {
-          eventBus.publish('facebook:webhook-media-delegated', { accountId: account.id, conversationId, messageId: externalId, operationKind: 'MEDIA_TRANSFER' });
+          eventBus.publish('facebook:webhook-media-delegated', {
+            accountId: account.id,
+            conversationId,
+            messageId: externalId,
+            operationKind: 'MEDIA_TRANSFER',
+            workerMediaCount,
+            legacyRemoteMediaCount
+          });
         }
         if (outcome.inserted && !isEcho) {
           const notificationConversation = outcome.conversation || {};
@@ -1619,6 +1658,7 @@ class FacebookAdapter {
 }
 
 const facebookAdapter = new FacebookAdapter();
+eventBus.on('facebook:webhook-media-delegated', event => facebookAdapter.scheduleWebhookMediaTransfer(event.payload || {}, event.id));
 module.exports = facebookAdapter;
 module.exports.FacebookAdapter = FacebookAdapter;
 module.exports.missingPermissions = missingPermissions;
