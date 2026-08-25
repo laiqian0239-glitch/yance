@@ -49,6 +49,7 @@ const AUTH_DEADLINES_MS = Object.freeze({
 });
 const RECONCILE_DEADLINES_MS = Object.freeze({
   sync: 300_000,
+  'media-transfer': 120_000,
   'facebook.avatar-import.start': 60_000,
   'facebook.avatar-import.status': 20_000,
   'facebook.avatar-import.stop': 30_000,
@@ -150,6 +151,7 @@ function executePortWithDeadline(executor, context = {}) {
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function error(code, message, status = 400, details = {}) { return Object.assign(new Error(message), { code, status, ...details }); }
+
 function requirePlatform(value) {
   const platform = clean(value).toLowerCase();
   if (!PLATFORMS.includes(platform)) throw error('PLATFORM_ADAPTER_UNSUPPORTED', `不支持的平台适配器：${platform || 'unknown'}`, 409);
@@ -362,7 +364,6 @@ function defaultNormalizer(platform, input = {}) {
   };
 }
 
-
 function projectPhysicalOperationContext(operation = {}, platform = '', accountId = '') {
   if (!operation || typeof operation !== 'object' || clean(operation.state).toUpperCase() !== 'RUNNING') {
     throw error('PLATFORM_PERSISTED_OPERATION_REQUIRED', 'Physical platform operation requires one RUNNING persisted Schema 23 operation.', 409);
@@ -435,6 +436,18 @@ function createAccountManagerReconcileHandler(managerProvider = defaultAccountMa
     const accountId = clean(input.accountId);
     switch (operation) {
       case 'sync': return manager.sync(accountId, { signal: input.signal, executionGeneration: input.operationGeneration, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
+      case 'media-transfer': return manager.mediaTransfer(accountId, {
+        transferKind: input.transferKind,
+        mediaReference: input.mediaReference,
+        sourceScopeReference: input.sourceScopeReference,
+        destinationScopeReference: input.destinationScopeReference,
+        metadataSha256: input.metadataSha256,
+        custodyReference: input.custodyReference,
+        operationId: input.operationId,
+        signal: input.signal,
+        operationGeneration: input.operationGeneration,
+        physicalOperationContext: input.physicalOperationContext
+      });
       case 'facebook.avatar-import.start': return { session: manager.startFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
       case 'facebook.avatar-import.status': return { session: manager.getFacebookBusinessSuiteAvatarImportStatus(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
       case 'facebook.avatar-import.stop': return { session: manager.stopFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
