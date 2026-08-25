@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-25T19:36:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WHATSAPP-MESSAGES-UPSERT-DETACHED-CUSTODY-KF-P0-22",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close KF-P0-22 and exhaust the same-root WhatsApp socket-generation detached-continuation graph by failure-first proof against exact trusted main 4d8c7c33af673edd20ff170e47a71632cecbfcb5. Fresh source review proves all Baileys events bind through createSocketGenerationGuard, but several callbacks launch async continuations that are not part of the Promise returned to the guard. The live graph includes connection.update background identity/avatar/presence/profile/media/app-state work, messaging-history.set avatar sync, messages.upsert presence/media/avatar work, presence.update metadata persistence, and the nested avatar continuation inside reconcileKnownIdentities. Because stop().drain() counts only guard-owned work, a detached continuation that starts while current can keep old-generation socket or state side effects alive after the guarded parent settles and across retirement/replacement. Already-returned Promise handlers such as chats/contacts queueAvatarRows are negative proof and must remain tracked. The first implementation must remain tests-only and lock the complete observable same-root graph in one diagnostic window. Production remains forbidden until fresh exact-head causal RED evidence, Closure Matrix completion and unknownBlockers=0, followed by a separate same-work-package production amendment ordinary merge.",
+  "base": {
+    "branch": "main",
+    "commit": "4d8c7c33af673edd20ff170e47a71632cecbfcb5"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a140209a16e1bdd6ae248f3219df6fc97897347356182812f24391a68f0d20d3",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "test/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22-causal-red",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-whatsapp-messages-upsert-detached-custody-kf-p0-22.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "52f0411fc7e5b2522e00a149a7bbf58adc5cf95f7cd03a2282338b45cb52564c",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "diagnosticScope": {
+    "requiredSemantics": [
+      "Use the existing sessionGenerationFence/createSocketGenerationGuard and WhatsAppAdapter onSocket seams; do not create a second generation manager, scheduler, queue, retry engine or lock authority.",
+      "Prove the historical KF-P0-22 messages.upsert boundary: detached media setImmediate, avatar enqueue Promise and presence-subscription Promise work can outlive the guarded parent handler unless each continuation itself enters generation custody.",
+      "Exhaust the same-root connection.update graph: background reconcileKnownIdentities, subscribeKnownConversations, queueKnownAvatarSync, business-profile hydration, legacy-media history planning and app-state resync continuations must not execute old-generation async side effects outside drain custody.",
+      "Prove messaging-history.set background avatar sync and presence.update asynchronous conversation metadata persistence are generation-owned for their full async lifetime.",
+      "Prove nested reconcileKnownIdentities avatar continuation cannot escape the custody of the parent generation task.",
+      "Preserve returned-Promise handlers such as chats.upsert/chats.update/contacts.upsert/contacts.update as negative proof that createSocketGenerationGuard already tracks async work when the callback actually returns its Promise.",
+      "Preserve synchronous current-check-only background work where no asynchronous continuation can overlap stop, including the mobile-echo repair callback; do not convert negative proof into speculative infrastructure.",
+      "Preserve primary message/reaction/revoke persistence, receipt checkpoints, notifications, media repairability, avatar identity semantics, presence semantics, history sync, connection-online responsiveness and current stale-at-entry rejection.",
+      "The first implementation commit must change only the dedicated authorized WP0 test path and contain no production mutation.",
+      "Stage WP0 must isolate only same-root detached-generation custody failures; all unrelated mandatory WP0 tests must pass before unknownBlockers may be recorded as zero."
+    ],
+    "forbiddenSemantics": [
+      "No production fix before fresh exact-head causal RED evidence and unknownBlockers=0.",
+      "No assertion-only workaround that merely checks socketGuard before scheduling a detached asynchronous continuation while still allowing that continuation to outlive generation drain after it starts.",
+      "No removal of media/avatar/presence/history/profile/app-state product behavior solely to make the diagnostic pass.",
+      "No new queue, scheduler, generation manager, credential store, lock authority or general-purpose infrastructure.",
+      "No Facebook, Telegram, platformDriverRegistry, dependency, workflow, routing, schema, package or lockfile change.",
+      "No weakening of KF-P0-19 in-flight custody, stop/restart fail-closed behavior, batch39 stale-callback contracts, or existing mandatory WP0 coverage."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_SESSION_GENERATION_FENCE_AND_WHATSAPP_HANDLER_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance sessionGenerationFence/createSocketGenerationGuard plus WhatsApp onSocket handlers and Stage WP0 runner",
+        "source": "backend/services/sessionGenerationFence.js + backend/services/whatsappAdapter.js + backend/tests/batch39WhatsappSessionFence.test.js + tests/wp0 + tools/wp0/run-tests.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is asynchronous work being detached from an existing generation-custody boundary. createSocketGenerationGuard already proves it can own an explicitly wrapped async task, so the diagnostic should reuse that seam rather than add infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a parallel session-generation manager.",
+      "Do not add a second media/avatar/presence repair queue solely for generation custody.",
+      "Do not infer safety from a pre-schedule isCurrent check when an asynchronous task can start current and then outlive stop().drain()."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
