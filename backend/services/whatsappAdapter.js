@@ -1839,6 +1839,7 @@ class WhatsAppAdapter {
     } catch (error) {
       logger.warn('whatsapp', 'account-stop-failed', { operation: logout ? 'socket.logout' : 'socket.end', accountId: row.databaseAccountId || accountId, reasonCode: error.code || 'WHATSAPP_ACCOUNT_STOP_FAILED', httpStatus: Number(error.status || 0), attempt: 1, nextRetryAt: '' });
     }
+    await row.sessionFence?.drain?.();
     authChallenges.clear(row.databaseAccountId || accountId);
     this.invalidateCredentialState(row.databaseAccountId || accountId);
     this.accounts.delete(accountId);
