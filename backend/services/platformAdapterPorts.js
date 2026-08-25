@@ -493,6 +493,61 @@ function validatePersistedEgressContext(value, command, platform) {
   return value;
 }
 
+function createSendMessageServiceEgressHandler(platform) {
+  const normalizedPlatform = requirePlatform(platform);
+  return async (command = {}, context = {}) => {
+    const sendMessageService = require('./sendMessageService');
+    const physicalAttemptContext = context.physicalAttemptContext || context;
+    const signal = context.signal || null;
+    const executionGeneration = context.executionGeneration;
+    if (command.operation === 'text') {
+      return sendMessageService.sendText({
+        platform: normalizedPlatform, accountId: command.accountId, chatJid: command.conversationTarget,
+        text: command.finalText, quoted: command.replyReference || null,
+        localMessageId: command.commandId, sessionKey: command.sessionKey, localProjectionOwnedByQueue: true,
+        physicalAttemptContext, signal, executionGeneration, deadlineOwnedByCaller: true
+      });
+    }
+    if (command.operation === 'media') {
+      const media = Array.isArray(command.mediaReferences) ? command.mediaReferences[0] : null;
+      if (!media) throw error('EGRESS_MEDIA_REFERENCE_REQUIRED', '媒体 OutboxCommand 缺少媒体引用。', 409);
+      return sendMessageService.sendMedia({
+        platform: normalizedPlatform, accountId: command.accountId, chatJid: command.conversationTarget,
+        kind: media.kind || command.messageType, filePath: media.path, mimeType: media.mimeType,
+        filename: media.filename, caption: command.finalText, quoted: command.replyReference || null,
+        localMessageId: command.commandId, sessionKey: command.sessionKey, expectedSha256: media.sha256, localProjectionOwnedByQueue: true,
+        physicalAttemptContext, signal, executionGeneration, deadlineOwnedByCaller: true
+      });
+    }
+    if (command.operation === 'reaction') {
+      return sendMessageService.sendReaction({
+        platform: normalizedPlatform, accountId: command.accountId, chatJid: command.conversationTarget,
+        targetId: command.actionPayload?.targetId, emoji: command.actionPayload?.emoji,
+        targetFromMe: command.actionPayload?.targetFromMe === true, participant: command.actionPayload?.participant || '',
+        physicalAttemptContext, signal, executionGeneration, deadlineOwnedByCaller: true
+      });
+    }
+    if (command.operation === 'revoke') {
+      return sendMessageService.revokeMessage({
+        platform: normalizedPlatform, accountId: command.accountId, chatJid: command.conversationTarget,
+        targetId: command.actionPayload?.targetId, targetFromMe: command.actionPayload?.targetFromMe !== false,
+        participant: command.actionPayload?.participant || '', physicalAttemptContext,
+        signal, executionGeneration, deadlineOwnedByCaller: true
+      });
+    }
+    if (command.operation === 'native_expression') {
+      return sendMessageService.sendNativeExpression({
+        platform: normalizedPlatform, accountId: command.accountId, chatJid: command.conversationTarget,
+        reference: command.actionPayload?.reference, kind: command.actionPayload?.kind || command.messageType,
+        caption: command.finalText, quoted: command.replyReference || null,
+        localMessageId: command.commandId, sessionKey: command.sessionKey, localProjectionOwnedByQueue: true,
+        physicalAttemptContext, signal, executionGeneration, deadlineOwnedByCaller: true
+      });
+    }
+    throw error('EGRESS_OPERATION_UNSUPPORTED', `Egress 不支持操作：${command.operation}`, 409);
+  };
+}
+
 class PlatformAdapterFacade {
   constructor(platform, options = {}) {
     this.platform = requirePlatform(platform);
@@ -621,6 +676,7 @@ class PlatformAdapterFacade {
           Object.freeze({
             ...persistenceReceipt,
             ...durableAttempt,
+            physicalAttemptContext: durableAttempt,
             signal,
             executionGeneration: generation
           })
@@ -843,8 +899,10 @@ class PlatformAdapterRegistryV2 {
 
 const defaultAuthHandler = createAccountManagerAuthHandler();
 const defaultReconcileHandler = createAccountManagerReconcileHandler();
+const defaultFacebookEgressHandler = createSendMessageServiceEgressHandler('facebook');
 const singleton = new PlatformAdapterRegistryV2(Object.fromEntries(PLATFORMS.map(platform => [platform, {
   authHandler: defaultAuthHandler,
+  egressHandler: platform === 'facebook' ? defaultFacebookEgressHandler : null,
   reconcileHandler: defaultReconcileHandler
 }])));
 module.exports = {
