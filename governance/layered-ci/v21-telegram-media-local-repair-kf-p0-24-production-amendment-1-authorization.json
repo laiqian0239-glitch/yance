@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T00:57:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-TELEGRAM-MEDIA-LOCAL-REPAIR-KF-P0-24-PROD-A1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen tests-only PR #818 established a fresh exact-head causal RED for KF-P0-24. Exact head 74e4c41bcb224bf31df0905ecf5296303414bf90 changes only tests/wp0/v21-telegram-media-local-persistence-repair-kf-p0-24.test.js, frozen blob 9234cb97630bb9683d9dd669ea941530617e0473. Stage run 32880426330 / wp0-product job 97908412835 executed 698 mandatory WP0 tests with 697 pass and exactly one finding-specific failure. The dedicated file ran 3 subtests / 2 pass / 1 fail: after Telegram provider acceptance and a forced local projection failure, the adapter's outbound-media-upsert repair crosses durable enqueue with root-level sourceFile/expectedSha256; LocalPersistenceRepairService later rejects that persisted payload as missing a canonical media source after the caller-owned path disappears. Deterministic non-media repair identity and canonical buffer-backed media repair remain GREEN. Every unrelated mandatory WP0 file passed, including KF-P0-20, KF-P0-22 and KF-P0-19; Ubuntu and Windows sealed exports passed; Layered, ACV2 and WP-A post-merge routed exact-head workflows passed; Product Final was correctly skipped. unknownBlockers=0. The frozen RED directly proves that the existing canonical durable outbound repair boundary must normalize Telegram's root-level file-backed repair descriptor and take byte custody before durable repair enqueue returns. The minimum cohesive root fix is limited to backend/services/durableOperations/outboundMessageSendOperation.js, generalizing the existing WhatsApp file-custody seam to canonical outbound-media-upsert file custody without changing provider dispatch, repair repository, worker, dependencies, workflows, routing or release authority.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-telegram-media-local-repair-kf-p0-24-diagnostic-p0-authorization.json",
+    "implementationBranch": "test/v21-telegram-media-local-repair-kf-p0-24-causal-red",
+    "reason": "Supersede tests-only authority only after clean causal RED 74e4c41bcb224bf31df0905ecf5296303414bf90 proved the exact production root. PR #818 and frozen blob 9234cb97630bb9683d9dd669ea941530617e0473 remain immutable evidence; no amend, rebase, squash, cherry-pick, force-push or history rewrite is permitted."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "3c069b881fb217dbc328cc2d54424eb1d8f06dae",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "3c069b881fb217dbc328cc2d54424eb1d8f06dae",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-telegram-media-local-repair-kf-p0-24-production-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-telegram-media-local-repair-kf-p0-24-production-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "0b1d48504c89d9b29ee8c3a021ad73099f3c56efccfabde3c78527081dae2205",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-telegram-media-local-repair-kf-p0-24-production-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "74e4c41bcb224bf31df0905ecf5296303414bf90"
+    },
+    "allowedChangedPaths": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js",
+      "tests/wp0/v21-telegram-media-local-persistence-repair-kf-p0-24.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "c3b44e6f94f5a7755c0de433ec9f9330a06ee378fc2693fedb3c49caed163284",
+    "newlyAuthorizedPaths": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "ce60b4e1343a9c170a38a0e2b497d286ab80cc054351739edcc9c1892e17a989",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 818,
+    "branch": "test/v21-telegram-media-local-repair-kf-p0-24-causal-red",
+    "frozenHead": "74e4c41bcb224bf31df0905ecf5296303414bf90",
+    "frozenTestPath": "tests/wp0/v21-telegram-media-local-persistence-repair-kf-p0-24.test.js",
+    "frozenTestBlob": "9234cb97630bb9683d9dd669ea941530617e0473",
+    "effectiveAuthorizationMerge": "3c069b881fb217dbc328cc2d54424eb1d8f06dae",
+    "stageRun": 32880426330,
+    "stageJob": 97908412835,
+    "stageConclusion": "failure",
+    "result": "698 mandatory WP0 tests / 697 pass / exactly 1 finding-specific failure. The dedicated test ran 3 subtests / 2 pass / 1 fail. Telegram provider-accepted media repair crosses durable enqueue with root-level sourceFile/expectedSha256 and LocalPersistenceRepairService rejects the persisted payload with LOCAL_REPAIR_MEDIA_SOURCE_MISSING semantics after the caller-owned path is removed. Deterministic non-media repair identity and canonical buffer-backed media preserve proofs pass. Every unrelated mandatory WP0 file passes, including KF-P0-20, KF-P0-22 and KF-P0-19. Ubuntu and Windows sealed exports pass.",
+    "provenNewScopePaths": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js"
+    ],
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "74e4c41bcb224bf31df0905ecf5296303414bf90",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true,
+    "frozenTestBlobMustRemain": "9234cb97630bb9683d9dd669ea941530617e0473"
+  },
+  "causalRedClassification": {
+    "rootCause": "Telegram provider acceptance can occur before canonical local media projection succeeds. TelegramAdapter then emits outbound-media-upsert repair data with sourceFile and expectedSha256 at the repair root. persistLocalPersistenceRepair passes that platform payload through unchanged, while the canonical repair consumer only accepts payload.source.filePath or payload.source.bufferBase64. The durable outbound custody helper currently canonicalizes file bytes only for WhatsApp and only when payload.source.filePath already exists. The frozen RED serializes the Telegram repair at persistLocalPersistenceRepair, removes the transient source path, and proves the canonical worker cannot consume the persisted shape without any second provider send.",
+    "requiredOwningLayerChange": "Change backend/services/durableOperations/outboundMessageSendOperation.js only. At the provider-accepted repair durability boundary, recognize outbound-media-upsert file-backed repair input from either the canonical payload.source.filePath shape or Telegram's root-level sourceFile/expectedSha256 shape. While the source is still available, synchronously read the bytes, verify expectedSha256 when provided, and persist the existing canonical source.bufferBase64 representation before enqueue returns. Preserve deterministic repair identity, message/descriptor data, existing WhatsApp behavior, canonical buffer-backed behavior and fail-closed WP_B_OUTBOUND_LOCAL_REPAIR_DURABILITY_UNCERTAIN semantics. Do not alter Telegram provider dispatch, LocalPersistenceRepairService, repository schema or network retry behavior.",
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementation": [
+      "backend/services/durableOperations/outboundMessageSendOperation.js"
+    ],
+    "rootSeams": [
+      "persistLocalPersistenceRepair: provider-accepted repair durability boundary",
+      "Telegram root-level sourceFile/expectedSha256 to canonical source object normalization",
+      "outbound-media-upsert filePath to durable bufferBase64 custody",
+      "expectedSha256 verification before durable repair receipt"
+    ],
+    "preserve": [
+      "Provider-accepted outbound attempts are never blindly re-sent because local persistence failed.",
+      "Existing deterministic repair identity local-repair-${attemptId} remains unchanged.",
+      "Canonical buffer-backed outbound-media-upsert repair keeps existing semantics and remains GREEN.",
+      "message-upsert, reaction-apply and message-revoke repair plans retain pass-through semantics.",
+      "WhatsApp KF-P0-20 file-backed repair custody remains GREEN.",
+      "LocalPersistenceRepairService and localPersistenceRepairRepository remain the sole queue/worker/persistence authority.",
+      "KF-P0-19 and KF-P0-22 generation-custody closures remain GREEN."
+    ],
+    "negativeProof": [
+      "No second repair queue, worker, scheduler, database, blob service or workflow engine.",
+      "No backend/services/telegramAdapter.js, backend/services/localPersistenceRepairService.js or repository mutation is required by the frozen RED.",
+      "No Telegram provider-send behavior or network retry mutation.",
+      "No dependency, workflow, routing, schema, package manifest or lockfile mutation.",
+      "No test mutation; frozen test blob remains exact."
+    ],
+    "outOfRootCauseWithEvidence": [
+      "backend/services/localPersistenceRepairService.js already reconstructs outbound-media-upsert from source.bufferBase64 and the frozen canonical buffer-backed preserve subtest passes.",
+      "backend/repositories/localPersistenceRepairRepository.js already durably serializes repair payloads; the failure is the pre-enqueue payload shape/custody boundary.",
+      "backend/services/telegramAdapter.js already returns provider acceptance plus localPersistencePending without resending; changing physical provider dispatch is unnecessary for the proven durability root."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DURABLE_OUTBOUND_REPAIR_BOUNDARY",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance outbound-message durable local-repair seam",
+        "source": "backend/services/durableOperations/outboundMessageSendOperation.js + backend/services/localPersistenceRepairService.js + backend/repositories/localPersistenceRepairRepository.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already provides deterministic repair identity, durable payload persistence, restart recovery and a bufferBase64 media reconstruction path. The RED proves a narrow shape-normalization and pre-enqueue byte-custody gap, so the minimum fit is to reuse this seam rather than introduce infrastructure or dependencies."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not introduce a second media-custody subsystem, repair queue, scheduler, database or worker.",
+      "Do not add an OSS dependency for byte copying or hashing because Node built-ins and the existing repair payload format already cover the proven gap.",
+      "Do not resend an already provider-accepted Telegram message to compensate for local repair failure."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test tests/wp0/v21-telegram-media-local-persistence-repair-kf-p0-24.test.js",
+      "node --test tests/wp0/v21-whatsapp-local-persistence-repair-kf-p0-20.test.js",
+      "node --test tests/wp0/platform-accepted-repair-durability.test.js",
+      "node --test backend/tests/platformAcceptedLocalPendingRepair.test.js"
+    ],
+    "negativeProofs": [
+      "Frozen KF-P0-24 test blob 9234cb97630bb9683d9dd669ea941530617e0473 becomes fully GREEN without modification.",
+      "Telegram root-level file-backed repair becomes a canonical byte-backed durable repair before the transient path can disappear.",
+      "expectedSha256 mismatch fails before a durable repair receipt can claim custody.",
+      "WhatsApp KF-P0-20, canonical buffer-backed and non-media repair behavior remain unchanged.",
+      "No second network send is introduced and provider-accepted durability uncertainty remains fail-closed."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A Main Post-Merge when routed",
+      "Model Brain Windows when routed",
+      "Product Final only when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "newRepairQueueOrWorker": true,
+    "newGeneralPurposeMediaCustodyInfrastructure": true,
+    "productionRelease": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "cherryPickForbidden": true,
+    "historyRewriteForbidden": true,
+    "freshMainAntiDriftRequired": true,
+    "exactHeadGreenRequired": true
+  }
+}
