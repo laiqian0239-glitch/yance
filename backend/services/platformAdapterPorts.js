@@ -586,7 +586,7 @@ class PlatformAdapterFacade {
   }
   async authCancel(input = {}) {
     assertDomainDto(input, 'AuthCancelRequest');
-    try { return await this.executeAuth({ ...input, operation: clean(input.operation) || 'cancel' });
+    try { return await this.executeAuth({ ...input, operation: clean(input.operation) || 'cancel' }); }
     catch (cause) {
       if (clean(cause.code) !== 'PLATFORM_AUTH_OPERATION_NOT_BOUND') throw cause;
       return { schemaVersion: ADAPTER_SCHEMA_VERSION, platform: this.platform, accountId: clean(input.accountId), cancelled: false, reasonCode: 'PLATFORM_AUTH_CANCEL_NOT_BOUND' };
