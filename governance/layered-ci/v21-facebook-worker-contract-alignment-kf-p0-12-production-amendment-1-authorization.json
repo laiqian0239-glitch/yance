@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-25T13:03:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-FACEBOOK-WORKER-CONTRACT-ALIGNMENT-KF-P0-12-PROD-A1",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Fresh exact-head Stage RED on frozen PR #788 proved KF-P0-12 has exactly two same-root Desktop/release-contract gaps. Head 50e7368b2dd257cc17d14d7030f42abef48cc1ae changes only the single tests-only path authorized by #787. Stage run 32816626246 / wp0-product job 97706179103 executed 680 WP0 tests with 678 pass and exactly 2 fail, both in v21-facebook-page-chatwoot-integration-p0.test.js: release preflight does not bind the Worker D1 permission-authority contract at exact schema 6 / migration 0006_permission_authority.sql / permissionAuthorityColumns=true, and Desktop Worker clients propagate arbitrary upstream data.code values instead of failing closed to the FACEBOOK_* error family. Every other WP0 test file passed and sealed-export Ubuntu/Windows passed, so unknownBlockers=0. The repair is narrow and same-root: strengthen the existing release preflight and normalize remote Worker error codes in the two existing Desktop Worker client seams. Facebook Page Chatwoot Matrix driver authority remains unchanged.",
   "supersedes": {
@@ -134,6 +134,36 @@
       "No dependency, workflow, routing, schema, package or lockfile mutation",
       "No weakening of persisted-attempt, device-signature, D1 fencing, OAuth ownership or Chatwoot Matrix authority",
       "No squash, rebase, cherry-pick, amend, force-push or history rewrite"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_RELEASE_PREFLIGHT_AND_DESKTOP_WORKER_CLIENT_SEAMS",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing source UAT Facebook Worker health preflight",
+        "source": "tools/uat/sourceUatP0Preflight.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The release preflight already owns Worker service, avatar, evidence and D1 readiness admission. KF-P0-12 requires strengthening that existing check to the current permission-authority schema identity rather than adding another contract registry or probe."
+      },
+      {
+        "name": "Existing Desktop Facebook Worker client error seams",
+        "source": "backend/services/facebookRelayClient.js and backend/services/facebookOAuthService.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Both existing clients already translate Worker HTTP failures into local errors. A narrow fail-closed FACEBOOK_* code normalizer at these seams closes the proven error-family gap without a new adapter, retry engine, queue or generalized error framework."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second Worker health contract registry, version registry, release preflight, driver, queue, scheduler or retry engine.",
+      "Do not introduce a generalized cross-platform remote-error framework for this Facebook-specific causal gap.",
+      "Do not mutate Worker D1 migrations, platformDriverRegistry, Chatwoot Matrix ownership, dependencies, workflows, routing, package manifests or lockfiles.",
+      "Do not use user-machine build prerequisites or native compilation to validate this source-level contract repair."
     ]
   },
   "requiredValidation": {
