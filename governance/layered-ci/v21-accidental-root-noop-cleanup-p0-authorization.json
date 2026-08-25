@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T06:03:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ACCIDENTAL-ROOT-NOOP-CLEANUP-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "An accidental connector write created root files noop and noop2 directly on main after the global mandatory executed-test coverage authorization merged. Preserve history, do not rewrite, and restore the repository tree through an ordinary two-parent cleanup PR that deletes exactly those two accidental paths before resuming release-closure coverage work.",
+  "base": {
+    "branch": "main",
+    "commit": "c0f76033a08aa7b02df61b7f884e99d09609ea50"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-accidental-root-noop-cleanup-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-accidental-root-noop-cleanup-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ca75d1b590c27b6f6099f9585f68c3999066877c1b05360f7d923234621924d2",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-accidental-root-noop-cleanup-p0",
+    "allowedChangedPaths": [
+      "noop",
+      "noop2"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "a286347fa6435d90d8daaf84d9f4d08a7eb1f9505b33f397805ad5f09b0c6c62",
+    "productionCodeChanged": false,
+    "testModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "dependencyModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false
+  },
+  "cleanupContract": {
+    "accidentalCommits": [
+      "3ccb7c43b9f38218bbef2ea5c592ec5aa3d83bf7",
+      "c0f76033a08aa7b02df61b7f884e99d09609ea50"
+    ],
+    "preAccidentTrustedMain": "cf734b04ebb69e5a07dd71b3db6fa27401d36a93",
+    "requiredOutcome": "After successor merge, tree content must match the pre-accident trusted main for all paths except this authorization evidence and later ordinary merge metadata; noop and noop2 must be absent.",
+    "historyRewriteAllowed": false,
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ],
+    "autonomousIndependentReview": true,
+    "blockingFindings": "P0=0/P1=0",
+    "unknownBlockers": 0,
+    "freshMainAntiDriftRequired": true
+  },
+  "forbiddenSemantics": [
+    "No history rewrite, force-push, amend, rebase, squash or cherry-pick.",
+    "No mutation of any production, test, workflow, dependency, routing, manifest, lockfile, release or ledger path in the cleanup successor.",
+    "No fresh Windows RC/UAT.",
+    "Do not resume the global mandatory coverage successor until the cleanup ordinary-merges and the resulting main tree is verified."
+  ],
+  "ossFit": {
+    "decision": "NO_NEW_INFRASTRUCTURE",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "repository-native-git-cleanup",
+    "reviewedCandidates": [
+      {
+        "name": "Git ordinary pull-request merge",
+        "source": "existing repository workflow",
+        "license": "repository-existing",
+        "fit": "FIT",
+        "reason": "The defect is two accidental tracked files; normal Git deletion through authorized PR is the smallest auditable repair."
+      }
+    ],
+    "retireOrAvoid": [
+      "Avoid reset, force-push, revert-by-history-rewrite, amend, rebase, squash and cherry-pick.",
+      "Avoid touching release ledger or coverage evidence while repository cleanliness is being restored."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  }
+}
