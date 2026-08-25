@@ -340,25 +340,15 @@ async function runPreflight(options = {}) {
     && permissionAuthorityColumns === true
     && worker?.d1Schema?.ready === true
     && worker?.d1Schema?.pagePictureColumn === true;
-  const legacyIndirect = options.allowLegacyHealthz === true && worker?.avatarProxyContract?.persistentPageReference === true;
   const d1Evidence = {
     expected: EXPECTED_D1_SCHEMA_VERSION,
     actual: d1Version || null,
     latestRequiredMigration,
     permissionAuthorityColumns,
     ready: worker?.d1Schema?.ready === true,
-    pagePictureColumn: worker?.d1Schema?.pagePictureColumn === true,
-    legacyIndirect
+    pagePictureColumn: worker?.d1Schema?.pagePictureColumn === true
   };
-  if (d1Ready) add('worker-d1-schema', true, true, d1Evidence, '');
-  else if (legacyIndirect) checks.push({
-    id: 'worker-d1-schema',
-    status: 'warning',
-    blocking: false,
-    reasonCode: 'P0_D1_SCHEMA_EVIDENCE_LEGACY_INDIRECT',
-    evidence: d1Evidence
-  });
-  else add('worker-d1-schema', false, true, d1Evidence, 'P0_D1_SCHEMA_MISMATCH');
+  add('worker-d1-schema', d1Ready, true, d1Evidence, 'P0_D1_SCHEMA_MISMATCH');
   add('facebook-account-avatar-persistence', local.facebookAccountAvatars.total === 0 || local.facebookAccountAvatars.ready === local.facebookAccountAvatars.total, false, local.facebookAccountAvatars, 'P0_FACEBOOK_ACCOUNT_AVATAR_INCOMPLETE');
   add('facebook-contact-avatar-persistence', local.facebookContactAvatars.total === 0 || (local.facebookContactAvatars.ready === local.facebookContactAvatars.total && local.facebookContactAvatars.missingLocalFiles === 0), false, local.facebookContactAvatars, 'P0_FACEBOOK_CONTACT_AVATAR_INCOMPLETE');
 
