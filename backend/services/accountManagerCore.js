@@ -593,6 +593,25 @@ class AccountManager {
     if (!persisted) {
       throw Object.assign(new Error('Facebook媒体引用未解析到已持久化消息'), { code: 'FACEBOOK_MEDIA_MESSAGE_NOT_FOUND', status: 404, accountId: id, messageId });
     }
+    const conversationId = String(persisted.conversationId || persisted.sessionKey || '').trim();
+    const externalMessageId = String(persisted.externalMessageId || messageId).trim();
+    if (!conversationId || externalMessageId !== messageId) {
+      throw Object.assign(new Error('Facebook媒体持久化消息作用域与冻结命令不一致'), {
+        code: 'FACEBOOK_MEDIA_TRANSFER_SCOPE_MISMATCH', status: 409, accountId: id, messageId
+      });
+    }
+    const expectedSourceScopeReference = `facebook:${id}:webhook:${externalMessageId}`;
+    const expectedDestinationScopeReference = `conversation:${conversationId}:message:${externalMessageId}`;
+    const expectedMetadataSha256 = crypto.createHash('sha256')
+      .update(['facebook', id, conversationId, externalMessageId].join('\n'))
+      .digest('hex');
+    if (String(input.sourceScopeReference || '').trim() !== expectedSourceScopeReference
+        || String(input.destinationScopeReference || '').trim() !== expectedDestinationScopeReference
+        || String(input.metadataSha256 || '').trim() !== expectedMetadataSha256) {
+      throw Object.assign(new Error('Facebook媒体冻结命令与持久化消息证据不一致'), {
+        code: 'FACEBOOK_MEDIA_TRANSFER_SCOPE_MISMATCH', status: 409, accountId: id, messageId
+      });
+    }
     const attachments = Array.isArray(persisted.attachments) ? persisted.attachments : [];
     const hasWorkerMedia = attachments.some(attachment => {
       const worker = attachment?.workerMedia || attachment?.payload?.worker_media || null;
@@ -603,8 +622,6 @@ class AccountManager {
         code: 'FACEBOOK_WORKER_MEDIA_REFERENCE_NOT_FOUND', status: 409, accountId: id, messageId
       });
     }
-    const conversationId = String(persisted.conversationId || persisted.sessionKey || '').trim();
-    const externalMessageId = String(persisted.externalMessageId || messageId).trim();
     const facebookAdapter = require('./facebookAdapter');
     await withAbortSignal(
       facebookAdapter.cacheWebhookAttachments(account, {
