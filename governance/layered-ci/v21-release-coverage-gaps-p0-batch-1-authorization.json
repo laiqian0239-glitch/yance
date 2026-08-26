@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T09:30:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-COVERAGE-GAPS-P0-BATCH-1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After #832 ordinary-merged the global mandatory executed-test coverage reconciliation with 4 of 14 target evidence rows mechanically covered and 10 explicitly classified COVERAGE_GAP_PREREQUISITE, authorize one Fast Landing tests-only batch that adds four finding-family mandatory WP0 contracts. The batch must determine on fresh exact-head Stage whether the ten residual historical rows are already satisfied by current production or expose fresh causal RED. No production/root fix is authorized here.",
+  "base": {
+    "branch": "main",
+    "commit": "3b3bdf9e2c36c8d42fe46e780db7258854ca9bc2"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-coverage-gaps-p0-batch-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-coverage-gaps-p0-batch-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "297fce553cb69b64c7fc80abc6aa4515ee818b3dded5e6c69082aa52e7a2a0f9",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "test/v21-release-coverage-gaps-p0-batch-1",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-release-coverage-ai-core-kf-p0-29-31-p1-07.test.js",
+      "tests/wp0/v21-release-coverage-cross-platform-egress-kf-p0-23-p1-06.test.js",
+      "tests/wp0/v21-release-coverage-durable-execution-kf-p0-26-28.test.js",
+      "tests/wp0/v21-release-coverage-safe-mode-kf-p1-01.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "294d289998d517a5719390a27946fd2e515c3b02deb6f4a60e57303f65f850cc",
+    "testsOnly": true,
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "runnerModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "coverageTargets": {
+    "sourceLedgerMerge": "3b3bdf9e2c36c8d42fe46e780db7258854ca9bc2",
+    "sourceLedgerPullRequest": 832,
+    "targetRows": [
+      "KF-P0-23",
+      "KF-P0-26",
+      "KF-P0-27",
+      "KF-P0-28",
+      "KF-P0-29",
+      "KF-P0-30",
+      "KF-P0-31",
+      "KF-P1-01",
+      "KF-P1-06",
+      "KF-P1-07"
+    ],
+    "families": [
+      {
+        "name": "cross-platform-egress",
+        "rows": ["KF-P0-23", "KF-P1-06"],
+        "testPath": "tests/wp0/v21-release-coverage-cross-platform-egress-kf-p0-23-p1-06.test.js"
+      },
+      {
+        "name": "durable-execution",
+        "rows": ["KF-P0-26", "KF-P0-27", "KF-P0-28"],
+        "testPath": "tests/wp0/v21-release-coverage-durable-execution-kf-p0-26-28.test.js"
+      },
+      {
+        "name": "ai-core",
+        "rows": ["KF-P0-29", "KF-P0-30", "KF-P0-31", "KF-P1-07"],
+        "testPath": "tests/wp0/v21-release-coverage-ai-core-kf-p0-29-31-p1-07.test.js"
+      },
+      {
+        "name": "safe-mode-write-boundary",
+        "rows": ["KF-P1-01"],
+        "testPath": "tests/wp0/v21-release-coverage-safe-mode-kf-p1-01.test.js"
+      }
+    ]
+  },
+  "failureFirst": {
+    "required": true,
+    "firstImplementationCommitMustBeTestsOnly": true,
+    "firstImplementationCommitAllowedPaths": [
+      "tests/wp0/v21-release-coverage-ai-core-kf-p0-29-31-p1-07.test.js",
+      "tests/wp0/v21-release-coverage-cross-platform-egress-kf-p0-23-p1-06.test.js",
+      "tests/wp0/v21-release-coverage-durable-execution-kf-p0-26-28.test.js",
+      "tests/wp0/v21-release-coverage-safe-mode-kf-p1-01.test.js"
+    ],
+    "firstImplementationCommitAllowedPathSetSha256": "294d289998d517a5719390a27946fd2e515c3b02deb6f4a60e57303f65f850cc",
+    "productionBytesMustRemainIdenticalToAuthorizationMerge": true,
+    "runnerBytesMustRemainIdenticalToAuthorizationMerge": true,
+    "freshStageMustActuallyEnumerateTests": true,
+    "allFourTestsAreAutomaticallySelectedByExistingWp0Glob": true,
+    "ifAllTestsPass": "The tests-only candidate may proceed through exact-head gates and ordinary merge as coverage closure evidence. A later ledger-only reconciliation may reclassify the ten coverage gaps; Known Finding source/gate state remains independent.",
+    "ifAnyTestFails": "Freeze the exact tests-only head as immutable causal RED evidence. Classify every failing subtest and reach unknownBlockers=0. Do not modify the frozen tests and do not change production under this authorization; any live root requires a separate prerequisite production authorization scoped to the proven root.",
+    "unknownBlockersRequired": 0
+  },
+  "requiredSemantics": {
+    "crossPlatformEgress": [
+      "Exercise supported Telegram and Facebook public send entrypoints through their canonical durable/authorization seam into the physical provider seam without network access.",
+      "Assert both platforms expose a compatible supported-capability contract for public invocation, persisted/durable attempt identity, physical dispatch, structured accepted/failure result and exactly-once provider invocation under the tested path.",
+      "Preserve Facebook Worker/Durable authority and Chatwoot Matrix ownership; do not restore duplicate direct-CDN or alternate physical authority.",
+      "Do not infer parity by concatenating unrelated tests; the new contract itself must exercise both platforms."
+    ],
+    "durableExecution": [
+      "Exercise canonical heartbeat, succeed, fail, waitRemote, cancel, retry and deadLetter operation semantics through repository-owned Durable Execution authority/repository seams.",
+      "Exercise appendV2Event sequence allocation under competing writes through the real transaction/write-host seam and require unique monotonic sequence integrity without duplicate sequence acceptance.",
+      "Exercise a long-running lease lifecycle where heartbeat extension preserves valid terminalization and stale/expired ownership remains fail-closed.",
+      "Do not treat source BEGIN IMMEDIATE text or API presence as proof; the mandatory test must execute the behavior."
+    ],
+    "aiCore": [
+      "Exercise aiGateway admission failure after durable SCHEDULED persistence and require deterministic terminalization rather than stranded SCHEDULED state.",
+      "Exercise cancel-vs-succeed competition through canonical generation/object-fingerprint fencing and require a single valid terminal outcome with stale competitor rejection.",
+      "Exercise stale/superseded semantics across contextAwareReplyBrain, aiGateway and the turn/coordinator boundary with no stale result publication.",
+      "Exercise representative deterministic reply-generation failures and bounded latency/failure behavior so one failing layer does not enter an unbounded retry/await chain."
+    ],
+    "safeModeWriteBoundary": [
+      "Enumerate repository-owned backend command/write classification rather than a hand-picked UI list.",
+      "When Safe Mode is active, require every classified backend write entrypoint to fail closed except the exact explicitly supported recovery command set.",
+      "Require command-owned classification and internal-actor checks to remain authoritative; caller-supplied write or actor metadata must not bypass the boundary.",
+      "Do not use the UI Safe Mode banner or staged-secret scanner as write-boundary proof."
+    ]
+  },
+  "requiredValidation": {
+    "stage": "Fresh exact-head Stage PRODUCT_WP0 must execute all four new tests through package.json test:wp0 -> tools/wp0/run-tests.js and must not merely prove file presence.",
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "WP-A when triggered",
+      "WP-B when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ],
+    "autonomousIndependentReview": true,
+    "blockingFindings": "P0=0/P1=0",
+    "unknownBlockers": 0,
+    "freshMainAntiDriftRequired": true
+  },
+  "forbiddenSemantics": [
+    "No production/runtime source mutation in this authorization or tests-only implementation.",
+    "No tools/wp0/run-tests.js, package.json, workflow, routing-policy, dependency, lockfile, database migration, packaging, release-binary or release-ledger mutation.",
+    "No network-dependent provider call or real external account requirement in the mandatory tests.",
+    "No weakening, mocking away or bypassing the canonical durable/fencing/security authority that the contract is meant to prove.",
+    "No mutation of historical frozen RED/evidence PRs.",
+    "No reset, force-push, amend, rebase, squash, cherry-pick or history rewrite.",
+    "No fresh packaged Windows RC/UAT."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_NODE_TEST_RUNNER_AND_REPOSITORY_AUTHORITY_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance node:test mandatory WP0 runner and service seams",
+        "source": "node:test + tests/wp0/*.test.js + tools/wp0/run-tests.js + existing service/repository test seams",
+        "license": "repository-existing / Node.js runtime",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "All four coverage families can be expressed with existing node:test, deterministic local fakes and repository-owned authority seams; no new framework is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second test runner, generalized coverage database, new mock framework or network harness.",
+      "Do not split the ten ledger gaps into ten authorization PRs when four finding-family contracts can classify them in one mandatory Stage batch.",
+      "Do not pre-authorize production changes before a fresh tests-only run proves a live root.",
+      "Do not start packaged RC/UAT from this coverage package."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMergeIfGreen": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequiredForAuthorization": true,
+    "exactHeadGreenRequiredForImplementationMerge": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
