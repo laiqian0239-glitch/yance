@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-PRODUCT-VALIDATION-ROUTE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After #847 ordinary-merged the strict VERIFIED_NON_DEFECT disposition, Known Findings V1 has zero source-level unresolved rows while every real defect remains SOURCE_GATE_CLOSED_RC_PENDING and mandatory executed-test coverage/Fresh-main Audit V2 are complete. Lane D now requires a new fresh-main RC/UAT PR. The existing V21 Product Experience Shell P0 Final Validation workflow is intentionally fail-closed to an exact historical branch allowlist and therefore would skip any new RC branch. This narrow prerequisite authorizes only the exact workflow-route admission and its existing layered contract so a new dedicated release/v21-final-rc-uat-p0 branch can exercise the already-existing frozen Element, materialized Desktop/Matrix and packaged Yance validation jobs without reusing historical PR #538 or mutating product source.",
+  "base": {
+    "branch": "main",
+    "commit": "7e8881f3173c2b54a951451e5234f764d598a072",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "7e8881f3173c2b54a951451e5234f764d598a072",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-product-validation-route-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-product-validation-route-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9101abb65a1c53b0a69ded324b57c74027c6c9c66438c65f9cb3367ef0f090ea",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-product-validation-route-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0fe120e1cd4c2692f06a11c3becc1d5db4324efcbaf59f2cc62154b008fd9d6e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "routingPolicyModificationAllowed": true,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false
+  },
+  "routeContract": {
+    "newRcBranch": "release/v21-final-rc-uat-p0",
+    "workflow": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "workflowTriggerMustRemain": "pull_request only",
+    "sameRepositoryHeadRequired": true,
+    "exactBranchEqualityRequired": true,
+    "prefixOrWildcardAdmissionForbidden": true,
+    "historicalBranchAdmissionsMustRemainUnchanged": true,
+    "jobsThatMustAdmitNewBranch": [
+      "frozen-element-reproducibility",
+      "materialized-desktop-uat",
+      "materialized-matrix-uat",
+      "product-final"
+    ],
+    "existingArtifactIdentityMustRemainHeadShaBound": true,
+    "formalReleaseMustRemainFalse": true
+  },
+  "failureFirst": {
+    "required": true,
+    "firstImplementationHeadMustChangeOnly": [
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "expectedRed": "The exact allowed-branch contract must require release/v21-final-rc-uat-p0 while the base workflow still omits it.",
+    "unknownBlockersMustEqual": 0,
+    "productionOrWorkflowFixForbiddenBeforeCleanCausalRed": true,
+    "redMustRemainImmutableEvidence": true,
+    "finalRepair": "Add release/v21-final-rc-uat-p0 by exact equality to every existing Product Final job allowlist without weakening same-repository or pull-request-only admission."
+  },
+  "laneDBoundary": {
+    "sourceLevelKnownFindingsCompleteAtBase": true,
+    "freshMainAuditV2CompleteAtBase": true,
+    "mandatoryExecutedTestCoverageCompleteAtBase": true,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "freshPackagedWindowsRcPassMustRemain": false,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false,
+    "noRcArtifactMayBeClaimedFromThisPrerequisite": true,
+    "noHistorical538ArtifactMayBeReusedAsFinalRc": true
+  },
+  "requiredChecklist": [
+    "Re-read exact AGENTS.md and the merged Release Closure Program/Ledger from the effective authorization merge.",
+    "Create implementation branch exactly from the ordinary authorization merge.",
+    "First add only a layered test expectation for the exact new RC branch and obtain a clean finding-specific RED with unknownBlockers=0.",
+    "Preserve the RED head; then add only the exact branch equality to all existing Product Final job allowlists.",
+    "Do not add workflow_dispatch, push, schedule, wildcard, prefix, contains or startsWith admission.",
+    "Do not alter build commands, dependencies, Electron/Element identities, artifact names, package materialization, runtime code or release authority.",
+    "Do not create or execute the final RC/UAT branch until this route prerequisite ordinary-merges.",
+    "Keep final Delta, fresh packaged Windows RC, release and publish flags false."
+  ],
+  "forbiddenSemantics": [
+    "No production/runtime source mutation.",
+    "No package.json/package-lock/dependency change.",
+    "No broadening to wildcard/prefix branch routing or forked-head execution.",
+    "No removal or weakening of existing Product Final assertions or materialization steps.",
+    "No reuse or mutation of historical PR #538 or its branch/artifacts.",
+    "No RC/UAT PASS, releaseReady, formalRelease or publish claim in this package."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_WORKFLOW_AND_LAYERED_CONTRACT",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing V21 Product Experience Shell P0 Final Validation workflow + layered contract",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml + tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The required trusted Windows/Linux materialization and packaged-Yance validation machinery already exists. Only exact admission for a new final-RC branch is missing; new infrastructure would duplicate authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel RC workflow.",
+      "Do not add a generic workflow_dispatch release path.",
+      "Do not reuse historical Product branch PR #538 as current RC identity."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered",
+      "ACV2 when triggered",
+      "Model when triggered"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "failure-first exact branch admission",
+      "same-repository and pull-request-only trust boundary preserved",
+      "all Product Final jobs admit the same exact new branch",
+      "no workflow behavior beyond branch routing changed",
+      "final RC/release flags remain fail-closed"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
