@@ -125,7 +125,7 @@ test('the proven migration family sits on the synchronous require(serverEntry) p
   );
   assert.match(
     migrationServiceSource,
-    /migrateRoot\(PATHS\.root, \{[^}]*stopOnError: true/u,
+    /importSourceRoot\(PATHS\.root, \{[^}]*stopOnError: true/u,
     'current-root startup migration must remain fail-closed on a discovered SQLite import error'
   );
 });
