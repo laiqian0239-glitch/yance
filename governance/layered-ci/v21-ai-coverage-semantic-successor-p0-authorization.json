@@ -103,6 +103,7 @@
   ],
   "ossFit": {
     "decision": "REUSE_EXISTING_NODE_TEST_SQLITE_AND_INJECTABLE_AI_SEAMS",
+    "matureOssAvailable": false,
     "newGeneralPurposeInfrastructure": false,
     "selectedAdoptionMode": "existing-repository-seam",
     "reviewedCandidates": [
@@ -114,6 +115,10 @@
         "fit": "FIT",
         "reason": "The missing work is a narrow executable behavior contract; no new test framework, runner, database, dependency or workflow is justified."
       }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second test runner, durable-operation implementation, AI gateway abstraction, timeout framework or fixture database.",
+      "Do not replace executable behavior evidence with source-string assertions for the two missing semantics."
     ],
     "thinYanceAdapterOnly": true
   },
