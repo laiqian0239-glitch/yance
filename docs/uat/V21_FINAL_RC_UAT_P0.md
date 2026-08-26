@@ -20,6 +20,7 @@ This document is the single authorized evidence marker for the fresh Final RC/UA
 - Root-fix exact production head: PR #862 head `0ded6ed2ab5c4269735030feadc06be422a65a51`, independent exact-head review P0=0/P1=0, zero unresolved threads, all applicable routed gates complete without failure
 - Root-fix trusted-main ordinary merge: `6cf9d0101ece1aca4dea55935bc3a2e7c605e448`, strict parents `114da197d73141a11ec6305f4f0bfc0f6cc850fe` + `0ded6ed2ab5c4269735030feadc06be422a65a51`
 - Second forward reconciliation: PR #863 ordinary merge `1b21e817b02293da7b9db744fc0c00f974e432f8`, strict parents `375b99f7eb22c9631a804d793822345a4a0338ad` + `6cf9d0101ece1aca4dea55935bc3a2e7c605e448`
+- Current candidate registration PR: #864; this forward-only marker revision is the synchronization point after the root-fix reconciliation, and every mandatory final gate/artifact/review must bind only to the repository-reported exact head produced by this revision or a later explicitly reviewed forward-only marker revision.
 - Exact candidate branch: `release/v21-final-rc-uat-p0`
 - Authorized candidate change set relative to current trusted main: exactly this file only
 - Candidate source/runtime mutation: forbidden
