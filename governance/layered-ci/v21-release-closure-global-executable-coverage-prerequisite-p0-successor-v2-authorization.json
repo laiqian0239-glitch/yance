@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-CLOSURE-GLOBAL-EXECUTABLE-COVERAGE-PREREQUISITE-P0-SUCCESSOR-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor for frozen non-causal #834. The exact tests-only head executed 712 mandatory WP0 tests with 711 pass and exactly one failure caused solely by the Durable test fixture closing its SQLite handle before an asynchronous ExternalActionDispatcher settlement completed. This successor preserves the three passing family contracts byte-for-byte and permits only the Durable fixture lifetime composition to defer cleanup until asynchronous work settles. It does not authorize production/source repair or weakening of any behavioral assertion.",
+  "base": {
+    "branch": "main",
+    "commit": "e2a37cacd57af230cb10199bb7274871321d6096",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "e2a37cacd57af230cb10199bb7274871321d6096",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 833,
+    "authorizationMerge": "e2a37cacd57af230cb10199bb7274871321d6096",
+    "frozenImplementationPullRequest": 834,
+    "frozenTestsOnlyHead": "79719b2d05ec331204149340bfb2a237cf9e39e8",
+    "stageRun": 32925018201,
+    "wp0ProductJob": 98046100293,
+    "mandatoryTestTotal": 712,
+    "mandatoryTestPass": 711,
+    "mandatoryTestFail": 1,
+    "classification": "TEST_HARNESS_ASYNC_LIFETIME_DEFECT",
+    "unknownBlockers": 0,
+    "failureCode": "ERR_INVALID_STATE",
+    "failureMessage": "database is not open",
+    "root": "tests/wp0/v21-durable-execution-release-critical-coverage.test.js uses synchronous withSchema23 cleanup around an async callback. The callback returns a Promise, the fixture finally closes SQLite immediately, and ExternalActionDispatcher settlement later re-enters the real durable transition on the closed handle.",
+    "productionDefectProven": false,
+    "passingFamilyBlobs": {
+      "tests/wp0/v21-ai-release-critical-coverage.test.js": "a5124f0366283f409a3d6d4f92eef7ed7973543d",
+      "tests/wp0/v21-cross-platform-adapter-capability-coverage.test.js": "24010a845285f7b7b576fa68ce4ac0f671be0800",
+      "tests/wp0/v21-safe-mode-write-boundary-coverage.test.js": "09020f2eaa67cfb9a91a380d6b6b96414bf0b8ce"
+    },
+    "frozenDurableBlob": "9d15f1b781e562c1753ad7699ef50d42a49c9ad3"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-global-executable-coverage-prerequisite-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-closure-global-executable-coverage-prerequisite-p0-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "510b649822d6dd4a181edc0fd9ed328b8cff39fc710ed9d389c4b49e9ffaf76c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "test/v21-release-closure-global-executable-coverage-prerequisite-p0-successor-v2",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-ai-release-critical-coverage.test.js",
+      "tests/wp0/v21-cross-platform-adapter-capability-coverage.test.js",
+      "tests/wp0/v21-durable-execution-release-critical-coverage.test.js",
+      "tests/wp0/v21-safe-mode-write-boundary-coverage.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "71c2b5132325d9947c331f3791d0978953321af533b40069692379cb54a79ff6",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testOnly": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "ledgerModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false
+  },
+  "successorPreservation": {
+    "mustPreserveExactBlobs": {
+      "tests/wp0/v21-ai-release-critical-coverage.test.js": "a5124f0366283f409a3d6d4f92eef7ed7973543d",
+      "tests/wp0/v21-cross-platform-adapter-capability-coverage.test.js": "24010a845285f7b7b576fa68ce4ac0f671be0800",
+      "tests/wp0/v21-safe-mode-write-boundary-coverage.test.js": "09020f2eaa67cfb9a91a380d6b6b96414bf0b8ce"
+    },
+    "durableTestPath": "tests/wp0/v21-durable-execution-release-critical-coverage.test.js",
+    "durableFrozenPredecessorBlob": "9d15f1b781e562c1753ad7699ef50d42a49c9ad3",
+    "onlyAuthorizedDurableCorrection": "Make withSchema23 cleanup Promise-aware so synchronous callbacks retain synchronous cleanup while Promise-returning callbacks defer db.close() and temporary-directory removal until settlement. All lifecycle, heartbeat, stale-writer fencing, WAITING_REMOTE, terminalization and sequence assertions must remain semantically unchanged.",
+    "assertionWeakeningAllowed": false,
+    "assertionDeletionAllowed": false,
+    "testSkipAllowed": false
+  },
+  "mandatoryExecution": {
+    "existingRunnerPath": "tools/wp0/run-tests.js",
+    "runnerChangeRequired": false,
+    "stageWorkflow": ".github/workflows/stage-6459-wp0-gates.yml",
+    "stageJob": "wp0-product",
+    "exactHeadExecutionRequired": true,
+    "allFourFilesMustExecute": true,
+    "allFourFilesMustPass": true
+  },
+  "failureHandling": {
+    "expectedInitialOutcome": "GREEN_AFTER_NON_CAUSAL_FIXTURE_LIFETIME_CORRECTION",
+    "ifAnyContractFails": [
+      "Freeze the fresh successor exact head without mutation.",
+      "Classify the exact failure and exhaust its same-root Closure Matrix to unknownBlockers=0.",
+      "Do not weaken, skip, delete or rewrite the contract.",
+      "Do not add production code under this authorization.",
+      "Use a separate exact-scope production authorization only if the fresh failure proves a real production root."
+    ],
+    "ifAllContractsPass": [
+      "Require exact-head routed CI GREEN and autonomous independent review P0=0/P1=0.",
+      "Ordinary-merge the tests-only successor.",
+      "Perform a later ledger-only coverage reconciliation before setting mandatoryExecutedTestCoverageComplete=true."
+    ]
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "releaseFlags": {
+    "mandatoryExecutedTestCoverageCompleteMayAdvanceHere": false,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "freshPackagedWindowsRcPassMustRemain": false,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
