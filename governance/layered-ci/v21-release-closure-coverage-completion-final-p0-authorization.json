@@ -1,0 +1,295 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-COVERAGE-COMPLETION-FINAL-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After #839 ordinary-merged the final missing AI_CORE executable semantics from exact trusted main, authorize one ledger-only reconciliation that mechanically consumes the complete mandatory executed-test coverage evidence. The reconciliation may set global mandatory executed-test coverage complete only when all fourteen target rows are bound to exact selected PASS execution with unknownBlockers=0. Known Finding source/gate states remain independent and must not be promoted merely because current mandatory coverage executes. Final Delta, packaged Windows RC/UAT, release and publish remain later gates.",
+  "base": {
+    "branch": "main",
+    "commit": "31bdd669e79005c099c6fbc2dda6d749c1a39a98",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "31bdd669e79005c099c6fbc2dda6d749c1a39a98",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "predecessorCoverageEvidence": {
+    "globalCoverageReconciliationPullRequest": 832,
+    "globalExecutableCoverageAuthorizationPullRequest": 833,
+    "frozenNonCausalPullRequest": 834,
+    "frozenPrematureLedgerAuthorizationPullRequest": 837,
+    "frozenPrematureLedgerAuthorizationMustRemainImmutable": true,
+    "fixtureSuccessorAuthorizationPullRequest": 835,
+    "coverageSuccessorPullRequest": 836,
+    "coverageSuccessorHead": "3f2f1a84338d22e54a9adf818c4c3c1643370b3d",
+    "coverageSuccessorStageRun": 32926472778,
+    "coverageSuccessorWp0ProductJob": 98050383433,
+    "coverageSuccessorMerge": "5cba23903f9babdd2a325d7f1463f38e2abc5485",
+    "aiSemanticSuccessorAuthorizationPullRequest": 838,
+    "aiSemanticSuccessorAuthorizationMerge": "8d4ab9d738ef518147844c157ff614d7030d7177",
+    "aiSemanticSuccessorPullRequest": 839,
+    "aiSemanticFirstRedHead": "e3e98c7cfba76bce93430da10a9744e8652e4c4b",
+    "aiSemanticFirstRedStageRun": 32930349906,
+    "aiSemanticFirstRedWp0ProductJob": 98061306639,
+    "aiSemanticFirstRedMandatoryTests": 714,
+    "aiSemanticFirstRedMandatoryPass": 713,
+    "aiSemanticFirstRedMandatoryFail": 1,
+    "aiSemanticFirstRedClassification": "TEST_FIXTURE_ISOLATION_DEFECT",
+    "aiSemanticFirstRedUnknownBlockers": 0,
+    "aiSemanticFinalHead": "7820cc2cf9143df14979b1c8e1d0412c7b269562",
+    "aiSemanticFinalStageRun": 32931082385,
+    "aiSemanticFinalWp0ProductJob": 98063384263,
+    "aiSemanticFinalLayeredRun": 32931082493,
+    "aiSemanticFinalAcv2Run": 32931082373,
+    "aiSemanticFinalWpAMainValidationRun": 32931082355,
+    "aiSemanticFinalModelWindowsRun": 32931082370,
+    "aiSemanticFinalProductFinalRun": 32931082364,
+    "aiSemanticFinalProductFinalConclusion": "skipped_by_correct_tests_only_routing",
+    "aiSemanticFinalIndependentReviewP0": 0,
+    "aiSemanticFinalIndependentReviewP1": 0,
+    "aiSemanticFinalUnknownBlockers": 0,
+    "aiSemanticFinalMerge": "31bdd669e79005c099c6fbc2dda6d749c1a39a98",
+    "aiSemanticFinalMergeFirstParent": "8d4ab9d738ef518147844c157ff614d7030d7177",
+    "aiSemanticFinalMergeSecondParent": "7820cc2cf9143df14979b1c8e1d0412c7b269562",
+    "mandatoryCoverageBlobsAtTrustedMain": {
+      "tests/wp0/v21-cross-platform-adapter-capability-coverage.test.js": "24010a845285f7b7b576fa68ce4ac0f671be0800",
+      "tests/wp0/v21-durable-execution-release-critical-coverage.test.js": "a99d95f222cf18eea8c9e26521f0cb78b5a6f1cd",
+      "tests/wp0/v21-safe-mode-write-boundary-coverage.test.js": "09020f2eaa67cfb9a91a380d6b6b96414bf0b8ce",
+      "tests/wp0/v21-ai-release-critical-coverage.test.js": "91933a11f27ce85bf6e900bf99afb109ff16d6f9"
+    },
+    "mandatoryRunnerPath": "tools/wp0/run-tests.js",
+    "mandatoryRunnerBlobAtTrustedMain": "fce6d7bc06f3119f7707d4312f5ad37e5ba90077"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-coverage-completion-final-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-closure-coverage-completion-final-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "0e946512fa6e432a582bd549489d633eb17a5d7116268d78bb0a0024e1fa7e32",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "docs/v21-release-closure-coverage-completion-final-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f5a5ea40aa811612913eb20a8d039f69161f875a62e260361e84f9dabc0010e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": false,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "ledgerModificationAllowed": true,
+    "releaseCandidateModificationAllowed": false
+  },
+  "coverageScope": {
+    "targetEvidenceRows": [
+      "KF-P0-03",
+      "KF-P0-04",
+      "KF-P0-17",
+      "KF-P0-18",
+      "KF-P0-23",
+      "KF-P0-26",
+      "KF-P0-27",
+      "KF-P0-28",
+      "KF-P0-29",
+      "KF-P0-30",
+      "KF-P0-31",
+      "KF-P1-01",
+      "KF-P1-06",
+      "KF-P1-07"
+    ],
+    "previouslyMechanicallyBoundRows": [
+      "KF-P0-03",
+      "KF-P0-04",
+      "KF-P0-17",
+      "KF-P0-18"
+    ],
+    "newlyExecutableRows": [
+      "KF-P0-23",
+      "KF-P0-26",
+      "KF-P0-27",
+      "KF-P0-28",
+      "KF-P0-29",
+      "KF-P0-30",
+      "KF-P0-31",
+      "KF-P1-01",
+      "KF-P1-06",
+      "KF-P1-07"
+    ],
+    "selectedExecutionBindings": {
+      "CROSS_PLATFORM_ADAPTER_CAPABILITY": {
+        "rows": ["KF-P0-23", "KF-P1-06"],
+        "testPath": "tests/wp0/v21-cross-platform-adapter-capability-coverage.test.js",
+        "blob": "24010a845285f7b7b576fa68ce4ac0f671be0800",
+        "exactHead": "3f2f1a84338d22e54a9adf818c4c3c1643370b3d",
+        "stageRun": 32926472778,
+        "wp0ProductJob": 98050383433,
+        "requiredConclusion": "PASS"
+      },
+      "DURABLE_EXECUTION": {
+        "rows": ["KF-P0-26", "KF-P0-27", "KF-P0-28"],
+        "testPath": "tests/wp0/v21-durable-execution-release-critical-coverage.test.js",
+        "blob": "a99d95f222cf18eea8c9e26521f0cb78b5a6f1cd",
+        "exactHead": "3f2f1a84338d22e54a9adf818c4c3c1643370b3d",
+        "stageRun": 32926472778,
+        "wp0ProductJob": 98050383433,
+        "requiredConclusion": "PASS"
+      },
+      "SAFE_MODE_WRITE_BOUNDARY": {
+        "rows": ["KF-P1-01"],
+        "testPath": "tests/wp0/v21-safe-mode-write-boundary-coverage.test.js",
+        "blob": "09020f2eaa67cfb9a91a380d6b6b96414bf0b8ce",
+        "exactHead": "3f2f1a84338d22e54a9adf818c4c3c1643370b3d",
+        "stageRun": 32926472778,
+        "wp0ProductJob": 98050383433,
+        "requiredConclusion": "PASS"
+      },
+      "AI_CORE": {
+        "rows": ["KF-P0-29", "KF-P0-30", "KF-P0-31", "KF-P1-07"],
+        "testPath": "tests/wp0/v21-ai-release-critical-coverage.test.js",
+        "blob": "91933a11f27ce85bf6e900bf99afb109ff16d6f9",
+        "exactHead": "7820cc2cf9143df14979b1c8e1d0412c7b269562",
+        "stageRun": 32931082385,
+        "wp0ProductJob": 98063384263,
+        "requiredConclusion": "PASS",
+        "semanticNotes": [
+          "KF-P0-29 retains executable queue-admission terminalization coverage.",
+          "KF-P0-30 executes real Schema-23 durable cancel-first/succeed-late and succeed-first/cancel-late exclusivity under generation, object fingerprint and Host fencing.",
+          "KF-P0-31 retains executable stale inbound turn/runtime/gateway fencing coverage.",
+          "KF-P1-07 executes the real contextAwareReplyBrain deep_reply candidate-repair path and binds the repair AI Gateway call to the same finite bounded runtime timeout as the original reply call."
+        ]
+      }
+    },
+    "requiredChecklist": [
+      "Re-read the current ledger from the effective authorization merge; preserve every Known Finding Current state, source/gate counter and prior evidence binding unless exact evidence requires a coverage-only correction.",
+      "Preserve the existing mechanically accepted coverage bindings for KF-P0-03, KF-P0-04, KF-P0-17 and KF-P0-18.",
+      "Bind KF-P0-23 and KF-P1-06 to the cross-platform adapter capability test blob and #836 exact-head mandatory PASS selected above.",
+      "Bind KF-P0-26, KF-P0-27 and KF-P0-28 to the Durable Execution release-critical test blob and #836 exact-head mandatory PASS selected above.",
+      "Bind KF-P1-01 to the Safe Mode write-boundary test blob and #836 exact-head mandatory PASS selected above.",
+      "Bind KF-P0-29, KF-P0-30, KF-P0-31 and KF-P1-07 only to the final #839 AI test blob / exact head / mandatory PASS selected above; do not use the superseded #836 AI blob as final proof for KF-P0-30 or KF-P1-07.",
+      "Record #839 first head only as preserved failure-first fixture evidence: its sole failure was SQLITE_BROKER_NOT_READY before the target repair path, classified TEST_FIXTURE_ISOLATION_DEFECT with unknownBlockers=0; do not classify it as a production defect or use it as target semantic PASS proof.",
+      "Confirm tools/wp0/run-tests.js automatically enumerates all current tests/wp0/*.test.js files and use the selected wp0-product jobs as actual execution proof rather than workflow GREEN or file presence alone.",
+      "Preserve the distinction between mandatory executed-test coverage and finding source/gate closure; do not promote any EVIDENCE_RECONCILIATION Known Finding solely because current mandatory coverage now passes.",
+      "Set coverageRowsMechanicallyBound=14, coverageGapPrerequisiteRows=0 and mandatoryExecutedTestCoverageComplete=true only if every target row is mechanically classified to selected execution evidence and coverageBatchUnknownBlockers=0.",
+      "Preserve freshMainAuditV2Complete=true.",
+      "Keep deltaRegressionAuditComplete=false, freshPackagedWindowsRcPass=false, releaseLedgerClosed=false, releaseReady=false, formalReleaseAuthorized=false and publishAuthorized=false.",
+      "Do not start, create or claim a packaged Windows RC/UAT in this package."
+    ]
+  },
+  "completionSemantics": {
+    "coverageRowsMechanicallyBoundMayBecome": 14,
+    "coverageGapPrerequisiteRowsMayBecome": 0,
+    "mandatoryExecutedTestCoverageCompleteMayBecomeTrue": true,
+    "condition": "All fourteen target evidence rows are mechanically bound to selected exact-head mandatory PASS execution with coverageBatchUnknownBlockers=0.",
+    "knownFindingStatePromotionAllowedFromCoverageAlone": false,
+    "freshMainAuditV2CompleteMustRemain": true,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "freshPackagedWindowsRcPassMustRemain": false,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false
+  },
+  "forbiddenSemantics": [
+    "No production/runtime/test/runner/workflow/dependency/routing/manifest/lockfile/migration/packaging/release-binary mutation.",
+    "No promotion of an EVIDENCE_RECONCILIATION Known Finding merely because current mandatory coverage executes and passes.",
+    "No claim that file presence, source shape or workflow GREEN alone proves a target contract executed.",
+    "No fabrication of historical RED evidence, source/gate closure, exact head, test identity, workflow/job identity, platform applicability or PASS status.",
+    "No use of #839 first fixture RED as a production defect or final target semantic PASS.",
+    "No use of superseded #836 AI coverage as final KF-P0-30/KF-P1-07 proof.",
+    "No fresh packaged Windows RC/UAT execution or candidate creation.",
+    "No mutation, reconciliation, close or merge action against frozen historical evidence PR #834 or frozen stale ledger authorization PR #837."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_RUNNER_AND_RELEASE_LEDGER",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance mandatory WP0 runner and V21 Release Closure Ledger",
+        "source": "tools/wp0/run-tests.js + Stage wp0-product + docs/uat/V21_RELEASE_CLOSURE_LEDGER.md",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "All missing release-critical coverage is now executed through the repository's existing mandatory runner; the remaining action is a one-file mechanical ledger reconciliation, so no new coverage infrastructure or dependency is warranted."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add another coverage runner, audit database, workflow or evidence service.",
+      "Do not split the fourteen-row mechanical binding into fragmented ledger PRs.",
+      "Do not reuse stale #837 after trusted main moved and AI evidence changed.",
+      "Do not start final Delta or packaged RC work inside this ledger-only package."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "releaseFlags": {
+    "freshMainAuditV2CompleteMustRemain": true,
+    "mandatoryExecutedTestCoverageCompleteMayAdvanceHere": true,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "freshPackagedWindowsRcPassMustRemain": false,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
