@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-27T02:20:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-POST-BOOT-SYNC-IMPORT-P0-SUCCESSOR-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The original tests-only implementation branch for V21-FINAL-RC-POST-BOOT-SYNC-IMPORT-P0 was contaminated before any valid causal RED by an unauthorized accidental production-file write to backend/migrations/legacySqliteMigrator.js. History rewrite, reset, amend, force-push, cherry-pick and branch laundering are forbidden. Freeze that branch and its commits as non-authoritative historical evidence. Authorize a clean successor-v2 from this authorization ordinary merge, preserving the exact one-file tests-only diagnostic scope and the frozen packaged RC/UAT evidence. Production remains forbidden until a fresh exact-head causal RED proves the synchronous post-backend-boot-started leaf, unknownBlockers=0, and a separately merged production amendment authorizes the proven production path.",
+  "base": {
+    "branch": "main",
+    "commit": "73514e6b760811149041a7976a97a9d91c775d17",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "predecessorAuthority": {
+    "authorizationPullRequest": 866,
+    "authorizationMerge": "73514e6b760811149041a7976a97a9d91c775d17",
+    "authorizationHead": "6d5e3737fef1dc8dadbef7853ec48b78af198a63",
+    "supersededImplementationBranch": "fix/v21-final-rc-post-boot-sync-import-p0",
+    "contaminatedCommits": [
+      "f8c65780c03c7b953babbcf677bdee7265fed266",
+      "c83813d48e1c829190acbf520f177be2341f73c4"
+    ],
+    "contaminationReason": "The branch's first implementation commit modified backend/migrations/legacySqliteMigrator.js instead of the authorized tests-only path. A second ordinary commit did not erase that historical violation. The entire predecessor implementation lineage is therefore ineligible for RED, GREEN, merge, release or UAT evidence.",
+    "mustRemainHistoricalEvidenceOnly": true,
+    "mayNotBeMerged": true,
+    "mayNotBeUsedAsSuccessorParent": true,
+    "historyRewriteAllowed": false
+  },
+  "frozenEvidence": {
+    "candidateCommit": "04c0d5d584491ca0d9e771ae2d71e436acc4ab1a",
+    "candidateTree": "2ff3e5b2479279bd4d7e5acb7f786eec51a89a59",
+    "candidateBranch": "release/v21-final-rc-uat-p0",
+    "uatEvidenceRoot": "C:\\Yance-UAT-04c0d5d5\\UAT-001-20260827T012533",
+    "isolatedDataRoot": "C:\\Yance-UAT-04c0d5d5\\UAT-001-20260827T012533\\data",
+    "liveSourceDbSha256": "387ae97e4c39533d0378a31528bcf5b3e586e46a4793203bb26057a82b3b44fc",
+    "isolatedDbSha256": "56a0a1dbcd73e755d9cf8a6b66cf7b54e66d8d40129ef77b9b4802e922dc1cc0",
+    "bootStartedAtUtc": "2026-08-26T18:27:13.194Z",
+    "outerFailureAtUtc": "2026-08-26T18:27:15.368Z",
+    "outerFailureCode": "BOOT_SERVER_IMPORT_FAILED",
+    "uatStatus": "FAIL_CLOSED",
+    "mustNotBeRelaunchedForDiagnosis": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "73514e6b760811149041a7976a97a9d91c775d17",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-post-boot-sync-import-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-post-boot-sync-import-p0-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "f7eb7787291b17d49a6d7be104cc7b6b006a59971d915700d6f3d0f99cdc5b35",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-rc-post-boot-sync-import-p0-successor-v2",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-final-rc-post-boot-sync-import-p0.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "71996b21cc8f7c5692e6adc16da164e93135dabb5a3d97943220cb8ca257b54f",
+    "productionScopeAuthorized": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-final-rc-post-boot-sync-import-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "71996b21cc8f7c5692e6adc16da164e93135dabb5a3d97943220cb8ca257b54f",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "A disposable existing-data fixture containing a Yance-owned migration-backups SQLite copy must prove that the legacy SQLite scanner currently rediscovers that backup as a fresh legacy source.",
+        "A legitimate legacy SQLite database outside excluded backup directories must remain discoverable, so disabling legacy scanning cannot satisfy the RED.",
+        "The RED must bind the scanner/fingerprint behavior to the synchronous startup.migrate boundary after backend-boot-started and before CommonJS server require returns."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true,
+      "newImplementationContinuationRequiredAfterAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Fresh trusted main equals the successor authorization ordinary merge.",
+      "The successor implementation branch is created from that clean merge and has no ancestry from the contaminated predecessor implementation branch.",
+      "Frozen live AppData and live DB are never opened or mutated by the test.",
+      "Diagnostic scope remains synchronous CommonJS evaluation after backend-boot-started and before backend/server.js returns from require.",
+      "server.listen callback and later asynchronous ready sequence cannot satisfy the causal RED.",
+      "The #862 PersonalAccess lazy credential-provider fix is preserved as a negative proof.",
+      "No Yance executable launch, clean-profile substitution, timeout extension, database reset, release/publish/ledger mutation, or false PASS print occurs."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "auditInventory": {
+    "buckets": [
+      {"id": "POSTBOOT-MIGRATE", "name": "legacy SQLite discovery/fingerprint and startup.migrate result", "classification": "CAUSAL_RED_CANDIDATE"},
+      {"id": "POSTBOOT-RECOVERY", "name": "durable/sync/background recovery plus canonical identity/cache commands", "classification": "CAUSAL_RED_CANDIDATE"},
+      {"id": "POSTBOOT-DATA", "name": "productionDataGuard, workspace pipelines, session restores and gateway seal", "classification": "CAUSAL_RED_CANDIDATE"},
+      {"id": "PRESERVE-862", "name": "PersonalAccess lazy credential-store provider fix", "classification": "PRESERVE"},
+      {"id": "NEGATIVE-ASYNC", "name": "server.listen callback and later asynchronous readiness sequence", "classification": "NEGATIVE_PROOF"},
+      {"id": "CONTAMINATED-PREDECESSOR", "name": "unauthorized predecessor implementation branch lineage", "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"},
+      {"id": "OUT", "name": "frozen live AppData, frozen packaged candidate, release, publish and ledger closure", "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"}
+    ]
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": ["ROOT_IMPLEMENTATION", "PRESERVE", "NEGATIVE_PROOF", "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"],
+    "requiredBoundaries": [
+      "legacy SQLite discovery and migration-backups exclusion",
+      "legacy SQLite fingerprint stability versus copied UAT roots",
+      "backend/server.js synchronous startup.migrate command",
+      "RuntimeAuthorityCommandGateway synchronous handler contract",
+      "PersonalAccess #862 negative-proof preservation",
+      "server.listen and asynchronous readiness exclusion",
+      "contaminated predecessor implementation lineage exclusion"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_STARTUP_AND_MIGRATION_TEST_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Node.js built-in test runner and node:sqlite",
+        "source": "existing repository runtime and WP0 harness",
+        "license": "repository-existing runtime",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Create a disposable SQLite fixture using the runtime already used by the product, then exercise the exported legacy scanner/fingerprint seams without adding dependencies or launching the packaged app."
+      },
+      {
+        "name": "Existing final-RC startup regression harnesses",
+        "source": "historical #859/#860/#862 WP0 tests and startup seams",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Preserve the existing failure-first packaged-startup regression family and #862 lazy PersonalAccess credential seam instead of creating a parallel startup authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not use or repair the contaminated predecessor implementation branch as valid evidence.",
+      "Do not add a database, migration, process-supervisor, timeout, tracing or fixture dependency.",
+      "Do not create a second startup/import authority or general-purpose diagnostics framework.",
+      "Do not use clean-profile startup, Yance.exe relaunch, async server.listen readiness or frozen live AppData as a substitute for the synchronous existing-data causal slice."
+    ]
+  },
+  "requiredValidation": {
+    "focusedAfterDiagnostic": [
+      "node --test --test-concurrency=1 tests/wp0/v21-final-rc-post-boot-sync-import-p0.test.js"
+    ],
+    "negativeProofs": [
+      "Frozen live AppData is not accessed or mutated.",
+      "A legitimate non-backup legacy SQLite source remains discoverable.",
+      "The RED cannot be satisfied by disabling the scanner, using an empty/clean profile, or relaunching Yance.exe.",
+      "The proven leaf is synchronous startup.migrate / legacy discovery-fingerprint behavior, not later async readiness.",
+      "No timeout, cleanup, migration bypass, dependency, workflow, release or publish change is introduced."
+    ],
+    "exactHeadCi": ["Stage", "Layered CI", "ACV2", "WP-A when routed", "WP-B when routed", "Model Brain Windows when routed", "Product Final when routed"],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
