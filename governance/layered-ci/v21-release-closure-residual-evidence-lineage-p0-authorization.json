@@ -151,6 +151,29 @@
     "No deltaRegressionAuditComplete=true before the final RC window exists.",
     "No fresh packaged Windows RC/UAT, release, promotion or publish authority."
   ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_RELEASE_LEDGER_AND_GIT_HISTORY_EVIDENCE_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance Release Closure Ledger and immutable Git/GitHub history",
+        "source": "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md + repository Git history + ordinary-merged historical pull requests + existing mandatory Stage/ACV2/Model evidence",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This work package only reconciles historical source/root-fix lineage into the existing release ledger. Existing Git history, merged pull-request provenance, and already-selected mandatory test evidence fully own the required evidence surface; no new evidence database, scanner, workflow engine, or generalized infrastructure is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a parallel evidence database, provenance service, scanner, workflow, or release-ledger implementation.",
+      "Do not fabricate historical RED by reverting production source solely to reproduce already-fixed defects.",
+      "Do not create fragmented per-finding infrastructure or fourteen separate reconciliation systems when one existing ledger seam can record the batch.",
+      "Do not start packaged RC/UAT or create a second release authority from this ledger-only evidence reconciliation."
+    ],
+    "thinYanceAdapterOnly": true
+  },
   "requiredValidation": {
     "exactHeadCi": [
       "Stage",
