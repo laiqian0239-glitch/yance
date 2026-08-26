@@ -34,6 +34,7 @@
     "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
     "authorizationProposalTransportIsNotImplementationAuthority": true,
     "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
     "ownerDelegatedContinuationAuthorizationCaptured": true
   },
   "digestCanonicalization": {
@@ -65,6 +66,11 @@
     "failureFirstCommit": {
       "mustBeFirstImplementationCommit": true,
       "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-final-rc-post-boot-sync-import-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "71996b21cc8f7c5692e6adc16da164e93135dabb5a3d97943220cb8ca257b54f",
       "productionCodeChanged": false,
       "firstHeadTrustedMainGuard": {
         "required": true,
@@ -73,19 +79,33 @@
       "fastClosureV2": {
         "enabled": true,
         "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
-      }
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "The isolated existing-data contract reaches backend-boot-started and exposes the first synchronous post-boot leaf before CommonJS server require returns.",
+        "The diagnostic reports an exact startup command or module-evaluation boundary instead of only BOOT_SERVER_IMPORT_FAILED.",
+        "Clean-profile startup, Yance.exe relaunch and asynchronous server.listen readiness cannot satisfy this contract."
+      ]
     },
     "diagnosticWindow": {
       "productionForbiddenUntilClosureAudit": true,
       "additionalTestsOnlyDiagnosticsAllowed": true,
       "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
       "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
-      "firstProductionCommitMustBindLatestDiagnosticRed": true
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
     },
     "postRedAmendment": {
       "allowed": true,
+      "reasonRequired": true,
       "freshCausalRedRequired": true,
       "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
       "requiresMergedSameWorkPackageAuthorizationAmendment": true,
       "newImplementationContinuationRequiredAfterAmendment": true
     },
