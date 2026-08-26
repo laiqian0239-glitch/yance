@@ -8,13 +8,17 @@ This document is the single authorized evidence marker for the fresh Final RC/UA
 
 - Repository: `laiqian0239-glitch/yance`
 - Authorization: PR #853
-- Effective authorization merge / candidate base: `245a053da6a2f05d0b45031ce028d79c6922c5b5`
+- Effective authorization merge / original candidate base: `245a053da6a2f05d0b45031ce028d79c6922c5b5`
+- Original marker head preserved in ancestry: `f38e0a421e72eae9e80865e270312cad8e7f5bf0`
+- Layered-route prerequisite authorization / implementation: PR #855 / PR #856
+- Trusted-main Layered-route prerequisite merge: `7c0a2f85ce74be6b2290cc35a0531f5d0391756e`
+- Forward reconciliation merge: `6580b14b2dd6da051f5b16437318ffd940ba88a7` with parents `f38e0a421e72eae9e80865e270312cad8e7f5bf0` + `7c0a2f85ce74be6b2290cc35a0531f5d0391756e`
 - Exact candidate branch: `release/v21-final-rc-uat-p0`
-- Authorized candidate change set relative to the authorization merge: exactly this file only
+- Authorized candidate change set relative to current trusted main: exactly this file only
 - Candidate source/runtime mutation: forbidden
 - Historical PR #538: historical evidence only; its branch, artifacts, and receipts are not final-RC evidence
 
-The exact candidate commit is the immutable PR head produced by this marker commit. Final Delta, CI, Product Final artifacts, packaged launch receipt, review, and merge evidence must all bind to that same exact head. Any later candidate-byte change invalidates prior final evidence and requires a fresh exact-head pass.
+The final candidate identity is the current immutable PR head after this recorded forward-only lineage. The document intentionally does not self-embed that head SHA because this marker commit itself advances the candidate. Final Delta, CI, Product Final artifacts, packaged launch receipt, review, and merge evidence must all bind to the repository-reported exact PR head. Any later candidate-byte or ancestry change invalidates prior final evidence and requires a fresh exact-head pass.
 
 ## Mandatory Final Delta
 
