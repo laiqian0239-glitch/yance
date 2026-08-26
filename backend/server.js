@@ -512,7 +512,9 @@ if (process.env.YANCE_WP4_CREDENTIAL_CUSTODY_PROBE === '1') {
     } catch (error) { next(error); }
   });
 }
-const personalAccessService = createPersonalAccessService();
+const personalAccessService = createPersonalAccessService({
+  credentialStoreProvider: () => getSecurityGuard().credentials
+});
 app.use('/api/r32/personal-access', createPersonalAccessRouter({ personalAccessService }));
 app.use(createPersonalAccessGuard({ personalAccessService }));
 app.use('/api/app/v2', createApiV2Router({ runtimeProvider: () => APP_RUNTIME }));
