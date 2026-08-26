@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-COVERAGE-COMPLETION-RECONCILIATION-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After tests-only successor #836 ordinary-merged from exact trusted main and supplied fresh mandatory exact-head PASS execution for all four executable coverage families, authorize one ledger-only reconciliation that consumes that evidence. The batch may set global mandatory executed-test coverage complete only if all fourteen target evidence rows are mechanically bound with unknownBlockers=0. Known Finding states remain independent and must not be promoted merely because coverage now executes. Final Delta, packaged Windows RC/UAT, release and publish remain later gates.",
+  "base": {
+    "branch": "main",
+    "commit": "5cba23903f9babdd2a325d7f1463f38e2abc5485",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "5cba23903f9babdd2a325d7f1463f38e2abc5485",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "predecessorCoverageEvidence": {
+    "globalCoverageReconciliationPullRequest": 832,
+    "globalExecutableCoverageAuthorizationPullRequest": 833,
+    "globalExecutableCoverageAuthorizationMerge": "e2a37cacd57af230cb10199bb7274871321d6096",
+    "frozenNonCausalPullRequest": 834,
+    "frozenNonCausalHead": "79719b2d05ec331204149340bfb2a237cf9e39e8",
+    "frozenStageRun": 32925018201,
+    "frozenWp0ProductJob": 98046100293,
+    "frozenMandatoryTests": 712,
+    "frozenMandatoryPass": 711,
+    "frozenMandatoryFail": 1,
+    "frozenClassification": "TEST_HARNESS_ASYNC_LIFETIME_DEFECT",
+    "frozenUnknownBlockers": 0,
+    "successorAuthorizationPullRequest": 835,
+    "successorAuthorizationMerge": "fa23f9d7e39f9b449295fcf2202dc93c0bd6614b",
+    "successorPullRequest": 836,
+    "successorExactHead": "3f2f1a84338d22e54a9adf818c4c3c1643370b3d",
+    "successorStageRun": 32926472778,
+    "successorWp0ProductJob": 98050383433,
+    "successorLayeredRun": 32926472835,
+    "successorAcv2Run": 32926472744,
+    "successorModelWindowsRun": 32926472830,
+    "successorWpAMainValidationRun": 32926472780,
+    "successorProductFinalRun": 32926472789,
+    "successorProductFinalConclusion": "skipped_by_correct_tests_only_routing",
+    "successorIndependentReviewP0": 0,
+    "successorIndependentReviewP1": 0,
+    "successorUnknownBlockers": 0,
+    "successorMerge": "5cba23903f9babdd2a325d7f1463f38e2abc5485",
+    "successorMergeFirstParent": "fa23f9d7e39f9b449295fcf2202dc93c0bd6614b",
+    "successorMergeSecondParent": "3f2f1a84338d22e54a9adf818c4c3c1643370b3d",
+    "mandatoryCoverageBlobs": {
+      "tests/wp0/v21-ai-release-critical-coverage.test.js": "a5124f0366283f409a3d6d4f92eef7ed7973543d",
+      "tests/wp0/v21-cross-platform-adapter-capability-coverage.test.js": "24010a845285f7b7b576fa68ce4ac0f671be0800",
+      "tests/wp0/v21-durable-execution-release-critical-coverage.test.js": "a99d95f222cf18eea8c9e26521f0cb78b5a6f1cd",
+      "tests/wp0/v21-safe-mode-write-boundary-coverage.test.js": "09020f2eaa67cfb9a91a380d6b6b96414bf0b8ce"
+    }
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-coverage-completion-reconciliation-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-closure-coverage-completion-reconciliation-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "579663ec2089f6e5c7469c46fed0ccd1a1c94e28854eef9e89b59496ba49de0b",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "docs/v21-release-closure-coverage-completion-reconciliation-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f5a5ea40aa811612913eb20a8d039f69161f875a62e260361e84f9dabc0010e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": false,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "ledgerModificationAllowed": true,
+    "releaseCandidateModificationAllowed": false
+  },
+  "coverageScope": {
+    "targetEvidenceRows": [
+      "KF-P0-03",
+      "KF-P0-04",
+      "KF-P0-17",
+      "KF-P0-18",
+      "KF-P0-23",
+      "KF-P0-26",
+      "KF-P0-27",
+      "KF-P0-28",
+      "KF-P0-29",
+      "KF-P0-30",
+      "KF-P0-31",
+      "KF-P1-01",
+      "KF-P1-06",
+      "KF-P1-07"
+    ],
+    "previouslyBoundRows": [
+      "KF-P0-03",
+      "KF-P0-04",
+      "KF-P0-17",
+      "KF-P0-18"
+    ],
+    "newlyExecutableCoverageRows": [
+      "KF-P0-23",
+      "KF-P0-26",
+      "KF-P0-27",
+      "KF-P0-28",
+      "KF-P0-29",
+      "KF-P0-30",
+      "KF-P0-31",
+      "KF-P1-01",
+      "KF-P1-06",
+      "KF-P1-07"
+    ],
+    "requiredChecklist": [
+      "Re-read the current ledger from the effective authorization merge and preserve every historical finding state, counter and prior coverage binding unless exact evidence requires a strictly coverage-only correction.",
+      "Mechanically bind all four previously covered target rows using the existing exact execution evidence already accepted by the prior global coverage reconciliation.",
+      "Mechanically bind KF-P0-23 and KF-P1-06 to the cross-platform adapter capability contract at #836 exact head and its successful mandatory wp0-product execution.",
+      "Mechanically bind KF-P0-26, KF-P0-27 and KF-P0-28 to the Durable Execution release-critical contract at #836 exact head and its successful mandatory wp0-product execution.",
+      "Mechanically bind KF-P0-29, KF-P0-30, KF-P0-31 and KF-P1-07 to the AI release-critical contract at #836 exact head and its successful mandatory wp0-product execution.",
+      "Mechanically bind KF-P1-01 to the Safe Mode write-boundary contract at #836 exact head and its successful mandatory wp0-product execution.",
+      "Confirm tools/wp0/run-tests.js automatically enumerates the four tests under the exact #836 head, and bind Stage run 32926472778 / wp0-product job 98050383433 as selected execution proof rather than relying on workflow GREEN alone.",
+      "Preserve the distinction between mandatory executed-test coverage and finding source/gate closure: do not promote any EVIDENCE_RECONCILIATION Known Finding solely because its current mandatory coverage now passes.",
+      "Set coverageGapPrerequisiteRows=0 and mandatoryExecutedTestCoverageComplete=true only if all fourteen target rows are mechanically classified and no release-critical executable coverage gap remains.",
+      "Reach coverageBatchUnknownBlockers=0 and preserve freshMainAuditV2Complete=true.",
+      "Keep deltaRegressionAuditComplete=false, freshPackagedWindowsRcPass=false, releaseLedgerClosed=false, releaseReady=false, formalReleaseAuthorized=false and publishAuthorized=false.",
+      "Do not start or claim a packaged Windows RC/UAT in this package."
+    ]
+  },
+  "completionSemantics": {
+    "mandatoryExecutedTestCoverageCompleteMayBecomeTrue": true,
+    "condition": "Every release-critical applicable contract is mechanically bound to selected exact-head PASS execution and all fourteen target evidence rows are classified with unknownBlockers=0.",
+    "knownFindingStatePromotionAllowedFromCoverageAlone": false,
+    "freshMainAuditV2CompleteMustRemain": true,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "freshPackagedWindowsRcPassMustRemain": false,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false
+  },
+  "forbiddenSemantics": [
+    "No production/runtime/test/workflow/dependency/routing/manifest/lockfile/packaging/release-binary mutation.",
+    "No promotion of an EVIDENCE_RECONCILIATION Known Finding merely because mandatory coverage now executes and passes.",
+    "No claim that file presence alone equals execution or that workflow GREEN alone proves a target contract executed.",
+    "No fabrication of historical RED evidence, source/gate closure, test identity, workflow/job identity, exact head, platform applicability or PASS status.",
+    "No fresh packaged Windows RC/UAT execution or candidate creation.",
+    "No mutation, reconciliation, close or merge action against frozen historical evidence PR #834."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_RUNNER_AND_RELEASE_LEDGER",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance mandatory WP0 runner and Release Closure Ledger",
+        "source": "tools/wp0/run-tests.js + Stage wp0-product + docs/uat/V21_RELEASE_CLOSURE_LEDGER.md",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The missing prerequisite was executable coverage itself, which #836 now supplies through existing node:test files automatically selected by the existing mandatory WP0 runner. The next action is only mechanical ledger reconciliation, so no new dependency, runner or evidence infrastructure is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add another coverage database, scanner, runner or workflow.",
+      "Do not split the ten newly covered rows into fragmented ledger PRs when one mechanically bounded reconciliation can close the global coverage gate.",
+      "Do not start final Delta or packaged RC work inside this ledger-only package."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "releaseFlags": {
+    "mandatoryExecutedTestCoverageCompleteMayAdvanceHere": true,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "freshPackagedWindowsRcPassMustRemain": false,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
