@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-RELEASE-CLOSURE-GLOBAL-EXECUTABLE-COVERAGE-PREREQUISITE-P0-SUCCESSOR-V2",
+  "workPackage": "V21-RELEASE-CLOSURE-EXECUTABLE-COVERAGE-SUCCESSOR-V2",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Successor for frozen non-causal #834. The exact tests-only head executed 712 mandatory WP0 tests with 711 pass and exactly one failure caused solely by the Durable test fixture closing its SQLite handle before an asynchronous ExternalActionDispatcher settlement completed. This successor preserves the three passing family contracts byte-for-byte and permits only the Durable fixture lifetime composition to defer cleanup until asynchronous work settles. It does not authorize production/source repair or weakening of any behavioral assertion.",
   "base": {
