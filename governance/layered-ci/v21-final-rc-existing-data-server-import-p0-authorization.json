@@ -1,1 +1,250 @@
-{"schemaVersion":1,"documentType":"YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION","requestedByUserAt":"2026-08-26T21:00:00+07:00","repository":"laiqian0239-glitch/yance","workPackage":"V21-FINAL-RC-EXISTING-DATA-SERVER-IMPORT-P0","proposalRevision":1,"status":"AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE","reason":"Fast Landing tests-only prerequisite for the fresh final RC real-Windows existing-data startup P0. Exact packaged head 375b99f7eb22c9631a804d793822345a4a0338ad and tree 8b2e82d9fdcb3e53861aa1616e92860c64cabe25 pass artifact, manifest, packaged executable, Element loader, bundled Node, child fork, runtime/SQLite initialization and startup.migrate, then fail at BOOT_SERVER_IMPORT_FAILED on an isolated diagnostic clone of the existing R32 projection. The diagnostic payload currently preserves only the phase-level reason and suppresses the inner import exception, so production remains forbidden. The first implementation commit is tests-only and must reverse-slice backend/server.js from the last known packaged PASS b5a0d2a23e6599ee4ceda07036b237e566e031f2, reproduce the existing-R32 packaged server-import failure without the frozen real AppData root, and expose the exact leaf cause. Historical PRs #537, #539/#540, #563, #582, #687 and #780-#783 remain evidence/PRESERVE inputs. No clean-profile, timeout, data deletion, release, publish or ledger bypass is authorized.","base":{"branch":"main","commit":"90f9c491050149bf4963ef635205f9e641d39e35","requiredFreshAtAuthorizationMerge":true},"effectiveness":{"effectiveBeforeMerge":false,"requiresOrdinaryTwoParentMainMerge":true,"requiredFirstParent":"90f9c491050149bf4963ef635205f9e641d39e35","requiredSecondParent":"AUTHORIZATION_EXACT_HEAD","implementationMayStartOnlyFromAuthorizationMergeCommit":true,"authorizationProposalTransportIsNotImplementationAuthority":true,"invalidIfTrustedMainMovesBeforeAuthorizationMerge":true,"explicitOwnerAuthorizationRequiredForMerge":false,"ownerDelegatedContinuationAuthorizationCaptured":true},"digestCanonicalization":{"algorithm":"SHA-256","encoding":"UTF-8","pathNormalization":"Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().","separator":"LF (\\n)","trailingNewline":true},"authorizationBranch":{"name":"governance/v21-final-rc-existing-data-server-import-p0-authorization","allowedChangedPaths":["governance/layered-ci/v21-final-rc-existing-data-server-import-p0-authorization.json"],"approvedChangedFileCount":1,"approvedChangedFileSetSha256":"9d7e5e7252a9d6c1d033e2ad60c7db62ada4e0aaf85637de4b2dbf54a6b0efd2","mustRemainSingleFile":true,"mustRemainCleanFromTrustedMain":true},"implementation":{"branch":"fix/v21-final-rc-existing-data-server-import-p0","requiredParent":"EFFECTIVE_AUTHORIZATION_MERGE","allowedChangedPaths":["tests/wp0/v21-final-rc-existing-data-server-import-p0.test.js"],"approvedChangedFileCount":1,"approvedChangedFileSetSha256":"bcbb0ed29bed81b1e54e5a6f893dcc39a5c83d48019ed3d60470f3e31fee3c06","productionScopeAuthorized":false,"failureFirstCommit":{"mustBeFirstImplementationCommit":true,"freshCausalRedRequired":true,"allowedChangedPaths":["tests/wp0/v21-final-rc-existing-data-server-import-p0.test.js"],"approvedChangedFileCount":1,"approvedChangedFileSetSha256":"bcbb0ed29bed81b1e54e5a6f893dcc39a5c83d48019ed3d60470f3e31fee3c06","productionCodeChanged":false,"firstHeadTrustedMainGuard":{"required":true,"trustedMainMustEqualAuthorizationMerge":true},"fastClosureV2":{"enabled":true,"requiredClosureTrailer":"Yance-Closure-Matrix-Unknown-Blockers: 0"},"requiredPostRedEvidenceTrailers":["Yance-Failure-First-Red-Head: <exact 40-hex RED head>","Yance-Failure-First-Red-Run: <exact failing Stage run id>","Yance-Failure-First-Red-Conclusion: failure","Yance-Closure-Matrix-Unknown-Blockers: 0"],"expectedFailures":["An existing-R32 projection that passed the #582 packaged baseline fails current backend/server.js synchronous import after startup.migrate.","The diagnostic identifies the first exact module-evaluation leaf rather than only BOOT_SERVER_IMPORT_FAILED.","Clean-profile packaged startup success cannot satisfy this contract."]},"diagnosticWindow":{"productionForbiddenUntilClosureAudit":true,"additionalTestsOnlyDiagnosticsAllowed":true,"eachDiagnosticRequiresFreshExactHeadCausalRed":true,"diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths":true,"firstProductionCommitMustBindLatestDiagnosticRed":true,"fixedPostRedOrdinalForbidden":true},"postRedAmendment":{"allowed":true,"reasonRequired":true,"freshCausalRedRequired":true,"mayOnlyAddPathsProvenNecessaryByFreshRed":true,"mustUpdatePathDigestBeforeImplementationUsesAddedPath":true,"requiresMergedSameWorkPackageAuthorizationAmendment":true,"newImplementationContinuationRequiredAfterAmendment":true},"newDependencyAllowed":false,"workflowModificationAllowed":false,"routingPolicyModificationAllowed":false,"databaseMigrationAllowed":false,"packageManifestModificationAllowed":false,"lockfileModificationAllowed":false,"newGeneralPurposeYanceInfrastructureAllowed":false,"gateOrScannerWeakeningAllowed":false,"forcePushAllowed":false,"historyRewriteAllowed":false},"preImplementationPreflight":{"required":true,"mustRunBeforeFirstTestsOnlyDiagnosticCommit":true,"requiredProofs":["Fresh trusted main and authorization topology are exact.","Frozen real AppData and real DB are never opened by the test; a fixture or byte-for-byte disposable clone is used.","The reverse import graph covers backend/server.js, its synchronous stateful imports, personal-access graph, store/repository acquisition, SecurityGuard binding, packaged dependency presence and existing-R32 data-dependent module evaluation.","Historical packaged fixes #537, #539/#540 and #563 plus #582 PASS are preserved as regression families.","No Yance executable launch, clean-profile substitution, timeout extension, database reset or release/publish mutation occurs."],"failureMode":"FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"},"auditInventory":{"buckets":[{"id":"RC-IMPORT-ROOT","name":"existing-R32 packaged server import leaf","classification":"CAUSAL_RED_CANDIDATE"},{"id":"RC-PERSONAL-ACCESS","name":"personal access import and SecurityGuard/store acquisition graph","classification":"CAUSAL_RED_CANDIDATE"},{"id":"RC-PRESERVE-537","name":"deferred SQLite role guard","classification":"PRESERVE"},{"id":"RC-PRESERVE-539-563","name":"packaged governance and runtime dependency closure","classification":"PRESERVE"},{"id":"RC-PRESERVE-582","name":"last known packaged PASS","classification":"PRESERVE"},{"id":"RC-OUT","name":"frozen real AppData, historical PRs, release, publish and ledger closure","classification":"OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"}]},"closureMatrixBeforeProduction":{"required":true,"unknownBlockersMustEqual":0,"classifications":["ROOT_IMPLEMENTATION","PRESERVE","NEGATIVE_PROOF","OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"],"requiredBoundaries":["backend/server.js synchronous startup/import callgraph","backend/middleware/personalAccessGuard.js","backend/routes/personalAccess.js","backend/services/personalAccessService.js","SecurityGuard policy-provider and credential-store binding","SqliteDocumentStore/store-provider acquisition boundaries","packaged runtime dependency and source-only governance requires","existing-R32 fixture startup/import regression","historical #537/#539/#563/#582 regression preservation"]},"requiredValidation":{"focusedAfterDiagnostic":["node --test tests/wp0/v21-final-rc-existing-data-server-import-p0.test.js"],"negativeProofs":["Frozen real AppData is not accessed or mutated.","The causal RED is data-bearing and cannot pass by using an empty profile.","The first import leaf is reported with exact module/call boundary.","No timeout, cleanup, migration bypass, dependency, workflow, release or publish change is introduced."],"exactHeadCi":["Stage","Layered CI","ACV2","WP-A when routed","WP-B when routed","Model Brain Windows when routed","Product Final when routed"],"independentReview":{"required":true,"exactHeadRequired":true,"blockingSeverities":["P0","P1"],"requiredZeroBlockingFindings":true}},"mergePolicy":{"authorizationMerge":"ORDINARY_TWO_PARENT_MERGE_ONLY","implementationMerge":"ORDINARY_TWO_PARENT_MERGE_ONLY","forcePushAllowed":false,"squashMergeAllowed":false,"rebaseMergeAllowed":false,"exactHeadGreenRequired":true,"freshMainAntiDriftRequired":true},"governance":{"authorizationPredatesImplementation":true,"exactPathScopeOnly":true,"independentBranchAndPullRequestRequired":true,"productionUseAuthorized":false,"formalReleaseAuthorized":false,"publishAuthorized":false,"readyForPromotionAuthorized":false,"automaticNextWorkPackageAuthorizationAuthorized":false}}
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T21:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-EXISTING-DATA-SERVER-IMPORT-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing tests-only prerequisite for the fresh final RC real-Windows existing-data startup P0. Exact packaged head 375b99f7eb22c9631a804d793822345a4a0338ad and tree 8b2e82d9fdcb3e53861aa1616e92860c64cabe25 pass artifact, manifest, packaged executable, Element loader, bundled Node, child fork, runtime/SQLite initialization and startup.migrate, then fail at BOOT_SERVER_IMPORT_FAILED on an isolated diagnostic clone of the existing R32 projection. The diagnostic payload currently preserves only the phase-level reason and suppresses the inner import exception, so production remains forbidden. The first implementation commit is tests-only and must reverse-slice backend/server.js from the last known packaged PASS b5a0d2a23e6599ee4ceda07036b237e566e031f2, reproduce the existing-R32 packaged server-import failure without the frozen real AppData root, and expose the exact leaf cause. Historical PRs #537, #539/#540, #563, #582, #687 and #780-#783 remain evidence/PRESERVE inputs. No clean-profile, timeout, data deletion, release, publish or ledger bypass is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "90f9c491050149bf4963ef635205f9e641d39e35",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "90f9c491050149bf4963ef635205f9e641d39e35",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-existing-data-server-import-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-existing-data-server-import-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9d7e5e7252a9d6c1d033e2ad60c7db62ada4e0aaf85637de4b2dbf54a6b0efd2",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-rc-existing-data-server-import-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-final-rc-existing-data-server-import-p0.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "bcbb0ed29bed81b1e54e5a6f893dcc39a5c83d48019ed3d60470f3e31fee3c06",
+    "productionScopeAuthorized": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-final-rc-existing-data-server-import-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "bcbb0ed29bed81b1e54e5a6f893dcc39a5c83d48019ed3d60470f3e31fee3c06",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailures": [
+        "An existing-R32 projection that passed the #582 packaged baseline fails current backend/server.js synchronous import after startup.migrate.",
+        "The diagnostic identifies the first exact module-evaluation leaf rather than only BOOT_SERVER_IMPORT_FAILED.",
+        "Clean-profile packaged startup success cannot satisfy this contract."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "reasonRequired": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "mustUpdatePathDigestBeforeImplementationUsesAddedPath": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true,
+      "newImplementationContinuationRequiredAfterAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Fresh trusted main and authorization topology are exact.",
+      "Frozen real AppData and real DB are never opened by the test; a fixture or byte-for-byte disposable clone is used.",
+      "The reverse import graph covers backend/server.js, its synchronous stateful imports, personal-access graph, store/repository acquisition, SecurityGuard binding, packaged dependency presence and existing-R32 data-dependent module evaluation.",
+      "Historical packaged fixes #537, #539/#540 and #563 plus #582 PASS are preserved as regression families.",
+      "No Yance executable launch, clean-profile substitution, timeout extension, database reset or release/publish mutation occurs."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "auditInventory": {
+    "buckets": [
+      {
+        "id": "RC-IMPORT-ROOT",
+        "name": "existing-R32 packaged server import leaf",
+        "classification": "CAUSAL_RED_CANDIDATE"
+      },
+      {
+        "id": "RC-PERSONAL-ACCESS",
+        "name": "personal access import and SecurityGuard/store acquisition graph",
+        "classification": "CAUSAL_RED_CANDIDATE"
+      },
+      {
+        "id": "RC-PRESERVE-537",
+        "name": "deferred SQLite role guard",
+        "classification": "PRESERVE"
+      },
+      {
+        "id": "RC-PRESERVE-539-563",
+        "name": "packaged governance and runtime dependency closure",
+        "classification": "PRESERVE"
+      },
+      {
+        "id": "RC-PRESERVE-582",
+        "name": "last known packaged PASS",
+        "classification": "PRESERVE"
+      },
+      {
+        "id": "RC-OUT",
+        "name": "frozen real AppData, historical PRs, release, publish and ledger closure",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+      }
+    ]
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": [
+      "ROOT_IMPLEMENTATION",
+      "PRESERVE",
+      "NEGATIVE_PROOF",
+      "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"
+    ],
+    "requiredBoundaries": [
+      "backend/server.js synchronous startup/import callgraph",
+      "backend/middleware/personalAccessGuard.js",
+      "backend/routes/personalAccess.js",
+      "backend/services/personalAccessService.js",
+      "SecurityGuard policy-provider and credential-store binding",
+      "SqliteDocumentStore/store-provider acquisition boundaries",
+      "packaged runtime dependency and source-only governance requires",
+      "existing-R32 fixture startup/import regression",
+      "historical #537/#539/#563/#582 regression preservation"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_STARTUP_AND_FIXTURE_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Node.js built-in test runner and node:sqlite",
+        "source": "existing repository runtime and WP0 harness",
+        "license": "repository-existing runtime",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Use the mandatory built-in test runner, disposable fixture data, current startup seams and read-only SQLite inspection; no new package is needed."
+      },
+      {
+        "name": "Existing packaged-startup regression harnesses",
+        "source": "historical #537/#539/#563/#582 tests and tools",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Extend the existing regression family instead of creating a second startup framework."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a database, migration, process-supervisor, timeout or fixture dependency.",
+      "Do not create a second startup/import authority or diagnostics framework.",
+      "Do not use clean-profile startup as a substitute for the existing-R32 regression."
+    ]
+  },
+  "requiredValidation": {
+    "focusedAfterDiagnostic": [
+      "node --test tests/wp0/v21-final-rc-existing-data-server-import-p0.test.js"
+    ],
+    "negativeProofs": [
+      "Frozen real AppData is not accessed or mutated.",
+      "The causal RED is data-bearing and cannot pass by using an empty profile.",
+      "The first import leaf is reported with exact module/call boundary.",
+      "No timeout, cleanup, migration bypass, dependency, workflow, release or publish change is introduced."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2",
+      "WP-A when routed",
+      "WP-B when routed",
+      "Model Brain Windows when routed",
+      "Product Final when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
