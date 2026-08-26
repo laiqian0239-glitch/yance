@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-27T01:38:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-POST-BOOT-SYNC-IMPORT-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing tests-only prerequisite for the fresh final RC real-Windows existing-data startup P0. Exact packaged candidate 04c0d5d584491ca0d9e771ae2d71e436acc4ab1a / tree 2ff3e5b2479279bd4d7e5acb7f786eec51a89a59 passes packaged identity, bundled Node preflight and child fork. The isolated existing-data run records backend-boot-started at 2026-08-26T18:27:13.194Z and then BOOT_SERVER_IMPORT_FAILED at 2026-08-26T18:27:15.368Z before backend-boot-ready. Fresh parent evidence does not expose the inner synchronous exception, stackHash, causeCodeHash or runtimeSubphase. The PersonalAccess constructor root fixed by #862 is preserved and must not be presumed to have recurred. This authorization permits one new WP0 tests-only reverse-slice/replay diagnostic to expose the exact synchronous leaf after backend-boot-started without launching Yance.exe or opening/mutating frozen live AppData. Production remains forbidden until fresh exact-head causal RED, complete closure matrix, unknownBlockers=0, and a separately merged production-scope amendment.",
+  "base": {
+    "branch": "main",
+    "commit": "a3f9488d3669a83c746988f738996f45f88688e7",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "frozenEvidence": {
+    "candidateCommit": "04c0d5d584491ca0d9e771ae2d71e436acc4ab1a",
+    "candidateTree": "2ff3e5b2479279bd4d7e5acb7f786eec51a89a59",
+    "candidateBranch": "release/v21-final-rc-uat-p0",
+    "uatEvidenceRoot": "C:\\Yance-UAT-04c0d5d5\\UAT-001-20260827T012533",
+    "isolatedDataRoot": "C:\\Yance-UAT-04c0d5d5\\UAT-001-20260827T012533\\data",
+    "liveSourceDbSha256": "387ae97e4c39533d0378a31528bcf5b3e586e46a4793203bb26057a82b3b44fc",
+    "isolatedDbSha256": "56a0a1dbcd73e755d9cf8a6b66cf7b54e66d8d40129ef77b9b4802e922dc1cc0",
+    "bootStartedAtUtc": "2026-08-26T18:27:13.194Z",
+    "outerFailureAtUtc": "2026-08-26T18:27:15.368Z",
+    "outerFailureCode": "BOOT_SERVER_IMPORT_FAILED",
+    "uatStatus": "FAIL_CLOSED",
+    "mustNotBeRelaunchedForDiagnosis": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "a3f9488d3669a83c746988f738996f45f88688e7",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-post-boot-sync-import-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-post-boot-sync-import-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c0c5bbde1991e43fed0660e2568da6e4d2ddea92c25a0e7f4a5c944ab06474d7",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-rc-post-boot-sync-import-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-final-rc-post-boot-sync-import-p0.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "71996b21cc8f7c5692e6adc16da164e93135dabb5a3d97943220cb8ca257b54f",
+    "productionScopeAuthorized": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      }
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true
+    },
+    "postRedAmendment": {
+      "allowed": true,
+      "freshCausalRedRequired": true,
+      "mayOnlyAddPathsProvenNecessaryByFreshRed": true,
+      "requiresMergedSameWorkPackageAuthorizationAmendment": true,
+      "newImplementationContinuationRequiredAfterAmendment": true
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "preImplementationPreflight": {
+    "required": true,
+    "mustRunBeforeFirstTestsOnlyDiagnosticCommit": true,
+    "requiredProofs": [
+      "Fresh trusted main and authorization topology are exact.",
+      "Frozen live AppData and live DB are never opened or mutated by the test.",
+      "Diagnostic scope is synchronous CommonJS evaluation after backend-boot-started and before backend/server.js returns from require.",
+      "server.listen callback and later asynchronous ready sequence cannot satisfy the causal RED.",
+      "The #862 PersonalAccess lazy credential-provider fix is preserved as a negative proof.",
+      "No Yance executable launch, clean-profile substitution, timeout extension, database reset, release/publish/ledger mutation, or false PASS print occurs."
+    ],
+    "failureMode": "FAIL_CLOSED_AND_STOP_BEFORE_DIAGNOSTIC"
+  },
+  "auditInventory": {
+    "buckets": [
+      {"id": "POSTBOOT-MIGRATE", "name": "startup.migrate result and immediate fail-closed throw", "classification": "CAUSAL_RED_CANDIDATE"},
+      {"id": "POSTBOOT-RECOVERY", "name": "durable/sync/background recovery plus canonical identity/cache commands", "classification": "CAUSAL_RED_CANDIDATE"},
+      {"id": "POSTBOOT-DATA", "name": "productionDataGuard, workspace pipelines, session restores and gateway seal", "classification": "CAUSAL_RED_CANDIDATE"},
+      {"id": "POSTBOOT-MODULES", "name": "stateful top-level imports and synchronous registration side effects before require returns", "classification": "CAUSAL_RED_CANDIDATE"},
+      {"id": "PRESERVE-862", "name": "PersonalAccess lazy credential-store provider fix", "classification": "PRESERVE"},
+      {"id": "NEGATIVE-ASYNC", "name": "server.listen callback and later asynchronous readiness sequence", "classification": "NEGATIVE_PROOF"},
+      {"id": "OUT", "name": "frozen live AppData, frozen packaged candidate, release, publish and ledger closure", "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"}
+    ]
+  },
+  "closureMatrixBeforeProduction": {
+    "required": true,
+    "unknownBlockersMustEqual": 0,
+    "classifications": ["ROOT_IMPLEMENTATION", "PRESERVE", "NEGATIVE_PROOF", "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE"],
+    "requiredBoundaries": [
+      "backend/server.js synchronous post-backend-boot-started startup commands",
+      "RuntimeAuthorityCommandGateway synchronous handler contract",
+      "durable execution recovery and existing-data state",
+      "sync/background recovery, canonical identity, cache purge, production data guard and workspace pipeline initialization",
+      "stateful module-evaluation side effects before server.js require returns",
+      "PersonalAccess #862 negative-proof preservation",
+      "server.listen and asynchronous readiness exclusion"
+    ]
+  },
+  "requiredValidation": {
+    "focusedAfterDiagnostic": [
+      "node --test --test-concurrency=1 tests/wp0/v21-final-rc-post-boot-sync-import-p0.test.js"
+    ],
+    "negativeProofs": [
+      "Frozen live AppData is not accessed or mutated.",
+      "The RED cannot be satisfied by an empty or clean profile.",
+      "The first synchronous post-boot leaf is reported with exact command/module boundary and reason code or deterministic equivalent.",
+      "No timeout, cleanup, migration bypass, dependency, workflow, release or publish change is introduced."
+    ],
+    "exactHeadCi": ["Stage", "Layered CI", "ACV2", "WP-A when routed", "WP-B when routed", "Model Brain Windows when routed", "Product Final when routed"],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
