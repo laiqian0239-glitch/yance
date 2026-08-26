@@ -188,6 +188,7 @@
     "productionUseAuthorized": false,
     "formalReleaseAuthorized": false,
     "publishAuthorized": false,
-    "readyForPromotionAuthorized": false
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
