@@ -50,7 +50,7 @@ Delta Regression historical baseline: `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0`
 
 Known Findings source: 2026-08-20 comprehensive feature review (historical audit baseline).
 
-This ledger intentionally distinguishes source/gate closure from final packaged-RC closure. Because a new fresh-main final RC has not yet passed, **no Known Finding is finally `CLOSED` yet**.
+This ledger intentionally distinguishes source/gate closure from final packaged-RC closure. Because a new fresh-main final RC has not yet passed, **no Known Finding is finally `CLOSED` yet**. A strictly evidenced `VERIFIED_NON_DEFECT` row is terminally dispositioned without becoming `CLOSED`; it records that the immutable historical finding does not correspond to a remaining actionable defect and therefore has no per-finding packaged obligation.
 
 ## 1. Status vocabulary
 
@@ -59,9 +59,10 @@ This ledger intentionally distinguishes source/gate closure from final packaged-
 - `EVIDENCE_RECONCILIATION` — related historical source work exists, but this exact finding's RED → fix → executed-gate chain still needs mechanical mapping.
 - `SOURCE_GATE_CLOSED_RC_PENDING` — production/source fix is merged and exact-head mandatory gate evidence has been verified; final fresh-main packaged RC evidence is still mandatory.
 - `PACKAGED_RC_PASS` — fresh final RC evidence passes for this finding, but final ledger audit is not yet complete.
-- `CLOSED` — full finding → causal RED → root fix → executed mandatory test → exact-head GREEN → packaged/UAT chain is complete, or packaged evidence is explicitly proven non-applicable.
+- `CLOSED` — full finding → causal RED → root fix → executed mandatory test → exact-head GREEN → packaged/UAT chain is complete, or packaged evidence is explicitly proven non-applicable for a real finding/control under the governing program.
+- `VERIFIED_NON_DEFECT` — terminal explicit Known Findings V1 disposition proving, under immutable baseline/history, current mandatory execution, Fresh-main Audit V2, Delta classification, independent review and `unknownBlockers=0`, that the imported finding does not correspond to a remaining actionable defect. It is not a source fix, causal RED, risk acceptance, or substitute for packaged evidence on a real defect. The immutable finding ID/text must remain unchanged and the ledger must state why per-finding packaged evidence is non-applicable.
 
-Any status other than `CLOSED` counts as unresolved for final release authorization.
+`SOURCE_GATE_CLOSED_RC_PENDING` and `PACKAGED_RC_PASS` remain unresolved until their real-defect RC chain reaches `CLOSED`. A valid `VERIFIED_NON_DEFECT` row is terminally resolved and is not counted as final-open P0/P1; it grants no RC/UAT, release, promotion, or publish authority. Any recoverable or fresh executable defect, incomplete mandatory execution, applicable unclassified Delta P0/P1, contradictory evidence, or `unknownBlockers != 0` disqualifies `VERIFIED_NON_DEFECT` and returns the row to fail-closed reconciliation / a separately authorized causal prerequisite.
 
 ### 2026-08-25 post-Facebook mechanical reconciliation checkpoint
 
@@ -163,7 +164,7 @@ No fresh source scan found another executable production root in this evidence b
 | KF-P0-15 | Identity / Person Context | 再次 `observe` 可静默重新激活已 detached scope binding | SOURCE_GATE_CLOSED_RC_PENDING | #542 explicitly rejects detached-link silent re-observe and adds regression coverage. Final packaged flow pending. |
 | KF-P0-16 | Identity / Person Context | `PersonContextAuthority` 读端不校验 identity_link detached/disputed 状态 | SOURCE_GATE_CLOSED_RC_PENDING | #542 requires usable identity-link status and exact conversation-binding match before context reads. Final packaged flow pending. |
 | KF-P0-17 | Store truth source | Backend `customers.currentId` 与前端 active contact 双轨无显式同步 | SOURCE_GATE_CLOSED_RC_PENDING | Historical generic Store writers demonstrate the split directly: before the single-writer closure, `SYNC_CUSTOMER_CONTEXT` could set `customers.currentId=contactId` when empty, and archive handling could guess `activeIds[0]` as the next active customer independently of exact conversation selection. #545 head `23af13ccc0e43cf0cf0c0cebcafc60f7db8bf14e` introduces exact `SET_ACTIVE_CONVERSATION` and mirrors `conversations.currentId` + `customers.currentId` together as ephemeral canonical Store state, ordinary-merging as `1b09b99589340b17f1e028e3a0a46e7820a03819`; #547 head `6899976c7c752869b157279260bfdaa4632095a8` removes generic-writer selection guesses and ordinary-merges as `604946375fa2dd8ef59957b11f3b73e86fea2e53`. #831 selected `active-selection-runtime-mirror.test.js` blob `39bd3031…`, Stage `32912734006` / job `98010046301`, executes mirror/clear/notification exact-session authority PASS. Final fresh packaged wrong-target/selection evidence remains mandatory. |
-| KF-P0-18 | Store truth source | `SYNC_CUSTOMER_CONTEXT` 对 `conversations.byContactId` 只 push 不去重 | EVIDENCE_RECONCILIATION | Retained fail-closed after exact historical inspection: both initial imported source `570823e722f6db475066d6ef80ba900ac5c6cb39` and the immutable 2026-08-20 audit baseline `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0` already guard `byContactId` with `includes(conversationId)` before `push`. #547 explicitly preserves existing dedupe behavior rather than introducing a finding-specific root fix. #831 blob `39bd3031…` executes repeated-sync dedupe PASS, but coverage/current shape cannot reconstruct a missing pre-fix or RED lineage. Required prerequisite remains an exact repository snapshot or credible finding-specific RED that mechanically exhibits the alleged push-only defect; none is currently recovered. |
+| KF-P0-18 | Store truth source | `SYNC_CUSTOMER_CONTEXT` 对 `conversations.byContactId` 只 push 不去重 | VERIFIED_NON_DEFECT | `BASELINE_CONTRADICTS_DEFECT_PREMISE`. The immutable finding text is preserved, but initial imported source `570823e722f6db475066d6ef80ba900ac5c6cb39` and audit baseline `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0` both already guard `byContactId` with `includes(conversationId)` before `push`; #547 preserves rather than introduces dedupe. #831 selected blob `39bd303145024bbbc0cf8ad32cdc0a296a15a99f`, Stage `32912734006` / job `98010046301`, executes repeated-sync dedupe PASS. #842/#845 exhaust historical lineage and #845 pre-RC Delta finds no contradictory executable root with `unknownBlockers=0`. Per-finding packaged evidence is N/A because the asserted push-only defect is absent at the immutable baseline; the global final Windows RC/UAT remains mandatory for the product. |
 | KF-P0-19 | WhatsApp | `stop()` 后旧 socket 事件仍可能进入 handler，代际隔离不完整 | SOURCE_GATE_CLOSED_RC_PENDING | Frozen #800 exact head `d8833aad6f3a098ddde1ba231e30782536b70130` and immutable blob `c5e8adb2759ca845e5a44eebc377948bbef4a953` produced Stage `32833803435` / job `97758162718`, 685 mandatory WP0 tests / 683 pass / exactly two custody failures, `unknownBlockers=0`. #801 ordinary-merged production authorization as `626d5e20…`; continuation `3d9e38d5…` preserves the frozen RED. #802 exact head `1c72ee98…` keeps the same RED blob and passes Stage `32845544408` / job `97794318087`, Layered `32845544838`, ACV2 `32845544340`, WP-A `32845544513`, Model `32845544394`; Product Final is correctly skipped. Autonomous exact-head review is P0=0/P1=0, and #802 ordinary-merges as `682cdce5…`. Final packaged WhatsApp stop/restart/credential-persistence evidence remains mandatory. |
 | KF-P0-20 | WhatsApp | 平台接受后本地持久化失败仅返回 `localPersistenceRepair`，修复消费链未闭环 | SOURCE_GATE_CLOSED_RC_PENDING | Frozen #812 head `d03a37347966d9931224e4681a0233efd0696277`, immutable blob `78d5a3f996a22e87227fe7d987a09f69c402ba22`, Stage `32869936201` / job `97874553963`: 695 mandatory WP0 / 694 pass / exactly one finding-specific failure, dedicated file 3 subtests / 2 pass / 1 fail, `unknownBlockers=0`. #813 production authorization ordinary-merges as `a19ff971…`. #814 exact head `fe57672d…` retains the immutable finding-specific contract and passes mandatory Stage `32871718250` / `wp0-product` `97880159827`; `Run WP0 required tests` executes `npm run test:wp0` → `tools/wp0/run-tests.js`, whose exhaustive isolated enumeration makes the successful owner step exact execution/PASS proof. Autonomous exact-head review is P0=0/P1=0, and #814 ordinary-merges as `e498acaf…`. Final fresh packaged WhatsApp local-repair evidence remains mandatory. |
 | KF-P0-21 | WhatsApp | 物理 egress 错误码/HTTP status 不统一 | SOURCE_GATE_CLOSED_RC_PENDING | #647 immutable RED `c6cd39ca…`, Stage RED `32570813989`, `unknownBlockers=0`; #649 source head `f10a2785…` merged as `c6e1e7d8…`, structures disconnected/local/provider egress errors. Final packaged egress evidence pending. |
@@ -174,18 +175,19 @@ No fresh source scan found another executable production root in this evidence b
 | KF-P0-26 | Durable Execution | M2 heartbeat/succeed/fail/waitRemote/cancel/retry/deadLetter 等关键操作未实现 | SOURCE_GATE_CLOSED_RC_PENDING | Historical #17 records the credible M2 dual-platform RED: run `30837837145`, Ubuntu `91767246534` and Windows `91767246437`, both 0/26 expected contract failures with identical contract set and no infrastructure/leak mismatch. The ordinary-merged #17 lineage then defines fail-closed lifecycle events/states in `c51627041bb5e229bbb0381e79c4bc8e4375ce64`, canonical Schema-23 internal-operation authority in `57f32edca281c4467f1151077915f786c9153249`, and later owns heartbeat/retry/dead-letter lifecycle in Schema 23. The selected #836 durable contract blob `a99d95f222cf18eea8c9e26521f0cb78b5a6f1cd` executes heartbeat, succeed, fail, waitRemote, cancel, retry and deadLetter under the current authority; Stage `32926472778` / job `98050383433` PASS. Final packaged durable-operation lifecycle evidence remains mandatory. |
 | KF-P0-27 | Durable Execution | `appendV2Event MAX(sequence)+1` 再 INSERT 存在并发 sequence 完整性风险 | SOURCE_GATE_CLOSED_RC_PENDING | Exact pre-fix parent `15a0e922525abc595c19969374b1e2b06264924d` performs transition CAS, then computes `MAX(sequence)+1`, then executes an unconditional event INSERT. Exact root commit `973f8f7b5b1fab5b11f82d7dcb26e3bc0071f7ab` changes the history/state mutation into one predicate-complete transaction: event insertion is an `INSERT … SELECT` fenced by state/state-version/generation/owner/claim/host-generation/fencing/lease/current Host authority and must affect exactly one row or throw `WP_B_EXECUTION_CAS_REJECTED`, followed by the state CAS in the same transaction. Current root transaction uses `BEGIN IMMEDIATE`. #836 selected durable blob `a99d95f…` executes competing-writer sequence integrity under this authority, Stage `32926472778` / job `98050383433` PASS. Final packaged concurrency evidence remains mandatory. |
 | KF-P0-28 | Durable Execution | 长任务无 heartbeat 导致 lease 过期后终态操作被拒 | SOURCE_GATE_CLOSED_RC_PENDING | The historical durable lineage contains an explicit lease/retry contract: `df83ab20b0b51c2325b31e5842dfe6f440a39a82` requires a running internal operation heartbeat to extend `leaseExpiresAt`, preserve RUNNING state and then support retry lifecycle; production root `fe76e319de9d8033ceaf764debf5a31342f3d66b` adds Schema-23 `heartbeat()` that increments heartbeat sequence and extends `lease_expires_at` only under exact state-version/generation/claim/Host fencing and active lease, plus owned retry/dead-letter transitions. That root is in the ordinary-merged WP-B lineage. #836 selected durable blob `a99d95f…` executes a long-running operation whose heartbeat extends lease validity through terminalization, Stage `32926472778` / job `98050383433` PASS. Final packaged long-running-operation evidence remains mandatory. |
-| KF-P0-29 | AI Core | `aiGateway.submit` 在 `authority.start` 前失败可能让 durable operation 滞留 SCHEDULED | EVIDENCE_RECONCILIATION | Retained fail-closed. At immutable audit baseline `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0`, `aiGateway.submit` already persists SCHEDULED before queue admission and its queue-promise failure handler checks for a still-SCHEDULED durable operation, calls `authority.start()`, then `authority.cancel()` to terminalize it. Earlier p-queue work has RED `ba46d434b3527990eb0032eee9ee419a404aad04` / run `32012968447`, but the exact mapping from that RED/root to this immutable 8/20 stranded-SCHEDULED wording is not mechanically recovered. #839 blob `91933a11…` executes the desired terminalization PASS, but tests-only coverage is not a historical root fix. Required prerequisite: exact pre-fix source or finding-specific RED/root lineage for the stranded-SCHEDULED defect. |
-| KF-P0-30 | AI Core | `aiBrainOrchestrator` cancel 与 succeed 存在终态竞态，缺 generation/fencing 一致性 | EVIDENCE_RECONCILIATION | Retained fail-closed. #839 final blob `91933a11f27ce85bf6e900bf99afb109ff16d6f9` executes real Schema-23 cancel-first/succeed-late and succeed-first/cancel-late exclusivity under captured generation, object fingerprint and active Host fencing at exact head `7820cc2cf9143df14979b1c8e1d0412c7b269562`, Stage `32931082385` / job `98063384263` PASS. However no exact historical pre-fix `aiBrainOrchestrator` race or finding-specific RED→root-fix commit has been mechanically recovered. Required prerequisite is that historical root lineage; coverage alone does not promote the row. |
-| KF-P0-31 | AI Core | `contextAwareReplyBrain` / `aiGateway` / turn coordinator stale/superseded 语义不对齐 | EVIDENCE_RECONCILIATION | Retained fail-closed. #839 final blob `91933a11…` executes stale inbound-turn invalidation plus runtime/Gateway fencing/superseded semantics across the named boundaries, Stage `32931082385` / job `98063384263` PASS, while earlier AI_AUTO/translation work supplies related subset evidence. The exact historical defect→root-fix lineage spanning `contextAwareReplyBrain`, `aiGateway` and turn coordinator is still not mechanically recovered. Required prerequisite is that multi-layer historical causal chain; current coverage/source shape is insufficient. |
+| KF-P0-29 | AI Core | `aiGateway.submit` 在 `authority.start` 前失败可能让 durable operation 滞留 SCHEDULED | VERIFIED_NON_DEFECT | `BASELINE_CONTRADICTS_DEFECT_PREMISE`. The immutable finding text is preserved. At audit baseline `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0`, `aiGateway.submit` already persists SCHEDULED before queue admission and its queue-promise failure handler detects still-SCHEDULED state, calls `authority.start()`, then `authority.cancel()` with generation/object fingerprint to prevent stranding. Earlier p-queue RED `ba46d434…` is not mechanically specific to this immutable wording. #839 final blob `91933a11f27ce85bf6e900bf99afb109ff16d6f9`, head `7820cc2cf9143df14979b1c8e1d0412c7b269562`, Stage `32931082385` / job `98063384263`, executes queue-admission terminalization PASS. #845 pre-RC Delta finds no current root and `unknownBlockers=0`. Per-finding packaged evidence is N/A because the alleged stranded-SCHEDULED seam is already closed at the immutable baseline; global RC/UAT remains mandatory. |
+| KF-P0-30 | AI Core | `aiBrainOrchestrator` cancel 与 succeed 存在终态竞态，缺 generation/fencing 一致性 | VERIFIED_NON_DEFECT | `BASELINE_CONTRADICTS_DEFECT_PREMISE`. The immutable finding text is preserved. Audit-baseline `aiBrainOrchestrator` already carries canonical analysis generation/object fingerprint into terminal operations and supersedes older identities; audit-baseline `DurableInternalOperationAuthority.terminal()` validates terminal state, generation, object fingerprint, stateVersion, owner/claim and Host generation/fencing/lease authority before CAS. #839 final blob/head/Stage/job executes real cancel-first/succeed-late and succeed-first/cancel-late exclusivity under active Schema-23 fencing PASS. #842/#845 recover no finding-specific unresolved pre-fix root and Fresh-main/Delta inspection finds no current executable P0 with `unknownBlockers=0`. Per-finding packaged evidence is N/A because the alleged missing fencing semantics are present at the immutable baseline; global RC/UAT remains mandatory. |
+| KF-P0-31 | AI Core | `contextAwareReplyBrain` / `aiGateway` / turn coordinator stale/superseded 语义不对齐 | VERIFIED_NON_DEFECT | `BASELINE_CONTRADICTS_DEFECT_PREMISE`. The immutable finding text is preserved. Audit-baseline reply-brain already captures turn state, installs runtime generation/object fingerprint, sends Gateway context generation/scope, revalidates context + turn currentness, rejects stale persona/context, and executes a final runtime fence before authoritative candidate commit; audit-baseline Gateway cancels prior same-scope generations and guards execution commits before/after physical runtime. #839 final blob/head/Stage/job executes stale inbound-turn plus runtime/Gateway fencing/superseded semantics PASS. Exhaustive lineage + #845 Delta finds no remaining executable P0 root with `unknownBlockers=0`. Per-finding packaged evidence is N/A for the baseline-contradicted alignment claim; global RC/UAT remains mandatory. |
 
 ### P0 accounting
 
 - imported P0 rows: **31**
 - `SOURCE_GATE_CLOSED_RC_PENDING`: **27**
+- `VERIFIED_NON_DEFECT`: **4**
 - finally `CLOSED`: **0**
-- unresolved for final release: **31**
+- unresolved for final release: **27**
 
-This count is intentionally strict: `SOURCE_GATE_CLOSED_RC_PENDING` is still unresolved until the fresh final RC closes the packaged evidence layer.
+The 27 real-defect rows remain unresolved until the fresh final RC closes their packaged evidence layer. The four `VERIFIED_NON_DEFECT` rows are terminal explicit historical dispositions and are not final-open P0/P1; they do not authorize or substitute for the global final RC/UAT.
 
 ## 3. Known Findings V1 — 8 explicit P1 rows
 
@@ -197,15 +199,16 @@ This count is intentionally strict: `SOURCE_GATE_CLOSED_RC_PENDING` is still unr
 | KF-P1-04 | Adapter Ports / Facebook Worker | WP-B execution/fencing identity 暴露在 Worker URL query | SOURCE_GATE_CLOSED_RC_PENDING | #639 removes persisted WP-B identity from URL query and moves it to signed `x-yance-wpb-*` metadata; source head `eedb4e09…` exact gates GREEN. Final packaged/log-leak evidence pending. |
 | KF-P1-05 | Store truth source | `UPDATE_SELF_TYPING_STATE` 顶层 conversation/account/platform 字段可能覆盖 contact 侧最新会话 | SOURCE_GATE_CLOSED_RC_PENDING | #737 first tests-only head `58fcc598…` produced Stage RED `32690111693` for the two KF-P1-05 collisions. Production head `a20285f0…` passed Stage `32690592676`, Layered `32690592902`, ACV2 `32690592696`, WP-A `32690592688`, Model `32690592737` and merged as `7802e99d…`. Final packaged typing/targeting regression remains required. |
 | KF-P1-06 | Telegram / Facebook | Facebook 本地适配器退化为 Worker/Durable Authority 投影，闭环能力弱于 Telegram | SOURCE_GATE_CLOSED_RC_PENDING | The supported capability intent is now mechanically scoped rather than demanding retired duplicate authority. #777 ordinary merge `f8d0a73603e4e4ff3f6207db80bcc9b60c7f15b7` strengthens the Facebook Worker/Durable media projection while deliberately retiring direct desktop Meta-CDN fetching; #796 then closes the separate missing default Facebook physical-egress seam from RED `a60eee882e0b286d94f505de0faf737c90c664f0` / Stage `32822680009` to exact head `ca9bd368…` and ordinary merge `28f394e8…`. #836 selected cross-platform blob `24010a845285f7b7b576fa68ce4ac0f671be0800` executes supported Facebook+Telegram public→durable→physical capability parity, Stage `32926472778` / job `98050383433` PASS. Final fresh packaged supported-capability evidence remains mandatory. |
-| KF-P1-07 | AI Core | reply generation 链过长，任一环失败导致整体失败与 deep latency 风险 | EVIDENCE_RECONCILIATION | Retained fail-closed. #682 RED `2b0e2a19ceb7e90f18b692428da8665420f5e168` / Stage `32613800942`, final head `3231ba426c8e3976afd302cb2e2eaa160c957c1a` / Stage `32613979019`, ordinary merge `f01bb27d3460dbb7efcb226c5b0a1316f0c8ffb0`, mechanically closes the deterministic AI_AUTO retry-storm subset. #839 final blob `91933a11…` additionally executes real deep-reply candidate repair and proves the repair inherits the same finite bounded runtime timeout, Stage `32931082385` / job `98063384263` PASS. The immutable row is broader than those subsets; an exact historical root lineage for the remaining general failure-family/deep-latency chain has not been mechanically recovered. Required prerequisite is that broader historical defect→root-fix mapping. |
+| KF-P1-07 | AI Core | reply generation 链过长，任一环失败导致整体失败与 deep latency 风险 | VERIFIED_NON_DEFECT | `NO_ACTIONABLE_HISTORICAL_ROOT_AFTER_EXHAUSTIVE_RECONCILIATION`. The immutable finding text is preserved. #682 RED `2b0e2a19ceb7e90f18b692428da8665420f5e168` / Stage `32613800942` and final ordinary merge `f01bb27d3460dbb7efcb226c5b0a1316f0c8ffb0` mechanically close the deterministic AI_AUTO retry-storm subset. Audit-baseline reply-brain already derives one bounded runtime generation timeout and reuses it for the original deep reply and its single controlled repair; `replyPerformancePolicy.js` has no post-import root change representing a missing deep-timeout fix. #839 final blob/head/Stage/job drives real deep-reply failure into `social-reply-repair` and proves equal finite bounded first/repair timeouts PASS. #842/#845 exhaustive history + Fresh-main/Delta find no remaining executable P1 root with `unknownBlockers=0`. Per-finding packaged evidence is N/A because the broad row cannot be reduced to a remaining actionable defect after its concrete retry/latency subsets are proven; global final RC/UAT remains mandatory. |
 | KF-P1-08 | AI Core | `personaBrain` 多个 `compile*` 入口并存，调用方可能混用语义 | SOURCE_GATE_CLOSED_RC_PENDING | #739 first tests-only head `e480e555…` produced Stage RED `32691739045` for facade/route/reply-brain compile authority split. Production head `561d931a…` passed Stage `32692383958`, Layered `32692384194`, ACV2 `32692383967`, WP-A `32692383978`, Model `32692383893` and merged as `3ba89409…`. Final packaged Persona/reply path evidence remains required. |
 
 ### P1 accounting
 
 - imported explicit P1 rows: **8**
 - `SOURCE_GATE_CLOSED_RC_PENDING`: **7**
+- `VERIFIED_NON_DEFECT`: **1**
 - finally `CLOSED`: **0**
-- unresolved for final release: **8**
+- unresolved for final release: **7**
 
 ## 4. Fresh-main Release Audit V2 findings
 
@@ -434,13 +437,17 @@ Mechanical compare `e498acafabc3804302e3e1149441e5d81c96f596` → `b53745a3c5242
 
 ## 9. Final release counters
 
-Current strict counters after Fresh-main Audit V2, global mandatory executed-test coverage, and the residual historical evidence-lineage reconciliation authorized by #842:
+Current strict counters after Fresh-main Audit V2, global mandatory executed-test coverage, residual historical evidence reconciliation, #845 pre-RC Delta discovery, and the verified-non-defect disposition authorized by #846:
 
 ```text
 knownFindingsP0Total=31
 knownFindingsP0SourceGateClosedRcPending=27
+knownFindingsP0VerifiedNonDefect=4
 knownFindingsP1Total=8
 knownFindingsP1SourceGateClosedRcPending=7
+knownFindingsP1VerifiedNonDefect=1
+knownFindingsV1SourceLevelUnresolved=0
+knownFindingsV1SourceLevelComplete=true
 knownFindingsFinalClosed=0
 freshMainAuditV2KnownRowsSourceGateClosedRcPending=1
 deltaRegressionKnownP1=1
@@ -455,7 +462,7 @@ formalReleaseAuthorized=false
 publishAuthorized=false
 ```
 
-Fresh-main Audit V2 remains complete with `unknownBlockers=0`, and global mandatory executed-test coverage remains complete. This evidence-lineage reconciliation independently promotes only rows whose immutable finding, exact historical defect or credible finding-specific RED, ordinary-merged root fix, selected current mandatory PASS contract, and current no-contradiction check are all mechanically bound. Five residual rows remain `EVIDENCE_RECONCILIATION`; no coverage result is treated as a substitute for missing historical root lineage. Final Delta Regression Audit and fresh packaged Windows RC/UAT still block release, promotion and publish authority. Any newly proven executable defect still requires a separate authorized failure-first causal work package.
+Known Findings V1 is now source-level complete with `unknownBlockers=0`: every real defect row is source/gate closed and every remaining imported baseline row has a strict evidence-backed `VERIFIED_NON_DEFECT` terminal disposition. The 27 P0 + 7 P1 real-defect rows remain final-release unresolved until the fresh final RC closes their packaged layer. Fresh-main Audit V2 and global mandatory executed-test coverage remain complete. Final Delta Regression Audit, the A2/Delta source-gate rows' fresh packaged layer, fresh Windows RC/UAT, ledger closure, release and publish still block release authority. Any newly proven executable defect invalidates a relevant non-defect disposition and requires a separate authorized failure-first causal work package.
 
 ## 10. 2026-08-26 global mandatory executed-test coverage reconciliation
 
@@ -469,7 +476,7 @@ For the final four AI rows, only #839 final exact head `7820cc2cf9143df14979b1c8
 
 #839 first tests-only head `e3e98c7cfba76bce93430da10a9744e8652e4c4b`, Stage `32930349906` / job `98061306639`, ran 714 mandatory tests with 713 pass and exactly one `SQLITE_BROKER_NOT_READY` failure before the target repair path. It is preserved only as `TEST_FIXTURE_ISOLATION_DEFECT` evidence with `unknownBlockers=0`; it is not a production RED and is not used as final target semantic PASS proof.
 
-The `finding state unchanged` wording below is the historical truth at the coverage-only reconciliation point. Section 11 supersedes the current Known Finding dispositions after independent historical lineage reconstruction; the selected execution identities themselves remain unchanged.
+The `finding state unchanged` wording below is the historical truth at the coverage-only reconciliation point. Sections 11–13 supersede the current Known Finding dispositions after independent historical lineage, baseline-contradiction and verified-non-defect reconciliation; the selected execution identities themselves remain unchanged.
 
 | Finding | Coverage classification | Exact selected contract / semantics | Runner evidence |
 |---|---|---|---|
@@ -605,9 +612,51 @@ deltaRegressionKnownP1SourceGateClosedRcPending=1
 deltaRegressionAuditComplete=false
 ```
 
-`deltaRegressionAuditComplete=false` is intentionally unchanged: the repository program requires the formal Delta window to extend through the future final RC source/package identity, which does not exist yet. This package also does not invent a new Known Finding status. The five baseline-contradicted/unmapped rows therefore remain unresolved `EVIDENCE_RECONCILIATION` under the current vocabulary even though no fresh executable source defect was discovered. The exact next source-readiness prerequisite is an independently authorized ledger/governance disposition for immutable Known Findings whose factual defect assertion is contradicted by the audit-baseline source and whose current mandatory contract passes; no production regression or synthetic RED may be fabricated merely to force those rows through a root-fix status.
+`deltaRegressionAuditComplete=false` is intentionally unchanged: the repository program requires the formal Delta window to extend through the future final RC source/package identity, which does not exist yet. This package also does not invent a new Known Finding status. The five baseline-contradicted/unmapped rows therefore remain unresolved `EVIDENCE_RECONCILIATION` under the vocabulary that existed at #845 even though no fresh executable source defect was discovered. The exact next source-readiness prerequisite identified by #845 is an independently authorized ledger/governance disposition for immutable Known Findings whose factual defect assertion is contradicted by the audit-baseline source and whose current mandatory contract passes; no production regression or synthetic RED may be fabricated merely to force those rows through a root-fix status.
 
 This #844 implementation changes no production/test/runner/workflow/routing/dependency/manifest/lockfile/migration/package/RC/release-binary authority. It does not start or authorize packaged Windows RC/UAT. Release invariants remain:
+
+```text
+freshMainAuditV2Complete=true
+mandatoryExecutedTestCoverageComplete=true
+deltaRegressionAuditComplete=false
+freshPackagedWindowsRcPass=false
+releaseLedgerClosed=false
+releaseReady=false
+formalReleaseAuthorized=false
+publishAuthorized=false
+```
+
+## 13. 2026-08-26 verified non-defect Known Finding disposition
+
+Authorization #846 ordinary-merged as `3d2c31c92bfaf42eaa5190ed1bce7f92821a557e` with strict parents `37a37be0dabd5a32b2360ad62992448e8fe71cfa` + `11dd79dca0f22c15f5f3e7bac0aac7bc7ac9a4f1`. It adds no production/test/runner/workflow/routing/dependency/package authority. This successor extends only the release-program state machine and ledger with the strict `VERIFIED_NON_DEFECT` terminal disposition described in section 1 and applies it only after the exhaustive #842/#845 evidence chain.
+
+The immutable 2026-08-20 IDs and finding texts above are unchanged. `VERIFIED_NON_DEFECT` is not inferred from current source/test PASS alone; each row binds baseline/history, selected mandatory execution, Fresh-main/Delta no-contradiction evidence and `unknownBlockers=0`:
+
+| Finding | Reason code | Baseline/history binding | Current mandatory execution | Packaged evidence disposition |
+|---|---|---|---|---|
+| KF-P0-18 | `BASELINE_CONTRADICTS_DEFECT_PREMISE` | Imported source `570823e7…` and audit baseline `bdc556fa…` both use `includes(conversationId)` before `push`; exhaustive history finds no push-only root. | #831 blob `39bd3031…`, Stage `32912734006` / job `98010046301`, repeated-sync dedupe PASS. | Per-finding packaged proof N/A because the asserted defect is absent at the immutable baseline; global RC still mandatory. |
+| KF-P0-29 | `BASELINE_CONTRADICTS_DEFECT_PREMISE` | Audit-baseline Gateway already start+cancel terminalizes still-SCHEDULED queue failures with generation/fingerprint; no exact contrary pre-fix/root is recovered. | #839 blob `91933a11…`, Stage `32931082385` / job `98063384263`, queue-admission terminalization PASS. | Per-finding packaged proof N/A for the baseline-contradicted stranded-SCHEDULED assertion; global RC still mandatory. |
+| KF-P0-30 | `BASELINE_CONTRADICTS_DEFECT_PREMISE` | Audit-baseline orchestrator/Schema-23 authority already carries generation/object fingerprint and full terminal Host/CAS fencing; no unresolved finding-specific root is recovered. | #839 real cancel-first/succeed-late and succeed-first/cancel-late exclusivity PASS under active Schema-23 fencing. | Per-finding packaged proof N/A for the baseline-contradicted missing-fencing assertion; global RC still mandatory. |
+| KF-P0-31 | `BASELINE_CONTRADICTS_DEFECT_PREMISE` | Audit-baseline reply brain/Gateway/turn runtime already contains turn-current, generation/fingerprint, stale-context and final-commit fencing seams; exhaustive history yields no unresolved multi-layer root. | #839 stale inbound-turn/runtime/Gateway fencing/superseded PASS. | Per-finding packaged proof N/A for the baseline-contradicted alignment assertion; global RC still mandatory. |
+| KF-P1-07 | `NO_ACTIONABLE_HISTORICAL_ROOT_AFTER_EXHAUSTIVE_RECONCILIATION` | #682 closes deterministic retry-storm subset; audit baseline already shares one bounded timeout across deep reply + controlled repair; no remaining actionable general/deep-latency root is recovered by #842/#845. | #839 drives real deep-reply repair and proves equal finite bounded original/repair timeout PASS; #682 subset execution remains bound. | Per-finding packaged proof N/A after concrete retry/latency subsets are mechanically closed/proven and no executable P1 root remains; global RC still mandatory. |
+
+Fresh-main Audit V2 and the #845 pre-RC Delta pass find no current executable P0/P1 root consistent with any of these five rows, no applicable Delta P0/P1 remains unclassified, and `verifiedNonDefectUnknownBlockers=0`. Any future exact evidence that exhibits a real defect invalidates the relevant disposition and requires a separate failure-first causal package; this state cannot shield a new source or packaged failure.
+
+Verified-non-defect accounting:
+
+```text
+verifiedNonDefectRows=5
+knownFindingsP0VerifiedNonDefect=4
+knownFindingsP1VerifiedNonDefect=1
+verifiedNonDefectUnknownBlockers=0
+knownFindingsV1SourceLevelUnresolved=0
+knownFindingsV1SourceLevelComplete=true
+```
+
+Known Findings V1 is therefore source-level complete, but final release is **not** ready. The 27 P0 + 7 P1 real-defect rows still require the fresh final packaged Windows RC layer; A2-P1-001 and DELTA-P1-001 also remain source/gate closed RC pending. The final Delta window still must be bound through the actual RC source head. No fresh RC has been built or claimed by this docs package.
+
+Release invariants remain fail-closed:
 
 ```text
 freshMainAuditV2Complete=true
