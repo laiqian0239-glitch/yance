@@ -98,6 +98,27 @@
     "assertionDeletionAllowed": false,
     "testSkipAllowed": false
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_NODE_TEST_AND_WP0_EXECUTION_SEAM",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Node.js test harness and repository WP0 runner",
+        "source": "node:test with tools/wp0/run-tests.js and existing tests/wp0 fixtures",
+        "license": "Node.js MIT and repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The required correction is only Promise-aware lifetime composition inside an already mandatory test fixture. Existing node:test async semantics and the current WP0 runner execute the contract directly, so no new dependency, runner, workflow, test framework, database helper, or general-purpose infrastructure is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not introduce a new async fixture framework, database lifecycle abstraction, runner, workflow, dependency, package, or general-purpose infrastructure.",
+      "Do not modify production code to accommodate a test harness lifetime defect.",
+      "Do not weaken, skip, delete, or replace the existing Durable lifecycle, heartbeat, stale-writer fencing, WAITING_REMOTE, terminalization, or sequence assertions."
+    ]
+  },
   "mandatoryExecution": {
     "existingRunnerPath": "tools/wp0/run-tests.js",
     "runnerChangeRequired": false,
