@@ -149,9 +149,17 @@
       "Stage",
       "Layered",
       "ACV2 when triggered",
+      "Model when triggered"
+    ],
+    "authorizationProductFinalExpected": "SKIPPED_NON_RC_BRANCH_NOT_GREEN",
+    "implementationExactHeadCi": [
+      "Stage",
+      "Layered",
+      "ACV2 when triggered",
       "Model when triggered",
       "V21 Product Experience Shell P0 Final Validation"
-    ]
+    ],
+    "implementationProductFinalMustNotBeSkipped": true
   },
   "independentReview": {
     "required": true,
