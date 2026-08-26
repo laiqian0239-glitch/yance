@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-EVIDENCE-LEDGER-CLOSURE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After fresh Final RC/UAT PR #854 ordinary-merged as d04314d3149336dffcf62c1a4fe84f21b48c2b16 with all exact-head routed gates GREEN, this package authorizes one ledger-only downstream reconciliation that may consume the exact Final Delta and fresh packaged RC evidence only after every remaining release/UAT obligation is mechanically satisfied. Current discovery proves the Product Final packaged launch is fresh and exact-head-bound but does not satisfy UAT-001 real-provider model-worker acceptance; therefore UAT-001 remains an external real-Windows evidence boundary. This package authorizes no product/runtime/test/workflow/dependency/package mutation and no formal release or publish.",
+  "base": {
+    "branch": "main",
+    "commit": "d04314d3149336dffcf62c1a4fe84f21b48c2b16",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "d04314d3149336dffcf62c1a4fe84f21b48c2b16",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-evidence-ledger-closure-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-evidence-ledger-closure-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a21388e8704247390bd630e71f1200d64089c2488cdb5f48ba06b01fdb1864f3",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "docs/v21-final-rc-evidence-ledger-closure-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f5a5ea40aa811612913eb20a8d039f69161f875a62e260361e84f9dabc0010e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": false,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "ledgerModificationAllowed": true
+  },
+  "finalRcEvidence": {
+    "rcPullRequest": 854,
+    "exactRcHead": "375b99f7eb22c9631a804d793822345a4a0338ad",
+    "ordinaryMerge": "d04314d3149336dffcf62c1a4fe84f21b48c2b16",
+    "ordinaryMergeParents": [
+      "7c0a2f85ce74be6b2290cc35a0531f5d0391756e",
+      "375b99f7eb22c9631a804d793822345a4a0338ad"
+    ],
+    "historicalDeltaBaseline": "bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0",
+    "finalDeltaUnknownBlockers": 0,
+    "finalDeltaUnclassifiedP0": 0,
+    "finalDeltaUnclassifiedP1": 0,
+    "exactHeadRuns": {
+      "stage": 32955411110,
+      "layered": 32955411270,
+      "acv2": 32955411010,
+      "modelWindows": 32955411162,
+      "productFinal": 32955410967
+    },
+    "productFinalJobs": {
+      "materializedDesktopUat": 98135884015,
+      "frozenElementReproducibility": 98135884201,
+      "materializedMatrixUat": 98135884281
+    },
+    "productFinalArtifacts": [
+      {
+        "id": 9602170749,
+        "name": "Product-Experience-Materialized-Desktop-UAT-375b99f7eb22c9631a804d793822345a4a0338ad",
+        "digest": "sha256:1b75d491673b100116dcdfa1f9f82b2bd9d62e15d639d4e724ae2d00aebf68d0"
+      },
+      {
+        "id": 9602159882,
+        "name": "Product-Experience-Packaged-Startup-Diagnostics-375b99f7eb22c9631a804d793822345a4a0338ad",
+        "digest": "sha256:788f1583f42d97598d13cd673ef795c4dd60d2c3a0e81c9fb38791b5e7da428d"
+      },
+      {
+        "id": 9602039835,
+        "name": "Product-Experience-Materialized-Matrix-UAT-375b99f7eb22c9631a804d793822345a4a0338ad",
+        "digest": "sha256:3de6e9093ecadc0dd25ebff047b494a226e63d781a78a772210bace8baf16509"
+      }
+    ],
+    "packagedLaunchStepRequiredAndPassed": true,
+    "packagedLaunchStep": "Launch exact packaged Yance against exact Element ModuleLoader path and require fresh PASS receipt",
+    "independentExactHeadReviewP0": 0,
+    "independentExactHeadReviewP1": 0,
+    "unresolvedReviewThreads": 0,
+    "historicalPr538ForbiddenAsFinalEvidence": true
+  },
+  "externalWindowsUatBoundary": {
+    "ledgerObligation": "UAT-001",
+    "sourceIssue": 1,
+    "issueMustRemainOpenUntilEvidenceComplete": true,
+    "productFinalPackagedLaunchIsNotSubstitute": true,
+    "modelCiIsNotSubstitute": true,
+    "exactPackagedRcRequired": true,
+    "exactPackagedRcSourceHead": "375b99f7eb22c9631a804d793822345a4a0338ad",
+    "exactDesktopArtifactId": 9602170749,
+    "requiredChecks": [
+      "Run the exact packaged RC on a real Windows product environment while the main process owns the real yance-r32.db.",
+      "Execute a real Claude Opus 5 isolated model-worker request.",
+      "Execute a real GPT-5.6 Sol isolated model-worker request.",
+      "Require workerStarted=true for both model executions.",
+      "Require a non-empty real providerRequestId for both model executions.",
+      "Require no SQLITE_OWNERSHIP_CONFLICT.",
+      "Exercise primary/fallback concurrency and require no duplicate, torn, or cross-task execution receipt.",
+      "Export only redacted diagnostics and require no API key, Authorization Bearer, or credentialRef plaintext leak.",
+      "Require timeout, caller cancellation, provider failure, and illegal storage access to remain distinct reasonCode classifications.",
+      "Require manual messaging and account connections to remain usable when an AI worker fails."
+    ],
+    "evidenceMustBind": [
+      "test timestamp and Windows environment",
+      "exact RC source head and packaged artifact identity/digest",
+      "Claude and GPT execution records",
+      "workerStarted and providerRequestId results",
+      "termination reasonCode classifications",
+      "SQLite ownership/fencing result",
+      "concurrent receipt-integrity result",
+      "redacted secret-leak scan result",
+      "independent review conclusion"
+    ],
+    "credentialsMustNotBeCommittedOrPostedToGitHub": true,
+    "failureDisposition": "If any real-Windows packaged UAT check fails, keep ledger/release readiness fail-closed, classify unknownBlockers to zero, and move any proven product defect to a separate failure-first causal work package."
+  },
+  "ledgerClosureContract": {
+    "knownFindingsP0Total": 31,
+    "knownFindingsP0RealDefectRcPendingAtBase": 27,
+    "knownFindingsP0VerifiedNonDefectAtBase": 4,
+    "knownFindingsP1Total": 8,
+    "knownFindingsP1RealDefectRcPendingAtBase": 7,
+    "knownFindingsP1VerifiedNonDefectAtBase": 1,
+    "additionalSourceGatePendingRows": [
+      "A2-P1-001",
+      "DELTA-P1-001"
+    ],
+    "verifiedNonDefectRowsMustRemainTerminalAndPackagedEvidenceNA": true,
+    "realDefectRowsMayBecomeClosedOnlyWithExistingSourceGateChainAndApplicableFreshExactRcEvidence": true,
+    "deltaRegressionAuditCompleteMayBecomeTrueOnlyWhenFinalDeltaThroughExactRcIsMechanicallyBound": true,
+    "freshPackagedWindowsRcPassMayBecomeTrueOnlyWhenAllApplicablePackagedAndExternalWindowsChecksPass": true,
+    "releaseLedgerClosedMayBecomeTrueOnlyWhenNoOpenP0OrP1OrReleaseUatBlockerRemains": true,
+    "releaseReadyMayBecomeTrueOnlyWhenProgramReleaseDecisionRuleIsFullySatisfied": true,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false,
+    "ifAnyBindingIsMissing": "Keep the affected row and global flags fail-closed, record the exact residual prerequisite, and maintain unknownBlockers=0."
+  },
+  "requiredChecklist": [
+    "Re-read exact AGENTS.md, V21 Release Closure Program, current ledger, PR #854 merge/evidence, and issue #1 before implementation.",
+    "Create the ledger implementation branch only from the effective ordinary authorization merge and change exactly docs/uat/V21_RELEASE_CLOSURE_LEDGER.md.",
+    "Mechanically bind Final Delta through exact RC head 375b99f7eb22c9631a804d793822345a4a0338ad with unknownBlockers=0 and no unclassified P0/P1.",
+    "Bind exact-head Stage, Layered, ACV2, Model and all three Product Final jobs plus artifact identities and packaged launch receipt.",
+    "Do not treat Product Final packaged launch or Model CI as UAT-001 real-provider model-worker acceptance.",
+    "Require real Windows packaged UAT-001 evidence before closing applicable ledger rows or setting freshPackagedWindowsRcPass/releaseLedgerClosed/releaseReady true.",
+    "Preserve the five VERIFIED_NON_DEFECT Known Findings and their packaged-evidence N/A disposition.",
+    "Require independent exact-head review P0=0/P1=0, zero unresolved threads and fresh-main anti-drift before ordinary implementation merge.",
+    "Keep formalReleaseAuthorized=false and publishAuthorized=false; formal release/publish is a separate explicit owner boundary."
+  ],
+  "forbiddenSemantics": [
+    "No production/runtime/source/test/runner/workflow/routing/dependency/manifest/lockfile/migration/package/release-binary mutation.",
+    "No stale #538 artifact or receipt accepted as final RC evidence.",
+    "No Product Final packaged-launch PASS or Model CI treated as a substitute for UAT-001 real-provider Windows acceptance.",
+    "No fabricated provider execution, placeholder providerRequestId, synthetic secret-leak result, or credential material committed to the repository.",
+    "No CLOSED/PACKAGED_RC_PASS/global ready flag when an applicable evidence binding is missing or failing.",
+    "No formal release, promotion, signing or publish authority."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_RELEASE_LEDGER_FINAL_RC_AND_GITHUB_EVIDENCE_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Release Closure Ledger + exact GitHub Actions evidence + final packaged RC artifact",
+        "source": "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md + PR #854 exact-head runs/artifacts + issue #1 acceptance contract",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The downstream task is evidence reconciliation and final fail-closed release-readiness accounting; no new service, workflow, package builder, database, or generalized release infrastructure is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel ledger, release database, RC workflow, model-worker UAT service, or evidence service.",
+      "Do not put provider credentials in GitHub, commits, PR comments, or chat.",
+      "Do not mutate the already-merged exact RC to manufacture missing UAT-001 evidence."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "exact #854 Final Delta/gate/artifact binding",
+      "UAT-001 remains fail-closed until real Windows provider evidence exists",
+      "no false CLOSED/PACKAGED_RC_PASS/releaseReady accounting",
+      "single-ledger-file implementation scope",
+      "formal release/publish remain unauthorized"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
