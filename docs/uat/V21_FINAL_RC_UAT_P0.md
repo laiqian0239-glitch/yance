@@ -64,3 +64,7 @@ This candidate does not set or authorize any of the following:
 - `publishAuthorized`
 
 The 27 P0 + 7 P1 real-defect Known Finding packaged obligations remain subject to fresh packaged RC evidence. Only a separate downstream authorization may consume successful exact-head Final Delta + fresh packaged RC/UAT evidence into the Release Closure Ledger and subsequent release/publish state.
+
+## CI registration provenance
+
+The final exact head is advanced by this user-authenticated marker-only synchronize after automated API-authored head updates did not register the mandatory ordinary pull-request workflows. This revision changes no product/runtime/test/runner/workflow/routing/dependency/package/lockfile/database bytes. All Final Delta, CI, Product Final artifacts, packaged receipts, review, and downstream UAT evidence must bind to the resulting repository-reported exact head; every precursor exact-head result remains stale.
