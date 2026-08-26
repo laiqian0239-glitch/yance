@@ -33,6 +33,8 @@ test('fast workflow exposes policy, risk and risk-selected portable L2 checks wi
   assert.match(text, /stage-6459-wp0-gates\.yml/u);
   assert.match(text, /- 'shared\/release\/\*\*'/u);
   assert.match(text, /- 'tests\/wp0\/\*\*'/u);
+  assert.match(text, /- 'docs\/uat\/V21_FINAL_RC_UAT_P0\.md'/u);
+  assert.doesNotMatch(text, /- 'docs\/uat\/\*\*'/u);
 });
 
 test('current ACV2 and Layered owners replace the frozen A6 workflow authorities', () => {

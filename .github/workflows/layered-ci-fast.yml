@@ -13,6 +13,7 @@ on:
       - 'tests/layered-ci/**'
       - 'shared/release/**'
       - 'tests/wp0/**'
+      - 'docs/uat/V21_FINAL_RC_UAT_P0.md'
       - '.github/actions/resolve-diff-range/**'
       - '.github/workflows/layered-ci-*.yml'
       - '.github/workflows/stage-6459-wp0-gates.yml'
