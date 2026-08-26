@@ -155,6 +155,29 @@
     "noRcArtifactMayBeClaimedFromThisPrerequisite": true,
     "noHistorical538ArtifactMayBeReusedAsFinalRc": true
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_WORKFLOW_AND_LAYERED_CONTRACT",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing V21 Product Experience Shell P0 Final Validation workflow and layered contract",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml + tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The trusted Windows and Linux Product Final materializers already exist and expose the exact routing seam required for a fresh RC branch. The governance correction only aligns the job inventory to the three real jobs and must not create parallel workflow infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a synthetic product-final job.",
+      "Do not create a parallel RC validation workflow.",
+      "Do not add workflow_dispatch, wildcard, prefix or forked-head admission.",
+      "Do not reuse historical PR #538 as current RC identity."
+    ],
+    "thinYanceAdapterOnly": true
+  },
   "requiredValidation": {
     "exactHeadCi": [
       "Stage",
