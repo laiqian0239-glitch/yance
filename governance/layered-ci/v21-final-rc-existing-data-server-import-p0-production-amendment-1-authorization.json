@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T21:30:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-EXISTING-DATA-SERVER-IMPORT-P0-PROD-A1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen tests-only PR #860 established fresh exact-head causal RED 0dc374d38377875b65ca8266a677beec9e1286fc. Stage run 32979363837 executed 717 mandatory WP0 tests: 714 passed and exactly the three new server-import regressions failed. The failures prove that PersonalAccessService construction synchronously acquires getSecurityGuard().credentials and backend/server.js performs that no-argument construction during module evaluation. This reopens the historical import-time authority-acquisition Windows startup family after packaged PASS baseline b5a0d2a23e6599ee4ceda07036b237e566e031f2. All unrelated WP0 tests, Layered CI, ACV2, WP-A post-merge, PVEP and sealed exports passed; unknownBlockers=0. The minimal production root is deferred credential-store resolution in the existing service seam plus explicit provider wiring in server.js.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-final-rc-existing-data-server-import-p0-authorization.json",
+    "implementationBranch": "fix/v21-final-rc-existing-data-server-import-p0",
+    "reason": "Supersede tests-only authority only after the frozen causal RED; PR #860 and its head remain immutable evidence."
+  },
+  "base": { "branch": "main", "commit": "3ed00f4c3ee533e7c29649fa921dab2f11c57ffb", "requiredFreshAtAuthorizationMerge": true },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "3ed00f4c3ee533e7c29649fa921dab2f11c57ffb",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": { "algorithm": "SHA-256", "encoding": "UTF-8", "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().", "separator": "LF (\\n)", "trailingNewline": true },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-existing-data-server-import-p0-production-amendment-1-authorization",
+    "allowedChangedPaths": ["governance/layered-ci/v21-final-rc-existing-data-server-import-p0-production-amendment-1-authorization.json"],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ab00a871b9df04adbf930135536393a83aecb5775c34da7a5b638497705f5f71",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-rc-existing-data-server-import-p0-production-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": { "required": true, "frozenPredecessorHead": "0dc374d38377875b65ca8266a677beec9e1286fc" },
+    "allowedChangedPaths": ["backend/server.js", "backend/services/personalAccessService.js", "tests/wp0/v21-final-rc-existing-data-server-import-p0.test.js"],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "5af2de87a75ea56963f931cc9014ac13783d0e151657607a01314d8adde0d40f",
+    "newlyAuthorizedPaths": ["backend/server.js", "backend/services/personalAccessService.js"],
+    "newlyAuthorizedChangedFileCount": 2,
+    "newlyAuthorizedChangedFileSetSha256": "078aa631f2bf540499766ea45217ae2394e4c44001c8b4ea7c27504d3508b64f",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 860,
+    "branch": "fix/v21-final-rc-existing-data-server-import-p0",
+    "frozenHead": "0dc374d38377875b65ca8266a677beec9e1286fc",
+    "effectiveAuthorizationMerge": "3ed00f4c3ee533e7c29649fa921dab2f11c57ffb",
+    "stageRun": 32979363837,
+    "stageJob": 98211971370,
+    "stageConclusion": "failure",
+    "result": "717 tests / 714 pass / exactly 3 fail, all in the newly authorized regression: eager SecurityGuard credential acquisition, eager service constructor source boundary, and no-argument server registration. All unrelated WP0 tests PASS.",
+    "provenNewScopePaths": ["backend/server.js", "backend/services/personalAccessService.js"],
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "0dc374d38377875b65ca8266a677beec9e1286fc",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true,
+    "sameBranchSupersessionWorkaroundForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true
+  },
+  "causalRedClassification": {
+    "rootCause": "PersonalAccessService constructor eagerly evaluates getSecurityGuard().credentials, while backend/server.js constructs the service synchronously at module scope. This binds the stateful SecurityGuard credential authority during server import, before request-time personal-access operations, and can fail packaged startup on an existing R32 projection.",
+    "requiredOwningLayerChange": "Keep the existing SecurityGuard and CredentialStore authorities. PersonalAccessService must retain a credential-store provider and resolve it only inside request-time credential operations; backend/server.js must explicitly wire that lazy provider. No store, migration, policy or dependency authority changes.",
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementation": ["backend/server.js", "backend/services/personalAccessService.js"],
+    "preserve": ["personalAccessGuard request-time middleware", "personalAccess routes and policy decisions", "SecurityGuard policy-provider and credential-store ownership", "historical #537 deferred SQLite role guard", "historical #539/#540 packaged Schema23 governance", "historical #563 packaged theme-catalog dependency closure", "#582 packaged PASS baseline", "#687 startup deadline authority", "#780-#783 backend startup admission"],
+    "negativeProof": ["No getR32Store, getPrimaryStoreCapability or SqliteDocumentStore construction is added to the personal-access import graph", "No SQLite read/write or credential read during PersonalAccessService construction", "No source-only governance require or packaged dependency change", "No real AppData access, clean-profile substitution, timeout extension, migration bypass or database mutation", "No dependency, workflow, routing, release, publish or ledger mutation", "No squash, rebase, cherry-pick, amend, force-push or history rewrite"]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_SECURITY_GUARD_PROVIDER_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [{ "name": "Existing SecurityGuard singleton and injectable PersonalAccessService options", "source": "backend/security/SecurityGuard.js and backend/services/personalAccessService.js", "license": "repository-existing", "adoptionMode": "preserve-existing-authority", "fit": "FIT", "reason": "A lazy provider at the existing injection seam removes import-time acquisition without adding infrastructure or changing ownership." }],
+    "retireOrAvoid": ["Do not add a store, DI container, dependency or startup framework.", "Do not move credential ownership out of SecurityGuard.", "Do not access frozen real AppData or use a clean profile as proof."],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": ["node --test tests/wp0/v21-final-rc-existing-data-server-import-p0.test.js", "node --test tests/wp0/v21-personal-access-control-p0.test.js", "node --test tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js"],
+    "negativeProofs": ["Service construction and server module registration do not acquire the SecurityGuard credential store.", "Credential operations still resolve the existing authoritative store at request time.", "Existing personal-access policy, receipt and bootstrap regressions pass.", "Frozen real AppData is never opened or mutated."],
+    "exactHeadCi": ["Stage", "Layered CI", "ACV2", "WP-A Main Post-Merge when routed", "WP-B when routed", "Model Brain Windows when routed", "Product Final only when routed"],
+    "independentReview": { "required": true, "exactHeadRequired": true, "blockingSeverities": ["P0", "P1"], "requiredZeroBlockingFindings": true }
+  },
+  "prohibitions": { "temporaryBypass": true, "continueOnError": true, "testWeakening": true, "forcePush": true, "rebase": true, "cherryPick": true, "amendPublishedHistory": true, "squashMerge": true, "newStoreAuthority": true, "productionRelease": true },
+  "governance": { "authorizationPredatesImplementation": true, "exactPathScopeOnly": true, "independentBranchAndPullRequestRequired": true, "productionUseAuthorized": false, "formalReleaseAuthorized": false, "publishAuthorized": false, "readyForPromotionAuthorized": false, "automaticNextWorkPackageAuthorizationAuthorized": false },
+  "mergePolicy": { "ordinaryMergeOnly": true, "mergeMethod": "merge", "squashForbidden": true, "rebaseForbidden": true, "forcePushForbidden": true, "amendPublishedHistoryForbidden": true, "exactReviewedHeadRequired": true, "freshMainCheckImmediatelyBeforeMergeRequired": true },
+  "releaseEvidenceParallelism": { "duringCiMayReconcileRemainingEvidence": true, "sourceGreenDoesNotAuthorizeFreshMainRcUntilAllSourceEvidenceP0P1Close": true, "mayNotClaimFreshPackagedWindowsRcPassBeforeFreshRc": true }
+}
