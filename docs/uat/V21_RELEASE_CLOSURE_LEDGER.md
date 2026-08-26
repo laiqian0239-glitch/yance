@@ -456,3 +456,53 @@ publishAuthorized=false
 ```
 
 Fresh-main Audit V2 is complete as an exact-head classification/surface audit with `unknownBlockers=0`; it does not erase unresolved finding-specific evidence mappings. Those mappings remain across the historical Electron register-level lock row, Store truth, cross-platform adapters, Durable Execution, SecurityGuard all-write-entrypoint proof and broader AI contracts. They keep `mandatoryExecutedTestCoverageComplete=false` and, together with the still-open final Delta and packaged-UAT layers, prevent RC freeze and all release/publish authority. Any newly proven executable defect still requires a separate authorized failure-first causal work package. This documentation batch does not authorize production repair, the final Windows RC, release, promotion or publish.
+
+## 10. 2026-08-26 global mandatory executed-test coverage reconciliation
+
+Authorization #825 ordinary-merged as `cf734b04ebb69e5a07dd71b3db6fa27401d36a93`. This batch is ledger-only and preserves every Known Finding state and every prior coverage binding above. It classifies the fourteen authorization-targeted evidence rows against the strongest fresh mandatory execution available after the accidental-root cleanup without treating file presence or broad workflow GREEN as execution proof.
+
+Fresh exact-head execution anchor: #831 exact head `147bb5d4a8c7d69005fd9f289d7dd1359d03215b`, Stage `32912734006`, `wp0-product` job `98010046301`, step `Run WP0 required tests` SUCCESS. The canonical chain is `package.json :: test:wp0` → `tools/wp0/run-tests.js`; that runner exhaustively enumerates every current `tests/wp0/*.test.js` in sorted order, executes each file in isolation, and exits nonzero if any isolated file fails. The ordinary #831 merge is `d4fede9476fa5e9ed475b5dc454c0ec081a5f812`; its tree removes only the authorized accidental root `noop` / `noop2` files and does not alter the contracts cited below.
+
+| Finding | Coverage classification | Exact contract / residual | Runner evidence |
+|---|---|---|---|
+| KF-P0-03 | COVERED | `tests/wp0/backend-owner-claim-lock.test.js`, blob `41b15b742013f7cc6911fe9c44e455fc7cf6d6e5`, directly asserts concurrent cross-process `proper-lockfile` claim exclusion, stale/corrupt registry re-read and fail-fast `WP4_DESKTOP_BACKEND_OWNER_CLAIM_LOCK_HELD`. Coverage only; Known Finding remains `EVIDENCE_RECONCILIATION`. | #831 Stage `32912734006` / job `98010046301` / exact head `147bb5d4…`; exhaustive WP0 runner SUCCESS. |
+| KF-P0-04 | COVERED | `tests/wp0/active-selection-runtime-mirror.test.js`, blob `39bd303145024bbbc0cf8ad32cdc0a296a15a99f`, directly asserts exact-session-only active selection, mirrored canonical Store truth, fail-closed unknown/archived selection and no generic-context authority takeover. Coverage only; finding state unchanged. | Same #831 exhaustive WP0 execution/PASS. |
+| KF-P0-17 | COVERED | Same `active-selection-runtime-mirror.test.js` directly asserts `SET_ACTIVE_CONVERSATION` mirrors `conversations.currentId` and `customers.currentId`, archive clears both, notification projection uses exact active-session authority. Coverage only; finding state unchanged. | Same #831 exhaustive WP0 execution/PASS. |
+| KF-P0-18 | COVERED | Same `active-selection-runtime-mirror.test.js` directly asserts repeated context sync leaves exactly one session in `conversations.byContactId[...]` and never duplicates it. Coverage only; finding state unchanged. | Same #831 exhaustive WP0 execution/PASS. |
+| KF-P0-23 | COVERAGE_GAP_PREREQUISITE | Current mandatory contracts separately prove Facebook public/physical egress (`v21-facebook-default-egress-handler-kf-p0-11.test.js`), Facebook durable media (`v21-facebook-media-authority-release-closure-p0.test.js`), Telegram physical provider-error behavior (`v21-telegram-structured-egress-error-audit-closure.test.js`), and generic accepted-repair durability (`platform-accepted-repair-durability.test.js`). No mechanically bound current contract proves the broad Telegram+Facebook public→durable→physical capability/signature matrix end to end. | Individual files are selected by #831 WP0, but partial contracts are not combined into an unsupported broad PASS claim. |
+| KF-P0-26 | COVERAGE_GAP_PREREQUISITE | Repository search for M2 operation semantics (`heartbeat`, `succeed`, `fail`, `waitRemote`, `cancel`, `retry`, `deadLetter`) locates production/historical architecture surfaces but no current finding-specific mandatory contract mechanically bound by #831 for the complete operation set. | Production source shape and historical M2 evidence are insufficient under #825 rules. |
+| KF-P0-27 | COVERAGE_GAP_PREREQUISITE | `appendV2Event` search resolves current production `durableExecutionAuthority.js` and ledger evidence, not a current mandatory concurrency contract that proves sequence integrity under competing writers. | No selected finding-specific current PASS contract; source `BEGIN IMMEDIATE`/transaction shape alone is not execution proof. |
+| KF-P0-28 | COVERAGE_GAP_PREREQUISITE | Current source contains heartbeat/lease extension, but no current mandatory finding-specific long-task contract was mechanically identified that proves heartbeat keeps lease valid through terminalization. | No selected finding-specific current PASS contract. |
+| KF-P0-29 | COVERAGE_GAP_PREREQUISITE | No current mandatory finding-specific test was mechanically identified for queue-admission failure after durable SCHEDULED persistence and required terminalization. | Current `aiGateway` source behavior is not substituted for executed proof. |
+| KF-P0-30 | COVERAGE_GAP_PREREQUISITE | No current mandatory finding-specific cancel-vs-succeed race contract was mechanically identified that proves generation/fencing consistency under competing terminal operations. | Current orchestrator/fencing source shape is not substituted for executed proof. |
+| KF-P0-31 | COVERAGE_GAP_PREREQUISITE | Existing AI contracts contain stale/superseded subsets, but no one mechanically bound mandatory contract spans `contextAwareReplyBrain` + `aiGateway` + turn coordinator stale/superseded semantics as required by the historical row. | Partial selected contracts do not constitute the broad finding-specific PASS. |
+| KF-P1-01 | COVERAGE_GAP_PREREQUISITE | `tests/wp0/security-entrypoints.test.js`, blob `58562fca7c06a7a237b8ae8265fda294429bd81c`, only proves staged-secret scanner commands/workflow wiring; repository Safe Mode search finds source/other historical tests but no current mandatory all-backend-write-entrypoint fail-closed contract bound by #831. | #831 executes the WP0 security-entrypoints file, but its assertions do not prove this finding. |
+| KF-P1-06 | COVERAGE_GAP_PREREQUISITE | Same broad cross-platform gap as KF-P0-23: current contracts separately establish Facebook projection/media/physical seams and Telegram physical/provider-error seams, but not a finding-specific supported-capability parity contract across both platforms. | Partial mandatory PASS evidence retained without overclaiming parity closure. |
+| KF-P1-07 | COVERAGE_GAP_PREREQUISITE | #682 mechanically covers the deterministic AI_AUTO retry-storm subset, but no current finding-specific mandatory contract was identified for the broader general failure-family + bounded deep-latency/reply-chain behavior required by KF-P1-07. | Existing A2-P1-001 PASS remains preserved; broad row remains a distinct coverage gap. |
+
+Coverage-batch accounting:
+
+```text
+targetEvidenceRows=14
+coverageRowsMechanicallyBound=4
+coverageGapPrerequisiteRows=10
+coverageBatchUnknownBlockers=0
+mandatoryExecutedTestCoverageComplete=false
+```
+
+`unknownBlockers=0` here means every one of the fourteen target rows is classified; it does **not** mean the ten explicit coverage gaps are resolved. Those ten gaps require separately authorized executable-coverage prerequisite work before global mandatory executed-test coverage can become complete. This batch does not change any Known Finding `Current state`, does not claim historical RED reconstruction, and does not authorize source repair.
+
+Release invariants remain fail-closed:
+
+```text
+freshMainAuditV2Complete=true
+mandatoryExecutedTestCoverageComplete=false
+deltaRegressionAuditComplete=false
+freshPackagedWindowsRcPass=false
+releaseLedgerClosed=false
+releaseReady=false
+formalReleaseAuthorized=false
+publishAuthorized=false
+```
+
+No fresh packaged Windows RC/UAT may start from this coverage reconciliation. Final Delta and RC layers remain downstream of executable coverage closure.
