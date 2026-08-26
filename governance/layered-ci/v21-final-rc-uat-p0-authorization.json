@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-UAT-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After the fresh Final RC Product validation route ordinary-merged on trusted main, Lane D may create one new fresh-main final RC/UAT candidate on the exact release/v21-final-rc-uat-p0 branch. This package authorizes only a one-file candidate evidence marker so the already-existing Product Final workflow can materialize and validate the exact candidate through frozen Element reproducibility, Windows Desktop/package launch, Linux Matrix materialization, and fresh exact-head receipts. It does not authorize production/runtime/source changes, does not reuse historical PR #538 or any old RC receipt, and does not authorize release, promotion, publish, or ledger closure.",
+  "base": {
+    "branch": "main",
+    "commit": "a421f24302be096a1342c7dde5c5e0dfb3df64ca",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "a421f24302be096a1342c7dde5c5e0dfb3df64ca",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-uat-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-uat-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "56e6d1b14b47ad68ff765765dc579b3fabedb72964dcb143892b235c3dda228e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "release/v21-final-rc-uat-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "docs/uat/V21_FINAL_RC_UAT_P0.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b3383b74e0c3e3e02c9139448f06d595e8b34edc35cf1e40b8afd1c12c77b3ef",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": false,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "releaseCandidateValidationExecutionAuthorized": true,
+    "ledgerModificationAllowed": false
+  },
+  "freshRcContract": {
+    "candidateBranch": "release/v21-final-rc-uat-p0",
+    "candidateMustStartFromEffectiveAuthorizationMerge": true,
+    "candidateMarkerPath": "docs/uat/V21_FINAL_RC_UAT_P0.md",
+    "candidateSourceOrRuntimeMutationForbidden": true,
+    "candidateHeadMustRemainStableThroughAllFinalEvidence": true,
+    "candidateByteChangeInvalidatesPriorFinalEvidence": true,
+    "historicalPr538IsEvidenceOnly": true,
+    "reuseHistoricalPr538BranchForbidden": true,
+    "reuseHistoricalPr538ArtifactsForbidden": true,
+    "reuseHistoricalRcReceiptForbidden": true,
+    "productFinalWorkflow": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "productFinalWorkflowMustNotBeSkipped": true,
+    "requiredProductFinalJobs": [
+      "frozen-element-reproducibility",
+      "materialized-desktop-uat",
+      "materialized-matrix-uat"
+    ],
+    "allRequiredProductFinalJobsMustPass": true,
+    "desktopMustLaunchExactPackagedYanceAgainstExactElementModuleLoader": true,
+    "freshPostInstallPassReceiptRequired": true,
+    "linuxMatrixMaterializationRequired": true,
+    "frozenElementReproducibilityRequired": true,
+    "artifactIdentityMustBeExactHeadShaBound": true,
+    "knownFindingsRealDefectP0PackagedObligations": 27,
+    "knownFindingsRealDefectP1PackagedObligations": 7,
+    "finalDelta": {
+      "historicalAuditBaseline": "bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0",
+      "mustExtendThroughExactFinalRcHead": true,
+      "mustRunBeforePackagedRcPassOrLedgerClosureClaim": true,
+      "unknownBlockersMustEqual": 0,
+      "unclassifiedP0MustEqual": 0,
+      "unclassifiedP1MustEqual": 0
+    },
+    "failureDisposition": "Any fresh Final Delta P0/P1 or packaged/UAT P0/P1 freezes the exact RC head as evidence and requires a separate failure-first causal prerequisite; do not weaken gates, reuse stale receipts, or mutate this candidate in-place to bypass governance."
+  },
+  "laneDBoundary": {
+    "knownFindingsV1SourceLevelUnresolvedAtBase": 0,
+    "freshMainAuditV2CompleteAtBase": true,
+    "mandatoryExecutedTestCoverageCompleteAtBase": true,
+    "preRcDeltaUnknownBlockersAtBase": 0,
+    "deltaRegressionAuditCompleteMayBecomeTrueOnlyFromExactFinalRcEvidence": true,
+    "freshPackagedWindowsRcPassMayBecomeTrueOnlyFromExactFinalRcEvidence": true,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false,
+    "noReleaseOrPublishAuthorityGranted": true
+  },
+  "requiredChecklist": [
+    "Re-read exact AGENTS.md, V21 Release Closure Program, V21 Release Closure Ledger, and the effective authorization merge before creating the RC branch.",
+    "Create release/v21-final-rc-uat-p0 exactly from the effective ordinary authorization merge; do not reuse or retarget historical PR #538.",
+    "Create only docs/uat/V21_FINAL_RC_UAT_P0.md as the candidate evidence marker; no production, runtime, test, runner, workflow, routing, dependency, package, lockfile, migration, or ledger change is allowed.",
+    "Run the formal Final Delta from bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0 through the exact stable RC head and classify all P0/P1 with unknownBlockers=0.",
+    "Require exact-head Stage, Layered, routed ACV2/Model, and V21 Product Experience Shell P0 Final Validation; Product Final must execute rather than skip.",
+    "Require all three existing Product Final jobs to PASS on the exact RC head, including fresh packaged Windows Yance launch/receipt, frozen Element reproducibility, and Linux Matrix materialization.",
+    "Bind Product Final artifacts/receipts to the exact RC head; historical #538 artifacts and old receipts are forbidden.",
+    "Perform independent exact-head review with P0=0/P1=0 and zero unresolved review threads.",
+    "If any Delta or packaged/UAT P0/P1 appears, freeze the exact RC head and return to a separately authorized failure-first causal work package.",
+    "Do not set releaseLedgerClosed, releaseReady, formalReleaseAuthorized, or publishAuthorized in this RC package; downstream ledger/release authorization is separate."
+  ],
+  "forbiddenSemantics": [
+    "No production/runtime/source mutation.",
+    "No tests, runner, workflow, routing-policy, dependency, manifest, lockfile, migration, package-builder, or release-binary mutation.",
+    "No reuse, mutation, merge, or reconciliation of historical PR #538 as the final RC.",
+    "No stale or historical RC receipt/artifact accepted as fresh exact-head evidence.",
+    "No gate weakening, skipped Product Final treated as GREEN, blind retry as proof, or candidate-head drift after final evidence.",
+    "No release ledger closure, releaseReady, formal release, promotion, or publish authority in this package."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_AND_RELEASE_CLOSURE_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing V21 Product Final workflow plus Release Closure Program/Ledger",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml + docs/uat/V21_RELEASE_CLOSURE_PROGRAM.md + docs/uat/V21_RELEASE_CLOSURE_LEDGER.md",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The exact Windows packaged launch, frozen Element, Linux Matrix, artifact binding, and release closure semantics already exist; the RC needs only a fresh exact branch identity and evidence marker."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel RC workflow.",
+      "Do not reuse historical PR #538 as current candidate.",
+      "Do not create a new package/evidence service."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "V21 Product Experience Shell P0 Final Validation"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "RC branch is fresh from the effective authorization merge",
+      "only the exact evidence-marker path changed",
+      "formal Final Delta covers through the exact RC head with unknownBlockers=0",
+      "Product Final actually executes all three existing jobs on the exact RC head",
+      "fresh packaged Windows launch receipt and artifacts are exact-head bound",
+      "historical PR #538 and stale evidence are not reused",
+      "release and publish remain fail-closed"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
