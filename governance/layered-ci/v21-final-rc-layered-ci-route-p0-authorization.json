@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-LAYERED-CI-ROUTE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh Final RC candidate PR #854 exact head f38e0a421e72eae9e80865e270312cad8e7f5bf0 exposed a fail-closed validation-route gap before release closure: authorization #853 requires Layered exact-head validation, but the base-owned .github/workflows/layered-ci-fast.yml pull_request.paths allowlist does not include the exact RC marker docs/uat/V21_FINAL_RC_UAT_P0.md, so no Layered run is created for the RC PR. Stage, ACV2, Model and Product Final are independently routed; this missing Layered execution is not GREEN and blocks the RC. This narrow prerequisite authorizes only a failure-first contract plus exact path-filter admission for the single RC marker path. It does not weaken Layered, alter product/runtime source, broaden docs routing, or authorize release/publish.",
+  "base": {
+    "branch": "main",
+    "commit": "245a053da6a2f05d0b45031ce028d79c6922c5b5",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "245a053da6a2f05d0b45031ce028d79c6922c5b5",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-layered-ci-route-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-layered-ci-route-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "232b8c54ecda104f8d51e7fa4936f79f52661892cb5c70f88e8d89d348ab57af",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-layered-ci-route-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      ".github/workflows/layered-ci-fast.yml",
+      "tests/layered-ci/workflow-contract.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "9dac985aab2879532120eaf8d6e03211721522deb98f4aef6a6d00b955adc5b1",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/layered-ci-fast.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "50eff8dcdf26b1527db7f777692e263c5f049a2af82af679d0bb601aeaff2d65"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/workflow-contract.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "49f7bd836baa652366bc724d659cfaab699c3c0f943887e4950fe731263ebcb8",
+      "productionCodeChanged": false
+    }
+  },
+  "routeContract": {
+    "workflow": ".github/workflows/layered-ci-fast.yml",
+    "workflowTriggerMustRemain": "pull_request to main",
+    "requiredExactChangedPath": "docs/uat/V21_FINAL_RC_UAT_P0.md",
+    "exactPathAdmissionRequired": true,
+    "broadDocsUatWildcardForbidden": true,
+    "existingPathAdmissionsMustRemainUnchanged": true,
+    "existingPolicyRiskAndL2SemanticsMustRemainUnchanged": true,
+    "noWorkflowDispatchPushOrScheduleBroadening": true,
+    "targetEvidencePr": 854,
+    "targetFrozenHead": "f38e0a421e72eae9e80865e270312cad8e7f5bf0"
+  },
+  "failureFirst": {
+    "required": true,
+    "firstImplementationHeadMustChangeOnly": [
+      "tests/layered-ci/workflow-contract.test.js"
+    ],
+    "expectedRed": "The layered workflow contract must require exact pull_request path admission for docs/uat/V21_FINAL_RC_UAT_P0.md while the base workflow still omits it.",
+    "unknownBlockersMustEqual": 0,
+    "workflowFixForbiddenBeforeCleanCausalRed": true,
+    "redMustRemainImmutableEvidence": true,
+    "finalRepair": "Add only the exact quoted docs/uat/V21_FINAL_RC_UAT_P0.md path to layered-ci-fast.yml pull_request.paths; preserve every existing trigger, path, job, permission, policy, risk and L2 behavior."
+  },
+  "rcBoundary": {
+    "pr854MustNotMergeBeforePrerequisite": true,
+    "pr854CurrentHeadMayRemainEvidence": true,
+    "priorRcEvidenceInvalidAfterCandidateHeadChanges": true,
+    "postPrerequisiteRcMustRerunAllExactHeadEvidence": true,
+    "productFinalMustStillExecuteAndPass": true,
+    "finalDeltaMustStillExtendThroughFinalRcHead": true,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false
+  },
+  "requiredChecklist": [
+    "Re-read exact AGENTS.md, #853 authorization, PR #854 exact state, layered-ci-fast.yml and workflow-contract.test.js from the effective authorization merge.",
+    "Create implementation branch exactly from the ordinary authorization merge.",
+    "First modify only workflow-contract.test.js to require the exact RC marker path and obtain a clean causal Layered/Stage RED with unknownBlockers=0.",
+    "Preserve the RED head; then add only the exact docs/uat/V21_FINAL_RC_UAT_P0.md entry to layered-ci-fast.yml pull_request.paths.",
+    "Do not add docs/uat/**, wildcard/prefix routing, workflow_dispatch, push, schedule, new jobs, new permissions or other workflow behavior.",
+    "Require exact-head Stage, Layered and routed gates plus independent review P0=0/P1=0 before ordinary merge.",
+    "After prerequisite merge, forward-reconcile or restart the RC only under exact existing governance without history rewrite and rerun all final exact-head evidence.",
+    "Keep release ledger, releaseReady, formal release and publish false."
+  ],
+  "forbiddenSemantics": [
+    "No production/runtime/source mutation.",
+    "No product test/runner/routing-policy/dependency/manifest/lockfile/migration/package/release-binary mutation.",
+    "No broad docs/uat wildcard or generic documentation admission.",
+    "No weakening, removal or renaming of existing Layered jobs, risk selection, permissions or portable L2 checks.",
+    "No mutation or merge of PR #854 before this prerequisite is effective.",
+    "No stale exact-head RC evidence reused after candidate-head drift.",
+    "No release, promotion or publish authority."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_LAYERED_FAST_WORKFLOW_AND_CONTRACT",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Layered CI Fast Feedback workflow and workflow-contract test",
+        "source": ".github/workflows/layered-ci-fast.yml + tests/layered-ci/workflow-contract.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The required exact-head Layered machinery already exists; only the exact Final RC marker path is absent from pull_request.paths."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel Layered RC workflow.",
+      "Do not add a generic workflow_dispatch bypass.",
+      "Do not broaden all docs/uat changes into Layered."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered",
+      "ACV2 when triggered",
+      "Model when triggered"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "failure-first exact RC marker route contract",
+      "only exact marker path admission is added",
+      "Layered existing trust/permissions/jobs remain unchanged",
+      "no broad docs wildcard or trigger broadening",
+      "RC and release state remain fail-closed"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
