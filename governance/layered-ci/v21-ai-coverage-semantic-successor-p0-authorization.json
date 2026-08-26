@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-AI-COVERAGE-SEMANTIC-SUCCESSOR-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "A post-merge exact-semantic audit of #836 against the still-authoritative #833 coverage contract found one classified AI_CORE prerequisite family: mandatory GREEN does not yet execute the required competing cancel-vs-succeed terminal race, and it does not mechanically execute the bounded candidate-repair timeout path. Strengthen only the existing mandatory AI coverage contract. If current production already satisfies these semantics the package should be GREEN; any failure freezes the exact tests-only head as causal RED and requires a separate production authorization.",
+  "base": {
+    "branch": "main",
+    "commit": "5cba23903f9babdd2a325d7f1463f38e2abc5485",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "5cba23903f9babdd2a325d7f1463f38e2abc5485",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "predecessorEvidence": {
+    "originalCoverageAuthorizationPullRequest": 833,
+    "originalCoverageAuthorizationPath": "governance/layered-ci/v21-release-closure-global-executable-coverage-prerequisite-p0-authorization.json",
+    "fixtureSuccessorAuthorizationPullRequest": 835,
+    "fixtureSuccessorAuthorizationMerge": "fa23f9d7e39f9b449295fcf2202dc93c0bd6614b",
+    "coverageSuccessorPullRequest": 836,
+    "coverageSuccessorHead": "3f2f1a84338d22e54a9adf818c4c3c1643370b3d",
+    "coverageSuccessorAiBlob": "a5124f0366283f409a3d6d4f92eef7ed7973543d",
+    "coverageSuccessorStageRun": 32926472778,
+    "coverageSuccessorWp0ProductJob": 98050383433,
+    "coverageSuccessorMerge": "5cba23903f9babdd2a325d7f1463f38e2abc5485",
+    "frozenPrematureLedgerAuthorizationPullRequest": 837,
+    "classifiedBlocker": "AI_CORE_EXECUTABLE_COVERAGE_SEMANTIC_INCOMPLETE",
+    "unknownBlockers": 0
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-ai-coverage-semantic-successor-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-ai-coverage-semantic-successor-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "1a86129b9350c4e9d70df4f511cd0866bbb85a9f709a4f2f7483b551d0839609",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "test/v21-ai-coverage-semantic-successor-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-ai-release-critical-coverage.test.js"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "88ad9a47520b777b01b21bb75b77ef219caf8474b4e83184abb53b89f3374966",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testAdditionOnly": false,
+    "existingTestModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "ledgerModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false
+  },
+  "requiredSemantics": [
+    "Preserve every existing assertion in tests/wp0/v21-ai-release-critical-coverage.test.js unless an assertion is mechanically superseded by a stronger executable assertion for the same requirement.",
+    "Add an executable KF-P0-30 contract proving two terminal observations representing cancel and succeed for the same canonical durable execution identity cannot both win. Exercise the production durable authority used by AI canonical analysis with the same generation and object fingerprint/fencing identity, test both terminal orderings where practical, and require the losing observation to be rejected or a documented terminal no-op. A source regex or a standalone generation comparison is insufficient.",
+    "Add an executable KF-P1-07 contract that reaches the contextAwareReplyBrain candidate-repair AI Gateway call and proves the repair attempt inherits a finite bounded timeout from the same runtime generation policy as the original deep reply. Do not infer this merely from source text.",
+    "Retain the existing KF-P0-29 queue-admission terminalization behavior contract, KF-P0-31 stale-turn/runtime/gateway fencing contracts, deep-reply finite timeout bounds, and deterministic AI_AUTO retry-storm execution.",
+    "Run through the existing mandatory WP0 runner on the exact head. If either strengthened semantic fails, freeze the exact tests-only head as immutable causal RED, classify all same-root failures to unknownBlockers=0, and do not modify production in this package."
+  ],
+  "failureHandling": {
+    "expectedInitialOutcome": "GREEN_IF_CURRENT_PRODUCTION_SEMANTICS_ALREADY_SATISFY_AUTHORIZED_CONTRACT",
+    "ifAnyContractFails": [
+      "Freeze the exact failing tests-only head as immutable causal RED evidence.",
+      "Do not weaken, skip or delete the new contract.",
+      "Open a separate exact-path production authorization for the proven root only after unknownBlockers=0."
+    ],
+    "ifAllContractsPass": [
+      "Require exact-head routed gates GREEN and autonomous independent review P0=0/P1=0.",
+      "Ordinary-merge the tests-only successor.",
+      "Only after that merge create a fresh ledger-only coverage completion authorization from fresh trusted main; #837 remains frozen and stale."
+    ]
+  },
+  "forbiddenSemantics": [
+    "No production/runtime/source repair in this package.",
+    "No modification of tools/wp0/run-tests.js, workflows, routing policy, package/lockfile, dependencies, migrations, ledger or release packaging.",
+    "No source-string-only substitute for the executable cancel-vs-succeed or candidate-repair timeout behavior.",
+    "No Known Finding state promotion, final Delta completion, packaged Windows RC/UAT, release-ready, release or publish claim."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_NODE_TEST_SQLITE_AND_INJECTABLE_AI_SEAMS",
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing mandatory WP0 runner plus Node built-ins and current AI/durable authorities",
+        "source": "tools/wp0/run-tests.js + node:test + node:sqlite + current injectable AI seams",
+        "license": "repository-existing / Node.js project license",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The missing work is a narrow executable behavior contract; no new test framework, runner, database, dependency or workflow is justified."
+      }
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered",
+      "Product Final only when routed"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "releaseFlags": {
+    "freshMainAuditV2CompleteMustRemain": true,
+    "mandatoryExecutedTestCoverageCompleteMayAdvanceHere": false,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "freshPackagedWindowsRcPassMustRemain": false,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
