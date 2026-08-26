@@ -73,24 +73,24 @@
     },
     "productFinalJobs": {
       "materializedDesktopUat": 98135884015,
-      "frozenElementReproducibility": 98135884320,
-      "materializedMatrixUat": 98135884835
+      "frozenElementReproducibility": 98135884201,
+      "materializedMatrixUat": 98135884281
     },
     "productFinalArtifacts": [
       {
-        "id": 9601815930,
+        "id": 9602170749,
         "name": "Product-Experience-Materialized-Desktop-UAT-375b99f7eb22c9631a804d793822345a4a0338ad",
-        "digest": "sha256:45d98864e945ff349a47b50e88a410286492aece62dc82f02670883615c1bfb7"
+        "digest": "sha256:1b75d491673b100116dcdfa1f9f82b2bd9d62e15d639d4e724ae2d00aebf68d0"
       },
       {
-        "id": 9601804521,
+        "id": 9602159882,
         "name": "Product-Experience-Packaged-Startup-Diagnostics-375b99f7eb22c9631a804d793822345a4a0338ad",
-        "digest": "sha256:7e471f50de6c222caf613258ddb399104dde6752312426464028247d79287012"
+        "digest": "sha256:788f1583f42d97598d13cd673ef795c4dd60d2c3a0e81c9fb38791b5e7da428d"
       },
       {
-        "id": 9601777224,
+        "id": 9602039835,
         "name": "Product-Experience-Materialized-Matrix-UAT-375b99f7eb22c9631a804d793822345a4a0338ad",
-        "digest": "sha256:0e639169f5f3d094a2e93a18218190381eaa9efcd9cecaedfd1a05b5ae913d93"
+        "digest": "sha256:3de6e9093ecadc0dd25ebff047b494a226e63d781a78a772210bace8baf16509"
       }
     ],
     "packagedLaunchStepRequiredAndPassed": true,
@@ -108,7 +108,7 @@
     "modelCiIsNotSubstitute": true,
     "exactPackagedRcRequired": true,
     "exactPackagedRcSourceHead": "375b99f7eb22c9631a804d793822345a4a0338ad",
-    "exactDesktopArtifactId": 9601815930,
+    "exactDesktopArtifactId": 9602170749,
     "requiredChecks": [
       "Run the exact packaged RC on a real Windows product environment while the main process owns the real yance-r32.db.",
       "Execute a real Claude Opus 5 isolated model-worker request.",
