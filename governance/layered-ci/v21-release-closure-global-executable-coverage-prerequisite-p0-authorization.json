@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-26T09:38:34+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-CLOSURE-GLOBAL-EXECUTABLE-COVERAGE-PREREQUISITE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After #832 ordinary-merged the global mandatory executed-test coverage reconciliation with coverageBatchUnknownBlockers=0, add one mandatory WP0 behavior contract per independent uncovered release-critical family so all ten COVERAGE_GAP_PREREQUISITE rows become actually executed exact-head evidence. This package is tests-only. It must not infer a production defect in advance: a GREEN family contract proves the already-present production semantics; any fresh failing family contract becomes immutable causal RED evidence and freezes this tests-only package for a separate exact-scope production repair authorization.",
+  "base": {
+    "branch": "main",
+    "commit": "3b3bdf9e2c36c8d42fe46e780db7258854ca9bc2",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "3b3bdf9e2c36c8d42fe46e780db7258854ca9bc2",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "predecessorEvidence": {
+    "coverageAuthorizationPullRequest": 825,
+    "coverageReconciliationPullRequest": 832,
+    "coverageReconciliationHead": "58e4239342594fa70cd7d5d18591417621255175",
+    "coverageReconciliationMerge": "3b3bdf9e2c36c8d42fe46e780db7258854ca9bc2",
+    "coverageBatchUnknownBlockers": 0,
+    "mandatoryExecutedTestCoverageComplete": false,
+    "mechanicallyBoundRows": ["KF-P0-03", "KF-P0-04", "KF-P0-17", "KF-P0-18"],
+    "coverageGapPrerequisiteRows": ["KF-P0-23", "KF-P0-26", "KF-P0-27", "KF-P0-28", "KF-P0-29", "KF-P0-30", "KF-P0-31", "KF-P1-01", "KF-P1-06", "KF-P1-07"]
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-global-executable-coverage-prerequisite-p0-authorization",
+    "allowedChangedPaths": ["governance/layered-ci/v21-release-closure-global-executable-coverage-prerequisite-p0-authorization.json"],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c142346d0e002e881077e1e7d649cc51f1d8ba42c6ec3a98a07876d7c7fd5208",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "test/v21-release-closure-global-executable-coverage-prerequisite-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-ai-release-critical-coverage.test.js",
+      "tests/wp0/v21-cross-platform-adapter-capability-coverage.test.js",
+      "tests/wp0/v21-durable-execution-release-critical-coverage.test.js",
+      "tests/wp0/v21-safe-mode-write-boundary-coverage.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "71c2b5132325d9947c331f3791d0978953321af533b40069692379cb54a79ff6",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testAdditionOnly": true,
+    "existingTestModificationAllowed": false,
+    "runnerModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "coverageFamilies": [
+    {
+      "family": "CROSS_PLATFORM_ADAPTER_CAPABILITY",
+      "rows": ["KF-P0-23", "KF-P1-06"],
+      "testPath": "tests/wp0/v21-cross-platform-adapter-capability-coverage.test.js",
+      "requiredSemantics": [
+        "Prove supported Telegram and Facebook messaging driver capability parity at the public adapter boundary without treating intentionally unsupported Facebook personal-identity as messaging-capable.",
+        "Prove physical egress rejects missing persisted attempt identity before provider I/O and preserves platform/account/idempotency/generation/fencing identity when a valid persisted attempt reaches the physical handler.",
+        "Prove the public-to-durable-to-physical contract rather than merely checking function/file presence."
+      ]
+    },
+    {
+      "family": "DURABLE_EXECUTION",
+      "rows": ["KF-P0-26", "KF-P0-27", "KF-P0-28"],
+      "testPath": "tests/wp0/v21-durable-execution-release-critical-coverage.test.js",
+      "requiredSemantics": [
+        "Use real Schema-23 SQLite state and canonical durable authorities to exercise create/start/heartbeat/succeed/fail/cancel/retry/dead-letter semantics.",
+        "Prove external WAITING_REMOTE semantics through the canonical fenced ExternalActionDispatcher/DurableExecution transition path; do not require restoration of the retired waitRemote convenience method when no live caller owns that API.",
+        "Prove event sequence integrity under the actual serialized write transaction boundary.",
+        "Prove heartbeat extends a long-running lease and a stale pre-heartbeat terminal writer is rejected while the current owner can terminalize."
+      ]
+    },
+    {
+      "family": "AI_CORE",
+      "rows": ["KF-P0-29", "KF-P0-30", "KF-P0-31", "KF-P1-07"],
+      "testPath": "tests/wp0/v21-ai-release-critical-coverage.test.js",
+      "requiredSemantics": [
+        "Prove queue-admission failure after durable SCHEDULED persistence terminalizes the operation instead of stranding it.",
+        "Prove competing cancel/succeed observations cannot both win under generation/fingerprint/fencing authority.",
+        "Prove a newer inbound turn invalidates/cancels stale runtime generation and stale candidate commit authority across turn coordinator, runtime registry and gateway fences.",
+        "Prove deep-reply and repair paths use bounded runtime timeouts and deterministic failure families do not create an unbounded retry loop."
+      ]
+    },
+    {
+      "family": "SAFE_MODE_WRITE_BOUNDARY",
+      "rows": ["KF-P1-01"],
+      "testPath": "tests/wp0/v21-safe-mode-write-boundary-coverage.test.js",
+      "requiredSemantics": [
+        "Enumerate canonical backend commands from shared contracts and prove every write outside the exact recovery/lifecycle/delete-credential allowlist fails closed in Safe Mode.",
+        "Prove caller write hints cannot downgrade a canonical write or promote a canonical read, and allowlist/prefix spoofing does not bypass command-owned classification."
+      ]
+    }
+  ],
+  "mandatoryExecution": {
+    "existingRunnerPath": "tools/wp0/run-tests.js",
+    "runnerBlobAtAuthorizationBase": "fce6d7bc06f3119f7707d4312f5ad37e5ba90077",
+    "runnerBehavior": "Automatically enumerates every tests/wp0/*.test.js file and executes each in an isolated node --test --test-concurrency=1 process.",
+    "runnerChangeRequired": false,
+    "stageWorkflow": ".github/workflows/stage-6459-wp0-gates.yml",
+    "stageJob": "wp0-product",
+    "exactHeadExecutionRequired": true,
+    "allFourFilesMustExecute": true,
+    "allFourFilesMustPassForCoverageClosure": true
+  },
+  "failureHandling": {
+    "expectedInitialOutcome": "GREEN_IF_CURRENT_PRODUCTION_SEMANTICS_MATCH_THE_RECONCILED_SOURCE_SHAPE",
+    "ifAnyContractFails": [
+      "Freeze the exact failing tests-only head as immutable causal RED evidence.",
+      "Classify every failure by family and exhaust the same-root Closure Matrix to unknownBlockers=0.",
+      "Do not modify, weaken, skip or delete the failing coverage contract.",
+      "Do not add production code under this authorization.",
+      "Open a separate exact-path production authorization only for the proven failing root; independent failing families may proceed in parallel."
+    ],
+    "ifAllContractsPass": [
+      "Autonomously review the exact head and require P0=0/P1=0 with zero unresolved threads.",
+      "Ordinary-merge the tests-only prerequisite.",
+      "Run a later ledger-only coverage reconciliation to bind exact test blobs, runner, Stage job, exact head and PASS result and only then consider mandatoryExecutedTestCoverageComplete=true."
+    ]
+  },
+  "forbiddenSemantics": [
+    "No production/runtime/source repair in this package.",
+    "No modification of tools/wp0/run-tests.js, workflows, routing policy, package/lockfile, dependencies, migrations or release packaging.",
+    "No source-string-only assertion may substitute for behavior where an injectable executable authority boundary exists.",
+    "No obsolete convenience method may be resurrected merely to match historical finding wording when current live callers use a canonical replacement authority.",
+    "No Known Finding status promotion, final Delta completion, packaged RC/UAT, release-ready or publish claim in this package."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_ISOLATED_RUNNER_AND_NODE_BUILTINS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance mandatory WP0 isolated runner",
+        "source": "tools/wp0/run-tests.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already discovers all tests/wp0/*.test.js files and provides exact mandatory Stage execution without any runner/workflow mutation."
+      },
+      {
+        "name": "Node.js built-in node:test and node:sqlite",
+        "source": "Node.js runtime",
+        "license": "Node.js project license",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The repository already uses node:test and DatabaseSync for these authority contracts; no new test framework or database dependency is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not build a new coverage runner, audit service, database or workflow.",
+      "Do not create ten one-row PRs when four independent behavior families fit one mandatory tests-only batch.",
+      "Do not mutate production code unless a fresh exact-head family RED proves a real defect under a later production authorization."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": ["Stage", "Layered when triggered", "ACV2 when triggered", "Model when triggered", "Product Final only when routed"]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "releaseFlags": {
+    "freshMainAuditV2CompleteMustRemain": true,
+    "mandatoryExecutedTestCoverageCompleteMayAdvanceHere": false,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "freshPackagedWindowsRcPassMustRemain": false,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
