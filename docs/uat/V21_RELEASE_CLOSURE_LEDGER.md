@@ -98,7 +98,7 @@ All other previously unresolved V1/A2/Delta/coverage rows remain fail-closed unl
 
 ### 2026-08-25 post-KF-P0-11 mechanical reconciliation checkpoint
 
-- KF-P0-11 now has a complete finding-specific source/gate chain. Frozen tests-only #794 exact head `a60eee882e0b286d94f505de0faf737c90c664f0` produced Stage RED `32822680009` / `wp0-product` job `97724027664`: 682 mandatory WP0 tests, 681 pass and exactly one failure — the default Facebook adapter exposed egress capability through the persisted Outbox authorizer while lacking an explicit physical `egressHandler`. The paired Chatwoot Matrix preserve test and every unrelated WP0 file passed, so `unknownBlockers=0`.
+- KF-P0-11 now has a complete finding-specific source/gate chain. Frozen tests-only #794 exact head `a60eee882e0b286d94f505de0faf737c90c664f0` produced Stage RED `32822680009` / `wp0-product` job `97724027664`: 682 mandatory WP0 tests, 681 pass and exactly one failure — the default Facebook adapter exposed egress capability through the persisted Outbox authorizer while lacking an explicit physical `egressHandler`. The paired Chatwoot Matrix preservation test and every unrelated WP0 file passed, so `unknownBlockers=0`.
 - #795 production authorization ordinary-merged as `929eb2130253b28b1a128d97f95836de060b5b88`. Its successor preserves the frozen RED with ordinary two-parent continuation `5bc9a77cb1276d5f74ca4ce10fcb54183f7b287f` and keeps the final diff to `backend/services/platformAdapterPorts.js` plus the inherited immutable RED test.
 - #796 exact head `ca9bd368d66908dfcc521f677cb0b75e6b269b03` passes mandatory Stage `32826900610` (`wp0-product` job `97736872956`, `Run WP0 required tests` SUCCESS), Layered `32826900957`, ACV2 `32826900617`, WP-A `32826900578`, and Model Windows `32826900714`; Product Final `32826900583` is correctly route-skipped and is not counted as GREEN. #796 ordinary-merges as `28f394e8be6d4f8dc9208dafe60373827c5e5f27` with strict parents `929eb2130253b28b1a128d97f95836de060b5b88` + `ca9bd368d66908dfcc521f677cb0b75e6b269b03`.
 - The root fix binds the existing canonical `sendMessageService` physical dispatch as the explicit default Facebook `egressHandler` while preserving persisted Outbox authorization, frozen persisted-attempt context, deadlines/delivery evidence and `facebook-page-official` Chatwoot Matrix driver authority. `platformDriverRegistry` is untouched. This mechanically advances KF-P0-11 only.
@@ -259,7 +259,7 @@ Mechanical compare `29ce90a772be28cbddc925459721045b086f8104` → `682cdce54d0e9
 | Durable Execution | No Durable Execution source path changed. | KF-P0-26..28 remain `EVIDENCE_RECONCILIATION`. |
 | AI Core cancellation/stale/retry/authority/persistence | No AI Core source path changed. | A2-P1-001 remains source-gate closed RC pending; KF-P0-29..31 and KF-P1-07 remain unresolved. |
 | Dependency / supply chain | No dependency, package-lock or runtime-downloader path changed. | KF-P0-05..07 / KF-P1-03 retain source-gate-closed-RC-pending; no new Delta dependency P0/P1. |
-| Release packaging / sealed runtime / real Windows launch | No final fresh-main packaged Windows RC exists after #802. | UAT-001/UAT-002 remain blocking; `freshPackagedWindowsRcPass=false`. |
+| Release packaging / sealed-runtime / real Windows launch | No final fresh-main packaged Windows RC exists after #802. | UAT-001/UAT-002 remain blocking; `freshPackagedWindowsRcPass=false`. |
 
 This is an exact-main **surface scan checkpoint**, not release completion. Existing V1/A2 blockers are not duplicated merely to make the Audit V2 list longer. `freshMainAuditV2Complete=false` remains fail-closed while unresolved source/evidence P0/P1 rows remain.
 
@@ -550,6 +550,64 @@ knownFindingsP1SourceGateClosedRcPending=7
 Pre-RC Delta anti-drift is also classified: mechanical compare `7340f07c4a5956ce67d436290fb466264afbc0e6` → authorization merge `7abce87cc9b60d2dd376b19950a8841a1fc14fd8` is `status=ahead`, `ahead_by=4`, `behind_by=0`; the only changed path is the #842 authorization JSON. No production, test, runner, workflow, routing, dependency, migration, manifest, lockfile, package or release-binary authority drift is introduced by that interval, and no new Delta P0/P1 is discovered. The formal Delta window nevertheless remains open until the future final RC source/package identity exists, so `deltaRegressionAuditComplete=false` is unchanged.
 
 This reconciliation is evidence-only and becomes effective only after this exact ledger-only successor passes its routed exact-head gates, autonomous independent exact-head review reaches P0=0/P1=0 with zero unresolved threads, fresh-main anti-drift is clean, and the successor ordinary-merges. It does not start or authorize a packaged Windows RC/UAT. Release invariants remain:
+
+```text
+freshMainAuditV2Complete=true
+mandatoryExecutedTestCoverageComplete=true
+deltaRegressionAuditComplete=false
+freshPackagedWindowsRcPass=false
+releaseLedgerClosed=false
+releaseReady=false
+formalReleaseAuthorized=false
+publishAuthorized=false
+```
+
+## 12. 2026-08-26 residual-five baseline contradiction + pre-RC Delta discovery
+
+Authorization #844 ordinary-merged as `188a4ec2752fc8a5f3074bfbb263b91e63d31c0c` with strict parents `65ac5ae628b1e685ae8810745413c4cd13a5a858` + `d7f303372d375b55a7894a3b63308ff95bbd95b8`. This ledger-only batch exhausts the five rows still at `EVIDENCE_RECONCILIATION` after section 11 and performs the complete 2026-08-20 baseline → effective-main pre-RC Delta discovery pass. The #844 minimum-binding rule remains fail-closed: a selected current PASS cannot substitute for a missing historical defect/root, and source that already disproves the finding at the immutable audit baseline is recorded as a baseline contradiction rather than silently promoted or recreated as a synthetic RED.
+
+| Finding | Exact immutable-baseline result | Selected current execution | #844 disposition |
+|---|---|---|---|
+| KF-P0-18 | Initial imported source `570823e722f6db475066d6ef80ba900ac5c6cb39` and audit baseline `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0` both guard `conversations.byContactId` with `includes(conversationId)` before `push`. #547 preserves that dedupe rather than repairing a push-only root. No exact pre-fix snapshot or credible finding-specific RED exhibits the immutable finding as written. | #831 `active-selection-runtime-mirror.test.js` blob `39bd303145024bbbc0cf8ad32cdc0a296a15a99f`, Stage `32912734006` / job `98010046301`, repeated-sync dedupe PASS. | RETAIN `EVIDENCE_RECONCILIATION`; baseline contradicts the factual push-only premise and current PASS cannot manufacture a historical root. |
+| KF-P0-29 | Audit-baseline `aiGateway.submit` already creates SCHEDULED before queue admission and its `queued.promise.catch` reads a still-SCHEDULED operation, calls `authority.start()`, then `authority.cancel()` with generation/object fingerprint to prevent a stranded SCHEDULED operation. Earlier p-queue RED `ba46d434b3527990eb0032eee9ee419a404aad04` / run `32012968447` is not mechanically specific to this immutable 8/20 wording. | #839 final AI blob `91933a11f27ce85bf6e900bf99afb109ff16d6f9`, head `7820cc2cf9143df14979b1c8e1d0412c7b269562`, Stage `32931082385` / job `98063384263`, queue-admission terminalization PASS. | RETAIN; no exact pre-fix/RED→root lineage exists for the alleged stranded-SCHEDULED defect, while the immutable audit baseline already contains the claimed safety seam. |
+| KF-P0-30 | Audit-baseline `aiBrainOrchestrator` already carries canonical analysis `generation` + `objectFingerprint` into `succeed`/`cancel`, no-ops already-terminal cancellation, and supersedes older analysis by aborting/cancelling the prior durable identity. Audit-baseline `DurableInternalOperationAuthority.terminal()` admits only RUNNING/CANCEL_REQUESTED and validates generation, object fingerprint, stateVersion, owner/claim, Host generation/fencing token and active Host lease before the terminal CAS. Historical Schema-23 cutover `c7f71921d83522cd5afba504b7acdaf9d6a63b8d` supplies related authority migration, but no finding-specific pre-fix cancel-vs-succeed RED/root after the immutable finding has been recovered. | Same #839 blob/head/Stage/job executes real cancel-first/succeed-late and succeed-first/cancel-late exclusivity under active Schema-23 fencing PASS. | RETAIN; current/exact-baseline safety is strong but the required historical defect→root lineage is absent, so no coverage-only promotion. |
+| KF-P0-31 | Audit-baseline `contextAwareReplyBrain` already captures `conversationTurnCoordinator` turn state, installs an `aiTaskRuntimeRegistry` generation/object-fingerprint runtime, sends Gateway context generation/scope, revalidates social context + `conversationTurnCoordinator.isCurrent`, rejects stale persona/context, and executes a final `aiTaskRuntimeRegistry.assertCurrent` fence before authoritative candidate commit. Audit-baseline `aiGateway` also cancels previous same-scope generations and applies execution-commit guards before and after physical runtime. | Same #839 blob/head/Stage/job executes stale inbound-turn invalidation plus runtime/Gateway fencing/superseded semantics across the named boundaries PASS. | RETAIN; the exact immutable-baseline source already contains the named alignment seams, and no multi-layer historical defect→ordinary-merged root chain has been recovered. |
+| KF-P1-07 | Audit-baseline `contextAwareReplyBrain` selects `deep_reply` for deep performance mode, computes one `runtimeGenerationOptions`, uses `runtimeGenerationOptions.timeoutMs` on the original reply call, and reuses that same bounded timeout for the single controlled candidate-repair call before deterministic quality/language failure. `replyPerformancePolicy.js` has no post-import root change that can serve as the missing 8/20 deep-latency fix. #682 independently closes the deterministic AI_AUTO retry-storm subset only. | #839 final blob/head/Stage/job drives real deep-reply failure into actual `social-reply-repair` and proves equal finite bounded first/repair timeouts PASS; #682 RED/final evidence remains the retry-storm subset. | RETAIN; the broad immutable row is not mechanically tied to one historical defect/root, while the deep-repair bounded-timeout safety already exists at the audit baseline. |
+
+Residual-five accounting:
+
+```text
+residualFiveRows=5
+residualFivePromoted=0
+residualFiveRetainedEvidenceReconciliation=5
+residualFiveUnknownBlockers=0
+knownFindingsP0SourceGateClosedRcPending=27
+knownFindingsP1SourceGateClosedRcPending=7
+```
+
+The pre-RC Delta discovery is also complete for the effective #844 target without claiming final-Delta completion:
+
+- Mechanical full-window compare `bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0` → `188a4ec2752fc8a5f3074bfbb263b91e63d31c0c` is `status=ahead`, `ahead_by=722`, `behind_by=0`. Sections 8.1–8.9 already partition and reconcile the production-bearing portion of this window; the only discovered Delta P0/P1 remains `DELTA-P1-001`, already source/gate closed by #775/#777 and still RC-pending.
+- Mechanical post-Fresh-main-Audit compare `fefd92e33954e392bb9a437b3e67237148b62f73` → `188a4ec2752fc8a5f3074bfbb263b91e63d31c0c` is `status=ahead`, `ahead_by=52`, `behind_by=0`, changing 19 paths: release-ledger/governance authorizations, mandatory coverage contracts, delegated-routing tests and the two layered-CI routing tools. It introduces no production runtime/Product source, dependency, manifest, lockfile, database migration, package artifact, RC payload or release binary. The routing changes are the already-gated coverage/delegation authority work, with exact-head Stage/Layered/ACV2/Model evidence preserved by the merged packages.
+- Mechanical final anti-drift interval `65ac5ae628b1e685ae8810745413c4cd13a5a858` → `188a4ec2752fc8a5f3074bfbb263b91e63d31c0c` is `status=ahead`, `ahead_by=2`, `behind_by=0`, changing only `governance/layered-ci/v21-release-closure-residual-five-prerc-delta-p0-authorization.json`.
+- No new `DELTA-P0-*` or `DELTA-P1-*` row is discovered by this pre-RC pass, and every observed residual is classified; `preRcDeltaUnknownBlockers=0`.
+
+```text
+preRcDeltaBaseline=bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0
+preRcDeltaTarget=188a4ec2752fc8a5f3074bfbb263b91e63d31c0c
+preRcDeltaAheadBy=722
+preRcDeltaBehindBy=0
+preRcDeltaNewP0=0
+preRcDeltaNewP1=0
+preRcDeltaUnknownBlockers=0
+deltaRegressionKnownP1=1
+deltaRegressionKnownP1SourceGateClosedRcPending=1
+deltaRegressionAuditComplete=false
+```
+
+`deltaRegressionAuditComplete=false` is intentionally unchanged: the repository program requires the formal Delta window to extend through the future final RC source/package identity, which does not exist yet. This package also does not invent a new Known Finding status. The five baseline-contradicted/unmapped rows therefore remain unresolved `EVIDENCE_RECONCILIATION` under the current vocabulary even though no fresh executable source defect was discovered. The exact next source-readiness prerequisite is an independently authorized ledger/governance disposition for immutable Known Findings whose factual defect assertion is contradicted by the audit-baseline source and whose current mandatory contract passes; no production regression or synthetic RED may be fabricated merely to force those rows through a root-fix status.
+
+This #844 implementation changes no production/test/runner/workflow/routing/dependency/manifest/lockfile/migration/package/RC/release-binary authority. It does not start or authorize packaged Windows RC/UAT. Release invariants remain:
 
 ```text
 freshMainAuditV2Complete=true
