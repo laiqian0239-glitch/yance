@@ -12,7 +12,15 @@ This document is the single authorized evidence marker for the fresh Final RC/UA
 - Original marker head preserved in ancestry: `f38e0a421e72eae9e80865e270312cad8e7f5bf0`
 - Layered-route prerequisite authorization / implementation: PR #855 / PR #856
 - Trusted-main Layered-route prerequisite merge: `7c0a2f85ce74be6b2290cc35a0531f5d0391756e`
-- Forward reconciliation merge: `6580b14b2dd6da051f5b16437318ffd940ba88a7` with parents `f38e0a421e72eae9e80865e270312cad8e7f5bf0` + `7c0a2f85ce74be6b2290cc35a0531f5d0391756e`
+- First forward reconciliation merge: `6580b14b2dd6da051f5b16437318ffd940ba88a7` with parents `f38e0a421e72eae9e80865e270312cad8e7f5bf0` + `7c0a2f85ce74be6b2290cc35a0531f5d0391756e`
+- Prior exact RC head `375b99f7eb22c9631a804d793822345a4a0338ad` is historical-only after fresh real-Windows existing-data UAT reached `startup.migrate` and exposed `BOOT_SERVER_IMPORT_FAILED`; every Final Delta, CI, Product Final artifact/receipt, downloaded package and review bound to that head is stale for final closure.
+- Existing-data startup causal diagnostic authorization: PR #859 ordinary merge `3ed00f4c3ee533e7c29649fa921dab2f11c57ffb`
+- Frozen causal RED: PR #860 head `0dc374d38377875b65ca8266a677beec9e1286fc`, Stage `32979363837`, 717 mandatory tests / 714 PASS / exactly 3 causal RED, `unknownBlockers=0`
+- Production-scope amendment: PR #861 ordinary merge `114da197d73141a11ec6305f4f0bfc0f6cc850fe`
+- Root-fix exact production head: PR #862 head `0ded6ed2ab5c4269735030feadc06be422a65a51`, independent exact-head review P0=0/P1=0, zero unresolved threads, all applicable routed gates complete without failure
+- Root-fix trusted-main ordinary merge: `6cf9d0101ece1aca4dea55935bc3a2e7c605e448`, strict parents `114da197d73141a11ec6305f4f0bfc0f6cc850fe` + `0ded6ed2ab5c4269735030feadc06be422a65a51`
+- Second forward reconciliation: PR #863 ordinary merge `1b21e817b02293da7b9db744fc0c00f974e432f8`, strict parents `375b99f7eb22c9631a804d793822345a4a0338ad` + `6cf9d0101ece1aca4dea55935bc3a2e7c605e448`
+- Current candidate execution successor PR: #865; predecessor #864 is frozen as GitHub Actions scheduler-stuck evidence; this forward-only marker revision is the synchronization point after the root-fix reconciliation, and every mandatory final gate/artifact/review must bind only to the repository-reported exact head produced by this revision or a later explicitly reviewed forward-only marker revision.
 - Exact candidate branch: `release/v21-final-rc-uat-p0`
 - Authorized candidate change set relative to current trusted main: exactly this file only
 - Candidate source/runtime mutation: forbidden
@@ -27,7 +35,8 @@ The formal Final Delta must extend from historical audit baseline `bdc556faa7da7
 - `unknownBlockers=0`
 - unclassified Delta P0 = 0
 - unclassified Delta P1 = 0
-- any fresh executable P0/P1 freezes this exact RC head and returns to a separately authorized failure-first causal prerequisite
+- the post-`375b99f7...` production continuation is explicitly classified, including the existing-data startup root fix
+- any fresh executable or packaged P0/P1 freezes this exact RC head and returns to a separately authorized failure-first causal prerequisite
 
 No Delta completion claim is embedded in this marker; the exact-head PR evidence is authoritative.
 
@@ -43,6 +52,8 @@ The Windows Desktop job must materialize the reviewed package, launch the exact 
 
 Stage, Layered, and every routed ACV2/Model gate must also satisfy the exact-head policy. Independent review requires P0=0, P1=0, and zero unresolved threads.
 
+After fresh exact-head packaged validation passes, UAT-001 / issue #1 still requires real-Windows real-provider model-worker acceptance on these exact new packaged bytes. The old `375b99f7...` package cannot satisfy that boundary. Real AppData/DB remains untouched until the exact new package is downloaded and the explicit UAT execution step is reached.
+
 ## Fail-closed release boundary
 
 This candidate does not set or authorize any of the following:
@@ -53,3 +64,7 @@ This candidate does not set or authorize any of the following:
 - `publishAuthorized`
 
 The 27 P0 + 7 P1 real-defect Known Finding packaged obligations remain subject to fresh packaged RC evidence. Only a separate downstream authorization may consume successful exact-head Final Delta + fresh packaged RC/UAT evidence into the Release Closure Ledger and subsequent release/publish state.
+
+## CI registration provenance
+
+The final exact head is advanced by this user-authenticated marker-only synchronize after automated API-authored head updates did not register the mandatory ordinary pull-request workflows. This revision changes no product/runtime/test/runner/workflow/routing/dependency/package/lockfile/database bytes. All Final Delta, CI, Product Final artifacts, packaged receipts, review, and downstream UAT evidence must bind to the resulting repository-reported exact head; every precursor exact-head result remains stale.
