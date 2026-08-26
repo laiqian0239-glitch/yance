@@ -56,21 +56,29 @@ function createRemoteError(code, message, status = 503) {
 
 class PersonalAccessService {
   constructor(options = {}) {
-    this.credentialStore = options.credentialStore || getSecurityGuard().credentials;
+    this.credentialStoreProvider = typeof options.credentialStoreProvider === 'function'
+      ? options.credentialStoreProvider
+      : options.credentialStore
+        ? () => options.credentialStore
+        : () => getSecurityGuard().credentials;
     this.fetchImpl = options.fetchImpl || globalThis.fetch;
     this.authorityUrl = normalizeAuthorityUrl(options.authorityUrl ?? process.env.YANCE_PERSONAL_ACCESS_AUTHORITY_URL);
     this.ownerAdminSecretEnv = clean(options.ownerAdminSecret ?? process.env.YANCE_PERSONAL_ACCESS_OWNER_ADMIN_SECRET);
     this.requestTimeoutMs = Math.max(1000, Number(options.requestTimeoutMs || 5000));
   }
 
+  resolveCredentialStore() {
+    return this.credentialStoreProvider?.() || null;
+  }
+
   ownerCredential() {
-    const stored = this.credentialStore?.get?.(OWNER_CREDENTIAL_REF) || null;
+    const stored = this.resolveCredentialStore()?.get?.(OWNER_CREDENTIAL_REF) || null;
     const secret = clean(stored?.secret || stored?.value || this.ownerAdminSecretEnv);
     return secret ? Object.freeze({ secret, source: stored ? 'credentialStore' : 'environment' }) : null;
   }
 
   installationReceipt() {
-    const stored = this.credentialStore?.get?.(INSTALLATION_CREDENTIAL_REF) || null;
+    const stored = this.resolveCredentialStore()?.get?.(INSTALLATION_CREDENTIAL_REF) || null;
     const installationId = clean(stored?.installationId || process.env.YANCE_PERSONAL_ACCESS_INSTALLATION_ID);
     const requestId = clean(stored?.requestId);
     return Object.freeze({ installationId, requestId });
@@ -80,14 +88,14 @@ class PersonalAccessService {
     const current = this.installationReceipt();
     if (current.installationId) return current;
     const next = { installationId: randomUUID(), requestId: '' };
-    await this.credentialStore.persist(INSTALLATION_CREDENTIAL_REF, next, { actor: 'backend-core' });
+    await this.resolveCredentialStore().persist(INSTALLATION_CREDENTIAL_REF, next, { actor: 'backend-core' });
     return Object.freeze(next);
   }
 
   async persistReceipt(receipt) {
     const next = { installationId: clean(receipt?.installationId), requestId: clean(receipt?.requestId) };
     if (!next.installationId) throw createRemoteError('INSTALLATION_ID_REQUIRED', 'Installation id is required', 400);
-    await this.credentialStore.persist(INSTALLATION_CREDENTIAL_REF, next, { actor: 'backend-core' });
+    await this.resolveCredentialStore().persist(INSTALLATION_CREDENTIAL_REF, next, { actor: 'backend-core' });
     return Object.freeze(next);
   }
 
