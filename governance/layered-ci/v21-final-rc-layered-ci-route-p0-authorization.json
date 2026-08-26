@@ -50,7 +50,7 @@
         ".github/workflows/layered-ci-fast.yml"
       ],
       "approvedWorkflowPathCount": 1,
-      "approvedWorkflowPathSetSha256": "84b8bb93fc365d091ed84f02d08603149917f810045c0c4a7a351c1623b00245"
+      "approvedWorkflowPathSetSha256": "50eff8dcdf26b1527db7f777692e263c5f049a2af82af679d0bb601aeaff2d65"
     },
     "routingPolicyModificationAllowed": false,
     "newDependencyAllowed": false,
