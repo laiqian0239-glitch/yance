@@ -112,7 +112,7 @@ All other previously unresolved V1/A2/Delta/coverage rows remain fail-closed unl
 - #802 final exact head `1c72ee9854b2a9290fc2b834b5688921897c11fc` retains the immutable test blob `c5e8adb2759ca845e5a44eebc377948bbef4a953`; Stage `32845544408` / `wp0-product` job `97794318087` completes mandatory WP0 successfully, Layered `32845544838`, ACV2 `32845544340`, WP-A `32845544513`, and Model Windows `32845544394` pass, while Product Final `32845544301` is correctly route-skipped. Autonomous exact-head review closed the residual drain-timeout row reuse/egress boundary and four Promise-custody escapes, then reached P0=0/P1=0.
 - #802 ordinary-merges as `682cdce54d0e9fac919f57fb0354992a1770d48e` with strict parents `626d5e206c46d0a9ca8813819751e6b763172ab6` + `1c72ee9854b2a9290fc2b834b5688921897c11fc`. The root fix extends the existing session-generation fence with bounded in-flight custody/drain, quarantines the retiring WhatsApp row before drain, and prevents replacement generation creation after a failed drain. This mechanically advances KF-P0-19 only.
 
-All other previously unresolved V1/A2/Delta/coverage rows remain fail-closed unless their own finding-specific evidence is independently complete. No final packaged Windows RC exists, so Fresh-main Audit V2, global mandatory executed-test coverage, final Delta audit, RC, release and publish flags remain false.
+All other previously unresolved V1/A2/Delta/coverage rows remain fail-closed unless their own finding-specific evidence is independently complete. No final packaged Windows RC exists, so Fresh-main Audit V2, global mandatory executed-test coverage, final Delta audit, packaged RC and release/publish flags remain false.
 
 ### 2026-08-25 post-KF-P0-22 mechanical reconciliation checkpoint
 
@@ -257,9 +257,9 @@ Mechanical compare `29ce90a772be28cbddc925459721045b086f8104` → `682cdce54d0e9
 | Store/identity/conversation truth | No Store/identity authority path changed. | KF-P0-04/17/18 remain fail-closed at evidence reconciliation. |
 | Physical adapters and durable repair | The segment closes only WhatsApp stale-socket in-flight generation custody. It does not claim WhatsApp local-repair, long-await `messages.upsert`, cross-platform egress or repair-consumer rows. | KF-P0-19 is source-gate closed RC pending; KF-P0-20/22/23/24 and KF-P1-06 remain unresolved independently. |
 | Durable Execution | No Durable Execution source path changed. | KF-P0-26..28 remain `EVIDENCE_RECONCILIATION`. |
-| AI Core cancellation/stale/retry/authority/persistence | No AI Core path changed. | A2-P1-001 remains source-gate closed RC pending; KF-P0-29..31 and KF-P1-07 remain unresolved. |
+| AI Core cancellation/stale/retry/authority/persistence | No AI Core source path changed. | A2-P1-001 remains source-gate closed RC pending; KF-P0-29..31 and KF-P1-07 remain unresolved. |
 | Dependency / supply chain | No dependency, package-lock or runtime-downloader path changed. | KF-P0-05..07 / KF-P1-03 retain source-gate-closed-RC-pending; no new Delta dependency P0/P1. |
-| Release packaging / sealed-runtime / real Windows launch | No final fresh-main packaged Windows RC exists after #802. | UAT-001/UAT-002 remain blocking; `freshPackagedWindowsRcPass=false`. |
+| Release packaging / sealed runtime / real Windows launch | No final fresh-main packaged Windows RC exists after #802. | UAT-001/UAT-002 remain blocking; `freshPackagedWindowsRcPass=false`. |
 
 This is an exact-main **surface scan checkpoint**, not release completion. Existing V1/A2 blockers are not duplicated merely to make the Audit V2 list longer. `freshMainAuditV2Complete=false` remains fail-closed while unresolved source/evidence P0/P1 rows remain.
 
