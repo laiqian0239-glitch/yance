@@ -4,16 +4,13 @@
   "requestedByUserAt": "2026-08-26T15:05:00+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-FINAL-RC-PRODUCT-VALIDATION-ROUTE-P0",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Immutable/topology preflight after the clean #849 failure-first RED found one exact merged-authorization inconsistency that must be corrected before the first workflow commit. At trusted main 92a1c7506cd8d9854f4914129f0383fb6970874a, .github/workflows/v21-product-experience-shell-p0-final-validation.yml contains exactly three internal jobs and exactly three same-repository exact-branch allowlists: frozen-element-reproducibility, materialized-desktop-uat, and materialized-matrix-uat. The merged #848 routeContract.jobsThatMustAdmitNewBranch array incorrectly included a fourth value, product-final, even though Product Final is the top-level workflow/check identity and no internal product-final job exists. The clean RED evidence remains valid: Stage 32945477754 and Layered 32945478109 fail only on the missing release/v21-final-rc-uat-p0 exact equality; ACV2 and Model are GREEN; Product Final workflow run 32945478097 is correctly route-skipped on the implementation branch; unknownBlockers=0. Adding a new fourth job would change workflow behavior beyond the authorized routing-only repair, while adding the branch to only the three actual allowlists would contradict the literal four-entry field. This same-work-package amendment corrects that contract ambiguity only, preserves the immutable RED head, and authorizes a forward-only reconciliation of PR #849 followed by the original minimal routing repair.",
+  "reason": "Immutable/topology preflight after #849 clean failure-first RED found one exact merged-authorization inconsistency before any workflow commit: trusted main 92a1c7506cd8d9854f4914129f0383fb6970874a contains exactly three internal jobs and three same-repository exact-branch allowlists in the Product Final workflow, while merged #848 routeContract.jobsThatMustAdmitNewBranch incorrectly included a fourth product-final entry even though Product Final is the workflow/check identity, not an internal job. Stage 32945477754 and Layered 32945478109 fail only on the missing release/v21-final-rc-uat-p0 exact admission; ACV2 and Model are GREEN; Product Final run 32945478097 is correctly route-skipped on the implementation branch; unknownBlockers=0. Generic delegated governance does not permit a new authorization to reuse the old implementation branch, so #849 remains immutable RED evidence and this correction authorizes a distinct successor branch. After this amendment ordinary-merges, the successor must start from that effective merge and its first commit must be an ordinary two-parent merge whose second parent is the preserved #849 RED head. Production may then change only the already-authorized workflow route, adding the exact RC branch to the three actual existing internal allowlists and nothing else.",
   "supersedes": {
     "authorizationPath": "governance/layered-ci/v21-final-rc-product-validation-route-p0-authorization.json",
-    "authorizationMerge": "92a1c7506cd8d9854f4914129f0383fb6970874a",
-    "implementationPullRequest": 849,
     "implementationBranch": "ci/v21-final-rc-product-validation-route-p0",
-    "scope": "routeContract internal-job identity correction only",
-    "reason": "The original authorization remains historical evidence. This amendment changes no implementation path scope and only disambiguates the impossible four-job literal against the trusted workflow that has three internal guarded jobs."
+    "reason": "The original implementation branch is immutable tests-only RED evidence at c2e015de24feb0b165b6699753c38a068b5345a7. Its literal four-entry route contract conflicts with the trusted workflow topology. Production must continue on the distinct amendment branch after this authorization merges; #849 receives no further commits."
   },
   "base": {
     "branch": "main",
@@ -25,7 +22,7 @@
     "requiresOrdinaryTwoParentMainMerge": true,
     "requiredFirstParent": "92a1c7506cd8d9854f4914129f0383fb6970874a",
     "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
-    "implementationMayContinueOnlyAfterAuthorizationMergeCommit": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
     "authorizationProposalTransportIsNotImplementationAuthority": true,
     "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
     "explicitOwnerAuthorizationRequiredForMerge": false,
@@ -50,7 +47,7 @@
     "mustRemainCleanFromTrustedMain": true
   },
   "implementation": {
-    "branch": "ci/v21-final-rc-product-validation-route-p0",
+    "branch": "ci/v21-final-rc-product-validation-route-p0-amendment-1",
     "allowedChangedPaths": [
       ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
       "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
@@ -76,40 +73,31 @@
     "lockfileModificationAllowed": false,
     "releaseCandidateModificationAllowed": false
   },
-  "preservedFailureFirst": {
-    "implementationPullRequest": 849,
-    "implementationBranch": "ci/v21-final-rc-product-validation-route-p0",
-    "immutableHead": "c2e015de24feb0b165b6699753c38a068b5345a7",
-    "stageRun": 32945477754,
-    "stageGovernanceJob": 98105229780,
-    "layeredRun": 32945478109,
-    "layeredJob": 98105185594,
-    "acv2Run": 32945478111,
-    "modelRun": 32945478101,
-    "productFinalRun": 32945478097,
-    "productFinalConclusion": "skipped",
-    "causalFailure": "The Product Final workflow omits exact equality admission for release/v21-final-rc-uat-p0.",
-    "unknownBlockers": 0,
-    "redMustRemainImmutableEvidence": true
-  },
   "postRedContinuation": {
     "fastClosureV2": true,
-    "sameImplementationPullRequestContinues": true,
-    "sameImplementationBranchContinues": true,
-    "forwardReconcileAfterAmendmentMergeRequired": true,
-    "forwardReconcileMustBeOrdinaryTwoParentMerge": true,
-    "forwardReconcileRequiredFirstParent": "c2e015de24feb0b165b6699753c38a068b5345a7",
-    "forwardReconcileRequiredSecondParent": "EFFECTIVE_AMENDMENT_MERGE",
-    "historyRewriteForbidden": true,
-    "cherryPickDuplicationForbidden": true,
-    "failureFirstHeadMustRemainAncestor": true,
+    "originalEffectiveAuthorizationMerge": "92a1c7506cd8d9854f4914129f0383fb6970874a",
+    "originalImplementationPullRequest": 849,
+    "originalImplementationBranch": "ci/v21-final-rc-product-validation-route-p0",
+    "originalFailureFirstHead": "c2e015de24feb0b165b6699753c38a068b5345a7",
+    "originalFailureFirstStageRun": 32945477754,
+    "originalFailureFirstStageJob": 98105229780,
+    "originalFailureFirstConclusion": "failure",
     "unknownBlockers": 0,
-    "requiredFirstWorkflowCommitTrailers": [
+    "requiredFirstProductionTrailers": [
       "Yance-Failure-First-Red-Head: c2e015de24feb0b165b6699753c38a068b5345a7",
       "Yance-Failure-First-Red-Run: 32945477754",
       "Yance-Failure-First-Red-Conclusion: failure",
       "Yance-Closure-Matrix-Unknown-Blockers: 0"
-    ]
+    ],
+    "requiredContinuationTopology": {
+      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
+      "firstContinuationCommitMustBeTwoParentMerge": true,
+      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
+      "firstContinuationCommitSecondParent": "c2e015de24feb0b165b6699753c38a068b5345a7",
+      "historyRewriteForbidden": true,
+      "cherryPickDuplicationForbidden": true,
+      "oldImplementationBranchMustNotReceiveFurtherCommits": true
+    }
   },
   "routeContract": {
     "newRcBranch": "release/v21-final-rc-uat-p0",
@@ -128,11 +116,24 @@
     "productFinalIdentity": {
       "kind": "workflow/check route identity",
       "internalJob": false,
-      "implementationBranchExpectedConclusion": "skipped",
+      "successorImplementationBranchExpectedConclusion": "skipped",
       "futureRcBranchMustRoute": true
     },
     "existingArtifactIdentityMustRemainHeadShaBound": true,
     "formalReleaseMustRemainFalse": true
+  },
+  "failureFirstEvidence": {
+    "implementationPullRequest": 849,
+    "immutableHead": "c2e015de24feb0b165b6699753c38a068b5345a7",
+    "stageRun": 32945477754,
+    "layeredRun": 32945478109,
+    "acv2Run": 32945478111,
+    "modelRun": 32945478101,
+    "productFinalRun": 32945478097,
+    "productFinalConclusion": "skipped",
+    "causalFailure": "The Product Final workflow omits exact equality admission for release/v21-final-rc-uat-p0.",
+    "unknownBlockers": 0,
+    "redMustRemainImmutableEvidence": true
   },
   "finalRepair": {
     "allowedWorkflowChange": "Add github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' by exact equality to each of the three existing internal job allowlists and nothing else.",
@@ -161,7 +162,7 @@
       "ACV2 when triggered",
       "Model when triggered"
     ],
-    "productFinalOnImplementationBranch": "route-skipped is expected because ci/v21-final-rc-product-validation-route-p0 is not release/v21-final-rc-uat-p0",
+    "productFinalOnSuccessorImplementationBranch": "route-skipped is expected because ci/v21-final-rc-product-validation-route-p0-amendment-1 is not release/v21-final-rc-uat-p0",
     "independentReview": {
       "required": true,
       "exactHeadRequired": true,
@@ -180,7 +181,7 @@
     "explicitOwnerAuthorizationRequired": false
   },
   "governance": {
-    "authorizationPredatesContinuedWorkflowImplementation": true,
+    "authorizationPredatesImplementation": true,
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
     "productionUseAuthorized": false,
