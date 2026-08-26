@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-RELEASE-CLOSURE-RESIDUAL-EVIDENCE-LINEAGE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "After #841 ordinary-merged global mandatory executed-test coverage to 14/14, the remaining source-level release prerequisite is the exact historical lineage of the fourteen Known Finding rows still classified EVIDENCE_RECONCILIATION. Authorize one ledger-only Fast Landing batch to mechanically bind each immutable 2026-08-20 finding to exact pre-fix source evidence, merged historical root-fix lineage, and already-selected current mandatory exact-head PASS evidence. This package must not fabricate a fresh RED for a defect that is no longer present, must not promote a row from coverage alone, and must leave any row fail-closed if a specific source/root lineage cannot be proven. It may also record the Aug-20-to-current-main pre-RC Delta checkpoint, but deltaRegressionAuditComplete must remain false until the final RC source/package window is audited.",
+  "base": {
+    "branch": "main",
+    "commit": "7340f07c4a5956ce67d436290fb466264afbc0e6",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "7340f07c4a5956ce67d436290fb466264afbc0e6",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-release-closure-residual-evidence-lineage-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-release-closure-residual-evidence-lineage-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "4da1683f494fdfd8a47b90e69e13d333afe4af86079fd80aaad803fae8d197f1",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "docs/v21-release-closure-residual-evidence-lineage-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8f5a5ea40aa811612913eb20a8d039f69161f875a62e260361e84f9dabc0010e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": false,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "ledgerModificationAllowed": true,
+    "releaseCandidateModificationAllowed": false
+  },
+  "residualFindingScope": {
+    "targetRows": [
+      "KF-P0-03",
+      "KF-P0-04",
+      "KF-P0-17",
+      "KF-P0-18",
+      "KF-P0-23",
+      "KF-P0-26",
+      "KF-P0-27",
+      "KF-P0-28",
+      "KF-P0-29",
+      "KF-P0-30",
+      "KF-P0-31",
+      "KF-P1-01",
+      "KF-P1-06",
+      "KF-P1-07"
+    ],
+    "startingState": "EVIDENCE_RECONCILIATION",
+    "currentMandatoryCoverageComplete": true,
+    "coverageCompletionMerge": "7340f07c4a5956ce67d436290fb466264afbc0e6",
+    "promotionTargetWhenFullyBound": "SOURCE_GATE_CLOSED_RC_PENDING",
+    "promotionIsNotAllowedFromCoverageAlone": true,
+    "historicalEvidenceRule": {
+      "freshRedRecreationRequired": false,
+      "syntheticRegressionForbidden": true,
+      "minimumBinding": [
+        "immutable 2026-08-20 finding statement identifies the historical defect semantics",
+        "exact historical pre-fix source snapshot mechanically exhibits those defect semantics or the historical PR itself records a credible finding-specific RED",
+        "one or more exact ordinary-merged historical commits/PRs mechanically change the root source seam that caused the finding",
+        "current selected mandatory exact-head test executes and passes the finding semantics",
+        "no current source inspection or later Delta evidence contradicts the claimed closure"
+      ],
+      "ifAnyMinimumBindingMissing": "KEEP_EVIDENCE_RECONCILIATION_AND_RECORD_EXACT_MISSING_PREREQUISITE"
+    },
+    "knownHistoricalAnchorsToInspect": {
+      "KF-P0-03": ["PR #546", "PR #643", "PR #781/#783 startup-admission lineage"],
+      "KF-P0-04_KF-P0-17_KF-P0-18": ["PR #544", "PR #545", "PR #547", "PR #615 where relevant"],
+      "KF-P0-23_KF-P1-06": ["PR #653", "PR #777", "PR #790", "PR #796", "PR #820 where relevant"],
+      "KF-P0-26_KF-P0-27_KF-P0-28": ["PR #17 Milestone 2 credible RED / reviewed implementation / seal lineage"],
+      "KF-P0-29_KF-P0-30_KF-P0-31_KF-P1-07": ["historical AI Gateway/orchestrator/reply-brain/turn-coordinator fix PRs", "PR #682 deterministic retry subset", "PR #839 current semantic coverage"],
+      "KF-P1-01": ["PR #541", "PR #543", "current Safe Mode write-boundary coverage"]
+    },
+    "requiredCurrentCoverageBindings": {
+      "KF-P0-03_KF-P0-04_KF-P0-17_KF-P0-18": "preserve #831 exact mandatory PASS bindings already recorded in the ledger",
+      "KF-P0-23_KF-P1-06": "preserve #836 cross-platform adapter capability blob 24010a845285f7b7b576fa68ce4ac0f671be0800 / Stage 32926472778 / wp0 98050383433 PASS",
+      "KF-P0-26_KF-P0-27_KF-P0-28": "preserve #836 durable execution blob a99d95f222cf18eea8c9e26521f0cb78b5a6f1cd / Stage 32926472778 / wp0 98050383433 PASS",
+      "KF-P1-01": "preserve #836 Safe Mode write-boundary blob 09020f2eaa67cfb9a91a380d6b6b96414bf0b8ce / Stage 32926472778 / wp0 98050383433 PASS",
+      "KF-P0-29_KF-P0-30_KF-P0-31_KF-P1-07": "preserve only #839 final AI blob 91933a11f27ce85bf6e900bf99afb109ff16d6f9 / head 7820cc2cf9143df14979b1c8e1d0412c7b269562 / Stage 32931082385 / wp0 98063384263 PASS"
+    }
+  },
+  "deltaCheckpointScope": {
+    "historicalBaseline": "bdc556faa7da70bb6f0ae026e87fa1ab14d5e8b0",
+    "currentPreRcTarget": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "requiredInspection": [
+      "regressions in previously source-gate-closed Known Findings",
+      "new authority duplication or state divergence",
+      "contract drift among product code, tests, workflows and release packaging",
+      "new dependencies, postinstall behavior, dynamic downloads or unsealed runtime inputs",
+      "unreachable, dead, duplicated, truncated or inconsistent Product/UI controls",
+      "stale tests that pass without exercising current production surfaces"
+    ],
+    "newP0P1MustBecomeExplicitDeltaRows": true,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "reasonFinalDeltaRemainsFalse": "The Release Closure Program defines the Delta window through the final RC source/package head; the final RC does not exist in this work package."
+  },
+  "completionSemantics": {
+    "knownFindingsP0SourceGateClosedRcPendingMayIncreaseFrom": 20,
+    "knownFindingsP0SourceGateClosedRcPendingMaximum": 31,
+    "knownFindingsP1SourceGateClosedRcPendingMayIncreaseFrom": 5,
+    "knownFindingsP1SourceGateClosedRcPendingMaximum": 8,
+    "sourceLevelResidualEvidenceRowsMayBecomeZeroOnlyIfEveryTargetBindingIsComplete": true,
+    "mandatoryExecutedTestCoverageCompleteMustRemain": true,
+    "freshMainAuditV2CompleteMustRemain": true,
+    "deltaRegressionAuditCompleteMustRemain": false,
+    "freshPackagedWindowsRcPassMustRemain": false,
+    "releaseLedgerClosedMustRemain": false,
+    "releaseReadyMustRemain": false,
+    "formalReleaseAuthorizedMustRemain": false,
+    "publishAuthorizedMustRemain": false
+  },
+  "requiredChecklist": [
+    "Re-read the exact ledger from the effective authorization merge and preserve all already source-gate-closed rows and current mandatory coverage bindings.",
+    "For each of the fourteen target rows, search exact historical PR/commit lineage rather than relying on current source shape or broad work-package narrative.",
+    "Where the historical defect predates an already merged repair and cannot produce a fresh causal RED without deliberately regressing the product, use the immutable 2026-08-20 finding plus exact pre-fix source snapshot as the historical defect evidence only when the root-fix diff is mechanically specific.",
+    "Do not reconstruct, invent, relabel or imply a failure-first run that did not exist.",
+    "Do not upgrade a row from mandatory coverage PASS alone.",
+    "If exact source/root lineage remains ambiguous, keep that row EVIDENCE_RECONCILIATION and identify the narrow missing prerequisite; do not soften the state to accelerate RC.",
+    "Perform an Aug-20-to-current-main pre-RC Delta checkpoint and append explicit DELTA-P0/DELTA-P1 rows for any new blocker found.",
+    "Keep deltaRegressionAuditComplete=false because final Delta completion must include the later final RC source/package window.",
+    "Do not create, start, build or claim a fresh packaged Windows RC/UAT in this package."
+  ],
+  "forbiddenSemantics": [
+    "No production/runtime/test/runner/workflow/dependency/routing/manifest/lockfile/migration/packaging/release-binary mutation.",
+    "No synthetic regression or source rollback solely to manufacture failure-first evidence.",
+    "No promotion of a target row based only on current test presence or PASS.",
+    "No CLOSED or PACKAGED_RC_PASS state in this package.",
+    "No deltaRegressionAuditComplete=true before the final RC window exists.",
+    "No fresh packaged Windows RC/UAT, release, promotion or publish authority."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_RELEASE_LEDGER_AND_GIT_HISTORY_EVIDENCE_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance Release Closure Ledger and immutable Git/GitHub history",
+        "source": "docs/uat/V21_RELEASE_CLOSURE_LEDGER.md + repository Git history + ordinary-merged historical pull requests + existing mandatory Stage/ACV2/Model evidence",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This work package only reconciles historical source/root-fix lineage into the existing release ledger. Existing Git history, merged pull-request provenance, and already-selected mandatory test evidence fully own the required evidence surface; no new evidence database, scanner, workflow engine, or generalized infrastructure is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a parallel evidence database, provenance service, scanner, workflow, or release-ledger implementation.",
+      "Do not fabricate historical RED by reverting production source solely to reproduce already-fixed defects.",
+      "Do not create fragmented per-finding infrastructure or fourteen separate reconciliation systems when one existing ledger seam can record the batch.",
+      "Do not start packaged RC/UAT or create a second release authority from this ledger-only evidence reconciliation."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered when triggered",
+      "ACV2 when triggered",
+      "Model when triggered"
+    ]
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": ["P0", "P1"],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "historical finding-to-source-root lineage is mechanically specific",
+      "no fabricated RED or unsupported source-gate promotion",
+      "current mandatory exact-head PASS binding is preserved",
+      "pre-RC Delta checkpoint does not claim final Delta completion",
+      "single-ledger-path implementation scope"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
