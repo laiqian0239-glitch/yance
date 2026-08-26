@@ -158,6 +158,35 @@
       "server.listen and asynchronous readiness exclusion"
     ]
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_STARTUP_AND_DIAGNOSTIC_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Node.js built-in test runner and CommonJS module seams",
+        "source": "existing repository runtime and WP0 harness",
+        "license": "repository-existing runtime",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Use the repository's built-in node:test harness, child-process/CommonJS boundaries and disposable fixture/data projections to isolate the first synchronous post-boot leaf without adding a dependency or new diagnostic framework."
+      },
+      {
+        "name": "Existing final-RC startup regression harnesses",
+        "source": "historical #859/#860/#862 WP0 tests and startup seams",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Extend the existing failure-first packaged-startup regression family and preserve the #862 lazy PersonalAccess credential seam instead of building a second startup authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a database, migration, process-supervisor, timeout, tracing or fixture dependency.",
+      "Do not create a second startup/import authority or general-purpose diagnostics framework.",
+      "Do not use clean-profile startup, Yance.exe relaunch, async server.listen readiness or frozen live AppData as a substitute for the synchronous existing-data causal slice."
+    ]
+  },
   "requiredValidation": {
     "focusedAfterDiagnostic": [
       "node --test --test-concurrency=1 tests/wp0/v21-final-rc-post-boot-sync-import-p0.test.js"
