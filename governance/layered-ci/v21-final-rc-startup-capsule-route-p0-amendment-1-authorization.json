@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-STARTUP-CAPSULE-ROUTE-P0-AMENDMENT-1",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #877 exact head 5f4a6f5f6c4020321e32dff3c8e9d44d09b629e7 closes the startup-capsule Layered contract and passes the dedicated startup-capsule WP0 contract, but fresh Stage run 33035800332 exposes exactly one remaining causal RED in the pre-existing tests/wp0/v21-product-experience-materialized-uat.test.js contract: it counts every pinned artifact upload after the packaged launch as a diagnostic upload, so the newly authorized same-build startup capsule plus the one diagnostic artifact is misclassified as two diagnostics. This is a test-contract reconciliation inside the same release-validation work package, not a product/runtime defect. The frozen #877 head must not be mutated outside its four-path authorization. This amendment supersedes #876 using a distinct successor implementation branch, carries the frozen #877 bytes by canonical two-parent forwardContinuation, and adds only the exact existing materialized-UAT WP0 test path needed to distinguish the startup-capsule artifact from the diagnostic artifact. No product/runtime, dependency, package, database, release-ledger, release, publish, or gate weakening is authorized.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-final-rc-startup-capsule-route-p0-authorization.json",
+    "implementationBranch": "ci/v21-final-rc-startup-capsule-route-p0",
+    "reason": "Replace the four-path startup-capsule implementation authority with a distinct five-path successor solely to reconcile the newly exposed pre-existing materialized-UAT artifact-count contract; preserve the frozen #877 exact head as immutable RED evidence."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "5c79c45a2adf2d783b5eca862a19f4da0152b796",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "5c79c45a2adf2d783b5eca862a19f4da0152b796",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-startup-capsule-route-p0-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-startup-capsule-route-p0-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "647dc444eea48863cc090376915605e646578b410e00156b94f1298fd9c7ad43",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-startup-capsule-route-p0-amendment-1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "5f4a6f5f6c4020321e32dff3c8e9d44d09b629e7"
+    },
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp0/v21-product-experience-startup-capsule-p0.test.js",
+      "tools/product-experience/create-startup-capsule.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "ce3ce2c8bc208ab4ad09bcffe6b23743f6d75747d316bea0337110a8e46ca935",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "5f4a6f5f6c4020321e32dff3c8e9d44d09b629e7",
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true
+  },
+  "redEvidence": {
+    "pullRequest": 877,
+    "exactHead": "5f4a6f5f6c4020321e32dff3c8e9d44d09b629e7",
+    "stageRun": 33035800332,
+    "stageJob": 98398122599,
+    "stageConclusion": "failure",
+    "mandatoryWp0Tests": 723,
+    "mandatoryWp0Pass": 722,
+    "exactFailures": 1,
+    "failingContract": "tests/wp0/v21-product-experience-materialized-uat.test.js :: Product Final preserves packaged startup diagnostics after a failing receipt-bound launch",
+    "failureDetail": "The pre-existing contract expected exactly one pinned upload after the packaged launch; the authorized same-build startup-capsule adds one independently named upload before the existing diagnostic upload, producing actual 2 versus expected 1.",
+    "owningLayer": "WP0 release-validation test contract",
+    "productImplementationRed": false,
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true
+  },
+  "requiredRepair": {
+    "onlyNewlyAuthorizedPath": "tests/wp0/v21-product-experience-materialized-uat.test.js",
+    "preserveExactlyOneDiagnosticArtifact": true,
+    "admitExactlyOneIndependentlyNamedStartupCapsuleArtifact": true,
+    "rawPostLaunchUploadCountMustNotConflateCapsuleWithDiagnostics": true,
+    "existingPackagedLaunchReceiptBindingMustRemain": true,
+    "diagnosticsMustRemainAvailableOnFailure": true,
+    "startupCapsuleSameBuildByteIdentityContractMustRemain": true,
+    "successorReleaseBranch": "release/v21-final-rc-uat-p0-successor-v2"
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP0_TEST_CONTRACT_AND_DELEGATED_FORWARD_CONTINUATION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing materialized-UAT artifact contract",
+        "source": "tests/wp0/v21-product-experience-materialized-uat.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is a stale exact-count assertion; the correct repair is to classify the independently named capsule and diagnostics artifacts explicitly."
+      },
+      {
+        "name": "Existing delegated forwardContinuation protocol",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Carries the frozen four-path #877 implementation into a distinct authorized successor without rewriting history."
+      }
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-materialized-uat.test.js tests/wp0/v21-product-experience-startup-capsule-p0.test.js tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "WP-A when routed",
+      "Model Brain Windows when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    },
+    "unknownBlockers": 0
+  },
+  "prohibitions": {
+    "productRuntimeMutation": true,
+    "secondApplicationBuild": true,
+    "liveAppDataReadOrMutation": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "databaseMigration": true,
+    "gateOrScannerWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "releaseLedgerClosure": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
