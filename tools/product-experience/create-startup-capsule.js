@@ -29,12 +29,23 @@ const STARTUP_PROOF_LABELS = Object.freeze([
   'Element ModuleLoader',
   'post-install'
 ]);
+let failureDiagnosticsRoot = null;
 
 function fail(code, message, details = {}) {
   const error = new Error(message);
   error.code = code;
   error.details = details;
   throw error;
+}
+
+function persistFailureDetail(detail) {
+  if (!failureDiagnosticsRoot) return;
+  fs.mkdirSync(failureDiagnosticsRoot, { recursive: true });
+  fs.writeFileSync(
+    path.join(failureDiagnosticsRoot, 'startup-capsule-failure.json'),
+    `${JSON.stringify(detail, null, 2)}\n`,
+    'utf8'
+  );
 }
 
 function arg(name, { required = true } = {}) {
@@ -357,10 +368,12 @@ function generatedScripts() {
 }
 
 async function run() {
+  failureDiagnosticsRoot = null;
   const applicationRoot = assertDirectory(arg('--application-root'), 'extracted full application root');
   const elementHostRoot = assertDirectory(arg('--element-host-root'), 'exact same-job Element host root');
   const sourceDataRoot = assertDirectory(arg('--data-root'), 'populated disposable R32 source data root');
   const outputRoot = assertEmptyOutput(arg('--output-root'));
+  failureDiagnosticsRoot = path.join(outputRoot, 'startup-capsule', 'diagnostics');
   const candidateCommit = String(arg('--candidate-commit'));
   const candidateTree = String(arg('--candidate-tree'));
   if (!/^[0-9a-f]{40}$/u.test(candidateCommit) || !/^[0-9a-f]{40}$/u.test(candidateTree)) {
@@ -445,7 +458,23 @@ async function run() {
 
 if (require.main === module) {
   run().catch(error => {
-    process.stderr.write(`${JSON.stringify({ status: 'FAIL', code: error.code || 'STARTUP_CAPSULE_FAILED', message: error.message, details: error.details || {} })}\n`);
+    const detail = {
+      status: 'FAIL',
+      code: error.code || 'STARTUP_CAPSULE_FAILED',
+      message: error.message,
+      details: error.details || {},
+      generatedAtUtc: new Date().toISOString()
+    };
+    try {
+      persistFailureDetail(detail);
+    } catch (persistenceError) {
+      detail.diagnosticsPersistence = {
+        status: 'FAIL',
+        code: 'STARTUP_CAPSULE_FAILURE_TELEMETRY_WRITE_FAILED',
+        message: persistenceError?.message || String(persistenceError)
+      };
+    }
+    process.stderr.write(`${JSON.stringify(detail)}\n`);
     process.exitCode = 1;
   });
 }
