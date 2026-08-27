@@ -174,7 +174,7 @@ test('trusted Linux CI delegates CRLF apply semantics to Matrix bootstrap, then 
   assert.match(source, /PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);
 });
 
-test('Product final validation keeps exactly two materialized UAT artifacts and permits only the authorized packaged-startup diagnostic artifact', () => {
+test('Product final validation keeps exactly two materialized UAT artifacts plus one startup capsule and permits only the authorized packaged-startup diagnostic artifact', () => {
   const source = readWorkflow();
   assert.doesNotMatch(source, /create-round12-13-windows-uat-package\.js/u);
   assert.doesNotMatch(source, /start-source-uat\.js/u);
@@ -182,11 +182,23 @@ test('Product final validation keeps exactly two materialized UAT artifacts and 
   assert.doesNotMatch(source, /ROUND12_13_UAT_MANIFEST\.json/u);
 
   const pinnedUploadCount = (source.match(/actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/gu) || []).length;
+  const capsuleNames = source.match(/name: Product-Experience-Startup-Capsule-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || [];
   const diagnosticNames = source.match(/name: Product-Experience-Packaged-Startup-Diagnostics-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || [];
+  assert.equal(capsuleNames.length, 1, 'exactly one same-build startup-capsule artifact must exist');
   assert.ok(diagnosticNames.length === 0 || diagnosticNames.length === 1, 'only one authorized packaged-startup diagnostic artifact may exist');
-  assert.equal(pinnedUploadCount, 2 + diagnosticNames.length, 'every pinned upload beyond the two materialized UAT artifacts must be the one authorized diagnostic artifact');
+  assert.equal(pinnedUploadCount, 3 + diagnosticNames.length, 'pinned uploads must be two materialized UAT artifacts, one startup capsule, and at most one diagnostic artifact');
   assert.equal((source.match(/name: Product-Experience-Materialized-Desktop-UAT-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || []).length, 1);
   assert.equal((source.match(/name: Product-Experience-Materialized-Matrix-UAT-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || []).length, 1);
+
+  const capsuleStepStart = source.indexOf('- name: Upload same-build startup capsule');
+  const capsuleStepEnd = source.indexOf('\n      - name:', capsuleStepStart + 1);
+  assert.ok(capsuleStepStart >= 0 && capsuleStepEnd > capsuleStepStart, 'same-build startup-capsule upload step must be independently bounded');
+  const capsuleStep = source.slice(capsuleStepStart, capsuleStepEnd);
+  assert.match(capsuleStep, /uses:\s*actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/u);
+  assert.match(capsuleStep, /name: Product-Experience-Startup-Capsule-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/u);
+  assert.match(capsuleStep, /\$\{\{ runner\.temp \}\}\\product-experience-startup-capsule\\startup-capsule\\\*\*/u);
+  assert.match(capsuleStep, /if-no-files-found:\s*error/u);
+  assert.match(capsuleStep, /retention-days:\s*7/u);
 
   if (diagnosticNames.length === 1) {
     const diagnosticStepStart = source.indexOf('- name: Upload packaged startup diagnostics after Product Final RED');
@@ -199,6 +211,7 @@ test('Product final validation keeps exactly two materialized UAT artifacts and 
     assert.match(diagnosticStep, /name: Product-Experience-Packaged-Startup-Diagnostics-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/u);
     const diagnosticLogs = [...diagnosticStep.matchAll(/\$\{\{ runner\.temp \}\}\\product-uat-packaged-data\\logs\\([a-z-]+\.jsonl)/gu)].map((match) => match[1]);
     assert.deepEqual(diagnosticLogs, ['desktop-bootstrap.jsonl', 'desktop.jsonl', 'server.jsonl']);
+    assert.match(diagnosticStep, /\$\{\{ runner\.temp \}\}\\product-experience-startup-capsule\\startup-capsule\\diagnostics\\\*\*/u);
     assert.match(diagnosticStep, /if-no-files-found:\s*warn/u);
     assert.doesNotMatch(diagnosticStep, /continue-on-error/u);
   }
