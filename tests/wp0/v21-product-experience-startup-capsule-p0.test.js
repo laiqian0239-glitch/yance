@@ -3,7 +3,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '../..');
 const WORKFLOW_PATH = path.join(ROOT, '.github', 'workflows', 'v21-product-experience-shell-p0-final-validation.yml');
@@ -53,4 +55,43 @@ test('Product Final creates one same-build startup capsule with populated dispos
   assert.match(tool, /hash mismatch|byte identity|byte-identical/iu);
   assert.match(tool, /exclude|excluded/iu);
   assert.doesNotMatch(tool, /npm\s+(?:install|ci)|pnpm\s+(?:install|add)|electron-builder|create-pre-review-trusted-product/iu, 'capsule projection must not build or install a second application');
+});
+
+test('startup capsule persists its structured failure reason before nonzero exit', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-startup-capsule-failure-'));
+  try {
+    const applicationRoot = path.join(root, 'application');
+    const elementHostRoot = path.join(root, 'element-host');
+    const dataRoot = path.join(root, 'data');
+    const outputRoot = path.join(root, 'output');
+    for (const directory of [applicationRoot, elementHostRoot, dataRoot]) fs.mkdirSync(directory, { recursive: true });
+
+    const result = spawnSync(process.execPath, [
+      TOOL_PATH,
+      '--application-root', applicationRoot,
+      '--element-host-root', elementHostRoot,
+      '--data-root', dataRoot,
+      '--output-root', outputRoot,
+      '--candidate-commit', 'not-a-git-object-id',
+      '--candidate-tree', '0'.repeat(40)
+    ], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      windowsHide: true
+    });
+
+    assert.notEqual(result.status, 0, 'fixture must exercise a real helper failure');
+    assert.match(result.stderr, /STARTUP_CAPSULE_IDENTITY_INVALID/u, 'stderr must preserve the structured reason code');
+
+    const failurePath = path.join(outputRoot, 'startup-capsule', 'diagnostics', 'startup-capsule-failure.json');
+    assert.equal(fs.existsSync(failurePath), true, 'structured startup-capsule failure telemetry must be durable before nonzero exit');
+    const failure = JSON.parse(fs.readFileSync(failurePath, 'utf8'));
+    assert.equal(failure.status, 'FAIL');
+    assert.equal(failure.code, 'STARTUP_CAPSULE_IDENTITY_INVALID');
+    assert.match(String(failure.message || ''), /candidate commit\/tree/u);
+    assert.equal(typeof failure.details, 'object');
+    assert.ok(Number.isFinite(Date.parse(String(failure.generatedAtUtc || ''))), 'failure telemetry must carry a parseable UTC timestamp');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
