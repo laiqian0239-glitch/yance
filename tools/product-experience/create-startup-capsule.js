@@ -29,6 +29,11 @@ const STARTUP_PROOF_LABELS = Object.freeze([
   'Element ModuleLoader',
   'post-install'
 ]);
+const DISPOSABLE_FIXTURE_RUNTIME_STATE = Object.freeze([
+  'secure/desktop-backend-owner.json',
+  'logs/post-install-launch.json',
+  'logs/post-install-launch.pass'
+]);
 let failureDiagnosticsRoot = null;
 
 function fail(code, message, details = {}) {
@@ -116,6 +121,14 @@ function isStartupApplicationFile(relative) {
   return false;
 }
 
+function isRuntimeOwnerClaimArtifact(relative) {
+  const normalized = canonicalRelative(relative).toLowerCase();
+  return DISPOSABLE_FIXTURE_RUNTIME_STATE.includes(normalized)
+    || normalized === 'secure/desktop-backend-owner.json.lock'
+    || normalized.startsWith('secure/desktop-backend-owner.json.lock/')
+    || /^secure\/desktop-backend-owner\.json\..+\.(?:tmp|lock)$/u.test(normalized);
+}
+
 function copyOriginFile({ sourceRoot, sourceFile, destinationRoot, originClass, records }) {
   const relative = canonicalRelative(path.relative(sourceRoot, sourceFile));
   const destination = path.join(destinationRoot, ...relative.split('/'));
@@ -194,6 +207,7 @@ function copyFixture(sourceDataRoot, destinationDataRoot, records, capsuleRoot) 
   fs.mkdirSync(destinationDataRoot, { recursive: true });
   for (const sourceFile of walkFiles(sourceDataRoot)) {
     const relative = canonicalRelative(path.relative(sourceDataRoot, sourceFile));
+    if (isRuntimeOwnerClaimArtifact(relative)) continue;
     const destination = path.join(destinationDataRoot, ...relative.split('/'));
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.copyFileSync(sourceFile, destination);
@@ -303,6 +317,22 @@ async function waitForReceipt(receiptPath, child, startedAtMs, timeoutMs = 12000
   fail('STARTUP_CAPSULE_POST_INSTALL_TIMEOUT', 'timed out waiting for fresh post-install PASS receipt', { receiptPath });
 }
 
+function preserveFixtureFailureLogs(fixtureDataRoot, capsuleRoot) {
+  const source = path.join(fixtureDataRoot, 'logs');
+  const destination = path.join(capsuleRoot, 'diagnostics', 'fixture-data-logs');
+  if (!fs.existsSync(source) || !fs.statSync(source).isDirectory()) return;
+  try {
+    for (const file of walkFiles(source)) {
+      const relative = path.relative(source, file);
+      const target = path.join(destination, relative);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.copyFileSync(file, target);
+    }
+  } catch (_) {
+    // Failure diagnostics are best-effort and must never replace the original startup reason code.
+  }
+}
+
 function killProcessTree(child) {
   if (!child || child.exitCode !== null) return;
   if (process.platform === 'win32') spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
@@ -356,6 +386,9 @@ async function validateCapsuleLaunch({ capsuleRoot, applicationDestination, elem
     const proofPath = path.join(capsuleRoot, 'diagnostics', 'STARTUP_CAPSULE_PROOF.json');
     writeGeneratedFile(proofPath, `${JSON.stringify(proof, null, 2)}\n`, records, capsuleRoot, 'diagnostic-proof');
     return proof;
+  } catch (error) {
+    preserveFixtureFailureLogs(fixtureDataRoot, capsuleRoot);
+    throw error;
   } finally {
     killProcessTree(child);
     await new Promise(resolve => host.server.close(resolve));
