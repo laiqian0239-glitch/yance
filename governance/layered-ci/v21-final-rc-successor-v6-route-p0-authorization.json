@@ -146,6 +146,12 @@
         "reason": "Only one additional explicit successor-v6 equality is required in the existing three jobs and matching layered set assertion."
       }
     ],
+    "retireOrAvoid": [
+      "Do not create a parallel Product Final workflow, router, wrapper, prefix wildcard, contains/startsWith admission, or alternate execution path.",
+      "Do not mutate, merge, or rerun frozen #904.",
+      "Do not reimplement the native-governance startup fix already ordinary-merged by #906.",
+      "Do not create a second application build."
+    ],
     "thinYanceAdapterOnly": true
   },
   "failureFirst": {
