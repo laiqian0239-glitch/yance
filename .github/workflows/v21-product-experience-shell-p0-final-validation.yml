@@ -25,7 +25,8 @@ jobs:
         github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1' ||
         github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-5' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3'
       )
     runs-on: windows-latest
     env:
@@ -135,7 +136,8 @@ jobs:
         github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1' ||
         github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-5' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -198,7 +200,7 @@ jobs:
 
           $expectedSha256 = ([string]$archive.sha256).ToLowerInvariant()
           if ($expectedSha256 -ne 'c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a') { throw "unexpected Electron trust SHA-256: $expectedSha256" }
-          if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Electron trust SHA-256 is malformed' }
+          if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Electron npm package integrity must be canonical sha512 SRI' }
           $expectedSize = [int64]$archive.sizeBytes
           if ($expectedSize -ne 150154788) { throw "unexpected Electron Release asset size: $expectedSize" }
 
@@ -653,7 +655,8 @@ jobs:
         github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1' ||
         github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-5' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120
