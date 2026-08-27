@@ -47,6 +47,16 @@
     ],
     "approvedChangedFileCount": 2,
     "approvedChangedFileSetSha256": "7189ef5a5a0cf528c3c3d4a0640ec4d8af79653bc69e5f872fc0456d7dead0ac",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-startup-capsule-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "59e9799b024a9be3e0684dc4acbbc67fa7c0512f3f944d1bade2a0156275c2f1"
+    },
     "productionScopeAuthorized": false,
     "productionCodeChanged": false,
     "testModificationAllowed": true,
