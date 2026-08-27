@@ -177,7 +177,7 @@
     "decision": "REUSE_EXISTING_PRODUCT_FINAL_WP7_BUILD_AND_NODE_BUILTINS",
     "matureOssAvailable": true,
     "newGeneralPurposeInfrastructure": false,
-    "selectedAdoptionMode": "thin-existing-build-projection",
+    "selectedAdoptionMode": "existing-repository-seam",
     "reviewedCandidates": [
       {
         "name": "Existing WP7 Product Final Windows build and materialized launch seam",
