@@ -185,6 +185,45 @@
       "No timeout inflation, supervisor redesign, fire-and-forget durable mutation, synchronous native liveness, workflow or release mutation."
     ]
   },
+  "ossFit": {
+    "decision": "REUSE_NODE_ASYNC_PROCESS_APIS_PROPER_LOCKFILE_ASYNC_API_AND_EXISTING_DURABILITY_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Node.js asynchronous child_process and fs APIs",
+        "source": "node:child_process and node:fs/promises already used by the repository",
+        "license": "Node.js project license / runtime already trusted by repository",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Bounded async process queries and durability can use Node core APIs without adding a scheduler, worker framework, or dependency."
+      },
+      {
+        "name": "proper-lockfile asynchronous lock API",
+        "source": "existing repository dependency proper-lockfile",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Backend owner startup admission already uses the dependency; the async lock API preserves cross-process exclusion without synchronous event-loop blocking."
+      },
+      {
+        "name": "Existing Yance async durability and owner-recovery seams",
+        "source": "electron/desktopHost/asyncDurability.js, BackendOwnerRegistry.js, BackendProcessHost.js and DesktopCredentialApplicationCoordinator.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repair is propagation and fail-closed completion inside existing authority seams rather than a new process supervisor or durability subsystem."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second process supervisor, worker framework, durability subsystem, lock implementation, or liveness authority.",
+      "Do not inflate startup-capsule timeouts or bypass owner/durability checks.",
+      "Do not rerun frozen #910 or broad credential suites whose covered paths remain unchanged.",
+      "Do not mutate workflows, routing, dependencies, release/publish/ledger state, or create a second application build."
+    ],
+    "thinYanceAdapterOnly": true
+  },
   "requiredValidation": {
     "failureFirstFocused": [
       "node --test --test-concurrency=1 tests/wp0/v21-boot-critical-path-event-loop-p0.test.js"
