@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-STARTUP-CAPSULE-FAILURE-TELEMETRY-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen PR #881 exact head d73c880912c4310a0fee433e7be321236735811b has an independent Product Final Windows RED at run 33040613281 / job 98413111085, step 'Run populated disposable R32 startup capsule'. The same job's full packaged launch reaches a fresh post-install PASS receipt, while the startup-capsule step fails before producing a startup-capsule artifact or durable capsule diagnostics. The existing helper's top-level failure handler serializes the exact failure code/message/details only to stderr and sets exitCode=1, so the always-uploaded diagnostics artifact cannot preserve the causal reason when the capsule fails before proof creation. This prerequisite authorizes only the existing startup-capsule helper and its dedicated WP0 contract to make every failure mode durably observable before exit. It does not authorize any Product/runtime payload repair, workflow routing change, second application build, dependency change, release, publish, or ledger closure. The frozen #881 head must not be rerun or mutated.",
+  "base": {
+    "branch": "main",
+    "commit": "2f53b26732dead09683f152aacda80a753963b81",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "2f53b26732dead09683f152aacda80a753963b81",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-startup-capsule-failure-telemetry-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-startup-capsule-failure-telemetry-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "af0c3e6cbe51360d0bc2649b525dc5060bdbe593a157f37c9c11a27a64274eb1",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-startup-capsule-failure-telemetry-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-startup-capsule-p0.test.js",
+      "tools/product-experience/create-startup-capsule.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "7189ef5a5a0cf528c3c3d4a0640ec4d8af79653bc69e5f872fc0456d7dead0ac",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "frozenRedEvidence": {
+    "pullRequest": 881,
+    "exactHead": "d73c880912c4310a0fee433e7be321236735811b",
+    "productFinalRun": 33040613281,
+    "windowsJob": 98413111085,
+    "failingStep": "Run populated disposable R32 startup capsule",
+    "fullPackagedLaunchReceipt": "PASS",
+    "startupCapsuleArtifactProduced": false,
+    "durableStartupCapsuleDiagnosticsProduced": false,
+    "sourceEvidence": "tools/product-experience/create-startup-capsule.js run().catch writes {status:'FAIL', code, message, details} only to process.stderr and sets process.exitCode=1.",
+    "rootClassification": "FAILURE_TELEMETRY_GAP_BLOCKS_CAUSAL_CLASSIFICATION",
+    "actualProjectedStartupFailureReasonKnown": false,
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true
+  },
+  "failureFirstContract": {
+    "freshRedRequired": true,
+    "firstImplementationHeadMustBeTestOnly": true,
+    "testPath": "tests/wp0/v21-product-experience-startup-capsule-p0.test.js",
+    "requiredRed": "A regression test must prove the current helper can fail with a structured STARTUP_CAPSULE_* reason while leaving no durable failure record under startup-capsule/diagnostics.",
+    "implementationMayFollowOnlyAfterFreshRed": true,
+    "sameCausalBatchMustAggregateAllKnownFailureTelemetryModes": true
+  },
+  "requiredRepair": {
+    "toolPath": "tools/product-experience/create-startup-capsule.js",
+    "durableFailureRecordRequired": true,
+    "failureRecordLocation": "startup-capsule/diagnostics/startup-capsule-failure.json",
+    "failureRecordMustContain": [
+      "status",
+      "code",
+      "message",
+      "details",
+      "generatedAtUtc"
+    ],
+    "mustPersistBeforeNonZeroExit": true,
+    "mustCover": [
+      "projection/setup failure after output root exists",
+      "Yance child early exit",
+      "post-install receipt timeout",
+      "invalid/stale receipt",
+      "startup diagnostic checkpoint failure"
+    ],
+    "stderrMayRemainForHumanLogs": true,
+    "successManifestAndByteIdentitySemanticsMustRemainUnchanged": true,
+    "startupPayloadSelectionMustRemainUnchanged": true,
+    "sameBuildProjectionMustRemainUnchanged": true,
+    "secondApplicationBuildForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_STARTUP_CAPSULE_HELPER_AND_WP0_CONTRACT",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing startup-capsule helper failure boundary",
+        "source": "tools/product-experience/create-startup-capsule.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The helper already centralizes structured STARTUP_CAPSULE_* errors; persisting that same structured object at the existing output diagnostics seam is the narrowest repair."
+      },
+      {
+        "name": "Existing dedicated startup-capsule WP0 contract",
+        "source": "tests/wp0/v21-product-experience-startup-capsule-p0.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing contract is the correct place to add an execution-oriented failure telemetry regression without creating a parallel test family."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a parallel workflow, logging service, dependency, or second capsule builder.",
+      "Do not modify capsule payload include/exclude rules until durable evidence identifies an actual missing startup dependency.",
+      "Do not rerun frozen #881 merely to recover stderr."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-startup-capsule-p0.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2 when routed",
+      "Model Brain Windows when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    },
+    "unknownBlockers": 0
+  },
+  "prohibitions": {
+    "frozen881Mutation": true,
+    "frozen881Rerun": true,
+    "startupPayloadSelectionChange": true,
+    "workflowChange": true,
+    "productRuntimeMutation": true,
+    "secondApplicationBuild": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "databaseMigration": true,
+    "gateOrScannerWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "releaseLedgerClosure": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
