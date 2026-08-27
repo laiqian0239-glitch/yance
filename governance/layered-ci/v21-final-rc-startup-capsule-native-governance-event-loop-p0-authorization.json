@@ -44,8 +44,8 @@
     "branch": "ci/v21-final-rc-startup-capsule-native-governance-event-loop-p0",
     "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
     "allowedChangedPaths": [
-      "electron/main.js",
       "electron/m2/nativeBinaryGovernance.js",
+      "electron/main.js",
       "tests/wp0/v21-native-binary-governance-event-loop-p0.test.js"
     ],
     "approvedChangedFileCount": 3,
