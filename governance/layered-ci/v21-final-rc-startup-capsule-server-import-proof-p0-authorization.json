@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-STARTUP-CAPSULE-SERVER-IMPORT-PROOF-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen Final RC successor-v3 candidate PR #890 exact head 10d5eb2e20168fb0e1693befa161658dc188668f produced a fresh Product Final Windows RED at run 33052777045 / job 98452076458 after the one full packaged application build and real packaged launch both passed. Durable telemetry ordinary-merged in PR #888 preserved the exact capsule failure as STARTUP_CAPSULE_SERVER_IMPORT_PROOF_MISSING: server import proof is missing backend-boot-started. Mechanical source inspection proves backend/server.js emits backend-boot-started only through productionDiagnostics.recordEvent(), whose canonical trace file is <dataRoot>/logs/production-diagnostics.jsonl, while tools/product-experience/create-startup-capsule.js verifyStartupDiagnostics currently reads only desktop-bootstrap.jsonl, desktop.jsonl and server.jsonl. The verifier therefore requires a canonical proof event from a file it never reads. The later backend-ready and startup.migrate checkpoints are already observable through server.jsonl server-started detail, so this causal batch authorizes only the existing startup-capsule helper and its dedicated WP0 test to add the missing canonical production-diagnostics trace to the verifier input set. No capsule payload selection, workflow, product/runtime, dependency, package, lockfile, database, release, publish or ledger change is authorized. PR #890 and #881 remain frozen and must not be rerun or mutated.",
+  "base": {
+    "branch": "main",
+    "commit": "e304f310d8466289da3928f052ea7d3cb70f6778",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "e304f310d8466289da3928f052ea7d3cb70f6778",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-startup-capsule-server-import-proof-p0-authorization",
+    "allowedChangedPaths": ["governance/layered-ci/v21-final-rc-startup-capsule-server-import-proof-p0-authorization.json"],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d54dd566a3957e18e64375df2eab6c8f1990194aa8d772386579fe67e5c32ce4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-startup-capsule-server-import-proof-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-startup-capsule-p0.test.js",
+      "tools/product-experience/create-startup-capsule.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "7189ef5a5a0cf528c3c3d4a0640ec4d8af79653bc69e5f872fc0456d7dead0ac",
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": ["tests/wp0/v21-product-experience-startup-capsule-p0.test.js"],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "59e9799b024a9be3e0684dc4acbbc67fa7c0512f3f944d1bade2a0156275c2f1"
+    },
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "frozenRedEvidence": {
+    "pullRequest": 890,
+    "exactHead": "10d5eb2e20168fb0e1693befa161658dc188668f",
+    "productFinalRun": 33052777045,
+    "windowsJob": 98452076458,
+    "failingStep": "Project and validate startup-capsule populated R32 server-import startup.migrate backend-ready Element ModuleLoader post-install",
+    "fullApplicationBuild": "PASS",
+    "fullPackagedLaunchReceipt": "PASS",
+    "durableFailureCode": "STARTUP_CAPSULE_SERVER_IMPORT_PROOF_MISSING",
+    "durableFailureMessage": "server import proof is missing backend-boot-started",
+    "durableFailureGeneratedAtUtc": "2026-08-27T08:14:26.036Z",
+    "rootClassification": "STARTUP_PROOF_VERIFIER_OMITS_CANONICAL_PRODUCTION_DIAGNOSTICS_TRACE",
+    "canonicalEventProducer": "backend/server.js productionDiagnostics.recordEvent('backend-boot-started')",
+    "canonicalTraceFile": "<dataRoot>/logs/production-diagnostics.jsonl",
+    "verifierCurrentInputs": [
+      "<dataRoot>/logs/desktop-bootstrap.jsonl",
+      "<dataRoot>/logs/desktop.jsonl",
+      "<dataRoot>/logs/server.jsonl"
+    ],
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true
+  },
+  "failureFirstContract": {
+    "freshRedRequired": true,
+    "firstImplementationHeadMustBeTestOnly": true,
+    "testPath": "tests/wp0/v21-product-experience-startup-capsule-p0.test.js",
+    "requiredRed": "A focused regression must prove that a fresh canonical production-diagnostics.jsonl containing backend-boot-started is still rejected by the current startup verifier because that trace is absent from verifyStartupDiagnostics inputs.",
+    "implementationMayFollowOnlyAfterFreshRed": true,
+    "sameCausalBatchMustAggregateAllKnownProofPathOmissions": true
+  },
+  "requiredRepair": {
+    "toolPath": "tools/product-experience/create-startup-capsule.js",
+    "addVerifierInput": "<dataRoot>/logs/production-diagnostics.jsonl",
+    "serverImportProofMustConsumeCanonicalProducerTrace": true,
+    "backendReadyProofMayContinueUsingServerStarted": true,
+    "startupMigrateProofMayContinueUsingServerStartedDetail": true,
+    "successManifestAndByteIdentitySemanticsMustRemainUnchanged": true,
+    "startupPayloadSelectionMustRemainUnchanged": true,
+    "sameBuildProjectionMustRemainUnchanged": true,
+    "secondApplicationBuildForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_STARTUP_CAPSULE_HELPER_AND_CANONICAL_PRODUCTION_DIAGNOSTICS_TRACE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing startup-capsule verifier",
+        "source": "tools/product-experience/create-startup-capsule.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is a one-file verifier input omission; no new runtime or infrastructure is needed."
+      },
+      {
+        "name": "Existing production diagnostics trace",
+        "source": "backend/services/productionDiagnosticsService.js",
+        "license": "repository-existing",
+        "adoptionMode": "read-existing-canonical-trace",
+        "fit": "FIT",
+        "reason": "backend-boot-started and backend-boot-ready are already durably emitted to production-diagnostics.jsonl; the capsule verifier only needs to consume that existing trace."
+      },
+      {
+        "name": "Existing dedicated startup-capsule WP0 contract",
+        "source": "tests/wp0/v21-product-experience-startup-capsule-p0.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing focused test file is the narrowest failure-first seam."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a parallel diagnostics format or duplicate backend event.",
+      "Do not change capsule payload include/exclude rules.",
+      "Do not modify backend/server.js or productionDiagnosticsService.js; their canonical emission is already correct.",
+      "Do not rerun frozen #890 or #881."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": ["node --test --test-concurrency=1 tests/wp0/v21-product-experience-startup-capsule-p0.test.js"],
+    "exactHeadCi": ["Stage", "Layered CI when routed", "ACV2 when routed", "Model Brain Windows when routed"],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    },
+    "unknownBlockers": 0
+  },
+  "prohibitions": {
+    "frozen890Mutation": true,
+    "frozen890Rerun": true,
+    "frozen881Mutation": true,
+    "frozen881Rerun": true,
+    "startupPayloadSelectionChange": true,
+    "workflowChange": true,
+    "productRuntimeMutation": true,
+    "backendProducerChange": true,
+    "secondApplicationBuild": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "databaseMigration": true,
+    "gateOrScannerWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "releaseLedgerClosure": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
