@@ -102,16 +102,16 @@ test('M1 preflight failure enters START_FAILED without forking a backend child',
   assert.equal(snapshot.apiSessionEstablished, false);
 });
 
-test('trusted Node runtime preflight executes the exact runtime and rejects a silent launch failure', () => {
+test('trusted Node runtime preflight executes the exact runtime and rejects a silent launch failure', async () => {
   const { probeNodeRuntimeExecutable } = require('../../electron/desktopHost/BackendProcessHost');
   const calls = [];
-  const ok = probeNodeRuntimeExecutable(process.execPath, {
+  const ok = await probeNodeRuntimeExecutable(process.execPath, {
     noCache: true,
     cwd: ROOT_FOR_PROBE(),
     env: { SAFE: '1' },
-    spawnSync(executable, args, options) {
+    execFile(executable, args, options) {
       calls.push({ executable, args, options });
-      return { status: 0, signal: null, stdout: 'v22.16.0\n', stderr: '' };
+      return Promise.resolve({ stdout: 'v22.16.0\n', stderr: '' });
     }
   });
   assert.equal(ok.version, 'v22.16.0');
@@ -120,10 +120,17 @@ test('trusted Node runtime preflight executes the exact runtime and rejects a si
   assert.deepEqual(calls[0].args, ['--version']);
   assert.equal(calls[0].options.windowsHide, true);
 
-  assert.throws(() => probeNodeRuntimeExecutable(process.execPath, {
+  await assert.rejects(() => probeNodeRuntimeExecutable(process.execPath, {
     noCache: true,
     cwd: ROOT_FOR_PROBE(),
-    spawnSync() { return { status: 1, signal: null, stdout: '', stderr: 'bad option: --electron-flag' }; }
+    execFile() {
+      const e = new Error('Command failed with exit code 1');
+      e.status = 1;
+      e.signal = null;
+      e.stdout = '';
+      e.stderr = 'bad option: --electron-flag';
+      return Promise.reject(e);
+    }
   }), error => error.reasonCode === 'M1_NODE_RUNTIME_PROBE_FAILED' && /bad option/.test(error.stderrTail));
 });
 

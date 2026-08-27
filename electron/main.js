@@ -282,14 +282,21 @@ function packagedNodeModulesPath() {
   return path.join(packagedAppRoot(), 'node_modules');
 }
 
-function resolveTrustedNodeRuntime() {
+async function pathAccessible(file) {
+  try { await fs.promises.access(file); return true; } catch (_) { return false; }
+}
+
+async function resolveTrustedNodeRuntime() {
   if (!app.isPackaged) return process.execPath;
   const identity = releaseIdentity();
   const relative = String(identity.nodeRuntimeExecutablePath || 'runtime/node22/node.exe').replace(/\\/g, '/');
   const candidates = [];
   if (relative) candidates.push(path.join(process.resourcesPath, ...relative.split('/')));
   candidates.push(path.join(process.resourcesPath, 'runtime', 'node22', process.platform === 'win32' ? 'node.exe' : 'node'));
-  const found = candidates.find(candidate => candidate && fs.existsSync(candidate));
+  let found = null;
+  for (const candidate of candidates) {
+    if (candidate && await pathAccessible(candidate)) { found = candidate; break; }
+  }
   if (!found) {
     const error = new Error(`Bundled Node runtime is missing: ${candidates.join(' | ')}`);
     error.code = 'NODE_RUNTIME_MISSING';
@@ -306,7 +313,7 @@ function resolveTrustedNodeRuntime() {
 async function governRuntimeNativeBinariesBootCheck() {
   try {
     const govern = require('./m2/nativeBinaryGovernance');
-    const nodeExe = resolveTrustedNodeRuntime();
+    const nodeExe = await resolveTrustedNodeRuntime();
     const report = await govern.governRuntimeNodeNativeBinaries(nodeExe, govern.KNOWN_NATIVE_ADDONS, {});
     desktopLog('info', 'native-binary-governance', {
       recommendation: report.recommendation,
@@ -489,10 +496,10 @@ let voiceBrainRuntime = null;
 let learningCoachTools = null;
 const parlantInboundSequencer = createRelationshipTaskSequencer();
 
-function ensureLettaAgentRuntime() {
+async function ensureLettaAgentRuntime() {
   if (!lettaAgentRuntime) {
     lettaAgentRuntime = createLettaAgentRuntime({
-      nodeExecutablePath: resolveTrustedNodeRuntime(),
+      nodeExecutablePath: await resolveTrustedNodeRuntime(),
       dataRoot: DATA_ROOT
     });
   }
@@ -2430,8 +2437,7 @@ function packagedBackendNodePath() {
   return [...new Set(paths.filter(Boolean))].join(path.delimiter);
 }
 
-function backendEnvironment(launch = {}, startupTimeoutMs = backendStartupTimeoutMs()) {
-  const allowedPassthrough = ['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'PATH', 'ComSpec', 'PATHEXT', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432', 'LOCALAPPDATA', 'APPDATA', 'USERPROFILE'];
+async function backendEnvironment(launch = {}, startupTimeoutMs = backendStartupTimeoutMs()) {  const allowedPassthrough = ['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'PATH', 'ComSpec', 'PATHEXT', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432', 'LOCALAPPDATA', 'APPDATA', 'USERPROFILE'];
   const env = {};
   for (const key of allowedPassthrough) if (process.env[key]) env[key] = process.env[key];
   env.WORKBUDDY_DESKTOP = '1';
@@ -2449,10 +2455,10 @@ function backendEnvironment(launch = {}, startupTimeoutMs = backendStartupTimeou
   const explicitPlatformAuthHash = String(process.env.YANCE_PLATFORM_AUTH_CONFIG_SHA256_PATH || '').trim();
   const releasePlatformAuthConfig = path.join(releaseResourcesPath, 'platform-auth.json');
   const releasePlatformAuthHash = path.join(releaseResourcesPath, 'platform-auth.sha256');
-  if (explicitPlatformAuthConfig || fs.existsSync(releasePlatformAuthConfig)) {
+  if (explicitPlatformAuthConfig || await pathAccessible(releasePlatformAuthConfig)) {
     env.YANCE_PLATFORM_AUTH_CONFIG_PATH = path.resolve(explicitPlatformAuthConfig || releasePlatformAuthConfig);
   }
-  if (explicitPlatformAuthHash || fs.existsSync(releasePlatformAuthHash)) {
+  if (explicitPlatformAuthHash || await pathAccessible(releasePlatformAuthHash)) {
     env.YANCE_PLATFORM_AUTH_CONFIG_SHA256_PATH = path.resolve(explicitPlatformAuthHash || releasePlatformAuthHash);
   }
   env.YANCE_PORT = String(new URL(YANCE_BACKEND_URL).port);
@@ -2658,32 +2664,32 @@ function connectEventSocket() {
   eventSocket.on('error', () => scheduleEventReconnect());
 }
 
-function resolveBackendLaunchPaths() {
+async function resolveBackendLaunchPaths() {
   const appRoot = packagedAppRoot();
   const entry = path.join(appRoot, 'backend', 'desktopHostedEntry.js');
   const cwd = appRoot;
   const nodeModulesPath = path.join(appRoot, 'node_modules');
-  const nodeRuntimeExecutablePath = resolveTrustedNodeRuntime();
+  const nodeRuntimeExecutablePath = await resolveTrustedNodeRuntime();
 
-  if (!fs.existsSync(appRoot)) {
+  if (!(await pathAccessible(appRoot))) {
     const error = new Error(`应用资源目录不存在：${appRoot}`);
     error.code = 'APP_ROOT_MISSING';
     error.reasonCode = 'APP_ROOT_MISSING';
     throw error;
   }
-  if (!fs.existsSync(entry)) {
+  if (!(await pathAccessible(entry))) {
     const error = new Error(`本地服务入口不存在：${entry}`);
     error.code = 'BACKEND_ENTRY_MISSING';
     error.reasonCode = 'BACKEND_ENTRY_MISSING';
     throw error;
   }
-  if (!fs.existsSync(nodeModulesPath)) {
+  if (!(await pathAccessible(nodeModulesPath))) {
     const error = new Error(`生产依赖目录不存在：${nodeModulesPath}`);
     error.code = 'NODE_MODULES_MISSING';
     error.reasonCode = 'NODE_MODULES_MISSING';
     throw error;
   }
-  if (!cwd || !fs.existsSync(cwd)) {
+  if (!cwd || !(await pathAccessible(cwd))) {
     const error = new Error(`本地服务工作目录不存在：${cwd || '(empty)'}`);
     error.code = 'BACKEND_CWD_MISSING';
     error.reasonCode = 'BACKEND_CWD_MISSING';
@@ -2832,7 +2838,7 @@ function startBackendProcessForCoordinator(options = {}) {
     backendReadySource = '';
     if (wp7ProbeRequested() && !wp7BackendLaunchStartedAtUtc) wp7BackendLaunchStartedAtUtc = new Date().toISOString();
     sendToRenderer('desktop:backend-state', { ready: false, pid: 0, eventStreamConnected: false });
-    const launch = resolveBackendLaunchPaths();
+    const launch = await resolveBackendLaunchPaths();
 
     desktopLog('info', 'backend-launch', {
       execPath: launch.nodeRuntimeExecutablePath,
@@ -2859,7 +2865,7 @@ function startBackendProcessForCoordinator(options = {}) {
         execPath: launch.nodeRuntimeExecutablePath,
         nodeRuntimeExecutablePath: launch.nodeRuntimeExecutablePath,
         cwd: launch.cwd,
-        env: backendEnvironment(launch, startupTimeoutMs),
+        env: await backendEnvironment(launch, startupTimeoutMs),
         windowsHide: true,
         readyTimeoutMs: startupTimeoutMs,
         launchTimeoutMs: startupTimeoutMs,
@@ -3537,14 +3543,14 @@ function registerIpc() {
   installR32StoreBridge({ ipcMain, apiRequest });
   registerM2DebugIpc();
   ipcGuardHandle('desktop:get-state', () => desktopState());
-  ipcGuardHandle('desktop:letta-get-state', () => projectLettaRendererState(ensureLettaAgentRuntime().snapshot()));
+  ipcGuardHandle('desktop:letta-get-state', async () => projectLettaRendererState((await ensureLettaAgentRuntime()).snapshot()));
   ipcGuardHandle('desktop:letta-list-agents', async () => {
-    const agents = await ensureLettaAgentRuntime().listAgents();
+    const agents = await (await ensureLettaAgentRuntime()).listAgents();
     return (Array.isArray(agents) ? agents : []).map(projectLettaAgentIdentity).filter(agent => agent.id);
   });
   ipcGuardHandle('desktop:letta-list-conversations', async (_event, input = {}) => {
     const normalized = normalizeLettaConversationListInput(input);
-    const conversations = await ensureLettaAgentRuntime().listConversations(normalized);
+    const conversations = await (await ensureLettaAgentRuntime()).listConversations(normalized);
     return (Array.isArray(conversations) ? conversations : [])
       .map(conversation => projectLettaConversationIdentity(conversation, normalized.agentId))
       .filter(conversation => conversation.id);
@@ -4026,7 +4032,7 @@ if (!app.requestSingleInstanceLock()) {
     createTray();
     createSoundWindow();
     try {
-      await ensureLettaAgentRuntime().start();
+      await (await ensureLettaAgentRuntime()).start();
       await launchBackend();
       if (wp7ProbeRequested()) {
         const probeResult = await runWp7InstalledRuntimeProbe();

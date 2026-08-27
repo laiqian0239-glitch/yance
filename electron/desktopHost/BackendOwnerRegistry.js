@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 const properLockfile = require('proper-lockfile');
+const { atomicWriteJsonAsync, readFileTextAsync } = require('./asyncDurability');
 
 const SCHEMA_VERSION = 1;
 const LIVE_STATES = new Set(['SPAWNED', 'STARTING', 'RUNNING', 'REJECTED', 'STOPPING']);
@@ -209,8 +210,10 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     try {
       const logDir = path.join(process.env.APPDATA || process.env.HOME || '.', 'Yance', 'debug');
       const logPath = path.join(logDir, 'windowsProcessIdentity_debug.jsonl');
-      fs.mkdirSync(logDir, { recursive: true });
-      fs.appendFileSync(logPath, `${JSON.stringify({ timestamp: new Date().toISOString(), msg, data })}\n`, 'utf8');
+      const entry = `${JSON.stringify({ timestamp: new Date().toISOString(), msg, data })}\n`;
+      fs.promises.mkdir(logDir, { recursive: true })
+        .then(() => fs.promises.appendFile(logPath, entry, 'utf8'))
+        .catch(() => {});
     } catch (_) {}
   };
 
@@ -415,6 +418,38 @@ class BackendOwnerRegistry {
     return this.snapshot();
   }
 
+  async _loadAsync() {
+    if (!this.enabled()) return;
+    const text = await readFileTextAsync(this.file, this.fs);
+    if (text === null) return;
+    let parsed = null;
+    try {
+      parsed = JSON.parse(text);
+      validateOwnerRecord(parsed, { requireProcessIdentity: true, expectedPlatform: this.processIdentityPlatform || undefined });
+      this.record = parsed;
+    } catch (cause) {
+      this.record = null;
+      this.loadFailure = {
+        reasonCode: cause?.reasonCode || 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_INVALID',
+        message: cause.message,
+        details: clone(cause?.details || null),
+        claimedState: typeof parsed?.state === 'string' ? parsed.state : null,
+        claimedOwnershipActive: typeof parsed?.ownershipActive === 'boolean' ? parsed.ownershipActive : null,
+        claimedTrusted: typeof parsed?.trusted === 'boolean' ? parsed.trusted : null,
+        claimedBackendPid: typeof parsed?.backendPid === 'number' ? parsed.backendPid : null,
+        recoveryRequired: true,
+        atUtc: this.clock()
+      };
+    }
+  }
+
+  async refreshAsync() {
+    this.record = null;
+    this.loadFailure = null;
+    await this._loadAsync();
+    return this.snapshot();
+  }
+
   snapshot() { return this.record ? Object.freeze(clone(this.record)) : null; }
 
   async captureIdentityAsync(pid) {
@@ -494,6 +529,21 @@ class BackendOwnerRegistry {
     return this.snapshot();
   }
 
+  async _writeAsync(record) {
+    const candidate = {
+      schemaVersion: SCHEMA_VERSION,
+      ...clone(record),
+      updatedAtUtc: this.clock()
+    };
+    validateOwnerRecord(candidate, {
+      requireProcessIdentity: this.enabled(),
+      expectedPlatform: this.enabled() ? (this.processIdentityPlatform || undefined) : undefined
+    });
+    if (this.enabled()) await atomicWriteJsonAsync(this.file, candidate, { fsApi: this.fs });
+    this.record = candidate;
+    return this.snapshot();
+  }
+
   _withOwnerClaimLock(operation) {
     if (!this.enabled()) return operation();
     this.fs.mkdirSync(path.dirname(this.file), { recursive: true });
@@ -538,10 +588,12 @@ class BackendOwnerRegistry {
       error.reasonCode = 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_ASYNC_REQUIRED';
       throw error;
     }
+    // Non-blocking best-effort diagnostic append. It must never block the owner
+    // admission critical path nor mask an authority persistence failure, so it
+    // is fire-and-forget on the async fs surface rather than a synchronous write.
     try {
       const logDir = path.join(process.env.APPDATA || process.env.HOME || '.', 'Yance', 'debug');
       const logPath = path.join(logDir, 'register_debug.jsonl');
-      if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
       const entry = JSON.stringify({
         timestamp: new Date().toISOString(),
         backendPid,
@@ -549,7 +601,9 @@ class BackendOwnerRegistry {
         captureIdentityType: typeof this.captureIdentity,
         processIdentityPlatform: this.processIdentityPlatform
       }) + '\n';
-      fs.appendFileSync(logPath, entry, 'utf8');
+      fs.promises.mkdir(logDir, { recursive: true })
+        .then(() => fs.promises.appendFile(logPath, entry, 'utf8'))
+        .catch(e => console.error('[register debug log failed]', e.message));
     } catch (e) {
       console.error('[register debug log failed]', e.message);
     }
@@ -586,7 +640,7 @@ class BackendOwnerRegistry {
       let active = true;
       let registered = false;
       return Object.freeze({
-        register: context => {
+        register: async context => {
           if (!active) {
             const error = new Error('Backend startup admission is no longer active');
             error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_CLOSED';
@@ -597,7 +651,7 @@ class BackendOwnerRegistry {
             error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_ALREADY_REGISTERED';
             throw error;
           }
-          const result = this._write(this._registrationRecord(context));
+          const result = await this._writeAsync(this._registrationRecord(context));
           registered = true;
           return result;
         },
@@ -636,7 +690,7 @@ class BackendOwnerRegistry {
     };
 
     try {
-      this.refresh();
+      await this.refreshAsync();
       this._assertClaimAvailable();
     } catch (error) {
       try { await release(); }

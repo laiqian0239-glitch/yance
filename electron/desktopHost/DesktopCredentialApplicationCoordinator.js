@@ -8,6 +8,7 @@ const {
   STATES,
   transitionDesktopCredentialApplication
 } = require('../../shared/desktopCredentialApplicationStateMachine');
+const { atomicWriteJsonAsync, closeAsync, existsAsync, fileSyncAsync, openAsync, readFileTextAsync, unlinkAsync } = require('./asyncDurability');
 
 const JOURNAL_SCHEMA_VERSION = 3;
 const CONTAINMENT_SENTINEL_SCHEMA_VERSION = 1;
@@ -27,50 +28,8 @@ function makeError(reasonCode, message, detail = {}) {
   Object.assign(error, detail);
   return error;
 }
-function fsyncSyncIfSupported(fsApi, handle, context, platform = process.platform) {
-  if (typeof fsApi.fsyncSync !== 'function') return;
-  try { fsApi.fsyncSync(handle); }
-  catch (error) {
-    // Windows does not consistently support directory fsync. Ignore only the
-    // observed platform limitation; file fsync and every other error remain
-    // fail-closed.
-    if (context === 'directory' && platform === 'win32' && error?.code === 'EPERM') return;
-    throw error;
-  }
-}
-
-function atomicWriteJson(file, value, fsApi = fs, phaseHook = null, platform = process.platform) {
-  const invoke = phase => phaseHook?.(phase, { file, temp });
-  const temp = `${file}.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}.tmp`;
-  let handle = null;
-  let directory = null;
-  try {
-    invoke('mkdir');
-    fsApi.mkdirSync(path.dirname(file), { recursive: true });
-    invoke('open');
-    handle = fsApi.openSync(temp, 'w', 0o600);
-    invoke('write');
-    fsApi.writeFileSync(handle, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-    invoke('fsync');
-    fsyncSyncIfSupported(fsApi, handle, 'file', platform);
-    invoke('close');
-    fsApi.closeSync(handle);
-    handle = null;
-    invoke('rename');
-    fsApi.renameSync(temp, file);
-    invoke('directory-open');
-    directory = fsApi.openSync(path.dirname(file), 'r');
-    invoke('directory-fsync');
-    fsyncSyncIfSupported(fsApi, directory, 'directory', platform);
-    invoke('directory-close');
-    fsApi.closeSync(directory);
-    directory = null;
-  } catch (error) {
-    if (handle !== null) try { fsApi.closeSync(handle); } catch (_) {}
-    if (directory !== null) try { fsApi.closeSync(directory); } catch (_) {}
-    try { fsApi.rmSync(temp, { force: true }); } catch (_) {}
-    throw error;
-  }
+async function atomicWriteJson(file, value, fsApi = fs, phaseHook = null, platform = process.platform) {
+  await atomicWriteJsonAsync(file, value, { fsApi, phaseHook, platform });
 }
 
 
@@ -131,17 +90,32 @@ class DesktopCredentialApplicationCoordinator {
       updatedAtUtc: this.clock(),
       stateHistory: []
     };
-    this._loadJournal();
-    this._loadContainmentSentinel();
-    if (this.lifecycle.state === STATES.UNINITIALIZED) this._transition(STATES.IDLE, 'constructed');
-    this._restorePersistentContainment();
+    this._initPromise = null;
+    this._initialized = false;
     this.desktopHost.setCredentialApplicationCoordinator?.(this);
+    // Real disk I/O (journal/sentinel load, interrupted recovery, persistent
+    // containment restore) is deferred to the explicit awaitable initialize() so
+    // the constructor never blocks the Electron main event loop.
   }
 
-  _loadJournal() {
-    if (!this.fs.existsSync(this.journalPath)) return;
+  async initialize() {
+    if (this._initialized) return;
+    if (this._initPromise) return this._initPromise;
+    this._initPromise = (async () => {
+      await this._loadJournal();
+      await this._loadContainmentSentinel();
+      if (this.lifecycle.state === STATES.UNINITIALIZED) await this._transition(STATES.IDLE, 'constructed');
+      await this._restorePersistentContainment();
+      this._initialized = true;
+    })();
+    return this._initPromise;
+  }
+
+  async _loadJournal() {
     try {
-      const parsed = JSON.parse(this.fs.readFileSync(this.journalPath, 'utf8'));
+      const text = await readFileTextAsync(this.journalPath, this.fs);
+      if (text === null) return;
+      const parsed = JSON.parse(text);
       if (!parsed || ![1, 2, JOURNAL_SCHEMA_VERSION].includes(Number(parsed.schemaVersion || 0)) || !parsed.lifecycle) return;
       this.lifecycle = {
         ...this.lifecycle,
@@ -190,7 +164,7 @@ class DesktopCredentialApplicationCoordinator {
           updatedAtUtc: this.clock()
         };
       }
-      this._persist();
+      await this._persist();
     } catch (cause) {
       this.lifecycle.state = STATES.UNAVAILABLE;
       this.lifecycle.reasonCode = APPLICATION_UNAVAILABLE;
@@ -220,10 +194,11 @@ class DesktopCredentialApplicationCoordinator {
     return failure;
   }
 
-  _loadContainmentSentinel() {
-    if (!this.fs.existsSync(this.containmentSentinelPath)) return;
+  async _loadContainmentSentinel() {
     try {
-      const parsed = JSON.parse(this.fs.readFileSync(this.containmentSentinelPath, 'utf8'));
+      const text = await readFileTextAsync(this.containmentSentinelPath, this.fs);
+      if (text === null) return;
+      const parsed = JSON.parse(text);
       if (!parsed || Number(parsed.schemaVersion || 0) !== CONTAINMENT_SENTINEL_SCHEMA_VERSION) {
         throw makeError('WP4_DESKTOP_CREDENTIAL_CONTAINMENT_SENTINEL_INVALID', 'Containment sentinel schema is invalid');
       }
@@ -254,7 +229,7 @@ class DesktopCredentialApplicationCoordinator {
     }
   }
 
-  _persistContainmentSentinel(reason = '') {
+  async _persistContainmentSentinel(reason = '') {
     const containment = clone(this.containment || {});
     const value = {
       schemaVersion: CONTAINMENT_SENTINEL_SCHEMA_VERSION,
@@ -270,33 +245,33 @@ class DesktopCredentialApplicationCoordinator {
       containment,
       updatedAtUtc: this.clock()
     };
-    atomicWriteJson(this.containmentSentinelPath, value, this.fs, this._persistencePhase('containment-sentinel'), this.platform);
+    await atomicWriteJson(this.containmentSentinelPath, value, this.fs, this._persistencePhase('containment-sentinel'), this.platform);
     this.containmentSentinel = value;
     if (this.containment) this.containment.sentinelDurable = true;
     return value;
   }
 
-  _clearContainmentSentinel() {
-    if (!this.fs.existsSync(this.containmentSentinelPath)) {
+  async _clearContainmentSentinel() {
+    if (!(await existsAsync(this.containmentSentinelPath, this.fs))) {
       this.containmentSentinel = null;
       return true;
     }
     this.persistenceFaultInjector?.({ kind: 'containment-sentinel-remove', phase: 'unlink', file: this.containmentSentinelPath });
-    this.fs.rmSync(this.containmentSentinelPath, { force: true });
+    await unlinkAsync(this.containmentSentinelPath, this.fs);
     let directory = null;
     try {
-      directory = this.fs.openSync(path.dirname(this.containmentSentinelPath), 'r');
+      directory = await openAsync(path.dirname(this.containmentSentinelPath), 'r', undefined, this.fs);
       this.persistenceFaultInjector?.({ kind: 'containment-sentinel-remove', phase: 'directory-fsync', file: this.containmentSentinelPath });
-      fsyncSyncIfSupported(this.fs, directory, 'directory', this.platform);
+      await fileSyncAsync(directory, 'directory', this.platform);
     } finally {
-      if (directory !== null) this.fs.closeSync(directory);
+      await closeAsync(directory);
     }
     this.containmentSentinel = null;
     return true;
   }
 
-  _persist() {
-    atomicWriteJson(this.journalPath, {
+  async _persist() {
+    await atomicWriteJson(this.journalPath, {
       schemaVersion: JOURNAL_SCHEMA_VERSION,
       updatedAtUtc: this.clock(),
       lifecycle: clone(this.lifecycle),
@@ -395,7 +370,7 @@ class DesktopCredentialApplicationCoordinator {
     return { facts, backend, fence };
   }
 
-  _establishRejectedOwnerEnforcement(cause, options = {}) {
+  async _establishRejectedOwnerEnforcement(cause, options = {}) {
     const backend = this._backend();
     const authority = this.vaultHost.snapshotMetadata?.() || {};
     const existing = this.containment || {};
@@ -507,7 +482,7 @@ class DesktopCredentialApplicationCoordinator {
     this._containmentCrashPoint('after-enforcement-before-sentinel', { backendPid: this.containment.backendPid, containmentId });
     let sentinelDurable = false;
     try {
-      this._persistContainmentSentinel('enforcement-established-before-lifecycle-journal');
+      await this._persistContainmentSentinel('enforcement-established-before-lifecycle-journal');
       this.containment.enforcementFacts.containmentSentinelDurable = true;
       this.containment.sentinelDurable = true;
       sentinelDurable = true;
@@ -522,14 +497,14 @@ class DesktopCredentialApplicationCoordinator {
     return clone(this.containment);
   }
 
-  _recordContainmentState(state, reasonCode, detail = {}) {
+  async _recordContainmentState(state, reasonCode, detail = {}) {
     transitionDesktopCredentialApplication(this.lifecycle, state, this.clock, reasonCode, detail);
     this.containment.state = state;
     this.containment.updatedAtUtc = this.clock();
     this.containment.enforcementFacts.containmentJournalDurable = true;
     try {
-      this._persist();
-      try { this._persistContainmentSentinel(`lifecycle-${state}-durable`); } catch (sentinelCause) {
+      await this._persist();
+      try { await this._persistContainmentSentinel(`lifecycle-${state}-durable`); } catch (sentinelCause) {
         this.containment.enforcementFacts.containmentSentinelDurable = false;
         const failure = this._recordPersistenceFailure('containment-sentinel-update', sentinelCause, { state });
         this.containment.persistenceFailure = failure;
@@ -557,7 +532,7 @@ class DesktopCredentialApplicationCoordinator {
         retryable: false,
         fatal: true
       });
-      try { this._persistContainmentSentinel('lifecycle-journal-write-failed'); } catch (sentinelCause) {
+      try { await this._persistContainmentSentinel('lifecycle-journal-write-failed'); } catch (sentinelCause) {
         this._recordPersistenceFailure('containment-sentinel-after-journal-failure', sentinelCause, { state });
       }
       this._requestFailStop('WP4_DESKTOP_CREDENTIAL_CONTAINMENT_JOURNAL_WRITE_FAILED', { failure });
@@ -565,7 +540,7 @@ class DesktopCredentialApplicationCoordinator {
     }
   }
 
-  _restorePersistentContainment() {
+  async _restorePersistentContainment() {
     const backend = this._backend();
     const recoveryIntent = Boolean(
       this.containment?.active === true ||
@@ -583,7 +558,7 @@ class DesktopCredentialApplicationCoordinator {
       'Restoring rejected owner containment from durable or owner-registry evidence'
     );
     try {
-      this._establishRejectedOwnerEnforcement(reason, { fatal: true, cleanupReasonCode: this.containment?.cleanupReasonCode || '' });
+      await this._establishRejectedOwnerEnforcement(reason, { fatal: true, cleanupReasonCode: this.containment?.cleanupReasonCode || '' });
       // Active containment restored from the lifecycle journal, sentinel, owner
       // registry or application fence is never a retryable in-process state.
       // Preserve the durable fail-stop decision across application relaunch so
@@ -608,7 +583,7 @@ class DesktopCredentialApplicationCoordinator {
     this.containment.state = this.lifecycle.state;
     try {
       this.containment.enforcementFacts.containmentJournalDurable = true;
-      this._persist();
+      await this._persist();
     } catch (cause) {
       this.containment.enforcementFacts.containmentJournalDurable = false;
       const failure = this._recordPersistenceFailure('containment-restore-journal', cause);
@@ -673,9 +648,9 @@ class DesktopCredentialApplicationCoordinator {
     });
   }
 
-  _transition(state, reasonCode = '', detail = {}) {
+  async _transition(state, reasonCode = '', detail = {}) {
     transitionDesktopCredentialApplication(this.lifecycle, state, this.clock, reasonCode, detail);
-    this._persist();
+    await this._persist();
     this.log('desktop-credential-application-state', {
       state,
       reasonCode,
@@ -686,7 +661,7 @@ class DesktopCredentialApplicationCoordinator {
     });
   }
 
-  _begin(operationType, options = {}) {
+  async _begin(operationType, options = {}) {
     const containmentRecovery = operationType === 'APPLICATION_SHUTDOWN' || operationType === 'BACKEND_EXIT_RECOVERY' || options.allowContainmentRecovery === true;
     if (this.isRejectedOwnerContainmentActive() && !containmentRecovery) throw this._containmentError();
     if (this.lifecycle.state === STATES.FAILED_SAFE && !containmentRecovery) this._assertFailedSafeResettable();
@@ -710,29 +685,29 @@ class DesktopCredentialApplicationCoordinator {
     this.lifecycle.mutationCommitted = false;
     if ([STATES.FAILED_SAFE, STATES.STOPPED, STATES.NEW_OWNER_READY].includes(this.lifecycle.state)) {
       if (this.lifecycle.state === STATES.FAILED_SAFE && !containmentRecovery) this._assertFailedSafeResettable();
-      if (!this.isRejectedOwnerContainmentActive()) this._transition(STATES.IDLE, 'operation-begin-reset');
+      if (!this.isRejectedOwnerContainmentActive()) await this._transition(STATES.IDLE, 'operation-begin-reset');
     }
-    this._persist();
+    await this._persist();
     return this.currentOperation;
   }
 
-  _complete(result, finalState = STATES.IDLE) {
+  async _complete(result, finalState = STATES.IDLE) {
     if (this.isRejectedOwnerContainmentActive()) throw this._containmentError('Contained rejected owner prevents operation success');
     this.lastResult = { ...clone(result), atUtc: this.clock(), operationId: this.currentOperation?.operationId || '' };
     this.lastFailure = null;
-    if (this.lifecycle.state !== finalState) this._transition(finalState, 'operation-complete');
-    if (finalState !== STATES.IDLE) this._transition(STATES.IDLE, 'coordinator-idle');
+    if (this.lifecycle.state !== finalState) await this._transition(finalState, 'operation-complete');
+    if (finalState !== STATES.IDLE) await this._transition(STATES.IDLE, 'coordinator-idle');
     this.currentOperation = null;
     this.lifecycle.operationId = '';
     this.lifecycle.operationType = '';
     this.lifecycle.requestId = '';
     this.lifecycle.mutationCommitted = false;
     this.interruptedOperation = null;
-    this._persist();
+    await this._persist();
     return result;
   }
 
-  _fail(cause, detail = {}) {
+  async _fail(cause, detail = {}) {
     const reasonCode = cause?.reasonCode || cause?.code || APPLICATION_UNAVAILABLE;
     const containmentActive = this.isRejectedOwnerContainmentActive();
     this.lastFailure = {
@@ -754,7 +729,7 @@ class DesktopCredentialApplicationCoordinator {
       const unavailable = this.vaultHost.snapshotMetadata?.().available === false && reasonCode !== APPLICATION_BUSY;
       const target = unavailable ? STATES.UNAVAILABLE : STATES.FAILED_SAFE;
       if (this.lifecycle.state !== target && this.lifecycle.state !== STATES.UNAVAILABLE) {
-        try { this._transition(target, reasonCode, detail); }
+        try { await this._transition(target, reasonCode, detail); }
         catch (_) {
           this.lifecycle.state = target;
           this.lifecycle.reasonCode = reasonCode;
@@ -762,13 +737,14 @@ class DesktopCredentialApplicationCoordinator {
         }
       }
     }
-    this._persist();
+    await this._persist();
     return cause;
   }
 
   _enqueue(operationType, work) {
     this.pendingOperations += 1;
     const next = this.operation.catch(() => {}).then(async () => {
+      await this.initialize();
       if (this.lifecycle.state === STATES.UNAVAILABLE) throw makeError(APPLICATION_UNAVAILABLE, 'Desktop credential application lifecycle is unavailable');
       return work();
     });
@@ -791,7 +767,7 @@ class DesktopCredentialApplicationCoordinator {
     });
     this.activeLeaseToken = token;
     if (!this.isRejectedOwnerContainmentActive() && this.lifecycle.state !== STATES.FAILED_SAFE) {
-      this._transition(STATES.LEASE_ACQUIRED, '', { operationId: operation.operationId });
+      await this._transition(STATES.LEASE_ACQUIRED, '', { operationId: operation.operationId });
     }
     return token;
   }
@@ -868,9 +844,9 @@ class DesktopCredentialApplicationCoordinator {
     return pid > 0 && this.isProcessAlive(pid);
   }
 
-  _engageRejectedOwnerContainment(cause, options = {}) {
+  async _engageRejectedOwnerContainment(cause, options = {}) {
     if (!this.containment?.enforcementEstablished) {
-      return this._establishRejectedOwnerEnforcement(cause, options);
+      return await this._establishRejectedOwnerEnforcement(cause, options);
     }
     const cleanupReasonCode = String(options.cleanupReasonCode || this.containment.cleanupReasonCode || '');
     this.containment.cleanupReasonCode = cleanupReasonCode;
@@ -888,7 +864,7 @@ class DesktopCredentialApplicationCoordinator {
       retryable: options.fatal !== true,
       fatal: options.fatal === true
     });
-    try { this._persistContainmentSentinel(options.fatal === true ? 'fatal-containment-refresh' : 'containment-refresh'); }
+    try { await this._persistContainmentSentinel(options.fatal === true ? 'fatal-containment-refresh' : 'containment-refresh'); }
     catch (cause2) {
       const failure = this._recordPersistenceFailure('containment-sentinel-refresh', cause2);
       this.containment.persistenceFailure = failure;
@@ -897,9 +873,9 @@ class DesktopCredentialApplicationCoordinator {
     return clone(this.containment);
   }
 
-  _markRejectedOwnerStillLive(cleanupCause, stopResult = null) {
+  async _markRejectedOwnerStillLive(cleanupCause, stopResult = null) {
     const cleanupReasonCode = String(cleanupCause?.reasonCode || cleanupCause?.code || REJECTED_OWNER_CLEANUP_FAILED);
-    this._engageRejectedOwnerContainment(cleanupCause, { cleanupReasonCode, stopResult, fatal: true });
+    await this._engageRejectedOwnerContainment(cleanupCause, { cleanupReasonCode, stopResult, fatal: true });
     this.containment.childStillLive = Boolean(this._backendChildLive() || this._persistedContainmentPidLive() || this._backendOwned());
     this.containment.cleanupReasonCode = cleanupReasonCode;
     this.containment.stopResult = clone(stopResult);
@@ -908,10 +884,10 @@ class DesktopCredentialApplicationCoordinator {
     this.containment.enforcementFacts.ownerRecoveryCompleted = false;
     this.containment.enforcementFacts.fenceReleaseAuthorized = false;
     if (this.lifecycle.state === STATES.REJECTED_OWNER_TERMINATION_PENDING) {
-      this._recordContainmentState(STATES.REJECTED_OWNER_STILL_LIVE, cleanupReasonCode, { backendPid: this.containment.backendPid });
+      await this._recordContainmentState(STATES.REJECTED_OWNER_STILL_LIVE, cleanupReasonCode, { backendPid: this.containment.backendPid });
     }
     if (this.lifecycle.state !== STATES.FATAL_OWNER_CONTAINMENT) {
-      this._recordContainmentState(STATES.FATAL_OWNER_CONTAINMENT, cleanupReasonCode, { backendPid: this.containment.backendPid });
+      await this._recordContainmentState(STATES.FATAL_OWNER_CONTAINMENT, cleanupReasonCode, { backendPid: this.containment.backendPid });
     }
     this.lifecycle.state = STATES.FATAL_OWNER_CONTAINMENT;
     this.lifecycle.reasonCode = cleanupReasonCode;
@@ -929,7 +905,7 @@ class DesktopCredentialApplicationCoordinator {
       retryable: false,
       fatal: true
     });
-    try { this._persistContainmentSentinel('rejected-owner-still-live'); }
+    try { await this._persistContainmentSentinel('rejected-owner-still-live'); }
     catch (cause2) {
       const failure = this._recordPersistenceFailure('containment-sentinel-still-live', cause2);
       this.containment.persistenceFailure = failure;
@@ -988,7 +964,7 @@ class DesktopCredentialApplicationCoordinator {
 
     // Persist the pre-release facts while the application fence and rejected marker remain active.
     try {
-      this._persistContainmentSentinel('owner-exit-and-recovery-confirmed-before-release');
+      await this._persistContainmentSentinel('owner-exit-and-recovery-confirmed-before-release');
       facts.containmentSentinelDurable = true;
     } catch (cause) {
       const failure = this._recordPersistenceFailure('containment-pre-release-sentinel', cause);
@@ -998,10 +974,10 @@ class DesktopCredentialApplicationCoordinator {
     }
 
     if (this._containmentStates().includes(this.lifecycle.state)) {
-      if (!this._recordContainmentState(STATES.OWNER_EXIT_CONFIRMED, 'rejected-owner-exit-confirmed', { backendPid: Number(this.containment?.backendPid || child?.pid || 0) })) {
+      if (!await this._recordContainmentState(STATES.OWNER_EXIT_CONFIRMED, 'rejected-owner-exit-confirmed', { backendPid: Number(this.containment?.backendPid || child?.pid || 0) })) {
         throw makeError(APPLICATION_CONTAINMENT_RELEASE_BLOCKED, 'Lifecycle journal did not durably record rejected owner exit', { containment: clone(this.containment) });
       }
-      if (!this._recordContainmentState(STATES.OWNER_RECOVERING, 'rejected-owner-recovery-complete')) {
+      if (!await this._recordContainmentState(STATES.OWNER_RECOVERING, 'rejected-owner-recovery-complete')) {
         throw makeError(APPLICATION_CONTAINMENT_RELEASE_BLOCKED, 'Lifecycle journal did not durably record owner recovery', { containment: clone(this.containment) });
       }
     }
@@ -1016,7 +992,7 @@ class DesktopCredentialApplicationCoordinator {
     facts.fenceReleaseAuthorized = true;
     this.containment.updatedAtUtc = this.clock();
     try {
-      this._persistContainmentSentinel('fence-release-authorized');
+      await this._persistContainmentSentinel('fence-release-authorized');
       facts.containmentSentinelDurable = true;
     } catch (cause) {
       facts.fenceReleaseAuthorized = false;
@@ -1039,13 +1015,13 @@ class DesktopCredentialApplicationCoordinator {
     } : null;
     this.failStopRequired = false;
     const target = options.finalState || STATES.FAILED_SAFE;
-    if (this.lifecycle.state !== target) this._transition(target, 'rejected-owner-containment-resolved');
-    try { this._clearContainmentSentinel(); }
+    if (this.lifecycle.state !== target) await this._transition(target, 'rejected-owner-containment-resolved');
+    try { await this._clearContainmentSentinel(); }
     catch (cause) {
       // A stale release-authorized sentinel is fail-closed on restart and is safe to retain.
       this._recordPersistenceFailure('containment-sentinel-remove', cause, { releaseAuthorized: true });
     }
-    this._persist();
+    await this._persist();
     return { recovered: true, containment: clone(this.containment), boundary };
   }
 
@@ -1084,7 +1060,7 @@ class DesktopCredentialApplicationCoordinator {
       }
       return this._resolveRejectedOwnerContainment(child, { finalState: STATES.STOPPED });
     } catch (cause) {
-      this._markRejectedOwnerStillLive(cause, result);
+      await this._markRejectedOwnerStillLive(cause, result);
       throw this._containmentError('Rejected backend owner remains live after containment stop attempt');
     }
   }
@@ -1093,10 +1069,10 @@ class DesktopCredentialApplicationCoordinator {
     const before = this._authorityBoundary();
     this.currentOperation.baselineAuthority = clone(before);
     this.currentOperation.updatedAtUtc = this.clock();
-    this._persist();
+    await this._persist();
     if (!this._backendOwned()) {
-      this._transition(STATES.OWNER_EXIT_CONFIRMED, 'backend-not-owned');
-      this._transition(STATES.OWNER_RECOVERING, 'owner-recovery-not-required');
+      await this._transition(STATES.OWNER_EXIT_CONFIRMED, 'backend-not-owned');
+      await this._transition(STATES.OWNER_RECOVERING, 'owner-recovery-not-required');
       this._assertOwnerReleased();
       return { stopped: true, exitConfirmed: true, alreadyStopped: true, authority: this._authorityBoundary() };
     }
@@ -1108,7 +1084,7 @@ class DesktopCredentialApplicationCoordinator {
         registeredAtUtc: this.clock()
       });
     }
-    this._transition(STATES.OWNER_STOPPING, '', { backendPid: Number(this._backend().backendPid || 0) });
+    await this._transition(STATES.OWNER_STOPPING, '', { backendPid: Number(this._backend().backendPid || 0) });
     let result;
     try {
       result = await this.stopBackendCallback({ ...options, applicationLeaseToken: token });
@@ -1121,8 +1097,8 @@ class DesktopCredentialApplicationCoordinator {
       this._assertBoundaryUnchanged(before);
       throw makeError(result?.reasonCode || 'DESKTOP_BACKEND_EXIT_NOT_CONFIRMED', 'Desktop credential lifecycle requires a real backend exit before authority mutation', { result });
     }
-    this._transition(STATES.OWNER_EXIT_CONFIRMED, '', { backendPid: Number(result.backendPid || 0), forced: result.forced === true });
-    this._transition(STATES.OWNER_RECOVERING, 'owner-exit-recovery');
+    await this._transition(STATES.OWNER_EXIT_CONFIRMED, '', { backendPid: Number(result.backendPid || 0), forced: result.forced === true });
+    await this._transition(STATES.OWNER_RECOVERING, 'owner-exit-recovery');
     this._assertOwnerReleased();
     return { ...result, authority: this._authorityBoundary() };
   }
@@ -1286,12 +1262,12 @@ class DesktopCredentialApplicationCoordinator {
 
     // Real enforcement is synchronous and precedes every fallible lifecycle write.
     let enforcementError = null;
-    try { this._establishRejectedOwnerEnforcement(cause); }
+    try { await this._establishRejectedOwnerEnforcement(cause); }
     catch (caught) { enforcementError = caught; }
 
     let journalDurable = false;
     if (!enforcementError) {
-      journalDurable = this._recordContainmentState(
+      journalDurable = await this._recordContainmentState(
         STATES.REJECTED_OWNER_TERMINATION_PENDING,
         cause?.reasonCode || APPLICATION_READY_MISMATCH,
         { backendPid: Number(this.containment?.backendPid || this._backend().backendPid || 0), enforcementEstablished: true }
@@ -1302,7 +1278,7 @@ class DesktopCredentialApplicationCoordinator {
     try {
       if (enforcementError) throw enforcementError;
       this.containment.enforcementFacts.terminationRequested = true;
-      try { this._persistContainmentSentinel('termination-requested'); }
+      try { await this._persistContainmentSentinel('termination-requested'); }
       catch (sentinelCause) {
         const failure = this._recordPersistenceFailure('containment-termination-sentinel', sentinelCause);
         this.containment.persistenceFailure = failure;
@@ -1346,8 +1322,8 @@ class DesktopCredentialApplicationCoordinator {
         cleanupCause.concurrentExitRecoveryReasonCode = recoveryCause.reasonCode || recoveryCause.code || APPLICATION_CONTAINMENT_RELEASE_BLOCKED;
       }
 
-      this._engageRejectedOwnerContainment(cause, { cleanupReasonCode, stopResult: stopped, fatal: true });
-      this._markRejectedOwnerStillLive(cleanupCause, stopped);
+      await this._engageRejectedOwnerContainment(cause, { cleanupReasonCode, stopResult: stopped, fatal: true });
+      await this._markRejectedOwnerStillLive(cleanupCause, stopped);
       const backend = this._backend();
       const childStillLive = Boolean(this._backendChildLive() || this._persistedContainmentPidLive() || this._backendOwned());
       cause.rejectedOwnerCleanup = {
@@ -1371,8 +1347,8 @@ class DesktopCredentialApplicationCoordinator {
 
   async _startAndValidate(token, expectedAuthority = null, options = {}) {
     this._assertOperationMayContinue(options, 'before-new-owner-start');
-    this._transition(STATES.NEW_OWNER_STARTING, '', { expectedGeneration: expectedAuthority?.generation ?? null });
-    this._transition(STATES.NEW_OWNER_HYDRATING, 'fd5-ready-handshake-pending');
+    await this._transition(STATES.NEW_OWNER_STARTING, '', { expectedGeneration: expectedAuthority?.generation ?? null });
+    await this._transition(STATES.NEW_OWNER_HYDRATING, 'fd5-ready-handshake-pending');
     let result;
     try {
       result = await this.startBackendCallback({ ...options, applicationLeaseToken: token, containmentRecoveryValidated: true });
@@ -1411,7 +1387,7 @@ class DesktopCredentialApplicationCoordinator {
       await this._cleanupRejectedNewOwner(token, cause, options);
       throw cause;
     }
-    this._transition(STATES.NEW_OWNER_READY, '', {
+    await this._transition(STATES.NEW_OWNER_READY, '', {
       backendPid: ready.backend.backendPid,
       generation: ready.authority.generation,
       authorityHeadDigest: ready.authority.authorityHeadDigest,
@@ -1424,13 +1400,13 @@ class DesktopCredentialApplicationCoordinator {
     return this._enqueue('START_BACKEND', async () => {
       const containmentAtStart = this.isRejectedOwnerContainmentActive();
       if (containmentAtStart && !this.automaticStartupContainmentRecovery) await this._recoverContainmentIfOwnerExited({ finalState: STATES.FAILED_SAFE });
-      const operation = this._begin('START_BACKEND', { ...options, allowContainmentRecovery: containmentAtStart && this.automaticStartupContainmentRecovery });
+      const operation = await this._begin('START_BACKEND', { ...options, allowContainmentRecovery: containmentAtStart && this.automaticStartupContainmentRecovery });
       let token;
       try {
         token = await this._acquireLease(operation);
         if (containmentAtStart && this.automaticStartupContainmentRecovery) await this._recoverContainmentForStartup(token, options);
         if (this._backend().running === true) {
-          this._transition(STATES.NEW_OWNER_HYDRATING, 'already-ready-full-validation');
+          await this._transition(STATES.NEW_OWNER_HYDRATING, 'already-ready-full-validation');
           let ready;
           let runtimeProjection;
           try {
@@ -1444,15 +1420,15 @@ class DesktopCredentialApplicationCoordinator {
             await this._cleanupRejectedNewOwner(token, cause, options);
             throw cause;
           }
-          this._transition(STATES.NEW_OWNER_READY, 'already-ready-validated', { backendPid: ready.backend.backendPid, generation: ready.authority.generation, runtimeProjectionValidated: true });
-          return this._complete({ ok: true, alreadyReady: true, backend: ready.backend, authority: ready.authority, runtimeProjection }, STATES.NEW_OWNER_READY);
+          await this._transition(STATES.NEW_OWNER_READY, 'already-ready-validated', { backendPid: ready.backend.backendPid, generation: ready.authority.generation, runtimeProjectionValidated: true });
+          return await this._complete({ ok: true, alreadyReady: true, backend: ready.backend, authority: ready.authority, runtimeProjection }, STATES.NEW_OWNER_READY);
         }
         await this._stopAndRecover(token, { reason: this._backendOwned() ? 'stale-start-cleanup' : 'owner-free-start-validation' });
         const expected = this._authorityBoundary();
         const started = await this._startAndValidate(token, expected, options);
-        return this._complete({ ok: true, ...started.result, runtimeProjection: started.runtimeProjection, ownerAcceptance: started.ownerAcceptance, credentialApplication: this.snapshot() }, STATES.NEW_OWNER_READY);
+        return await this._complete({ ok: true, ...started.result, runtimeProjection: started.runtimeProjection, ownerAcceptance: started.ownerAcceptance, credentialApplication: this.snapshot() }, STATES.NEW_OWNER_READY);
       } catch (cause) {
-        throw this._fail(cause);
+        throw await this._fail(cause);
       } finally { await this._releaseLease(token); }
     });
   }
@@ -1461,7 +1437,7 @@ class DesktopCredentialApplicationCoordinator {
     return this._enqueue('RESTART_BACKEND', async () => {
       const containmentAtStart = this.isRejectedOwnerContainmentActive();
       if (containmentAtStart && !this.automaticStartupContainmentRecovery) await this._recoverContainmentIfOwnerExited({ finalState: STATES.FAILED_SAFE });
-      const operation = this._begin('RESTART_BACKEND', { ...options, allowContainmentRecovery: containmentAtStart && this.automaticStartupContainmentRecovery });
+      const operation = await this._begin('RESTART_BACKEND', { ...options, allowContainmentRecovery: containmentAtStart && this.automaticStartupContainmentRecovery });
       let token;
       try {
         token = await this._acquireLease(operation);
@@ -1469,9 +1445,9 @@ class DesktopCredentialApplicationCoordinator {
         await this._stopAndRecover(token, { ...options, reason: options.reason || 'controlled-restart' });
         const expected = this._authorityBoundary();
         const started = await this._startAndValidate(token, expected, options);
-        return this._complete({ ok: true, restarted: true, ...started.result, runtimeProjection: started.runtimeProjection, ownerAcceptance: started.ownerAcceptance, credentialApplication: this.snapshot() }, STATES.NEW_OWNER_READY);
+        return await this._complete({ ok: true, restarted: true, ...started.result, runtimeProjection: started.runtimeProjection, ownerAcceptance: started.ownerAcceptance, credentialApplication: this.snapshot() }, STATES.NEW_OWNER_READY);
       } catch (cause) {
-        throw this._fail(cause);
+        throw await this._fail(cause);
       } finally { await this._releaseLease(token); }
     });
   }
@@ -1481,7 +1457,7 @@ class DesktopCredentialApplicationCoordinator {
       const containmentAtStart = this.isRejectedOwnerContainmentActive();
       const operationType = options.forShutdown ? 'APPLICATION_SHUTDOWN' : 'STOP_BACKEND';
       if (containmentAtStart && operationType !== 'APPLICATION_SHUTDOWN') throw this._containmentError();
-      const operation = this._begin(operationType, { ...options, allowContainmentRecovery: containmentAtStart && options.forShutdown === true });
+      const operation = await this._begin(operationType, { ...options, allowContainmentRecovery: containmentAtStart && options.forShutdown === true });
       let token;
       try {
         token = await this._acquireLease(operation);
@@ -1490,10 +1466,10 @@ class DesktopCredentialApplicationCoordinator {
           return result;
         }
         const result = await this._stopAndRecover(token, options);
-        this._transition(STATES.STOPPED, '', { backendPid: Number(result.backendPid || 0) });
-        return this._complete(result, STATES.STOPPED);
+        await this._transition(STATES.STOPPED, '', { backendPid: Number(result.backendPid || 0) });
+        return await this._complete(result, STATES.STOPPED);
       } catch (cause) {
-        throw this._fail(cause);
+        throw await this._fail(cause);
       } finally { await this._releaseLease(token); }
     });
   }
@@ -1505,14 +1481,14 @@ class DesktopCredentialApplicationCoordinator {
     const requestId = String(options.requestId || this.randomUUID());
     const fingerprint = mutationSha256(operation, key, value);
     return this._enqueue('DESKTOP_MUTATION', async () => {
-      const applicationOperation = this._begin('DESKTOP_MUTATION', { ...options, requestId, mutationSha256: fingerprint });
+      const applicationOperation = await this._begin('DESKTOP_MUTATION', { ...options, requestId, mutationSha256: fingerprint });
       let token;
       try {
         this._assertOperationMayContinue(options, 'before-desktop-mutation');
         token = await this._acquireLease(applicationOperation);
         await this._stopAndRecover(token, { reason: 'desktop-credential-mutation' });
         this._assertOperationMayContinue(options, 'before-desktop-mutation-commit');
-        this._transition(STATES.MUTATION_COMMITTING, '', { requestId, mutationSha256: fingerprint });
+        await this._transition(STATES.MUTATION_COMMITTING, '', { requestId, mutationSha256: fingerprint });
         const mutation = await this.vaultHost.executeDesktopMutation(operation, key, value, {
           requestId,
           mutationSha256: fingerprint,
@@ -1526,9 +1502,9 @@ class DesktopCredentialApplicationCoordinator {
         applicationOperation.committedAuthority = clone(committedAuthority);
         applicationOperation.updatedAtUtc = this.clock();
         this.lifecycle.mutationCommitted = true;
-        this._persist();
+        await this._persist();
         const started = await this._startAndValidate(token, committedAuthority, options);
-        return this._complete({
+        return await this._complete({
           ok: true,
           ref: key,
           operation,
@@ -1548,7 +1524,7 @@ class DesktopCredentialApplicationCoordinator {
           cause.committedAuthority = clone(applicationOperation.committedAuthority);
           cause.reasonCode = cause.reasonCode || 'WP4_DESKTOP_CREDENTIAL_RESTART_AFTER_COMMIT_FAILED';
         }
-        throw this._fail(cause, { requestId, mutationCommitted: applicationOperation.mutationCommitted === true });
+        throw await this._fail(cause, { requestId, mutationCommitted: applicationOperation.mutationCommitted === true });
       } finally { await this._releaseLease(token); }
     });
   }
@@ -1556,25 +1532,25 @@ class DesktopCredentialApplicationCoordinator {
   resetCredentialVault(options = {}) {
     const requestId = String(options.requestId || this.randomUUID());
     return this._enqueue('RESET_CREDENTIAL_VAULT', async () => {
-      const operation = this._begin('RESET_CREDENTIAL_VAULT', { ...options, requestId });
+      const operation = await this._begin('RESET_CREDENTIAL_VAULT', { ...options, requestId });
       let token;
       try {
         this._assertOperationMayContinue(options, 'before-credential-vault-reset');
         token = await this._acquireLease(operation);
         await this._stopAndRecover(token, { reason: 'credential-vault-reset' });
         this._assertOperationMayContinue(options, 'before-credential-vault-reset-commit');
-        this._transition(STATES.MUTATION_COMMITTING, '', { requestId, reset: true });
+        await this._transition(STATES.MUTATION_COMMITTING, '', { requestId, reset: true });
         const mutation = await this.vaultHost.resetAfterBackendStopped({ exitConfirmed: true, requestId, applicationLeaseToken: token });
         const committedAuthority = this._authorityBoundary();
         operation.mutationCommitted = mutation?.transactionState === 'COMMITTED';
         operation.committedAuthority = clone(committedAuthority);
         this.lifecycle.mutationCommitted = operation.mutationCommitted;
-        this._persist();
+        await this._persist();
         if (!operation.mutationCommitted) throw makeError(mutation?.reasonCode || 'CREDENTIAL_TRANSACTION_PARTIAL_COMMIT', 'Credential reset did not commit', { mutation });
         const started = await this._startAndValidate(token, committedAuthority, options);
-        return this._complete({ ok: true, reset: true, requestId, mutation, backend: started.result, runtimeProjection: started.runtimeProjection, ownerAcceptance: started.ownerAcceptance }, STATES.NEW_OWNER_READY);
+        return await this._complete({ ok: true, reset: true, requestId, mutation, backend: started.result, runtimeProjection: started.runtimeProjection, ownerAcceptance: started.ownerAcceptance }, STATES.NEW_OWNER_READY);
       } catch (cause) {
-        throw this._fail(cause, { requestId, mutationCommitted: operation.mutationCommitted === true });
+        throw await this._fail(cause, { requestId, mutationCommitted: operation.mutationCommitted === true });
       } finally { await this._releaseLease(token); }
     });
   }
@@ -1582,7 +1558,7 @@ class DesktopCredentialApplicationCoordinator {
   recoverStartupContainment(options = {}) {
     return this._enqueue('STARTUP_CONTAINMENT_RECOVERY', async () => {
       if (!this.isRejectedOwnerContainmentActive()) return { recovered: false, notRequired: true };
-      const operation = this._begin('STARTUP_CONTAINMENT_RECOVERY', {
+      const operation = await this._begin('STARTUP_CONTAINMENT_RECOVERY', {
         ...options,
         allowContainmentRecovery: true
       });
@@ -1593,9 +1569,9 @@ class DesktopCredentialApplicationCoordinator {
           ...options,
           reason: options.reason || 'automatic-bootstrap-rejected-owner-recovery'
         });
-        return this._complete({ ok: true, ...recovery }, STATES.IDLE);
+        return await this._complete({ ok: true, ...recovery }, STATES.IDLE);
       } catch (cause) {
-        throw this._fail(cause);
+        throw await this._fail(cause);
       } finally {
         await this._releaseLease(token);
       }
@@ -1605,15 +1581,15 @@ class DesktopCredentialApplicationCoordinator {
   runExclusive(operationType, work, options = {}) {
     if (typeof work !== 'function') return Promise.reject(new TypeError('runExclusive requires a function'));
     return this._enqueue(operationType, async () => {
-      const operation = this._begin(operationType, options);
+      const operation = await this._begin(operationType, options);
       let token;
       try {
         token = await this._acquireLease(operation);
         await this._stopAndRecover(token, { reason: operationType });
         const result = await work(token);
-        return this._complete(result, STATES.IDLE);
+        return await this._complete(result, STATES.IDLE);
       } catch (cause) {
-        throw this._fail(cause);
+        throw await this._fail(cause);
       } finally { await this._releaseLease(token); }
     });
   }
@@ -1622,6 +1598,7 @@ class DesktopCredentialApplicationCoordinator {
     const expected = child && typeof child === 'object' ? this.expectedExitChildren.get(child) : null;
     if (expected) {
       return Promise.resolve().then(async () => {
+        await this.initialize();
         const result = await this.waitForOwnerExitRecovery(child);
         if (result?.recovered !== true) {
           throw makeError(APPLICATION_CONTAINMENT_RELEASE_BLOCKED, 'Expected backend exit did not complete owner recovery', { recovery: result, backendPid: Number(child?.pid || 0) });
@@ -1631,7 +1608,7 @@ class DesktopCredentialApplicationCoordinator {
           try {
             await this._resolveRejectedOwnerContainment(child, { finalState: STATES.FAILED_SAFE });
           } catch (cause) {
-            this._markRejectedOwnerStillLive(cause);
+            await this._markRejectedOwnerStillLive(cause);
             throw cause;
           }
         }
@@ -1639,7 +1616,7 @@ class DesktopCredentialApplicationCoordinator {
       });
     }
     return this._enqueue('BACKEND_EXIT_RECOVERY', async () => {
-      const operation = this._begin('BACKEND_EXIT_RECOVERY', { requestId: '', allowContainmentRecovery: true });
+      const operation = await this._begin('BACKEND_EXIT_RECOVERY', { requestId: '', allowContainmentRecovery: true });
       let token;
       try {
         token = await this._acquireLease(operation);
@@ -1651,11 +1628,11 @@ class DesktopCredentialApplicationCoordinator {
           const recovered = await this._resolveRejectedOwnerContainment(child, { finalState: STATES.FAILED_SAFE });
           return { ...recovered, controlled: false, suppressAutomaticRestart: true, rejectedOwnerRecovered: true, backendPid: child?.pid || 0 };
         }
-        this._transition(STATES.OWNER_EXIT_CONFIRMED, 'backend-exit-confirmed', {
+        await this._transition(STATES.OWNER_EXIT_CONFIRMED, 'backend-exit-confirmed', {
           backendPid: Number(child?.pid || 0),
           unexpected: options.unexpected === true
         });
-        this._transition(STATES.OWNER_RECOVERING, 'backend-exit-observed', {
+        await this._transition(STATES.OWNER_RECOVERING, 'backend-exit-observed', {
           backendPid: Number(child?.pid || 0),
           unexpected: options.unexpected === true
         });
@@ -1668,12 +1645,12 @@ class DesktopCredentialApplicationCoordinator {
           const ready = this._assertReady();
           if (typeof this.validateRuntimeProjection !== 'function') throw makeError(APPLICATION_READY_MISMATCH, 'Backend runtime projection validator is unavailable', { failures: ['runtime-projection-validator-unavailable'] });
           this._assertRuntimeProjection(await this.validateRuntimeProjection({ staleExit: true, ready, applicationLeaseToken: token }), ready);
-          return this._complete({ recovered: true, staleExit: true, backendPid: child?.pid || 0 }, STATES.IDLE);
+          return await this._complete({ recovered: true, staleExit: true, backendPid: child?.pid || 0 }, STATES.IDLE);
         }
         this._assertOwnerReleased();
-        return this._complete({ recovered: true, staleExit: false, backendPid: child?.pid || 0, unexpected: options.unexpected === true }, STATES.IDLE);
+        return await this._complete({ recovered: true, staleExit: false, backendPid: child?.pid || 0, unexpected: options.unexpected === true }, STATES.IDLE);
       } catch (cause) {
-        throw this._fail(cause);
+        throw await this._fail(cause);
       } finally { await this._releaseLease(token); }
     });
   }

@@ -49,45 +49,70 @@ function sanitizedEnvironment(environment = {}) {
 
 const NODE_RUNTIME_PROBE_CACHE = new Map();
 
-function probeNodeRuntimeExecutable(executablePath, options = {}) {
+function promisifiedExecFile(execFileImpl) {
+  return (file, args, options) => new Promise((resolve, reject) => {
+    execFileImpl(file, args, options, (error, stdout, stderr) => {
+      if (error) {
+        error.stdout = stdout;
+        error.stderr = stderr;
+        reject(error);
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+async function probeNodeRuntimeExecutable(executablePath, options = {}) {
   const absolute = path.resolve(String(executablePath || ''));
   const cached = NODE_RUNTIME_PROBE_CACHE.get(absolute);
   if (cached && options.noCache !== true) return cached;
-  const spawnSync = options.spawnSync || childProcess.spawnSync;
-  let result;
+  // Accept a promise-based execFile (production uses child_process.execFile via
+  // a promise wrapper so the Electron main event loop is never blocked) or a
+  // synchronous collector injected by legacy tests. `await` tolerates both.
+  const execImpl = options.execFile || promisifiedExecFile(childProcess.execFile);
+  const execOptions = {
+    cwd: options.cwd || path.dirname(absolute),
+    env: sanitizedEnvironment(options.env || process.env),
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: Math.max(1000, Number(options.timeoutMs || 5000))
+  };
+  let stdout = '';
+  let stderr = '';
   try {
-    result = spawnSync(absolute, ['--version'], {
-      cwd: options.cwd || path.dirname(absolute),
-      env: sanitizedEnvironment(options.env || process.env),
-      encoding: 'utf8',
-      windowsHide: true,
-      timeout: Math.max(1000, Number(options.timeoutMs || 5000))
-    });
+    const result = await execImpl(absolute, ['--version'], execOptions);
+    stdout = String(result?.stdout || '');
+    stderr = String(result?.stderr || '');
+    if (result && (result.error || (result.status != null && Number(result.status) !== 0))) {
+      const inner = result.error;
+      throw Object.assign(new Error(inner?.message || `exit ${result.status}`), {
+        status: result.status ?? null,
+        signal: result.signal || null,
+        code: inner?.code || '',
+        stdout,
+        stderr
+      });
+    }
   } catch (cause) {
-    throw startupFailure('M1_NODE_RUNTIME_PROBE_FAILED', 'Trusted Node runtime could not be executed', {
-      nodeRuntimeExecutablePath: absolute,
-      causeCode: cause?.code || '',
-      causeMessage: cause?.message || String(cause || '')
-    });
-  }
-  if (result?.error || Number(result?.status) !== 0) {
-    const cause = result?.error;
+    stdout = String(cause?.stdout || stdout || '');
+    stderr = String(cause?.stderr || stderr || '');
     throw startupFailure('M1_NODE_RUNTIME_PROBE_FAILED', 'Trusted Node runtime preflight failed before backend fork', {
       nodeRuntimeExecutablePath: absolute,
-      exitCode: result?.status ?? null,
-      signal: result?.signal || null,
+      exitCode: cause?.status ?? null,
+      signal: cause?.signal || null,
       causeCode: cause?.code || '',
       causeMessage: cause?.message || '',
-      stdoutTail: String(result?.stdout || '').slice(-2000),
-      stderrTail: String(result?.stderr || '').slice(-4000)
+      stdoutTail: stdout.slice(-2000),
+      stderrTail: stderr.slice(-4000)
     });
   }
-  const version = String(result.stdout || '').trim();
+  const version = stdout.trim();
   if (!/^v\d+\.\d+\.\d+(?:[-+].*)?$/.test(version)) {
     throw startupFailure('M1_NODE_RUNTIME_VERSION_INVALID', 'Trusted Node runtime returned an invalid version response', {
       nodeRuntimeExecutablePath: absolute,
       version,
-      stderrTail: String(result.stderr || '').slice(-4000)
+      stderrTail: stderr.slice(-4000)
     });
   }
   const report = Object.freeze({ ok: true, executablePath: absolute, version });
@@ -895,7 +920,7 @@ class BackendProcessHost {
         // handle is released. The server still accepts connections normally.
         custodyServer.unref();
       }
-      const runtimeProbe = this.probeNodeRuntime(launchContract.nodeRuntimeExecutablePath, {
+      const runtimeProbe = await this.probeNodeRuntime(launchContract.nodeRuntimeExecutablePath, {
         cwd: options.cwd,
         env: sanitizedEnv,
         timeoutMs: options.nodeRuntimeProbeTimeoutMs || 5000
@@ -941,7 +966,7 @@ class BackendProcessHost {
       await this._awaitSpawnIdentity(child, attempt, options.spawnIdentityTimeoutMs);
       this._assertStartStillValid(child, attempt, 'after-lifecycle-bind');
       const processIdentity = await this.ownerRegistry.captureIdentityAsync(child.pid);
-      attempt.startupAdmission.register({
+      await attempt.startupAdmission.register({
         state: 'SPAWNED',
         ownershipActive: true,
         trusted: false,
@@ -1088,7 +1113,7 @@ class BackendProcessHost {
           restoredReferenceCount: credentialFrame.payload.entries.length
         };
         assertCredentialHandshakeBinding(hydration, expectedCredentialMetadata, 'hydration acknowledgement');
-        const accepted = options.credentialVaultHost?.markHydrationAccepted?.(hydration);
+        const accepted = await options.credentialVaultHost?.markHydrationAccepted?.(hydration);
         if (accepted !== true) throw startupFailure('DESKTOP_CREDENTIAL_HYDRATION_ACK_MISMATCH', 'CredentialVaultHost rejected the hydration acknowledgement');
         const readyRuntimeContract = readiness && typeof readiness.runtimeContract === 'object' && !Array.isArray(readiness.runtimeContract) ? readiness.runtimeContract : {};
         const actualReadyProtocolVersion = readiness.readyProtocolVersion ?? readyRuntimeContract.readyProtocolVersion;
