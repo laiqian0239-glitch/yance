@@ -200,7 +200,7 @@ jobs:
 
           $expectedSha256 = ([string]$archive.sha256).ToLowerInvariant()
           if ($expectedSha256 -ne 'c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a') { throw "unexpected Electron trust SHA-256: $expectedSha256" }
-          if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Electron npm package integrity must be canonical sha512 SRI' }
+          if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Electron trust SHA-256 is malformed' }
           $expectedSize = [int64]$archive.sizeBytes
           if ($expectedSize -ne 150154788) { throw "unexpected Electron Release asset size: $expectedSize" }
 
