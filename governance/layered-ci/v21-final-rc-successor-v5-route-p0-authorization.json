@@ -104,6 +104,37 @@
     "sameBuildProjectionMustRemainUnchanged": true,
     "secondApplicationBuildForbidden": true
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_EXACT_BRANCH_ROUTE_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product Final exact-branch admission seam",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml and tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The workflow already implements exact same-repository pull-request admission. The only missing capability is one additional explicit successor-v5 equality in the existing three jobs and the matching layered set assertion."
+      },
+      {
+        "name": "Existing Product Final materialization surface",
+        "source": "frozen-element-reproducibility, materialized-desktop-uat, and materialized-matrix-uat jobs",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing jobs already perform the required same-build materialization and startup-capsule verification. Their bodies must remain byte-for-byte unchanged."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel Product Final workflow, router, wrapper, prefix wildcard, contains/startsWith admission, or alternate execution path.",
+      "Do not mutate or rerun frozen #898.",
+      "Do not reimplement the startup-capsule owner-state repair already landed by #900.",
+      "Do not create a second application build."
+    ],
+    "thinYanceAdapterOnly": true
+  },
   "failureFirst": {
     "required": true,
     "firstImplementationHeadMustChangeOnly": [
