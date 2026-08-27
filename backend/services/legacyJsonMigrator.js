@@ -69,15 +69,72 @@ function walk(root, maxDepth = 6) {
   return [...new Set(results)].sort();
 }
 
-function fingerprint(files) {
+function commonRoot(files) {
+  const absolute = files.map(file => path.resolve(file));
+  if (!absolute.length) return process.cwd();
+  let root = path.dirname(absolute[0]);
+  for (const file of absolute.slice(1)) {
+    const directory = path.dirname(file);
+    while (directory !== root && !directory.startsWith(`${root}${path.sep}`)) {
+      const parent = path.dirname(root);
+      if (parent === root) break;
+      root = parent;
+    }
+  }
+  return root;
+}
+
+function relativeIdentityPath(file, sourceRoot) {
+  const absolute = path.resolve(file);
+  const root = path.resolve(sourceRoot || path.dirname(absolute));
+  const relative = path.relative(root, absolute);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return path.basename(absolute);
+  return relative.split(path.sep).join('/');
+}
+
+function fingerprint(files, sourceRoot = '') {
+  const root = path.resolve(sourceRoot || commonRoot(files));
+  const entries = files.map(file => ({ file: path.resolve(file), relative: relativeIdentityPath(file, root) }))
+    .sort((left, right) => left.relative.localeCompare(right.relative));
   const hash = crypto.createHash('sha256');
-  for (const file of files) {
-    const stat = fs.statSync(file);
-    hash.update(path.resolve(file));
+  for (const entry of entries) {
+    const stat = fs.statSync(entry.file);
+    hash.update(entry.relative);
+    hash.update('\u001f');
     hash.update(String(stat.size));
-    hash.update(fs.readFileSync(file));
+    hash.update('\u001e');
+    hash.update(fs.readFileSync(entry.file));
+    hash.update('\u001d');
   }
   return hash.digest('hex');
+}
+
+function legacyPathBoundFingerprint(files, currentRoot, historicalRoot) {
+  const hash = crypto.createHash('sha256');
+  for (const file of files) {
+    const absolute = path.resolve(file);
+    let relative = path.relative(path.resolve(currentRoot), absolute);
+    if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) relative = path.basename(absolute);
+    const historicalPath = path.resolve(historicalRoot, relative);
+    const stat = fs.statSync(absolute);
+    hash.update(historicalPath);
+    hash.update(String(stat.size));
+    hash.update(fs.readFileSync(absolute));
+  }
+  return hash.digest('hex');
+}
+
+function completedJsonMigration(store, sourceFingerprint, files, sourceRoot) {
+  const direct = store.findCompletedMigration(sourceFingerprint);
+  if (direct) return direct;
+  if (typeof store.listCompletedMigrations !== 'function') return null;
+  for (const receipt of store.listCompletedMigrations() || []) {
+    const historicalRoot = clean(receipt?.sourceRoot);
+    const historicalFingerprint = clean(receipt?.sourceFingerprint);
+    if (!historicalRoot || !historicalFingerprint) continue;
+    if (legacyPathBoundFingerprint(files, sourceRoot, historicalRoot) === historicalFingerprint) return receipt;
+  }
+  return null;
 }
 
 function normalizeConversation(row = {}, fallbackKey = '') {
@@ -363,7 +420,7 @@ function migrateLegacyJson(options = {}) {
     mode: options.dryRun ? 'dry-run' : 'transactional-import',
     sourceRoot,
     dbPath,
-    sourceFingerprint: files.length ? fingerprint(files) : '',
+    sourceFingerprint: files.length ? fingerprint(files, sourceRoot) : '',
     files: [],
     imported: { accounts: 0, contacts: 0, conversations: 0, messages: 0, settings: 0, profiles: 0, relationshipEvents: 0, drafts: 0, routes: 0, aiMemories: 0, knowledgeItems: 0, mediaIndexEntries: 0, aiAssets: 0 },
     skipped: { conversations: 0, messages: 0 },
@@ -391,7 +448,7 @@ function migrateLegacyJson(options = {}) {
   }
   migrationAuthority.assertTargetDbPath(dbPath);
   const store = migrationAuthority.targetStore();
-  const previous = store.findCompletedMigration(report.sourceFingerprint);
+  const previous = completedJsonMigration(store, report.sourceFingerprint, files, sourceRoot);
   if (previous && !options.force) {
     report.ok = true;
     report.mode = 'already-imported';
