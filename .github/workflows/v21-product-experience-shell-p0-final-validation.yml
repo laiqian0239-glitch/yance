@@ -24,7 +24,8 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0-amendment-2' ||
         github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1' ||
         github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-5' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2'
       )
     runs-on: windows-latest
     env:
@@ -133,7 +134,8 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0-amendment-2' ||
         github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1' ||
         github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-5' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -183,7 +185,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $trustPath = 'release/electron-distribution-trust.json'
-          $trust = Get-Content -LiteralPath $trustPath -Raw | ConvertFrom-Json
+          $trust = Get-Content -LiteralPath 'release/electron-distribution-trust.json' -Raw | ConvertFrom-Json
           $archive = $trust.archives.'win32-x64'
           $expectedUrl = 'https://github.com/electron/electron/releases/download/v43.4.1/electron-v43.4.1-win32-x64.zip'
           if ([string]$trust.electronVersion -ne '43.4.1') { throw "unexpected Electron trust version: $($trust.electronVersion)" }
@@ -586,6 +588,35 @@ jobs:
           }
           if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'packaged launch validation must leave Product source clean' }
 
+      - name: Project and validate startup-capsule populated R32 server-import startup.migrate backend-ready Element ModuleLoader post-install
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $capsuleOutput = Join-Path $env:RUNNER_TEMP 'product-experience-startup-capsule'
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $capsuleOutput
+          New-Item -ItemType Directory -Path $capsuleOutput | Out-Null
+          node tools/product-experience/create-startup-capsule.js `
+            --application-root (Join-Path $env:RUNNER_TEMP 'product-uat-packaged-launch') `
+            --element-host-root (Join-Path $env:RUNNER_TEMP 'product-uat-element-validation-host') `
+            --data-root (Join-Path $env:RUNNER_TEMP 'product-uat-packaged-data') `
+            --output-root $capsuleOutput `
+            --candidate-commit $env:CANDIDATE_SHA `
+            --candidate-tree '${{ steps.identity.outputs.tree }}'
+          if ($LASTEXITCODE -ne 0) { throw "same-build startup-capsule projection or startup proof failed: $LASTEXITCODE" }
+          $manifest = Join-Path $capsuleOutput 'startup-capsule\STARTUP_CAPSULE_MANIFEST.json'
+          if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { throw 'startup-capsule manifest is missing' }
+          $document = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
+          if ([string]$document.status -ne 'PASS' -or [string]$document.byteIdentity -ne 'VERIFIED') { throw 'startup-capsule manifest is not GREEN' }
+          Write-Host "GREEN: startup-capsule server import / startup.migrate / backend ready / Element ModuleLoader / post-install proof is PASS"
+
+      - name: Upload same-build startup capsule
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Product-Experience-Startup-Capsule-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}\product-experience-startup-capsule\startup-capsule\**
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Upload packaged startup diagnostics after Product Final RED
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -595,6 +626,7 @@ jobs:
             ${{ runner.temp }}\product-uat-packaged-data\logs\desktop-bootstrap.jsonl
             ${{ runner.temp }}\product-uat-packaged-data\logs\desktop.jsonl
             ${{ runner.temp }}\product-uat-packaged-data\logs\server.jsonl
+            ${{ runner.temp }}\product-experience-startup-capsule\startup-capsule\diagnostics\**
           if-no-files-found: warn
           retention-days: 7
 
@@ -620,7 +652,8 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-product-experience-windows-uat-startup-p0-amendment-2' ||
         github.event.pull_request.head.ref == 'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1' ||
         github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-5' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120
