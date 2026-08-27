@@ -149,7 +149,7 @@
   "ossFit": {
     "decision": "REUSE_NODE_CHILD_PROCESS_ASYNC_API_AND_EXISTING_NATIVE_GOVERNANCE_SEAM",
     "matureOssAvailable": true,
-    "selectedAdoptionMode": "node-core-existing-repository-seam",
+    "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
     "reviewedCandidates": [
       {
