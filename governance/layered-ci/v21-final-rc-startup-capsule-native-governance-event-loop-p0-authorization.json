@@ -212,7 +212,7 @@
     "authorizationPredatesImplementation": true,
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
-    "productionUseAuthorized": true,
+    "productionUseAuthorized": false,
     "formalReleaseAuthorized": false,
     "publishAuthorized": false,
     "ledgerAuthorized": false,
