@@ -1899,6 +1899,16 @@ class R32SqliteStoreOperations {
     `).get(fingerprint) || null;
   }
 
+  listCompletedMigrations() {
+    return this.db.prepare(`
+      SELECT id, source_root AS sourceRoot, source_fingerprint AS sourceFingerprint,
+             status, report_json AS reportJson, started_at AS startedAt, completed_at AS completedAt
+      FROM r32_migration_runs
+      WHERE status='completed'
+      ORDER BY completed_at DESC, id DESC
+    `).all();
+  }
+
   createMigrationRun(input = {}) {
     const id = clean(input.id) || stableId('migration', [input.sourceRoot, input.sourceFingerprint, nowIso()]);
     this.db.prepare(`
