@@ -95,3 +95,45 @@ test('startup capsule persists its structured failure reason before nonzero exit
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('startup capsule verifier consumes canonical production diagnostics for server import proof', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-startup-capsule-proof-'));
+  try {
+    const logsRoot = path.join(root, 'logs');
+    fs.mkdirSync(logsRoot, { recursive: true });
+    const startedAtMs = Date.now() - 500;
+    const at = new Date(startedAtMs + 100).toISOString();
+
+    fs.writeFileSync(
+      path.join(logsRoot, 'production-diagnostics.jsonl'),
+      `${JSON.stringify({ type: 'event', name: 'backend-boot-started', at })}\n`,
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(logsRoot, 'server.jsonl'),
+      `${JSON.stringify({
+        at,
+        channel: 'server',
+        level: 'info',
+        message: 'server-started',
+        detail: {
+          startupMigration: { ok: true, executed: true },
+          startupTimings: { legacyMigrationReadyMs: 12 }
+        }
+      })}\n`,
+      'utf8'
+    );
+
+    const Module = require('node:module');
+    const source = `${fs.readFileSync(TOOL_PATH, 'utf8')}\nmodule.exports.__verifyStartupDiagnostics = verifyStartupDiagnostics;\n`;
+    const isolated = new Module(TOOL_PATH, module);
+    isolated.filename = TOOL_PATH;
+    isolated.paths = Module._nodeModulePaths(path.dirname(TOOL_PATH));
+    isolated._compile(source, TOOL_PATH);
+
+    const result = isolated.exports.__verifyStartupDiagnostics(root, startedAtMs);
+    assert.equal(result.recordCount, 2, 'canonical production diagnostics and server readiness records must both participate in startup proof');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

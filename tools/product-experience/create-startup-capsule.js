@@ -270,7 +270,8 @@ function verifyStartupDiagnostics(dataRoot, startedAtMs) {
   const logsRoot = path.join(dataRoot, 'logs');
   const diagnostics = readJsonLines(path.join(logsRoot, 'desktop-bootstrap.jsonl'))
     .concat(readJsonLines(path.join(logsRoot, 'desktop.jsonl')))
-    .concat(readJsonLines(path.join(logsRoot, 'server.jsonl')));
+    .concat(readJsonLines(path.join(logsRoot, 'server.jsonl')))
+    .concat(readJsonLines(path.join(logsRoot, 'production-diagnostics.jsonl')));
   const fresh = diagnostics.filter(record => {
     const raw = record?.at || record?.timestamp || record?.time || record?.createdAtUtc || record?.generatedAtUtc;
     const value = Date.parse(String(raw || ''));
