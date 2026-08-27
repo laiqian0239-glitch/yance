@@ -23,7 +23,7 @@ async function runMode(mode) {
   try {
     const vault = new CredentialVault(path.join(root, 'vault.json'), { safeStorage: safeStorage() });
     const vaultHost = new CredentialVaultHost({ vault, metadataPath: path.join(root, 'vault-meta.json'), transactionPath: path.join(root, 'transactions.json'), randomUUID: () => 'indeterminate-evidence-epoch' });
-    const frame = vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'f'.repeat(64) }).frame;
+    const frame = (await vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'f'.repeat(64) })).frame;
     const streams = pair({ commitWriteCallbackError: mode === 'write-callback-error' });
     let callbacks = 0;
     const shouldDropAck = request => (mode === 'no-ack' && (request.action === 'COMMIT' || request.action === 'QUERY')) || (['pipe-end', 'pipe-error', 'partial-ack'].includes(mode) && request.action === 'COMMIT');
@@ -35,7 +35,7 @@ async function runMode(mode) {
     const beforeRestart = client.snapshot();
     const electronGeneration = vaultHost.snapshotMetadata().generation;
     client.close(); custodyHost.close();
-    const restartFrame = vaultHost.createHydrationFrame({ startupNonce: `restart-${mode}`, oneTimeToken: 'y'.repeat(43), backendPid: process.pid, manifestSha256: 'f'.repeat(64) }).frame;
+    const restartFrame = (await vaultHost.createHydrationFrame({ startupNonce: `restart-${mode}`, oneTimeToken: 'y'.repeat(43), backendPid: process.pid, manifestSha256: 'f'.repeat(64) })).frame;
     const refPresent = restartFrame.payload.entries.some(row => row.ref === `probe/${mode}`);
     const pass = reasonCode === 'CREDENTIAL_COMMIT_RESULT_INDETERMINATE' && callbacks === 1 && electronGeneration === 2 && beforeRestart.generation === 1 && beforeRestart.terminal === true && beforeRestart.dedicatedPipeActive === false && refPresent && restartFrame.generation === 3;
     return record(mode, { status: pass ? 'PASS' : 'FAIL', reasonCode, onIndeterminateCommitCount: callbacks, electronVaultGeneration: electronGeneration, backendGeneration: beforeRestart.generation, backendContinuedRunning: false, terminal: beforeRestart.terminal, requestState: beforeRestart.requestStates[`indeterminate-${mode}`]?.state || '', nextFd5HydrationGeneration: restartFrame.generation, authorityReestablishedByFd5: refPresent });

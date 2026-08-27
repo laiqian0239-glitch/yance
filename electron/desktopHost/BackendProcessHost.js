@@ -204,15 +204,23 @@ function probeBackendHttpReady({ port, token, path: requestPath = '/api/health',
 }
 
 
-function pathExists(filePath, fsApi = fs) {
+async function pathExists(filePath, fsApi = fs) {
   if (typeof filePath !== 'string' || filePath.length === 0) return false;
-  try { return fsApi.existsSync(filePath); } catch (_) { return false; }
+  // Boot-reachable path/manifest/node_modules existence validation must never
+  // call the synchronous fsApi.existsSync on the Electron main event loop. Use
+  // the promise-capable access surface (node:fs.promises.access by default,
+  // compatible with test fakes exposing async access directly or under .promises).
+  const probe = (fsApi && fsApi.promises) || fsApi;
+  try { await probe.access(filePath); return true; } catch (_) { return false; }
 }
 
-function firstExistingDelimitedPath(value, fsApi = fs) {
+async function firstExistingDelimitedPath(value, fsApi = fs) {
   const raw = String(value || '');
   if (!raw) return '';
-  return raw.split(path.delimiter).map(item => item.trim()).find(item => item && pathExists(item, fsApi)) || '';
+  for (const item of raw.split(path.delimiter).map(part => part.trim())) {
+    if (item && await pathExists(item, fsApi)) return item;
+  }
+  return '';
 }
 
 function normalizeBackendPort(options = {}, env = {}) {
@@ -233,7 +241,7 @@ function normalizeReadyTimeoutMs(options = {}) {
   return Math.min(180000, readyTimeoutMs);
 }
 
-function validateReleaseStartupConfig(releaseStartupConfig = {}, fsApi = fs) {
+async function validateReleaseStartupConfig(releaseStartupConfig = {}, fsApi = fs) {
   if (!releaseStartupConfig || typeof releaseStartupConfig !== 'object') {
     throw startupFailure('M1_RELEASE_CONTRACT_INVALID', 'Release startup config is required');
   }
@@ -246,36 +254,36 @@ function validateReleaseStartupConfig(releaseStartupConfig = {}, fsApi = fs) {
     throw startupFailure('M1_RELEASE_CONTRACT_INVALID', 'Release manifest SHA256 must be lowercase SHA256', { field: 'manifestSha256' });
   }
   for (const field of ['manifestPath', 'releaseManifestPath']) {
-    if (releaseStartupConfig[field] && !pathExists(releaseStartupConfig[field], fsApi)) {
+    if (releaseStartupConfig[field] && !await pathExists(releaseStartupConfig[field], fsApi)) {
       throw startupFailure('M1_RELEASE_MANIFEST_MISSING', 'Release manifest file declared by contract does not exist', { field, path: releaseStartupConfig[field] });
     }
   }
   for (const field of ['detachedHashPath', 'releaseManifestSha256Path']) {
-    if (releaseStartupConfig[field] && !pathExists(releaseStartupConfig[field], fsApi)) {
+    if (releaseStartupConfig[field] && !await pathExists(releaseStartupConfig[field], fsApi)) {
       throw startupFailure('M1_RELEASE_MANIFEST_SHA256_MISSING', 'Release manifest SHA256 file declared by contract does not exist', { field, path: releaseStartupConfig[field] });
     }
   }
   return Object.freeze({ ...releaseStartupConfig });
 }
 
-function validateBackendLaunchContract(options = {}, fsApi = fs) {
+async function validateBackendLaunchContract(options = {}, fsApi = fs) {
   if (!options.entry || !options.cwd || !options.releaseStartupConfig) {
     throw startupFailure('M1_START_CONFIGURATION_INVALID', 'BackendProcessHost requires entry, cwd, and releaseStartupConfig');
   }
-  const releaseStartupConfig = validateReleaseStartupConfig(options.releaseStartupConfig, fsApi);
-  if (!pathExists(options.cwd, fsApi)) {
+  const releaseStartupConfig = await validateReleaseStartupConfig(options.releaseStartupConfig, fsApi);
+  if (!await pathExists(options.cwd, fsApi)) {
     throw startupFailure('M1_APP_ROOT_MISSING', 'Backend application root does not exist', { appRoot: options.cwd });
   }
-  if (!pathExists(options.entry, fsApi)) {
+  if (!await pathExists(options.entry, fsApi)) {
     throw startupFailure('M1_BACKEND_ENTRY_MISSING', 'Backend entry file does not exist', { backendEntryPath: options.entry });
   }
   const nodeRuntimeExecutablePath = options.nodeRuntimeExecutablePath || options.execPath || '';
-  if (!nodeRuntimeExecutablePath || !pathExists(nodeRuntimeExecutablePath, fsApi)) {
+  if (!nodeRuntimeExecutablePath || !await pathExists(nodeRuntimeExecutablePath, fsApi)) {
     throw startupFailure('M1_NODE_RUNTIME_MISSING', 'Backend Node runtime executable does not exist', { nodeRuntimeExecutablePath });
   }
   const env = options.env || {};
   const nodeModulesPath = env.NODE_PATH || options.nodeModulesPath || '';
-  if (nodeModulesPath && !firstExistingDelimitedPath(nodeModulesPath, fsApi)) {
+  if (nodeModulesPath && !await firstExistingDelimitedPath(nodeModulesPath, fsApi)) {
     throw startupFailure('M1_NODE_MODULES_MISSING', 'Backend NODE_PATH does not contain an existing node_modules directory', { nodeModulesPath });
   }
   const backendPort = normalizeBackendPort(options, env);
@@ -845,7 +853,7 @@ class BackendProcessHost {
     let childOutputTail = null;
     let launchContract = null;
     try {
-      launchContract = validateBackendLaunchContract(options, options.fs || fs);
+      launchContract = await validateBackendLaunchContract(options, options.fs || fs);
       const sanitizedEnv = sanitizedEnvironment(options.env);
       delete sanitizedEnv.ELECTRON_RUN_AS_NODE;
       this.log('backend-process-launch-contract', {

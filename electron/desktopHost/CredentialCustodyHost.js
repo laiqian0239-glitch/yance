@@ -91,6 +91,13 @@ class CredentialCustodyHost {
     return new Promise((resolve, reject) => this.stream.write(encoded, error => error ? reject(error) : resolve()));
   }
 
+  // drain() resolves once every custody line already consumed by this host has
+  // finished its full async dispatch chain (including journal/vault durability
+  // writes). It is idempotent and read-only: it never mutates stream state, and
+  // is safe to await from tests or callers that need a deterministic barrier
+  // before asserting on vault/journal projections after an async mutation.
+  drain() { return this.operation; }
+
   snapshot() {
     const ownerContext = {
       backendPid: Number(this.context.backendPid || 0),

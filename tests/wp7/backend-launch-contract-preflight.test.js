@@ -23,8 +23,8 @@ function createEntry(root) {
   return entry;
 }
 
-test('M1 preflight rejects missing app root before fork', () => {
-  assert.throws(() => validateBackendLaunchContract({
+test('M1 preflight rejects missing app root before fork', async () => {
+  await assert.rejects(() => validateBackendLaunchContract({
     cwd: path.join(os.tmpdir(), 'missing-yance-app-root'),
     entry: path.join(os.tmpdir(), 'missing-yance-app-root', 'backend', 'desktopHostedEntry.js'),
     nodeRuntimeExecutablePath: process.execPath,
@@ -32,9 +32,9 @@ test('M1 preflight rejects missing app root before fork', () => {
   }), error => error.reasonCode === 'M1_APP_ROOT_MISSING');
 });
 
-test('M1 preflight rejects missing backend entry before fork', () => {
+test('M1 preflight rejects missing backend entry before fork', async () => {
   const root = tempRoot();
-  assert.throws(() => validateBackendLaunchContract({
+  await assert.rejects(() => validateBackendLaunchContract({
     cwd: root,
     entry: path.join(root, 'backend', 'desktopHostedEntry.js'),
     nodeRuntimeExecutablePath: process.execPath,
@@ -42,10 +42,10 @@ test('M1 preflight rejects missing backend entry before fork', () => {
   }), error => error.reasonCode === 'M1_BACKEND_ENTRY_MISSING');
 });
 
-test('M1 preflight rejects missing trusted Node runtime before fork', () => {
+test('M1 preflight rejects missing trusted Node runtime before fork', async () => {
   const root = tempRoot();
   const entry = createEntry(root);
-  assert.throws(() => validateBackendLaunchContract({
+  await assert.rejects(() => validateBackendLaunchContract({
     cwd: root,
     entry,
     nodeRuntimeExecutablePath: path.join(root, 'resources', 'runtime', 'node22', 'node.exe'),
@@ -53,10 +53,10 @@ test('M1 preflight rejects missing trusted Node runtime before fork', () => {
   }), error => error.reasonCode === 'M1_NODE_RUNTIME_MISSING');
 });
 
-test('M1 preflight rejects missing NODE_PATH before fork', () => {
+test('M1 preflight rejects missing NODE_PATH before fork', async () => {
   const root = tempRoot();
   const entry = createEntry(root);
-  assert.throws(() => validateBackendLaunchContract({
+  await assert.rejects(() => validateBackendLaunchContract({
     cwd: root,
     entry,
     nodeRuntimeExecutablePath: process.execPath,
@@ -65,12 +65,12 @@ test('M1 preflight rejects missing NODE_PATH before fork', () => {
   }), error => error.reasonCode === 'M1_NODE_MODULES_MISSING');
 });
 
-test('M1 preflight accepts coherent runtime contract', () => {
+test('M1 preflight accepts coherent runtime contract', async () => {
   const root = tempRoot();
   const entry = createEntry(root);
   const nodeModules = path.join(root, 'node_modules');
   fs.mkdirSync(nodeModules, { recursive: true });
-  const result = validateBackendLaunchContract({
+  const result = await validateBackendLaunchContract({
     cwd: root,
     entry,
     nodeRuntimeExecutablePath: process.execPath,
