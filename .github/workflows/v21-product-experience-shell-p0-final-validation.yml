@@ -27,7 +27,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v4'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v4' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v5'
       )
     runs-on: windows-latest
     env:
@@ -139,7 +140,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v4'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v4' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v5'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -659,7 +661,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v4'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v4' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v5'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120
