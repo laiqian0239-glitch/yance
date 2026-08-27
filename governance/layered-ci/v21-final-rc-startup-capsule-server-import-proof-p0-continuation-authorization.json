@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-STARTUP-CAPSULE-SERVER-IMPORT-PROOF-P0-CONTINUATION",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #892 frozen exact head 8de83d65a29b76f7414a22fedc4f53215ac1da62 contains the authorized startup-capsule server-import proof repair and its dedicated regression. Exact-head Stage run 33056619129 / job 98464950023 proves the startup-capsule contract itself is GREEN, while exactly one mandatory WP0 test remains RED at tests/wp0/implementation-branch-policy.test.js:1148 because the published first production repair commit 8de83d65a29b76f7414a22fedc4f53215ac1da62 omitted the evaluator-required Yance-Failure-First-Red-Conclusion: failure trailer. The same fresh causal RED is already frozen at ed1e756e05b341d25f96dfb1e25b8f6cbcf5ef60 / Stage run 33056103527. History rewrite is forbidden, so a later commit on #892 cannot repair that historical message. Preserve the frozen two-path net repair exactly, supersede only the valid #891 implementation authority, and require the repository's machine-enforced two-parent forward continuation protocol. No new implementation semantics, workflow, runtime, dependency, release, publish, ledger, or frozen RC mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "99a662c62c92f88be1b34795e145a04b2cde3595",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "99a662c62c92f88be1b34795e145a04b2cde3595",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-startup-capsule-server-import-proof-p0-continuation-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-startup-capsule-server-import-proof-p0-continuation-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "00de243870b9348baf9b7b610fa27735a27b8aae34f136dbb0860e1bfe9f5266",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-startup-capsule-server-import-proof-p0-continuation",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-startup-capsule-p0.test.js",
+      "tools/product-experience/create-startup-capsule.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "7189ef5a5a0cf528c3c3d4a0640ec4d8af79653bc69e5f872fc0456d7dead0ac",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "workflowModificationAllowed": false,
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "8de83d65a29b76f7414a22fedc4f53215ac1da62"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-final-rc-startup-capsule-server-import-proof-p0-authorization.json",
+    "implementationBranch": "ci/v21-final-rc-startup-capsule-server-import-proof-p0",
+    "reason": "The #891 authorization is valid, but its #892 implementation lineage permanently violates mandatory exact failure-first evidence topology because published repair commit 8de83d65a29b76f7414a22fedc4f53215ac1da62 lacks Yance-Failure-First-Red-Conclusion: failure. Supersede that implementation authority without rewriting history and continue from the frozen exact head through the generic forward-continuation protocol."
+  },
+  "frozenPredecessorEvidence": {
+    "pullRequest": 892,
+    "firstRedHead": "ed1e756e05b341d25f96dfb1e25b8f6cbcf5ef60",
+    "firstRedStageRun": 33056103527,
+    "frozenHead": "8de83d65a29b76f7414a22fedc4f53215ac1da62",
+    "stageRun": 33056619129,
+    "stageJob": 98464950023,
+    "mandatoryWp0Tests": 725,
+    "mandatoryWp0Pass": 724,
+    "exactFailures": 1,
+    "startupCapsuleFocusedContract": "PASS",
+    "failingContract": "tests/wp0/implementation-branch-policy.test.js current repository branch uses local authority only when locally provable and arbitrary branches fail",
+    "rootCause": "Trusted implementationBranchPolicy hasExactFailureFirstEvidence requires exact Yance-Failure-First-Red-Head, Yance-Failure-First-Red-Run, and Yance-Failure-First-Red-Conclusion: failure trailers on the repair commit after a declared failureFirstCommit. Commit 8de83d65a29b76f7414a22fedc4f53215ac1da62 contains the first two trailers but omits Red-Conclusion. A later commit cannot repair a historical commit message without forbidden amend/rebase/history rewrite.",
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true
+  },
+  "continuationContract": {
+    "firstImplementationCommitMustBeTwoParent": true,
+    "requiredFirstParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "requiredSecondParent": "8de83d65a29b76f7414a22fedc4f53215ac1da62",
+    "carryForwardNetPathsExactly": [
+      "tests/wp0/v21-product-experience-startup-capsule-p0.test.js",
+      "tools/product-experience/create-startup-capsule.js"
+    ],
+    "sameCausalRedMustNotBeRepeated": true,
+    "oldExactHeadsMustNotBeRerun": true,
+    "newImplementationSemanticChangeForbidden": true
+  },
+  "repairContract": {
+    "toolPath": "tools/product-experience/create-startup-capsule.js",
+    "requiredVerifierInput": "<dataRoot>/logs/production-diagnostics.jsonl",
+    "testPath": "tests/wp0/v21-product-experience-startup-capsule-p0.test.js",
+    "frozenRepairHead": "8de83d65a29b76f7414a22fedc4f53215ac1da62",
+    "preserveFrozenRepairBytesExactly": true,
+    "startupPayloadSelectionMustRemainUnchanged": true,
+    "sameBuildProjectionMustRemainUnchanged": true,
+    "secondApplicationBuildForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_STARTUP_CAPSULE_HELPER_AND_CANONICAL_PRODUCTION_DIAGNOSTICS_TRACE",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing startup-capsule verifier",
+        "source": "tools/product-experience/create-startup-capsule.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The causal code repair is already frozen and focused-green; continuation must preserve it byte-for-byte."
+      },
+      {
+        "name": "Existing generic forward-continuation protocol",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already enforces two-parent continuation for published-lineage metadata defects."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not rewrite or amend #892 history.",
+      "Do not repeat the same failure-first RED.",
+      "Do not add a parallel diagnostics format, backend event, workflow, router, or infrastructure.",
+      "Do not rerun frozen #892, #890, or #881 exact heads."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-startup-capsule-p0.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2 when routed",
+      "Model Brain Windows when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    },
+    "unknownBlockers": 0
+  },
+  "prohibitions": {
+    "frozen892Mutation": true,
+    "frozen892Rerun": true,
+    "frozen890Mutation": true,
+    "frozen890Rerun": true,
+    "frozen881Mutation": true,
+    "frozen881Rerun": true,
+    "policyWeakening": true,
+    "newImplementationSemanticChange": true,
+    "workflowChange": true,
+    "productRuntimeMutation": true,
+    "backendProducerChange": true,
+    "secondApplicationBuild": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "databaseMigration": true,
+    "gateOrScannerWeakening": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "releaseLedgerClosure": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
