@@ -137,3 +137,71 @@ test('startup capsule verifier consumes canonical production diagnostics for ser
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('startup capsule disposable fixture excludes runtime owner claims and stale post-install evidence without widening secure projection', () => {
+  const tool = read(TOOL_PATH);
+  const Module = require('node:module');
+  const source = `${tool}\nmodule.exports.__isRuntimeOwnerClaimArtifact = typeof isRuntimeOwnerClaimArtifact === 'function' ? isRuntimeOwnerClaimArtifact : null;\n`;
+  const isolated = new Module(TOOL_PATH, module);
+  isolated.filename = TOOL_PATH;
+  isolated.paths = Module._nodeModulePaths(path.dirname(TOOL_PATH));
+  isolated._compile(source, TOOL_PATH);
+
+  const classify = isolated.exports.__isRuntimeOwnerClaimArtifact;
+  assert.equal(typeof classify, 'function', 'startup-capsule helper must own an explicit runtime-state projection policy');
+
+  for (const relative of [
+    'secure/desktop-backend-owner.json',
+    'secure/desktop-backend-owner.json.lock/claim',
+    'secure/desktop-backend-owner.json.123.456.deadbeef.tmp',
+    'secure/desktop-backend-owner.json.123.lock',
+    'logs/post-install-launch.json',
+    'logs/post-install-launch.pass'
+  ]) {
+    assert.equal(classify(relative), true, `runtime-only fixture state must be excluded: ${relative}`);
+  }
+
+  for (const relative of [
+    'store/yance-r32.db',
+    'secure/credentials.safe.json',
+    'secure/other.json',
+    'logs/server.jsonl'
+  ]) {
+    assert.equal(classify(relative), false, `durable fixture content must remain eligible: ${relative}`);
+  }
+
+  assert.match(tool, /function copyFixture[\s\S]*const relative = canonicalRelative\(path\.relative\(sourceDataRoot, sourceFile\)\);[\s\S]*if \(isRuntimeOwnerClaimArtifact\(relative\)\) continue;/u, 'copyFixture must apply the runtime-state exclusion before copying or recording the file');
+  assert.match(tool, /originClass:\s*'disposable-r32-fixture'/u, 'retained fixture files must remain byte-origin recorded');
+});
+
+test('startup capsule preserves fixture child logs in helper-owned failure diagnostics', () => {
+  const tool = read(TOOL_PATH);
+  assert.match(tool, /function preserveFixtureFailureLogs\(fixtureDataRoot, capsuleRoot\)/u, 'helper must own fixture-log failure preservation');
+  assert.match(tool, /catch \(error\) \{[\s\S]*preserveFixtureFailureLogs\(fixtureDataRoot, capsuleRoot\);[\s\S]*throw error;[\s\S]*\} finally \{/u, 'validateCapsuleLaunch must preserve fixture logs before rethrowing the original failure');
+
+  const Module = require('node:module');
+  const source = `${tool}\nmodule.exports.__preserveFixtureFailureLogs = typeof preserveFixtureFailureLogs === 'function' ? preserveFixtureFailureLogs : null;\n`;
+  const isolated = new Module(TOOL_PATH, module);
+  isolated.filename = TOOL_PATH;
+  isolated.paths = Module._nodeModulePaths(path.dirname(TOOL_PATH));
+  isolated._compile(source, TOOL_PATH);
+  assert.equal(typeof isolated.exports.__preserveFixtureFailureLogs, 'function');
+
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-startup-capsule-fixture-logs-'));
+  try {
+    const fixtureDataRoot = path.join(root, 'fixture', 'data');
+    const logsRoot = path.join(fixtureDataRoot, 'logs');
+    const capsuleRoot = path.join(root, 'startup-capsule');
+    fs.mkdirSync(logsRoot, { recursive: true });
+    const record = `${JSON.stringify({ at: '2026-08-27T10:39:30.000Z', event: 'fixture-child-started' })}\n`;
+    fs.writeFileSync(path.join(logsRoot, 'desktop-bootstrap.jsonl'), record, 'utf8');
+
+    isolated.exports.__preserveFixtureFailureLogs(fixtureDataRoot, capsuleRoot);
+
+    const preserved = path.join(capsuleRoot, 'diagnostics', 'fixture-data-logs', 'desktop-bootstrap.jsonl');
+    assert.equal(fs.readFileSync(preserved, 'utf8'), record, 'fixture child log bytes must be preserved in helper-owned diagnostics');
+    assert.equal(fs.readFileSync(path.join(logsRoot, 'desktop-bootstrap.jsonl'), 'utf8'), record, 'diagnostic preservation must not mutate the source fixture');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
