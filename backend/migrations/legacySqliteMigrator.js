@@ -12,7 +12,7 @@ const DB_NAMES = new Set([
   'chat-engine.db', 'workbuddy.db', 'database.db', 'yance.db', 'yance26.db',
   'yance27.db', 'messages.db', 'app.db'
 ]);
-const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', '.git', 'backups', 'legacy-json', 'logs', 'cache', 'tmp']);
+const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', '.git', 'backups', 'migration-backups', 'legacy-json', 'logs', 'cache', 'tmp']);
 const TASK_LABELS = Object.freeze({
   translation: ['TR', '翻译', '文本与媒体翻译'],
   understanding: ['UN', '会话理解', '意图、证据与关系上下文'],
@@ -75,11 +75,11 @@ function walkLegacyDatabases(root, options = {}) {
   visit(target, 0);
   return [...new Set(result)].sort();
 }
-function hashFile(hash, file) {
+function hashFile(hash, file, options = {}) {
   const stat = fs.statSync(file);
   hash.update(path.basename(file));
   hash.update(String(stat.size));
-  hash.update(String(Math.trunc(stat.mtimeMs)));
+  if (options.includeMtime === true) hash.update(String(Math.trunc(stat.mtimeMs)));
   const fd = fs.openSync(file, 'r');
   const buffer = Buffer.allocUnsafe(1024 * 1024);
   try {
@@ -97,13 +97,7 @@ function hashSqlValue(hash, value) {
   hash.update(String(value));
   hash.update('\u001e');
 }
-function databaseFingerprint(file, db = null, tables = null) {
-  const hash = crypto.createHash('sha256');
-  hash.update(path.resolve(file));
-  if (!db) {
-    hashFile(hash, file);
-    return `legacy-sqlite:${hash.digest('hex')}`;
-  }
+function hashDatabaseTables(hash, db, tables = null) {
   const names = [...(tables || tableSet(db))].sort();
   for (const name of names) {
     hash.update(name); hash.update('\u001f');
@@ -116,7 +110,39 @@ function databaseFingerprint(file, db = null, tables = null) {
       hash.update('\u001d');
     }
   }
+}
+function databaseFingerprint(file, db = null, tables = null) {
+  const hash = crypto.createHash('sha256');
+  hash.update(path.basename(file));
+  hash.update('\u001f');
+  if (!db) {
+    hashFile(hash, file);
+    return `legacy-sqlite:${hash.digest('hex')}`;
+  }
+  hashDatabaseTables(hash, db, tables);
   return `legacy-sqlite:${hash.digest('hex')}`;
+}
+function legacyPathBoundDatabaseFingerprint(pathSeed, currentFile, db = null, tables = null) {
+  const hash = crypto.createHash('sha256');
+  hash.update(path.resolve(pathSeed));
+  if (!db) {
+    hashFile(hash, currentFile, { includeMtime: true });
+    return `legacy-sqlite:${hash.digest('hex')}`;
+  }
+  hashDatabaseTables(hash, db, tables);
+  return `legacy-sqlite:${hash.digest('hex')}`;
+}
+function completedDatabaseMigration(targetStore, fingerprint, sourceFile, sourceDb, tables) {
+  const direct = targetStore.findCompletedMigration(fingerprint);
+  if (direct) return direct;
+  if (typeof targetStore.listCompletedMigrations !== 'function') return null;
+  for (const receipt of targetStore.listCompletedMigrations() || []) {
+    const historicalPath = clean(receipt?.sourceRoot);
+    const historicalFingerprint = clean(receipt?.sourceFingerprint);
+    if (!historicalPath || !historicalFingerprint || !historicalFingerprint.startsWith('legacy-sqlite:')) continue;
+    if (legacyPathBoundDatabaseFingerprint(historicalPath, sourceFile, sourceDb, tables) === historicalFingerprint) return receipt;
+  }
+  return null;
 }
 function tableSet(db) {
   return new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all().map(row => row.name));
@@ -209,7 +235,7 @@ function migrateOneDatabase(sourceFile, targetStore, sourceRoot, options = {}) {
   try { sourceDb.exec('PRAGMA query_only=ON; PRAGMA busy_timeout=5000;'); } catch (_) {}
   const tables = tableSet(sourceDb);
   const fingerprint = databaseFingerprint(sourceFile, sourceDb, tables);
-  const previous = targetStore.findCompletedMigration(fingerprint);
+  const previous = completedDatabaseMigration(targetStore, fingerprint, sourceFile, sourceDb, tables);
   const report = {
     ok: false, sourceFile, sourceRoot, sourceFingerprint: fingerprint,
     imported: { accounts: 0, contacts: 0, conversations: 0, messages: 0, profiles: 0, facts: 0, relationshipEvents: 0, drafts: 0, rules: 0, materials: 0, routes: 0, preferences: 0 },
