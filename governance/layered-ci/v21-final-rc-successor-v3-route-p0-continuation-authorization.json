@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-SUCCESSOR-V3-ROUTE-P0-CONTINUATION",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #883 frozen exact head 6e61b1362986867fb9f9a64b8190a6235622ce34 has the authorized two-path route result but Stage 33044557584 proves exactly one mandatory WP0 RED because the first production commit b35b04acc9fad180a90c8bc3788806d5b9f576d7 omitted the evaluator-required Yance-Failure-First-Red evidence trailers. History rewrite is forbidden, so the #883 lineage cannot become authorized by another ordinary commit. Preserve that frozen RED and its net route diff, supersede only the valid #882 route authority, and require a machine-enforced two-parent forward continuation onto a fresh implementation branch. No policy weakening, Product Final job-body change, startup-capsule change, runtime change, dependency change, release, publish, or ledger authority is granted.",
+  "base": {
+    "branch": "main",
+    "commit": "97d9138d04681749f1e0cddcd75b8a03efbe197a",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "97d9138d04681749f1e0cddcd75b8a03efbe197a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-successor-v3-route-p0-continuation-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-successor-v3-route-p0-continuation-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7f7c89d07c9ba4433a834106b8ecd4891630c8293103b856e495e8211ff2499b",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-successor-v3-route-p0-continuation",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0fe120e1cd4c2692f06a11c3becc1d5db4324efcbaf59f2cc62154b008fd9d6e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "6e61b1362986867fb9f9a64b8190a6235622ce34"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-final-rc-successor-v3-route-p0-authorization.json",
+    "implementationBranch": "ci/v21-final-rc-successor-v3-route-p0",
+    "reason": "The #882 authorization is valid, but its #883 implementation lineage permanently violates required failure-first evidence topology after published commit b35b04acc9fad180a90c8bc3788806d5b9f576d7. Supersede that implementation authority without rewriting history and continue from the frozen exact head through the generic forward-continuation protocol."
+  },
+  "frozenPredecessorEvidence": {
+    "pullRequest": 883,
+    "firstRedHead": "59adbfb2852dbb7c441f0209fe4c0844ef764e81",
+    "frozenHead": "6e61b1362986867fb9f9a64b8190a6235622ce34",
+    "stageRun": 33044557584,
+    "stageJob": 98425477681,
+    "mandatoryWp0Tests": 723,
+    "mandatoryWp0Pass": 722,
+    "exactFailures": 1,
+    "failingContract": "tests/wp0/implementation-branch-policy.test.js current repository branch uses local authority only when locally provable and arbitrary branches fail",
+    "rootCause": "The evaluator checks the second implementation commit after a declared failureFirstCommit and requires exact Yance-Failure-First-Red-Head, Yance-Failure-First-Red-Run, and Yance-Failure-First-Red-Conclusion trailers. Published commit b35b04acc9fad180a90c8bc3788806d5b9f576d7 has only the subject fix(v21): admit Final RC successor-v3 route, so the lineage is WP0_DELEGATED_GOVERNANCE_FAILURE_FIRST_EVIDENCE_INVALID. A later commit cannot repair a historical commit message without forbidden history rewrite.",
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true
+  },
+  "continuationContract": {
+    "firstImplementationCommitMustBeTwoParent": true,
+    "requiredFirstParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "requiredSecondParent": "6e61b1362986867fb9f9a64b8190a6235622ce34",
+    "carryForwardNetPathsExactly": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "sameCausalRedMustNotBeRepeated": true,
+    "oldExactHeadsMustNotBeRerun": true
+  },
+  "successorRouteContract": {
+    "nextRcBranch": "release/v21-final-rc-uat-p0-successor-v3",
+    "workflow": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "workflowTriggerMustRemain": "pull_request only",
+    "sameRepositoryHeadRequired": true,
+    "exactBranchEqualityRequired": true,
+    "prefixWildcardContainsOrStartsWithForbidden": true,
+    "historicalBranchAdmissionsMustRemainUnchanged": true,
+    "jobsThatMustAdmitSuccessorBranch": [
+      "frozen-element-reproducibility",
+      "materialized-desktop-uat",
+      "materialized-matrix-uat"
+    ],
+    "startupCapsuleRouteAndImplementationMustRemainByteForByteUnchanged": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_EXACT_BRANCH_ROUTE_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product Final exact-branch admission seam",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml and tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already has the exact Product Final pull-request route and layered equality contract. The causal repair only extends the existing equality set with one clean successor-v3 RC branch; no new router, workflow family, service, SDK, runtime, or infrastructure is required."
+      },
+      {
+        "name": "GitHub Actions existing Product Final execution surface",
+        "source": "Existing repository Product Final workflow jobs frozen-element-reproducibility, materialized-desktop-uat, and materialized-matrix-uat",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "All required Final RC materialization and startup-capsule validation already execute in these jobs. The successor-v3 prerequisite must preserve their bodies byte-for-byte and change only exact branch admission."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel Product Final workflow, router, wrapper, branch-prefix wildcard, contains/startsWith admission, or alternate execution path.",
+      "Do not weaken implementationBranchPolicy, same-branch supersession rejection, or graph-invalid propagation to make #880/#881 appear authorized.",
+      "Do not reimplement or modify startup-capsule tooling, build projection, materialized-UAT semantics, or add a second application build."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "Model Brain Windows when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    },
+    "unknownBlockers": 0
+  },
+  "prohibitions": {
+    "policyWeakening": true,
+    "startupCapsuleReimplementation": true,
+    "secondApplicationBuild": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "runtimeProductMutation": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "releaseLedgerClosure": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
