@@ -54,33 +54,31 @@ const KNOWN_NATIVE_ADDONS = Object.freeze([
  */
 function spawnNodeProbe(nodeExePath, options = {}) {
   // eslint-disable-next-line node/no-unsupported-features/node-builtins
-  const { spawnSync } = require('node:child_process');
-  const result = spawnSync(
-    nodeExePath,
-    ['-p', 'JSON.stringify({version:process.version,moduleVersion:Number(process.versions.modules),platform:process.platform,arch:process.arch})'],
-    { encoding: 'utf8', timeout: options.timeout || 30000, windowsHide: true }
-  );
-  if (result.status !== 0) {
-    const error = new Error(`node probe failed: ${result.stderr || (result.error && result.error.message) || 'unknown'}`);
-    error.reasonCode = 'NODE_PROBE_FAILED';
-    throw error;
-  }
-  return JSON.parse(result.stdout);
+  const { execFile } = require('node:child_process');
+  return new Promise((resolve, reject) => {
+    execFile(
+      nodeExePath,
+      ['-p', 'JSON.stringify({version:process.version,moduleVersion:Number(process.versions.modules),platform:process.platform,arch:process.arch})'],
+      { encoding: 'utf8', timeout: options.timeout || 30000, windowsHide: true },
+      (error, stdout, stderr) => {
+        if (error) {
+          const probeError = new Error(`node probe failed: ${stderr || error.message || 'unknown'}`);
+          probeError.reasonCode = 'NODE_PROBE_FAILED';
+          reject(probeError);
+          return;
+        }
+        try {
+          resolve(JSON.parse(stdout));
+        } catch (error) {
+          error.reasonCode = 'NODE_PROBE_FAILED';
+          reject(error);
+        }
+      }
+    );
+  });
 }
 
-/**
- * Probe a runtime node executable.
- * @param {{nodeExePath:string, runNode?:function}} args
- * @returns {{ok:boolean, nodeVersion?:string, moduleVersion?:number, platform?:string, arch?:string, error?:string, message?:string}}
- */
-function probeRuntimeNode({ nodeExePath, runNode } = {}) {
-  if (!nodeExePath) return { ok: false, error: 'NODE_RUNTIME_PATH_MISSING' };
-  let raw;
-  try {
-    raw = runNode ? runNode(nodeExePath) : spawnNodeProbe(nodeExePath);
-  } catch (err) {
-    return { ok: false, error: err.reasonCode || 'NODE_PROBE_FAILED', message: err.message };
-  }
+function normalizeRuntimeNodeProbe(raw) {
   const nodeVersion = String(raw.version || '').replace(/^v/, '');
   return {
     ok: true,
@@ -89,6 +87,29 @@ function probeRuntimeNode({ nodeExePath, runNode } = {}) {
     platform: raw.platform,
     arch: raw.arch
   };
+}
+
+function runtimeNodeProbeFailure(err) {
+  return { ok: false, error: err.reasonCode || 'NODE_PROBE_FAILED', message: err.message };
+}
+
+/**
+ * Probe a runtime node executable.
+ * @param {{nodeExePath:string, runNode?:function}} args
+ * @returns {{ok:boolean, nodeVersion?:string, moduleVersion?:number, platform?:string, arch?:string, error?:string, message?:string}}
+ */
+function probeRuntimeNode({ nodeExePath, runNode, timeout = 30000 } = {}) {
+  if (!nodeExePath) return { ok: false, error: 'NODE_RUNTIME_PATH_MISSING' };
+  let raw;
+  try {
+    raw = runNode ? runNode(nodeExePath, { timeout }) : spawnNodeProbe(nodeExePath, { timeout });
+  } catch (err) {
+    return runtimeNodeProbeFailure(err);
+  }
+  if (raw && typeof raw.then === 'function') {
+    return Promise.resolve(raw).then(normalizeRuntimeNodeProbe, runtimeNodeProbeFailure);
+  }
+  return normalizeRuntimeNodeProbe(raw);
 }
 
 /**
@@ -155,7 +176,10 @@ function evaluateNativeCompatibility({ runtimeNode, addons = [], fsProbe } = {})
  */
 function governRuntimeNodeNativeBinaries(nodeExePath, addons, options = {}) {
   const runNode = options.runNode || spawnNodeProbe;
-  const runtimeNode = probeRuntimeNode({ nodeExePath, runNode });
+  const runtimeNode = probeRuntimeNode({ nodeExePath, runNode, timeout: options.timeout });
+  if (runtimeNode && typeof runtimeNode.then === 'function') {
+    return runtimeNode.then(probed => evaluateNativeCompatibility({ runtimeNode: probed, addons, fsProbe: options.fsProbe }));
+  }
   return evaluateNativeCompatibility({ runtimeNode, addons, fsProbe: options.fsProbe });
 }
 

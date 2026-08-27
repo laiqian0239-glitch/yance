@@ -303,11 +303,11 @@ function resolveTrustedNodeRuntime() {
 // M8 — Native-binary / runtime-node governance guard rail (diagnostic only, fail-open).
 // Probes the bundled runtime node and classifies shipped native addons for ABI compatibility.
 // Never alters the launch decision; only logs. Implementation: electron/m2/nativeBinaryGovernance.js.
-function governRuntimeNativeBinariesBootCheck() {
+async function governRuntimeNativeBinariesBootCheck() {
   try {
     const govern = require('./m2/nativeBinaryGovernance');
     const nodeExe = resolveTrustedNodeRuntime();
-    const report = govern.governRuntimeNodeNativeBinaries(nodeExe, govern.KNOWN_NATIVE_ADDONS, {});
+    const report = await govern.governRuntimeNodeNativeBinaries(nodeExe, govern.KNOWN_NATIVE_ADDONS, {});
     desktopLog('info', 'native-binary-governance', {
       recommendation: report.recommendation,
       moduleVersion: report.runtimeNode && report.runtimeNode.moduleVersion,
@@ -3925,7 +3925,7 @@ if (!app.requestSingleInstanceLock()) {
       node: process.versions.node,
       packaged: app.isPackaged
     });
-    try { governRuntimeNativeBinariesBootCheck(); } catch (_) { /* never block startup */ }
+    void governRuntimeNativeBinariesBootCheck().catch(() => { /* diagnostic only; never block startup */ });
     runtimeApiV2Client = new ApiV2RuntimeClient({
       baseURL: YANCE_BACKEND_URL,
       sessionProvider: options => desktopHost.backendProcessHost.getApiSessionBinding(options),
