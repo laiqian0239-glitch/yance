@@ -137,6 +137,10 @@
         "reason": "Carries the frozen four-path #877 implementation into a distinct authorized successor without rewriting history."
       }
     ],
+    "retireOrAvoid": [
+      "Retire the predecessor implementation branch ci/v21-final-rc-startup-capsule-route-p0 as immutable evidence after this successor authority becomes effective; do not continue it with the newly authorized fifth path.",
+      "Avoid any duplicate startup-capsule workflow/helper or parallel artifact-count contract; reconcile the existing materialized-UAT WP0 test in place and keep tools/product-experience/create-startup-capsule.js as the single capsule projection seam."
+    ],
     "thinYanceAdapterOnly": true
   },
   "requiredValidation": {
