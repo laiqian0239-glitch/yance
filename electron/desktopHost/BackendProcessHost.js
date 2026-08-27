@@ -1015,7 +1015,7 @@ class BackendProcessHost {
         vaultEpoch: credentialFrame.vaultEpoch, hydrationGeneration: credentialFrame.generation, fd6PipeInstanceId
       });
       attempt.ownerContext = ownerContext;
-      this.ownerRegistry.update({ state: 'STARTING', ownerSession: ownerContext, reasonCode: 'CREDENTIAL_OWNER_SESSION_CREATED' });
+      await this.ownerRegistry.updateAsync({ state: 'STARTING', ownerSession: ownerContext, reasonCode: 'CREDENTIAL_OWNER_SESSION_CREATED' });
       this.orphanOwnerRecord = this.ownerRegistry.snapshot();
       const requireHandshake = options.credentialHandshakeRequired === true;
       const shouldDeliverCredentialSnapshot = requireHandshake || options.credentialSnapshotRequired === true || options.credentialFrameRequired === true;
@@ -1207,7 +1207,7 @@ class BackendProcessHost {
         readyCredentialMetadata: readiness?.credentialMetadata ? Object.freeze({ ...readiness.credentialMetadata }) : null
       });
       this._assertStartStillValid(child, attempt, 'after-session-create');
-      this.ownerRegistry.update({ state: 'RUNNING', ownershipActive: true, trusted: false, ownerSession: ownerContext, reasonCode: 'BACKEND_READY_AWAITING_APPLICATION_VALIDATION' });
+      await this.ownerRegistry.updateAsync({ state: 'RUNNING', ownershipActive: true, trusted: false, ownerSession: ownerContext, reasonCode: 'BACKEND_READY_AWAITING_APPLICATION_VALIDATION' });
       this.orphanOwnerRecord = this.ownerRegistry.snapshot();
       this.rejectedOwner = null;
       this._transition(PROCESS_STATES.RUNNING, requireHandshake ? 'credential-hydrated-and-backend-ready' : 'startup-and-credential-frames-delivered', { backendPid: child.pid });
@@ -1295,7 +1295,7 @@ class BackendProcessHost {
           error.ownerRecoveryReasonCode = recoveryError.reasonCode || recoveryError.code || 'WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED';
         }
         if (recovery?.recovered === true && this.rejectedOwner) {
-          try { this.clearRejectedOwner({ force: false, observedExitedChild: child }); }
+          try { await this.clearRejectedOwner({ force: false, observedExitedChild: child }); }
           catch (recoveryError) {
             error.ownerRecoveryReasonCode = recoveryError.reasonCode || recoveryError.code || 'WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED';
           }
@@ -1335,7 +1335,7 @@ class BackendProcessHost {
     if (stopped?.stopped !== true || stopped?.exitConfirmed !== true) {
       throw startupFailure(stopped?.reasonCode || 'WP4_DESKTOP_REJECTED_OWNER_AUTOMATIC_RECOVERY_FAILED', 'The previous Yance backend owner could not be safely recovered automatically', { backendPid, stopped, automaticRecoveryAttempted: true });
     }
-    this.clearRejectedOwner({ force: false });
+    await this.clearRejectedOwner({ force: false });
     this.log('backend-owner-auto-recovery-complete', { backendPid, forced: stopped.forced === true, alreadyStopped: stopped.alreadyStopped === true });
     return { recovered: true, backendPid, forced: stopped.forced === true, alreadyStopped: stopped.alreadyStopped === true };
   }
@@ -1360,7 +1360,7 @@ class BackendProcessHost {
     const probe = await this.ownerRegistry.probeAsync(record);
     const backendPid = Number(record?.backendPid || 0);
     if (!probe.alive || probe.identityMatch === false) {
-      this.ownerRegistry.markExited({ reasonCode: probe.identityMatch === false ? 'OWNER_PID_REUSED' : 'OWNER_ALREADY_EXITED' });
+      await this.ownerRegistry.markExitedAsync({ reasonCode: probe.identityMatch === false ? 'OWNER_PID_REUSED' : 'OWNER_ALREADY_EXITED' });
       this.orphanOwnerRecord = this.ownerRegistry.snapshot();
       if (this.rejectedOwner) this.rejectedOwner = Object.freeze({ ...this.rejectedOwner, childStillLive: false, pidIdentityMatch: probe.identityMatch, exitedAtUtc: new Date().toISOString() });
       this._transition(PROCESS_STATES.STOPPED, probe.identityMatch === false ? 'orphan-owner-pid-reused' : 'orphan-owner-not-live', { backendPid });
@@ -1394,7 +1394,7 @@ class BackendProcessHost {
       exited = await waitDead(forceMs);
     }
     if (!exited) return { stopped: false, exitConfirmed: false, backendPid, reasonCode: 'WP4_DESKTOP_ORPHAN_OWNER_EXIT_NOT_CONFIRMED', state: this.state };
-    this.ownerRegistry.markExited({ reasonCode: 'ORPHAN_OWNER_EXIT_CONFIRMED', signalCode: forced ? 'SIGKILL' : 'SIGTERM' });
+    await this.ownerRegistry.markExitedAsync({ reasonCode: 'ORPHAN_OWNER_EXIT_CONFIRMED', signalCode: forced ? 'SIGKILL' : 'SIGTERM' });
     this.orphanOwnerRecord = this.ownerRegistry.snapshot();
     if (this.rejectedOwner) this.rejectedOwner = Object.freeze({ ...this.rejectedOwner, childStillLive: false, exitedAtUtc: new Date().toISOString(), signalCode: forced ? 'SIGKILL' : 'SIGTERM' });
     this._transition(PROCESS_STATES.STOPPED, 'orphan-owner-exit-confirmed', { backendPid, forced });
@@ -1455,7 +1455,7 @@ class BackendProcessHost {
     });
   }
 
-  acceptBackendOwner(context = {}) {
+  async acceptBackendOwner(context = {}) {
     if (this.rejectedOwner || this.ownerRegistryFailure) {
       throw startupFailure('WP4_DESKTOP_BACKEND_OWNER_ACCEPTANCE_BLOCKED', 'Rejected or registry-invalid backend owner cannot be accepted', { rejectedOwner: this.rejectedOwner, registryFailure: this.ownerRegistryFailure });
     }
@@ -1464,7 +1464,7 @@ class BackendProcessHost {
       throw startupFailure('WP4_DESKTOP_BACKEND_OWNER_ACCEPTANCE_STALE', 'Backend owner acceptance no longer matches the live child', { backendPid });
     }
     try {
-      const record = this.ownerRegistry.update({ state: 'RUNNING', ownershipActive: true, trusted: true, reasonCode: 'APPLICATION_RUNTIME_PROJECTION_ACCEPTED', ownerSession: this.session.ownerContext || null });
+      const record = await this.ownerRegistry.updateAsync({ state: 'RUNNING', ownershipActive: true, trusted: true, reasonCode: 'APPLICATION_RUNTIME_PROJECTION_ACCEPTED', ownerSession: this.session.ownerContext || null });
       this.orphanOwnerRecord = record;
       this.ownerRegistryFailure = null;
       return record;
@@ -1526,7 +1526,7 @@ class BackendProcessHost {
     return this.rejectedOwner;
   }
 
-  persistRejectedOwnerMarker(context = {}) {
+  async persistRejectedOwnerMarker(context = {}) {
     if (!this.rejectedOwner) {
       throw startupFailure('WP4_DESKTOP_REJECTED_OWNER_MARKER_MISSING', 'Rejected owner cannot be persisted before in-memory containment is established');
     }
@@ -1539,7 +1539,7 @@ class BackendProcessHost {
       closeFailures.push({ channel: 'OWNER_REGISTRY', message: this.ownerRegistryFailure.message || this.ownerRegistryFailure.reasonCode });
     } else {
       try {
-        this.ownerRegistry.markRejected({
+        await this.ownerRegistry.markRejectedAsync({
           reasonCode: String(context.reasonCode || this.rejectedOwner.reasonCode || 'WP4_DESKTOP_CREDENTIAL_REJECTED_OWNER'),
           ownerSession: context.ownerSession || this.session?.ownerContext || this.ownerRegistry.snapshot()?.ownerSession || null
         });
@@ -1560,7 +1560,7 @@ class BackendProcessHost {
     return this.rejectedOwner;
   }
 
-  clearRejectedOwner(options = {}) {
+  async clearRejectedOwner(options = {}) {
     if (!this.rejectedOwner) return false;
     if (this.ownerRegistryFailure && options.force !== true) {
       throw startupFailure('WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED', 'Rejected owner marker cannot be cleared while the durable owner registry is invalid or unavailable', { registryFailure: this.ownerRegistryFailure });
@@ -1593,7 +1593,7 @@ class BackendProcessHost {
       throw startupFailure('WP4_DESKTOP_REJECTED_OWNER_STILL_LIVE', 'Rejected owner marker cannot be cleared while its child remains live', { backendPid, probe });
     }
     try {
-      this.ownerRegistry.update({ state: 'RECOVERED', ownershipActive: false, trusted: false, reasonCode: probe.identityMatch === false ? 'OWNER_PID_REUSED_RECOVERED' : (observedExitMatchesOwner ? 'OWNER_EXIT_EVENT_RECOVERED' : 'OWNER_RECOVERY_COMPLETED'), recoveredAtUtc: new Date().toISOString() });
+      await this.ownerRegistry.updateAsync({ state: 'RECOVERED', ownershipActive: false, trusted: false, reasonCode: probe.identityMatch === false ? 'OWNER_PID_REUSED_RECOVERED' : (observedExitMatchesOwner ? 'OWNER_EXIT_EVENT_RECOVERED' : 'OWNER_RECOVERY_COMPLETED'), recoveredAtUtc: new Date().toISOString() });
       this.orphanOwnerRecord = this.ownerRegistry.snapshot();
       this.ownerRegistryFailure = null;
     } catch (cause) {

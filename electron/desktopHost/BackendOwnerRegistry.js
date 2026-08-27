@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 const properLockfile = require('proper-lockfile');
-const { atomicWriteJsonAsync, readFileTextAsync } = require('./asyncDurability');
+const { atomicWriteJsonAsync, mkdirAsync, readFileTextAsync } = require('./asyncDurability');
 
 const SCHEMA_VERSION = 1;
 const LIVE_STATES = new Set(['SPAWNED', 'STARTING', 'RUNNING', 'REJECTED', 'STOPPING']);
@@ -665,7 +665,7 @@ class BackendOwnerRegistry {
       throw error;
     }
 
-    this.fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    await mkdirAsync(path.dirname(this.file), this.fs);
     let releaseImpl = null;
     try {
       releaseImpl = await this.lockfile.lock(this.file, {
@@ -705,7 +705,7 @@ class BackendOwnerRegistry {
     }
 
     return Object.freeze({
-      register: context => {
+      register: async context => {
         if (!active) {
           const error = new Error('Backend startup admission is no longer active');
           error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_CLOSED';
@@ -716,7 +716,7 @@ class BackendOwnerRegistry {
           error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_ALREADY_REGISTERED';
           throw error;
         }
-        const result = this._write(this._registrationRecord(context));
+        const result = await this._writeAsync(this._registrationRecord(context));
         registered = true;
         return result;
       },
@@ -743,6 +743,11 @@ class BackendOwnerRegistry {
     return this._write({ ...this.record, ...clone(context), schemaVersion: SCHEMA_VERSION });
   }
 
+  async updateAsync(context = {}) {
+    if (!this.record) return this.register(context);
+    return this._writeAsync({ ...this.record, ...clone(context), schemaVersion: SCHEMA_VERSION });
+  }
+
   markRejected(context = {}) {
     return this.update({
       state: 'REJECTED',
@@ -754,8 +759,31 @@ class BackendOwnerRegistry {
     });
   }
 
+  async markRejectedAsync(context = {}) {
+    return this.updateAsync({
+      state: 'REJECTED',
+      ownershipActive: true,
+      trusted: false,
+      reasonCode: String(context.reasonCode || this.record?.reasonCode || 'WP4_DESKTOP_CREDENTIAL_REJECTED_OWNER'),
+      ownerSession: clone(context.ownerSession || this.record?.ownerSession || null),
+      rejectedAtUtc: this.clock()
+    });
+  }
+
   markExited(context = {}) {
     return this.update({
+      state: 'EXITED',
+      ownershipActive: false,
+      trusted: false,
+      reasonCode: String(context.reasonCode || this.record?.reasonCode || ''),
+      exitCode: context.exitCode ?? null,
+      signalCode: context.signalCode || null,
+      exitedAtUtc: this.clock()
+    });
+  }
+
+  async markExitedAsync(context = {}) {
+    return this.updateAsync({
       state: 'EXITED',
       ownershipActive: false,
       trusted: false,

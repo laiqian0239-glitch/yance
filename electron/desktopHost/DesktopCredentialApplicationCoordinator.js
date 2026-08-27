@@ -466,7 +466,7 @@ class DesktopCredentialApplicationCoordinator {
     // discovery record, sentinel and lifecycle journal perform fallible writes.
     this._containmentCrashPoint('after-enforcement-before-owner-record', { backendPid: this.containment.backendPid, containmentId });
     try {
-      marker = this.desktopHost.persistRejectedBackendOwner?.({
+      marker = await this.desktopHost.persistRejectedBackendOwner?.({
         backendPid: this.containment.backendPid,
         reasonCode: rejectionReasonCode,
         ownerSession: this.containment.ownerSession
@@ -982,7 +982,7 @@ class DesktopCredentialApplicationCoordinator {
       }
     }
 
-    this.desktopHost.clearRejectedBackendOwner?.({ force: false });
+    await this.desktopHost.clearRejectedBackendOwner?.({ force: false });
     const backendAfterMarkerClear = this._backend();
     if (backendAfterMarkerClear.rejectedOwner || backendAfterMarkerClear.ownerTrusted === false || backendAfterMarkerClear.ownerRegistryFailure) {
       throw makeError(APPLICATION_CONTAINMENT_RELEASE_BLOCKED, 'Rejected owner marker was not safely cleared', { backend: backendAfterMarkerClear });
@@ -1382,7 +1382,7 @@ class DesktopCredentialApplicationCoordinator {
         throw makeError(APPLICATION_READY_MISMATCH, 'Backend runtime projection validator is unavailable', { failures: ['runtime-projection-validator-unavailable'] });
       }
       runtimeProjection = this._assertRuntimeProjection(await this.validateRuntimeProjection({ result, ready, applicationLeaseToken: token }), ready);
-      ownerAcceptance = this.desktopHost.acceptBackendOwner?.({ backendPid: ready.backend.backendPid, generation: ready.authority.generation, authorityHeadDigest: ready.authority.authorityHeadDigest }) || null;
+      ownerAcceptance = await this.desktopHost.acceptBackendOwner?.({ backendPid: ready.backend.backendPid, generation: ready.authority.generation, authorityHeadDigest: ready.authority.authorityHeadDigest }) || null;
     } catch (cause) {
       await this._cleanupRejectedNewOwner(token, cause, options);
       throw cause;
@@ -1415,7 +1415,7 @@ class DesktopCredentialApplicationCoordinator {
               throw makeError(APPLICATION_READY_MISMATCH, 'Backend runtime projection validator is unavailable', { failures: ['runtime-projection-validator-unavailable'] });
             }
             runtimeProjection = this._assertRuntimeProjection(await this.validateRuntimeProjection({ alreadyReady: true, ready, applicationLeaseToken: token }), ready);
-            this.desktopHost.acceptBackendOwner?.({ backendPid: ready.backend.backendPid, generation: ready.authority.generation, authorityHeadDigest: ready.authority.authorityHeadDigest });
+            await this.desktopHost.acceptBackendOwner?.({ backendPid: ready.backend.backendPid, generation: ready.authority.generation, authorityHeadDigest: ready.authority.authorityHeadDigest });
           } catch (cause) {
             await this._cleanupRejectedNewOwner(token, cause, options);
             throw cause;
