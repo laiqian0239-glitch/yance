@@ -118,6 +118,7 @@ jobs:
           if ($results[0].lockSha256 -ne $results[1].lockSha256 -or $results[0].packageSha256 -ne $results[1].packageSha256) {
             throw "reproducibility mismatch: first=$($results[0] | ConvertTo-Json -Compress) second=$($results[1] | ConvertTo-Json -Compress)"
           }
+
           Remove-Item -Recurse -Force -ErrorAction SilentlyContinue services/matrix/.runtime
           if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'Task 9 validation must leave the candidate working tree clean' }
           $candidateTree = (git rev-parse 'HEAD^{tree}').Trim()
@@ -199,7 +200,7 @@ jobs:
           if (-not $archive -or [string]$archive.fileName -ne 'electron-v43.4.1-win32-x64.zip') { throw "missing exact win32-x64 Electron Release trust record: $trustPath" }
           if ([string]$archive.sourceRepository -ne 'electron/electron') { throw "unexpected Electron source repository: $($archive.sourceRepository)" }
           if ([string]$archive.releaseTag -ne 'v43.4.1') { throw "unexpected Electron release tag: $($archive.releaseTag)" }
-          if ([int64]$archive.assetId -ne 520075991) { throw "unexpected Electron Release asset id: $($archive.assetId)" }
+          if ([int64]$archive.assetId -ne 520075991) { throw "unexpected Electron release asset id: $($archive.assetId)" }
           if ([string]$archive.downloadUrl -ne $expectedUrl) { throw "unexpected Electron Release URL: $($archive.downloadUrl)" }
           if ([System.IO.Path]::GetFileName([string]$archive.fileName) -ne [string]$archive.fileName) { throw 'Electron trust fileName must be a basename' }
 
