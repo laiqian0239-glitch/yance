@@ -487,13 +487,21 @@ test('Product Final preserves packaged startup diagnostics after a failing recei
 
   const postLaunch = materializedBlock.slice(launchStart + launchMarker.length, normalUploadStart);
   const pinnedUpload = /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/gu;
-  const diagnosticUploads = postLaunch.match(pinnedUpload) || [];
-  assert.equal(diagnosticUploads.length, 1, 'causal RED: Product Final must add exactly one pinned diagnostic upload after the receipt-bound launch so startup logs survive launch failure');
+  const startupCapsuleUploadMarker = '      - name: Upload same-build startup capsule';
+  const diagnosticUploadMarker = '      - name: Upload packaged startup diagnostics after Product Final RED';
+  const startupCapsuleUploadStart = postLaunch.indexOf(startupCapsuleUploadMarker);
+  const diagnosticUploadStart = postLaunch.indexOf(diagnosticUploadMarker);
+  assert.ok(startupCapsuleUploadStart >= 0 && diagnosticUploadStart > startupCapsuleUploadStart, 'startup capsule and diagnostic uploads must remain distinct and ordered after packaged launch');
 
-  const diagnosticUploadIndex = postLaunch.indexOf('actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02');
-  const diagnosticStepStart = postLaunch.lastIndexOf('      - name:', diagnosticUploadIndex);
-  assert.ok(diagnosticStepStart >= 0, 'diagnostic upload must be an independent post-launch step');
-  const diagnosticStep = postLaunch.slice(diagnosticStepStart);
+  const startupCapsuleStep = postLaunch.slice(startupCapsuleUploadStart, diagnosticUploadStart);
+  const diagnosticStep = postLaunch.slice(diagnosticUploadStart);
+  assert.equal((startupCapsuleStep.match(pinnedUpload) || []).length, 1, 'same-build startup capsule must have exactly one pinned artifact upload');
+  assert.equal((diagnosticStep.match(pinnedUpload) || []).length, 1, 'Product Final must keep exactly one pinned diagnostics artifact after the startup capsule');
+
+  assert.match(startupCapsuleStep, /Product-Experience-Startup-Capsule-\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\}\}/u);
+  assert.match(startupCapsuleStep, /\$\{\{\s*runner\.temp\s*\}\}[\\/]product-experience-startup-capsule[\\/]startup-capsule[\\/]\*\*/u);
+  assert.match(startupCapsuleStep, /if-no-files-found:\s*error/u, 'startup capsule upload must fail closed when its payload is missing');
+  assert.doesNotMatch(startupCapsuleStep, /if:\s*\$\{\{\s*always\(\)\s*\}\}/u, 'startup capsule is a validated evidence artifact, not a failure-only diagnostic upload');
 
   assert.match(diagnosticStep, /if:\s*\$\{\{\s*always\(\)\s*\}\}/u, 'diagnostic upload must execute after a failing packaged launch');
   assert.match(diagnosticStep, /uses:\s*actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/u);
