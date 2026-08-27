@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-SUCCESSOR-V4-ROUTE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen Final RC/UAT PR #890 exact head 10d5eb2e20168fb0e1693befa161658dc188668f completed the same-build packaged application materialization and real packaged launch, then Product Final run 33052777045 / Windows job 98452076458 failed only because the startup capsule could not see the canonical backend-boot-started proof in production-diagnostics.jsonl. That causal verifier repair has now landed on trusted main through ordinary-merged #894 at 061d1101d1eb361d3f533077b9a01463b88c5d8a, whose exact head ff6603e7fba9072a8ba7921cac7f4d3fff11541c passed Stage, Layered CI, ACV2, Model Brain Windows, and the generic forward-continuation policy. #890 remains frozen evidence and its branch cannot be moved or rerun. The next clean Final RC therefore requires release/v21-final-rc-uat-p0-successor-v4, but Product Final currently admits exact branches only through successor-v3. This prerequisite changes only the existing Product Final exact-equality allowlists and their layered contract. No Product Final job body, startup-capsule implementation, application build, runtime, dependency, release, publish, ledger, or frozen RC mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "061d1101d1eb361d3f533077b9a01463b88c5d8a",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "061d1101d1eb361d3f533077b9a01463b88c5d8a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-successor-v4-route-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-successor-v4-route-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "33457ee8b056b8ad5934e6897c4f8a217f9c3f2b77dd223ba88f8fb78aa706f2",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-successor-v4-route-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0fe120e1cd4c2692f06a11c3becc1d5db4324efcbaf59f2cc62154b008fd9d6e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "1248eca9fee4a07fc2a0c5dd816c01de973d57ef003a3996926ca22ee3fb8d44",
+      "productionCodeChanged": false
+    }
+  },
+  "frozenPredecessorEvidence": {
+    "pullRequest": 890,
+    "branch": "release/v21-final-rc-uat-p0-successor-v3",
+    "head": "10d5eb2e20168fb0e1693befa161658dc188668f",
+    "productFinalRun": 33052777045,
+    "productFinalWindowsJob": 98452076458,
+    "packagedApplicationBuild": "PASS",
+    "realPackagedLaunch": "PASS",
+    "startupCapsule": "FAIL",
+    "failureReason": "STARTUP_CAPSULE_SERVER_IMPORT_PROOF_MISSING",
+    "rootCause": "The canonical backend-boot-started proof existed in <dataRoot>/logs/production-diagnostics.jsonl but the startup verifier did not read that trace. #894 landed the focused verifier repair on trusted main without changing the producer or creating a second application build.",
+    "repairMerge": "061d1101d1eb361d3f533077b9a01463b88c5d8a",
+    "repairExactHead": "ff6603e7fba9072a8ba7921cac7f4d3fff11541c",
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true
+  },
+  "successorRouteContract": {
+    "nextRcBranch": "release/v21-final-rc-uat-p0-successor-v4",
+    "workflow": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "workflowTriggerMustRemain": "pull_request only",
+    "sameRepositoryHeadRequired": true,
+    "exactBranchEqualityRequired": true,
+    "prefixWildcardContainsOrStartsWithForbidden": true,
+    "historicalBranchAdmissionsMustRemainUnchanged": true,
+    "jobsThatMustAdmitSuccessorBranch": [
+      "frozen-element-reproducibility",
+      "materialized-desktop-uat",
+      "materialized-matrix-uat"
+    ],
+    "startupCapsuleRouteAndImplementationMustRemainByteForByteUnchanged": true,
+    "sameBuildProjectionMustRemainUnchanged": true,
+    "secondApplicationBuildForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_EXACT_BRANCH_ROUTE_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product Final exact-branch admission seam",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml and tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The workflow already implements exact same-repository pull-request admission. The only missing capability is one additional explicit successor-v4 equality in the existing three jobs and the matching layered set assertion."
+      },
+      {
+        "name": "Existing Product Final materialization surface",
+        "source": "frozen-element-reproducibility, materialized-desktop-uat, and materialized-matrix-uat jobs",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing jobs already perform the required same-build materialization and startup-capsule verification. Their bodies must remain byte-for-byte unchanged."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel Product Final workflow, router, wrapper, prefix wildcard, contains/startsWith admission, or alternate execution path.",
+      "Do not mutate or rerun frozen #890.",
+      "Do not reimplement the startup-capsule repair already landed by #894.",
+      "Do not create a second application build."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "failureFirst": {
+    "required": true,
+    "firstImplementationHeadMustChangeOnly": [
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "expectedRed": [
+      "The exact successor-v4 RC branch is absent from all three Product Final job allowlists."
+    ],
+    "unknownBlockersMustEqual": 0,
+    "workflowFixForbiddenBeforeCleanCausalRed": true,
+    "redMustRemainImmutableEvidence": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "#890 frozen successor-v3 Final RC",
+        "classification": "FROZEN_CAUSAL_EVIDENCE",
+        "evidence": "Product Final run 33052777045 / Windows job 98452076458 passed packaged build and real launch, then failed only startup-capsule server-import proof.",
+        "requiredClosure": "Do not mutate or rerun #890; never reuse its failed artifact or receipts as a new RC."
+      },
+      {
+        "boundary": "startup-capsule server-import proof",
+        "classification": "CLOSED_ON_TRUSTED_MAIN",
+        "evidence": "#894 ordinary merge 061d1101d1eb361d3f533077b9a01463b88c5d8a carries the canonical production-diagnostics verifier input; exact head ff6603e7fba9072a8ba7921cac7f4d3fff11541c passed Stage, Layered, ACV2, Model Brain Windows and mandatory WP0.",
+        "requiredClosure": "Preserve #894 bytes; no further startup-capsule semantics in this route batch."
+      },
+      {
+        "boundary": "Product Final successor-v4 admission",
+        "classification": "PREREQUISITE_REQUIRED",
+        "evidence": "Current workflow and layered exact allowlist end at release/v21-final-rc-uat-p0-successor-v3.",
+        "requiredClosure": "Failure-first prove the missing exact successor-v4 equality, then add successor-v4 to all three existing Product Final job allowlists only."
+      },
+      {
+        "boundary": "next clean Final RC/UAT",
+        "classification": "BLOCKED_BY_ROUTE_ONLY",
+        "evidence": "The causal startup verifier repair is on trusted main, but the next clean branch cannot execute Product Final until exact successor-v4 route admission lands.",
+        "requiredClosure": "After ordinary route merge, create a fresh marker-only successor-v4 RC authorization and candidate from then-current trusted main."
+      }
+    ],
+    "negativeProofs": [
+      "No implementationBranchPolicy or generic routing evaluator modification.",
+      "No Product Final job-body or startup-capsule implementation modification.",
+      "No product/runtime/dependency/package/lockfile/database/ledger/release/publish mutation.",
+      "No second application build.",
+      "No squash, rebase, amend, force-push, cherry-pick or history rewrite."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "firstExactHead": "Fresh causal RED only for missing release/v21-final-rc-uat-p0-successor-v4 Product Final exact-equality admission; unknownBlockers=0.",
+    "greenExactHead": "After the RED is frozen, change only the existing Product Final workflow to add the same successor-v4 exact equality to all three existing jobs; do not alter job bodies or historical admissions.",
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "Model Brain Windows when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    },
+    "unknownBlockers": 0
+  },
+  "downstreamAfterOrdinaryMerge": {
+    "authorizationRequired": true,
+    "nextAuthorization": "Create a fresh marker-only Final RC/UAT authorization for release/v21-final-rc-uat-p0-successor-v4 from then-current trusted main. Do not reuse #890 artifacts, receipts, exact head, or branch ref.",
+    "finalCandidateMustRemainFailClosed": true,
+    "fullRcDownloadForbiddenUntilFreshExactHeadProductFinalAndStartupCapsuleGreen": true
+  },
+  "prohibitions": {
+    "frozen890Mutation": true,
+    "frozen890Rerun": true,
+    "startupCapsuleReimplementation": true,
+    "productFinalJobBodyChange": true,
+    "secondApplicationBuild": true,
+    "liveAppDataReadOrMutation": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "runtimeProductMutation": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "releaseLedgerClosure": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
