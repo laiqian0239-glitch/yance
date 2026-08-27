@@ -31,6 +31,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-system-settings-reachability-p1-successor-v2-amendment-1'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-electron-supported-runtime-p0-production-amendment-5'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v2'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
     'product/v21-product-experience-bilingual-search-translation-task-ux-p0',
@@ -43,7 +44,8 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'fix/v21-product-experience-windows-uat-startup-p0',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-2',
-    'release/v21-final-rc-uat-p0'
+    'release/v21-final-rc-uat-p0',
+    'release/v21-final-rc-uat-p0-successor-v2'
   ].sort());
   assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
   assert.match(source, /runs-on:\s*windows-latest/u);
