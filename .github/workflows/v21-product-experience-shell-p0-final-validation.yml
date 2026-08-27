@@ -26,7 +26,8 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-5' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v4'
       )
     runs-on: windows-latest
     env:
@@ -137,7 +138,8 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-5' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v4'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -237,7 +239,6 @@ jobs:
           if ($expectedIntegrity -ne [string]$trust.npmPackageIntegrity) { throw 'Electron lock/trust npm integrity mismatch' }
           if ($expectedIntegrity -notmatch '^sha512-[A-Za-z0-9+/]+={0,2}$') { throw 'Electron npm package integrity must be canonical sha512 SRI' }
           if (Test-Path -LiteralPath 'node_modules\electron') { throw 'repository-root Electron installation is forbidden for Product Final' }
-
           $packRoot = Join-Path $env:RUNNER_TEMP 'product-uat-electron-npm-pack'
           $extractRoot = Join-Path $env:RUNNER_TEMP 'product-uat-electron-npm-package'
           Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $packRoot, $extractRoot
@@ -656,7 +657,8 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-electron-supported-runtime-p0-production-amendment-5' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v2' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v3' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v4'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120
