@@ -86,6 +86,28 @@
     "finalDeltaUnknownBlockersMustEqual": 0,
     "failureDisposition": "Any Final Delta or packaged/UAT P0/P1 freezes the exact RC head and returns to a separately authorized failure-first causal prerequisite."
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_FINAL_RC_UAT_VALIDATION_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing GitHub Actions Product Final workflow plus marker-only Final RC/UAT branch seam",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml and docs/uat/V21_FINAL_RC_UAT_P0.md",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "This work package only refreshes validation authority onto fresh main and reuses the already-governed Product Final and UAT marker seams; no new runtime, packaging framework, dependency, runner, or general-purpose infrastructure is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel RC workflow or packaging framework.",
+      "Do not change Product Final branch routing to bypass the exact release/v21-final-rc-uat-p0 identity.",
+      "Do not reuse stale 04c0d5d5 artifacts or receipts."
+    ],
+    "thinYanceAdapterOnly": true
+  },
   "requiredValidation": {
     "exactHeadCi": [
       "Stage",
