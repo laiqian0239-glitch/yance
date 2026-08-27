@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-28T05:12:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BOOT-CRITICAL-ASYNC-DURABILITY-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen PR #910 exact head 1918d9ae18edf20ea585f27948983c1c6ffacd32 Product Final 33090872542 passed the one full packaged build, real packaged/post-install launch, backend ready, Element reproducibility and Matrix UAT, then failed only the same-build startup capsule with STARTUP_CAPSULE_POST_INSTALL_TIMEOUT after runtime-identity-verified. Checkpoint 0b491b269e7d577278d59de2791bf7ac7734fbcc is disaster-recovery/content evidence only, not implementation authority. Fresh source audit enumerates one same-root marker-to-fork/startup-recovery closure: async owner registration, truly async native liveness, awaited rejected/orphan recovery, explicit child-exit recovery promise, restored/orphan containment liveness, and fail-closed async directory fsync. Authorize one Fast Closure V2 tests-only causal RED and one cohesive production batch. No workflow, route, dependency, package, lockfile, database, release, publish or ledger mutation.",
+  "base": {
+    "branch": "main",
+    "commit": "d5a5e8ff1f41352a2f400ed37138ea14ef820484",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "d5a5e8ff1f41352a2f400ed37138ea14ef820484",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-boot-critical-async-durability-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-boot-critical-async-durability-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "84a618b5cbe998715a578278da708cb052e71c2499468266101964f58a07150a",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-boot-critical-async-durability-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "backend/tests/f25WindowsUatRepairBatch11.test.js",
+      "electron/credentialVault.js",
+      "electron/credentialVaultRecovery.js",
+      "electron/desktopHost/BackendOwnerRegistry.js",
+      "electron/desktopHost/BackendProcessHost.js",
+      "electron/desktopHost/CredentialAuthorityLifecycleCoordinator.js",
+      "electron/desktopHost/CredentialCustodyHost.js",
+      "electron/desktopHost/CredentialVaultHost.js",
+      "electron/desktopHost/DesktopCredentialApplicationCoordinator.js",
+      "electron/desktopHost/asyncDurability.js",
+      "electron/main.js",
+      "tests/wp0/v21-boot-critical-path-event-loop-p0.test.js",
+      "tests/wp4/credential-authority-history.test.js",
+      "tests/wp4/credential-authority-lifecycle-production.test.js",
+      "tests/wp4/credential-concurrent-mutation.test.js",
+      "tests/wp4/credential-custody-transaction.test.js",
+      "tests/wp4/credential-custody-vault-failure.test.js",
+      "tests/wp4/credential-durable-idempotency.test.js",
+      "tests/wp4/credential-generation-rollback-denied.test.js",
+      "tests/wp4/credential-illegal-vault-epoch-change-denied.test.js",
+      "tests/wp4/credential-indeterminate-commit-close.test.js",
+      "tests/wp4/credential-prepare-result-unknown.test.js",
+      "tests/wp4/credential-recovery-ambiguous.test.js",
+      "tests/wp4/credential-reset-authority.test.js",
+      "tests/wp4/credential-strict-hydration.test.js",
+      "tests/wp4/credential-terminal-journal-recovery.test.js",
+      "tests/wp4/credential-vault-atomicity.test.js",
+      "tests/wp7/backend-launch-contract-preflight.test.js",
+      "tools/wp4/backend-owner-exit-probe.js",
+      "tools/wp4/credential-authority-closure-probes.js",
+      "tools/wp4/credential-authority-lifecycle-child.js",
+      "tools/wp4/credential-authority-lifecycle-matrix.js",
+      "tools/wp4/credential-concurrency-probes.js",
+      "tools/wp4/credential-crash-child.js",
+      "tools/wp4/credential-crash-matrix.js",
+      "tools/wp4/credential-fourth-amendment-probes.js",
+      "tools/wp4/credential-indeterminate-probes.js",
+      "tools/wp4/credential-secure-bridge-failure-probe.js",
+      "tools/wp4/production-credential-runtime.js",
+      "tools/wp4/transaction-failure-probes.js"
+    ],
+    "approvedChangedFileCount": 40,
+    "approvedChangedFileSetSha256": "9459718d00a0f0e0aaf99008107d521702c471116716beb227602d3c9a1b8d32",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-boot-critical-path-event-loop-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "86985756fef613266a4fd3f5b31501b8a9d3a5cd5544027d401c7ff2a1c0eb3c",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailureClass": [
+        "runtime-identity-verified to backend fork/startup recovery still exposes unapproved synchronous OS liveness or durable I/O on trusted main.",
+        "Delayed process-query/durability work must not block a setImmediate heartbeat.",
+        "Startup frame delivery must occur only after admission-held fork, identity capture, durable SPAWNED write and admission release.",
+        "Child-exit durable owner recovery/admission release must be represented by an explicit observed Promise, not fire-and-forget."
+      ]
+    },
+    "diagnosticWindow": {
+      "productionForbiddenUntilClosureAudit": true,
+      "additionalTestsOnlyDiagnosticsAllowed": true,
+      "eachDiagnosticRequiresFreshExactHeadCausalRed": true,
+      "diagnosticPathsMustRemainWithinFailureFirstAllowedChangedPaths": true,
+      "firstProductionCommitMustBindLatestDiagnosticRed": true,
+      "fixedPostRedOrdinalForbidden": true
+    }
+  },
+  "frozenPredecessorEvidence": {
+    "pullRequest": 910,
+    "head": "1918d9ae18edf20ea585f27948983c1c6ffacd32",
+    "productFinalRun": 33090872542,
+    "diagnosticsArtifactId": 9654907032,
+    "startupCapsule": "FAIL",
+    "failureReason": "STARTUP_CAPSULE_POST_INSTALL_TIMEOUT",
+    "lastFreshCapsuleCheckpoint": "runtime-identity-verified",
+    "mustRemainFrozen": true,
+    "rerunForbidden": true,
+    "mergeForbidden": true
+  },
+  "checkpointContentDonor": {
+    "branch": "checkpoint/v21-boot-critical-async-20260828",
+    "exactHead": "0b491b269e7d577278d59de2791bf7ac7734fbcc",
+    "purpose": "DISASTER_RECOVERY_AND_CONTENT_EQUIVALENCE_ONLY",
+    "productionCandidate": false,
+    "implementationAncestryAllowed": false,
+    "cherryPickAllowed": false,
+    "historyRewriteAllowed": false,
+    "unknownBlockers": 0
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rootImplementation": [
+      "BackendOwnerRegistry true registerAsync and async-only updateAsync fallback",
+      "BackendOwnerRegistry true async production liveness",
+      "BackendProcessHost await PID-reuse durable clear",
+      "BackendProcessHost async orphan waitDead and clearRejectedOwner fallback",
+      "BackendProcessHost composite ownerExitRecoveryByChild promise for credential recovery, markExitedAsync and pre-claim admission release",
+      "BackendProcessHost immediate containment uses exact owned-child memory state only; restored/orphan liveness deferred async",
+      "DesktopCredentialApplicationCoordinator async restored/orphan containment liveness and awaited cleanup",
+      "asyncDurability non-tolerated directory fsync errors fail closed",
+      "guard admission lock -> physical fork -> identity -> durable SPAWNED -> admission release -> startup frame",
+      "guard desktopHostedEntry cannot activate runtime/server before startup frame"
+    ],
+    "preserve": [
+      "Checkpoint async credential/vault/caller propagation remains content evidence and must be reproduced without checkpoint ancestry.",
+      "Prior GREEN is inherited unless a covered production path changes; broad credential suite must not be rerun."
+    ],
+    "negativeProof": [
+      "Pre-marker DesktopHost construction/sync compatibility helpers are out of marker-to-fork scope unless a production reachability edge is proven.",
+      "No timeout inflation, supervisor redesign, fire-and-forget durable mutation, synchronous native liveness, workflow or release mutation."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_NODE_ASYNC_PROCESS_APIS_PROPER_LOCKFILE_ASYNC_API_AND_EXISTING_DURABILITY_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Node.js asynchronous child_process and fs APIs",
+        "source": "node:child_process and node:fs/promises already used by the repository",
+        "license": "Node.js project license / runtime already trusted by repository",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Bounded async process queries and durability can use Node core APIs without adding a scheduler, worker framework, or dependency."
+      },
+      {
+        "name": "proper-lockfile asynchronous lock API",
+        "source": "existing repository dependency proper-lockfile",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Backend owner startup admission already uses the dependency; the async lock API preserves cross-process exclusion without synchronous event-loop blocking."
+      },
+      {
+        "name": "Existing Yance async durability and owner-recovery seams",
+        "source": "electron/desktopHost/asyncDurability.js, BackendOwnerRegistry.js, BackendProcessHost.js and DesktopCredentialApplicationCoordinator.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repair is propagation and fail-closed completion inside existing authority seams rather than a new process supervisor or durability subsystem."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second process supervisor, worker framework, durability subsystem, lock implementation, or liveness authority.",
+      "Do not inflate startup-capsule timeouts or bypass owner/durability checks.",
+      "Do not rerun frozen #910 or broad credential suites whose covered paths remain unchanged.",
+      "Do not mutate workflows, routing, dependencies, release/publish/ledger state, or create a second application build."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "failureFirstFocused": [
+      "node --test --test-concurrency=1 tests/wp0/v21-boot-critical-path-event-loop-p0.test.js"
+    ],
+    "focusedAfterProduction": [
+      "node --test --test-concurrency=1 tests/wp0/v21-boot-critical-path-event-loop-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-backend-startup-admission-release-closure-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp4/credential-vault-atomicity.test.js",
+      "node --test --test-concurrency=1 tests/wp7/backend-launch-contract-preflight.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2",
+      "WP-A when routed",
+      "WP-B when routed",
+      "Model Brain Windows when routed",
+      "Product Final only on later fresh RC candidate route"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "ledgerAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
