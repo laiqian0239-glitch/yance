@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-27T20:32:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-STARTUP-CAPSULE-NATIVE-GOVERNANCE-EVENT-LOOP-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen Final RC/UAT PR #904 exact head 7e46cbcf28bc372ac512360b9161aa8e4cf4192a Product Final run 33072250632 passed frozen Element reproducibility, matrix UAT, the single full packaged application build, and the real packaged post-install launch, then Windows job 98517215926 failed only in the same-build startup capsule with STARTUP_CAPSULE_POST_INSTALL_TIMEOUT. Fresh preserved capsule logs prove the disposable child reached runtime-identity-verified under the exact fixture YANCE_DATA_DIR and then stopped before backend launch. Exact-tree analysis of the boot-reachable synchronous path from runtime-identity-verified to the first await proves the only external synchronous wait is electron/m2/nativeBinaryGovernance.js child_process.spawnSync() invoked by governRuntimeNativeBinariesBootCheck() from electron/main.js. Authorize one failure-first WP0 contract and the two existing production paths to replace that boot-time synchronous child wait with a bounded nonblocking probe while preserving governance classification and fail-open semantics. No workflow, dependency, backend, receipt, capsule-helper, route, release-candidate, or second-build mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "73598b434f1e4647be483d4f687f7704c2ac3db8",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "73598b434f1e4647be483d4f687f7704c2ac3db8",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-startup-capsule-native-governance-event-loop-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-startup-capsule-native-governance-event-loop-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "64825d33184b01a5f51b09f29fa18f95bc69081c7bfbb8aa23923106d24a6679",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-startup-capsule-native-governance-event-loop-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "electron/m2/nativeBinaryGovernance.js",
+      "electron/main.js",
+      "tests/wp0/v21-native-binary-governance-event-loop-p0.test.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "832d6762872a284d63d0502262c91ead0050321749e7fcdd4fcec89ebd7a0823",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-native-binary-governance-event-loop-p0.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "cf2a65bfea4b8f4c005ba5e2bb857a444e1996885a80d0e296f55df33d0040e0",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ],
+      "expectedFailureClass": [
+        "Electron app-ready boot must not synchronously wait for a runtime-node governance child process after runtime-identity-verified.",
+        "A pending injected governance probe must leave the event loop live enough for a setImmediate heartbeat while preserving a bounded timeout/abort contract.",
+        "Boot-reachable native-governance production code must not use spawnSync, execSync, execFileSync, Atomics.wait, or an equivalent synchronous child wait."
+      ]
+    }
+  },
+  "frozenPredecessorEvidence": {
+    "pullRequest": 904,
+    "branch": "release/v21-final-rc-uat-p0-successor-v5",
+    "head": "7e46cbcf28bc372ac512360b9161aa8e4cf4192a",
+    "productFinalRun": 33072250632,
+    "productFinalWindowsJob": 98517215926,
+    "packagedApplicationBuild": "PASS",
+    "realPackagedLaunch": "PASS",
+    "frozenElementReproducibility": "PASS",
+    "materializedMatrixUat": "PASS",
+    "startupCapsule": "FAIL",
+    "failureReason": "STARTUP_CAPSULE_POST_INSTALL_TIMEOUT",
+    "lastFreshCapsuleCheckpoint": "runtime-identity-verified",
+    "rootCause": "After runtime-identity-verified, electron/main.js synchronously calls governRuntimeNativeBinariesBootCheck(). In the boot-reachable path before the first await, electron/m2/nativeBinaryGovernance.js reaches child_process.spawnSync() for bundled node.exe. That is the only external synchronous wait in the exact-tree path and blocks the Electron event loop. The capsule never reaches backend-launch, backend-node-runtime-preflight-pass, backend-process-fork-dispatch, or backend-boot-started.",
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true,
+    "mergeForbidden": true
+  },
+  "repairContract": {
+    "mainPath": "electron/main.js",
+    "nativeGovernancePath": "electron/m2/nativeBinaryGovernance.js",
+    "testPath": "tests/wp0/v21-native-binary-governance-event-loop-p0.test.js",
+    "mustReplaceBootReachableSynchronousChildWait": true,
+    "nonblockingChildApiRequired": true,
+    "boundedTimeoutOrAbortRequired": true,
+    "diagnosticOnlyFailOpenSemanticsMustRemain": true,
+    "governanceClassificationMustRemain": true,
+    "backendRuntimeModificationForbidden": true,
+    "startupCapsuleHelperModificationForbidden": true,
+    "workflowModificationForbidden": true,
+    "secondApplicationBuildForbidden": true,
+    "receiptSemanticsMustRemainUnchanged": true
+  },
+  "causalProof": {
+    "checkpoint": "runtime-identity-verified",
+    "exactTreeHead": "7e46cbcf28bc372ac512360b9161aa8e4cf4192a",
+    "callChain": [
+      "electron/main.js releaseManifestHost.verify()",
+      "electron/main.js desktopLogSync('runtime-identity-verified')",
+      "electron/main.js governRuntimeNativeBinariesBootCheck()",
+      "electron/m2/nativeBinaryGovernance.js governRuntimeNodeNativeBinaries()",
+      "electron/m2/nativeBinaryGovernance.js probeRuntimeNode()",
+      "electron/m2/nativeBinaryGovernance.js spawnNodeProbe()",
+      "node:child_process.spawnSync(bundled node.exe)"
+    ],
+    "firstAwaitAfterCheckpoint": "electron/main.js recoverStartupContainment()",
+    "otherDirectPreAwaitCallsClassified": "ApiV2RuntimeClient constructor, RuntimeProjectionCoordinator constructor, DesktopCredentialApplicationCoordinator construction, coordinator assignment and release identity verification contain no external synchronous wait loop required to explain the frozen stop.",
+    "laterSyncProbeExcluded": "BackendProcessHost node --version spawnSync occurs only after backend-launch and has a 5s timeout; frozen capsule never reached backend-launch.",
+    "unknownBlockers": 0
+  },
+  "ossFit": {
+    "decision": "REUSE_NODE_CHILD_PROCESS_ASYNC_API_AND_EXISTING_NATIVE_GOVERNANCE_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Node.js child_process spawn/execFile async API",
+        "source": "node:child_process",
+        "license": "Node.js project license / runtime already trusted by repository",
+        "adoptionMode": "standard-library",
+        "fit": "FIT",
+        "reason": "The existing governance probe only needs to execute bundled node.exe and capture bounded stdout/stderr. Node core already supplies nonblocking child APIs and AbortSignal/timeout composition; no new dependency or scheduler is needed."
+      },
+      {
+        "name": "Existing Yance native-binary governance classifier",
+        "source": "electron/m2/nativeBinaryGovernance.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing ACCEPT/REBUILD_REQUIRED/ROLLBACK_REQUIRED classification remains authoritative; only the boot-time execution primitive must become nonblocking."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second native-governance subsystem or worker framework.",
+      "Do not skip or delete native-binary governance.",
+      "Do not inflate the outer startup-capsule timeout as a substitute for removing the synchronous event-loop wait.",
+      "Do not modify Product Final workflow, backend process lifecycle, receipt semantics, or startup-capsule projection."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "failureFirstFocused": [
+      "node --test tests/wp0/v21-native-binary-governance-event-loop-p0.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2",
+      "WP-A when routed",
+      "Model Brain Windows when routed",
+      "Product Final only on a later fresh RC candidate route"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "ledgerAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "#904 successor-v5 Final RC",
+        "classification": "FROZEN_CAUSAL_EVIDENCE",
+        "evidence": "Product Final 33072250632 / Windows 98517215926 passed one full build and real packaged launch then failed only the same-build startup capsule timeout.",
+        "requiredClosure": "Never mutate, merge, or rerun #904; never reuse it as a successful RC."
+      },
+      {
+        "boundary": "capsule dataRoot/spawn/owner-state",
+        "classification": "ALREADY_EXCLUDED",
+        "evidence": "Fresh preserved capsule logs reached runtime-identity-verified under exact fixture YANCE_DATA_DIR after #900 owner-state isolation.",
+        "requiredClosure": "Do not reopen the already-closed helper/dataRoot seam."
+      },
+      {
+        "boundary": "boot-time native governance child probe",
+        "classification": "ROOT_IMPLEMENTATION",
+        "evidence": "The exact pre-await call chain has one external synchronous wait: nativeBinaryGovernance spawnSync(bundled node.exe).",
+        "requiredClosure": "Failure-first prove event-loop liveness requirement, then replace the synchronous child wait with bounded nonblocking execution."
+      },
+      {
+        "boundary": "BackendProcessHost node --version preflight",
+        "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+        "evidence": "Occurs only after backend-launch and has an explicit 5s timeout; frozen capsule never reached backend-launch.",
+        "requiredClosure": "Do not expand scope to BackendProcessHost."
+      }
+    ],
+    "negativeProofs": [
+      "No mutation or rerun of frozen #904.",
+      "No Product Final workflow, route, dependency, backend, receipt, startup-capsule helper, database, package manifest or lockfile change.",
+      "No second application build.",
+      "No gate weakening or timeout-only workaround.",
+      "No squash, rebase, amend, cherry-pick, force-push or history rewrite."
+    ]
+  }
+}
