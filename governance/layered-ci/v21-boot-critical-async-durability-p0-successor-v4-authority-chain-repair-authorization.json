@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BOOT-CRITICAL-ASYNC-DURABILITY-P0-SUCCESSOR-V5",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "base": {
+    "branch": "main",
+    "commit": "4ff5dc035711353483cd1db3e3eae1afaa538bbe"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-boot-critical-async-durability-p0-successor-v4-authority-chain-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-boot-critical-async-durability-p0-successor-v4-authority-chain-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "fbd18d5996206a4a6ca1beb7018f1bd6ceea21d043e9c5cfc2767ec95d788d35",
+    "mustRemainSingleFile": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-boot-critical-async-durability-p0-successor-v3-scope-amendment-2-authorization.json",
+    "implementationBranch": "fix/v21-boot-critical-async-durability-p0-successor-v4",
+    "reason": "The effective successor-v4 authorization is schema-valid as a proposal but its supersedes object contains two non-canonical extra keys. Trusted implementation-context delegated authority resolution requires supersedes to contain exactly authorizationPath, implementationBranch, and reason, causing Stage and WP-B to fail closed at exact head 6893b79a despite the production closure itself being green."
+  },
+  "implementation": {
+    "branch": "fix/v21-boot-critical-async-durability-p0-successor-v5",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "6893b79a0aa9983760f60ff4bf0c4a8a7ccdf999"
+    },
+    "allowedChangedPaths": [
+      "backend/tests/f25WindowsUatRepairBatch11.test.js",
+      "electron/credentialVault.js",
+      "electron/credentialVaultRecovery.js",
+      "electron/desktopHost/BackendOwnerRegistry.js",
+      "electron/desktopHost/BackendProcessHost.js",
+      "electron/desktopHost/CredentialAuthorityLifecycleCoordinator.js",
+      "electron/desktopHost/CredentialCustodyHost.js",
+      "electron/desktopHost/CredentialVaultHost.js",
+      "electron/desktopHost/DesktopCredentialApplicationCoordinator.js",
+      "electron/desktopHost/asyncDurability.js",
+      "electron/main.js",
+      "tests/wp0/v21-boot-critical-path-event-loop-p0.test.js",
+      "tests/wp4/credential-authority-history.test.js",
+      "tests/wp4/credential-authority-lifecycle-production.test.js",
+      "tests/wp4/credential-concurrent-mutation.test.js",
+      "tests/wp4/credential-custody-transaction.test.js",
+      "tests/wp4/credential-custody-vault-failure.test.js",
+      "tests/wp4/credential-durable-idempotency.test.js",
+      "tests/wp4/credential-generation-rollback-denied.test.js",
+      "tests/wp4/credential-illegal-vault-epoch-change-denied.test.js",
+      "tests/wp4/credential-indeterminate-commit-close.test.js",
+      "tests/wp4/credential-prepare-result-unknown.test.js",
+      "tests/wp4/credential-recovery-ambiguous.test.js",
+      "tests/wp4/credential-reset-authority.test.js",
+      "tests/wp4/credential-strict-hydration.test.js",
+      "tests/wp4/credential-terminal-journal-recovery.test.js",
+      "tests/wp4/credential-vault-atomicity.test.js",
+      "tests/wp7/backend-launch-contract-preflight.test.js",
+      "tools/wp4/backend-owner-exit-probe.js",
+      "tools/wp4/containment-journal-order-probe.js",
+      "tools/wp4/credential-authority-closure-probes.js",
+      "tools/wp4/credential-authority-lifecycle-child.js",
+      "tools/wp4/credential-authority-lifecycle-matrix.js",
+      "tools/wp4/credential-concurrency-probes.js",
+      "tools/wp4/credential-crash-child.js",
+      "tools/wp4/credential-crash-matrix.js",
+      "tools/wp4/credential-fourth-amendment-probes.js",
+      "tools/wp4/credential-indeterminate-probes.js",
+      "tools/wp4/credential-secure-bridge-failure-probe.js",
+      "tools/wp4/production-credential-runtime.js",
+      "tools/wp4/transaction-failure-probes.js",
+      "tools/wp4/windows-owner-process-identity-evidence.js"
+    ],
+    "approvedChangedFileCount": 42,
+    "approvedChangedFileSetSha256": "c81047036d57fc26aa0d4f50e3a293b276a651d4445738b4b493d8556fe3f7c9",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "causalEvidence": {
+    "frozenImplementationHead": "6893b79a0aa9983760f60ff4bf0c4a8a7ccdf999",
+    "frozenStageRun": 33138177108,
+    "frozenWpBRun": 33138177078,
+    "stageWp0PassCount": 735,
+    "stageWp0FailCount": 1,
+    "stageOnlyFailure": "tests/wp0/implementation-branch-policy.test.js current repository branch admission",
+    "wpBFailure": "WP_B_M2_IMPLEMENTATION_BRANCH_UNAUTHORIZED before M2 contracts",
+    "sameRoot": "Both failures use trusted implementation branch admission and are caused by the non-canonical supersedes key set in the effective successor-v4 authorization.",
+    "productionCodeChangeRequired": false,
+    "productionTestsObservedGreen": true,
+    "unknownBlockers": 0
+  },
+  "continuation": {
+    "requiredFirstParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "requiredSecondParent": "6893b79a0aa9983760f60ff4bf0c4a8a7ccdf999",
+    "productionDeltaAfterFrozenPredecessorRequired": false,
+    "frozenPredecessorMustNotBeRerun": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
