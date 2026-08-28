@@ -38,6 +38,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v6'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v7'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v8'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
     'product/v21-product-experience-bilingual-search-translation-task-ux-p0',
@@ -47,6 +48,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0',
     'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1',
     'fix/v21-electron-supported-runtime-p0-production-amendment-5',
+    'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0',
     'fix/v21-product-experience-windows-uat-startup-p0',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-2',
@@ -175,12 +177,14 @@ test('trusted Linux CI delegates CRLF apply semantics to Matrix bootstrap, then 
   assert.match(source, /services\/matrix\/\.runtime\/synapse/u);
   assert.match(source, /services\/matrix\/\.runtime\/element-web/u);
   assert.match(source, /services\/matrix\/\.runtime\/mautrix-whatsapp/u);
+  assert.match(source, /services\/matrix\/\.runtime\/mautrix-meta/u);
   assert.match(source, /nx build yance-element-module/u);
   assert.match(source, /\/modules\/yance\/package\.json/u);
   assert.match(source, /docker build --file services\/matrix\/\.runtime\/synapse\/docker\/Dockerfile --tag "yance-product-uat-synapse:\$\{CANDIDATE_SHA\}" services\/matrix\/\.runtime\/synapse/u);
   assert.match(source, /docker build --file services\/matrix\/\.runtime\/element-web\/apps\/web\/Dockerfile --tag "yance-product-uat-element:\$\{CANDIDATE_SHA\}" services\/matrix\/\.runtime\/element-web/u);
   assert.match(source, /docker build --tag "yance-product-uat-mautrix-whatsapp:\$\{CANDIDATE_SHA\}" services\/matrix\/\.runtime\/mautrix-whatsapp/u);
-  assert.equal((source.match(/docker build(?: --file \S+)? --tag/gu) || []).length, 3);
+  assert.match(source, /docker build --tag "yance-product-uat-mautrix-meta:\$\{CANDIDATE_SHA\}" services\/matrix\/\.runtime\/mautrix-meta/u);
+  assert.equal((source.match(/docker build(?: --file \S+)? --tag/gu) || []).length, 4);
   assert.match(source, /docker save --output/u);
   assert.match(source, /materialized-matrix-compose\.yml/u);
   assert.match(source, /PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);

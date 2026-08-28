@@ -31,7 +31,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v5' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v6' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v7' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v8'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v8' ||
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'
       )
     runs-on: windows-latest
     env:
@@ -147,7 +148,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v5' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v6' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v7' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v8'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v8' ||
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -671,7 +673,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v5' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v6' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v7' ||
-        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v8'
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v8' ||
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -715,13 +718,16 @@ jobs:
           test -d services/matrix/.runtime/synapse
           test -d services/matrix/.runtime/element-web
           test -d services/matrix/.runtime/mautrix-whatsapp
+          test -d services/matrix/.runtime/mautrix-meta
           grep -q 'nx build yance-element-module' services/matrix/.runtime/element-web/apps/web/Dockerfile
           grep -q '/modules/yance/package.json' services/matrix/.runtime/element-web/apps/web/Dockerfile
           docker build --file services/matrix/.runtime/synapse/docker/Dockerfile --tag "yance-product-uat-synapse:${CANDIDATE_SHA}" services/matrix/.runtime/synapse
           docker build --file services/matrix/.runtime/element-web/apps/web/Dockerfile --tag "yance-product-uat-element:${CANDIDATE_SHA}" services/matrix/.runtime/element-web
           docker build --tag "yance-product-uat-mautrix-whatsapp:${CANDIDATE_SHA}" services/matrix/.runtime/mautrix-whatsapp
+          docker build --tag "yance-product-uat-mautrix-meta:${CANDIDATE_SHA}" services/matrix/.runtime/mautrix-meta
           docker image inspect "yance-product-uat-element:${CANDIDATE_SHA}" >/dev/null
-          echo 'GREEN: Element image built from the existing /modules/yance runtime delivery seam'
+          docker image inspect "yance-product-uat-mautrix-meta:${CANDIDATE_SHA}" >/dev/null
+          echo 'GREEN: Element and mautrix-meta images built from the existing pinned Matrix runtime seams'
 
       - name: Export exact Matrix images and seal image-only candidate
         shell: bash
@@ -729,15 +735,17 @@ jobs:
           set -euo pipefail
           bundle="$RUNNER_TEMP/product-experience-materialized-matrix-uat"
           rm -rf "$bundle"
-          mkdir -p "$bundle/matrix-config/synapse" "$bundle/matrix-config/mautrix-whatsapp"
+          mkdir -p "$bundle/matrix-config/synapse" "$bundle/matrix-config/mautrix-whatsapp" "$bundle/matrix-config/mautrix-meta"
           docker save --output "$bundle/matrix-images.tar" \
             "yance-product-uat-synapse:${CANDIDATE_SHA}" \
             "yance-product-uat-element:${CANDIDATE_SHA}" \
-            "yance-product-uat-mautrix-whatsapp:${CANDIDATE_SHA}"
+            "yance-product-uat-mautrix-whatsapp:${CANDIDATE_SHA}" \
+            "yance-product-uat-mautrix-meta:${CANDIDATE_SHA}"
           cp tools/product-experience/materialized-matrix-compose.yml "$bundle/materialized-matrix-compose.yml"
           cp config/matrix/synapse/homeserver.yaml "$bundle/matrix-config/synapse/homeserver.yaml"
           cp config/matrix/element-config.json "$bundle/matrix-config/element-config.json"
           cp config/matrix/mautrix-whatsapp/config.yaml "$bundle/matrix-config/mautrix-whatsapp/config.yaml"
+          cp config/matrix/mautrix-meta/config.yaml "$bundle/matrix-config/mautrix-meta/config.yaml"
           node tools/product-experience/create-materialized-uat-candidate.js seal \
             --root "$bundle" \
             --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY \

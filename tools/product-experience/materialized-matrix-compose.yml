@@ -1,12 +1,45 @@
+x-mautrix-meta-service: &mautrix-meta-service { image: yance-product-uat-mautrix-meta:${YANCE_UAT_CANDIDATE_SHA} }
+
 services:
+  mautrix-meta-registration:
+    <<: *mautrix-meta-service
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        if [ ! -f /data/config.yaml ]; then
+          cp /bootstrap/config.yaml /data/config.yaml
+        fi
+        if [ ! -f /data/registration.yaml ]; then
+          /usr/bin/mautrix-meta -g -c /data/config.yaml -r /data/registration.yaml
+        fi
+    environment:
+      YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_meta_provisioning_secret
+    volumes:
+      - ./matrix-config/mautrix-meta/config.yaml:/bootstrap/config.yaml:ro
+      - type: bind
+        source: ${YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:?required}
+        target: /run/secrets/yance_mautrix_meta_provisioning_secret
+        read_only: true
+      - mautrix-meta-data:/data
+    restart: "no"
+
   synapse:
     image: yance-product-uat-synapse:${YANCE_UAT_CANDIDATE_SHA}
     command: ["run"]
     volumes:
       - ./matrix-config/synapse/homeserver.yaml:/data/homeserver.yaml:ro
       - synapse-data:/data
+      - mautrix-meta-data:/mautrix-meta:ro
+      - type: bind
+        source: ${YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE:?required}
+        target: /run/secrets/yance_matrix_registration_shared_secret
+        read_only: true
     ports:
       - "127.0.0.1:8008:8008"
+    depends_on:
+      mautrix-meta-registration:
+        condition: service_completed_successfully
 
   element:
     image: yance-product-uat-element:${YANCE_UAT_CANDIDATE_SHA}
@@ -25,6 +58,23 @@ services:
     depends_on:
       - synapse
 
+  mautrix-meta:
+    <<: *mautrix-meta-service
+    environment:
+      YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_meta_provisioning_secret
+    volumes:
+      - type: bind
+        source: ${YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:?required}
+        target: /run/secrets/yance_mautrix_meta_provisioning_secret
+        read_only: true
+      - mautrix-meta-data:/data
+    depends_on:
+      synapse:
+        condition: service_started
+      mautrix-meta-registration:
+        condition: service_completed_successfully
+
 volumes:
   synapse-data:
   mautrix-whatsapp-data:
+  mautrix-meta-data:

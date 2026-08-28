@@ -512,3 +512,37 @@ test('Product Final preserves packaged startup diagnostics after a failing recei
   assert.match(diagnosticStep, /if-no-files-found:\s*warn/u, 'diagnostic upload must tolerate logs that do not yet exist');
   assert.doesNotMatch(diagnosticStep, /post-install-launch\.json|product-experience-materialized-desktop-uat[\\/]\*\*/u, 'diagnostic artifact must not become a readiness receipt or broad payload authority');
 });
+
+test('failure-first binds complete materialized Matrix runtime topology, ephemeral secrets, and pre-Desktop readiness', () => {
+  const source = read(WORKFLOW);
+  const runner = read(RUNNER);
+  const compose = read(COMPOSE);
+
+  assert.match(source, /\.runtime\/mautrix-meta/u, 'trusted Matrix materialization must include the pinned mautrix-meta source');
+  assert.match(source, /docker\s+build[^\n]*yance-product-uat-mautrix-meta:\$\{CANDIDATE_SHA\}[^\n]*\.runtime\/mautrix-meta/u, 'trusted CI must build the exact mautrix-meta image');
+  assert.match(source, /docker\s+save[\s\S]*yance-product-uat-mautrix-meta:\$\{CANDIDATE_SHA\}/u, 'sealed Matrix image archive must include mautrix-meta');
+  assert.match(source, /config\/matrix\/mautrix-meta\/config\.yaml/u, 'sealed Matrix artifact must include the existing mautrix-meta config authority');
+  assert.match(source, /matrix-config\/mautrix-meta\/config\.yaml/u, 'sealed Matrix artifact must project mautrix-meta config into its image-only topology');
+
+  for (const service of ['mautrix-meta-registration', 'synapse', 'element', 'mautrix-whatsapp', 'mautrix-meta']) {
+    assert.match(compose, new RegExp(`^\\s{2}${service}:\\s*$`, 'mu'), `materialized compose must preserve source Matrix service ${service}`);
+  }
+  assert.match(compose, /YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE:\?required/u);
+  assert.match(compose, /\/run\/secrets\/yance_matrix_registration_shared_secret/u);
+  assert.match(compose, /YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:\?required/u);
+  assert.match(compose, /\/run\/secrets\/yance_mautrix_meta_provisioning_secret/u);
+  assert.match(compose, /mautrix-meta-data/u);
+  assert.match(compose, /matrix-config\/mautrix-meta\/config\.yaml/u);
+  assert.doesNotMatch(compose, /^\s+build:\s*/gmu);
+  assert.doesNotMatch(compose, /^\s+context:\s*/gmu);
+
+  assert.match(runner, /RandomNumberGenerator/iu, 'Windows UAT must create cryptographically random per-UAT secrets');
+  assert.match(runner, /YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE/u);
+  assert.match(runner, /YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE/u);
+  assert.match(runner, /_matrix\/client\/versions/u, 'Windows UAT must prove real Synapse HTTP readiness');
+  assert.match(runner, /docker(?:\.exe)?\s+compose[^\n]*ps/iu, 'Windows UAT must prove required Matrix containers are actually running');
+  const readinessIndex = runner.indexOf('_matrix/client/versions');
+  const desktopLaunchIndex = runner.indexOf('$process = Start-Process -FilePath $yanceExe.FullName');
+  assert.ok(readinessIndex >= 0 && desktopLaunchIndex > readinessIndex, 'real Matrix readiness must be established before packaged Desktop launch');
+  assert.doesNotMatch(runner, /materialized-uat-evidence\.json[^\n]*(?:secret|shared_secret)/iu, 'plaintext secrets must never become evidence authority');
+});

@@ -101,6 +101,19 @@ function Verify-Bundle {
   return [pscustomobject]@{ root = $canonicalRoot; manifest = $manifest }
 }
 
+function New-EphemeralSecretFile {
+  param([Parameter(Mandatory = $true)][string]$Path)
+  $bytes = New-Object byte[] 32
+  $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+  try {
+    $rng.GetBytes($bytes)
+  } finally {
+    $rng.Dispose()
+  }
+  $value = [Convert]::ToBase64String($bytes)
+  [IO.File]::WriteAllText($Path, $value, [Text.UTF8Encoding]::new($false))
+}
+
 $desktop = Verify-Bundle -Root $DesktopBundleRoot -ExpectedClass $DesktopClass
 $matrix = Verify-Bundle -Root $MatrixBundleRoot -ExpectedClass $MatrixClass
 
@@ -124,121 +137,173 @@ if (-not $matrixArchive) { throw 'sealed Matrix image archive matrix-images.tar 
 $composePath = Join-Path $matrix.root 'materialized-matrix-compose.yml'
 if (-not (Test-Path -LiteralPath $composePath -PathType Leaf)) { throw 'image-only Matrix compose file is missing' }
 
-$env:YANCE_UAT_CANDIDATE_SHA = [string]$desktop.manifest.candidateCommit
-& docker.exe load --input $matrixArchive.FullName
-if ($LASTEXITCODE -ne 0) { throw "docker load failed with exit code $LASTEXITCODE" }
-& docker.exe compose --project-directory $matrix.root -f $composePath up -d --no-build
-if ($LASTEXITCODE -ne 0) { throw "docker compose up --no-build failed with exit code $LASTEXITCODE" }
+$secretRoot = Join-Path ([IO.Path]::GetTempPath()) "yance-materialized-uat-secrets-$($desktop.manifest.candidateCommit)-$([Guid]::NewGuid().ToString('N'))"
+New-Item -ItemType Directory -Path $secretRoot | Out-Null
+$matrixRegistrationSecretPath = Join-Path $secretRoot 'matrix-registration-shared-secret'
+$mautrixMetaProvisioningSecretPath = Join-Path $secretRoot 'mautrix-meta-provisioning-secret'
+New-EphemeralSecretFile -Path $matrixRegistrationSecretPath
+New-EphemeralSecretFile -Path $mautrixMetaProvisioningSecretPath
+$env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE = $matrixRegistrationSecretPath
+$env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE = $mautrixMetaProvisioningSecretPath
 
-if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
-  $EvidenceRoot = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) "Yance\MaterializedUAT\$($desktop.manifest.candidateCommit)"
-}
-New-Item -ItemType Directory -Force -Path $EvidenceRoot | Out-Null
-$EvidenceRoot = Resolve-RealDirectory $EvidenceRoot 'evidence root'
+try {
+  $env:YANCE_UAT_CANDIDATE_SHA = [string]$desktop.manifest.candidateCommit
+  & docker.exe load --input $matrixArchive.FullName
+  if ($LASTEXITCODE -ne 0) { throw "docker load failed with exit code $LASTEXITCODE" }
+  & docker.exe compose --project-directory $matrix.root -f $composePath up -d --no-build
+  if ($LASTEXITCODE -ne 0) { throw "docker compose up --no-build failed with exit code $LASTEXITCODE" }
 
-$desktopArchive = Get-ChildItem -LiteralPath $desktop.root -Filter 'Yance_Stage6_4_5_9_WP7_PreReview_Trusted_Product_*.tar.gz' -File -Recurse | Select-Object -First 1
-if (-not $desktopArchive) { throw 'WP7 pre-review trusted desktop archive is missing' }
-$applicationRoot = Join-Path $EvidenceRoot 'desktop'
-Remove-Item -LiteralPath $applicationRoot -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $applicationRoot | Out-Null
-& tar.exe -xf $desktopArchive.FullName -C $applicationRoot
-if ($LASTEXITCODE -ne 0) { throw "tar extraction failed with exit code $LASTEXITCODE" }
-
-$yanceExe = Get-ChildItem -LiteralPath $applicationRoot -Filter 'Yance.exe' -File -Recurse | Select-Object -First 1
-if (-not $yanceExe) { throw 'already-built Yance.exe is missing from the WP7 desktop payload' }
-
-if ([string]::IsNullOrWhiteSpace($UatDataRoot)) { $UatDataRoot = Join-Path $EvidenceRoot 'data' }
-if (-not [string]::IsNullOrWhiteSpace($ExistingDataRoot)) {
-  if (Get-Process -Name 'Yance' -ErrorAction SilentlyContinue) { throw 'Yance must be stopped before copying existing data into the isolated UAT data root' }
-  $sourceData = Resolve-RealDirectory $ExistingDataRoot 'existing Yance data root'
-  $sourceEntries = @(Get-ChildItem -LiteralPath $sourceData -Force -Recurse)
-  foreach ($sourceEntry in $sourceEntries) {
-    if (($sourceEntry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "existing data contains forbidden symlink/reparse point: $($sourceEntry.FullName)" }
+  $registrationServices = @(& docker.exe compose --project-directory $matrix.root -f $composePath ps --all --status exited --services mautrix-meta-registration)
+  if ($LASTEXITCODE -ne 0) { throw "docker compose registration status probe failed with exit code $LASTEXITCODE" }
+  if (-not ($registrationServices | Where-Object { ([string]$_).Trim() -eq 'mautrix-meta-registration' })) {
+    throw 'mautrix-meta registration service did not complete before Matrix readiness'
   }
-  Remove-Item -LiteralPath $UatDataRoot -Recurse -Force -ErrorAction SilentlyContinue
-  New-Item -ItemType Directory -Force -Path $UatDataRoot | Out-Null
-  foreach ($entry in Get-ChildItem -LiteralPath $sourceData -Force) {
-    Copy-Item -LiteralPath $entry.FullName -Destination $UatDataRoot -Recurse -Force -ErrorAction Stop
+
+  $requiredServices = @('synapse', 'element', 'mautrix-whatsapp', 'mautrix-meta')
+  $matrixReady = $false
+  $matrixDeadline = [DateTimeOffset]::UtcNow.AddSeconds(120)
+  while ([DateTimeOffset]::UtcNow -lt $matrixDeadline) {
+    $runningServices = @(& docker.exe compose --project-directory $matrix.root -f $composePath ps --status running --services)
+    if ($LASTEXITCODE -ne 0) { throw "docker compose running-service probe failed with exit code $LASTEXITCODE" }
+    $running = @($runningServices | ForEach-Object { ([string]$_).Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $allRunning = $true
+    foreach ($service in $requiredServices) {
+      if ($running -notcontains $service) { $allRunning = $false; break }
+    }
+    if ($allRunning) {
+      try {
+        $synapseVersions = Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8008/_matrix/client/versions' -TimeoutSec 3
+        $elementConfig = Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8080/config.json' -TimeoutSec 3
+        if (@($synapseVersions.versions).Count -gt 0 -and $null -ne $elementConfig) {
+          $matrixReady = $true
+          break
+        }
+      } catch {}
+    }
+    Start-Sleep -Milliseconds 500
   }
-} else {
-  New-Item -ItemType Directory -Force -Path $UatDataRoot | Out-Null
-}
-$env:YANCE_DATA_DIR = (Resolve-RealDirectory $UatDataRoot 'isolated Yance UAT data root')
-$env:YANCE_WP2_PRODUCTION_RUNTIME_PROBE = '1'
-
-$receiptPath = Join-Path $env:YANCE_DATA_DIR 'logs\post-install-launch.json'
-$receiptPassPath = Join-Path $env:YANCE_DATA_DIR 'logs\post-install-launch.pass'
-Remove-Item -LiteralPath $receiptPath, $receiptPassPath -Force -ErrorAction SilentlyContinue
-$startedAt = [DateTimeOffset]::UtcNow
-$startedAtUtc = $startedAt.ToString('o')
-$process = Start-Process -FilePath $yanceExe.FullName -ArgumentList '--post-install' -WorkingDirectory $yanceExe.DirectoryName -PassThru
-
-$receipt = $null
-$receiptDeadline = [DateTimeOffset]::UtcNow.AddSeconds(120)
-while ([DateTimeOffset]::UtcNow -lt $receiptDeadline) {
-  $process.Refresh()
-  if ($process.HasExited) {
-    throw "packaged Yance.exe exited before post-install readiness receipt: exitCode=$($process.ExitCode) receipt=$receiptPath"
+  if (-not $matrixReady) {
+    & docker.exe compose --project-directory $matrix.root -f $composePath ps --all
+    throw 'timed out waiting for real materialized Matrix readiness'
   }
-  if (Test-Path -LiteralPath $receiptPath -PathType Leaf) {
-    $candidateReceipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
-    $activatedAt = [DateTimeOffset]::Parse([string]$candidateReceipt.activatedAtUtc)
-    if ([int]$candidateReceipt.schemaVersion -ne 1 -or [string]$candidateReceipt.documentType -ne 'YANCE_POST_INSTALL_LAUNCH_RECEIPT') {
-      throw "post-install receipt schema/document type mismatch: $receiptPath"
-    }
-    if ([string]$candidateReceipt.status -ne 'PASS') {
-      throw "post-install receipt status is not PASS: status=$($candidateReceipt.status) receipt=$receiptPath"
-    }
-    if ([string]$candidateReceipt.reason -notmatch '^post-install(?:$|-)') {
-      throw "post-install receipt reason mismatch: $($candidateReceipt.reason)"
-    }
-    if ([int]$candidateReceipt.processId -ne [int]$process.Id) {
-      throw "post-install receipt process mismatch: expected=$($process.Id) actual=$($candidateReceipt.processId)"
-    }
-    if ($activatedAt -lt $startedAt) {
-      throw "post-install receipt is stale: started=$startedAtUtc activated=$($candidateReceipt.activatedAtUtc)"
-    }
-    if ($candidateReceipt.window.destroyed -eq $true -or $candidateReceipt.window.visible -ne $true -or $candidateReceipt.window.minimized -eq $true) {
-      throw "post-install receipt window state is not ready: $($candidateReceipt.window | ConvertTo-Json -Compress)"
-    }
-    $receipt = $candidateReceipt
-    break
+
+  if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
+    $EvidenceRoot = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) "Yance\MaterializedUAT\$($desktop.manifest.candidateCommit)"
   }
-  Start-Sleep -Milliseconds 250
-}
+  New-Item -ItemType Directory -Force -Path $EvidenceRoot | Out-Null
+  $EvidenceRoot = Resolve-RealDirectory $EvidenceRoot 'evidence root'
 
-if (-not $receipt) {
-  $process.Refresh()
-  if ($process.HasExited) {
-    throw "packaged Yance.exe exited before post-install readiness receipt: exitCode=$($process.ExitCode) receipt=$receiptPath"
+  $desktopArchive = Get-ChildItem -LiteralPath $desktop.root -Filter 'Yance_Stage6_4_5_9_WP7_PreReview_Trusted_Product_*.tar.gz' -File -Recurse | Select-Object -First 1
+  if (-not $desktopArchive) { throw 'WP7 pre-review trusted desktop archive is missing' }
+  $applicationRoot = Join-Path $EvidenceRoot 'desktop'
+  Remove-Item -LiteralPath $applicationRoot -Recurse -Force -ErrorAction SilentlyContinue
+  New-Item -ItemType Directory -Force -Path $applicationRoot | Out-Null
+  & tar.exe -xf $desktopArchive.FullName -C $applicationRoot
+  if ($LASTEXITCODE -ne 0) { throw "tar extraction failed with exit code $LASTEXITCODE" }
+
+  $yanceExe = Get-ChildItem -LiteralPath $applicationRoot -Filter 'Yance.exe' -File -Recurse | Select-Object -First 1
+  if (-not $yanceExe) { throw 'already-built Yance.exe is missing from the WP7 desktop payload' }
+
+  if ([string]::IsNullOrWhiteSpace($UatDataRoot)) { $UatDataRoot = Join-Path $EvidenceRoot 'data' }
+  if (-not [string]::IsNullOrWhiteSpace($ExistingDataRoot)) {
+    if (Get-Process -Name 'Yance' -ErrorAction SilentlyContinue) { throw 'Yance must be stopped before copying existing data into the isolated UAT data root' }
+    $sourceData = Resolve-RealDirectory $ExistingDataRoot 'existing Yance data root'
+    $sourceEntries = @(Get-ChildItem -LiteralPath $sourceData -Force -Recurse)
+    foreach ($sourceEntry in $sourceEntries) {
+      if (($sourceEntry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "existing data contains forbidden symlink/reparse point: $($sourceEntry.FullName)" }
+    }
+    Remove-Item -LiteralPath $UatDataRoot -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force -Path $UatDataRoot | Out-Null
+    foreach ($entry in Get-ChildItem -LiteralPath $sourceData -Force) {
+      Copy-Item -LiteralPath $entry.FullName -Destination $UatDataRoot -Recurse -Force -ErrorAction Stop
+    }
+  } else {
+    New-Item -ItemType Directory -Force -Path $UatDataRoot | Out-Null
   }
-  throw "timed out waiting for fresh post-install PASS receipt: $receiptPath"
-}
+  $env:YANCE_DATA_DIR = (Resolve-RealDirectory $UatDataRoot 'isolated Yance UAT data root')
+  $env:YANCE_WP2_PRODUCTION_RUNTIME_PROBE = '1'
 
-$evidence = [ordered]@{
-  schemaVersion = 1
-  documentType = 'V21_PRODUCT_EXPERIENCE_MATERIALIZED_UAT_WINDOWS_EVIDENCE'
-  formalRelease = $false
-  candidateBranch = [string]$desktop.manifest.candidateBranch
-  candidateCommit = [string]$desktop.manifest.candidateCommit
-  candidateTree = [string]$desktop.manifest.candidateTree
-  desktopBundleClass = $DesktopClass
-  matrixBundleClass = $MatrixClass
-  matrixArchive = $matrixArchive.FullName
-  composeFile = $composePath
-  desktopArchive = $desktopArchive.FullName
-  yanceExecutable = $yanceExe.FullName
-  yanceDataDir = $env:YANCE_DATA_DIR
-  startedAtUtc = $startedAtUtc
-  processId = $process.Id
-  productionRuntimeProbeEnabled = $true
-  postInstallReceipt = $receiptPath
-  postInstallReceiptStatus = [string]$receipt.status
-  postInstallActivatedAtUtc = [string]$receipt.activatedAtUtc
-}
-$evidence | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $EvidenceRoot 'materialized-uat-evidence.json') -Encoding UTF8
+  $receiptPath = Join-Path $env:YANCE_DATA_DIR 'logs\post-install-launch.json'
+  $receiptPassPath = Join-Path $env:YANCE_DATA_DIR 'logs\post-install-launch.pass'
+  Remove-Item -LiteralPath $receiptPath, $receiptPassPath -Force -ErrorAction SilentlyContinue
+  $startedAt = [DateTimeOffset]::UtcNow
+  $startedAtUtc = $startedAt.ToString('o')
+  $process = Start-Process -FilePath $yanceExe.FullName -ArgumentList '--post-install' -WorkingDirectory $yanceExe.DirectoryName -PassThru
 
-Write-Host "GREEN: verified same-identity materialized UAT candidate $($desktop.manifest.candidateCommit) with fresh post-install receipt status PASS"
-Write-Host "GREEN: Matrix images loaded and started with docker compose up --no-build"
-Write-Host "GREEN: already-built Yance.exe reached Desktop READY with isolated data root $env:YANCE_DATA_DIR"
-Write-Host "Evidence: $(Join-Path $EvidenceRoot 'materialized-uat-evidence.json')"
+  $receipt = $null
+  $receiptDeadline = [DateTimeOffset]::UtcNow.AddSeconds(120)
+  while ([DateTimeOffset]::UtcNow -lt $receiptDeadline) {
+    $process.Refresh()
+    if ($process.HasExited) {
+      throw "packaged Yance.exe exited before post-install readiness receipt: exitCode=$($process.ExitCode) receipt=$receiptPath"
+    }
+    if (Test-Path -LiteralPath $receiptPath -PathType Leaf) {
+      $candidateReceipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
+      $activatedAt = [DateTimeOffset]::Parse([string]$candidateReceipt.activatedAtUtc)
+      if ([int]$candidateReceipt.schemaVersion -ne 1 -or [string]$candidateReceipt.documentType -ne 'YANCE_POST_INSTALL_LAUNCH_RECEIPT') {
+        throw "post-install receipt schema/document type mismatch: $receiptPath"
+      }
+      if ([string]$candidateReceipt.status -ne 'PASS') {
+        throw "post-install receipt status is not PASS: status=$($candidateReceipt.status) receipt=$receiptPath"
+      }
+      if ([string]$candidateReceipt.reason -notmatch '^post-install(?:$|-)') {
+        throw "post-install receipt reason mismatch: $($candidateReceipt.reason)"
+      }
+      if ([int]$candidateReceipt.processId -ne [int]$process.Id) {
+        throw "post-install receipt process mismatch: expected=$($process.Id) actual=$($candidateReceipt.processId)"
+      }
+      if ($activatedAt -lt $startedAt) {
+        throw "post-install receipt is stale: started=$startedAtUtc activated=$($candidateReceipt.activatedAtUtc)"
+      }
+      if ($candidateReceipt.window.destroyed -eq $true -or $candidateReceipt.window.visible -ne $true -or $candidateReceipt.window.minimized -eq $true) {
+        throw "post-install receipt window state is not ready: $($candidateReceipt.window | ConvertTo-Json -Compress)"
+      }
+      $receipt = $candidateReceipt
+      break
+    }
+    Start-Sleep -Milliseconds 250
+  }
+
+  if (-not $receipt) {
+    $process.Refresh()
+    if ($process.HasExited) {
+      throw "packaged Yance.exe exited before post-install readiness receipt: exitCode=$($process.ExitCode) receipt=$receiptPath"
+    }
+    throw "timed out waiting for fresh post-install PASS receipt: $receiptPath"
+  }
+
+  $evidence = [ordered]@{
+    schemaVersion = 1
+    documentType = 'V21_PRODUCT_EXPERIENCE_MATERIALIZED_UAT_WINDOWS_EVIDENCE'
+    formalRelease = $false
+    candidateBranch = [string]$desktop.manifest.candidateBranch
+    candidateCommit = [string]$desktop.manifest.candidateCommit
+    candidateTree = [string]$desktop.manifest.candidateTree
+    desktopBundleClass = $DesktopClass
+    matrixBundleClass = $MatrixClass
+    matrixArchive = $matrixArchive.FullName
+    composeFile = $composePath
+    desktopArchive = $desktopArchive.FullName
+    yanceExecutable = $yanceExe.FullName
+    yanceDataDir = $env:YANCE_DATA_DIR
+    startedAtUtc = $startedAtUtc
+    processId = $process.Id
+    productionRuntimeProbeEnabled = $true
+    matrixReadiness = 'PASS'
+    postInstallReceipt = $receiptPath
+    postInstallReceiptStatus = [string]$receipt.status
+    postInstallActivatedAtUtc = [string]$receipt.activatedAtUtc
+  }
+  $evidence | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $EvidenceRoot 'materialized-uat-evidence.json') -Encoding UTF8
+
+  Write-Host "GREEN: verified same-identity materialized UAT candidate $($desktop.manifest.candidateCommit) with fresh post-install receipt status PASS"
+  Write-Host "GREEN: real Matrix readiness passed after image-only docker compose up --no-build"
+  Write-Host "GREEN: already-built Yance.exe reached Desktop READY with isolated data root $env:YANCE_DATA_DIR"
+  Write-Host "Evidence: $(Join-Path $EvidenceRoot 'materialized-uat-evidence.json')"
+  Write-Host "UAT session remains attached to packaged Yance.exe PID $($process.Id); runtime secret files stay available until the process exits."
+  Wait-Process -Id $process.Id
+} finally {
+  Remove-Item Env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE -ErrorAction SilentlyContinue
+  Remove-Item Env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $secretRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
