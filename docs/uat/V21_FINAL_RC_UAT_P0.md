@@ -1,27 +1,28 @@
-# V21 Fresh Final RC/UAT P0 Successor-v8 Candidate
+# V21 Fresh Final RC/UAT P0 Successor-v9 Candidate
 
 Status: `VALIDATION_CANDIDATE_ONLY`
 
-This file is the single authorized marker for the fresh successor-v8 Final RC/UAT candidate. It is not a release receipt and does not authorize release, promotion, ledger closure, or publish.
+This file is the single marker for the fresh successor-v9 Final RC/UAT candidate. It is not a release receipt and does not authorize release, promotion, ledger closure, or publish.
 
 ## Exact causal lineage
 
 - Repository: `laiqian0239-glitch/yance`.
-- Frozen predecessor: PR #925 exact head `36a84aab6fe0380bfa903c96e2861418ae5b6c26`; Product Final run `33142379372` / Windows job `98755831790` passed frozen Element reproducibility, Matrix UAT, and the unique full packaged build, then the real packaged/post-install launch failed with `WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED` before the same-build startup capsule could execute. That head remains frozen and must not be rerun, mutated, merged, or reused.
-- Packaged WP4 owner-recovery closure: PR #927 ordinary merge `08e7efefe56d5a30e7c5f868b2bab1db383eccd6`.
-- Successor-v8 Product Final route authorization: PR #928 ordinary merge `c4ba88e3c5d4098bf1fea4c344aceef7cb1c75da`.
-- Fresh route RED: exact head `df185df5666f72da697d2e1b6eba31de69377ac9` / Stage `33147563947`, frozen and never rerun, `unknownBlockers=0`.
-- Route GREEN exact head: `e59cd06a7b8291106935b18034f6713ed2af66ec`; Stage `33148009038`, Layered CI `33148009258`, ACV2 `33148009034`, Model Brain Windows `33148009035` all GREEN; Product Final correctly skipped on the route branch; PR #929 ordinary merge `1781688fab2d6b5d11bf8ca4878273e21a20326f`.
-- Fresh successor-v8 candidate authorization: PR #930 exact head `93aae08de4c73af6a4e0ed5c73ecad138825b556`, ordinary merge `5f7e15fdd73c5c1e46a6b7af50b2422e4e261024` after Stage `33148481361`, Layered CI `33148481594`, ACV2 `33148481377`, and Model Brain Windows `33148481402` all GREEN; Product Final correctly skipped on the authorization branch; independent exact-head review P0=0/P1=0; `unknownBlockers=0`.
-- Candidate branch: `release/v21-final-rc-uat-p0-successor-v8`.
-- Authorized candidate delta relative to the authorization merge: exactly `docs/uat/V21_FINAL_RC_UAT_P0.md`.
-- Source/runtime/test/workflow/routing/dependency/package/lockfile/database/ledger mutation: forbidden.
+- Frozen predecessor RC/UAT: PR #931 exact head `97a6a0d6bb6adfa12d1bcb210206ba3bf9b2f28b`; Product Final run `33148877481` and its artifacts remain immutable evidence only. Downstream real Windows UAT exposed the materialized Matrix runtime-topology omission; that exact head must not be rerun or reused as the new candidate.
+- Materialized Matrix UAT runtime closure: PR #933 exact implementation head `0e45790bb1e301d32eb5cd87f0383ed396fba713`; Product Final run `33175913773` passed frozen Element reproducibility, the unique full packaged build, real packaged/post-install launch, same-build startup capsule, complete Matrix materialization, and artifact uploads; ordinary merge `2cb4e12e314a21a02115c2fb8fa4e6eaeb6b9f3b`.
+- Successor-v9 route authorization: PR #936 ordinary merge `63e77bae05c2f27fd10f2ce60d929cf482fb38ae`.
+- Valid fresh route RED: exact head `f3d2155e95ec6ad3395937c37056880b245c8be8` / Stage `33178423533`; causal boundary was the missing exact successor-v9 equality in the three Product Final job allowlists. This RED remains frozen and must not be rerun.
+- Contaminated descendant `cd2185c8e0ea623618bd7f840572513c0711c77d` and unauthorized `tmp-do-not-commit` are permanently excluded from implementation authority and continuation ancestry.
+- Forward-continuation authorization: PR #938 ordinary merge `7e3a715e1df8ae154de5456d6c2c8014620f0649`.
+- Route GREEN exact head: `8f174f63be7a3a16d05ca82f37824bed87ce72d6`; Stage `33180920066`, Layered CI `33180920314`, ACV2 `33180920039`, and Model Brain Windows `33180919984` all GREEN; Product Final `33180920018` correctly skipped on the implementation branch; autonomous independent exact-head review P0=0/P1=0; `unknownBlockers=0`; PR #939 ordinary merge `d46227d59cee1fe7d3a594ef7ae910d70170beb3`.
+- Candidate branch: `release/v21-final-rc-uat-p0-successor-v9`.
+- Candidate delta relative to fresh main `d46227d59cee1fe7d3a594ef7ae910d70170beb3`: exactly `docs/uat/V21_FINAL_RC_UAT_P0.md`.
+- Source/runtime/test/workflow/routing/dependency/package/lockfile/database/ledger/release/publish mutation: forbidden.
 
 The candidate identity is the repository-reported immutable PR head produced by this marker revision. This marker intentionally does not self-embed that candidate head because this commit itself advances the candidate. Any later candidate-byte or ancestry change invalidates all prior exact-head evidence.
 
 ## Mandatory exact-head Product Final
 
-`V21 Product Experience Shell P0 Final Validation` must execute on this exact successor-v8 candidate head and must not be treated as GREEN if skipped. These three existing jobs must all PASS on that same exact head:
+`V21 Product Experience Shell P0 Final Validation` must execute exactly once on this exact successor-v9 candidate head and must not be treated as GREEN if skipped. These three existing jobs must all PASS on that same exact head:
 
 1. `frozen-element-reproducibility`
 2. `materialized-desktop-uat`
