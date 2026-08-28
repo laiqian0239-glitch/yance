@@ -286,8 +286,25 @@ async function pathAccessible(file) {
   try { await fs.promises.access(file); return true; } catch (_) { return false; }
 }
 
-async function resolveTrustedNodeRuntime() {
+let TRUSTED_NODE_RUNTIME = null;
+
+function resolveTrustedNodeRuntime() {
   if (!app.isPackaged) return process.execPath;
+  if (!TRUSTED_NODE_RUNTIME) {
+    const error = new Error('Bundled Node runtime has not been primed');
+    error.code = 'NODE_RUNTIME_NOT_PRIMED';
+    error.reasonCode = 'NODE_RUNTIME_NOT_PRIMED';
+    throw error;
+  }
+  return TRUSTED_NODE_RUNTIME;
+}
+
+async function primeTrustedNodeRuntime() {
+  if (!app.isPackaged) {
+    TRUSTED_NODE_RUNTIME = process.execPath;
+    return TRUSTED_NODE_RUNTIME;
+  }
+  if (TRUSTED_NODE_RUNTIME) return TRUSTED_NODE_RUNTIME;
   const identity = releaseIdentity();
   const relative = String(identity.nodeRuntimeExecutablePath || 'runtime/node22/node.exe').replace(/\\/g, '/');
   const candidates = [];
@@ -304,7 +321,8 @@ async function resolveTrustedNodeRuntime() {
     error.candidates = candidates;
     throw error;
   }
-  return found;
+  TRUSTED_NODE_RUNTIME = found;
+  return TRUSTED_NODE_RUNTIME;
 }
 
 // M8 — Native-binary / runtime-node governance guard rail (diagnostic only, fail-open).
@@ -313,7 +331,7 @@ async function resolveTrustedNodeRuntime() {
 async function governRuntimeNativeBinariesBootCheck() {
   try {
     const govern = require('./m2/nativeBinaryGovernance');
-    const nodeExe = await resolveTrustedNodeRuntime();
+    const nodeExe = resolveTrustedNodeRuntime();
     const report = await govern.governRuntimeNodeNativeBinaries(nodeExe, govern.KNOWN_NATIVE_ADDONS, {});
     desktopLog('info', 'native-binary-governance', {
       recommendation: report.recommendation,
@@ -496,10 +514,10 @@ let voiceBrainRuntime = null;
 let learningCoachTools = null;
 const parlantInboundSequencer = createRelationshipTaskSequencer();
 
-async function ensureLettaAgentRuntime() {
+function ensureLettaAgentRuntime() {
   if (!lettaAgentRuntime) {
     lettaAgentRuntime = createLettaAgentRuntime({
-      nodeExecutablePath: await resolveTrustedNodeRuntime(),
+      nodeExecutablePath: resolveTrustedNodeRuntime(),
       dataRoot: DATA_ROOT
     });
   }
@@ -2669,7 +2687,7 @@ async function resolveBackendLaunchPaths() {
   const entry = path.join(appRoot, 'backend', 'desktopHostedEntry.js');
   const cwd = appRoot;
   const nodeModulesPath = path.join(appRoot, 'node_modules');
-  const nodeRuntimeExecutablePath = await resolveTrustedNodeRuntime();
+  const nodeRuntimeExecutablePath = resolveTrustedNodeRuntime();
 
   if (!(await pathAccessible(appRoot))) {
     const error = new Error(`应用资源目录不存在：${appRoot}`);
@@ -3543,14 +3561,14 @@ function registerIpc() {
   installR32StoreBridge({ ipcMain, apiRequest });
   registerM2DebugIpc();
   ipcGuardHandle('desktop:get-state', () => desktopState());
-  ipcGuardHandle('desktop:letta-get-state', async () => projectLettaRendererState((await ensureLettaAgentRuntime()).snapshot()));
+  ipcGuardHandle('desktop:letta-get-state', async () => projectLettaRendererState(ensureLettaAgentRuntime().snapshot()));
   ipcGuardHandle('desktop:letta-list-agents', async () => {
-    const agents = await (await ensureLettaAgentRuntime()).listAgents();
+    const agents = await ensureLettaAgentRuntime().listAgents();
     return (Array.isArray(agents) ? agents : []).map(projectLettaAgentIdentity).filter(agent => agent.id);
   });
   ipcGuardHandle('desktop:letta-list-conversations', async (_event, input = {}) => {
     const normalized = normalizeLettaConversationListInput(input);
-    const conversations = await (await ensureLettaAgentRuntime()).listConversations(normalized);
+    const conversations = await ensureLettaAgentRuntime().listConversations(normalized);
     return (Array.isArray(conversations) ? conversations : [])
       .map(conversation => projectLettaConversationIdentity(conversation, normalized.agentId))
       .filter(conversation => conversation.id);
@@ -3931,6 +3949,7 @@ if (!app.requestSingleInstanceLock()) {
       node: process.versions.node,
       packaged: app.isPackaged
     });
+    await primeTrustedNodeRuntime();
     void governRuntimeNativeBinariesBootCheck().catch(() => { /* diagnostic only; never block startup */ });
     runtimeApiV2Client = new ApiV2RuntimeClient({
       baseURL: YANCE_BACKEND_URL,
@@ -4032,7 +4051,7 @@ if (!app.requestSingleInstanceLock()) {
     createTray();
     createSoundWindow();
     try {
-      await (await ensureLettaAgentRuntime()).start();
+      await ensureLettaAgentRuntime().start();
       await launchBackend();
       if (wp7ProbeRequested()) {
         const probeResult = await runWp7InstalledRuntimeProbe();

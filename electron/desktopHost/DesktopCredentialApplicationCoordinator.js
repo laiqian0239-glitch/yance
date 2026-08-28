@@ -1032,10 +1032,23 @@ class DesktopCredentialApplicationCoordinator {
   }
 
   async _recoverContainmentIfOwnerExited(options = {}) {
+    if (typeof this.vaultHost.initialize === 'function') {
+      await this.vaultHost.initialize();
+    }
+    await this.initialize();
     if (!this.isRejectedOwnerContainmentActive()) return { recovered: false, notRequired: true };
     const child = this.getOwnedBackendChild();
-    const childLive = await this._backendChildLiveAsync(child);
-    const persistedPidLive = await this._persistedContainmentPidLiveAsync();
+    let childLive = await this._backendChildLiveAsync(child);
+    let persistedPidLive = await this._persistedContainmentPidLiveAsync();
+    if (!childLive && !persistedPidLive && this._backendOwned()) {
+      const stopped = await this.stopBackendCallback({
+        ...options,
+        reason: options.reason || 'reconcile-exited-rejected-owner'
+      });
+      if (stopped?.stopped !== true || stopped?.exitConfirmed !== true) throw this._containmentError();
+      childLive = await this._backendChildLiveAsync(child);
+      persistedPidLive = await this._persistedContainmentPidLiveAsync();
+    }
     if (childLive || persistedPidLive || this._backendOwned()) throw this._containmentError();
     return this._resolveRejectedOwnerContainment(child, options);
   }
@@ -1390,7 +1403,8 @@ class DesktopCredentialApplicationCoordinator {
         throw makeError(APPLICATION_READY_MISMATCH, 'Backend runtime projection validator is unavailable', { failures: ['runtime-projection-validator-unavailable'] });
       }
       runtimeProjection = this._assertRuntimeProjection(await this.validateRuntimeProjection({ result, ready, applicationLeaseToken: token }), ready);
-      ownerAcceptance = await this.desktopHost.acceptBackendOwner?.({ backendPid: ready.backend.backendPid, generation: ready.authority.generation, authorityHeadDigest: ready.authority.authorityHeadDigest }) || null;
+      ownerAcceptance = this.desktopHost.acceptBackendOwner?.({ backendPid: ready.backend.backendPid, generation: ready.authority.generation, authorityHeadDigest: ready.authority.authorityHeadDigest }) || null;
+      ownerAcceptance = ownerAcceptance ? await ownerAcceptance : null;
     } catch (cause) {
       await this._cleanupRejectedNewOwner(token, cause, options);
       throw cause;
