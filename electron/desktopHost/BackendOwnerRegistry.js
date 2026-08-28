@@ -225,29 +225,44 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     return null;
   }
 
-  const script = [
+  const cimScript = [
     `$p = Get-CimInstance Win32_Process -Filter "ProcessId = ${value}" -ErrorAction Stop`,
     'if ($null -eq $p) { exit 3 }',
     '$o = [ordered]@{ ProcessId = [int]$p.ProcessId; CreationDate = $p.CreationDate.ToUniversalTime().ToString("o"); ExecutablePath = [string]$p.ExecutablePath; CommandLine = [string]$p.CommandLine }',
     '$o | ConvertTo-Json -Compress'
   ].join('; ');
+  const managementScript = [
+    'Add-Type -AssemblyName System.Management -ErrorAction Stop',
+    `$searcher = [System.Management.ManagementObjectSearcher]::new("SELECT ProcessId, CreationDate, ExecutablePath, CommandLine FROM Win32_Process WHERE ProcessId = ${value}")`,
+    '$results = $null',
+    'try { $results = $searcher.Get(); $p = $results | Select-Object -First 1; if ($null -eq $p) { exit 3 }; $creation = [System.Management.ManagementDateTimeConverter]::ToDateTime([string]$p.CreationDate).ToUniversalTime().ToString("o"); $o = [ordered]@{ ProcessId = [int]$p.ProcessId; CreationDate = $creation; ExecutablePath = [string]$p.ExecutablePath; CommandLine = [string]$p.CommandLine }; $o | ConvertTo-Json -Compress } finally { if ($null -ne $results) { $results.Dispose() }; if ($null -ne $searcher) { $searcher.Dispose() } }'
+  ].join('; ');
   const powershellPath = process.env.SystemRoot
     ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
     : 'powershell.exe';
-  const args = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script];
-  const execOptions = { encoding: 'utf8', windowsHide: true, timeout: 5000, maxBuffer: 1024 * 1024 };
+  const commandArgs = script => ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script];
+  const cimExecOptions = { encoding: 'utf8', windowsHide: true, timeout: 5000, maxBuffer: 1024 * 1024 };
+  const managementExecOptions = { encoding: 'utf8', windowsHide: true, timeout: 2500, maxBuffer: 1024 * 1024 };
 
-  const configuredAttempts = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS || 8);
+  const configuredAttempts = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS || 3);
   const configuredDelay = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_RETRY_MS || 125);
-  const maxAttempts = Math.min(8, Math.max(1, Number.isFinite(configuredAttempts) ? Math.trunc(configuredAttempts) : 8));
+  const maxAttempts = Math.min(4, Math.max(1, Number.isFinite(configuredAttempts) ? Math.trunc(configuredAttempts) : 3));
   const delayMs = Math.min(1000, Math.max(0, Number.isFinite(configuredDelay) ? Math.trunc(configuredDelay) : 125));
+  const collectors = [
+    { authority: 'cim', args: commandArgs(cimScript), options: cimExecOptions },
+    ...Array.from({ length: Math.max(0, maxAttempts - 1) }, () => ({
+      authority: 'system-management',
+      args: commandArgs(managementScript),
+      options: managementExecOptions
+    }))
+  ];
 
-  const parseRaw = (raw, attempt) => {
+  const parseRaw = (raw, attempt, authority) => {
     const text = String(raw || '').trim();
-    debugLog('PowerShell output', { attempt, raw: text.slice(0, 500) });
+    debugLog('PowerShell output', { attempt, authority, raw: text.slice(0, 500) });
     const row = JSON.parse(text);
     if (Number(row.ProcessId) !== value || !nonEmptyString(row.CreationDate) || !nonEmptyString(row.ExecutablePath) || !nonEmptyString(row.CommandLine)) {
-      const error = new Error('Windows process identity CIM row is incomplete or mismatched');
+      const error = new Error('Windows process identity row is incomplete or mismatched');
       error.identityRow = row;
       throw error;
     }
@@ -257,13 +272,14 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
       executablePathDigest: sha256(String(row.ExecutablePath).toLowerCase()),
       commandDigest: sha256(row.CommandLine)
     };
-    debugLog('returning result', { attempt, result });
+    debugLog('returning result', { attempt, authority, result });
     return result;
   };
 
-  const logFailure = (attempt, error) => {
+  const logFailure = (attempt, authority, error) => {
     debugLog('PowerShell execution failed', {
       attempt,
+      authority,
       name: error?.name || '',
       message: error?.message || '',
       code: error?.code || '',
@@ -277,20 +293,22 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
   if (typeof execFileImpl === 'function') {
     let lastError = null;
     let lastRaw = '';
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    for (let index = 0; index < collectors.length; index += 1) {
+      const attempt = index + 1;
+      const collector = collectors[index];
       try {
-        debugLog('executing injected Windows identity collector', { attempt, maxAttempts, powershellPath });
-        const raw = execFileImpl(powershellPath, args, execOptions);
+        debugLog('executing injected Windows identity collector', { attempt, maxAttempts, authority: collector.authority, powershellPath });
+        const raw = execFileImpl(powershellPath, collector.args, collector.options);
         lastRaw = String(raw || '');
-        return parseRaw(lastRaw, attempt);
+        return parseRaw(lastRaw, attempt, collector.authority);
       } catch (error) {
         lastError = error;
-        logFailure(attempt, error);
+        logFailure(attempt, collector.authority, error);
       }
     }
-    debugLog('returning null after injected collector retries', {
+    debugLog('returning null after injected collector attempts', {
       pid: value,
-      attempts: maxAttempts,
+      attempts: collectors.length,
       lastError: lastError ? { message: lastError.message || '', code: lastError.code || '', status: lastError.status ?? null } : null,
       lastRaw: lastRaw.slice(0, 500)
     });
@@ -300,11 +318,13 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
   return (async () => {
     let lastError = null;
     let lastRaw = '';
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    for (let index = 0; index < collectors.length; index += 1) {
+      const attempt = index + 1;
+      const collector = collectors[index];
       try {
-        debugLog('executing PowerShell asynchronously', { attempt, maxAttempts, powershellPath });
+        debugLog('executing PowerShell asynchronously', { attempt, maxAttempts, authority: collector.authority, powershellPath });
         const raw = await new Promise((resolve, reject) => {
-          execFile(powershellPath, args, execOptions, (error, stdout, stderr) => {
+          execFile(powershellPath, collector.args, collector.options, (error, stdout, stderr) => {
             if (error) {
               error.stdout = stdout;
               error.stderr = stderr;
@@ -315,16 +335,16 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
           });
         });
         lastRaw = String(raw || '');
-        return parseRaw(lastRaw, attempt);
+        return parseRaw(lastRaw, attempt, collector.authority);
       } catch (error) {
         lastError = error;
-        logFailure(attempt, error);
+        logFailure(attempt, collector.authority, error);
       }
-      if (attempt < maxAttempts && delayMs > 0) await asyncDelay(delayMs);
+      if (index + 1 < collectors.length && delayMs > 0) await asyncDelay(delayMs);
     }
-    debugLog('returning null after async retries', {
+    debugLog('returning null after async collector attempts', {
       pid: value,
-      attempts: maxAttempts,
+      attempts: collectors.length,
       lastError: lastError ? { message: lastError.message || '', code: lastError.code || '', status: lastError.status ?? null } : null,
       lastRaw: lastRaw.slice(0, 500)
     });
