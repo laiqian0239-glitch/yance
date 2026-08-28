@@ -107,6 +107,29 @@
     "startupCapsuleRouteAndImplementationMustRemainByteForByteUnchanged": true,
     "secondApplicationBuildForbidden": true
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_EXACT_BRANCH_ROUTE_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product Final exact-branch admission seam",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml and tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Only one additional explicit successor-v8 equality is required in the existing three Product Final jobs and matching layered exact-set assertion."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel Product Final workflow, router, wrapper, prefix wildcard, contains/startsWith admission, or alternate execution path.",
+      "Do not mutate, merge, or rerun frozen #925 or successor-v7.",
+      "Do not reimplement the WP4 bootstrap vault initialization repair already ordinary-merged by #927.",
+      "Do not create a second application build."
+    ],
+    "thinYanceAdapterOnly": true
+  },
   "failureFirst": {
     "required": true,
     "expectedRed": "Exact successor-v8 RC branch is absent from all three Product Final job allowlists.",
