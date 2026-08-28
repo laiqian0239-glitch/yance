@@ -204,6 +204,49 @@ test('fresh no-backend legacy credential migration initializes authority before 
   } finally { harness.close(); }
 });
 
+test('no-backend legacy credential migration recovers a stale active owner before strict owner-free assertion', async () => {
+  const harness = createHarness();
+  try {
+    await harness.coordinator.startBackend();
+    const staleOwner = harness.vaultHost.snapshotMetadata().activeOwnerSession;
+    assert.ok(staleOwner, 'first backend launch must leave an active owner session to recover');
+
+    Object.assign(harness.backend(), {
+      state: 'STOPPED',
+      running: false,
+      backendPid: 0,
+      ownershipPresent: false,
+      startupPending: false,
+      shutdownPending: false,
+      credentialCustody: null
+    });
+    const before = harness.vaultHost.snapshotMetadata();
+    assert.deepEqual(before.activeOwnerSession, staleOwner);
+    assert.equal(harness.backend().state, 'STOPPED');
+    assert.equal(harness.backend().ownershipPresent, false);
+    assert.equal(harness.backend().backendPid, 0);
+
+    harness.events.length = 0;
+    let workCalls = 0;
+    const result = await harness.coordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async applicationLeaseToken => {
+      workCalls += 1;
+      const authority = harness.vaultHost.snapshotMetadata();
+      assert.equal(authority.activeOwnerSession, null);
+      assert.equal(authority.pendingOwnerSession, null);
+      assert.equal(authority.lifecycle?.state, 'ACTIVE');
+      assert.equal(authority.available, true);
+      assert.ok(applicationLeaseToken);
+      return { migrated: true };
+    });
+
+    assert.equal(result.migrated, true);
+    assert.equal(workCalls, 1);
+    assert.deepEqual(harness.events, [], 'already-stopped backend must not be respawned or stopped to recover its stale owner');
+    assert.equal(harness.coordinator.snapshot().state, 'IDLE');
+    assert.equal(harness.vaultHost.snapshotMetadata().applicationLease, null);
+  } finally { harness.close(); }
+});
+
 test('desktop save is stop -> real owner recovery -> one commit -> FD5/READY before UI success', async () => {
   const harness = createHarness();
   try {

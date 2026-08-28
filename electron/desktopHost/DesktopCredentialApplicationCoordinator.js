@@ -1096,7 +1096,10 @@ class DesktopCredentialApplicationCoordinator {
     await this._persist();
     if (!this._backendOwned()) {
       await this._transition(STATES.OWNER_EXIT_CONFIRMED, 'backend-not-owned');
-      await this._transition(STATES.OWNER_RECOVERING, 'owner-recovery-not-required');
+      const authority = this.vaultHost.snapshotMetadata();
+      const ownerContext = authority.activeOwnerSession || authority.pendingOwnerSession || null;
+      await this._transition(STATES.OWNER_RECOVERING, ownerContext ? 'owner-exit-recovery' : 'owner-recovery-not-required');
+      if (ownerContext) await this.vaultHost.handleBackendOwnerExit(ownerContext);
       this._assertOwnerReleased();
       return { stopped: true, exitConfirmed: true, alreadyStopped: true, authority: this._authorityBoundary() };
     }
