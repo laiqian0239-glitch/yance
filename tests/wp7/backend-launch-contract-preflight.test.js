@@ -23,8 +23,8 @@ function createEntry(root) {
   return entry;
 }
 
-test('M1 preflight rejects missing app root before fork', () => {
-  assert.throws(() => validateBackendLaunchContract({
+test('M1 preflight rejects missing app root before fork', async () => {
+  await assert.rejects(() => validateBackendLaunchContract({
     cwd: path.join(os.tmpdir(), 'missing-yance-app-root'),
     entry: path.join(os.tmpdir(), 'missing-yance-app-root', 'backend', 'desktopHostedEntry.js'),
     nodeRuntimeExecutablePath: process.execPath,
@@ -32,9 +32,9 @@ test('M1 preflight rejects missing app root before fork', () => {
   }), error => error.reasonCode === 'M1_APP_ROOT_MISSING');
 });
 
-test('M1 preflight rejects missing backend entry before fork', () => {
+test('M1 preflight rejects missing backend entry before fork', async () => {
   const root = tempRoot();
-  assert.throws(() => validateBackendLaunchContract({
+  await assert.rejects(() => validateBackendLaunchContract({
     cwd: root,
     entry: path.join(root, 'backend', 'desktopHostedEntry.js'),
     nodeRuntimeExecutablePath: process.execPath,
@@ -42,10 +42,10 @@ test('M1 preflight rejects missing backend entry before fork', () => {
   }), error => error.reasonCode === 'M1_BACKEND_ENTRY_MISSING');
 });
 
-test('M1 preflight rejects missing trusted Node runtime before fork', () => {
+test('M1 preflight rejects missing trusted Node runtime before fork', async () => {
   const root = tempRoot();
   const entry = createEntry(root);
-  assert.throws(() => validateBackendLaunchContract({
+  await assert.rejects(() => validateBackendLaunchContract({
     cwd: root,
     entry,
     nodeRuntimeExecutablePath: path.join(root, 'resources', 'runtime', 'node22', 'node.exe'),
@@ -53,10 +53,10 @@ test('M1 preflight rejects missing trusted Node runtime before fork', () => {
   }), error => error.reasonCode === 'M1_NODE_RUNTIME_MISSING');
 });
 
-test('M1 preflight rejects missing NODE_PATH before fork', () => {
+test('M1 preflight rejects missing NODE_PATH before fork', async () => {
   const root = tempRoot();
   const entry = createEntry(root);
-  assert.throws(() => validateBackendLaunchContract({
+  await assert.rejects(() => validateBackendLaunchContract({
     cwd: root,
     entry,
     nodeRuntimeExecutablePath: process.execPath,
@@ -65,12 +65,12 @@ test('M1 preflight rejects missing NODE_PATH before fork', () => {
   }), error => error.reasonCode === 'M1_NODE_MODULES_MISSING');
 });
 
-test('M1 preflight accepts coherent runtime contract', () => {
+test('M1 preflight accepts coherent runtime contract', async () => {
   const root = tempRoot();
   const entry = createEntry(root);
   const nodeModules = path.join(root, 'node_modules');
   fs.mkdirSync(nodeModules, { recursive: true });
-  const result = validateBackendLaunchContract({
+  const result = await validateBackendLaunchContract({
     cwd: root,
     entry,
     nodeRuntimeExecutablePath: process.execPath,
@@ -102,16 +102,16 @@ test('M1 preflight failure enters START_FAILED without forking a backend child',
   assert.equal(snapshot.apiSessionEstablished, false);
 });
 
-test('trusted Node runtime preflight executes the exact runtime and rejects a silent launch failure', () => {
+test('trusted Node runtime preflight executes the exact runtime and rejects a silent launch failure', async () => {
   const { probeNodeRuntimeExecutable } = require('../../electron/desktopHost/BackendProcessHost');
   const calls = [];
-  const ok = probeNodeRuntimeExecutable(process.execPath, {
+  const ok = await probeNodeRuntimeExecutable(process.execPath, {
     noCache: true,
     cwd: ROOT_FOR_PROBE(),
     env: { SAFE: '1' },
-    spawnSync(executable, args, options) {
+    execFile(executable, args, options) {
       calls.push({ executable, args, options });
-      return { status: 0, signal: null, stdout: 'v22.16.0\n', stderr: '' };
+      return Promise.resolve({ stdout: 'v22.16.0\n', stderr: '' });
     }
   });
   assert.equal(ok.version, 'v22.16.0');
@@ -120,10 +120,17 @@ test('trusted Node runtime preflight executes the exact runtime and rejects a si
   assert.deepEqual(calls[0].args, ['--version']);
   assert.equal(calls[0].options.windowsHide, true);
 
-  assert.throws(() => probeNodeRuntimeExecutable(process.execPath, {
+  await assert.rejects(() => probeNodeRuntimeExecutable(process.execPath, {
     noCache: true,
     cwd: ROOT_FOR_PROBE(),
-    spawnSync() { return { status: 1, signal: null, stdout: '', stderr: 'bad option: --electron-flag' }; }
+    execFile() {
+      const e = new Error('Command failed with exit code 1');
+      e.status = 1;
+      e.signal = null;
+      e.stdout = '';
+      e.stderr = 'bad option: --electron-flag';
+      return Promise.reject(e);
+    }
   }), error => error.reasonCode === 'M1_NODE_RUNTIME_PROBE_FAILED' && /bad option/.test(error.stderrTail));
 });
 

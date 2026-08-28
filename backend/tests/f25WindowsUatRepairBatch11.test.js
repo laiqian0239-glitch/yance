@@ -40,10 +40,10 @@ function fixture() {
   };
 }
 
-test('Batch 11 backend launch contract inherits the configured startup timeout instead of reverting to 30 seconds', () => {
+test('Batch 11 backend launch contract inherits the configured startup timeout instead of reverting to 30 seconds', async () => {
   const { root, options } = fixture();
   try {
-    const contract = validateBackendLaunchContract({
+    const contract = await validateBackendLaunchContract({
       ...options,
       env: { ...options.env, YANCE_BACKEND_STARTUP_TIMEOUT_MS: '180000' }
     });
@@ -53,11 +53,11 @@ test('Batch 11 backend launch contract inherits the configured startup timeout i
   }
 });
 
-test('Batch 11 backend launch contract caps excessive startup timeouts and rejects invalid values', () => {
+test('Batch 11 backend launch contract caps excessive startup timeouts and rejects invalid values', async () => {
   const { root, options } = fixture();
   try {
-    assert.equal(validateBackendLaunchContract({ ...options, readyTimeoutMs: 999999 }).readyTimeoutMs, 180000);
-    assert.throws(
+    assert.equal((await validateBackendLaunchContract({ ...options, readyTimeoutMs: 999999 })).readyTimeoutMs, 180000);
+    await assert.rejects(
       () => validateBackendLaunchContract({ ...options, env: { ...options.env, YANCE_BACKEND_STARTUP_TIMEOUT_MS: 'invalid' } }),
       error => error.reasonCode === 'M1_READY_TIMEOUT_INVALID'
     );

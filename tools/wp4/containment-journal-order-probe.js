@@ -40,6 +40,7 @@ async function runContainmentJournalOrderProbe() {
   try {
     const vault = new CredentialVault(paths.vault, { safeStorage: safeStorage() });
     const vaultHost = new CredentialVaultHost({ vault, metadataPath: paths.metadata });
+    await vaultHost.initialize();
     const backendHost = new BackendProcessHost({
       ownerRecordPath: paths.owner,
       isProcessAlive: pid => pid === backendPid && live.value,
