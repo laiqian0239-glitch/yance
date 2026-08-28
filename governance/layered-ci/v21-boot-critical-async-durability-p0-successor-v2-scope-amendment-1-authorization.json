@@ -6,13 +6,13 @@
   "workPackage": "V21-BOOT-CRITICAL-ASYNC-DURABILITY-P0-SUCCESSOR-V3",
   "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "PR #914 exact head 3024e4b3b12c88656a47cd26fa4177218f080c78 produced a single first-pass Stage failure set (run 33134366726): the new boot-critical event-loop guard passed, while four existing caller/recovery contracts exposed compatibility fallout. Focused repair makes Letta, trusted Node, desktop bootstrap projection, and the boot-critical guard pass; the remaining containment journal probe then advances from eventual-exit-recovery-failed to authority-boundary-changed because the test captured an uninitialized empty credential-authority boundary before the now-required durable vault initialization. Skipping vault initialization would weaken persisted authority correctness. Authorize exactly one additional WP4 evidence-test path to move that baseline after durable authority initialization, preserving production correctness and avoiding any rerun of 3024e4b3 or recreation of the original RED.",
+  "reason": "PR #914 exact head 3024e4b3b12c88656a47cd26fa4177218f080c78 produced a single first-pass Stage failure set (run 33134366726): the new boot-critical event-loop guard passed, while four existing caller/recovery contracts exposed compatibility fallout. Focused repair makes Letta, trusted Node, desktop bootstrap projection, and the boot-critical guard pass; the remaining containment journal probe then advances from eventual-exit-recovery-failed to authority-boundary-changed because tools/wp4/containment-journal-order-probe.js captures authorityBefore from CredentialVaultHost before durable vault initialization, while fresh-process recovery now correctly initializes persisted credential authority before comparing it. Skipping vault initialization would weaken persisted authority correctness. Authorize exactly this one probe-helper path so its authority baseline is captured after durable initialization, preserving the wrapper evidence test unchanged and avoiding any rerun of 3024e4b3 or recreation of the original RED.",
   "supersedes": {
     "authorizationPath": "governance/layered-ci/v21-boot-critical-async-durability-p0-successor-v2-authorization.json",
     "implementationBranch": "fix/v21-boot-critical-async-durability-p0-successor-v2",
     "pullRequest": 914,
     "frozenHead": "3024e4b3b12c88656a47cd26fa4177218f080c78",
-    "reason": "The 40-path #914 head remains immutable failure evidence. Scope expansion is required only for tests/wp4/evidence-platform-identity-and-windows-collector.test.js, so continuation must occur on a fresh branch after this amendment merges."
+    "reason": "The 40-path #914 head remains immutable failure evidence. Scope expansion is required only for tools/wp4/containment-journal-order-probe.js; tests/wp4/evidence-platform-identity-and-windows-collector.test.js is a wrapper and remains unchanged. Continuation must occur on a fresh branch after this amendment merges."
   },
   "base": {
     "branch": "main",
@@ -82,9 +82,9 @@
       "tests/wp4/credential-strict-hydration.test.js",
       "tests/wp4/credential-terminal-journal-recovery.test.js",
       "tests/wp4/credential-vault-atomicity.test.js",
-      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js",
       "tests/wp7/backend-launch-contract-preflight.test.js",
       "tools/wp4/backend-owner-exit-probe.js",
+      "tools/wp4/containment-journal-order-probe.js",
       "tools/wp4/credential-authority-closure-probes.js",
       "tools/wp4/credential-authority-lifecycle-child.js",
       "tools/wp4/credential-authority-lifecycle-matrix.js",
@@ -98,12 +98,12 @@
       "tools/wp4/transaction-failure-probes.js"
     ],
     "approvedChangedFileCount": 41,
-    "approvedChangedFileSetSha256": "a92bbb1ad3ec8ef599184b07f171a3aa2da97e0648b558cb026501122b0d7716",
+    "approvedChangedFileSetSha256": "96ddd67c981e1d7a8357da6e78a950b50ec4f9904b767de4e2fa67e539c45d75",
     "newlyAuthorizedPaths": [
-      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js"
+      "tools/wp4/containment-journal-order-probe.js"
     ],
     "newlyAuthorizedChangedFileCount": 1,
-    "newlyAuthorizedChangedFileSetSha256": "cc23fdf7746d59ea5546136502c9a959b4c3ddaf834ef80e965980624cd50406",
+    "newlyAuthorizedChangedFileSetSha256": "3dac17d2ba69128a508c8486bb4599b04c71d5aa9943ad736dc67fdc2fea22af",
     "productionScopeAuthorized": true,
     "productionCodeChanged": true,
     "testModificationAllowed": true,
@@ -158,10 +158,10 @@
       "Stage 33134366726 ran once at exact head 3024e4b3b12c88656a47cd26fa4177218f080c78 and must not be rerun.",
       "tests/wp0/v21-boot-critical-path-event-loop-p0.test.js passed at 3024e4b3, proving the new async boot-critical guard is green.",
       "Focused local repair makes Letta 7/7, trusted Node 4/4, desktop bootstrap projection 13/13, and boot-critical guard 7/7 pass.",
-      "After required vaultHost.initialize plus coordinator initialize, the WP4 containment probe progresses from eventual-exit-recovery-failed to authority-boundary-changed.",
-      "The remaining mismatch is caused by the evidence test comparing against an initialization-time empty authority boundary rather than the durable initialized authority baseline."
+      "After required vaultHost.initialize plus coordinator durable initialization, the WP4 containment probe progresses from eventual-exit-recovery-failed to authority-boundary-changed.",
+      "Remote source audit proves tests/wp4/evidence-platform-identity-and-windows-collector.test.js only invokes runContainmentJournalOrderProbe; the stale pre-initialization authorityBefore baseline is actually in tools/wp4/containment-journal-order-probe.js."
     ],
-    "requiredTestCorrection": "Move/recompute the containment journal order probe's comparison baseline only after durable CredentialVaultHost/Coordinator authority initialization, so the test detects unauthorized post-initialization authority mutation rather than treating legitimate initialization as a mutation.",
+    "requiredTestCorrection": "Keep tests/wp4/evidence-platform-identity-and-windows-collector.test.js unchanged. In tools/wp4/containment-journal-order-probe.js, initialize the first CredentialVaultHost durable authority before capturing authorityBefore (and before deriving authority-dependent session metadata), so the probe compares initialized durable authority across relaunch and still detects any unauthorized post-initialization mutation.",
     "forbiddenAlternative": "Do not skip vaultHost.initialize, restore an empty authority snapshot, weaken the authority-boundary assertion, or add synchronous liveness/disk probing merely to satisfy the old baseline.",
     "unknownBlockers": 0
   },
@@ -181,11 +181,11 @@
       },
       {
         "name": "Existing WP4 containment journal order probe",
-        "source": "tests/wp4/evidence-platform-identity-and-windows-collector.test.js and tools/wp4/containment-journal-order-probe.js",
+        "source": "tools/wp4/containment-journal-order-probe.js and tests/wp4/evidence-platform-identity-and-windows-collector.test.js",
         "license": "repository-existing",
         "adoptionMode": "correct-evidence-baseline",
         "fit": "FIT",
-        "reason": "Only the timing of the comparison baseline is stale; no new test framework or production subsystem is needed."
+        "reason": "The stale baseline is inside the existing probe helper; the wrapper test already expresses the correct PASS/failure contract and must remain unchanged."
       }
     ],
     "retireOrAvoid": [
