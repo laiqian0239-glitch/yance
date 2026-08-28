@@ -51,6 +51,7 @@
     "failureFirstCommit": {
       "freshCausalRedRequired": true,
       "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
       "allowedChangedPaths": [
         "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
       ],
