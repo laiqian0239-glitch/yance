@@ -50,6 +50,10 @@
   },
   "implementation": {
     "branch": "fix/v21-boot-critical-async-durability-p0-successor-v3",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "3024e4b3b12c88656a47cd26fa4177218f080c78"
+    },
     "allowedChangedPaths": [
       "backend/tests/f25WindowsUatRepairBatch11.test.js",
       "electron/credentialVault.js",
