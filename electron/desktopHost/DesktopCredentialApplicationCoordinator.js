@@ -745,6 +745,7 @@ class DesktopCredentialApplicationCoordinator {
 
   async _acquireLease(operation) {
     if (this.activeLeaseToken) throw makeError(APPLICATION_BUSY, 'Desktop credential application lease is already held', { retryable: true });
+    await this.vaultHost.initialize();
     const token = await this.vaultHost.acquireApplicationLease({
       operationId: operation.operationId,
       operationType: operation.operationType,
