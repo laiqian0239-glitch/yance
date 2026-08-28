@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-28T09:31:19+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BOOT-CRITICAL-ASYNC-DURABILITY-P0-SUCCESSOR-V3",
+  "proposalRevision": 3,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #914 exact head 3024e4b3b12c88656a47cd26fa4177218f080c78 produced a single first-pass Stage failure set (run 33134366726): the new boot-critical event-loop guard passed, while four existing caller/recovery contracts exposed compatibility fallout. Focused repair makes Letta, trusted Node, desktop bootstrap projection, and the boot-critical guard pass; the remaining containment journal probe then advances from eventual-exit-recovery-failed to authority-boundary-changed because the test captured an uninitialized empty credential-authority boundary before the now-required durable vault initialization. Skipping vault initialization would weaken persisted authority correctness. Authorize exactly one additional WP4 evidence-test path to move that baseline after durable authority initialization, preserving production correctness and avoiding any rerun of 3024e4b3 or recreation of the original RED.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-boot-critical-async-durability-p0-successor-v2-authorization.json",
+    "implementationBranch": "fix/v21-boot-critical-async-durability-p0-successor-v2",
+    "pullRequest": 914,
+    "frozenHead": "3024e4b3b12c88656a47cd26fa4177218f080c78",
+    "reason": "The 40-path #914 head remains immutable failure evidence. Scope expansion is required only for tests/wp4/evidence-platform-identity-and-windows-collector.test.js, so continuation must occur on a fresh branch after this amendment merges."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "2cefc0f8995359e45d8656cc3eb8d432d8f340dd",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "2cefc0f8995359e45d8656cc3eb8d432d8f340dd",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-boot-critical-async-durability-p0-successor-v2-scope-amendment-1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-boot-critical-async-durability-p0-successor-v2-scope-amendment-1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "0ec5a02cbc08050b0aa3989228676fec4c4b2ced74fe54bf04b97e05e834c4d2",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-boot-critical-async-durability-p0-successor-v3",
+    "allowedChangedPaths": [
+      "backend/tests/f25WindowsUatRepairBatch11.test.js",
+      "electron/credentialVault.js",
+      "electron/credentialVaultRecovery.js",
+      "electron/desktopHost/BackendOwnerRegistry.js",
+      "electron/desktopHost/BackendProcessHost.js",
+      "electron/desktopHost/CredentialAuthorityLifecycleCoordinator.js",
+      "electron/desktopHost/CredentialCustodyHost.js",
+      "electron/desktopHost/CredentialVaultHost.js",
+      "electron/desktopHost/DesktopCredentialApplicationCoordinator.js",
+      "electron/desktopHost/asyncDurability.js",
+      "electron/main.js",
+      "tests/wp0/v21-boot-critical-path-event-loop-p0.test.js",
+      "tests/wp4/credential-authority-history.test.js",
+      "tests/wp4/credential-authority-lifecycle-production.test.js",
+      "tests/wp4/credential-concurrent-mutation.test.js",
+      "tests/wp4/credential-custody-transaction.test.js",
+      "tests/wp4/credential-custody-vault-failure.test.js",
+      "tests/wp4/credential-durable-idempotency.test.js",
+      "tests/wp4/credential-generation-rollback-denied.test.js",
+      "tests/wp4/credential-illegal-vault-epoch-change-denied.test.js",
+      "tests/wp4/credential-indeterminate-commit-close.test.js",
+      "tests/wp4/credential-prepare-result-unknown.test.js",
+      "tests/wp4/credential-recovery-ambiguous.test.js",
+      "tests/wp4/credential-reset-authority.test.js",
+      "tests/wp4/credential-strict-hydration.test.js",
+      "tests/wp4/credential-terminal-journal-recovery.test.js",
+      "tests/wp4/credential-vault-atomicity.test.js",
+      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js",
+      "tests/wp7/backend-launch-contract-preflight.test.js",
+      "tools/wp4/backend-owner-exit-probe.js",
+      "tools/wp4/credential-authority-closure-probes.js",
+      "tools/wp4/credential-authority-lifecycle-child.js",
+      "tools/wp4/credential-authority-lifecycle-matrix.js",
+      "tools/wp4/credential-concurrency-probes.js",
+      "tools/wp4/credential-crash-child.js",
+      "tools/wp4/credential-crash-matrix.js",
+      "tools/wp4/credential-fourth-amendment-probes.js",
+      "tools/wp4/credential-indeterminate-probes.js",
+      "tools/wp4/credential-secure-bridge-failure-probe.js",
+      "tools/wp4/production-credential-runtime.js",
+      "tools/wp4/transaction-failure-probes.js"
+    ],
+    "approvedChangedFileCount": 41,
+    "approvedChangedFileSetSha256": "a92bbb1ad3ec8ef599184b07f171a3aa2da97e0648b558cb026501122b0d7716",
+    "newlyAuthorizedPaths": [
+      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 1,
+    "newlyAuthorizedChangedFileSetSha256": "cc23fdf7746d59ea5546136502c9a959b4c3ddaf834ef80e965980624cd50406",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "postFailureContinuation": {
+    "fastClosureV2": true,
+    "originalEffectiveAuthorizationMerge": "2cefc0f8995359e45d8656cc3eb8d432d8f340dd",
+    "originalFailureFirstHead": "f36e90d58d7df736c968c125d8f2e0a16149e159",
+    "originalFailureFirstStageRun": 33122749891,
+    "originalFailureFirstConclusion": "failure",
+    "originalFailureFirstEvidenceMustBeInheritedNotRecreated": true,
+    "failedProductionPredecessorHead": "3024e4b3b12c88656a47cd26fa4177218f080c78",
+    "failedProductionPredecessorStageRun": 33134366726,
+    "failedProductionPredecessorStageJob": 98730950656,
+    "failedProductionPredecessorPassCount": 732,
+    "failedProductionPredecessorFailCount": 4,
+    "bootCriticalGuardPassed": true,
+    "unknownBlockers": 0,
+    "requiredProductionTrailers": [
+      "Yance-Failure-First-Red-Head: f36e90d58d7df736c968c125d8f2e0a16149e159",
+      "Yance-Failure-First-Red-Run: 33122749891",
+      "Yance-Failure-First-Red-Conclusion: failure",
+      "Yance-Causal-Followup-Head: 3024e4b3b12c88656a47cd26fa4177218f080c78",
+      "Yance-Causal-Followup-Run: 33134366726",
+      "Yance-Closure-Matrix-Unknown-Blockers: 0"
+    ],
+    "requiredContinuationTopology": {
+      "newImplementationBranchMustStartFromEffectiveAmendmentMerge": true,
+      "firstContinuationCommitMustHaveExactlyTwoParents": true,
+      "firstContinuationCommitFirstParent": "EFFECTIVE_AMENDMENT_MERGE",
+      "firstContinuationCommitSecondParent": "3024e4b3b12c88656a47cd26fa4177218f080c78",
+      "firstContinuationTreeMustPreserveFrozenPredecessorAuthorizedBlobs": true,
+      "historyRewriteForbidden": true,
+      "cherryPickDuplicationForbidden": true,
+      "oldImplementationBranchMustNotReceiveFurtherCommits": true
+    }
+  },
+  "causalFailureClassification": {
+    "establishedFacts": [
+      "Stage 33134366726 ran once at exact head 3024e4b3b12c88656a47cd26fa4177218f080c78 and must not be rerun.",
+      "tests/wp0/v21-boot-critical-path-event-loop-p0.test.js passed at 3024e4b3, proving the new async boot-critical guard is green.",
+      "Focused local repair makes Letta 7/7, trusted Node 4/4, desktop bootstrap projection 13/13, and boot-critical guard 7/7 pass.",
+      "After required vaultHost.initialize plus coordinator initialize, the WP4 containment probe progresses from eventual-exit-recovery-failed to authority-boundary-changed.",
+      "The remaining mismatch is caused by the evidence test comparing against an initialization-time empty authority boundary rather than the durable initialized authority baseline."
+    ],
+    "requiredTestCorrection": "Move/recompute the containment journal order probe's comparison baseline only after durable CredentialVaultHost/Coordinator authority initialization, so the test detects unauthorized post-initialization authority mutation rather than treating legitimate initialization as a mutation.",
+    "forbiddenAlternative": "Do not skip vaultHost.initialize, restore an empty authority snapshot, weaken the authority-boundary assertion, or add synchronous liveness/disk probing merely to satisfy the old baseline.",
+    "unknownBlockers": 0
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_DURABLE_AUTHORITY_INITIALIZATION_AND_EVIDENCE_PROBE",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing CredentialVaultHost initialization and DesktopCredentialApplicationCoordinator durable recovery",
+        "source": "electron/desktopHost/CredentialVaultHost.js and electron/desktopHost/DesktopCredentialApplicationCoordinator.js",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "The production fix must load persisted credential authority before containment recovery; the evidence baseline must observe the same initialized authority."
+      },
+      {
+        "name": "Existing WP4 containment journal order probe",
+        "source": "tests/wp4/evidence-platform-identity-and-windows-collector.test.js and tools/wp4/containment-journal-order-probe.js",
+        "license": "repository-existing",
+        "adoptionMode": "correct-evidence-baseline",
+        "fit": "FIT",
+        "reason": "Only the timing of the comparison baseline is stale; no new test framework or production subsystem is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not weaken or remove persisted vault initialization.",
+      "Do not rerun exact head 3024e4b3b12c88656a47cd26fa4177218f080c78.",
+      "Do not mutate PR #914 after this amendment path begins.",
+      "Do not modify workflows, dependencies, release, publish, ledger, or unrelated tests."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focusedAfterProduction": [
+      "node --test tests/wp0/v21-letta-workspace-contract.test.js",
+      "node --test tests/wp0/v21-trusted-node-runtime-authority.test.js",
+      "node --test tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+      "node --test tests/wp4/evidence-platform-identity-and-windows-collector.test.js",
+      "node --test tests/wp0/v21-boot-critical-path-event-loop-p0.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2",
+      "WP-A when routed",
+      "WP-B when routed",
+      "Model Brain Windows when routed",
+      "Product Final only on later fresh RC candidate route"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "ledgerAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
