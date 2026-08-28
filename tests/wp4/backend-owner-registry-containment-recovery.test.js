@@ -397,3 +397,37 @@ test('active persisted identity must match the configured production platform po
   };
   assert.equal(validateOwnerRecord(win, { expectedPlatform: 'win32' }), win);
 });
+
+test('Windows process identity falls back to a bounded System.Management query when CIM collection fails', () => {
+  const calls = [];
+  const execFile = (command, args, options) => {
+    const script = args.join(' ');
+    calls.push({ command, args, options });
+    if (/Get-CimInstance Win32_Process/.test(script)) {
+      const error = new Error('CIM timed out');
+      error.code = 'ETIMEDOUT';
+      throw error;
+    }
+    if (/ManagementObjectSearcher/.test(script)) {
+      return JSON.stringify({
+        ProcessId: 43131,
+        CreationDate: '2026-08-28T11:57:57.9230000Z',
+        ExecutablePath: 'C:\\Program Files\\Yance\\backend.exe',
+        CommandLine: '"C:\\Program Files\\Yance\\backend.exe" --fd6 6'
+      });
+    }
+    throw new Error(`unexpected collector: ${script}`);
+  };
+
+  const captured = windowsProcessIdentity(43131, execFile, 'win32');
+  assert.equal(captured?.platform, 'win32');
+  assert.equal(captured?.creationTimeUtc, '2026-08-28T11:57:57.9230000Z');
+  assert.match(captured?.executablePathDigest || '', /^[a-f0-9]{64}$/);
+  assert.match(captured?.commandDigest || '', /^[a-f0-9]{64}$/);
+  assert.equal(validateProcessIdentity(captured), true);
+  assert.ok(calls.length >= 2, 'collector must attempt a fallback after primary CIM failure');
+  assert.match(calls[0].args.join(' '), /Get-CimInstance Win32_Process/);
+  assert.ok(calls.some(call => /ManagementObjectSearcher/.test(call.args.join(' '))), 'fallback must use System.Management Win32_Process authority');
+  assert.ok(calls.every(call => Number(call.options?.timeout) > 0 && Number(call.options.timeout) <= 5000), 'every OS query must have a strict timeout');
+  assert.ok(calls.length <= 8, 'identity collection must stay bounded');
+});
