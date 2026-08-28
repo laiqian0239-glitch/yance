@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-SUCCESSOR-V7-ROUTE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen Final RC/UAT PR #910 exact head 1918d9ae18edf20ea585f27948983c1c6ffacd32 remains immutable evidence. Product Final run 33090872542 passed frozen Element reproducibility, Matrix UAT, the single full packaged application build and real packaged post-install launch, then Windows job 98583039820 failed only in the same-build startup capsule with STARTUP_CAPSULE_POST_INSTALL_TIMEOUT. The boot-critical async durability repair is now ordinary-merged through PR #921: exact implementation head 15f2a9fb1d1b2bfbf367e446fe7abfe09e07e025 passed all routed exact-head gates and merged to trusted main as 5df0edc8471f536c9ba97029c3b56b824e86a824. A new immutable RC must use unique successor-v7 branch because frozen #910/successor-v6 cannot be reused, while Product Final exact-equality admission currently stops at successor-v6. This authorization changes only the existing Product Final exact-equality allowlists and their layered contract; no Product Final job body, startup-capsule implementation, application build, runtime, dependency, RC marker, ledger, release or publish mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "5df0edc8471f536c9ba97029c3b56b824e86a824",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "5df0edc8471f536c9ba97029c3b56b824e86a824",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-successor-v7-route-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-successor-v7-route-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "62ba364eeb126e209da71252abca2ad9d083bbd97aa202e63174214a8ee1e14e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-successor-v7-route-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0fe120e1cd4c2692f06a11c3becc1d5db4324efcbaf59f2cc62154b008fd9d6e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "1248eca9fee4a07fc2a0c5dd816c01de973d57ef003a3996926ca22ee3fb8d44",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      },
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ]
+    }
+  },
+  "frozenPredecessorEvidence": {
+    "pullRequest": 910,
+    "branch": "release/v21-final-rc-uat-p0-successor-v6",
+    "head": "1918d9ae18edf20ea585f27948983c1c6ffacd32",
+    "productFinalRun": 33090872542,
+    "productFinalWindowsJob": 98583039820,
+    "packagedApplicationBuild": "PASS",
+    "realPackagedLaunch": "PASS",
+    "startupCapsule": "FAIL",
+    "failureReason": "STARTUP_CAPSULE_POST_INSTALL_TIMEOUT",
+    "rootRepairPullRequest": 921,
+    "rootRepairExactHead": "15f2a9fb1d1b2bfbf367e446fe7abfe09e07e025",
+    "rootRepairMerge": "5df0edc8471f536c9ba97029c3b56b824e86a824",
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true,
+    "mergeForbidden": true
+  },
+  "successorRouteContract": {
+    "nextRcBranch": "release/v21-final-rc-uat-p0-successor-v7",
+    "workflow": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "workflowTriggerMustRemain": "pull_request only",
+    "sameRepositoryHeadRequired": true,
+    "exactBranchEqualityRequired": true,
+    "prefixWildcardContainsOrStartsWithForbidden": true,
+    "historicalBranchAdmissionsMustRemainUnchanged": true,
+    "jobsThatMustAdmitSuccessorBranch": [
+      "frozen-element-reproducibility",
+      "materialized-desktop-uat",
+      "materialized-matrix-uat"
+    ],
+    "productFinalJobBodiesMustRemainByteForByteUnchanged": true,
+    "startupCapsuleRouteAndImplementationMustRemainByteForByteUnchanged": true,
+    "sameBuildProjectionMustRemainUnchanged": true,
+    "secondApplicationBuildForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_EXACT_BRANCH_ROUTE_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product Final exact-branch admission seam",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml and tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Only one additional explicit successor-v7 equality is required in the existing three jobs and matching layered set assertion."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel Product Final workflow, router, wrapper, prefix wildcard, contains/startsWith admission, or alternate execution path.",
+      "Do not mutate, merge, or rerun frozen #910.",
+      "Do not reimplement the boot-critical async durability startup fix already ordinary-merged by #921.",
+      "Do not create a second application build."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "failureFirst": {
+    "required": true,
+    "firstImplementationHeadMustChangeOnly": [
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "expectedRed": [
+      "The exact successor-v7 RC branch is absent from all three Product Final job allowlists."
+    ],
+    "unknownBlockersMustEqual": 0,
+    "workflowFixForbiddenBeforeCleanCausalRed": true,
+    "redMustRemainImmutableEvidence": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "firstExactHead": "Fresh causal RED only for missing release/v21-final-rc-uat-p0-successor-v7 Product Final exact-equality admission; unknownBlockers=0.",
+    "greenExactHead": "After RED is frozen, add only the same successor-v7 exact equality to all three existing Product Final job allowlists; do not alter job bodies or historical admissions.",
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "Model Brain Windows when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    },
+    "unknownBlockers": 0
+  },
+  "downstreamAfterOrdinaryMerge": {
+    "authorizationRequired": true,
+    "nextAuthorization": "Create a fresh marker-only Final RC/UAT authorization for release/v21-final-rc-uat-p0-successor-v7 from then-current trusted main.",
+    "finalCandidateMustRemainFailClosed": true,
+    "fullRcDownloadForbiddenUntilFreshExactHeadProductFinalAndStartupCapsuleGreen": true
+  },
+  "prohibitions": {
+    "frozen910Mutation": true,
+    "frozen910Rerun": true,
+    "startupCapsuleImplementationChange": true,
+    "productFinalJobBodyChange": true,
+    "secondApplicationBuild": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "runtimeProductMutation": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "releaseLedgerClosure": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0
+  }
+}
