@@ -32,7 +32,7 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v6' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v7' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v8' ||
-        'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' == github.event.pull_request.head.ref
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'
       )
     runs-on: windows-latest
     env:
@@ -149,7 +149,7 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v6' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v7' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v8' ||
-        'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' == github.event.pull_request.head.ref
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -674,7 +674,7 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v6' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v7' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v8' ||
-        'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' == github.event.pull_request.head.ref
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120

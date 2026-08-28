@@ -1,5 +1,4 @@
-x-mautrix-meta-service: &mautrix-meta-service
-  image: yance-product-uat-mautrix-meta:${YANCE_UAT_CANDIDATE_SHA}
+x-mautrix-meta-service: &mautrix-meta-service { image: yance-product-uat-mautrix-meta:${YANCE_UAT_CANDIDATE_SHA} }
 
 services:
   mautrix-meta-registration:
