@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { atomicWriteJsonAsync, readFileTextAsync } = require('./desktopHost/asyncDurability');
 
 const DIRECT_MUTATION_FORBIDDEN = 'CREDENTIAL_VAULT_DIRECT_MUTATION_FORBIDDEN';
 const DECRYPT_FAILED = 'CREDENTIAL_VAULT_DECRYPT_FAILED';
@@ -29,24 +30,40 @@ class CredentialVault {
     this.loadError = null;
     this.loadExists = false;
     this.mutationAuthorityToken = null;
-    this.load();
+    this._loadPromise = null;
+    // Real disk load is deferred to an explicit awaitable initialize step so the
+    // constructor never blocks the Electron main event loop. Callers must await
+    // load() before reading this.values or treating loadError/loadExists as
+    // authoritative.
   }
 
   get available() { return Boolean(this.safeStorage?.isEncryptionAvailable?.()); }
 
-  load() {
-    this.loadError = null;
-    this.loadExists = false;
-    try {
-      const text = this.fs.readFileSync(this.file, 'utf8');
+  async load() {
+    if (this._loadPromise) return this._loadPromise;
+    this._loadPromise = (async () => {
+      this.loadError = null;
+      this.loadExists = false;
+      let text = null;
+      try {
+        text = await readFileTextAsync(this.file, this.fs);
+      } catch (cause) {
+        this.values = {};
+        this.loadError = cause;
+        return;
+      }
+      if (text === null) { this.values = {}; return; } // ENOENT: fresh vault
       this.loadExists = true;
-      const data = JSON.parse(text || '{}');
-      if (!data || typeof data !== 'object' || Array.isArray(data)) throw error(ENTRY_CORRUPTED, 'Credential vault root must be an object');
-      this.values = data;
-    } catch (cause) {
-      this.values = {};
-      if (cause.code !== 'ENOENT') this.loadError = cause;
-    }
+      try {
+        const data = JSON.parse(text || '{}');
+        if (!data || typeof data !== 'object' || Array.isArray(data)) throw error(ENTRY_CORRUPTED, 'Credential vault root must be an object');
+        this.values = data;
+      } catch (cause) {
+        this.values = {};
+        this.loadError = cause;
+      }
+    })();
+    return this._loadPromise;
   }
 
   bindMutationAuthority(token) {
@@ -58,31 +75,14 @@ class CredentialVault {
     if (!this.mutationAuthorityToken || token !== this.mutationAuthorityToken) throw error(DIRECT_MUTATION_FORBIDDEN, 'Credential vault can only be modified by CredentialVaultHost');
   }
 
-  _atomicWrite(nextValues) {
-    this.fs.mkdirSync(path.dirname(this.file), { recursive: true });
-    const temp = `${this.file}.${process.pid}.${Date.now()}.tmp`;
-    let fileHandle = null;
-    try {
-      fileHandle = this.fs.openSync(temp, 'w', 0o600);
-      this.fs.writeFileSync(fileHandle, `${JSON.stringify(nextValues, null, 2)}\n`, 'utf8');
-      this.fs.fsyncSync?.(fileHandle);
-      this.fs.closeSync(fileHandle); fileHandle = null;
-      this.fs.renameSync(temp, this.file);
-      try {
-        const dirHandle = this.fs.openSync(path.dirname(this.file), 'r');
-        try { this.fs.fsyncSync?.(dirHandle); } finally { this.fs.closeSync(dirHandle); }
-      } catch (_) {}
-    } catch (cause) {
-      if (fileHandle !== null) { try { this.fs.closeSync(fileHandle); } catch (_) {} }
-      try { this.fs.rmSync(temp, { force: true }); } catch (_) {}
-      throw cause;
-    }
+  async _atomicWrite(nextValues) {
+    await atomicWriteJsonAsync(this.file, nextValues, { fsApi: this.fs });
   }
 
-  saveValues(nextValues, authorityToken) {
+  async saveValues(nextValues, authorityToken) {
     this._assertMutationAuthority(authorityToken);
     const copy = clone(nextValues);
-    this._atomicWrite(copy);
+    await this._atomicWrite(copy);
     this.values = copy;
     this.loadExists = true;
     return true;

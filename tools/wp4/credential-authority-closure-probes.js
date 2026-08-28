@@ -29,7 +29,7 @@ function safeStorage(overrides = {}) {
     }
   };
 }
-function workspace(prefix = 'wp4-authority-closure-') {
+async function workspace(prefix = 'wp4-authority-closure-') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   const paths = {
     vault: path.join(root, 'vault.bin'),
@@ -43,7 +43,7 @@ function workspace(prefix = 'wp4-authority-closure-') {
     return { vault, host };
   };
   const first = create();
-  const hydration = first.host.createHydrationFrame({
+  const hydration = await first.host.createHydrationFrame({
     startupNonce: 'authority-closure-startup',
     backendSessionId: 'authority-closure-session',
     fd6PipeInstanceId: 'authority-closure-fd6',
@@ -52,7 +52,7 @@ function workspace(prefix = 'wp4-authority-closure-') {
     manifestSha256: 'c'.repeat(64)
   });
   const frame = hydration.frame;
-  const accepted = first.host.markHydrationAccepted({
+  const accepted = await first.host.markHydrationAccepted({
     startupNonce: frame.startupNonce,
     authorityEventId: frame.authorityEventId,
     vaultEpoch: frame.vaultEpoch,
@@ -113,7 +113,7 @@ function record(probe, status, reasonCode, state, extra = {}) {
 
 async function terminalMetadataUnrelatedGeneration(terminalState) {
   const name = terminalState === 'COMMITTED' ? 'terminalMetadataUnrelatedGenerationCommitted' : 'terminalMetadataUnrelatedGenerationRolledBack';
-  const x = workspace(`wp4-${name}-`);
+  const x = await workspace(`wp4-${name}-`);
   try {
     const req = request(x.host, 'PREPARE', name);
     await x.host.prepareCustodyTransaction(req);
@@ -122,7 +122,7 @@ async function terminalMetadataUnrelatedGeneration(terminalState) {
     const metadata = readJson(x.paths.metadata); metadata.generation = 999; writeJson(x.paths.metadata, metadata);
     const reloadedVault = new CredentialVault(x.paths.vault, { safeStorage: x.storage });
     let reasonCode = ''; let restarted = null;
-    try { restarted = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); }
+    try { restarted = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); await restarted.initialize(); }
     catch (error) { reasonCode = error.reasonCode || error.code || ''; }
     const state = snapshot(x.root, reloadedVault, restarted);
     const pass = reasonCode === 'WP4_CREDENTIAL_AUTHORITY_HISTORY_MISMATCH' && state.backendFinalState !== 'RUNNING';
@@ -131,14 +131,14 @@ async function terminalMetadataUnrelatedGeneration(terminalState) {
 }
 
 async function invalidTransactionState() {
-  const x = workspace('wp4-invalid-transaction-state-');
+  const x = await workspace('wp4-invalid-transaction-state-');
   try {
     const req = request(x.host, 'PREPARE', 'invalidTransactionState');
     await x.host.prepareCustodyTransaction(req);
     const journal = readJson(x.paths.journal); journal.transactions[req.requestId].state = 'CORRUPTED'; journal.transactions[req.requestId].stateHistory.at(-1).state = 'CORRUPTED'; refreshJournalIntegrity(journal); writeJson(x.paths.journal, journal);
     const reloadedVault = new CredentialVault(x.paths.vault, { safeStorage: x.storage });
     let reasonCode = '';
-    try { new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); }
+    try { const h = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); await h.initialize(); }
     catch (error) { reasonCode = error.reasonCode || error.code || ''; }
     const state = snapshot(x.root, reloadedVault, null);
     return record('invalidTransactionState', reasonCode === 'WP4_CREDENTIAL_TRANSACTION_JOURNAL_INVALID' ? 'PASS' : 'FAIL', reasonCode, state, { finalTransactionState: 'FAIL_CLOSED' });
@@ -146,13 +146,13 @@ async function invalidTransactionState() {
 }
 
 async function missingDurableJournal() {
-  const x = workspace('wp4-missing-durable-journal-');
+  const x = await workspace('wp4-missing-durable-journal-');
   try {
     await x.host.persistFromDesktop('probe/missing-journal', { redacted: true });
     fs.rmSync(x.paths.journal, { force: true });
     const reloadedVault = new CredentialVault(x.paths.vault, { safeStorage: x.storage });
     let reasonCode = '';
-    try { new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); }
+    try { const h = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); await h.initialize(); }
     catch (error) { reasonCode = error.reasonCode || error.code || ''; }
     const state = snapshot(x.root, reloadedVault, null);
     return record('missingDurableJournal', reasonCode === 'WP4_CREDENTIAL_TRANSACTION_JOURNAL_MISSING' ? 'PASS' : 'FAIL', reasonCode, state, { finalTransactionState: 'FAIL_CLOSED' });
@@ -160,13 +160,13 @@ async function missingDurableJournal() {
 }
 
 async function truncatedDurableJournal() {
-  const x = workspace('wp4-truncated-durable-journal-');
+  const x = await workspace('wp4-truncated-durable-journal-');
   try {
     const committed = await x.host.executeCustodyTransaction('persist', 'probe/truncated', { redacted: true }, { requestId: 'truncatedDurableJournal' });
     const journal = readJson(x.paths.journal); delete journal.transactions.truncatedDurableJournal; writeJson(x.paths.journal, journal);
     const reloadedVault = new CredentialVault(x.paths.vault, { safeStorage: x.storage });
     let reasonCode = '';
-    try { new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); }
+    try { const h = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); await h.initialize(); }
     catch (error) { reasonCode = error.reasonCode || error.code || ''; }
     const state = snapshot(x.root, reloadedVault, null);
     const pass = reasonCode === 'WP4_CREDENTIAL_DURABLE_IDEMPOTENCY_HISTORY_LOST';
@@ -175,7 +175,7 @@ async function truncatedDurableJournal() {
 }
 
 async function requestIdReplayAfterJournalLoss() {
-  const x = workspace('wp4-request-replay-journal-loss-');
+  const x = await workspace('wp4-request-replay-journal-loss-');
   try {
     const requestId = 'requestIdReplayAfterJournalLoss';
     const original = await x.host.executeCustodyTransaction('persist', 'probe/replay-loss', { redacted: true }, { requestId });
@@ -183,7 +183,7 @@ async function requestIdReplayAfterJournalLoss() {
     fs.rmSync(x.paths.journal, { force: true });
     const reloadedVault = new CredentialVault(x.paths.vault, { safeStorage: x.storage });
     let reasonCode = ''; let restarted = null;
-    try { restarted = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); }
+    try { restarted = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); await restarted.initialize(); }
     catch (error) { reasonCode = error.reasonCode || error.code || ''; }
     let replayExecuted = false;
     if (restarted) {
@@ -197,7 +197,7 @@ async function requestIdReplayAfterJournalLoss() {
 
 async function credentialDecryptFailure(mode = 'ciphertext') {
   const name = mode === 'secureStorage' ? 'credentialSecureStorageUnavailable' : mode === 'throw' ? 'credentialDecryptStringFailure' : 'credentialCiphertextCorruption';
-  const x = workspace(`wp4-${name}-`);
+  const x = await workspace(`wp4-${name}-`);
   try {
     await x.host.persistFromDesktop(`probe/${name}`, { redacted: true });
     const beforeGeneration = x.host.snapshotMetadata().generation;
@@ -207,10 +207,10 @@ async function credentialDecryptFailure(mode = 'ciphertext') {
     const storage = mode === 'secureStorage' ? safeStorage({ available: false }) : mode === 'throw' ? safeStorage({ decryptError: true }) : x.storage;
     const reloadedVault = new CredentialVault(x.paths.vault, { safeStorage: storage });
     let restarted = null; let reasonCode = ''; let frameEntryCount = null;
-    try { restarted = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); }
+    try { restarted = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal }); await restarted.initialize(); }
     catch (error) { reasonCode = error.reasonCode || error.code || ''; }
     if (restarted) {
-      try { const prepared = restarted.createHydrationFrame({ startupNonce: name, oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'c'.repeat(64) }); frameEntryCount = prepared.frame.frameEntryCount; }
+      try { const prepared = await restarted.createHydrationFrame({ startupNonce: name, oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'c'.repeat(64) }); frameEntryCount = prepared.frame.frameEntryCount; }
       catch (error) { reasonCode = error.reasonCode || error.code || ''; }
     }
     const state = snapshot(x.root, reloadedVault, restarted, { frameEntryCount });
@@ -223,14 +223,14 @@ async function credentialDecryptFailure(mode = 'ciphertext') {
 }
 
 async function credentialReferenceHydrationCountMismatch() {
-  const x = workspace('wp4-hydration-count-mismatch-');
+  const x = await workspace('wp4-hydration-count-mismatch-');
   try {
     await x.host.persistFromDesktop('probe/count-mismatch', { redacted: true });
     const beforeGeneration = x.host.snapshotMetadata().generation;
     await x.host.handleBackendOwnerExit(x.ownerSession);
     x.host.entriesStrict = () => [];
     let reasonCode = ''; let frameEntryCount = null;
-    try { const prepared = x.host.createHydrationFrame({ startupNonce: 'count-mismatch', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'c'.repeat(64) }); frameEntryCount = prepared.frame.frameEntryCount; }
+    try { const prepared = await x.host.createHydrationFrame({ startupNonce: 'count-mismatch', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'c'.repeat(64) }); frameEntryCount = prepared.frame.frameEntryCount; }
     catch (error) { reasonCode = error.reasonCode || error.code || ''; }
     const state = snapshot(x.root, x.vault, x.host, { frameEntryCount });
     const pass = reasonCode === 'WP4_CREDENTIAL_HYDRATION_REFERENCE_MISMATCH' && state.metadataGeneration === beforeGeneration && frameEntryCount === null;

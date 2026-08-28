@@ -5,7 +5,7 @@ const { CredentialVault } = require('../../electron/credentialVault');
 const { CredentialVaultHost } = require('../../electron/desktopHost/CredentialVaultHost');
 const { lifecycleSafeStorage, paths } = require('./credential-authority-lifecycle-fixture');
 function kill() { try { process.kill(process.pid, 'SIGKILL'); } catch (_) { process.abort(); } }
-function main() {
+async function main() {
   const root = path.resolve(process.argv[2] || '');
   const point = String(process.argv[3] || '');
   const mode = String(process.argv[4] || 'SIGKILL').toUpperCase();
@@ -28,11 +28,14 @@ function main() {
       kill();
     }
   });
-  if (point === 'MIGRATION_AFTER_COMPLETION_BEFORE_FIRST_FD5' || point === 'AUTHORITY_ACTIVE_BEFORE_FIRST_FD5') throw new Error(`crash point not reached: ${point}`);
-  host.createHydrationFrame({
+  // All lifecycle crash points (GENESIS_*/MIGRATION_* and the pre-first-FD5
+  // marker) are now reached inside initialize(), which performs the real disk
+  // I/O that used to run in the constructor. await it to reach the crash point.
+  await host.initialize();
+  await host.createHydrationFrame({
     startupNonce: 'lifecycle-child', backendSessionId: 'lifecycle-child-session', fd6PipeInstanceId: 'lifecycle-child-fd6',
     oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64)
   });
   throw new Error(`crash point not reached: ${point}`);
 }
-try { main(); } catch (error) { process.stderr.write(`${error.reasonCode || error.code || 'AUTHORITY_LIFECYCLE_CHILD_FAILED'} ${error.stack || error.message}\n`); process.exit(91); }
+try { main().catch(error => { process.stderr.write(`${error.reasonCode || error.code || 'AUTHORITY_LIFECYCLE_CHILD_FAILED'} ${error.stack || error.message}\n`); process.exit(91); }); } catch (error) { process.stderr.write(`${error.reasonCode || error.code || 'AUTHORITY_LIFECYCLE_CHILD_FAILED'} ${error.stack || error.message}\n`); process.exit(91); }

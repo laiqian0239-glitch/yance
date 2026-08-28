@@ -25,7 +25,7 @@ async function main() {
     vault, metadataPath: path.join(root, 'vault-meta.json'), transactionPath: path.join(root, 'transactions.json'),
     randomUUID: () => 'wp4-crash-epoch', crashInjector(name) { if (name === injectedPoint) terminateAbruptly(); }
   });
-  host.createHydrationFrame({ startupNonce: 'crash-start', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'c'.repeat(64) });
+  await host.createHydrationFrame({ startupNonce: 'crash-start', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'c'.repeat(64) });
   if (crashPoint === 'BEFORE_PREPARE') terminateAbruptly();
   const request = makeCustodyRequest({ action: 'PREPARE', requestId: 'crash-request', operation: 'persist', ref: 'probe/crash', value: { token: 'redacted' }, backendPid: process.pid, manifestSha256: 'c'.repeat(64), vaultEpoch: 'wp4-crash-epoch', generation: 1 });
   await host.prepareCustodyTransaction(request);

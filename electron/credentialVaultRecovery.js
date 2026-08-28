@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-function candidateVaultFiles(roots = [], destinationFile = '') {
+async function candidateVaultFiles(roots = [], destinationFile = '') {
   const destination = destinationFile ? path.resolve(destinationFile) : '';
   const result = [];
   const seen = new Set();
@@ -12,13 +12,15 @@ function candidateVaultFiles(roots = [], destinationFile = '') {
     path.join('security', 'credentials.safe.json'),
     'credentials.safe.json'
   ];
+  const p = fs.promises;
   for (const root of roots) {
     for (const relative of relativeCandidates) {
       const file = path.resolve(String(root), relative);
-      if (file === destination || seen.has(file) || !fs.existsSync(file)) continue;
+      if (file === destination || seen.has(file)) continue;
       try {
-        if (!fs.statSync(file).isFile()) continue;
-        const parsed = JSON.parse(fs.readFileSync(file, 'utf8') || '{}');
+        const stat = await p.stat(file);
+        if (!stat.isFile()) continue;
+        const parsed = JSON.parse((await p.readFile(file, 'utf8')) || '{}');
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue;
       } catch (_) { continue; }
       seen.add(file);
@@ -35,7 +37,8 @@ async function recoverCredentialVaults(options = {}) {
   if (!destinationVault || !credentialVaultHost || typeof credentialVaultHost.persistFromMigration !== 'function' || typeof createVault !== 'function') {
     throw new Error('CREDENTIAL_VAULT_RECOVERY_ARGUMENTS_REQUIRED');
   }
-  const files = candidateVaultFiles(options.legacyRoots || [], options.destinationFile || destinationVault.file || '');
+  const files = await candidateVaultFiles(options.legacyRoots || [], options.destinationFile || destinationVault.file || '');
+  if (typeof credentialVaultHost.initialize === 'function') await credentialVaultHost.initialize();
   const report = {
     ok: true,
     scannedFiles: files.length,
@@ -52,6 +55,7 @@ async function recoverCredentialVaults(options = {}) {
   for (const file of files) {
     try {
       const sourceVault = createVault(file);
+      if (typeof sourceVault.load === 'function') await sourceVault.load();
       const readableEntries = new Map(sourceVault.entries());
       const sourceReport = { file, readable: readableEntries.size, total: sourceVault.refs().length };
       for (const ref of sourceVault.refs()) {
