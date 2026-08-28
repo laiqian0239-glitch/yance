@@ -184,6 +184,26 @@ function createHarness(options = {}) {
   };
 }
 
+test('fresh no-backend legacy credential migration initializes authority before owner-free recovery assertion', async () => {
+  const harness = createHarness();
+  try {
+    assert.equal(harness.vaultHost.snapshotMetadata().available, false);
+    let workCalls = 0;
+    const result = await harness.coordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async applicationLeaseToken => {
+      workCalls += 1;
+      const authority = harness.vaultHost.snapshotMetadata();
+      assert.equal(authority.lifecycle?.state, 'ACTIVE');
+      assert.equal(authority.available, true);
+      assert.ok(applicationLeaseToken);
+      return { migrated: true };
+    });
+    assert.equal(result.migrated, true);
+    assert.equal(workCalls, 1);
+    assert.equal(harness.coordinator.snapshot().state, 'IDLE');
+    assert.equal(harness.vaultHost.snapshotMetadata().applicationLease, null);
+  } finally { harness.close(); }
+});
+
 test('desktop save is stop -> real owner recovery -> one commit -> FD5/READY before UI success', async () => {
   const harness = createHarness();
   try {
