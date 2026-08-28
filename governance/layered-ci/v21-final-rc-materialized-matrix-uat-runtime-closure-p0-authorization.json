@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-28T16:46:43+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-FINAL-RC-MATERIALIZED-MATRIX-UAT-RUNTIME-CLOSURE-P0",
-  "proposalRevision": 3,
+  "proposalRevision": 4,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Real Windows UAT of frozen successor-v8 exact RC head 97a6a0d6bb6adfa12d1bcb210206ba3bf9b2f28b proved one release-blocking materialized Matrix runtime-projection root: the sealed image-only compose omits the Synapse registration-secret mount and mautrix-meta registration/runtime topology already required by exact source authority, while the Windows UAT runner can accept compose process creation without proving real Matrix readiness. One failure-first causal batch is authorized to restore that existing topology in the sealed artifact and fail closed on real readiness. No Product feature/runtime semantics, dependency, lockfile, upstream pin, ledger, formal release or publish mutation is authorized.",
   "base": {
@@ -82,6 +82,53 @@
       "productionCodeChanged": false,
       "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
     }
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_MATRIX_RUNTIME_TOPOLOGY_AND_PINNED_UPSTREAM_IMAGES",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance Matrix source runtime topology",
+        "source": "services/matrix/docker-compose.yml + config/matrix/synapse/homeserver.yaml",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The source runtime already owns the exact Synapse registration-secret bind, mautrix-meta registration/data topology, Element and WhatsApp services. The UAT artifact should project this existing authority rather than invent a second topology."
+      },
+      {
+        "name": "Pinned upstream mautrix-meta runtime",
+        "source": "config/upstreams/v21-comms-p0.json + tools/matrix/bootstrap.js materialized exact mautrix-meta source",
+        "license": "AGPL-3.0-or-later WITH upstream-exceptions",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Yance already pins and materializes mautrix-meta as part of the Matrix runtime set; trusted Product Final can build and export that existing exact runtime image alongside the other pinned Matrix images without a new service implementation."
+      },
+      {
+        "name": "Existing Product Final image-only materialized UAT seam",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml + tools/product-experience/materialized-matrix-compose.yml + tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing trusted-CI docker-save/sealed-artifact and Windows docker-load/--no-build path is the correct delivery seam; it only needs complete topology projection and fail-closed readiness, not replacement infrastructure."
+      },
+      {
+        "name": "Official pinned Synapse container runtime",
+        "source": "element-hq/synapse exact pinned source docker/Dockerfile and /start.py",
+        "license": "AGPL-3.0-or-later OR LicenseRef-Element-Commercial",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The exact upstream Synapse image already implements runtime UID ownership and health semantics. The repair must satisfy its existing secret/config contract rather than wrap or fork Synapse."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second Yance Matrix topology, custom Synapse wrapper, replacement homeserver, new secret service or new general-purpose UAT orchestrator.",
+      "Do not build Matrix source or native dependencies on the Windows UAT machine; retain trusted-CI image materialization and user-machine --no-build.",
+      "Do not change upstream pins, package manifests, lockfiles or tools/matrix/bootstrap.js to compensate for an incomplete artifact projection.",
+      "Do not accept docker compose process creation as service readiness; final evidence must be gated by the existing runtime's real reachable/healthy state."
+    ],
+    "thinYanceAdapterOnly": true
   },
   "requiredRootFix": [
     "Keep Windows UAT image-only and --no-build.",
