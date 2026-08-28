@@ -246,7 +246,7 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
 
   const configuredAttempts = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS || 3);
   const configuredDelay = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_RETRY_MS || 125);
-  const maxAttempts = Math.min(4, Math.max(1, Number.isFinite(configuredAttempts) ? Math.trunc(configuredAttempts) : 3));
+  const maxAttempts = Math.min(8, Math.max(1, Number.isFinite(configuredAttempts) ? Math.trunc(configuredAttempts) : 3));
   const delayMs = Math.min(1000, Math.max(0, Number.isFinite(configuredDelay) ? Math.trunc(configuredDelay) : 125));
   const collectors = [
     { authority: 'cim', args: commandArgs(cimScript), options: cimExecOptions },
