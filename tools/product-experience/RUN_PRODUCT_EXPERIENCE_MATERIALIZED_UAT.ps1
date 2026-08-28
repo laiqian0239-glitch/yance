@@ -300,6 +300,8 @@ try {
   Write-Host "GREEN: real Matrix readiness passed after image-only docker compose up --no-build"
   Write-Host "GREEN: already-built Yance.exe reached Desktop READY with isolated data root $env:YANCE_DATA_DIR"
   Write-Host "Evidence: $(Join-Path $EvidenceRoot 'materialized-uat-evidence.json')"
+  Write-Host "UAT session remains attached to packaged Yance.exe PID $($process.Id); runtime secret files stay available until the process exits."
+  Wait-Process -Id $process.Id
 } finally {
   Remove-Item Env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE -ErrorAction SilentlyContinue
   Remove-Item Env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE -ErrorAction SilentlyContinue
