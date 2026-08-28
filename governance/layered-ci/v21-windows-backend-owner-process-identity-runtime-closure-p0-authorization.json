@@ -4,7 +4,7 @@
   "requestedByUserAt": "2026-08-28T19:25:47+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-WINDOWS-BACKEND-OWNER-PROCESS-IDENTITY-RUNTIME-CLOSURE-P0",
-  "proposalRevision": 1,
+  "proposalRevision": 2,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "Real packaged Windows Product Final on frozen #933 exact head 008d7350c96658f2a2105021d84f74e44efef3dc exposed one release-blocking Desktop runtime root after the materialized Matrix chain passed: BackendOwnerRegistry windowsProcessIdentity exhausts its eight bounded 5000ms Get-CimInstance Win32_Process attempts, returns null, and the fail-closed active-owner validator consequently reports processIdentity.platform mismatch. The observed backend fork at 2026-08-28T11:57:57.923Z and failure at 2026-08-28T11:58:39.062Z align with the collector timeout budget. One minimal failure-first runtime batch is authorized to make Windows owner process identity capture reliable without weakening PID-reuse containment or owner-registry semantics. #933 and Product Final run 33168212072 remain frozen evidence only and must not be rerun on the same exact head.",
   "base": {
@@ -76,6 +76,53 @@
       "requiredFreshCausalRed": "When the primary CIM process query is unavailable or times out, Windows process identity collection currently returns null instead of obtaining the same three identity discriminators through a bounded local fallback.",
       "remoteCausalRedAuthority": "existing pull-request CI executing WP4 owner-registry tests; no manual workflow rerun is authorized"
     }
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WINDOWS_ASYNC_OS_IDENTITY_SEAM_WITH_BOUNDED_PLATFORM_FALLBACK",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing BackendOwnerRegistry Windows process identity collector",
+        "source": "electron/desktopHost/BackendOwnerRegistry.js windowsProcessIdentity",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "It already owns the required asynchronous fail-closed identity shape and exact three discriminators, but the packaged Windows failure proves its CIM-only retry path can spend the full timeout budget and return null. The repair should retain this seam and harden only its query strategy."
+      },
+      {
+        "name": "Windows System.Management WMI process query",
+        "source": "Windows PowerShell/.NET System.Management.ManagementObjectSearcher over Win32_Process",
+        "license": "Windows/.NET platform component",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "It queries the same Win32_Process authority for ProcessId, CreationDate, ExecutablePath and CommandLine without depending on Get-CimInstance cmdlet startup/completion. It can run through the existing asynchronous execFile PowerShell seam with a strict timeout and no new package or user-machine build prerequisite."
+      },
+      {
+        "name": "Existing WP4 Windows owner-process identity evidence seam",
+        "source": "tools/wp4/windows-owner-process-identity-evidence.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The evidence generator already reuses production windowsProcessIdentity, so hardening the production seam automatically keeps evidence and runtime on one authority instead of creating a second identity implementation."
+      },
+      {
+        "name": "PowerShell Get-Process PID lookup",
+        "source": "Microsoft.PowerShell.Management Get-Process",
+        "license": "MIT / Windows PowerShell platform component",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "GAP",
+        "reason": "It is suitable for liveness but does not by itself provide the exact CreationDate and CommandLine evidence required to preserve the current three-discriminator PID-reuse containment contract, so it must not replace the Win32_Process identity query."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not introduce a second Yance owner-identity subsystem or duplicate evidence collector; keep BackendOwnerRegistry windowsProcessIdentity as the single production/evidence seam.",
+      "Do not add a new npm/native dependency, WMI service, helper executable or user-machine build prerequisite for Windows identity capture.",
+      "Do not replace exact OS-backed identity with PID-only liveness, expected launch arguments, fabricated identity or persisted plaintext command lines.",
+      "Do not retain repeated long CIM-only retries once a bounded platform-native query fallback is available."
+    ],
+    "thinYanceAdapterOnly": true
   },
   "requiredRootFix": [
     "Preserve fail-closed Windows owner identity verification and exact win32 identity fields creationTimeUtc, executablePathDigest and commandDigest.",
