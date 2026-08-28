@@ -18,11 +18,12 @@ function make(root) {
 test('reset authorization consumption does not fork authority history and survives restart', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp4-reset-authority-'));
   const host = make(root);
+  await host.initialize();
   const reset = await host.resetAfterBackendStopped({ exitConfirmed: true });
   assert.equal(reset.persisted, true);
-  const prepared = host.createHydrationFrame({ startupNonce: 'reset-startup', oneTimeToken: 'token', backendPid: 42, manifestSha256: 'a'.repeat(64) });
+  const prepared = await host.createHydrationFrame({ startupNonce: 'reset-startup', oneTimeToken: 'token', backendPid: 42, manifestSha256: 'a'.repeat(64) });
   assert.ok(prepared.resetAuthorization);
-  assert.equal(host.markHydrationAccepted({
+  assert.equal(await host.markHydrationAccepted({
     startupNonce: 'reset-startup', authorityEventId: prepared.frame.authorityEventId,
     vaultEpoch: prepared.frame.vaultEpoch, generation: prepared.frame.generation,
     vaultReferenceCount: prepared.frame.vaultReferenceCount, decryptedEntryCount: prepared.frame.decryptedEntryCount,
@@ -31,7 +32,8 @@ test('reset authorization consumption does not fork authority history and surviv
   }), true);
   assert.equal(host.snapshotMetadata().pendingReset, false);
   const restarted = make(root);
+  await restarted.initialize();
   assert.equal(restarted.snapshotMetadata().pendingReset, false);
-  const next = restarted.createHydrationFrame({ startupNonce: 'next-startup', oneTimeToken: 'token2', backendPid: 43, manifestSha256: 'b'.repeat(64) });
+  const next = await restarted.createHydrationFrame({ startupNonce: 'next-startup', oneTimeToken: 'token2', backendPid: 43, manifestSha256: 'b'.repeat(64) });
   assert.equal(next.resetAuthorization, null);
 });

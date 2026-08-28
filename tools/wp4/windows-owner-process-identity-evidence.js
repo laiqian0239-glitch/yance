@@ -71,8 +71,8 @@ async function runLiveEvidence(root) {
     assert.equal(mismatchStop.stopped, false);
     assert.equal(mismatch.snapshot().ownerRegistryFailure?.reasonCode, 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_MISMATCH_RECOVERY_REQUIRED');
     assert.equal(signals.length, 0, 'PID reuse containment must not signal the unrelated live process');
-    assert.throws(() => mismatch.clearRejectedOwner(), error => error?.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
-    assert.equal(mismatch.clearRejectedOwner({ force: true }), true);
+    await assert.rejects(() => mismatch.clearRejectedOwner(), error => error?.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
+    assert.equal(await mismatch.clearRejectedOwner({ force: true }), true);
     assert.equal(mismatch.snapshot().ownerRegistry?.state, 'RECOVERED');
 
     const unreadableFile = path.join(root, 'identity-unreadable.json');

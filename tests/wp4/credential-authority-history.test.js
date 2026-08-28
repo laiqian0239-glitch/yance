@@ -57,7 +57,7 @@ function request(host, requestId, value = { token: 'value' }) {
 async function commit(x, requestId) {
   // FD6 is only valid after an FD5 authority generation has been issued.
   if (x.host.snapshotMetadata().generation === 0) {
-    x.host.createHydrationFrame({ startupNonce: `startup:${requestId}`, oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
+    await x.host.createHydrationFrame({ startupNonce: `startup:${requestId}`, oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
   }
   const frame = request(x.host, requestId);
   await x.host.prepareCustodyTransaction(frame);
@@ -71,28 +71,28 @@ test('latest COMMITTED transaction with unrelated metadata generation fails clos
     const metadata = x.read('metadata');
     metadata.generation = 999;
     x.write('metadata', metadata);
-    assert.throws(() => x.reload(), error => error.reasonCode === AUTHORITY_HISTORY_MISMATCH);
+    await assert.rejects((async()=>{const h=x.reload();await h.initialize();})(), error => error.reasonCode === AUTHORITY_HISTORY_MISMATCH);
   } finally { x.close(); }
 });
 
 test('latest ROLLED_BACK transaction with unrelated metadata generation fails closed', async () => {
   const x = setup();
   try {
-    x.host.createHydrationFrame({ startupNonce: 'rollback-startup', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
+    await x.host.createHydrationFrame({ startupNonce: 'rollback-startup', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
     const frame = request(x.host, 'metadata-rolled-back');
     await x.host.prepareCustodyTransaction(frame);
     await x.host.abortCustodyTransaction({ ...frame, action: 'ABORT' });
     const metadata = x.read('metadata');
     metadata.generation = 777;
     x.write('metadata', metadata);
-    assert.throws(() => x.reload(), error => error.reasonCode === AUTHORITY_HISTORY_MISMATCH);
+    await assert.rejects((async()=>{const h=x.reload();await h.initialize();})(), error => error.reasonCode === AUTHORITY_HISTORY_MISMATCH);
   } finally { x.close(); }
 });
 
 test('unknown transaction state is rejected instead of skipped', async () => {
   const x = setup();
   try {
-    x.host.createHydrationFrame({ startupNonce: 'invalid-state-startup', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
+    await x.host.createHydrationFrame({ startupNonce: 'invalid-state-startup', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
     const frame = request(x.host, 'invalid-state');
     await x.host.prepareCustodyTransaction(frame);
     const journal = x.read('journal');
@@ -100,7 +100,7 @@ test('unknown transaction state is rejected instead of skipped', async () => {
     journal.transactions['invalid-state'].stateHistory.at(-1).state = 'CORRUPTED';
     refreshJournalIntegrity(journal);
     x.write('journal', journal);
-    assert.throws(() => x.reload(), error => error.reasonCode === JOURNAL_INVALID);
+    await assert.rejects((async()=>{const h=x.reload();await h.initialize();})(), error => error.reasonCode === JOURNAL_INVALID);
   } finally { x.close(); }
 });
 
@@ -113,7 +113,7 @@ test('journal key and requestId mismatch is rejected', async () => {
     delete journal.transactions['journal-key'];
     refreshJournalIntegrity(journal);
     x.write('journal', journal);
-    assert.throws(() => x.reload(), error => error.reasonCode === JOURNAL_INVALID);
+    await assert.rejects((async()=>{const h=x.reload();await h.initialize();})(), error => error.reasonCode === JOURNAL_INVALID);
   } finally { x.close(); }
 });
 
@@ -126,7 +126,7 @@ test('transaction generation discontinuity is rejected', async () => {
     tx.generation = tx.previousGeneration + 2;
     refreshJournalIntegrity(journal);
     x.write('journal', journal);
-    assert.throws(() => x.reload(), error => error.reasonCode === JOURNAL_INVALID);
+    await assert.rejects((async()=>{const h=x.reload();await h.initialize();})(), error => error.reasonCode === JOURNAL_INVALID);
   } finally { x.close(); }
 });
 
@@ -135,7 +135,7 @@ test('nonzero authority generation with missing journal fails closed', async () 
   try {
     await commit(x, 'missing-journal');
     fs.rmSync(x.paths.journal);
-    assert.throws(() => x.reload(), error => error.reasonCode === JOURNAL_MISSING);
+    await assert.rejects((async()=>{const h=x.reload();await h.initialize();})(), error => error.reasonCode === JOURNAL_MISSING);
   } finally { x.close(); }
 });
 
@@ -147,7 +147,7 @@ test('truncated durable journal transaction row is detected by sealed transactio
     delete journal.transactions['truncated-row'];
     // Deliberately do not rewrite transactionCount/transactionsDigest.
     x.write('journal', journal);
-    assert.throws(() => x.reload(), error => error.reasonCode === DURABLE_HISTORY_LOST);
+    await assert.rejects((async()=>{const h=x.reload();await h.initialize();})(), error => error.reasonCode === DURABLE_HISTORY_LOST);
   } finally { x.close(); }
 });
 
@@ -157,7 +157,7 @@ test('journal loss prevents a repeated requestId from being executed as a new mu
     await commit(x, 'history-lost-replay');
     const generation = x.host.snapshotMetadata().generation;
     fs.rmSync(x.paths.journal);
-    assert.throws(() => x.reload(), error => error.reasonCode === JOURNAL_MISSING);
+    await assert.rejects((async()=>{const h=x.reload();await h.initialize();})(), error => error.reasonCode === JOURNAL_MISSING);
     assert.equal(JSON.parse(fs.readFileSync(x.paths.metadata, 'utf8')).generation, generation);
   } finally { x.close(); }
 });

@@ -54,14 +54,14 @@ function pair(options = {}) {
   return { hostSide, clientSide };
 }
 
-function setup(options = {}) {
+async function setup(options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp4-prepare-unknown-'));
   const vaultPath = path.join(root, 'vault.bin');
   const metadataPath = path.join(root, 'meta.json');
   const transactionPath = path.join(root, 'journal.json');
   const vault = new CredentialVault(vaultPath, { safeStorage: storage() });
   const vaultHost = new CredentialVaultHost({ vault, metadataPath, transactionPath, randomUUID: () => 'prepare-epoch' });
-  vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
+  await vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
   const streams = pair(options.pairOptions);
   let indeterminateCount = 0;
   const host = new CredentialCustodyHost({
@@ -73,7 +73,7 @@ function setup(options = {}) {
   });
   const client = new CredentialCustodyClient({
     stream: streams.clientSide,
-    timeoutMs: 35,
+    timeoutMs: options.timeoutMs ?? 35,
     generation: 1,
     context: { backendPid: process.pid, manifestSha256: 'a'.repeat(64), credentialVaultEpoch: 'prepare-epoch', credentialGeneration: 1 },
     onIndeterminateCommit: () => { indeterminateCount += 1; }
@@ -93,7 +93,11 @@ async function nextRequestSucceeds(x, id = 'prepare-next') {
 
 test('lost PREPARE ACK is automatically QUERYed and ABORTed so the next request succeeds', async () => {
   let dropped = false;
-  const x = setup({ shouldDropAck: request => request.action === 'PREPARE' && !dropped ? (dropped = true) : false });
+  // The recovery path performs two serialized host-side dispatches (QUERY then
+  // ABORT), each of which now awaits real durable journal writes after the
+  // async durability conversion. A timeout must therefore cover the full
+  // QUERY+ABORT round-trip, not just a single PREPARE dispatch.
+  const x = await setup({ timeoutMs: 500, shouldDropAck: request => request.action === 'PREPARE' && !dropped ? (dropped = true) : false });
   try {
     await assert.rejects(
       x.client.request('persist', 'provider/lost-prepare', { token: 'redacted' }, { requestId: 'prepare-ack-lost' }),
@@ -109,7 +113,7 @@ test('lost PREPARE ACK is automatically QUERYed and ABORTed so the next request 
 });
 
 test('PREPARE ACK callback EPIPE becomes indeterminate when QUERY cannot use the broken pipe', async () => {
-  const x = setup({ pairOptions: { hostWrite({ callback, hostWrites }) {
+  const x = await setup({ pairOptions: { hostWrite({ callback, hostWrites }) {
     if (hostWrites === 1) { const error = new Error('EPIPE'); error.code = 'EPIPE'; callback(error); return; }
     callback(Object.assign(new Error('EPIPE'), { code: 'EPIPE' }));
   } } });
@@ -124,7 +128,7 @@ test('PREPARE ACK callback EPIPE becomes indeterminate when QUERY cannot use the
 });
 
 test('partial PREPARE ACK followed by pipe close triggers one controlled shutdown and restart rolls back PREPARED', async () => {
-  const x = setup({ afterTransaction: async request => {
+  const x = await setup({ afterTransaction: async request => {
     if (request.action !== 'PREPARE') return;
     x.streams.clientSide.push(Buffer.from('{"type":"credential_custody_ack"'));
     x.streams.clientSide.push(null);
@@ -139,6 +143,7 @@ test('partial PREPARE ACK followed by pipe close triggers one controlled shutdow
     x.host.close();
     const reloadedVault = new CredentialVault(x.vaultPath, { safeStorage: storage() });
     const restarted = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.metadataPath, transactionPath: x.transactionPath, randomUUID: () => 'prepare-epoch' });
+    await restarted.initialize();
     assert.equal(restarted.snapshotMetadata().activeTransactionId, '');
     assert.equal(restarted.transactions['prepare-partial'].state, 'ROLLED_BACK');
     assert.equal(reloadedVault.get('provider/partial'), null);
@@ -146,7 +151,7 @@ test('partial PREPARE ACK followed by pipe close triggers one controlled shutdow
 });
 
 test('Electron exit after successful PREPARE forces controlled backend termination', async () => {
-  const x = setup({ afterTransaction: async request => {
+  const x = await setup({ afterTransaction: async request => {
     if (request.action === 'PREPARE') x.streams.clientSide.push(null);
   }, shouldDropAck: request => request.action === 'PREPARE' });
   try {
@@ -158,7 +163,7 @@ test('Electron exit after successful PREPARE forces controlled backend terminati
 });
 
 test('PREPARE QUERY failure triggers onIndeterminateCommit exactly once and terminates backend', async () => {
-  const x = setup({ shouldDropAck: request => request.action === 'PREPARE' || request.action === 'QUERY' });
+  const x = await setup({ shouldDropAck: request => request.action === 'PREPARE' || request.action === 'QUERY' });
   try {
     await assert.rejects(x.client.request('persist', 'provider/query-fail', { token: 'redacted' }, { requestId: 'prepare-query-fail' }), error => error.reasonCode === 'WP4_CREDENTIAL_PREPARE_RESULT_INDETERMINATE');
     assert.equal(x.client.snapshot().terminal, true);

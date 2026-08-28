@@ -18,7 +18,7 @@ test('unrecognized vault/metadata/journal combination fails closed before hydrat
     const vaultFile=path.join(root,'vault.json'),meta=path.join(root,'meta.json'),journal=path.join(root,'journal.json');
     const vault=new CredentialVault(vaultFile,{safeStorage:storage()});
     const host=new CredentialVaultHost({vault,metadataPath:meta,transactionPath:journal,randomUUID:()=> 'ambiguous-epoch'});
-    host.createHydrationFrame({startupNonce:'n',oneTimeToken:'x'.repeat(43),backendPid:process.pid,manifestSha256:'a'.repeat(64)});
+    await host.createHydrationFrame({startupNonce:'n',oneTimeToken:'x'.repeat(43),backendPid:process.pid,manifestSha256:'a'.repeat(64)});
     const request=makeCustodyRequest({action:'PREPARE',requestId:'ambiguous-request',operation:'persist',ref:'a',value:{x:1},backendPid:process.pid,manifestSha256:'a'.repeat(64),vaultEpoch:'ambiguous-epoch',generation:1});
     await host.prepareCustodyTransaction(request);
     const journalData=JSON.parse(fs.readFileSync(journal,'utf8'));
@@ -28,11 +28,11 @@ test('unrecognized vault/metadata/journal combination fails closed before hydrat
     const unrelatedRaw=vault.prepareMutation('persist','unrelated',{x:2}).after;
     write(vaultFile,unrelatedRaw);
     const reloaded=new CredentialVault(vaultFile,{safeStorage:storage()});
-    assert.throws(()=>new CredentialVaultHost({vault:reloaded,metadataPath:meta,transactionPath:journal,randomUUID:()=> 'ambiguous-epoch'}),error=>error.reasonCode===RECOVERY_AMBIGUOUS);
+    await assert.rejects((async()=>{const h=new CredentialVaultHost({vault:reloaded,metadataPath:meta,transactionPath:journal,randomUUID:()=> 'ambiguous-epoch'});await h.initialize();})(),error=>error.reasonCode===RECOVERY_AMBIGUOUS);
   } finally { fs.rmSync(root,{recursive:true,force:true,maxRetries:10,retryDelay:50}); }
 });
 
-test('existing WP3 vault without metadata and journal is migrated once before ACTIVE authority construction', () => {
+test('existing WP3 vault without metadata and journal is migrated once before ACTIVE authority construction', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp4-wp3-migration-'));
   try {
     const vaultFile = path.join(root, 'credentials.safe.json');
@@ -42,6 +42,7 @@ test('existing WP3 vault without metadata and journal is migrated once before AC
     write(vaultFile, vault.prepareMutation('persist','existing/ref',{x:1}).after);
     const reloaded = new CredentialVault(vaultFile, { safeStorage: storage() });
     const host = new CredentialVaultHost({ vault: reloaded, metadataPath: meta, transactionPath: journal });
+    await host.initialize();
     const before = host.snapshotMetadata();
     assert.deepEqual(reloaded.getRequired('existing/ref'), { x: 1 });
     assert.equal(before.lifecycle.operationType, 'MIGRATION');
@@ -53,6 +54,7 @@ test('existing WP3 vault without metadata and journal is migrated once before AC
     assert.equal(fs.existsSync(meta), true);
     const epoch = before.vaultEpoch;
     const second = new CredentialVaultHost({ vault: new CredentialVault(vaultFile, { safeStorage: storage() }), metadataPath: meta, transactionPath: journal });
+    await second.initialize();
     assert.equal(second.snapshotMetadata().vaultEpoch, epoch);
     assert.deepEqual(second.vault.getRequired('existing/ref'), { x: 1 });
   } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
@@ -64,13 +66,13 @@ test('journal transaction digest tampering fails closed before transaction recov
     const vaultFile = path.join(root, 'vault.json'); const meta = path.join(root, 'meta.json'); const journal = path.join(root, 'journal.json');
     const vault = new CredentialVault(vaultFile, { safeStorage: storage() });
     const host = new CredentialVaultHost({ vault, metadataPath: meta, transactionPath: journal, randomUUID: () => 'digest-epoch' });
-    host.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
+    await host.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
     const request = makeCustodyRequest({ action: 'PREPARE', requestId: 'digest-request', operation: 'persist', ref: 'digest/ref', value: { x: 1 }, backendPid: process.pid, manifestSha256: 'a'.repeat(64), vaultEpoch: 'digest-epoch', generation: 1 });
     await host.prepareCustodyTransaction(request);
     const journalData = JSON.parse(fs.readFileSync(journal, 'utf8'));
     journalData.transactions['digest-request'].beforeDigest = '0'.repeat(64);
     refreshJournalIntegrity(journalData); write(journal,journalData);
     const reloaded = new CredentialVault(vaultFile, { safeStorage: storage() });
-    assert.throws(() => new CredentialVaultHost({ vault: reloaded, metadataPath: meta, transactionPath: journal, randomUUID: () => 'digest-epoch' }), error => error.reasonCode === JOURNAL_INVALID);
+    await assert.rejects((async()=>{const h=new CredentialVaultHost({ vault: reloaded, metadataPath: meta, transactionPath: journal, randomUUID: () => 'digest-epoch' });await h.initialize();})(), error => error.reasonCode === JOURNAL_INVALID);
   } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });

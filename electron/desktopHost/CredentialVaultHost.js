@@ -14,6 +14,7 @@ const {
   metadataProjection, previousEvent, referenceCount, refreshJournalIntegrity, sameMetadataAuthority, validateJournal,
   validateMetadata, validateTransaction
 } = require('./credentialAuthority');
+const { atomicWriteJsonAsync, existsAsync, readFileTextAsync } = require('./asyncDurability');
 
 const RECOVERY_AMBIGUOUS = 'WP4_CREDENTIAL_TRANSACTION_RECOVERY_AMBIGUOUS';
 const AUTHORITY_HISTORY_MISMATCH = 'WP4_CREDENTIAL_AUTHORITY_HISTORY_MISMATCH';
@@ -27,22 +28,8 @@ const HYDRATION_REFERENCE_MISMATCH = 'WP4_CREDENTIAL_HYDRATION_REFERENCE_MISMATC
 const APPLICATION_BUSY = 'WP4_DESKTOP_CREDENTIAL_APPLICATION_BUSY_RETRY';
 const APPLICATION_CONTAINED = 'WP4_DESKTOP_CREDENTIAL_REJECTED_OWNER_CONTAINMENT';
 
-function atomicWriteJson(file, value, fsApi = fs) {
-  fsApi.mkdirSync(path.dirname(file), { recursive: true });
-  const temp = `${file}.${process.pid}.${Date.now()}.tmp`;
-  let handle = null;
-  try {
-    handle = fsApi.openSync(temp, 'w', 0o600);
-    fsApi.writeFileSync(handle, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-    fsApi.fsyncSync?.(handle);
-    fsApi.closeSync(handle); handle = null;
-    fsApi.renameSync(temp, file);
-    try { const d = fsApi.openSync(path.dirname(file), 'r'); try { fsApi.fsyncSync?.(d); } finally { fsApi.closeSync(d); } } catch (_) {}
-  } catch (error) {
-    if (handle !== null) try { fsApi.closeSync(handle); } catch (_) {}
-    try { fsApi.rmSync(temp, { force: true }); } catch (_) {}
-    throw error;
-  }
+async function atomicWriteJson(file, value, fsApi = fs) {
+  await atomicWriteJsonAsync(file, value, { fsApi });
 }
 
 class CredentialVaultHost {
@@ -72,6 +59,7 @@ class CredentialVaultHost {
     this.unavailableReasonCode = '';
     this.recoveryReport = { status: 'NOT_RUN', actions: [] };
     this.idSequence = 0;
+    this._initPromise = null;
     this.vaultMutationToken = Object.freeze({ owner: 'CredentialVaultHost', nonce: this._newId('vault-authority') });
     this.vault.bindMutationAuthority?.(this.vaultMutationToken);
     this.lifecycleCoordinator = options.lifecycleCoordinator || new CredentialAuthorityLifecycleCoordinator({
@@ -80,11 +68,23 @@ class CredentialVaultHost {
       intentPath: this.lifecycleIntentPath, completedPath: this.lifecycleCompletedPath,
       replaceVault: raw => this._replaceVault(raw)
     });
-    this.lifecycleReport = this.lifecycleCoordinator.ensureActive();
-    this._loadActiveAuthority();
-    this._recoverAuthority();
-    this.recoveryReady = true;
-    this._crashPoint(this.lifecycleReport.operationType === 'MIGRATION' ? 'MIGRATION_AFTER_COMPLETION_BEFORE_FIRST_FD5' : 'AUTHORITY_ACTIVE_BEFORE_FIRST_FD5');
+    // Real disk I/O (vault load, lifecycle genesis/migration, authority load and
+    // recovery) is deferred to the explicit awaitable initialize() so the
+    // constructor never blocks the Electron main event loop.
+  }
+
+  async initialize() {
+    if (this.recoveryReady) return;
+    if (this._initPromise) return this._initPromise;
+    this._initPromise = (async () => {
+      await this.vault.load();
+      this.lifecycleReport = await this.lifecycleCoordinator.ensureActive();
+      await this._loadActiveAuthority();
+      await this._recoverAuthority();
+      this.recoveryReady = true;
+      this._crashPoint(this.lifecycleReport.operationType === 'MIGRATION' ? 'MIGRATION_AFTER_COMPLETION_BEFORE_FIRST_FD5' : 'AUTHORITY_ACTIVE_BEFORE_FIRST_FD5');
+    })();
+    return this._initPromise;
   }
 
   _newId(prefix = 'authority') { this.idSequence += 1; return `${prefix}:${this.randomUUID()}:${this.idSequence}`; }
@@ -156,9 +156,6 @@ class CredentialVaultHost {
     return this.applicationCoordinatorRequired;
   }
   _assertApplicationCoordinatorLease(applicationLeaseToken = null, operation = 'credential-operation') {
-    // A persistent containment fence is the stronger application boundary. Check it
-    // before coordinator ownership so releasing a short-lived lease can never mask
-    // the rejected-owner denial reason or reopen a credential operation.
     if (this.applicationFence) this._assertApplicationAccess(applicationLeaseToken);
     if (!this.applicationCoordinatorRequired) return;
     if (this.applicationLease && applicationLeaseToken === this.applicationLease.token) return;
@@ -193,42 +190,47 @@ class CredentialVaultHost {
   _crashPoint(name, tx = {}) { this.crashInjector(name, Object.freeze({ requestId: tx.requestId || '', state: tx.state || '', generation: tx.generation ?? this.metadata?.generation ?? 0, source: tx.source || 'AUTHORITY' })); }
   _enqueue(fn) {
     this.pendingOperations += 1;
-    const next = this.operation.catch(() => {}).then(fn);
+    const next = this.operation.catch(() => {}).then(async () => {
+      await this.initialize();
+      return fn();
+    });
     this.operation = next.catch(() => {});
     return next.finally(() => { this.pendingOperations = Math.max(0, this.pendingOperations - 1); });
   }
-  _replaceVault(raw) { return this.vault.replaceRaw(raw, this.vaultMutationToken); }
-  _saveMetadata(next = this.metadata) {
+  async _replaceVault(raw) { return this.vault.replaceRaw(raw, this.vaultMutationToken); }
+  async _saveMetadata(next = this.metadata) {
     const value = { ...clone(next), updatedAtUtc: this.clock() };
     validateMetadata(value);
-    atomicWriteJson(this.metadataPath, value, this.fs);
+    await atomicWriteJson(this.metadataPath, value, this.fs);
     this.metadata = value;
   }
-  _saveJournal() {
+  async _saveJournal() {
     this.journal.updatedAtUtc = this.clock();
     refreshJournalIntegrity(this.journal);
     validateJournal(this.journal);
-    atomicWriteJson(this.transactionPath, this.journal, this.fs);
+    await atomicWriteJson(this.transactionPath, this.journal, this.fs);
     this.transactions = this.journal.transactions;
   }
-  _persistJournalOrUnavailable(reasonCode = JOURNAL_INVALID) {
-    try { this._saveJournal(); }
+  async _persistJournalOrUnavailable(reasonCode = JOURNAL_INVALID) {
+    try { await this._saveJournal(); }
     catch (cause) { this._markUnavailable(reasonCode); throw Object.assign(this._error(reasonCode, 'Credential authority journal write failed'), { cause }); }
   }
 
-  _loadActiveAuthority() {
-    if (!this.fs.existsSync(this.transactionPath)) throw this._error(JOURNAL_MISSING, 'Credential authority journal is missing after lifecycle activation');
-    if (!this.fs.existsSync(this.metadataPath)) throw this._error(AUTHORITY_HISTORY_MISMATCH, 'Credential metadata is missing after lifecycle activation');
+  async _loadActiveAuthority() {
+    if (!(await existsAsync(this.transactionPath, this.fs))) throw this._error(JOURNAL_MISSING, 'Credential authority journal is missing after lifecycle activation');
+    if (!(await existsAsync(this.metadataPath, this.fs))) throw this._error(AUTHORITY_HISTORY_MISMATCH, 'Credential metadata is missing after lifecycle activation');
     if (this.vault.loadError) throw this._error('CREDENTIAL_VAULT_ENTRY_CORRUPTED', 'Credential vault cannot be parsed', { cause: this.vault.loadError });
     try {
-      this.metadata = JSON.parse(this.fs.readFileSync(this.metadataPath, 'utf8'));
+      const text = await readFileTextAsync(this.metadataPath, this.fs);
+      this.metadata = JSON.parse(text);
       validateMetadata(this.metadata);
     } catch (cause) {
       if (cause.reasonCode) throw cause;
       throw this._error(AUTHORITY_HISTORY_MISMATCH, 'Credential metadata is unreadable', { cause });
     }
     try {
-      this.journal = JSON.parse(this.fs.readFileSync(this.transactionPath, 'utf8'));
+      const text = await readFileTextAsync(this.transactionPath, this.fs);
+      this.journal = JSON.parse(text);
       validateJournal(this.journal);
       this.transactions = this.journal.transactions;
       this.idSequence = Math.max(this.idSequence, Number(this.journal.eventCount || 0) + Number(this.journal.transactionCount || 0) + 16);
@@ -267,7 +269,7 @@ class CredentialVaultHost {
     if (!tx) throw this._error(AUTHORITY_HISTORY_MISMATCH, 'Authority event references missing transaction');
     return event.eventType === 'TRANSACTION_ROLLED_BACK' ? tx.beforeRaw : tx.afterRaw;
   }
-  _recoverHeadProjection(actions) {
+  async _recoverHeadProjection(actions) {
     validateJournal(this.journal);
     const head = headEvent(this.journal);
     const expectedMetadata = metadataFromEvent(head, this.clock());
@@ -287,11 +289,11 @@ class CredentialVaultHost {
       });
     }
     if (!vaultIsHead) {
-      this._replaceVault(this._rawForEvent(head));
+      await this._replaceVault(this._rawForEvent(head));
       actions.push({ action: 'RECOVER_HEAD_VAULT_PROJECTION', eventId: head.eventId });
     }
     if (!metadataIsHead) {
-      this._saveMetadata(expectedMetadata);
+      await this._saveMetadata(expectedMetadata);
       actions.push({ action: 'RECOVER_HEAD_METADATA_PROJECTION', eventId: head.eventId });
     }
   }
@@ -307,7 +309,7 @@ class CredentialVaultHost {
     }
   }
   _transition(tx, nextState, reasonCode = '') { return transitionTransaction(tx, nextState, this.clock, reasonCode); }
-  _appendCommitEvent(tx) {
+  async _appendCommitEvent(tx) {
     this._assertTransactionPreviousAuthority(tx);
     const made = appendAuthorityEvent(this.journal, {
       eventType: tx.operation === 'reset' ? 'RESET_COMMITTED' : 'TRANSACTION_COMMITTED',
@@ -322,19 +324,19 @@ class CredentialVaultHost {
     });
     tx.commitEventId = made.event.eventId;
     this._transition(tx, STATES.COMMITTED, '');
-    this._persistJournalOrUnavailable(AUTHORITY_HISTORY_MISMATCH);
+    await this._persistJournalOrUnavailable(AUTHORITY_HISTORY_MISMATCH);
     this._crashPoint('AFTER_COMMITTED_AUTHORITY_EVENT', tx);
-    this._saveMetadata(made.metadata);
+    await this._saveMetadata(made.metadata);
     this._crashPoint('AFTER_COMMITTED_METADATA_PROJECTION', tx);
     return made;
   }
-  _appendRollbackEvent(tx, reasonCode) {
+  async _appendRollbackEvent(tx, reasonCode) {
     const currentHead = headEvent(this.journal);
     const compensating = Boolean(tx.commitEventId && currentHead.eventId === tx.commitEventId);
     const expectedBeforeHead = !tx.commitEventId && currentHead.eventId === tx.previousAuthority.authorityEventId;
     if (!compensating && !expectedBeforeHead) throw this._error(AUTHORITY_HISTORY_MISMATCH, 'Rollback cannot be attached to the current authority head', { requestId: tx.requestId });
     if (tx.state !== STATES.ABORTING) this._transition(tx, STATES.ABORTING, reasonCode);
-    this._persistJournalOrUnavailable(TERMINAL_JOURNAL_MISMATCH);
+    await this._persistJournalOrUnavailable(TERMINAL_JOURNAL_MISMATCH);
     this._crashPoint('AFTER_ABORTING_JOURNAL', tx);
     const made = appendAuthorityEvent(this.journal, {
       eventType: 'TRANSACTION_ROLLED_BACK', eventId: this._newId('event'), transactionId: tx.requestId,
@@ -344,16 +346,16 @@ class CredentialVaultHost {
     });
     tx.rollbackEventId = made.event.eventId;
     this._transition(tx, STATES.ROLLED_BACK, reasonCode);
-    this._persistJournalOrUnavailable(TERMINAL_JOURNAL_MISMATCH);
+    await this._persistJournalOrUnavailable(TERMINAL_JOURNAL_MISMATCH);
     this._crashPoint('AFTER_ROLLED_BACK_AUTHORITY_EVENT', tx);
-    this._replaceVault(tx.beforeRaw);
+    await this._replaceVault(tx.beforeRaw);
     this._crashPoint('AFTER_ROLLBACK_VAULT_REPLACE', tx);
-    this._saveMetadata(made.metadata);
+    await this._saveMetadata(made.metadata);
     this._crashPoint('AFTER_ROLLBACK_METADATA_PROJECTION', tx);
     return made;
   }
 
-  _recoverUnresolved(tx, actions) {
+  async _recoverUnresolved(tx, actions) {
     validateTransaction(tx, tx.requestId);
     const raw = this.vault.snapshotRaw();
     const rawDigest = digestRaw(raw);
@@ -365,29 +367,29 @@ class CredentialVaultHost {
 
     if ([STATES.NEW, STATES.PREPARING, STATES.PREPARED].includes(tx.state)) {
       if (!vaultBefore || !metadataBefore) throw this._error(RECOVERY_AMBIGUOUS, 'Prepared transaction does not match its before authority', { requestId: tx.requestId });
-      this._appendRollbackEvent(tx, 'CREDENTIAL_TRANSACTION_RECOVERED_PREPARED');
+      await this._appendRollbackEvent(tx, 'CREDENTIAL_TRANSACTION_RECOVERED_PREPARED');
     } else if ([STATES.COMMITTING, STATES.INDETERMINATE].includes(tx.state)) {
-      if (vaultBefore && metadataBefore) this._appendRollbackEvent(tx, 'CREDENTIAL_TRANSACTION_RECOVERED_BEFORE_COMMIT');
-      else if ((vaultAfter && metadataBefore) || (vaultAfter && metadataAfter)) this._appendCommitEvent(tx);
-      else if (vaultBefore && metadataAfter) this._appendRollbackEvent(tx, 'CREDENTIAL_TRANSACTION_RECOVERED_METADATA_ROLLBACK');
+      if (vaultBefore && metadataBefore) await this._appendRollbackEvent(tx, 'CREDENTIAL_TRANSACTION_RECOVERED_BEFORE_COMMIT');
+      else if ((vaultAfter && metadataBefore) || (vaultAfter && metadataAfter)) await this._appendCommitEvent(tx);
+      else if (vaultBefore && metadataAfter) await this._appendRollbackEvent(tx, 'CREDENTIAL_TRANSACTION_RECOVERED_METADATA_ROLLBACK');
       else throw this._error(RECOVERY_AMBIGUOUS, 'Indeterminate transaction does not match a recoverable disk state', { requestId: tx.requestId, rawDigest });
     } else if (tx.state === STATES.ABORTING) {
       if (!vaultBefore && !vaultAfter) throw this._error(RECOVERY_AMBIGUOUS, 'Aborting transaction has unknown vault content', { requestId: tx.requestId });
       if (!metadataBefore && !metadataAfter) throw this._error(RECOVERY_AMBIGUOUS, 'Aborting transaction has unknown metadata', { requestId: tx.requestId });
-      this._appendRollbackEvent(tx, 'CREDENTIAL_TRANSACTION_RECOVERED_ABORT');
+      await this._appendRollbackEvent(tx, 'CREDENTIAL_TRANSACTION_RECOVERED_ABORT');
     } else {
       throw this._error(RECOVERY_AMBIGUOUS, 'Unsupported unresolved credential transaction state', { requestId: tx.requestId, state: tx.state });
     }
     actions.push({ requestId: tx.requestId, stateBefore, stateAfter: tx.state, reasonCode: tx.reasonCode || '' });
   }
 
-  _recoverAuthority() {
+  async _recoverAuthority() {
     const actions = [];
     validateJournal(this.journal);
     const unresolved = this._nonTerminalTransactions();
     if (unresolved.length > 1) throw this._error(RECOVERY_AMBIGUOUS, 'More than one unresolved credential transaction exists');
-    if (unresolved.length === 1) this._recoverUnresolved(unresolved[0], actions);
-    this._recoverHeadProjection(actions);
+    if (unresolved.length === 1) await this._recoverUnresolved(unresolved[0], actions);
+    await this._recoverHeadProjection(actions);
     validateJournal(this.journal);
     const head = headEvent(this.journal);
     const expectedMetadata = metadataFromEvent(head, this.clock());
@@ -458,7 +460,7 @@ class CredentialVaultHost {
   _assertNoCompetingTransaction(requestId = '') {
     if (this.activeTransactionId && this.activeTransactionId !== requestId) throw this._error(TRANSACTION_BUSY, 'Another credential transaction is prepared or committing', { retryable: true, activeTransactionId: this.activeTransactionId });
   }
-  _buildTransaction({ requestId, mutationSha256, operation, ref, value, source = 'FD6', nextEpoch = '', pendingReset = null, ownerSession = null }) {
+  async _buildTransaction({ requestId, mutationSha256, operation, ref, value, source = 'FD6', nextEpoch = '', pendingReset = null, ownerSession = null }) {
     this._assertNoCompetingTransaction(requestId);
     const id = String(requestId || '').trim();
     if (!id) throw this._error('CREDENTIAL_CUSTODY_REQUEST_ID_INVALID', 'Credential requestId is required');
@@ -490,7 +492,7 @@ class CredentialVaultHost {
     this.transactions[id] = tx;
     this.activeTransactionId = id;
     this._transition(tx, STATES.PREPARING);
-    try { this._persistJournalOrUnavailable(JOURNAL_INVALID); this._crashPoint('AFTER_PREPARING_JOURNAL', tx); this._transition(tx, STATES.PREPARED); this._persistJournalOrUnavailable(JOURNAL_INVALID); this._crashPoint('AFTER_PREPARED_JOURNAL', tx); }
+    try { await this._persistJournalOrUnavailable(JOURNAL_INVALID); this._crashPoint('AFTER_PREPARING_JOURNAL', tx); this._transition(tx, STATES.PREPARED); await this._persistJournalOrUnavailable(JOURNAL_INVALID); this._crashPoint('AFTER_PREPARED_JOURNAL', tx); }
     catch (cause) {
       if (TERMINAL_STATES.has(tx.state)) this.activeTransactionId = null;
       throw cause;
@@ -498,13 +500,13 @@ class CredentialVaultHost {
     return tx;
   }
 
-  _markFailedTransaction(tx, reasonCode) {
+  async _markFailedTransaction(tx, reasonCode) {
     const raw = this.vault.snapshotRaw();
     if (digestRaw(raw) !== tx.beforeDigest || !this._metadataMatchesBoundary(this.metadata, tx.previousAuthority)) {
       throw this._error(RECOVERY_AMBIGUOUS, 'A definite FAILED result requires the unchanged before authority', { requestId: tx.requestId });
     }
     this._transition(tx, STATES.FAILED, reasonCode || 'CREDENTIAL_VAULT_PERSIST_FAILED');
-    this._persistJournalOrUnavailable(JOURNAL_INVALID);
+    await this._persistJournalOrUnavailable(JOURNAL_INVALID);
     return this._result(tx);
   }
 
@@ -516,19 +518,19 @@ class CredentialVaultHost {
     this._assertTransactionPreviousAuthority(tx);
     const raw = this.vault.snapshotRaw();
     if (digestRaw(raw) !== tx.beforeDigest || !this._metadataMatchesBoundary(this.metadata, tx.previousAuthority)) {
-      this._appendRollbackEvent(tx, CONCURRENT_MUTATION);
+      await this._appendRollbackEvent(tx, CONCURRENT_MUTATION);
       this.activeTransactionId = null;
       throw this._error(CONCURRENT_MUTATION, 'Credential transaction compare-and-swap rejected a stale before image', { retryable: true });
     }
     this._transition(tx, STATES.COMMITTING);
-    this._persistJournalOrUnavailable(JOURNAL_INVALID);
+    await this._persistJournalOrUnavailable(JOURNAL_INVALID);
     this._crashPoint('AFTER_COMMITTING_JOURNAL', tx);
     let vaultReplaced = false;
     try {
       if (typeof this.beforeTransactionCommit === 'function') await this.beforeTransactionCommit(Object.freeze({ requestId: tx.requestId, source: tx.source, operation: tx.operation }));
-      this._replaceVault(tx.afterRaw); vaultReplaced = true;
+      await this._replaceVault(tx.afterRaw); vaultReplaced = true;
       this._crashPoint('AFTER_VAULT_ATOMIC_REPLACE', tx);
-      const made = this._appendCommitEvent(tx);
+      const made = await this._appendCommitEvent(tx);
       this.activeTransactionId = null;
       return this._result(tx, { authorityEventId: made.event.eventId });
     } catch (cause) {
@@ -538,10 +540,10 @@ class CredentialVaultHost {
         throw Object.assign(this._error('CREDENTIAL_COMMIT_RESULT_INDETERMINATE', 'Credential commit authority event is durable but projection completion failed'), { cause });
       }
       try {
-        if (!vaultReplaced) this._markFailedTransaction(tx, cause.reasonCode || cause.code || 'CREDENTIAL_VAULT_PERSIST_FAILED');
+        if (!vaultReplaced) await this._markFailedTransaction(tx, cause.reasonCode || cause.code || 'CREDENTIAL_VAULT_PERSIST_FAILED');
         else {
           if (tx.state !== STATES.ABORTING) this._transition(tx, STATES.ABORTING, cause.reasonCode || cause.code || 'CREDENTIAL_VAULT_PERSIST_FAILED');
-          this._appendRollbackEvent(tx, cause.reasonCode || cause.code || 'CREDENTIAL_VAULT_PERSIST_FAILED');
+          await this._appendRollbackEvent(tx, cause.reasonCode || cause.code || 'CREDENTIAL_VAULT_PERSIST_FAILED');
         }
       } catch (rollbackCause) {
         this._markUnavailable('CREDENTIAL_VAULT_ROLLBACK_FAILED');
@@ -567,7 +569,7 @@ class CredentialVaultHost {
       const existing = this._find(request);
       if (existing) return this._result(existing, { durableReplay: TERMINAL_STATES.has(existing.state) });
       const ownerSession = this._validateBinding(request);
-      const tx = this._buildTransaction({ requestId: request.requestId, mutationSha256: request.payload?.mutationSha256, operation: request.operation, ref: request.payload?.ref, value: request.payload?.value, source: 'FD6', ownerSession });
+      const tx = await this._buildTransaction({ requestId: request.requestId, mutationSha256: request.payload?.mutationSha256, operation: request.operation, ref: request.payload?.ref, value: request.payload?.value, source: 'FD6', ownerSession });
       return this._result(tx);
     });
   }
@@ -589,7 +591,7 @@ class CredentialVaultHost {
       const tx = this._find(request);
       if (!tx) return Object.freeze({ success: true, persisted: false, operation: request.operation, ref: request.payload?.ref || '', vaultEpoch: request.vaultEpoch, previousGeneration: request.generation, generation: request.generation, transactionState: 'UNKNOWN', reasonCode: '', durableReplay: false });
       if (tx.state === STATES.ROLLED_BACK || tx.state === STATES.FAILED) { if (this.activeTransactionId === tx.requestId) this.activeTransactionId = null; return this._result(tx, { durableReplay: true }); }
-      try { this._appendRollbackEvent(tx, reasonCode); }
+      try { await this._appendRollbackEvent(tx, reasonCode); }
       catch (cause) { this._markUnavailable(cause.reasonCode || TERMINAL_JOURNAL_MISMATCH); throw cause; }
       this.activeTransactionId = null;
       return this._result(tx);
@@ -623,7 +625,7 @@ class CredentialVaultHost {
         if (TERMINAL_STATES.has(existing.state)) return this._result(existing, { durableReplay: true });
         return this._commitTransaction(existing);
       }
-      const tx = this._buildTransaction({ requestId, mutationSha256: fingerprint, operation, ref: key, value, source: options.source || 'LOCAL', nextEpoch: options.nextEpoch || '', pendingReset: options.pendingReset || null });
+      const tx = await this._buildTransaction({ requestId, mutationSha256: fingerprint, operation, ref: key, value, source: options.source || 'LOCAL', nextEpoch: options.nextEpoch || '', pendingReset: options.pendingReset || null });
       return this._commitTransaction(tx);
     });
   }
@@ -647,12 +649,13 @@ class CredentialVaultHost {
     return this._enqueue(async () => {
       this._assertApplicationAccess();
       this._assertOperational(); const ownerSession = this._validateBinding(request); this._assertNoCompetingTransaction();
-      const tx = this._buildTransaction({ requestId: request.requestId || this._newId('FD6'), mutationSha256: request.payload?.mutationSha256, operation: request.operation, ref: request.payload?.ref, value: request.payload?.value, source: 'FD6', ownerSession });
+      const tx = await this._buildTransaction({ requestId: request.requestId || this._newId('FD6'), mutationSha256: request.payload?.mutationSha256, operation: request.operation, ref: request.payload?.ref, value: request.payload?.value, source: 'FD6', ownerSession });
       return this._commitTransaction(tx);
     });
   }
 
-  createHydrationFrame(context = {}) {
+  async createHydrationFrame(context = {}) {
+    await this.initialize();
     this._assertApplicationCoordinatorLease(context.applicationLeaseToken || null, 'FD5 hydration');
     this._assertApplicationAccess(context.applicationLeaseToken || null);
     this._assertOperational();
@@ -672,7 +675,7 @@ class CredentialVaultHost {
       previousGeneration: current.generation, generation: current.generation + 1, vaultEpoch: current.vaultEpoch,
       raw, pendingReset: this.metadata.pendingReset || null, createdAtUtc: this.clock()
     });
-    try { this._persistJournalOrUnavailable(AUTHORITY_HISTORY_MISMATCH); this._crashPoint('AFTER_HYDRATION_AUTHORITY_EVENT'); this._saveMetadata(made.metadata); this._crashPoint('AFTER_HYDRATION_METADATA_PROJECTION'); }
+    try { await this._persistJournalOrUnavailable(AUTHORITY_HISTORY_MISMATCH); this._crashPoint('AFTER_HYDRATION_AUTHORITY_EVENT'); await this._saveMetadata(made.metadata); this._crashPoint('AFTER_HYDRATION_METADATA_PROJECTION'); }
     catch (cause) { this._markUnavailable(cause.reasonCode || AUTHORITY_HISTORY_MISMATCH); throw cause; }
     const frame = makeCredentialFrame({
       startupNonce: context.startupNonce, oneTimeToken: context.oneTimeToken, backendPid: context.backendPid,
@@ -695,7 +698,8 @@ class CredentialVaultHost {
     return Object.freeze({ frame, ownerSession, resetAuthorization: this.metadata.pendingReset ? Object.freeze({ ...this.metadata.pendingReset }) : null });
   }
 
-  markHydrationAccepted(result = {}) {
+  async markHydrationAccepted(result = {}) {
+    await this.initialize();
     this._assertOperational();
     const expected = this.pendingHydration;
     if (!expected) return false;
@@ -704,12 +708,13 @@ class CredentialVaultHost {
     this.pendingHydration = null;
     this.activeOwnerSession = expected.ownerSession || this.pendingOwnerSession;
     this.pendingOwnerSession = null;
-    if (this.metadata.pendingReset) this._saveMetadata({ ...this.metadata, pendingReset: null });
+    if (this.metadata.pendingReset) await this._saveMetadata({ ...this.metadata, pendingReset: null });
     return true;
   }
 
   handleBackendOwnerExit(ownerContext = {}) {
     return this._enqueue(async () => {
+      await this.initialize();
       const owner = this._ownerFromContext(ownerContext);
       const currentOwner = this.activeOwnerSession || this.pendingOwnerSession;
       if (!currentOwner) return Object.freeze({ recovered: true, staleOwnerIgnored: true, activeTransactionId: this.activeTransactionId || '', authorityState: this.lifecycleCoordinator.lifecycle.state });
@@ -722,13 +727,13 @@ class CredentialVaultHost {
           if (!tx) throw this._error(RECOVERY_AMBIGUOUS, 'Active owner transaction is missing from durable journal');
           if (tx.ownerSession && !sameOwnerSession(tx.ownerSession, owner)) throw this._error('WP4_CREDENTIAL_BACKEND_OWNER_SESSION_MISMATCH', 'Active transaction belongs to a different owner session');
           const stateBefore = tx.state;
-          if ([STATES.NEW, STATES.PREPARING, STATES.PREPARED].includes(tx.state)) this._appendRollbackEvent(tx, 'CREDENTIAL_BACKEND_OWNER_EXIT');
-          else if ([STATES.COMMITTING, STATES.INDETERMINATE, STATES.ABORTING].includes(tx.state)) this._recoverUnresolved(tx, actions);
-          else if (tx.state === STATES.COMMITTED) this._recoverHeadProjection(actions);
+          if ([STATES.NEW, STATES.PREPARING, STATES.PREPARED].includes(tx.state)) await this._appendRollbackEvent(tx, 'CREDENTIAL_BACKEND_OWNER_EXIT');
+          else if ([STATES.COMMITTING, STATES.INDETERMINATE, STATES.ABORTING].includes(tx.state)) await this._recoverUnresolved(tx, actions);
+          else if (tx.state === STATES.COMMITTED) await this._recoverHeadProjection(actions);
           else if (!TERMINAL_STATES.has(tx.state)) throw this._error(RECOVERY_AMBIGUOUS, 'Owner transaction has an unsupported state', { state: tx.state });
           actions.push({ requestId: tx.requestId, stateBefore, stateAfter: tx.state });
         }
-        this._recoverHeadProjection(actions);
+        await this._recoverHeadProjection(actions);
         this.activeTransactionId = null;
         this.activeOwnerSession = null;
         this.pendingOwnerSession = null;

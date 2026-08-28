@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 const properLockfile = require('proper-lockfile');
+const { atomicWriteJsonAsync, mkdirAsync, readFileTextAsync } = require('./asyncDurability');
 
 const SCHEMA_VERSION = 1;
 const LIVE_STATES = new Set(['SPAWNED', 'STARTING', 'RUNNING', 'REJECTED', 'STOPPING']);
@@ -152,9 +153,6 @@ function fsyncSyncIfSupported(fsApi, handle, context) {
   if (typeof fsApi.fsyncSync !== 'function') return;
   try { fsApi.fsyncSync(handle); }
   catch (error) {
-    // Windows does not consistently support directory fsync on NTFS / temp
-    // locations. Treat only that platform limitation as non-fatal; file fsync
-    // failures and non-Windows directory failures still fail closed.
     if (context === 'directory' && process.platform === 'win32' && error?.code === 'EPERM') return;
     throw error;
   }
@@ -191,7 +189,7 @@ function linuxProcessIdentity(pid, fsApi = fs) {
     const close = stat.lastIndexOf(')');
     if (close < 0) return null;
     const fields = stat.slice(close + 2).trim().split(/\s+/);
-    const startTicks = fields[19]; // field 22 overall, after pid and comm
+    const startTicks = fields[19];
     const cmdline = fsApi.readFileSync(`/proc/${pid}/cmdline`);
     if (!startTicks || !cmdline.length) return null;
     return {
@@ -209,8 +207,10 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     try {
       const logDir = path.join(process.env.APPDATA || process.env.HOME || '.', 'Yance', 'debug');
       const logPath = path.join(logDir, 'windowsProcessIdentity_debug.jsonl');
-      fs.mkdirSync(logDir, { recursive: true });
-      fs.appendFileSync(logPath, `${JSON.stringify({ timestamp: new Date().toISOString(), msg, data })}\n`, 'utf8');
+      const entry = `${JSON.stringify({ timestamp: new Date().toISOString(), msg, data })}\n`;
+      fs.promises.mkdir(logDir, { recursive: true })
+        .then(() => fs.promises.appendFile(logPath, entry, 'utf8'))
+        .catch(() => {});
     } catch (_) {}
   };
 
@@ -235,12 +235,7 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
     : 'powershell.exe';
   const args = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script];
-  const execOptions = {
-    encoding: 'utf8',
-    windowsHide: true,
-    timeout: 5000,
-    maxBuffer: 1024 * 1024
-  };
+  const execOptions = { encoding: 'utf8', windowsHide: true, timeout: 5000, maxBuffer: 1024 * 1024 };
 
   const configuredAttempts = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS || 8);
   const configuredDelay = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_RETRY_MS || 125);
@@ -279,8 +274,6 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     });
   };
 
-  // Existing tests inject a synchronous fake collector. Production leaves
-  // execFileImpl null and therefore uses the non-blocking callback API below.
   if (typeof execFileImpl === 'function') {
     let lastError = null;
     let lastRaw = '';
@@ -360,6 +353,32 @@ function processIdentityMatches(expected, actual) {
   return false;
 }
 
+async function processAliveAsync(pid, options = {}) {
+  const value = Number(pid || 0);
+  if (!Number.isInteger(value) || value < 1) return false;
+  const platform = options.platform || process.platform;
+  const fsApi = options.fsApi || fs;
+  if (platform === 'linux' && fsApi?.promises?.access) {
+    try { await fsApi.promises.access(`/proc/${value}`); return true; }
+    catch (cause) { return cause?.code !== 'ENOENT' && cause?.code !== 'ESRCH'; }
+  }
+
+  const executable = platform === 'win32'
+    ? (process.env.SystemRoot ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe') : 'powershell.exe')
+    : '/bin/kill';
+  const args = platform === 'win32'
+    ? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', `Get-Process -Id ${value} -ErrorAction Stop | Out-Null`]
+    : ['-0', String(value)];
+  return new Promise(resolve => {
+    execFile(executable, args, { windowsHide: true, timeout: 3000 }, error => {
+      if (!error) { resolve(true); return; }
+      const diagnostic = `${error?.message || ''}\n${error?.stderr || ''}`;
+      if (/operation not permitted|access is denied|permission denied/i.test(diagnostic)) { resolve(true); return; }
+      resolve(false);
+    });
+  });
+}
+
 class BackendOwnerRegistry {
   constructor(options = {}) {
     this.file = options.file ? path.resolve(options.file) : '';
@@ -371,6 +390,10 @@ class BackendOwnerRegistry {
       try { process.kill(value, 0); return true; }
       catch (cause) { return cause?.code !== 'ESRCH'; }
     });
+    this.isProcessAliveAsync = options.isProcessAliveAsync
+      || (options.isProcessAlive
+        ? (async pid => options.isProcessAlive(pid) === true)
+        : (pid => processAliveAsync(pid, { fsApi: this.fs })));
     this.captureIdentity = options.captureIdentity || (pid => platformProcessIdentity(pid, { fs: this.fs }));
     this.captureIdentityIsAsync = options.captureIdentityIsAsync === true
       || (!options.captureIdentity && process.platform === 'win32')
@@ -412,6 +435,38 @@ class BackendOwnerRegistry {
     this.record = null;
     this.loadFailure = null;
     this._load();
+    return this.snapshot();
+  }
+
+  async _loadAsync() {
+    if (!this.enabled()) return;
+    const text = await readFileTextAsync(this.file, this.fs);
+    if (text === null) return;
+    let parsed = null;
+    try {
+      parsed = JSON.parse(text);
+      validateOwnerRecord(parsed, { requireProcessIdentity: true, expectedPlatform: this.processIdentityPlatform || undefined });
+      this.record = parsed;
+    } catch (cause) {
+      this.record = null;
+      this.loadFailure = {
+        reasonCode: cause?.reasonCode || 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_INVALID',
+        message: cause.message,
+        details: clone(cause?.details || null),
+        claimedState: typeof parsed?.state === 'string' ? parsed.state : null,
+        claimedOwnershipActive: typeof parsed?.ownershipActive === 'boolean' ? parsed.ownershipActive : null,
+        claimedTrusted: typeof parsed?.trusted === 'boolean' ? parsed.trusted : null,
+        claimedBackendPid: typeof parsed?.backendPid === 'number' ? parsed.backendPid : null,
+        recoveryRequired: true,
+        atUtc: this.clock()
+      };
+    }
+  }
+
+  async refreshAsync() {
+    this.record = null;
+    this.loadFailure = null;
+    await this._loadAsync();
     return this.snapshot();
   }
 
@@ -460,7 +515,7 @@ class BackendOwnerRegistry {
     const pid = Number(record.backendPid || 0);
     if (!Number.isInteger(pid) || pid < 1) return { alive: false, identityMatch: null, reasonCode: 'OWNER_PID_INVALID', backendPid: pid };
     let alive = false;
-    try { alive = this.isProcessAlive(pid) === true; }
+    try { alive = await this.isProcessAliveAsync(pid) === true; }
     catch (cause) {
       return { alive: true, identityMatch: null, reasonCode: cause?.code === 'EPERM' ? 'OWNER_LIVENESS_EPERM' : 'OWNER_LIVENESS_UNKNOWN', backendPid: pid };
     }
@@ -480,16 +535,23 @@ class BackendOwnerRegistry {
   }
 
   _write(record) {
-    const candidate = {
-      schemaVersion: SCHEMA_VERSION,
-      ...clone(record),
-      updatedAtUtc: this.clock()
-    };
+    const candidate = { schemaVersion: SCHEMA_VERSION, ...clone(record), updatedAtUtc: this.clock() };
     validateOwnerRecord(candidate, {
       requireProcessIdentity: this.enabled(),
       expectedPlatform: this.enabled() ? (this.processIdentityPlatform || undefined) : undefined
     });
     if (this.enabled()) atomicWriteJson(this.file, candidate, this.fs);
+    this.record = candidate;
+    return this.snapshot();
+  }
+
+  async _writeAsync(record) {
+    const candidate = { schemaVersion: SCHEMA_VERSION, ...clone(record), updatedAtUtc: this.clock() };
+    validateOwnerRecord(candidate, {
+      requireProcessIdentity: this.enabled(),
+      expectedPlatform: this.enabled() ? (this.processIdentityPlatform || undefined) : undefined
+    });
+    if (this.enabled()) await atomicWriteJsonAsync(this.file, candidate, { fsApi: this.fs });
     this.record = candidate;
     return this.snapshot();
   }
@@ -500,12 +562,7 @@ class BackendOwnerRegistry {
     let release = null;
     let operationError = null;
     try {
-      release = this.lockfile.lockSync(this.file, {
-        realpath: false,
-        stale: this.claimLockStaleMs,
-        retries: 0,
-        fs: this.fs
-      });
+      release = this.lockfile.lockSync(this.file, { realpath: false, stale: this.claimLockStaleMs, retries: 0, fs: this.fs });
     } catch (cause) {
       throw ownerClaimError(cause, 'acquire');
     }
@@ -541,15 +598,13 @@ class BackendOwnerRegistry {
     try {
       const logDir = path.join(process.env.APPDATA || process.env.HOME || '.', 'Yance', 'debug');
       const logPath = path.join(logDir, 'register_debug.jsonl');
-      if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
       const entry = JSON.stringify({
-        timestamp: new Date().toISOString(),
-        backendPid,
-        capturedIdentity,
-        captureIdentityType: typeof this.captureIdentity,
-        processIdentityPlatform: this.processIdentityPlatform
+        timestamp: new Date().toISOString(), backendPid, capturedIdentity,
+        captureIdentityType: typeof this.captureIdentity, processIdentityPlatform: this.processIdentityPlatform
       }) + '\n';
-      fs.appendFileSync(logPath, entry, 'utf8');
+      fs.promises.mkdir(logDir, { recursive: true })
+        .then(() => fs.promises.appendFile(logPath, entry, 'utf8'))
+        .catch(e => console.error('[register debug log failed]', e.message));
     } catch (e) {
       console.error('[register debug log failed]', e.message);
     }
@@ -586,7 +641,7 @@ class BackendOwnerRegistry {
       let active = true;
       let registered = false;
       return Object.freeze({
-        register: context => {
+        register: async context => {
           if (!active) {
             const error = new Error('Backend startup admission is no longer active');
             error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_CLOSED';
@@ -597,7 +652,7 @@ class BackendOwnerRegistry {
             error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_ALREADY_REGISTERED';
             throw error;
           }
-          const result = this._write(this._registrationRecord(context));
+          const result = await this._writeAsync(this._registrationRecord(context));
           registered = true;
           return result;
         },
@@ -611,15 +666,10 @@ class BackendOwnerRegistry {
       throw error;
     }
 
-    this.fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    await mkdirAsync(path.dirname(this.file), this.fs);
     let releaseImpl = null;
     try {
-      releaseImpl = await this.lockfile.lock(this.file, {
-        realpath: false,
-        stale: this.claimLockStaleMs,
-        retries: 0,
-        fs: this.fs
-      });
+      releaseImpl = await this.lockfile.lock(this.file, { realpath: false, stale: this.claimLockStaleMs, retries: 0, fs: this.fs });
     } catch (cause) {
       throw ownerClaimError(cause, 'acquire');
     }
@@ -636,7 +686,7 @@ class BackendOwnerRegistry {
     };
 
     try {
-      this.refresh();
+      await this.refreshAsync();
       this._assertClaimAvailable();
     } catch (error) {
       try { await release(); }
@@ -651,7 +701,7 @@ class BackendOwnerRegistry {
     }
 
     return Object.freeze({
-      register: context => {
+      register: async context => {
         if (!active) {
           const error = new Error('Backend startup admission is no longer active');
           error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_CLOSED';
@@ -662,7 +712,7 @@ class BackendOwnerRegistry {
           error.reasonCode = 'WP4_DESKTOP_BACKEND_STARTUP_ADMISSION_ALREADY_REGISTERED';
           throw error;
         }
-        const result = this._write(this._registrationRecord(context));
+        const result = await this._writeAsync(this._registrationRecord(context));
         registered = true;
         return result;
       },
@@ -674,14 +724,34 @@ class BackendOwnerRegistry {
     const record = this._registrationRecord(context);
     if (!this.enabled()) return this._write(record);
     return this._withOwnerClaimLock(() => {
-      // Constructor-time state is only a hint. The claim boundary must reload
-      // the durable record while holding the cross-process lock, otherwise two
-      // DesktopHost processes can both observe an empty registry and overwrite
-      // each other after they fork.
       this.refresh();
       this._assertClaimAvailable();
       return this._write(record);
     });
+  }
+
+  async registerAsync(context = {}) {
+    const admission = await this.acquireStartupAdmission();
+    let operationError = null;
+    try {
+      const processIdentity = Object.prototype.hasOwnProperty.call(context, 'processIdentity')
+        ? context.processIdentity
+        : await this.captureIdentityAsync(context.backendPid);
+      return await admission.register({ ...context, processIdentity });
+    } catch (error) {
+      operationError = error;
+      throw error;
+    } finally {
+      try { await admission.release(); }
+      catch (releaseError) {
+        if (operationError) operationError.ownerClaimReleaseFailure = {
+          reasonCode: releaseError.reasonCode || 'WP4_DESKTOP_BACKEND_OWNER_CLAIM_LOCK_FAILED',
+          code: releaseError.code || '',
+          message: releaseError.message
+        };
+        else throw releaseError;
+      }
+    }
   }
 
   update(context = {}) {
@@ -689,32 +759,52 @@ class BackendOwnerRegistry {
     return this._write({ ...this.record, ...clone(context), schemaVersion: SCHEMA_VERSION });
   }
 
+  async updateAsync(context = {}) {
+    if (!this.record) return this.registerAsync(context);
+    return this._writeAsync({ ...this.record, ...clone(context), schemaVersion: SCHEMA_VERSION });
+  }
+
   markRejected(context = {}) {
     return this.update({
-      state: 'REJECTED',
-      ownershipActive: true,
-      trusted: false,
+      state: 'REJECTED', ownershipActive: true, trusted: false,
       reasonCode: String(context.reasonCode || this.record?.reasonCode || 'WP4_DESKTOP_CREDENTIAL_REJECTED_OWNER'),
-      ownerSession: clone(context.ownerSession || this.record?.ownerSession || null),
-      rejectedAtUtc: this.clock()
+      ownerSession: clone(context.ownerSession || this.record?.ownerSession || null), rejectedAtUtc: this.clock()
+    });
+  }
+
+  async markRejectedAsync(context = {}) {
+    return this.updateAsync({
+      state: 'REJECTED', ownershipActive: true, trusted: false,
+      reasonCode: String(context.reasonCode || this.record?.reasonCode || 'WP4_DESKTOP_CREDENTIAL_REJECTED_OWNER'),
+      ownerSession: clone(context.ownerSession || this.record?.ownerSession || null), rejectedAtUtc: this.clock()
     });
   }
 
   markExited(context = {}) {
     return this.update({
-      state: 'EXITED',
-      ownershipActive: false,
-      trusted: false,
+      state: 'EXITED', ownershipActive: false, trusted: false,
       reasonCode: String(context.reasonCode || this.record?.reasonCode || ''),
-      exitCode: context.exitCode ?? null,
-      signalCode: context.signalCode || null,
-      exitedAtUtc: this.clock()
+      exitCode: context.exitCode ?? null, signalCode: context.signalCode || null, exitedAtUtc: this.clock()
+    });
+  }
+
+  async markExitedAsync(context = {}) {
+    return this.updateAsync({
+      state: 'EXITED', ownershipActive: false, trusted: false,
+      reasonCode: String(context.reasonCode || this.record?.reasonCode || ''),
+      exitCode: context.exitCode ?? null, signalCode: context.signalCode || null, exitedAtUtc: this.clock()
     });
   }
 
   isPotentiallyLive() {
     if (!this.record || this.record.ownershipActive !== true || !LIVE_STATES.has(String(this.record.state || ''))) return false;
     const probe = this.probe();
+    return probe.alive === true && probe.identityMatch !== false;
+  }
+
+  async isPotentiallyLiveAsync() {
+    if (!this.record || this.record.ownershipActive !== true || !LIVE_STATES.has(String(this.record.state || ''))) return false;
+    const probe = await this.probeAsync();
     return probe.alive === true && probe.identityMatch !== false;
   }
 }
@@ -730,6 +820,7 @@ module.exports = {
   windowsProcessIdentity,
   platformProcessIdentity,
   processIdentityMatches,
+  processAliveAsync,
   validateProcessIdentity,
   validateOwnerRecord
 };

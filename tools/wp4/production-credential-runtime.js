@@ -113,6 +113,7 @@ async function runProductionCredentialScenario(options = {}) {
   const generatedSecret = options.generatedSecret || 'wp4-backend-generated-telegram-session';
   const memory = createMemoryVault(dataRoot);
   const vaultHost = new CredentialVaultHost({ vault: memory.vault, metadataPath: path.join(dataRoot, 'secure', 'vault-meta.json') });
+  await vaultHost.initialize();
   const vaultEpoch = vaultHost.snapshotMetadata().vaultEpoch;
   const host = new BackendProcessHost();
   const startOptions = {
