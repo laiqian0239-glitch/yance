@@ -33,8 +33,8 @@ function reload(x, safeStorage) {
   const vault = new CredentialVault(x.paths.vault, { safeStorage });
   return new CredentialVaultHost({ vault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal });
 }
-function hydrate(host, nonce = 'strict-hydration') {
-  return host.createHydrationFrame({ startupNonce: nonce, oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
+async function hydrate(host, nonce = 'strict-hydration') {
+  return await host.createHydrationFrame({ startupNonce: nonce, oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
 }
 
 test('safeStorage unavailable with existing references fails hydration without advancing generation', async () => {
@@ -43,7 +43,7 @@ test('safeStorage unavailable with existing references fails hydration without a
     await seed(x);
     const before = x.host.snapshotMetadata().generation;
     const restarted = reload(x, storage({ available: false }));
-    assert.throws(() => hydrate(restarted), error => error.reasonCode === SECURE_STORAGE_UNAVAILABLE);
+    await assert.rejects(hydrate(restarted), error => error.reasonCode === SECURE_STORAGE_UNAVAILABLE);
     assert.equal(restarted.snapshotMetadata().generation, before);
   } finally { x.close(); }
 });
@@ -54,7 +54,7 @@ test('ciphertext/DPAPI decryption failure rejects the entire hydration', async (
     await seed(x);
     const before = x.host.snapshotMetadata().generation;
     const restarted = reload(x, storage({ throwDecrypt: true }));
-    assert.throws(() => hydrate(restarted), error => error.reasonCode === DECRYPT_FAILED);
+    await assert.rejects(hydrate(restarted), error => error.reasonCode === DECRYPT_FAILED);
     assert.equal(restarted.snapshotMetadata().generation, before);
   } finally { x.close(); }
 });
@@ -65,7 +65,7 @@ test('decrypted credential JSON corruption rejects the entire hydration', async 
     await seed(x);
     const before = x.host.snapshotMetadata().generation;
     const restarted = reload(x, storage({ invalidJson: true }));
-    assert.throws(() => hydrate(restarted), error => error.reasonCode === ENTRY_CORRUPTED);
+    await assert.rejects(hydrate(restarted), error => error.reasonCode === ENTRY_CORRUPTED);
     assert.equal(restarted.snapshotMetadata().generation, before);
   } finally { x.close(); }
 });
@@ -76,7 +76,7 @@ test('vault reference count and decrypted entry count mismatch rejects hydration
     await seed(x);
     const before = x.host.snapshotMetadata().generation;
     x.vault.entriesStrict = () => [];
-    assert.throws(() => hydrate(x.host), error => error.reasonCode === HYDRATION_REFERENCE_MISMATCH);
+    await assert.rejects(hydrate(x.host), error => error.reasonCode === HYDRATION_REFERENCE_MISMATCH);
     assert.equal(x.host.snapshotMetadata().generation, before);
   } finally { x.close(); }
 });

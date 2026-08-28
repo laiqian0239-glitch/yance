@@ -8,6 +8,7 @@ const {
   sha256, validateJournal, validateMetadata
 } = require('./credentialAuthority');
 const { STATES, transitionLifecycle } = require('../../shared/credentialAuthorityLifecycleStateMachine');
+const { atomicWriteJsonAsync, existsAsync, readFileTextAsync, unlinkAsync } = require('./asyncDurability');
 
 const LIFECYCLE_SCHEMA_VERSION = 1;
 const INTENT_SCHEMA_VERSION = 1;
@@ -20,26 +21,15 @@ const JOURNAL_MISSING = 'WP4_CREDENTIAL_TRANSACTION_JOURNAL_MISSING';
 
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function error(reasonCode, message, details = {}) { const result = new Error(message || reasonCode); result.reasonCode = reasonCode; result.code = reasonCode; Object.assign(result, details); return result; }
-function atomicWriteJson(file, value, fsApi = fs) {
-  fsApi.mkdirSync(path.dirname(file), { recursive: true });
-  const temp = `${file}.${process.pid}.${Date.now()}.tmp`;
-  let handle = null;
+
+async function parseJson(file, fsApi, reasonCode, label) {
   try {
-    handle = fsApi.openSync(temp, 'w', 0o600);
-    fsApi.writeFileSync(handle, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-    fsApi.fsyncSync?.(handle);
-    fsApi.closeSync(handle); handle = null;
-    fsApi.renameSync(temp, file);
-    try { const d = fsApi.openSync(path.dirname(file), 'r'); try { fsApi.fsyncSync?.(d); } finally { fsApi.closeSync(d); } } catch (_) {}
+    const text = await readFileTextAsync(file, fsApi);
+    if (text === null) throw Object.assign(new Error(`${label} is unreadable`), { code: 'ENOENT' });
+    return JSON.parse(text);
   } catch (cause) {
-    if (handle !== null) try { fsApi.closeSync(handle); } catch (_) {}
-    try { fsApi.rmSync(temp, { force: true }); } catch (_) {}
-    throw cause;
+    throw error(reasonCode, `${label} is unreadable`, { file, cause });
   }
-}
-function parseJson(file, fsApi, reasonCode, label) {
-  try { return JSON.parse(fsApi.readFileSync(file, 'utf8')); }
-  catch (cause) { throw error(reasonCode, `${label} is unreadable`, { file, cause }); }
 }
 
 class CredentialAuthorityLifecycleCoordinator {
@@ -71,10 +61,10 @@ class CredentialAuthorityLifecycleCoordinator {
 
   _transition(state, reasonCode = '') { transitionLifecycle(this.lifecycle, state, this.clock, reasonCode); }
   _crash(point, detail = {}) { this.crashInjector(point, Object.freeze({ lifecycleState: this.lifecycle.state, operationId: this.lifecycle.operationId, operationType: this.lifecycle.operationType, ...detail })); }
-  _exists(file) { try { return this.fs.existsSync(file); } catch (_) { return false; } }
-  _writeIntent(intent) { atomicWriteJson(this.intentPath, intent, this.fs); }
-  _removeIntent() { try { this.fs.rmSync(this.intentPath, { force: true }); } catch (cause) { throw error(LIFECYCLE_INVALID, 'Credential authority lifecycle intent could not be removed', { cause }); } }
-  _writeCompleted(marker) { atomicWriteJson(this.completedPath, marker, this.fs); }
+  async _exists(file) { return existsAsync(file, this.fs); }
+  async _writeIntent(intent) { await atomicWriteJsonAsync(this.intentPath, intent, { fsApi: this.fs }); }
+  async _removeIntent() { try { await unlinkAsync(this.intentPath, this.fs); } catch (cause) { throw error(LIFECYCLE_INVALID, 'Credential authority lifecycle intent could not be removed', { cause }); } }
+  async _writeCompleted(marker) { await atomicWriteJsonAsync(this.completedPath, marker, { fsApi: this.fs }); }
   _journalDigest(journal) { return sha256(journal); }
   _fullMetadataDigest(metadata) { return sha256(metadata); }
 
@@ -110,9 +100,9 @@ class CredentialAuthorityLifecycleCoordinator {
     return intent;
   }
 
-  _readActiveFiles() {
-    const journal = parseJson(this.transactionPath, this.fs, LIFECYCLE_INVALID, 'Credential authority journal');
-    const metadata = parseJson(this.metadataPath, this.fs, LIFECYCLE_INVALID, 'Credential authority metadata');
+  async _readActiveFiles() {
+    const journal = await parseJson(this.transactionPath, this.fs, LIFECYCLE_INVALID, 'Credential authority journal');
+    const metadata = await parseJson(this.metadataPath, this.fs, LIFECYCLE_INVALID, 'Credential authority metadata');
     validateJournal(journal);
     validateMetadata(metadata);
     return { journal, metadata };
@@ -149,9 +139,6 @@ class CredentialAuthorityLifecycleCoordinator {
     if (marker.journalId !== journal.journalId) throw error(LIFECYCLE_INVALID, 'Credential authority completed marker journalId mismatch');
     const initial = journal.authorityEvents.find(event => event.eventId === marker.initialAuthorityEventId);
     if (!initial || initial.eventDigest !== marker.initialAuthorityHeadDigest || initial.vaultEpoch !== marker.vaultEpoch) throw error(LIFECYCLE_INVALID, 'Credential authority completed marker is not connected to durable authority history');
-    // The completed marker proves that genesis/migration committed once. Current
-    // metadata/vault may be one recoverable projection step behind the durable
-    // journal head after a crash; CredentialVaultHost performs that recovery.
     return marker;
   }
 
@@ -182,7 +169,7 @@ class CredentialAuthorityLifecycleCoordinator {
     });
   }
 
-  _resumeGenesisOrMigration(intent) {
+  async _resumeGenesisOrMigration(intent) {
     this._validateIntent(intent);
     const migration = intent.operationType === 'MIGRATION';
     const raw = migration ? this._strictLegacySnapshot() : {};
@@ -193,9 +180,9 @@ class CredentialAuthorityLifecycleCoordinator {
     if (migration) this._crash('MIGRATION_AFTER_LEGACY_READ', { migrationId: intent.migrationId });
 
     const expected = this._expectedGenesis(intent, raw);
-    if (!migration && !this._exists(this.vault.file)) {
+    if (!migration && !(await this._exists(this.vault.file))) {
       if (typeof this.replaceVault !== 'function') throw error(LIFECYCLE_UNAVAILABLE, 'Genesis cannot write the formal credential vault');
-      this.replaceVault(raw);
+      await this.replaceVault(raw);
       this._crash('GENESIS_AFTER_VAULT_ATOMIC_REPLACE');
     } else if (digestRaw(this.vault.snapshotRaw()) !== intent.targetVaultDigest) {
       throw error(MIGRATION_FAILED, 'Credential vault no longer matches lifecycle intent');
@@ -204,38 +191,38 @@ class CredentialAuthorityLifecycleCoordinator {
     this._transition(migration ? STATES.MIGRATION_COMMITTING : STATES.BOOTSTRAP_COMMITTING);
     intent.lifecycleState = this.lifecycle.state;
     intent.updatedAtUtc = this.clock();
-    this._writeIntent(intent);
+    await this._writeIntent(intent);
 
-    if (this._exists(this.transactionPath)) {
-      const actual = parseJson(this.transactionPath, this.fs, LIFECYCLE_INVALID, 'Credential authority journal');
+    if (await this._exists(this.transactionPath)) {
+      const actual = await parseJson(this.transactionPath, this.fs, LIFECYCLE_INVALID, 'Credential authority journal');
       validateJournal(actual);
       if (this._journalDigest(actual) !== this._journalDigest(expected.journal)) throw error(LIFECYCLE_INVALID, 'Existing lifecycle journal does not match the durable intent');
-    } else atomicWriteJson(this.transactionPath, expected.journal, this.fs);
+    } else await atomicWriteJsonAsync(this.transactionPath, expected.journal, { fsApi: this.fs });
     this._crash(migration ? 'MIGRATION_AFTER_JOURNAL' : 'GENESIS_AFTER_JOURNAL');
 
     this._crash(migration ? 'MIGRATION_BEFORE_METADATA' : 'GENESIS_BEFORE_METADATA');
-    if (this._exists(this.metadataPath)) {
-      const actual = parseJson(this.metadataPath, this.fs, LIFECYCLE_INVALID, 'Credential authority metadata');
+    if (await this._exists(this.metadataPath)) {
+      const actual = await parseJson(this.metadataPath, this.fs, LIFECYCLE_INVALID, 'Credential authority metadata');
       validateMetadata(actual);
       if (!sameMetadataAuthority(actual, expected.metadata)) throw error(LIFECYCLE_INVALID, 'Existing lifecycle metadata does not match the durable intent');
-    } else atomicWriteJson(this.metadataPath, expected.metadata, this.fs);
+    } else await atomicWriteJsonAsync(this.metadataPath, expected.metadata, { fsApi: this.fs });
     this._crash(migration ? 'MIGRATION_AFTER_METADATA' : 'GENESIS_AFTER_METADATA');
 
     const marker = this._makeCompletedMarker(intent, expected.journal, expected.metadata);
     this._crash(migration ? 'MIGRATION_BEFORE_COMPLETED_MARKER' : 'GENESIS_BEFORE_COMPLETED_MARKER');
-    if (this._exists(this.completedPath)) {
-      const actual = parseJson(this.completedPath, this.fs, LIFECYCLE_INVALID, 'Credential authority completed marker');
+    if (await this._exists(this.completedPath)) {
+      const actual = await parseJson(this.completedPath, this.fs, LIFECYCLE_INVALID, 'Credential authority completed marker');
       if (actual.operationId !== marker.operationId || actual.initialAuthorityHeadDigest !== marker.initialAuthorityHeadDigest) throw error(LIFECYCLE_INVALID, 'Credential authority completed marker conflicts with lifecycle intent');
-    } else this._writeCompleted(marker);
+    } else await this._writeCompleted(marker);
     this._crash(migration ? 'MIGRATION_AFTER_COMPLETED_MARKER' : 'GENESIS_AFTER_COMPLETED_MARKER');
-    this._removeIntent();
+    await this._removeIntent();
     this.completedMarker = marker;
     this._transition(STATES.ACTIVE);
     return { state: STATES.ACTIVE, operationType: intent.operationType, marker: clone(marker), migratedReferenceCount: intent.targetReferenceCount };
   }
 
-  _adoptExistingWp4() {
-    const { journal, metadata } = this._readActiveFiles();
+  async _adoptExistingWp4() {
+    const { journal, metadata } = await this._readActiveFiles();
     const head = headEvent(journal);
     const raw = this.vault.snapshotRaw();
     if (digestRaw(raw) !== head.vaultDigest || referenceCount(raw) !== head.referenceCount || !sameMetadataAuthority(metadata, { ...head.metadata, authorityHeadDigest: head.eventDigest })) throw error(LIFECYCLE_INVALID, 'Existing WP4 authority is not internally consistent');
@@ -256,37 +243,37 @@ class CredentialAuthorityLifecycleCoordinator {
       createdAtUtc: now,
       updatedAtUtc: now
     };
-    this._writeIntent(intent);
+    await this._writeIntent(intent);
     this.lifecycle.operationId = intent.operationId;
     this.lifecycle.operationType = intent.operationType;
     this._transition(STATES.MIGRATION_PREPARING);
     this._transition(STATES.MIGRATION_COMMITTING);
     const marker = this._makeCompletedMarker(intent, journal, metadata);
-    this._writeCompleted(marker);
-    this._removeIntent();
+    await this._writeCompleted(marker);
+    await this._removeIntent();
     this.completedMarker = marker;
     this._transition(STATES.ACTIVE);
     return { state: STATES.ACTIVE, operationType: 'WP4_ADOPTION', marker: clone(marker), migratedReferenceCount: head.referenceCount };
   }
 
-  ensureActive() {
+  async ensureActive() {
     try {
       this._crash('AUTHORITY_LIFECYCLE_BEFORE_DETECTION');
-      const completedExists = this._exists(this.completedPath);
-      const intentExists = this._exists(this.intentPath);
-      const metadataExists = this._exists(this.metadataPath);
-      const journalExists = this._exists(this.transactionPath);
-      const vaultExists = Boolean(this.vault.loadExists || this._exists(this.vault.file));
+      const completedExists = await this._exists(this.completedPath);
+      const intentExists = await this._exists(this.intentPath);
+      const metadataExists = await this._exists(this.metadataPath);
+      const journalExists = await this._exists(this.transactionPath);
+      const vaultExists = Boolean(this.vault.loadExists || await this._exists(this.vault.file));
 
       if (completedExists) {
         if (!metadataExists || !journalExists || !vaultExists) throw error(JOURNAL_MISSING, 'Completed credential authority is missing a required durable file');
-        const { journal, metadata } = this._readActiveFiles();
-        const marker = parseJson(this.completedPath, this.fs, LIFECYCLE_INVALID, 'Credential authority completed marker');
+        const { journal, metadata } = await this._readActiveFiles();
+        const marker = await parseJson(this.completedPath, this.fs, LIFECYCLE_INVALID, 'Credential authority completed marker');
         this._validateCompletedMarker(marker, journal, metadata);
         if (intentExists) {
-          const intent = this._validateIntent(parseJson(this.intentPath, this.fs, LIFECYCLE_INVALID, 'Credential authority lifecycle intent'));
+          const intent = this._validateIntent(await parseJson(this.intentPath, this.fs, LIFECYCLE_INVALID, 'Credential authority lifecycle intent'));
           if (intent.operationId !== marker.operationId) throw error(LIFECYCLE_INVALID, 'A foreign lifecycle intent remains beside the completed authority');
-          this._removeIntent();
+          await this._removeIntent();
         }
         this.completedMarker = marker;
         this.lifecycle.operationId = marker.operationId;
@@ -296,7 +283,7 @@ class CredentialAuthorityLifecycleCoordinator {
       }
 
       if (intentExists) {
-        const intent = this._validateIntent(parseJson(this.intentPath, this.fs, LIFECYCLE_INVALID, 'Credential authority lifecycle intent'));
+        const intent = this._validateIntent(await parseJson(this.intentPath, this.fs, LIFECYCLE_INVALID, 'Credential authority lifecycle intent'));
         if (intent.operationType === 'WP4_ADOPTION') return this._adoptExistingWp4();
         return this._resumeGenesisOrMigration(intent);
       }
@@ -314,7 +301,7 @@ class CredentialAuthorityLifecycleCoordinator {
         this.lifecycle.operationId = intent.operationId;
         this.lifecycle.operationType = intent.operationType;
         this._transition(STATES.MIGRATION_PREPARING);
-        this._writeIntent(intent);
+        await this._writeIntent(intent);
         this._crash('MIGRATION_AFTER_INTENT', { migrationId: intent.migrationId });
         return this._resumeGenesisOrMigration(intent);
       }
@@ -324,7 +311,7 @@ class CredentialAuthorityLifecycleCoordinator {
       this.lifecycle.operationId = intent.operationId;
       this.lifecycle.operationType = intent.operationType;
       this._transition(STATES.BOOTSTRAP_PREPARING);
-      this._writeIntent(intent);
+      await this._writeIntent(intent);
       this._crash('GENESIS_AFTER_INTENT');
       return this._resumeGenesisOrMigration(intent);
     } catch (cause) {
@@ -356,5 +343,5 @@ class CredentialAuthorityLifecycleCoordinator {
 module.exports = {
   COMPLETED_SCHEMA_VERSION, CredentialAuthorityLifecycleCoordinator, INTENT_SCHEMA_VERSION,
   LIFECYCLE_INVALID, LIFECYCLE_SCHEMA_VERSION, LIFECYCLE_UNAVAILABLE, MIGRATION_FAILED,
-  MIGRATION_SOURCE_INVALID, atomicWriteJson
+  MIGRATION_SOURCE_INVALID
 };

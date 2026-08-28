@@ -38,12 +38,12 @@ function pair() {
   return { electron, backend };
 }
 
-function workspace(prefix) {
+async function workspace(prefix) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   const paths = { vault: path.join(root, 'vault.bin'), metadata: path.join(root, 'meta.json'), journal: path.join(root, 'journal.json') };
   const vault = new CredentialVault(paths.vault, { safeStorage: safeStorage() });
   const vaultHost = new CredentialVaultHost({ vault, metadataPath: paths.metadata, transactionPath: paths.journal, randomUUID: () => 'fourth-evidence-epoch' });
-  vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: '4'.repeat(64) });
+  await vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: '4'.repeat(64) });
   return { root, paths, vault, vaultHost, close() { fs.rmSync(root, { recursive: true, force: true }); } };
 }
 
@@ -75,7 +75,7 @@ function record(probe, values) {
 }
 
 async function prepareAckLostRecovery() {
-  const x = workspace('wp4-prepare-ack-evidence-');
+  const x = await workspace('wp4-prepare-ack-evidence-');
   let dropped = false;
   const c = channel(x.vaultHost, 1, { shouldDropAck: req => req.action === 'PREPARE' && !dropped ? (dropped = true) : false });
   let reasonCode = '';
@@ -99,7 +99,7 @@ async function prepareAckLostRecovery() {
 }
 
 async function prepareResultUnknownShutdown() {
-  const x = workspace('wp4-prepare-shutdown-evidence-');
+  const x = await workspace('wp4-prepare-shutdown-evidence-');
   const c = channel(x.vaultHost, 1, { shouldDropAck: req => req.action === 'PREPARE' || req.action === 'QUERY' });
   let reasonCode = '';
   try { await c.client.request('persist', 'probe/prepare-unknown', { redacted: true }, { requestId: 'prepareResultUnknownShutdown' }); }
@@ -122,7 +122,7 @@ async function prepareResultUnknownShutdown() {
 }
 
 async function abortJournalWriteFailureRecovery() {
-  const x = workspace('wp4-abort-journal-evidence-');
+  const x = await workspace('wp4-abort-journal-evidence-');
   const req = request('PREPARE', 'abortJournalWriteFailureRecovery', 'probe/abort-journal');
   await x.vaultHost.prepareCustodyTransaction(req);
   await x.vaultHost.commitCustodyTransaction({ ...req, action: 'COMMIT' });
@@ -152,7 +152,7 @@ async function abortJournalWriteFailureRecovery() {
 }
 
 async function terminalMismatchProbe(name, terminalState) {
-  const x = workspace(`wp4-${name}-`);
+  const x = await workspace(`wp4-${name}-`);
   const req = request('PREPARE', name, `probe/${name}`);
   await x.vaultHost.prepareCustodyTransaction(req);
   if (terminalState === 'COMMITTED') await x.vaultHost.commitCustodyTransaction({ ...req, action: 'COMMIT' });
@@ -172,11 +172,11 @@ async function terminalMismatchProbe(name, terminalState) {
 }
 
 async function requestIdReplayAfterBackendRestart() {
-  const x = workspace('wp4-durable-replay-evidence-');
+  const x = await workspace('wp4-durable-replay-evidence-');
   const first = channel(x.vaultHost, 1);
   const original = await first.client.request('persist', 'probe/durable-replay', { redacted: true }, { requestId: 'requestIdReplayAfterBackendRestart' });
   first.close();
-  x.vaultHost.createHydrationFrame({ startupNonce: 'n2', oneTimeToken: 'y'.repeat(43), backendPid: process.pid, manifestSha256: '4'.repeat(64) });
+  await x.vaultHost.createHydrationFrame({ startupNonce: 'n2', oneTimeToken: 'y'.repeat(43), backendPid: process.pid, manifestSha256: '4'.repeat(64) });
   const second = channel(x.vaultHost, 3);
   const replay = await second.client.request('persist', 'probe/durable-replay', { redacted: true }, { requestId: 'requestIdReplayAfterBackendRestart' });
   const query = await second.client.query('requestIdReplayAfterBackendRestart', 'persist', 'probe/durable-replay', { redacted: true }, 3);

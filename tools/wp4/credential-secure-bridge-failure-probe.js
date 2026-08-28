@@ -29,7 +29,8 @@ async function runSecureBridgeFailureProbe() {
     secureBridge.close(); secureBridge.runtime = new Map();
     const vault = new CredentialVault(path.join(root, 'vault.bin'), { safeStorage: storage() });
     const vaultHost = new CredentialVaultHost({ vault, metadataPath: path.join(root, 'meta.json'), transactionPath: path.join(root, 'journal.json'), randomUUID: () => 'secure-bridge-epoch' });
-    const frame = vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) }).frame;
+    await vaultHost.initialize();
+    const frame = (await vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) })).frame;
     const streams = pair();
     custodyHost = new CredentialCustodyHost({ stream: streams.a, vaultHost, context: { backendPid: process.pid, manifestSha256: 'a'.repeat(64), vaultEpoch: frame.vaultEpoch, generation: frame.generation } });
     secureBridge.configureCustody({ backendPid: process.pid, manifestSha256: 'a'.repeat(64), credentialVaultEpoch: frame.vaultEpoch, credentialGeneration: frame.generation }, { stream: streams.b, timeoutMs: 100 });

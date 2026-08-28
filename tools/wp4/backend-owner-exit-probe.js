@@ -98,7 +98,7 @@ async function runCase(mode) {
       catch (error) { preRestartRejected = error.reasonCode === 'WP4_CREDENTIAL_BACKEND_OWNER_SESSION_MISMATCH'; }
     }
     if (mode === 'OLD_OWNER_FD5_RACE') {
-      try { vaultHost.createHydrationFrame({ backendPid: oldOwner.backendPid, startupNonce: 'new-owner-too-early', backendSessionId: 'new-session-too-early', fd6PipeInstanceId: 'new-pipe-too-early', oneTimeToken: 'q'.repeat(43), manifestSha256: oldOwner.manifestSha256 }); }
+      try { await vaultHost.createHydrationFrame({ backendPid: oldOwner.backendPid, startupNonce: 'new-owner-too-early', backendSessionId: 'new-session-too-early', fd6PipeInstanceId: 'new-pipe-too-early', oneTimeToken: 'q'.repeat(43), manifestSha256: oldOwner.manifestSha256 }); }
       catch (error) { preRestartRejected = ['WP4_CREDENTIAL_BACKEND_OWNER_SESSION_ACTIVE','CREDENTIAL_TRANSACTION_BUSY_RETRY'].includes(error.reasonCode); }
     }
 

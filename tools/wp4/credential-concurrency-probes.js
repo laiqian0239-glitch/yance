@@ -21,7 +21,7 @@ function safeStorage() {
 }
 function paths(root) { return { vault: path.join(root, 'vault.json'), metadata: path.join(root, 'vault-meta.json'), journal: path.join(root, 'transactions.json') }; }
 function create(root, options = {}) { const p = paths(root); const vault = new CredentialVault(p.vault, { safeStorage: safeStorage() }); const host = new CredentialVaultHost({ vault, metadataPath: p.metadata, transactionPath: p.journal, randomUUID: () => 'concurrency-evidence-epoch', ...options }); return { vault, host, p }; }
-function hydrate(host, suffix = 'initial') { return host.createHydrationFrame({ startupNonce: `nonce-${suffix}`, oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) }).frame; }
+async function hydrate(host, suffix = 'initial') { return (await host.createHydrationFrame({ startupNonce: `nonce-${suffix}`, oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) })).frame; }
 function request(host, id, operation, ref, value) { const m = host.snapshotMetadata(); return makeCustodyRequest({ action: 'PREPARE', requestId: id, operation, ref, value, backendPid: process.pid, manifestSha256: 'd'.repeat(64), vaultEpoch: m.vaultEpoch, generation: m.generation }); }
 function pair() { let a; let b; a = new Duplex({ read() {}, write(c, _e, cb) { b.push(Buffer.from(c)); cb(); } }); b = new Duplex({ read() {}, write(c, _e, cb) { a.push(Buffer.from(c)); cb(); } }); return { a, b }; }
 function record(probe, values) { return { probe, secretValueRecorded: false, secretHashRecorded: false, ...values }; }
@@ -29,7 +29,7 @@ function record(probe, values) { return { probe, secretValueRecorded: false, sec
 async function fd6PrepareDesktopSave() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp4-concurrent-save-'));
   try {
-    const x = create(root); hydrate(x.host);
+    const x = create(root); await hydrate(x.host);
     const tx = request(x.host, 'fd6-prepare-desktop-save', 'persist', 'fd6/a', { redacted: true });
     await x.host.prepareCustodyTransaction(tx);
     let rejection = '';
@@ -45,7 +45,7 @@ async function fd6PrepareDesktopSave() {
 async function fd6PrepareDesktopDeleteAbort() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp4-concurrent-delete-'));
   try {
-    const x = create(root); await x.host.persistFromDesktop('desktop/delete', { redacted: true }); hydrate(x.host);
+    const x = create(root); await x.host.persistFromDesktop('desktop/delete', { redacted: true }); await hydrate(x.host);
     const tx = request(x.host, 'fd6-prepare-desktop-delete', 'persist', 'fd6/pending', { redacted: true });
     await x.host.prepareCustodyTransaction(tx);
     let rejection = '';
@@ -64,7 +64,7 @@ async function desktopSaveBackendArrival() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp4-concurrent-arrival-'));
   try {
     const x = create(root, { beforeTransactionCommit: async tx => { if (blocked && tx.source === 'DESKTOP') { enteredResolve(); await gate; blocked = false; } } });
-    hydrate(x.host);
+    await hydrate(x.host);
     const desktop = x.host.persistFromDesktop('desktop/inflight', { redacted: true });
     await entered;
     const stale = request(x.host, 'backend-stale-during-desktop', 'persist', 'fd6/after', { redacted: true });
@@ -72,7 +72,7 @@ async function desktopSaveBackendArrival() {
     release(); await desktop;
     let rejection = '';
     try { await backend; } catch (error) { rejection = error.reasonCode; }
-    const frame = hydrate(x.host, 'restart');
+    const frame = await hydrate(x.host, 'restart');
     const fresh = makeCustodyRequest({ action: 'PREPARE', requestId: 'backend-fresh-after-restart', operation: 'persist', ref: 'fd6/after', value: { redacted: true }, backendPid: process.pid, manifestSha256: 'd'.repeat(64), vaultEpoch: frame.vaultEpoch, generation: frame.generation });
     await x.host.prepareCustodyTransaction(fresh); await x.host.commitCustodyTransaction({ ...fresh, action: 'COMMIT' });
     const refs = x.vault.refs().sort();
@@ -85,7 +85,7 @@ async function fd6CommitDesktopRestartRace() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp4-concurrent-restart-'));
   let custodyHost; let client;
   try {
-    const x = create(root); const frame = hydrate(x.host); const streams = pair(); let indeterminateCount = 0;
+    const x = create(root); const frame = await hydrate(x.host); const streams = pair(); let indeterminateCount = 0;
     custodyHost = new CredentialCustodyHost({ stream: streams.a, vaultHost: x.host, context: { backendPid: process.pid, manifestSha256: 'd'.repeat(64), vaultEpoch: frame.vaultEpoch, generation: frame.generation }, shouldDropAck: req => req.action === 'COMMIT', afterTransaction: req => { if (req.action === 'COMMIT') streams.b.push(null); } });
     client = new CredentialCustodyClient({ stream: streams.b, timeoutMs: 50, generation: frame.generation, context: { backendPid: process.pid, manifestSha256: 'd'.repeat(64), credentialVaultEpoch: frame.vaultEpoch, credentialGeneration: frame.generation }, onIndeterminateCommit: () => { indeterminateCount += 1; } });
     let failure = '';
@@ -93,7 +93,7 @@ async function fd6CommitDesktopRestartRace() {
     await new Promise(resolve => setImmediate(resolve));
     client.close(); custodyHost.close();
     const reloaded = create(root);
-    const restartFrame = hydrate(reloaded.host, 'controlled-restart');
+    const restartFrame = await hydrate(reloaded.host, 'controlled-restart');
     const refs = restartFrame.payload.entries.map(row => row.ref);
     const pass = failure === 'CREDENTIAL_COMMIT_RESULT_INDETERMINATE' && indeterminateCount === 1 && refs.includes('fd6/restart-race') && restartFrame.generation === 3;
     return record('fd6CommitDuringControlledDesktopRestart', { status: pass ? 'PASS' : 'FAIL', backendFailureReasonCode: failure, onIndeterminateCommitCount: indeterminateCount, electronGenerationBeforeRestart: 2, backendGenerationBeforeRestart: 1, backendContinuedRunning: false, restartHydrationGeneration: restartFrame.generation, finalReferences: refs, authoritySplitResolvedByFd5: pass });

@@ -45,14 +45,14 @@ test('durable authority event completes metadata projection after a metadata wri
   const vault = new CredentialVault(vaultPath, { safeStorage });
   const host = new CredentialVaultHost({ vault, metadataPath, transactionPath });
   await host.persistFromDesktop('telegram/session', { session: 'old' });
-  host.createHydrationFrame({ startupNonce: 'metadata-failure-startup', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
+  await host.createHydrationFrame({ startupNonce: 'metadata-failure-startup', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) });
   const request = require('../../shared/credentialCustodyProtocol').makeCustodyRequest({
     action: 'PREPARE', requestId: 'metadata-failure', operation: 'persist', ref: 'telegram/session', value: { session: 'new' },
     backendPid: process.pid, manifestSha256: 'a'.repeat(64), vaultEpoch: host.snapshotMetadata().vaultEpoch, generation: 2
   });
   await host.prepareCustodyTransaction(request);
   const saveMetadata = host._saveMetadata.bind(host);
-  host._saveMetadata = next => {
+  host._saveMetadata = async next => {
     if (Number(next.generation) === 3) throw Object.assign(new Error('disk full'), { code: 'ENOSPC' });
     return saveMetadata(next);
   };
@@ -61,6 +61,7 @@ test('durable authority event completes metadata projection after a metadata wri
   assert.equal(JSON.parse(fs.readFileSync(metadataPath, 'utf8')).generation, 2);
   const restartedVault = new CredentialVault(vaultPath, { safeStorage });
   const restarted = new CredentialVaultHost({ vault: restartedVault, metadataPath, transactionPath });
+  await restarted.initialize();
   assert.equal(restarted.snapshotMetadata().generation, 3);
   assert.deepEqual(restartedVault.getRequired('telegram/session'), { session: 'new' });
   const query = await restarted.queryCustodyTransaction({ ...request, action: 'QUERY' });
