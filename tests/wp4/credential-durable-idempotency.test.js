@@ -40,12 +40,12 @@ function pair() {
   return { a, b };
 }
 
-function setup() {
+async function setup() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp4-durable-replay-'));
   const paths = { vault: path.join(root, 'vault.bin'), metadata: path.join(root, 'meta.json'), journal: path.join(root, 'journal.json') };
   const vault = new CredentialVault(paths.vault, { safeStorage: storage() });
   const vaultHost = new CredentialVaultHost({ vault, metadataPath: paths.metadata, transactionPath: paths.journal, randomUUID: () => 'durable-epoch' });
-  const initial = vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) });
+  const initial = await vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) });
   return { root, paths, vault, vaultHost, initial, close() { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
 }
 
@@ -73,7 +73,7 @@ function rawRequest(action, requestId, ref, value, generation) {
 }
 
 test('same requestId and mutation returns original COMMITTED result after backend restart without advancing generation', async () => {
-  const x = setup();
+  const x = await setup();
   const first = channel(x.vaultHost, 1);
   try {
     const original = await first.client.request('persist', 'provider/replay', { token: 'redacted' }, { requestId: 'durable-A' });
@@ -81,7 +81,7 @@ test('same requestId and mutation returns original COMMITTED result after backen
     assert.equal(x.vaultHost.snapshotMetadata().generation, 2);
     first.close();
 
-    const restartFrame = x.vaultHost.createHydrationFrame({ startupNonce: 'n2', oneTimeToken: 'y'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) });
+    const restartFrame = await x.vaultHost.createHydrationFrame({ startupNonce: 'n2', oneTimeToken: 'y'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) });
     assert.equal(restartFrame.frame.generation, 3);
     const second = channel(x.vaultHost, 3);
     try {
@@ -107,7 +107,7 @@ test('same requestId and mutation returns original COMMITTED result after backen
 });
 
 test('COMMITTED request with lost ACK is recovered by a new backend using durable QUERY', async () => {
-  const x = setup();
+  const x = await setup();
   let dropCommit = true;
   let dropQuery = true;
   const first = channel(x.vaultHost, 1, { shouldDropAck: request => {
@@ -126,7 +126,7 @@ test('COMMITTED request with lost ACK is recovered by a new backend using durabl
     assert.equal(x.vault.refs().length, 1);
     first.close();
 
-    x.vaultHost.createHydrationFrame({ startupNonce: 'n3', oneTimeToken: 'z'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) });
+    await x.vaultHost.createHydrationFrame({ startupNonce: 'n3', oneTimeToken: 'z'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) });
     const second = channel(x.vaultHost, 3);
     try {
       const query = await second.client.query('durable-ack-lost', 'persist', 'provider/lost-commit', { token: 'redacted' }, 3);
@@ -142,12 +142,12 @@ test('COMMITTED request with lost ACK is recovered by a new backend using durabl
 });
 
 test('historical ROLLED_BACK request replays as a definite failure and does not block the next request', async () => {
-  const x = setup();
+  const x = await setup();
   try {
     const req = rawRequest('PREPARE', 'durable-rolledback', 'provider/rolledback', { token: 'redacted' }, 1);
     await x.vaultHost.prepareCustodyTransaction(req);
     await x.vaultHost.abortCustodyTransaction({ ...req, action: 'ABORT' });
-    x.vaultHost.createHydrationFrame({ startupNonce: 'n4', oneTimeToken: 'q'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) });
+    await x.vaultHost.createHydrationFrame({ startupNonce: 'n4', oneTimeToken: 'q'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) });
     const restarted = channel(x.vaultHost, 2);
     try {
       await assert.rejects(
@@ -162,14 +162,14 @@ test('historical ROLLED_BACK request replays as a definite failure and does not 
 });
 
 test('historical FAILED request remains a durable definite failure after later generations and restart', async () => {
-  const x = setup();
+  const x = await setup();
   try {
     const failedReq = rawRequest('PREPARE', 'durable-failed', 'provider/failed', { token: 'redacted' }, 1);
     await x.vaultHost.prepareCustodyTransaction(failedReq);
     const originalFs = x.vault.fs;
     x.vault.fs = new Proxy(originalFs, {
       get(target, property) {
-        if (property === 'renameSync') return () => { const error = new Error('simulated vault rename failure'); error.code = 'EACCES'; throw error; };
+        if (property === 'promises') return new Proxy(originalFs.promises, { get(p, method) { if (method === 'rename') return () => { const error = new Error('simulated vault rename failure'); error.code = 'EACCES'; return Promise.reject(error); }; const v = p[method]; return typeof v === 'function' ? v.bind(p) : v; } });
         const value = target[property];
         return typeof value === 'function' ? value.bind(target) : value;
       }
@@ -186,7 +186,7 @@ test('historical FAILED request remains a durable definite failure after later g
 
     const reloadedVault = new CredentialVault(x.paths.vault, { safeStorage: storage() });
     const reloadedHost = new CredentialVaultHost({ vault: reloadedVault, metadataPath: x.paths.metadata, transactionPath: x.paths.journal, randomUUID: () => 'durable-epoch' });
-    reloadedHost.createHydrationFrame({ startupNonce: 'n5', oneTimeToken: 'r'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) });
+    await reloadedHost.createHydrationFrame({ startupNonce: 'n5', oneTimeToken: 'r'.repeat(43), backendPid: process.pid, manifestSha256: 'd'.repeat(64) });
     const restarted = channel(reloadedHost, 4);
     try {
       await assert.rejects(

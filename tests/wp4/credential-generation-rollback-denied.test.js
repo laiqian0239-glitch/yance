@@ -12,8 +12,8 @@ test('same vault epoch rejects lower or repeated generation', async () => {
   const vault = new CredentialVault(path.join(root, 'vault', 'credential-vault.bin'), { safeStorage });
   const vaultHost = new CredentialVaultHost({ vault, metadataPath: path.join(root, 'vault', 'vault-meta.json') });
   const base = { startupNonce: 'nonce', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'a'.repeat(64) };
-  const one = vaultHost.createHydrationFrame(base).frame;
-  const two = vaultHost.createHydrationFrame({ ...base, startupNonce: 'nonce-2' }).frame;
+  const one = (await vaultHost.createHydrationFrame(base)).frame;
+  const two = (await vaultHost.createHydrationFrame({ ...base, startupNonce: 'nonce-2' })).frame;
   assert.equal(one.generation, 1);
   assert.equal(two.generation, 2);
   assert.equal(one.vaultEpoch, two.vaultEpoch);

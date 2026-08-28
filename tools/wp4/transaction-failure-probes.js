@@ -21,11 +21,11 @@ function safeStorage() {
   const key = crypto.createHash('sha256').update('wp4-evidence-transaction-key').digest();
   return { isEncryptionAvailable: () => true, encryptString(value) { const iv = crypto.randomBytes(12); const cipher = crypto.createCipheriv('aes-256-gcm', key, iv); const body = Buffer.concat([cipher.update(String(value), 'utf8'), cipher.final()]); return Buffer.concat([iv, cipher.getAuthTag(), body]); }, decryptString(value) { const bytes = Buffer.from(value); const decipher = crypto.createDecipheriv('aes-256-gcm', key, bytes.subarray(0, 12)); decipher.setAuthTag(bytes.subarray(12, 28)); return Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]).toString('utf8'); } };
 }
-function setup(options = {}) {
+async function setup(options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wp4-evidence-txn-'));
   const vault = new CredentialVault(path.join(root, 'vault.bin'), { safeStorage: safeStorage() });
   const vaultHost = new CredentialVaultHost({ vault, metadataPath: path.join(root, 'vault-meta.json'), transactionPath: path.join(root, 'transactions.json'), randomUUID: () => 'evidence-epoch' });
-  vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'e'.repeat(64) });
+  await vaultHost.createHydrationFrame({ startupNonce: 'n', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'e'.repeat(64) });
   const streams = pair(); let dropped = false;
   const host = new CredentialCustodyHost({ stream: streams.a, vaultHost, context: { backendPid: process.pid, manifestSha256: 'e'.repeat(64), vaultEpoch: 'evidence-epoch', generation: 1 }, shouldDropAck: request => options.dropCommitAck && request.action === 'COMMIT' && !dropped ? (dropped = true) : false });
   const client = new CredentialCustodyClient({ stream: streams.b, timeoutMs: 60, generation: 1, context: { backendPid: process.pid, manifestSha256: 'e'.repeat(64), credentialVaultEpoch: 'evidence-epoch', credentialGeneration: 1 }, onIndeterminateCommit: options.onIndeterminateCommit });
@@ -34,7 +34,7 @@ function setup(options = {}) {
 function record(name, values) { return { probe: name, secretValueRecorded: false, secretHashRecorded: false, ...values }; }
 
 async function authorityFailure(name, reasonCode) {
-  const x = setup();
+  const x = await setup();
   const authority = { sqlite: 1, app: 1, refs: 0 };
   let failedReasonCode = '';
   try {
@@ -47,7 +47,7 @@ async function authorityFailure(name, reasonCode) {
 }
 
 async function ackLossProbe() {
-  const x = setup({ dropCommitAck: true }); const authority = { sqlite: 1, app: 1, refs: 0 };
+  const x = await setup({ dropCommitAck: true }); const authority = { sqlite: 1, app: 1, refs: 0 };
   const ack = await x.client.request('persist', 'probe/ack-loss', { redacted: true }, { requestId: 'ack-loss', prepareAuthority: async metadata => ({ metadata, before: { ...authority } }), commitAuthority: async token => { authority.sqlite = token.metadata.generation; authority.app = token.metadata.generation; authority.refs = 1; }, rollbackAuthority: async token => Object.assign(authority, token?.before || {}) });
   const value = record('ackAfterCommitLoss', { status: ack.generation === 2 && x.client.snapshot().queryRecoveryCount === 1 ? 'PASS' : 'FAIL', initialGeneration: 1, electronVaultGeneration: x.vaultHost.snapshotMetadata().generation, backendClientGeneration: x.client.snapshot().generation, sqliteGeneration: authority.sqlite, appRuntimeGeneration: authority.app, secureBridgeReferenceCount: authority.refs, finalTransactionState: ack.transactionState, queryRecoveryCount: x.client.snapshot().queryRecoveryCount, nextLegalRequestSucceeded: true });
   x.close(); return value;
@@ -61,7 +61,7 @@ async function enospcProbe() {
   const vaultFs = Object.create(fs);
   const vault = new CredentialVault(file, { safeStorage: safeStorage(), fs: vaultFs });
   const vaultHost = new CredentialVaultHost({ vault, metadataPath, transactionPath, randomUUID: () => 'enospc-evidence-epoch' });
-  vaultHost.createHydrationFrame({ startupNonce: 'enospc', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'e'.repeat(64) });
+  await vaultHost.createHydrationFrame({ startupNonce: 'enospc', oneTimeToken: 'x'.repeat(43), backendPid: process.pid, manifestSha256: 'e'.repeat(64) });
   const beforeGeneration = vaultHost.snapshotMetadata().generation;
   const originalWrite = vault.fs.writeFileSync;
   vault.fs.writeFileSync = () => { const error = new Error('ENOSPC'); error.code = 'ENOSPC'; throw error; };
