@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-28T16:46:43+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-MATERIALIZED-MATRIX-UAT-RUNTIME-CLOSURE-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Real Windows UAT of successor-v8 exact RC head 97a6a0d6bb6adfa12d1bcb210206ba3bf9b2f28b exposed a release-blocking materialized Matrix runtime-projection defect after both downloaded artifacts were SHA-256 verified. The image-only materialized compose starts Synapse without the registration shared-secret bind required by config/matrix/synapse/homeserver.yaml and omits the mautrix-meta registration/data topology required by app_service_config_files. Exact source services/matrix/docker-compose.yml already owns those runtime dependencies, and tools/matrix/bootstrap.js already materializes exact mautrix-meta source, but Product Final exports only Synapse, Element and mautrix-whatsapp images/config. The Windows UAT runner also treats successful `docker compose up -d --no-build` process creation as sufficient and does not require Synapse/Matrix readiness before launching Yance, allowing a false-green evidence file while Synapse exits. This package authorizes one failure-first causal batch that restores the complete existing Matrix runtime topology in the sealed image-only artifact and makes the UAT runner fail closed on real service readiness. No Product feature/runtime semantics, dependency, package manifest, lockfile, upstream pin, generic Matrix bootstrap, release ledger, formal release or publish mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "959fcff6ad7f14ea7520fd77b294eef5b1c11168",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "frozenRcEvidence": {
+    "pullRequest": 931,
+    "exactHead": "97a6a0d6bb6adfa12d1bcb210206ba3bf9b2f28b",
+    "ordinaryMerge": "959fcff6ad7f14ea7520fd77b294eef5b1c11168",
+    "productFinalRun": 33148877481,
+    "desktopArtifactId": 9677223284,
+    "desktopArtifactSha256": "26a6fc5435ddb8b71e38ac71d0246e5dd4392753fa5a87e208bf7939d453f2f0",
+    "matrixArtifactId": 9677056729,
+    "matrixArtifactSha256": "e1e24013107f1e2dafa56d1e02ac6af543aa195aa8e7e904dd51a28b99573315",
+    "realWindowsRed": "Synapse exits with FileNotFoundError for /run/secrets/yance_matrix_registration_shared_secret after image-only compose startup; materialized compose omits the required secret mount and mautrix-meta registration/data topology.",
+    "falseGreenBoundary": "RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1 accepts docker compose process startup without proving Synapse/Matrix readiness before writing final Windows UAT evidence.",
+    "mustRemainFrozen": true,
+    "sameHeadRerunForbidden": true,
+    "artifactReuseAsFinalUatForbidden": true,
+    "unknownBlockers": 0
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "959fcff6ad7f14ea7520fd77b294eef5b1c11168",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-materialized-matrix-uat-runtime-closure-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-materialized-matrix-uat-runtime-closure-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "6e102f56bad7701da0e52cbd7f6bd847d4be87095cd45fbc14d5ba3c3c7aacc1",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1",
+      "tools/product-experience/materialized-matrix-compose.yml"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "92dc136de03692914d5781a62a3f54924f492d4232b02babad34e8cdcce9657f",
+    "productionScopeAuthorized": true,
+    "workflowModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "matrixBootstrapModificationAllowed": false,
+    "upstreamPinModificationAllowed": false,
+    "releaseLedgerModificationAllowed": false,
+    "formalReleaseAllowed": false,
+    "publishAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp0/v21-product-experience-materialized-uat.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "productionCodeChanged": false,
+      "remoteCausalRedAuthority": "Stage 6.4.5.9 WP0 Architecture Gates -> npm run test:wp0"
+    }
+  },
+  "closureMatrix": [
+    {
+      "boundary": "config/matrix/synapse/homeserver.yaml",
+      "classification": "PRESERVE",
+      "evidence": "Requires registration_shared_secret_path=/run/secrets/yance_matrix_registration_shared_secret and app_service_config_files=/mautrix-meta/registration.yaml."
+    },
+    {
+      "boundary": "services/matrix/docker-compose.yml",
+      "classification": "PRESERVE",
+      "evidence": "Existing source runtime topology already binds the registration secret, mounts mautrix-meta-data into Synapse, and generates mautrix-meta registration before Synapse."
+    },
+    {
+      "boundary": "tools/matrix/bootstrap.js",
+      "classification": "PRESERVE",
+      "evidence": "Already materializes exact LOCK.externalRuntimes.mautrixMeta source in services/matrix/.runtime/mautrix-meta."
+    },
+    {
+      "boundary": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "classification": "ROOT_IMPLEMENTATION",
+      "evidence": "Current Product Final Matrix materializer exports only three images and omits mautrix-meta image/config from the sealed artifact."
+    },
+    {
+      "boundary": "tools/product-experience/materialized-matrix-compose.yml",
+      "classification": "ROOT_IMPLEMENTATION",
+      "evidence": "Current image-only compose omits the registration-secret bind, mautrix-meta registration service/data mount and exact mautrix-meta image authority."
+    },
+    {
+      "boundary": "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1",
+      "classification": "ROOT_IMPLEMENTATION",
+      "evidence": "Current runner does not materialize ephemeral local secret files or require Synapse/Matrix readiness before Desktop launch/evidence."
+    },
+    {
+      "boundary": "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "classification": "NEGATIVE_PROOF",
+      "evidence": "Current contract incorrectly requires exactly three Matrix image authorities and lacks assertions for secrets, mautrix-meta topology and readiness."
+    },
+    {
+      "boundary": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "classification": "NEGATIVE_PROOF",
+      "evidence": "Preserve exact-head workflow routing while extending the trusted Matrix materialization assertions to the fourth existing runtime image/config."
+    }
+  ],
+  "requiredRootFix": [
+    "Keep the user-machine path image-only and --no-build; never build or fetch source on the Windows UAT machine.",
+    "Build and export the already-pinned mautrix-meta runtime image in trusted Product Final CI alongside Synapse, Element and mautrix-whatsapp, and include the existing config/matrix/mautrix-meta/config.yaml in the sealed Matrix artifact.",
+    "Make the materialized image-only compose project the existing source runtime topology: registration-generation service, Synapse registration-secret bind, mautrix-meta data mount/registration file, exact mautrix-meta runtime image, Element and mautrix-whatsapp.",
+    "Create ephemeral per-UAT registration/provisioning secret files outside the sealed artifact, bind them read-only through compose environment variables, and never commit or emit secret plaintext into evidence.",
+    "Require real Synapse readiness and required Matrix service state after compose up --no-build before starting packaged Yance.exe; any early exit, missing registration file, missing secret mount or readiness timeout must fail closed before final evidence is written.",
+    "Keep Desktop/Matrix exact candidateCommit and candidateTree identity verification and all sealed-artifact hash verification unchanged."
+  ],
+  "mandatoryFailureFirstContracts": [
+    "The first implementation commit changes only tests/wp0/v21-product-experience-materialized-uat.test.js and must RED on the authorization-merge baseline because the materialized compose has exactly three images, lacks mautrix-meta registration/secret topology, the workflow does not export mautrix-meta, and the runner lacks Matrix readiness proof.",
+    "The RED must classify the complete currently observed same-root graph in one diagnostic window with unknownBlockers=0; do not serialize the secret mount, mautrix-meta image and readiness check into separate work packages.",
+    "After the RED, one cohesive implementation batch must repair workflow export, image-only compose and Windows runner together before the next full exact-head validation.",
+    "No user-machine build, npm/pnpm/node-gyp, git clone, Docker build, dependency resolution, source materialization or temporary compose bypass is permitted.",
+    "No mutation of frozen successor-v8 exact head or reuse of its Matrix artifact as final Windows UAT evidence is permitted."
+  ],
+  "validation": {
+    "focusedFirst": [
+      "npm run test:wp0",
+      "node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "finalExactHead": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "Model Brain Windows when routed",
+      "V21 Product Experience Shell P0 Final Validation"
+    ],
+    "independentReviewRequired": true,
+    "blockingReviewSeverities": ["P0", "P1"],
+    "requiredReviewP0": 0,
+    "requiredReviewP1": 0,
+    "requiredUnknownBlockers": 0
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "prohibitions": {
+    "temporaryBypass": true,
+    "continueOnError": true,
+    "testWeakening": true,
+    "sameHeadCiRerun": true,
+    "frozenRcMutation": true,
+    "frozenArtifactReuseAsFinalUat": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "newDependency": true,
+    "upstreamPinChange": true,
+    "matrixBootstrapChange": true,
+    "productRuntimeChange": true,
+    "releaseLedgerChange": true,
+    "formalRelease": true,
+    "publish": true
+  }
+}
