@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-28T19:25:47+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WINDOWS-BACKEND-OWNER-PROCESS-IDENTITY-RUNTIME-CLOSURE-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Real packaged Windows Product Final on frozen #933 exact head 008d7350c96658f2a2105021d84f74e44efef3dc exposed one release-blocking Desktop runtime root after the materialized Matrix chain passed: BackendOwnerRegistry windowsProcessIdentity exhausts its eight bounded 5000ms Get-CimInstance Win32_Process attempts, returns null, and the fail-closed active-owner validator consequently reports processIdentity.platform mismatch. The observed backend fork at 2026-08-28T11:57:57.923Z and failure at 2026-08-28T11:58:39.062Z align with the collector timeout budget. One minimal failure-first runtime batch is authorized to make Windows owner process identity capture reliable without weakening PID-reuse containment or owner-registry semantics. #933 and Product Final run 33168212072 remain frozen evidence only and must not be rerun on the same exact head.",
+  "base": {
+    "branch": "main",
+    "commit": "189b7029d11932e45d82ecbda1b6435c64ebe078",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "frozenFailureEvidence": {
+    "pullRequest": 933,
+    "exactHead": "008d7350c96658f2a2105021d84f74e44efef3dc",
+    "productFinalRun": 33168212072,
+    "startupDiagnosticsArtifactId": 9684910412,
+    "startupDiagnosticsArtifactSha256": "f1313add31d3ae7bc823ee696c14d00681ae9f53c517ebe1a281b02eec141aad",
+    "backendForkAtUtc": "2026-08-28T11:57:57.923Z",
+    "backendFailureAtUtc": "2026-08-28T11:58:39.062Z",
+    "reasonCode": "WP4_DESKTOP_BACKEND_OWNER_REGISTRY_SEMANTIC_INVALID",
+    "freshCausalRed": "Eight asynchronous Windows Get-CimInstance Win32_Process attempts each carry a 5000ms timeout; their exhaustion returns null process identity, which then fails the existing expectedPlatform=win32 policy before any durable owner claim.",
+    "durableOwnerClaimed": false,
+    "sameHeadRerunForbidden": true,
+    "mustRemainFrozen": true,
+    "artifactReuseAsFinalUatForbidden": true,
+    "unknownBlockers": 0
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "189b7029d11932e45d82ecbda1b6435c64ebe078",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-windows-backend-owner-process-identity-runtime-closure-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-windows-backend-owner-process-identity-runtime-closure-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7f0a2cbf5a02d7110e6398046eef837d3df7ffa86e9d8da343a7aa9914d40944",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-windows-backend-owner-process-identity-runtime-closure-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "electron/desktopHost/BackendOwnerRegistry.js",
+      "tests/wp4/backend-owner-registry-containment-recovery.test.js",
+      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "fa0e4b675ab84f43ef842bf94d2a41b952085e91a7bb7b51cf85459a04e81c8d",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "productRuntimeModificationAllowed": true,
+    "dependencyModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseLedgerModificationAllowed": false,
+    "formalReleaseModificationAllowed": false,
+    "publishModificationAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "allowedChangedPaths": [
+        "tests/wp4/backend-owner-registry-containment-recovery.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "7c8d2044e6200beb33913f4e594e3693fd1dd94cd74c5e4ebea66254a88711dd",
+      "productionCodeChanged": false,
+      "requiredFreshCausalRed": "When the primary CIM process query is unavailable or times out, Windows process identity collection currently returns null instead of obtaining the same three identity discriminators through a bounded local fallback.",
+      "remoteCausalRedAuthority": "existing pull-request CI executing WP4 owner-registry tests; no manual workflow rerun is authorized"
+    }
+  },
+  "requiredRootFix": [
+    "Preserve fail-closed Windows owner identity verification and exact win32 identity fields creationTimeUtc, executablePathDigest and commandDigest.",
+    "Replace the repeated CIM-only failure mode with a bounded asynchronous local Windows process-query strategy that can recover the same identity discriminators when the primary CIM command is unavailable or stalls.",
+    "Keep processIdentityMatches exact for all three Windows discriminators and preserve PID-reuse no-kill containment semantics.",
+    "Keep validation strict: null, incomplete, mismatched or unverifiable identities remain untrusted and fail closed.",
+    "Keep production collection free of execFileSync, spawnSync, Atomics.wait, busy waiting and unbounded retry loops.",
+    "Do not rely on Product Final/UAT prewarming, fabricated identity, PID-only trust, owner-registry deletion or user-data deletion as the fix."
+  ],
+  "forbiddenShortcuts": [
+    "Do not relax validateProcessIdentity or expectedPlatform enforcement.",
+    "Do not relax processIdentityMatches or remove creationTimeUtc, executablePathDigest or commandDigest from Windows matching.",
+    "Do not fabricate process identity from expected launch arguments alone or persist plaintext command lines solely to bypass OS verification.",
+    "Do not treat process liveness or PID equality as identity proof.",
+    "Do not add synchronous child-process collection, blocking sleeps, new dependencies, lockfile changes, workflow changes, UAT harness changes, ledger mutation, release mutation or publish mutation.",
+    "Do not rerun frozen #933 exact head 008d7350c96658f2a2105021d84f74e44efef3dc."
+  ],
+  "mandatoryFailureFirstContracts": [
+    "First implementation commit changes only tests/wp4/backend-owner-registry-containment-recovery.test.js and must RED on the authorization-merge baseline for the primary-collector failure/fallback gap.",
+    "The RED must prove the fallback returns a semantically valid win32 identity with the same three discriminators and remains bounded; it must not weaken null/unverifiable fail-closed behavior.",
+    "After RED, aggregate runtime and supporting WP4 contract changes into one cohesive implementation commit before one new exact-head validation."
+  ],
+  "validation": {
+    "focusedFirst": [
+      "node --test --test-concurrency=1 tests/wp4/backend-owner-registry-containment-recovery.test.js tests/wp4/evidence-platform-identity-and-windows-collector.test.js",
+      "npm run test:wp4"
+    ],
+    "finalExactHead": [
+      "existing pull-request CI first-round checks only",
+      "Windows-routed CI when automatically routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredReviewP0": 0,
+    "requiredReviewP1": 0,
+    "requiredUnknownBlockers": 0
+  },
+  "downstreamReconciliation": {
+    "blockedPullRequest": 933,
+    "afterImplementationMerge": "ordinary-merge fresh main into #933 head branch; no rebase, squash, cherry-pick, amend or force-push",
+    "requiredNewExactHeadValidation": true,
+    "sameOldHeadRerunForbidden": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
