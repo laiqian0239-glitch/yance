@@ -102,6 +102,28 @@
     "productionDeltaAfterFrozenPredecessorRequired": false,
     "frozenPredecessorMustNotBeRerun": true
   },
+  "ossFit": {
+    "decision": "REUSE_TRUSTED_DELEGATED_GOVERNANCE_SUPERSESSION_RESOLVER",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing delegated-governance supersession resolver",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The production code is already green; the only required repair is to conform the authorization document to the existing strict three-key supersession parser and reuse the repository's trusted authority-resolution seam."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not introduce a parallel authority resolver or new governance infrastructure.",
+      "Do not modify production code to work around authorization metadata.",
+      "Do not rerun frozen exact head 6893b79a0aa9983760f60ff4bf0c4a8a7ccdf999.",
+      "Do not place non-protocol metadata inside the strict supersedes object."
+    ]
+  },
   "governance": {
     "authorizationPredatesImplementation": true,
     "exactPathScopeOnly": true,
