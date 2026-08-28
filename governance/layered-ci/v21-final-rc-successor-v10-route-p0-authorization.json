@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-28T21:54:45+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-SUCCESSOR-V10-ROUTE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen successor-v9 Final RC/UAT PR #940 exact head 6f0555e07af4576b376942bb80e611a680a3062d is immutable evidence and must not be rerun, mutated, merged or reused. Its first and only Stage run 33181528643 exposed one deterministic governance failure after 737/738 WP0 assertions passed: the marker branch itself lacked an effective delegated implementation authorization, so current-branch runtime target admission failed. ACV2 run 33181528654 also had a Windows-only child-readiness timeout in the unchanged AuthorityWriteHost process matrix while the same test blob passed on the immediately preceding exact head and on Ubuntu; no timeout or runtime mutation is authorized from that nondeterministic evidence. Because the frozen successor-v9 branch cannot be moved or rewritten and Product Final exact-equality allowlists currently stop at successor-v9, the next immutable RC requires a unique successor-v10 exact route. Authorize only the existing Product Final exact branch route seam and matching layered anti-broadening test. A separate marker-only successor-v10 delegated authorization remains mandatory after the route ordinary-merge.",
+  "base": {
+    "branch": "main",
+    "commit": "d46227d59cee1fe7d3a594ef7ae910d70170beb3",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "d46227d59cee1fe7d3a594ef7ae910d70170beb3",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-successor-v10-route-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-successor-v10-route-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "98d697dea31918d94454bab9a931355d8a11ab27d2650021ee01d7f718ce9969",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-successor-v10-route-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0fe120e1cd4c2692f06a11c3becc1d5db4324efcbaf59f2cc62154b008fd9d6e",
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "testModificationAllowed": true,
+    "failureFirstCommit": {
+      "freshCausalRedRequired": true,
+      "mustBeFirstImplementationCommit": true,
+      "productionCodeChanged": false,
+      "allowedChangedPaths": [
+        "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+      ],
+      "approvedChangedFileCount": 1,
+      "approvedChangedFileSetSha256": "1248eca9fee4a07fc2a0c5dd816c01de973d57ef003a3996926ca22ee3fb8d44",
+      "requiredPostRedEvidenceTrailers": [
+        "Yance-Failure-First-Red-Head: <exact 40-hex RED head>",
+        "Yance-Failure-First-Red-Run: <exact failing Stage run id>",
+        "Yance-Failure-First-Red-Conclusion: failure",
+        "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      ]
+    },
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "frozenPredecessorEvidence": {
+    "pullRequest": 940,
+    "branch": "release/v21-final-rc-uat-p0-successor-v9",
+    "head": "6f0555e07af4576b376942bb80e611a680a3062d",
+    "stageRun": 33181528643,
+    "stageFailure": "WP0_CURRENT_BRANCH_DELEGATED_IMPLEMENTATION_AUTHORITY_MISSING",
+    "stageAssertionPassCount": 737,
+    "stageAssertionTotalCount": 738,
+    "acv2Run": 33181528654,
+    "acv2WindowsFailure": "AUTHORITY_WRITE_HOST_PROCESS_MATRIX_CHILD_READINESS_TIMEOUT",
+    "acv2WindowsRuntimeMutationAuthorized": false,
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true,
+    "mutationForbidden": true,
+    "mergeForbidden": true,
+    "reuseForbidden": true
+  },
+  "successorRouteContract": {
+    "nextRcBranch": "release/v21-final-rc-uat-p0-successor-v10",
+    "workflow": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "sameRepositoryHeadRequired": true,
+    "exactBranchEqualityRequired": true,
+    "prefixWildcardContainsOrStartsWithForbidden": true,
+    "historicalBranchAdmissionsMustRemainUnchanged": true,
+    "jobsThatMustAdmitSuccessorBranch": [
+      "frozen-element-reproducibility",
+      "materialized-desktop-uat",
+      "materialized-matrix-uat"
+    ],
+    "productFinalJobBodiesMustRemainByteForByteUnchanged": true,
+    "startupCapsuleRouteAndImplementationMustRemainByteForByteUnchanged": true,
+    "secondApplicationBuildForbidden": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_EXACT_BRANCH_ROUTE_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product Final exact-branch admission seam",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml and tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Only one additional explicit successor-v10 equality is required in each existing Product Final job guard and the matching layered exact-set assertion."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not rerun, mutate, merge, move, delete or recreate frozen successor-v9 RC branch/head #940.",
+      "Do not change AuthorityWriteHost runtime code or increase readiness timeouts from the nondeterministic ACV2 Windows evidence.",
+      "Do not create a parallel Product Final workflow, router, wrapper, wildcard admission or alternate execution path.",
+      "Do not create a second application build."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "failureFirst": {
+    "required": true,
+    "expectedRed": "Exact successor-v10 RC branch is absent from all three Product Final job allowlists.",
+    "workflowFixForbiddenBeforeCleanCausalRed": true,
+    "redMustRemainImmutableEvidence": true,
+    "unknownBlockersMustEqual": 0
+  },
+  "requiredValidation": {
+    "focused": "node --test --test-concurrency=1 tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "Model Brain Windows when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    },
+    "unknownBlockers": 0
+  },
+  "downstreamAfterOrdinaryMerge": {
+    "authorizationRequired": true,
+    "nextAuthorization": "Fresh marker-only Final RC/UAT delegated authorization for release/v21-final-rc-uat-p0-successor-v10 from then-current trusted main.",
+    "markerMustStartFromThatAuthorizationOrdinaryMerge": true,
+    "fullRcDownloadForbiddenUntilFreshExactHeadProductFinalAndStartupCapsuleGreen": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  },
+  "prohibitions": {
+    "frozen940Mutation": true,
+    "frozen940Rerun": true,
+    "frozen940Merge": true,
+    "frozen940BranchMoveOrRecreate": true,
+    "runtimeProductMutation": true,
+    "startupCapsuleImplementationChange": true,
+    "productFinalJobBodyChange": true,
+    "timeoutChangeFromNondeterministicEvidence": true,
+    "dependencyChange": true,
+    "secondApplicationBuild": true,
+    "forcePush": true,
+    "rebase": true,
+    "squashMerge": true,
+    "formalRelease": true,
+    "publish": true,
+    "ledgerClosure": true
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0
+  }
+}
