@@ -107,6 +107,29 @@
     "fullRcWindowsUatMayStartOnlyAfterStartupCapsuleGreen": true,
     "failureDisposition": "Any Product Final, startup-capsule, Final Delta, or packaged/UAT P0/P1 failure freezes the exact RC head. Same-head rerun is forbidden; continue only through a separately authorized fresh causal fix/new exact head."
   },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_MARKER_ONLY_FINAL_RC_DELEGATED_AUTHORIZATION_SEAM",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Final RC/UAT delegated marker authorization seam",
+        "source": "governance/layered-ci/v21-final-rc-uat-p0-successor-v8-authorization.json and docs/uat/V21_FINAL_RC_UAT_P0.md",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The work only delegates one existing documentation marker path to the already-routed Product Final workflow; no new runtime, workflow, dependency, build system, or infrastructure is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel RC marker mechanism, alternate Product Final workflow, wrapper, router, or release path.",
+      "Do not rerun, mutate, merge, move, delete, recreate, or reuse frozen successor-v9 RC branch/head #940.",
+      "Do not add runtime code, dependencies, package changes, lockfile changes, build prerequisites, release ledger closure, or publish authority.",
+      "Do not perform a second application build outside the existing Product Final single-build contract."
+    ],
+    "thinYanceAdapterOnly": true
+  },
   "requiredValidation": {
     "exactHeadCi": [
       "Stage",
