@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-30T04:17:12+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-MATERIALIZED-MATRIX-RUNTIME-STATE-RISK-ROUTE-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen implementation PR #982 exact head e903356575faf7626d9e32b447a26ac9e961742e exposed two deterministic CI blockers on one causal batch without requiring any rerun: the existing Layered risk classifier fails closed with CI_UNKNOWN_PATH for config/matrix/synapse/homeserver.yaml, while the Product Final layered contract separately misreads the required --no-build token as an actual docker compose build subcommand. The --no-build assertion repair is already inside the effective Matrix runtime-state implementation authorization #981; the risk identity is not. Authorize only the missing exact L2 risk identity and its permanent fail-closed classifier contract. Do not broaden config/, config/matrix/ or any other prefix. After this routing prerequisite ordinary-merges, the frozen #982 implementation must be forward-reconciled once from fresh main together with the already-known --no-build assertion correction, producing one new exact implementation head and one validation only.",
+  "base": {
+    "branch": "main",
+    "commit": "db629818089399d16173095e26c933e0c247cdb5",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "db629818089399d16173095e26c933e0c247cdb5",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-materialized-matrix-runtime-state-risk-route-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-materialized-matrix-runtime-state-risk-route-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "458b0c618601447e4bb6e11bb8eba29740d9d84e2e48566c56d3205698769994",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-rc-materialized-matrix-runtime-state-risk-route-p0",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/governance-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "dda3b27532f387c8ea4e78c3b63b62fc9b822d1efdf31ea6051fe6ea91f22633",
+    "productionCodeChanged": false,
+    "productRuntimeModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "testModificationAllowed": true,
+    "routingPolicyModificationAllowed": true,
+    "broadPrefixModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "releaseLedgerModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "routingContract": {
+    "requiredLayeredCiLevel": "L2",
+    "riskIdentityMode": "EXACT",
+    "exactPaths": [
+      "config/matrix/synapse/homeserver.yaml"
+    ],
+    "exactPathCount": 1,
+    "exactPathSetSha256": "305466c464a5aaa6a1bc5121f737cc9a2380b7c0bc3e256441d227861c31f5e1",
+    "broadPrefixExpansionAllowed": false,
+    "unrelatedUnknownPathsMustRemainFailClosed": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_LAYERED_CI_EXACT_RISK_CLASSIFIER",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Yance Layered CI risk classifier",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing fail-closed classifier already owns exact L2 identities. The frozen #982 evidence proves exactly one Matrix homeserver configuration identity is missing, so one exact registration plus its permanent contract is the smallest causal repair."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a duplicate risk classifier or alternate routing workflow.",
+      "Do not add config/, config/matrix/ or config/matrix/synapse/ as an L2 prefix merely to admit this path.",
+      "Do not weaken unknownPathFailsClosed or any gate/scanner semantics."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "frozenCausalEvidence": {
+    "pullRequest": 982,
+    "branch": "fix/v21-final-rc-materialized-matrix-runtime-state-p0",
+    "head": "e903356575faf7626d9e32b447a26ac9e961742e",
+    "baseMain": "db629818089399d16173095e26c933e0c247cdb5",
+    "layeredRiskJob": 99126967404,
+    "riskReasonCode": "CI_UNKNOWN_PATH",
+    "unknownPaths": [
+      "config/matrix/synapse/homeserver.yaml"
+    ],
+    "unknownPathCount": 1,
+    "sameExactHeadRerunForbidden": true,
+    "frozenUntilRoutingMerge": true,
+    "additionalKnownSameBatchBlocker": {
+      "type": "TEST_ASSERTION_FALSE_POSITIVE",
+      "file": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "detail": "docker compose[^\\n]*\\bbuild\\b matches the required --no-build token; workflow itself uses docker compose up -d --no-build and no compose build subcommand",
+      "mustBeRepairedInSingleForwardReconciledImplementationHead": true
+    },
+    "unknownBlockers": 0
+  },
+  "failureFirst": {
+    "syntheticFailureFirstCiHeadRequired": false,
+    "causalRedAuthority": "PR #982 exact head e903356575faf7626d9e32b447a26ac9e961742e / job 99126967404",
+    "redMustRemainImmutableEvidence": true,
+    "sameHeadRerunForbidden": true,
+    "unknownBlockersMustEqual": 0
+  },
+  "requiredValidation": {
+    "focused": "node --test --test-concurrency=1 tests/layered-ci/governance-policy.test.js",
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "Model Brain Windows when routed"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    },
+    "unknownBlockers": 0
+  },
+  "downstreamAfterOrdinaryMerge": {
+    "routingRepairMustOrdinaryMergeFirst": true,
+    "frozenImplementationPullRequest": 982,
+    "frozenImplementationHead": "e903356575faf7626d9e32b447a26ac9e961742e",
+    "implementationMustForwardReconcileFromFreshMain": true,
+    "forwardReconcileMustAlsoRepairKnownNoBuildAssertionFalsePositive": true,
+    "oneNewExactImplementationHeadValidationOnly": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true,
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "ledgerAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "ordinaryTwoParentMergeRequired": true,
+    "forcePushForbidden": true,
+    "rebaseForbidden": true,
+    "amendAllowed": false,
+    "squashForbidden": true,
+    "gateWeakeningForbidden": true
+  },
+  "closureMatrix": {
+    "knownBlockers": 2,
+    "unknownBlockers": 0
+  }
+}
