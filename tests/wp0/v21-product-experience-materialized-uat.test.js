@@ -97,11 +97,18 @@ test('trusted Linux CI materializes pinned Matrix sources, builds three images, 
   assert.match(source, /docker\s+save/u);
   assert.match(source, /PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);
   assert.match(source, /materialized-matrix-compose\.yml/u);
+  assert.match(source, /docker compose -f "\$bundle\/materialized-matrix-compose\.yml" config/u);
   assert.match(source, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/u);
 
   const saveIndex = source.indexOf('docker save');
+  const composeCopyIndex = source.indexOf('cp tools/product-experience/materialized-matrix-compose.yml "$bundle/materialized-matrix-compose.yml"');
+  const composeParseIndex = source.indexOf('docker compose -f "$bundle/materialized-matrix-compose.yml" config');
+  const sealIndex = source.indexOf('create-materialized-uat-candidate.js seal', composeParseIndex);
   const matrixUploadIndex = source.indexOf(MATRIX_ARTIFACT_PREFIX);
-  assert.ok(saveIndex >= 0 && matrixUploadIndex > saveIndex, 'Matrix upload must occur only after exact candidate images are exported with docker save');
+  assert.ok(
+    saveIndex >= 0 && composeCopyIndex > saveIndex && composeParseIndex > composeCopyIndex && sealIndex > composeParseIndex && matrixUploadIndex > sealIndex,
+    'Matrix upload must follow exact materialized compose parse and candidate seal'
+  );
 });
 
 test('materialized candidate creator seals every file and verification fails closed on tamper, extras, duplicate identity, or path escape', () => {
@@ -219,6 +226,11 @@ test('Windows UAT runner is verify-only and starts an image-only Matrix compose 
   assert.doesNotMatch(compose, /^\s+build:\s*/gmu);
   assert.doesNotMatch(compose, /^\s+context:\s*/gmu);
   assert.match(compose, /YANCE_UAT_CANDIDATE_SHA/u);
+  assert.match(
+    compose,
+    /^x-mautrix-meta-service:\s*&mautrix-meta-service\s*\{\s*image:\s*"yance-product-uat-mautrix-meta:\$\{YANCE_UAT_CANDIDATE_SHA\}"\s*\}\s*$/mu,
+    'mautrix-meta flow-mapping image interpolation must remain quoted for real Compose/YAML parsing'
+  );
 });
 
 test('trusted desktop materialization keeps Builder-host npm separate from repository npm@10.9.2 authority', () => {

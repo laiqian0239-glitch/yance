@@ -758,6 +758,10 @@ jobs:
           cp config/matrix/element-config.json "$bundle/matrix-config/element-config.json"
           cp config/matrix/mautrix-whatsapp/config.yaml "$bundle/matrix-config/mautrix-whatsapp/config.yaml"
           cp config/matrix/mautrix-meta/config.yaml "$bundle/matrix-config/mautrix-meta/config.yaml"
+          YANCE_UAT_CANDIDATE_SHA="$CANDIDATE_SHA" \
+          YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE="$RUNNER_TEMP/yance-mautrix-meta-provisioning-secret" \
+          YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE="$RUNNER_TEMP/yance-matrix-registration-shared-secret" \
+          docker compose -f "$bundle/materialized-matrix-compose.yml" config >/dev/null
           node tools/product-experience/create-materialized-uat-candidate.js seal \
             --root "$bundle" \
             --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY \
