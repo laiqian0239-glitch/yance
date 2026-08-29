@@ -47,6 +47,7 @@
     "approvedChangedFileCount": 7,
     "approvedChangedFileSetSha256": "97dc75069f4eefc362a8e17c6862d47b6d1f824dfa24f86a6ffe1f96c9a74d6f",
     "newDependencyAllowed": false,
+    "newGeneralPurposeInfrastructureAllowed": false,
     "workflowModificationAllowed": true,
     "workflowModificationPolicy": {
       "allowedWorkflowPaths": [
