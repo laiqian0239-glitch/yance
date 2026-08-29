@@ -37,7 +37,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v11' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v12' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v13' ||
-        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0'
       )
     runs-on: windows-latest
     env:
@@ -159,7 +160,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v11' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v12' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v13' ||
-        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -689,7 +691,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v11' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v12' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v13' ||
-        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -765,6 +768,67 @@ jobs:
           YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE="$RUNNER_TEMP/yance-mautrix-meta-provisioning-secret" \
           YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE="$RUNNER_TEMP/yance-matrix-registration-shared-secret" \
           docker compose -f "$bundle/materialized-matrix-compose.yml" config >/dev/null
+
+          matrix_secret="$RUNNER_TEMP/yance-matrix-registration-shared-secret"
+          meta_secret="$RUNNER_TEMP/yance-mautrix-meta-provisioning-secret"
+          umask 077
+          head -c 32 /dev/urandom | base64 > "$matrix_secret"
+          head -c 32 /dev/urandom | base64 > "$meta_secret"
+          project="yance-pf-${CANDIDATE_SHA:0:12}-${GITHUB_RUN_ID}"
+          export YANCE_UAT_CANDIDATE_SHA="$CANDIDATE_SHA"
+          export YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE="$meta_secret"
+          export YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE="$matrix_secret"
+          cleanup_matrix_smoke() {
+            docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" down --volumes --remove-orphans || true
+            rm -f "$matrix_secret" "$meta_secret"
+          }
+          trap cleanup_matrix_smoke EXIT
+          docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" up -d --no-build
+
+          init_ready=0
+          init_deadline=$((SECONDS + 120))
+          while [ "$SECONDS" -lt "$init_deadline" ]; do
+            completed="$(docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" ps --all --status exited --services)"
+            if printf '%s\n' "$completed" | grep -qx 'synapse-data-init' && \
+               printf '%s\n' "$completed" | grep -qx 'mautrix-meta-registration' && \
+               printf '%s\n' "$completed" | grep -qx 'mautrix-whatsapp-registration'; then
+              init_ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$init_ready" -ne 1 ]; then
+            docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" ps --all
+            docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" logs --no-color --tail=200
+            echo 'Matrix initialization services did not complete' >&2
+            exit 1
+          fi
+
+          matrix_ready=0
+          matrix_deadline=$((SECONDS + 120))
+          while [ "$SECONDS" -lt "$matrix_deadline" ]; do
+            running="$(docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" ps --status running --services)"
+            if printf '%s\n' "$running" | grep -qx 'synapse' && \
+               printf '%s\n' "$running" | grep -qx 'element' && \
+               printf '%s\n' "$running" | grep -qx 'mautrix-whatsapp' && \
+               printf '%s\n' "$running" | grep -qx 'mautrix-meta' && \
+               curl -fsS http://127.0.0.1:8008/_matrix/client/versions >/dev/null && \
+               curl -fsS http://127.0.0.1:8080/config.json >/dev/null; then
+              matrix_ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$matrix_ready" -ne 1 ]; then
+            docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" ps --all
+            docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" logs --no-color --tail=200
+            echo 'Matrix runtime did not reach real readiness' >&2
+            exit 1
+          fi
+          cleanup_matrix_smoke
+          trap - EXIT
+          echo 'GREEN: exact materialized Matrix runtime reached real readiness before seal'
+
           node tools/product-experience/create-materialized-uat-candidate.js seal \
             --root "$bundle" \
             --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY \

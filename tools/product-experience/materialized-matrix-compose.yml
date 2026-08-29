@@ -1,6 +1,18 @@
+x-synapse-service: &synapse-service { image: "yance-product-uat-synapse:${YANCE_UAT_CANDIDATE_SHA}" }
+x-mautrix-whatsapp-service: &mautrix-whatsapp-service { image: "yance-product-uat-mautrix-whatsapp:${YANCE_UAT_CANDIDATE_SHA}" }
 x-mautrix-meta-service: &mautrix-meta-service { image: "yance-product-uat-mautrix-meta:${YANCE_UAT_CANDIDATE_SHA}" }
 
 services:
+  synapse-data-init:
+    <<: *synapse-service
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - chown -R 991:991 /data
+    volumes:
+      - synapse-data:/data
+    restart: "no"
+
   mautrix-meta-registration:
     <<: *mautrix-meta-service
     command:
@@ -24,13 +36,32 @@ services:
       - mautrix-meta-data:/data
     restart: "no"
 
+  mautrix-whatsapp-registration:
+    <<: *mautrix-whatsapp-service
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        if [ ! -f /data/config.yaml ]; then
+          cp /bootstrap/config.yaml /data/config.yaml
+        fi
+        if [ ! -f /data/registration.yaml ]; then
+          /usr/bin/mautrix-whatsapp -g -c /data/config.yaml -r /data/registration.yaml
+        fi
+    volumes:
+      - ./matrix-config/mautrix-whatsapp/config.yaml:/bootstrap/config.yaml:ro
+      - mautrix-whatsapp-data:/data
+    restart: "no"
+
   synapse:
-    image: yance-product-uat-synapse:${YANCE_UAT_CANDIDATE_SHA}
+    <<: *synapse-service
+    image: "yance-product-uat-synapse:${YANCE_UAT_CANDIDATE_SHA}"
     command: ["run"]
     volumes:
       - ./matrix-config/synapse/homeserver.yaml:/data/homeserver.yaml:ro
       - synapse-data:/data
       - mautrix-meta-data:/mautrix-meta:ro
+      - mautrix-whatsapp-data:/mautrix-whatsapp:ro
       - type: bind
         source: ${YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE:?required}
         target: /run/secrets/yance_matrix_registration_shared_secret
@@ -38,7 +69,11 @@ services:
     ports:
       - "127.0.0.1:8008:8008"
     depends_on:
+      synapse-data-init:
+        condition: service_completed_successfully
       mautrix-meta-registration:
+        condition: service_completed_successfully
+      mautrix-whatsapp-registration:
         condition: service_completed_successfully
 
   element:
@@ -51,12 +86,15 @@ services:
       - synapse
 
   mautrix-whatsapp:
-    image: yance-product-uat-mautrix-whatsapp:${YANCE_UAT_CANDIDATE_SHA}
+    <<: *mautrix-whatsapp-service
+    image: "yance-product-uat-mautrix-whatsapp:${YANCE_UAT_CANDIDATE_SHA}"
     volumes:
-      - ./matrix-config/mautrix-whatsapp/config.yaml:/data/config.yaml:ro
       - mautrix-whatsapp-data:/data
     depends_on:
-      - synapse
+      synapse:
+        condition: service_started
+      mautrix-whatsapp-registration:
+        condition: service_completed_successfully
 
   mautrix-meta:
     <<: *mautrix-meta-service
