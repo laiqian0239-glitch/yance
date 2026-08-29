@@ -168,12 +168,17 @@ test('trusted Linux CI delegates CRLF apply semantics to Matrix bootstrap, then 
   const compareIndex = source.indexOf('test "$ambient_core_autocrlf_after" = "$ambient_core_autocrlf_before"', afterIndex);
   const firstBuildIndex = source.indexOf('docker build', bootstrapIndex);
   const saveIndex = source.indexOf('docker save');
+  const composeCopyIndex = source.indexOf('cp tools/product-experience/materialized-matrix-compose.yml "$bundle/materialized-matrix-compose.yml"');
+  const composeParseIndex = source.indexOf('docker compose -f "$bundle/materialized-matrix-compose.yml" config');
+  const sealIndex = source.indexOf('create-materialized-uat-candidate.js seal', composeParseIndex);
   const uploadIndex = source.indexOf('Product-Experience-Materialized-Matrix-UAT-');
   const cleanIndex = source.indexOf('git status --porcelain=v1 --untracked-files=all', afterIndex);
 
   assert.ok(beforeIndex >= 0 && beforeIndex < bootstrapIndex);
   assert.ok(afterIndex > bootstrapIndex && compareIndex > afterIndex);
-  assert.ok(firstBuildIndex > compareIndex && saveIndex > firstBuildIndex && cleanIndex > compareIndex && uploadIndex > saveIndex);
+  assert.ok(
+    firstBuildIndex > compareIndex && saveIndex > firstBuildIndex && composeCopyIndex > saveIndex && composeParseIndex > composeCopyIndex && sealIndex > composeParseIndex && cleanIndex > compareIndex && uploadIndex > sealIndex
+  );
   assert.match(source, /ambient_core_autocrlf_before="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
   assert.match(source, /ambient_core_autocrlf_after="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
   assert.match(source, /test "\$ambient_core_autocrlf_after" = "\$ambient_core_autocrlf_before"/u);
@@ -195,6 +200,7 @@ test('trusted Linux CI delegates CRLF apply semantics to Matrix bootstrap, then 
   assert.equal((source.match(/docker build(?: --file \S+)? --tag/gu) || []).length, 4);
   assert.match(source, /docker save --output/u);
   assert.match(source, /materialized-matrix-compose\.yml/u);
+  assert.match(source, /docker compose -f "\$bundle\/materialized-matrix-compose\.yml" config/u);
   assert.match(source, /PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);
 });
 
