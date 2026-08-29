@@ -31,8 +31,8 @@
   "files": [
     {
       "path": "assets/branding/yance/source/yance-mark-master.svg",
-      "bytes": 2025,
-      "sha256": "a5fcd37140be7bc66ecfd0c7851df7ae5684915ece413f1b7fa884733eb18859"
+      "bytes": 811,
+      "sha256": "da5113106e934f1ace7a5dfb810335d805a3a02203b80e4ba8d249658ccb2b57"
     },
     {
       "path": "assets/branding/yance/source/yance-wordmark-zh-editable.svg",
@@ -56,28 +56,28 @@
     },
     {
       "path": "assets/branding/yance/product/yance-mark-flat.svg",
-      "bytes": 971,
-      "sha256": "2293b659825602fdee01c23a102afb98f66fd22cdf0ba3c539b53fc0f65ac44a"
+      "bytes": 653,
+      "sha256": "d5c319544c4a4be292f72c2f83fb879efa3c939e915801dbd2bfb7b33f896a4a"
     },
     {
       "path": "assets/branding/yance/product/yance-mark-micro.svg",
-      "bytes": 643,
-      "sha256": "79c9d38b0fb309d157f9a6f7a679d7d747e49660d3cd1841d919cf0d2c806630"
+      "bytes": 507,
+      "sha256": "1fa7f9e3d70be5744d67d39bc9f5db67ce18707b9b6f6b9227075860149c0ac6"
     },
     {
       "path": "assets/branding/yance/product/yance-mark-mono-dark.svg",
-      "bytes": 537,
-      "sha256": "b8d728f9a4a65d01f17047171dddf731026f998af5a7b49a48a6f951aefbb432"
+      "bytes": 542,
+      "sha256": "7d7e4d54569d5e068af4be79d1f3e538414e15ea517fcf867b8e22491ce756c5"
     },
     {
       "path": "assets/branding/yance/product/yance-mark-mono-light.svg",
-      "bytes": 537,
-      "sha256": "7d4fe559a358392e2286790c059b7757efa9e9a5176f5c77f286b758b25be937"
+      "bytes": 543,
+      "sha256": "d59ac54792195824c8520dbd8b38bf5fe671f1e8705a5ec76195072d5d5ba572"
     },
     {
       "path": "assets/branding/yance/presentation/yance-mark-display.svg",
-      "bytes": 1878,
-      "sha256": "8b730d5f6fe0e54d495adfeaebab03f6f05d00dfb856540ebe5a062f53298838"
+      "bytes": 929,
+      "sha256": "bf3aaea749de98950aa6a2e28c9c5de5278295b699a17abd0305e64e61067f8f"
     },
     {
       "path": "assets/branding/yance/wordmarks/yance-wordmark-zh.svg",
@@ -101,58 +101,58 @@
     },
     {
       "path": "assets/branding/yance/generated/yance-app-icon-16.png",
-      "bytes": 678,
-      "sha256": "de6ee8386642a3e3ba5cec0d6f2711ca385376495d3d5811ca74eb91be72c5f1"
+      "bytes": 611,
+      "sha256": "8e888197a039000398ef0bca181a5c2fc373c68855d8746be0314b1ac15dfee1"
     },
     {
       "path": "assets/branding/yance/generated/yance-app-icon-20.png",
-      "bytes": 832,
-      "sha256": "cc6f7481fdaee5a4ff54183d57acc85d5925b8cb422eb876bcc31e7235d3b980"
+      "bytes": 770,
+      "sha256": "5be5f967670e23f9f3263d29db9159aadfe2fdb5f6507c12c3de07a03f54882a"
     },
     {
       "path": "assets/branding/yance/generated/yance-app-icon-24.png",
-      "bytes": 971,
-      "sha256": "aa5f484af69fc3e37cbec7dffd43622aa34b0ac251c813f82056aced4ca1c645"
+      "bytes": 887,
+      "sha256": "49099334bb7d01bea04cabace41bf686530e6c3c0980258acadd23b7c561743c"
     },
     {
       "path": "assets/branding/yance/generated/yance-app-icon-32.png",
-      "bytes": 1183,
-      "sha256": "a564de28606f112b1144668dadab94f015de900b478f17c6b6791c323e29d82a"
+      "bytes": 1230,
+      "sha256": "a4e5ece2a64e8b445e82b3da0955e22ac62a7a79c69ed76104087c9a947763b0"
     },
     {
       "path": "assets/branding/yance/generated/yance-app-icon-48.png",
-      "bytes": 1795,
-      "sha256": "96e0f7a2b631d0c3059c565182ee332e49f783132cb76a1a4d12141e6e6ffbff"
+      "bytes": 1793,
+      "sha256": "dd9061c682535fea029ad83b73d7da28e91e05b6a1a02ffc26281b6fc847f90d"
     },
     {
       "path": "assets/branding/yance/generated/yance-app-icon-64.png",
-      "bytes": 2554,
-      "sha256": "ac506b803c108ce82f2d6c79e110c9a0c0fcb7fee52eb25a70eacc707e453262"
+      "bytes": 2350,
+      "sha256": "4779fbfe94ea38dbe04f6365c9dbc4c70029ab6845f739a2960508aad33e23a1"
     },
     {
       "path": "assets/branding/yance/generated/yance-app-icon-128.png",
-      "bytes": 5361,
-      "sha256": "54cd58c349a52908a54eb34868d3fbf2d07fcd718c553366a2bbeac619970178"
+      "bytes": 4491,
+      "sha256": "98908c767fc3a8a29ae452cad2719458c1c0f361ecdf378758c00e18d533c5ba"
     },
     {
       "path": "assets/branding/yance/generated/yance-app-icon-256.png",
-      "bytes": 11569,
-      "sha256": "5b88c772398b0010aaab53bfe3390c7810cb2c75903c11a2a8996b4ac0e0e817"
+      "bytes": 8917,
+      "sha256": "30b1c0e4424423fa8139ff621a2eaa57e4af87611c517aa83736d8e3ee26ee4c"
     },
     {
       "path": "assets/branding/yance/generated/yance-app-icon-512.png",
-      "bytes": 27503,
-      "sha256": "a26dc2077c5fa59884c49414fe7c7253208fdfdd0046b84eec4d53a85d027bca"
+      "bytes": 19125,
+      "sha256": "764ee2bbb6b89f98e078b6f72ef459cd0148a01300c00332f193a72ee9cdfcda"
     },
     {
       "path": "assets/branding/yance/generated/yance-app-icon-1024.png",
-      "bytes": 66764,
-      "sha256": "1d32f1e6b73a76fca2835cdc7f5fee25f6c09996e120bcbd62facfa578ad2dfd"
+      "bytes": 42066,
+      "sha256": "9b6779fcefbbcc16fb5405ed290cf8a6feb1d955c83c13825d01e0d3e6865739"
     },
     {
       "path": "assets/branding/yance/generated/Yance.ico",
-      "bytes": 115330,
-      "sha256": "44404cadc639055a0f27147088f6133d50b7e66152a52acd737d279cd84671fc"
+      "bytes": 112723,
+      "sha256": "942ea5b88768835377b7aadb233163b28c418ce09a8b756e23a61ef47918ec6d"
     }
   ]
 }

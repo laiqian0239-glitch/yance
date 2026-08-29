@@ -1,7 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="言策 Yance">
-  <rect x="12" y="12" width="232" height="232" rx="58" fill="#0B1416" stroke="#17BDB5" stroke-width="5"/>
-  <path d="M55 65H160V52L211 89 160 126V113H55Z" fill="#E6ECEC"/>
-  <rect x="66" y="126" width="91" height="18" rx="6" fill="#E6ECEC"/>
-  <path d="M68 158H164Q172 158 172 166V198Q172 206 164 206H111L83 226 90 206H68Q60 206 60 198V166Q60 158 68 158Z" fill="none" stroke="#E6ECEC" stroke-width="15" stroke-linejoin="round"/>
-  <path d="M160 52L211 89 160 126" fill="none" stroke="#3DD9D0" stroke-width="4" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Yance">
+  <rect width="256" height="256" rx="58" fill="#2A0F4A"/>
+  <path d="M67 72h122c13 0 23 10 23 23v56c0 13-10 23-23 23h-60l-41 31v-31H67c-13 0-23-10-23-23V95c0-13 10-23 23-23Z" fill="none" stroke="#FFFFFF" stroke-width="15" stroke-linejoin="round"/>
+  <path d="m86 142 33-32 25 22 34-37" fill="none" stroke="#FFFFFF" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

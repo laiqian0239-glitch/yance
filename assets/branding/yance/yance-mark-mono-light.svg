@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="言策 Yance 单色浅色版">
-  <rect x="72" y="72" width="880" height="880" rx="216" fill="#FFFFFF"/>
-  <path d="M248 292H686V244L824 356 686 468V420H248Z" fill="#0B1416"/>
-  <rect x="292" y="492" width="382" height="68" rx="22" fill="#0B1416"/>
-  <path d="M304 612H676Q704 612 704 640V774Q704 802 676 802H430L330 876 356 802H304Q276 802 276 774V640Q276 612 304 612Z" fill="none" stroke="#0B1416" stroke-width="58" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Yance monochrome light">
+  <rect width="1024" height="1024" rx="232" fill="#FFFFFF"/>
+  <path d="M270 286h484c49 0 88 39 88 88v232c0 49-39 88-88 88H515L352 812v-118h-82c-49 0-88-39-88-88V374c0-49 39-88 88-88Z" fill="none" stroke="#2A0F4A" stroke-width="58" stroke-linejoin="round"/>
+  <path d="M346 560 474 434l96 88 130-142" fill="none" stroke="#2A0F4A" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -9,7 +9,7 @@ const BRAND_ROOT = path.join(ROOT, 'assets', 'branding', 'yance');
 const GENERATED = path.join(BRAND_ROOT, 'generated');
 const REQUIRED_SIZES = [16, 20, 24, 32, 48, 64, 128, 256, 512, 1024];
 const REQUIRED_ICO_SIZES = [16, 20, 24, 32, 48, 64, 128, 256];
-const REQUIRED_COLORS = ['#0B1416', '#0F2E31', '#17BDB5', '#3DD9D0', '#E6ECEC', '#8A9499'];
+const REQUIRED_COLORS = ['#2A0F4A', '#FFFFFF'];
 
 function sha256(file) { return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'); }
 function fail(code, message, details = {}) {

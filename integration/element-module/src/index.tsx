@@ -3,6 +3,7 @@
 import React from "react";
 import type { Api, Module, ModuleFactory } from "@element-hq/element-web-module-api";
 import { YanceWorkspace } from "./YanceWorkspace";
+import { YanceLogin } from "./YanceLogin";
 import { ProductComposerAccessory } from "./product-experience/ProductComposerAccessory";
 import type { RelationshipProjection } from "./product-experience/experienceTypes";
 
@@ -61,6 +62,11 @@ class YanceElementModule implements Module {
       }) => this.api.appearance.setTheme(theme),
     };
 
+    this.api.customComponents.registerLoginComponent(
+      (props, originalComponent) => (
+        <YanceLogin>{originalComponent(props)}</YanceLogin>
+      ),
+    );
     this.api.customComponents.registerGlobalRightPanel(
       () => (
         <YanceWorkspace

@@ -1,0 +1,38 @@
+.yance-brand-preview {
+  margin: 12px 12px 0;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgb(42 15 74 / 14%);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgb(42 15 74 / 8%), rgb(255 255 255 / 96%));
+  color: #2a0f4a;
+}
+
+.yance-brand-preview__mark {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgb(42 15 74 / 18%);
+}
+
+.yance-brand-preview strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.yance-brand-preview strong span {
+  margin-left: 6px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+}
+
+.yance-brand-preview p {
+  margin: 3px 0 0;
+  color: rgb(42 15 74 / 68%);
+  font-size: 12px;
+  line-height: 1.4;
+}
