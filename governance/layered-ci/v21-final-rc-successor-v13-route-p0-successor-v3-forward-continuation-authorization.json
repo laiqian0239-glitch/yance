@@ -1,0 +1,251 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-29T19:45:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-SUCCESSOR-V13-ROUTE-SUCCESSOR-V3-P0",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #974 established the required fresh causal RED for exact successor-v13 Product Final admission at tests-only head 43f3af517e57f8e15c67eb163d3055a590dd223e / Stage 33252842020: 247 tests, 246 PASS, unique route equality failure actual=0 expected=3. Its first production descendant 2f9c761d2a7712eaaa8619c5170ad73d6289dd27 contains the authorized two-path repair but omitted mandatory Yance-Failure-First-Red-* provenance trailers, so Stage 33253363213 correctly failed closed in implementation-branch-policy with 742 tests / 741 PASS / 1 failure. The first forward-continuation authorization proposal #975 exact head 386cfb345c01b83cab9367a3a135bce04e7f3f2d then passed implementation-branch-policy but failed closed only at OSS-first admission because the proposal omitted the mandatory ossFit evidence block. Both failed heads are frozen and must not be rerun or rewritten. This successor proposal preserves the same forwardContinuation topology, explicitly records OSS-first reuse of the existing Product Final exact-route seam, inherits only the valid RED head, excludes the invalid production descendant, and authorizes no new infrastructure or runtime behavior.",
+  "base": {
+    "branch": "main",
+    "commit": "b0d7ea2f11aa504b51846fe153a781768ded4192",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b0d7ea2f11aa504b51846fe153a781768ded4192",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-final-rc-successor-v13-route-p0-authorization.json",
+    "implementationBranch": "ci/v21-final-rc-successor-v13-route-p0",
+    "reason": "The original authorization remains the merged predecessor authority, but its implementation branch is frozen after the invalid first production descendant. PR #975 was only a failed unmerged transport proposal and is not an effective authority. Continue through a distinct forwardContinuation implementation branch while preserving the valid RED evidence."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-successor-v13-route-p0-successor-v3-forward-continuation-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-successor-v13-route-p0-successor-v3-forward-continuation-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "146650cc01dc56d694d895e4f5033d31f2aa67ca4433051401bc56685a877d8e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "ci/v21-final-rc-successor-v13-route-p0-successor-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "43f3af517e57f8e15c67eb163d3055a590dd223e"
+    },
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0fe120e1cd4c2692f06a11c3becc1d5db4324efcbaf59f2cc62154b008fd9d6e",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_EXACT_BRANCH_ROUTE_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product Final exact-branch admission seam",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml and tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The causal closure is only one additional explicit successor-v13 equality in each of the three existing Product Final job guards plus the matching layered exact-set assertion; no external or newly built general-purpose component is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not rerun, rewrite, amend, merge or reuse invalid production descendant 2f9c761d2a7712eaaa8619c5170ad73d6289dd27.",
+      "Do not rerun or mutate failed authorization proposal #975 exact head 386cfb345c01b83cab9367a3a135bce04e7f3f2d.",
+      "Do not create a parallel Product Final workflow, router, wrapper, wildcard admission or alternate execution path.",
+      "Do not change Product Final job bodies, runtime behavior, timeouts, dependencies, RC marker, release, publish or ledger state.",
+      "Do not create a second application build."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "predecessorEvidence": {
+    "authorizationPullRequest": 973,
+    "authorizationMerge": "b0d7ea2f11aa504b51846fe153a781768ded4192",
+    "implementationPullRequest": 974,
+    "implementationBranch": "ci/v21-final-rc-successor-v13-route-p0",
+    "validFailureFirstHead": "43f3af517e57f8e15c67eb163d3055a590dd223e",
+    "validFailureFirstRun": 33252842020,
+    "validFailureFirstConclusion": "failure",
+    "validFailureFirstBoundary": "Layered Product Final exact-set contract requires release/v21-final-rc-uat-p0-successor-v13 while the workflow remains admitted only through successor-v12.",
+    "validFailureFirstChangedPath": "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+    "invalidProductionDescendant": "2f9c761d2a7712eaaa8619c5170ad73d6289dd27",
+    "invalidProductionStageRun": 33253363213,
+    "invalidProductionReason": "Missing mandatory Yance-Failure-First-Red-Head / Run / Conclusion trailers on the first production continuation commit; implementationBranchPolicy correctly denied authority.",
+    "failedForwardAuthorizationPullRequest": 975,
+    "failedForwardAuthorizationHead": "386cfb345c01b83cab9367a3a135bce04e7f3f2d",
+    "failedForwardAuthorizationStageRun": 33253784032,
+    "failedForwardAuthorizationReason": "OSS-first admission required ossFit evidence before implementation; implementation-branch-policy itself was GREEN.",
+    "invalidProductionDescendantMustRemainFrozen": true,
+    "invalidProductionDescendantRerunForbidden": true,
+    "invalidProductionDescendantReuseForbidden": true,
+    "failedForwardAuthorizationHeadMustRemainFrozen": true,
+    "unknownBlockers": 0
+  },
+  "continuationContract": {
+    "firstSuccessorImplementationCommitMustHaveExactlyTwoParents": true,
+    "requiredFirstParent": "SUCCESSOR_AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "requiredSecondParent": "43f3af517e57f8e15c67eb163d3055a590dd223e",
+    "failureFirstEvidenceMustBeInheritedNotRecreated": true,
+    "invalidProductionDescendantMustNotBeAncestor": "2f9c761d2a7712eaaa8619c5170ad73d6289dd27",
+    "firstSuccessorTreeMustPreserveValidRedTestBlob": true,
+    "firstSuccessorCommitMayApplyAuthorizedWorkflowRepair": true,
+    "requiredCommitMessageTrailers": [
+      "Yance-Failure-First-Red-Head: 43f3af517e57f8e15c67eb163d3055a590dd223e",
+      "Yance-Failure-First-Red-Run: 33252842020",
+      "Yance-Failure-First-Red-Conclusion: failure",
+      "Yance-Closure-Matrix-Unknown-Blockers: 0"
+    ],
+    "historyRewriteForbidden": true,
+    "predecessorMutationForbidden": true,
+    "candidateScopeExpansionForbidden": true
+  },
+  "successorRouteContract": {
+    "nextRcBranch": "release/v21-final-rc-uat-p0-successor-v13",
+    "workflow": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "sameRepositoryHeadRequired": true,
+    "exactBranchEqualityRequired": true,
+    "prefixWildcardContainsOrStartsWithForbidden": true,
+    "historicalBranchAdmissionsMustRemainUnchanged": true,
+    "jobsThatMustAdmitSuccessorBranch": [
+      "frozen-element-reproducibility",
+      "materialized-desktop-uat",
+      "materialized-matrix-uat"
+    ],
+    "productFinalJobBodiesMustRemainByteForByteUnchangedExceptExactGuardInsertion": true,
+    "startupCapsuleRouteAndImplementationMustRemainByteForByteUnchanged": true,
+    "secondApplicationBuildForbidden": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "rows": [
+      {
+        "boundary": "successor-v13 Product Final route RED",
+        "classification": "INHERIT_VALID_EVIDENCE",
+        "evidence": "43f3af517e57f8e15c67eb163d3055a590dd223e / Stage 33252842020",
+        "requiredClosure": "Do not recreate or rerun RED; preserve the exact RED test blob in the successor tree."
+      },
+      {
+        "boundary": "invalid first production descendant",
+        "classification": "FREEZE_EXCLUDE",
+        "evidence": "2f9c761d2a7712eaaa8619c5170ad73d6289dd27 / Stage 33253363213 / implementation-branch-policy unique failure",
+        "requiredClosure": "Never merge, rerun, rewrite, or include this descendant in continuation ancestry."
+      },
+      {
+        "boundary": "failed forward authorization proposal",
+        "classification": "FREEZE_SUPERSEDE_TRANSPORT",
+        "evidence": "386cfb345c01b83cab9367a3a135bce04e7f3f2d / Stage 33253784032 / OSS-first admission unique failure",
+        "requiredClosure": "Preserve the same causal authority and add the mandatory OSS-fit evidence in this one successor proposal; do not rerun the failed proposal."
+      },
+      {
+        "boundary": "Product Final route repair",
+        "classification": "AUTHORIZED_ROOT_FIX",
+        "evidence": "Existing three Product Final exact-equality allowlists stop at successor-v12.",
+        "requiredClosure": "Insert exact successor-v13 equality in exactly the existing three job guards and carry exact RED provenance trailers; no other workflow behavior change."
+      }
+    ]
+  },
+  "requiredValidation": {
+    "firstSuccessorHead": "Exact two-parent successor head [authorization ordinary merge, 43f3af517e57f8e15c67eb163d3055a590dd223e] with preserved RED test blob and only the authorized workflow guard insertions.",
+    "focused": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "formal": [
+      "Stage 6.4.5.9 WP0 Architecture Gates GREEN on exact successor head",
+      "Layered CI Fast Feedback GREEN on exact successor head",
+      "ACV2 WP-A Architecture Gates GREEN when routed",
+      "V21 Model Brain P0 Windows GREEN when routed",
+      "Product Final may be skipped on the ci/ implementation branch; skipped is never Product GREEN evidence"
+    ],
+    "exactHeadCiRequired": true,
+    "unknownBlockers": 0
+  },
+  "independentReview": {
+    "required": true,
+    "exactHeadRequired": true,
+    "blockingSeverities": [
+      "P0",
+      "P1"
+    ],
+    "requiredZeroBlockingFindings": true,
+    "focusAreas": [
+      "failed authorization transport superseded without rerun",
+      "OSS-first existing seam evidence",
+      "invalid descendant excluded",
+      "valid RED inherited",
+      "exact two-path scope",
+      "three exact successor-v13 guard insertions only",
+      "exact RED provenance trailers",
+      "no job-body/runtime/dependency/release weakening"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
