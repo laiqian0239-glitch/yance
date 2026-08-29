@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-UAT-P0-SUCCESSOR-V12",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen successor-v11 RC PR #950 exact head ca2e8ba3cc900c24111476ea459650cec45991a8 remains immutable evidence and must not be rerun. Its Product Final run 33221931040 exposed the unique second-fresh-process startup-capsule blocker WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED after the first real packaged launch passed. The causal fresh-process credential readability repair was governance-authorized by PR #952 and ordinary-merged through PR #953 at f08c81a00b324363d1340d50ed2285a26590ebbe. Successor-v12 exact routing was separately authorized by PR #954 and ordinary-merged at 6046c8c39454ec2ec409aa004733e146321f06dc, then closed by PR #955 after frozen causal RED 3b7ef40b32b42cc3b1d037e3c9ea5e3a027d5aa2 / Stage 33227440709 and GREEN implementation head b8a9ed2eb7da49b631f55805184366df1b7ce708. This authorization permits exactly one documentation marker path on release/v21-final-rc-uat-p0-successor-v12 from route merge 06e09f28adc7d9114d19ee597bf12768a6b214cd so Product Final can execute once on a fresh exact RC head. It authorizes no product, runtime, test, workflow, routing, dependency, package, lockfile, database, ledger, release, or publish mutation.",
+  "base": {
+    "branch": "main",
+    "commit": "06e09f28adc7d9114d19ee597bf12768a6b214cd",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "06e09f28adc7d9114d19ee597bf12768a6b214cd",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-uat-p0-successor-v12-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-uat-p0-successor-v12-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d2c6611ae6491c0d351c57ea424fa98f52db18e2339c0ea0b05af6251060ed7a",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "release/v21-final-rc-uat-p0-successor-v12",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "docs/uat/V21_FINAL_RC_UAT_P0.md"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b3383b74e0c3e3e02c9139448f06d595e8b34edc35cf1e40b8afd1c12c77b3ef",
+    "productionScopeAuthorized": false,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": false,
+    "runnerModificationAllowed": false,
+    "ledgerModificationAllowed": false,
+    "releaseCandidateValidationExecutionAuthorized": true,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "frozenEvidence": {
+    "predecessorPullRequest": 950,
+    "predecessorExactHead": "ca2e8ba3cc900c24111476ea459650cec45991a8",
+    "predecessorStageRun": 33221931041,
+    "predecessorProductFinalRun": 33221931040,
+    "predecessorWindowsProductFinalJob": 99017599826,
+    "deterministicProductFinalBoundary": "WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED",
+    "productRepairAuthorizationPullRequest": 952,
+    "productRepairAuthorizationMerge": "3d9bdff051bc9cfef1c5f4ca122944e9c7c14c68",
+    "productRepairPullRequest": 953,
+    "productRepairExactHead": "e22db6a9c237ab47c25daa10ce44a88f562b8e1f",
+    "productRepairMerge": "f08c81a00b324363d1340d50ed2285a26590ebbe",
+    "routeAuthorizationPullRequest": 954,
+    "routeAuthorizationMerge": "6046c8c39454ec2ec409aa004733e146321f06dc",
+    "routeImplementationPullRequest": 955,
+    "routeFailureFirstRedHead": "3b7ef40b32b42cc3b1d037e3c9ea5e3a027d5aa2",
+    "routeFailureFirstRedStageRun": 33227440709,
+    "routeImplementationExactHead": "b8a9ed2eb7da49b631f55805184366df1b7ce708",
+    "routeGreenStageRun": 33227555470,
+    "routeGreenLayeredRun": 33227555571,
+    "routeGreenAcv2Run": 33227555522,
+    "routeGreenModelBrainWindowsRun": 33227555436,
+    "routeMerge": "06e09f28adc7d9114d19ee597bf12768a6b214cd",
+    "mustRemainFrozen": true,
+    "rerunForbidden": true,
+    "unknownBlockers": 0
+  },
+  "freshRcContract": {
+    "candidateBranch": "release/v21-final-rc-uat-p0-successor-v12",
+    "predecessorCandidate": "ca2e8ba3cc900c24111476ea459650cec45991a8",
+    "predecessorCandidateMustRemainFrozen": true,
+    "branchUpdateMode": "CREATE_FROM_AUTHORIZATION_MERGE_ONLY",
+    "candidateMustStartFromThisAuthorizationMerge": true,
+    "candidateMarkerPath": "docs/uat/V21_FINAL_RC_UAT_P0.md",
+    "candidateSourceOrRuntimeMutationForbidden": true,
+    "candidateHeadMustRemainStableThroughAllFinalEvidence": true,
+    "candidateByteChangeInvalidatesPriorFinalEvidence": true,
+    "reuseHistoricalRcArtifactsForbidden": true,
+    "reuseHistoricalRcReceiptsForbidden": true,
+    "freshTrustedMain": "06e09f28adc7d9114d19ee597bf12768a6b214cd",
+    "productFinalWorkflow": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+    "productFinalWorkflowMustNotBeSkipped": true,
+    "requiredProductFinalJobs": [
+      "frozen-element-reproducibility",
+      "materialized-desktop-uat",
+      "materialized-matrix-uat"
+    ],
+    "allRequiredProductFinalJobsMustPass": true,
+    "fullApplicationBuildCountMustEqual": 1,
+    "startupCapsuleRequired": true,
+    "startupCapsuleMustBeSameJobProjectionOfFullApplication": true,
+    "startupCapsuleByteIdentityMustEqual": "VERIFIED",
+    "startupCapsuleManifestStatusMustEqual": "PASS",
+    "formalFinalDeltaMustCoverExactCandidateHead": true,
+    "finalDeltaUnknownBlockersMustEqual": 0,
+    "fullRcWindowsUatMayStartOnlyAfterStartupCapsuleGreen": true,
+    "failureDisposition": "Any Product Final, startup-capsule, Final Delta, or packaged/UAT P0/P1 failure freezes the exact RC head. Same-head rerun is forbidden; continue only through a separately authorized fresh causal fix/new exact head."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_MARKER_ONLY_FINAL_RC_DELEGATED_AUTHORIZATION_SEAM",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Final RC/UAT delegated marker authorization seam",
+        "source": "governance/layered-ci/v21-final-rc-uat-p0-successor-v11-authorization.json and docs/uat/V21_FINAL_RC_UAT_P0.md",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The work only delegates one existing documentation marker path to the already-routed Product Final workflow; no new runtime, workflow, dependency, build system, or infrastructure is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a parallel RC marker mechanism, alternate Product Final workflow, wrapper, router, or release path.",
+      "Do not rerun, mutate, merge, move, delete, recreate, or reuse frozen successor-v11 RC branch/head #950.",
+      "Do not add runtime code, dependencies, package changes, lockfile changes, build prerequisites, release ledger closure, or publish authority.",
+      "Do not perform a second application build outside the existing Product Final single-build contract."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "WP-A Main Post-Merge when routed",
+      "WP-B when routed",
+      "Model Brain Windows when routed",
+      "V21 Product Experience Shell P0 Final Validation"
+    ],
+    "authorizationProductFinalExpected": "SKIPPED_NON_RC_BRANCH_NOT_GREEN",
+    "implementationProductFinalMustNotBeSkipped": true,
+    "independentExactHeadReviewP0": 0,
+    "independentExactHeadReviewP1": 0,
+    "unknownBlockers": 0
+  },
+  "prohibitions": {
+    "frozen950Mutation": true,
+    "frozen950Rerun": true,
+    "reuseStaleArtifacts": true,
+    "reuseStaleReceipts": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "workflowMutation": true,
+    "runtimeMutation": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "releaseLedgerClosure": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
