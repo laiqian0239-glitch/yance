@@ -806,7 +806,7 @@ class DesktopCredentialApplicationCoordinator {
     const authority = this.vaultHost.snapshotMetadata();
     const backend = this._backend();
     const blocked = authority.activeOwnerSession || authority.pendingOwnerSession || authority.activeTransactionId || authority.pendingOperations > 0;
-    if (blocked || authority.lifecycle?.state !== 'ACTIVE' || authority.available !== true) {
+    if (blocked || authority.lifecycle?.state !== 'ACTIVE') {
       throw makeError('WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED', 'Credential authority did not reach an owner-free ACTIVE boundary', { authority, backend });
     }
     if (this._backendOwned()) {
