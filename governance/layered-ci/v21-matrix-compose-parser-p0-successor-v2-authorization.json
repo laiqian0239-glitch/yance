@@ -4,9 +4,9 @@
   "requestedByUserAt": "2026-08-29T18:51:29+07:00",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-MATRIX-COMPOSE-PARSER-P0-V2",
-  "proposalRevision": 2,
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "Successor authorization for Issue #960 real Windows UAT causal RED. PR #970 exact head c97e97b2bc2c7bf00da3e025d5a105c5ca39e867 is frozen after its single Stage run exposed an authorization-proposal transport contract defect; it must not be rerun or mutated. The implementation scope remains one four-path causal batch only: make the materialized Matrix Compose parser-safe, execute docker compose config against the exact materialized file before seal/upload, and update the two existing focused/layered contracts. Preserve image-only --no-build topology, readiness semantics, package/dependency pins, runtime code, runner behavior, timeouts, routing, release/publish/ledger state and all unrelated Product Final job bodies.",
+  "reason": "Successor authorization for Issue #960 real Windows UAT causal RED. PR #970 exact head c97e97b2bc2c7bf00da3e025d5a105c5ca39e867 is frozen after its single Stage run exposed an authorization-proposal transport contract defect; PR #971 predecessor head 7f5ad8949b25d09b4f5e2440a1fa568735cb0af4 is also frozen after the existing implementation policy proved that workflowModificationAllowed=true requires an exact workflowModificationPolicy. This revision adds only that exact workflow-path delegation. The implementation scope remains one four-path causal batch only: make the materialized Matrix Compose parser-safe, execute docker compose config against the exact materialized file before seal/upload, and update the two existing focused/layered contracts. Preserve image-only --no-build topology, readiness semantics, package/dependency pins, runtime code, runner behavior, timeouts, routing, release/publish/ledger state and all unrelated Product Final job bodies.",
   "base": {
     "branch": "main",
     "commit": "a2ad91dbc50399893d02d4c42360841dcc3bb615",
@@ -57,6 +57,13 @@
     "testModificationAllowed": true,
     "runnerModificationAllowed": false,
     "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
     "routingPolicyModificationAllowed": false,
     "timeoutModificationAllowed": false,
     "newDependencyAllowed": false,
