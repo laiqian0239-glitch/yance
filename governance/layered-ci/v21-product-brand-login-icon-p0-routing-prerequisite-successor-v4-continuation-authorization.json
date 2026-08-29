@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
-  "workPackage": "V21-PRODUCT-BRAND-LOGIN-ICON-P0-ROUTING-PREREQUISITE-V4-CONTINUATION",
+  "workPackage": "V21-BRAND-ROUTING-P0-V4-CONTINUATION",
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
   "reason": "PR #964 frozen exact head 5e6041c7072d71f2df792ca4eee013037f6a9793 has the exact authorized four-path routing result, but Stage run 33246885387 proves the lineage is permanently invalid because the first production commit omitted the evaluator-required Yance-Failure-First-Red evidence trailers. History rewrite, force push, rebase and amend are forbidden. Supersede only the V3 implementation authority and carry the frozen net four-path result onto a fresh implementation branch through the repository's existing machine-enforced two-parent forward-continuation protocol. No policy weakening, product runtime, dependency, workflow, release, publish or ledger authority is added.",
   "base": {
