@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-29T16:37:03+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-BRAND-LOGIN-ICON-P0-ROUTING-PREREQUISITE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #959 exact production head f8c780cdbb98bb4ad54003b2edee7f37af08a7d8 is frozen fail-closed after its one allowed automatic CI attempt exposed one same-root base-owned routing gap: Stage returned WP0_ROUTE_UNKNOWN_PATH and Layered CI returned CI_UNKNOWN_PATH for the same exact 38 already-authorized brand asset and Element component paths. The product head must not be rerun or amended. Authorize a separate routing-prerequisite causal batch that classifies only those exact 38 paths through the existing PRODUCT WP0 route and exact L2 risk authority, without changing selectors, workflows, product code, dependencies, release, publish or ledger state.",
+  "base": {
+    "branch": "main",
+    "commit": "36725fd0370864a0c72eba297df2107a414db76c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "36725fd0370864a0c72eba297df2107a414db76c",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-brand-login-icon-p0-routing-prerequisite-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d3269a10f27445a4c95afe3eb6a0d00f6db5c7686d43aa17aeea53ce81882e6e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-brand-login-icon-p0-routing-prerequisite",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "b29cf899567835b6d36c9a3c947d568f6df834c5da176197d165136a720687b4",
+    "routingPolicyModificationAllowed": true,
+    "testModificationAllowed": true,
+    "selectorModificationAllowed": false,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productCodeModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "releaseModificationAllowed": false,
+    "publishModificationAllowed": false,
+    "ledgerModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "frozenCausalEvidence": {
+    "productPr": 959,
+    "productHead": "f8c780cdbb98bb4ad54003b2edee7f37af08a7d8",
+    "productParent": "6ed0e45c73cd9f28125ee3999a24f815c7ca508c",
+    "productBase": "36725fd0370864a0c72eba297df2107a414db76c",
+    "stageRun": 33245561617,
+    "stageReasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "layeredCiRun": 33245561758,
+    "layeredRiskJob": 99082291511,
+    "layeredReasonCode": "CI_UNKNOWN_PATH",
+    "unknownPathCount": 38,
+    "unknownPathSetSha256": "c1801c87cf4a95a5fb6d6f65b569121a3dec3dd38496b7bb65b3379402208464",
+    "sameExactHeadRerunForbidden": true,
+    "appendCommitToFrozenHeadForbidden": true
+  },
+  "routingContract": {
+    "unknownPaths": [
+      "assets/branding/yance/Yance.ico",
+      "assets/branding/yance/brand-assets-manifest.json",
+      "assets/branding/yance/branding-tokens.json",
+      "assets/branding/yance/generated/Yance.ico",
+      "assets/branding/yance/generated/yance-app-icon-1024.png",
+      "assets/branding/yance/generated/yance-app-icon-128.png",
+      "assets/branding/yance/generated/yance-app-icon-16.png",
+      "assets/branding/yance/generated/yance-app-icon-20.png",
+      "assets/branding/yance/generated/yance-app-icon-24.png",
+      "assets/branding/yance/generated/yance-app-icon-256.png",
+      "assets/branding/yance/generated/yance-app-icon-32.png",
+      "assets/branding/yance/generated/yance-app-icon-48.png",
+      "assets/branding/yance/generated/yance-app-icon-512.png",
+      "assets/branding/yance/generated/yance-app-icon-64.png",
+      "assets/branding/yance/presentation/yance-mark-display.svg",
+      "assets/branding/yance/product/yance-mark-flat.svg",
+      "assets/branding/yance/product/yance-mark-micro.svg",
+      "assets/branding/yance/product/yance-mark-mono-dark.svg",
+      "assets/branding/yance/product/yance-mark-mono-light.svg",
+      "assets/branding/yance/source/yance-mark-master.svg",
+      "assets/branding/yance/yance-app-icon-1024.png",
+      "assets/branding/yance/yance-app-icon-128.png",
+      "assets/branding/yance/yance-app-icon-16.png",
+      "assets/branding/yance/yance-app-icon-20.png",
+      "assets/branding/yance/yance-app-icon-24.png",
+      "assets/branding/yance/yance-app-icon-256.png",
+      "assets/branding/yance/yance-app-icon-32.png",
+      "assets/branding/yance/yance-app-icon-48.png",
+      "assets/branding/yance/yance-app-icon-512.png",
+      "assets/branding/yance/yance-app-icon-64.png",
+      "assets/branding/yance/yance-mark-flat.svg",
+      "assets/branding/yance/yance-mark-mono-dark.svg",
+      "assets/branding/yance/yance-mark-mono-light.svg",
+      "assets/branding/yance/yance-mark.svg",
+      "integration/element-module/src/BrandPreviewSurface.css",
+      "integration/element-module/src/BrandPreviewSurface.tsx",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx"
+    ],
+    "unknownPathCount": 38,
+    "unknownPathSetSha256": "c1801c87cf4a95a5fb6d6f65b569121a3dec3dd38496b7bb65b3379402208464",
+    "requiredWp0Route": "PRODUCT",
+    "requiredLayeredCiLevel": "L2",
+    "riskIdentityMode": "EXACT",
+    "broadPrefixExpansionAllowed": false,
+    "unrelatedUnknownPathsMustRemainFailClosed": true
+  },
+  "failureFirstEvidence": {
+    "source": "FROZEN_PRODUCT_HEAD_PROVES_BASE_ROUTING_GAP_AND_REQUIRES_FRESH_TEST_ONLY_IMPLEMENTATION_RED",
+    "failureFirstAllowedChangedPaths": [
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js"
+    ],
+    "failureFirstChangedFileCount": 2,
+    "failureFirstChangedFileSetSha256": "34f8be0d2fca9d55b6196dc4ff28839f4bb4bcbbf88ac851f779f021cd3f0415",
+    "requiredFreshRed": "First implementation head must be tests-only and prove that all exact 38 paths currently fail WP0 PRODUCT routing and/or L2 risk classification while unrelated unknown paths remain fail-closed. Freeze that RED exact head after its first CI attempt; never rerun it.",
+    "mustRemainFrozenAfterFirstRun": true,
+    "rerunForbiddenAfterFirstRun": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "provenGap": [
+      "Stage classifies 38 authorized product paths as WP0_ROUTE_UNKNOWN_PATH on frozen PR #959 head f8c780cdbb98bb4ad54003b2edee7f37af08a7d8.",
+      "Layered CI classifies the same 38 paths as CI_UNKNOWN_PATH on that frozen exact head.",
+      "The selectors are already policy-data driven; selector or workflow code changes are unnecessary."
+    ],
+    "repair": [
+      "Add exactly the 38 frozen unknown paths to the existing PRODUCT entries in wp0-routing-policy.json.",
+      "Add exactly the same 38 paths to exact L2 risk identity in risk-policy.json.",
+      "Add focused regression coverage proving all 38 route PRODUCT/L2 and unrelated unknown paths still fail closed.",
+      "Do not introduce broad assets/branding or integration prefixes."
+    ],
+    "negativeProof": [
+      "Do not modify PR #959 or rerun its frozen exact head.",
+      "Do not change select-wp0-route.js, select-ci-level.js, workflows or routing runner code.",
+      "Do not change product code, dependencies, package manifests, lockfiles, release, publish or ledger state."
+    ]
+  },
+  "requiredValidation": {
+    "freshRed": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js tests/layered-ci/governance-policy.test.js"
+    ],
+    "focusedAfterProduction": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js tests/layered-ci/governance-policy.test.js",
+      "git diff --check"
+    ],
+    "exactHeadCi": [
+      "Stage when routed",
+      "Layered CI when routed"
+    ]
+  },
+  "successorRule": {
+    "routingRepairMustOrdinaryMergeFirst": true,
+    "productSuccessorMustStartFromFreshMainAfterRoutingMerge": true,
+    "reuseFrozenProductHeadAsSuccessorForbidden": true,
+    "cherryPickRebaseAmendForbidden": true,
+    "sameProductPatchMayBeRematerializedFromVerifiedSources": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "ledgerAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
