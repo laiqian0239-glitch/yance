@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-29T08:01:31+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP4-FRESH-PROCESS-VAULT-READABILITY-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen successor-v11 Final RC/UAT PR #950 exact head ca2e8ba3cc900c24111476ea459650cec45991a8 / Product Final 33221931040 passed the first exact packaged post-install launch, frozen Element reproducibility and Matrix UAT, then failed only in the startup-capsule second packaged process with STARTUP_CAPSULE_POST_INSTALL_TIMEOUT. Existing diagnostics prove that second process reached runtime-identity-verified, acquired the LEGACY_CREDENTIAL_MIGRATION application lease, observed backend-not-owned, entered OWNER_RECOVERING with owner-recovery-not-required, and immediately became UNAVAILABLE with WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED before backend spawn. Trusted-main source audit closes the prior #946 assumption: a fresh CredentialVaultHost does not restore activeOwnerSession/pendingOwnerSession from disk, initialization and lease acquisition prove lifecycle/transaction recovery completed, and no backend is owned; therefore DesktopCredentialApplicationCoordinator._assertOwnerReleased() can only reject this observed boundary through its unrelated authority.available === true predicate. That predicate conflates credential decryptability with owner-release safety. The same source audit also proves recoverCredentialVaults() is internally inconsistent: it intends to replace unreadable destination refs but first calls all-or-nothing entries(), so one unreadable ref aborts before per-ref recovery. The clean Product Final path has one runtime credential before the capsule and main provisions the system-owned Graphiti Neo4j ref before backend startup; authorize one causal batch that separates owner-release assertions from vault readability, performs per-ref legacy recovery, and allows only the exact rotatable Graphiti Neo4j system credential to be regenerated on decrypt/corruption while preserving fail-closed secure-storage behavior for all user credentials.",
+  "base": {
+    "branch": "main",
+    "commit": "9b2098306222280c027450492131cab4bbe3eb12",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "9b2098306222280c027450492131cab4bbe3eb12",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp4-fresh-process-vault-readability-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp4-fresh-process-vault-readability-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "82d7a53e2348751a42dce4c97c0c3f6abbbabed318ed2346ed59e22be12f54f5",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp4-fresh-process-vault-readability-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "electron/credentialVaultRecovery.js",
+      "electron/desktopHost/DesktopCredentialApplicationCoordinator.js",
+      "electron/graphitiNeo4jCredentialProvisioning.js",
+      "electron/main.js",
+      "tests/wp4/credential-vault-recovery.test.js",
+      "tests/wp4/desktop-credential-application-lifecycle.test.js",
+      "tests/wp4/graphiti-neo4j-credential-provisioning.test.js"
+    ],
+    "approvedChangedFileCount": 7,
+    "approvedChangedFileSetSha256": "aa0b7d58e7d66f4ecf59466b4279024e2e3cff4e16752e0c9c311f1def9a6a92",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureFirstEvidence": {
+    "source": "FROZEN_EXTERNAL_PRODUCT_FINAL_RED",
+    "pullRequest": 950,
+    "head": "ca2e8ba3cc900c24111476ea459650cec45991a8",
+    "productFinalRun": 33221931040,
+    "desktopJob": 99017599826,
+    "diagnosticsArtifactId": 9705755358,
+    "conclusion": "failure",
+    "failureReason": "STARTUP_CAPSULE_POST_INSTALL_TIMEOUT",
+    "innerReasonCode": "WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED",
+    "lastReliableCheckpoint": "runtime-identity-verified",
+    "operationType": "LEGACY_CREDENTIAL_MIGRATION",
+    "stateSequence": [
+      "LEASE_ACQUIRED",
+      "OWNER_EXIT_CONFIRMED:backend-not-owned",
+      "OWNER_RECOVERING:owner-recovery-not-required",
+      "UNAVAILABLE:WP4_CREDENTIAL_OWNER_EXIT_RECOVERY_FAILED"
+    ],
+    "firstPackagedLaunchPassed": true,
+    "startupCapsuleSecondProcessFailedBeforeBackendSpawn": true,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true,
+    "mutationForbidden": true,
+    "mergeForbidden": true,
+    "freshFailureFirstRedRecreationForbidden": true,
+    "acceptedAsCausalRedForThisExactRepair": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "provenGap": [
+      "The startup capsule is a fresh Electron process over the copied secure profile produced by the already-passing first packaged launch.",
+      "Fresh CredentialVaultHost construction starts with no activeOwnerSession or pendingOwnerSession, and those in-memory fields are not restored by _loadActiveAuthority().",
+      "Successful application lease acquisition proves CredentialVaultHost initialization and lifecycle recovery completed before _assertOwnerReleased().",
+      "The observed backend-not-owned transition proves backend ownership is not the rejecting predicate.",
+      "At this exact boundary, _assertOwnerReleased() incorrectly requires authority.available === true even though credential decryptability is not an owner-release invariant.",
+      "recoverCredentialVaults() calls all-or-nothing destination entries() before its intended per-ref unreadable replacement logic, so an unreadable copied credential cannot reach recovery.",
+      "The clean packaged path reaches backend hydration with exactly one credential reference and main provisions the system-owned Graphiti Neo4j credential before backend startup; that exact generated ref is rotatable, while arbitrary user credentials are not."
+    ],
+    "repair": [
+      "Keep _assertOwnerReleased() strict for active/pending owner sessions, active transactions, pending operations, lifecycle ACTIVE and backend ownership, but remove credential vault readability from that ownership assertion.",
+      "Make credentialVaultRecovery enumerate destination and legacy refs per-ref, preserving readable refs, replacing matching unreadable destination refs when a readable legacy source exists, and reporting unrecoverable refs without one corrupt row poisoning unrelated recovery.",
+      "Move the Graphiti Neo4j credential provisioning decision into a narrow testable module and regenerate only GRAPHITI_NEO4J_CREDENTIAL_REF when its persisted value fails with CREDENTIAL_VAULT_DECRYPT_FAILED or CREDENTIAL_VAULT_ENTRY_CORRUPTED; propagate CREDENTIAL_VAULT_SECURE_STORAGE_UNAVAILABLE and all unrelated failures unchanged.",
+      "Add direct regressions for the fresh-process owner-free/unreadable-vault boundary, per-ref unreadable recovery, and exact Graphiti-only regeneration policy."
+    ],
+    "negativeProof": [
+      "Do not discard secure/credentials.safe.json from the startup capsule or weaken the capsule's durable-security-state preservation gate.",
+      "Do not bypass lifecycle ACTIVE, transaction, lease, owner-session or backend-ownership checks.",
+      "Do not silently reset or rotate arbitrary user credentials.",
+      "Do not treat secureStorage unavailable as recoverable; remain fail-closed.",
+      "Do not change timeouts, workflow routing, dependencies, release, publish or ledger state.",
+      "Do not rerun or mutate frozen #950."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_CREDENTIAL_VAULT_AND_AUTHORITY_SEAMS",
+    "matureOssAvailable": false,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam-plus-thin-domain-helper",
+    "reviewedCandidates": [
+      {
+        "name": "CredentialVault / CredentialVaultHost / recoverCredentialVaults",
+        "source": "electron existing credential authority seams",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already owns safeStorage error classification, authority transactions and migration writes; the repair only corrects boundary classification and per-ref iteration."
+      },
+      {
+        "name": "Graphiti Neo4j credential provisioning",
+        "source": "electron/main.js existing system credential bootstrap",
+        "license": "repository-existing",
+        "adoptionMode": "thin-domain-helper",
+        "fit": "FIT",
+        "reason": "Extracting the existing system-only provisioning decision makes the precise rotatable-ref policy executable in tests without creating a second credential subsystem."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second credential authority or migration subsystem.",
+      "Do not weaken strict hydration for unreadable user credentials.",
+      "Do not recreate the Product Final RED."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focusedAfterProduction": [
+      "node --test --test-concurrency=1 tests/wp4/desktop-credential-application-lifecycle.test.js tests/wp4/credential-vault-recovery.test.js tests/wp4/graphiti-neo4j-credential-provisioning.test.js",
+      "node --check electron/desktopHost/DesktopCredentialApplicationCoordinator.js",
+      "node --check electron/credentialVaultRecovery.js",
+      "node --check electron/graphitiNeo4jCredentialProvisioning.js",
+      "node --check electron/main.js",
+      "git diff --check"
+    ],
+    "evidenceInheritance": [
+      "Reuse #950 frozen Product Final failure as Phase 1 causal RED; no new test-only RED head is authorized or required for this exact repair.",
+      "Reuse #950 first packaged-launch PASS, frozen Element reproducibility and Matrix UAT only as diagnostic evidence; they do not make any new implementation head releasable.",
+      "No same-head Product Final rerun."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2 when routed",
+      "Model Brain Windows when routed",
+      "Product Final only on a later fresh RC candidate after ordinary implementation merge"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "ledgerAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
