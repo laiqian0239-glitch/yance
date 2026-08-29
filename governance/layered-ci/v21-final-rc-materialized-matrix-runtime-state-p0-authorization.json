@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-29T22:34:08+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-MATERIALIZED-MATRIX-RUNTIME-STATE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Real Windows UAT of frozen successor-v13 exact RC head a53ccc7343251c9b2fe8b7e07d62c31eecac1d87 proved a release-blocking same-root Matrix runtime-state projection defect after exact artifact identity, Compose config parsing, image loading and --no-build process creation all passed: Synapse cannot write /data/log.config on a fresh root-owned named volume after upstream run-mode privilege drop, mautrix-whatsapp cannot migrate/chown a repository config bind-mounted read-only at /data/config.yaml, the source Matrix compose projects the same invalid state semantics, and the Windows UAT runner can inherit default-project containers/volumes from prior attempts. One cohesive closure is authorized across both source and sealed topology, exact runner isolation, trusted Product Final runtime smoke, and permanent contracts. The frozen v13 RC is the causal RED; do not repeat that same failure through a synthetic tests-only CI head.",
+  "base": {
+    "branch": "main",
+    "commit": "a579232a79f6fa1a0a8f187e0aef44181e9ad4a3",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "a579232a79f6fa1a0a8f187e0aef44181e9ad4a3",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-materialized-matrix-runtime-state-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-materialized-matrix-runtime-state-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "bee3d81e2eaa76b3f5f4162af59cdc91437f80194a43c07b4320958a7d1fe477",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-rc-materialized-matrix-runtime-state-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "config/matrix/synapse/homeserver.yaml",
+      "services/matrix/docker-compose.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1",
+      "tools/product-experience/materialized-matrix-compose.yml"
+    ],
+    "approvedChangedFileCount": 7,
+    "approvedChangedFileSetSha256": "97dc75069f4eefc362a8e17c6862d47b6d1f824dfa24f86a6ffe1f96c9a74d6f",
+    "newDependencyAllowed": false,
+    "newGeneralPurposeInfrastructureAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "runnerModificationAllowed": true,
+    "productRuntimeModificationAllowed": false,
+    "matrixBootstrapModificationAllowed": false,
+    "upstreamPinModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "releaseLedgerModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "ossFit": {
+    "decision": "REUSE_PINNED_UPSTREAM_STATE_CONTRACTS_THROUGH_EXISTING_COMPOSE_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Pinned Synapse container start contract",
+        "source": "services/matrix/docker-compose.yml plus pinned Synapse image startup contract",
+        "license": "upstream-open-source-and-repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The pinned upstream runtime already defines the non-root homeserver contract; the existing Compose seam only needs deterministic writable /data ownership initialization before startup."
+      },
+      {
+        "name": "Pinned mautrix-whatsapp container run contract",
+        "source": "services/matrix/docker-compose.yml plus pinned mautrix-whatsapp image startup contract",
+        "license": "upstream-open-source-and-repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The pinned bridge runtime already owns config migration and registration generation under writable /data; the existing Compose seam should bootstrap config into that state volume instead of overriding it with a read-only bind."
+      },
+      {
+        "name": "Docker Compose native init and project isolation semantics",
+        "source": "Docker Compose service_completed_successfully dependencies, named volumes, project names and down --volumes",
+        "license": "Apache-2.0",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Native Compose semantics cover state initialization, dependency ordering and clean UAT lifecycle without a new Yance orchestration layer."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a Yance-owned Matrix state manager, custom orchestrator, wrapper daemon, or alternate container lifecycle system.",
+      "Do not bind mutable bridge config read-only at /data/config.yaml where the pinned upstream startup contract must migrate or chown it.",
+      "Do not reuse default Compose project names or stale named volumes as readiness evidence across real Windows UAT attempts.",
+      "Do not replace pinned upstream images, add dependencies, alter package or lock files, or weaken image-only --no-build UAT semantics."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "frozenRealWindowsEvidence": {
+    "issue": 980,
+    "pullRequest": 979,
+    "exactRcHead": "a53ccc7343251c9b2fe8b7e07d62c31eecac1d87",
+    "mergedMain": "a579232a79f6fa1a0a8f187e0aef44181e9ad4a3",
+    "productFinalRun": 33255237085,
+    "desktopArtifactId": 9715796161,
+    "desktopArtifactSha256": "8d3265a05124183908992b2e031f670ac0e75144064faab4b798c0843a12ba92",
+    "matrixArtifactId": 9715719475,
+    "matrixArtifactSha256": "411caa260595771c7f0d3b8cf2fc887db4fad83983c44232109ec9f3ffa4cab1",
+    "composeConfig": "PASS",
+    "dockerLoad": "PASS_ALL_FOUR_IMAGES",
+    "composeUpNoBuild": "PROCESS_CREATION_PASS",
+    "realReadiness": "FAIL",
+    "synapseFailure": "PermissionError [Errno 13] Permission denied: /data/log.config",
+    "mautrixWhatsappFailure": "read-only /data/config.yaml blocks upstream config migration/chown",
+    "sameHeadRerunForbidden": true,
+    "artifactReuseAsFinalUatForbidden": true,
+    "unknownBlockers": 0
+  },
+  "requiredRootFix": [
+    "Keep exact pinned upstream images, image-only Windows UAT and docker compose up -d --no-build.",
+    "Initialize Synapse writable named-volume ownership for upstream UID/GID 991 before run; do not run the homeserver as root.",
+    "Bootstrap mautrix-whatsapp repository config into its writable data volume and pre-generate registration before the main bridge starts; do not bind mutable /data/config.yaml read-only.",
+    "Project required WhatsApp appservice registration into Synapse so the required bridge service is actually registered.",
+    "Apply the same runtime-state semantics to services/matrix/docker-compose.yml and tools/product-experience/materialized-matrix-compose.yml; no source/sealed topology bypass.",
+    "Give each real UAT run a clean Compose project/volume lifecycle so stale containers or named volumes cannot satisfy or poison readiness.",
+    "In trusted Linux Product Final, boot the exact materialized compose with ephemeral secrets and the exact already-built images to real service/HTTP readiness before seal/upload, then tear the smoke project down.",
+    "Add permanent focused and layered contracts for writable state, registration topology, UAT isolation, runtime smoke, exact image identity and --no-build preservation."
+  ],
+  "validation": {
+    "causalRedAuthority": "Issue #980 real Windows UAT on exact frozen successor-v13 bytes",
+    "syntheticFailureFirstCiHeadRequired": false,
+    "focused": [
+      "npm run test:wp0",
+      "node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "finalExactHead": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "Model Brain Windows when routed",
+      "V21 Product Experience Shell P0 Final Validation"
+    ],
+    "independentReviewRequired": true,
+    "requiredReviewP0": 0,
+    "requiredReviewP1": 0,
+    "requiredUnknownBlockers": 0
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
