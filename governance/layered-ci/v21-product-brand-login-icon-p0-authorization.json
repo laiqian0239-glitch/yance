@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-29T12:11:17+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-BRAND-LOGIN-ICON-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "User-directed Fast Landing visual product refresh. Fresh trusted-main source audit proves one coupled branding authority gap: Electron BrowserWindow and Tray still consume retired frontend/assets/icon.ico/png; canonical Yance brand assets are split between stale teal production vectors and purple tokens; pinned Element Web already contains the Yance custom-login seam but the Yance module does not register a login component; no in-app brand preview exists. Authorize one causal batch to converge the canonical mark/app icon, dark-purple/white login shell, runtime icon consumers, in-app preview, verifier and exact contracts without changing dependencies, upstream pins, release/publish/ledger state or CI routing.",
+  "base": {
+    "branch": "main",
+    "commit": "f03f2b405d3fdf991b33565e211824ab87731b02",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "f03f2b405d3fdf991b33565e211824ab87731b02",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-brand-login-icon-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-brand-login-icon-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "80d49af456648b6f1ae0d5d3f58a5773b5919f1ca13cea69b482718ab78a48d5",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "feat/v21-product-brand-login-icon-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "assets/branding/yance/Yance.ico",
+      "assets/branding/yance/brand-assets-manifest.json",
+      "assets/branding/yance/branding-tokens.json",
+      "assets/branding/yance/generated/Yance.ico",
+      "assets/branding/yance/generated/yance-app-icon-1024.png",
+      "assets/branding/yance/generated/yance-app-icon-128.png",
+      "assets/branding/yance/generated/yance-app-icon-16.png",
+      "assets/branding/yance/generated/yance-app-icon-20.png",
+      "assets/branding/yance/generated/yance-app-icon-24.png",
+      "assets/branding/yance/generated/yance-app-icon-256.png",
+      "assets/branding/yance/generated/yance-app-icon-32.png",
+      "assets/branding/yance/generated/yance-app-icon-48.png",
+      "assets/branding/yance/generated/yance-app-icon-512.png",
+      "assets/branding/yance/generated/yance-app-icon-64.png",
+      "assets/branding/yance/presentation/yance-mark-display.svg",
+      "assets/branding/yance/product/yance-mark-flat.svg",
+      "assets/branding/yance/product/yance-mark-micro.svg",
+      "assets/branding/yance/product/yance-mark-mono-dark.svg",
+      "assets/branding/yance/product/yance-mark-mono-light.svg",
+      "assets/branding/yance/source/yance-mark-master.svg",
+      "assets/branding/yance/yance-app-icon-1024.png",
+      "assets/branding/yance/yance-app-icon-128.png",
+      "assets/branding/yance/yance-app-icon-16.png",
+      "assets/branding/yance/yance-app-icon-20.png",
+      "assets/branding/yance/yance-app-icon-24.png",
+      "assets/branding/yance/yance-app-icon-256.png",
+      "assets/branding/yance/yance-app-icon-32.png",
+      "assets/branding/yance/yance-app-icon-48.png",
+      "assets/branding/yance/yance-app-icon-512.png",
+      "assets/branding/yance/yance-app-icon-64.png",
+      "assets/branding/yance/yance-mark-flat.svg",
+      "assets/branding/yance/yance-mark-mono-dark.svg",
+      "assets/branding/yance/yance-mark-mono-light.svg",
+      "assets/branding/yance/yance-mark.svg",
+      "electron/main.js",
+      "integration/element-module/src/BrandPreviewSurface.css",
+      "integration/element-module/src/BrandPreviewSurface.tsx",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "scripts/branding/verify-yance-assets.js",
+      "tests/branding/brand-assets.test.js",
+      "tests/branding/product-brand-runtime-contract.test.js"
+    ],
+    "approvedChangedFileCount": 44,
+    "approvedChangedFileSetSha256": "f4f074a46f0ba92e9c3d6f6383eef55e295cbf033adcb2c2ae3d5df34c23999d",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureFirstEvidence": {
+    "source": "FRESH_TRUSTED_MAIN_SOURCE_AUDIT_REQUIRES_TEST_ONLY_RED",
+    "trustedMain": "f03f2b405d3fdf991b33565e211824ab87731b02",
+    "provenFacts": [
+      "electron/main.js resolves BrowserWindow and Tray icons from frontend/assets/icon.ico/png instead of assets/branding/yance.",
+      "assets/branding/yance/product/yance-mark-flat.svg still contains retired teal palette while branding-tokens.json declares deep-purple Yance tokens.",
+      "upstream-patches/element-web/0001-yance-global-right-workspace.patch exposes SdkContextClass.instance.extensions.customComponents.login to Login.tsx.",
+      "Pinned Element module API at a2a996ae50d802878bf48e4bbf3730004bdcc55c defines customComponents.registerLoginComponent(renderer).",
+      "integration/element-module/src/index.tsx registers Yance workspace/composer surfaces but no login renderer."
+    ],
+    "requiredFreshRed": "First implementation head must modify only tests/branding/product-brand-runtime-contract.test.js and must fail on the legacy icon path, absent login registration and stale production palette. Freeze that RED exact head; never rerun it after failure.",
+    "acceptedAsCausalRedForThisExactRepair": false,
+    "mustRemainFrozenAfterFirstRun": true,
+    "rerunForbiddenAfterFirstRun": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "provenGap": [
+      "Desktop runtime icon authority is disconnected from the canonical brand asset authority.",
+      "Production vector palette and token palette disagree.",
+      "The pinned login replacement seam exists upstream but Yance does not consume it.",
+      "Visual UAT has no in-app brand preview surface for the new authority."
+    ],
+    "repair": [
+      "Replace the canonical product mark with one deep-purple/white geometry shared by SVG, generated PNG and ICO assets.",
+      "Bind Electron BrowserWindow and Tray to canonical assets/branding/yance files.",
+      "Register one functional Yance login component through the exact pinned customComponents.registerLoginComponent API while preserving the upstream original component as the functional auth authority inside a Yance dark-purple/white shell.",
+      "Add an in-app brand preview surface to the existing Yance workspace.",
+      "Update brand verifier and focused contracts so retired icon paths, stale teal production palette, missing login registration and missing preview cannot regress."
+    ],
+    "negativeProof": [
+      "Do not replace Element authentication logic or implement a second credential/login protocol.",
+      "Do not change Element upstream pin, Matrix runtime topology, dependencies, package manifest, lockfile, workflow routing, timeout policy, release, publish or ledger state.",
+      "Do not weaken existing branding or packaged-runtime gates.",
+      "Do not rerun the same exact head CI."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BRAND_PIPELINE_AND_ELEMENT_MODULE_API",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Element custom login component API",
+        "source": "pinned element-web module-api",
+        "license": "upstream-pinned",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The pinned upstream already exposes registerLoginComponent and the repository patch routes Login.tsx through it."
+      },
+      {
+        "name": "Yance branding build/verifier",
+        "source": "scripts/branding existing repository pipeline",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Use the existing canonical SVG/PNG/ICO asset authority and verifier rather than adding a second brand pipeline."
+      }
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "freshRed": [
+      "node --test --test-concurrency=1 tests/branding/product-brand-runtime-contract.test.js"
+    ],
+    "focusedAfterProduction": [
+      "node --test --test-concurrency=1 tests/branding/product-brand-runtime-contract.test.js tests/branding/brand-assets.test.js",
+      "node scripts/branding/verify-yance-assets.js",
+      "node --check electron/main.js",
+      "git diff --check"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2 when routed",
+      "Model Brain Windows when routed",
+      "Product Final only on a later fresh RC/UAT candidate after ordinary implementation merge"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": [
+        "P0",
+        "P1"
+      ],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "ledgerAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
