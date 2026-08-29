@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-29T18:51:29+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-MATRIX-COMPOSE-PARSER-P0-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization for Issue #960 real Windows UAT causal RED. PR #970 exact head c97e97b2bc2c7bf00da3e025d5a105c5ca39e867 is frozen after its single Stage run exposed an authorization-proposal transport contract defect; it must not be rerun or mutated. The implementation scope remains one four-path causal batch only: make the materialized Matrix Compose parser-safe, execute docker compose config against the exact materialized file before seal/upload, and update the two existing focused/layered contracts. Preserve image-only --no-build topology, readiness semantics, package/dependency pins, runtime code, runner behavior, timeouts, routing, release/publish/ledger state and all unrelated Product Final job bodies.",
+  "base": {
+    "branch": "main",
+    "commit": "a2ad91dbc50399893d02d4c42360841dcc3bb615",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "a2ad91dbc50399893d02d4c42360841dcc3bb615",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-matrix-compose-parser-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-matrix-compose-parser-p0-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d2f7949353b3ec765d54c7a401f38b42c76772e2c9ca6dea3d4567b56e715933",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-matrix-compose-parser-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/materialized-matrix-compose.yml"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "8c36b1af394b2363524d62e26893384961e1e823bf39dba55e759cbadbe3b905",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "productRuntimeModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "routingPolicyModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "releaseLedgerModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureFirstEvidence": {
+    "source": "FROZEN_EXTERNAL_REAL_WINDOWS_UAT_RED",
+    "issue": 960,
+    "rcPullRequest": 957,
+    "rcExactHead": "0f3fe1b3927aeca421bb4fee759fdbc14bd20f3c",
+    "candidateTree": "6286bad80a393f24a0d8637039a106de829af271",
+    "desktopArtifactSizeBytes": 564556514,
+    "desktopArtifactSha256": "574be2fa072ffd1765e5ba2b1ef5c754dd3fda82b9a39056d35e135466b14d26",
+    "matrixArtifactSizeBytes": 325659899,
+    "matrixArtifactSha256": "107ff28fa65d5913a192b5ac647968d80c4b9531ef2b70d4f38aa9bf1a21331e",
+    "realWindowsBoundary": "docker compose up -d --no-build",
+    "reasonCode": "MATERIALIZED_MATRIX_COMPOSE_YAML_PARSE_INVALID",
+    "observedError": "go-yaml flow mapping parser failure before container creation",
+    "acceptedAsCausalRedForThisExactRepair": true,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true,
+    "mutationForbidden": true,
+    "freshFailureFirstRedRecreationForbidden": true
+  },
+  "frozenAuthorizationFailure": {
+    "pullRequest": 970,
+    "head": "c97e97b2bc2c7bf00da3e025d5a105c5ca39e867",
+    "stageJob": 99094432417,
+    "reasonCode": "WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID",
+    "sameExactHeadRerunForbidden": true,
+    "mutationForbidden": true
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "provenGap": [
+      "The sealed materialized Matrix compose contains a mautrix-meta image interpolation as an unquoted plain scalar inside a YAML flow mapping and fails real Compose parsing before any container is created.",
+      "Trusted Product Final currently seals/uploads the materialized Matrix compose without executing docker compose config against that exact file first."
+    ],
+    "repair": [
+      "Rewrite the affected Compose service mapping into parser-safe YAML with the image interpolation quoted while preserving the same service topology, mounts, secrets, image-only and readiness semantics.",
+      "Run docker compose -f <exact-materialized-compose> config in the existing trusted Linux Product Final Matrix materializer before seal/upload.",
+      "Extend the existing focused WP0 and Layered Product Final contracts to require the exact executable parse-before-seal ordering and preserve the current image-only topology."
+    ],
+    "negativeProof": [
+      "Do not validate a source lookalike while sealing a different compose file.",
+      "Do not replace executable Compose parsing with regex-only assertions.",
+      "Do not change runtime code, runner selection, dependencies, package/lock files, routing, timeouts, release/publish/ledger state, or create a second Product Final workflow.",
+      "Do not rerun or mutate frozen successor-v12 or PR #970 exact heads."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_FINAL_AND_DOCKER_COMPOSE_EXECUTABLE_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Docker Compose config parser",
+        "source": "docker compose config in the existing ubuntu-latest Product Final Matrix materializer",
+        "license": "existing trusted CI toolchain",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The failure is at the Compose/YAML execution boundary; the real parser against the exact file to be sealed is the smallest authoritative proof."
+      },
+      {
+        "name": "Existing materialized UAT focused/layered contracts",
+        "source": "tests/wp0/v21-product-experience-materialized-uat.test.js and tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Extend the existing contracts instead of creating a parallel validation framework."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second Matrix runtime, Product Final workflow, UAT runner, or application build.",
+      "Do not locally patch frozen successor-v12 artifacts as pass evidence."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focusedAfterProduction": [
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "git diff --check"
+    ],
+    "evidenceInheritance": [
+      "Reuse Issue #960 / successor-v12 real Windows failure as the causal RED; no new test-only RED head is authorized or required.",
+      "No same-head CI rerun for PR #970 or successor-v12."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2 when routed",
+      "Model Brain Windows when routed",
+      "Product Final only on a later fresh RC/UAT candidate after ordinary implementation merge"
+    ],
+    "independentReview": {
+      "required": true,
+      "exactHeadRequired": true,
+      "blockingSeverities": ["P0", "P1"],
+      "requiredZeroBlockingFindings": true
+    }
+  },
+  "downstreamFreshRcRequirements": {
+    "oldSuccessorV12ArtifactReuseForbidden": true,
+    "freshExactRcRequiredAfterMerge": true,
+    "realWindowsUatMayStartOnlyAfterFreshProductFinalGreen": true,
+    "requiredVisibleProductChecks": [
+      "new Yance login surface rendered from packaged candidate",
+      "deep-purple #2A0F4A and white #FFFFFF Yance brand visible in login/product UI",
+      "packaged Windows application icon uses canonical Yance branding",
+      "running Windows system tray displays canonical Yance icon and tray behavior is usable"
+    ],
+    "manualOrRuntimeEvidenceRequired": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "ledgerAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
