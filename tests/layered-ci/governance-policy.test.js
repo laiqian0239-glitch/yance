@@ -375,3 +375,70 @@ test('Baileys rc14 trusted vendor seed requires exact L2 classification without 
   assert.equal(risk.unknownPathFailsClosed, true);
   assert.equal(risk.l3Automatic, false);
 });
+
+test('brand/login/icon routing identities require exact L2 classification', () => {
+  const targetPaths = [
+    'assets/branding/yance/Yance.ico',
+    'assets/branding/yance/brand-assets-manifest.json',
+    'assets/branding/yance/branding-tokens.json',
+    'assets/branding/yance/generated/Yance.ico',
+    'assets/branding/yance/generated/yance-app-icon-1024.png',
+    'assets/branding/yance/generated/yance-app-icon-128.png',
+    'assets/branding/yance/generated/yance-app-icon-16.png',
+    'assets/branding/yance/generated/yance-app-icon-20.png',
+    'assets/branding/yance/generated/yance-app-icon-24.png',
+    'assets/branding/yance/generated/yance-app-icon-256.png',
+    'assets/branding/yance/generated/yance-app-icon-32.png',
+    'assets/branding/yance/generated/yance-app-icon-48.png',
+    'assets/branding/yance/generated/yance-app-icon-512.png',
+    'assets/branding/yance/generated/yance-app-icon-64.png',
+    'assets/branding/yance/presentation/yance-mark-display.svg',
+    'assets/branding/yance/product/yance-mark-flat.svg',
+    'assets/branding/yance/product/yance-mark-micro.svg',
+    'assets/branding/yance/product/yance-mark-mono-dark.svg',
+    'assets/branding/yance/product/yance-mark-mono-light.svg',
+    'assets/branding/yance/source/yance-mark-master.svg',
+    'assets/branding/yance/yance-app-icon-1024.png',
+    'assets/branding/yance/yance-app-icon-128.png',
+    'assets/branding/yance/yance-app-icon-16.png',
+    'assets/branding/yance/yance-app-icon-20.png',
+    'assets/branding/yance/yance-app-icon-24.png',
+    'assets/branding/yance/yance-app-icon-256.png',
+    'assets/branding/yance/yance-app-icon-32.png',
+    'assets/branding/yance/yance-app-icon-48.png',
+    'assets/branding/yance/yance-app-icon-512.png',
+    'assets/branding/yance/yance-app-icon-64.png',
+    'assets/branding/yance/yance-mark-flat.svg',
+    'assets/branding/yance/yance-mark-mono-dark.svg',
+    'assets/branding/yance/yance-mark-mono-light.svg',
+    'assets/branding/yance/yance-mark.svg',
+    'integration/element-module/src/BrandPreviewSurface.css',
+    'integration/element-module/src/BrandPreviewSurface.tsx',
+    'integration/element-module/src/YanceLogin.css',
+    'integration/element-module/src/YanceLogin.tsx'
+  ];
+
+  for (const file of targetPaths) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'EXACT', file);
+    assert.equal(risk.l2ExactPaths.includes(file), true, file);
+  }
+
+  for (const prefix of ['assets/branding/', 'assets/branding/yance/', 'integration/', 'integration/element-module/']) {
+    assert.equal(risk.l2Prefixes.includes(prefix), false, prefix);
+  }
+
+  for (const file of [
+    'assets/branding/yance/unregistered-brand-asset.svg',
+    'integration/element-module/src/YanceLogin.unapproved.tsx'
+  ]) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, false, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.reasonCode, 'CI_UNKNOWN_PATH', file);
+  }
+
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
+});
