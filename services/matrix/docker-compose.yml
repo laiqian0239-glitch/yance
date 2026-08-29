@@ -9,7 +9,9 @@ services:
     user: "0:0"
     entrypoint: ["/bin/sh", "-ec"]
     command:
-      - chown -R 991:991 /data
+      - |
+        chown -R 991:991 /data
+        chmod -R u+rwX /data
     volumes:
       - synapse-data:/data
     restart: "no"
@@ -27,6 +29,8 @@ services:
         if [ ! -f /data/registration.yaml ]; then
           /usr/bin/mautrix-meta -g -c /data/config.yaml -r /data/registration.yaml
         fi
+        chown -R 1337:1337 /data
+        chmod 0644 /data/config.yaml /data/registration.yaml
     environment:
       YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_meta_provisioning_secret
     volumes:
@@ -50,6 +54,8 @@ services:
         if [ ! -f /data/registration.yaml ]; then
           /usr/bin/mautrix-whatsapp -g -c /data/config.yaml -r /data/registration.yaml
         fi
+        chown -R 1337:1337 /data
+        chmod 0644 /data/config.yaml /data/registration.yaml
     volumes:
       - ../../config/matrix/mautrix-whatsapp/config.yaml:/bootstrap/config.yaml:ro
       - mautrix-whatsapp-data:/data
