@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BRAND-ROUTING-P0-V5-DECLARATION",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #966 frozen exact head bbdef8ae33e5b6646f688c72281508e029bf9488 carries the exact four-path routing result and correct two-parent forward-continuation topology, but the V4 authorization omitted the exact bootstrapPaths declaration required by the existing generic delegated route mutation guard. The guard resolves exactly one route-bootstrap declaration and fails closed when none is present. Preserve the frozen #966 result, supersede only V4 implementation authority, and restore the exact 38-path declaration already frozen by V3. No policy weakening, product runtime, dependency, workflow, release, publish or ledger authority is added.",
+  "base": {
+    "branch": "main",
+    "commit": "c8f5ef080bc3259fd74dbd9c1ab5eadf2913471a",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "c8f5ef080bc3259fd74dbd9c1ab5eadf2913471a",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v5-declaration-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v5-declaration-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "27b0000fd0dee7a2391ac16700335aa2082604b40ba818404bf0af88c84951a5",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "bootstrapPaths": [
+    "assets/branding/yance/Yance.ico",
+    "assets/branding/yance/brand-assets-manifest.json",
+    "assets/branding/yance/branding-tokens.json",
+    "assets/branding/yance/generated/Yance.ico",
+    "assets/branding/yance/generated/yance-app-icon-1024.png",
+    "assets/branding/yance/generated/yance-app-icon-128.png",
+    "assets/branding/yance/generated/yance-app-icon-16.png",
+    "assets/branding/yance/generated/yance-app-icon-20.png",
+    "assets/branding/yance/generated/yance-app-icon-24.png",
+    "assets/branding/yance/generated/yance-app-icon-256.png",
+    "assets/branding/yance/generated/yance-app-icon-32.png",
+    "assets/branding/yance/generated/yance-app-icon-48.png",
+    "assets/branding/yance/generated/yance-app-icon-512.png",
+    "assets/branding/yance/generated/yance-app-icon-64.png",
+    "assets/branding/yance/presentation/yance-mark-display.svg",
+    "assets/branding/yance/product/yance-mark-flat.svg",
+    "assets/branding/yance/product/yance-mark-micro.svg",
+    "assets/branding/yance/product/yance-mark-mono-dark.svg",
+    "assets/branding/yance/product/yance-mark-mono-light.svg",
+    "assets/branding/yance/source/yance-mark-master.svg",
+    "assets/branding/yance/yance-app-icon-1024.png",
+    "assets/branding/yance/yance-app-icon-128.png",
+    "assets/branding/yance/yance-app-icon-16.png",
+    "assets/branding/yance/yance-app-icon-20.png",
+    "assets/branding/yance/yance-app-icon-24.png",
+    "assets/branding/yance/yance-app-icon-256.png",
+    "assets/branding/yance/yance-app-icon-32.png",
+    "assets/branding/yance/yance-app-icon-48.png",
+    "assets/branding/yance/yance-app-icon-512.png",
+    "assets/branding/yance/yance-app-icon-64.png",
+    "assets/branding/yance/yance-mark-flat.svg",
+    "assets/branding/yance/yance-mark-mono-dark.svg",
+    "assets/branding/yance/yance-mark-mono-light.svg",
+    "assets/branding/yance/yance-mark.svg",
+    "integration/element-module/src/BrandPreviewSurface.css",
+    "integration/element-module/src/BrandPreviewSurface.tsx",
+    "integration/element-module/src/YanceLogin.css",
+    "integration/element-module/src/YanceLogin.tsx"
+  ],
+  "bootstrapPathCount": 38,
+  "bootstrapPathSetSha256": "c1801c87cf4a95a5fb6d6f65b569121a3dec3dd38496b7bb65b3379402208464",
+  "implementation": {
+    "branch": "fix/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v5-declaration-continuation",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "b29cf899567835b6d36c9a3c947d568f6df834c5da176197d165136a720687b4",
+    "genericRouteMutationGuardRequired": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "broadPrefixModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "bbdef8ae33e5b6646f688c72281508e029bf9488"
+    }
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v4-continuation-authorization.json",
+    "implementationBranch": "fix/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v4-continuation",
+    "reason": "V4 correctly authorized forward-continuation topology but omitted the exact bootstrapPaths declaration required by the existing delegated route mutation guard. Preserve #966 frozen content and continue under a corrected successor authority without rewriting published history."
+  },
+  "frozenPredecessorEvidence": {
+    "pullRequest": 966,
+    "frozenHead": "bbdef8ae33e5b6646f688c72281508e029bf9488",
+    "failingGovernanceJob": 99088641169,
+    "rootCause": "V4 genericRouteMutationGuardRequired is true while V4 contains none of the recognized route-bootstrap declaration fields. resolveDelegatedRouteBootstrapDeclaration therefore returns null and validateDelegatedRoutePolicyMutation fails closed.",
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true
+  },
+  "continuationContract": {
+    "firstImplementationCommitMustBeTwoParent": true,
+    "requiredFirstParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "requiredSecondParent": "bbdef8ae33e5b6646f688c72281508e029bf9488",
+    "carryForwardNetPathsExactly": [
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js"
+    ],
+    "sameCausalRedMustNotBeRepeated": true,
+    "oldExactHeadsMustNotBeRerun": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BASE_OWNED_EXACT_ROUTE_AND_LAYERED_RISK_CLASSIFIERS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance WP0 exact Product router",
+        "source": "governance/layered-ci/wp0-routing-policy.json + tools/layered-ci/wp0-routing.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Reuse the existing fail-closed exact Product router and restore only the already-frozen 38-path declaration consumed by its generic mutation guard."
+      },
+      {
+        "name": "Yance Layered CI risk classifier",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Reuse the existing exact L2 classifier; #966 already carries the frozen policy result and no new classifier is introduced."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create duplicate routing or risk-classification infrastructure.",
+      "Do not broaden assets/branding/, integration/ or integration/element-module/ prefixes; only the frozen exact identities may be carried forward."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js tests/layered-ci/governance-policy.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI"
+    ],
+    "unknownBlockers": 0
+  },
+  "prohibitions": {
+    "policyWeakening": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "runtimeProductMutation": true,
+    "workflowChange": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
