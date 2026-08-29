@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BRAND-ROUTING-P0-V4-CONTINUATION",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #964 frozen exact head 5e6041c7072d71f2df792ca4eee013037f6a9793 has the exact authorized four-path routing result, but Stage run 33246885387 proves the lineage is permanently invalid because the first production commit omitted the evaluator-required Yance-Failure-First-Red evidence trailers. History rewrite, force push, rebase and amend are forbidden. Supersede only the V3 implementation authority and carry the frozen net four-path result onto a fresh implementation branch through the repository's existing machine-enforced two-parent forward-continuation protocol. No policy weakening, product runtime, dependency, workflow, release, publish or ledger authority is added.",
+  "base": {
+    "branch": "main",
+    "commit": "0c50747d72a5a5f1255ded77785cc09c6ec14519",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "0c50747d72a5a5f1255ded77785cc09c6ec14519",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v4-continuation-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v4-continuation-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "3684890cbcf702225ddd048f9f2d17ca619ef95f62c9ec4d6a79ed630c4bf9ea",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v4-continuation",
+    "requiredParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "b29cf899567835b6d36c9a3c947d568f6df834c5da176197d165136a720687b4",
+    "genericRouteMutationGuardRequired": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "broadPrefixModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "5e6041c7072d71f2df792ca4eee013037f6a9793"
+    }
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v3-authorization.json",
+    "implementationBranch": "fix/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v3",
+    "reason": "The V3 authorization is valid and merged, but its published #964 implementation lineage permanently violates Fast Closure V2 failure-first evidence topology because the first production commit omitted the required RED evidence trailers. Preserve the frozen exact result without rewriting history and continue on a fresh branch."
+  },
+  "frozenPredecessorEvidence": {
+    "pullRequest": 964,
+    "firstRedHead": "9169fb7338518e3923e1ceb8753dd02f5aa079ee",
+    "frozenHead": "5e6041c7072d71f2df792ca4eee013037f6a9793",
+    "failureFirstStageRun": 33246636386,
+    "frozenStageRun": 33246885387,
+    "frozenStageJob": 99085825505,
+    "frozenLayeredRun": 33246885428,
+    "rootCause": "The evaluator requires the first production commit after a declared Fast Closure V2 failure-first head to carry exact Yance-Failure-First-Red-Head, Yance-Failure-First-Red-Run and Yance-Failure-First-Red-Conclusion trailers. Published commit 5e6041c7072d71f2df792ca4eee013037f6a9793 has the closure-matrix trailer but omits those three RED evidence trailers, so a later descendant cannot repair the historical commit message.",
+    "unknownBlockers": 0,
+    "mustRemainFrozen": true,
+    "rerunForbidden": true
+  },
+  "continuationContract": {
+    "firstImplementationCommitMustBeTwoParent": true,
+    "requiredFirstParent": "EFFECTIVE_AUTHORIZATION_MERGE",
+    "requiredSecondParent": "5e6041c7072d71f2df792ca4eee013037f6a9793",
+    "carryForwardNetPathsExactly": [
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js"
+    ],
+    "sameCausalRedMustNotBeRepeated": true,
+    "oldExactHeadsMustNotBeRerun": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BASE_OWNED_EXACT_ROUTE_AND_LAYERED_RISK_CLASSIFIERS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Yance WP0 exact Product router",
+        "source": "governance/layered-ci/wp0-routing-policy.json + tools/layered-ci/wp0-routing.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The frozen predecessor already contains the exact 38-path registration on the existing fail-closed router; forward continuation carries that exact result without introducing a second router."
+      },
+      {
+        "name": "Yance Layered CI risk classifier",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The frozen predecessor already contains the exact 38 L2 identities on the existing risk classifier; forward continuation carries that exact result without new infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create duplicate routing or risk-classification infrastructure.",
+      "Do not broaden assets/branding/, integration/ or integration/element-module/ prefixes; only the frozen exact identities may be carried forward."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js tests/layered-ci/governance-policy.test.js"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI"
+    ],
+    "unknownBlockers": 0
+  },
+  "prohibitions": {
+    "policyWeakening": true,
+    "dependencyChange": true,
+    "packageManifestChange": true,
+    "lockfileChange": true,
+    "runtimeProductMutation": true,
+    "workflowChange": true,
+    "forcePush": true,
+    "rebase": true,
+    "cherryPick": true,
+    "amendPublishedHistory": true,
+    "squashMerge": true,
+    "formalRelease": true,
+    "publish": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
