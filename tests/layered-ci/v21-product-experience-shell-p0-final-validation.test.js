@@ -41,6 +41,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v9'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v10'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v11'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v12'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
@@ -65,7 +66,8 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'release/v21-final-rc-uat-p0-successor-v8',
     'release/v21-final-rc-uat-p0-successor-v9',
     'release/v21-final-rc-uat-p0-successor-v10',
-    'release/v21-final-rc-uat-p0-successor-v11'
+    'release/v21-final-rc-uat-p0-successor-v11',
+    'release/v21-final-rc-uat-p0-successor-v12'
   ].sort());
   assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
   assert.match(source, /runs-on:\s*windows-latest/u);
