@@ -1479,8 +1479,11 @@ async function completeWp7ProbeAndExit(exitCode = 0) {
   }
 }
 
+const CANONICAL_BRAND_ASSET_ROOT = path.join(APP_ROOT, 'assets/', 'branding/', 'yance');
 function iconPath() {
-  return path.join(APP_ROOT, 'frontend', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
+  return process.platform === 'win32'
+    ? path.join(CANONICAL_BRAND_ASSET_ROOT, 'Yance.ico')
+    : path.join(CANONICAL_BRAND_ASSET_ROOT, 'yance-app-icon-256.png');
 }
 
 function sendToRenderer(channel, payload) {
@@ -3147,11 +3150,11 @@ function createWindow() {
     minWidth: 1180,
     minHeight: 720,
     show: false,
-    backgroundColor: '#0B1416',
+    backgroundColor: '#2A0F4A',
     title: STATIC_RELEASE_SOURCE.publicProductName,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     ...(process.platform === 'darwin' ? {} : {
-      titleBarOverlay: { color: '#0B1416', symbolColor: '#E6ECEC', height: 40 }
+      titleBarOverlay: { color: '#2A0F4A', symbolColor: '#FFFFFF', height: 40 }
     }),
     icon: iconPath(),
     autoHideMenuBar: true,
@@ -3699,8 +3702,8 @@ function registerIpc() {
   });
   ipcGuardHandle('desktop:get-settings', () => settingsStore.read());
   ipcGuardHandle('desktop:set-titlebar-theme', (_event, input = {}) => {
-    const color = /^#[0-9a-f]{6}$/i.test(String(input.color || '')) ? String(input.color) : '#0B1416';
-    const symbolColor = /^#[0-9a-f]{6}$/i.test(String(input.symbolColor || '')) ? String(input.symbolColor) : '#E6ECEC';
+    const color = /^#[0-9a-f]{6}$/i.test(String(input.color || '')) ? String(input.color) : '#2A0F4A';
+    const symbolColor = /^#[0-9a-f]{6}$/i.test(String(input.symbolColor || '')) ? String(input.symbolColor) : '#FFFFFF';
     if (process.platform !== 'darwin' && mainWindow && !mainWindow.isDestroyed()) {
       if (typeof mainWindow.setTitleBarOverlay === 'function') mainWindow.setTitleBarOverlay({ color, symbolColor, height: 40 });
       if (typeof mainWindow.setBackgroundColor === 'function') mainWindow.setBackgroundColor(color);
