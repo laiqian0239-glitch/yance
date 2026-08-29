@@ -3,6 +3,31 @@ x-mautrix-whatsapp-service: &mautrix-whatsapp-service { image: "yance-product-ua
 x-mautrix-meta-service: &mautrix-meta-service { image: "yance-product-uat-mautrix-meta:${YANCE_UAT_CANDIDATE_SHA}" }
 
 services:
+  matrix-secret-projection:
+    <<: *synapse-service
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        cp /bootstrap/matrix-registration-shared-secret /projected/matrix/yance_matrix_registration_shared_secret
+        chown 991:991 /projected/matrix/yance_matrix_registration_shared_secret
+        chmod 0400 /projected/matrix/yance_matrix_registration_shared_secret
+        cp /bootstrap/mautrix-meta-provisioning-secret /projected/meta/yance_mautrix_meta_provisioning_secret
+        chown 1337:1337 /projected/meta/yance_mautrix_meta_provisioning_secret
+        chmod 0400 /projected/meta/yance_mautrix_meta_provisioning_secret
+    volumes:
+      - type: bind
+        source: ${YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE:?required}
+        target: /bootstrap/matrix-registration-shared-secret
+        read_only: true
+      - type: bind
+        source: ${YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:?required}
+        target: /bootstrap/mautrix-meta-provisioning-secret
+        read_only: true
+      - synapse-secret-data:/projected/matrix
+      - mautrix-meta-secret-data:/projected/meta
+    restart: "no"
+
   synapse-data-init:
     <<: *synapse-service
     user: "0:0"
@@ -33,11 +58,11 @@ services:
       YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_meta_provisioning_secret
     volumes:
       - ./matrix-config/mautrix-meta/config.yaml:/bootstrap/config.yaml:ro
-      - type: bind
-        source: ${YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:?required}
-        target: /run/secrets/yance_mautrix_meta_provisioning_secret
-        read_only: true
+      - mautrix-meta-secret-data:/run/secrets:ro
       - mautrix-meta-data:/data
+    depends_on:
+      matrix-secret-projection:
+        condition: service_completed_successfully
     restart: "no"
 
   mautrix-whatsapp-registration:
@@ -68,13 +93,12 @@ services:
       - synapse-data:/data
       - mautrix-meta-data:/mautrix-meta:ro
       - mautrix-whatsapp-data:/mautrix-whatsapp:ro
-      - type: bind
-        source: ${YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE:?required}
-        target: /run/secrets/yance_matrix_registration_shared_secret
-        read_only: true
+      - synapse-secret-data:/run/secrets:ro
     ports:
       - "127.0.0.1:8008:8008"
     depends_on:
+      matrix-secret-projection:
+        condition: service_completed_successfully
       synapse-data-init:
         condition: service_completed_successfully
       mautrix-meta-registration:
@@ -107,12 +131,11 @@ services:
     environment:
       YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_meta_provisioning_secret
     volumes:
-      - type: bind
-        source: ${YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:?required}
-        target: /run/secrets/yance_mautrix_meta_provisioning_secret
-        read_only: true
+      - mautrix-meta-secret-data:/run/secrets:ro
       - mautrix-meta-data:/data
     depends_on:
+      matrix-secret-projection:
+        condition: service_completed_successfully
       synapse:
         condition: service_started
       mautrix-meta-registration:
@@ -122,3 +145,5 @@ volumes:
   synapse-data:
   mautrix-whatsapp-data:
   mautrix-meta-data:
+  synapse-secret-data:
+  mautrix-meta-secret-data:
