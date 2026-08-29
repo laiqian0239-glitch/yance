@@ -112,8 +112,8 @@
     "provenFacts": [
       "electron/main.js resolves BrowserWindow and Tray icons from frontend/assets/icon.ico/png instead of assets/branding/yance.",
       "assets/branding/yance/product/yance-mark-flat.svg still contains retired teal palette while branding-tokens.json declares deep-purple Yance tokens.",
-      "upstream-patches/element-web/0001-yance-global-right-workspace.patch exposes SdkContextClass.instance.extensions.customComponents.login to Login.tsx.",
       "Pinned Element module API at a2a996ae50d802878bf48e4bbf3730004bdcc55c defines customComponents.registerLoginComponent(renderer).",
+      "Pinned Element Login.tsx already dispatches through ModuleApi.instance.customComponents.loginComponentRenderer.",
       "integration/element-module/src/index.tsx registers Yance workspace/composer surfaces but no login renderer."
     ],
     "requiredFreshRed": "First implementation head must modify only tests/branding/product-brand-runtime-contract.test.js and must fail on the legacy icon path, absent login registration and stale production palette. Freeze that RED exact head; never rerun it after failure.",
@@ -155,7 +155,7 @@
         "license": "upstream-pinned",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
-        "reason": "The pinned upstream already exposes registerLoginComponent and the repository patch routes Login.tsx through it."
+        "reason": "The pinned upstream already exposes registerLoginComponent and Login.tsx already dispatches through its renderer seam."
       },
       {
         "name": "Yance branding build/verifier",
@@ -165,6 +165,11 @@
         "fit": "FIT",
         "reason": "Use the existing canonical SVG/PNG/ICO asset authority and verifier rather than adding a second brand pipeline."
       }
+    ],
+    "retireOrAvoid": [
+      "Retire frontend/assets/icon.ico/png as Electron runtime icon authority; do not create another runtime icon source.",
+      "Do not create a second login/authentication implementation; wrap the pinned Element login renderer seam only.",
+      "Do not create a second branding pipeline; canonicalize the existing assets/branding/yance authority."
     ],
     "thinYanceAdapterOnly": true
   },
