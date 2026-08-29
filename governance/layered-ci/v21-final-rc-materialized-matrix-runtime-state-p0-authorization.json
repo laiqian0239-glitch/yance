@@ -65,7 +65,31 @@
     "releaseCandidateModificationAllowed": false,
     "releaseLedgerModificationAllowed": false,
     "newGeneralPurposeYanceInfrastructureAllowed": false,
-    "gateOrScannerWeakeningAllowed": false
+    "gateOrScannerWeakeningAllowed": false,
+    "ossFit": {
+      "decision": "Integrate the pinned upstream stateful-container contracts through the repository's existing Docker Compose seams instead of inventing Yance-owned runtime infrastructure.",
+      "matureOssAvailable": true,
+      "newGeneralPurposeInfrastructure": false,
+      "selectedAdoptionMode": "integrated",
+      "thinYanceAdapterOnly": true,
+      "reviewedCandidates": [
+        {
+          "name": "Pinned Synapse container start contract",
+          "fit": "The pinned upstream start path already defines the non-root UID/GID 991 runtime contract; Compose should initialize the existing /data volume ownership before that upstream runtime starts.",
+          "decision": "integrated"
+        },
+        {
+          "name": "Pinned mautrix-whatsapp container run contract",
+          "fit": "The pinned upstream run script already owns writable /data config migration and registration generation; Compose should bootstrap repository config into that writable volume instead of replacing the upstream state contract with a read-only bind.",
+          "decision": "integrated"
+        },
+        {
+          "name": "Docker Compose native init-service and project isolation semantics",
+          "fit": "Native service_completed_successfully dependencies, named volumes, explicit project names and down --volumes are sufficient for deterministic bootstrap and UAT isolation without custom infrastructure.",
+          "decision": "integrated"
+        }
+      ]
+    }
   },
   "frozenRealWindowsEvidence": {
     "issue": 980,
@@ -97,21 +121,6 @@
     "In trusted Linux Product Final, boot the exact materialized compose with ephemeral secrets and the exact already-built images to real service/HTTP readiness before seal/upload, then tear the smoke project down.",
     "Add permanent focused and layered contracts for writable state, registration topology, UAT isolation, runtime smoke, exact image identity and --no-build preservation."
   ],
-  "ossFit": {
-    "decision": "HONOR_PINNED_UPSTREAM_STATEFUL_CONTAINER_CONTRACTS_WITH_EXISTING_COMPOSE_SEAMS",
-    "matureOssAvailable": true,
-    "newGeneralPurposeInfrastructure": false,
-    "selectedAdoptionMode": "existing-repository-seam",
-    "thinYanceAdapterOnly": true,
-    "retireOrAvoid": [
-      "Do not fork or wrap Synapse or mautrix bridge runtime code.",
-      "Do not change pinned upstream commits, dependencies, packages or lockfiles.",
-      "Do not run Synapse as root to hide named-volume ownership defects.",
-      "Do not copy repository bootstrap configs directly onto mutable /data paths as read-only binds.",
-      "Do not replace real readiness with container-started status, sleeps, retries or timeout inflation.",
-      "Do not build Matrix source on the Windows UAT machine."
-    ]
-  },
   "validation": {
     "causalRedAuthority": "Issue #980 real Windows UAT on exact frozen successor-v13 bytes",
     "syntheticFailureFirstCiHeadRequired": false,
