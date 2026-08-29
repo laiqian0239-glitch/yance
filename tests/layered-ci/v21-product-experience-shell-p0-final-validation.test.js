@@ -44,6 +44,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v12'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v13'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-runtime-state-p0'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
     'product/v21-product-experience-bilingual-search-translation-task-ux-p0',
@@ -54,6 +55,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1',
     'fix/v21-electron-supported-runtime-p0-production-amendment-5',
     'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0',
+    'fix/v21-final-rc-materialized-matrix-runtime-state-p0',
     'fix/v21-product-experience-windows-uat-startup-p0',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-2',
@@ -75,6 +77,11 @@ test('Product Experience final validation is an exact-head same-repository pull-
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v13'/gu) || []).length,
     3,
     'successor-v13 must be admitted by exactly the three existing Product Final job guards'
+  );
+  assert.equal(
+    (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-runtime-state-p0'/gu) || []).length,
+    3,
+    'Matrix runtime-state closure must be admitted by exactly the three Product Final job guards'
   );
   assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
   assert.match(source, /runs-on:\s*windows-latest/u);
@@ -281,4 +288,23 @@ test('trusted Windows Product Final materializes sealed Learning runtime before 
   const builderStep = source.slice(builderIndex, builderEnd === -1 ? source.length : builderEnd);
   assert.match(builderStep, /--learning-runtime '\$\{\{ steps\.learning\.outputs\.root \}\}'/u);
   assert.doesNotMatch(builderStep, /learning-runtime[^\n]*(?:optional|fallback|skip)/iu);
+});
+
+test('Product Final boots the exact materialized Matrix image-only candidate to real readiness before sealing it', () => {
+  const source = readWorkflow();
+  const matrixStart = source.indexOf('  materialized-matrix-uat:');
+  assert.ok(matrixStart >= 0, 'materialized Matrix Product Final job must exist');
+  const matrix = source.slice(matrixStart);
+  const configIndex = matrix.indexOf('docker compose -f "$bundle/materialized-matrix-compose.yml" config');
+  const upIndex = matrix.indexOf('docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" up -d --no-build');
+  const synapseReadyIndex = matrix.indexOf('http://127.0.0.1:8008/_matrix/client/versions');
+  const elementReadyIndex = matrix.indexOf('http://127.0.0.1:8080/config.json');
+  const sealIndex = matrix.indexOf('create-materialized-uat-candidate.js seal');
+  assert.ok(configIndex >= 0 && upIndex > configIndex && synapseReadyIndex > upIndex && elementReadyIndex > upIndex && sealIndex > synapseReadyIndex && sealIndex > elementReadyIndex);
+  assert.match(matrix, /synapse-data-init/u);
+  assert.match(matrix, /mautrix-meta-registration/u);
+  assert.match(matrix, /mautrix-whatsapp-registration/u);
+  assert.match(matrix, /down --volumes --remove-orphans/u);
+  assert.match(matrix, /GREEN: exact materialized Matrix runtime reached real readiness before seal/u);
+  assert.doesNotMatch(matrix, /docker compose[^\n]*\bbuild\b/u);
 });
