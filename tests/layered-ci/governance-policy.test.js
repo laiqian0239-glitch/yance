@@ -228,6 +228,7 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     '.gitignore',
     'THIRD_PARTY_NOTICES.md',
     'config/local-ai/adaptive-local-model-catalog-v1.json',
+    'config/matrix/synapse/homeserver.yaml',
     'config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json',
     'integration/element-module/src/LearningWorkspace.tsx',
     'integration/element-module/src/MediaWorkspace.tsx',
