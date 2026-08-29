@@ -45,8 +45,8 @@ test('Product Final Validation retires the Product-specific Round12/13 source-UA
   assert.doesNotMatch(source, /start-source-uat\.js/u);
   assert.doesNotMatch(source, /NOT_REAL_ELECTRON_UAT/u);
   assert.doesNotMatch(source, /ROUND12_13_UAT_MANIFEST\.json/u);
-  assert.match(source, new RegExp(`${DESKTOP_ARTIFACT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\}\}`, 'u'));
-  assert.match(source, new RegExp(`${MATRIX_ARTIFACT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\$\{\{\s*github\.event\.pull_request\.head\.sha\s*\}\}`, 'u'));
+  assert.match(source, new RegExp(`${DESKTOP_ARTIFACT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\$\\{\\{\\s*github\\.event\\.pull_request\\.head\\.sha\\s*\\}\\}`, 'u'));
+  assert.match(source, new RegExp(`${MATRIX_ARTIFACT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\$\\{\\{\\s*github\\.event\\.pull_request\\.head\\.sha\\s*\\}\\}`, 'u'));
   assert.match(source, /create-materialized-uat-candidate\.js/u);
   assert.match(source, /RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT\.ps1/u);
   assert.doesNotMatch(source, /continue-on-error:\s*true/u);
