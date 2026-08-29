@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-29T16:44:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-BRAND-LOGIN-ICON-P0-ROUTING-PREREQUISITE-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization for the single base-owned routing blocker exposed by frozen PR #959 head f8c780cdbb98bb4ad54003b2edee7f37af08a7d8. Proposal #961 head 38ba3968233e4070efdfee3337d8694ace75c6fd is frozen after Stage implementation-branch-policy rejected its proposal transport because the required independentBranchAndPullRequestRequired governance field was omitted. Layered CI for that proposal was fully green. This V2 changes only the authorization proposal contract and authorizes the same exact 38 PRODUCT_WP0/L2 path identities; no selector, workflow, product, dependency, release, publish or ledger authority is added.",
+  "base": {
+    "branch": "main",
+    "commit": "36725fd0370864a0c72eba297df2107a414db76c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "5ab588dfc9f15ffb6e536a9c0cb8033e792d2f76d4150c83439aacff801a8839",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "bootstrapPaths": [
+    "assets/branding/yance/Yance.ico",
+    "assets/branding/yance/brand-assets-manifest.json",
+    "assets/branding/yance/branding-tokens.json",
+    "assets/branding/yance/generated/Yance.ico",
+    "assets/branding/yance/generated/yance-app-icon-1024.png",
+    "assets/branding/yance/generated/yance-app-icon-128.png",
+    "assets/branding/yance/generated/yance-app-icon-16.png",
+    "assets/branding/yance/generated/yance-app-icon-20.png",
+    "assets/branding/yance/generated/yance-app-icon-24.png",
+    "assets/branding/yance/generated/yance-app-icon-256.png",
+    "assets/branding/yance/generated/yance-app-icon-32.png",
+    "assets/branding/yance/generated/yance-app-icon-48.png",
+    "assets/branding/yance/generated/yance-app-icon-512.png",
+    "assets/branding/yance/generated/yance-app-icon-64.png",
+    "assets/branding/yance/presentation/yance-mark-display.svg",
+    "assets/branding/yance/product/yance-mark-flat.svg",
+    "assets/branding/yance/product/yance-mark-micro.svg",
+    "assets/branding/yance/product/yance-mark-mono-dark.svg",
+    "assets/branding/yance/product/yance-mark-mono-light.svg",
+    "assets/branding/yance/source/yance-mark-master.svg",
+    "assets/branding/yance/yance-app-icon-1024.png",
+    "assets/branding/yance/yance-app-icon-128.png",
+    "assets/branding/yance/yance-app-icon-16.png",
+    "assets/branding/yance/yance-app-icon-20.png",
+    "assets/branding/yance/yance-app-icon-24.png",
+    "assets/branding/yance/yance-app-icon-256.png",
+    "assets/branding/yance/yance-app-icon-32.png",
+    "assets/branding/yance/yance-app-icon-48.png",
+    "assets/branding/yance/yance-app-icon-512.png",
+    "assets/branding/yance/yance-app-icon-64.png",
+    "assets/branding/yance/yance-mark-flat.svg",
+    "assets/branding/yance/yance-mark-mono-dark.svg",
+    "assets/branding/yance/yance-mark-mono-light.svg",
+    "assets/branding/yance/yance-mark.svg",
+    "integration/element-module/src/BrandPreviewSurface.css",
+    "integration/element-module/src/BrandPreviewSurface.tsx",
+    "integration/element-module/src/YanceLogin.css",
+    "integration/element-module/src/YanceLogin.tsx"
+  ],
+  "bootstrapPathCount": 38,
+  "bootstrapPathSetSha256": "c1801c87cf4a95a5fb6d6f65b569121a3dec3dd38496b7bb65b3379402208464",
+  "riskPolicyExactL2Paths": [
+    "assets/branding/yance/Yance.ico",
+    "assets/branding/yance/brand-assets-manifest.json",
+    "assets/branding/yance/branding-tokens.json",
+    "assets/branding/yance/generated/Yance.ico",
+    "assets/branding/yance/generated/yance-app-icon-1024.png",
+    "assets/branding/yance/generated/yance-app-icon-128.png",
+    "assets/branding/yance/generated/yance-app-icon-16.png",
+    "assets/branding/yance/generated/yance-app-icon-20.png",
+    "assets/branding/yance/generated/yance-app-icon-24.png",
+    "assets/branding/yance/generated/yance-app-icon-256.png",
+    "assets/branding/yance/generated/yance-app-icon-32.png",
+    "assets/branding/yance/generated/yance-app-icon-48.png",
+    "assets/branding/yance/generated/yance-app-icon-512.png",
+    "assets/branding/yance/generated/yance-app-icon-64.png",
+    "assets/branding/yance/presentation/yance-mark-display.svg",
+    "assets/branding/yance/product/yance-mark-flat.svg",
+    "assets/branding/yance/product/yance-mark-micro.svg",
+    "assets/branding/yance/product/yance-mark-mono-dark.svg",
+    "assets/branding/yance/product/yance-mark-mono-light.svg",
+    "assets/branding/yance/source/yance-mark-master.svg",
+    "assets/branding/yance/yance-app-icon-1024.png",
+    "assets/branding/yance/yance-app-icon-128.png",
+    "assets/branding/yance/yance-app-icon-16.png",
+    "assets/branding/yance/yance-app-icon-20.png",
+    "assets/branding/yance/yance-app-icon-24.png",
+    "assets/branding/yance/yance-app-icon-256.png",
+    "assets/branding/yance/yance-app-icon-32.png",
+    "assets/branding/yance/yance-app-icon-48.png",
+    "assets/branding/yance/yance-app-icon-512.png",
+    "assets/branding/yance/yance-app-icon-64.png",
+    "assets/branding/yance/yance-mark-flat.svg",
+    "assets/branding/yance/yance-mark-mono-dark.svg",
+    "assets/branding/yance/yance-mark-mono-light.svg",
+    "assets/branding/yance/yance-mark.svg",
+    "integration/element-module/src/BrandPreviewSurface.css",
+    "integration/element-module/src/BrandPreviewSurface.tsx",
+    "integration/element-module/src/YanceLogin.css",
+    "integration/element-module/src/YanceLogin.tsx"
+  ],
+  "riskPolicyExactL2PathCount": 38,
+  "riskPolicyExactL2PathSetSha256": "c1801c87cf4a95a5fb6d6f65b569121a3dec3dd38496b7bb65b3379402208464",
+  "implementation": {
+    "branch": "fix/v21-product-brand-login-icon-p0-routing-prerequisite-successor-v2",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "b29cf899567835b6d36c9a3c947d568f6df834c5da176197d165136a720687b4",
+    "genericRouteMutationGuardRequired": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "failureFirstCommit": {
+      "mustBeFirstImplementationCommit": true,
+      "freshCausalRedRequired": true,
+      "allowedChangedPaths": [
+        "tests/layered-ci/governance-policy.test.js",
+        "tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js"
+      ],
+      "approvedChangedFileCount": 2,
+      "approvedChangedFileSetSha256": "34f8be0d2fca9d55b6196dc4ff28839f4bb4bcbbf88ac851f779f021cd3f0415",
+      "productionCodeChanged": false,
+      "firstHeadTrustedMainGuard": {
+        "required": true,
+        "trustedMainMustEqualAuthorizationMerge": true
+      },
+      "fastClosureV2": {
+        "enabled": true,
+        "requiredClosureTrailer": "Yance-Closure-Matrix-Unknown-Blockers: 0"
+      }
+    }
+  },
+  "frozenCausalEvidence": {
+    "productPullRequest": 959,
+    "productHead": "f8c780cdbb98bb4ad54003b2edee7f37af08a7d8",
+    "stageRun": 33245561617,
+    "stageReasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "layeredRun": 33245561758,
+    "layeredReasonCode": "CI_UNKNOWN_PATH",
+    "unknownPathCount": 38,
+    "unknownPathSetSha256": "c1801c87cf4a95a5fb6d6f65b569121a3dec3dd38496b7bb65b3379402208464",
+    "failedAuthorizationProposalPullRequest": 961,
+    "failedAuthorizationProposalHead": "38ba3968233e4070efdfee3337d8694ace75c6fd",
+    "failedAuthorizationStageReason": "WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID",
+    "failedAuthorizationRootCause": "governance.independentBranchAndPullRequestRequired was omitted",
+    "sameExactHeadRerunForbidden": true
+  },
+  "routingContract": {
+    "requiredWp0Route": "PRODUCT_WP0",
+    "requiredLayeredCiLevel": "L2",
+    "riskIdentityMode": "EXACT",
+    "broadPrefixExpansionAllowed": false,
+    "unrelatedUnknownPathsMustRemainFailClosed": true
+  },
+  "requiredValidation": {
+    "failureFirst": "node --test --test-concurrency=1 tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js tests/layered-ci/governance-policy.test.js",
+    "production": [
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-brand-login-icon-p0-routing-prerequisite.test.js tests/layered-ci/governance-policy.test.js",
+      "git diff --check"
+    ]
+  },
+  "successorRule": {
+    "routingRepairMustOrdinaryMergeFirst": true,
+    "productSuccessorMustStartFromFreshMainAfterRoutingMerge": true,
+    "reuseFrozenProductHeadAsSuccessorForbidden": true,
+    "cherryPickRebaseAmendForbidden": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
