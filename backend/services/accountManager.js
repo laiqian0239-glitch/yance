@@ -248,7 +248,7 @@ function requestPersistedSessionRestores(input = {}) {
       requestedSessionGeneration,
       sessionReference: account.sessionReference || account.metadata?.sessionReference || '',
       credentialReference,
-      traceId: clean(input.traceId),
+      traceId: clean(input.traceId) || 'runtime-composition-startup',
       deadlineAt: clean(input.deadlineAt),
       maxAttempts: Number(input.maxAttempts || 3)
     }));
