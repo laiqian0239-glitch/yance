@@ -4006,6 +4006,15 @@ if (!app.requestSingleInstanceLock()) {
     desktopHost.setCredentialApplicationCoordinator(desktopCredentialApplicationCoordinator);
     VERIFIED_RELEASE_IDENTITY = desktopHost.verifyReleaseIdentity();
     try {
+      // Restore the pre-async-refactor startup invariant: the credential authority
+      // must finish durable recovery and reach a stable ACTIVE boundary before any
+      // credential application operation runs. _begin() asserts this boundary in
+      // _assertFailedSafeResettable() BEFORE _acquireLease() (which would otherwise
+      // lazily initialize the vault host), so a persisted FAILED_SAFE journal would
+      // otherwise see authorityAvailable=false / authorityState=UNINITIALIZED and
+      // throw WP4_DESKTOP_CREDENTIAL_FAILED_SAFE_RESET_BLOCKED. Initialization is
+      // idempotent (guarded by _initPromise/recoveryReady) and must fail closed.
+      await desktopHost.credentialVaultHost.initialize();
       const startupContainmentRecovery = await desktopCredentialApplicationCoordinator.recoverStartupContainment({
         reason: 'desktop-bootstrap-before-credential-migration'
       });

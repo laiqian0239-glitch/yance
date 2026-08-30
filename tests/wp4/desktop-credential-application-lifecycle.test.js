@@ -30,6 +30,7 @@ function createHarness(options = {}) {
   const events = [];
   const vaultHost = new CredentialVaultHost({
     vault,
+    crashInjector: typeof options.vaultCrashInjector === 'function' ? options.vaultCrashInjector : (() => {}),
     beforeTransactionCommit: detail => { events.push(`commit:${detail.requestId}`); }
   });
   let pid = 5100;
@@ -61,7 +62,7 @@ function createHarness(options = {}) {
     const startupNonce = crypto.randomUUID();
     const backendSessionId = crypto.randomUUID();
     const fd6PipeInstanceId = crypto.randomUUID();
-    const prepared = vaultHost.createHydrationFrame({
+    const prepared = await vaultHost.createHydrationFrame({
       applicationLeaseToken: options.applicationLeaseToken,
       startupNonce,
       oneTimeToken: 'x'.repeat(43),
@@ -72,7 +73,7 @@ function createHarness(options = {}) {
     });
     vaultHost.establishCustodyOwner(prepared.ownerSession);
     const frame = prepared.frame;
-    const accepted = vaultHost.markHydrationAccepted({
+    const accepted = await vaultHost.markHydrationAccepted({
       startupNonce,
       authorityEventId: frame.authorityEventId,
       vaultEpoch: frame.vaultEpoch,
@@ -164,6 +165,13 @@ function createHarness(options = {}) {
     validateRuntimeProjection: typeof options.validateRuntimeProjection === 'function' ? options.validateRuntimeProjection : defaultRuntimeProjection,
     journalPath: path.join(root, 'desktop-credential-application-lifecycle.json')
   });
+
+  if (options.preloadLifecycle) {
+    fs.writeFileSync(path.join(root, 'desktop-credential-application-lifecycle.json'), JSON.stringify({
+      schemaVersion: 3,
+      lifecycle: options.preloadLifecycle
+    }, null, 2), 'utf8');
+  }
 
   return {
     root, vault, vaultHost, events, coordinator,
@@ -422,5 +430,186 @@ test('unexpected backend exit records EXIT_CONFIRMED before OWNER_RECOVERING', a
     assert.equal(history[confirmedIndex].unexpected, true);
     assert.equal(history[recoveringIndex].unexpected, true);
     assert.equal(harness.coordinator.snapshot().state, 'IDLE');
+  } finally { harness.close(); }
+});
+
+// ---------------------------------------------------------------------------
+// Regression: FAILED_SAFE reset boundary vs authority initialization ordering
+// (root cause WP4_DESKTOP_CREDENTIAL_FAILED_SAFE_RESET_BLOCKED after 3024e4b3
+//  deferred CredentialVaultHost authority init to async initialize()).
+// ---------------------------------------------------------------------------
+
+function persistedFailedSafeLifecycle() {
+  return {
+    state: 'FAILED_SAFE',
+    reasonCode: 'WP4_DESKTOP_CREDENTIAL_APPLICATION_INTERRUPTED',
+    operationId: 'd87191fa-8a89-4292-976d-73efefb40eda',
+    operationType: 'START_BACKEND',
+    mutationCommitted: false
+  };
+}
+
+test('FAILED_SAFE with uninitialized authority is reset-blocked (exact UAT regression)', async () => {
+  const harness = createHarness({ preloadLifecycle: persistedFailedSafeLifecycle() });
+  try {
+    // Authority has NOT been initialized yet (old buggy ordering).
+    const before = harness.vaultHost.snapshotMetadata();
+    assert.equal(before.available, false);
+    assert.equal(before.lifecycle?.state, 'UNINITIALIZED');
+
+    await assert.rejects(
+      harness.coordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async () => ({ migrated: true })),
+      error => {
+        assert.equal(error.reasonCode, 'WP4_DESKTOP_CREDENTIAL_FAILED_SAFE_RESET_BLOCKED');
+        assert.equal(error.boundary.authorityAvailable, false);
+        assert.equal(error.boundary.authorityState, 'UNINITIALIZED');
+        assert.equal(error.boundary.backendOwned, false);
+        assert.equal(error.boundary.backendPid, 0);
+        assert.equal(error.boundary.rejectedOwnerLive, false);
+        assert.equal(error.boundary.ownerTrusted, true);
+        assert.equal(error.boundary.fd6Active, false);
+        return true;
+      }
+    );
+  } finally { harness.close(); }
+});
+
+test('FAILED_SAFE with initialized authority recovers to IDLE (production ordering contract)', async () => {
+  const harness = createHarness({ preloadLifecycle: persistedFailedSafeLifecycle() });
+  try {
+    // Production wiring contract: initialize authority BEFORE any application operation.
+    await harness.vaultHost.initialize();
+    const ready = harness.vaultHost.snapshotMetadata();
+    assert.equal(ready.available, true);
+    assert.equal(ready.lifecycle?.state, 'ACTIVE');
+
+    const result = await harness.coordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async () => ({ migrated: true }));
+    assert.equal(result.migrated, true);
+    assert.equal(harness.coordinator.snapshot().state, 'IDLE');
+  } finally { harness.close(); }
+});
+
+test('authority unavailable still blocks application operation (fail closed)', async () => {
+  const harness = createHarness({
+    preloadLifecycle: persistedFailedSafeLifecycle(),
+    vaultCrashInjector: (name) => {
+      if (name === 'AUTHORITY_LIFECYCLE_BEFORE_DETECTION') {
+        const error = new Error('injected authority detection failure');
+        error.reasonCode = 'INJECTED_AUTHORITY_UNAVAILABLE';
+        throw error;
+      }
+    }
+  });
+  try {
+    // Simulate a truly broken authority: initialize() throws during detection,
+    // leaving recoveryReady=false and lifecycle UNAVAILABLE.
+    await assert.rejects(
+      harness.vaultHost.initialize(),
+      error => error.reasonCode === 'INJECTED_AUTHORITY_UNAVAILABLE'
+    );
+    const meta = harness.vaultHost.snapshotMetadata();
+    assert.equal(meta.available, false);
+    assert.equal(meta.lifecycle?.state, 'UNAVAILABLE');
+
+    await assert.rejects(
+      harness.coordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async () => ({ migrated: true })),
+      error => error.reasonCode === 'WP4_DESKTOP_CREDENTIAL_FAILED_SAFE_RESET_BLOCKED'
+    );
+  } finally { harness.close(); }
+});
+
+test('unresolved owner session still blocks FAILED_SAFE reset', async () => {
+  const harness = createHarness({ preloadLifecycle: persistedFailedSafeLifecycle() });
+  try {
+    // Authority recovered to ACTIVE first (production ordering).
+    await harness.vaultHost.initialize();
+    assert.equal(harness.vaultHost.snapshotMetadata().lifecycle?.state, 'ACTIVE');
+
+    // Establish a live owner session (FD5/FD6 owner) that must block reset.
+    harness.vaultHost.establishCustodyOwner({
+      backendPid: 9999,
+      startupNonce: 'nonce-1',
+      backendSessionId: 'session-1',
+      manifestSha256: 'a'.repeat(64),
+      vaultEpoch: 'epoch-1',
+      fd6PipeInstanceId: 'fd6-1',
+      generation: 1
+    });
+    const boundary = harness.coordinator.snapshot().failedSafeResetBoundary;
+    assert.equal(boundary.safe, false);
+    assert.ok(boundary.pendingOwnerSession || boundary.activeOwnerSession, 'owner session must be reported unresolved');
+    await assert.rejects(
+      harness.coordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async () => ({ migrated: true })),
+      error => error.reasonCode === 'WP4_DESKTOP_CREDENTIAL_FAILED_SAFE_RESET_BLOCKED'
+    );
+  } finally { harness.close(); }
+});
+
+test('unresolved activeTransactionId still blocks FAILED_SAFE reset', async () => {
+  const harness = createHarness({ preloadLifecycle: persistedFailedSafeLifecycle() });
+  try {
+    await harness.vaultHost.initialize();
+    assert.equal(harness.vaultHost.snapshotMetadata().lifecycle?.state, 'ACTIVE');
+
+    harness.vaultHost.activeTransactionId = 'tx:unresolved';
+    const boundary = harness.coordinator.snapshot().failedSafeResetBoundary;
+    assert.equal(boundary.safe, false);
+    assert.equal(boundary.activeTransactionId, 'tx:unresolved');
+    await assert.rejects(
+      harness.coordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async () => ({ migrated: true })),
+      error => error.reasonCode === 'WP4_DESKTOP_CREDENTIAL_FAILED_SAFE_RESET_BLOCKED'
+    );
+  } finally { harness.close(); }
+});
+
+test('pending authority operations still block FAILED_SAFE reset', async () => {
+  const harness = createHarness({ preloadLifecycle: persistedFailedSafeLifecycle() });
+  try {
+    await harness.vaultHost.initialize();
+    assert.equal(harness.vaultHost.snapshotMetadata().lifecycle?.state, 'ACTIVE');
+
+    harness.vaultHost.pendingOperations = 1;
+    const boundary = harness.coordinator.snapshot().failedSafeResetBoundary;
+    assert.equal(boundary.safe, false);
+    assert.equal(boundary.pendingOperations, 1);
+    await assert.rejects(
+      harness.coordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async () => ({ migrated: true })),
+      error => error.reasonCode === 'WP4_DESKTOP_CREDENTIAL_FAILED_SAFE_RESET_BLOCKED'
+    );
+  } finally { harness.close(); }
+});
+
+test('active FD6 custody pipe still blocks FAILED_SAFE reset', async () => {
+  const harness = createHarness({ preloadLifecycle: persistedFailedSafeLifecycle() });
+  try {
+    await harness.vaultHost.initialize();
+    assert.equal(harness.vaultHost.snapshotMetadata().lifecycle?.state, 'ACTIVE');
+
+    Object.assign(harness.backend(), { credentialCustody: { dedicatedPipeActive: true } });
+    const boundary = harness.coordinator.snapshot().failedSafeResetBoundary;
+    assert.equal(boundary.safe, false);
+    assert.equal(boundary.fd6Active, true);
+    await assert.rejects(
+      harness.coordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async () => ({ migrated: true })),
+      error => error.reasonCode === 'WP4_DESKTOP_CREDENTIAL_FAILED_SAFE_RESET_BLOCKED'
+    );
+  } finally { harness.close(); }
+});
+
+test('active rejected-owner containment blocks start with stronger containment failure', async () => {
+  const harness = createHarness({ preloadLifecycle: persistedFailedSafeLifecycle() });
+  try {
+    await harness.vaultHost.initialize();
+    assert.equal(harness.vaultHost.snapshotMetadata().lifecycle?.state, 'ACTIVE');
+
+    // ownerTrusted === false (no provisional-ready owner registry) activates containment.
+    Object.assign(harness.backend(), { ownerTrusted: false });
+    const boundary = harness.coordinator.snapshot().failedSafeResetBoundary;
+    assert.equal(boundary.safe, false);
+    assert.equal(harness.coordinator.snapshot().containmentActive, true);
+    await assert.rejects(
+      harness.coordinator.runExclusive('LEGACY_CREDENTIAL_MIGRATION', async () => ({ migrated: true })),
+      error => error.reasonCode === 'WP4_DESKTOP_CREDENTIAL_REJECTED_OWNER_CONTAINMENT'
+    );
   } finally { harness.close(); }
 });
