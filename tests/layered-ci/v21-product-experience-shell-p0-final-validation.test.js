@@ -45,6 +45,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v13'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-runtime-state-p0'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260830-existing-data-startup-recovery-v2'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
     'product/v21-product-experience-bilingual-search-translation-task-ux-p0',
@@ -59,6 +60,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'fix/v21-product-experience-windows-uat-startup-p0',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-2',
+    'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2',
     'release/v21-final-rc-uat-p0',
     'release/v21-final-rc-uat-p0-successor-v2',
     'release/v21-final-rc-uat-p0-successor-v3',
@@ -82,6 +84,11 @@ test('Product Experience final validation is an exact-head same-repository pull-
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-runtime-state-p0'/gu) || []).length,
     3,
     'Matrix runtime-state closure must be admitted by exactly the three Product Final job guards'
+  );
+  assert.equal(
+    (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260830-existing-data-startup-recovery-v2'/gu) || []).length,
+    3,
+    'existing-data startup recovery must be admitted by exactly the three Product Final job guards'
   );
   assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
   assert.match(source, /runs-on:\s*windows-latest/u);
