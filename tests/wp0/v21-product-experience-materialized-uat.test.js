@@ -12,6 +12,8 @@ const WORKFLOW = '.github/workflows/v21-product-experience-shell-p0-final-valida
 const CREATOR = 'tools/product-experience/create-materialized-uat-candidate.js';
 const RUNNER = 'tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1';
 const COMPOSE = 'tools/product-experience/materialized-matrix-compose.yml';
+const SOURCE_COMPOSE = 'services/matrix/docker-compose.yml';
+const HOMESERVER = 'config/matrix/synapse/homeserver.yaml';
 const DESKTOP_ARTIFACT_PREFIX = 'Product-Experience-Materialized-Desktop-UAT-';
 const MATRIX_ARTIFACT_PREFIX = 'Product-Experience-Materialized-Matrix-UAT-';
 
@@ -529,6 +531,7 @@ test('failure-first binds complete materialized Matrix runtime topology, ephemer
   const source = read(WORKFLOW);
   const runner = read(RUNNER);
   const compose = read(COMPOSE);
+  const homeserver = read(HOMESERVER);
 
   assert.match(source, /\.runtime\/mautrix-meta/u, 'trusted Matrix materialization must include the pinned mautrix-meta source');
   assert.match(source, /docker\s+build[^\n]*yance-product-uat-mautrix-meta:\$\{CANDIDATE_SHA\}[^\n]*\.runtime\/mautrix-meta/u, 'trusted CI must build the exact mautrix-meta image');
@@ -539,10 +542,43 @@ test('failure-first binds complete materialized Matrix runtime topology, ephemer
   for (const service of ['mautrix-meta-registration', 'synapse', 'element', 'mautrix-whatsapp', 'mautrix-meta']) {
     assert.match(compose, new RegExp(`^\\s{2}${service}:\\s*$`, 'mu'), `materialized compose must preserve source Matrix service ${service}`);
   }
+  // Runtime secrets are projected, not bind-mounted: the host secret is readable
+  // only by the root matrix-secret-projection init, which writes a UID-owned file
+  // into a named volume that every consumer mounts read-only at /run/secrets.
+  assert.match(compose, /^\s{2}matrix-secret-projection:\s*$/mu, 'root secret projection init must exist');
+  assert.match(compose, /user:\s*"0:0"/u, 'secret projection must run as root');
   assert.match(compose, /YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE:\?required/u);
-  assert.match(compose, /\/run\/secrets\/yance_matrix_registration_shared_secret/u);
   assert.match(compose, /YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:\?required/u);
-  assert.match(compose, /\/run\/secrets\/yance_mautrix_meta_provisioning_secret/u);
+  assert.match(compose, /target:\s*\/bootstrap\/matrix-registration-shared-secret/u);
+  assert.match(compose, /target:\s*\/bootstrap\/mautrix-meta-provisioning-secret/u);
+
+  // projection produces the exact named-volume targets with owner-only modes
+  assert.match(compose, /synapse-secret-data:\/projected\/matrix/u);
+  assert.match(compose, /mautrix-meta-secret-data:\/projected\/meta/u);
+  assert.match(compose, /cp \/bootstrap\/matrix-registration-shared-secret \/projected\/matrix\/yance_matrix_registration_shared_secret/u);
+  assert.match(compose, /chown 991:991 \/projected\/matrix\/yance_matrix_registration_shared_secret/u);
+  assert.match(compose, /chmod 0400 \/projected\/matrix\/yance_matrix_registration_shared_secret/u);
+  assert.match(compose, /cp \/bootstrap\/mautrix-meta-provisioning-secret \/projected\/meta\/yance_mautrix_meta_provisioning_secret/u);
+  assert.match(compose, /chown 1337:1337 \/projected\/meta\/yance_mautrix_meta_provisioning_secret/u);
+  assert.match(compose, /chmod 0400 \/projected\/meta\/yance_mautrix_meta_provisioning_secret/u);
+
+  // projected secret named volumes are declared and mounted read-only by consumers
+  assert.match(compose, /^\s{2}synapse-secret-data:$/mu);
+  assert.match(compose, /^\s{2}mautrix-meta-secret-data:$/mu);
+  assert.match(compose, /synapse-secret-data:\/run\/secrets:ro/u);
+  assert.match(compose, /mautrix-meta-secret-data:\/run\/secrets:ro/u);
+
+  // Synapse consumes the exact projected path from its own config authority
+  assert.match(homeserver, /registration_shared_secret_path:\s*\/run\/secrets\/yance_matrix_registration_shared_secret/u);
+  // mautrix-meta keeps its locked _FILE env pointing at the exact projected path
+  assert.match(compose, /YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET_FILE:\s*\/run\/secrets\/yance_mautrix_meta_provisioning_secret/u);
+  // consumers must start only after the projection init completed successfully
+  assert.match(compose, /condition:\s*service_completed_successfully/u);
+  assert.doesNotMatch(
+    compose,
+    /\/run\/secrets\/yance_matrix_registration_shared_secret/u,
+    'Synapse registration secret must reach Synapse through the projected named volume, never a direct host-file consumer bind'
+  );
   assert.match(compose, /mautrix-meta-data/u);
   assert.match(compose, /matrix-config\/mautrix-meta\/config\.yaml/u);
   assert.doesNotMatch(compose, /^\s+build:\s*/gmu);
@@ -557,4 +593,38 @@ test('failure-first binds complete materialized Matrix runtime topology, ephemer
   const desktopLaunchIndex = runner.indexOf('$process = Start-Process -FilePath $yanceExe.FullName');
   assert.ok(readinessIndex >= 0 && desktopLaunchIndex > readinessIndex, 'real Matrix readiness must be established before packaged Desktop launch');
   assert.doesNotMatch(runner, /materialized-uat-evidence\.json[^\n]*(?:secret|shared_secret)/iu, 'plaintext secrets must never become evidence authority');
+});
+
+test('Matrix runtime state stays writable, registers WhatsApp, and isolates every real Windows UAT project', () => {
+  const sourceCompose = read(SOURCE_COMPOSE);
+  const materializedCompose = read(COMPOSE);
+  const homeserver = read(HOMESERVER);
+  const runner = read(RUNNER);
+  const workflow = read(WORKFLOW);
+
+  for (const compose of [sourceCompose, materializedCompose]) {
+    assert.match(compose, /^\s{2}synapse-data-init:\s*$/mu);
+    assert.match(compose, /chown -R 991:991 \/data/u);
+    assert.match(compose, /^\s{2}mautrix-whatsapp-registration:\s*$/mu);
+    assert.match(compose, /\/usr\/bin\/mautrix-whatsapp -g -c \/data\/config\.yaml -r \/data\/registration\.yaml/u);
+    assert.match(compose, /mautrix-whatsapp-data:\/data/u);
+    assert.match(compose, /mautrix-whatsapp-data:\/mautrix-whatsapp:ro/u);
+    assert.doesNotMatch(compose, /mautrix-whatsapp\/config\.yaml:\/data\/config\.yaml:ro/u);
+  }
+  assert.match(homeserver, /\/mautrix-meta\/registration\.yaml/u);
+  assert.match(homeserver, /\/mautrix-whatsapp\/registration\.yaml/u);
+
+  assert.match(runner, /\$matrixProjectName = "yance-uat-/u);
+  assert.match(runner, /--project-name \$matrixProjectName/u);
+  assert.match(runner, /down --volumes --remove-orphans/u);
+  for (const service of ['synapse-data-init', 'mautrix-meta-registration', 'mautrix-whatsapp-registration']) {
+    assert.match(runner, new RegExp(service, 'u'));
+  }
+
+  const parseIndex = workflow.indexOf('docker compose -f "$bundle/materialized-matrix-compose.yml" config');
+  const smokeIndex = workflow.indexOf('docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" up -d --no-build');
+  const synapseReadyIndex = workflow.indexOf('http://127.0.0.1:8008/_matrix/client/versions');
+  const elementReadyIndex = workflow.indexOf('http://127.0.0.1:8080/config.json');
+  const sealIndex = workflow.indexOf('create-materialized-uat-candidate.js seal', parseIndex);
+  assert.ok(parseIndex >= 0 && smokeIndex > parseIndex && synapseReadyIndex > smokeIndex && elementReadyIndex > smokeIndex && sealIndex > synapseReadyIndex && sealIndex > elementReadyIndex);
 });

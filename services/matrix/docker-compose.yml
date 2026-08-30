@@ -1,4 +1,85 @@
+x-mautrix-whatsapp-service: &mautrix-whatsapp-service
+  build:
+    context: ./.runtime/mautrix-whatsapp
+
 services:
+  matrix-secret-projection:
+    build:
+      context: ./.runtime/synapse
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        cp /bootstrap/matrix-registration-shared-secret /projected/matrix/yance_matrix_registration_shared_secret
+        chown 991:991 /projected/matrix/yance_matrix_registration_shared_secret
+        chmod 0400 /projected/matrix/yance_matrix_registration_shared_secret
+        cp /bootstrap/mautrix-meta-provisioning-secret /projected/meta/yance_mautrix_meta_provisioning_secret
+        chown 1337:1337 /projected/meta/yance_mautrix_meta_provisioning_secret
+        chmod 0400 /projected/meta/yance_mautrix_meta_provisioning_secret
+    volumes:
+      - type: bind
+        source: ${YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE:?required}
+        target: /bootstrap/matrix-registration-shared-secret
+        read_only: true
+      - type: bind
+        source: ${YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:?required}
+        target: /bootstrap/mautrix-meta-provisioning-secret
+        read_only: true
+      - synapse-secret-data:/projected/matrix
+      - mautrix-meta-secret-data:/projected/meta
+    restart: "no"
+
+  synapse-data-init:
+    build:
+      context: ./.runtime/synapse
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        chown -R 991:991 /data
+        chmod -R u+rwX /data
+        # Synapse auto-generates log.config with filename /homeserver.log, i.e. the
+        # container root. Runtime UID 991 cannot create a file there, so Synapse
+        # dies with "Unable to configure handler 'file'". Seed an explicit log
+        # config that writes inside the writable /data volume instead.
+        if [ ! -f /data/log.config ]; then
+          printf '%s\n' \
+            'version: 1' \
+            'formatters:' \
+            '    precise:' \
+            "        format: '%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(request)s - %(message)s'" \
+            'handlers:' \
+            '    file:' \
+            '        class: logging.handlers.TimedRotatingFileHandler' \
+            '        formatter: precise' \
+            '        filename: /data/homeserver.log' \
+            '        when: midnight' \
+            '        backupCount: 3' \
+            '        encoding: utf8' \
+            '    buffer:' \
+            '        class: synapse.logging.handlers.PeriodicallyFlushingMemoryHandler' \
+            '        target: file' \
+            '        capacity: 10' \
+            '        flushLevel: 30' \
+            '        period: 5' \
+            '    console:' \
+            '        class: logging.StreamHandler' \
+            '        formatter: precise' \
+            'loggers:' \
+            '    synapse.storage.SQL:' \
+            '        level: INFO' \
+            'root:' \
+            '    level: INFO' \
+            '    handlers: [buffer]' \
+            'disable_existing_loggers: false' \
+            > /data/log.config
+          chown 991:991 /data/log.config
+          chmod 0644 /data/log.config
+        fi
+    volumes:
+      - synapse-data:/data
+    restart: "no"
+
   mautrix-meta-registration:
     build:
       context: ./.runtime/mautrix-meta
@@ -12,15 +93,36 @@ services:
         if [ ! -f /data/registration.yaml ]; then
           /usr/bin/mautrix-meta -g -c /data/config.yaml -r /data/registration.yaml
         fi
+        chown -R 1337:1337 /data
+        chmod 0644 /data/config.yaml /data/registration.yaml
     environment:
       YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_meta_provisioning_secret
     volumes:
       - ../../config/matrix/mautrix-meta/config.yaml:/bootstrap/config.yaml:ro
-      - type: bind
-        source: ${YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:?required}
-        target: /run/secrets/yance_mautrix_meta_provisioning_secret
-        read_only: true
+      - mautrix-meta-secret-data:/run/secrets:ro
       - mautrix-meta-data:/data
+    depends_on:
+      matrix-secret-projection:
+        condition: service_completed_successfully
+    restart: "no"
+
+  mautrix-whatsapp-registration:
+    <<: *mautrix-whatsapp-service
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        if [ ! -f /data/config.yaml ]; then
+          cp /bootstrap/config.yaml /data/config.yaml
+        fi
+        if [ ! -f /data/registration.yaml ]; then
+          /usr/bin/mautrix-whatsapp -g -c /data/config.yaml -r /data/registration.yaml
+        fi
+        chown -R 1337:1337 /data
+        chmod 0644 /data/config.yaml /data/registration.yaml
+    volumes:
+      - ../../config/matrix/mautrix-whatsapp/config.yaml:/bootstrap/config.yaml:ro
+      - mautrix-whatsapp-data:/data
     restart: "no"
 
   synapse:
@@ -31,14 +133,18 @@ services:
       - ../../config/matrix/synapse/homeserver.yaml:/data/homeserver.yaml:ro
       - synapse-data:/data
       - mautrix-meta-data:/mautrix-meta:ro
-      - type: bind
-        source: ${YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE:?required}
-        target: /run/secrets/yance_matrix_registration_shared_secret
-        read_only: true
+      - mautrix-whatsapp-data:/mautrix-whatsapp:ro
+      - synapse-secret-data:/run/secrets:ro
     ports:
       - "127.0.0.1:8008:8008"
     depends_on:
+      matrix-secret-projection:
+        condition: service_completed_successfully
+      synapse-data-init:
+        condition: service_completed_successfully
       mautrix-meta-registration:
+        condition: service_completed_successfully
+      mautrix-whatsapp-registration:
         condition: service_completed_successfully
 
   element:
@@ -52,13 +158,14 @@ services:
       - synapse
 
   mautrix-whatsapp:
-    build:
-      context: ./.runtime/mautrix-whatsapp
+    <<: *mautrix-whatsapp-service
     volumes:
-      - ../../config/matrix/mautrix-whatsapp/config.yaml:/data/config.yaml:ro
       - mautrix-whatsapp-data:/data
     depends_on:
-      - synapse
+      synapse:
+        condition: service_started
+      mautrix-whatsapp-registration:
+        condition: service_completed_successfully
 
   mautrix-meta:
     build:
@@ -66,12 +173,11 @@ services:
     environment:
       YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_meta_provisioning_secret
     volumes:
-      - type: bind
-        source: ${YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:?required}
-        target: /run/secrets/yance_mautrix_meta_provisioning_secret
-        read_only: true
+      - mautrix-meta-secret-data:/run/secrets:ro
       - mautrix-meta-data:/data
     depends_on:
+      matrix-secret-projection:
+        condition: service_completed_successfully
       synapse:
         condition: service_started
       mautrix-meta-registration:
@@ -81,3 +187,5 @@ volumes:
   synapse-data:
   mautrix-whatsapp-data:
   mautrix-meta-data:
+  synapse-secret-data:
+  mautrix-meta-secret-data:

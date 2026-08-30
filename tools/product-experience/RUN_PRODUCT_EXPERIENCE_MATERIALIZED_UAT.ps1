@@ -145,25 +145,31 @@ New-EphemeralSecretFile -Path $matrixRegistrationSecretPath
 New-EphemeralSecretFile -Path $mautrixMetaProvisioningSecretPath
 $env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE = $matrixRegistrationSecretPath
 $env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE = $mautrixMetaProvisioningSecretPath
+$matrixProjectName = "yance-uat-$(([string]$desktop.manifest.candidateCommit).Substring(0, 12))-$([Guid]::NewGuid().ToString('N').Substring(0, 12))"
 
 try {
   $env:YANCE_UAT_CANDIDATE_SHA = [string]$desktop.manifest.candidateCommit
   & docker.exe load --input $matrixArchive.FullName
   if ($LASTEXITCODE -ne 0) { throw "docker load failed with exit code $LASTEXITCODE" }
-  & docker.exe compose --project-directory $matrix.root -f $composePath up -d --no-build
+
+  & docker.exe compose --project-directory $matrix.root -f $composePath down --volumes --remove-orphans
+  if ($LASTEXITCODE -ne 0) { throw "legacy Matrix compose cleanup failed with exit code $LASTEXITCODE" }
+
+  & docker.exe compose --project-name $matrixProjectName --project-directory $matrix.root -f $composePath up -d --no-build
   if ($LASTEXITCODE -ne 0) { throw "docker compose up --no-build failed with exit code $LASTEXITCODE" }
 
-  $registrationServices = @(& docker.exe compose --project-directory $matrix.root -f $composePath ps --all --status exited --services mautrix-meta-registration)
-  if ($LASTEXITCODE -ne 0) { throw "docker compose registration status probe failed with exit code $LASTEXITCODE" }
-  if (-not ($registrationServices | Where-Object { ([string]$_).Trim() -eq 'mautrix-meta-registration' })) {
-    throw 'mautrix-meta registration service did not complete before Matrix readiness'
+  $completedInitServices = @(& docker.exe compose --project-name $matrixProjectName --project-directory $matrix.root -f $composePath ps --all --status exited --services)
+  if ($LASTEXITCODE -ne 0) { throw "docker compose init-service status probe failed with exit code $LASTEXITCODE" }
+  $completedInit = @($completedInitServices | ForEach-Object { ([string]$_).Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+  foreach ($service in @('synapse-data-init', 'mautrix-meta-registration', 'mautrix-whatsapp-registration')) {
+    if ($completedInit -notcontains $service) { throw "$service did not complete before Matrix readiness" }
   }
 
   $requiredServices = @('synapse', 'element', 'mautrix-whatsapp', 'mautrix-meta')
   $matrixReady = $false
   $matrixDeadline = [DateTimeOffset]::UtcNow.AddSeconds(120)
   while ([DateTimeOffset]::UtcNow -lt $matrixDeadline) {
-    $runningServices = @(& docker.exe compose --project-directory $matrix.root -f $composePath ps --status running --services)
+    $runningServices = @(& docker.exe compose --project-name $matrixProjectName --project-directory $matrix.root -f $composePath ps --status running --services)
     if ($LASTEXITCODE -ne 0) { throw "docker compose running-service probe failed with exit code $LASTEXITCODE" }
     $running = @($runningServices | ForEach-Object { ([string]$_).Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     $allRunning = $true
@@ -183,7 +189,7 @@ try {
     Start-Sleep -Milliseconds 500
   }
   if (-not $matrixReady) {
-    & docker.exe compose --project-directory $matrix.root -f $composePath ps --all
+    & docker.exe compose --project-name $matrixProjectName --project-directory $matrix.root -f $composePath ps --all
     throw 'timed out waiting for real materialized Matrix readiness'
   }
 
@@ -283,6 +289,7 @@ try {
     matrixBundleClass = $MatrixClass
     matrixArchive = $matrixArchive.FullName
     composeFile = $composePath
+    composeProject = $matrixProjectName
     desktopArchive = $desktopArchive.FullName
     yanceExecutable = $yanceExe.FullName
     yanceDataDir = $env:YANCE_DATA_DIR
@@ -303,6 +310,9 @@ try {
   Write-Host "UAT session remains attached to packaged Yance.exe PID $($process.Id); runtime secret files stay available until the process exits."
   Wait-Process -Id $process.Id
 } finally {
+  try {
+    & docker.exe compose --project-name $matrixProjectName --project-directory $matrix.root -f $composePath down --volumes --remove-orphans
+  } catch {}
   Remove-Item Env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE -ErrorAction SilentlyContinue
   Remove-Item Env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $secretRoot -Recurse -Force -ErrorAction SilentlyContinue
