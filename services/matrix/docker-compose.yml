@@ -38,6 +38,44 @@ services:
       - |
         chown -R 991:991 /data
         chmod -R u+rwX /data
+        # Synapse auto-generates log.config with filename /homeserver.log, i.e. the
+        # container root. Runtime UID 991 cannot create a file there, so Synapse
+        # dies with "Unable to configure handler 'file'". Seed an explicit log
+        # config that writes inside the writable /data volume instead.
+        if [ ! -f /data/log.config ]; then
+          printf '%s\n' \
+            'version: 1' \
+            'formatters:' \
+            '    precise:' \
+            "        format: '%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(request)s - %(message)s'" \
+            'handlers:' \
+            '    file:' \
+            '        class: logging.handlers.TimedRotatingFileHandler' \
+            '        formatter: precise' \
+            '        filename: /data/homeserver.log' \
+            '        when: midnight' \
+            '        backupCount: 3' \
+            '        encoding: utf8' \
+            '    buffer:' \
+            '        class: synapse.logging.handlers.PeriodicallyFlushingMemoryHandler' \
+            '        target: file' \
+            '        capacity: 10' \
+            '        flushLevel: 30' \
+            '        period: 5' \
+            '    console:' \
+            '        class: logging.StreamHandler' \
+            '        formatter: precise' \
+            'loggers:' \
+            '    synapse.storage.SQL:' \
+            '        level: INFO' \
+            'root:' \
+            '    level: INFO' \
+            '    handlers: [buffer]' \
+            'disable_existing_loggers: false' \
+            > /data/log.config
+          chown 991:991 /data/log.config
+          chmod 0644 /data/log.config
+        fi
     volumes:
       - synapse-data:/data
     restart: "no"
