@@ -1,6 +1,7 @@
 'use strict';
 
 const core = require('./accountManagerCore');
+const accountLifecycle = require('./accountLifecycle');
 const { DurableExecutionAuthority } = require('./durableExecutionAuthority');
 const { ExternalActionOutboxAuthority } = require('./externalActionOutboxAuthorityCore');
 const { canonicalHash } = require('./canonicalSerialization');
@@ -232,7 +233,10 @@ function requestPersistedSessionRestores(input = {}) {
   const state = sessionState(this);
   const results = [];
   for (const account of state.accountList()) {
-    if (!account || account.paused === true || account.metadata?.loggedOut === true) continue;
+    if (!account || account.metadata?.loggedOut === true) continue;
+    if (!accountLifecycle.eligibility(account).eligible) continue;
+    const credentialReference = clean(account.credentialRef || account.credential_ref);
+    if (!credentialReference) continue;
     const requestedSessionGeneration = positiveGeneration(
       account.sessionGeneration
       || account.session_generation
@@ -243,7 +247,7 @@ function requestPersistedSessionRestores(input = {}) {
       accountId: account.id,
       requestedSessionGeneration,
       sessionReference: account.sessionReference || account.metadata?.sessionReference || '',
-      credentialReference: account.credentialRef || account.credential_ref || '',
+      credentialReference,
       traceId: clean(input.traceId),
       deadlineAt: clean(input.deadlineAt),
       maxAttempts: Number(input.maxAttempts || 3)
