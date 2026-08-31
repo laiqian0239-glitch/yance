@@ -23,18 +23,18 @@ const {
   net
 } = require('electron');
 
-// Real Windows source UAT must remain launchable on machines where Chromium's
-// GPU process repeatedly exits (for example after a driver reset or remote
-// desktop transition). This is intentionally scoped to source UAT and can be
-// overridden with YANCE_ENABLE_HARDWARE_ACCELERATION=1. Installed production
-// builds keep their existing hardware-acceleration policy.
-const SOURCE_UAT_SOFTWARE_RENDERING = process.platform === 'win32' &&
-  process.env.YANCE_SOURCE_UAT === '1' &&
-  process.env.YANCE_DISABLE_GPU !== '0' &&
-  process.env.YANCE_ENABLE_HARDWARE_ACCELERATION !== '1';
-const EXPLICIT_SOFTWARE_RENDERING = process.env.YANCE_DISABLE_GPU === '1' &&
-  process.env.YANCE_ENABLE_HARDWARE_ACCELERATION !== '1';
-if (SOURCE_UAT_SOFTWARE_RENDERING || EXPLICIT_SOFTWARE_RENDERING) {
+const {
+  resolveSoftwareRenderingPolicy
+} = require('./gpuSoftwareRenderingPolicy');
+
+const SOFTWARE_RENDERING_POLICY = resolveSoftwareRenderingPolicy({
+  platform: process.platform,
+  packaged: app.isPackaged,
+  argv: process.argv,
+  env: process.env
+});
+
+if (SOFTWARE_RENDERING_POLICY.enabled) {
   app.disableHardwareAcceleration();
   app.commandLine.appendSwitch('disable-gpu');
   app.commandLine.appendSwitch('disable-gpu-compositing');
@@ -70,8 +70,8 @@ earlyBootLogSync('electron-main-module-enter', {
   dataRootMigrationReasonCode: EARLY_DATA_ROOT_RESOLUTION.reasonCode || null,
   argv: process.argv.slice(0, 8),
   execArgv: process.execArgv.slice(0, 8),
-  softwareRendering: SOURCE_UAT_SOFTWARE_RENDERING || EXPLICIT_SOFTWARE_RENDERING,
-  softwareRenderingSource: SOURCE_UAT_SOFTWARE_RENDERING ? 'source-uat-default' : EXPLICIT_SOFTWARE_RENDERING ? 'explicit' : 'disabled'
+  softwareRendering: SOFTWARE_RENDERING_POLICY.enabled,
+  softwareRenderingSource: SOFTWARE_RENDERING_POLICY.source
 });
 process.on('uncaughtExceptionMonitor', error => {
   earlyBootLogSync('electron-main-early-uncaught-exception', {

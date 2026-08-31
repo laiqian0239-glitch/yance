@@ -32,7 +32,7 @@ class AccountLifecycleSagaService {
     const operationId = clean(input.operationId) || `acct-saga-${crypto.randomUUID()}`;
     const at = nowIso();
     const store = this.store();
-    await store.transactionAsync(async () => {
+    await store.transactionAsync(() => {
       store.db.prepare(`INSERT INTO account_lifecycle_saga(
       operation_id,account_id,operation_type,phase,state,credential_generation,account_version,
       adapter_receipt_json,last_error,started_at,updated_at,finished_at
@@ -59,7 +59,7 @@ class AccountLifecycleSagaService {
     const at = nowIso();
     const store = this.store();
     let run;
-    await store.transactionAsync(async () => {
+    await store.transactionAsync(() => {
       run = store.db.prepare(`UPDATE account_lifecycle_saga
       SET phase=?,credential_generation=CASE WHEN ?<>'' THEN ? ELSE credential_generation END,
           account_version=CASE WHEN ?>0 THEN ? ELSE account_version END,
@@ -80,7 +80,7 @@ class AccountLifecycleSagaService {
     const at = nowIso();
     const store = this.store();
     let run;
-    await store.transactionAsync(async () => {
+    await store.transactionAsync(() => {
       run = store.db.prepare(`UPDATE account_lifecycle_saga
         SET state='compensating',phase='compensating',last_error=?,updated_at=?
         WHERE operation_id=? AND state='running' AND phase=?`)
@@ -98,7 +98,7 @@ class AccountLifecycleSagaService {
     const at = nowIso();
     const store = this.store();
     let run;
-    await store.transactionAsync(async () => {
+    await store.transactionAsync(() => {
       run = store.db.prepare(`UPDATE account_lifecycle_saga
         SET state=?,phase='finished',adapter_receipt_json=CASE WHEN ?<>'' THEN ? ELSE adapter_receipt_json END,
             last_error=?,finished_at=?,updated_at=?
