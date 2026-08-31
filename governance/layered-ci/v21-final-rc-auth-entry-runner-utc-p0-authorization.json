@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-08-31T23:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-AUTH-ENTRY-RUNNER-UTC-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Real Windows UAT of frozen exact RC head 40a59d1f6d0d13dd2a267571a5d7e10e781c9ccd proved two release blockers after exact Desktop/Matrix identity admission: the anonymous Element startup surface remained on upstream WELCOME because Yance config omitted the pinned upstream embedded_pages.login_for_welcome routing seam, so registerLoginComponent was never reached; independently, the canonical PowerShell UAT runner converted a valid UTC activatedAtUtc receipt through a lossy string round-trip and falsely classified a fresh PASS receipt as stale. One cohesive closure is authorized using pinned Element's existing login-for-welcome seam, mature .NET DateTime/DateTimeOffset absolute-time semantics, and permanent Product Final/runtime contracts. Frozen 40a is the causal RED and must not be rerun, rebuilt, redownloaded, amended, or force-pushed.",
+  "base": {
+    "branch": "main",
+    "commit": "cd624ccb2975f84a86627df672d47e8582624f56",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "cd624ccb2975f84a86627df672d47e8582624f56",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-auth-entry-runner-utc-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-auth-entry-runner-utc-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "4af8afeadee651775a24a8e5f955ae3a715a8683a52ed08c1e8636b997267a1e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-rc-auth-entry-runner-utc-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "config/matrix/element-config.json",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1"
+    ],
+    "approvedChangedFileCount": 6,
+    "approvedChangedFileSetSha256": "0801f7e71ce8d5407061d5f6afd977e4da9b4fdfbf690f3ac7e51ca29d78b688",
+    "newDependencyAllowed": false,
+    "newGeneralPurposeInfrastructureAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "runnerModificationAllowed": true,
+    "productRuntimeModificationAllowed": true,
+    "matrixBootstrapModificationAllowed": false,
+    "upstreamPinModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "releaseLedgerModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "ossFit": {
+    "decision": "REUSE_PINNED_ELEMENT_LOGIN_ROUTING_AND_DOTNET_ABSOLUTE_TIME_SEMANTICS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Pinned Element embedded_pages.login_for_welcome routing seam",
+        "source": "pinned element-web apps/web/src/utils/pages.ts and MatrixChat.viewWelcome()",
+        "license": "upstream-open-source-and-repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Pinned Element already provides the exact supported mechanism to route a no-session welcome transition into LOGIN, where the existing registerLoginComponent renderer is consumed. No custom Welcome replacement or second auth protocol is required."
+      },
+      {
+        "name": ".NET DateTime and DateTimeOffset absolute instant semantics",
+        "source": "Microsoft .NET runtime types already available to PowerShell",
+        "license": "MIT/runtime-platform",
+        "adoptionMode": "platform-native",
+        "fit": "FIT",
+        "reason": "The runner only needs to preserve the UTC Kind/offset already represented by the parsed JSON timestamp and compare absolute instants; no custom date parser or timezone library is required."
+      },
+      {
+        "name": "Existing Product Final materialized Matrix runtime smoke",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing exact-image Compose smoke can assert the generated Element config and sealed module bytes before artifact upload, preventing the same anonymous-auth surface gap from escaping to Windows UAT again."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not implement a second Yance authentication protocol or custom credential transport.",
+      "Do not replace or fork Element Welcome merely to force branding when the pinned login_for_welcome seam already routes to the reviewed Login component.",
+      "Do not change the read-only /app/config.json bind merely to make Element config writable; the pinned entrypoint copies config into /tmp/element-web-config before module injection.",
+      "Do not invent a custom timestamp parser or timezone table; preserve DateTime/DateTimeOffset absolute semantics.",
+      "Do not weaken sealed-image identity, image-only --no-build UAT, Matrix readiness, or existing Product Final gates."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "frozenRealWindowsEvidence": {
+    "issue": 994,
+    "pullRequest": 992,
+    "exactRcHead": "40a59d1f6d0d13dd2a267571a5d7e10e781c9ccd",
+    "mergedMain": "cd624ccb2975f84a86627df672d47e8582624f56",
+    "elementImage": "yance-product-uat-element:40a59d1f6d0d13dd2a267571a5d7e10e781c9ccd",
+    "elementImageDigest": "sha256:9ffac18cf60c9339fe81e9dc064f3bebff7ced072b145eda49afb182ed7e083b",
+    "evidenceRoot": "C:\\Yance-RC-40a59d1f\\REAL-UAT-VALID-20260831T215843",
+    "observedWelcomeSurface": "Welcome to Yance / Sign in / Create account",
+    "expectedLoginMarkers": "欢迎回来 / 登录言策，继续你的关系工作台。",
+    "receiptActivatedAtUtc": "2026-08-31T15:00:56.011Z",
+    "runnerStartedAtUtc": "2026-08-31T15:00:28.7635157+00:00",
+    "sameHeadRerunForbidden": true,
+    "artifactRedownloadForbidden": true,
+    "unknownBlockers": 0
+  },
+  "requiredRootFix": [
+    "Set config/matrix/element-config.json embedded_pages.login_for_welcome to true so pinned Element routes anonymous WELCOME transitions through LOGIN and therefore through the existing Yance registerLoginComponent renderer.",
+    "Preserve original Element Login as the child authentication authority inside YanceLogin; do not add network/auth credential logic to YanceLogin.",
+    "Fix RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1 freshness comparison so activatedAtUtc retains UTC Kind/offset and is compared as an absolute instant without a lossy string round-trip.",
+    "Add focused source contracts for the Element login-for-welcome configuration and unchanged auth-authority boundary.",
+    "Extend Product Final materialized Matrix runtime validation so the exact sealed Element image proves /modules/yance/lib/index.js contains V2 authority markers, generated /config.json contains /modules/yance/lib/index.js, and embedded_pages.login_for_welcome is true before artifact seal/upload.",
+    "Add focused runner regression for the exact UAT UTC-vs-Asia/Bangkok freshness case and forbid the previous DateTime-to-string-to-DateTimeOffset pattern.",
+    "Keep exact image identity, Compose image-only --no-build semantics, current Matrix readiness, package/lock/pins and release bytes outside the authorized six-path closure unchanged."
+  ],
+  "validation": {
+    "causalRedAuthority": "Issue #994 real Windows UAT on exact frozen successor-v14 bytes",
+    "syntheticFailureFirstCiHeadRequired": false,
+    "focused": [
+      "npm run test:wp0",
+      "node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "Windows local exact-image Element config/module/browser login proof",
+      "Windows local runner UTC freshness regression using 2026-08-31T15:00:28.7635157+00:00 vs 2026-08-31T15:00:56.011Z",
+      "git diff --check"
+    ],
+    "finalExactHead": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "Model Brain Windows when routed",
+      "V21 Product Experience Shell P0 Final Validation when routed"
+    ],
+    "independentReviewRequired": true,
+    "requiredReviewP0": 0,
+    "requiredReviewP1": 0,
+    "requiredUnknownBlockers": 0
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
