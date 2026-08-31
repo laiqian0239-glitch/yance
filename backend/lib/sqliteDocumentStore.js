@@ -80,7 +80,7 @@ class SqliteDocumentStore {
     if (typeof mutator !== 'function') throw new TypeError('SQLITE_DOCUMENT_MUTATOR_REQUIRED');
     const persistence = this._persistence();
     let next;
-    await persistence.transactionAsync(async () => {
+    await persistence.transactionAsync(() => {
       const current = clone(persistence.getSetting(this.namespace, 'document', this.defaults));
       const result = mutator(current);
       if (result && typeof result.then === 'function') throw new Error('ASYNC_MUTATOR_NOT_SUPPORTED');
