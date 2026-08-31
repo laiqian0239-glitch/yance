@@ -66,38 +66,58 @@ test('collector execution writes the real result and rejects false PASS classifi
   }
 });
 
-test('Windows backend-owner identity uses bounded System.Management fallback after primary CIM failure', () => {
-  const previousAttempts = process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS;
-  process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS = '2';
+
+test('Windows backend-owner identity is native-first with one bounded WMI compatibility fallback', () => {
   const calls = [];
-  try {
-    const captured = windowsProcessIdentity(43131, (command, args, options) => {
-      const script = String(args.at(-1) || '');
-      calls.push({ command, script, timeout: options.timeout });
-      if (calls.length === 1) {
-        assert.match(script, /Get-CimInstance Win32_Process/u);
-        const error = new Error('simulated CIM timeout');
-        error.code = 'ETIMEDOUT';
-        throw error;
-      }
-      assert.match(script, /System\.Management\.ManagementObjectSearcher/u);
-      return JSON.stringify({
-        ProcessId: 43131,
-        CreationDate: '2026-08-28T12:00:00.1234567Z',
-        ExecutablePath: 'C:\\Program Files\\Yance\\backend.exe',
-        CommandLine: '"C:\\Program Files\\Yance\\backend.exe" --fd6 6'
-      });
-    }, 'win32');
-    assert.equal(calls.length, 2);
-    assert.ok(calls[1].timeout > 0 && calls[1].timeout <= 5000);
-    assert.equal(validateProcessIdentity(captured), true);
-    assert.equal(captured.platform, 'win32');
-    assert.match(captured.executablePathDigest, /^[a-f0-9]{64}$/u);
-    assert.match(captured.commandDigest, /^[a-f0-9]{64}$/u);
-  } finally {
-    if (previousAttempts === undefined) delete process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS;
-    else process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS = previousAttempts;
-  }
+
+  const captured = windowsProcessIdentity(43131, (command, args, options) => {
+    const script = String(args.at(-1) || '');
+    calls.push({ script, timeout: options.timeout });
+
+    if (calls.length === 1) {
+      assert.match(script, /YanceNativeProcessIdentity/u);
+      assert.doesNotMatch(script, /Win32_Process/u);
+
+      const error = new Error('simulated native authority failure');
+      error.code = 'ENATIVE';
+      throw error;
+    }
+
+    assert.match(script, /System\.Management\.ManagementObjectSearcher/u);
+
+    return JSON.stringify({
+      ProcessId: 43131,
+      CreationDate: '2026-08-31T07:00:00.1234567Z',
+      ExecutablePath: 'C:\\Program Files\\Yance\\backend.exe',
+      CommandLine: '"C:\\Program Files\\Yance\\backend.exe" --fd6 6'
+    });
+  }, 'win32');
+
+  assert.equal(calls.length, 2);
+  assert.equal(validateProcessIdentity(captured), true);
+  assert.equal(captured.platform, 'win32');
+  assert.match(captured.executablePathDigest, /^[a-f0-9]{64}$/u);
+  assert.match(captured.commandDigest, /^[a-f0-9]{64}$/u);
+  assert.ok(calls.every(call => call.timeout > 0 && call.timeout <= 3000));
+});
+
+test('production Windows backend-owner identity source is provider-independent native first', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'electron', 'desktopHost', 'BackendOwnerRegistry.js'),
+    'utf8'
+  );
+
+  assert.match(source, /YanceNativeProcessIdentity/u);
+  assert.match(source, /OpenProcess/u);
+  assert.match(source, /GetProcessTimes/u);
+  assert.match(source, /QueryFullProcessImageName/u);
+  assert.match(source, /NtQueryInformationProcess/u);
+  assert.match(source, /native-win32/u);
+
+  assert.doesNotMatch(source, /Get-CimInstance Win32_Process/u);
+  assert.doesNotMatch(source, /\bexecFileSync\b/u);
+  assert.doesNotMatch(source, /\bspawnSync\b/u);
+  assert.doesNotMatch(source, /\bAtomics\.wait\s*\(/u);
 });
 
 test('production Windows backend-owner identity collection contains no synchronous child process or blocking retry sleep', () => {

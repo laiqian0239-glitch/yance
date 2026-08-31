@@ -89,12 +89,12 @@ test('orphan owner registry restores a live backend as rejected and terminates i
     assert.equal(stopped.stopped, true);
     assert.equal(stopped.exitConfirmed, true);
     assert.deepEqual(signals[0], [pid, 'SIGTERM']);
-    assert.equal(host.clearRejectedOwner(), true);
+    assert.equal(await host.clearRejectedOwner(), true);
     assert.equal(host.snapshot().ownerRegistry.state, 'RECOVERED');
   } finally { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
-test('live identity-matched rejected owner marker cannot clear before real process exit', () => {
+test('live identity-matched rejected owner marker cannot clear before real process exit', async () => {
   const dir = root();
   try {
     const file = path.join(dir, 'owner.json');
@@ -108,11 +108,11 @@ test('live identity-matched rejected owner marker cannot clear before real proce
     });
     assert.equal(host.snapshot().ownerTrusted, false);
     assert.equal(host.snapshot().rejectedOwner.childStillLive, true);
-    assert.throws(() => host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_REJECTED_OWNER_STILL_LIVE');
+    await assert.rejects(host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_REJECTED_OWNER_STILL_LIVE');
     assert.ok(host.snapshot().rejectedOwner);
     assert.notEqual(host.snapshot().ownerRegistry.state, 'RECOVERED');
     live = false;
-    assert.equal(host.clearRejectedOwner(), true);
+    assert.equal(await host.clearRejectedOwner(), true);
     assert.equal(host.snapshot().ownerRegistry.state, 'RECOVERED');
   } finally { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
@@ -136,8 +136,8 @@ test('PID reuse never kills the reused process and permits recovery of only the 
     assert.equal(stopped.stopped, false);
     assert.equal(stopped.reasonCode, 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_MISMATCH_RECOVERY_REQUIRED');
     assert.equal(signals.length, 0);
-    assert.throws(() => host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
-    assert.equal(host.clearRejectedOwner({ force: true }), true);
+    await assert.rejects(host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
+    assert.equal(await host.clearRejectedOwner({ force: true }), true);
     assert.equal(host.snapshot().ownerRegistry.state, 'RECOVERED');
   } finally { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
@@ -158,7 +158,7 @@ test('EPERM or unverifiable orphan liveness remains contained and cannot clear t
     const stopped = await host.stop({ gracefulMs: 25, forceMs: 25 });
     assert.equal(stopped.stopped, false);
     assert.match(stopped.reasonCode, /EPERM|UNVERIFIED/);
-    assert.throws(() => host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
+    await assert.rejects(host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
   } finally { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
@@ -172,13 +172,13 @@ test('corrupt owner registry is not overwritten or automatically recovered', asy
     assert.equal(host.snapshot().ownerTrusted, false);
     assert.equal(host.snapshot().ownerRegistryFailure.reasonCode, 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_INVALID');
     assert.equal(host.getApiSessionToken(), '');
-    const marker = host.containRejectedOwner({ reasonCode: 'JOURNAL_CORRUPT' });
+    const marker = await host.containRejectedOwner({ reasonCode: 'JOURNAL_CORRUPT' });
     assert.equal(marker.ownerRecordDurable, false);
     assert.equal(fs.readFileSync(file, 'utf8'), original);
     const stopped = await host.stop();
     assert.equal(stopped.stopped, false);
     assert.equal(stopped.reasonCode, 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_INVALID');
-    assert.throws(() => host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
+    await assert.rejects(host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
   } finally { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
@@ -290,8 +290,8 @@ test('persisted owner identity mismatch establishes registry recovery failure an
     const stopped = await host.stop();
     assert.equal(stopped.stopped, false);
     assert.equal(signals.length, 0);
-    assert.throws(() => host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
-    assert.equal(host.clearRejectedOwner({ force: true }), true);
+    await assert.rejects(host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
+    assert.equal(await host.clearRejectedOwner({ force: true }), true);
     assert.equal(host.snapshot().ownerRegistry.state, 'RECOVERED');
   } finally { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
@@ -312,7 +312,7 @@ test('live owner whose process identity cannot be read remains registry-failed a
     assert.equal(snapshot.ownerRegistryFailure.reasonCode, 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_UNVERIFIED_RECOVERY_REQUIRED');
     assert.equal(snapshot.rejectedOwner.childStillLive, true);
     await assert.rejects(host.start({}), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_IDENTITY_UNVERIFIED_RECOVERY_REQUIRED');
-    assert.throws(() => host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
+    await assert.rejects(host.clearRejectedOwner(), error => error.reasonCode === 'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_RECOVERY_BLOCKED');
   } finally { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
@@ -331,13 +331,13 @@ test('durable active owner proven exited still requires an explicit RECOVERED tr
     assert.equal(snapshot.ownerTrusted, false);
     assert.equal(snapshot.rejectedOwner.reasonCode, 'WP4_DESKTOP_ORPHAN_OWNER_EXIT_RECOVERY_REQUIRED');
     await assert.rejects(host.start({}), error => error.reasonCode === 'WP4_DESKTOP_REJECTED_OWNER_RECOVERY_REQUIRED');
-    assert.equal(host.clearRejectedOwner(), true);
+    assert.equal(await host.clearRejectedOwner(), true);
     assert.equal(host.snapshot().ownerRegistry.state, 'RECOVERED');
   } finally { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 
-test('Windows CIM process identity is normalized and PID reuse is distinguished by creation time and digests', () => {
+test('Windows native process identity is normalized and PID reuse is distinguished by creation time and digests', () => {
   const calls = [];
   const execFile = (command, args, options) => {
     calls.push({ command, args, options });
@@ -355,14 +355,14 @@ test('Windows CIM process identity is normalized and PID reuse is distinguished 
   assert.match(captured.commandDigest, /^[a-f0-9]{64}$/);
   assert.equal(calls.length, 1);
   assert.match(calls[0].command, /(?:^|[\\/])powershell\.exe$/i);
-  assert.match(calls[0].args.join(' '), /Get-CimInstance Win32_Process/);
+  assert.match(calls[0].args.join(' '), /YanceNativeProcessIdentity/);
   assert.equal(validateProcessIdentity(captured), true);
   assert.equal(processIdentityMatches(captured, { ...captured }), true);
   assert.equal(processIdentityMatches(captured, { ...captured, creationTimeUtc: '2026-07-04T03:01:03.1234567Z' }), false);
   assert.equal(processIdentityMatches(captured, { ...captured, commandDigest: '0'.repeat(64) }), false);
 });
 
-test('Windows process identity capture fails closed when CIM data is absent, partial, mismatched, or unreadable', () => {
+test('Windows process identity capture fails closed when authority data is absent, partial, mismatched, or unreadable', () => {
   const responses = [
     JSON.stringify({ ProcessId: 999, CreationDate: '2026-07-04T03:01:02Z', ExecutablePath: 'C:\\x.exe', CommandLine: 'x' }),
     JSON.stringify({ ProcessId: 43129, CreationDate: '', ExecutablePath: 'C:\\x.exe', CommandLine: 'x' }),
@@ -398,36 +398,56 @@ test('active persisted identity must match the configured production platform po
   assert.equal(validateOwnerRecord(win, { expectedPlatform: 'win32' }), win);
 });
 
-test('Windows process identity falls back to a bounded System.Management query when CIM collection fails', () => {
-  const calls = [];
-  const execFile = (command, args, options) => {
-    const script = args.join(' ');
-    calls.push({ command, args, options });
-    if (/Get-CimInstance Win32_Process/.test(script)) {
-      const error = new Error('CIM timed out');
-      error.code = 'ETIMEDOUT';
-      throw error;
-    }
-    if (/ManagementObjectSearcher/.test(script)) {
-      return JSON.stringify({
-        ProcessId: 43131,
-        CreationDate: '2026-08-28T11:57:57.9230000Z',
-        ExecutablePath: 'C:\\Program Files\\Yance\\backend.exe',
-        CommandLine: '"C:\\Program Files\\Yance\\backend.exe" --fd6 6'
-      });
-    }
-    throw new Error(`unexpected collector: ${script}`);
-  };
 
-  const captured = windowsProcessIdentity(43131, execFile, 'win32');
-  assert.equal(captured?.platform, 'win32');
-  assert.equal(captured?.creationTimeUtc, '2026-08-28T11:57:57.9230000Z');
-  assert.match(captured?.executablePathDigest || '', /^[a-f0-9]{64}$/);
-  assert.match(captured?.commandDigest || '', /^[a-f0-9]{64}$/);
+test('Windows process identity succeeds through provider-independent native authority without WMI', () => {
+  const calls = [];
+
+  const captured = windowsProcessIdentity(43130, (command, args, options) => {
+    const script = args.join(' ');
+    calls.push({ command, script, options });
+
+    assert.match(script, /YanceNativeProcessIdentity/);
+    assert.doesNotMatch(script, /Get-CimInstance Win32_Process/);
+    assert.doesNotMatch(script, /ManagementObjectSearcher/);
+
+    return JSON.stringify({
+      ProcessId: 43130,
+      CreationDate: '2026-08-31T07:00:00.1234567Z',
+      ExecutablePath: 'C:\\Program Files\\Yance\\runtime\\node.exe',
+      CommandLine: '"C:\\Program Files\\Yance\\runtime\\node.exe" backend.js'
+    });
+  }, 'win32');
+
+  assert.equal(calls.length, 1);
+  assert.equal(captured.platform, 'win32');
   assert.equal(validateProcessIdentity(captured), true);
-  assert.ok(calls.length >= 2, 'collector must attempt a fallback after primary CIM failure');
-  assert.match(calls[0].args.join(' '), /Get-CimInstance Win32_Process/);
-  assert.ok(calls.some(call => /ManagementObjectSearcher/.test(call.args.join(' '))), 'fallback must use System.Management Win32_Process authority');
-  assert.ok(calls.every(call => Number(call.options?.timeout) > 0 && Number(call.options.timeout) <= 5000), 'every OS query must have a strict timeout');
-  assert.ok(calls.length <= 8, 'identity collection must stay bounded');
+  assert.match(captured.executablePathDigest, /^[a-f0-9]{64}$/);
+  assert.match(captured.commandDigest, /^[a-f0-9]{64}$/);
+  assert.ok(calls[0].options.timeout > 0 && calls[0].options.timeout <= 3000);
+});
+
+test('Windows process identity remains fail closed when native and WMI authority both fail', () => {
+  const calls = [];
+
+  const captured = windowsProcessIdentity(43132, (command, args, options) => {
+    const script = args.join(' ');
+    calls.push({ script, options });
+
+    const error = new Error('collector unavailable');
+    error.code = 'ETIMEDOUT';
+    throw error;
+  }, 'win32');
+
+  assert.equal(captured, null);
+  assert.equal(calls.length, 2);
+
+  assert.match(calls[0].script, /YanceNativeProcessIdentity/);
+  assert.doesNotMatch(calls[0].script, /Win32_Process/);
+
+  assert.match(calls[1].script, /ManagementObjectSearcher/);
+
+  assert.ok(calls.every(call =>
+    Number(call.options.timeout) > 0 &&
+    Number(call.options.timeout) <= 3000
+  ));
 });

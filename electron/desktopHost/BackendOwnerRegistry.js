@@ -205,8 +205,11 @@ function linuxProcessIdentity(pid, fsApi = fs) {
 function windowsProcessIdentity(pid, execFileImpl = null, platform = process.platform) {
   const debugLog = (msg, data) => {
     try {
-      const logDir = path.join(process.env.APPDATA || process.env.HOME || '.', 'Yance', 'debug');
-      const logPath = path.join(logDir, 'windowsProcessIdentity_debug.jsonl');
+      const dataRoot = process.env.YANCE_DATA_DIR
+        ? path.resolve(process.env.YANCE_DATA_DIR)
+        : path.join(process.env.APPDATA || process.env.HOME || '.', 'Yance');
+      const logDir = path.join(dataRoot, process.env.YANCE_DATA_DIR ? 'logs' : 'debug');
+      const logPath = path.join(logDir, 'windows-process-identity.jsonl');
       const entry = `${JSON.stringify({ timestamp: new Date().toISOString(), msg, data })}\n`;
       fs.promises.mkdir(logDir, { recursive: true })
         .then(() => fs.promises.appendFile(logPath, entry, 'utf8'))
@@ -225,41 +228,187 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     return null;
   }
 
-  const cimScript = [
-    `$p = Get-CimInstance Win32_Process -Filter "ProcessId = ${value}" -ErrorAction Stop`,
-    'if ($null -eq $p) { exit 3 }',
-    '$o = [ordered]@{ ProcessId = [int]$p.ProcessId; CreationDate = $p.CreationDate.ToUniversalTime().ToString("o"); ExecutablePath = [string]$p.ExecutablePath; CommandLine = [string]$p.CommandLine }',
-    '$o | ConvertTo-Json -Compress'
-  ].join('; ');
+  // Native Windows process identity authority.
+  //
+  // Source adaptation:
+  // - Microsoft vscode-windows-process-tree process_commandline.cc (MIT):
+  //   OpenProcess / NtQueryInformationProcess native process inspection.
+  // - giampaolo/psutil Windows proc.c (BSD-style):
+  //   PROCESS_QUERY_LIMITED_INFORMATION / GetProcessTimes identity pattern.
+  //
+  // This remains a thin adapter around the existing Yance identity schema.
+  const nativeScript = [
+    '$source = @"',
+    'using System;',
+    'using System.ComponentModel;',
+    'using System.Runtime.InteropServices;',
+    'using System.Text;',
+    '',
+    'public sealed class YanceNativeProcessIdentityResult {',
+    '  public int ProcessId { get; set; }',
+    '  public string CreationDate { get; set; }',
+    '  public string ExecutablePath { get; set; }',
+    '  public string CommandLine { get; set; }',
+    '}',
+    '',
+    'public static class YanceNativeProcessIdentity {',
+    '  private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;',
+    '  private const int ProcessCommandLineInformation = 60;',
+    '',
+    '  [StructLayout(LayoutKind.Sequential)]',
+    '  private struct FILETIME {',
+    '    public uint Low;',
+    '    public uint High;',
+    '  }',
+    '',
+    '  [StructLayout(LayoutKind.Sequential)]',
+    '  private struct UNICODE_STRING {',
+    '    public ushort Length;',
+    '    public ushort MaximumLength;',
+    '    public IntPtr Buffer;',
+    '  }',
+    '',
+    '  [DllImport("kernel32.dll", SetLastError = true)]',
+    '  private static extern IntPtr OpenProcess(uint access, bool inherit, int pid);',
+    '',
+    '  [DllImport("kernel32.dll", SetLastError = true)]',
+    '  private static extern bool CloseHandle(IntPtr handle);',
+    '',
+    '  [DllImport("kernel32.dll", SetLastError = true)]',
+    '  private static extern bool GetProcessTimes(',
+    '    IntPtr process,',
+    '    out FILETIME creation,',
+    '    out FILETIME exit,',
+    '    out FILETIME kernel,',
+    '    out FILETIME user);',
+    '',
+    '  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "QueryFullProcessImageNameW")]',
+    '  private static extern bool QueryFullProcessImageName(',
+    '    IntPtr process, uint flags, StringBuilder imageName, ref uint size);',
+    '',
+    '  [DllImport("ntdll.dll")]',
+    '  private static extern int NtQueryInformationProcess(',
+    '    IntPtr process,',
+    '    int informationClass,',
+    '    IntPtr information,',
+    '    uint informationLength,',
+    '    out uint returnLength);',
+    '',
+    '  public static YanceNativeProcessIdentityResult Read(int pid) {',
+    '    IntPtr handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);',
+    '    if (handle == IntPtr.Zero) {',
+    '      throw new Win32Exception(Marshal.GetLastWin32Error());',
+    '    }',
+    '',
+    '    try {',
+    '      FILETIME creation, exit, kernel, user;',
+    '      if (!GetProcessTimes(handle, out creation, out exit, out kernel, out user)) {',
+    '        throw new Win32Exception(Marshal.GetLastWin32Error());',
+    '      }',
+    '',
+    '      StringBuilder image = new StringBuilder(32768);',
+    '      uint imageSize = (uint)image.Capacity;',
+    '      if (!QueryFullProcessImageName(handle, 0, image, ref imageSize)) {',
+    '        throw new Win32Exception(Marshal.GetLastWin32Error());',
+    '      }',
+    '',
+    '      uint required = 0;',
+    '      NtQueryInformationProcess(',
+    '        handle, ProcessCommandLineInformation, IntPtr.Zero, 0, out required);',
+    '',
+    '      if (required < (uint)Marshal.SizeOf(typeof(UNICODE_STRING))) {',
+    '        throw new InvalidOperationException("Native command-line query size unavailable");',
+    '      }',
+    '',
+    '      IntPtr buffer = Marshal.AllocHGlobal((int)required);',
+    '      try {',
+    '        int status = NtQueryInformationProcess(',
+    '          handle, ProcessCommandLineInformation, buffer, required, out required);',
+    '',
+    '        if (status < 0) {',
+    '          throw new InvalidOperationException(',
+    '            "NtQueryInformationProcess failed with status 0x" + status.ToString("X8"));',
+    '        }',
+    '',
+    '        UNICODE_STRING command = (UNICODE_STRING)Marshal.PtrToStructure(',
+    '          buffer, typeof(UNICODE_STRING));',
+    '',
+    '        if (command.Buffer == IntPtr.Zero || command.Length == 0) {',
+    '          throw new InvalidOperationException("Native command line is empty");',
+    '        }',
+    '',
+    '        string commandLine = Marshal.PtrToStringUni(',
+    '          command.Buffer, command.Length / 2);',
+    '',
+    '        if (String.IsNullOrWhiteSpace(commandLine)) {',
+    '          throw new InvalidOperationException("Native command line is unreadable");',
+    '        }',
+    '',
+    '        ulong rawCreation = ((ulong)creation.High << 32) | creation.Low;',
+    '',
+    '        return new YanceNativeProcessIdentityResult {',
+    '          ProcessId = pid,',
+    '          CreationDate = DateTime.FromFileTimeUtc((long)rawCreation).ToString("o"),',
+    '          ExecutablePath = image.ToString(),',
+    '          CommandLine = commandLine',
+    '        };',
+    '      } finally {',
+    '        Marshal.FreeHGlobal(buffer);',
+    '      }',
+    '    } finally {',
+    '      CloseHandle(handle);',
+    '    }',
+    '  }',
+    '}',
+    '"@',
+    'Add-Type -TypeDefinition $source -Language CSharp -ErrorAction Stop',
+    '$p = [YanceNativeProcessIdentity]::Read(' + value + ')',
+    '$p | ConvertTo-Json -Compress'
+  ].join('\n');
+
   const managementScript = [
     'Add-Type -AssemblyName System.Management -ErrorAction Stop',
-    `$searcher = [System.Management.ManagementObjectSearcher]::new("SELECT ProcessId, CreationDate, ExecutablePath, CommandLine FROM Win32_Process WHERE ProcessId = ${value}")`,
+    '$searcher = [System.Management.ManagementObjectSearcher]::new("SELECT ProcessId, CreationDate, ExecutablePath, CommandLine FROM Win32_Process WHERE ProcessId = ' + value + '")',
     '$results = $null',
     'try { $results = $searcher.Get(); $p = $results | Select-Object -First 1; if ($null -eq $p) { exit 3 }; $creation = [System.Management.ManagementDateTimeConverter]::ToDateTime([string]$p.CreationDate).ToUniversalTime().ToString("o"); $o = [ordered]@{ ProcessId = [int]$p.ProcessId; CreationDate = $creation; ExecutablePath = [string]$p.ExecutablePath; CommandLine = [string]$p.CommandLine }; $o | ConvertTo-Json -Compress } finally { if ($null -ne $results) { $results.Dispose() }; if ($null -ne $searcher) { $searcher.Dispose() } }'
   ].join('; ');
+
   const powershellPath = process.env.SystemRoot
     ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
     : 'powershell.exe';
   const commandArgs = script => ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script];
-  const cimExecOptions = { encoding: 'utf8', windowsHide: true, timeout: 5000, maxBuffer: 1024 * 1024 };
-  const managementExecOptions = { encoding: 'utf8', windowsHide: true, timeout: 2500, maxBuffer: 1024 * 1024 };
+  const nativeExecOptions = {
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 3000,
+    maxBuffer: 1024 * 1024
+  };
+  const managementExecOptions = {
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 2500,
+    maxBuffer: 1024 * 1024
+  };
 
-  const configuredAttempts = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_ATTEMPTS || 3);
-  const configuredDelay = Number(process.env.YANCE_WIN_PROCESS_IDENTITY_RETRY_MS || 125);
-  const maxAttempts = Math.min(8, Math.max(1, Number.isFinite(configuredAttempts) ? Math.trunc(configuredAttempts) : 3));
-  const delayMs = Math.min(1000, Math.max(0, Number.isFinite(configuredDelay) ? Math.trunc(configuredDelay) : 125));
+  const maxAttempts = 2;
+  const delayMs = 0;
+
   const collectors = [
-    { authority: 'cim', args: commandArgs(cimScript), options: cimExecOptions },
-    ...Array.from({ length: Math.max(0, maxAttempts - 1) }, () => ({
+    {
+      authority: 'native-win32',
+      args: commandArgs(nativeScript),
+      options: nativeExecOptions
+    },
+    {
       authority: 'system-management',
       args: commandArgs(managementScript),
       options: managementExecOptions
-    }))
+    }
   ];
 
   const parseRaw = (raw, attempt, authority) => {
     const text = String(raw || '').trim();
-    debugLog('PowerShell output', { attempt, authority, raw: text.slice(0, 500) });
+    debugLog('collector output received', { attempt, authority, bytes: Buffer.byteLength(text, 'utf8') });
     const row = JSON.parse(text);
     if (Number(row.ProcessId) !== value || !nonEmptyString(row.CreationDate) || !nonEmptyString(row.ExecutablePath) || !nonEmptyString(row.CommandLine)) {
       const error = new Error('Windows process identity row is incomplete or mismatched');
@@ -272,21 +421,18 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
       executablePathDigest: sha256(String(row.ExecutablePath).toLowerCase()),
       commandDigest: sha256(row.CommandLine)
     };
-    debugLog('returning result', { attempt, authority, result });
+    debugLog('collector identity accepted', { attempt, authority, identityComplete: true });
     return result;
   };
 
   const logFailure = (attempt, authority, error) => {
-    debugLog('PowerShell execution failed', {
+    debugLog('Windows identity collector failed', {
       attempt,
       authority,
       name: error?.name || '',
-      message: error?.message || '',
       code: error?.code || '',
       status: error?.status ?? null,
-      signal: error?.signal || '',
-      stdout: String(error?.stdout || '').slice(0, 500),
-      stderr: String(error?.stderr || '').slice(0, 500)
+      signal: error?.signal || ''
     });
   };
 
@@ -309,8 +455,10 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     debugLog('returning null after injected collector attempts', {
       pid: value,
       attempts: collectors.length,
-      lastError: lastError ? { message: lastError.message || '', code: lastError.code || '', status: lastError.status ?? null } : null,
-      lastRaw: lastRaw.slice(0, 500)
+      lastError: lastError ? {
+        code: lastError.code || '',
+        status: lastError.status ?? null
+      } : null
     });
     return null;
   }
@@ -345,8 +493,10 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     debugLog('returning null after async collector attempts', {
       pid: value,
       attempts: collectors.length,
-      lastError: lastError ? { message: lastError.message || '', code: lastError.code || '', status: lastError.status ?? null } : null,
-      lastRaw: lastRaw.slice(0, 500)
+      lastError: lastError ? {
+        code: lastError.code || '',
+        status: lastError.status ?? null
+      } : null
     });
     return null;
   })();
