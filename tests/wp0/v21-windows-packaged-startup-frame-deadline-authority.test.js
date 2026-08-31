@@ -25,8 +25,32 @@ test('packaged backend startup-frame wait consumes the authoritative Electron li
 
   assert.match(
     registrySource,
-    /timeout:\s*5000[\s\S]*configuredAttempts[\s\S]*Math\.min\(8,/u,
-    'Windows owner identity acquisition remains a bounded asynchronous pre-frame operation that can legitimately exceed 10s'
+    /const nativeExecOptions = \{[\s\S]*timeout:\s*3000,/u,
+    'Windows owner identity must use the bounded native Win32 collector first'
+  );
+
+  assert.match(
+    registrySource,
+    /const managementExecOptions = \{[\s\S]*timeout:\s*2500,/u,
+    'Windows owner identity may retain one bounded System.Management compatibility fallback'
+  );
+
+  assert.match(
+    registrySource,
+    /authority:\s*'native-win32'[\s\S]*authority:\s*'system-management'/u,
+    'Windows owner identity must preserve provider-independent native-first authority ordering'
+  );
+
+  assert.match(
+    registrySource,
+    /const maxAttempts = 2;[\s\S]*const delayMs = 0;/u,
+    'Windows owner identity must remain bounded to two collectors with no retry delay'
+  );
+
+  assert.doesNotMatch(
+    registrySource,
+    /configuredAttempts|Math\.min\(8|Get-CimInstance\s+Win32_Process/u,
+    'retired multi-attempt WMI authority must not return to the pre-frame path'
   );
 
   assert.match(
