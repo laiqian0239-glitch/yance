@@ -88,6 +88,13 @@ function createStoreCapability(store) {
       return (...args) => {
         assertCurrentStore(store);
         const result = Reflect.apply(value, store, args);
+        if (result && typeof result.then === 'function') {
+          return Promise.resolve(result).then(resolved =>
+            resolved === store
+              ? capability
+              : immutableValue(resolved)
+          );
+        }
         return result === store ? capability : immutableValue(result);
       };
     },

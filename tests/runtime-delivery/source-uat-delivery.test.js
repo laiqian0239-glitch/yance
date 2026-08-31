@@ -354,13 +354,15 @@ test('source UAT authority retries npm installation and rejects incomplete depen
 test('Windows source UAT defaults to software rendering without changing installed production policy', () => {
   const launcher = fs.readFileSync(path.join(repoRoot, 'tools/runtime-delivery/start-source-uat.js'), 'utf8');
   const main = fs.readFileSync(path.join(repoRoot, 'electron/main.js'), 'utf8');
+  const policy = fs.readFileSync(path.join(repoRoot, 'electron/gpuSoftwareRenderingPolicy.js'), 'utf8');
   assert.match(launcher, /const softwareRendering = process\.env\.YANCE_DISABLE_GPU !== '0'/u);
   assert.match(launcher, /YANCE_DISABLE_GPU:\s*softwareRendering \? '1' : '0'/u);
-  assert.match(main, /SOURCE_UAT_SOFTWARE_RENDERING/u);
-  assert.match(main, /process\.env\.YANCE_SOURCE_UAT === '1'/u);
+  assert.match(main, /resolveSoftwareRenderingPolicy/u);
   assert.match(main, /app\.disableHardwareAcceleration\(\)/u);
   assert.match(main, /appendSwitch\('disable-gpu'\)/u);
-  assert.match(main, /YANCE_ENABLE_HARDWARE_ACCELERATION/u);
+  assert.match(policy, /env\.YANCE_SOURCE_UAT === '1'/u);
+  assert.match(policy, /env\.YANCE_ENABLE_HARDWARE_ACCELERATION === '1'/u);
+  assert.match(policy, /env\.YANCE_DISABLE_GPU !== '0'/u);
 });
 
 

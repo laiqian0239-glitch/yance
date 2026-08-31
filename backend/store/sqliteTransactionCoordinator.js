@@ -108,23 +108,39 @@ class SqliteTransactionCoordinator {
     if (current) return this._queueNestedAsync(work, current);
 
     this.pendingAsyncRoots += 1;
-    const execute = async () => {
+    const execute = () => {
       let frame = null;
       let context = null;
       try {
         frame = this._beginFrame({ nested: false, operation: 'runAsync' });
         context = { coordinator: this, frame, async: true, active: true, parent: null, nestedTail: Promise.resolve(), firstNestedError: null };
-        const result = await this.storage.run(context, work);
-        await context.nestedTail;
-        if (context.firstNestedError) throw context.firstNestedError;
-        this._commitFrame(frame);
-        return result;
+        const initialNestedTail = context.nestedTail;
+        const result = this.storage.run(context, work);
+        const returnedPromise = Boolean(result && typeof result.then === 'function');
+        const scheduledNestedWork = context.nestedTail !== initialNestedTail;
+        if (!returnedPromise && !scheduledNestedWork) {
+          this._commitFrame(frame);
+          this._finishFrame(context);
+          this.pendingAsyncRoots = Math.max(0, this.pendingAsyncRoots - 1);
+          return result;
+        }
+        return Promise.resolve(result).then(async value => {
+          await context.nestedTail;
+          if (context.firstNestedError) throw context.firstNestedError;
+          this._commitFrame(frame);
+          return value;
+        }).catch(error => {
+          this._rollbackFrame(frame);
+          throw error;
+        }).finally(() => {
+          this._finishFrame(context);
+          this.pendingAsyncRoots = Math.max(0, this.pendingAsyncRoots - 1);
+        });
       } catch (error) {
         if (frame) this._rollbackFrame(frame);
-        throw error;
-      } finally {
         if (context) this._finishFrame(context);
         this.pendingAsyncRoots = Math.max(0, this.pendingAsyncRoots - 1);
+        throw error;
       }
     };
 

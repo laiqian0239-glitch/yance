@@ -38,7 +38,7 @@ function immutable(value) {
 
 function shallowEqual(left, right) {
   if (Object.is(left, right)) return true;
-  if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false;
+  if (!left || typeof left !== 'object' || !right || typeof right !== 'object') return false;
   const leftKeys = Object.keys(left);
   const rightKeys = Object.keys(right);
   if (leftKeys.length !== rightKeys.length) return false;
@@ -117,6 +117,17 @@ function normalizeEvents(events, fallbackType) {
     changedPaths: Array.isArray(event.changedPaths) ? [...new Set(event.changedPaths.map(clean).filter(Boolean))] : [],
     priority: ['critical', 'high', 'normal', 'low'].includes(clean(event.priority).toLowerCase()) ? clean(event.priority).toLowerCase() : 'normal'
   })).filter(event => event.type);
+}
+
+function assertSynchronousPersistenceResult(value, phase) {
+  if (value && typeof value.then === 'function') {
+    throw new StoreManagerError(
+      'STORE_PERSISTENCE_ASYNC_TRANSACTION_UNSUPPORTED',
+      `Store persistence ${phase} returned a Promise inside a synchronous SQLite transaction`,
+      { phase }
+    );
+  }
+  return value;
 }
 
 class StoreManager {
@@ -313,37 +324,37 @@ class StoreManager {
       .map(event => this._createEvent(event, command, this.stateVersion, nextVersion));
 
     const ephemeral = plan.ephemeral === true;
-    const persist = async transaction => {
+    const persist = transaction => {
       if (typeof plan.persist === 'function') {
         executionContext?.assertCurrent?.();
-        await plan.persist(transaction, {
+        assertSynchronousPersistenceResult(plan.persist(transaction, {
           command,
           previousState: previous,
           nextState: frozenCandidate,
           stateVersion: nextVersion,
           transactionId,
           events
-        });
+        }), 'plan.persist');
       }
       executionContext?.assertCurrent?.();
       if (typeof transaction?.appendStoreEvents === 'function') {
-        await transaction.appendStoreEvents(events);
+        assertSynchronousPersistenceResult(transaction.appendStoreEvents(events), 'appendStoreEvents');
       }
       if (typeof transaction?.persistStoreMeta === 'function') {
-        await transaction.persistStoreMeta({
+        assertSynchronousPersistenceResult(transaction.persistStoreMeta({
           stateVersion: nextVersion,
           domainVersions: frozenCandidate.meta.domainVersions,
           transactionId
-        });
+        }), 'persistStoreMeta');
       }
       executionContext?.assertCurrent?.();
     };
 
-    // Typing/presence is authoritative in memory but intentionally ephemeral.
-    // It must not create SQLite write amplification or survive a restart.
+    // DatabaseSync writes must complete inside a short synchronous SQLite transaction.
+    // Async preparation belongs outside this boundary; returning a Promise fails closed above.
     if (!ephemeral) {
       if (this._persistence?.transaction) await this._persistence.transaction(persist, { transactionId, command });
-      else await persist(null);
+      else persist(null);
     }
 
     executionContext?.assertCurrent?.();
@@ -420,5 +431,6 @@ module.exports = {
   createInitialState,
   deepFreeze,
   immutable,
-  shallowEqual
+  shallowEqual,
+  assertSynchronousPersistenceResult
 };

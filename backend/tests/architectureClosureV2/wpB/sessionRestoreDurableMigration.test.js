@@ -283,3 +283,117 @@ test('M2-SES-007 startup composition binds the session restore operation and dur
   assert.match(composition, /requestSessionRestore|prepareSessionRestore/u);
   assert.doesNotMatch(composition, /startup\.restoreSession[^\n]+facade\.auth\.execute/iu);
 });
+
+test('M2-SES-008 startup skips credentialless legacy account projections instead of failing server import', () => {
+  let executionCalls = 0;
+  let intentCalls = 0;
+  const legacyAccount = Object.freeze({
+    id: 'legacy-acct:uat:1',
+    platform: 'whatsapp',
+    lifecycleState: 'active',
+    credentialRef: '',
+    sessionGeneration: 1,
+    metadata: Object.freeze({ source: 'legacy-sqlite' })
+  });
+  const manager = new AccountManager({
+    accountList: () => Object.freeze([legacyAccount]),
+    accountReader: id => id === legacyAccount.id ? legacyAccount : null,
+    durableExecutionAuthority: Object.freeze({
+      createExecution() { executionCalls += 1; throw new Error('credentialless legacy account must not schedule restore'); }
+    }),
+    outboxAuthority: Object.freeze({
+      createIntent() { intentCalls += 1; throw new Error('credentialless legacy account must not schedule restore'); }
+    })
+  });
+
+  const result = manager.requestPersistedSessionRestores();
+  assert.deepEqual(result, []);
+  assert.equal(executionCalls, 0);
+  assert.equal(intentCalls, 0);
+  assert.equal(Object.isFrozen(result), true);
+});
+
+test('M2-SES-009 startup still schedules a lifecycle-eligible credential-bearing account', () => {
+  const calls = [];
+  const account = Object.freeze({
+    id: 'account-restorable-1',
+    platform: 'telegram',
+    lifecycleState: 'active',
+    credentialRef: 'credential-restorable-1',
+    sessionGeneration: 2,
+    sessionReference: 'session-restorable-2',
+    metadata: Object.freeze({})
+  });
+  const manager = new AccountManager({
+    accountList: () => Object.freeze([account]),
+    accountReader: id => id === account.id ? account : null,
+    durableExecutionAuthority: Object.freeze({
+      createExecution(input) {
+        calls.push(['execution', input.command.credentialReference]);
+        return Object.freeze({ executionId: 'execution-restorable-1' });
+      }
+    }),
+    outboxAuthority: Object.freeze({
+      createIntent(input) {
+        calls.push(['intent', input.payload.credentialReference]);
+        return Object.freeze({ intentId: 'intent-restorable-1' });
+      }
+    }),
+    issueTimestamp: purpose => purpose.endsWith('execution')
+      ? '2026-08-30T11:00:00.000Z'
+      : '2026-08-30T11:00:01.000Z'
+  });
+
+  const result = manager.requestPersistedSessionRestores();
+  assert.equal(result.length, 1);
+  assert.deepEqual(calls, [
+    ['execution', 'credential-restorable-1'],
+    ['intent', 'credential-restorable-1']
+  ]);
+});
+
+test('M2-SES-010 explicit restore without credential reference remains fail-closed', () => {
+  const account = Object.freeze({
+    id: 'legacy-acct:no-credential',
+    platform: 'whatsapp',
+    lifecycleState: 'active',
+    credentialRef: '',
+    metadata: Object.freeze({})
+  });
+  const manager = new AccountManager({
+    accountReader: id => id === account.id ? account : null
+  });
+
+  assert.throws(
+    () => manager.requestSessionRestore({ accountId: account.id, requestedSessionGeneration: 1 }),
+    error => error?.code === 'WP_B_SESSION_RESTORE_FIELD_REQUIRED' && error?.field === 'credentialReference'
+  );
+});
+
+test('M2-SES-011 startup honors canonical lifecycle eligibility before scheduling restore', () => {
+  let executionCalls = 0;
+  const accounts = Object.freeze([
+    Object.freeze({
+      id: 'account-pending-auth', platform: 'telegram', lifecycleState: 'pending-auth',
+      credentialRef: 'credential-pending', sessionGeneration: 1, metadata: Object.freeze({})
+    }),
+    Object.freeze({
+      id: 'account-no-reconnect', platform: 'telegram', lifecycleState: 'active', autoReconnect: false,
+      credentialRef: 'credential-no-reconnect', sessionGeneration: 1, metadata: Object.freeze({})
+    })
+  ]);
+  const manager = new AccountManager({
+    accountList: () => accounts,
+    accountReader: id => accounts.find(account => account.id === id) || null,
+    durableExecutionAuthority: Object.freeze({
+      createExecution() { executionCalls += 1; throw new Error('lifecycle-ineligible account must not schedule restore'); }
+    }),
+    outboxAuthority: Object.freeze({
+      createIntent() { throw new Error('lifecycle-ineligible account must not schedule restore'); }
+    })
+  });
+
+  const result = manager.requestPersistedSessionRestores();
+  assert.deepEqual(result, []);
+  assert.equal(executionCalls, 0);
+});

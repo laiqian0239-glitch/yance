@@ -4,7 +4,7 @@ const eventBus = require('./eventBus');
 const logger = require('./logger');
 const workspaceData = require('./workspaceDataService');
 const { configureStoreManager, getStoreManager } = require('../store/storeManagerSingleton');
-const { SqliteStorePersistenceAdapter } = require('../store/adapters/SqliteStorePersistenceAdapter');
+const { SynchronousSqliteStorePersistenceAdapter } = require('../store/adapters/SynchronousSqliteStorePersistenceAdapter');
 const { registerAiReplyCommands } = require('../store/commands/registerAiReplyCommands');
 const { registerSocialIntelligenceCommands } = require('../store/commands/registerSocialIntelligenceCommands');
 const { registerRuntimeStateCommands } = require('../store/commands/registerRuntimeStateCommands');
@@ -56,7 +56,7 @@ async function initialize(options = {}) {
   if (started) return getStoreManager();
   if (initializing) return initializing;
   initializing = (async () => {
-    const persistence = options.persistence || new SqliteStorePersistenceAdapter(options.persistenceOptions);
+    const persistence = options.persistence || new SynchronousSqliteStorePersistenceAdapter(options.persistenceOptions);
     const storeManager = configureStoreManager({
       persistence,
       logger,

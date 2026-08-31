@@ -202,6 +202,27 @@ test('SQLite async writes are serialized and nested async work does not issue a 
   db.close();
 });
 
+test('queued synchronous SQLite work commits before a later synchronous authority write can enter', async () => {
+  const db = new DatabaseSync(':memory:');
+  db.exec('CREATE TABLE fast_path(value TEXT NOT NULL) STRICT');
+  const tx = new SqliteTransactionCoordinator(db);
+
+  const queued = tx.runAsync(() => {
+    db.prepare('INSERT INTO fast_path(value) VALUES(?)').run('queued');
+  });
+  await Promise.resolve();
+
+  assert.equal(tx.snapshot().depth, 0);
+  tx.runSync(() => db.prepare('INSERT INTO fast_path(value) VALUES(?)').run('authority'));
+  await queued;
+
+  assert.deepEqual(
+    db.prepare('SELECT value FROM fast_path ORDER BY rowid').all().map(row => row.value),
+    ['queued', 'authority']
+  );
+  db.close();
+});
+
 test('connect/reconnect/pause/resume/logout expose one stable account layer', async () => {
   const calls = [];
   const manager = {

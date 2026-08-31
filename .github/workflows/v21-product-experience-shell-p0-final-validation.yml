@@ -38,7 +38,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v12' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v13' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
-        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0'
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
+        github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2'
       )
     runs-on: windows-latest
     env:
@@ -161,7 +162,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v12' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v13' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
-        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0'
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
+        github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -692,7 +694,8 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v12' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v13' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
-        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0'
+        github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
+        github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120

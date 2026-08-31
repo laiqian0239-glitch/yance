@@ -177,7 +177,7 @@ function get(id) {
 async function create(input) {
   const store = getStore();
   let created;
-  await store.transactionAsync(async () => {
+  await store.transactionAsync(() => {
     const state = readState(store);
     created = sanitizeAccount(input);
     if (store.db.prepare('SELECT 1 FROM r32_accounts WHERE id=?').get(created.id)) {
@@ -194,7 +194,7 @@ async function create(input) {
 async function update(id, patch) {
   const store = getStore();
   let updated;
-  await store.transactionAsync(async () => {
+  await store.transactionAsync(() => {
     const state = readState(store);
     const before = listWithStore(store).find(row => row.id === id);
     if (!before) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
@@ -209,7 +209,7 @@ async function update(id, patch) {
 async function promoteAuthorizationTx(id, patch = {}) {
   const store = getStore();
   let updated;
-  await store.transactionAsync(async () => {
+  await store.transactionAsync(() => {
     const state = readState(store);
     const before = listWithStore(store).find(row => row.id === id);
     if (!before) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
@@ -237,7 +237,7 @@ async function promoteAuthorizationTx(id, patch = {}) {
 async function commitConnectedIdentityTx(id, patch = {}, detail = {}) {
   const store = getStore();
   let updated;
-  await store.transactionAsync(async () => {
+  await store.transactionAsync(() => {
     const state = readState(store);
     const before = listWithStore(store, { includeAliases: true }).find(row => row.id === id);
     if (!before) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
@@ -283,7 +283,7 @@ async function commitConnectedIdentityTx(id, patch = {}, detail = {}) {
 async function commitLifecycleTx(id, patch = {}, audit = {}) {
   const store = getStore();
   let updated;
-  await store.transactionAsync(async () => {
+  await store.transactionAsync(() => {
     const state = readState(store);
     const before = listWithStore(store, { includeAliases: true }).find(row => row.id === id);
     if (!before) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
@@ -298,7 +298,7 @@ async function commitLifecycleTx(id, patch = {}, audit = {}) {
 async function tombstone(id, detail = {}) {
   const store = getStore();
   let removed;
-  await store.transactionAsync(async () => {
+  await store.transactionAsync(() => {
     const state = readState(store);
     const before = listWithStore(store, { includeAliases: true }).find(row => row.id === id);
     if (!before) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
@@ -324,7 +324,7 @@ async function tombstone(id, detail = {}) {
 async function remove(id) {
   const store = getStore();
   let removed;
-  await store.transactionAsync(async () => {
+  await store.transactionAsync(() => {
     const state = readState(store);
     removed = listWithStore(store).find(row => row.id === id);
     if (!removed) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
@@ -341,7 +341,7 @@ async function remove(id) {
 
 async function setDefault(platform, id) {
   const store = getStore();
-  await store.transactionAsync(async () => {
+  await store.transactionAsync(() => {
     const accounts = listWithStore(store);
     const account = accounts.find(row => row.id === id);
     if (!account || account.platform !== platform) {
@@ -361,7 +361,7 @@ async function setDefault(platform, id) {
 async function bindConversation(conversationId, accountId, platform, externalConversationId = '') {
   const store = getStore();
   let binding;
-  await store.transactionAsync(async () => {
+  await store.transactionAsync(() => {
     const normalizedConversationId = String(conversationId || '').trim();
     const normalizedAccountId = String(accountId || '').trim();
     const normalizedPlatform = String(platform || '').trim().toLowerCase();
@@ -426,7 +426,7 @@ async function bindConversation(conversationId, accountId, platform, externalCon
 
 async function record(action, detail) {
   const store = getStore();
-  await store.transactionAsync(async () => {
+  await store.transactionAsync(() => {
     const state = readState(store);
     addAudit(state, action, detail);
     writeState(store, state);

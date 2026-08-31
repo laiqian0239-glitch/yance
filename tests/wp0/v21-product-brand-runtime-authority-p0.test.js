@@ -43,3 +43,33 @@ test('product workspace mounts a visible brand preview surface', () => {
   assert.equal(exists('integration/element-module/src/BrandPreviewSurface.css'), true);
   assert.match(workspace, /BrandPreviewSurface/u);
 });
+
+test('Yance login owns final product visual authority while preserving Element auth authority', () => {
+  const moduleIndex = read('integration/element-module/src/index.tsx');
+  const login = read('integration/element-module/src/YanceLogin.tsx');
+  const styles = read('integration/element-module/src/YanceLogin.css');
+
+  assert.match(login, /data-yance-login-authority="v2"/u);
+  assert.match(login, /data-yance-login-form-host="element-auth"/u);
+  assert.match(login, /欢迎回来/u);
+  assert.match(login, /让每一次沟通/u);
+  assert.match(login, /yance-login-card/u);
+
+  assert.match(styles, /\.yance-login-auth \.mx_AuthPage\s*\{/u);
+  assert.match(styles, /\.yance-login-auth \.mx_AuthHeader,[\s\S]*?display:\s*none\s*!important/u);
+  assert.match(styles, /\.yance-login-auth \.mx_AuthPage_modalBlur\s*\{[\s\S]*?display:\s*none\s*!important/u);
+  assert.match(styles, /\.yance-login-auth \.mx_AuthBody\s*\{/u);
+  assert.match(styles, /\.yance-login-auth \.mx_Login_submit/u);
+  assert.match(styles, /#2a0f4a/iu);
+
+  assert.match(
+    moduleIndex,
+    /registerLoginComponent\s*\([\s\S]*?originalComponent\(props\)/u
+  );
+
+  // Authentication remains on Element's reviewed login implementation.
+  assert.doesNotMatch(login, /fetch\s*\(/u);
+  assert.doesNotMatch(login, /_matrix\/client/u);
+  assert.doesNotMatch(login, /m\.login\.password/u);
+  assert.doesNotMatch(login, /accessToken/u);
+});
