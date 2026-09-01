@@ -56,6 +56,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'product/v21-product-prelaunch-relationship-tool-portal-route-closure-successor-p0',
     'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1',
     'fix/v21-electron-supported-runtime-p0-production-amendment-5',
+    'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2',
     'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0',
     'fix/v21-final-rc-materialized-matrix-runtime-state-p0',
     'fix/v21-product-experience-windows-uat-startup-p0',
@@ -321,4 +322,17 @@ test('Product Final boots the exact materialized Matrix image-only candidate to 
   assert.match(matrix, /down --volumes --remove-orphans/u);
   assert.match(matrix, /GREEN: exact materialized Matrix runtime reached real readiness before seal/u);
   assert.doesNotMatch(matrix, /docker compose[^\n]*\sbuild(?:\s|$)/u);
+});
+test('auth-entry successor-v2 is admitted by exactly the three Product Final job guards', () => {
+  const source = readWorkflow();
+  const exact = "github.event.pull_request.head.ref == 'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2'";
+  assert.equal(
+    source.split(exact).length - 1,
+    3,
+    'auth-entry successor-v2 must be admitted by exactly the three Product Final jobs'
+  );
+  assert.doesNotMatch(
+    source,
+    /head\.ref[\s\S]{0,80}(?:startsWith|contains|matches).*auth-entry-runner/iu
+  );
 });
