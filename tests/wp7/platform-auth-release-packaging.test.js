@@ -16,6 +16,9 @@ function makeSeal(root) {
       oauthBrokerUrl: 'https://auth.example.test',
       relayUrl: 'wss://relay.example.test/facebook',
       graphVersion: 'v25.0'
+    },
+    personalAccess: {
+      authorityUrl: 'https://access.example.test'
     }
   }), 'utf8');
   return writeSeal(inputPath, path.join(root, 'sealed'));
@@ -36,6 +39,8 @@ test('Windows payload packaging installs sealed release-managed platform auth as
   assert.equal(result.facebookConfigured, true);
   assert.equal(result.sha256, sha256File(result.configPath));
   assert.equal(fs.readFileSync(result.hashPath, 'utf8'), `${result.sha256}  platform-auth.json\n`);
+  const installed = JSON.parse(fs.readFileSync(result.configPath, 'utf8'));
+  assert.equal(installed.personalAccess.authorityUrl, 'https://access.example.test');
 });
 
 
@@ -54,6 +59,8 @@ test('Windows payload packaging accepts a Telegram-only sealed release without f
   assert.equal(result.configured, true);
   assert.equal(result.telegramConfigured, true);
   assert.equal(result.facebookConfigured, false);
+  const installed = JSON.parse(fs.readFileSync(result.configPath, 'utf8'));
+  assert.deepEqual(installed.personalAccess, {});
 });
 
 test('formal platform-enabled packaging fails closed when release provisioning is absent', () => {
@@ -72,7 +79,7 @@ test('packaging rejects a hash-correct but semantically incomplete release confi
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp7-platform-auth-semantic-'));
   const configPath = path.join(root, 'platform-auth.json');
   const hashPath = path.join(root, 'platform-auth.sha256');
-  const bytes = Buffer.from(`${JSON.stringify({ schemaVersion: 1, releaseManaged: true, telegram: {}, facebook: {} }, null, 2)}
+  const bytes = Buffer.from(`${JSON.stringify({ schemaVersion: 1, releaseManaged: true, telegram: {}, facebook: {}, personalAccess: {} }, null, 2)}
 `, 'utf8');
   const crypto = require('node:crypto');
   const digest = crypto.createHash('sha256').update(bytes).digest('hex');

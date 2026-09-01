@@ -15,6 +15,9 @@ function fixture() {
       oauthBrokerUrl: 'https://auth.example.test',
       relayUrl: 'wss://relay.example.test/facebook',
       graphVersion: 'v25.0'
+    },
+    personalAccess: {
+      authorityUrl: 'https://access.example.test/'
     }
   };
 }
@@ -31,6 +34,7 @@ test('release seal tool writes a detached-hash-bound consumer platform configura
   assert.equal(loaded.sealed, true);
   assert.equal(loaded.telegram.apiId, 12345678);
   assert.equal(Object.hasOwn(loaded.facebook, 'appId'), false);
+  assert.equal(loaded.personalAccess.authorityUrl, 'https://access.example.test');
 });
 
 test('release seal tool accepts Telegram-only provisioning and leaves Facebook disabled', () => {
@@ -54,6 +58,18 @@ test('release seal tool rejects an empty release configuration', () => {
   ));
 });
 
+test('release seal tool rejects insecure or credentialed Personal Access URLs', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-platform-auth-seal-personal-access-invalid-'));
+  for (const [name, authorityUrl, code] of [
+    ['http', 'http://access.example.test', 'PLATFORM_AUTH_HTTPS_REQUIRED'],
+    ['userinfo', 'https://owner:secret@access.example.test', 'PLATFORM_AUTH_URL_CREDENTIALS_FORBIDDEN']
+  ]) {
+    const inputPath = path.join(root, `${name}.json`);
+    fs.writeFileSync(inputPath, JSON.stringify({ personalAccess: { authorityUrl } }), 'utf8');
+    assert.throws(() => writeSeal(inputPath, path.join(root, `${name}-out`)), error => error.code === code);
+  }
+});
+
 test('sealed release file fails closed after mutation', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-platform-auth-seal-tamper-'));
   const inputPath = path.join(root, 'private.json');
@@ -69,7 +85,7 @@ test('hash-correct but incomplete sealed release file is rejected before packagi
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-platform-auth-seal-semantic-'));
   const configPath = path.join(root, 'platform-auth.json');
   const hashPath = path.join(root, 'platform-auth.sha256');
-  const bytes = Buffer.from(`${JSON.stringify({ schemaVersion: 1, releaseManaged: true, telegram: {}, facebook: {} }, null, 2)}
+  const bytes = Buffer.from(`${JSON.stringify({ schemaVersion: 1, releaseManaged: true, telegram: {}, facebook: {}, personalAccess: {} }, null, 2)}
 `, 'utf8');
   const crypto = require('node:crypto');
   const digest = crypto.createHash('sha256').update(bytes).digest('hex');

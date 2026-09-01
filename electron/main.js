@@ -2369,6 +2369,15 @@ async function backendEnvironment(launch = {}, startupTimeoutMs = backendStartup
   if (explicitPlatformAuthHash || await pathAccessible(releasePlatformAuthHash)) {
     env.YANCE_PLATFORM_AUTH_CONFIG_SHA256_PATH = path.resolve(explicitPlatformAuthHash || releasePlatformAuthHash);
   }
+  try {
+    const releaseConfig = loadReleasePlatformAuth({ resourcesPath: releaseResourcesPath });
+    const personalAccessAuthorityUrl = String(releaseConfig.personalAccess?.authorityUrl || '').trim();
+    if (personalAccessAuthorityUrl) {
+      env.YANCE_PERSONAL_ACCESS_AUTHORITY_URL = personalAccessAuthorityUrl;
+    }
+  } catch (error) {
+    desktopLog('warn', 'personal-access-release-auth-origin-load-failed', { code: error.code || '', message: error.message });
+  }
   env.YANCE_PORT = String(new URL(YANCE_BACKEND_URL).port);
   env.YANCE_BACKEND_STARTUP_TIMEOUT_MS = String(startupTimeoutMs);
   env.YANCE_AUTO_START_WHATSAPP = '0';

@@ -11,7 +11,7 @@ const requiredProductionPaths = [
   'backend/routes/personalAccess.js',
   'backend/services/personalAccessService.js',
   'services/personal-access-worker/migrations/0001_personal_access.sql',
-  'services/personal-access-worker/src/index.js',
+  'services/personal-access-worker/src/index.mjs',
   'services/personal-access-worker/wrangler.toml'
 ];
 
@@ -53,9 +53,12 @@ test('local entitlement service keeps owner secret in existing secure credential
 });
 
 test('Worker and D1 are a narrow shared entitlement authority, not a billing or identity platform', () => {
-  const worker = read('services/personal-access-worker/src/index.js');
+  const worker = read('services/personal-access-worker/src/index.mjs');
   const migration = read('services/personal-access-worker/migrations/0001_personal_access.sql');
   const wrangler = read('services/personal-access-worker/wrangler.toml');
+  assert.equal(fs.existsSync(path.join(ROOT, 'services/personal-access-worker/src/index.js')), false);
+  assert.match(worker, /export\s+default\s*\{\s*async\s+fetch\(request,\s*env\)/u);
+  assert.doesNotMatch(worker, /module\.exports/u);
   assert.match(worker, /OWNER_ADMIN_SECRET/);
   assert.match(worker, /PENDING/);
   assert.match(worker, /ASSIGNED/);
@@ -68,6 +71,10 @@ test('Worker and D1 are a narrow shared entitlement authority, not a billing or 
   assert.match(migration, /personal_access_grants/i);
   assert.match(migration, /installation_id/i);
   assert.match(wrangler, /d1_databases/i);
+  assert.match(wrangler, /main\s*=\s*"src\/index\.mjs"/u);
+  assert.match(wrangler, /workers_dev\s*=\s*true/u);
+  assert.match(wrangler, /database_id\s*=\s*"e81b4218-8a66-4377-b07d-eb785c7698cf"/u);
+  assert.doesNotMatch(wrangler, /REPLACE_WITH_D1_DATABASE_ID/u);
   for (const forbidden of ['billing', 'subscription', 'payment_intent', 'hardware_fingerprint']) {
     assert.doesNotMatch(`${worker}\n${migration}`, new RegExp(forbidden, 'i'), forbidden);
   }
