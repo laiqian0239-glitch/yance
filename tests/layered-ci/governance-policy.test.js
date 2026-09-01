@@ -140,6 +140,33 @@ test('Electron custody and source-control authority paths escalate to L2', () =>
   }
 });
 
+test('Personal Access sealed release resources use exact L2 without broad release expansion', () => {
+  const targetPaths = [
+    'release/facebook-production-resources/platform-auth.json',
+    'release/facebook-production-resources/platform-auth.sha256'
+  ];
+
+  for (const file of targetPaths) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'EXACT', file);
+    assert.equal(risk.l2ExactPaths.includes(file), true, file);
+  }
+
+  for (const prefix of ['release/', 'release/facebook-production-resources/']) {
+    assert.equal(risk.l2Prefixes.includes(prefix), false, prefix);
+  }
+
+  const adjacent = 'release/facebook-production-resources/platform-auth.local.json';
+  const denied = classifyChangedFiles(risk, [adjacent]);
+  assert.equal(denied.pass, false, JSON.stringify(denied));
+  assert.equal(denied.reasonCode, 'CI_UNKNOWN_PATH');
+  assert.deepEqual(denied.unknownPaths, [adjacent]);
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
+});
+
 test('nested dependency manifests always escalate to L2', () => {
   for (const file of [
     'packages/desktop/package.json',
@@ -251,6 +278,8 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'release/electron-distribution-trust.json',
     'release/architecture-closure-v2/wp-b-governance-package.json',
     'release/production-dependency-binding.json',
+    'release/facebook-production-resources/platform-auth.json',
+    'release/facebook-production-resources/platform-auth.sha256',
     'runtime/local-ai/airllm/yance_airllm_worker.py',
     'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch',
     'vendor/electron/electron-v39.8.5-win32-x64.zip',
