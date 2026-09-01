@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import "./PresenceWorkspace.css";
 import {
   connectPresenceLiveKit,
   disconnectPresenceLiveKit,

@@ -631,10 +631,26 @@ test('Matrix runtime state stays writable, registers WhatsApp, and isolates ever
 
 test('auth entry requires Element login_for_welcome and does not bypass the registered Yance V2 login', () => {
   const config = JSON.parse(read('config/matrix/element-config.json'));
+  const homeserver = read('config/matrix/synapse/homeserver.yaml');
+  assert.match(
+    homeserver,
+    /^enable_registration:\s*false\s*$/mu,
+    'Synapse production config must keep registration disabled'
+  );
+  assert.equal(
+    config.setting_defaults && config.setting_defaults['UIFeature.registration'],
+    false,
+    'materialized UAT auth entry must pin Element registration UI off'
+  );
   assert.equal(
     config.embedded_pages && config.embedded_pages.login_for_welcome,
     true,
     'shipped element-config.json must enable login_for_welcome'
+  );
+  assert.notEqual(
+    config.setting_defaults && config.setting_defaults['UIFeature.passwordReset'],
+    false,
+    'password reset must not be disabled by the registration policy binding'
   );
 
   const workflow = read(WORKFLOW);

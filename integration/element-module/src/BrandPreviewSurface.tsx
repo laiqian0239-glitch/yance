@@ -1,6 +1,4 @@
 import React from "react";
-import "./BrandPreviewSurface.css";
-
 export function BrandPreviewSurface(): React.JSX.Element {
   return (
     <section className="yance-brand-preview" aria-label="言策品牌预览">

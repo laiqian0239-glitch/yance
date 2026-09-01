@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { RelationshipToolRouteBinding } from "./product-experience/RelationshipOverlayHost";
-import "./VoiceWorkspace.css";
-
 type VoiceHealth = {
   available?: boolean;
   degraded?: boolean;

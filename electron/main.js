@@ -2202,170 +2202,57 @@ function scheduleTrayRefresh() {
   trayRefreshTimer = setTimeout(() => refreshTraySnapshot().catch(() => {}), 250);
 }
 
+function currentTrayAuthorityStateName() {
+  if (relaunchPending) return 'RELAUNCHING_APP';
+  if (quitting) return 'QUITTING';
+  if (backendRestarting) return 'BACKEND_RESTARTING';
+  if (backendReady) return 'RUNNING';
+  return mainState?.name || 'APP_READY';
+}
+
+function relaunchApplicationFromTray() {
+  return restartElectronApp({
+    setRelaunchIntent: () => { relaunchPending = true; quitting = true; backendRestarting = true; stopEventSocket(); buildTrayMenu(); },
+    clearRelaunchIntent: () => { relaunchPending = false; quitting = false; backendRestarting = false; buildTrayMenu(); },
+    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch-from-tray' }),
+    authoritySnapshot: () => applicationRuntimeAuthoritySnapshot(),
+    appRelaunch: () => app.relaunch(),
+    appExit: code => { exitAfterBackendShutdown = true; app.exit(code); },
+    onFailure: error => {
+      fatalShutdown = { at: new Date().toISOString(), reasonCode: error.reasonCode || 'DESKTOP_RELAUNCH_BACKEND_STOP_FAILED', backendPid: authoritativeBackend().backend.backendPid || 0 };
+      desktopLog('error', 'desktop-tray-relaunch-blocked', fatalShutdown);
+    }
+  });
+}
+
 function buildTrayMenu() {
-  if (!tray || tray.isDestroyed?.() === true || !settingsStore) return;
+  if (!tray || tray.isDestroyed?.() === true) return;
 
-  const settings = settingsStore.read();
-  const safeModeActive = traySnapshot.safeMode === true;
-  const accountItems = traySnapshot.accounts.length ? traySnapshot.accounts.map(account => ({
-    label: `${account.platform} · ${account.displayName || account.identityLabel || account.id} · ${account.stateLabel || account.state}${account.unread ? ` · ${account.unread}未读` : ''}`,
-    submenu: [
-      { label: '打开账号中心', click: () => activateMainWindow('tray-menu-account', { view: 'accounts', accountId: account.id })
-        .catch(error => logMainWindowActivationFailure('tray-menu-account', error)) },
-      {
-        label: safeModeActive ? '安全模式已阻止账号连接' : (['connected', 'limited'].includes(account.state) ? '重新连接' : '连接账号'),
-        enabled: safeModeActive !== true,
-        click: () => forwardBackendCommand('account.reconnect', { id: account.id }, { actor: 'desktop-tray' })
-          .then(scheduleTrayRefresh).catch(error => dialog.showErrorBox('账号连接失败', error.message))
-      }
-    ]
-  })) : [{ label: '尚未配置账号', enabled: false }];
-
-  const publicName = releaseIdentity().publicProductName || '言策';
+  const model = m2TrayController.createTrayModel();
+  const state = m2TrayController.applyTrayState(null, currentTrayAuthorityStateName());
+  const item = key => ({ ...model[key], enabled: state[key]?.enabled !== false });
   const template = [
     {
-      label: (() => {
-        const update = updateManager?.snapshot?.() || {};
-        const updateLabel = update.availablePublicVersion || update.availableVersion || '';
-        if (safeModeActive) return `${publicName} · 安全模式 · ${traySnapshot.unread}条未读`;
-        if (update.phase === 'ready' || update.phase === 'downloaded') return `${publicName} · 更新 ${updateLabel} 已就绪`;
-        if (update.phase === 'rejected') return `${publicName} · 更新被拒绝`;
-        if (update.phase === 'verifying') return `${publicName} · 正在校验更新`;
-        if (update.phase === 'downloading') return `${publicName} · 正在下载更新 · ${Math.round(update.percent || 0)}%`;
-        if (update.phase === 'available') return `${publicName} · 发现 ${updateLabel || '新版本'}`;
-        return backendReady ? `${publicName} · 服务正常 · ${traySnapshot.unread}条未读` : `${publicName} · 服务连接中`;
-      })(),
-      enabled: false
-    },
-    { type: 'separator' },
-
-    // Standard Windows tray actions. Keep these stable and near the top so the
-    // menu behaves like a normal desktop application rather than a debug menu.
-    {
-      id: 'show-main-window',
-      label: '显示主窗口',
-      accelerator: 'CommandOrControl+Shift+Y',
+      ...item('show'),
       click: () => activateMainWindow('tray-menu-show')
         .catch(error => logMainWindowActivationFailure('tray-menu-show', error))
     },
     {
-      id: 'launch-at-login',
-      label: '开机自启设置',
-      type: 'checkbox',
-      checked: settings.autoLaunch === true,
-      click: item => {
-        const next = settingsStore.update({ autoLaunch: item.checked === true });
-        updateLoginItem(next);
-        buildTrayMenu();
-        sendToRenderer('desktop:event', {
-          type: 'desktop:settings-updated',
-          payload: next,
-          at: new Date().toISOString()
-        });
-      }
-    },
-    ...(() => {
-      const update = updateManager?.snapshot?.() || {};
-      const updateLabel = update.availablePublicVersion || update.availableVersion || '';
-      if (update.phase === 'ready' || update.phase === 'downloaded') return [{ id: 'install-update', label: `重启并安装 ${updateLabel || '更新'}`, click: () => updateManager.install().catch(error => dialog.showErrorBox('安装更新失败', error.message)) }];
-      if (update.phase === 'rejected') return [{ id: 'update-rejected', label: `更新被拒绝：${update.error || '见日志'}`, enabled: false },
-        { id: 'check-for-updates', label: '重新检查更新', click: () => updateManager.check({ manual: true }) }];
-      if (update.phase === 'verifying') return [{ id: 'verifying-update', label: '正在校验更新…', enabled: false }];
-      if (update.phase === 'downloading') return [{ id: 'update-progress', label: `正在下载更新 · ${Math.round(update.percent || 0)}%`, enabled: false }];
-      if (update.phase === 'available') return [
-        { id: 'download-update', label: `下载更新 ${updateLabel}`, click: () => updateManager.download().catch(error => dialog.showErrorBox('下载更新失败', error.message)) },
-        { id: 'check-for-updates', label: '重新检查更新', click: () => updateManager.check({ manual: true }) }
-      ];
-      if (update.phase === 'checking') return [{ id: 'checking-updates', label: '正在检查更新…', enabled: false }];
-      return [{ id: 'check-for-updates', label: '检查更新', click: () => updateManager.check({ manual: true }) }];
-    })(),
-    { type: 'separator' },
-
-    { label: '打开工作台', click: () => activateMainWindow('tray-menu-show')
-        .catch(error => logMainWindowActivationFailure('tray-menu-show', error)) },
-    { label: '打开系统中心', click: () => activateMainWindow('tray-menu-system', { view: 'system', tab: 'overview' })
-      .catch(error => logMainWindowActivationFailure('tray-menu-system', error)) },
-    { label: '打开账号中心', click: () => activateMainWindow('tray-menu-accounts', { view: 'accounts' })
-      .catch(error => logMainWindowActivationFailure('tray-menu-accounts', error)) },
-    { label: '打开设置与恢复', click: () => activateMainWindow('tray-menu-settings', { view: 'settings', tab: 'desktop' })
-      .catch(error => logMainWindowActivationFailure('tray-menu-settings', error)) },
-    { label: '账号状态', submenu: accountItems },
-    { type: 'separator' },
-    {
-      label: '暂停所有桌面通知',
-      type: 'checkbox',
-      checked: traySnapshot.notifications.paused === true,
-      click: item => apiRequest('/api/r32/system/notifications', {
-        method: 'POST',
-        body: JSON.stringify({ paused: item.checked })
-      }).then(refreshTraySnapshot).catch(error => dialog.showErrorBox('通知设置失败', error.message))
+      ...item('restart'),
+      click: () => restartBackend({ reason: 'desktop-tray-restart' })
+        .then(buildTrayMenu)
+        .catch(error => dialog.showErrorBox('服务重启失败', error.message))
     },
     {
-      label: '创建快速备份',
-      click: () => apiRequest('/api/r32/system/backups', {
-        method: 'POST',
-        body: JSON.stringify({ mode: 'standard' })
-      }).then(() => dialog.showMessageBox({
-        type: 'info',
-        message: '快速备份已创建'
-      })).catch(error => dialog.showErrorBox('备份失败', error.message))
+      ...item('relaunch'),
+      click: () => relaunchApplicationFromTray()
+        .catch(error => dialog.showErrorBox('重新启动失败', error.message))
     },
     {
-      label: `AI模型 · ${traySnapshot.models.verified || 0}/${traySnapshot.models.total || 0} 已验证 · ${traySnapshot.models.used || 0} 已调用`,
-      submenu: [
-        { label: traySnapshot.models.online ? '模型服务在线' : '模型服务未就绪', enabled: false },
-        {
-          label: traySnapshot.models.automationEnabled
-            ? `自动AI大脑已启用 · ${traySnapshot.models.automationLocalOnly ? '仅本地' : '允许云端'}`
-            : '自动AI大脑已关闭',
-          enabled: false
-        },
-        {
-          label: traySnapshot.models.lastModel
-            ? `最近调用：${traySnapshot.models.lastModel}`
-            : '尚无真实模型调用记录',
-          enabled: false
-        },
-        {
-          label: '重新扫描本地模型',
-          click: () => apiRequest('/api/r32/models/scan', {
-            method: 'POST',
-            body: '{}'
-          }).then(refreshTraySnapshot).catch(error => dialog.showErrorBox('模型扫描失败', error.message))
-        },
-        { label: '打开AI工作台', click: () => activateMainWindow('tray-menu-ai', { view: 'ai-workbench' })
-          .catch(error => logMainWindowActivationFailure('tray-menu-ai', error)) }
-      ]
-    },
-    { type: 'separator' },
-    {
-      label: settings.closeToTray
-        ? '关闭窗口时保留后台运行'
-        : '关闭窗口时退出',
-      type: 'checkbox',
-      checked: settings.closeToTray === true,
-      click: item => {
-        const next = settingsStore.update({ closeToTray: item.checked });
-        buildTrayMenu();
-        sendToRenderer('desktop:event', {
-          type: 'desktop:settings-updated',
-          payload: next,
-          at: new Date().toISOString()
-        });
-      }
-    },
-    {
-      label: '重启本地服务',
-      click: () => restartBackend().catch(error => dialog.showErrorBox('服务重启失败', error.message))
-    },
-    { label: '打开数据目录', click: () => shell.openPath(PATHS.root) },
-    { label: '打开日志目录', click: () => shell.openPath(PATHS.logs) },
-    { type: 'separator' },
-    {
-      id: 'quit-yance-28',
-      label: '退出言策',
+      ...item('quit'),
       click: () => {
         quitting = true;
+        buildTrayMenu();
         app.quit();
       }
     }

@@ -2,7 +2,12 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
 const tray = require('../../electron/m2/trayController');
+
+const ROOT = path.resolve(__dirname, '..', '..');
+const read = relativePath => fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
 
 test('computeTrayState: RUNNING 全可用', () => {
   const m = tray.computeTrayState('RUNNING');
@@ -53,8 +58,27 @@ test('applyTrayState 写入 tray.menuItems.enabled', () => {
 
 test('createTrayModel 返回四动作默认模型', () => {
   const m = tray.createTrayModel();
+  assert.deepStrictEqual(Object.keys(m), ['show', 'restart', 'relaunch', 'quit']);
+  assert.deepStrictEqual(
+    Object.values(m).map(item => item.label),
+    ['显示主窗口', '重启后端', '重新启动应用', '退出']
+  );
   for (const k of ['show', 'restart', 'relaunch', 'quit']) {
     assert.ok(m[k], `missing ${k}`);
     assert.strictEqual(m[k].enabled, true);
   }
+});
+
+test('production tray menu is built from the M2 tray authority, not the legacy template', () => {
+  const main = read('electron/main.js');
+  assert.match(main, /m2TrayController\.createTrayModel\(\)/u);
+  assert.match(main, /m2TrayController\.applyTrayState\(null,\s*currentTrayAuthorityStateName\(\)\)/u);
+  assert.match(main, /function relaunchApplicationFromTray\(\)/u);
+  assert.match(main, /\.\.\.item\('show'\)[\s\S]*activateMainWindow\('tray-menu-show'\)/u);
+  assert.match(main, /\.\.\.item\('restart'\)[\s\S]*restartBackend\(\{\s*reason:\s*'desktop-tray-restart'\s*\}\)/u);
+  assert.match(main, /\.\.\.item\('relaunch'\)[\s\S]*relaunchApplicationFromTray\(\)/u);
+  assert.match(main, /\.\.\.item\('quit'\)[\s\S]*app\.quit\(\)/u);
+  assert.doesNotMatch(main, /id:\s*'status'|type:\s*'separator'/u);
+  assert.doesNotMatch(main, /id:\s*'launch-at-login'|开机自启设置|账号状态|打开系统中心|打开数据目录|打开日志目录|AI模型/u);
+  assert.doesNotMatch(main, /id:\s*'quit-yance-28'|重启本地服务|检查更新|关闭窗口时|安全模式|Safe Mode/u);
 });

@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import "./LearningWorkspace.css";
 import { learningAssistantRuntime, type LearningCoachAction, type LearningProposalResult } from "./learningAssistantRuntime";
 import { LearningCoachQuestion } from "./LearningToolUiAdapter";
 
