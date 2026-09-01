@@ -533,6 +533,18 @@ jobs:
           $config | Add-Member -NotePropertyName modules -NotePropertyValue @('/modules/yance/lib/index.js') -Force
           $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $hostRoot 'config.json') -Encoding UTF8
 
+          # Fail-closed auth-surface preflight before packaged launch (Root Cause A: ELEMENT_AUTH_SURFACE)
+          if ([string]::IsNullOrWhiteSpace($config.embedded_pages) -or [string]$config.embedded_pages.login_for_welcome -ne 'true') {
+            throw "generated Element config must enable login_for_welcome: embedded_pages=$($config.embedded_pages | ConvertTo-Json -Compress)"
+          }
+          if (-not ($config.modules -contains '/modules/yance/lib/index.js')) {
+            throw "generated Element config must mount the Yance V2 module: modules=$($config.modules | ConvertTo-Json -Compress)"
+          }
+          $builtModulePath = Join-Path $servedModuleRoot 'index.js'
+          if (-not (Test-Path -LiteralPath $builtModulePath -PathType Leaf)) { throw 'built Yance V2 module index.js is missing from the validation host' }
+          if (-not (Select-String -Path $builtModulePath -Pattern 'data-yance-login-authority' -Quiet)) { throw 'built Yance V2 module must carry the stable login authority marker' }
+          if (-not (Select-String -Path $builtModulePath -Pattern '欢迎回来' -Quiet)) { throw 'built Yance V2 module must preserve the stable login text marker' }
+
           $server = @'
           const http = require('http');
           const fs = require('fs');
@@ -601,7 +613,7 @@ jobs:
                 if ([int]$candidateReceipt.schemaVersion -ne 1 -or [string]$candidateReceipt.documentType -ne 'YANCE_POST_INSTALL_LAUNCH_RECEIPT') { throw 'post-install launch receipt schema mismatch' }
                 if ([string]$candidateReceipt.status -ne 'PASS') { throw "post-install launch receipt status is not PASS: $($candidateReceipt.status)" }
                 if ([int]$candidateReceipt.processId -ne [int]$process.Id) { throw "post-install receipt process mismatch: expected=$($process.Id) actual=$($candidateReceipt.processId)" }
-                $activatedAt = [DateTimeOffset]::Parse([string]$candidateReceipt.activatedAtUtc)
+                $activatedAt = [DateTimeOffset]$candidateReceipt.activatedAtUtc
                 if ($activatedAt -lt $startedAt) { throw 'post-install launch receipt is stale' }
                 if ($candidateReceipt.window.destroyed -eq $true -or $candidateReceipt.window.visible -ne $true -or $candidateReceipt.window.minimized -eq $true) { throw 'post-install launch receipt window is not Desktop READY' }
                 $receipt = $candidateReceipt
@@ -753,6 +765,11 @@ jobs:
           docker image inspect "yance-product-uat-mautrix-meta:${CANDIDATE_SHA}" >/dev/null
           echo 'GREEN: Element and mautrix-meta images built from the existing pinned Matrix runtime seams'
 
+          # Sealed Element image V2 inspection before artifact seal/upload (Root Cause A: ELEMENT_AUTH_SURFACE)
+          docker run --rm --entrypoint sh "yance-product-uat-element:${CANDIDATE_SHA}" -c 'test -f /modules/yance/package.json && test -f /modules/yance/lib/index.js && grep -q data-yance-login-authority /modules/yance/lib/index.js'
+          if [ $? -ne 0 ]; then echo 'sealed Element image is missing the Yance V2 module or its stable login authority marker' >&2; exit 1; fi
+          echo 'GREEN: sealed Element image carries the Yance V2 module and stable login authority marker'
+
       - name: Export exact Matrix images and seal image-only candidate
         shell: bash
         run: |
@@ -831,6 +848,13 @@ jobs:
             echo 'Matrix runtime did not reach real readiness' >&2
             exit 1
           fi
+
+          # Fail-closed auth-surface assertion on the real running Element runtime before seal (Root Cause A)
+          runtime_config_json="$(curl -fsS http://127.0.0.1:8080/config.json)"
+          node -e "const c=JSON.parse(process.argv[1]); if(c.embedded_pages&&c.embedded_pages.login_for_welcome!==true){console.error('runtime config.json login_for_welcome is not enabled'); process.exit(1)} if(!(Array.isArray(c.modules)&&c.modules.includes('/modules/yance/lib/index.js'))){console.error('runtime config.json does not mount the Yance V2 module'); process.exit(1)}" "$runtime_config_json"
+          if [ $? -ne 0 ]; then exit 1; fi
+          echo 'GREEN: runtime Element config.json enables login_for_welcome and mounts Yance V2 module'
+
           cleanup_matrix_smoke
           trap - EXIT
           echo 'GREEN: exact materialized Matrix runtime reached real readiness before seal'

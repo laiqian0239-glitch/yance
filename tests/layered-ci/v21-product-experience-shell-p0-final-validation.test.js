@@ -322,3 +322,15 @@ test('Product Final boots the exact materialized Matrix image-only candidate to 
   assert.match(matrix, /GREEN: exact materialized Matrix runtime reached real readiness before seal/u);
   assert.doesNotMatch(matrix, /docker compose[^\n]*\sbuild(?:\s|$)/u);
 });
+
+test('Product Final inspects sealed Element V2 module and runtime config before Matrix seal and drops the lossy UTC parse', () => {
+  const source = readWorkflow();
+  // Sealed image V2 inspection before artifact seal/upload.
+  assert.match(source, /docker run[^\n]*yance-product-uat-element:\$\{CANDIDATE_SHA\}[^\n]*data-yance-login-authority/u);
+  // Runtime config fail-closed before seal.
+  assert.match(source, /login_for_welcome\s*!==\s*true/u);
+  assert.match(source, /modules[^\n]*\/modules\/yance\/lib\/index\.js/u);
+  // Windows packaged-launch freshness path no longer uses the lossy string round-trip.
+  assert.doesNotMatch(source, /\[DateTimeOffset\]::Parse\(\[string\]\$candidateReceipt\.activatedAtUtc\)/u);
+  assert.match(source, /\[DateTimeOffset\]\$candidateReceipt\.activatedAtUtc/u);
+});
