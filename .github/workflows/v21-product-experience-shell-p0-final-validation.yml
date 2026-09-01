@@ -545,7 +545,6 @@ jobs:
           $builtModulePath = Join-Path $servedModuleRoot 'index.js'
           if (-not (Test-Path -LiteralPath $builtModulePath -PathType Leaf)) { throw 'built Yance V2 module index.js is missing from the validation host' }
           if (-not (Select-String -Path $builtModulePath -Pattern 'data-yance-login-authority' -Quiet)) { throw 'built Yance V2 module must carry the stable login authority marker' }
-          if (-not (Select-String -Path $builtModulePath -Pattern '欢迎回来' -Quiet)) { throw 'built Yance V2 module must preserve the stable login text marker' }
 
           $server = @'
           const http = require('http');

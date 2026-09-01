@@ -348,3 +348,45 @@ test('Product Final inspects sealed Element V2 module and runtime config before 
   assert.doesNotMatch(source, /\[DateTimeOffset\]::Parse\(\[string\]\$candidateReceipt\.activatedAtUtc\)/u);
   assert.match(source, /\[DateTimeOffset\]\$candidateReceipt\.activatedAtUtc/u);
 });
+
+test('Product Final gates the built module on the stable V2 authority marker and never on localized UI copy', () => {
+  const source = readWorkflow();
+  // Built module existence gate is preserved.
+  assert.match(source, /Test-Path\s+-LiteralPath\s+\$builtModulePath\s+-PathType\s+Leaf/u);
+  // Stable, transform-proof authority marker remains the built-module gate.
+  assert.match(
+    source,
+    /Select-String\s+-Path\s+\$builtModulePath\s+-Pattern\s+'data-yance-login-authority'\s+-Quiet/u,
+    'the built module must still be gated on data-yance-login-authority'
+  );
+  // Bundled/minified/transformed output must NOT be required to preserve literal localized display copy.
+  assert.doesNotMatch(
+    source,
+    /Select-String[^\n]*\$builtModulePath[^\n]*欢迎回来/u,
+    'built module must not be gated on localized UI copy'
+  );
+  assert.doesNotMatch(
+    source,
+    /Select-String[^\n]*欢迎回来/u,
+    'no Select-String gate anywhere in the workflow may assert localized UI copy'
+  );
+  assert.doesNotMatch(
+    source,
+    /欢迎回来/u,
+    'the workflow must not reference the localized login copy as a governance gate'
+  );
+  // The authorization proof surface that remains is: config seam + module mount + sealed image marker.
+  assert.match(source, /login_for_welcome/u);
+  assert.match(source, /\/modules\/yance\/lib\/index\.js/u);
+  assert.match(source, /docker run[^\n]*yance-product-uat-element:\$\{CANDIDATE_SHA\}[^\n]*data-yance-login-authority/u);
+});
+
+test('source-level product test still proves the localized login copy exists in YanceLogin.tsx', () => {
+  // The bundled-output assertion was removed because minification may transform localized copy.
+  // The source-level proof is the authoritative display-copy contract and must remain.
+  const sourceTestPath = path.join(ROOT, 'tests', 'wp0', 'v21-product-brand-runtime-authority-p0.test.js');
+  assert.equal(fs.existsSync(sourceTestPath), true, 'source-level brand runtime authority test must exist');
+  const sourceTest = fs.readFileSync(sourceTestPath, 'utf8');
+  assert.match(sourceTest, /YanceLogin\.tsx/u);
+  assert.match(sourceTest, /\/欢迎回来\/u/u, 'source-level product test must still assert the localized login copy');
+});
