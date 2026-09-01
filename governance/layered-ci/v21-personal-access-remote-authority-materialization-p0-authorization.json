@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PERSONAL-ACCESS-REMOTE-AUTHORITY-MATERIALIZATION-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Materialize the already-implemented V21 Personal Access authority for real release use without redesigning licensing or Matrix identity. Existing source already proves OWNER permanent use, TESTER request/grant lifecycle, installation binding, fail-closed Product API enforcement, Cloudflare Worker + D1 request/grant authority, and secure owner-secret custody. The remaining causal gap is production materialization: the Worker/D1 deployment is still placeholder-only, the sealed release platform-auth authority has no Personal Access URL, Electron does not project a sealed Personal Access authority URL into the backend child, and the OWNER machine has not yet been provisioned with the matching owner-admin secret. This batch reuses the existing Worker/D1 implementation, existing Wrangler CLI, existing sealed platform-auth release resource and existing Desktop CredentialVault application coordinator; it adds no second identity, entitlement, configuration, secret-storage, deployment-state, or cryptographic mechanism.",
+  "base": {
+    "branch": "main",
+    "commit": "3517e1a5b63c119f7a08eee6f8d89aef7ee0f9f1"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-personal-access-remote-authority-materialization-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-personal-access-remote-authority-materialization-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "498c01ddd4db53742e21898b98c6613d2682e55291b71a49e1ee1136ffa70b8b",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-personal-access-remote-authority-materialization-p0",
+    "allowedChangedPaths": [
+      "backend/tests/platformAuthSealToolRegression.test.js",
+      "backend/tests/windowsSourceUatRound1Regression.test.js",
+      "electron/main.js",
+      "release/facebook-production-resources/platform-auth.json",
+      "release/facebook-production-resources/platform-auth.sha256",
+      "services/personal-access-worker/wrangler.toml",
+      "shared/release/releasePlatformAuth.js",
+      "tests/wp0/v21-personal-access-control-p0.test.js",
+      "tests/wp7/platform-auth-release-packaging.test.js",
+      "tools/release/create-platform-auth-seal.js"
+    ],
+    "approvedChangedFileCount": 10,
+    "approvedChangedFileSetSha256": "314d16c5e2e82e043e24cf1a6e8288c1190a61e0217d5d103eb76d9ca2e5c1c3",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseResourceModificationAllowed": true,
+    "externalRemoteMaterializationRequired": true
+  },
+  "productContract": {
+    "preserveExistingPersonalAccessAuthority": true,
+    "ownerPermanentUse": true,
+    "testerApprovalRequired": true,
+    "testerStateServerAuthoritative": true,
+    "installationBindingRequired": true,
+    "remoteFailureFailsTesterClosed": true,
+    "matrixIdentityRemainsSeparateAuthority": true,
+    "publicMatrixRegistrationRemainsDisabled": true,
+    "sealedReleaseConfig": {
+      "reusePlatformAuthJson": true,
+      "personalAccessAuthorityUrlHttpsOnly": true,
+      "credentialsInUrlForbidden": true,
+      "detachedSha256Required": true,
+      "backendEnvironmentProjectionRequired": "YANCE_PERSONAL_ACCESS_AUTHORITY_URL"
+    },
+    "remoteWorker": {
+      "reuseExistingWorkerAndD1": true,
+      "reuseExistingMigration": "services/personal-access-worker/migrations/0001_personal_access.sql",
+      "realD1DatabaseRequired": true,
+      "realPublicHttpsWorkerUrlRequired": true,
+      "ownerAdminSecretMustBeWorkerSecret": true,
+      "ownerAdminSecretMustNotBeCommitted": true
+    },
+    "ownerBootstrap": {
+      "reuseExistingDesktopSaveCredential": true,
+      "reuseExistingCredentialApplicationCoordinator": true,
+      "credentialRef": "personal-access.owner-admin",
+      "matchingWorkerSecretRequired": true,
+      "newCredentialStorageMechanismForbidden": true
+    }
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test backend/tests/platformAuthSealToolRegression.test.js",
+      "node --test backend/tests/windowsSourceUatRound1Regression.test.js",
+      "node --test tests/wp0/v21-personal-access-control-p0.test.js",
+      "node --test tests/wp7/platform-auth-release-packaging.test.js",
+      "node --test backend/tests/personalAccessControlP0.test.js",
+      "node --test services/personal-access-worker/tests/personal-access-worker.test.js",
+      "git diff --check"
+    ],
+    "localRemoteMaterialization": [
+      "Apply the existing D1 migration to one real yance-personal-access database.",
+      "Set one cryptographically random OWNER_ADMIN_SECRET as a Cloudflare Worker secret; never print or commit it.",
+      "Deploy the existing Worker through Wrangler and obtain one real HTTPS authority URL.",
+      "Seal that exact HTTPS URL into platform-auth.json and detached SHA-256 release resources.",
+      "Provision the same OWNER secret into the OWNER Windows CredentialVault under personal-access.owner-admin through the existing desktop credential application authority.",
+      "Prove OWNER usable, fresh TESTER request pending, owner approve -> ACTIVE, different installation denied, suspend/revoke denied, and remote failure never promotes TESTER."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI",
+      "ACV2 and routed Windows/product gates"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PERSONAL_ACCESS_WORKER_RELEASE_SEAL_AND_CREDENTIAL_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Personal Access Worker + Cloudflare D1",
+        "source": "services/personal-access-worker/src/index.js plus migrations/0001_personal_access.sql",
+        "license": "repository-existing package-specific implementation on Cloudflare Workers/D1",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns the exact PENDING/ASSIGNED/APPROVED/REJECTED and ACTIVE/SUSPENDED/REVOKED server-authoritative state with installation binding; deployment must materialize this authority rather than create another licensing service."
+      },
+      {
+        "name": "Wrangler CLI",
+        "source": "Cloudflare official Wrangler CLI",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Use the mature official CLI for D1 migration, Worker secret management and deployment; do not implement custom Cloudflare deployment APIs."
+      },
+      {
+        "name": "Existing sealed platform-auth release authority",
+        "source": "shared/release/releasePlatformAuth.js + tools/release/create-platform-auth-seal.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns HTTPS URL validation, credential-in-URL rejection, detached SHA-256 sealing and payload installation for release-managed remote service addresses."
+      },
+      {
+        "name": "Existing Desktop CredentialVault application authority",
+        "source": "electron/desktopHost/CredentialVaultHost.js + DesktopCredentialApplicationCoordinator.js + electron/main.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already provides durable encrypted credential mutation, coordinated backend restart and ownership recovery; OWNER bootstrap must use this path instead of writing SQLite, plaintext files or a new secret store."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create another licensing/entitlement backend.",
+      "Do not reopen Matrix public registration or use Matrix accounts as Personal Access truth.",
+      "Do not introduce a second release configuration file for Personal Access.",
+      "Do not pass OWNER_ADMIN_SECRET through platform-auth.json, URLs, logs, GitHub files or plaintext SQLite.",
+      "Do not add custom D1 migration, retry, secret-storage or deployment-state mechanisms where Wrangler and existing repository authorities already exist.",
+      "Do not implement hardware fingerprinting or strong DRM in this batch."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
