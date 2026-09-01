@@ -42,8 +42,10 @@ function validateReleaseDocument(document = {}) {
 
   let telegram = {};
   let facebook = {};
+  let personalAccess = {};
   const telegramPresent = hasConfiguredValue(document.telegram);
   const facebookPresent = hasConfiguredValue(document.facebook);
+  const personalAccessPresent = hasConfiguredValue(document.personalAccess);
 
   if (telegramPresent) {
     const apiId = Number(document.telegram?.apiId);
@@ -64,15 +66,22 @@ function validateReleaseDocument(document = {}) {
     facebook = { workerBaseUrl, graphVersion };
   }
 
-  if (!telegramPresent && !facebookPresent) {
-    throw releaseConfigError('PLATFORM_AUTH_NO_PLATFORM_CONFIGURED', '平台发行配置至少必须启用 Telegram 或 Facebook 中的一项');
+  if (personalAccessPresent) {
+    const authorityUrl = secureReleaseUrl(document.personalAccess?.authorityUrl, ['https:']);
+    if (!authorityUrl) throw releaseConfigError('PERSONAL_ACCESS_AUTHORITY_URL_REQUIRED', 'Personal Access 远程权限服务不可用');
+    personalAccess = { authorityUrl };
+  }
+
+  if (!telegramPresent && !facebookPresent && !personalAccessPresent) {
+    throw releaseConfigError('PLATFORM_AUTH_NO_PLATFORM_CONFIGURED', '平台发行配置至少必须启用 Telegram、Facebook 或 Personal Access 中的一项');
   }
 
   return {
     schemaVersion: 1,
     releaseManaged: true,
     telegram,
-    facebook
+    facebook,
+    personalAccess
   };
 }
 
@@ -126,7 +135,8 @@ function readSealedFile(configPath, options = {}) {
     configPath,
     hashPath,
     telegram: normalized.telegram,
-    facebook: normalized.facebook
+    facebook: normalized.facebook,
+    personalAccess: normalized.personalAccess
   };
 }
 
@@ -140,7 +150,7 @@ function environmentConfig(env = process.env) {
     graphVersion: clean(env.YANCE_FACEBOOK_GRAPH_VERSION)
   };
   const present = Object.values(telegram).some(Boolean) || Object.values(facebook).some(Boolean);
-  return present ? { source: 'release-environment', sealed: false, telegram, facebook } : null;
+  return present ? { source: 'release-environment', sealed: false, telegram, facebook, personalAccess: {} } : null;
 }
 
 function mergePlatform(base = {}, override = {}) {
@@ -163,10 +173,11 @@ function loadReleasePlatformAuth(options = {}) {
       sealed: false,
       telegram: {},
       facebook: {},
+      personalAccess: {},
       error: { code: loadError.code || 'PLATFORM_AUTH_LOAD_FAILED', message: loadError.message, details: loadError.details || {} }
     };
   }
-  if (!fileConfig && !envConfig) return { source: 'missing', sealed: false, telegram: {}, facebook: {}, error: null };
+  if (!fileConfig && !envConfig) return { source: 'missing', sealed: false, telegram: {}, facebook: {}, personalAccess: {}, error: null };
   if (!fileConfig) return { ...envConfig, error: null };
   if (!envConfig) return { ...fileConfig, error: null };
   return {
@@ -176,6 +187,7 @@ function loadReleasePlatformAuth(options = {}) {
     hashPath: fileConfig.hashPath,
     telegram: mergePlatform(fileConfig.telegram, envConfig.telegram),
     facebook: mergePlatform(fileConfig.facebook, envConfig.facebook),
+    personalAccess: fileConfig.personalAccess || {},
     error: null
   };
 }

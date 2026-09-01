@@ -4,22 +4,25 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const { pathToFileURL } = require('node:url');
 
-const WORKER_PATH = path.resolve(__dirname, '../src/index.js');
+const WORKER_PATH = path.resolve(__dirname, '../src/index.mjs');
+const OLD_WORKER_PATH = path.resolve(__dirname, '../src/index.js');
+const WRANGLER_PATH = path.resolve(__dirname, '../wrangler.toml');
 
-function loadWorker() {
+async function loadWorker() {
   assert.equal(fs.existsSync(WORKER_PATH), true, 'missing shared personal-access Worker authority');
-  return require(WORKER_PATH);
+  return import(pathToFileURL(WORKER_PATH).href);
 }
 
-test('Worker owns the exact request and grant lifecycle state sets', () => {
-  const { REQUEST_STATES, GRANT_STATES } = loadWorker();
+test('Worker owns the exact request and grant lifecycle state sets', async () => {
+  const { REQUEST_STATES, GRANT_STATES } = await loadWorker();
   assert.deepEqual(Array.from(REQUEST_STATES), ['PENDING', 'ASSIGNED', 'APPROVED', 'REJECTED']);
   assert.deepEqual(Array.from(GRANT_STATES), ['ACTIVE', 'SUSPENDED', 'REVOKED']);
 });
 
-test('request transition contract requires assignment before owner approval or rejection', () => {
-  const { transitionRequestState } = loadWorker();
+test('request transition contract requires assignment before owner approval or rejection', async () => {
+  const { transitionRequestState } = await loadWorker();
   assert.equal(transitionRequestState('PENDING', 'ASSIGN'), 'ASSIGNED');
   assert.equal(transitionRequestState('ASSIGNED', 'APPROVE'), 'APPROVED');
   assert.equal(transitionRequestState('ASSIGNED', 'REJECT'), 'REJECTED');
@@ -28,8 +31,8 @@ test('request transition contract requires assignment before owner approval or r
   assert.throws(() => transitionRequestState('REJECTED', 'ASSIGN'), /INVALID_REQUEST_TRANSITION/);
 });
 
-test('tester grant transition contract is ACTIVE to SUSPENDED or REVOKED and never self-reactivates', () => {
-  const { transitionGrantState } = loadWorker();
+test('tester grant transition contract is ACTIVE to SUSPENDED or REVOKED and never self-reactivates', async () => {
+  const { transitionGrantState } = await loadWorker();
   assert.equal(transitionGrantState('ACTIVE', 'SUSPEND'), 'SUSPENDED');
   assert.equal(transitionGrantState('ACTIVE', 'REVOKE'), 'REVOKED');
   assert.equal(transitionGrantState('SUSPENDED', 'REVOKE'), 'REVOKED');
@@ -38,7 +41,7 @@ test('tester grant transition contract is ACTIVE to SUSPENDED or REVOKED and nev
 });
 
 test('shared authority requires owner secret for mutations and installation binding for tester status', async () => {
-  const { createPersonalAccessWorker } = loadWorker();
+  const { createPersonalAccessWorker } = await loadWorker();
   const calls = [];
   const repository = {
     async submitRequest(input) { calls.push(['submit', input]); return { id: 'req-1', state: 'PENDING', installationId: input.installationId }; },
@@ -70,4 +73,17 @@ test('shared authority requires owner secret for mutations and installation bind
   }));
   assert.equal(authorized.status, 200);
   assert.ok(calls.some(([name]) => name === 'list'));
+});
+
+test('production Worker uses Cloudflare module Worker ESM entry with real D1 binding', () => {
+  assert.equal(fs.existsSync(WORKER_PATH), true, 'index.mjs must be the production Worker entry');
+  assert.equal(fs.existsSync(OLD_WORKER_PATH), false, 'old production index.js must not remain');
+  const source = fs.readFileSync(WORKER_PATH, 'utf8');
+  const wrangler = fs.readFileSync(WRANGLER_PATH, 'utf8');
+  assert.match(source, /export\s+default\s*\{\s*async\s+fetch\(request,\s*env\)/u);
+  assert.doesNotMatch(source, /module\.exports/u);
+  assert.match(wrangler, /main\s*=\s*"src\/index\.mjs"/u);
+  assert.match(wrangler, /workers_dev\s*=\s*true/u);
+  assert.match(wrangler, /database_id\s*=\s*"e81b4218-8a66-4377-b07d-eb785c7698cf"/u);
+  assert.doesNotMatch(wrangler, /REPLACE_WITH_D1_DATABASE_ID/u);
 });

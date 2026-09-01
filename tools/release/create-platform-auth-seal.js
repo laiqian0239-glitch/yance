@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const platformAuthConfig = require('../../backend/services/platformAuthConfig');
+const releasePlatformAuth = require('../../shared/release/releasePlatformAuth');
 
 const CONFIG_FILE = 'platform-auth.json';
 const HASH_FILE = 'platform-auth.sha256';
@@ -50,18 +51,23 @@ function hasConfiguredValue(value) {
 function normalizeDocument(document) {
   const telegramPresent = hasConfiguredValue(document.telegram);
   const facebookPresent = hasConfiguredValue(document.facebook);
-  if (!telegramPresent && !facebookPresent) {
-    throw Object.assign(new Error('平台发行配置至少必须启用 Telegram 或 Facebook 中的一项'), {
+  const personalAccessPresent = hasConfiguredValue(document.personalAccess);
+  if (!telegramPresent && !facebookPresent && !personalAccessPresent) {
+    throw Object.assign(new Error('平台发行配置至少必须启用 Telegram、Facebook 或 Personal Access 中的一项'), {
       code: 'PLATFORM_AUTH_NO_PLATFORM_CONFIGURED'
     });
   }
   const telegram = telegramPresent ? platformAuthConfig.normalizeTelegram(document.telegram) : {};
   const facebook = facebookPresent ? platformAuthConfig.normalizeFacebook(document.facebook) : {};
+  const personalAccess = personalAccessPresent
+    ? { authorityUrl: releasePlatformAuth.secureReleaseUrl(document.personalAccess?.authorityUrl, ['https:']) }
+    : {};
   return {
     schemaVersion: 1,
     releaseManaged: true,
     telegram,
-    facebook
+    facebook,
+    personalAccess
   };
 }
 
@@ -82,7 +88,8 @@ function writeSeal(inputPath, outputDir) {
     hashPath,
     sha256: digest,
     telegramConfigured: Boolean(normalized.telegram.apiId && normalized.telegram.apiHash),
-    facebookConfigured: Boolean(normalized.facebook.workerBaseUrl)
+    facebookConfigured: Boolean(normalized.facebook.workerBaseUrl),
+    personalAccessConfigured: Boolean(normalized.personalAccess.authorityUrl)
   };
 }
 

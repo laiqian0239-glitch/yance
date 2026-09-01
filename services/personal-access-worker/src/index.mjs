@@ -1,5 +1,3 @@
-'use strict';
-
 const REQUEST_STATES = Object.freeze(['PENDING', 'ASSIGNED', 'APPROVED', 'REJECTED']);
 const GRANT_STATES = Object.freeze(['ACTIVE', 'SUSPENDED', 'REVOKED']);
 
@@ -123,13 +121,18 @@ function createWorkerFromEnv(env) {
   return createPersonalAccessWorker({ repository: createD1Repository(env.DB), ownerAdminSecret: env.OWNER_ADMIN_SECRET });
 }
 
-module.exports = {
+export {
   REQUEST_STATES,
   GRANT_STATES,
   transitionRequestState,
   transitionGrantState,
   createD1Repository,
   createPersonalAccessWorker,
-  createWorkerFromEnv,
-  async fetch(request, env) { return createWorkerFromEnv(env).fetch(request); }
+  createWorkerFromEnv
+};
+
+export default {
+  async fetch(request, env) {
+    return createWorkerFromEnv(env).fetch(request);
+  }
 };
