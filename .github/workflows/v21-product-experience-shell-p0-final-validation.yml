@@ -542,7 +542,7 @@ jobs:
           if (-not ($config.modules -contains '/modules/yance/lib/index.js')) {
             throw "generated Element config must mount the Yance V2 module: modules=$($config.modules | ConvertTo-Json -Compress)"
           }
-          $builtModulePath = Join-Path $servedModuleRoot 'index.js'
+          $builtModulePath = Join-Path $servedModuleRoot 'lib\index.js'
           if (-not (Test-Path -LiteralPath $builtModulePath -PathType Leaf)) { throw 'built Yance V2 module index.js is missing from the validation host' }
           if (-not (Select-String -Path $builtModulePath -Pattern 'data-yance-login-authority' -Quiet)) { throw 'built Yance V2 module must carry the stable login authority marker' }
 

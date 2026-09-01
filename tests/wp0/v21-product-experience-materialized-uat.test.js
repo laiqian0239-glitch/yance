@@ -643,8 +643,26 @@ test('auth entry requires Element login_for_welcome and does not bypass the regi
   assert.match(workflow, /login_for_welcome[^\n]*'true'/u);
   // The generated runtime config must mount the Yance V2 module.
   assert.match(workflow, /\/modules\/yance\/lib\/index\.js/u);
+  assert.match(
+    workflow,
+    /Copy-Item\s+-LiteralPath\s+\$moduleLib\s+-Destination\s+\$servedModuleRoot\s+-Recurse\s+-Force/u,
+    'Product Final must copy the built lib directory under modules/yance'
+  );
+  assert.match(
+    workflow,
+    /\$builtModulePath\s*=\s*Join-Path\s+\$servedModuleRoot\s+'lib\\index\.js'/u,
+    'Product Final must validate the served lib entrypoint'
+  );
+  assert.doesNotMatch(
+    workflow,
+    /\$builtModulePath\s*=\s*Join-Path\s+\$servedModuleRoot\s+'index\.js'/u,
+    'Product Final must not validate a parent-level index.js that the projection never serves'
+  );
   // The built module must carry the stable V2 authority marker.
-  assert.match(workflow, /data-yance-login-authority/u);
+  assert.match(
+    workflow,
+    /Select-String\s+-Path\s+\$builtModulePath\s+-Pattern\s+'data-yance-login-authority'\s+-Quiet/u
+  );
 });
 
 test('sealed Element image and runtime config carry the stable Yance V2 login authority marker', () => {
