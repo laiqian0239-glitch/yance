@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-LOCAL-PRODUCT-VITE-RISK-ROUTE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The locally validated final product batch contains integration/element-module/vite.config.ts, but trusted-main Layered risk-policy does not classify that exact path, so classifyChangedFiles fails closed with CI_UNKNOWN_PATH. WP0 routing already recognizes integration/element-module/vite.config.ts, therefore this is a Layered exact-risk identity gap only. This prerequisite authorizes one exact L2 identity plus its permanent regression contract and changes no product, runtime, auth, tray, dependency, workflow, release, database, or publish behavior.",
+  "base": {
+    "branch": "main",
+    "commit": "53cfafc10f86f7154f5ef9563c50856682018b6a"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-local-product-vite-risk-route-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-local-product-vite-risk-route-p0-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-local-product-vite-risk-route-p0",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/governance-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "dda3b27532f387c8ea4e78c3b63b62fc9b822d1efdf31ea6051fe6ea91f22633",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_REPOSITORY_ROUTING_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Layered CI exact-path risk routing",
+        "source": "governance/layered-ci/risk-policy.json plus tools/layered-ci/governance-policy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already implements exact-path L2 classification and fail-closed unknown-path behavior; only the single Vite config identity is missing."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add integration/ or integration/element-module/ as a broad L2 prefix.",
+      "Do not weaken CI_UNKNOWN_PATH fail-closed behavior.",
+      "Do not modify product/runtime/auth/tray bytes in this routing prerequisite.",
+      "Do not add a second classifier or routing mechanism."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
