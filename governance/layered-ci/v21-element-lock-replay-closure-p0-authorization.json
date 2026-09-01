@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-01T22:35:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELEMENT-LOCK-REPLAY-CLOSURE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen successor-v15 RC exact head 054df1a9328d2f65920107c3ffdc19dce00f68d7 / Product Final run 33524726270 exposed one deterministic materialization root across frozen-element-reproducibility, materialized-desktop-uat and materialized-matrix-uat: integration/element-module/package.json now declares @arcmantle/vite-plugin-import-css-sheet ^1.0.12, but the existing 0011 Element dependency-lock replay does not include that devDependency in the modules/yance importer, so pnpm --frozen-lockfile fails with ERR_PNPM_OUTDATED_LOCKFILE. Pinned Element already owns exact resolved identity 1.0.14(patch_hash=8019aa9feca17db6bab3483612b4150c911d70b58fddc52bf2d7258a1484a747); this batch updates only the existing replay patch and its dependency contract, including a generic manifest-to-importer coverage regression so this class fails before a future RC.",
+  "base": {
+    "branch": "main",
+    "commit": "044467d0c5f1ae651ac9bd888d606cba13321a2d",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-element-lock-replay-closure-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-element-lock-replay-closure-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b889a7cd4f92f1680dbe69b4aef28b744662a17012efebb8a3c1b8bdc15b5dbe",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-element-lock-replay-closure-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "533eb7d98ebd6e20e803844f9ec1a8ea18b0274c76c59c876392e3e2706d9b48",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "ledgerModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "ELEMENT_MATERIALIZATION / YANCE_MODULE_MANIFEST_LOCKFILE_OUT_OF_SYNC",
+    "failureCode": "PRODUCT_FINAL / ELEMENT_DEPENDENCY_LOCKFILE_OUTDATED",
+    "frozenRcHead": "054df1a9328d2f65920107c3ffdc19dce00f68d7",
+    "frozenProductFinalRun": 33524726270,
+    "sameRootJobs": [99912533820, 99912534254, 99912534298],
+    "requiredClosure": [
+      "Reuse existing 0011 dependency-lock replay seam; do not weaken frozen-lockfile semantics.",
+      "Add @arcmantle/vite-plugin-import-css-sheet ^1.0.12 to the modules/yance importer using pinned Element's existing exact resolved identity 1.0.14(patch_hash=8019aa9feca17db6bab3483612b4150c911d70b58fddc52bf2d7258a1484a747).",
+      "Add a generic regression requiring every dependency, devDependency and peerDependency declared by integration/element-module/package.json to be represented by exact specifier in the 0011 modules/yance importer.",
+      "Preserve ordinary git apply --check + git apply and pnpm --frozen-lockfile."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_ELEMENT_LOCK_REPLAY_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "pnpm frozen workspace lock semantics",
+        "source": "Pinned Element Web workspace plus existing 0011 lock replay",
+        "license": "repository-existing/upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The correct fix is to keep the workspace lock synchronized, not bypass frozen-lockfile or invent a dependency installer."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not use --no-frozen-lockfile.",
+      "Do not remove the mature OSS CSS-sheet plugin.",
+      "Do not change tools/matrix/bootstrap.js because its ordering and strict replay seam are already correct.",
+      "Do not mutate the frozen successor-v15 RC head or rerun its Product Final."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
