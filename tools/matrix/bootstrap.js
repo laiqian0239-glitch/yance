@@ -10,6 +10,7 @@ const ELEMENT_WORKSPACE_PATCH = path.join(ROOT, 'upstream-patches/element-web/00
 const ELEMENT_PACKAGE_MANAGER_AUTHORITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0002-yance-package-manager-authority.patch');
 const ELEMENT_NX_CRLF_LOCKFILE_PATCH = path.join(ROOT, 'upstream-patches/element-web/0003-yance-nx-crlf-lockfile.patch');
 const PRODUCT_DEPENDENCY_LOCK_PATCH = path.join(ROOT, 'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+const PRODUCT_CSS_SHEET_LOCK_PATCH = path.join(ROOT, 'upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch');
 const MODULE_DELIVERY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0012-yance-element-module-runtime.patch');
 const ROOM_STATE_READ_PATCH = path.join(ROOT, 'upstream-patches/element-web/0013-yance-module-room-state-read.patch');
 const APPEARANCE_AUTHORITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0014-yance-module-appearance-authority.patch');
@@ -76,10 +77,11 @@ function main() {
   const assistantUiToolUiTarget = path.join(element, 'vendor/assistant-ui-tool-ui/v2026.2.13');
   fs.cpSync(assistantUiToolUiSource, assistantUiToolUiTarget, { recursive: true });
 
-  // Product dependencies live in the copied workspace module. Apply the lock-only
-  // replay patch only after the overlay exists so the frozen Element lock describes
-  // the exact modules/yance importer that pnpm will install with --frozen-lockfile.
+  // Product dependencies live in the copied workspace module. Apply the base lock
+  // replay after the overlay exists, then apply the tiny successor replay so the
+  // effective modules/yance importer stays exact without regenerating 0011.
   applyPatch(element, PRODUCT_DEPENDENCY_LOCK_PATCH, 'Product Experience dependency lock patch');
+  applyPatch(element, PRODUCT_CSS_SHEET_LOCK_PATCH, 'Product CSS sheet dependency lock patch');
 
   if (!fs.existsSync(MODULE_DELIVERY_PATCH)) throw new Error('Element module delivery patch missing');
   run(element, 'git', ['apply', '--check', MODULE_DELIVERY_PATCH]);
