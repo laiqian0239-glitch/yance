@@ -10,6 +10,7 @@ const Module = require('node:module');
 const ROOT = path.resolve(__dirname, '../..');
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-source-uat-round1-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
 
 const originalModuleLoad = Module._load;
 Module._load = function mockedModuleLoad(request, parent, isMain) {
@@ -19,12 +20,31 @@ Module._load = function mockedModuleLoad(request, parent, isMain) {
 const adapter = require('../services/whatsappAdapter');
 Module._load = originalModuleLoad;
 const { getStore, closeStore } = require('../repositories/storeProvider');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `windows-source-uat-round1-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
 
 const read = relative => fs.readFileSync(path.join(ROOT, relative), 'utf8');
 
 test.after(() => {
   try { closeStore(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.release(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
 });
 
 test('source-mode DesktopHost forwards release and platform-auth paths to the backend child', () => {
@@ -32,11 +52,14 @@ test('source-mode DesktopHost forwards release and platform-auth paths to the ba
   for (const name of [
     'YANCE_RELEASE_RESOURCES_PATH',
     'YANCE_PLATFORM_AUTH_CONFIG_PATH',
-    'YANCE_PLATFORM_AUTH_CONFIG_SHA256_PATH'
+    'YANCE_PLATFORM_AUTH_CONFIG_SHA256_PATH',
+    'YANCE_PERSONAL_ACCESS_AUTHORITY_URL'
   ]) {
     assert.match(main, new RegExp(name));
   }
-  assert.match(main, /backendEnvironment\(launch\s*=\s*\{\}\)/);
+  assert.match(main, /async function backendEnvironment\(launch\s*=\s*\{\}/);
+  assert.match(main, /loadReleasePlatformAuth\(\{\s*resourcesPath:\s*releaseResourcesPath\s*\}\)/);
+  assert.match(main, /releaseConfig\.personalAccess\?\.authorityUrl/);
   assert.match(main, /platform-auth\.json/);
   assert.match(main, /platform-auth\.sha256/);
 });

@@ -8,5 +8,8 @@
   "facebook": {
     "workerBaseUrl": "https://yance-facebook-gateway.wangyi198675.workers.dev",
     "graphVersion": "v25.0"
+  },
+  "personalAccess": {
+    "authorityUrl": "https://yance-personal-access.wangyi198675.workers.dev"
   }
 }
