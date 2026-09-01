@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-02T00:11:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELEMENT-LOCK-REPLAY-ROUTING-PREREQUISITE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen Product implementation PR #1027 exact head d740e55610498367081909aa47efc89892d66b21 exposed one complete base-owned routing causal batch before Product validation could execute. Stage 6.4.5.9 run 33535796892 fails closed with WP0_ROUTE_UNKNOWN_PATH for exactly upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch. Layered CI Fast Feedback run 33535797379 fails closed with CI_UNKNOWN_PATH for the same exact path. V21 Product Experience Shell P0 Final Validation run 33535796779 creates the three expected jobs but all are skipped because the exact successor branch is absent from the existing literal branch allowlist. This prerequisite authorizes only the six existing routing-policy/workflow/static-contract files needed to register that one exact Product patch as PRODUCT_WP0 and exact L2 risk, and to admit exactly the next fresh Product successor branch fix/v21-element-lock-replay-incremental-p0-successor-v5 to the three existing Product Final job guards. Broad upstream prefixes, wildcard branch matching, gate weakening, product runtime changes and dependency changes remain forbidden.",
+  "base": {
+    "branch": "main",
+    "commit": "91f894de1877bf20223881baf8285ece26eeb8b9",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-element-lock-replay-routing-prerequisite-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-element-lock-replay-routing-prerequisite-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-element-lock-replay-routing-prerequisite-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 6,
+    "approvedChangedFileSetSha256": "90c62b9476f877ba9e082cb0717471a8478d2e2f33d7e2754ebfded76b3a8ecb",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "routingPolicyModificationAllowed": true,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "ledgerModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "CI_ROUTE / ELEMENT_UPSTREAM_PATCH_PATH_UNCLASSIFIED",
+    "failureCodes": [
+      "STAGE_WP0_ROUTE / WP0_ROUTE_UNKNOWN_PATH",
+      "LAYERED_CI_RISK / CI_UNKNOWN_PATH",
+      "PRODUCT_FINAL / EXACT_BRANCH_NOT_ADMITTED"
+    ],
+    "frozenImplementationHead": "d740e55610498367081909aa47efc89892d66b21",
+    "frozenStageRun": 33535796892,
+    "frozenLayeredRun": 33535797379,
+    "frozenProductFinalRun": 33535796779,
+    "exactProductPatchPath": "upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch",
+    "nextProductSuccessorBranch": "fix/v21-element-lock-replay-incremental-p0-successor-v5",
+    "requiredClosure": [
+      "Add exactly upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch to governance/layered-ci/wp0-routing-policy.json productExactPaths; do not add an upstream-patches prefix.",
+      "Add exactly upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch to governance/layered-ci/risk-policy.json l2ExactPaths; preserve unknownPathFailsClosed and l3Automatic=false.",
+      "Extend the existing WP0 Product Experience routing static contract to prove the exact 0011a path routes PRODUCT_WP0 while adjacent unregistered upstream patches remain fail closed.",
+      "Extend the existing Layered risk static contract to prove the exact 0011a path is L2 with EXACT reason while adjacent unregistered upstream patches remain unknown.",
+      "Add exactly fix/v21-element-lock-replay-incremental-p0-successor-v5 to each of the three existing Product Final job literal branch guards and to the exact-allowlist static contract; no wildcard/prefix/regex branch match.",
+      "Preserve same-repository pull-request binding, exact-head checkout, existing Windows/Linux runners, frozen Element materialization, strict frozen-lockfile validation and all existing Product Final assertions.",
+      "Never rerun, amend or force-update frozen head d740e55610498367081909aa47efc89892d66b21."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_FAIL_CLOSED_ROUTING_AND_PRODUCT_FINAL_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP0 exact Product route policy",
+        "source": "governance/layered-ci/wp0-routing-policy.json + tools/layered-ci/wp0-routing.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT"
+      },
+      {
+        "name": "Existing Layered exact L2 risk policy",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT"
+      },
+      {
+        "name": "Existing Product Final exact-branch workflow",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing/GitHub Actions",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT"
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add upstream-patches/, upstream-patches/element-web/, integration/, or other broad Product route prefixes.",
+      "Do not disable unknown-path fail-closed behavior.",
+      "Do not add workflow_dispatch, push, schedule, wildcard, startsWith, contains, regex or branch-family matching.",
+      "Do not create a second Product Final workflow.",
+      "Do not modify Product runtime, Electron runtime, package manifests, lockfiles or dependencies in this prerequisite."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
