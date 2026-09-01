@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-02T00:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELEMENT-LOCK-REPLAY-INCREMENTAL-P0-S4",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor-v3 implementation head 47aa848f2f755a9e8cac0d001d3d945c5f578479 is frozen non-candidate evidence after deterministic Stage WP0 route RED. The implementation bytes themselves remain the intended three-file causal closure, but trusted main advanced through an accidental placeholder add/delete history pair whose final tree is byte-identical to the v3 authorization merge tree. The Stage route correctly requires the pull-request base SHA to be an ancestor of the reviewed head, so a fresh-main successor is required. This authorization republishes the identical three-file implementation surface from current trusted main without rerunning or rewriting either frozen implementation head.",
+  "base": {
+    "branch": "main",
+    "commit": "9c0ccca0e4ca955d0cd058b73c11f236369e5767",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-element-lock-replay-incremental-p0-successor-v4-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-element-lock-replay-incremental-p0-successor-v4-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "0e27cab163fb23463d19df0d302d6f934003e874e2cbecf0ad59eabca9ada175",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-element-lock-replay-incremental-p0-successor-v4",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "31e57d9562f7918b2d4310e9b0dc4d9479fb465bd89176ce99f7c53a90c0a42d",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "ledgerModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "CI_ROUTE / PR_BASE_NOT_ANCESTOR_OF_REVIEWED_HEAD",
+    "failureCode": "STAGE_WP0_ROUTE / BASE_NOT_ANCESTOR_OF_HEAD",
+    "inheritedProductRootCause": "ELEMENT_MATERIALIZATION / YANCE_MODULE_MANIFEST_LOCKFILE_OUT_OF_SYNC",
+    "frozenRcHead": "054df1a9328d2f65920107c3ffdc19dce00f68d7",
+    "frozenBadImplementationHeads": [
+      "3fc81a3b6e811a70da186a8731db9960e06975f8",
+      "47aa848f2f755a9e8cac0d001d3d945c5f578479"
+    ],
+    "frozenStageRun": 33535146003,
+    "frozenStageJob": 99947520774,
+    "frozenStageEvidence": "Resolve exact event diff range failed because pull-request base 9c0ccca0e4ca955d0cd058b73c11f236369e5767 was not an ancestor of reviewed head 47aa848f2f755a9e8cac0d001d3d945c5f578479.",
+    "requiredClosure": [
+      "Start the implementation successor only from this authorization ordinary merge on current trusted main so the PR base is an ancestor of the reviewed head.",
+      "Reuse the exact three implementation blobs already assembled for successor-v3; do not introduce a semantic product change while repairing topology.",
+      "Keep upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch byte-identical to trusted main.",
+      "Keep the tiny 0011a incremental lock replay through the existing applyPatch helper and ordinary git apply --check followed by git apply.",
+      "Keep @arcmantle/vite-plugin-import-css-sheet specifier ^1.0.12 and existing pinned Element-resolved identity 1.0.14(patch_hash=8019aa9feca17db6bab3483612b4150c911d70b58fddc52bf2d7258a1484a747).",
+      "Keep permanent focused regression proving effective importer completeness.",
+      "Never rerun, amend or force-update frozen heads 3fc81a3b6e811a70da186a8731db9960e06975f8 or 47aa848f2f755a9e8cac0d001d3d945c5f578479."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_STRICT_GIT_APPLY_REPLAY_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "git apply plus pnpm frozen workspace lock semantics",
+        "source": "Git and pinned Element/pnpm workflow already used by tools/matrix/bootstrap.js",
+        "license": "repository-existing/upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The product closure is unchanged; only the exact Git ancestry transport must be repaired from fresh trusted main."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not rerun the frozen Stage run.",
+      "Do not force-update the frozen implementation branch.",
+      "Do not use --no-frozen-lockfile.",
+      "Do not remove @arcmantle/vite-plugin-import-css-sheet.",
+      "Do not regenerate or rewrite the large 0011 patch.",
+      "Do not introduce a custom lockfile editor or installer."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
