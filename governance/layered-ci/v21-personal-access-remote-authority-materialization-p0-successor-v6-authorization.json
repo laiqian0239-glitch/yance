@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PA-REMOTE-MATERIALIZATION-P0-V6",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Create one clean successor implementation from current trusted main after the exact Layered release-resource route repair. Reuse the already locally and remotely validated Personal Access product tree from frozen head a6d525e05ab94a3a48d9fbe257f207348377df11 byte-for-byte across the authorized thirteen path identities. The v5 authorization is frozen because its evidence metadata misused the reserved generic delegated-governance supersedes schema; the product bytes are not the root cause. Do not rerun frozen heads or repeat Cloudflare/D1/OWNER secret lifecycle debugging.",
+  "base": {
+    "branch": "main",
+    "commit": "d2dbf49c40eea457a6d39e020629eb09023ed17b"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-personal-access-remote-authority-materialization-p0-successor-v6-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-personal-access-remote-authority-materialization-p0-successor-v6-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-personal-access-remote-authority-materialization-p0-successor-v6",
+    "allowedChangedPaths": [
+      "backend/tests/platformAuthSealToolRegression.test.js",
+      "backend/tests/windowsSourceUatRound1Regression.test.js",
+      "electron/main.js",
+      "release/facebook-production-resources/platform-auth.json",
+      "release/facebook-production-resources/platform-auth.sha256",
+      "services/personal-access-worker/src/index.js",
+      "services/personal-access-worker/src/index.mjs",
+      "services/personal-access-worker/tests/personal-access-worker.test.js",
+      "services/personal-access-worker/wrangler.toml",
+      "shared/release/releasePlatformAuth.js",
+      "tests/wp0/v21-personal-access-control-p0.test.js",
+      "tests/wp7/platform-auth-release-packaging.test.js",
+      "tools/release/create-platform-auth-seal.js"
+    ],
+    "approvedChangedFileCount": 13,
+    "approvedChangedFileSetSha256": "dada4f2efd14f8db52eb02f8e6072d2ce11daf8585d71ffa8f39dba5950f6ea0",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "releaseResourceModificationAllowed": true,
+    "externalRemoteMaterializationRequired": false
+  },
+  "frozenEvidence": {
+    "frozenPullRequest": 1013,
+    "frozenHead": "a6d525e05ab94a3a48d9fbe257f207348377df11",
+    "frozenLayeredRun": 33515518332,
+    "frozenWpBM2Run": 33515518137,
+    "frozenStageRun": 33515518062,
+    "layeredFailureCode": "CI_UNKNOWN_PATH",
+    "branchFailureCode": "WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID",
+    "routeRepairMerge": "d2dbf49c40eea457a6d39e020629eb09023ed17b",
+    "productTreeReusedWithoutBusinessLogicRewrite": true,
+    "remoteLifecycleAlreadyGreen": true,
+    "cloudflareRedeployRequired": false,
+    "d1MigrationRerunRequired": false,
+    "ownerSecretRotationRequired": false
+  },
+  "productContract": {
+    "preserveExistingPersonalAccessAuthority": true,
+    "ownerPermanentUse": true,
+    "testerApprovalRequired": true,
+    "installationBindingRequired": true,
+    "remoteFailureFailsTesterClosed": true,
+    "matrixIdentityRemainsSeparateAuthority": true,
+    "publicMatrixRegistrationRemainsDisabled": true,
+    "workerEntryMustBePlatformNativeEsModule": true,
+    "mjsEntryRequired": true,
+    "commonJsProductionEntryRetired": true,
+    "businessLogicRewriteForbidden": true,
+    "reuseExistingD1AndMigration": true,
+    "sealedPersonalAccessAuthorityUrlRequired": true,
+    "backendEnvironmentProjectionRequired": "YANCE_PERSONAL_ACCESS_AUTHORITY_URL",
+    "ownerCredentialRef": "personal-access.owner-admin",
+    "ownerBootstrapMustReuseDesktopSaveCredential": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test services/personal-access-worker/tests/personal-access-worker.test.js",
+      "npx --yes wrangler@4.127.1 deploy --dry-run --config services/personal-access-worker/wrangler.toml",
+      "node --test backend/tests/platformAuthSealToolRegression.test.js",
+      "node --test backend/tests/windowsSourceUatRound1Regression.test.js",
+      "node --test tests/wp0/v21-personal-access-control-p0.test.js",
+      "node --test tests/wp7/platform-auth-release-packaging.test.js",
+      "node --test backend/tests/personalAccessControlP0.test.js",
+      "git diff --check"
+    ],
+    "promotion": [
+      "Replay the frozen a6d525e05ab94a3a48d9fbe257f207348377df11 product tree onto the v6 authorization merge using exact Git blob identities.",
+      "Preserve the thirteen no-renames changed-path identities including deleted index.js and materialized index.mjs.",
+      "Create exactly one implementation commit whose parent is the v6 authorization merge.",
+      "Do not redeploy Cloudflare, rerun the D1 migration, rotate OWNER_ADMIN_SECRET or repeat the already-green remote lifecycle proof."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_FROZEN_VALIDATED_PRODUCT_TREE_AND_EXISTING_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Cloudflare Workers ES modules + Wrangler 4.127.1",
+        "source": "Cloudflare platform-native ES-module Worker contract and official Wrangler CLI",
+        "license": "Wrangler MIT; Cloudflare platform contract external service",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "The frozen product tree already materializes the native .mjs Worker entry and D1 binding; no new mechanism is required."
+      },
+      {
+        "name": "Existing sealed platform-auth release authority and CredentialVault",
+        "source": "shared/release/releasePlatformAuth.js, create-platform-auth-seal.js and desktop CredentialVault authority",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Reuse the already validated release URL seal and encrypted OWNER credential custody."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not introduce another Worker, D1 abstraction, migration, secret store or licensing mechanism.",
+      "Do not rewrite Personal Access business logic.",
+      "Do not reopen Matrix registration or conflate Matrix identity with product entitlement.",
+      "Do not use the reserved delegated-governance supersedes field for evidence metadata."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
