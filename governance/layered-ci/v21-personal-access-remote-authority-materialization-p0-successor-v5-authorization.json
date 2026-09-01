@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PA-REMOTE-MATERIALIZATION-P0-V5",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Supersede the frozen partial published implementation head 73003e01ce4b58edbac1c7a530d4b562f29fd3a3 without rerun, amendment, force-push or evidence overwrite. The partial head contains only the index.js to index.mjs rename because the local staging command failed before the remaining already-validated twelve working-tree files were staged. Preserve the same thirteen-path Personal Access remote-authority causal batch, the already materialized Cloudflare D1 and Worker runtime evidence, the real authority URL, the existing OWNER_ADMIN_SECRET custody, the sealed release configuration seam and the existing CredentialVault authority. Produce one new clean implementation head from the authorization merge rather than stacking fragmented commits on the partial published head.",
+  "base": {
+    "branch": "main",
+    "commit": "afa0cd8a479ef104f4b0251a294f439b03162820"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-personal-access-remote-authority-materialization-p0-successor-v5-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-personal-access-remote-authority-materialization-p0-successor-v5-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "ba9024377e27ea91a249f52e8ae9c365566f1424ee00fff23e1049d7e7dbeee9",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-personal-access-remote-authority-materialization-p0-successor-v5",
+    "allowedChangedPaths": [
+      "backend/tests/platformAuthSealToolRegression.test.js",
+      "backend/tests/windowsSourceUatRound1Regression.test.js",
+      "electron/main.js",
+      "release/facebook-production-resources/platform-auth.json",
+      "release/facebook-production-resources/platform-auth.sha256",
+      "services/personal-access-worker/src/index.js",
+      "services/personal-access-worker/src/index.mjs",
+      "services/personal-access-worker/tests/personal-access-worker.test.js",
+      "services/personal-access-worker/wrangler.toml",
+      "shared/release/releasePlatformAuth.js",
+      "tests/wp0/v21-personal-access-control-p0.test.js",
+      "tests/wp7/platform-auth-release-packaging.test.js",
+      "tools/release/create-platform-auth-seal.js"
+    ],
+    "approvedChangedFileCount": 13,
+    "approvedChangedFileSetSha256": "dada4f2efd14f8db52eb02f8e6072d2ce11daf8585d71ffa8f39dba5950f6ea0",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "releaseResourceModificationAllowed": true,
+    "externalRemoteMaterializationRequired": true
+  },
+  "supersedes": {
+    "frozenPullRequests": [1009, 1010],
+    "frozenHeads": [
+      "b7310d77ebb1e0844c860360a8e4d428846e753a",
+      "bf2f00087d5f101edf02ca5976cbb123b2e86975",
+      "73003e01ce4b58edbac1c7a530d4b562f29fd3a3"
+    ],
+    "frozenStageRuns": [33505490396, 33506276442],
+    "partialPublishedHead": "73003e01ce4b58edbac1c7a530d4b562f29fd3a3",
+    "partialPublishedHeadReason": "LOCAL_PATHSPEC_STAGING_ABORTED_AFTER_RENAME_WAS_ALREADY_IN_INDEX",
+    "partialPublishedHeadNeverCandidate": true,
+    "rerunForbidden": true,
+    "amendForbidden": true,
+    "forcePushForbidden": true
+  },
+  "frozenRemoteEvidence": {
+    "wranglerVersion": "4.127.1",
+    "cloudflareAuthenticated": true,
+    "d1Name": "yance-personal-access",
+    "d1Id": "e81b4218-8a66-4377-b07d-eb785c7698cf",
+    "migrationApplied": "0001_personal_access.sql",
+    "migrationRerunNoop": true,
+    "ownerAdminSecretInstalled": true,
+    "ownerAdminSecretMustRemainUnknownToRepositoryAndChat": true,
+    "authorityUrl": "https://yance-personal-access.wangyi198675.workers.dev",
+    "remoteLifecycleGreen": true,
+    "remoteLifecycleProbeLeftRevoked": true,
+    "ownerCredentialVaultWriteGreen": true,
+    "ownerCredentialVaultReadGreen": true,
+    "ownerPermanentAccessCausalProofGreen": true
+  },
+  "productContract": {
+    "preserveExistingPersonalAccessAuthority": true,
+    "ownerPermanentUse": true,
+    "testerApprovalRequired": true,
+    "installationBindingRequired": true,
+    "remoteFailureFailsTesterClosed": true,
+    "matrixIdentityRemainsSeparateAuthority": true,
+    "publicMatrixRegistrationRemainsDisabled": true,
+    "workerEntryMustBePlatformNativeEsModule": true,
+    "mjsEntryRequired": true,
+    "commonJsProductionEntryRetired": true,
+    "businessLogicRewriteForbidden": true,
+    "reuseExistingD1AndMigration": true,
+    "sealedPersonalAccessAuthorityUrlRequired": true,
+    "backendEnvironmentProjectionRequired": "YANCE_PERSONAL_ACCESS_AUTHORITY_URL",
+    "ownerCredentialRef": "personal-access.owner-admin",
+    "ownerBootstrapMustReuseDesktopSaveCredential": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test services/personal-access-worker/tests/personal-access-worker.test.js",
+      "npx --yes wrangler@4.127.1 deploy --dry-run --config services/personal-access-worker/wrangler.toml",
+      "node --test backend/tests/platformAuthSealToolRegression.test.js",
+      "node --test backend/tests/windowsSourceUatRound1Regression.test.js",
+      "node --test tests/wp0/v21-personal-access-control-p0.test.js",
+      "node --test tests/wp7/platform-auth-release-packaging.test.js",
+      "node --test backend/tests/personalAccessControlP0.test.js",
+      "git diff --check"
+    ],
+    "promotion": [
+      "Replay the complete thirteen-path working-tree result from the trusted v4 local workspace onto the v5 authorization merge without changing product bytes.",
+      "Prove exact thirteen-path census and normalized Git blob identity for every resulting file.",
+      "Create exactly one implementation commit whose parent is the v5 authorization merge.",
+      "Do not redeploy Cloudflare, rerun D1 migration, rotate OWNER_ADMIN_SECRET or repeat the already-green remote lifecycle proof."
+    ]
+  },
+  "ossFit": {
+    "decision": "USE_CLOUDFLARE_NATIVE_MJS_ES_MODULE_AND_EXISTING_YANCE_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Cloudflare Workers ES modules + Wrangler 4.127.1",
+        "source": "Cloudflare platform-native ES-module Worker contract and official Wrangler CLI",
+        "license": "Wrangler MIT; Cloudflare platform contract external service",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Use a native .mjs Worker entry so D1 deployability is explicit without introducing a package manifest or custom module loader."
+      },
+      {
+        "name": "Existing Personal Access Worker + D1 repository",
+        "source": "services/personal-access-worker source and migrations/0001_personal_access.sql",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Preserve existing request/grant transitions, OWNER authorization and installation binding; only the production module envelope changes."
+      },
+      {
+        "name": "Existing sealed platform-auth release authority",
+        "source": "shared/release/releasePlatformAuth.js and tools/release/create-platform-auth-seal.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Reuse existing HTTPS URL validation and detached SHA-256 release sealing for the Personal Access authority URL."
+      },
+      {
+        "name": "Existing Desktop CredentialVault application authority",
+        "source": "CredentialVaultHost, DesktopCredentialApplicationCoordinator and electron/main.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Reuse durable encrypted credential mutation and coordinated backend restart for OWNER bootstrap."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not authorize or add any package.json for this ESM conversion.",
+      "Do not create a second Worker, D1 abstraction or database.",
+      "Do not use a repo-external shim as permanent production authority.",
+      "Do not rotate or expose OWNER_ADMIN_SECRET.",
+      "Do not rewrite Personal Access business logic.",
+      "Do not reopen Matrix registration or bind Matrix identity to entitlement truth.",
+      "Do not add custom deployment APIs, secret stores, migrations or retry systems."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
