@@ -51,6 +51,8 @@
     "release/electron-distribution-trust.json",
     "release/architecture-closure-v2/wp-b-governance-package.json",
     "release/production-dependency-binding.json",
+    "release/facebook-production-resources/platform-auth.json",
+    "release/facebook-production-resources/platform-auth.sha256",
     "runtime/local-ai/airllm/yance_airllm_worker.py",
     "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
     "vendor/electron/electron-v39.8.5-win32-x64.zip",
