@@ -228,6 +228,7 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     '.gitignore',
     'THIRD_PARTY_NOTICES.md',
     'config/local-ai/adaptive-local-model-catalog-v1.json',
+    'config/matrix/element-config.json',
     'config/matrix/synapse/homeserver.yaml',
     'config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json',
     'integration/element-module/src/LearningWorkspace.tsx',
@@ -480,4 +481,15 @@ test('brand/login/icon routing identities require exact L2 classification', () =
 
   assert.equal(risk.unknownPathFailsClosed, true);
   assert.equal(risk.l3Automatic, false);
+});
+test('Element auth config uses one exact L2 route without broad config expansion', () => {
+  const file = 'config/matrix/element-config.json';
+  const result = classifyChangedFiles(risk, [file]);
+  assert.equal(result.pass, true, file);
+  assert.equal(result.requiredLevel, 'L2', file);
+  assert.equal(result.reasons[0].type, 'EXACT', file);
+
+  const adjacent = classifyChangedFiles(risk, ['config/matrix/element-config.local.json']);
+  assert.equal(adjacent.pass, false);
+  assert.equal(adjacent.reasonCode, 'CI_UNKNOWN_PATH');
 });
