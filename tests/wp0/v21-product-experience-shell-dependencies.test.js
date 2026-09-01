@@ -237,3 +237,72 @@ test('Product dependency replay gives governed tool-ui direct Element-root type 
   assert.ok(importer.includes("+      '@types/react':\n+        specifier: ^19.2.10\n+        version: 19.2.17"));
   assert.ok(importer.includes("+      zod:\n+        specifier: 4.4.3\n+        version: 4.4.3"));
 });
+
+test('Product module manifest and frozen importer stay dependency-complete', () => {
+  const pkg = JSON.parse(read('integration/element-module/package.json'));
+  const patch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+  const importer = addedYanceImporter(patch)
+    .split('\n')
+    .map((line) => line.startsWith('+') ? line.slice(1) : line)
+    .join('\n');
+
+  const unquote = (raw) => {
+    const value = String(raw || '').trim();
+    if (
+      (value.startsWith("'") && value.endsWith("'")) ||
+      (value.startsWith('"') && value.endsWith('"'))
+    ) return value.slice(1, -1);
+    return value;
+  };
+
+  const importerSpecifiers = new Map();
+  const lines = importer.split('\n');
+
+  for (let i = 0; i < lines.length - 1; i += 1) {
+    const key = lines[i].match(/^      (?:'([^']+)'|([^:]+)):\s*$/u);
+    if (!key) continue;
+
+    const specifier = lines[i + 1].match(/^        specifier:\s*(.+?)\s*$/u);
+    if (!specifier) continue;
+
+    importerSpecifiers.set(
+      key[1] || key[2],
+      unquote(specifier[1])
+    );
+  }
+
+  const declared = {
+    ...(pkg.dependencies || {}),
+    ...(pkg.peerDependencies || {}),
+    ...(pkg.devDependencies || {}),
+  };
+
+  for (const [name, specifier] of Object.entries(declared)) {
+    assert.equal(
+      importerSpecifiers.has(name),
+      true,
+      `modules/yance lock importer missing manifest dependency ${name}`
+    );
+
+    // catalog: is resolved by pinned Element's catalog authority before
+    // being materialized into the lock importer. Every non-catalog
+    // manifest specifier must remain byte-exact.
+    if (specifier !== 'catalog:') {
+      assert.equal(
+        importerSpecifiers.get(name),
+        specifier,
+        `modules/yance lock specifier drift for ${name}`
+      );
+    }
+  }
+
+  assert.equal(
+    pkg.devDependencies?.['@arcmantle/vite-plugin-import-css-sheet'],
+    '^1.0.12'
+  );
+
+  assert.match(
+    importer,
+    /'@arcmantle\/vite-plugin-import-css-sheet':\n        specifier: \^1\.0\.12\n        version: 1\.0\.14\(patch_hash=8019aa9feca17db6bab3483612b4150c911d70b58fddc52bf2d7258a1484a747\)/u
+  );
+});
