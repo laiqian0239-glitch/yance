@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PERSONAL-ACCESS-REMOTE-AUTHORITY-MATERIALIZATION-P0-SUCCESSOR-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Continue the same Personal Access remote-authority materialization batch after real Cloudflare deployment exposed one previously unknown platform contract: the existing Worker entry is CommonJS while a D1-bound Worker must deploy as an ES module. Frozen remote evidence already proves one real D1 was created, migration 0001 applied cleanly, and OWNER_ADMIN_SECRET was installed as a Worker secret. Deployment alone is blocked by Cloudflare error 100329 before publication. This successor changes only the Worker module envelope, preserves all request/grant and installation-binding business logic, adds a permanent deployability regression, then completes the previously authorized sealed-release URL wiring and OWNER bootstrap through existing authorities.",
+  "base": {
+    "branch": "main",
+    "commit": "203c377a95d223a46bed186695b17373cbb8ad1c"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-personal-access-remote-authority-materialization-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-personal-access-remote-authority-materialization-p0-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "5dbe6dacf5fd2194e3c0d1fe80bd1eddca04e5246d78bc7844660e1e074456dd",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-personal-access-remote-authority-materialization-p0-successor-v2",
+    "allowedChangedPaths": [
+      "backend/tests/platformAuthSealToolRegression.test.js",
+      "backend/tests/windowsSourceUatRound1Regression.test.js",
+      "electron/main.js",
+      "release/facebook-production-resources/platform-auth.json",
+      "release/facebook-production-resources/platform-auth.sha256",
+      "services/personal-access-worker/src/index.js",
+      "services/personal-access-worker/src/package.json",
+      "services/personal-access-worker/tests/personal-access-worker.test.js",
+      "services/personal-access-worker/wrangler.toml",
+      "shared/release/releasePlatformAuth.js",
+      "tests/wp0/v21-personal-access-control-p0.test.js",
+      "tests/wp7/platform-auth-release-packaging.test.js",
+      "tools/release/create-platform-auth-seal.js"
+    ],
+    "approvedChangedFileCount": 13,
+    "approvedChangedFileSetSha256": "239cbb2d8e72cf522c015ae41885b725acb7062c868d67c9cfe43b4d345d2264",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "historicalMigrationModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseResourceModificationAllowed": true,
+    "externalRemoteMaterializationRequired": true
+  },
+  "frozenRemoteEvidence": {
+    "wranglerVersion": "4.127.1",
+    "cloudflareAuthenticated": true,
+    "d1Name": "yance-personal-access",
+    "d1Id": "e81b4218-8a66-4377-b07d-eb785c7698cf",
+    "d1Created": true,
+    "migrationApplied": "0001_personal_access.sql",
+    "migrationRerunNoop": true,
+    "ownerAdminSecretInstalled": true,
+    "ownerAdminSecretValueMustRemainUnknownToRepositoryAndChat": true,
+    "deployFailureCode": 100329,
+    "deployFailure": "Binding 'DB' of type 'd1' requires a Worker written in ES module format.",
+    "runtimeProbeNotRunBecauseDeployFailedBeforePublication": true
+  },
+  "productContract": {
+    "preserveExistingPersonalAccessAuthority": true,
+    "ownerPermanentUse": true,
+    "testerApprovalRequired": true,
+    "testerStateServerAuthoritative": true,
+    "installationBindingRequired": true,
+    "remoteFailureFailsTesterClosed": true,
+    "matrixIdentityRemainsSeparateAuthority": true,
+    "publicMatrixRegistrationRemainsDisabled": true,
+    "cloudflareEsModuleWorkerRequired": true,
+    "commonJsWorkerExportForbidden": true,
+    "d1RepositoryAuthorityPreserved": true,
+    "sealedPersonalAccessAuthorityUrlRequired": true,
+    "backendEnvironmentProjectionRequired": "YANCE_PERSONAL_ACCESS_AUTHORITY_URL",
+    "ownerCredentialRef": "personal-access.owner-admin",
+    "ownerBootstrapMustReuseDesktopSaveCredential": true
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --test services/personal-access-worker/tests/personal-access-worker.test.js",
+      "npx --yes wrangler@4.127.1 deploy --dry-run --config services/personal-access-worker/wrangler.toml",
+      "node --test backend/tests/platformAuthSealToolRegression.test.js",
+      "node --test backend/tests/windowsSourceUatRound1Regression.test.js",
+      "node --test tests/wp0/v21-personal-access-control-p0.test.js",
+      "node --test tests/wp7/platform-auth-release-packaging.test.js",
+      "node --test backend/tests/personalAccessControlP0.test.js",
+      "git diff --check"
+    ],
+    "remoteContinuation": [
+      "Reuse D1 e81b4218-8a66-4377-b07d-eb785c7698cf; do not create another database.",
+      "Reuse the already-installed OWNER_ADMIN_SECRET; do not rotate or expose it.",
+      "Deploy the exact successor Worker once, obtain the HTTPS authority URL, and run pending/owner/approve/copied-install/suspend/revoke proof leaving the probe REVOKED.",
+      "Seal that exact URL into release platform-auth resources and provision the matching OWNER secret into the OWNER Windows CredentialVault via the existing desktop credential application authority."
+    ]
+  },
+  "ossFit": {
+    "decision": "USE_CLOUDFLARE_NATIVE_ES_MODULE_CONTRACT_AND_EXISTING_YANCE_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Cloudflare Workers ES module contract + Wrangler 4.127.1",
+        "source": "Cloudflare platform-native Worker module contract and official Wrangler CLI",
+        "license": "Wrangler MIT; Cloudflare platform contract external service",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Real D1 deployment proves the production Worker entry must be an ES module; use the native platform contract instead of a custom deployment adapter."
+      },
+      {
+        "name": "Existing Personal Access Worker and D1 repository",
+        "source": "services/personal-access-worker/src/index.js and migrations/0001_personal_access.sql",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Preserve all existing request/grant transitions, OWNER authorization, and installation binding; change only the module envelope."
+      },
+      {
+        "name": "Existing sealed platform-auth release authority",
+        "source": "shared/release/releasePlatformAuth.js and tools/release/create-platform-auth-seal.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Reuse existing HTTPS validation and detached SHA-256 release sealing for the Personal Access authority URL."
+      },
+      {
+        "name": "Existing Desktop CredentialVault application authority",
+        "source": "electron/desktopHost/CredentialVaultHost.js, DesktopCredentialApplicationCoordinator.js and electron/main.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Reuse durable encrypted credential mutation and coordinated backend restart for OWNER bootstrap."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second Worker or D1 abstraction.",
+      "Do not keep a repo-external ESM shim as permanent production authority.",
+      "Do not create a second yance-personal-access D1 database.",
+      "Do not rotate or expose OWNER_ADMIN_SECRET because deployment failed before publication.",
+      "Do not rewrite Personal Access business logic while converting the module envelope.",
+      "Do not reopen Matrix registration or bind Matrix identity to entitlement truth.",
+      "Do not add custom deployment APIs, secret stores, migrations or retry systems."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
