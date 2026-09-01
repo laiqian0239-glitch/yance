@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-01T23:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELEMENT-LOCK-REPLAY-INCREMENTAL-P0-S3",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen implementation head 3fc81a3b6e811a70da186a8731db9960e06975f8 remains non-candidate evidence. Its intended CSS-sheet importer entry is correct, but rewriting the large 0011 replay corrupted its pnpm-lock target index metadata and focused regression proved 8/10. The safer causal closure is to leave the already-proven 0011 bytes untouched and reuse the existing strict applyPatch seam for one tiny incremental lock replay immediately after 0011. This avoids regenerating thousands of unrelated lock diff lines while still making the effective modules/yance importer match integration/element-module/package.json before pnpm --frozen-lockfile runs.",
+  "base": {
+    "branch": "main",
+    "commit": "954bb253ece6a771bd16705b9020e2f505fa1ede",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-element-lock-replay-incremental-p0-successor-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-element-lock-replay-incremental-p0-successor-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "f4b32bec8de913cd4d51eedc63c87de08ca6302fcff8100df0e691db287871a4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-element-lock-replay-incremental-p0-successor-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "31e57d9562f7918b2d4310e9b0dc4d9479fb465bd89176ce99f7c53a90c0a42d",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "ledgerModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "ELEMENT_MATERIALIZATION / YANCE_MODULE_MANIFEST_LOCKFILE_OUT_OF_SYNC",
+    "failureCode": "PRODUCT_FINAL / ELEMENT_DEPENDENCY_LOCKFILE_OUTDATED",
+    "frozenRcHead": "054df1a9328d2f65920107c3ffdc19dce00f68d7",
+    "frozenProductFinalRun": 33524726270,
+    "frozenBadImplementationHead": "3fc81a3b6e811a70da186a8731db9960e06975f8",
+    "frozenBadImplementationEvidence": "focused dependency regression 8/10; large 0011 rewrite corrupted target index metadata",
+    "sameRootJobs": [99912533820, 99912534254, 99912534298],
+    "requiredClosure": [
+      "Keep upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch byte-identical to trusted main.",
+      "Add one tiny incremental lock replay after 0011 using the existing applyPatch helper and ordinary git apply --check followed by git apply.",
+      "Materialize @arcmantle/vite-plugin-import-css-sheet with specifier ^1.0.12 and pinned Element-resolved identity 1.0.14(patch_hash=8019aa9feca17db6bab3483612b4150c911d70b58fddc52bf2d7258a1484a747).",
+      "Add a permanent regression proving the incremental patch old-side context exists in the 0011 materialized modules/yance importer and that the effective importer covers every dependency, devDependency and peerDependency declared by integration/element-module/package.json.",
+      "Never rerun, amend or force-update frozen head 3fc81a3b6e811a70da186a8731db9960e06975f8 or frozen RC head 054df1a9328d2f65920107c3ffdc19dce00f68d7."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_STRICT_GIT_APPLY_REPLAY_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "git apply plus pnpm frozen workspace lock semantics",
+        "source": "Git and pinned Element/pnpm workflow already used by tools/matrix/bootstrap.js",
+        "license": "repository-existing/upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "An incremental replay through the already-owned strict applyPatch seam is smaller and safer than regenerating the large historical 0011 patch or weakening pnpm frozen-lockfile."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not use --no-frozen-lockfile.",
+      "Do not remove @arcmantle/vite-plugin-import-css-sheet.",
+      "Do not regenerate or rewrite the large 0011 patch.",
+      "Do not introduce a custom lockfile editor or installer.",
+      "Do not mutate or rerun frozen implementation or RC heads."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
