@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-01T23:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELEMENT-LOCK-REPLAY-P0-S2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen implementation head 3fc81a3b6e811a70da186a8731db9960e06975f8 is non-candidate evidence only. Existing focused regression proved 8/10 with the two failures sharing one exact metadata defect: 0011 pnpm-lock index line was published with an empty target SHA after a failed local replay script. The intended @arcmantle/vite-plugin-import-css-sheet importer entry and the generic manifest-to-importer coverage regression are otherwise present. This successor keeps the same two-file causal surface, restores a standard 40-hex target index identity using the prior valid 0011 target identity, preserves ordinary git apply semantics, and never mutates or reruns the frozen head.",
+  "base": {
+    "branch": "main",
+    "commit": "10f6911a01b5feb9c55f3d08f211756387ddf50e",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-element-lock-replay-closure-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-element-lock-replay-closure-p0-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "0aaa7d6712cfa78eb79b0c05a4056df35e4baf67bebbcd7981025ae904e8dff0",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-element-lock-replay-closure-p0-successor-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+      "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "533eb7d98ebd6e20e803844f9ec1a8ea18b0274c76c59c876392e3e2706d9b48",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "ledgerModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "ELEMENT_MATERIALIZATION / YANCE_MODULE_MANIFEST_LOCKFILE_OUT_OF_SYNC",
+    "failureCode": "PRODUCT_FINAL / ELEMENT_DEPENDENCY_LOCKFILE_OUTDATED",
+    "frozenRcHead": "054df1a9328d2f65920107c3ffdc19dce00f68d7",
+    "frozenProductFinalRun": 33524726270,
+    "frozenBadImplementationHead": "3fc81a3b6e811a70da186a8731db9960e06975f8",
+    "frozenBadImplementationEvidence": "focused dependency regression 8/10; 0011 pnpm-lock index line target SHA empty",
+    "sameRootJobs": [99912533820, 99912534254, 99912534298],
+    "requiredClosure": [
+      "Reuse existing 0011 dependency-lock replay seam; do not weaken frozen-lockfile semantics.",
+      "Keep @arcmantle/vite-plugin-import-css-sheet ^1.0.12 in the modules/yance importer using pinned Element's existing resolved identity 1.0.14(patch_hash=8019aa9feca17db6bab3483612b4150c911d70b58fddc52bf2d7258a1484a747).",
+      "Keep the generic regression requiring every dependency, devDependency and peerDependency declared by integration/element-module/package.json to be represented by exact specifier in the 0011 modules/yance importer.",
+      "Restore a standard 40-hex target SHA in the pnpm-lock index metadata; ordinary git apply --check and git apply remain authoritative for replay.",
+      "Never rerun, amend or force-update frozen head 3fc81a3b6e811a70da186a8731db9960e06975f8."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_ELEMENT_LOCK_REPLAY_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "pnpm frozen workspace lock semantics",
+        "source": "Pinned Element Web workspace plus existing 0011 lock replay",
+        "license": "repository-existing/upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The correct fix is to keep the workspace lock replay valid and complete, not bypass frozen-lockfile or invent a dependency installer."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not use --no-frozen-lockfile.",
+      "Do not remove the mature OSS CSS-sheet plugin.",
+      "Do not change tools/matrix/bootstrap.js because its ordering and strict replay seam are already correct.",
+      "Do not mutate or rerun frozen implementation head 3fc81a3b6e811a70da186a8731db9960e06975f8.",
+      "Do not mutate or rerun the frozen successor-v15 RC head."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
