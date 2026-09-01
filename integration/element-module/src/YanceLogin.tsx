@@ -1,6 +1,4 @@
 import React from "react";
-import "./YanceLogin.css";
-
 export function YanceLogin({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     <div

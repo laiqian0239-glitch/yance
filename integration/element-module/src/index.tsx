@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="@arcmantle/vite-plugin-import-css-sheet/client" />
 
 import React from "react";
 import type { Api, Module, ModuleFactory } from "@element-hq/element-web-module-api";
@@ -6,6 +7,96 @@ import { YanceWorkspace } from "./YanceWorkspace";
 import { YanceLogin } from "./YanceLogin";
 import { ProductComposerAccessory } from "./product-experience/ProductComposerAccessory";
 import type { RelationshipProjection } from "./product-experience/experienceTypes";
+
+import brandPreviewStyles from "./BrandPreviewSurface.css" with { type: "css" };
+import learningStyles from "./LearningWorkspace.css" with { type: "css" };
+import mediaStyles from "./MediaWorkspace.css" with { type: "css" };
+import presenceStyles from "./PresenceWorkspace.css" with { type: "css" };
+import voiceStyles from "./VoiceWorkspace.css" with { type: "css" };
+import loginStyles from "./YanceLogin.css" with { type: "css" };
+import productExperienceStyles from "./product-experience/ProductExperienceShell.css" with { type: "css" };
+
+
+
+const YANCE_ELEMENT_STYLE_SHEETS: readonly CSSStyleSheet[] = Object.freeze([
+  brandPreviewStyles,
+  learningStyles,
+  mediaStyles,
+  presenceStyles,
+  voiceStyles,
+  loginStyles,
+  productExperienceStyles
+]);
+
+function ensureYanceElementStyles(): void {
+  for (const sheet of YANCE_ELEMENT_STYLE_SHEETS) {
+    if (!document.adoptedStyleSheets.includes(sheet)) {
+      document.adoptedStyleSheets.push(sheet);
+    }
+  }
+
+  const missing = YANCE_ELEMENT_STYLE_SHEETS.filter(
+    (sheet) => !document.adoptedStyleSheets.includes(sheet)
+  );
+
+  if (missing.length !== 0) {
+    throw new Error(
+      `ELEMENT_YANCE_STYLE_AUTHORITY_MISSING: expected=${YANCE_ELEMENT_STYLE_SHEETS.length} missing=${missing.length}`
+    );
+  }
+}
+
+
+const YANCE_LOCALE_MIGRATION_V2 = "yance.locale.zh_hans.v2";
+
+function migrateLegacyElementLocale(): boolean {
+  try {
+    if (window.localStorage.getItem(YANCE_LOCALE_MIGRATION_V2) === "done") {
+      return false;
+    }
+
+    const raw = window.localStorage.getItem("mx_local_settings");
+    let settings: Record<string, unknown> = {};
+
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          settings = parsed as Record<string, unknown>;
+        }
+      } catch {
+        settings = {};
+      }
+    }
+
+    const currentLanguage =
+      typeof settings.language === "string" ? settings.language : "";
+
+    const shouldMigrate =
+      currentLanguage === "" ||
+      currentLanguage === "en" ||
+      currentLanguage === "en_EN" ||
+      currentLanguage === "en-US" ||
+      currentLanguage === "en-GB";
+
+    if (shouldMigrate) {
+      settings.language = "zh-hans";
+      window.localStorage.setItem(
+        "mx_local_settings",
+        JSON.stringify(settings)
+      );
+    }
+
+    window.localStorage.setItem(
+      YANCE_LOCALE_MIGRATION_V2,
+      "done"
+    );
+
+    return shouldMigrate;
+  } catch {
+    return false;
+  }
+}
 
 type DesktopActivationProbe = {
   id?: string;
@@ -31,7 +122,14 @@ class YanceElementModule implements Module {
   public constructor(private readonly api: Api) {}
 
   public async load(): Promise<void> {
-    const navigateSearchResult = async (relationship: RelationshipProjection): Promise<boolean> => {
+    ensureYanceElementStyles();
+
+    if (migrateLegacyElementLocale()) {
+      window.location.reload();
+      return;
+    }
+
+const navigateSearchResult = async (relationship: RelationshipProjection): Promise<boolean> => {
       const permalink = relationship.matrixPermalink?.trim() || "";
       if (permalink && validMatrixPermalink(permalink)) {
         this.api.navigation.toMatrixToLink(permalink);

@@ -10,5 +10,10 @@
   "disable_guests": true,
   "embedded_pages": {
     "login_for_welcome": true
-  }
+  },
+  "setting_defaults": {
+    "language": "zh-hans",
+    "UIFeature.registration": false
+  },
+  "disable_login_language_selector": true
 }

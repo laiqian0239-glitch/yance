@@ -76,10 +76,27 @@ test('Yance login owns final product visual authority while preserving Element a
 
 test('Element auth surface routes anonymous startup to the registered Yance V2 login via login_for_welcome', () => {
   const elementConfig = JSON.parse(read('config/matrix/element-config.json'));
+  const synapseConfig = read('config/matrix/synapse/homeserver.yaml');
+
+  assert.match(
+    synapseConfig,
+    /^enable_registration:\s*false\s*$/mu,
+    'Synapse production config must keep user registration disabled'
+  );
+  assert.equal(
+    elementConfig.setting_defaults && elementConfig.setting_defaults['UIFeature.registration'],
+    false,
+    'Element production config must hide and guard registration UI when Synapse registration is disabled'
+  );
   assert.equal(
     elementConfig.embedded_pages && elementConfig.embedded_pages.login_for_welcome,
     true,
     'element-config.json must enable embedded_pages.login_for_welcome'
+  );
+  assert.notEqual(
+    elementConfig.setting_defaults && elementConfig.setting_defaults['UIFeature.passwordReset'],
+    false,
+    'Element password recovery must remain enabled while registration is disabled'
   );
 
   const moduleIndex = read('integration/element-module/src/index.tsx');
@@ -91,4 +108,63 @@ test('Element auth surface routes anonymous startup to the registered Yance V2 l
   assert.doesNotMatch(login, /_matrix\/client/u);
   assert.doesNotMatch(login, /accessToken/u);
   assert.doesNotMatch(login, /m\.login\.password/u);
+});
+
+test('Yance Element module delivers all product styles through Element-native CSSStyleSheet authority', () => {
+  const moduleIndex = read('integration/element-module/src/index.tsx');
+  const vite = read('integration/element-module/vite.config.ts');
+  const pkg = JSON.parse(read('integration/element-module/package.json'));
+
+  assert.equal(
+    pkg.devDependencies?.['@arcmantle/vite-plugin-import-css-sheet'],
+    '^1.0.12'
+  );
+  assert.match(vite, /importCSSSheet/u);
+  assert.match(vite, /plugins:\s*\[importCSSSheet\(\),\s*react\(\)\]/u);
+
+  for (const css of [
+    './BrandPreviewSurface.css',
+    './LearningWorkspace.css',
+    './MediaWorkspace.css',
+    './PresenceWorkspace.css',
+    './VoiceWorkspace.css',
+    './YanceLogin.css',
+    './product-experience/ProductExperienceShell.css'
+  ]) {
+    assert.ok(
+      moduleIndex.includes(`from "${css}" with { type: "css" }`),
+      `missing CSSStyleSheet authority import: ${css}`
+    );
+  }
+
+  assert.match(moduleIndex, /document\.adoptedStyleSheets/u);
+  assert.match(moduleIndex, /ELEMENT_YANCE_STYLE_AUTHORITY_MISSING/u);
+  assert.doesNotMatch(moduleIndex, /createElement\(["']link["']\)/u);
+});
+
+test('forgot password remains Element protocol authority while Yance owns locale and visible auth surface', () => {
+  const elementConfig = JSON.parse(read('config/matrix/element-config.json'));
+  const styles = read('integration/element-module/src/YanceLogin.css');
+
+  assert.equal(elementConfig.setting_defaults?.language, 'zh-hans');
+  assert.equal(elementConfig.disable_login_language_selector, true);
+
+  assert.match(styles, /YANCE_FORGOT_PASSWORD_AUTHORITY_V1/u);
+  assert.match(styles, /mx_AuthBody_forgot-password/u);
+  assert.match(styles, /mx_AuthPage:has/u);
+  assert.match(styles, /#2a0f4a/iu);
+
+  // Product styling must not clone or replace Matrix password-reset protocol.
+  assert.doesNotMatch(styles, /_matrix\/client|requestResetToken|setNewPassword/u);
+});
+
+test('legacy Element English locale migrates once to Yance simplified Chinese default', () => {
+  const moduleIndex = read('integration/element-module/src/index.tsx');
+
+  assert.match(moduleIndex, /YANCE_LOCALE_MIGRATION_V2/u);
+  assert.match(moduleIndex, /mx_local_settings/u);
+  assert.match(moduleIndex, /zh-hans/u);
+  assert.match(moduleIndex, /window\.location\.reload/u);
+  assert.match(moduleIndex, /currentLanguage === "en"/u);
+  assert.match(moduleIndex, /=== "done"/u);
 });

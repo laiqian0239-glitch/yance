@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { RelationshipToolRouteBinding } from "./product-experience/RelationshipOverlayHost";
-import "./MediaWorkspace.css";
-
 type BinaryResult = { bytes?: Uint8Array | ArrayBuffer; mimeType?: string; assetId?: string };
 type MediaAsset = { id?: string; originalFileName?: string; fileName?: string; type?: string; thumbhash?: string };
 type HealthState = {

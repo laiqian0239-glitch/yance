@@ -27,8 +27,6 @@ import type {
   RelationshipProjection,
   SoundMode,
 } from "./experienceTypes";
-import "./ProductExperienceShell.css";
-
 type ReadRoomStateEvents = (
   roomId: string,
   eventType: string,
