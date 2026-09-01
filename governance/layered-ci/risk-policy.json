@@ -45,6 +45,7 @@
     "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
     "integration/element-module/src/product-experience/experienceProjection.ts",
     "integration/element-module/src/product-experience/experienceTypes.ts",
+    "integration/element-module/vite.config.ts",
     "package-lock.json",
     "package.json",
     "release/electron-distribution-trust.json",

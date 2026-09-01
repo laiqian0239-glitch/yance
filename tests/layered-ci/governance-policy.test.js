@@ -193,7 +193,8 @@ test('bilingual Product integration paths are classified at exact L2 risk', () =
     'integration/element-module/src/product-experience/ProductExperienceShell.css',
     'integration/element-module/src/product-experience/ProductExperienceShell.tsx',
     'integration/element-module/src/product-experience/experienceProjection.ts',
-    'integration/element-module/src/product-experience/experienceTypes.ts'
+    'integration/element-module/src/product-experience/experienceTypes.ts',
+    'integration/element-module/vite.config.ts'
   ]) {
     const result = classifyChangedFiles(risk, [file]);
     assert.equal(result.pass, true, file);
@@ -244,6 +245,7 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx',
     'integration/element-module/src/product-experience/experienceProjection.ts',
     'integration/element-module/src/product-experience/experienceTypes.ts',
+    'integration/element-module/vite.config.ts',
     'package-lock.json',
     'package.json',
     'release/electron-distribution-trust.json',
