@@ -73,3 +73,22 @@ test('Yance login owns final product visual authority while preserving Element a
   assert.doesNotMatch(login, /m\.login\.password/u);
   assert.doesNotMatch(login, /accessToken/u);
 });
+
+test('Element auth surface routes anonymous startup to the registered Yance V2 login via login_for_welcome', () => {
+  const elementConfig = JSON.parse(read('config/matrix/element-config.json'));
+  assert.equal(
+    elementConfig.embedded_pages && elementConfig.embedded_pages.login_for_welcome,
+    true,
+    'element-config.json must enable embedded_pages.login_for_welcome'
+  );
+
+  const moduleIndex = read('integration/element-module/src/index.tsx');
+  const login = read('integration/element-module/src/YanceLogin.tsx');
+  assert.match(moduleIndex, /registerLoginComponent\s*\(/u);
+  assert.match(moduleIndex, /originalComponent\(props\)/u);
+  // Authentication authority stays on Element's reviewed login implementation.
+  assert.doesNotMatch(login, /fetch\s*\(/u);
+  assert.doesNotMatch(login, /_matrix\/client/u);
+  assert.doesNotMatch(login, /accessToken/u);
+  assert.doesNotMatch(login, /m\.login\.password/u);
+});
