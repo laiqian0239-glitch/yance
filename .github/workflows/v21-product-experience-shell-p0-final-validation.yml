@@ -38,6 +38,7 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v12' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v13' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v14' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v15' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
@@ -164,6 +165,7 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v12' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v13' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v14' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v15' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
@@ -709,6 +711,7 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v12' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v13' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v14' ||
+        github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v15' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
