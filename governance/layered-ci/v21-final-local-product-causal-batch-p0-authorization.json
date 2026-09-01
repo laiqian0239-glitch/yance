@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-LOCAL-PRODUCT-CAUSAL-BATCH-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Authorize the single already locally validated final Product causal batch from the exact trusted-main successor after the Vite risk-route repair. The batch closes Yance visual/runtime authority, anonymous auth-entry policy, Constructable Stylesheet delivery through the mature @arcmantle Vite plugin, and the four-action M2 tray surface as one promotion candidate. Existing local runtime evidence is preserved; this authorization does not create a second auth protocol, tray framework, CSS injection mechanism, Matrix authority, or Windows lifecycle authority.",
+  "base": {
+    "branch": "main",
+    "commit": "22a627dcc5d7d6fd6b5ae594be9e6e68cef05d6a"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-local-product-causal-batch-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-local-product-causal-batch-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "41c829aca4f2c23ffdce28788a354d6aed241ec279eb4ee66cc9a21ab95d766b",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-local-product-causal-batch-p0",
+    "allowedChangedPaths": [
+      "config/matrix/element-config.json",
+      "electron/main.js",
+      "integration/element-module/package.json",
+      "integration/element-module/src/BrandPreviewSurface.tsx",
+      "integration/element-module/src/LearningWorkspace.tsx",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/VoiceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/vite.config.ts",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp2/m2-tray-controller.test.js"
+    ],
+    "approvedChangedFileCount": 16,
+    "approvedChangedFileSetSha256": "e183694cd19010fcb59b15c1156785f9704e99e37a4b96ff31e5035d0fcc89de",
+    "dependencyControlPaths": [
+      "integration/element-module/package.json"
+    ],
+    "dependencyControlPathCount": 1,
+    "dependencyControlPathSetSha256": "12c498270cc27530196545a2d4f01479116ef90a5a518c6579770e39b5f66419",
+    "newDependencyAllowed": true,
+    "dependencyModificationPolicy": {
+      "allowedDependencyPaths": [
+        "integration/element-module/package.json"
+      ],
+      "approvedDependencyPathCount": 1,
+      "approvedDependencyPathSetSha256": "12c498270cc27530196545a2d4f01479116ef90a5a518c6579770e39b5f66419"
+    },
+    "packageManifestModificationAllowed": true,
+    "rootNpmManifestModificationAllowed": false,
+    "rootNpmLockfileModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "productContract": {
+    "elementMatrixRemainAuthenticationAndMessagingAuthority": true,
+    "publicSelfRegistrationDisabled": true,
+    "directRegistrationRoutesMustCloseToYanceLogin": true,
+    "passwordRecoveryRemainsElementMatrixAuthority": true,
+    "yanceLoginVisualAuthorityRequired": true,
+    "constructableStylesheetRuntimeRequired": true,
+    "cssSidecarForbidden": true,
+    "trayVisibleActionCount": 4,
+    "trayVisibleActions": [
+      "显示主窗口",
+      "重启后端",
+      "重新启动应用",
+      "退出"
+    ],
+    "legacyTrayMenuAuthorityForbidden": true
+  },
+  "frozenLocalEvidence": {
+    "sourceWorktreeBase": "53cfafc10f86f7154f5ef9563c50856682018b6a",
+    "changedFileCount": 16,
+    "moduleSha256": "fd97dafc002383eeefe68410c3481e8137b1ddae1e1044b9f684cae1d9415b3f",
+    "electronVersion": "43.4.1",
+    "authEntryClosureGreen": true,
+    "trayLocalGreen": true,
+    "registrationPostCount": 0,
+    "servedRegistrationFeature": false,
+    "servedLoginForWelcome": true
+  },
+  "ossFit": {
+    "decision": "REUSE_MATURE_OSS_AND_EXISTING_REPOSITORY_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "mature-oss-plus-existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Web / Matrix auth authority",
+        "source": "pinned Element Web v1.12.25 plus Synapse configuration",
+        "license": "AGPL-3.0-only / repository-pinned upstream",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "Use Element's existing UIFeature.registration and login_for_welcome seams to close disabled registration without inventing a Yance registration protocol."
+      },
+      {
+        "name": "@arcmantle/vite-plugin-import-css-sheet",
+        "source": "npm/GitHub arcmantle/vite-plugin-import-css-sheet",
+        "license": "Apache-2.0",
+        "adoptionMode": "mature-oss-thin-adapter",
+        "fit": "FIT",
+        "reason": "Provides the mature Vite Constructable Stylesheet transform used by the locally validated module build instead of a custom CSS sidecar/injection mechanism. The validated manifest records it in devDependencies as ^1.0.12."
+      },
+      {
+        "name": "Existing M2 tray controller and Electron lifecycle authorities",
+        "source": "electron/m2/trayController.js plus existing electron/main.js lifecycle/window authorities",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Route the production tray through the existing four-action M2 model and existing lifecycle handlers rather than creating another tray or process-management framework."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a Yance registration protocol or reskin a dead registration flow.",
+      "Do not create a custom CSS injection or stylesheet lifecycle mechanism where the adopted Vite plugin owns the transform.",
+      "Do not restore the legacy large tray menu or create a second tray state machine.",
+      "Do not change Matrix authentication/session protocol authority.",
+      "Do not expand this candidate beyond the exact sixteen locally validated paths."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
