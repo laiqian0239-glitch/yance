@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PA-RELEASE-RESOURCE-RISK-ROUTE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The frozen Personal Access successor v5 exact head a6d525e05ab94a3a48d9fbe257f207348377df11 proved a deterministic Layered CI_UNKNOWN_PATH for exactly two release resource identities: release/facebook-production-resources/platform-auth.json and release/facebook-production-resources/platform-auth.sha256. Close only the existing Layered exact-path risk routing seam. Do not alter product, Worker, Personal Access, release-resource bytes, workflow logic, dependency identity, fail-closed behavior, or broad prefixes.",
+  "base": {
+    "branch": "main",
+    "commit": "63aaff41e394009a4c83516aeab4b0768a20b808"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-personal-access-release-resource-risk-route-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-personal-access-release-resource-risk-route-p0-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-personal-access-release-resource-risk-route-p0",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/governance-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "dda3b27532f387c8ea4e78c3b63b62fc9b822d1efdf31ea6051fe6ea91f22633",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_LAYERED_EXACT_PATH_ROUTING",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Layered CI exact-path risk routing",
+        "source": "governance/layered-ci/risk-policy.json plus tools/layered-ci/governance-policy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already implements exact L2 identities and fail-closed unknown-path behavior; only the two sealed release-resource identities are missing."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add release/ or release/facebook-production-resources/ as a broad prefix.",
+      "Do not weaken CI_UNKNOWN_PATH or unknownPathFailsClosed.",
+      "Do not modify Personal Access product/runtime/Worker/release-resource bytes in this prerequisite.",
+      "Do not introduce a second classifier."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
