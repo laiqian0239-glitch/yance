@@ -323,7 +323,6 @@ test('Product Final boots the exact materialized Matrix image-only candidate to 
   assert.match(matrix, /GREEN: exact materialized Matrix runtime reached real readiness before seal/u);
   assert.doesNotMatch(matrix, /docker compose[^\n]*\sbuild(?:\s|$)/u);
 });
-<<<<<<< 85aed3c1f78b7d423651456cb1d8d53a1b0b6dba
 test('auth-entry successor-v2 is admitted by exactly the three Product Final job guards', () => {
   const source = readWorkflow();
   const exact = "github.event.pull_request.head.ref == 'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2'";
@@ -337,7 +336,6 @@ test('auth-entry successor-v2 is admitted by exactly the three Product Final job
     /head\.ref[\s\S]{0,80}(?:startsWith|contains|matches).*auth-entry-runner/iu
   );
 });
-=======
 
 test('Product Final inspects sealed Element V2 module and runtime config before Matrix seal and drops the lossy UTC parse', () => {
   const source = readWorkflow();
@@ -350,4 +348,3 @@ test('Product Final inspects sealed Element V2 module and runtime config before 
   assert.doesNotMatch(source, /\[DateTimeOffset\]::Parse\(\[string\]\$candidateReceipt\.activatedAtUtc\)/u);
   assert.match(source, /\[DateTimeOffset\]\$candidateReceipt\.activatedAtUtc/u);
 });
->>>>>>> d5feda02a3a442cf54cfe057d7b5a9bbf1253991
