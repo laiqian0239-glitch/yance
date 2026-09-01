@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-01T07:34:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-AUTH-ENTRY-ROUTE-REPAIR-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen implementation PR #996 exact head d5feda02a3a442cf54cfe057d7b5a9bbf1253991 produced a governance-only RED after full local product closure: Layered run 33456833929 job 99698487325 failed CI_UNKNOWN_PATH only for config/matrix/element-config.json, while Product Final run 33456833872 skipped because the implementation branch was absent from its exact branch allowlists. One cohesive routing prerequisite is authorized so the next fresh-main successor can receive the validations already required by the product authorization. Frozen #996 remains immutable and must not be rerun, amended, force-pushed, or reused as GREEN evidence.",
+  "base": {
+    "branch": "main",
+    "commit": "95c38a99e525013bc20e65143382fe6d0ea943c0",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "95c38a99e525013bc20e65143382fe6d0ea943c0",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-auth-entry-route-repair-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-auth-entry-route-repair-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "eac10eb93274d1f9862c4e24d275e3175316c18c1c8547f38c767a6068383ecb",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-rc-auth-entry-route-repair-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "fd51ece19009e36f8931c139fb634613ebdf7ec41dd239b566fd328e842faa72",
+    "newDependencyAllowed": false,
+    "newGeneralPurposeInfrastructureAllowed": false,
+    "workflowModificationAllowed": true,
+    "productRuntimeModificationAllowed": false,
+    "matrixBootstrapModificationAllowed": false,
+    "upstreamPinModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "releaseLedgerModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "routingClosure": {
+    "layeredRiskExactPath": "config/matrix/element-config.json",
+    "layeredRequiredLevel": "L2",
+    "broadConfigPrefixAllowed": false,
+    "productFinalSuccessorBranch": "fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2",
+    "broadBranchPrefixAllowed": false,
+    "allProductFinalJobsMustCarryExactSuccessorBranch": true
+  },
+  "frozenEvidence": {
+    "pullRequest": 996,
+    "exactHead": "d5feda02a3a442cf54cfe057d7b5a9bbf1253991",
+    "exactParent": "95c38a99e525013bc20e65143382fe6d0ea943c0",
+    "layeredRun": 33456833929,
+    "layeredJob": 99698487325,
+    "layeredFailureCode": "CI_UNKNOWN_PATH",
+    "layeredUnknownPaths": [
+      "config/matrix/element-config.json"
+    ],
+    "productFinalRun": 33456833872,
+    "productFinalConclusion": "skipped",
+    "sameHeadRerunForbidden": true,
+    "sameHeadAmendForbidden": true,
+    "sameHeadForcePushForbidden": true,
+    "unknownBlockers": 0
+  },
+  "requiredRootFix": [
+    "Add only config/matrix/element-config.json to Layered l2ExactPaths and prove it classifies as exact L2 while adjacent unregistered config paths remain fail-closed.",
+    "Add only fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2 to every Product Final job exact branch allowlist needed for frozen-element reproducibility, materialized Desktop UAT, and materialized Matrix UAT.",
+    "Add permanent Layered risk and Product Final branch-route contracts; do not broaden to config/ prefixes, fix/ prefixes, wildcard branch patterns, or unrelated product branches.",
+    "After this prerequisite ordinary-merges, keep #996 frozen and create a new successor-v2 candidate from the new trusted main carrying the already locally validated auth-entry/UTC product batch; only that new exact head may receive a fresh CI validation."
+  ],
+  "validation": {
+    "causalRedAuthority": "PR #996 exact-head Layered CI_UNKNOWN_PATH plus Product Final skipped evidence",
+    "syntheticFailureFirstCiHeadRequired": false,
+    "focused": [
+      "node --test tests/layered-ci/governance-policy.test.js",
+      "node --test tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "node --test tests/wp0/github-actions-workflow-syntax.test.js",
+      "git diff --check"
+    ],
+    "finalExactHead": [
+      "Stage",
+      "Layered CI",
+      "ACV2 when routed",
+      "Model Brain Windows when routed"
+    ],
+    "requiredUnknownBlockers": 0
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
