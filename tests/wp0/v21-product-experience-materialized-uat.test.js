@@ -628,3 +628,80 @@ test('Matrix runtime state stays writable, registers WhatsApp, and isolates ever
   const sealIndex = workflow.indexOf('create-materialized-uat-candidate.js seal', parseIndex);
   assert.ok(parseIndex >= 0 && smokeIndex > parseIndex && synapseReadyIndex > smokeIndex && elementReadyIndex > smokeIndex && sealIndex > synapseReadyIndex && sealIndex > elementReadyIndex);
 });
+
+test('auth entry requires Element login_for_welcome and does not bypass the registered Yance V2 login', () => {
+  const config = JSON.parse(read('config/matrix/element-config.json'));
+  assert.equal(
+    config.embedded_pages && config.embedded_pages.login_for_welcome,
+    true,
+    'shipped element-config.json must enable login_for_welcome'
+  );
+
+  const workflow = read(WORKFLOW);
+  const runner = read(RUNNER);
+  // Windows Product Final must assert the generated config enables login_for_welcome before launch.
+  assert.match(workflow, /login_for_welcome[^\n]*'true'/u);
+  // The generated runtime config must mount the Yance V2 module.
+  assert.match(workflow, /\/modules\/yance\/lib\/index\.js/u);
+  assert.match(
+    workflow,
+    /Copy-Item\s+-LiteralPath\s+\$moduleLib\s+-Destination\s+\$servedModuleRoot\s+-Recurse\s+-Force/u,
+    'Product Final must copy the built lib directory under modules/yance'
+  );
+  assert.match(
+    workflow,
+    /\$builtModulePath\s*=\s*Join-Path\s+\$servedModuleRoot\s+'lib\\index\.js'/u,
+    'Product Final must validate the served lib entrypoint'
+  );
+  assert.doesNotMatch(
+    workflow,
+    /\$builtModulePath\s*=\s*Join-Path\s+\$servedModuleRoot\s+'index\.js'/u,
+    'Product Final must not validate a parent-level index.js that the projection never serves'
+  );
+  // The built module must carry the stable V2 authority marker.
+  assert.match(
+    workflow,
+    /Select-String\s+-Path\s+\$builtModulePath\s+-Pattern\s+'data-yance-login-authority'\s+-Quiet/u
+  );
+});
+
+test('sealed Element image and runtime config carry the stable Yance V2 login authority marker', () => {
+  const workflow = read(WORKFLOW);
+  // Sealed image V2 inspection before artifact seal/upload.
+  assert.match(workflow, /docker run[^\n]*yance-product-uat-element:\$\{CANDIDATE_SHA\}[^\n]*data-yance-login-authority/u);
+  // Runtime config.json fail-closed before seal.
+  assert.match(workflow, /login_for_welcome\s*!==\s*true/u);
+  assert.match(workflow, /modules[^\n]*\/modules\/yance\/lib\/index\.js/u);
+});
+
+test('Windows UAT runner and Product Final use the approved direct DateTime/DateTimeOffset absolute-time path', () => {
+  const runner = read(RUNNER);
+  const workflow = read(WORKFLOW);
+  // The lossy string round-trip must be gone everywhere.
+  assert.doesNotMatch(runner, /\[DateTimeOffset\]::Parse\(\[string\]\$candidateReceipt\.activatedAtUtc\)/u);
+  assert.doesNotMatch(workflow, /\[DateTimeOffset\]::Parse\(\[string\]\$candidateReceipt\.activatedAtUtc\)/u);
+  // Both must use the direct cast.
+  assert.match(runner, /\[DateTimeOffset\]\$candidateReceipt\.activatedAtUtc/u);
+  assert.match(workflow, /\[DateTimeOffset\]\$candidateReceipt\.activatedAtUtc/u);
+});
+
+test('UTC freshness regression: direct cast classifies the frozen activated timestamp as fresh on this host', () => {
+  const { execFileSync } = require('node:child_process');
+  const script = `
+    $receipt = '{"activatedAtUtc":"2026-08-31T15:00:56.011Z"}' | ConvertFrom-Json
+    $activatedAt = [DateTimeOffset]$receipt.activatedAtUtc
+    $startedAt = [DateTimeOffset]::Parse('2026-08-31T15:00:28.7635157+00:00')
+    [string]$activatedZ = $activatedAt.UtcDateTime.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+    [string]$isFresh = ($activatedAt -gt $startedAt).ToString()
+    Write-Output "ACTIVATED=$activatedZ"
+    Write-Output "FRESH=$isFresh"
+  `;
+  let out;
+  try {
+    out = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8' });
+  } catch {
+    return; // Skip when PowerShell is unavailable; the dedicated UTC regression step owns the host proof.
+  }
+  assert.match(out, /ACTIVATED=2026-08-31T15:00:56\.011Z/u);
+  assert.match(out, /FRESH=True/u);
+});

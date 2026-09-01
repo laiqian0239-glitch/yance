@@ -245,7 +245,7 @@ try {
     }
     if (Test-Path -LiteralPath $receiptPath -PathType Leaf) {
       $candidateReceipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
-      $activatedAt = [DateTimeOffset]::Parse([string]$candidateReceipt.activatedAtUtc)
+      $activatedAt = [DateTimeOffset]$candidateReceipt.activatedAtUtc
       if ([int]$candidateReceipt.schemaVersion -ne 1 -or [string]$candidateReceipt.documentType -ne 'YANCE_POST_INSTALL_LAUNCH_RECEIPT') {
         throw "post-install receipt schema/document type mismatch: $receiptPath"
       }
