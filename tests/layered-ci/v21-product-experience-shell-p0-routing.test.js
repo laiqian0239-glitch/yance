@@ -32,12 +32,13 @@ const V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS = Object.freeze([
   'third_party/licenses/rive-react-MIT.txt',
   'third_party/licenses/rive-wasm-MIT.txt',
   'third_party/licenses/types-howler-MIT.txt',
-  'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch'
+  'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch',
+  'upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch'
 ]);
 const WP1_APPEARANCE_PATCH = 'upstream-patches/element-web/0014-yance-module-appearance-authority.patch';
 
 test('V2.1 Product Experience Shell P0 bootstrap paths are exact PRODUCT_WP0 routes', () => {
-  assert.equal(new Set(V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS).size, 23);
+  assert.equal(new Set(V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS).size, 24);
   for (const file of V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS) {
     const result = classifyWp0Route(policy, [file]);
     assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
@@ -72,6 +73,7 @@ test('adjacent unregistered Product Experience-like paths remain fail closed', (
     'config/upstreams/v21-product-experience-shell-p1.json',
     'integration/element-module/src/product-experience-unapproved/escape.ts',
     'third_party/licenses/yance-product-unapproved.txt',
+    'upstream-patches/element-web/0011b-yance-css-sheet-plugin-lock.patch',
     'upstream-patches/element-web/0099-yance-product-unapproved.patch'
   ]) {
     const result = classifyWp0Route(policy, [file]);
