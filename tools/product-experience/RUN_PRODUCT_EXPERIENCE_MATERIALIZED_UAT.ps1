@@ -17,6 +17,8 @@ Set-StrictMode -Version 2.0
 $ManifestFileName = 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json'
 $DesktopClass = 'PRODUCT_EXPERIENCE_MATERIALIZED_DESKTOP_UAT_ONLY'
 $MatrixClass = 'PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY'
+$SealedElementUrl = 'http://127.0.0.1:8080'
+$SealedElementHealthUrl = 'http://127.0.0.1:8080/config.json'
 
 function Resolve-RealDirectory {
   param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)][string]$Label)
@@ -179,7 +181,7 @@ try {
     if ($allRunning) {
       try {
         $synapseVersions = Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8008/_matrix/client/versions' -TimeoutSec 3
-        $elementConfig = Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8080/config.json' -TimeoutSec 3
+        $elementConfig = Invoke-RestMethod -Method Get -Uri $SealedElementHealthUrl -TimeoutSec 3
         if (@($synapseVersions.versions).Count -gt 0 -and $null -ne $elementConfig) {
           $matrixReady = $true
           break
@@ -228,6 +230,13 @@ try {
   }
   $env:YANCE_DATA_DIR = (Resolve-RealDirectory $UatDataRoot 'isolated Yance UAT data root')
   $env:YANCE_WP2_PRODUCTION_RUNTIME_PROBE = '1'
+  $sealedElementConfig = Invoke-RestMethod -Method Get -Uri $SealedElementHealthUrl -TimeoutSec 5
+  if ($null -eq $sealedElementConfig) { throw "sealed Element config is unavailable before packaged launch: $SealedElementHealthUrl" }
+  if (-not (@($sealedElementConfig.modules) -contains '/modules/yance/lib/index.js')) {
+    throw "sealed Element config must mount the Yance V2 module before packaged launch: modules=$($sealedElementConfig.modules | ConvertTo-Json -Compress)"
+  }
+  $env:YANCE_ELEMENT_URL = $SealedElementUrl
+  $env:YANCE_ELEMENT_HEALTH_URL = $SealedElementHealthUrl
 
   $receiptPath = Join-Path $env:YANCE_DATA_DIR 'logs\post-install-launch.json'
   $receiptPassPath = Join-Path $env:YANCE_DATA_DIR 'logs\post-install-launch.pass'
