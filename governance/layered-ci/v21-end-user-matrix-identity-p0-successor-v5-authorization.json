@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-END-USER-MATRIX-IDENTITY-P0-SUCCESSOR-V5",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing governance-graph repair after successor-v4 staged-authority proof failed before any implementation commit with WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID. The historical v1 authorization was introduced to trusted main by single-parent commit c0f4f046aeaeb17cedba1a0c5afb2816ed3a4f24 despite requiresOrdinaryTwoParentMainMerge=true, so v1 is not effective; v2 supersedes v1 and v4 supersedes v2, propagating invalidity through that connected component. Successor-v5 creates a fresh isolated authority from current trusted main and intentionally declares no supersedes edge to v1/v2/v4. Historical authorization data and frozen evidence remain immutable. Product scope remains the same exact 15 paths and staged bytes; no product, dependency, workflow, routing, database, release, public Matrix registration, Yance-owned Matrix login/session, or Personal Access authority expansion is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "24916ad91cc91111a940a1667b40742a53b59e55"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-end-user-matrix-identity-p0-successor-v5-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-end-user-matrix-identity-p0-successor-v5-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-end-user-matrix-identity-p0-successor-v5",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "backend/services/endUserMatrixIdentityService.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/synapseSharedSecretRegistration.js",
+      "backend/tests/endUserMatrixIdentityP0.test.js",
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp2/single-command-path.test.js",
+      "tools/wp2/command-path-inventory.js"
+    ],
+    "approvedChangedFileCount": 15,
+    "approvedChangedFileSetSha256": "d83c573585dfa9516f22dd153044e09ee0764f82afb4a6bdd996702d3ae3a853",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "productContract": {
+    "publicMatrixRegistrationRemainsDisabled": true,
+    "elementRemainsInteractiveMatrixLoginAuthority": true,
+    "personalAccessRemainsSeparateProductEntitlementAuthority": true,
+    "desktopLocalSessionIsProvisioningBoundary": true,
+    "oneLocalHumanMatrixIdentityPerInstallation": true,
+    "matrixAccessTokenMustNotReachRenderer": true,
+    "passwordMustNotBePersistedByYance": true,
+    "existingOwnerTesterLifecyclePreserved": true
+  },
+  "requiredClosure": [
+    "Keep successor-v4 immutable with zero implementation commits; after this authorization ordinary-merges, create fix/v21-end-user-matrix-identity-p0-successor-v5 from the exact authorization merge and replay only the same exact staged 15-path candidate bytes.",
+    "This authorization intentionally has no supersedes declaration. Do not connect successor-v5 to the graph-invalid v1→v2→v4 component and do not modify the delegated-governance evaluator to forgive historical topology.",
+    "Before any implementation commit, run the staged authority proof and require pass=true, authorityMode=IMPLEMENTATION_AUTHORITY, implementationAuthorityGranted=true.",
+    "Preserve truthful WP2 route classes: ordinary Store /api/r32/store/*; Personal Access /api/r32/personal-access/*; Product System /api/r32/system/*; Models /api/r32/models/*; Matrix identity /api/desktop/matrix-local-identity.",
+    "Preserve forwardingOnly=true, BACKEND_BUSINESS_RUNTIME, exact inventory-vs-actual deep equality, uniqueness, required desktop channels, and full Object.values(r32StoreBridge.CHANNELS) coverage.",
+    "Preserve Synapse enable_registration=false, official shared-secret registration reuse, Element login/session authority, no Yance password persistence, no end-user registration access-token persistence/renderer exposure, and existing Personal Access OWNER/TESTER semantics.",
+    "Close remote-success/local-receipt-failure, concurrent create, remote outcome uncertainty, duplicate, inventory, IPC-secret and secret-leak risks locally inside the exact 15 paths.",
+    "Complete focused suites, staged security scan, full WP2, affected WP6, precommit WP0 except the commit-addressed live branch-policy test, and non-destructive Windows Local Release Harness clean/existing/failure paths before one implementation commit.",
+    "After exactly one implementation commit, require staged/committed 15-blob byte identity, native implementation-branch-policy GREEN, full WP0 GREEN, exact 15-path census GREEN, then stop locally without push/PR/CI until Controller promotion."
+  ],
+  "localAcceptance": [
+    "Authorization ordinary two-parent merge has first parent 24916ad91cc91111a940a1667b40742a53b59e55.",
+    "Successor-v5 staged delegated-authority proof GREEN before implementation commit.",
+    "Focused Matrix identity, Personal Access, Facebook mautrix-meta, Product/materialized, WP2 and affected Electron/WP6 regressions GREEN.",
+    "All precommit WP0 except implementation-branch-policy GREEN; WP-A A0 and staged secret scan GREEN.",
+    "Golden-clean real Synapse/Element account provisioning, Element password login, Personal Access reachability and affected startup GREEN.",
+    "Existing identity/session restart has zero reprovision and remains usable.",
+    "Controlled failure paths cover invalid input, uncertain remote outcome, post-remote persistence failure and duplicate protection with no Yance password/end-user registration-token persistence or exposure.",
+    "Exactly one implementation commit after all local closure; committed exact 15 blobs equal locally validated staged blobs.",
+    "Postcommit implementation-branch-policy and full WP0 GREEN; git diff --check and exact 15-path census GREEN."
+  ],
+  "ossFit": {
+    "decision": "PRESERVE_FAIL_CLOSED_DELEGATED_AUTHORITY_AND_OFFICIAL_SYNAPSE_SOURCE_MODULE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance delegated-governance evaluator",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The evaluator correctly fails closed on an ineffective supersession target; repair governance data with an isolated fresh authority rather than weaken policy or tests."
+      },
+      {
+        "name": "Synapse Shared-Secret Registration API / register_new_matrix_user protocol",
+        "source": "Element/Synapse official admin registration contract already used by the pinned runtime",
+        "license": "Apache-2.0 upstream Synapse project",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Reuse the official nonce plus HMAC registration mechanism; do not invent authentication infrastructure."
+      },
+      {
+        "name": "Existing WP2 command-path inventory and pinned Element login seam",
+        "source": "tools/wp2/command-path-inventory.js, tests/wp2/single-command-path.test.js, and existing Element originalComponent login authority",
+        "license": "repository-existing seam plus pinned Element AGPL-3.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Keep truthful IPC route authority and Element interactive login/session ownership without creating parallel infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not modify implementationBranchPolicyLegacy.js or its fail-closed supersession parser.",
+      "Do not edit, amend, force-push, rebase or rewrite v1/v2/v4 authorization history or frozen evidence.",
+      "Do not add a successor-v5 supersedes edge into the invalid v1→v2→v4 component.",
+      "Do not hide Electron channels, restore fixed IPC counts, enable public Matrix registration, implement Matrix login/session in Yance, persist passwords/end-user registration tokens, or change Personal Access semantics."
+    ]
+  },
+  "frozenEvidence": {
+    "v1AuthorizationPath": "governance/layered-ci/v21-end-user-matrix-identity-p0-authorization.json",
+    "v1DeclaredBase": "ba9452b867b6ce692d5b2188576fca0cb4e52f54",
+    "v1IntroductionCommit": "c0f4f046aeaeb17cedba1a0c5afb2816ed3a4f24",
+    "v1IntroductionParentCount": 1,
+    "v1IntroductionFirstParent": "6e48d90b9ca31480d763b039a9a0f66f0453d190",
+    "v2AuthorizationMerge": "3f779719065dd455348d5103eb8b0d64e6bc6463",
+    "v3AuthorizationHead": "86c503ac3df84655d881dab152e1cf4b6ebad55f",
+    "v3StageRun": "33625323318",
+    "v3Result": "FROZEN_RED_NO_RERUN",
+    "v3FailureCode": "OSS_FIRST / AUTHORIZATION_OSS_FIT_EVIDENCE_MISSING",
+    "v4AuthorizationMerge": "24916ad91cc91111a940a1667b40742a53b59e55",
+    "v4ImplementationCommitCreated": false,
+    "v4ImplementationPushOccurred": false,
+    "v4ImplementationCiTriggered": false,
+    "v4StagedAuthorityResult": "FROZEN_LOCAL_RED_NO_COMMIT",
+    "v4StagedAuthorityTopLevelReason": "WP0_REJECTED_STAGE_TARGET_DENIED",
+    "v4DelegatedAuthorityReason": "WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID",
+    "v4StagedChangedFileCount": 15,
+    "v4StagedDiffCheck": "GREEN",
+    "v4StagedDiffStat": "15 files changed, 792 insertions(+), 19 deletions(-)",
+    "approvedChangedFileSetSha256": "d83c573585dfa9516f22dd153044e09ee0764f82afb4a6bdd996702d3ae3a853",
+    "productRootCause": "MATRIX_AUTH / END_USER_ACCOUNT_PROVISIONING_MISSING",
+    "governanceRootCause": "WP0_GOVERNANCE / DELEGATED_SUPERSESSION_GRAPH_ROOT_INEFFECTIVE"
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
