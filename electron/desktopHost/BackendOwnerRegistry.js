@@ -202,7 +202,27 @@ function linuxProcessIdentity(pid, fsApi = fs) {
   }
 }
 
-function windowsProcessIdentity(pid, execFileImpl = null, platform = process.platform) {
+function normalizeIdentityDeadline(options = {}) {
+  const now = typeof options.now === 'function' ? options.now : () => Date.now();
+  const deadlineAtMs = Number(options.deadlineAtMs || 0);
+  return {
+    now,
+    deadlineAtMs: Number.isFinite(deadlineAtMs) && deadlineAtMs > 0 ? deadlineAtMs : 0
+  };
+}
+
+function remainingIdentityBudgetMs(deadline) {
+  if (!deadline.deadlineAtMs) return 0;
+  return Math.floor(deadline.deadlineAtMs - deadline.now());
+}
+
+function identityAttemptTimeoutMs(deadline, remainingCollectorCount) {
+  const remainingMs = remainingIdentityBudgetMs(deadline);
+  if (remainingMs <= 0) return 0;
+  return Math.max(1, Math.floor(remainingMs / Math.max(1, Number(remainingCollectorCount || 1))));
+}
+
+function windowsProcessIdentity(pid, execFileImpl = null, platform = process.platform, options = {}) {
   const debugLog = (msg, data) => {
     try {
       const dataRoot = process.env.YANCE_DATA_DIR
@@ -217,7 +237,8 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     } catch (_) {}
   };
 
-  debugLog('windowsProcessIdentity called', { pid, platform, expectedPlatform: 'win32', execFileType: typeof execFileImpl });
+  const deadline = normalizeIdentityDeadline(options);
+  debugLog('windowsProcessIdentity called', { pid, platform, expectedPlatform: 'win32', execFileType: typeof execFileImpl, deadlineAtMs: deadline.deadlineAtMs || null });
   if (platform !== 'win32') {
     debugLog('platform is not win32', { platform });
     return null;
@@ -377,16 +398,9 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
     : 'powershell.exe';
   const commandArgs = script => ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script];
-  const nativeExecOptions = {
+  const baseExecOptions = {
     encoding: 'utf8',
     windowsHide: true,
-    timeout: 3000,
-    maxBuffer: 1024 * 1024
-  };
-  const managementExecOptions = {
-    encoding: 'utf8',
-    windowsHide: true,
-    timeout: 2500,
     maxBuffer: 1024 * 1024
   };
 
@@ -397,12 +411,12 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     {
       authority: 'native-win32',
       args: commandArgs(nativeScript),
-      options: nativeExecOptions
+      options: baseExecOptions
     },
     {
       authority: 'system-management',
       args: commandArgs(managementScript),
-      options: managementExecOptions
+      options: baseExecOptions
     }
   ];
 
@@ -413,6 +427,7 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     if (Number(row.ProcessId) !== value || !nonEmptyString(row.CreationDate) || !nonEmptyString(row.ExecutablePath) || !nonEmptyString(row.CommandLine)) {
       const error = new Error('Windows process identity row is incomplete or mismatched');
       error.identityRow = row;
+      debugLog('collector identity rejected', { attempt, authority, reason: error.message, rowKeys: plainObject(row) ? Object.keys(row).sort() : [] });
       throw error;
     }
     const result = {
@@ -432,7 +447,9 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
       name: error?.name || '',
       code: error?.code || '',
       status: error?.status ?? null,
-      signal: error?.signal || ''
+      signal: error?.signal || '',
+      stdoutBytes: Buffer.byteLength(String(error?.stdout || ''), 'utf8'),
+      stderr: String(error?.stderr || '').slice(-2000)
     });
   };
 
@@ -442,10 +459,20 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     for (let index = 0; index < collectors.length; index += 1) {
       const attempt = index + 1;
       const collector = collectors[index];
+      const remainingCollectors = collectors.length - index;
+      const remainingMs = remainingIdentityBudgetMs(deadline);
+      const timeout = identityAttemptTimeoutMs(deadline, remainingCollectors);
+      if (deadline.deadlineAtMs && timeout <= 0) {
+        debugLog('Windows identity deadline exhausted before collector', { attempt, authority: collector.authority, deadlineAtMs: deadline.deadlineAtMs, remainingMs });
+        return null;
+      }
+      const optionsWithBudget = { ...collector.options, ...(timeout > 0 ? { timeout } : {}) };
       try {
-        debugLog('executing injected Windows identity collector', { attempt, maxAttempts, authority: collector.authority, powershellPath });
-        const raw = execFileImpl(powershellPath, collector.args, collector.options);
+        const startedAt = deadline.now();
+        debugLog('executing injected Windows identity collector', { attempt, maxAttempts, authority: collector.authority, powershellPath, deadlineAtMs: deadline.deadlineAtMs || null, remainingMs, timeout });
+        const raw = execFileImpl(powershellPath, collector.args, optionsWithBudget);
         lastRaw = String(raw || '');
+        debugLog('injected Windows identity collector completed', { attempt, authority: collector.authority, elapsedMs: Math.max(0, deadline.now() - startedAt), stdoutBytes: Buffer.byteLength(lastRaw, 'utf8') });
         return parseRaw(lastRaw, attempt, collector.authority);
       } catch (error) {
         lastError = error;
@@ -469,10 +496,19 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
     for (let index = 0; index < collectors.length; index += 1) {
       const attempt = index + 1;
       const collector = collectors[index];
+      const remainingCollectors = collectors.length - index;
+      const remainingMs = remainingIdentityBudgetMs(deadline);
+      const timeout = identityAttemptTimeoutMs(deadline, remainingCollectors);
+      if (deadline.deadlineAtMs && timeout <= 0) {
+        debugLog('Windows identity deadline exhausted before collector', { attempt, authority: collector.authority, deadlineAtMs: deadline.deadlineAtMs, remainingMs });
+        return null;
+      }
+      const optionsWithBudget = { ...collector.options, ...(timeout > 0 ? { timeout } : {}) };
       try {
-        debugLog('executing PowerShell asynchronously', { attempt, maxAttempts, authority: collector.authority, powershellPath });
+        const startedAt = deadline.now();
+        debugLog('executing PowerShell asynchronously', { attempt, maxAttempts, authority: collector.authority, powershellPath, deadlineAtMs: deadline.deadlineAtMs || null, remainingMs, timeout });
         const raw = await new Promise((resolve, reject) => {
-          execFile(powershellPath, collector.args, collector.options, (error, stdout, stderr) => {
+          execFile(powershellPath, collector.args, optionsWithBudget, (error, stdout, stderr) => {
             if (error) {
               error.stdout = stdout;
               error.stderr = stderr;
@@ -483,6 +519,7 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
           });
         });
         lastRaw = String(raw || '');
+        debugLog('PowerShell collector completed', { attempt, authority: collector.authority, elapsedMs: Math.max(0, deadline.now() - startedAt), stdoutBytes: Buffer.byteLength(lastRaw, 'utf8') });
         return parseRaw(lastRaw, attempt, collector.authority);
       } catch (error) {
         lastError = error;
@@ -505,7 +542,7 @@ function windowsProcessIdentity(pid, execFileImpl = null, platform = process.pla
 function platformProcessIdentity(pid, options = {}) {
   const platform = options.platform || process.platform;
   if (platform === 'linux') return linuxProcessIdentity(pid, options.fs || fs);
-  if (platform === 'win32') return windowsProcessIdentity(pid, options.execFile || null, platform);
+  if (platform === 'win32') return windowsProcessIdentity(pid, options.execFile || null, platform, options);
   return null;
 }
 
@@ -642,8 +679,8 @@ class BackendOwnerRegistry {
 
   snapshot() { return this.record ? Object.freeze(clone(this.record)) : null; }
 
-  async captureIdentityAsync(pid) {
-    const captured = this.captureIdentity(pid);
+  async captureIdentityAsync(pid, options = {}) {
+    const captured = this.captureIdentity(pid, options);
     if (promiseLike(captured)) this.captureIdentityIsAsync = true;
     return Promise.resolve(captured);
   }
@@ -906,7 +943,7 @@ class BackendOwnerRegistry {
     try {
       const processIdentity = Object.prototype.hasOwnProperty.call(context, 'processIdentity')
         ? context.processIdentity
-        : await this.captureIdentityAsync(context.backendPid);
+        : await this.captureIdentityAsync(context.backendPid, context.identityCaptureOptions || {});
       return await admission.register({ ...context, processIdentity });
     } catch (error) {
       operationError = error;

@@ -522,7 +522,7 @@ test('Product Final preserves packaged startup diagnostics after a failing recei
   assert.match(diagnosticStep, /\$\{\{\s*runner\.temp\s*\}\}[\\/]product-uat-packaged-data[\\/]logs[\\/]desktop-bootstrap\.jsonl/u);
   assert.match(diagnosticStep, /\$\{\{\s*runner\.temp\s*\}\}[\\/]product-uat-packaged-data[\\/]logs[\\/]desktop\.jsonl/u);
   assert.match(diagnosticStep, /\$\{\{\s*runner\.temp\s*\}\}[\\/]product-uat-packaged-data[\\/]logs[\\/]server\.jsonl/u);
-  assert.equal((diagnosticStep.match(/\.jsonl/gu) || []).length, 3, 'diagnostic artifact must preserve exactly the three authorized internal logs');
+  assert.equal((diagnosticStep.match(/\.jsonl/gu) || []).length, 4, 'diagnostic artifact must preserve exactly the four authorized internal logs');
   assert.match(diagnosticStep, /if-no-files-found:\s*warn/u, 'diagnostic upload must tolerate logs that do not yet exist');
   assert.doesNotMatch(diagnosticStep, /post-install-launch\.json|product-experience-materialized-desktop-uat[\\/]\*\*/u, 'diagnostic artifact must not become a readiness receipt or broad payload authority');
 });
@@ -720,4 +720,18 @@ test('UTC freshness regression: direct cast classifies the frozen activated time
   }
   assert.match(out, /ACTIVATED=2026-08-31T15:00:56\.011Z/u);
   assert.match(out, /FRESH=True/u);
+});
+
+test('Product Final RED diagnostics preserve Windows process identity evidence', () => {
+  const source = read(WORKFLOW);
+
+  assert.match(
+    source,
+    /windows-process-identity\.jsonl/u,
+    'Product Final diagnostics must preserve the Windows process identity authority log'
+  );
+
+  assert.match(source, /desktop-bootstrap\.jsonl/u);
+  assert.match(source, /desktop\.jsonl/u);
+  assert.match(source, /server\.jsonl/u);
 });

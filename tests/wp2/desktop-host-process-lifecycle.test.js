@@ -251,3 +251,30 @@ test('application-owned shutdown initiates independent runtime stops concurrentl
   assert.match(body, /Promise\.allSettled\s*\(/u);
   assert.match(body, /Application-owned runtime shutdown was not fully confirmed/u);
 });
+
+test('BackendProcessHost gives owner identity the existing startup lifecycle deadline before startup-frame dispatch', () => {
+  const source = fs.readFileSync(
+    path.join(ROOT, 'electron', 'desktopHost', 'BackendProcessHost.js'),
+    'utf8'
+  );
+
+  const captureIndex = source.indexOf('captureIdentityAsync(child.pid');
+  assert.ok(captureIndex >= 0);
+
+  const captureSlice = source.slice(captureIndex, captureIndex + 500);
+  assert.match(
+    captureSlice,
+    /deadlineAtMs|deadlineAt|identityDeadline|remainingBudget|readyTimeoutMs/u
+  );
+
+  const frameIndex = source.indexOf('_writeStartupFrame(', captureIndex);
+  assert.ok(frameIndex > captureIndex);
+
+  assert.match(source, /readyTimeoutMs/u);
+
+  assert.doesNotMatch(
+    captureSlice,
+    /3000|2500/u,
+    'BackendProcessHost must not create an independent 3000ms/2500ms identity authority'
+  );
+});

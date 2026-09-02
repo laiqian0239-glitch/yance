@@ -40,6 +40,7 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v14' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v15' ||
         github.event.pull_request.head.ref == 'fix/v21-element-lock-replay-incremental-p0-successor-v5' ||
+        github.event.pull_request.head.ref == 'fix/v21-element-lock-replay-incremental-p0-successor-v6' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
@@ -168,6 +169,7 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v14' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v15' ||
         github.event.pull_request.head.ref == 'fix/v21-element-lock-replay-incremental-p0-successor-v5' ||
+        github.event.pull_request.head.ref == 'fix/v21-element-lock-replay-incremental-p0-successor-v6' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
@@ -673,6 +675,7 @@ jobs:
             ${{ runner.temp }}\product-uat-packaged-data\logs\desktop-bootstrap.jsonl
             ${{ runner.temp }}\product-uat-packaged-data\logs\desktop.jsonl
             ${{ runner.temp }}\product-uat-packaged-data\logs\server.jsonl
+            ${{ runner.temp }}\product-uat-packaged-data\logs\windows-process-identity.jsonl
             ${{ runner.temp }}\product-experience-startup-capsule\startup-capsule\diagnostics\**
           if-no-files-found: warn
           retention-days: 7
@@ -715,6 +718,7 @@ jobs:
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v14' ||
         github.event.pull_request.head.ref == 'release/v21-final-rc-uat-p0-successor-v15' ||
         github.event.pull_request.head.ref == 'fix/v21-element-lock-replay-incremental-p0-successor-v5' ||
+        github.event.pull_request.head.ref == 'fix/v21-element-lock-replay-incremental-p0-successor-v6' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||

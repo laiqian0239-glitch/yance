@@ -416,14 +416,14 @@ test('Windows process identity succeeds through provider-independent native auth
       ExecutablePath: 'C:\\Program Files\\Yance\\runtime\\node.exe',
       CommandLine: '"C:\\Program Files\\Yance\\runtime\\node.exe" backend.js'
     });
-  }, 'win32');
+  }, 'win32', { deadlineAtMs: Date.now() + 60_000 });
 
   assert.equal(calls.length, 1);
   assert.equal(captured.platform, 'win32');
   assert.equal(validateProcessIdentity(captured), true);
   assert.match(captured.executablePathDigest, /^[a-f0-9]{64}$/);
   assert.match(captured.commandDigest, /^[a-f0-9]{64}$/);
-  assert.ok(calls[0].options.timeout > 0 && calls[0].options.timeout <= 3000);
+  assert.ok(Number.isFinite(calls[0].options.timeout) && calls[0].options.timeout > 0 && calls[0].options.timeout <= 60_000);
 });
 
 test('Windows process identity remains fail closed when native and WMI authority both fail', () => {
@@ -436,7 +436,7 @@ test('Windows process identity remains fail closed when native and WMI authority
     const error = new Error('collector unavailable');
     error.code = 'ETIMEDOUT';
     throw error;
-  }, 'win32');
+  }, 'win32', { deadlineAtMs: Date.now() + 60_000 });
 
   assert.equal(captured, null);
   assert.equal(calls.length, 2);
@@ -447,7 +447,45 @@ test('Windows process identity remains fail closed when native and WMI authority
   assert.match(calls[1].script, /ManagementObjectSearcher/);
 
   assert.ok(calls.every(call =>
-    Number(call.options.timeout) > 0 &&
-    Number(call.options.timeout) <= 3000
+    Number.isFinite(call.options.timeout) &&
+    call.options.timeout > 0 &&
+    call.options.timeout <= 60_000
   ));
+});
+
+test('deadline-exhausted Windows owner identity remains fail closed and never degrades to PID-only trust', () => {
+  const dir = root();
+  try {
+    const file = path.join(dir, 'owner.json');
+    const registry = new BackendOwnerRegistry({
+      file,
+      isProcessAlive: () => true,
+      captureIdentity: () => null,
+      processIdentityPlatform: 'win32'
+    });
+
+    assert.throws(
+      () => registry.register({
+        state: 'SPAWNED',
+        ownershipActive: true,
+        trusted: false,
+        backendPid: 43291,
+        startupNonce: 'startup-nonce',
+        backendSessionId: 'backend-session',
+        fd6PipeInstanceId: 'fd6-instance',
+        reasonCode: 'BACKEND_SPAWNED'
+      }),
+      error => {
+        assert.equal(
+          error.reasonCode,
+          'WP4_DESKTOP_BACKEND_OWNER_REGISTRY_SEMANTIC_INVALID'
+        );
+        return true;
+      }
+    );
+
+    assert.equal(registry.snapshot(), null);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  }
 });

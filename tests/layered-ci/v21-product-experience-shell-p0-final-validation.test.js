@@ -58,6 +58,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'product/v21-product-system-settings-reachability-p1-successor-v2-amendment-1',
     'fix/v21-electron-supported-runtime-p0-production-amendment-5',
     'fix/v21-element-lock-replay-incremental-p0-successor-v5',
+    'fix/v21-element-lock-replay-incremental-p0-successor-v6',
     'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2',
     'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0',
     'fix/v21-final-rc-materialized-matrix-runtime-state-p0',
@@ -277,7 +278,7 @@ test('Product final validation keeps exactly two materialized UAT artifacts plus
     assert.equal((diagnosticStep.match(/actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/gu) || []).length, 1);
     assert.match(diagnosticStep, /name: Product-Experience-Packaged-Startup-Diagnostics-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/u);
     const diagnosticLogs = [...diagnosticStep.matchAll(/\$\{\{ runner\.temp \}\}\\product-uat-packaged-data\\logs\\([a-z-]+\.jsonl)/gu)].map((match) => match[1]);
-    assert.deepEqual(diagnosticLogs, ['desktop-bootstrap.jsonl', 'desktop.jsonl', 'server.jsonl']);
+    assert.deepEqual(diagnosticLogs, ['desktop-bootstrap.jsonl', 'desktop.jsonl', 'server.jsonl', 'windows-process-identity.jsonl']);
     assert.match(diagnosticStep, /\$\{\{ runner\.temp \}\}\\product-experience-startup-capsule\\startup-capsule\\diagnostics\\\*\*/u);
     assert.match(diagnosticStep, /if-no-files-found:\s*warn/u);
     assert.doesNotMatch(diagnosticStep, /continue-on-error/u);
@@ -405,6 +406,20 @@ test('Element lock replay successor-v5 is admitted by exactly the three existing
     source.split(exact).length - 1,
     3,
     'lock replay successor-v5 must be admitted by exactly the three existing Product Final jobs'
+  );
+  assert.doesNotMatch(
+    source,
+    /head\.ref[\s\S]{0,80}(?:startsWith|contains|matches).*element-lock-replay-incremental/iu
+  );
+});
+
+test('Element lock replay successor-v6 is admitted by exactly the three existing Product Final job guards', () => {
+  const source = readWorkflow();
+  const exact = "github.event.pull_request.head.ref == 'fix/v21-element-lock-replay-incremental-p0-successor-v6'";
+  assert.equal(
+    source.split(exact).length - 1,
+    3,
+    'lock replay successor-v6 must be admitted by exactly the three existing Product Final jobs'
   );
   assert.doesNotMatch(
     source,

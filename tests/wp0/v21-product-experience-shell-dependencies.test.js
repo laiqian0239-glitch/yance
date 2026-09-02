@@ -31,6 +31,34 @@ function addedYanceImporter(patch) {
   return match[0];
 }
 
+function unquoteSpecifier(raw) {
+  const value = String(raw || '').trim();
+  if (
+    (value.startsWith("'") && value.endsWith("'")) ||
+    (value.startsWith('"') && value.endsWith('"'))
+  ) return value.slice(1, -1);
+  return value;
+}
+
+function importerSpecifiers(text) {
+  const normalized = text
+    .split('\n')
+    .map((line) => line.startsWith('+') ? line.slice(1) : line)
+    .join('\n');
+  const lines = normalized.split('\n');
+  const specifiers = new Map();
+
+  for (let i = 0; i < lines.length - 1; i += 1) {
+    const key = lines[i].match(/^      (?:'([^']+)'|([^:]+)):\s*$/u);
+    if (!key) continue;
+    const specifier = lines[i + 1].match(/^        specifier:\s*(.+?)\s*$/u);
+    if (!specifier) continue;
+    specifiers.set(key[1] || key[2], unquoteSpecifier(specifier[1]));
+  }
+
+  return specifiers;
+}
+
 test('Product Experience exact OSS package identities are pinned in the Element module', () => {
   const pkg = JSON.parse(read('integration/element-module/package.json'));
   assert.equal(pkg.dependencies?.['@base-ui/react'], '1.7.0');
@@ -170,6 +198,7 @@ test('Product dependency lock replay remains canonical and uses strict ordinary 
     'runtime replay must not weaken patch application semantics'
   );
 });
+
 test('Product dependency replay binds governed tool-ui React to the Element root without changing existing identities', () => {
   const patch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
   const importer = addedYanceImporter(patch);
@@ -236,4 +265,60 @@ test('Product dependency replay gives governed tool-ui direct Element-root type 
   );
   assert.ok(importer.includes("+      '@types/react':\n+        specifier: ^19.2.10\n+        version: 19.2.17"));
   assert.ok(importer.includes("+      zod:\n+        specifier: 4.4.3\n+        version: 4.4.3"));
+});
+
+test('CSS sheet dependency lock replay is incremental and ordered after 0011', () => {
+  const productPatch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+  const cssPatch = read('upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch');
+  const bootstrap = read('tools/matrix/bootstrap.js');
+  const baseImporter = addedYanceImporter(productPatch)
+    .split('\n')
+    .map((line) => line.startsWith('+') ? line.slice(1) : line)
+    .join('\n');
+
+  const oldSideContext = [
+    '      zod:',
+    '        specifier: 4.4.3',
+    '        version: 4.4.3',
+    '    devDependencies:',
+    "      '@types/howler':",
+    '        specifier: 2.2.13',
+    '        version: 2.2.13'
+  ].join('\n');
+
+  assert.ok(baseImporter.includes(oldSideContext), '0011a old-side context must exist in the 0011 materialized importer');
+  assert.match(cssPatch, /^diff --git a\/pnpm-lock\.yaml b\/pnpm-lock\.yaml$/m);
+  assert.doesNotMatch(cssPatch, /package\.json/u);
+  assert.match(
+    cssPatch,
+    /^\+      '@arcmantle\/vite-plugin-import-css-sheet':\n\+        specifier: \^1\.0\.12\n\+        version: 1\.0\.14\(patch_hash=8019aa9feca17db6bab3483612b4150c911d70b58fddc52bf2d7258a1484a747\)$/mu
+  );
+
+  const baseApply = "applyPatch(element, PRODUCT_DEPENDENCY_LOCK_PATCH, 'Product Experience dependency lock patch');";
+  const cssApply = "applyPatch(element, PRODUCT_CSS_SHEET_LOCK_PATCH, 'Product CSS sheet dependency lock patch');";
+  const delivery = "if (!fs.existsSync(MODULE_DELIVERY_PATCH)) throw new Error('Element module delivery patch missing');";
+  assert.ok(bootstrap.indexOf(baseApply) >= 0);
+  assert.ok(bootstrap.indexOf(cssApply) > bootstrap.indexOf(baseApply), '0011a must run after 0011');
+  assert.ok(bootstrap.indexOf(delivery) > bootstrap.indexOf(cssApply), '0011a must run before module delivery patches');
+});
+
+test('Effective Product module lock importer covers every manifest dependency', () => {
+  const pkg = JSON.parse(read('integration/element-module/package.json'));
+  const productPatch = read('upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch');
+  const cssPatch = read('upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch');
+  const specifiers = importerSpecifiers(`${addedYanceImporter(productPatch)}\n${cssPatch}`);
+  const declared = {
+    ...(pkg.dependencies || {}),
+    ...(pkg.peerDependencies || {}),
+    ...(pkg.devDependencies || {}),
+  };
+
+  for (const [name, specifier] of Object.entries(declared)) {
+    assert.equal(specifiers.has(name), true, `effective modules/yance lock importer missing ${name}`);
+    if (specifier !== 'catalog:') {
+      assert.equal(specifiers.get(name), specifier, `effective modules/yance lock specifier drift for ${name}`);
+    }
+  }
+
+  assert.equal(specifiers.get('@arcmantle/vite-plugin-import-css-sheet'), '^1.0.12');
 });
