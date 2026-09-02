@@ -486,6 +486,24 @@ test('materialized UAT GREEN is receipt-bound and fails if packaged Yance exits 
   assert.ok(receiptIndex >= 0 && greenIndex > receiptIndex, 'GREEN evidence must be emitted only after receipt validation');
 });
 
+test('materialized UAT binds packaged desktop launch to sealed Element 8080 authority', () => {
+  const runner = read(RUNNER);
+  const startProcessIndex = runner.indexOf('$process = Start-Process -FilePath $yanceExe.FullName');
+  const elementUrlIndex = runner.indexOf("$env:YANCE_ELEMENT_URL = $SealedElementUrl");
+  const elementHealthIndex = runner.indexOf("$env:YANCE_ELEMENT_HEALTH_URL = $SealedElementHealthUrl");
+  const preflightConfigIndex = runner.indexOf('$sealedElementConfig = Invoke-RestMethod -Method Get -Uri $SealedElementHealthUrl');
+  const modulePreflightIndex = runner.indexOf("@($sealedElementConfig.modules) -contains '/modules/yance/lib/index.js'");
+
+  assert.match(runner, /\$SealedElementUrl\s*=\s*'http:\/\/127\.0\.0\.1:8080'/u);
+  assert.match(runner, /\$SealedElementHealthUrl\s*=\s*'http:\/\/127\.0\.0\.1:8080\/config\.json'/u);
+  assert.ok(preflightConfigIndex >= 0 && preflightConfigIndex < startProcessIndex, 'sealed Element config must be read again before desktop launch');
+  assert.ok(modulePreflightIndex >= 0 && modulePreflightIndex < startProcessIndex, 'Yance module mount must be fail-closed before desktop launch');
+  assert.ok(elementUrlIndex >= 0 && elementUrlIndex < startProcessIndex, 'YANCE_ELEMENT_URL must be bound before Start-Process');
+  assert.ok(elementHealthIndex >= 0 && elementHealthIndex < startProcessIndex, 'YANCE_ELEMENT_HEALTH_URL must be bound before Start-Process');
+  assert.doesNotMatch(runner, /\$env:YANCE_ELEMENT_URL\s*=\s*['"]http:\/\/127\.0\.0\.1:18080/u);
+  assert.doesNotMatch(runner, /\$env:YANCE_ELEMENT_HEALTH_URL\s*=\s*['"]http:\/\/127\.0\.0\.1:18080\/config\.json/u);
+});
+
 test('Product Final preserves packaged startup diagnostics after a failing receipt-bound launch', () => {
   const source = read(WORKFLOW);
   const materializedStart = source.indexOf('  materialized-desktop-uat:');
