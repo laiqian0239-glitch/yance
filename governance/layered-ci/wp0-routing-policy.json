@@ -202,6 +202,7 @@
     "third_party/licenses/rive-wasm-MIT.txt",
     "third_party/licenses/types-howler-MIT.txt",
     "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
+    "upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch",
     "upstream-patches/element-web/0012-yance-element-module-runtime.patch",
     "upstream-patches/element-web/0013-yance-module-room-state-read.patch",
     "upstream-patches/element-web/0014-yance-module-appearance-authority.patch",

@@ -55,6 +55,7 @@
     "release/facebook-production-resources/platform-auth.sha256",
     "runtime/local-ai/airllm/yance_airllm_worker.py",
     "upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch",
+    "upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch",
     "vendor/electron/electron-v39.8.5-win32-x64.zip",
     "vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz",
     "vendor/npm/_at_electron__get-5.0.0.tgz",

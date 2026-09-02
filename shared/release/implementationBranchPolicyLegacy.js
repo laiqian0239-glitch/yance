@@ -645,7 +645,31 @@ function hasExactFastClosureV2ClosureEvidence(commitMessage, requiredTrailer) {
   return candidates.length === 1 && candidates[0] === requiredTrailer;
 }
 
-function isValidGenericDelegatedGovernanceAuthorization(document, authorizationPath) {
+function parseGenericDelegatedSupersessionDeclaration(authorizationPath, authorization) {
+  if (!authorization
+    || typeof authorization !== 'object'
+    || Array.isArray(authorization)
+    || !Object.prototype.hasOwnProperty.call(authorization, 'supersedes')) return null;
+  const declaration = authorization.supersedes;
+  const expectedKeys = ['authorizationPath', 'implementationBranch', 'reason'];
+  if (!declaration
+    || typeof declaration !== 'object'
+    || Array.isArray(declaration)
+    || !sameJson(Object.keys(declaration).sort(), expectedKeys)
+    || !isGenericDelegatedGovernanceAuthorizationPath(declaration.authorizationPath)
+    || !isExactBranch(declaration.implementationBranch)
+    || declaration.authorizationPath === authorizationPath
+    || declaration.implementationBranch === authorization.implementation?.branch
+    || typeof declaration.reason !== 'string'
+    || declaration.reason.length === 0
+    || declaration.reason !== declaration.reason.trim()) return false;
+  return Object.freeze({
+    authorizationPath: declaration.authorizationPath,
+    implementationBranch: declaration.implementationBranch
+  });
+}
+
+function isStructurallyValidGenericDelegatedGovernanceAuthorization(document, authorizationPath) {
   if (!isGenericDelegatedGovernanceAuthorizationPath(authorizationPath)
     || !document
     || typeof document !== 'object'
@@ -718,6 +742,11 @@ function isValidGenericDelegatedGovernanceAuthorization(document, authorizationP
       && !Object.prototype.hasOwnProperty.call(document.implementation, 'workflowModificationPolicy');
   }
   return isValidExactWorkflowModificationPolicy(document.implementation, implementationPaths);
+}
+
+function isValidGenericDelegatedGovernanceAuthorization(document, authorizationPath) {
+  return isStructurallyValidGenericDelegatedGovernanceAuthorization(document, authorizationPath)
+    && parseGenericDelegatedSupersessionDeclaration(authorizationPath, document) !== false;
 }
 
 function resolveGenericCandidateAuthorization(authorizationPath, evaluatedHead, options = {}) {
@@ -1269,34 +1298,13 @@ function evaluateTrustedDelegatedGovernanceBranch(options = {}) {
   const declarations = new Map();
   const graphInvalidPaths = new Set();
 
-  function parseSupersessionDeclaration(authorizationPath, authorization) {
-    if (!Object.prototype.hasOwnProperty.call(authorization, 'supersedes')) return null;
-    const declaration = authorization.supersedes;
-    const expectedKeys = ['authorizationPath', 'implementationBranch', 'reason'];
-    if (!declaration
-      || typeof declaration !== 'object'
-      || Array.isArray(declaration)
-      || !sameJson(Object.keys(declaration).sort(), expectedKeys)
-      || !isGenericDelegatedGovernanceAuthorizationPath(declaration.authorizationPath)
-      || !isExactBranch(declaration.implementationBranch)
-      || declaration.authorizationPath === authorizationPath
-      || declaration.implementationBranch === authorization.implementation.branch
-      || typeof declaration.reason !== 'string'
-      || declaration.reason.length === 0
-      || declaration.reason !== declaration.reason.trim()) return false;
-    return Object.freeze({
-      authorizationPath: declaration.authorizationPath,
-      implementationBranch: declaration.implementationBranch
-    });
-  }
-
   for (const authorizationPath of authorizationPaths) {
     const authorization = options.loadAuthorizationAtTrustedHead
       ? options.loadAuthorizationAtTrustedHead(authorizationPath)
       : defaultAuthorizationAtCommit(trustedMainHead, authorizationPath, options);
-    if (!isValidGenericDelegatedGovernanceAuthorization(authorization, authorizationPath)) continue;
+    if (!isStructurallyValidGenericDelegatedGovernanceAuthorization(authorization, authorizationPath)) continue;
     authorizations.set(authorizationPath, authorization);
-    const declaration = parseSupersessionDeclaration(authorizationPath, authorization);
+    const declaration = parseGenericDelegatedSupersessionDeclaration(authorizationPath, authorization);
     if (declaration === false) graphInvalidPaths.add(authorizationPath);
     else if (declaration) declarations.set(authorizationPath, declaration);
   }
