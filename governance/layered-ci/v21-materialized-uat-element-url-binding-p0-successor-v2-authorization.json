@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-MATERIALIZED-UAT-ELEMENT-URL-BINDING-P0-SUCCESSOR-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization for the frozen #1041 Stage RED. The previous authorization omitted the generic delegated-governance automatic-next-work-package denial required by implementationBranchPolicy. Preserve frozen head 56f98a036aa68437e24106301edb29e18919dc02 and Stage run 33611685018. Close only the already-proven Windows materialized-UAT runner defect: sealed Matrix Element is ready on 127.0.0.1:8080, while packaged Yance was launched without YANCE_ELEMENT_URL/YANCE_ELEMENT_HEALTH_URL and therefore loaded a different 18080 host, leaving activationProbeResponderReady false.",
+  "base": {
+    "branch": "main",
+    "commit": "cfdcbd6b2cd29330a6c9474eb1f64b9561505a70"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-materialized-uat-element-url-binding-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-materialized-uat-element-url-binding-p0-successor-v2-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-materialized-uat-element-url-binding-p0-successor-v2",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "5f4dcfc81e749fa6758211683dfbc9a9cb9448a14c1ae8a8bf4865e9b6dd1f65",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "frozenEvidence": {
+    "productHead": "5c1f87f2d58fe1959d2fb242207f418fd74cd2f0",
+    "failedAuthorizationHead": "56f98a036aa68437e24106301edb29e18919dc02",
+    "failedAuthorizationStageRun": 33611685018,
+    "uatRootCause": "UAT_RUNNER / MATRIX_ELEMENT_URL_NOT_BOUND",
+    "desktopLoadedUrl": "http://127.0.0.1:18080/",
+    "sealedMatrixElementUrl": "http://127.0.0.1:8080",
+    "didFinishLoad": true,
+    "preloadReady": true,
+    "rendererReady": true,
+    "activationProbeResponderReady": false
+  },
+  "requiredClosure": [
+    "After sealed Matrix readiness, bind packaged Yance to YANCE_ELEMENT_URL=http://127.0.0.1:8080 and YANCE_ELEMENT_HEALTH_URL=http://127.0.0.1:8080/config.json before Start-Process.",
+    "Fail closed before packaged launch unless the same 8080 config.json is readable and modules contains /modules/yance/lib/index.js.",
+    "Add permanent WP0 regression locking the same sealed Matrix Element URL into the materialized desktop launch and forbidding fallback to the separate 18080 Product Final validation host.",
+    "Do not modify Product runtime, Electron runtime, Matrix images, dependencies, package manifests, lockfiles, workflows, databases or release artifacts."
+  ]
+}
