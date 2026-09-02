@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-END-USER-MATRIX-IDENTITY-P0-SUCCESSOR-V6",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing scope amendment after successor-v5 local causal closure exposed one directly affected stale WP2 evidence-validator seam before any implementation commit. The authorized command-path inventory repair now truthfully inventories the production Electron IPC surface, but tools/wp2/evidence-validation.js still hard-codes an obsolete ipc.length===45 prerequisite. That obsolete cardinality check fires before the existing fail-closed test can reach its intended WP2_DUAL_COMMAND_AUTHORITY assertion. This is not a request to weaken WP2: successor-v6 authorizes exactly one additional verifier path so completeness can be derived from the existing canonical inventory/production authority instead of an absolute historical count. Existing tests/wp2/evidence-generator-fail-closed.test.js already expresses the required regression and is intentionally unchanged. The original 15 Matrix identity product paths, product contract, dependency graph, workflows, routing, database, package/lockfiles, public Synapse registration, Element login/session authority and Personal Access semantics remain unchanged.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-end-user-matrix-identity-p0-successor-v5-authorization.json",
+    "implementationBranch": "fix/v21-end-user-matrix-identity-p0-successor-v5",
+    "reason": "Successor-v5 is graph-valid and remains immutable local evidence, but its exact 15-path scope cannot close the directly affected stale tools/wp2/evidence-validation.js cardinality seam discovered by full WP2 before any implementation commit. Successor-v6 extends scope by exactly this one verifier path without reconnecting to the historical graph-invalid v1/v2/v4 component."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "963e5744fb7139228f536dff373e179f2874a8a1"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-end-user-matrix-identity-p0-successor-v6-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-end-user-matrix-identity-p0-successor-v6-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-end-user-matrix-identity-p0-successor-v6",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "backend/services/endUserMatrixIdentityService.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/synapseSharedSecretRegistration.js",
+      "backend/tests/endUserMatrixIdentityP0.test.js",
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp2/single-command-path.test.js",
+      "tools/wp2/command-path-inventory.js",
+      "tools/wp2/evidence-validation.js"
+    ],
+    "approvedChangedFileCount": 16,
+    "approvedChangedFileSetSha256": "1de8e973d8f4233e2c3ba5d3a1c0acc4992a976b73a6681ab55075519710d897",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "product": "MATRIX_AUTH / END_USER_ACCOUNT_PROVISIONING_MISSING",
+    "newlyExposedLocalVerifier": "WP2_GOVERNANCE / EVIDENCE_VALIDATION_ABSOLUTE_IPC_COUNT_STALE",
+    "requiredRepair": "Replace the obsolete absolute Electron IPC count prerequisite in tools/wp2/evidence-validation.js with a fail-closed completeness check bound to the existing truthful command-path/production IPC authority. Do not replace 45 with another magic number. Preserve duplicate detection, required control paths, forwardingOnly enforcement and WP2_DUAL_COMMAND_AUTHORITY semantics."
+  },
+  "requiredClosure": [
+    "Freeze successor-v5 with zero implementation commits and preserve its working-tree final Matrix identity bytes as immutable replay evidence; do not clean, reset, amend or push v5.",
+    "After this authorization ordinary-merges, create fix/v21-end-user-matrix-identity-p0-successor-v6 from the exact authorization merge and replay the full v5 working-tree product delta for the original 15 paths, including the four unstaged same-root causal fixes already audited locally.",
+    "Modify only tools/wp2/evidence-validation.js as the new sixteenth path. Do not modify tests/wp2/evidence-generator-fail-closed.test.js unless a genuinely different root cause is proven and separately authorized.",
+    "Do not change the stale constant from 45 to another absolute count. Bind completeness to existing canonical production IPC/inventory authority so newly added or removed legitimate channels cannot silently invalidate the verifier again.",
+    "Require tests/wp2/evidence-generator-fail-closed.test.js to reach and observe WP2_DUAL_COMMAND_AUTHORITY for the forwardingOnly=false mutation instead of being shadowed by an IPC count mismatch.",
+    "Run the directly affected WP2 tests first; then full npm run test:wp2. Freeze only proven base-owned REDs whose failing production bytes and assertion surfaces are unchanged by the 16-path candidate.",
+    "Continue the existing Matrix identity causal batch only after the directly affected WP2 verifier seam is GREEN: affected WP6, Personal Access, Facebook mautrix-meta, precommit WP0 excluding live branch-policy, WP-A A0, Element payload freshness and non-destructive Windows Local Release Harness clean/existing/failure fixtures.",
+    "Preserve Synapse enable_registration=false, Element interactive login/session authority, password non-persistence, end-user registration access-token non-persistence/non-exposure, Facebook internal token semantics and Personal Access OWNER/TESTER semantics.",
+    "Exactly one implementation commit only after local causal closure. Then require committed-byte identity, native implementation-branch-policy GREEN, full WP0 GREEN, exact 16-path census and diff-check GREEN. Stop without implementation push/PR/CI until Controller promotion."
+  ],
+  "frozenEvidence": {
+    "successorV5AuthorizationMerge": "963e5744fb7139228f536dff373e179f2874a8a1",
+    "successorV5ImplementationCommitCount": 0,
+    "successorV5LocalMatrixFocused": "backend identity 8/8 GREEN; wp0 identity 5/5 GREEN; single-command-path 4/4 GREEN; Product wp0 35/35 GREEN; staged security scan PASS",
+    "successorV5FullWp2": "133/139 PASS; 6 RED",
+    "directlyAffectedWp2Failure": "tests/wp2/evidence-generator-fail-closed.test.js is shadowed by tools/wp2/evidence-validation.js hard-coded ipc.length!==45 before its intended WP2_DUAL_COMMAND_AUTHORITY assertion",
+    "baseOwnedWp2Evidence": "Other reported WP2 failures require differential freeze only; no authorization is granted to mutate their files unless a new causal root is proven.",
+    "npmCiEnvironment": "npm ci unpacked the pure-JS dependency graph but exited nonzero when the local safe-delete hook aborted node-gyp temporary cleanup for node-pty. Focused pure-JS suites executed GREEN; no dependency/package/lockfile change is authorized.",
+    "worktreeMetadataIncident": "v4/v5 linked-worktree metadata was locally reconstructed after an accidental worktree registry deletion; v4/v5 byte identity was restored by aggregate blob digest. Unrelated worktrees are outside this work package and must not be repaired as part of this causal batch."
+  },
+  "productContract": {
+    "publicMatrixRegistrationRemainsDisabled": true,
+    "elementRemainsInteractiveMatrixLoginAuthority": true,
+    "personalAccessRemainsSeparateProductEntitlementAuthority": true,
+    "desktopLocalSessionIsProvisioningBoundary": true,
+    "oneLocalHumanMatrixIdentityPerInstallation": true,
+    "matrixAccessTokenMustNotReachRenderer": true,
+    "passwordMustNotBePersistedByYance": true,
+    "existingOwnerTesterLifecyclePreserved": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP2_TRUTHFUL_INVENTORY_AND_FAIL_CLOSED_VALIDATOR_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP2 command-path inventory",
+        "source": "tools/wp2/command-path-inventory.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already derives Electron IPC registrations and forwarding authority from production source. The evidence validator should consume that truth instead of duplicating a historical absolute cardinality."
+      },
+      {
+        "name": "Existing WP2 fail-closed evidence validator",
+        "source": "tools/wp2/evidence-validation.js",
+        "license": "repository-existing",
+        "adoptionMode": "thin-adaptation",
+        "fit": "FIT",
+        "reason": "Preserve its duplicate/control-path/forwarding/state-authority checks and repair only the stale completeness seam."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not invent another IPC registry.",
+      "Do not replace 45 with 97 or any new fixed count.",
+      "Do not weaken WP2_DUAL_COMMAND_AUTHORITY, required-channel, duplicate, forwardingOnly or command-path completeness checks.",
+      "Do not modify workflow/routing/dependencies/package/lockfile/database or unrelated worktree metadata."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
