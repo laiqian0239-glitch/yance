@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-END-USER-MATRIX-IDENTITY-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Real Windows final UAT now proves BOOTSTRAP/MATRIX_READY/ELEMENT_READY/ELECTRON_BOOT/DESKTOP_READY/UI_READY and the post-install receipt are GREEN, but the production login screen has no end-user Matrix credential acquisition path. Public Matrix registration is intentionally disabled and Personal Access is a separate OWNER/TESTER entitlement authority, so a fresh human installation reaches a valid Element login surface without any credential it can use. Close only this release blocker by reusing Synapse's official shared-secret registration protocol through the already-trusted local Desktop API/session boundary, while preserving Element as the sole interactive Matrix login authority and preserving the existing Personal Access entitlement gate after login.",
+  "base": {
+    "branch": "main",
+    "commit": "ba9452b867b6ce692d5b2188576fca0cb4e52f54"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-end-user-matrix-identity-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-end-user-matrix-identity-p0-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-end-user-matrix-identity-p0",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "backend/services/endUserMatrixIdentityService.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/synapseSharedSecretRegistration.js",
+      "backend/tests/endUserMatrixIdentityP0.test.js",
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/wp2/command-path-inventory.js"
+    ],
+    "approvedChangedFileCount": 14,
+    "approvedChangedFileSetSha256": "057b4486f510ae9b56eafc0266c233d78b939acf2e4068f47abd028c4d26d6b2",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "productContract": {
+    "publicMatrixRegistrationRemainsDisabled": true,
+    "elementRemainsInteractiveMatrixLoginAuthority": true,
+    "personalAccessRemainsSeparateProductEntitlementAuthority": true,
+    "desktopLocalSessionIsProvisioningBoundary": true,
+    "oneLocalHumanMatrixIdentityPerInstallation": true,
+    "matrixAccessTokenMustNotReachRenderer": true,
+    "passwordMustNotBePersistedByYance": true,
+    "existingOwnerTesterLifecyclePreserved": true
+  },
+  "requiredClosure": [
+    "Extract the already-production-used Synapse shared-secret HMAC registration mechanism from facebookPersonalMessengerMautrixAdapter.js into one reusable repository service; do not duplicate or invent another registration algorithm.",
+    "Add an end-user Matrix identity service that uses the same YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE and YANCE_MATRIX_BASE_URL authority, persists only non-secret local identity receipt metadata, and fails closed after one successfully provisioned local human identity per installation.",
+    "Expose GET/POST /api/desktop/matrix-local-identity only under the existing loopback + API-session local-control boundary. Do not add public Matrix registration and do not exempt any /api/app/v2 product route from Personal Access.",
+    "POST accepts a user-selected localpart/password, delegates account creation to Synapse shared-secret registration, discards the returned Matrix access token, and never returns access tokens or persisted passwords to the renderer.",
+    "Expose the two local identity operations through the existing r32StoreBridge/preload IPC authority and register their exact command paths in the existing manifest/inventory; no second IPC framework.",
+    "On the current Yance login surface, when no local Matrix identity exists, show a first-use local account setup for username/password; after successful creation, show the exact Matrix user id and route the user to the existing Element login form with the password they just chose. Do not implement Matrix login in YanceLogin and do not call /_matrix/client from renderer code.",
+    "After login, preserve the existing PersonalAccessSurface behavior exactly: OWNER stays permanently usable when its existing secure owner credential is present; a friend/TESTER submits the existing installation-bound request and is usable only after OWNER approval and ACTIVE grant.",
+    "Preserve enable_registration=false, UIFeature.registration=false, login_for_welcome=true, the sealed Element 8080 binding, activation responder readiness, session restore, and current post-install PASS semantics.",
+    "Add permanent local regressions for clean identity creation, duplicate provisioning rejection, invalid input, Synapse error fail-closed behavior, existing identity status, no renderer Matrix protocol, public registration still disabled, exact IPC inventory, and materialized UAT startup/login reachability."
+  ],
+  "localAcceptance": [
+    "Focused end-user Matrix identity backend tests GREEN.",
+    "Focused Product/YanceLogin authority tests GREEN.",
+    "Existing Facebook Personal Messenger mautrix-meta registration tests GREEN after shared helper extraction.",
+    "Existing Personal Access OWNER/TESTER tests GREEN unchanged.",
+    "Full WP0 GREEN.",
+    "git diff --check GREEN.",
+    "Windows Local Release Harness: clean fixture boots to account setup, provisions a real local Synapse user, user can log in through Element, and Product reaches existing Personal Access surface.",
+    "Windows Local Release Harness: existing identity/session fixture restarts without reprovisioning and reaches UI without startup regression.",
+    "No GitHub RC artifact download is permitted for this local closure."
+  ],
+  "ossFit": {
+    "decision": "SOURCE_TRANSPLANT_OFFICIAL_SYNAPSE_SHARED_SECRET_REGISTRATION_AND_REUSE_EXISTING_REPOSITORY_SEAMS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Synapse Shared-Secret Registration API / register_new_matrix_user protocol",
+        "source": "Element/Synapse official admin registration contract used by the pinned Synapse runtime",
+        "license": "Apache-2.0 upstream Synapse project",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "The repository already uses the official nonce + HMAC-SHA1 shared-secret registration protocol for an isolated Matrix identity. Reuse and centralize that exact mature mechanism for the local human identity instead of enabling public registration or inventing an account backend."
+      },
+      {
+        "name": "Existing Desktop local API session + Electron r32StoreBridge/preload authority",
+        "source": "backend /api/desktop local-control boundary plus electron/r32StoreBridge.js and electron/preload.js",
+        "license": "repository-existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This boundary already authenticates packaged renderer-to-backend local control and is the narrowest place to permit non-public local account provisioning."
+      },
+      {
+        "name": "Pinned Element Web login implementation",
+        "source": "existing registerLoginComponent originalComponent(props) authority",
+        "license": "AGPL-3.0-only pinned upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Element already owns Matrix password login/session protocol. Yance only creates the missing local credential and must not create a second interactive login protocol."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not enable Synapse public self-registration or restore Element Create Account routing.",
+      "Do not build a Yance cloud identity/authentication service.",
+      "Do not implement Matrix login, token/session storage or password hashing in Yance renderer/backend.",
+      "Do not duplicate the shared-secret HMAC algorithm already present in the repository.",
+      "Do not change Personal Access OWNER/TESTER remote authority or weaken its product guard."
+    ]
+  },
+  "frozenEvidence": {
+    "startupUatHead": "6e48d90b9ca31480d763b039a9a0f66f0453d190",
+    "startupUatResult": "GREEN",
+    "previousRootCause": "UAT_RUNNER / MATRIX_ELEMENT_URL_NOT_BOUND",
+    "previousRootCauseClosed": true,
+    "currentRootCause": "MATRIX_AUTH / END_USER_ACCOUNT_PROVISIONING_MISSING",
+    "publicRegistrationDisabled": true,
+    "existingSharedSecretRegistrationImplementation": "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+    "existingPersonalAccessAuthority": true,
+    "accidentalMainPlaceholderNetDiff": "ZERO_FILES_FROM_6e48d90_TO_ba9452b"
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
