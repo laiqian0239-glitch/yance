@@ -753,3 +753,18 @@ test('Product Final RED diagnostics preserve Windows process identity evidence',
   assert.match(source, /desktop\.jsonl/u);
   assert.match(source, /server\.jsonl/u);
 });
+
+test('materialized UAT preserves first-use local Matrix identity without public Synapse registration', () => {
+  const homeserver = read('config/matrix/synapse/homeserver.yaml');
+  const login = read('integration/element-module/src/YanceLogin.tsx');
+  const service = read('backend/services/endUserMatrixIdentityService.js');
+  const bridge = read('electron/r32StoreBridge.js');
+
+  assert.match(homeserver, /^enable_registration:\s*false\s*$/mu);
+  assert.match(login, /data-yance-local-matrix-identity="first-use"/u);
+  assert.match(login, /data-yance-login-form-host="element-auth"[\s\S]*?\{children\}/u);
+  assert.match(service, /YANCE_LOCAL_MATRIX_HUMAN_IDENTITY_RECEIPT_V1/u);
+  assert.match(service, /registerSynapseUserWithSharedSecret/u);
+  assert.match(bridge, /\/api\/desktop\/matrix-local-identity/u);
+  assert.doesNotMatch(login, /_matrix\/client|m\.login\.password|accessToken|fetch\s*\(/u);
+});

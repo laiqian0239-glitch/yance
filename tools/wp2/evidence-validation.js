@@ -1,4 +1,7 @@
 'use strict';
+const path = require('node:path');
+const { buildCommandPathInventory } = require('./command-path-inventory');
+const REPO_ROOT = path.resolve(__dirname, '..', '..');
 class Wp2EvidenceValidationError extends Error{constructor(reasonCode,message,details={}){super(message);this.name='Wp2EvidenceValidationError';this.reasonCode=reasonCode;this.details=details;}}
 function fail(reasonCode,message,details){throw new Wp2EvidenceValidationError(reasonCode,message,details);}
 function validateLifecycle(lifecycle){
@@ -22,7 +25,12 @@ function validateBoundary(boundary){
 function validateCommands(commands){
  if(!Array.isArray(commands)||commands.length<90)fail('WP2_COMMAND_PATH_INVALID','Command inventory is incomplete',{count:commands?.length||0});
  const ipc=commands.filter(row=>row.entryKind==='ELECTRON_IPC');
- if(ipc.length!==45)fail('WP2_ELECTRON_IPC_COUNT_MISMATCH','All 45 production Electron IPC channels must be inventoried',{count:ipc.length});
+ const actualChannels=ipc.map(x=>x.channelOrCommandName).sort();
+ const canonicalRows=buildCommandPathInventory(REPO_ROOT);
+ const canonicalChannels=canonicalRows.filter(row=>row.entryKind==='ELECTRON_IPC').map(x=>x.channelOrCommandName).sort();
+ const missingChannels=canonicalChannels.filter(channel=>!actualChannels.includes(channel));
+ const extraChannels=actualChannels.filter(channel=>!canonicalChannels.includes(channel));
+ if(missingChannels.length||extraChannels.length)fail('WP2_ELECTRON_IPC_COUNT_MISMATCH','All production Electron IPC channels must match the canonical command-path inventory',{actualCount:actualChannels.length,expectedCount:canonicalChannels.length,missingChannels,extraChannels});
  const channelNames=ipc.map(x=>x.channelOrCommandName);if(new Set(channelNames).size!==channelNames.length)fail('WP2_DUPLICATE_COMMAND_AUTHORITY','Duplicate Electron IPC authority name');
  for(const row of commands){
   if(!row.channelOrCommandName||!row.finalAuthoritativePath||!row.stateAuthorityOwner)fail('WP2_COMMAND_PATH_INCOMPLETE','Command path fields missing',row);

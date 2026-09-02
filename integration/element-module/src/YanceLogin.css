@@ -612,6 +612,93 @@
   opacity: 1 !important;
 }
 
+.yance-login-local-identity {
+  margin: 0 0 18px;
+  padding: 18px;
+  border: 1px solid rgb(42 15 74 / 14%);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 14px 38px rgb(42 15 74 / 8%);
+}
+
+.yance-login-setup-eyebrow {
+  display: block;
+  color: #7d5b97;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  margin-bottom: 6px;
+}
+
+.yance-login-local-identity h3 {
+  margin: 0 0 6px;
+  color: #2a0f4a;
+  font-size: 20px;
+}
+
+.yance-login-local-identity p {
+  margin: 0 0 12px;
+  color: #675b6d;
+  line-height: 1.55;
+}
+
+.yance-login-setup-form {
+  display: grid;
+  gap: 10px;
+}
+
+.yance-login-setup-form label {
+  display: grid;
+  gap: 6px;
+  color: #5d5065;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.yance-login-setup-form input {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid rgb(42 15 74 / 18%);
+  border-radius: 14px;
+  padding: 0 13px;
+  color: #241433;
+  background: #fbf9fd;
+  font: inherit;
+}
+
+.yance-login-setup-form button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: #2a0f4a;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.yance-login-setup-form button:disabled {
+  cursor: wait;
+  opacity: .68;
+}
+
+.yance-login-setup-error {
+  color: #9f2140 !important;
+  font-weight: 600 !important;
+}
+
+.yance-login-setup-note {
+  color: #675b6d !important;
+}
+
+.yance-login-local-identity-ready strong {
+  display: block;
+  margin: 6px 0 8px;
+  color: #2a0f4a;
+  font-size: 18px;
+  word-break: break-all;
+}
+
 .yance-login-auth .mx_ServerPicker {
   border-bottom-color: rgb(72 52 84 / 18%) !important;
 }
