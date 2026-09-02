@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-END-USER-MATRIX-IDENTITY-P0-SUCCESSOR-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing successor authorization after local causal closure of the 14-path end-user Matrix identity batch exposed one directly affected stale WP2 governance regression outside the original exact scope. tests/wp2/single-command-path.test.js still hard-codes an obsolete absolute Electron IPC count of 45 even though the same contract already compares the generated inventory against collectActualIpc exactly. The current product batch legitimately adds two exact r32StoreBridge channels for local Matrix identity status/create; hiding those channels or weakening inventory would be incorrect. Successor v2 preserves the locally validated 14 product/runtime/test paths byte-for-byte and adds only that existing WP2 regression path so its stale absolute count assertions can be removed while retaining exact inventory-vs-actual equality and authority-field coverage. No new product behavior, dependency, workflow, routing, database, release artifact, public Matrix registration, Yance-owned Matrix login/session protocol, or Personal Access authority change is authorized by this successor.",
+  "base": {
+    "branch": "main",
+    "commit": "6f28d788e28d54789edb74a487b653405d6f198a"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-end-user-matrix-identity-p0-authorization.json",
+    "implementationBranch": "fix/v21-end-user-matrix-identity-p0",
+    "reason": "Replace the uncommitted 14-path implementation line with one 15-path successor that includes the directly affected stale WP2 exact-inventory regression."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-end-user-matrix-identity-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-end-user-matrix-identity-p0-successor-v2-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-end-user-matrix-identity-p0-successor-v2",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "backend/services/endUserMatrixIdentityService.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/synapseSharedSecretRegistration.js",
+      "backend/tests/endUserMatrixIdentityP0.test.js",
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp2/single-command-path.test.js",
+      "tools/wp2/command-path-inventory.js"
+    ],
+    "approvedChangedFileCount": 15,
+    "approvedChangedFileSetSha256": "d83c573585dfa9516f22dd153044e09ee0764f82afb4a6bdd996702d3ae3a853",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "productContract": {
+    "publicMatrixRegistrationRemainsDisabled": true,
+    "elementRemainsInteractiveMatrixLoginAuthority": true,
+    "personalAccessRemainsSeparateProductEntitlementAuthority": true,
+    "desktopLocalSessionIsProvisioningBoundary": true,
+    "oneLocalHumanMatrixIdentityPerInstallation": true,
+    "matrixAccessTokenMustNotReachRenderer": true,
+    "passwordMustNotBePersistedByYance": true,
+    "existingOwnerTesterLifecyclePreserved": true
+  },
+  "requiredClosure": [
+    "Preserve the already locally validated 14-path end-user Matrix identity implementation bytes unless a directly causal local acceptance failure requires a change inside the same authorized set.",
+    "In tests/wp2/single-command-path.test.js remove only the obsolete fixed absolute IPC-count assertions; preserve exact deep equality between buildCommandPathInventory Electron IPC rows and collectActualIpc output, uniqueness, authority metadata checks, required desktop channels, and full Object.values(r32StoreBridge.CHANNELS) coverage.",
+    "Do not replace the stale constant with another fixed count such as 97; the production contract is exact inventory equality, not a historically frozen quantity.",
+    "Refresh the local trusted origin/main ref to the effective authorization merge before interpreting implementation-branch-policy local acceptance; do not modify implementationBranchPolicy merely to make a stale local ref pass.",
+    "After successor authorization merges, replay the existing staged 14-path bytes onto the new successor branch from the successor authorization merge, add only the minimal WP2 regression repair, and complete all local acceptance before creating one implementation commit.",
+    "Preserve Synapse enable_registration=false, Element original login/session authority, sealed Element 8080 startup binding, no password/token persistence, and existing Personal Access OWNER/TESTER semantics."
+  ],
+  "localAcceptance": [
+    "Focused end-user Matrix identity backend + WP0 tests GREEN.",
+    "Product brand/materialized UAT identity contracts GREEN.",
+    "Existing Personal Access and Facebook mautrix-meta focused tests GREEN.",
+    "tests/wp2/single-command-path.test.js GREEN with exact inventory equality and without a fixed absolute IPC count.",
+    "tests/wp0/implementation-branch-policy.test.js GREEN after trusted origin/main equals the effective successor authorization merge.",
+    "Full npm run test:wp0 GREEN.",
+    "git diff --check GREEN and exact changed-path census limited to the 15 authorized paths.",
+    "Windows Local Release Harness golden-clean: real local Synapse/Element boots, a real local human Matrix user is provisioned through the product path, Element password login succeeds, and existing Personal Access surface is reached.",
+    "Windows Local Release Harness existing identity/session: restart does not reprovision, identity/session remains usable, and startup remains GREEN.",
+    "Failure-path proof: invalid input and controlled Synapse registration failure fail closed without ambiguous duplicate identity state; Yance persists neither password nor Matrix access token.",
+    "No GitHub RC artifact download and no real UAT rerun before local closure."
+  ],
+  "ossFit": {
+    "decision": "PRESERVE_OFFICIAL_SYNAPSE_SOURCE_MODULE_AND_REPAIR_ONLY_STALE_REPOSITORY_GOVERNANCE_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Synapse Shared-Secret Registration API / register_new_matrix_user protocol",
+        "source": "Element/Synapse official admin registration contract already used by the pinned runtime and extracted into the local shared module",
+        "license": "Apache-2.0 upstream Synapse project",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "The product batch continues to reuse the mature official nonce plus HMAC registration mechanism and does not invent authentication infrastructure."
+      },
+      {
+        "name": "Existing WP2 command-path inventory",
+        "source": "tools/wp2/command-path-inventory.js and tests/wp2/single-command-path.test.js",
+        "license": "repository-existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing test already has the stronger exact inventory-vs-runtime equality assertion. Removing the stale historical absolute count is the minimal governance repair; no new inventory framework is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not hide or omit real Electron IPC channels to satisfy a stale count.",
+      "Do not replace 45 with another fixed count such as 97.",
+      "Do not modify shared implementation-branch policy for a stale local trusted-main ref.",
+      "Do not enable public Matrix registration, implement Matrix login/session in Yance, or change Personal Access authority semantics."
+    ]
+  },
+  "frozenEvidence": {
+    "originalAuthorizationMerge": "6f28d788e28d54789edb74a487b653405d6f198a",
+    "originalImplementationBranch": "fix/v21-end-user-matrix-identity-p0",
+    "originalImplementationCommitCreated": false,
+    "originalImplementationPushOccurred": false,
+    "originalImplementationCiTriggered": false,
+    "stagedOriginalChangedFileCount": 14,
+    "stagedOriginalDiffCheck": "GREEN",
+    "focusedIdentityTests": "GREEN",
+    "wp2ObservedFailure": "tests/wp2/single-command-path.test.js fixed count 45 does not match actual Electron IPC inventory",
+    "currentRootCause": "MATRIX_AUTH / END_USER_ACCOUNT_PROVISIONING_MISSING",
+    "governanceSeamRootCause": "WP2_GOVERNANCE / STALE_ABSOLUTE_IPC_COUNT"
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
