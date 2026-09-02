@@ -735,6 +735,75 @@ test('authorization proposal transport is single-file and never grants implement
   }
 });
 
+test('generic delegated supersession schema is shared by proposal validation and runtime graph invalidation', () => {
+  const proposalFor = authorization => evaluateDelegatedGovernanceAuthorizationProposal({
+    branch: GENERIC_AUTHORIZATION_BRANCH,
+    changedFiles: [GENERIC_AUTHORIZATION_PATH],
+    authorizationPath: GENERIC_AUTHORIZATION_PATH,
+    authorization,
+    trustedMainHead: GENERIC_BASE,
+    evaluatedHead: GENERIC_REVIEWED_HEAD,
+    isTrustedAncestor: (base, head) => base === GENERIC_BASE && head === GENERIC_REVIEWED_HEAD,
+    resolveCommitBlobSha: commit => (commit === GENERIC_BASE ? null : GENERIC_BLOB),
+    resolveCommitPathMode: () => '100644'
+  });
+
+  const noSupersedes = genericDelegatedAuthorization();
+  assert.equal(isValidGenericDelegatedGovernanceAuthorization(noSupersedes, GENERIC_AUTHORIZATION_PATH), true);
+  const noSupersedesProposal = proposalFor(noSupersedes);
+  assert.equal(noSupersedesProposal.pass, true, JSON.stringify(noSupersedesProposal));
+  assert.equal(noSupersedesProposal.mode, 'AUTHORIZATION_PROPOSAL_TRANSPORT');
+
+  const malformed = genericDelegatedAuthorization({
+    document: {
+      supersedes: {
+        authorizationPath: 'governance/layered-ci/pvep-wp0-branch-authority-v1-authorization.json',
+        authorizationBranch: 'governance/pvep-wp0-branch-authority-v1-authorization',
+        pullRequest: 1030,
+        frozenHead: 'a'.repeat(40),
+        reason: 'legacy malformed shape'
+      }
+    }
+  });
+  assert.equal(isValidGenericDelegatedGovernanceAuthorization(malformed, GENERIC_AUTHORIZATION_PATH), false);
+  const malformedProposal = proposalFor(malformed);
+  assert.equal(malformedProposal.pass, false, JSON.stringify(malformedProposal));
+  assert.equal(malformedProposal.reasonCode, 'WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID');
+
+  const canonicalSupersedes = {
+    authorizationPath: 'governance/layered-ci/pvep-wp0-branch-authority-v1-authorization.json',
+    implementationBranch: 'fix/pvep-wp0-branch-authority-v1',
+    reason: 'replace exact predecessor without connecting malformed evidence'
+  };
+  const canonical = genericDelegatedAuthorization({ document: { supersedes: canonicalSupersedes } });
+  assert.equal(isValidGenericDelegatedGovernanceAuthorization(canonical, GENERIC_AUTHORIZATION_PATH), true);
+
+  for (const [name, supersedes] of [
+    ['extra key', { ...canonicalSupersedes, pullRequest: 1030 }],
+    ['same authorizationPath', { ...canonicalSupersedes, authorizationPath: GENERIC_AUTHORIZATION_PATH }],
+    ['same implementationBranch', { ...canonicalSupersedes, implementationBranch: GENERIC_IMPLEMENTATION_BRANCH }],
+    ['blank reason', { ...canonicalSupersedes, reason: '' }],
+    ['untrimmed reason', { ...canonicalSupersedes, reason: ' untrimmed reason ' }]
+  ]) {
+    const candidate = genericDelegatedAuthorization({ document: { supersedes } });
+    assert.equal(
+      isValidGenericDelegatedGovernanceAuthorization(candidate, GENERIC_AUTHORIZATION_PATH),
+      false,
+      name
+    );
+    const proposal = proposalFor(candidate);
+    assert.equal(proposal.pass, false, name);
+    assert.equal(proposal.reasonCode, 'WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID', name);
+  }
+
+  const runtime = evaluateTrustedDelegatedGovernanceBranch({
+    branch: GENERIC_IMPLEMENTATION_BRANCH,
+    ...genericTrustedAuthorityOptions({ authorization: malformed })
+  });
+  assert.equal(runtime.pass, false, JSON.stringify(runtime));
+  assert.equal(runtime.reasonCode, 'WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID');
+});
+
 test('generic delegated authority activates only from canonical main two-parent introduction', () => {
   const exact = genericTrustedAuthorityOptions();
   assert.equal(isAuthorizedDelegatedGovernanceBranch(GENERIC_IMPLEMENTATION_BRANCH, {

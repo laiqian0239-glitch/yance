@@ -238,6 +238,23 @@ test('Product final Element dependency patch is classified at exact L2 risk', ()
   assert.equal(result.reasons[0].type, 'EXACT', file);
 });
 
+test('Element CSS sheet incremental lock patch uses exact L2 while adjacent upstream patches remain fail closed', () => {
+  const file = 'upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch';
+  const result = classifyChangedFiles(risk, [file]);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.requiredLevel, 'L2');
+  assert.equal(result.reasons[0].type, 'EXACT');
+  assert.equal(risk.l2ExactPaths.includes(file), true);
+
+  const adjacent = 'upstream-patches/element-web/0011b-yance-css-sheet-plugin-lock.patch';
+  const denied = classifyChangedFiles(risk, [adjacent]);
+  assert.equal(denied.pass, false, JSON.stringify(denied));
+  assert.equal(denied.reasonCode, 'CI_UNKNOWN_PATH');
+  assert.deepEqual(denied.unknownPaths, [adjacent]);
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
+});
+
 test('adaptive local LLM risk identities use exact L2 without broad-prefix expansion', () => {
   const targetPaths = [
     'config/local-ai/adaptive-local-model-catalog-v1.json',
@@ -282,6 +299,7 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'release/facebook-production-resources/platform-auth.sha256',
     'runtime/local-ai/airllm/yance_airllm_worker.py',
     'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch',
+    'upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch',
     'vendor/electron/electron-v39.8.5-win32-x64.zip',
     'vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz',
     'vendor/npm/_at_electron__get-5.0.0.tgz',
