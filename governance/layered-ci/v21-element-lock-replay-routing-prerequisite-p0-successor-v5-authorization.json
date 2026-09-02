@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-02T00:00:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELEMENT-LOCK-REPLAY-ROUTING-P0-V5",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Create a clean disconnected successor authorization for the Element CSS sheet incremental lock routing prerequisite after frozen PR #1032 exposed that the v4 authorization document contained a malformed supersession component accepted by proposal validation but rejected by merged trusted-authority evaluation. This authorization grants only the exact eight-path future implementation surface needed to replay the already-proven six-file routing closure and close the existing validator/runtime supersession schema divergence in the implementation branch policy seam. It adds no supersedes edge, no broad route, no dependency/runtime/package/lockfile/database/ledger authority, and no production or release authority.",
+  "base": {
+    "branch": "main",
+    "commit": "1520624c0d1c256595c779577cbd933c8ed9dd58",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-element-lock-replay-routing-prerequisite-p0-successor-v5-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-element-lock-replay-routing-prerequisite-p0-successor-v5-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "0b6b3d31ba611756599bf17f1dd6a3cd995ff9b177695db31ea65f9bb6e6ebb1",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "bootstrapPaths": [
+    "upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch"
+  ],
+  "bootstrapPathCount": 1,
+  "bootstrapPathSetSha256": "a0bcfe6bfce4d02f194321ad6af286f3bdeff5afcdd6c57c56d6e4673a3c23a4",
+  "implementation": {
+    "branch": "fix/v21-element-lock-replay-routing-prerequisite-p0-successor-v5",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "shared/release/implementationBranchPolicyLegacy.js",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-routing.test.js",
+      "tests/wp0/implementation-branch-policy.test.js"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "5e1dc33191e78980b973b57b292e071789530b88ad0ccfc67267f3de4e8fd1fa",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "routingPolicyModificationAllowed": true,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "ledgerModificationAllowed": false,
+    "genericRouteMutationGuardRequired": true,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "GOVERNANCE / DELEGATED_SUPERSESSION_SCHEMA_NOT_VALIDATED_AT_PROPOSAL",
+    "failureCodes": [
+      "WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID",
+      "WP0_REJECTED_STAGE_TARGET_DENIED"
+    ],
+    "exactProductPatchPath": "upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch",
+    "downstreamProductBranch": "fix/v21-element-lock-replay-incremental-p0-successor-v5",
+    "requiredClosure": [
+      "Replay the already-proven six-file routing closure for the exact 0011a Element CSS sheet incremental lock patch path.",
+      "Close the proposal/runtime schema divergence in shared/release/implementationBranchPolicyLegacy.js by extracting or reusing one canonical supersession declaration validator/parser.",
+      "Ensure proposal/static generic authorization validation and runtime trusted-authority evaluation consume the same supersession schema rule.",
+      "Reject malformed supersedes before authorization merge while preserving canonical supersedes behavior, graph-invalid propagation, same-branch supersession rejection and fail-closed semantics.",
+      "Run node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js and the full npm run test:wp0 locally before any new CI.",
+      "Do not modify Product runtime, Electron runtime, dependencies, package manifests, lockfiles, databases or ledgers."
+    ]
+  },
+  "frozenPredecessorEvidence": {
+    "authorizationPullRequest": 1031,
+    "authorizationMerge": "1520624c0d1c256595c779577cbd933c8ed9dd58",
+    "implementationPullRequest": 1032,
+    "implementationHead": "4ff01abcf05b0c31f8ceaaa629402cb59a931cd2",
+    "stageRun": 33575035674,
+    "stageConclusion": "failure",
+    "mandatoryWp0Tests": 753,
+    "mandatoryWp0Pass": 752,
+    "exactFailures": 1,
+    "failureCode": "WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID",
+    "outerFailureCode": "WP0_REJECTED_STAGE_TARGET_DENIED",
+    "mustRemainFrozen": true,
+    "rerunForbidden": true
+  },
+  "localHarnessGap": {
+    "focusedRoutingTestsProvedRoutingBytes": true,
+    "focusedRoutingTestsDidNotExecuteCurrentRepositoryDelegatedImplementationAuthorityContract": true,
+    "proposalValidationAcceptedMalformedSupersedesShapeLaterRejectedByTrustedAuthorityEvaluation": true,
+    "futureImplementationMustCloseValidatorRuntimeSchemaDivergence": true,
+    "fullLocalWp0MustBeGreenBeforeCi": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_GOVERNANCE_AND_ROUTING_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing generic delegated authorization and proposal evaluator",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already owns generic delegated authorization validation, proposal transport and trusted-authority evaluation, so the later implementation must close the supersession schema divergence there rather than creating a parallel validator."
+      },
+      {
+        "name": "Existing permanent implementation branch authority contract",
+        "source": "tests/wp0/implementation-branch-policy.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already caught the v4 trusted-authority failure in Stage WP0 and is the correct permanent regression surface for malformed supersedes proposal rejection."
+      },
+      {
+        "name": "Existing exact WP0 and Layered routing policy seams",
+        "source": "governance/layered-ci/wp0-routing-policy.json + governance/layered-ci/risk-policy.json + tests/layered-ci",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "They already provide exact PRODUCT_WP0 routing, exact L2 classification, adjacent unknown-path fail-closed coverage and no broad-prefix expansion."
+      },
+      {
+        "name": "Existing Product Final exact literal branch guards",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing/GitHub Actions",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "They already enforce exact same-repository branch admission for Product Final without wildcard, prefix or regex branch matching."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not weaken implementationBranchPolicy.",
+      "Do not repair the invalid v4 authority in place.",
+      "Do not connect this clean successor to the invalid v4 supersession component.",
+      "Do not create a new governance framework, parallel validator or routing engine.",
+      "Do not add broad upstream-patches, product, dependency or workflow branch-family authorization."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
