@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-02T09:38:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELEMENT-LOCK-REPLAY-P0-S6-WIN-ID-DEADLINE",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen Product PR #1036 exact head 4b4b7388941ed4aa16a3ca83b06a440954dd2101 proved the original three-file Element lock replay closure and all non-Product-Final validators, but Product Final failed before backend readiness because the current Windows owner process identity seam returned null. Frozen exact-head startup evidence binds the correct packaged sourceCommit/buildId and shows a 5.720s fork-to-failure interval matching the current sequential native-win32 3000ms plus System.Management 2500ms hard collector budgets plus overhead. Real local Windows execution already proves both authorities and production owner registration are semantically valid when allowed to complete. This clean authorization successor closes the predecessor authorization schema defects, republishes the proven Product closure, derives Windows identity collection from the existing backend lifecycle authority without weakening fail-closed identity fencing, preserves Windows identity diagnostics in Product Final RED artifacts, and admits only the exact successor-v6 implementation branch.",
+  "base": {
+    "branch": "main",
+    "commit": "43bb98de5e922e9bb7c456856b142ee7786a5d45",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-element-lock-replay-incremental-p0-successor-v7-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-element-lock-replay-incremental-p0-successor-v7-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "facd4c4752e34a4f33035fa4f896c47da884c044c599fac5a939455b3532f2c2",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-element-lock-replay-incremental-p0-successor-v6",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "electron/desktopHost/BackendOwnerRegistry.js",
+      "electron/desktopHost/BackendProcessHost.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+      "tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js",
+      "tests/wp2/desktop-host-process-lifecycle.test.js",
+      "tests/wp4/backend-owner-registry-containment-recovery.test.js",
+      "tests/wp4/evidence-platform-identity-and-windows-collector.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch"
+    ],
+    "approvedChangedFileCount": 12,
+    "approvedChangedFileSetSha256": "fe3c413cbb521544da9d3c989eb3cffe5a9613bb11f10e8e9715fb76086df647",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "ledgerModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "frozenEvidence": {
+    "productPullRequest": 1036,
+    "exactHead": "4b4b7388941ed4aa16a3ca83b06a440954dd2101",
+    "productFinalRun": 33579957450,
+    "failingJob": 100091928444,
+    "diagnosticsArtifactId": 9828349505,
+    "outerReasonCode": "WP4_DESKTOP_BACKEND_OWNER_REGISTRY_SEMANTIC_INVALID",
+    "expectedPlatform": "win32",
+    "actualPlatform": null,
+    "backendPid": 4244,
+    "backendForkAtUtc": "2026-09-02T01:47:13.912Z",
+    "semanticFailureAtUtc": "2026-09-02T01:47:19.632Z",
+    "forkToFailureElapsedMs": 5720,
+    "currentNativeCollectorTimeoutMs": 3000,
+    "currentSystemManagementCollectorTimeoutMs": 2500,
+    "serverLogBytes": 0,
+    "windowsIdentityDiagnosticUploaded": false,
+    "sameHeadRerunForbidden": true,
+    "mustRemainFrozen": true
+  },
+  "frozenAuthorizationPredecessorEvidence": {
+    "pullRequest": 1037,
+    "reviewedRedHead": "a181618f8ed9db74a808a21b2be8ebb5598bf96e",
+    "stageRun": 33585094514,
+    "reasonCode": "WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID",
+    "rootCause": "AUTHORIZATION_SCHEMA_INCOMPLETE",
+    "defects": [
+      "workPackage exceeded the trusted 64-character maximum",
+      "workflowModificationAllowed=true omitted the required exact workflowModificationPolicy"
+    ],
+    "branchWasLaterContaminatedByControllerError": true,
+    "allLaterBranchHeadsAreNonCandidates": true,
+    "sameReviewedHeadRerunForbidden": true
+  },
+  "causalBatch": {
+    "rootCause": "PROCESS_WINDOWS_IDENTITY_COLLECTOR_TIMEOUT_BUDGET_EXHAUSTED",
+    "observabilityGap": "PROCESS_WINDOWS_IDENTITY_DIAGNOSTIC_NOT_PRESERVED",
+    "inheritedProductRootCause": "ELEMENT_MATERIALIZATION / YANCE_MODULE_MANIFEST_LOCKFILE_OUT_OF_SYNC",
+    "requiredClosure": [
+      "Start successor-v6 only from this authorization ordinary merge on fresh trusted main; never mutate or rerun frozen Product PR #1036 exact head.",
+      "Replay the exact authorized three-file Product closure from frozen PR #1036 without semantic redesign.",
+      "Preserve Windows owner identity fail-closed semantics and all win32 discriminators creationTimeUtc, executablePathDigest and commandDigest; PID equality or liveness alone is never trust.",
+      "Retain native-win32 first and System.Management as one compatibility fallback, but retire the independent fixed 3000ms plus 2500ms collector deadline composition as a competing startup authority.",
+      "BackendProcessHost must pass the existing authoritative backend startup/ready lifecycle budget into owner identity capture; BackendOwnerRegistry must consume one bounded identity sub-deadline derived from that authority and must not exceed the parent lifecycle budget.",
+      "Both Windows collectors must consume the same bounded identity deadline or remaining budget rather than each creating an unrelated production deadline; exhaustion remains fail-closed and produces stable structured diagnostic evidence.",
+      "Preserve windows-process-identity.jsonl in the Product Final always-upload diagnostics artifact together with desktop-bootstrap.jsonl, desktop.jsonl and server.jsonl.",
+      "Add exactly fix/v21-element-lock-replay-incremental-p0-successor-v6 to each existing Product Final literal branch guard and exact allowlist test; no wildcard, prefix, includes or regex admission.",
+      "Update the existing WP0 startup deadline authority contract so there remains one backend lifecycle authority while owner identity is a bounded consumer of that authority.",
+      "Add focused regression coverage using existing injection seams without real multi-second sleeps for slow success, fallback success, total-budget exhaustion and invalid identity fail-closed behavior.",
+      "Add host lifecycle regression proving the ready/startup timeout authority is supplied to owner identity capture before startup-frame dispatch and owner registration.",
+      "Extend Product Final/materialized UAT static contracts to require windows-process-identity.jsonl on RED."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BACKEND_LIFECYCLE_DEADLINE_AND_WINDOWS_IDENTITY_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance backend lifecycle timeout authority",
+        "source": "electron/main.js backendStartupTimeoutMs propagated through BackendProcessHost readyTimeoutMs",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The parent already owns the bounded startup authority, so owner identity must consume it rather than invent a tighter competing production deadline."
+      },
+      {
+        "name": "Existing native Win32 process identity adapter",
+        "source": "BackendOwnerRegistry native-win32 collector using Win32 process-query primitives",
+        "license": "repository-existing/upstream-adapted",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Real Windows local evidence proves exact discriminator capture works; the failure is deadline integration, not missing identity mechanics."
+      },
+      {
+        "name": "Windows System.Management fallback",
+        "source": "Windows PowerShell/.NET System.Management.ManagementObjectSearcher",
+        "license": "Windows/.NET platform component",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Retain one bounded compatibility fallback under the same lifecycle-derived identity budget."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire independent hard-coded 3000ms and 2500ms production timeout authorities.",
+      "Do not restore repeated Get-CimInstance retries.",
+      "Do not add a new process-identity subsystem or npm/native dependency.",
+      "Do not weaken fail-closed owner identity or expectedPlatform enforcement.",
+      "Do not use Product Final, RC or real Windows UAT as the debugger."
+    ]
+  },
+  "localAcceptance": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp4/backend-owner-registry-containment-recovery.test.js tests/wp4/evidence-platform-identity-and-windows-collector.test.js",
+      "node --test --test-concurrency=1 tests/wp2/desktop-host-process-lifecycle.test.js tests/wp0/v21-windows-packaged-startup-frame-deadline-authority.test.js",
+      "node --test --test-concurrency=1 tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js tests/wp0/v21-product-experience-materialized-uat.test.js tests/wp0/v21-product-experience-shell-dependencies.test.js"
+    ],
+    "final": [
+      "npm run test:wp0",
+      "git diff --check",
+      "exact 12-path census and approvedChangedFileSetSha256"
+    ],
+    "windowsDirectEvidenceAlreadyConsumed": [
+      "native-win32 real Windows collector PASS",
+      "System.Management forced fallback PASS",
+      "production BackendOwnerRegistry.registerAsync PASS"
+    ],
+    "doNotRepeatConsumedEvidence": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
