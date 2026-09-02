@@ -1,0 +1,14 @@
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -3,7 +3,10 @@
+       zod:
+         specifier: 4.4.3
+         version: 4.4.3
+     devDependencies:
++      '@arcmantle/vite-plugin-import-css-sheet':
++        specifier: ^1.0.12
++        version: 1.0.14(patch_hash=8019aa9feca17db6bab3483612b4150c911d70b58fddc52bf2d7258a1484a747)
+       '@types/howler':
+         specifier: 2.2.13
+         version: 2.2.13

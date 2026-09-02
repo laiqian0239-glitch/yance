@@ -705,6 +705,8 @@ class BackendProcessHost {
     let launchContract = null;
     try {
       launchContract = await validateBackendLaunchContract(options, options.fs || fs);
+      const startupStartedAtMs = Date.now();
+      const startupDeadlineAtMs = startupStartedAtMs + launchContract.readyTimeoutMs;
       const sanitizedEnv = sanitizedEnvironment(options.env);
       delete sanitizedEnv.ELECTRON_RUN_AS_NODE;
       this.log('backend-process-launch-contract', {
@@ -758,7 +760,7 @@ class BackendProcessHost {
       for (const stream of child.stdio || []) stream?.on?.('error', () => {});
       await this._awaitSpawnIdentity(child, attempt, options.spawnIdentityTimeoutMs);
       this._assertStartStillValid(child, attempt, 'after-lifecycle-bind');
-      const processIdentity = await this.ownerRegistry.captureIdentityAsync(child.pid);
+      const processIdentity = await this.ownerRegistry.captureIdentityAsync(child.pid, { deadlineAtMs: startupDeadlineAtMs });
       await attempt.startupAdmission.register({
         state: 'SPAWNED', ownershipActive: true, trusted: false, backendPid: child.pid, startupNonce, backendSessionId, fd6PipeInstanceId, processIdentity, reasonCode: 'BACKEND_SPAWNED'
       });

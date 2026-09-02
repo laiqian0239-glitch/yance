@@ -91,14 +91,18 @@ test('Windows backend-owner identity is native-first with one bounded WMI compat
       ExecutablePath: 'C:\\Program Files\\Yance\\backend.exe',
       CommandLine: '"C:\\Program Files\\Yance\\backend.exe" --fd6 6'
     });
-  }, 'win32');
+  }, 'win32', { deadlineAtMs: Date.now() + 60_000 });
 
   assert.equal(calls.length, 2);
   assert.equal(validateProcessIdentity(captured), true);
   assert.equal(captured.platform, 'win32');
   assert.match(captured.executablePathDigest, /^[a-f0-9]{64}$/u);
   assert.match(captured.commandDigest, /^[a-f0-9]{64}$/u);
-  assert.ok(calls.every(call => call.timeout > 0 && call.timeout <= 3000));
+  assert.ok(calls.every(call => Number.isFinite(call.timeout) && call.timeout > 0));
+  assert.ok(
+    calls.every(call => call.timeout <= 180000),
+    'collector timeout must remain bounded by the parent startup lifecycle ceiling'
+  );
 });
 
 test('production Windows backend-owner identity source is provider-independent native first', () => {
@@ -125,4 +129,33 @@ test('production Windows backend-owner identity collection contains no synchrono
   assert.doesNotMatch(source, /\bexecFileSync\b/u);
   assert.doesNotMatch(source, /\bAtomics\.wait\s*\(/u);
   assert.match(source, /proper-lockfile/u);
+});
+
+test('Windows backend-owner collectors share one parent lifecycle deadline instead of independent 3000ms and 2500ms authorities', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'electron', 'desktopHost', 'BackendOwnerRegistry.js'),
+    'utf8'
+  );
+
+  assert.match(source, /native-win32/u);
+  assert.match(source, /system-management/u);
+
+  assert.match(
+    source,
+    /deadlineAtMs|deadlineAt|identityDeadline|remainingBudget|remainingMs/u
+  );
+
+  assert.doesNotMatch(
+    source,
+    /const nativeExecOptions\s*=\s*\{[\s\S]{0,180}timeout:\s*3000,/u
+  );
+
+  assert.doesNotMatch(
+    source,
+    /const managementExecOptions\s*=\s*\{[\s\S]{0,180}timeout:\s*2500,/u
+  );
+
+  assert.doesNotMatch(source, /Get-CimInstance Win32_Process/u);
+  assert.doesNotMatch(source, /\bexecFileSync\b/u);
+  assert.doesNotMatch(source, /\bAtomics\.wait\s*\(/u);
 });
