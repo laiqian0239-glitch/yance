@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-02T08:22:00+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELEMENT-LOCK-REPLAY-INCREMENTAL-P0-S5",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen Product PR #1027 head d740e55610498367081909aa47efc89892d66b21 already contains the intended exact three-file Element CSS-sheet lock replay closure. It was frozen only because the exact 0011a patch path was not admitted by Stage WP0 / Layered CI routing. PR #1034 has now ordinary-merged the exact routing prerequisite and Product Final successor-v5 branch admission into trusted main. This authorization republishes only the byte-identical three-file Product closure from fresh trusted main on the already-routed successor-v5 branch; it introduces no new product semantics, dependency graph, package manifest, workflow, database, ledger or broad routing authority.",
+  "base": {
+    "branch": "main",
+    "commit": "ce48c43dd6f0d0987c414c9f5c6e0f7d54ea81b8",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-element-lock-replay-incremental-p0-successor-v5-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-element-lock-replay-incremental-p0-successor-v5-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c56286f8f2c1aab975e8ec907ab4ebeaef39ebabeb0c55f6041d8e91f72779cd",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-element-lock-replay-incremental-p0-successor-v5",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-shell-dependencies.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "31e57d9562f7918b2d4310e9b0dc4d9479fb465bd89176ce99f7c53a90c0a42d",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "ledgerModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "CI_ROUTE / ELEMENT_UPSTREAM_PATCH_PATH_UNCLASSIFIED",
+    "inheritedProductRootCause": "ELEMENT_MATERIALIZATION / YANCE_MODULE_MANIFEST_LOCKFILE_OUT_OF_SYNC",
+    "frozenProductPullRequest": 1027,
+    "frozenProductHead": "d740e55610498367081909aa47efc89892d66b21",
+    "routingPrerequisitePullRequest": 1034,
+    "routingPrerequisiteMerge": "ce48c43dd6f0d0987c414c9f5c6e0f7d54ea81b8",
+    "exactProductPatchPath": "upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch",
+    "requiredClosure": [
+      "Start successor-v5 only from this authorization ordinary merge on current trusted main.",
+      "Reuse the exact three Product implementation blobs from frozen PR #1027 without semantic redesign.",
+      "Keep upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch byte-identical to trusted main.",
+      "Keep the tiny 0011a incremental lock replay through the existing applyPatch helper and ordinary git apply --check followed by git apply.",
+      "Keep @arcmantle/vite-plugin-import-css-sheet specifier ^1.0.12 and pinned Element-resolved identity 1.0.14(patch_hash=8019aa9feca17db6bab3483612b4150c911d70b58fddc52bf2d7258a1484a747).",
+      "Keep the permanent focused regression proving effective importer completeness.",
+      "Do not rerun, amend, force-update or otherwise mutate frozen Product PR #1027 head d740e55610498367081909aa47efc89892d66b21."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_STRICT_GIT_APPLY_REPLAY_SEAM",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "git apply plus pnpm frozen workspace lock semantics",
+        "source": "Git and pinned Element/pnpm workflow already used by tools/matrix/bootstrap.js",
+        "license": "repository-existing/upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The Product implementation is already proven and remains byte-identical; only fresh trusted-main authority is being established after the routing prerequisite landed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not rerun the frozen Product CI runs.",
+      "Do not force-update the frozen implementation branch.",
+      "Do not use --no-frozen-lockfile.",
+      "Do not remove @arcmantle/vite-plugin-import-css-sheet.",
+      "Do not regenerate or rewrite the large 0011 patch.",
+      "Do not introduce a custom lockfile editor or installer."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
