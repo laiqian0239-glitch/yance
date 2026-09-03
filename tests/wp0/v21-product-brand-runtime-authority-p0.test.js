@@ -37,11 +37,12 @@ test('Yance registers the pinned Element login component seam without a second a
   assert.match(moduleIndex, /YanceLogin/u);
 });
 
-test('product workspace mounts a visible brand preview surface', () => {
+test('brand preview assets remain available but are not the normal Product workspace path', () => {
   const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
   assert.equal(exists('integration/element-module/src/BrandPreviewSurface.tsx'), true);
   assert.equal(exists('integration/element-module/src/BrandPreviewSurface.css'), true);
-  assert.match(workspace, /BrandPreviewSurface/u);
+  assert.doesNotMatch(workspace, /BrandPreviewSurface/u);
+  assert.match(workspace, /ProductExperienceShell/u);
 });
 
 test('Yance login owns final product visual authority while preserving Element auth authority', () => {

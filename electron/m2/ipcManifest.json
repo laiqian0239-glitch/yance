@@ -5043,6 +5043,41 @@
       "currentObservation": "Creates the one allowed local human Matrix identity by forwarding username/password once to the backend-owned shared-secret Synapse registration helper.",
       "m2RequiredAction": "Keep password transient, store only a non-secret receipt, reject duplicate provisioning, keep Synapse public registration disabled, and keep Element as the only login/session authority.",
       "crossModuleDependency": "Existing local Synapse shared-secret registration authority and Element login surface."
+    },
+    {
+      "channel": "store:platform-accounts-list",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 279
+      },
+      "rendererExposure": {
+        "api": "listPlatformAccounts",
+        "file": "electron/preload.js",
+        "line": 145
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Projects existing backend account authority into the active Element Product via /api/r32/accounts.",
+      "m2RequiredAction": "Keep account state and credentials in the existing backend authority; renderer receives only the account projection.",
+      "crossModuleDependency": "Existing M3 account route at /api/r32/accounts; no /api/accounts bypass."
     }
   ],
   "outboundRendererChannels": [
@@ -5296,7 +5331,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 80,
+    "rendererToMainHandlerCount": 81,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,

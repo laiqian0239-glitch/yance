@@ -52,6 +52,7 @@ type ProductDesktopApi = {
   getLettaState: () => Promise<LettaState>;
   listLettaAgents: () => Promise<LettaAgent[]>;
   listLettaConversations: (input: { agentId: string; limit?: number }) => Promise<LettaConversation[]>;
+  listPlatformAccounts: () => Promise<Record<string, unknown>>;
   onDesktopEvent?: (callback: (event: DesktopEvent) => void) => (() => void);
 };
 
@@ -69,6 +70,14 @@ export type ProductAppearanceProjection = {
   fontScale: number;
   themeId: string;
   themes: readonly ProductAppearanceTheme[];
+};
+
+export type PlatformAccountProjection = {
+  id: string;
+  label: string;
+  platform: string;
+  status: string;
+  isDefault: boolean;
 };
 
 const RELATIONSHIP_INTELLIGENCE_STATES = new Set([
@@ -252,6 +261,27 @@ export async function updateProductAppearance(
     await api.storeApplyTheme({ themeId: input.themeId });
   }
   return loadProductAppearance();
+}
+
+function normalizePlatformAccount(value: unknown): PlatformAccountProjection | null {
+  const row = objectRecord(value);
+  const id = text(row.id || row.accountId);
+  if (!id) return null;
+  return {
+    id,
+    label: text(row.displayName || row.label || row.name || row.username || id),
+    platform: text(row.platform || row.provider || row.type),
+    status: text(row.status || row.state || row.connectionState),
+    isDefault: row.isDefault === true || row.default === true,
+  };
+}
+
+export async function loadPlatformAccounts(): Promise<readonly PlatformAccountProjection[]> {
+  const api = desktopApi();
+  if (!api || typeof api.listPlatformAccounts !== "function") throw bridgeUnavailable("platform-accounts");
+  const payload = await api.listPlatformAccounts();
+  const root = objectRecord(payload);
+  return objectArray(root.accounts).map(normalizePlatformAccount).filter((account): account is PlatformAccountProjection => Boolean(account));
 }
 
 function relationshipIntelligenceState(value: unknown): RelationshipIntelligenceProjection["state"] | null {

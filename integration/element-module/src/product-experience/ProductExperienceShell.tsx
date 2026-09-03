@@ -7,6 +7,7 @@ import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
 import { RelationshipWorld } from "./RelationshipWorld";
 import { ProductSystemSettingsSurface } from "./ProductSystemSettingsSurface";
+import { PlatformAccountsSurface } from "./PlatformAccountsSurface";
 import {
   loadProductAppearance,
   loadRelationshipProjections,
@@ -64,6 +65,10 @@ function elementCustomThemeColors(semanticVariables: Readonly<Record<string, str
   );
 }
 
+function semanticThemeVariables(appearance: ProductAppearanceProjection): Readonly<Record<string, string>> {
+  return appearance.themes.find((theme) => theme.id === appearance.themeId)?.semanticVariables || {};
+}
+
 export function ProductExperienceShell({
   appearanceHost,
   navigateSearchResult,
@@ -85,6 +90,7 @@ export function ProductExperienceShell({
   const refreshGenerationRef = useRef(0);
   const appearanceMutationRef = useRef<Promise<void>>(Promise.resolve());
   const appearanceGenerationRef = useRef(0);
+  const documentSemanticVariablesRef = useRef<Map<string, string | null>>(new Map());
 
   useEffect(() => {
     selectedRelationshipIdRef.current = session.selectedRelationshipId;
@@ -174,6 +180,35 @@ export function ProductExperienceShell({
       setAppearanceStatus("桌面外观同步不可用，当前界面将继承宿主外观");
     });
   }, [refreshAppearance]);
+
+  useEffect(() => {
+    const rootStyle = document.documentElement.style;
+    const nextVariables = semanticThemeVariables(appearance);
+    const previous = documentSemanticVariablesRef.current;
+
+    for (const token of previous.keys()) {
+      if (!Object.prototype.hasOwnProperty.call(nextVariables, token)) {
+        const original = previous.get(token);
+        if (original) rootStyle.setProperty(token, original);
+        else rootStyle.removeProperty(token);
+        previous.delete(token);
+      }
+    }
+
+    for (const [token, value] of Object.entries(nextVariables)) {
+      if (!token.startsWith("--") || !value) continue;
+      if (!previous.has(token)) previous.set(token, rootStyle.getPropertyValue(token) || null);
+      rootStyle.setProperty(token, value);
+    }
+
+    return () => {
+      for (const [token, original] of previous.entries()) {
+        if (original) rootStyle.setProperty(token, original);
+        else rootStyle.removeProperty(token);
+      }
+      previous.clear();
+    };
+  }, [appearance]);
 
   useEffect(() => {
     return subscribeRelationshipEvents(() => {
@@ -352,6 +387,7 @@ export function ProductExperienceShell({
         <p className="yance-appearance-status" role="status" aria-live="polite">{appearanceStatus}</p>
         {preferences.reducedMotion ? <p className="yance-reduced-motion-note">已启用减少动效；状态变化仍会清晰显示，但不会进行空间移动。</p> : null}
 
+        <PlatformAccountsSurface />
         <ProductSystemSettingsSurface />
 
         <div className="yance-learning-settings-actions">

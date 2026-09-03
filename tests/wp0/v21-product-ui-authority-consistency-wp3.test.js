@@ -26,10 +26,29 @@ test('WP3 preserve: Element ProductExperienceShell remains the sole active Produ
   const elementIndex = read('integration/element-module/src/index.tsx');
   const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
 
-  assert.match(elementIndex, /registerGlobalRightPanel/u);
+  assert.match(elementIndex, /registerLocationRenderer/u);
+  assert.match(elementIndex, /navigateToLocation/u);
+  assert.doesNotMatch(elementIndex, /registerGlobalRightPanel|openGlobalRightPanel/u);
   assert.match(workspace, /<ProductExperienceShell/u);
   assert.doesNotMatch(elementIndex, /from\s+["'][^"']*frontend\//u);
   assert.doesNotMatch(workspace, /from\s+["'][^"']*frontend\//u);
+});
+
+test('WP3 preserve: Product accounts UI projects the existing r32 accounts authority into Element', () => {
+  const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+  const accountsSurface = read('integration/element-module/src/product-experience/PlatformAccountsSurface.tsx');
+  const projection = read('integration/element-module/src/product-experience/experienceProjection.ts');
+  const preload = read('electron/preload.js');
+  const bridge = read('electron/r32StoreBridge.js');
+  const apis = manifestApis();
+
+  assert.match(shell, /<PlatformAccountsSurface/u);
+  assert.match(accountsSurface, /data-yance-r32-accounts-authority=["']\/api\/r32\/accounts["']/u);
+  assert.match(projection, /listPlatformAccounts/u);
+  assert.match(preload, /\blistPlatformAccounts\s*:/u);
+  assert.equal(apis.has('listPlatformAccounts'), true);
+  assert.match(bridge, /\/api\/r32\/accounts/u);
+  assert.doesNotMatch(bridge, /\/api\/accounts/u);
 });
 
 test('WP3 preserve: Personal Access backend remains the sole entitlement authority and full owner mutation lifecycle', () => {

@@ -14,6 +14,8 @@ const PRODUCT_CSS_SHEET_LOCK_PATCH = path.join(ROOT, 'upstream-patches/element-w
 const MODULE_DELIVERY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0012-yance-element-module-runtime.patch');
 const ROOM_STATE_READ_PATCH = path.join(ROOT, 'upstream-patches/element-web/0013-yance-module-room-state-read.patch');
 const APPEARANCE_AUTHORITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0014-yance-module-appearance-authority.patch');
+const LOCATION_NAVIGATION_PATCH = path.join(ROOT, 'upstream-patches/element-web/0015-yance-module-location-navigation.patch');
+const COMPOSER_ACCESSORY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0016-yance-composer-accessory-slot.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
@@ -90,6 +92,8 @@ function main() {
   run(element, 'git', ['apply', '--check', ROOM_STATE_READ_PATCH]);
   run(element, 'git', ['apply', ROOM_STATE_READ_PATCH]);
   applyPatch(element, APPEARANCE_AUTHORITY_PATCH, 'Element appearance authority patch');
+  applyPatch(element, LOCATION_NAVIGATION_PATCH, 'Element location navigation patch');
+  applyPatch(element, COMPOSER_ACCESSORY_PATCH, 'Element composer accessory patch');
 
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);

@@ -34,7 +34,14 @@ const CHANNELS = Object.freeze({
   productDataProtectionState: 'store:product-system-data-protection-state',
   productDataProtectionMutation: 'store:product-system-data-protection-mutation',
   productModelRuntimeState: 'store:product-system-model-runtime-state',
-  productModelRuntimeMutation: 'store:product-system-model-runtime-mutation'
+  productModelRuntimeMutation: 'store:product-system-model-runtime-mutation',
+  platformAccountsList: 'store:platform-accounts-list',
+  platformAccountCapabilities: 'store:platform-account-capabilities',
+  platformAccountAudit: 'store:platform-account-audit',
+  platformAccountConnect: 'store:platform-account-connect',
+  platformAccountReconnect: 'store:platform-account-reconnect',
+  platformAccountSync: 'store:platform-account-sync',
+  platformAccountsSyncAll: 'store:platform-accounts-sync-all'
 });
 
 function clean(value) {
@@ -275,6 +282,28 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         password: String(input.password == null ? '' : input.password),
         confirmPassword: String(input.confirmPassword == null ? '' : input.confirmPassword)
       })
+    }),
+    [CHANNELS.platformAccountsList]: () => apiRequest('/api/r32/accounts'),
+    [CHANNELS.platformAccountCapabilities]: () => apiRequest('/api/r32/accounts/capabilities'),
+    [CHANNELS.platformAccountAudit]: (_event, input = {}) => {
+      const limit = clean(input.limit);
+      return apiRequest(`/api/r32/accounts/audit${limit ? `?limit=${encodeURIComponent(limit)}` : ''}`);
+    },
+    [CHANNELS.platformAccountConnect]: (_event, input = {}) => apiRequest(`/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/connect`, {
+      method: 'POST',
+      body: '{}'
+    }),
+    [CHANNELS.platformAccountReconnect]: (_event, input = {}) => apiRequest(`/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/reconnect`, {
+      method: 'POST',
+      body: '{}'
+    }),
+    [CHANNELS.platformAccountSync]: (_event, input = {}) => apiRequest(`/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/sync`, {
+      method: 'POST',
+      body: '{}'
+    }),
+    [CHANNELS.platformAccountsSyncAll]: () => apiRequest('/api/r32/accounts/actions/sync-all', {
+      method: 'POST',
+      body: '{}'
     }),
     [CHANNELS.productDataProtectionState]: async () => {
       const [backups, portableBackups] = await Promise.all([

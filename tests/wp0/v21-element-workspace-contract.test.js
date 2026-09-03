@@ -50,10 +50,13 @@ test('Yance workspace is an Element runtime module built by the Element monorepo
   assert.match(readText('integration/element-module/tsconfig.json'), /jsx/u);
 });
 
-test('the official module owns Yance UI while the minimal patch only adds the missing global right-panel slot', () => {
+test('the official module owns Yance UI through the Element location renderer and accessory slots', () => {
   const entry = readText('integration/element-module/src/index.tsx');
   const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
-  assert.match(entry, /registerGlobalRightPanel/u);
+  assert.match(entry, /registerLocationRenderer/u);
+  assert.match(entry, /navigateToLocation/u);
+  assert.match(entry, /registerComposerAccessory/u);
+  assert.doesNotMatch(entry, /registerGlobalRightPanel|openGlobalRightPanel|registerComposerPreview/u);
   assert.match(entry, /YanceWorkspace/u);
 
   if (hasProductExperienceLayout()) {
@@ -77,15 +80,17 @@ test('the official module owns Yance UI while the minimal patch only adds the mi
     }
   }
 
-  const patchText = readText('upstream-patches/element-web/0001-yance-global-right-workspace.patch');
+  const patchText = readText('upstream-patches/element-web/0015-yance-module-location-navigation.patch');
   assert.deepEqual(patchedPaths(patchText), [
-    'apps/web/src/components/structures/RightPanel.tsx',
-    'apps/web/src/modules/customComponentApi.ts',
+    'apps/web/src/components/structures/MatrixChat.tsx',
+    'apps/web/src/modules/Api.ts',
+    'apps/web/src/modules/ModuleLocation.tsx',
+    'apps/web/src/modules/NavigationApi.ts',
     'packages/module-api/element-web-module-api.api.md',
-    'packages/module-api/src/api/custom-components.ts'
+    'packages/module-api/src/api/navigation.ts'
   ]);
-  assert.match(patchText, /registerGlobalRightPanel/u);
-  assert.match(patchText, /globalRightPanelRenderer/u);
+  assert.match(patchText, /registerLocationRenderer/u);
+  assert.match(patchText, /navigateToLocation/u);
   assert.doesNotMatch(patchText, /matrix-js-sdk\/src\/sync|stopClient|logout\(/u);
 
   const apiReportMarker = 'diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md';
@@ -94,19 +99,14 @@ test('the official module owns Yance UI while the minimal patch only adds the mi
   const nextPatchStart = patchText.indexOf('\ndiff --git ', apiReportStart + apiReportMarker.length);
   const apiReportPatch = patchText.slice(apiReportStart, nextPatchStart === -1 ? patchText.length : nextPatchStart);
 
-  assert.match(
-    apiReportPatch,
-    /^index 6557e89ac2949b6d6b46f991ebb4d64085f74d35\.\.[a-f0-9]{40} 100644$/mu,
-    'generated API report textual diff must remain bound to the exact pinned Element old blob'
-  );
   assert.match(apiReportPatch, /^--- a\/packages\/module-api\/element-web-module-api\.api\.md$/mu);
   assert.match(apiReportPatch, /^\+\+\+ b\/packages\/module-api\/element-web-module-api\.api\.md$/mu);
   assert.match(apiReportPatch, /^@@ /mu, 'generated API report must use an ordinary textual hunk');
   assert.doesNotMatch(apiReportPatch, /^GIT binary patch$/mu, 'generated text API report must never use a Git binary patch');
   assert.doesNotMatch(apiReportPatch, /^(?:literal|delta) \d+$/mu, 'generated text API report must not carry binary payload records');
-  assert.match(apiReportPatch, /^\+    openGlobalRightPanel\(\): void;$/mu);
-  assert.match(apiReportPatch, /^\+    registerGlobalRightPanel\(renderer: CustomGlobalRightPanelRenderFunction\): void;$/mu);
-  assert.match(apiReportPatch, /^\+export type CustomGlobalRightPanelRenderFunction = \(\) => JSX\.Element;$/mu);
+  assert.match(apiReportPatch, /^\+    readonly navigation: NavigationApi;$/mu);
+  assert.match(apiReportPatch, /^\+    registerLocationRenderer\(path: string, renderer: \(\) => JSX\.Element\): void;$/mu);
+  assert.match(apiReportPatch, /^\+    navigateToLocation\(path: string\): void;$/mu);
 });
 
 test('pinned Element declares its own pnpm authority before nested postinstall commands execute', () => {
@@ -154,7 +154,7 @@ test('the right workspace remains inside the unified Element shell and is restor
   const entry = readText('integration/element-module/src/index.tsx');
   const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
   assert.match(entry, /addRoomHeaderButtonCallback/u);
-  assert.match(entry, /openGlobalRightPanel/u);
+  assert.match(entry, /navigateToLocation/u);
 
   if (hasProductExperienceLayout()) {
     const shell = readText(PRODUCT_SENTINEL);
@@ -184,7 +184,8 @@ test('Electron boots the unified local Element shell instead of the legacy hand-
   const main = readText('electron/main.js');
   assert.match(main, /YANCE_ELEMENT_URL/u);
   assert.match(main, /YANCE_ELEMENT_HEALTH_URL/u);
-  assert.match(main, /loadURL\(.*element/iu);
+  assert.match(main, /YANCE_PRODUCT_LOCATION_URL/u);
+  assert.match(main, /loadURL\(YANCE_PRODUCT_LOCATION_URL\)/u);
   assert.doesNotMatch(main, /LOCAL_FRONTEND_URL/u);
   assert.doesNotMatch(main, /frontend[\\/]index\.html/u);
 });

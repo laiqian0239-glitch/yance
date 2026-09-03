@@ -57,8 +57,10 @@ test('Living Relationship shell exists and replaces the flat capability dashboar
 
 test('Element public module APIs remain the Product Shell integration boundary', () => {
   const index = read('integration/element-module/src/index.tsx');
-  assert.match(index, /registerGlobalRightPanel/u);
-  assert.match(index, /registerComposerPreview/u);
+  assert.match(index, /registerLocationRenderer/u);
+  assert.match(index, /navigateToLocation/u);
+  assert.match(index, /registerComposerAccessory/u);
+  assert.doesNotMatch(index, /registerGlobalRightPanel|openGlobalRightPanel|registerComposerPreview/u);
   assert.doesNotMatch(index, /mx_MessageComposer|mx_RoomView|RightPanelStore|dispatcher\/actions/u);
 });
 

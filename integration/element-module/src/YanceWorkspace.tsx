@@ -1,5 +1,4 @@
 import React from "react";
-import { BrandPreviewSurface } from "./BrandPreviewSurface";
 import { PersonalAccessSurface } from "./product-experience/PersonalAccessSurface";
 import { ProductExperienceShell, type ProductAppearanceHost } from "./product-experience/ProductExperienceShell";
 import type { RelationshipProjection } from "./product-experience/experienceTypes";
@@ -27,7 +26,6 @@ export function YanceWorkspace({
 }: YanceWorkspaceProps): React.JSX.Element {
   return (
     <PersonalAccessSurface>
-      <BrandPreviewSurface />
       <ProductExperienceShell
         appearanceHost={appearanceHost}
         navigateSearchResult={navigateSearchResult}

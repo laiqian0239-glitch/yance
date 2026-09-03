@@ -44,8 +44,9 @@ test('Action Dock exposes Chinese relationship tools while preserving exact acti
 
 test('Action Dock is mounted around the existing Element composer rather than replacing it', () => {
   const index = readOrEmpty('integration/element-module/src/index.tsx');
-  assert.match(index, /registerComposerPreview/u);
-  assert.match(index, /originalComponent|OriginalComponent/u);
+  assert.match(index, /registerComposerAccessory/u);
+  assert.doesNotMatch(index, /registerComposerPreview/u);
+  assert.match(index, /ProductComposerAccessory/u);
   assert.doesNotMatch(index, /createMessageComposer|replaceComposer|new\s+Composer/u);
 });
 
