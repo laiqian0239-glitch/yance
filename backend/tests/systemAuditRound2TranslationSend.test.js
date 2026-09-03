@@ -8,6 +8,27 @@ const path = require('node:path');
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-translation-send-'));
 process.env.YANCE_DATA_DIR = dataRoot;
 process.env.WORKBUDDY_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `system-audit-translation-${process.pid}`
+});
+
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+
 const outboundTranslationAuthority = require('../services/outboundTranslationAuthority');
 const { MessageTranslationService, translationEligibleMessage } = require('../services/messageTranslationService');
 const sendQueueModule = require('../services/sendQueueService');
@@ -15,10 +36,16 @@ const messageStore = require('../services/messageStore');
 const sendMessageService = require('../services/sendMessageService');
 const { SendPolicyAuthority } = require('../services/sendPolicyAuthority');
 const { getStore, closeStore } = require('../repositories/storeProvider');
+const express = require('express');
+const http = require('node:http');
+const workspaceRouter = require('../routes/workspace');
 
 test.after(() => {
   try { closeStore(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.release(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
 });
 
 function seedSendScope(accountId = 'wa-a', platform = 'whatsapp', sessionKey = `${accountId}:peer`, chatJid = 'peer') {
@@ -32,6 +59,39 @@ function patch(t, object, key, value) {
   const original = object[key];
   object[key] = value;
   t.after(() => { object[key] = original; });
+}
+
+async function startWorkspaceTestServer() {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/r32/workspace', workspaceRouter);
+  app.use((error, _req, res, _next) => {
+    const code = error?.reasonCode || error?.code || 'INTERNAL_ERROR';
+    res.status(Number(error?.status || 500)).json({
+      ok: false,
+      error: code,
+      code,
+      reasonCode: code,
+      message: error?.message || 'request failed'
+    });
+  });
+
+  const server = http.createServer(app);
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+
+  return {
+    server,
+    baseUrl: `http://127.0.0.1:${server.address().port}/api/r32/workspace`
+  };
+}
+
+async function closeWorkspaceTestServer(server) {
+  if (!server) return;
+  await new Promise(resolve => server.close(resolve));
 }
 
 function germanLanguageAuthority() {
@@ -108,7 +168,7 @@ test('non-Chinese manual text bypasses the model and remains unchanged', async (
   assert.equal(called, false);
 });
 
-test('send queue stores and dispatches only the verified target-language text', async t => {
+test('send queue persists only the verified target-language text before durable dispatch', async t => {
   const store = seedSendScope('wa-a', 'whatsapp', 'wa-a:peer', 'peer');
   const service = new sendQueueModule.SendQueueService({
     outboundTranslationAuthority: {
@@ -122,6 +182,7 @@ test('send queue stores and dispatches only the verified target-language text', 
     },
     sendPolicyAuthority: readySendPolicy('whatsapp', 'wa-a')
   });
+  patch(t, service, 'dispatchDurableQueueItem', async () => null);
   patch(t, sendMessageService, 'resolveAccount', () => ({ platform: 'whatsapp' }));
 
   const result = await service.enqueueText({ accountId: 'wa-a', chatJid: 'peer', sessionKey: 'wa-a:peer', text: '你好，明天见！', idempotencyKey: 'outbound-1' });
@@ -201,6 +262,7 @@ test('ordinary foreign-language messaging remains durable when every AI model is
   const service = new sendQueueModule.SendQueueService({
     sendPolicyAuthority: readySendPolicy('whatsapp', 'wa-no-ai')
   });
+  patch(t, service, 'dispatchDurableQueueItem', async () => null);
   const result = await service.enqueueText({
     accountId: 'wa-no-ai', chatJid: 'peer', sessionKey: 'wa-no-ai:peer', text: 'Bis morgen!', idempotencyKey: 'no-ai-original-language'
   });
@@ -210,6 +272,174 @@ test('ordinary foreign-language messaging remains durable when every AI model is
   assert.equal(result.state, 'pending');
   assert.ok(queued.outbox_route_version_id);
 });
+
+test('outbound prepare route is prepare-only, canonical-session-bound and ignores renderer authority overrides', async t => {
+  const routeSource = fs.readFileSync(path.resolve(__dirname, '../routes/workspace.js'), 'utf8');
+
+  assert.equal(
+    (routeSource.match(/router\.post\('\/conversations\/:sessionKey\/outbound-prepare'/gu) || []).length,
+    1
+  );
+
+  const store = getStore();
+  const beforeQueue = Number(
+    store.db.prepare('SELECT COUNT(*) AS n FROM r32_send_queue').get().n || 0
+  );
+  const beforeMessages = Number(
+    store.db.prepare('SELECT COUNT(*) AS n FROM r32_messages').get().n || 0
+  );
+
+  let received = null;
+
+  patch(t, outboundTranslationAuthority, 'prepare', async input => {
+    received = input;
+
+    return {
+      text: 'Hallo, bis morgen!',
+      translationApplied: true,
+      translationStatus: 'success',
+      targetLanguage: 'German',
+      targetLanguageCode: 'de',
+
+      translationModel: 'private-model',
+      languageAuthority: { code: 'de' },
+      languageValidation: { pass: true },
+      protectedTerms: [{ source: 'WhatsApp', kind: 'brand' }],
+      translationSourceHash: 'private-hash',
+      translatedAt: '2026-09-03T00:00:00.000Z'
+    };
+  });
+
+  const { server, baseUrl } = await startWorkspaceTestServer();
+  t.after(async () => closeWorkspaceTestServer(server));
+
+  const response = await fetch(
+    `${baseUrl}/conversations/${encodeURIComponent('wa-a:peer')}/outbound-prepare`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        text: '你好，明天见。',
+        idempotencyKey: 'prepare-route-1',
+
+        targetLanguageCode: 'fr',
+        targetLanguage: 'French',
+        platform: 'facebook',
+        accountId: 'forged-account',
+        sourceAccountId: 'forged-source',
+        chatJid: 'forged-chat',
+        contactId: 'forged-contact',
+        canonicalContactId: 'forged-canonical',
+        modelId: 'forged-model',
+        glossary: ['forged'],
+        terminology: ['forged'],
+        timeoutMs: 1,
+        maxTokens: 1,
+        keepAlive: 'forged'
+      })
+    }
+  );
+
+  assert.equal(response.status, 200);
+  assert.match(String(response.headers.get('cache-control') || ''), /no-store/u);
+
+  const body = await response.json();
+
+  assert.deepEqual(received, {
+    sessionKey: 'wa-a:peer',
+    conversationId: 'wa-a:peer',
+    text: '你好，明天见。',
+    idempotencyKey: 'prepare-route-1'
+  });
+
+  assert.deepEqual(body, {
+    ok: true,
+    sessionKey: 'wa-a:peer',
+    prepared: {
+      text: 'Hallo, bis morgen!',
+      translationApplied: true,
+      translationStatus: 'success',
+      targetLanguage: 'German',
+      targetLanguageCode: 'de'
+    }
+  });
+
+  for (const forbidden of [
+    'translationModel',
+    'languageAuthority',
+    'languageValidation',
+    'protectedTerms',
+    'translationSourceHash',
+    'translatedAt'
+  ]) {
+    assert.equal(Object.hasOwn(body.prepared, forbidden), false);
+  }
+
+  const afterQueue = Number(
+    store.db.prepare('SELECT COUNT(*) AS n FROM r32_send_queue').get().n || 0
+  );
+  const afterMessages = Number(
+    store.db.prepare('SELECT COUNT(*) AS n FROM r32_messages').get().n || 0
+  );
+
+  assert.equal(afterQueue, beforeQueue);
+  assert.equal(afterMessages, beforeMessages);
+});
+
+test('outbound prepare route preserves OUTBOUND fail-closed errors and never creates a send side effect', async t => {
+  const store = getStore();
+
+  const beforeQueue = Number(
+    store.db.prepare('SELECT COUNT(*) AS n FROM r32_send_queue').get().n || 0
+  );
+  const beforeMessages = Number(
+    store.db.prepare('SELECT COUNT(*) AS n FROM r32_messages').get().n || 0
+  );
+
+  patch(t, outboundTranslationAuthority, 'prepare', async () => {
+    const error = new Error(
+      '当前会话的客户语言尚未确认，已阻止把中文直接发送。'
+    );
+    error.code = 'OUTBOUND_TARGET_LANGUAGE_UNRESOLVED';
+    error.status = 503;
+    throw error;
+  });
+
+  const { server, baseUrl } = await startWorkspaceTestServer();
+  t.after(async () => closeWorkspaceTestServer(server));
+
+  const response = await fetch(
+    `${baseUrl}/conversations/${encodeURIComponent('unknown-session')}/outbound-prepare`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        text: '你好',
+        targetLanguageCode: 'en',
+        platform: 'facebook',
+        accountId: 'forged'
+      })
+    }
+  );
+
+  const body = await response.json();
+
+  assert.equal(response.status, 503);
+  assert.equal(body.ok, false);
+  assert.equal(body.code, 'OUTBOUND_TARGET_LANGUAGE_UNRESOLVED');
+  assert.equal(body.reasonCode, 'OUTBOUND_TARGET_LANGUAGE_UNRESOLVED');
+
+  const afterQueue = Number(
+    store.db.prepare('SELECT COUNT(*) AS n FROM r32_send_queue').get().n || 0
+  );
+  const afterMessages = Number(
+    store.db.prepare('SELECT COUNT(*) AS n FROM r32_messages').get().n || 0
+  );
+
+  assert.equal(afterQueue, beforeQueue);
+  assert.equal(afterMessages, beforeMessages);
+});
+
 
 test('frontend send timeout covers the 180 second translation budget', () => {
   const fs = require('node:fs');
