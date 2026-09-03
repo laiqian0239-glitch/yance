@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP-B-HISTORICAL-ARTIFACT-RETENTION-EVIDENCE-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing prerequisite for frozen Matrix landing PR #1059. Exact head d329dfda74db0a42f810185895a48b5a504080ff is frozen after WP-B M2 Independent Review run 33781548827 Ubuntu job 100736175569 failed only authenticated remote evidence. Re-reading the existing log and GitHub artifact metadata proves the first failing predicate is historical artifact retention state, not Matrix code: sealed artifact 8882246393 still has the expected name, digest and workflow head but is expired=true after its normal GitHub retention deadline; sibling Windows artifact 8882282133 is likewise expired while preserving exact identity/digest/head. Current verify-wp-b-m2-review.js incorrectly treats artifact.expired === false as a permanent integrity invariant. This authorization permits the minimum repair that separates immutable sealed artifact identity from time-varying download availability while preserving all run/job/head/digest/seal checks.",
+  "base": {
+    "branch": "main",
+    "commit": "0d61f7dee859942d16d93fb591a782d0d359fdea"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp-b-historical-artifact-retention-evidence-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp-b-historical-artifact-retention-evidence-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9ed907b005c0c1d1d68a50b806780924930d68e5ebd094e7e55825dcd5386056",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp-b-historical-artifact-retention-evidence-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-m2-review.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "187754cafaf4e123224be2cda5b800b9be9a43fe026fe45f43c76200d17622bf",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "sharedImplementationBranchPolicyModificationAllowed": false,
+    "activeWpBAuthorityModificationAllowed": false,
+    "reviewReceiptModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCause": {
+    "code": "WP_B_REMOTE_EVIDENCE / HISTORICAL_ARTIFACT_RETENTION_STATE_TREATED_AS_IMMUTABLE",
+    "directFailure": "verify-wp-b-m2-review.js requires expected historical artifact id/name/digest/workflow-head AND artifact.expired === false; GitHub retention naturally changed expired to true on 2026-09-03 while all sealed immutable identity fields remained exact, causing WP_B_M2_REVIEW_REMOTE_ARTIFACT_MISMATCH.",
+    "sameRootSurface": "The M2 remote artifact comparison is the owner of this retention-vs-integrity conflation. No evidence found that M3 performs the same expired-artifact predicate, so M3 is excluded from this batch.",
+    "requiredRepair": "Keep exact artifact id/name/digest/workflow-head binding and all run/job/repository/seal checks. Treat expired as time-varying availability only: an expired artifact may satisfy historical sealed identity when the artifact record still exists and all immutable identity fields match. Missing artifact identity or any name/digest/head mismatch must remain fail-closed."
+  },
+  "causalEvidence": {
+    "blockedPullRequest": 1059,
+    "blockedHead": "d329dfda74db0a42f810185895a48b5a504080ff",
+    "failingWorkflow": "WP-B M2 Independent Review Integrity",
+    "failingWorkflowRunId": 33781548827,
+    "failingUbuntuJobId": 100736175569,
+    "failingStep": "Verify authenticated reviewed-head workflow evidence",
+    "errorCode": "WP_B_M2_REVIEW_REMOTE_ARTIFACT_MISMATCH",
+    "ubuntuArtifact": {
+      "artifactId": 8882246393,
+      "name": "wp-b-m2-contract-evidence-ubuntu-latest",
+      "digest": "sha256:b8950343db5cb5fe0b9726deb499be5ff83a7331eab59930d681a76caddecf4b",
+      "workflowHead": "3e5d71f68afccb64d0f61a776170d815fed77747",
+      "expired": true,
+      "expiresAt": "2026-09-03T06:21:43Z"
+    },
+    "windowsArtifact": {
+      "artifactId": 8882282133,
+      "name": "wp-b-m2-contract-evidence-windows-latest",
+      "digest": "sha256:b72761766b5260b88941ce1d2a4fe50019caf347652b51778954d22cfebd7855",
+      "workflowHead": "3e5d71f68afccb64d0f61a776170d815fed77747",
+      "expired": true,
+      "expiresAt": "2026-09-03T06:23:25Z"
+    },
+    "precedingChecks": [
+      "independent source-bound integrity GREEN",
+      "seal mutation and exact-delta contracts GREEN",
+      "complete Milestone 2 contracts GREEN",
+      "eighteen-scenario process matrix GREEN",
+      "Milestone 2 reviewed-head receipt local verification GREEN"
+    ],
+    "frozenHeadNeverRerun": true
+  },
+  "requiredBehavior": [
+    "Preserve exact historical workflow run, job, repository, reviewed head and conclusion checks.",
+    "Preserve exact artifact id, name, digest and workflow_run.head_sha checks.",
+    "Accept expired=false when all immutable identity fields match.",
+    "Accept expired=true when the artifact record still exists and all immutable identity fields match; report expiration only as availability metadata, not integrity failure.",
+    "Reject a missing artifact record.",
+    "Reject wrong artifact id/name/digest/workflow head regardless of expired state.",
+    "Do not download or recreate expired artifacts and do not rerun historical workflows.",
+    "Do not rewrite the sealed M2 receipt or normalized historical output hashes."
+  ],
+  "negativeProofs": [
+    "No Matrix donor or Product Final mutation.",
+    "No workflow trigger or path-routing changes.",
+    "No WP-B PR-role classification changes in this root.",
+    "No shared release-policy or active WP-B authority changes.",
+    "No warning-only or skip-on-error remote evidence behavior.",
+    "No artifact recreation, historical workflow rerun or receipt rewrite.",
+    "No Ollama, RC or UAT work."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_SEALED_EVIDENCE_MODEL_AND_GITHUB_RETENTION_SEMANTICS",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "existing WP-B M2 sealed artifact identity contract",
+        "source": "tools/architecture-closure-v2/verify-wp-b-m2-review.js + governance/architecture-closure-v2/wp-b-m2-review.json",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already binds historical evidence to artifact id/name/digest/workflow head; only the time-varying expired predicate is incorrectly included in immutable integrity."
+      },
+      {
+        "name": "GitHub Actions artifact retention metadata",
+        "source": "existing GitHub Actions artifact API evidence for run 30883704889",
+        "license": "platform-contract",
+        "adoptionMode": "platform-semantics",
+        "fit": "FIT",
+        "reason": "The API retains artifact identity/digest/head metadata while expired changes with retention lifetime, proving availability and integrity are distinct dimensions."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not make artifact retention infinite merely to satisfy governance.",
+      "Do not copy artifact bytes into the repository.",
+      "Do not weaken digest/head matching.",
+      "Do not combine the separate delegated PR-role root into this batch."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --check tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js",
+      "git diff --check"
+    ],
+    "behavior": [
+      "exact active artifact identity + expired=false => accepted",
+      "exact historical artifact identity + expired=true => accepted as sealed identity with expired availability",
+      "missing artifact => rejected",
+      "wrong name => rejected",
+      "wrong digest => rejected",
+      "wrong workflow head => rejected"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
