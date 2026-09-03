@@ -54,6 +54,54 @@ router.get('/conversations/:sessionKey/outbound-language', (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+router.post('/conversations/:sessionKey/outbound-prepare', async (req, res, next) => {
+  try {
+    const sessionKey = String(req.params.sessionKey || '').trim();
+    const text = String(req.body?.text == null ? '' : req.body.text).trim();
+    const idempotencyKey = String(req.body?.idempotencyKey == null ? '' : req.body.idempotencyKey).trim();
+
+    if (!sessionKey) {
+      return res.status(400).json({
+        ok: false,
+        error: 'SESSION_KEY_REQUIRED',
+        code: 'SESSION_KEY_REQUIRED',
+        message: 'sessionKey is required'
+      });
+    }
+
+    if (!text) {
+      return res.status(400).json({
+        ok: false,
+        error: 'MESSAGE_TEXT_EMPTY',
+        code: 'MESSAGE_TEXT_EMPTY',
+        message: '消息内容为空'
+      });
+    }
+
+    const prepared = await outboundTranslationAuthority.prepare({
+      sessionKey,
+      conversationId: sessionKey,
+      text,
+      ...(idempotencyKey ? { idempotencyKey } : {})
+    });
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+      ok: true,
+      sessionKey,
+      prepared: {
+        text: String(prepared?.text || ''),
+        translationApplied: prepared?.translationApplied === true,
+        translationStatus: String(prepared?.translationStatus || ''),
+        targetLanguage: String(prepared?.targetLanguage || ''),
+        targetLanguageCode: String(prepared?.targetLanguageCode || '')
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 router.get('/contacts', (req, res, next) => {
   try { res.json({ ok: true, contacts: workspaceData.listContacts({ limit: req.query.limit, search: req.query.search }) }); } catch (error) { next(error); }
