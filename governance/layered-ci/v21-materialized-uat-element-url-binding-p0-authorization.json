@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-02T15:57:03+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-MATERIALIZED-UAT-ELEMENT-URL-BINDING-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close the exact Windows UAT runner defect proven on frozen Product candidate 5c1f87f2d58fe1959d2fb242207f418fd74cd2f0: the materialized UAT runner starts the sealed Matrix/Element runtime on 127.0.0.1:8080 but launches packaged Yance without binding YANCE_ELEMENT_URL/YANCE_ELEMENT_HEALTH_URL, so the desktop continues to a different 18080 host and never executes the sealed Yance Element module activation responder. This authorization is limited to the existing materialized-UAT runner and its permanent WP0 regression. No Product runtime, Electron runtime, Matrix image, dependency, package manifest, lockfile, workflow, database or release-byte mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "cfdcbd6b2cd29330a6c9474eb1f64b9561505a70",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-materialized-uat-element-url-binding-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-materialized-uat-element-url-binding-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7ab3a1f16de9c95f21dec9b81cb4fe16c513b7c2ab5acdee671ddd9849da248e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-materialized-uat-element-url-binding-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "5f4dcfc81e749fa6758211683dfbc9a9cb9448a14c1ae8a8bf4865e9b6dd1f65",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "ledgerModificationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "UAT_RUNNER / MATRIX_ELEMENT_URL_NOT_BOUND",
+    "failureCodes": [
+      "DESKTOP_RENDERER_READY_TIMEOUT"
+    ],
+    "frozenProductHead": "5c1f87f2d58fe1959d2fb242207f418fd74cd2f0",
+    "frozenUatEvidence": {
+      "didFinishLoadUrl": "http://127.0.0.1:18080/",
+      "matrixElementUrl": "http://127.0.0.1:8080",
+      "didFinishLoad": true,
+      "preloadReady": true,
+      "rendererReady": true,
+      "activationProbeResponderReady": false,
+      "rerunForbidden": true
+    },
+    "requiredClosure": [
+      "After sealed Matrix readiness is proven, bind YANCE_ELEMENT_URL to http://127.0.0.1:8080 and YANCE_ELEMENT_HEALTH_URL to http://127.0.0.1:8080/config.json before Start-Process launches packaged Yance.exe.",
+      "Fail closed before packaged launch unless the same 8080 config.json is readable and its modules list contains /modules/yance/lib/index.js.",
+      "Add permanent WP0 regression proving the materialized UAT runner binds packaged desktop startup to the sealed Matrix Element runtime and does not regress to the separate 18080 Product Final desktop validation host.",
+      "Do not modify Product runtime, Electron runtime, Matrix images, dependencies, package manifests, lockfiles, workflows, databases or release artifacts.",
+      "Run the focused materialized-UAT WP0 test and then full npm run test:wp0 exactly once locally before any new implementation CI."
+    ]
+  },
+  "localHarnessGap": {
+    "uatDiscoveredNewBug": true,
+    "whyLocalHarnessMissed": "Product Final desktop startup validation used a separate local Element host on 18080 while the materialized Matrix UAT runner started the sealed Matrix Element service on 8080 without binding packaged Yance to it, so no pre-UAT contract proved the combined desktop-to-sealed-Matrix URL identity.",
+    "requiredRegression": "Permanent test must bind the materialized UAT packaged launch to the same sealed Matrix Element URL already proven ready."
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
