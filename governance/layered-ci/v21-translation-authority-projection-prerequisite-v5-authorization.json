@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-TRANSLATION-PREPARE-PROJECTION-PREREQUISITE-V5",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing replacement machine authorization after the locally validated translation prepare projection was blocked first by missing delegated implementation authority, then by an overlong authorization workPackage, and then by missing OSS-first authorization evidence. The Product bytes are already locally GREEN and remain frozen. This proposal uses the repository's enforced mature-seam-first contract: reuse the existing outboundTranslationAuthority as the sole translation authority and add only its already validated thin prepare-only workspace projection. No second translation engine, send path, general-purpose infrastructure, dependency, database migration, workflow change or WP0 weakening is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "604b3788fcfd61135870b8bbc972675741694f42"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-translation-authority-projection-prerequisite-v5-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-translation-authority-projection-prerequisite-v5-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-translation-authority-projection-prerequisite-v5",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/workspace.js",
+      "backend/tests/systemAuditRound2TranslationSend.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "9a59bd1447e48208ea30530e5960e297618b00989addda061253530ef84abce7",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "product": "TRANSLATION_AUTHORITY / ELEMENT_PRE_SEND_PREPARE_PROJECTION_MISSING",
+    "firstProductCiRoot": "WP0_GOVERNANCE / DELEGATED_IMPLEMENTATION_AUTHORIZATION_MISSING",
+    "failedAuthorizationV3Root": "WP0_GOVERNANCE / AUTHORIZATION_SCHEMA_WORKPACKAGE_TOO_LONG",
+    "failedAuthorizationV4Root": "WP0_GOVERNANCE / OSS_FIRST_AUTHORIZATION_EVIDENCE_MISSING",
+    "requiredRepair": "Validate and ordinary-merge this complete machine authorization, then replay only the two byte-identical locally validated Product blobs onto the exact authorization merge lineage. Do not change Product semantics or weaken governance gates."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_OUTBOUND_TRANSLATION_AUTHORITY_WITH_THIN_PRODUCT_PROJECTION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance outbound translation authority",
+        "source": "backend/services/outboundTranslationAuthority.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already owns target-language resolution, translation execution, stable OUTBOUND fail-closed errors, language validation and protected-content integrity. Reusing it prevents a second translation engine in Element or the renderer."
+      },
+      {
+        "name": "Existing workspace HTTP router projection seam",
+        "source": "backend/routes/workspace.js",
+        "license": "repository-existing",
+        "adoptionMode": "thin-yance-adapter",
+        "fit": "FIT",
+        "reason": "The existing workspace router is the narrow production seam for exposing current backend authorities to Product surfaces. A prepare-only route can project the mature translation authority without taking over Element timeline, composer or send authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second translation engine in Element, renderer or Electron.",
+      "Do not route Element sends through a new backend message sender; Element remains the real timeline, composer and send authority.",
+      "Do not allow renderer-supplied target language, platform, account, model, glossary or runtime options to override canonical conversation authority.",
+      "Do not add general-purpose infrastructure, dependencies, database migrations or workflow changes for this prerequisite."
+    ]
+  },
+  "requiredClosure": [
+    "Freeze Product exact head 114e1d4c579e42844162f42940750b12feeadb58, PR #1052 and consumed WP0 RED run 33760951736; never amend, force-push or rerun them.",
+    "Freeze failed authorization head 953d975f5a26e44ef3dbe6a38cb20fa802bf84c0, PR #1053 and consumed WP0 RED run 33762448110; never reopen, amend, force-push or rerun them.",
+    "Freeze failed authorization head 41461754a992a8737aede8e86aa253bcc5963f0a, PR #1054 and consumed WP0 RED run 33763433583; never reopen, amend, force-push or rerun them.",
+    "Ordinary-merge this v5 single-file authorization PR only after its one validation event is GREEN; squash and rebase are forbidden.",
+    "Create fix/v21-translation-authority-projection-prerequisite-v5 from the exact v5 authorization ordinary merge commit.",
+    "Replay byte-identical versions of backend/routes/workspace.js and backend/tests/systemAuditRound2TranslationSend.test.js from frozen Product head 114e1d4c579e42844162f42940750b12feeadb58; no semantic Product mutation is allowed.",
+    "Preserve the prepare-only contract: canonical session plus text and optional idempotency key enter the existing outboundTranslationAuthority; renderer cannot override target language, platform, account, model, glossary or runtime policy; OUTBOUND failures remain fail-closed; no send occurs in the projection.",
+    "Reuse the frozen focused local Product closure because successor Product blobs must be byte-identical. Prove only authorization lineage and exact Product blob/path identity before successor promotion.",
+    "Create exactly one successor implementation commit and one successor PR validation event. CI is validator, not debugger.",
+    "Successor CI GREEN means ordinary-merge immediately, then resume the already frozen successor-v11 Product Final causal batch without repeating Product capability census."
+  ],
+  "frozenEvidence": {
+    "productExactHead": "114e1d4c579e42844162f42940750b12feeadb58",
+    "productParent": "604b3788fcfd61135870b8bbc972675741694f42",
+    "productPullRequest": 1052,
+    "consumedProductWp0RedRun": 33760951736,
+    "productWp0Result": "759/760 PASS; sole RED was missing repository-readable delegated implementation authorization",
+    "productLocalClosure": "focused translation suite GREEN; git diff --check GREEN; exactly two Product paths; prepare-only/no-send/renderer-override/internal-field regressions GREEN",
+    "failedAuthorizationV3Head": "953d975f5a26e44ef3dbe6a38cb20fa802bf84c0",
+    "failedAuthorizationV3PullRequest": 1053,
+    "consumedAuthorizationV3Wp0RedRun": 33762448110,
+    "failedAuthorizationV3Reason": "workPackage identifier exceeded the base-owned generic delegated authorization maximum of 64 characters",
+    "failedAuthorizationV4Head": "41461754a992a8737aede8e86aa253bcc5963f0a",
+    "failedAuthorizationV4PullRequest": 1054,
+    "consumedAuthorizationV4Wp0RedRun": 33763433583,
+    "failedAuthorizationV4Reason": "changed delegated authorization omitted the required ossFit evidence enforced by tests/wp0/oss-first-development-policy.test.js"
+  },
+  "productContract": {
+    "existingOutboundTranslationAuthorityRemainsSingleTranslationAuthority": true,
+    "elementRemainsRealTimelineComposerAndSendAuthority": true,
+    "prepareProjectionMustNotSend": true,
+    "rendererCannotDeclareArbitraryTargetLanguage": true,
+    "stableOutboundFailureCodesPreserved": true,
+    "noNewDependency": true,
+    "noDatabaseMigration": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
