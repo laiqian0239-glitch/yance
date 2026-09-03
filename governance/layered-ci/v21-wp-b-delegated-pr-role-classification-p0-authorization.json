@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP-B-DELEGATED-PR-ROLE-CLASSIFICATION-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing prerequisite for frozen Matrix landing PR #1059. Exact head d329dfda74db0a42f810185895a48b5a504080ff is product-behavior GREEN across the routed Matrix/Electron/static validators but WP-B M2 Independent Review run 33781548827 Ubuntu job 100736175569 fails only authenticated remote reviewed-head evidence after all source-bound integrity, seal, M2 contracts, eighteen-scenario process matrix and local receipt checks pass. Current M2/M3 verifiers correctly admit trusted generic delegated shared-runtime candidates, but then conflate every non-historical delegated branch with a canonical WP-B successor and unconditionally require its PR to be Draft/open/unmerged. A normal Matrix landing PR is not a WP-B successor. The existing active WP-B authority already distinguishes true WP-B lineage through isAuthorizedWpBImplementationBranch and canonical authorization/supersession ancestry. This batch reuses that authority to classify PR role while preserving all existing evidence checks and exact-head/open/unmerged binding.",
+  "base": {
+    "branch": "main",
+    "commit": "7e473becfec3eed34e9149bf8250265e3c2c85c1"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp-b-delegated-pr-role-classification-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp-b-delegated-pr-role-classification-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "786f2e1d75560865f4db0fa6a33b67d4fc343da9a058389a731481a5634b238b",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp-b-delegated-pr-role-classification-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+      "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "ba5d97a906879372173dcdc40946ce4c308aa3c7ab6271197c84ec0b23294e79",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "sharedImplementationBranchPolicyModificationAllowed": false,
+    "activeWpBAuthorityModificationAllowed": false,
+    "reviewReceiptModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCause": {
+    "code": "WP_B_REMOTE_EVIDENCE / GENERIC_DELEGATED_BRANCH_ROLE_CONFLATED_WITH_WP_B_SUCCESSOR",
+    "directFailure": "WP-B M2 authenticated remote verifier treats any admitted currentBranch != historical WP-B branch as a WP-B successor and therefore rejects ordinary non-Draft delegated PR #1059.",
+    "sameRootSurface": "WP-B M3 remote verifier contains the same copied non-historical-branch => WP-B-successor assumption and must be reconciled in the same causal batch before M2 verifier mutation routes M3 CI.",
+    "requiredRepair": "Preserve trusted generic delegated admission. Classify whether the current branch is actual WP-B lineage using existing isAuthorizedWpBImplementationBranch bound to trusted policy context. Only actual WP-B successors retain the Draft requirement. Other delegated candidates must still bind to exactly one open unmerged base=main PR at currentHead, with draft state not used as WP-B lifecycle authority."
+  },
+  "causalEvidence": {
+    "blockedPullRequest": 1059,
+    "blockedHead": "d329dfda74db0a42f810185895a48b5a504080ff",
+    "failingWorkflow": "WP-B M2 Independent Review Integrity",
+    "failingWorkflowRunId": 33781548827,
+    "failingUbuntuJobId": 100736175569,
+    "failingStep": "Verify authenticated reviewed-head workflow evidence",
+    "precedingChecks": [
+      "independent source-bound integrity GREEN",
+      "seal mutation and exact-delta contracts GREEN",
+      "complete Milestone 2 contracts GREEN",
+      "eighteen-scenario process matrix GREEN",
+      "Milestone 2 reviewed-head receipt local verification GREEN"
+    ],
+    "frozenHeadNeverRerun": true
+  },
+  "requiredBehavior": [
+    "Keep backend/server.js and all existing WP-B workflow triggers unchanged.",
+    "Keep trusted-base generic delegated branch admission unchanged and fail closed when trusted policy root/head/evaluated-head or policy blob identity is missing or mismatched.",
+    "Use existing isAuthorizedWpBImplementationBranch as the sole WP-B lineage classifier; do not introduce branch-name allowlists or a second route registry.",
+    "Historical canonical WP-B branch keeps its exact historical PR binding semantics.",
+    "True WP-B delegated successors continue to require exactly one open Draft unmerged base=main PR whose head equals currentHead.",
+    "A non-WP-B generic delegated candidate must require exactly one open unmerged base=main PR whose head equals currentHead; Draft may be true or false and carries no WP-B lifecycle meaning.",
+    "M2 and M3 remote verifiers must enforce the same branch-role semantics so the copied defect cannot recur at the next routed gate.",
+    "All reviewed-head/seal/run/job/artifact/historical-PR/token/repository checks remain intact."
+  ],
+  "negativeProofs": [
+    "No workflow trigger removal or path narrowing.",
+    "No weakening of authenticated remote evidence.",
+    "No shared/release implementation policy mutation.",
+    "No active WP-B authority widening.",
+    "No Matrix product blob mutation in this prerequisite.",
+    "No Product Final successor-v11 mutation, Ollama mutation, RC or UAT."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_TRUSTED_DELEGATED_POLICY_AND_ACTIVE_WP_B_LINEAGE_AUTHORITY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "implementationBranchPolicyLegacy.evaluateTrustedDelegatedGovernanceBranch",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already authenticates exact delegated authorization lineage and returns authorization identity while current verifier only consumes its boolean projection."
+      },
+      {
+        "name": "acv2ActiveWorkPackageAuthority.isAuthorizedWpBImplementationBranch",
+        "source": "shared/release/acv2ActiveWorkPackageAuthority.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already distinguishes canonical/true successor WP-B lineage from unrelated generic delegated branches by canonical WP-B authorization and supersession ancestry."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not identify WP-B successor role from branch-name prefixes.",
+      "Do not add a second delegated authorization evaluator.",
+      "Do not make all generic delegated PRs Draft merely to satisfy WP-B evidence.",
+      "Do not skip WP-B review for shared-runtime changes."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --check tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+      "node --check tools/architecture-closure-v2/verify-wp-b-m3-authorization.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m2ReviewSeal.test.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/m3Authorization.test.js",
+      "node --test --test-concurrency=1 tests/wp0/implementation-branch-policy.test.js",
+      "git diff --check"
+    ],
+    "behavior": [
+      "normal generic delegated PR exact/open/unmerged non-Draft => accepted as generic candidate, not WP-B successor",
+      "true WP-B successor exact/open/unmerged Draft => accepted",
+      "true WP-B successor non-Draft => rejected",
+      "generic candidate stale head/closed/wrong base/duplicate PR => rejected",
+      "historical WP-B semantics unchanged"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
