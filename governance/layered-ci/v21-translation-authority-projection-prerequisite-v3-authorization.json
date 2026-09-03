@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-TRANSLATION-AUTHORITY-PROJECTION-PREREQUISITE-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing machine-authorization repair after the locally GREEN translation prepare projection exact head 114e1d4c579e42844162f42940750b12feeadb58 reached PR #1052 and its single PR validation event proved 759/760 WP0 tests GREEN but the base-owned implementation-branch-policy gate correctly rejected the implementation branch because no repository-readable delegated authorization predated that implementation lineage. The product bytes and translation authority contract are not the failure. This authorization uses the repository's existing delegated-governance mechanism rather than weakening WP0. After ordinary merge, successor-v3 must start from that authorization merge and replay exactly the already locally validated two product paths with no semantic expansion.",
+  "base": {
+    "branch": "main",
+    "commit": "604b3788fcfd61135870b8bbc972675741694f42"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-translation-authority-projection-prerequisite-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-translation-authority-projection-prerequisite-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-translation-authority-projection-prerequisite-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/workspace.js",
+      "backend/tests/systemAuditRound2TranslationSend.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "9a59bd1447e48208ea30530e5960e297618b00989addda061253530ef84abce7",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "product": "TRANSLATION_AUTHORITY / ELEMENT_PRE_SEND_PREPARE_PROJECTION_MISSING",
+    "newlyExposedCiGate": "WP0_GOVERNANCE / DELEGATED_IMPLEMENTATION_AUTHORIZATION_MISSING",
+    "requiredRepair": "Preserve the frozen locally validated two-file product bytes, ordinary-merge this machine authorization, then create the authorized successor implementation from the exact authorization merge. Do not modify WP0 policy, do not rerun the frozen RED exact head, and do not expand the product causal batch."
+  },
+  "requiredClosure": [
+    "Freeze exact head 114e1d4c579e42844162f42940750b12feeadb58 and its PR validation event as RED evidence; never amend, force-push or rerun it.",
+    "Ordinary-merge this single-file authorization PR from trusted main; squash and rebase are forbidden.",
+    "Create fix/v21-translation-authority-projection-prerequisite-v3 from the exact authorization ordinary merge commit.",
+    "Replay exactly the two locally validated product paths from frozen head 114e1d4c579e42844162f42940750b12feeadb58 with byte identity preserved and no additional product mutation.",
+    "Preserve the prepare-only contract: renderer supplies canonical session route plus text and optional idempotency key; renderer cannot override target language, platform, account, model, glossary or runtime policy; OUTBOUND_* failures remain fail-closed; the projection performs no send.",
+    "Reuse the prior focused local translation closure because the successor product blobs must be byte-identical; only the newly affected delegated branch-policy authority needs additional proof before the successor Exact Head is promoted.",
+    "Exactly one successor implementation commit after authorization merge, then one new PR validation event. CI is validator, not debugger.",
+    "If successor CI is GREEN, ordinary-merge immediately and resume the already frozen successor-v11 Product Final causal batch without repeating the Product capability census."
+  ],
+  "frozenEvidence": {
+    "productExactHead": "114e1d4c579e42844162f42940750b12feeadb58",
+    "productParent": "604b3788fcfd61135870b8bbc972675741694f42",
+    "productPullRequest": 1052,
+    "consumedWp0RedRun": 33760951736,
+    "wp0Result": "759/760 PASS; sole RED is implementation-branch-policy current repository branch authorization",
+    "otherSameEventWorkflows": "Graphiti GREEN; ACV2 WP-A GREEN; WP-A post-merge GREEN; Model Brain GREEN; Product Experience Shell path-skipped",
+    "localProductClosure": "focused translation suite GREEN; git diff --check GREEN; exactly two authorized product paths; prepare-only/no-send/renderer-override/internal-field regressions GREEN"
+  },
+  "productContract": {
+    "existingOutboundTranslationAuthorityRemainsSingleTranslationAuthority": true,
+    "elementRemainsRealTimelineComposerAndSendAuthority": true,
+    "prepareProjectionMustNotSend": true,
+    "rendererCannotDeclareArbitraryTargetLanguage": true,
+    "stableOutboundFailureCodesPreserved": true,
+    "noNewDependency": true,
+    "noDatabaseMigration": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
