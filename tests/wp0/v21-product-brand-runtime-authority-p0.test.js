@@ -74,6 +74,26 @@ test('Yance login owns final product visual authority while preserving Element a
   assert.doesNotMatch(login, /accessToken/u);
 });
 
+test('Yance login first-use setup creates only a local Matrix identity and keeps Element as login authority', () => {
+  const login = read('integration/element-module/src/YanceLogin.tsx');
+  const styles = read('integration/element-module/src/YanceLogin.css');
+  const preload = read('electron/preload.js');
+
+  assert.match(login, /data-yance-local-matrix-identity="first-use"/u);
+  assert.match(login, /getMatrixLocalIdentity/u);
+  assert.match(login, /createMatrixLocalIdentity/u);
+  assert.match(login, /请用同一密码在下方 Element 登录/u);
+  assert.match(login, /data-yance-login-form-host="element-auth"[\s\S]*?\{children\}/u);
+  assert.match(styles, /\.yance-login-local-identity\s*\{/u);
+  assert.match(preload, /getMatrixLocalIdentity/u);
+  assert.match(preload, /createMatrixLocalIdentity/u);
+
+  assert.doesNotMatch(login, /fetch\s*\(/u);
+  assert.doesNotMatch(login, /_matrix\/client/u);
+  assert.doesNotMatch(login, /m\.login\.password/u);
+  assert.doesNotMatch(login, /accessToken/u);
+});
+
 test('Element auth surface routes anonymous startup to the registered Yance V2 login via login_for_welcome', () => {
   const elementConfig = JSON.parse(read('config/matrix/element-config.json'));
   const synapseConfig = read('config/matrix/synapse/homeserver.yaml');
