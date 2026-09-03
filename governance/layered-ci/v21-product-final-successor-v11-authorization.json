@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-SUCCESSOR-V11",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing single-file machine authorization for the already-frozen Product Final successor-v11 A-K causal batch in issue #1051 V3.8. The translation prepare-only prerequisite is merged and GREEN. Product mutation remains blocked only because repository-readable delegated authority for the exact successor-v11 branch/path set is missing. This authorization reuses pinned Element and existing Yance authorities, permits exactly the controller-frozen 35 paths, and forbids dependency, workflow, database, credential, runtime-topology and general-purpose infrastructure expansion.",
+  "base": {
+    "branch": "main",
+    "commit": "cbe0351982711902964ba619b8e2c3a47c78efcf"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v11-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v11-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v11",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 35,
+    "approvedChangedFileSetSha256": "23d5f5fb4b56b2b9d3533a0834442d5e7620079bab44f54d44c0789bfa37b67b",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "product": "PRODUCT_FINAL / LIVING_RELATIONSHIP_OS_COMPOSITION_INCOMPLETE",
+    "governancePrerequisite": "WP0_GOVERNANCE / DELEGATED_IMPLEMENTATION_AUTHORIZATION_MISSING",
+    "translationPrerequisite": "CLOSED / CI GREEN / MERGED",
+    "requiredRepair": "Ordinary-merge this exact single-file authorization after one GREEN authorization validation event, then create the exact successor-v11 implementation branch from that authorization merge and close the entire frozen A-K Product Final causal batch locally before any Product Exact Head."
+  },
+  "ossFit": {
+    "decision": "REUSE_PINNED_ELEMENT_AND_EXISTING_YANCE_AUTHORITIES_WITH_THIN_PRODUCT_PROJECTION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Web pinned Product conversation runtime",
+        "source": "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c; config/upstreams/v21-comms-p0.json",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "source-module",
+        "fit": "PARTIAL_FIT",
+        "reason": "It already owns the real Matrix room timeline, composer, send path, file uploader and mature security/device/settings surfaces. Existing public Module API seams cover incoming rendering and composer preview. Only the four V3-frozen Product control seams are missing, so one narrow additive 0017 patch is authorized rather than a second chat implementation."
+      },
+      {
+        "name": "Existing Yance Element navigation and composer seams",
+        "source": "upstream-patches/element-web/0015-yance-module-location-navigation.patch; upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "These already-validated patches provide the mature location/navigation and composer accessory seams needed by Product composition. They are frozen and should remain byte-preserved; successor-v11 must not reinvent or widen them."
+      },
+      {
+        "name": "Existing Yance outbound translation authority and prepare-only projection",
+        "source": "backend/services/outboundTranslationAuthority.js; backend/routes/workspace.js; merged prerequisite PR #1056",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This is the landed sole translation authority and prepare-only projection. Successor-v11 must call it from the real Element pre-send seam, preserve OUTBOUND fail-closed semantics and never introduce a second translation engine or message sender."
+      },
+      {
+        "name": "Mautrix WhatsApp pinned bridge authority",
+        "source": "mautrix/whatsapp v0.2607.0 @ a86f5eb9bf7d5a4a6cc7a1c4e42d322bdcb03aa2; config/upstreams/v21-comms-p0.json",
+        "license": "AGPL-3.0-or-later WITH upstream-exceptions",
+        "adoptionMode": "sidecar-service",
+        "fit": "FIT",
+        "reason": "It remains the mature WhatsApp bridge/platform authority. Product action gating and account continuation must reflect its real capabilities rather than inventing WhatsApp protocol semantics in Product UI."
+      },
+      {
+        "name": "Chatwoot Facebook Page pinned runtime authority",
+        "source": "chatwoot/chatwoot v4.16.2 @ 70e284a044f00326725f65f703162745371075ec; config/upstreams/v21-comms-p0.json",
+        "license": "MIT",
+        "adoptionMode": "sidecar-service",
+        "fit": "FIT",
+        "reason": "It is the existing Facebook Page official protocol authority. Product must project the mature OAuth/page lifecycle and capability truth without fabricating reply, reaction, revoke, group or call semantics."
+      },
+      {
+        "name": "Mautrix Meta pinned Facebook Personal Messenger authority",
+        "source": "mautrix/meta v0.2607.0 @ ed37c9e6ce47e83dc75b9abea7b636302715b9bc; config/upstreams/v21-comms-p0.json",
+        "license": "AGPL-3.0",
+        "adoptionMode": "sidecar-service",
+        "fit": "FIT",
+        "reason": "It is the existing Facebook Personal Messenger protocol authority, including messenger-lite continuation. Product must expose the existing interactive continuation without creating a second account or protocol backend."
+      },
+      {
+        "name": "Existing Yance Electron desktop lifecycle and Store bridge",
+        "source": "electron/main.js; electron/preload.js; electron/r32StoreBridge.js; electron/m2/ipcManifest.json",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing restart/update, active-conversation, open-conversation/open-view, tray, second-instance, deep-link and Store bridge primitives already own desktop lifecycle projection. Successor-v11 only wires Product surfaces to them."
+      },
+      {
+        "name": "Existing Yance account lifecycle and AI mode authorities",
+        "source": "frontend/r32-account-center.js; existing backend account authority; existing durable HUMAN/AI_ASSIST/AI_AUTO Store authority",
+        "license": "repository-existing",
+        "adoptionMode": "thin-yance-adapter",
+        "fit": "FIT",
+        "reason": "The mature account auth/challenge lifecycle and durable AI mode state already exist. Product must project them through existing bridges as end-user flows and labels, preserve transient-secret ownership and manual takeover, and must not add a second account backend or AI mode store."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second timeline, composer, Element/Matrix send path, Matrix session or route registry.",
+      "Do not create a second translation engine; reuse the merged prepare-only outboundTranslationAuthority projection and fail closed before real Element send.",
+      "Do not create a second account backend, credential store, AI mode store, platform protocol engine or desktop lifecycle authority.",
+      "Do not keep generic Element SpacePanel/room sidebar as a competing Product primary navigation; Yance People / Relationship World is the sole primary navigation authority.",
+      "Do not fabricate Facebook reply/reaction/revoke/group/call semantics or cross-platform call/video capability; use real platform capability gating and existing element_call.disable.",
+      "Do not replace Element generic Attachment upload with MediaWorkspace; generic attachment stays on the real Element uploader while Photo/Voice/Live remain relationship/current-room bound.",
+      "Do not rewrite frozen 0015/0016; use one generalized additive 0017 only for the four genuinely missing Product control seams.",
+      "Do not add dependencies, lockfile/package mutations, database migrations, CI workflow changes, runtime topology changes or general-purpose infrastructure for Product composition."
+    ]
+  },
+  "requiredClosure": [
+    "Freeze Product V10 RED exact head 94676c71c2678c64114d1912b8bdda760176e58f, direct parent 47af55383a0b5b52221ccb1e15e2ea68efa5b05b and consumed run 33739369614; never rerun, amend or overwrite their evidence identity.",
+    "Freeze authorization-related RED heads 114e1d4c579e42844162f42940750b12feeadb58 / PR #1052 / run 33760951736, 953d975f5a26e44ef3dbe6a38cb20fa802bf84c0 / PR #1053 / run 33762448110, and 41461754a992a8737aede8e86aa253bcc5963f0a / PR #1054 / run 33763433583; never rerun, amend, force-push or reuse them.",
+    "Keep translation prerequisite authorization #1055 exact head ff40d9f08aed02b7045a9635b8a4ccba879ecb29 and merge 5a215083a679aeff2e2d48a3f94a5efd528728ed frozen GREEN; never rerun consumed authorization workflows.",
+    "Keep translation prerequisite implementation #1056 exact head 9f5698314d8df2fca121ae637f7fab1792af4d83 and merge/current base cbe0351982711902964ba619b8e2c3a47c78efcf frozen GREEN; never rerun consumed implementation workflows.",
+    "Ordinary-merge this single-file authorization PR only after its one authorization validation event is GREEN; squash, rebase, amend, force-push and rerun are forbidden.",
+    "Create fix/v21-product-final-living-relationship-os-successor-v11 only from the exact ordinary authorization merge commit; do not create a Product branch/head before authorization merge.",
+    "Modify only the exact controller-frozen 35 implementation paths with approvedChangedFileSetSha256 23d5f5fb4b56b2b9d3533a0834442d5e7620079bab44f54d44c0789bfa37b67b; any genuinely different root or required scope expansion must stop and be separately frozen before mutation.",
+    "Close the complete frozen Product Final A-K causal batch locally in one batch. Do not commit/CI one partial fix at a time and do not repeat the Product capability census.",
+    "Keep pinned Element as the sole real timeline/composer/send authority; reuse the existing public Module API for incoming renderer/composer preview and the merged prepare-only authority for async outgoing pre-send; 0017 is the only new generalized Element patch allowed.",
+    "Run affected focused tests, Element module build/types and git diff --check to GREEN before any Product Exact Head.",
+    "Run the Windows Local Release Harness at 100%, 125% and 150% and prove all seven frozen Windows/Product gates plus drag/minimize/maximize/restore/close/resize and composer focus/typing/multiline/send/attachment/accessory/bottom spacing before any Product Exact Head.",
+    "After complete local causal closure, create one Product Exact Head and one CI validation event only. CI GREEN means ordinary-merge immediately; CI RED means freeze that head/run and locally close the newly identified root before a new head.",
+    "After Product merge, produce one RC and perform one real Windows UAT as final proof. GREEN means Release immediately; UAT must not be used as debugger."
+  ],
+  "frozenEvidence": {
+    "controllerIssue": 1051,
+    "controllerCommentId": 5527356825,
+    "currentMain": "cbe0351982711902964ba619b8e2c3a47c78efcf",
+    "productV10RedExactHead": "94676c71c2678c64114d1912b8bdda760176e58f",
+    "productV10DirectParent": "47af55383a0b5b52221ccb1e15e2ea68efa5b05b",
+    "consumedProductV10Run": 33739369614,
+    "authorizationRedEvidence": [
+      {
+        "head": "114e1d4c579e42844162f42940750b12feeadb58",
+        "pullRequest": 1052,
+        "consumedWp0Run": 33760951736
+      },
+      {
+        "head": "953d975f5a26e44ef3dbe6a38cb20fa802bf84c0",
+        "pullRequest": 1053,
+        "consumedWp0Run": 33762448110
+      },
+      {
+        "head": "41461754a992a8737aede8e86aa253bcc5963f0a",
+        "pullRequest": 1054,
+        "consumedWp0Run": 33763433583
+      }
+    ],
+    "translationAuthorization": {
+      "pullRequest": 1055,
+      "exactHead": "ff40d9f08aed02b7045a9635b8a4ccba879ecb29",
+      "ordinaryMerge": "5a215083a679aeff2e2d48a3f94a5efd528728ed",
+      "consumedGreenRuns": [
+        33764027820,
+        33764028213,
+        33764027722,
+        33764027688
+      ],
+      "productExperienceRun": 33764027762,
+      "productExperienceResult": "path-skipped"
+    },
+    "translationImplementation": {
+      "pullRequest": 1056,
+      "exactHead": "9f5698314d8df2fca121ae637f7fab1792af4d83",
+      "ordinaryMerge": "cbe0351982711902964ba619b8e2c3a47c78efcf",
+      "consumedGreenRuns": [
+        33764889860,
+        33764889902,
+        33764889791,
+        33764889855,
+        33764889939
+      ],
+      "productExperienceRun": 33764889835,
+      "productExperienceResult": "path-skipped"
+    }
+  },
+  "productContract": {
+    "primaryNavigationAuthority": "YANCE_PEOPLE_RELATIONSHIP_WORLD",
+    "elementRemainsRealTimelineComposerAndSendAuthority": true,
+    "genericElementSidebarDefaultHiddenInProductConversation": true,
+    "duplicatePrimaryNavigationForbidden": true,
+    "personMayOwnMultipleCanonicalConversations": true,
+    "arbitraryFirstConversationSelectionForbidden": true,
+    "canonicalConversationMapsToUniqueMatrixRoom": true,
+    "sharedCanonicalResolverRequiredForSearchNotificationDeepLinkTraySecondInstance": true,
+    "landedPrepareOnlyTranslationAuthorityMustBeReused": true,
+    "secondTranslationEngineForbidden": true,
+    "platformActionCapabilityGatingRequired": true,
+    "fakeFacebookSemanticsForbidden": true,
+    "genericAttachmentUsesRealElementUploader": true,
+    "humanAiAssistAiAutoRemainDurableStoreAuthority": true,
+    "manualTakeoverRequired": true,
+    "existingAccountBackendRemainsSoleAccountAuthority": true,
+    "transientSecretsRemainBackendOwned": true,
+    "singleYanceDesktopNotificationAuthority": true,
+    "existingElectronLifecyclePrimitivesMustBeReused": true,
+    "realElementSecurityDeviceProfileLogoutMustRemainReachable": true,
+    "adminRuntimeEngineeringControlsDemotedFromOrdinaryProduct": true,
+    "windowHarnessRequiredBeforeProductExactHead": true
+  },
+  "localAcceptance": {
+    "focused": [
+      "People sole primary navigation; generic Element SpacePanel/sidebar default-hidden; no duplicate primary navigation.",
+      "Zero/one/multiple conversation routing; no [0] arbitrary selection; canonical conversation <-> unique Matrix room; ambiguity fails closed.",
+      "Person -> Relationship World -> real Element room -> return same Person/context; search/notification/deeplink/tray/second-instance share the resolver.",
+      "Real Element timeline/composer; incoming bilingual renderer; composer preview; landed prepare-only async pre-send and fail-closed real Element send.",
+      "Platform reply/reaction/revoke/edit/download/call gating; no fake Facebook actions/calls.",
+      "HUMAN/AI_ASSIST/AI_AUTO Product projection with approve/reject/revise/confirm and immediate manual takeover.",
+      "Generic Element Attachment; Photo/Voice/Live room binding; Media Product mode hides admin config; Presence no-character fail-closed.",
+      "Full WhatsApp/Telegram/Facebook account continuation and zero-state account connect/sync CTA with transient secrets only.",
+      "Single Yance notification authority and canonical desktop activation routing.",
+      "Product entry for export/archive/restore/merge/undo/correction/profile/notes/review/key nodes/important moments using existing authorities.",
+      "Security/Session Device/Profile/Logout retained through Yance global user/settings entry.",
+      "End-user settings split; restore cancel/confirmed restart; truthful updater safety; startup/tray/close/About/version; existing-session restart Product-primary.",
+      "Affected focused tests, Element module build/types and git diff --check GREEN."
+    ],
+    "windowsScaling": [
+      "100%",
+      "125%",
+      "150%"
+    ],
+    "windowsGates": [
+      "WINDOW_CHROME_DRAG_AND_CAPTION_SAFE_AREA",
+      "WINDOW_CAPTION_BACKGROUND_CONTINUITY",
+      "ELEMENT_COMPOSER_GEOMETRY_AND_INTERACTION",
+      "PRODUCT_PRIMARY_NAV_AUTHORITY=YANCE_PEOPLE",
+      "ELEMENT_GENERIC_ROOM_SIDEBAR_DEFAULT_HIDDEN_IN_PRODUCT_CONVERSATION",
+      "YANCE_RELATIONSHIP_CONTEXT_PRESERVED_ACROSS_ELEMENT_ROOM",
+      "NO_DUPLICATE_PRIMARY_NAVIGATION"
+    ],
+    "windowsInteractions": [
+      "drag",
+      "minimize",
+      "maximize",
+      "restore",
+      "close",
+      "resize",
+      "composer focus",
+      "typing",
+      "multiline",
+      "send",
+      "attachment",
+      "accessory",
+      "bottom spacing"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
