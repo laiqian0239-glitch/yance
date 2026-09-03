@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP-B-XSTATE-AUDIT-RECOVERY-P0-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing prerequisite for frozen PR-role PR #1063. Exact head 273b8a0639594764cdfc8d8c4982cacd7f556df4 has already proven the delegated PR-role repair GREEN in WP-B M2/M3/Contracts, but its single WP-B Validation run 33811895618 is frozen RED only in XState upstream verification. Ubuntu job 100835375125 failed because governed NPM_AUDIT exceeded its existing 120000ms hard timeout; Windows job 100835374846 failed during immediate recursive scratch deletion with EBUSY and runner cleanup then terminated an orphan node process. The immediately preceding retention Exact Head ran the same pinned XState 5.32.5 verifier GREEN on both platforms. Authorization V1 PR #1064 / head 86bd1a2dd5a6bef0030c37d582a5434653ba032d is frozen RED only because its ossFit.selectedAdoptionMode used a value outside the repository adoptionOrder. This V2 authorization corrects that OSS-first vocabulary while preserving the same implementation scope: one bounded audit-timeout retry and mature built-in recursive-removal retry/backoff across both XState scratch owners, with deterministic regression coverage, while preserving every XState supply-chain, license, audit, exact-version and fail-closed authority.",
+  "base": {
+    "branch": "main",
+    "commit": "2e6077868963fbbfb58025bd21ca05d019192eec"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp-b-xstate-audit-recovery-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp-b-xstate-audit-recovery-p0-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "4332318f8ea3d8bcf50009dde0c3f62dc7b6a0a4abcdef0bbba4fc988f1b34fc",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp-b-xstate-audit-recovery-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/architectureClosureV2/wpB/xstateUpstreamEvidenceGate.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-xstate-package.js",
+      "tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "9deddc5f15283961a82089fe5c632773d03e578f2242df9893f0cc35426bfbc9",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "sharedImplementationBranchPolicyModificationAllowed": false,
+    "activeWpBAuthorityModificationAllowed": false,
+    "reviewReceiptModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCause": {
+    "code": "WP_B_XSTATE_UPSTREAM / NPM_AUDIT_TRANSIENT_TIMEOUT_AND_WINDOWS_SCRATCH_CLEANUP_NOT_RECOVERABLE",
+    "directFailure": "Frozen WP-B Validation run 33811895618 failed XState upstream on both platforms: Ubuntu NPM_AUDIT hit the existing 120000ms governed timeout; Windows then failed immediate recursive cleanup with EBUSY and left an orphan node process for runner cleanup.",
+    "sameRootSurface": "verify-wp-b-xstate-package.js owns the governed NPM audit and multiple scratch lifecycles, while verify-wp-b-xstate-upstream.js owns an outer XState scratch lifecycle with the same immediate fs.rmSync pattern. The existing xstateUpstreamEvidenceGate.test.js owns deterministic timeout/rate-limit and upstream command contracts but lacks bounded audit-retry and busy-cleanup regression coverage. These three paths close the complete shared timeout/cleanup seam.",
+    "requiredRepair": "Keep the 120000ms per-attempt hard timeout and retry NPM_AUDIT only when the governed error is exactly WP_B_UPSTREAM_COMMAND_TIMEOUT, with a fixed finite attempt count. Preserve real npm-audit parsing, vulnerability thresholds and all non-timeout failures. Centralize governed scratch removal on Node fs.rmSync recursive force with bounded maxRetries/retryDelay and use it for package/tag and outer-upstream owned scratch. If primary verification already failed, cleanup recovery must not replace that primary result; cleanup-only exhaustion must remain explicit and fail closed."
+  },
+  "causalEvidence": {
+    "blockedPullRequest": 1063,
+    "blockedHead": "273b8a0639594764cdfc8d8c4982cacd7f556df4",
+    "failingWorkflow": "WP-B Validation",
+    "failingWorkflowRunId": 33811895618,
+    "ubuntuJobId": 100835375125,
+    "windowsJobId": 100835374846,
+    "ubuntuFailure": "WP_B_UPSTREAM_COMMAND_TIMEOUT: NPM_AUDIT exceeded its 120000ms hard timeout",
+    "windowsFailure": "EBUSY recursive removal of yance-wp-b-xstate-package-.../audit; runner cleanup later terminated orphan node",
+    "precedingGreenRunId": 33791922521,
+    "precedingGreenUbuntuJobId": 100770301240,
+    "precedingGreenWindowsJobId": 100770300810,
+    "frozenHeadNeverRerun": true,
+    "authorizationV1PullRequest": 1064,
+    "authorizationV1Head": "86bd1a2dd5a6bef0030c37d582a5434653ba032d",
+    "authorizationV1Wp0RunId": 33815045553,
+    "authorizationV1Failure": "OSS-first selectedAdoptionMode was not a member of repository adoptionOrder",
+    "authorizationV1FrozenNeverRerun": true
+  },
+  "requiredBehavior": [
+    "Preserve exact XState package xstate@5.32.5, upstream tag/commit, tarball integrity/shasum, MIT license and supply-chain lock authority.",
+    "Preserve npm audit as real fail-closed evidence; vulnerability findings, malformed audit output, rate limits, tool failures and non-timeout command failures must never become success.",
+    "Preserve the existing 120000ms NPM_AUDIT hard timeout per attempt; do not make the timeout unbounded or merely inflate it.",
+    "Retry NPM_AUDIT only for WP_B_UPSTREAM_COMMAND_TIMEOUT and only for a fixed bounded number of attempts; a final timeout remains WP_B_UPSTREAM_COMMAND_TIMEOUT.",
+    "Use Node built-in recursive fs.rmSync maxRetries/retryDelay semantics for governed scratch cleanup; do not invent a filesystem retry subsystem or add a dependency.",
+    "Apply the same governed scratch cleanup primitive to package-owned/tag-owned scratch and the outer upstream-owned scratch so no immediate-cleanup copy retains the same EBUSY/EPERM/ENOTEMPTY risk.",
+    "Preserve the primary verification error when cleanup is being performed after a primary failure; cleanup-only exhaustion without a primary error must fail closed with deterministic diagnostics.",
+    "Keep upstream core pnpm install/test selection and all XState physical artifact authority checks unchanged."
+  ],
+  "negativeProofs": [
+    "No workflow trigger, matrix, gate or path-routing change.",
+    "No XState supply-chain lock, pinned version, upstream commit/tag, integrity, license or vulnerability-threshold change.",
+    "No package.json, package-lock, dependency or toolchain mutation.",
+    "No generic retry of all upstream commands and no infinite retry.",
+    "No skip/warn conversion for npm audit or XState upstream failures.",
+    "No PR-role, Matrix V9, Ollama, Product successor-v11, RC or UAT mutation.",
+    "No mutation of frozen PR #1063 or Exact Head 273b8a0639594764cdfc8d8c4982cacd7f556df4 and no rerun of run 33811895618.",
+    "No mutation or rerun of frozen authorization V1 PR #1064 / head 86bd1a2dd5a6bef0030c37d582a5434653ba032d / WP0 run 33815045553."
+  ],
+  "ossFit": {
+    "decision": "ADOPT_NODE_RUNTIME_BUILTIN_REMOVE_RETRY_AND_REUSE_EXISTING_GOVERNED_COMMAND_AUTHORITY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Node.js fs.rmSync recursive removal retry/backoff",
+        "source": "node:fs fs.rmSync options maxRetries/retryDelay",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Current official Node runtime already provides bounded recursive-removal retry/backoff for transient Windows busy/permission/non-empty conditions; adopt that runtime capability instead of writing custom filesystem retry code."
+      },
+      {
+        "name": "existing runGovernedCommand hard-timeout authority",
+        "source": "tools/architecture-closure-v2/verify-wp-b-xstate-package.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already normalizes governed command timeout/rate-limit/tool/error states. The audit retry should classify only its existing WP_B_UPSTREAM_COMMAND_TIMEOUT result rather than introduce another command runner."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a retry dependency or custom filesystem backoff framework.",
+      "Do not add a second governed command runner or timeout classifier.",
+      "Do not raise the NPM_AUDIT timeout to hide transient behavior.",
+      "Do not retry vulnerability or audit-content failures.",
+      "Do not alter XState supply-chain authority to make CI pass."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --check tools/architecture-closure-v2/verify-wp-b-xstate-package.js",
+      "node --check tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/xstateUpstreamEvidenceGate.test.js",
+      "git diff --check"
+    ],
+    "behavior": [
+      "NPM_AUDIT first-attempt timeout then deterministic success => exactly one bounded retry and success path continues",
+      "NPM_AUDIT repeated timeout => final stable WP_B_UPSTREAM_COMMAND_TIMEOUT, no success conversion",
+      "NPM_AUDIT vulnerability/non-timeout failure => no timeout retry and remains fail-closed",
+      "governed recursive cleanup receives bounded maxRetries/retryDelay and transient busy cleanup can recover",
+      "primary timeout plus cleanup activity => primary timeout remains the reported causal error",
+      "cleanup-only unrecoverable failure => explicit fail-closed result",
+      "package/tag and outer-upstream scratch owners all use the same governed cleanup primitive",
+      "exact XState 5.32.5 physical artifact/supply-chain/core-test checks remain unchanged"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
