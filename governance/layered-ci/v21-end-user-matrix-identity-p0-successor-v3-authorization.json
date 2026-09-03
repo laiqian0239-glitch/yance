@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-END-USER-MATRIX-IDENTITY-P0-SUCCESSOR-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing successor authorization after the same local WP2 governance seam exposed a second stale blanket assertion in tests/wp2/single-command-path.test.js. The existing inventory truthfully maps ordinary store channels to /api/r32/store/* while the existing product-system store channels map to /api/r32/system/* or /api/r32/models/*. The test incorrectly requires every store:* channel to use /api/r32/store/*. Successor v3 preserves the staged Matrix identity product/runtime bytes and authorizes only the minimal truthful WP2 assertion repair; it does not authorize product behavior expansion.",
+  "base": {
+    "branch": "main",
+    "commit": "3f779719065dd455348d5103eb8b0d64e6bc6463"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-end-user-matrix-identity-p0-successor-v2-authorization.json",
+    "implementationBranch": "fix/v21-end-user-matrix-identity-p0-successor-v2",
+    "reason": "Replace the uncommitted successor-v2 implementation line so the same stale WP2 governance seam can be closed truthfully without altering product scope."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-end-user-matrix-identity-p0-successor-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-end-user-matrix-identity-p0-successor-v3-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-end-user-matrix-identity-p0-successor-v3",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "backend/services/endUserMatrixIdentityService.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/synapseSharedSecretRegistration.js",
+      "backend/tests/endUserMatrixIdentityP0.test.js",
+      "electron/m2/ipcManifest.json",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp2/single-command-path.test.js",
+      "tools/wp2/command-path-inventory.js"
+    ],
+    "approvedChangedFileCount": 15,
+    "approvedChangedFileSetSha256": "d83c573585dfa9516f22dd153044e09ee0764f82afb4a6bdd996702d3ae3a853",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "productContract": {
+    "publicMatrixRegistrationRemainsDisabled": true,
+    "elementRemainsInteractiveMatrixLoginAuthority": true,
+    "personalAccessRemainsSeparateProductEntitlementAuthority": true,
+    "desktopLocalSessionIsProvisioningBoundary": true,
+    "oneLocalHumanMatrixIdentityPerInstallation": true,
+    "matrixAccessTokenMustNotReachRenderer": true,
+    "passwordMustNotBePersistedByYance": true,
+    "existingOwnerTesterLifecyclePreserved": true
+  },
+  "requiredClosure": [
+    "Preserve the existing staged 15-path successor-v2 bytes except for the directly causal repair inside tests/wp2/single-command-path.test.js.",
+    "Keep the already-authorized removal of obsolete fixed absolute IPC-count assertions.",
+    "Replace only the stale blanket assumption that every store:* backendRoute must start with /api/r32/store/. Ordinary store channels must still resolve to /api/r32/store/*; the existing product-system store channels must retain their truthful /api/r32/system/* or /api/r32/models/* mappings.",
+    "Preserve forwardingOnly=true, non-empty backendRoute, BACKEND_BUSINESS_RUNTIME authority, exact inventory-vs-actual deep equality, uniqueness, required desktop channels, and full Object.values(r32StoreBridge.CHANNELS) coverage.",
+    "Do not modify tools/wp2/command-path-inventory.js merely to satisfy the stale test unless a separate truthful production defect is demonstrated.",
+    "Refresh local origin/main to the effective successor-v3 authorization merge before running implementation-branch-policy; do not modify implementationBranchPolicy for stale local refs.",
+    "After local WP2 and branch-policy acceptance, run the full focused batch, full WP0, and Windows Local Release Harness clean/existing/failure paths before one implementation commit."
+  ],
+  "localAcceptance": [
+    "tests/wp2/single-command-path.test.js GREEN with truthful route-class assertions and no fixed absolute IPC count.",
+    "tests/wp0/implementation-branch-policy.test.js GREEN after origin/main equals the effective successor-v3 authorization merge.",
+    "Focused end-user Matrix identity backend + WP0 tests GREEN.",
+    "Product brand/materialized UAT identity contracts GREEN.",
+    "Existing Personal Access and Facebook mautrix-meta focused tests GREEN.",
+    "Full npm run test:wp0 GREEN.",
+    "git diff --check GREEN and exact changed-path census limited to the 15 authorized paths.",
+    "Windows Local Release Harness golden-clean provisions a real local human Matrix user, Element password login succeeds, existing Personal Access surface is reached, and startup remains GREEN.",
+    "Windows Local Release Harness existing identity/session restart does not reprovision and remains usable.",
+    "Failure-path proof covers invalid input and controlled Synapse registration failure, with no password or Matrix access-token persistence/exposure.",
+    "No GitHub RC artifact download and no real UAT rerun before local closure."
+  ],
+  "ossFit": {
+    "decision": "PRESERVE_OFFICIAL_SYNAPSE_SOURCE_MODULE_AND_REPAIR_ONLY_STALE_WP2_ROUTE_ASSERTION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false
+  },
+  "frozenEvidence": {
+    "successorV2AuthorizationMerge": "3f779719065dd455348d5103eb8b0d64e6bc6463",
+    "successorV2ImplementationCommitCreated": false,
+    "successorV2ImplementationPushOccurred": false,
+    "successorV2ImplementationCiTriggered": false,
+    "stagedChangedFileCount": 15,
+    "stagedDiffCheck": "GREEN",
+    "wp2FirstStaleAssumption": "fixed absolute IPC count 45",
+    "wp2SecondStaleAssumption": "all store:* routes must use /api/r32/store/*",
+    "currentProductRootCause": "MATRIX_AUTH / END_USER_ACCOUNT_PROVISIONING_MISSING",
+    "governanceSeamRootCause": "WP2_GOVERNANCE / STALE_CONTROL_PATH_ASSUMPTIONS"
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
