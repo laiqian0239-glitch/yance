@@ -10,6 +10,7 @@ const verifierPath = path.join(repoRoot, 'tools', 'architecture-closure-v2', 've
 const {
   EXPECTED_OPERATION_KINDS,
   EXPECTED_POST_REVIEW_PATHS,
+  isRemoteArtifactIdentityValid,
   readReceipt,
   validateReceipt,
   verifyLocalRepository
@@ -161,4 +162,28 @@ test('M2-SEAL-007 standalone verifier emits machine-readable evidence for the cu
   assert.equal(report.local.ok, true);
   assert.equal(report.local.sealStatus, receipt.seal.status);
   assert.deepEqual(report.local.postReviewFiles, EXPECTED_POST_REVIEW_PATHS);
+});
+
+test('M2-SEAL-008 historical artifact retention is availability, while immutable artifact identity remains fail closed', () => {
+  const expectedHead = 'a'.repeat(40);
+  const expected = {
+    artifactId: 8882246393,
+    name: 'wp-b-m2-contract-evidence-ubuntu-latest',
+    digest: 'sha256:b8950343db5cb5fe0b9726deb499be5ff83a7331eab59930d681a76caddecf4b'
+  };
+  const exact = {
+    id: expected.artifactId,
+    name: expected.name,
+    digest: expected.digest,
+    expired: false,
+    workflow_run: { head_sha: expectedHead }
+  };
+
+  assert.equal(isRemoteArtifactIdentityValid(exact, expected, expectedHead), true);
+  assert.equal(isRemoteArtifactIdentityValid({ ...exact, expired: true }, expected, expectedHead), true);
+  assert.equal(isRemoteArtifactIdentityValid(null, expected, expectedHead), false);
+  assert.equal(isRemoteArtifactIdentityValid({ ...exact, id: exact.id + 1 }, expected, expectedHead), false);
+  assert.equal(isRemoteArtifactIdentityValid({ ...exact, name: `${exact.name}-changed` }, expected, expectedHead), false);
+  assert.equal(isRemoteArtifactIdentityValid({ ...exact, digest: `sha256:${'0'.repeat(64)}` }, expected, expectedHead), false);
+  assert.equal(isRemoteArtifactIdentityValid({ ...exact, workflow_run: { head_sha: 'b'.repeat(40) } }, expected, expectedHead), false);
 });

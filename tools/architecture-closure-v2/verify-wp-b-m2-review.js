@@ -68,6 +68,12 @@ function isHistoricalPrStateValidForBranch(historicalPr, currentBranch, historic
     ? openDraftUnmerged
     : (openDraftUnmerged || closedMerged);
 }
+function isRemoteArtifactIdentityValid(artifact, expectedArtifact, expectedHead) {
+  return Number(artifact?.id) === Number(expectedArtifact?.artifactId)
+    && artifact?.name === expectedArtifact?.name
+    && artifact?.digest === expectedArtifact?.digest
+    && artifact?.workflow_run?.head_sha === expectedHead;
+}
 function sortedUnique(values) {
   return [...new Set((Array.isArray(values) ? values : [])
     .map(value => String(value || '').trim().replace(/\\/gu, '/'))
@@ -313,7 +319,7 @@ async function verifyRunSetRemote(api, token, runs, expectedHead, prefix) {
       const artifacts = new Map((artifactPage.artifacts || []).map(item => [Number(item.id), item]));
       for (const expectedArtifact of expected.artifacts) {
         const artifact = artifacts.get(expectedArtifact.artifactId);
-        requireThat(artifact?.name === expectedArtifact.name && artifact.digest === expectedArtifact.digest && artifact.expired === false && artifact.workflow_run?.head_sha === expectedHead, `${prefix}_ARTIFACT_MISMATCH`, 'Remote artifact changed', { artifactId: expectedArtifact.artifactId });
+        requireThat(isRemoteArtifactIdentityValid(artifact, expectedArtifact, expectedHead), `${prefix}_ARTIFACT_MISMATCH`, 'Remote artifact changed', { artifactId: expectedArtifact.artifactId });
       }
     }
     verified.push(Object.freeze({ runId: expected.workflowRunId, name: run.name, head: run.head_sha, conclusion: run.conclusion }));
@@ -389,4 +395,4 @@ if (require.main === module) main().catch(error => {
   process.stderr.write(`${JSON.stringify({ ok: false, code: error?.code || 'WP_B_M2_REVIEW_VERIFICATION_FAILED', message: error?.message || String(error), details: Object.fromEntries(Object.entries(error || {}).filter(([key]) => !['stack', 'message'].includes(key))) }, null, 2)}\n`);
   process.exitCode = 1;
 });
-module.exports = Object.freeze({ EXPECTED_FORMAL_WORKFLOWS, EXPECTED_OPERATION_KINDS, EXPECTED_POST_REVIEW_PATHS, changedFileSetSha256, isAuthorizedReviewImplementationBranch, isHistoricalPrStateValidForBranch, readReceipt, sortedUnique, validateReceipt, verifyLocalRepository, verifyRemoteEvidence });
+module.exports = Object.freeze({ EXPECTED_FORMAL_WORKFLOWS, EXPECTED_OPERATION_KINDS, EXPECTED_POST_REVIEW_PATHS, changedFileSetSha256, isAuthorizedReviewImplementationBranch, isHistoricalPrStateValidForBranch, isRemoteArtifactIdentityValid, readReceipt, sortedUnique, validateReceipt, verifyLocalRepository, verifyRemoteEvidence });
