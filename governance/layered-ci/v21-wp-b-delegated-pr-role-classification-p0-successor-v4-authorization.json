@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP-B-DELEGATED-PR-ROLE-CLASSIFICATION-P0-SUCCESSOR-V4",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main authorization successor after frozen PR #1090 proved the delegated governance block mandatory and frozen PR #1091 exact head 331a0641a0bcfc4d5556cf1f2992db8495efad98 consumed Stage run 33891943614 and exposed the remaining OSS-first authorization metadata requirement. The implementation root remains the exact three-owner PR #1063 donor repair at 273b8a0639594764cdfc8d8c4982cacd7f556df4; this successor closes the complete current-main authorization metadata seam before implementation without creating new infrastructure or changing runtime behavior.",
+  "base": {
+    "branch": "main",
+    "commit": "2a3d4eccb2490807ed0e7e1bef49e20d5636a1ce"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp-b-delegated-pr-role-classification-p0-successor-v4-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp-b-delegated-pr-role-classification-p0-successor-v4-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9437fa040817a09ee6256ddb49926e6ef044213f9872c1e198710673082c08ee",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp-b-delegated-pr-role-classification-p0-successor-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "donorHead": "273b8a0639594764cdfc8d8c4982cacd7f556df4",
+    "replayMode": "EXACT_DONOR_BLOBS_NO_HAND_MERGE",
+    "allowedChangedPaths": [
+      "backend/tests/architectureClosureV2/wpB/m1ReviewWorkflowScope.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-m2-review.js",
+      "tools/architecture-closure-v2/verify-wp-b-m3-authorization.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "ba5d97a906879372173dcdc40946ce4c308aa3c7ab6271197c84ec0b23294e79",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "sharedImplementationBranchPolicyModificationAllowed": false,
+    "activeWpBAuthorityModificationAllowed": false,
+    "reviewReceiptModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCause": {
+    "code": "WP_B_REMOTE_EVIDENCE / GENERIC_DELEGATED_BRANCH_ROLE_CONFLATED_WITH_WP_B_SUCCESSOR",
+    "requiredRepair": "Replay the already-validated PR #1063 three-file donor implementation exactly. True WP-B successors require Draft; generic delegated candidates require one open unmerged base=main exact-head PR and may be Draft or non-Draft. M2 and M3 must use identical role semantics."
+  },
+  "frozenTriggerEvidence": {
+    "matrixPullRequest": 1089,
+    "matrixExactHead": "3abe03b2a377853b03a29df2b77d467c5428b0ef",
+    "matrixConsumedRedRun": 33887917351,
+    "matrixFailingJob": 101072177565,
+    "matrixReasonCode": "WP_B_M2_REVIEW_REMOTE_SUCCESSOR_PR_INVALID",
+    "authorizationPredecessorV2PullRequest": 1090,
+    "authorizationPredecessorV2ExactHead": "6fc533dba938ad7630e62dc49301a1eab8ad93bd",
+    "authorizationPredecessorV2ConsumedRedRun": 33890108222,
+    "authorizationPredecessorV2FailingJob": 101079512708,
+    "authorizationPredecessorV2ReasonCode": "WP0_AUTHORIZATION_PROPOSAL_TRANSPORT_INVALID",
+    "authorizationPredecessorV3PullRequest": 1091,
+    "authorizationPredecessorV3ExactHead": "331a0641a0bcfc4d5556cf1f2992db8495efad98",
+    "authorizationPredecessorV3ConsumedRedRun": 33891943614,
+    "authorizationPredecessorV3FailingJob": 101085537194,
+    "authorizationPredecessorV3Failure": "ossFit evidence is required before implementation",
+    "allFrozenHeadsNeverRerunOrMutate": true
+  },
+  "donorEvidence": {
+    "pullRequest": 1063,
+    "exactHead": "273b8a0639594764cdfc8d8c4982cacd7f556df4",
+    "exactChangedFileCount": 3,
+    "exactChangedFileSetSha256": "ba5d97a906879372173dcdc40946ce4c308aa3c7ab6271197c84ec0b23294e79",
+    "consumedGreenRuns": [33811895428, 33811895572, 33811895561, 33811895560, 33811895448],
+    "distinctFrozenXStateRedRun": 33811895618
+  },
+  "requiredBehavior": [
+    "True WP-B successor => unique open Draft unmerged base=main exact-head PR.",
+    "Generic delegated candidate => unique open unmerged base=main exact-head PR; Draft may be true or false.",
+    "Historical WP-B semantics remain unchanged.",
+    "M2 and M3 use identical role semantics.",
+    "Reviewed-head, seal, run, job, artifact, historical-PR, token and repository checks remain fail-closed."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_WP_B_VERIFIER_DONOR_AND_GENERIC_DELEGATED_AUTHORITY",
+    "matureOssAvailable": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "PR #1063 WP-B M2/M3 delegated role classifier donor plus current generic delegated authorization evaluator",
+        "source": "existing Yance repository verifier and delegated-governance authority seams",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The exact three-owner PR #1063 donor already proved the required WP-B role distinction and current-main already owns delegated authorization evaluation. Reusing both closes the root without introducing a second verifier, route registry, workflow authority or general-purpose infrastructure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second WP-B or generic delegated PR-role classification engine.",
+      "Do not weaken remote evidence, reviewed-head, seal, run, job, artifact, token, repository or fail-closed checks."
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
