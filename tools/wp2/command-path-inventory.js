@@ -87,6 +87,7 @@ function rendererLocations(repoRoot, method) {
 const MAIN_IPC = Object.freeze({
   'desktop:preload-ready': ['electron/main.js#MainWindowActivationController.markPreloadReady', false, null, null, 'ELECTRON_DESKTOP_LIFECYCLE'],
   'desktop:renderer-ready': ['electron/main.js#MainWindowActivationController.markRendererReady', false, null, null, 'ELECTRON_DESKTOP_LIFECYCLE'],
+  'desktop:activation-probe-responder-ready': ['electron/main.js#MainWindowRuntimeReadiness.markResponderReady', false, null, null, 'ELECTRON_DESKTOP_LIFECYCLE'],
   'desktop:activation-probe-complete': ['electron/main.js#MainWindowRuntimeReadiness.complete', false, null, null, 'ELECTRON_DESKTOP_LIFECYCLE'],
   'desktop:get-state': ['electron/main.js#desktopState', false, null, null, 'ELECTRON_DESKTOP_STATE'],
   'desktop:report-runtime-environment': ['electron/main.js#desktopLog(renderer-runtime-environment)', false, null, null, 'ELECTRON_DESKTOP_DIAGNOSTICS'],
@@ -118,7 +119,83 @@ const MAIN_IPC = Object.freeze({
   'desktop:delete-credential': ['electron/main.js#CredentialVault', false, null, null, 'ELECTRON_CREDENTIAL_CUSTODY']
 });
 
+const DESKTOP_BACKEND_FORWARDING_IPC = Object.freeze({
+  'desktop:matrix-local-identity-status': ['/api/desktop/matrix-local-identity', 'backend/services/endUserMatrixIdentityService.js', false],
+  'desktop:matrix-local-identity-create': ['/api/desktop/matrix-local-identity', 'backend/services/endUserMatrixIdentityService.js', true],
+  'desktop:learning-workspace-snapshot': ['/api/r32/workspace/learning/snapshot', 'backend/routes/workspace.js', false],
+  'desktop:learning-coach-invoke': ['/api/r32/workspace/learning/coach/actions', 'backend/routes/workspace.js', true],
+  'desktop:letta-get-state': ['/api/r32/models/letta/state', 'backend/routes/models.js', false],
+  'desktop:letta-list-agents': ['/api/r32/models/letta/agents', 'backend/routes/models.js', false],
+  'desktop:letta-list-conversations': ['/api/r32/models/letta/conversations', 'backend/routes/models.js', false],
+  'desktop:parlant-get-relationship-goal': ['/api/r32/workspace/parlant/relationship-goal', 'backend/routes/workspace.js', false],
+  'desktop:parlant-upsert-relationship-goal': ['/api/r32/workspace/parlant/relationship-goal', 'backend/routes/workspace.js', true],
+  'desktop:parlant-delete-relationship-goal': ['/api/r32/workspace/parlant/relationship-goal', 'backend/routes/workspace.js', true],
+  'desktop:parlant-set-relationship-goal-paused': ['/api/r32/workspace/parlant/relationship-goal/paused', 'backend/routes/workspace.js', true],
+  'desktop:presence-avatar-health': ['/api/r32/models/presence-avatar/health', 'backend/routes/models.js', false],
+  'desktop:presence-avatar-create-session': ['/api/r32/models/presence-avatar/sessions', 'backend/routes/models.js', true],
+  'desktop:presence-avatar-close-session': ['/api/r32/models/presence-avatar/sessions/close', 'backend/routes/models.js', true],
+  'desktop:presence-avatar-push-voice-audio-chunk': ['/api/r32/models/presence-avatar/voice-audio', 'backend/routes/models.js', true],
+  'desktop:voice-brain-health': ['/api/r32/models/voice-brain/health', 'backend/routes/models.js', false],
+  'desktop:voice-brain-transcribe': ['/api/r32/models/voice-brain/transcribe', 'backend/routes/models.js', true],
+  'desktop:voice-brain-enroll-profile': ['/api/r32/models/voice-brain/profiles', 'backend/routes/models.js', true],
+  'desktop:voice-brain-list-profiles': ['/api/r32/models/voice-brain/profiles', 'backend/routes/models.js', false],
+  'desktop:voice-brain-delete-profile': ['/api/r32/models/voice-brain/profiles/delete', 'backend/routes/models.js', true],
+  'desktop:voice-brain-generate-speech': ['/api/r32/models/voice-brain/speech', 'backend/routes/models.js', true],
+  'desktop:voice-brain-send-artifact': ['/api/r32/models/voice-brain/artifacts/send', 'backend/routes/models.js', true],
+  'desktop:media-brain-health': ['/api/r32/models/media-brain/health', 'backend/routes/models.js', false],
+  'desktop:media-brain-save-settings': ['/api/r32/models/media-brain/settings', 'backend/routes/models.js', true],
+  'desktop:media-brain-import-asset': ['/api/r32/models/media-brain/assets/import', 'backend/routes/models.js', true],
+  'desktop:media-brain-search-assets': ['/api/r32/models/media-brain/assets/search', 'backend/routes/models.js', false],
+  'desktop:media-brain-list-people': ['/api/r32/models/media-brain/people', 'backend/routes/models.js', false],
+  'desktop:media-brain-list-albums': ['/api/r32/models/media-brain/albums', 'backend/routes/models.js', false],
+  'desktop:media-brain-get-asset-preview': ['/api/r32/models/media-brain/assets/preview', 'backend/routes/models.js', false],
+  'desktop:media-brain-queue-workflow': ['/api/r32/models/media-brain/workflows', 'backend/routes/models.js', true],
+  'desktop:media-brain-get-workflow-result': ['/api/r32/models/media-brain/workflows/result', 'backend/routes/models.js', false],
+  'desktop:media-brain-save-workflow-output': ['/api/r32/models/media-brain/workflows/output', 'backend/routes/models.js', true],
+  'desktop:media-brain-send-asset': ['/api/r32/models/media-brain/assets/send', 'backend/routes/models.js', true]
+});
+
 const FIXED_PRODUCT_SYSTEM_STORE = Object.freeze({
+  [CHANNELS.matrixLocalIdentityStatus]: {
+    backendRoute: '/api/desktop/matrix-local-identity',
+    backendExecutionModule: 'backend/services/endUserMatrixIdentityService.js',
+    producesBusinessSideEffect: false
+  },
+  [CHANNELS.matrixLocalIdentityCreate]: {
+    backendRoute: '/api/desktop/matrix-local-identity',
+    backendExecutionModule: 'backend/services/endUserMatrixIdentityService.js',
+    producesBusinessSideEffect: true
+  },
+  [CHANNELS.personalAccessStatus]: {
+    backendRoute: '/api/r32/personal-access/status',
+    backendExecutionModule: 'backend/routes/personalAccess.js',
+    producesBusinessSideEffect: false
+  },
+  [CHANNELS.personalAccessSubmitRequest]: {
+    backendRoute: '/api/r32/personal-access/submit-request',
+    backendExecutionModule: 'backend/routes/personalAccess.js',
+    producesBusinessSideEffect: true
+  },
+  [CHANNELS.personalAccessRefreshRequest]: {
+    backendRoute: '/api/r32/personal-access/refresh-request',
+    backendExecutionModule: 'backend/routes/personalAccess.js',
+    producesBusinessSideEffect: true
+  },
+  [CHANNELS.personalAccessOwnerRequests]: {
+    backendRoute: '/api/r32/personal-access/owner/requests',
+    backendExecutionModule: 'backend/routes/personalAccess.js',
+    producesBusinessSideEffect: false
+  },
+  [CHANNELS.personalAccessOwnerRequestMutation]: {
+    backendRoute: '/api/r32/personal-access/owner/requests/:requestId/:action',
+    backendExecutionModule: 'backend/routes/personalAccess.js',
+    producesBusinessSideEffect: true
+  },
+  [CHANNELS.personalAccessOwnerGrantMutation]: {
+    backendRoute: '/api/r32/personal-access/owner/grants/:grantId/:action',
+    backendExecutionModule: 'backend/routes/personalAccess.js',
+    producesBusinessSideEffect: true
+  },
   [CHANNELS.productDataProtectionState]: {
     backendRoute: '/api/r32/system/backups + /api/r32/system/portable-backups',
     backendExecutionModule: 'backend/routes/system.js',
@@ -180,18 +257,21 @@ function buildCommandPathInventory(repoRoot) {
     const mapping = preload.get(row.channel) || null;
     const main = MAIN_IPC[row.channel];
     const isStore = row.channel.startsWith('store:');
-    if (!main && !isStore) {
+    const desktopForwarding = DESKTOP_BACKEND_FORWARDING_IPC[row.channel] || null;
+    if (!main && !isStore && !desktopForwarding) {
       const error = new Error(`Unclassified Electron IPC channel: ${row.channel}`);
       error.reasonCode = 'WP2_UNREGISTERED_CONTROL_PATH';
       error.details = { channel: row.channel };
       throw error;
     }
-    const [module, forwardingOnly, backendRoute, backendCommand, authority] = main || ['electron/r32StoreBridge.js', true, storeRoute(row.channel), null, 'BACKEND_BUSINESS_RUNTIME'];
+    const [module, forwardingOnly, backendRoute, backendCommand, authority] = main
+      || (desktopForwarding ? ['electron/main.js#authenticatedBackendForwarder', true, desktopForwarding[0], null, 'BACKEND_BUSINESS_RUNTIME'] : ['electron/r32StoreBridge.js', true, storeRoute(row.channel), null, 'BACKEND_BUSINESS_RUNTIME']);
     const fixedProductSystem = FIXED_PRODUCT_SYSTEM_STORE[row.channel] || null;
     const resolvedBackendRoute = fixedProductSystem?.backendRoute || backendRoute;
     const resolvedBackendExecutionModule = fixedProductSystem?.backendExecutionModule
-      || (resolvedBackendRoute ? (isStore ? 'backend/routes/store.js or mapped store service' : row.channel === 'desktop:export-chat' ? 'backend/services/chatExportService.js' : 'backend/core/updateManager.js') : null);
+      || (desktopForwarding ? desktopForwarding[1] : (resolvedBackendRoute ? (isStore ? 'backend/routes/store.js or mapped store service' : row.channel === 'desktop:export-chat' ? 'backend/services/chatExportService.js' : 'backend/core/updateManager.js') : null));
     const producesBusinessSideEffect = fixedProductSystem?.producesBusinessSideEffect
+      ?? (desktopForwarding ? desktopForwarding[2] === true : null)
       ?? (authority === 'BACKEND_BUSINESS_RUNTIME' || Boolean(backendCommand));
     return {
       entryKind: 'ELECTRON_IPC',
