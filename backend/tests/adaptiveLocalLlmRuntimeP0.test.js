@@ -11,6 +11,21 @@ function feature(modulePath) {
   }
 }
 
+function ollamaPullResponse(lines = []) {
+  const encoder = new TextEncoder();
+  return {
+    ok: true,
+    status: 200,
+    body: new ReadableStream({
+      start(stream) {
+        for (const line of lines) stream.enqueue(encoder.encode(line));
+        stream.close();
+      }
+    }),
+    async text() { return ''; }
+  };
+}
+
 test('adaptive planner does not reduce a low-VRAM machine to small-model-only when measured hybrid evidence is usable', () => {
   const { classifyCandidate } = feature('../services/adaptiveLocalRuntimePlanner');
   const result = classifyCandidate({
@@ -121,35 +136,87 @@ test('ModelRuntimeAuthority treats admitted loopback runtimes as local identitie
   assert.equal(projected.runtimeAvailable, true);
 });
 
-test('Ollama pull exposes progress and uses the caller abort signal', async () => {
+test('Ollama pull exposes truthful progress and preserves the caller abort signal', async () => {
   const ollama = require('../services/ollamaClient');
   const progress = [];
   const controller = new AbortController();
   let captured;
-  const encoder = new TextEncoder();
   const fetchImpl = async (url, init) => {
     captured = { url, init };
-    return {
-      ok: true,
-      status: 200,
-      body: new ReadableStream({
-        start(stream) {
-          stream.enqueue(encoder.encode('{"status":"pulling manifest"}\n'));
-          stream.enqueue(encoder.encode('{"status":"downloading","digest":"sha256:abc","total":100,"completed":40}\n'));
-          stream.enqueue(encoder.encode('{"status":"success"}\n'));
-          stream.close();
-        }
-      }),
-      async text() { return ''; }
-    };
+    return ollamaPullResponse([
+      '{"status":"pulling manifest"}\n',
+      '{"status":"downloading","digest":"sha256:abc","total":100,"completed":40}\n',
+      '{"status":"downloading","digest":"sha256:abc","total":100,"completed":100}\n',
+      '{"status":"success"}\n'
+    ]);
   };
   const result = await ollama.pullModel({ endpoint: 'http://127.0.0.1:11434', model: 'qwen:14b', signal: controller.signal, onProgress: row => progress.push(row), fetchImpl });
   assert.equal(captured.url, 'http://127.0.0.1:11434/api/pull');
   assert.equal(captured.init.signal, controller.signal);
   assert.deepEqual(JSON.parse(captured.init.body), { model: 'qwen:14b', stream: true });
-  assert.equal(progress.some(row => row.completed === 40 && row.total === 100), true);
+  const partial = progress.find(row => row.completed === 40);
+  assert.equal(partial.knownTotal, 100);
+  assert.equal(partial.total, 0);
+  assert.equal(partial.percent, 0);
   assert.equal(result.ok, true);
   assert.equal(result.status, 'success');
+  assert.equal(result.knownTotal, 100);
+  assert.equal(result.completed, 100);
+  assert.equal(result.total, 100);
+  assert.equal(result.percent, 100);
+});
+
+test('Ollama pull rejects an untrusted remote endpoint before physical fetch', async () => {
+  const ollama = require('../services/ollamaClient');
+  let fetched = false;
+  await assert.rejects(
+    () => ollama.pullModel({
+      endpoint: 'http://198.51.100.77:11434',
+      model: 'qwen:14b',
+      fetchImpl: async () => { fetched = true; return ollamaPullResponse(['{"status":"success"}\n']); }
+    }),
+    error => error.code === 'OLLAMA_ENDPOINT_NOT_AUTHORIZED'
+  );
+  assert.equal(fetched, false);
+});
+
+test('Ollama pull fails closed when HTTP 200 ends without terminal success', async () => {
+  const ollama = require('../services/ollamaClient');
+  for (const lines of [
+    [],
+    ['{malformed ndjson}\n'],
+    ['{"status":"downloading","digest":"sha256:abc","total":100,"completed":40}\n']
+  ]) {
+    await assert.rejects(
+      () => ollama.pullModel({ endpoint: 'http://127.0.0.1:11434', model: 'qwen:14b', fetchImpl: async () => ollamaPullResponse(lines) }),
+      error => error.code === 'OLLAMA_PULL_INCOMPLETE'
+    );
+  }
+});
+
+test('Ollama pull aggregates multi-layer progress and reserves 100 percent for terminal success', async () => {
+  const ollama = require('../services/ollamaClient');
+  const progress = [];
+  const result = await ollama.pullModel({
+    endpoint: 'http://127.0.0.1:11434',
+    model: 'qwen:14b',
+    onProgress: row => progress.push(row),
+    fetchImpl: async () => ollamaPullResponse([
+      '{"status":"downloading","digest":"sha256:first","total":100,"completed":50}\n',
+      '{"status":"downloading","digest":"sha256:first","total":100,"completed":100}\n',
+      '{"status":"downloading","digest":"sha256:second","total":50,"completed":25}\n',
+      '{"status":"downloading","digest":"sha256:second","total":50,"completed":50}\n',
+      '{"status":"success"}\n'
+    ])
+  });
+  const secondLayerHalf = progress.find(row => row.digest === 'sha256:second' && row.completed === 125);
+  assert.equal(secondLayerHalf.knownTotal, 150);
+  assert.equal(secondLayerHalf.total, 0);
+  assert.equal(secondLayerHalf.percent, 0);
+  assert.equal(result.knownTotal, 150);
+  assert.equal(result.completed, 150);
+  assert.equal(result.total, 150);
+  assert.equal(result.percent, 100);
 });
 
 test('local artifact preflight is fail-closed on consent, disk and SHA-256 provenance', () => {
