@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-OLLAMA-PULL-FAIL-CLOSED-GUARDS-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing narrow successor authorization for the second Class-B prerequisite already frozen by Product Final Controller #1051. Current trusted main has the correct durable provider-administration ownership chain route -> AiGateway._runDurableProviderAdmin -> ollamaClient.pullModel, landed by PR #637, but the active physical Ollama pull seam lost three mature reviewed #566 guards during the later Adaptive Local supersession: caller pull endpoints are not constrained to loopback/configured Ollama hosts, a 200 NDJSON stream may return ok after EOF without terminal status=success, and progress does not preserve truthful cumulative multi-layer totals with global percent unknown until terminal success. This authorization restores only those current-active physical-pull truth/safety semantics plus focused regression coverage. It does not restore the superseded Local Auxiliary scheduler/provider architecture, old System Center UI, a second model router, or any Product successor-v11 bytes.",
+  "base": {
+    "branch": "main",
+    "commit": "9a6f067a798263747a0bde59bb95d7bac5d6d5ac"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-ollama-pull-fail-closed-guards-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-ollama-pull-fail-closed-guards-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "af7411a43946bd34ac263e5090cf347499d3263f75c9f67899738009b08b384b",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-ollama-pull-fail-closed-guards-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/services/ollamaClient.js",
+      "backend/tests/adaptiveLocalLlmRuntimeP0.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "258645c70984f437d67d81ccc11b5bd962b724564bf78ad6350ed40c1c507873",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "modelRouterAuthorityModificationAllowed": false,
+    "aiGatewayModificationAllowed": false,
+    "modelRouteModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCause": {
+    "code": "LOCAL_MODEL_ADMIN / OLLAMA_PULL_FAIL_CLOSED_GUARDS_NOT_LANDED",
+    "requiredRepair": "Restore the mature physical Ollama pull boundary guards inside the existing ollamaClient.pullModel seam: authorize only loopback or configured trusted Ollama roots; fail closed with OLLAMA_PULL_INCOMPLETE unless the stream reaches terminal success; aggregate progress by digest across layers and keep global total/percent unknown until terminal success. Preserve the current AiGateway durable provider-admin owner and current route/cancellation topology."
+  },
+  "currentAuthorityEvidence": {
+    "durableOwnershipPullRequest": 637,
+    "durableOwnershipMerge": "fe92f28865db34a0ea08f3e300283725faff495e",
+    "currentRouteOwner": "backend/routes/models.js delegates /ollama/pull to aiGateway.pullLocalModel",
+    "currentDurableOwner": "backend/services/aiGateway.js wraps ollamaClient.pullModel with _runDurableProviderAdmin",
+    "currentPhysicalOwner": "backend/services/ollamaClient.js pullModel",
+    "currentMissingGuards": [
+      "pullModel normalizes caller endpoint but does not restrict it to loopback or configured trusted Ollama hosts",
+      "pullModel returns ok=true after stream EOF without requiring terminal status=success",
+      "pullModel forwards row-local progress and does not aggregate multiple digest layers or reserve 100 percent for terminal success"
+    ],
+    "routeOrAiGatewayExpansionRequired": false
+  },
+  "matureDonorEvidence": {
+    "pullRequest": 566,
+    "reviewedExactHead": "08108ce52c7eeb16fa59d51b9e74567015c69ea0",
+    "terminalSuccessRootFixCommit": "4dc37a99bc68cbea4996b0fa47303d021c7cf999",
+    "frozenFinalHead": "7550fc562ed05153c11469699368d4cc07ec1223",
+    "reuseMode": "SEMANTIC_GUARD_TRANSPLANT_TO_CURRENT_PULLMODEL_SEAM_NO_OLD_ARCHITECTURE_REPLAY",
+    "matureSemantics": [
+      "authorizedPullRoot allows loopback or exact configured Ollama roots and rejects arbitrary remote targets with OLLAMA_ENDPOINT_NOT_AUTHORIZED",
+      "empty malformed or truncated HTTP-200 pull streams fail closed unless terminal status is success, using OLLAMA_PULL_INCOMPLETE",
+      "progress aggregates known totals and completed bytes by digest across layers",
+      "nonterminal global total and percent remain unknown instead of presenting a provisional layer set as final",
+      "terminal success seals final aggregate total and percent=100"
+    ]
+  },
+  "requiredBehavior": [
+    "Existing /api/pull physical protocol remains the only Ollama download protocol.",
+    "Caller-supplied endpoint is accepted only when loopback or exactly present in CONFIG.ollamaHosts after normalization.",
+    "A successful HTTP response or EOF alone never means download success; terminal status success is mandatory.",
+    "Empty, malformed-only, truncated and nonterminal streams fail closed with OLLAMA_PULL_INCOMPLETE.",
+    "Progress is cumulative across digest layers; completed bytes never reset merely because a new layer appears.",
+    "Before terminal success, global total and percent remain unknown while knownTotal and completed may advance.",
+    "Terminal success returns ok=true, seals total >= completed and percent=100.",
+    "Existing caller AbortSignal and timeout semantics remain intact.",
+    "AiGateway remains the durable provider-admin owner and backend/routes/models.js remains the current HTTP lifecycle owner.",
+    "No Local Auxiliary scheduler, old System Center UI, second model router or second provider administration authority is restored."
+  ],
+  "riskSurface": [
+    "arbitrary remote pull target / SSRF-like physical model fetch",
+    "false success after empty malformed or truncated HTTP-200 NDJSON",
+    "multi-layer progress reset or misleading denominator",
+    "100-percent presentation before upstream terminal success",
+    "abort/timeout regression",
+    "durable provider-admin owner bypass",
+    "unrelated Adaptive Local or Product behavior change"
+  ],
+  "localAcceptance": [
+    "Focused backend regression proves a normal trusted loopback success stream still succeeds and preserves the caller AbortSignal.",
+    "Focused backend regression rejects a non-loopback endpoint not present in CONFIG.ollamaHosts with OLLAMA_ENDPOINT_NOT_AUTHORIZED before physical fetch.",
+    "Focused backend regression proves empty, malformed-only and truncated/nonterminal HTTP-200 streams fail with OLLAMA_PULL_INCOMPLETE.",
+    "Focused backend regression proves two or more digest layers aggregate completed/knownTotal cumulatively, keep total=0 and percent=0 before success, then seal total and percent=100 only on success.",
+    "Static review confirms backend/routes/models.js still delegates to aiGateway.pullLocalModel and AiGateway still delegates through _runDurableProviderAdmin; neither file changes.",
+    "git diff --check equivalent is GREEN and changed path set is exactly the authorized two paths."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_OLLAMA_PHYSICAL_PULL_SEAM_AND_MATURE_REVIEWED_GUARD_SEMANTICS",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Ollama",
+        "source": "ollama/ollama through the repository-existing backend/services/ollamaClient.js seam",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The product already uses Ollama /api/pull and has mature reviewed guard semantics in frozen PR #566. Reusing those guards in the current pullModel seam is narrower and safer than introducing another download/runtime/provider layer."
+      },
+      {
+        "name": "Yance AiGateway DurableInternalOperationAuthority provider-admin seam",
+        "source": "backend/services/aiGateway.js + backend/services/durableInternalOperationAuthority.js",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-existing-authority",
+        "fit": "FIT",
+        "reason": "PR #637 already made AiGateway durable provider-admin the single owner above physical Ollama I/O; this batch preserves rather than duplicates that authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not restore PR #566 Local Auxiliary queue/provider architecture or retired frontend/System Center composition.",
+      "Do not create another model downloader, provider-admin durable authority, model router, retry/fallback engine or runtime.",
+      "Do not change AiGateway, model routes, dependencies, runtime topology or Product successor-v11 for this root."
+    ]
+  },
+  "frozenEvidence": {
+    "controllerIssue": 1051,
+    "controllerStateBeforeAuthorization": "V5.113",
+    "currentMain": "9a6f067a798263747a0bde59bb95d7bac5d6d5ac",
+    "matrixPrerequisiteMerge": "9a6f067a798263747a0bde59bb95d7bac5d6d5ac",
+    "productSuccessorV11": "FROZEN / exact authorized 35-path worktree and consumed local evidence must not be reset, cleaned or rerun"
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
