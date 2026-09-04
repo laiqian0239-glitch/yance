@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-SUCCESSOR-V12",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing fresh-main supersession for the already-frozen Product Final Living Relationship OS causal batch after exact forward reconciliation from local base 09bd9b138f771503be5289b1d540c31f19378b8e to trusted main c3fdd3631f312387f6bc6ed58d07dade55ba77e7 proved one previously-authorized Product path, integration/element-module/src/YanceLogin.css, is already byte-identical to trusted main and therefore no longer belongs in the candidate diff. The preserved Product behavior is not reduced: trusted main already contains the required auth viewport/scroll and first-use styling bytes. This authorization changes only transport identity from the obsolete exact-35 declaration to the truthful exact-34 fresh-main candidate; it does not reopen Product design, expand scope, or authorize any second timeline, composer, Matrix session, translation engine, account backend, route registry, model router, dependency, workflow, database, credential, runtime-topology or general-purpose infrastructure change.",
+  "base": {
+    "branch": "main",
+    "commit": "c3fdd3631f312387f6bc6ed58d07dade55ba77e7"
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v11-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v11",
+    "reason": "The V11 authorization remains immutable historical evidence, but its exact 35-path set is no longer truthful after trusted main independently absorbed YanceLogin.css byte-for-byte. Successor V12 preserves the same Product causal batch on fresh main with a new implementation branch and the exact remaining 34-path diff."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v12-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v12-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "02080175b7943f406a65ae47cb8282bee63ad489687f77c8aa01aeae256fb5d9",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v12",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 34,
+    "approvedChangedFileSetSha256": "4fc2388463e3b993a5d23070c22bf7db87d3b6a856aa293563759b727889716e",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "product": "PRODUCT_FINAL / LIVING_RELATIONSHIP_OS_COMPOSITION_INCOMPLETE",
+    "transportPrerequisite": "DELEGATED_AUTHORIZATION / FRESH_MAIN_PATH_SET_CONVERGED_FROM_35_TO_34",
+    "directEvidence": "Windows Local Executor proved the preserved V11 Product bytes reconcile cleanly to trusted main c3fdd3631f312387f6bc6ed58d07dade55ba77e7, with YanceLogin.css preserved byte equal to trusted main and all other candidate changes confined to the remaining exact 34 authorized Product paths.",
+    "requiredRepair": "Ordinary-merge this exact single-file authorization after its one automatic validation event is GREEN. Then move the existing preserved local Product worktree bytes to the exact V12 implementation branch without reimplementation, fast-forward only over this governance merge, restore the same exact 34 Product bytes, complete the bounded Product reachability closure and mandatory Windows Local Release Harness, and only then create one Product Exact Head."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerStateAtDiscovery": "V5.118",
+    "preReconcileLocalHead": "09bd9b138f771503be5289b1d540c31f19378b8e",
+    "freshMain": "c3fdd3631f312387f6bc6ed58d07dade55ba77e7",
+    "oldApprovedPathCount": 35,
+    "oldApprovedPathSetSha256": "23d5f5fb4b56b2b9d3533a0834442d5e7620079bab44f54d44c0789bfa37b67b",
+    "newApprovedPathCount": 34,
+    "newApprovedPathSetSha256": "4fc2388463e3b993a5d23070c22bf7db87d3b6a856aa293563759b727889716e",
+    "absorbedPath": "integration/element-module/src/YanceLogin.css",
+    "absorbedPathDisposition": "PRESERVED_BEHAVIOR_ALREADY_IN_TRUSTED_MAIN_BYTE_IDENTITY",
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true
+  },
+  "requiredBehavior": [
+    "Preserve the complete already-frozen Product Final causal batch; this is a fresh-main transport/path-set reconciliation, not a Product capability redesign.",
+    "Treat integration/element-module/src/YanceLogin.css as satisfied by trusted-main byte identity; do not create a meaningless CSS delta merely to restore the historical 35-path count.",
+    "Preserve the reconciled first-use local account UI and the real Element child as the sole login/session authority while ordinary user-visible copy does not expose Matrix, Element or Synapse architecture terminology.",
+    "Preserve Matrix local identity IPC status/create channels, sensitive password handling and explicit backend Matrix environment forwarding already present on trusted main.",
+    "Preserve Yance People / Relationship World as the sole Primary Navigation and the real Element timeline/composer/send authority.",
+    "Resolve the already-frozen Product reachability gates against the preserved Product bytes before Windows Harness; any genuinely required path outside this exact 34-path implementation set must stop for a separate exact authorization.",
+    "Run directly affected focused validation and then mandatory Windows Local Release Harness at 100%, 125% and 150% before any Product Exact Head."
+  ],
+  "negativeProofs": [
+    "No Product implementation byte is created by this authorization commit.",
+    "No reimplementation or replay of the already-closed Matrix, Ollama, translation, WP-B or XState prerequisites.",
+    "No meaningless YanceLogin.css mutation solely to satisfy the obsolete exact-35 count.",
+    "No second timeline, composer, Matrix session, translation engine, account backend, route registry, model router/provider admin, theme store, settings store, learning engine, persona store, media library, voice engine or avatar engine.",
+    "No dependency, package, lockfile, workflow, database, credential persistence or runtime-topology change.",
+    "No stage, commit, push, Product PR, Product CI, RC or formal UAT before local Product closure is GREEN."
+  ],
+  "ossFit": {
+    "decision": "REUSE_PINNED_ELEMENT_AND_EXISTING_YANCE_AUTHORITIES_WITH_THIN_PRODUCT_PROJECTION_AND_TRUTHFUL_FRESH_MAIN_PATH_CONVERGENCE",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Web pinned Product conversation runtime",
+        "source": "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c; config/upstreams/v21-comms-p0.json",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "source-module",
+        "fit": "PARTIAL_FIT",
+        "reason": "It remains the mature authority for the real Matrix timeline, composer, send path and uploader; the Product batch only projects Yance relationship context and narrow control seams around it."
+      },
+      {
+        "name": "Existing Yance Product projection and desktop authorities",
+        "source": "current trusted main plus preserved successor-v11 local Product bytes",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The fresh-main reconciliation reuses the existing Yance Store, Electron lifecycle, account, translation, Matrix identity, media, voice, presence and relationship authorities. No new general-purpose subsystem is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create or retain a synthetic CSS-only delta for YanceLogin.css after trusted main already contains the same bytes.",
+      "Do not create a second timeline, composer, Element/Matrix send path, Matrix session, translation engine, account backend, route registry, model router/provider admin, theme/settings store, persona store, learning engine, media library, voice engine or avatar engine."
+    ]
+  },
+  "requiredValidation": {
+    "authorization": [
+      "exact branch base equals c3fdd3631f312387f6bc6ed58d07dade55ba77e7",
+      "authorization diff is exactly one added governance JSON",
+      "authorization path-set SHA-256 equals 02080175b7943f406a65ae47cb8282bee63ad489687f77c8aa01aeae256fb5d9",
+      "implementation path count equals 34 and canonical path-set SHA-256 equals 4fc2388463e3b993a5d23070c22bf7db87d3b6a856aa293563759b727889716e",
+      "supersession points only to the frozen V11 authorization/implementation branch"
+    ],
+    "implementationBeforeExactHead": [
+      "preserved Product bytes are moved to fix/v21-product-final-living-relationship-os-successor-v12 without reimplementation",
+      "current implementation parent is the ordinary authorization merge commit",
+      "relative candidate path set is exactly the authorized 34 paths",
+      "directly affected focused tests and git diff --check are GREEN",
+      "bounded reachability gates are GREEN or separately stopped for outside-scope authorization",
+      "Windows Local Release Harness is GREEN at 100%, 125% and 150%"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
