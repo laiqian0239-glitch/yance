@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP-B-XSTATE-AUDIT-RECOVERY-P0-V10",
+  "proposalRevision": 10,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen V9 implementation Exact Head 90cc5cf967ca8d96aafa2df30b390436dd72a27a / PR #1082 / WP-B run 33842038889 proved the exact npm 10.9.8 timeout-message classifier on Ubuntu but exposed a distinct Windows audit-sandbox input root. Pinned npm 10.9.8 returned explicit HTTP 400 from POST https://registry.npmjs.org/-/npm/v1/security/audits/quick with body \"Invalid package tree, run  npm install  to rebuild your package-lock.json\". V9 correctly did not retry the explicit HTTP response. V10 authorizes only the same three-file WP-B seam to materialize the isolated audit sandbox with npm's real install authority before real npm audit, while preserving every V9 timeout, retry, fail-closed, supply-chain, vulnerability, cleanup and upstream-test contract.",
+  "base": {
+    "branch": "main",
+    "commit": "92b229deb2f0ae99684b6e152112d7cecb123baf"
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-wp-b-xstate-audit-recovery-p0-v9-authorization.json",
+    "implementationBranch": "fix/v21-wp-b-xstate-audit-recovery-p0-v9",
+    "reason": "V9 authorization ordinary-merged at 92b229deb2f0ae99684b6e152112d7cecb123baf and produced frozen RED implementation 90cc5cf967ca8d96aafa2df30b390436dd72a27a / PR #1082 / run 33842038889. That evidence remains immutable. V10 replaces only the audit-sandbox preparation authority for the distinct invalid-package-tree root."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp-b-xstate-audit-recovery-p0-v10-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp-b-xstate-audit-recovery-p0-v10-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "1110f5fa1f2618b818e46416bee401e07b0a0d0e02ad1f9c5953f4e5010007ec",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp-b-xstate-audit-recovery-p0-v10",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/architectureClosureV2/wpB/xstateUpstreamEvidenceGate.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-xstate-package.js",
+      "tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "9deddc5f15283961a82089fe5c632773d03e578f2242df9893f0cc35426bfbc9",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "sharedImplementationBranchPolicyModificationAllowed": false,
+    "activeWpBAuthorityModificationAllowed": false,
+    "reviewReceiptModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCause": {
+    "code": "WP_B_XSTATE_UPSTREAM / NPM_AUDIT_SANDBOX_PACKAGE_TREE_NOT_MATERIALIZED",
+    "directFailure": "Frozen V9 WP-B run 33842038889 passed XState upstream on Ubuntu but failed Windows job 100926134738. Pinned npm 10.9.8 completed before the 120000ms outer timeout and returned status 1 with explicit HTTP 400 from POST https://registry.npmjs.org/-/npm/v1/security/audits/quick. The response body states \"Invalid package tree, run  npm install  to rebuild your package-lock.json\". The verifier currently prepares the isolated audit sandbox with npm install --package-lock-only, then invokes real npm audit. That lock-only preparation does not materialize the package tree required by the Windows npm audit path.",
+    "sameRootSurface": "verify-wp-b-xstate-package.js owns isolated audit-sandbox creation, npm install preparation, real npm audit execution, timeout/retry classification and lock/integrity verification. The focused WP-B test file owns deterministic command-contract regressions, and verify-wp-b-xstate-upstream.js owns upstream failure evidence plus shared cleanup. No workflow, package manifest, repository lockfile or new HTTP authority is needed.",
+    "requiredRepair": "Re-derive the complete V9 three-file repair from the fresh V10 authorization merge. Preserve npm native fetch-timeout=30000, fetch-retries=1, fetch-retry-mintimeout=1000, fetch-retry-maxtimeout=5000, the 65000ms maximum single fetch cycle, the 120000ms outer hard timeout, the exact two whole-audit attempts, the exact two proven rendered timeout messages for advisories/bulk and audits/quick, and explicit HTTP responses as non-retry. For the isolated audit sandbox only, replace package-lock-only-only preparation with npm's real install authority: npm install --ignore-scripts --save-exact --no-fund --no-audit xstate@5.32.5, so a physical package tree and lock entry exist before real npm audit. Do not mutate repository package.json/package-lock.json or dependencies. Preserve sandbox lock version/resolved/integrity/license verification, strict complete numeric metadata.vulnerabilities validation, high/critical rejection, XState 5.32.5, upstream tag/commit/tarball/license authority, real corepack pnpm test:core and shared bounded Node cleanup."
+  },
+  "causalEvidence": {
+    "frozenImplementationPullRequest": 1082,
+    "frozenImplementationHead": "90cc5cf967ca8d96aafa2df30b390436dd72a27a",
+    "frozenWorkflowRunId": 33842038889,
+    "ubuntuJobId": 100926134665,
+    "windowsJobId": 100926134738,
+    "ubuntuFailure": "NONE: exact V9 XState upstream verification completed GREEN on Ubuntu.",
+    "windowsFailure": "Pinned npm 10.9.8 returned explicit HTTP 400 for POST https://registry.npmjs.org/-/npm/v1/security/audits/quick; body: Invalid package tree, run  npm install  to rebuild your package-lock.json. V9 correctly failed closed and did not retry.",
+    "precedingKnownGreenRunId": 33791922521,
+    "precedingKnownGreenUbuntuJobId": 100770301240,
+    "precedingKnownGreenWindowsJobId": 100770300810,
+    "frozenHeadNeverRerun": true,
+    "authorizationV3PullRequest": 1067,
+    "authorizationV3Head": "24f02e36310ce083f5327a78728cd4ed4f358520",
+    "authorizationV3Wp0RunId": 33828216583,
+    "authorizationV3Failure": "supersedes declaration violated the exact base-owned generic delegated-governance schema required by implementationBranchPolicy",
+    "authorizationV3FrozenNeverRerun": true,
+    "authorizationV4PullRequest": 1068,
+    "authorizationV4Head": "3d56f8d9079a5ba6ea2023f1035a60bdb1fe7436",
+    "authorizationV4Wp0RunId": 33831311050,
+    "authorizationV4GovernanceJobId": 100894760984,
+    "authorizationV4Failure": "OSS-first admission failed because otherwise valid ossFit evidence omitted required non-empty retireOrAvoid array",
+    "authorizationV4FrozenNeverRerun": true
+  },
+  "requiredBehavior": [
+    "Preserve exact XState xstate@5.32.5, upstream tag/commit, tarball digests, MIT license and supply-chain authority.",
+    "Preserve real npm audit --omit=dev --json evidence and existing high/critical vulnerability rejection semantics.",
+    "Prepare the isolated audit sandbox with a real npm install that materializes node_modules and package-lock before npm audit; package-lock-only must not be the sole preparation.",
+    "The sandbox install must use --ignore-scripts --save-exact --no-fund --no-audit and exact xstate@5.32.5.",
+    "Preserve npm native fetch-timeout=30000, fetch-retries=1, fetch-retry-mintimeout=1000 and fetch-retry-maxtimeout=5000.",
+    "Preserve the repository outer NPM_AUDIT hard timeout at 120000ms per attempt and the exact two-attempt whole-audit cap.",
+    "Retry attempt two only for completed nonzero npm audit JSON with a top-level error object and one of the two exact proven network-timeout messages for advisories/bulk or audits/quick.",
+    "Do not retry explicit HTTP responses including the observed 400 invalid-package-tree response, rate limits, arbitrary/unbound errors, malformed JSON, tool failures, execution failures or vulnerability-policy failures.",
+    "Preserve status, signal, stdout and stderr for failed audit transport evidence.",
+    "Retain complete finite non-negative numeric metadata.vulnerabilities validation, shared Node cleanup authority and real corepack pnpm test:core."
+  ],
+  "negativeProofs": [
+    "No workflow, trigger, runner matrix or path-routing modification.",
+    "No repository package.json, package-lock, dependency or npm version mutation.",
+    "No supply-chain lock, XState version/tag/commit/integrity/license or vulnerability-threshold change.",
+    "No custom registry HTTP client, generic retry framework, second cleanup subsystem or process-supervision subsystem.",
+    "No retry of explicit HTTP status responses including HTTP 400 invalid-package-tree.",
+    "No substring, regex, wildcard, host-only or generic network-timeout matching.",
+    "No conversion of npm audit transport or vulnerability failures to warning, skip or success.",
+    "No mutation, amend, force-push or rerun of frozen V9 implementation head 90cc5cf967ca8d96aafa2df30b390436dd72a27a / PR #1082 / run 33842038889.",
+    "No Product successor-v11, Matrix, Ollama, RC or UAT mutation."
+  ],
+  "ossFit": {
+    "decision": "ADOPT_NPM_CLI_REAL_SANDBOX_INSTALL_AND_EXISTING_AUDIT_RETRY_AUTHORITY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "npm CLI 10.9.8 real install materialization",
+        "source": "npm CLI existing install command in the isolated WP-B audit sandbox",
+        "license": "npm CLI existing runtime",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "npm itself reports that the quick audit endpoint requires a valid materialized package tree and asks to run npm install. The verifier already owns an isolated temporary sandbox, so using npm install there is the mature narrow authority and introduces no repository dependency change or second package manager."
+      },
+      {
+        "name": "Node.js fs.rmSync recursive retry/backoff",
+        "source": "node:fs fs.rmSync maxRetries/retryDelay",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Already adopted and proven in the same WP-B batch; re-derive unchanged for materialized node_modules cleanup."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not build a custom registry HTTP client or duplicate npm registry/audit authority.",
+      "Do not keep package-lock-only as the sole audit-sandbox preparation when npm 10.9.8 requires a materialized package tree.",
+      "Do not mutate the repository package manifest, lockfile or dependency graph; materialization is confined to the governed temporary audit sandbox.",
+      "Do not add a generic retry framework or second cleanup subsystem; reuse runGovernedNpmAudit and Node fs.rmSync authorities.",
+      "Do not retry explicit HTTP 400 invalid-package-tree responses."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --check tools/architecture-closure-v2/verify-wp-b-xstate-package.js",
+      "node --check tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/xstateUpstreamEvidenceGate.test.js",
+      "git diff --check"
+    ],
+    "behavior": [
+      "audit sandbox preparation uses npm install without --package-lock-only and includes --ignore-scripts --save-exact --no-fund --no-audit plus exact xstate@5.32.5",
+      "real npm audit is invoked only after the materialized sandbox install succeeds",
+      "sandbox package-lock entry remains exact xstate@5.32.5 with expected resolved/integrity/license authority",
+      "first governed process timeout then success performs exactly two audit attempts",
+      "each exact advisories-bulk or audits/quick timeout message then success performs exactly two attempts",
+      "repeated recognized exact timeout fails closed after exactly two attempts with raw evidence",
+      "explicit HTTP 400 invalid-package-tree remains immediate fail-closed and is never retried",
+      "near-miss/unbound errors, rate limit, tool failure, execution failure and malformed JSON do not retry",
+      "valid lower-severity-only audit report remains success and high/critical remains violation",
+      "bounded cleanup removes materialized node_modules while primary verification failure remains primary",
+      "one Windows local harness proves the real materialized sandbox no longer fails with Invalid package tree before the single candidate CI"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
