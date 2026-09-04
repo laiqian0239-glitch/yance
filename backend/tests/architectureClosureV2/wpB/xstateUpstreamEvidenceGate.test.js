@@ -225,3 +225,232 @@ test('upstream verification runs the real XState pnpm test:core command', () => 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('bounded npm audit recovery uses the native fetch policy and retries only governed timeout', () => {
+  let calls = 0;
+  const ok = packageVerifier.runGovernedNpmAudit('/audit', {
+    runCommand(command, args, options) {
+      calls += 1;
+      assert.match(command, /^npm(?:\.cmd)?$/u);
+      assert.deepEqual(args, ['audit', '--omit=dev', '--json']);
+      assert.equal(options.commandKind, 'NPM_AUDIT');
+      assert.equal(options.timeoutMs, 120_000);
+      assert.equal(options.allowFailure, true);
+      assert.deepEqual(options.env, {
+        npm_config_fetch_timeout: '30000',
+        npm_config_fetch_retries: '1',
+        npm_config_fetch_retry_mintimeout: '1000',
+        npm_config_fetch_retry_maxtimeout: '5000'
+      });
+      if (calls === 1) throw Object.assign(new Error('timeout'), { code: 'WP_B_UPSTREAM_COMMAND_TIMEOUT' });
+      return Object.freeze({ status: 0, stdout: '{}', stderr: '' });
+    }
+  });
+  assert.equal(ok.status, 0);
+  assert.equal(calls, 2);
+  assert.equal(packageVerifier.NPM_AUDIT_MAX_FETCH_CYCLE_MS, 65_000);
+  assert.ok(packageVerifier.NPM_AUDIT_MAX_FETCH_CYCLE_MS < packageVerifier.COMMAND_TIMEOUTS.NPM_AUDIT);
+
+  for (const code of ['WP_B_UPSTREAM_RATE_LIMITED', 'WP_B_UPSTREAM_COMMAND_EXECUTION_FAILED', 'WP_B_UPSTREAM_TOOL_UNAVAILABLE']) {
+    calls = 0;
+    assert.throws(() => packageVerifier.runGovernedNpmAudit('/audit', {
+      runCommand() {
+        calls += 1;
+        throw Object.assign(new Error(code), { code });
+      }
+    }), error => error.code === code);
+    assert.equal(calls, 1);
+  }
+
+  calls = 0;
+  assert.throws(() => packageVerifier.runGovernedNpmAudit('/audit', {
+    runCommand() {
+      calls += 1;
+      throw Object.assign(new Error('timeout'), { code: 'WP_B_UPSTREAM_COMMAND_TIMEOUT' });
+    }
+  }), error => error.code === 'WP_B_UPSTREAM_COMMAND_TIMEOUT');
+  assert.equal(calls, 2);
+});
+
+test('completed advisories-bulk network timeout retries exactly once and preserves raw transport evidence on exhaustion', () => {
+  const transient = Object.freeze({
+    status: 1,
+    signal: null,
+    stdout: JSON.stringify({
+      message: 'network timeout at: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk',
+      error: { summary: '', detail: '' }
+    }),
+    stderr: 'npm warn audit network timeout at: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk\nnpm error audit endpoint returned an error'
+  });
+
+  let calls = 0;
+  const recovered = packageVerifier.runGovernedNpmAudit('/audit', {
+    runCommand() {
+      calls += 1;
+      if (calls === 1) return transient;
+      return Object.freeze({ status: 0, signal: null, stdout: '{}', stderr: '' });
+    }
+  });
+  assert.equal(calls, 2);
+  assert.equal(recovered.status, 0);
+
+  calls = 0;
+  assert.throws(
+    () => packageVerifier.runGovernedNpmAudit('/audit', {
+      runCommand() {
+        calls += 1;
+        return transient;
+      }
+    }),
+    error => {
+      assert.equal(error.code, 'WP_B_UPSTREAM_NPM_AUDIT_ENDPOINT_NETWORK_TIMEOUT');
+      assert.equal(error.commandKind, 'NPM_AUDIT');
+      assert.equal(error.timeoutMs, 120_000);
+      assert.equal(error.status, 1);
+      assert.equal(error.signal, null);
+      assert.equal(error.stdout, transient.stdout);
+      assert.equal(error.stderr, transient.stderr);
+      assert.equal(error.attempts, 2);
+      return true;
+    }
+  );
+  assert.equal(calls, 2);
+});
+
+test('completed npm audit results outside the exact transient signature never retry', () => {
+  const exactMessage = 'network timeout at: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk';
+  const cases = [
+    Object.freeze({
+      status: 1,
+      stdout: JSON.stringify({
+        message: 'network timeout at: https://registry.npmjs.org/-/npm/v1/security/advisories/other',
+        error: { summary: '', detail: '' }
+      }),
+      stderr: ''
+    }),
+    Object.freeze({
+      status: 0,
+      stdout: JSON.stringify({
+        message: exactMessage,
+        error: { summary: '', detail: '' }
+      }),
+      stderr: ''
+    }),
+    Object.freeze({
+      status: 1,
+      stdout: '{"message":',
+      stderr: 'truncated'
+    })
+  ];
+
+  for (const result of cases) {
+    let calls = 0;
+    const returned = packageVerifier.runGovernedNpmAudit('/audit', {
+      runCommand() {
+        calls += 1;
+        return result;
+      }
+    });
+
+    assert.equal(calls, 1);
+    assert.equal(returned, result);
+
+    if (result.stdout === '{"message":') {
+      assert.throws(
+        () => packageVerifier.parseJsonOutput(returned, 'npm audit'),
+        error => error.code === 'WP_B_UPSTREAM_JSON_INVALID'
+      );
+    } else {
+      assert.throws(
+        () => packageVerifier.evaluateAuditReport(JSON.parse(returned.stdout)),
+        error => error.code === 'WP_B_XSTATE_AUDIT_REPORT_INVALID'
+      );
+    }
+  }
+});
+
+test('npm audit report evaluation accepts complete lower severities and preserves vulnerability policy', () => {
+  const lowerOnly = packageVerifier.evaluateAuditReport({
+    metadata: { vulnerabilities: { info: 1, low: 2, moderate: 3, high: 0, critical: 0, total: 6 } }
+  });
+  assert.deepEqual(lowerOnly.vulnerabilities, { info: 1, low: 2, moderate: 3, high: 0, critical: 0, total: 6 });
+  assert.deepEqual(lowerOnly.violations, []);
+
+  const prohibited = packageVerifier.evaluateAuditReport({
+    metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 1, total: 2 } }
+  });
+  assert.deepEqual(prohibited.violations.map(item => item.code), ['WP_B_XSTATE_HIGH_OR_CRITICAL_VULNERABILITY']);
+});
+
+test('npm audit report evaluation fails closed for invalid parseable structures and counts', () => {
+  const valid = { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 };
+  const invalidReports = [
+    {},
+    { metadata: {} },
+    { error: { code: 'EAUDIT' }, metadata: { vulnerabilities: { ...valid } } },
+    { metadata: { vulnerabilities: { ...valid, low: '0' } } },
+    { metadata: { vulnerabilities: { ...valid, high: -1 } } },
+    { metadata: { vulnerabilities: { ...valid, moderate: Number.NaN } } },
+    { metadata: { vulnerabilities: { ...valid, critical: Number.POSITIVE_INFINITY } } }
+  ];
+  const missing = { ...valid };
+  delete missing.info;
+  invalidReports.push({ metadata: { vulnerabilities: missing } });
+
+  for (const report of invalidReports) {
+    assert.throws(
+      () => packageVerifier.evaluateAuditReport(report),
+      error => error.code === 'WP_B_XSTATE_AUDIT_REPORT_INVALID'
+    );
+  }
+});
+
+test('npm audit malformed JSON fails closed before report evaluation', () => {
+  assert.throws(
+    () => packageVerifier.parseJsonOutput(
+      { stdout: '{"metadata":', stderr: 'transport truncated' },
+      'npm audit'
+    ),
+    error => error.code === 'WP_B_UPSTREAM_JSON_INVALID'
+  );
+});
+test('governed scratch cleanup uses Node bounded retry and preserves primary failure', () => {
+  let received = null;
+  assert.equal(packageVerifier.removeGovernedScratchDirectory('scratch', {
+    rmSyncImpl(root, options) {
+      assert.equal(root, 'scratch');
+      received = options;
+    }
+  }), true);
+  assert.deepEqual(received, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+
+  const busy = () => { throw Object.assign(new Error('busy'), { code: 'EBUSY' }); };
+  assert.throws(() => packageVerifier.removeGovernedScratchDirectory('scratch', { rmSyncImpl: busy }),
+    error => error.code === 'WP_B_UPSTREAM_SCRATCH_CLEANUP_FAILED' && error.cleanupCauseCode === 'EBUSY');
+  const primary = Object.assign(new Error('primary timeout'), { code: 'WP_B_UPSTREAM_COMMAND_TIMEOUT' });
+  assert.equal(packageVerifier.removeGovernedScratchDirectory('scratch', { primaryError: primary, rmSyncImpl: busy }), false);
+  assert.equal(primary.code, 'WP_B_UPSTREAM_COMMAND_TIMEOUT');
+  assert.equal(primary.message, 'primary timeout');
+  assert.equal(primary.cleanupCode, 'WP_B_UPSTREAM_SCRATCH_CLEANUP_FAILED');
+  assert.equal(primary.cleanupCauseCode, 'EBUSY');
+  assert.equal(primary.cleanupScratchRoot, 'scratch');
+  assert.equal(primary.cleanupMaxRetries, 5);
+  assert.equal(primary.cleanupRetryDelayMs, 100);
+});
+
+test('all XState scratch owners share cleanup authority without weakening supply-chain checks', () => {
+  const packageSource = fs.readFileSync(require.resolve('../../../../tools/architecture-closure-v2/verify-wp-b-xstate-package'), 'utf8');
+  const upstreamSource = fs.readFileSync(require.resolve('../../../../tools/architecture-closure-v2/verify-wp-b-xstate-upstream'), 'utf8');
+  assert.equal(packageSource.includes('fs.rmSync('), false);
+  assert.match(packageSource, /removeGovernedScratchDirectory\(checkoutRoot, \{ primaryError \}\)/u);
+  assert.match(packageSource, /removeGovernedScratchDirectory\(tempRoot, \{ primaryError \}\)/u);
+  assert.equal(upstreamSource.includes('fs.rmSync('), false);
+  assert.match(upstreamSource, /status: error\.status === undefined \? null : error\.status/u);
+  assert.match(upstreamSource, /signal: error\.signal \|\| null/u);
+  assert.match(upstreamSource, /stdout: error\.stdout \|\| ''/u);
+  assert.match(upstreamSource, /stderr: error\.stderr \|\| ''/u);
+  assert.match(upstreamSource, /packageVerifier\.removeGovernedScratchDirectory\(tempRoot, \{ primaryError \}\)/u);
+  assert.match(packageSource, /const EXACT_VERSION = '5\.32\.5';/u);
+  assert.match(packageSource, /NPM_AUDIT:\s*120_000/u);
+  assert.match(upstreamSource, /const UPSTREAM_TEST_COMMAND = 'corepack pnpm test:core';/u);
+});
