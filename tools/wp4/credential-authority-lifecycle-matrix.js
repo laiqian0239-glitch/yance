@@ -23,10 +23,15 @@ const MIGRATION_POINTS = Object.freeze([
 ]);
 
 function read(file) { return JSON.parse(fs.readFileSync(file, 'utf8')); }
-function makeHost(root, safeStorage = lifecycleSafeStorage()) {
+function makeHost(root, safeStorage = lifecycleSafeStorage(), fsApi = null) {
   const p = paths(root);
   const vault = new CredentialVault(p.vaultFile, { safeStorage });
-  return new CredentialVaultHost({ vault, metadataPath: p.metadataPath, transactionPath: p.transactionPath, lifecycleIntentPath: p.intentPath, lifecycleCompletedPath: p.completedPath });
+  const hostOptions = {
+    vault, metadataPath: p.metadataPath, transactionPath: p.transactionPath,
+    lifecycleIntentPath: p.intentPath, lifecycleCompletedPath: p.completedPath
+  };
+  if (fsApi) hostOptions.fs = fsApi;
+  return new CredentialVaultHost(hostOptions);
 }
 function runChild(root, point, mode = 'SIGKILL') {
   return childProcess.spawnSync(process.execPath, [CHILD, root, point, mode], { cwd: ROOT, encoding: 'utf8', timeout: 30000, maxBuffer: 5 * 1024 * 1024 });
@@ -171,6 +176,122 @@ async function negativeCases() {
   }
   return rows;
 }
+function snapshotLifecycleFiles(root) {
+  const p = paths(root);
+  const readOrNull = file => { try { return fs.readFileSync(file); } catch (_) { return null; } };
+  return {
+    intent: readOrNull(p.intentPath),
+    journal: readOrNull(p.transactionPath),
+    metadata: readOrNull(p.metadataPath),
+    marker: readOrNull(p.completedPath),
+    vault: readOrNull(p.vaultFile)
+  };
+}
+function makeUnlinkFaultFs(root, { code, attempts }) {
+  const intentPath = path.resolve(paths(root).intentPath);
+  const realPromises = fs.promises;
+  const stats = { unlinkCalls: 0, injectedUnlinkCalls: 0 };
+  const wrapped = new Proxy(realPromises, {
+    get(target, prop) {
+      if (prop === 'unlink') {
+        return async file => {
+          stats.unlinkCalls += 1;
+          if (path.resolve(String(file)) === intentPath && (attempts === Infinity || stats.injectedUnlinkCalls < attempts)) {
+            stats.injectedUnlinkCalls += 1;
+            const failure = new Error(`Injected ${code} on lifecycle intent unlink`);
+            failure.code = code;
+            throw failure;
+          }
+          return target.unlink(file);
+        };
+      }
+      const value = Reflect.get(target, prop);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }
+  });
+  return { fs: { promises: wrapped }, stats };
+}
+// Both GENESIS and MIGRATION crash residues resume through the same ensureActive()
+// completedExists branch and the same coordinator._removeIntent() seam, so the
+// injected unlink fault below automatically covers the identical path for both
+// operation types.
+async function transientIntentDeleteRetriesToActiveCase(kind) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), `wp4-${kind.toLowerCase()}-intent-transient-`));
+  try {
+    const crashPoint = `${kind}_AFTER_COMPLETED_MARKER`;
+    const entries = kind === 'MIGRATION' ? [['legacy/one', { token: 'redacted-one' }], ['legacy/two', { token: 'redacted-two' }]] : [];
+    if (kind === 'MIGRATION') seedLegacyVault(root, entries);
+    const child = runChild(root, crashPoint);
+    const crashed = child.status !== 0 || Boolean(child.signal);
+    const residue = snapshotLifecycleFiles(root);
+    const fault = makeUnlinkFaultFs(root, { code: 'EBUSY', attempts: 2 });
+    const host = makeHost(root, lifecycleSafeStorage(), fault.fs);
+    let faultInitResolved = false;
+    try { await host.initialize(); faultInitResolved = true; } catch (_) {}
+    const afterFault = snapshotLifecycleFiles(root);
+    const p = paths(root);
+    const journal = read(p.transactionPath); validateJournal(journal);
+    const genesisEvents = journal.authorityEvents.filter(event => ['GENESIS', 'MIGRATION_GENESIS'].includes(event.eventType));
+    const marker = read(p.completedPath);
+    let verified = null;
+    if (faultInitResolved) verified = await verifyActive(root, kind === 'MIGRATION' ? entries.map(([ref]) => ref) : [], kind);
+    const checks = {
+      realChildCrashObserved: crashed,
+      faultHostInitializeResolved: faultInitResolved,
+      boundedRetrySucceeded: faultInitResolved && fault.stats.unlinkCalls >= 3 && fault.stats.injectedUnlinkCalls === 2,
+      intentCleared: faultInitResolved && !fs.existsSync(p.intentPath),
+      completedMarkerPreserved: Boolean(residue.marker && afterFault.marker && residue.marker.equals(afterFault.marker)),
+      journalBytesPreservedThroughResume: Boolean(residue.journal && afterFault.journal && residue.journal.equals(afterFault.journal)),
+      vaultBytesPreservedThroughResume: Boolean(residue.vault && afterFault.vault && residue.vault.equals(afterFault.vault)),
+      exactlyOneGenesis: genesisEvents.length === 1,
+      vaultEpochMatchesGenesis: marker.vaultEpoch === genesisEvents[0]?.vaultEpoch,
+      authorityActiveAfterResume: verified?.status === 'PASS',
+      noSecondGenesisAcrossResume: verified?.checks.uniqueInitialAuthority === true,
+      completedMarkerPresent: verified?.checks.completedMarkerPresent === true
+    };
+    const failed = Object.entries(checks).filter(([, pass]) => pass !== true).map(([name]) => name);
+    return { id: `${kind}_TRANSIENT_INTENT_DELETE_RETRIES_TO_ACTIVE`, kind, crashPoint, faultCode: 'EBUSY', faultInjectedAttempts: 2, injectedUnlinkCalls: fault.stats.injectedUnlinkCalls, totalUnlinkCalls: fault.stats.unlinkCalls, status: failed.length ? 'FAIL' : 'PASS', checks, failed, exitCode: child.status, terminationSignal: child.signal || '', stderrTail: String(child.stderr || '').slice(-1000), vaultEpoch: marker.vaultEpoch, metadataGeneration: verified?.metadataGeneration ?? 0, journalTransactionCount: Object.keys(journal.transactions || {}).length, authorityEventCount: journal.authorityEvents.length, latestAuthorityGeneration: headEvent(journal).generation, vaultReferenceCount: kind === 'MIGRATION' ? entries.length : 0, decryptedEntryCount: verified?.decryptedEntryCount ?? 0, frameEntryCount: verified?.frameEntryCount ?? 0, activeTransactionId: '', backendFinalState: 'NOT_STARTED_AUTHORITY_ONLY', secretValueRecorded: false, secretHashRecorded: false };
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+}
+async function persistentIntentDeleteFailsClosedRecoverableCase(kind) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), `wp4-${kind.toLowerCase()}-intent-persistent-`));
+  try {
+    const crashPoint = `${kind}_AFTER_COMPLETED_MARKER`;
+    const entries = kind === 'MIGRATION' ? [['legacy/one', { token: 'redacted-one' }], ['legacy/two', { token: 'redacted-two' }]] : [];
+    if (kind === 'MIGRATION') seedLegacyVault(root, entries);
+    const child = runChild(root, crashPoint);
+    const crashed = child.status !== 0 || Boolean(child.signal);
+    const residue = snapshotLifecycleFiles(root);
+    const fault = makeUnlinkFaultFs(root, { code: 'EBUSY', attempts: Infinity });
+    const host = makeHost(root, lifecycleSafeStorage(), fault.fs);
+    let faultReasonCode = '';
+    try { await host.initialize(); } catch (error) { faultReasonCode = error.reasonCode || error.code || error.message || ''; }
+    const afterFailure = snapshotLifecycleFiles(root);
+    const p = paths(root);
+    const journal = read(p.transactionPath); validateJournal(journal);
+    const genesisEvents = journal.authorityEvents.filter(event => ['GENESIS', 'MIGRATION_GENESIS'].includes(event.eventType));
+    let recoveryReasonCode = '';
+    let verified = null;
+    try { verified = await verifyActive(root, kind === 'MIGRATION' ? entries.map(([ref]) => ref) : [], kind); }
+    catch (cause) { recoveryReasonCode = cause.reasonCode || cause.code || cause.message || 'UNKNOWN'; }
+    const checks = {
+      realChildCrashObserved: crashed,
+      failedClosedWithLifecycleInvalid: faultReasonCode === 'WP4_CREDENTIAL_AUTHORITY_LIFECYCLE_INVALID',
+      boundedAttemptCount: fault.stats.unlinkCalls === 6 && fault.stats.injectedUnlinkCalls === 6,
+      intentRemainsForRecovery: Boolean(afterFailure.intent && residue.intent && afterFailure.intent.equals(residue.intent)),
+      completedMarkerIntactAfterFailure: Boolean(residue.marker && afterFailure.marker && residue.marker.equals(afterFailure.marker)),
+      journalBytesPreservedThroughFailure: Boolean(residue.journal && afterFailure.journal && residue.journal.equals(afterFailure.journal)),
+      vaultBytesPreservedThroughFailure: Boolean(residue.vault && afterFailure.vault && residue.vault.equals(afterFailure.vault)),
+      noSecondGenesisDuringFailure: genesisEvents.length === 1,
+      intentRecoverableToActive: verified?.status === 'PASS',
+      noSecondGenesisAcrossRecovery: verified?.checks.uniqueInitialAuthority === true,
+      completedMarkerPresentAfterRecovery: verified?.checks.completedMarkerPresent === true,
+      intentClearedAfterRecovery: Boolean(verified) && !fs.existsSync(p.intentPath)
+    };
+    const failed = Object.entries(checks).filter(([, pass]) => pass !== true).map(([name]) => name);
+    return { id: `${kind}_PERSISTENT_INTENT_DELETE_FAILS_CLOSED_RECOVERABLE`, kind, crashPoint, faultCode: 'EBUSY', faultInjectedAttempts: 'INFINITE', injectedUnlinkCalls: fault.stats.injectedUnlinkCalls, totalUnlinkCalls: fault.stats.unlinkCalls, status: failed.length ? 'FAIL' : 'PASS', checks, failed, recoveryReasonCode, exitCode: child.status, terminationSignal: child.signal || '', stderrTail: String(child.stderr || '').slice(-1000), vaultEpoch: (() => { try { return read(p.completedPath).vaultEpoch; } catch (_) { return ''; } })(), metadataGeneration: verified?.metadataGeneration ?? 0, journalTransactionCount: Object.keys(journal.transactions || {}).length, authorityEventCount: journal.authorityEvents.length, latestAuthorityGeneration: headEvent(journal).generation, vaultReferenceCount: kind === 'MIGRATION' ? entries.length : 0, decryptedEntryCount: verified?.decryptedEntryCount ?? 0, frameEntryCount: verified?.frameEntryCount ?? 0, activeTransactionId: '', backendFinalState: 'NOT_STARTED_AUTHORITY_ONLY', secretValueRecorded: false, secretHashRecorded: false };
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+}
 async function runCredentialAuthorityLifecycleMatrix() {
   const rows = [
     await baselineCase('GENESIS_CLEAN_FIRST_START', 'GENESIS', []),
@@ -181,6 +302,10 @@ async function runCredentialAuthorityLifecycleMatrix() {
   for (const point of MIGRATION_POINTS) rows.push(await scenario('MIGRATION', point, [['legacy/one', { token: 'redacted-one' }], ['legacy/two', { token: 'redacted-two' }]]));
   rows.push(await migrationFailurePreservesLegacyVaultCase());
   rows.push(...await negativeCases());
+  rows.push(await transientIntentDeleteRetriesToActiveCase('GENESIS'));
+  rows.push(await transientIntentDeleteRetriesToActiveCase('MIGRATION'));
+  rows.push(await persistentIntentDeleteFailsClosedRecoverableCase('GENESIS'));
+  rows.push(await persistentIntentDeleteFailsClosedRecoverableCase('MIGRATION'));
   const failedCaseIds = rows.filter(row => row.status !== 'PASS').map(row => row.id);
   const value = { schemaVersion: 1, matrix: 'CREDENTIAL_AUTHORITY_LIFECYCLE', status: failedCaseIds.length ? 'FAIL' : 'PASS', caseCount: rows.length, passCount: rows.length - failedCaseIds.length, failedCaseIds, genesisCrashPointCount: GENESIS_POINTS.length, migrationCrashPointCount: MIGRATION_POINTS.length, cases: rows, secretValueRecorded: false, secretHashRecorded: false };
   if (failedCaseIds.length) { const error = new Error(`Credential authority lifecycle matrix failed: ${failedCaseIds.join(', ')}`); error.reasonCode = 'WP4_CREDENTIAL_AUTHORITY_LIFECYCLE_MATRIX_FAILED'; error.matrix = value; throw error; }

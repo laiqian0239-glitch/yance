@@ -1,7 +1,25 @@
+/* YANCE_AUTH_VIEWPORT_SCROLL_AUTHORITY_V1
+ *
+ * Ownership seam for the authentication surface:
+ *   - .yance-login-shell  caps the two-column grid at the viewport. The single grid row is
+ *     `minmax(0, 1fr)` so auth content can never push the row (and therefore the shell)
+ *     taller than the viewport. Without the 0 minimum, an `auto` row grows to the tallest
+ *     column and `overflow: hidden` on the shell silently clips the bottom with no
+ *     scrollbar anywhere on the path.
+ *   - .yance-login-auth    is the single authoritative vertical scroll root for the auth
+ *     column. It is the correct owner because scrolling the shell instead would drag the
+ *     left branding panel out of view.
+ *   - .yance-login-brand   stays fixed at the viewport and never scrolls.
+ * The previous `@media (max-width: 760px)` fallback only granted scrolling below 760px of
+ * WIDTH, so any wide-but-short window (short Windows screen, or 125%/150% display scaling
+ * shrinking the CSS viewport height) had no vertical scroll path at all.
+ */
 .yance-login-shell {
   min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-template-columns: minmax(420px, 46vw) minmax(480px, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   background: #f8f6fb;
   color: #241433;
   overflow: hidden;
@@ -10,6 +28,7 @@
 .yance-login-brand {
   position: relative;
   min-height: 100vh;
+  max-height: 100%;
   overflow: hidden;
   background:
     radial-gradient(circle at 16% 15%, rgb(255 255 255 / 14%), transparent 28%),
@@ -153,9 +172,19 @@
 
 .yance-login-auth {
   min-width: 0;
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
+  /* `min-height: 0` (instead of `100vh`) lets the capped grid row size this column; the
+     column then stretches to the row and fills the viewport on its own. */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* `center` keeps the fallback for engines without the `safe` keyword; `safe center`
+     degrades to `start` when content overflows so the top is never clipped out of reach. */
+  justify-content: center;
+  justify-content: safe center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   padding: 48px;
   box-sizing: border-box;
   background:
@@ -164,6 +193,7 @@
 }
 
 .yance-login-auth-inner {
+  flex: 0 0 auto;
   width: min(100%, 440px);
 }
 
@@ -358,6 +388,9 @@
 @media (max-width: 760px) {
   .yance-login-shell {
     display: block;
+    /* Stacked layout: the shell itself is the scroll root again, so release the viewport
+       cap and hand scrolling back to it. */
+    height: auto;
     overflow: auto;
   }
 
@@ -385,6 +418,8 @@
 
   .yance-login-auth {
     min-height: auto;
+    /* Single scroll root in the stacked layout: the shell scrolls, the column does not. */
+    overflow: visible;
     padding: 42px 22px 54px;
   }
 
@@ -610,6 +645,93 @@
   color: #776c7c !important;
   font-weight: 500 !important;
   opacity: 1 !important;
+}
+
+.yance-login-local-identity {
+  margin: 0 0 18px;
+  padding: 18px;
+  border: 1px solid rgb(42 15 74 / 14%);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 14px 38px rgb(42 15 74 / 8%);
+}
+
+.yance-login-setup-eyebrow {
+  display: block;
+  color: #7d5b97;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  margin-bottom: 6px;
+}
+
+.yance-login-local-identity h3 {
+  margin: 0 0 6px;
+  color: #2a0f4a;
+  font-size: 20px;
+}
+
+.yance-login-local-identity p {
+  margin: 0 0 12px;
+  color: #675b6d;
+  line-height: 1.55;
+}
+
+.yance-login-setup-form {
+  display: grid;
+  gap: 10px;
+}
+
+.yance-login-setup-form label {
+  display: grid;
+  gap: 6px;
+  color: #5d5065;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.yance-login-setup-form input {
+  width: 100%;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid rgb(42 15 74 / 18%);
+  border-radius: 14px;
+  padding: 0 13px;
+  color: #241433;
+  background: #fbf9fd;
+  font: inherit;
+}
+
+.yance-login-setup-form button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: #2a0f4a;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.yance-login-setup-form button:disabled {
+  cursor: wait;
+  opacity: .68;
+}
+
+.yance-login-setup-error {
+  color: #9f2140 !important;
+  font-weight: 600 !important;
+}
+
+.yance-login-setup-note {
+  color: #675b6d !important;
+}
+
+.yance-login-local-identity-ready strong {
+  display: block;
+  margin: 6px 0 8px;
+  color: #2a0f4a;
+  font-size: 18px;
+  word-break: break-all;
 }
 
 .yance-login-auth .mx_ServerPicker {

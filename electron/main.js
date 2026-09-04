@@ -2389,6 +2389,15 @@ async function backendEnvironment(launch = {}, startupTimeoutMs = backendStartup
   ]) {
     if (process.env[key]) env[key] = process.env[key];
   }
+  for (const key of [
+    'YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE',
+    'YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE',
+    'YANCE_MATRIX_BASE_URL',
+    'YANCE_MATRIX_SERVER_NAME',
+    'YANCE_MAUTRIX_META_PROVISIONING_URL'
+  ]) {
+    if (process.env[key]) env[key] = process.env[key];
+  }
   delete env.ELECTRON_RUN_AS_NODE;
   return env;
 }

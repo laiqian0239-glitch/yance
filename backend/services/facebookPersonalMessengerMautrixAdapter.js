@@ -5,6 +5,7 @@ const fs = require('fs');
 const messageStore = require('../repositories/messageRepository');
 const eventBus = require('./eventBus');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
+const { registerSynapseUserWithSharedSecret } = require('./synapseSharedSecretRegistration');
 
 const PROTOCOL_AUTHORITY = 'mautrix-meta';
 const NATIVE_LOGIN_FLOW = 'messenger-lite';
@@ -85,25 +86,14 @@ async function jsonResponse(response, code) {
   return body;
 }
 async function synapseRegister(account, signal = null) {
-  const sharedSecret = secretFile('YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE');
-  if (!sharedSecret) throw fail('MATRIX_REGISTRATION_SHARED_SECRET_REQUIRED', 'Synapse registration shared secret is required to provision an isolated Matrix identity.', 503);
-  const baseUrl = matrixBaseUrl({});
-  assertActive(signal);
-  const nonceBody = await jsonResponse(await fetch(`${baseUrl}/_synapse/admin/v1/register`, { signal }), 'MATRIX_REGISTRATION_NONCE_FAILED');
-  const nonce = clean(nonceBody.nonce);
-  if (!nonce) throw fail('MATRIX_REGISTRATION_NONCE_MISSING', 'Synapse registration did not return a nonce.', 502);
   const matrixUserId = matrixIdentityFor(account);
   const username = matrixUserId.slice(1, matrixUserId.indexOf(':'));
+  assertActive(signal);
   const password = crypto.randomBytes(32).toString('base64url');
-  const mac = crypto.createHmac('sha1', sharedSecret).update(`${nonce}\0${username}\0${password}\0notadmin`).digest('hex');
-  const body = await jsonResponse(await fetch(`${baseUrl}/_synapse/admin/v1/register`, {
-    method: 'POST', signal,
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ nonce, username, password, admin: false, mac })
-  }), 'MATRIX_ACCOUNT_REGISTRATION_FAILED');
-  const accessToken = clean(body.access_token);
+  const registered = await registerSynapseUserWithSharedSecret({ username, password, matrixBaseUrl: matrixBaseUrl({}), matrixServerName: matrixServerName(), signal });
+  const accessToken = clean(registered.matrixAccessToken);
   if (!accessToken) throw fail('MATRIX_ACCOUNT_ACCESS_TOKEN_MISSING', 'Synapse registration did not return an access token.', 502);
-  return { matrixUserId: clean(body.user_id, matrixUserId), matrixAccessToken: accessToken, matrixBaseUrl: baseUrl };
+  return { matrixUserId: clean(registered.matrixUserId, matrixUserId), matrixAccessToken: accessToken, matrixBaseUrl: registered.matrixBaseUrl };
 }
 async function ensureMatrixBinding(account, options = {}) {
   let secret = configuredSecret(account, options.secret || {});
