@@ -140,6 +140,8 @@ contextBridge.exposeInMainWorld('yanceDesktop', Object.freeze({
   listPersonalAccessOwnerRequests: () => invokeStore('store:personal-access-owner-requests'),
   mutatePersonalAccessOwnerRequest: input => invokeStore('store:personal-access-owner-request-mutation', input),
   mutatePersonalAccessOwnerGrant: input => invokeStore('store:personal-access-owner-grant-mutation', input),
+  getMatrixLocalIdentity: () => invokeStore('desktop:matrix-local-identity-status'),
+  createMatrixLocalIdentity: input => invokeStore('desktop:matrix-local-identity-create', input),
   getProductDataProtectionState: () => invokeStore('store:product-system-data-protection-state'),
   mutateProductDataProtection: input => invokeStore('store:product-system-data-protection-mutation', input),
   getProductModelRuntimeState: () => invokeStore('store:product-system-model-runtime-state'),

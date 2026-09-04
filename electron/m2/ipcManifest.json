@@ -4950,6 +4950,99 @@
       "currentObservation": "Allows only the existing OWNER grant transitions suspend/revoke after renderer-boundary identifier/action validation.",
       "m2RequiredAction": "Keep grant transition semantics, OWNER authentication and persistence in the existing Personal Access backend/remote authority; M2 must not invent transitions.",
       "crossModuleDependency": "Existing M3 Personal Access backend authority; OWNER secret remains outside renderer custody."
+    },
+    {
+      "channel": "desktop:matrix-local-identity-status",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 267
+      },
+      "rendererExposure": {
+        "api": "getMatrixLocalIdentity",
+        "file": "electron/preload.js",
+        "line": 143
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Reads the non-secret local human Matrix identity receipt through the existing local desktop API security boundary before Personal Access entitlement.",
+      "m2RequiredAction": "Keep Element as the Matrix session authority; M2 may only forward this non-secret status endpoint and must not expose Matrix client login or access tokens.",
+      "crossModuleDependency": "Existing local Synapse shared-secret registration authority and Element login surface."
+    },
+    {
+      "channel": "desktop:matrix-local-identity-create",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "localpart": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 512
+          },
+          "confirmPassword": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "localpart",
+          "password",
+          "confirmPassword"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "password",
+        "confirmPassword"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 268
+      },
+      "rendererExposure": {
+        "api": "createMatrixLocalIdentity",
+        "file": "electron/preload.js",
+        "line": 144
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Creates the one allowed local human Matrix identity by forwarding username/password once to the backend-owned shared-secret Synapse registration helper.",
+      "m2RequiredAction": "Keep password transient, store only a non-secret receipt, reject duplicate provisioning, keep Synapse public registration disabled, and keep Element as the only login/session authority.",
+      "crossModuleDependency": "Existing local Synapse shared-secret registration authority and Element login surface."
     }
   ],
   "outboundRendererChannels": [
@@ -5203,7 +5296,7 @@
     }
   ],
   "validationSummary": {
-    "rendererToMainHandlerCount": 78,
+    "rendererToMainHandlerCount": 80,
     "mainToRendererChannelCount": 8,
     "allRendererToMainHandlersHaveRequiredFields": true,
     "allOutboundChannelsHaveRequiredFields": true,

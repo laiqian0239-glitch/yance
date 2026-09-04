@@ -63,10 +63,45 @@ async function renameAsync(oldPath, newPath, fsApi) {
   await promisesOf(fsApi).rename(oldPath, newPath);
 }
 
+// Windows transient-deletion retry semantics ported from the mature upstream
+// behavior of Node's fs.rm (implemented in lib/internal/fs/rimraf.js), which
+// rimraf v4 (https://github.com/isaacs/rimraf) delegates to via its `rm`
+// option. Node retries removal when the operation fails with EBUSY, EMFILE,
+// ENFILE, ENOTEMPTY or EPERM, using a linear backoff of retryDelay ms longer
+// on each try, up to maxRetries (see https://nodejs.org/api/fs.html#fsrmpath-options).
+// ENOENT means the target is already gone and is success. We deliberately do
+// NOT probe existence before unlinking (no exists-before-unlink TOCTOU): a
+// missing target surfaces as ENOENT from unlink itself. The budget is bounded
+// and deterministic; once exhausted the final underlying error is rethrown so
+// durable cleanup still fails closed. Unknown/non-transient codes fail
+// immediately rather than being swallowed.
+const UNLINK_RETRYABLE_CODES = new Set(['EBUSY', 'EMFILE', 'ENFILE', 'ENOTEMPTY', 'EPERM']);
+const UNLINK_MAX_RETRIES = 5; // 6 total attempts (Node fs.rm maxRetries shape)
+const UNLINK_RETRY_DELAY_MS = 100; // linear backoff base; worst case ~1.5 s added latency
+
+async function sleepMillis(ms) {
+  await new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function unlinkAsync(file, fsApi) {
   const p = promisesOf(fsApi);
-  try { await p.unlink(file); }
-  catch (error) { if (error?.code !== 'ENOENT') throw error; }
+  let attempt = 0;
+  let lastError = null;
+  for (;;) {
+    try {
+      await p.unlink(file);
+      return;
+    } catch (error) {
+      const code = error && error.code;
+      if (code === 'ENOENT') return; // already removed: success
+      if (!UNLINK_RETRYABLE_CODES.has(code)) throw error; // non-transient: fail immediately
+      lastError = error;
+      attempt += 1;
+      if (attempt > UNLINK_MAX_RETRIES) break; // budget exhausted: fail closed below
+      await sleepMillis(UNLINK_RETRY_DELAY_MS * attempt); // linear backoff (Node fs.rm semantics)
+    }
+  }
+  throw lastError;
 }
 
 async function existsAsync(file, fsApi) {

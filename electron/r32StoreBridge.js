@@ -29,6 +29,8 @@ const CHANNELS = Object.freeze({
   personalAccessOwnerRequests: 'store:personal-access-owner-requests',
   personalAccessOwnerRequestMutation: 'store:personal-access-owner-request-mutation',
   personalAccessOwnerGrantMutation: 'store:personal-access-owner-grant-mutation',
+  matrixLocalIdentityStatus: 'desktop:matrix-local-identity-status',
+  matrixLocalIdentityCreate: 'desktop:matrix-local-identity-create',
   productDataProtectionState: 'store:product-system-data-protection-state',
   productDataProtectionMutation: 'store:product-system-data-protection-mutation',
   productModelRuntimeState: 'store:product-system-model-runtime-state',
@@ -265,6 +267,15 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         method: 'POST', body: jsonBody({})
       });
     },
+    [CHANNELS.matrixLocalIdentityStatus]: () => apiRequest('/api/desktop/matrix-local-identity'),
+    [CHANNELS.matrixLocalIdentityCreate]: (_event, input = {}) => apiRequest('/api/desktop/matrix-local-identity', {
+      method: 'POST',
+      body: jsonBody({
+        localpart: clean(input.localpart),
+        password: String(input.password == null ? '' : input.password),
+        confirmPassword: String(input.confirmPassword == null ? '' : input.confirmPassword)
+      })
+    }),
     [CHANNELS.productDataProtectionState]: async () => {
       const [backups, portableBackups] = await Promise.all([
         apiRequest('/api/r32/system/backups'),
