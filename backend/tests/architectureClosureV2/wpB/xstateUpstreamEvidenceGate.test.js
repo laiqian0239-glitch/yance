@@ -225,3 +225,74 @@ test('upstream verification runs the real XState pnpm test:core command', () => 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('bounded npm audit recovery retries only governed timeout', () => {
+  let calls = 0;
+  const ok = packageVerifier.runGovernedNpmAudit('/audit', {
+    runCommand(command, args, options) {
+      calls += 1;
+      assert.equal(args.join(' '), 'audit --omit=dev --json');
+      assert.equal(options.commandKind, 'NPM_AUDIT');
+      assert.equal(options.timeoutMs, 120_000);
+      assert.equal(options.allowFailure, true);
+      if (calls === 1) throw Object.assign(new Error('timeout'), { code: 'WP_B_UPSTREAM_COMMAND_TIMEOUT' });
+      return Object.freeze({ status: 0, stdout: '{"metadata":{"vulnerabilities":{}}}', stderr: '' });
+    }
+  });
+  assert.equal(ok.status, 0);
+  assert.equal(calls, 2);
+
+  for (const code of ['WP_B_UPSTREAM_RATE_LIMITED', 'WP_B_UPSTREAM_COMMAND_EXECUTION_FAILED', 'WP_B_UPSTREAM_TOOL_UNAVAILABLE']) {
+    calls = 0;
+    assert.throws(() => packageVerifier.runGovernedNpmAudit('/audit', {
+      runCommand() {
+        calls += 1;
+        throw Object.assign(new Error(code), { code });
+      }
+    }), error => error.code === code);
+    assert.equal(calls, 1);
+  }
+
+  calls = 0;
+  assert.throws(() => packageVerifier.runGovernedNpmAudit('/audit', {
+    runCommand() {
+      calls += 1;
+      throw Object.assign(new Error('timeout'), { code: 'WP_B_UPSTREAM_COMMAND_TIMEOUT' });
+    }
+  }), error => error.code === 'WP_B_UPSTREAM_COMMAND_TIMEOUT');
+  assert.equal(calls, 2);
+});
+
+test('governed scratch cleanup uses Node bounded retry and preserves primary failure', () => {
+  let received = null;
+  assert.equal(packageVerifier.removeGovernedScratchDirectory('scratch', {
+    rmSyncImpl(root, options) {
+      assert.equal(root, 'scratch');
+      received = options;
+    }
+  }), true);
+  assert.deepEqual(received, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+
+  const busy = () => { throw Object.assign(new Error('busy'), { code: 'EBUSY' }); };
+  assert.throws(() => packageVerifier.removeGovernedScratchDirectory('scratch', { rmSyncImpl: busy }),
+    error => error.code === 'WP_B_UPSTREAM_SCRATCH_CLEANUP_FAILED' && error.cleanupCauseCode === 'EBUSY');
+  const primary = Object.assign(new Error('primary timeout'), { code: 'WP_B_UPSTREAM_COMMAND_TIMEOUT' });
+  assert.equal(packageVerifier.removeGovernedScratchDirectory('scratch', { primaryError: primary, rmSyncImpl: busy }), false);
+  assert.equal(primary.code, 'WP_B_UPSTREAM_COMMAND_TIMEOUT');
+  assert.equal(primary.message, 'primary timeout');
+  assert.equal(primary.cleanupCode, 'WP_B_UPSTREAM_SCRATCH_CLEANUP_FAILED');
+  assert.equal(primary.cleanupCauseCode, 'EBUSY');
+});
+
+test('all XState scratch owners share cleanup authority without weakening supply-chain checks', () => {
+  const packageSource = fs.readFileSync(require.resolve('../../../../tools/architecture-closure-v2/verify-wp-b-xstate-package'), 'utf8');
+  const upstreamSource = fs.readFileSync(require.resolve('../../../../tools/architecture-closure-v2/verify-wp-b-xstate-upstream'), 'utf8');
+  assert.equal(packageSource.includes('fs.rmSync('), false);
+  assert.match(packageSource, /removeGovernedScratchDirectory\(checkoutRoot, \{ primaryError \}\)/u);
+  assert.match(packageSource, /removeGovernedScratchDirectory\(tempRoot, \{ primaryError \}\)/u);
+  assert.equal(upstreamSource.includes('fs.rmSync('), false);
+  assert.match(upstreamSource, /packageVerifier\.removeGovernedScratchDirectory\(tempRoot, \{ primaryError \}\)/u);
+  assert.match(packageSource, /const EXACT_VERSION = '5\.32\.5';/u);
+  assert.match(packageSource, /NPM_AUDIT:\s*120_000/u);
+  assert.match(upstreamSource, /const UPSTREAM_TEST_COMMAND = 'corepack pnpm test:core';/u);
+});
