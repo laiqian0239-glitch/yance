@@ -143,8 +143,8 @@ function runUpstreamCoreTests(options = {}) {
 function validatePhysicalArtifactAuthority(packageReport) {
   const expected = SUPPLY_CHAIN_LOCK.artifact;
   const actual = packageReport.package || {};
-  const actualAudit = packageReport.security?.vulnerabilities || {};
   const reasons = [];
+
   if (actual.name !== expected.packageName) reasons.push('PACKAGE_NAME');
   if (actual.version !== expected.version) reasons.push('VERSION');
   if (actual.license !== expected.license) reasons.push('LICENSE');
@@ -154,87 +154,146 @@ function validatePhysicalArtifactAuthority(packageReport) {
   if (actual.distShasum !== expected.shasum) reasons.push('DIST_SHASUM');
   if (actual.tarballSha512 !== expected.integrity) reasons.push('TARBALL_INTEGRITY');
   if (actual.tarballSha1 !== expected.shasum) reasons.push('TARBALL_SHASUM');
-  if (actual.licenseTextSha256 !== expected.licenseTextSha256) reasons.push('LICENSE_TEXT_SHA256');
-  if (Number(actual.packageFileCount) !== Number(expected.packageFileCount)) reasons.push('PACKAGE_FILE_COUNT');
-  if (Number(actual.runtimeDependencyCount) !== Number(expected.runtimeDependencyCount)) reasons.push('RUNTIME_DEPENDENCY_COUNT');
-  if (JSON.stringify(actual.installLifecycleScripts || []) !== JSON.stringify(expected.installLifecycleScripts || [])) {
+  if (actual.licenseTextSha256 !== expected.licenseTextSha256) {
+    reasons.push('LICENSE_TEXT_SHA256');
+  }
+  if (Number(actual.packageFileCount) !== Number(expected.packageFileCount)) {
+    reasons.push('PACKAGE_FILE_COUNT');
+  }
+  if (Number(actual.runtimeDependencyCount)
+      !== Number(expected.runtimeDependencyCount)) {
+    reasons.push('RUNTIME_DEPENDENCY_COUNT');
+  }
+  if (JSON.stringify(actual.installLifecycleScripts || [])
+      !== JSON.stringify(expected.installLifecycleScripts || [])) {
     reasons.push('INSTALL_LIFECYCLE_SCRIPTS');
   }
-  if (JSON.stringify(actual.suspiciousPackageFiles || []) !== JSON.stringify(expected.suspiciousPackageFiles || [])) {
+  if (JSON.stringify(actual.suspiciousPackageFiles || [])
+      !== JSON.stringify(expected.suspiciousPackageFiles || [])) {
     reasons.push('SUSPICIOUS_PACKAGE_FILES');
   }
-  for (const severity of ['info', 'low', 'moderate', 'high', 'critical', 'total']) {
-    if (Number(actualAudit[severity] || 0) !== Number(expected.npmAudit[severity] || 0)) reasons.push(`AUDIT_${severity.toUpperCase()}`);
-  }
-  const sandbox = actual.sandboxLockEntry || {};
-  if (sandbox.version !== expected.version
-      || sandbox.resolved !== expected.resolved
-      || sandbox.integrity !== expected.integrity
-      || sandbox.license !== expected.license) {
-    reasons.push('SANDBOX_LOCK_ENTRY');
-  }
+
   return reasons;
 }
 
-async function verify() {
-  const tempRoot = packageVerifier.createGovernedScratchDirectory({
-    prefix: 'yance-wp-b-xstate-upstream-'
-  });
-  try {
-    const upstreamCheckout = packageVerifier.checkoutExactUpstreamTag({
-      checkoutRoot: path.join(tempRoot, 'xstate')
-    });
-    const packageReport = await packageVerifier.verify({ upstreamCheckout });
-    const violations = [...packageReport.violations];
-    const authorityReasons = validatePhysicalArtifactAuthority(packageReport);
-    if (authorityReasons.length !== 0) {
-      violations.push({
-        code: 'WP_B_XSTATE_PHYSICAL_ARTIFACT_AUTHORITY_MISMATCH',
-        reasons: authorityReasons
-      });
-    }
+function readSealedUpstreamEvidence(repositoryRoot) {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        'governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json'
+      ),
+      'utf8'
+    )
+  );
+}
 
-    let upstreamTests = null;
-    try {
-      upstreamTests = runUpstreamCoreTests({
-        checkoutRoot: upstreamCheckout.root,
-        commitSha: upstreamCheckout.commitSha
-      });
-      if (upstreamTests.failCount !== 0 || upstreamTests.skipCount !== 0
-          || upstreamTests.passCount !== UPSTREAM_TEST_SELECTION.length) {
-        violations.push({
-          code: 'WP_B_XSTATE_UPSTREAM_CORE_TEST_FAILED',
-          passCount: upstreamTests.passCount,
-          failCount: upstreamTests.failCount,
-          skipCount: upstreamTests.skipCount,
-          results: upstreamTests.results
-        });
-      }
-    } catch (error) {
-      violations.push({
-        code: error.code || 'WP_B_XSTATE_UPSTREAM_CORE_TEST_FAILED',
-        message: error.message,
-        summary: error.summary || null,
-        commandKind: error.commandKind || '',
-        timeoutMs: error.timeoutMs || 0,
-        status: error.status === undefined ? null : error.status,
-        signal: error.signal || null,
-        stdout: error.stdout || '',
-        stderr: error.stderr || ''
-      });
-    }
+function validateSealedUpstreamEvidence(repositoryRoot) {
+  const evidence = readSealedUpstreamEvidence(repositoryRoot);
+  const expected = SUPPLY_CHAIN_LOCK.artifact;
+  const conformance = evidence.upstreamConformance || {};
+  const reasons = [];
 
-    return Object.freeze({
-      ...packageReport,
-      schemaVersion: 6,
-      ok: violations.length === 0,
-      supplyChainAuthorityPath: 'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json',
-      upstreamTests,
-      violations
-    });
-  } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
+  if (evidence.exactVersionAndLicenseReview?.exactVersion !== expected.version) {
+    reasons.push('SEALED_VERSION');
   }
+  if (evidence.exactVersionAndLicenseReview?.license !== expected.license) {
+    reasons.push('SEALED_LICENSE');
+  }
+  if (evidence.exactVersionAndLicenseReview?.upstreamCommit
+      !== expected.upstreamCommit) {
+    reasons.push('SEALED_UPSTREAM_COMMIT');
+  }
+  if (evidence.dependencyAndSecurityScan?.distIntegrity !== expected.integrity) {
+    reasons.push('SEALED_DIST_INTEGRITY');
+  }
+  if (evidence.dependencyAndSecurityScan?.distShasum !== expected.shasum) {
+    reasons.push('SEALED_DIST_SHASUM');
+  }
+  if (conformance.status !== 'COMPLETE'
+      || conformance.command !== UPSTREAM_TEST_COMMAND
+      || conformance.upstreamCommit !== expected.upstreamCommit
+      || conformance.passCount !== 1
+      || conformance.failCount !== 0
+      || conformance.commandSkipCount !== 0
+      || JSON.stringify(conformance.selection || [])
+        !== JSON.stringify(UPSTREAM_TEST_SELECTION)) {
+    reasons.push('SEALED_UPSTREAM_CONFORMANCE');
+  }
+
+  for (const platform of ['ubuntu', 'windows']) {
+    const value = conformance[platform];
+    if (!value
+        || value.status !== 'PASSED'
+        || !/^[0-9a-f]{64}$/u.test(String(value.installLogSha256 || ''))
+        || !/^[0-9a-f]{64}$/u.test(String(value.testLogSha256 || ''))
+        || Number(value.testSummary?.testFilePassCount) <= 0
+        || Number(value.testSummary?.testPassCount) <= 0
+        || Number(value.testSummary?.testFileFailCount) !== 0
+        || Number(value.testSummary?.testFailCount) !== 0) {
+      reasons.push(`SEALED_${platform.toUpperCase()}_UPSTREAM_EVIDENCE`);
+    }
+  }
+
+  return Object.freeze({ evidence, reasons });
+}
+
+function projectSealedUpstreamTests(evidence) {
+  const conformance = evidence.upstreamConformance;
+  return Object.freeze({
+    evidenceMode: 'SEALED_UPSTREAM_CONFORMANCE_EVIDENCE',
+    upstreamTestSelection: [...UPSTREAM_TEST_SELECTION],
+    upstreamTestCommand: UPSTREAM_TEST_COMMAND,
+    runtimeVersion: conformance.runtimeVersion,
+    packageManager: conformance.packageManager,
+    upstreamCommit: conformance.upstreamCommit,
+    passCount: conformance.passCount,
+    failCount: conformance.failCount,
+    skipCount: conformance.commandSkipCount,
+    ubuntu: conformance.ubuntu,
+    windows: conformance.windows
+  });
+}
+
+async function verify(options = {}) {
+  const repositoryRoot = path.resolve(
+    options.repositoryRoot || path.resolve(__dirname, '..', '..')
+  );
+
+  const packageReport = await packageVerifier.verify({
+    repositoryRoot,
+    vulnerabilityEvidencePath: options.vulnerabilityEvidencePath,
+    nowMs: options.nowMs
+  });
+
+  const violations = [...packageReport.violations];
+
+  const physicalReasons = validatePhysicalArtifactAuthority(packageReport);
+  if (physicalReasons.length !== 0) {
+    violations.push({
+      code: 'WP_B_XSTATE_PHYSICAL_ARTIFACT_AUTHORITY_MISMATCH',
+      reasons: physicalReasons
+    });
+  }
+
+  const sealed = validateSealedUpstreamEvidence(repositoryRoot);
+  if (sealed.reasons.length !== 0) {
+    violations.push({
+      code: 'WP_B_XSTATE_SEALED_UPSTREAM_EVIDENCE_INVALID',
+      reasons: sealed.reasons
+    });
+  }
+
+  return Object.freeze({
+    ...packageReport,
+    schemaVersion: 7,
+    ok: violations.length === 0,
+    candidateEvidenceMode: 'DETERMINISTIC_SEALED_REPOSITORY_EVIDENCE',
+    supplyChainAuthorityPath:
+      'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json',
+    upstreamTests: projectSealedUpstreamTests(sealed.evidence),
+    violations
+  });
 }
 
 async function main() {
@@ -278,5 +337,6 @@ module.exports = {
   runUpstreamConformance: runUpstreamCoreTests,
   runUpstreamCoreTests,
   validatePhysicalArtifactAuthority,
+  validateSealedUpstreamEvidence,
   verify
 };

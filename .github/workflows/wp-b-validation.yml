@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - .github/workflows/wp-b-validation.yml
+      - .github/workflows/wp-b-xstate-vulnerability-refresh.yml
       - backend/automation/execution/**
       - backend/db/**
       - backend/execution/**
@@ -46,6 +47,7 @@ on:
       - acv2/wp-b-durable-execution-outbox
     paths:
       - .github/workflows/wp-b-validation.yml
+      - .github/workflows/wp-b-xstate-vulnerability-refresh.yml
       - backend/automation/execution/**
       - backend/db/**
       - backend/execution/**
@@ -124,6 +126,8 @@ jobs:
         run: |
           node --check tools/architecture-closure-v2/verify-wp-b-open-source-adoption.js
           node --check tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js
+          node --check tools/architecture-closure-v2/verify-wp-b-xstate-vulnerability-evidence.js
+          node --check tools/architecture-closure-v2/refresh-wp-b-xstate-vulnerability-evidence.js
           node --check tools/architecture-closure-v2/verify-wp-b-m1-red-evidence.js
           node --check tools/architecture-closure-v2/discover-wp-b-operation-call-sites.js
           node --check tools/architecture-closure-v2/capture-wp-b-red-evidence.js
@@ -209,9 +213,10 @@ jobs:
         shell: bash
         run: test "$(git rev-parse HEAD)" = "${VALIDATION_SHA}"
 
-      - name: Verify exact XState package, license, tarball and audit
+      - name: Verify sealed exact XState artifact, vulnerability and upstream evidence
         env:
           WP_B_EVIDENCE_PATH: ${{ runner.temp }}/wp-b-xstate-upstream.json
+          WP_B_VULNERABILITY_EVIDENCE_PATH: governance/architecture-closure-v2/wp-b-xstate-vulnerability-evidence.json
         run: node tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js
 
   xstate-adapter-contracts:
