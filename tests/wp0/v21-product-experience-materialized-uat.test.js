@@ -753,3 +753,60 @@ test('Product Final RED diagnostics preserve Windows process identity evidence',
   assert.match(source, /desktop\.jsonl/u);
   assert.match(source, /server\.jsonl/u);
 });
+
+test('materialized UAT preserves first-use local Matrix identity without public Synapse registration', () => {
+  const homeserver = read('config/matrix/synapse/homeserver.yaml');
+  const login = read('integration/element-module/src/YanceLogin.tsx');
+  const service = read('backend/services/endUserMatrixIdentityService.js');
+  const bridge = read('electron/r32StoreBridge.js');
+
+  assert.match(homeserver, /^enable_registration:\s*false\s*$/mu);
+  assert.match(login, /data-yance-local-matrix-identity="first-use"/u);
+  assert.match(login, /data-yance-login-form-host="element-auth"[\s\S]*?\{children\}/u);
+  assert.match(service, /YANCE_LOCAL_MATRIX_HUMAN_IDENTITY_RECEIPT_V1/u);
+  assert.match(service, /registerSynapseUserWithSharedSecret/u);
+  assert.match(bridge, /\/api\/desktop\/matrix-local-identity/u);
+  assert.doesNotMatch(login, /_matrix\/client|m\.login\.password|accessToken|fetch\s*\(/u);
+});
+
+test('backendEnvironment forwards the five Matrix backend authority env keys before child spawn', () => {
+  const main = read('electron/main.js');
+  const runner = read(RUNNER);
+  const fnStart = main.indexOf('async function backendEnvironment');
+  assert.ok(fnStart >= 0, 'electron/main.js must still define backendEnvironment');
+  const fnOpen = main.indexOf('{', fnStart);
+  const deleteLine = main.indexOf('delete env.ELECTRON_RUN_AS_NODE;', fnOpen);
+  const returnLine = main.indexOf('return env;', deleteLine);
+  assert.ok(fnOpen > fnStart && deleteLine > fnOpen && returnLine > deleteLine, 'backendEnvironment body must be parseable around its allowlist and ELECTRON_RUN_AS_NODE removal');
+  const body = main.slice(fnOpen, returnLine + 'return env;'.length);
+
+  const matrixKeys = [
+    'YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE',
+    'YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE',
+    'YANCE_MATRIX_BASE_URL',
+    'YANCE_MATRIX_SERVER_NAME',
+    'YANCE_MAUTRIX_META_PROVISIONING_URL'
+  ];
+  for (const key of matrixKeys) {
+    const keyIndex = body.indexOf(`'${key}'`);
+    assert.ok(keyIndex >= 0 && keyIndex < deleteLine - fnOpen, `backendEnvironment must forward ${key} before stripping ELECTRON_RUN_AS_NODE`);
+  }
+
+  // ONLY-WHEN-PRESENT allowlist semantics: forwarded only when the parent shell env defines them.
+  const conditionalCopies = (body.match(/if \(process\.env\[key\]\) env\[key\] = process\.env\[key\];/g) || []);
+  assert.ok(conditionalCopies.length >= 2, 'backendEnvironment must forward Matrix authority keys only when present, in an explicit allowlist');
+  assert.doesNotMatch(body, /Object\.keys\(process\.env\)/u, 'no blanket process.env passthrough may replace the allowlist');
+  assert.doesNotMatch(body, /startsWith\(\s*['"]YANCE_/u, 'no YANCE_* prefix sweep may bypass the explicit allowlist');
+
+  // The UAT candidate SHA has no backend consumer (census: tests/tooling only) and must not leak into the backend child.
+  assert.doesNotMatch(body, /YANCE_UAT_CANDIDATE_SHA/u, 'YANCE_UAT_CANDIDATE_SHA must not be forwarded to the backend child');
+  // Secret values must stay in files referenced by *_FILE keys, never be read into the child env or logged.
+  assert.doesNotMatch(body, /readFileSync\([^)]*secret/u, 'backendEnvironment must not inline secret file contents into the child env');
+  assert.doesNotMatch(body, /desktopLog\([^)]*(?:env|secret|YANCE_MATRIX)/u, 'backendEnvironment must not log assembled env or Matrix authority values');
+
+  // Windows materialized-UAT runner establishes the two secret-file env keys the backend requires with no default.
+  assert.match(runner, /\$env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE\s*=/u);
+  assert.match(runner, /\$env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE\s*=/u);
+  // The child env seam (fork) consumes backendEnvironment() output.
+  assert.match(main, /env:\s*await backendEnvironment\(launch, startupTimeoutMs\)/u);
+});
