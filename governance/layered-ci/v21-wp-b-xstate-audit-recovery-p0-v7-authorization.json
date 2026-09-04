@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WP-B-XSTATE-AUDIT-RECOVERY-P0-V7",
+  "proposalRevision": 7,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen V6 implementation Exact Head 5130cd90785646b98a06565d8127273f96d35bff / PR #1073 / WP-B run 33837467567 proved that the previous 120000ms timeout/orphan failure remains closed, but both Ubuntu and Windows running pinned npm 10.9.8 completed before the outer timeout and rejected a parseable top-level npm audit error envelope that the V6 prose-message classifier did not recognize. Exact npm 10.9.8 source defines the stronger JSON audit-error authority through structured method, uri, headers, statusCode, body and message fields, with CLI error metadata merged under top-level error. V7 authorizes replacing prose equality with the pinned npm structured advisories-bulk transport envelope while preserving fail-closed policy and the exact two-attempt bound.",
+  "base": {
+    "branch": "main",
+    "commit": "0cf81d3a27a4ddd5d7b01b4ac496307ce1eb169c"
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-wp-b-xstate-audit-recovery-p0-v6-authorization.json",
+    "implementationBranch": "fix/v21-wp-b-xstate-audit-recovery-p0-v6",
+    "reason": "V6 authorization ordinary-merged at 0cf81d3a27a4ddd5d7b01b4ac496307ce1eb169c and produced frozen implementation Exact Head 5130cd90785646b98a06565d8127273f96d35bff / PR #1073 / WP-B run 33837467567. That head and run remain immutable RED evidence. V7 changes only the npm audit result-classification authority inside the same three-file WP-B transport seam."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-wp-b-xstate-audit-recovery-p0-v7-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-wp-b-xstate-audit-recovery-p0-v7-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e40e97ba94ffc52216d6168b9da0c32645f95c078a793db66c6958f4e2263216",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-wp-b-xstate-audit-recovery-p0-v7",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/architectureClosureV2/wpB/xstateUpstreamEvidenceGate.test.js",
+      "tools/architecture-closure-v2/verify-wp-b-xstate-package.js",
+      "tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "9deddc5f15283961a82089fe5c632773d03e578f2242df9893f0cc35426bfbc9",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "sharedImplementationBranchPolicyModificationAllowed": false,
+    "activeWpBAuthorityModificationAllowed": false,
+    "reviewReceiptModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCause": {
+    "code": "WP_B_XSTATE_UPSTREAM / PINNED_NPM_10_AUDIT_ERROR_ENVELOPE_AUTHORITY_NOT_USED",
+    "directFailure": "Frozen V6 WP-B run 33837467567 ran Node 22 with pinned npm 10.9.8 on Ubuntu and Windows. Both jobs completed before the 120000ms outer NPM_AUDIT timeout and failed at WP_B_XSTATE_AUDIT_REPORT_INVALID because a parseable top-level npm audit error payload was returned but did not match V6's single locally-observed prose message. V6 therefore used one renderer-specific message as authority instead of the pinned npm 10 structured audit-error envelope.",
+    "sameRootSurface": "verify-wp-b-xstate-package.js already owns npm audit execution, the native fetch budget, the exact two whole-audit attempts, JSON parsing and fail-closed transport policy. Exact npm 10.9.8 lib/utils/audit-error.js defines structured JSON fields including method, uri, headers, statusCode, body and message; lib/utils/display.js merges CLI failure metadata under top-level error. The missing authority is structural classification of that pinned npm envelope at the existing runGovernedNpmAudit seam. The focused WP-B test file owns deterministic regressions and verify-wp-b-xstate-upstream.js preserves failure evidence.",
+    "requiredRepair": "Re-derive the complete frozen V6 three-file repair on the fresh V7 authorization merge. Preserve npm native fetch-timeout=30000, fetch-retries=1, fetch-retry-mintimeout=1000, fetch-retry-maxtimeout=5000, the 65000ms maximum single fetch cycle, the 120000ms outer hard timeout and exact two whole-audit attempts. Replace V6 prose-string equality with the pinned npm 10 structured audit-error authority. A completed nonzero audit result is eligible for the one bounded retry only when its parseable JSON is structurally bound to method POST and uri https://registry.npmjs.org/-/npm/v1/security/advisories/bulk and it has no explicit HTTP response statusCode, identifying an endpoint transport-level failure rather than an HTTP policy response. Existing rate-limit authority remains non-retry. Explicit HTTP status responses, arbitrary or unbound top-level errors, malformed JSON, tool failures, command execution failures and vulnerability-policy failures remain immediate fail-closed. Every unrecognized top-level audit error must preserve status, signal, stdout and stderr in its governance error instead of losing raw evidence. A second recognized transport-level endpoint failure must fail closed with a transport-specific governance error and the same raw evidence. Preserve strict complete numeric metadata.vulnerabilities validation, high/critical rejection, XState 5.32.5, supply-chain lock/tag/commit/integrity/license authority, real npm audit, real corepack pnpm test:core and shared bounded Node cleanup."
+  },
+  "causalEvidence": {
+    "frozenImplementationPullRequest": 1073,
+    "frozenImplementationHead": "5130cd90785646b98a06565d8127273f96d35bff",
+    "frozenWorkflowRunId": 33837467567,
+    "ubuntuJobId": 100912804305,
+    "windowsJobId": 100912804219,
+    "ubuntuFailure": "Pinned npm 10.9.8 completed before the outer audit timeout and returned a parseable top-level audit error payload not recognized by V6 prose equality; verifier failed closed with WP_B_XSTATE_AUDIT_REPORT_INVALID.",
+    "windowsFailure": "Pinned npm 10.9.8 completed before the outer audit timeout and returned a parseable top-level audit error payload not recognized by V6 prose equality; verifier failed closed with WP_B_XSTATE_AUDIT_REPORT_INVALID.",
+    "precedingKnownGreenRunId": 33791922521,
+    "precedingKnownGreenUbuntuJobId": 100770301240,
+    "precedingKnownGreenWindowsJobId": 100770300810,
+    "frozenHeadNeverRerun": true,
+    "authorizationV3PullRequest": 1067,
+    "authorizationV3Head": "24f02e36310ce083f5327a78728cd4ed4f358520",
+    "authorizationV3Wp0RunId": 33828216583,
+    "authorizationV3Failure": "supersedes declaration violated the exact base-owned generic delegated-governance schema required by implementationBranchPolicy",
+    "authorizationV3FrozenNeverRerun": true,
+    "authorizationV4PullRequest": 1068,
+    "authorizationV4Head": "3d56f8d9079a5ba6ea2023f1035a60bdb1fe7436",
+    "authorizationV4Wp0RunId": 33831311050,
+    "authorizationV4GovernanceJobId": 100894760984,
+    "authorizationV4Failure": "OSS-first admission failed because otherwise valid ossFit evidence omitted required non-empty retireOrAvoid array",
+    "authorizationV4FrozenNeverRerun": true
+  },
+  "requiredBehavior": [
+    "Preserve exact XState xstate@5.32.5, upstream tag/commit, tarball digests, MIT license and supply-chain authority.",
+    "Preserve real npm audit --omit=dev --json evidence and existing high/critical vulnerability rejection semantics.",
+    "Preserve npm native fetch-timeout=30000, fetch-retries=1, fetch-retry-mintimeout=1000 and fetch-retry-maxtimeout=5000.",
+    "Preserve the repository outer NPM_AUDIT hard timeout at 120000ms per attempt and the exact two-attempt whole-audit cap.",
+    "Use the pinned npm 10 structured audit-error envelope rather than one prose message as transport authority.",
+    "Retry attempt two only for a completed nonzero npm audit envelope bound to POST https://registry.npmjs.org/-/npm/v1/security/advisories/bulk with no explicit HTTP statusCode.",
+    "Do not retry explicit HTTP error responses, rate limits, arbitrary or unbound top-level errors, malformed JSON, tool failures, execution failures or vulnerability-policy failures.",
+    "Every unrecognized top-level audit error must fail closed while preserving status, signal, stdout and stderr.",
+    "A second recognized endpoint transport failure must fail closed after exactly two attempts with raw transport evidence preserved.",
+    "Retain complete finite non-negative numeric metadata.vulnerabilities validation, shared Node cleanup authority and real corepack pnpm test:core."
+  ],
+  "negativeProofs": [
+    "No workflow, trigger, runner matrix or path-routing modification.",
+    "No supply-chain lock, XState version/tag/commit/integrity/license or vulnerability-threshold change.",
+    "No package.json, package-lock, dependency or npm version mutation.",
+    "No generic retry framework, custom registry HTTP client or process-supervision subsystem.",
+    "No unbounded retry and no retry of explicit HTTP status responses or arbitrary top-level npm audit errors.",
+    "No conversion of npm audit transport or vulnerability failures to warning, skip or success.",
+    "No mutation, amend, force-push or rerun of frozen V6 implementation head 5130cd90785646b98a06565d8127273f96d35bff / PR #1073 / run 33837467567.",
+    "No Product successor-v11, Matrix, Ollama, RC or UAT mutation."
+  ],
+  "ossFit": {
+    "decision": "ADOPT_PINNED_NPM_10_STRUCTURED_AUDIT_ERROR_ENVELOPE_AND_EXISTING_RETRY_AUTHORITY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "npm native registry fetch timeout/retry configuration",
+        "source": "npm CLI v10.9.8 lib/utils/audit-error.js and lib/utils/display.js; existing npm native fetch configuration",
+        "license": "npm CLI existing runtime",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Pinned npm 10.9.8 already exposes structured audit endpoint error identity through method, uri, statusCode, body and message and merges CLI error metadata under top-level error. V7 adopts that existing mature authority at the current runGovernedNpmAudit seam rather than inventing a second HTTP client, parser or retry framework."
+      },
+      {
+        "name": "Node.js fs.rmSync recursive retry/backoff",
+        "source": "node:fs fs.rmSync maxRetries/retryDelay",
+        "license": "MIT",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Already adopted and locally proven in V2; re-derive unchanged on fresh main."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not build a custom registry HTTP client or duplicate npm registry fetch authority.",
+      "Do not add a generic retry framework or a second scratch cleanup subsystem; reuse runGovernedNpmAudit and Node fs.rmSync authorities.",
+      "Do not use one npm-rendered prose message as the sole transport classifier when pinned npm 10 provides structured method/uri/statusCode authority.",
+      "Do not retry explicit HTTP status responses, arbitrary endpoint errors or vulnerability-policy failures."
+    ]
+  },
+  "requiredValidation": {
+    "focused": [
+      "node --check tools/architecture-closure-v2/verify-wp-b-xstate-package.js",
+      "node --check tools/architecture-closure-v2/verify-wp-b-xstate-upstream.js",
+      "node --test --test-concurrency=1 backend/tests/architectureClosureV2/wpB/xstateUpstreamEvidenceGate.test.js",
+      "git diff --check"
+    ],
+    "behavior": [
+      "npm audit retains the finite native fetch budget strictly below the 120000ms outer hard timeout",
+      "first governed process timeout then success performs exactly two attempts",
+      "first pinned-npm structured advisories-bulk transport envelope then success performs exactly two attempts",
+      "repeated governed process timeout fails after exactly two attempts",
+      "repeated recognized structured endpoint transport failure fails closed after exactly two attempts with status/signal/stdout/stderr preserved",
+      "explicit HTTP statusCode endpoint errors do not retry",
+      "rate limit, arbitrary or unbound top-level error, tool failure, execution failure and malformed JSON do not retry",
+      "unrecognized top-level audit errors preserve raw status/signal/stdout/stderr while failing closed",
+      "valid lower-severity-only audit report remains success",
+      "high or critical vulnerability remains a deterministic violation",
+      "cleanup-only exhaustion fails closed and primary verification failure remains primary"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
