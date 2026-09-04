@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-SUCCESSOR-V13-COMPLETENESS",
+  "proposalRevision": 4,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing correction of the frozen V13 authorization RED. Controller State V5.123 proved the failed OSS-first admission was caused only by a non-canonical selectedAdoptionMode value. This fresh authorization preserves the already-reviewed same-root exact-40 Product scope and replaces the invalid adoption-mode label with repository-canonical existing-repository-seam. No Product implementation byte, owner scope, runtime topology, dependency, workflow, package, lockfile, database migration, routing policy or credential behavior changes in this authorization.",
+  "base": {
+    "branch": "main",
+    "commit": "ed988c142fe4b0e00cdf0f4bcc8b15c6307c6939"
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v12-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v12",
+    "frozenRedAuthorizationPr": 1099,
+    "frozenRedAuthorizationHead": "a2b9237d070971cfbb0b9d2a743720b556d836b0",
+    "reason": "V12 remains immutable evidence for the preserved 34-path local Product bytes. Frozen RED PR #1099 remains immutable authorization evidence and is not amended or rerun. This corrected V13 authorization preserves its exact Product scope while repairing only the OSS-first evidence enum."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "preservedV12ImplementationBytesAlreadyAuthorized": true,
+    "newlyAuthorizedSixPathsMustRemainUnmutatedBeforeMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v13-completeness-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v13-completeness-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "5dff645e3f508318ffdf2a86a7a9c3d17a32adbb9675951ed7fe9cb7d136a860",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v13",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/workspace.js",
+      "backend/services/workspaceService.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 40,
+    "approvedChangedFileSetSha256": "f617a3f24a7971e8afc06d01674a57f456755b41ef100dfb360f2802c0c2b865",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "product": "PRODUCT_FINAL / LIVING_RELATIONSHIP_OS_COMPOSITION_INCOMPLETE",
+    "transportPrerequisite": "DELEGATED_AUTHORIZATION / SAME_ROOT_MANDATORY_REACHABILITY_OWNER_SCOPE_EXPANDED_34_TO_40",
+    "authorizationRed": "DELEGATED_AUTHORIZATION / OSS_FIRST_SELECTED_ADOPTION_MODE_OUTSIDE_REPOSITORY_ENUM",
+    "directEvidence": "Trusted-main tests/wp0/oss-first-development-policy.test.js requires ossFit.selectedAdoptionMode to be a repository adoptionOrder value. Frozen head a2b9237d used existing-authority-plus-narrow-additive-seam, which is not in that enum. The underlying exact-40 Product scope remains unchanged and is required by the same Product Final root.",
+    "requiredRepair": "Ordinary-merge this corrected single-file authorization after its one automatic validation event is GREEN. Then forward-reconcile the preserved V12 local Product bytes to the authorization merge, retain the exact 34 existing Product bytes, add only the six mature-owner/test paths already included in the exact-40 scope, complete the entire local causal closure, focused validation and Windows Local Release Harness, and only then create one Product Exact Head."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerStateAtDiscovery": "V5.121",
+    "controllerStateScopeCorrection": "V5.122",
+    "controllerStateAuthorizationRed": "V5.123",
+    "controllerCommentId": 5546159565,
+    "freshMain": "ed988c142fe4b0e00cdf0f4bcc8b15c6307c6939",
+    "frozenAuthorizationPr": 1099,
+    "frozenAuthorizationHead": "a2b9237d070971cfbb0b9d2a743720b556d836b0",
+    "frozenRedRun": 33916466965,
+    "frozenRedJob": 101164741163,
+    "frozenRedStep": "Enforce OSS-first development admission",
+    "oldApprovedPathCount": 34,
+    "oldApprovedPathSetSha256": "4fc2388463e3b993a5d23070c22bf7db87d3b6a856aa293563759b727889716e",
+    "newApprovedPathCount": 40,
+    "newApprovedPathSetSha256": "f617a3f24a7971e8afc06d01674a57f456755b41ef100dfb360f2802c0c2b865",
+    "additionalAuthorizedPaths": [
+      "backend/routes/workspace.js",
+      "backend/services/workspaceService.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "electron/parlantRelationshipRuntime.js",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/wp0/v21-parlant-p0.test.js"
+    ],
+    "dailyReviewEvidence": {
+      "insufficientProjection": "storeSocialContext recent-message projection is bounded and cannot prove complete high-volume current-day coverage",
+      "matureOwner": "backend/services/workspaceService.js::messagesForPersonContext",
+      "routeOwner": "backend/routes/workspace.js"
+    },
+    "dailyGoalEvidence": {
+      "existingAuthority": "Parlant Relationship Goal/Journey",
+      "missingContract": "explicit local-date-scoped current-day goal and rollover semantics",
+      "matureOwners": [
+        "electron/parlantRelationshipRuntime.js",
+        "runtime/parlant/yance_parlant_server.py"
+      ]
+    },
+    "frozenFalseValidatorRoot": "PRODUCT_VALIDATOR / FROZEN_ELEMENT_0015_NAVIGATION_SEAM_MISCLASSIFIED",
+    "frozenElement0015MustRemainByteIdentical": true,
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true
+  },
+  "requiredBehavior": [
+    "Preserve the complete frozen Product Final Living Relationship OS causal batch and all existing V12 local Product bytes; do not reimplement the 34-path work.",
+    "Repair only the stale Product validator expectation for frozen Element 0015; preserve 0015 bytes exactly and reject location.hash/private-dispatcher navigation.",
+    "Daily Conversation Review must use real Person-wide canonical conversation/message evidence with explicit local-day boundaries and must not silently truncate at the social-context recent-message window.",
+    "Daily Conversation Review problems, successes and next actions must be evidence-bound; missing evidence remains unknown rather than fabricated.",
+    "Daily Chat Goal remains owned by the mature Parlant relationship runtime, is scoped to canonical relationship/contact plus local date, supports truthful rollover/status semantics, and remains independent from persistent Private Quest/Relationship Goal.",
+    "Reply Brain relationship-native interaction reuses Store generate/approve/reject/revise/confirm-send and existing director reason/strategy/goal authorities; no second coach.",
+    "Persona/Character Card Product reachability reuses the existing Persona parser/preview/effective/scope/version/authoritative authority through a thin closed Product bridge; no second Persona store/parser.",
+    "Model Brain acceptance is transparent use by real reply/translation/media/voice task paths; ordinary users must not see provider/model/runtime engineering as Product proof.",
+    "Preserve mature 29-theme appearance, reading/accessibility, notification/sound, custom sound and desktop startup/tray/close/updater preferences through existing authorities and thin Product projection.",
+    "Preserve Yance People / Relationship World as sole Primary Navigation and the real Element timeline/composer/send authority.",
+    "Run directly affected focused validation and git diff --check, then mandatory Windows Local Release Harness at 100%, 125% and 150% before any Product Exact Head."
+  ],
+  "negativeProofs": [
+    "No Product implementation byte is created by this authorization commit.",
+    "No mutation of the six newly authorized implementation paths before this authorization ordinary-merges.",
+    "No rerun/amend/force-push of frozen PR #1099 head or its consumed CI.",
+    "No reimplementation or replay of closed Matrix, Ollama, translation, WP-B or XState prerequisites.",
+    "No synthetic YanceLogin.css mutation and no modification of frozen Element 0015 solely to satisfy a validator.",
+    "No second timeline, composer, Element/Matrix send path, Matrix session, translation engine, account backend, route registry, message store, daily-review store, planner, daily-goal store, model router/provider admin, theme/settings store, persona store, learning engine, media library, voice engine or avatar engine.",
+    "No dependency, package, lockfile, workflow, database migration, credential persistence or runtime-topology change.",
+    "No Product Exact Head, Product PR/CI, RC or formal UAT before whole exact-40 local closure and Windows Harness are GREEN."
+  ],
+  "ossFit": {
+    "decision": "REUSE_PINNED_ELEMENT_AND_EXISTING_YANCE_WORKSPACE_PARLANT_AND_PRODUCT_AUTHORITIES_WITH_THIN_PRODUCT_PROJECTION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Element Web pinned Product conversation runtime",
+        "source": "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c; config/upstreams/v21-comms-p0.json",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "source-module",
+        "fit": "PARTIAL_FIT",
+        "reason": "Remains sole real Matrix RoomView/timeline/composer/send/uploader authority; Product adds only narrow relationship/navigation/control projections."
+      },
+      {
+        "name": "Existing Yance workspace message authority",
+        "source": "backend/services/workspaceService.js + backend/routes/workspace.js on trusted main",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns Person-wide canonical conversation/message enumeration needed for truthful date-scoped review without another store."
+      },
+      {
+        "name": "Pinned Parlant relationship runtime",
+        "source": "electron/parlantRelationshipRuntime.js + runtime/parlant/yance_parlant_server.py; Parlant 3.3.2 pinned by repository",
+        "license": "repository-pinned-upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns persistent relationship goals/journeys; the missing daily contract is the narrowest additive seam in the existing pinned runtime."
+      },
+      {
+        "name": "Existing Yance Product/Store/Electron authorities",
+        "source": "trusted main plus preserved V12 local Product bytes",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns Reply Brain, Persona, themes, notification/sound, desktop preferences, account, translation, media, voice, presence and lifecycle capabilities."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not use the bounded social-context recent-message projection as false proof of complete current-day review.",
+      "Do not rename persistent Private Quest or propose_tomorrow_journey into a fake current-day goal.",
+      "Do not create a Product-local daily review database or daily goal store.",
+      "Do not expose provider/model/runtime/Ollama/LiteLLM engineering controls as ordinary Product completion proof.",
+      "Do not create any duplicate mature authority already present in the repository or pinned Element/Parlant runtime."
+    ]
+  },
+  "requiredValidation": {
+    "authorization": [
+      "exact branch base equals ed988c142fe4b0e00cdf0f4bcc8b15c6307c6939",
+      "authorization diff is exactly one added governance JSON: governance/layered-ci/v21-product-final-successor-v13-completeness-authorization.json",
+      "authorization path-set SHA-256 equals 5dff645e3f508318ffdf2a86a7a9c3d17a32adbb9675951ed7fe9cb7d136a860",
+      "ossFit.selectedAdoptionMode equals repository-canonical existing-repository-seam",
+      "implementation path count equals 40 and canonical sorted-path plus trailing-LF SHA-256 equals f617a3f24a7971e8afc06d01674a57f456755b41ef100dfb360f2802c0c2b865"
+    ],
+    "implementationBeforeExactHead": [
+      "preserved V12 Product bytes are forward-reconciled to exact authorization merge without reset/clean/recreate or reimplementation",
+      "V13 implementation parent is the ordinary authorization merge commit",
+      "relative candidate path set is exactly the authorized 40 paths",
+      "new six paths close only full-day review and date-scoped Parlant daily goal semantics",
+      "false 0015 validator is repaired while 0015 blob remains unchanged",
+      "directly affected focused tests and git diff --check are GREEN",
+      "all mature Product reachability and settings gates are GREEN",
+      "Windows Local Release Harness is GREEN at 100%, 125% and 150%"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "authorizationPredatesNewlyAuthorizedPathMutation": true,
+    "existingV12BytesRemainCoveredByPriorMergedAuthorization": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
