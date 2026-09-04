@@ -19,6 +19,28 @@ const UPSTREAM_TAG_CANDIDATES = Object.freeze([EXACT_UPSTREAM_TAG]);
 const INSTALL_LIFECYCLE_SCRIPTS = Object.freeze(['preinstall', 'install', 'postinstall']);
 const SUSPICIOUS_PACKAGE_FILE_PATTERN = /(?:^|\/)(?:[^/]+\.(?:node|dll|exe|ps1|bat|cmd)|install\.sh)$/iu;
 const MAX_DIAGNOSTIC_BYTES = 64 * 1024;
+const NPM_AUDIT_MAX_ATTEMPTS = 2;
+const NPM_AUDIT_FETCH_POLICY = Object.freeze({
+  fetchTimeoutMs: 30_000,
+  fetchRetries: 1,
+  fetchRetryMinTimeoutMs: 1_000,
+  fetchRetryMaxTimeoutMs: 5_000
+});
+const NPM_AUDIT_MAX_FETCH_CYCLE_MS = (NPM_AUDIT_FETCH_POLICY.fetchRetries + 1)
+  * NPM_AUDIT_FETCH_POLICY.fetchTimeoutMs
+  + NPM_AUDIT_FETCH_POLICY.fetchRetries * NPM_AUDIT_FETCH_POLICY.fetchRetryMaxTimeoutMs;
+const NPM_AUDIT_ENV = Object.freeze({
+  npm_config_fetch_timeout: String(NPM_AUDIT_FETCH_POLICY.fetchTimeoutMs),
+  npm_config_fetch_retries: String(NPM_AUDIT_FETCH_POLICY.fetchRetries),
+  npm_config_fetch_retry_mintimeout: String(NPM_AUDIT_FETCH_POLICY.fetchRetryMinTimeoutMs),
+  npm_config_fetch_retry_maxtimeout: String(NPM_AUDIT_FETCH_POLICY.fetchRetryMaxTimeoutMs)
+});
+const NPM_AUDIT_RETRYABLE_NETWORK_TIMEOUT_MESSAGES = Object.freeze([
+  'network timeout at: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk',
+  'network timeout at: https://registry.npmjs.org/-/npm/v1/security/audits/quick'
+]);
+const SCRATCH_CLEANUP_MAX_RETRIES = 5;
+const SCRATCH_CLEANUP_RETRY_DELAY_MS = 100;
 const COMMAND_TIMEOUTS = Object.freeze({
   GIT_INIT: 30_000,
   GIT_CONFIG: 30_000,
@@ -31,6 +53,10 @@ const COMMAND_TIMEOUTS = Object.freeze({
   NPM_LOCK_INSTALL: 180_000,
   NPM_AUDIT: 120_000
 });
+
+if (NPM_AUDIT_MAX_FETCH_CYCLE_MS >= COMMAND_TIMEOUTS.NPM_AUDIT) {
+  throw new Error('NPM audit native fetch policy must remain below the governed outer timeout');
+}
 
 function npmCommand() {
   return process.platform === 'win32' ? 'npm.cmd' : 'npm';
@@ -138,9 +164,121 @@ function runGovernedCommand(command, args, options = {}) {
 
   return Object.freeze({
     status: Number.isInteger(result.status) ? result.status : null,
+    signal: result.signal || null,
     stdout,
     stderr
   });
+}
+
+function parseNpmAuditResultObject(result) {
+  if (!result || typeof result.stdout !== 'string') return null;
+  try {
+    const parsed = JSON.parse(result.stdout);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed
+      : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function isNpmAuditErrorEnvelope(parsed) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+  return Object.prototype.hasOwnProperty.call(parsed, 'error')
+    || typeof parsed.method === 'string'
+    || typeof parsed.uri === 'string'
+    || Object.prototype.hasOwnProperty.call(parsed, 'statusCode')
+    || Object.prototype.hasOwnProperty.call(parsed, 'body');
+}
+
+function isRetryableNpmAuditEndpointTransportFailure(result, parsed) {
+  if (!Number.isInteger(result?.status) || result.status === 0) return false;
+
+  return Boolean(
+    parsed
+    && typeof parsed === 'object'
+    && !Array.isArray(parsed)
+    && parsed.error
+    && typeof parsed.error === 'object'
+    && !Array.isArray(parsed.error)
+    && typeof parsed.message === 'string'
+    && NPM_AUDIT_RETRYABLE_NETWORK_TIMEOUT_MESSAGES.includes(parsed.message)
+  );
+}
+
+function createNpmAuditEndpointResultError(code, message, result, parsed, attempts) {
+  return createGovernanceError(
+    code,
+    message,
+    {
+      commandKind: 'NPM_AUDIT',
+      timeoutMs: COMMAND_TIMEOUTS.NPM_AUDIT,
+      status: Number.isInteger(result?.status) ? result.status : null,
+      signal: result?.signal || null,
+      stdout: boundedText(result?.stdout),
+      stderr: boundedText(result?.stderr),
+      attempts,
+      method: typeof parsed?.method === 'string' ? parsed.method : '',
+      uri: typeof parsed?.uri === 'string' ? parsed.uri : '',
+      statusCode: Object.prototype.hasOwnProperty.call(parsed || {}, 'statusCode')
+        ? parsed.statusCode
+        : null
+    }
+  );
+}
+
+function runGovernedNpmAudit(auditRoot, options = {}) {
+  const runCommand = options.runCommand || runGovernedCommand;
+
+  for (let attempt = 1; attempt <= NPM_AUDIT_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const result = runCommand(npmCommand(), ['audit', '--omit=dev', '--json'], {
+        cwd: auditRoot,
+        allowFailure: true,
+        commandKind: 'NPM_AUDIT',
+        timeoutMs: COMMAND_TIMEOUTS.NPM_AUDIT,
+        env: NPM_AUDIT_ENV
+      });
+
+      const parsed = parseNpmAuditResultObject(result);
+
+      if (!isNpmAuditErrorEnvelope(parsed)) return result;
+
+      if (isRetryableNpmAuditEndpointTransportFailure(result, parsed)) {
+        if (attempt < NPM_AUDIT_MAX_ATTEMPTS) continue;
+
+        throw createNpmAuditEndpointResultError(
+          'WP_B_UPSTREAM_NPM_AUDIT_ENDPOINT_TRANSPORT_FAILED',
+          'npm audit endpoint transport failed after the bounded whole-audit retry',
+          result,
+          parsed,
+          attempt
+        );
+      }
+
+      throw createNpmAuditEndpointResultError(
+        'WP_B_UPSTREAM_NPM_AUDIT_ENDPOINT_FAILED',
+        'npm audit returned a non-retryable endpoint error envelope',
+        result,
+        parsed,
+        attempt
+      );
+    } catch (error) {
+      if (
+        error?.code === 'WP_B_UPSTREAM_COMMAND_TIMEOUT'
+        && attempt < NPM_AUDIT_MAX_ATTEMPTS
+      ) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw createGovernanceError(
+    'WP_B_UPSTREAM_COMMAND_TIMEOUT',
+    `NPM_AUDIT exceeded its ${COMMAND_TIMEOUTS.NPM_AUDIT}ms hard timeout`,
+    { commandKind: 'NPM_AUDIT', timeoutMs: COMMAND_TIMEOUTS.NPM_AUDIT }
+  );
 }
 
 function parseJsonOutput(result, label) {
@@ -150,7 +288,12 @@ function parseJsonOutput(result, label) {
     throw createGovernanceError(
       'WP_B_UPSTREAM_JSON_INVALID',
       `${label} did not return valid JSON`,
-      { stdout: boundedText(result.stdout), stderr: boundedText(result.stderr) }
+      {
+        status: Number.isInteger(result?.status) ? result.status : null,
+        signal: result?.signal || null,
+        stdout: boundedText(result?.stdout),
+        stderr: boundedText(result?.stderr)
+      }
     );
   }
 }
@@ -189,6 +332,42 @@ function createGovernedScratchDirectory(options = {}) {
   }
   const prefix = String(options.prefix || 'yance-wp-b-xstate-');
   return mkdtempImpl(governedJoin(String(canonicalBase), prefix));
+}
+
+function removeGovernedScratchDirectory(scratchRoot, options = {}) {
+  const rmSyncImpl = options.rmSyncImpl || fs.rmSync;
+  const primaryError = options.primaryError || null;
+  try {
+    rmSyncImpl(scratchRoot, {
+      recursive: true,
+      force: true,
+      maxRetries: SCRATCH_CLEANUP_MAX_RETRIES,
+      retryDelay: SCRATCH_CLEANUP_RETRY_DELAY_MS
+    });
+    return true;
+  } catch (error) {
+    const cleanupCauseCode = String(error?.code || '');
+    const cleanupError = createGovernanceError(
+      'WP_B_UPSTREAM_SCRATCH_CLEANUP_FAILED',
+      'Governed XState upstream scratch cleanup failed after bounded retries',
+      {
+        scratchRoot: String(scratchRoot || ''),
+        cleanupCauseCode,
+        maxRetries: SCRATCH_CLEANUP_MAX_RETRIES,
+        retryDelayMs: SCRATCH_CLEANUP_RETRY_DELAY_MS
+      }
+    );
+    if (primaryError) {
+      primaryError.cleanupCode = cleanupError.code;
+      primaryError.cleanupMessage = cleanupError.message;
+      primaryError.cleanupCauseCode = cleanupCauseCode;
+      primaryError.cleanupScratchRoot = cleanupError.scratchRoot;
+      primaryError.cleanupMaxRetries = cleanupError.maxRetries;
+      primaryError.cleanupRetryDelayMs = cleanupError.retryDelayMs;
+      return false;
+    }
+    throw cleanupError;
+  }
 }
 
 function checkoutExactUpstreamTag(options = {}) {
@@ -256,11 +435,15 @@ function resolveUpstreamTagCommit(options = {}) {
   const checkoutRoot = options.checkoutRoot || createGovernedScratchDirectory({
     prefix: 'yance-wp-b-xstate-tag-'
   });
+  let primaryError = null;
   try {
     const checkout = checkoutExactUpstreamTag({ ...options, checkoutRoot });
     return Object.freeze({ tagName: checkout.tagName, commitSha: checkout.commitSha });
+  } catch (error) {
+    primaryError = error;
+    throw error;
   } finally {
-    if (ownedRoot) fs.rmSync(checkoutRoot, { recursive: true, force: true });
+    if (ownedRoot) removeGovernedScratchDirectory(checkoutRoot, { primaryError });
   }
 }
 
@@ -271,16 +454,34 @@ function normalizeRepository(repository) {
 }
 
 function auditCounts(audit) {
-  const vulnerabilities = audit && audit.metadata && audit.metadata.vulnerabilities
-    ? audit.metadata.vulnerabilities
-    : {};
+  const fields = ['info', 'low', 'moderate', 'high', 'critical', 'total'];
+  const vulnerabilities = audit?.metadata?.vulnerabilities;
+  if (audit && Object.prototype.hasOwnProperty.call(audit, 'error')) {
+    throw createGovernanceError('WP_B_XSTATE_AUDIT_REPORT_INVALID', 'npm audit returned a top-level error payload');
+  }
+  if (!vulnerabilities || typeof vulnerabilities !== 'object' || Array.isArray(vulnerabilities)) {
+    throw createGovernanceError('WP_B_XSTATE_AUDIT_REPORT_INVALID', 'npm audit metadata.vulnerabilities is required');
+  }
+  for (const field of fields) {
+    const value = vulnerabilities[field];
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+      throw createGovernanceError(
+        'WP_B_XSTATE_AUDIT_REPORT_INVALID',
+        `npm audit metadata.vulnerabilities.${field} must be a finite non-negative number`,
+        { field, actual: value }
+      );
+    }
+  }
+  return Object.freeze(Object.fromEntries(fields.map(field => [field, vulnerabilities[field]])));
+}
+
+function evaluateAuditReport(audit) {
+  const vulnerabilities = auditCounts(audit);
   return Object.freeze({
-    info: Number(vulnerabilities.info || 0),
-    low: Number(vulnerabilities.low || 0),
-    moderate: Number(vulnerabilities.moderate || 0),
-    high: Number(vulnerabilities.high || 0),
-    critical: Number(vulnerabilities.critical || 0),
-    total: Number(vulnerabilities.total || 0)
+    vulnerabilities,
+    violations: Object.freeze(vulnerabilities.high !== 0 || vulnerabilities.critical !== 0
+      ? [Object.freeze({ code: 'WP_B_XSTATE_HIGH_OR_CRITICAL_VULNERABILITY', vulnerabilities })]
+      : [])
   });
 }
 
@@ -297,172 +498,230 @@ function readLicenseText(upstreamCheckout) {
   }
 }
 
-async function verify(options = {}) {
-  const tempRoot = createGovernedScratchDirectory({ prefix: 'yance-wp-b-xstate-package-' });
+function readJsonFile(repositoryRoot, relativePath) {
+  return JSON.parse(
+    fs.readFileSync(path.join(repositoryRoot, relativePath), 'utf8')
+  );
+}
+
+function readRepositoryBinding(repositoryRoot) {
+  const root = path.resolve(repositoryRoot);
+  const packageJson = readJsonFile(root, 'package.json');
+  const packageLock = readJsonFile(root, 'package-lock.json');
+  const supplyChainLock = readJsonFile(
+    root,
+    'governance/architecture-closure-v2/wp-b-xstate-supply-chain-lock.json'
+  );
+  const registry = readJsonFile(
+    root,
+    'governance/architecture-closure-v2/wp-b-open-source-adoption-registry.json'
+  );
+  const adoptionEvidence = readJsonFile(
+    root,
+    'governance/architecture-closure-v2/wp-b-open-source-adoption-evidence-xstate-5.32.5.json'
+  );
+  const xstateCandidate = (registry.candidates || [])
+    .find(candidate => candidate.project === 'XState') || null;
+
+  return Object.freeze({
+    root,
+    packageJson,
+    packageLock,
+    supplyChainLock,
+    registry,
+    adoptionEvidence,
+    xstateCandidate,
+    lockEntry: packageLock?.packages?.['node_modules/xstate'] || null
+  });
+}
+
+function validateRepositoryBinding(binding) {
   const violations = [];
-  try {
-    const metadata = parseJsonOutput(
-      runGovernedCommand(npmCommand(), ['view', PACKAGE_SPEC, '--json'], {
-        commandKind: 'NPM_METADATA',
-        timeoutMs: COMMAND_TIMEOUTS.NPM_METADATA
-      }),
-      'npm view'
-    );
+  const expected = binding.supplyChainLock.artifact || {};
+  const lockEntry = binding.lockEntry || {};
+  const registryFacts = binding.xstateCandidate?.verifiedPackageEvidence || {};
+  const historical = binding.adoptionEvidence || {};
 
-    const dependencies = metadata.dependencies && typeof metadata.dependencies === 'object'
-      ? metadata.dependencies
-      : {};
-    const scripts = metadata.scripts && typeof metadata.scripts === 'object'
-      ? metadata.scripts
-      : {};
-    const installLifecycleScripts = INSTALL_LIFECYCLE_SCRIPTS.filter(name => typeof scripts[name] === 'string' && scripts[name].trim());
-
-    if (metadata.name !== PACKAGE_NAME) violations.push({ code: 'WP_B_XSTATE_PACKAGE_NAME_MISMATCH', actual: metadata.name || '' });
-    if (metadata.version !== EXACT_VERSION) violations.push({ code: 'WP_B_XSTATE_VERSION_MISMATCH', actual: metadata.version || '' });
-    if (metadata.license !== EXPECTED_LICENSE) violations.push({ code: 'WP_B_XSTATE_LICENSE_MISMATCH', actual: metadata.license || '' });
-    if (Object.keys(dependencies).length !== EXPECTED_RUNTIME_DEPENDENCY_COUNT) {
-      violations.push({ code: 'WP_B_XSTATE_RUNTIME_DEPENDENCIES_PRESENT', dependencies });
-    }
-    if (installLifecycleScripts.length !== 0) {
-      violations.push({ code: 'WP_B_XSTATE_INSTALL_LIFECYCLE_SCRIPTS_PRESENT', installLifecycleScripts });
-    }
-    if (!metadata.dist || typeof metadata.dist.integrity !== 'string' || typeof metadata.dist.shasum !== 'string') {
-      violations.push({ code: 'WP_B_XSTATE_DIST_DIGEST_MISSING' });
-    }
-
-    const upstream = options.upstreamCheckout || checkoutExactUpstreamTag({
-      checkoutRoot: path.join(tempRoot, 'upstream')
+  if (binding.packageJson?.dependencies?.xstate !== expected.version) {
+    violations.push({ code: 'WP_B_XSTATE_PACKAGE_NAME_MISMATCH' });
+  }
+  if (binding.packageLock?.packages?.['']?.dependencies?.xstate !== expected.version) {
+    violations.push({ code: 'WP_B_XSTATE_ROOT_LOCK_VERSION_MISMATCH' });
+  }
+  if (lockEntry.version !== expected.version
+      || lockEntry.resolved !== expected.resolved
+      || lockEntry.integrity !== expected.integrity
+      || lockEntry.license !== expected.license) {
+    violations.push({
+      code: 'WP_B_XSTATE_PHYSICAL_LOCK_MISMATCH',
+      actual: lockEntry
     });
-    if (upstream.tagName !== EXACT_UPSTREAM_TAG) {
-      violations.push({ code: 'WP_B_XSTATE_EXACT_TAG_MISSING', actual: upstream.tagName || '' });
-    }
-    if (metadata.gitHead && metadata.gitHead !== upstream.commitSha) {
-      violations.push({
-        code: 'WP_B_XSTATE_NPM_GIT_HEAD_TAG_MISMATCH',
-        npmGitHead: metadata.gitHead,
-        upstreamCommit: upstream.commitSha
-      });
-    }
+  }
+  if (registryFacts.distIntegrity !== expected.integrity
+      || registryFacts.distShasum !== expected.shasum
+      || registryFacts.upstreamCommit !== expected.upstreamCommit
+      || registryFacts.licenseTextSha256 !== expected.licenseTextSha256
+      || Number(binding.xstateCandidate?.runtimeDependencyCount)
+        !== Number(expected.runtimeDependencyCount)) {
+    violations.push({ code: 'WP_B_XSTATE_REGISTRY_SUPPLY_CHAIN_MISMATCH' });
+  }
+  if (historical?.exactVersionAndLicenseReview?.exactVersion !== expected.version
+      || historical?.exactVersionAndLicenseReview?.license !== expected.license
+      || historical?.exactVersionAndLicenseReview?.upstreamCommit !== expected.upstreamCommit
+      || historical?.exactVersionAndLicenseReview?.licenseTextSha256 !== expected.licenseTextSha256
+      || historical?.dependencyAndSecurityScan?.distIntegrity !== expected.integrity
+      || historical?.dependencyAndSecurityScan?.distShasum !== expected.shasum) {
+    violations.push({ code: 'WP_B_XSTATE_SEALED_ADOPTION_EVIDENCE_MISMATCH' });
+  }
 
-    const packResult = parseJsonOutput(
-      runGovernedCommand(npmCommand(), ['pack', PACKAGE_SPEC, '--json', '--ignore-scripts'], {
-        cwd: tempRoot,
-        commandKind: 'NPM_PACK',
-        timeoutMs: COMMAND_TIMEOUTS.NPM_PACK
-      }),
-      'npm pack'
+  return violations;
+}
+
+function refreshVulnerabilityEvidence(options = {}) {
+  const repositoryRoot = path.resolve(
+    options.repositoryRoot || path.resolve(__dirname, '..', '..')
+  );
+  const binding = readRepositoryBinding(repositoryRoot);
+  const expected = binding.supplyChainLock.artifact || {};
+  const runCommand = options.runCommand || runGovernedCommand;
+  const tempRoot = createGovernedScratchDirectory({
+    prefix: 'yance-wp-b-xstate-vulnerability-refresh-'
+  });
+  let primaryError = null;
+
+  try {
+    fs.writeFileSync(
+      path.join(tempRoot, 'package.json'),
+      `${JSON.stringify({
+        name: 'yance-wp-b-xstate-vulnerability-refresh',
+        version: '1.0.0',
+        private: true
+      }, null, 2)}\n`
     );
-    const packed = Array.isArray(packResult) ? packResult[0] : null;
-    if (!packed || !packed.filename) violations.push({ code: 'WP_B_XSTATE_PACK_RESULT_INVALID' });
 
-    let tarballSha512 = '';
-    let tarballSha1 = '';
-    let packageFileCount = 0;
-    let suspiciousPackageFiles = [];
-    if (packed && packed.filename) {
-      const tarball = fs.readFileSync(path.join(tempRoot, packed.filename));
-      tarballSha512 = `sha512-${sha512Base64(tarball)}`;
-      tarballSha1 = sha1(tarball);
-      packageFileCount = Array.isArray(packed.files) ? packed.files.length : 0;
-      suspiciousPackageFiles = (packed.files || [])
-        .map(file => String(file.path || ''))
-        .filter(filePath => SUSPICIOUS_PACKAGE_FILE_PATTERN.test(filePath));
-      if (tarballSha512 !== metadata.dist.integrity) {
-        violations.push({ code: 'WP_B_XSTATE_TARBALL_INTEGRITY_MISMATCH', expected: metadata.dist.integrity, actual: tarballSha512 });
-      }
-      if (tarballSha1 !== metadata.dist.shasum) {
-        violations.push({ code: 'WP_B_XSTATE_TARBALL_SHASUM_MISMATCH', expected: metadata.dist.shasum, actual: tarballSha1 });
-      }
-      if (suspiciousPackageFiles.length !== 0) {
-        violations.push({ code: 'WP_B_XSTATE_SUSPICIOUS_PACKAGE_FILES_PRESENT', suspiciousPackageFiles });
-      }
-    }
-
-    const auditRoot = path.join(tempRoot, 'audit');
-    fs.mkdirSync(auditRoot, { recursive: true });
-    fs.writeFileSync(path.join(auditRoot, 'package.json'), `${JSON.stringify({
-      name: 'yance-wp-b-xstate-audit-sandbox',
-      version: '1.0.0',
-      private: true
-    }, null, 2)}\n`);
-    runGovernedCommand(npmCommand(), [
+    runCommand(npmCommand(), [
       'install',
-      '--package-lock-only',
       '--ignore-scripts',
       '--save-exact',
       '--no-fund',
       '--no-audit',
       PACKAGE_SPEC
     ], {
-      cwd: auditRoot,
+      cwd: tempRoot,
       commandKind: 'NPM_LOCK_INSTALL',
       timeoutMs: COMMAND_TIMEOUTS.NPM_LOCK_INSTALL
     });
-    const auditResult = runGovernedCommand(npmCommand(), ['audit', '--omit=dev', '--json'], {
-      cwd: auditRoot,
-      allowFailure: true,
-      commandKind: 'NPM_AUDIT',
-      timeoutMs: COMMAND_TIMEOUTS.NPM_AUDIT
-    });
+
+    const installedManifest = JSON.parse(
+      fs.readFileSync(
+        path.join(tempRoot, 'node_modules', PACKAGE_NAME, 'package.json'),
+        'utf8'
+      )
+    );
+    const generatedLock = JSON.parse(
+      fs.readFileSync(path.join(tempRoot, 'package-lock.json'), 'utf8')
+    );
+    const lockEntry = generatedLock?.packages?.['node_modules/xstate'];
+
+    if (installedManifest.version !== expected.version
+        || lockEntry?.version !== expected.version
+        || lockEntry?.resolved !== expected.resolved
+        || lockEntry?.integrity !== expected.integrity
+        || lockEntry?.license !== expected.license) {
+      throw createGovernanceError(
+        'WP_B_XSTATE_REFRESH_PACKAGE_IDENTITY_MISMATCH',
+        'Live vulnerability refresh did not materialize the exact governed XState artifact'
+      );
+    }
+
+    const auditResult = runGovernedNpmAudit(tempRoot, { runCommand });
     const audit = parseJsonOutput(auditResult, 'npm audit');
-    const vulnerabilities = auditCounts(audit);
-    if (vulnerabilities.high !== 0 || vulnerabilities.critical !== 0) {
-      violations.push({ code: 'WP_B_XSTATE_HIGH_OR_CRITICAL_VULNERABILITY', vulnerabilities });
-    }
-
-    const licenseText = readLicenseText(upstream);
-    if (!/MIT License/iu.test(licenseText)) {
-      violations.push({ code: 'WP_B_XSTATE_LICENSE_TEXT_INVALID' });
-    }
-
-    const lock = JSON.parse(fs.readFileSync(path.join(auditRoot, 'package-lock.json'), 'utf8'));
-    const lockEntry = lock.packages && lock.packages['node_modules/xstate'];
-    if (!lockEntry || lockEntry.version !== EXACT_VERSION) {
-      violations.push({ code: 'WP_B_XSTATE_SANDBOX_LOCK_INVALID', actual: lockEntry || null });
-    }
-    if (lockEntry && lockEntry.integrity !== metadata.dist.integrity) {
-      violations.push({ code: 'WP_B_XSTATE_SANDBOX_LOCK_INTEGRITY_MISMATCH', expected: metadata.dist.integrity, actual: lockEntry.integrity || '' });
-    }
+    const evaluation = evaluateAuditReport(audit);
 
     return Object.freeze({
-      schemaVersion: 4,
-      documentType: 'YANCE_ACV2_WP_B_XSTATE_UPSTREAM_VERIFICATION',
-      ok: violations.length === 0,
-      package: {
-        name: metadata.name || '',
-        version: metadata.version || '',
-        license: metadata.license || '',
-        repository: normalizeRepository(metadata.repository),
-        npmGitHead: metadata.gitHead || '',
-        upstreamTag: upstream.tagName,
-        upstreamCommit: upstream.commitSha,
-        runtimeDependencyCount: Object.keys(dependencies).length,
-        runtimeDependencies: dependencies,
-        installLifecycleScripts,
-        distIntegrity: metadata.dist && metadata.dist.integrity ? metadata.dist.integrity : '',
-        distShasum: metadata.dist && metadata.dist.shasum ? metadata.dist.shasum : '',
-        tarballSha512,
-        tarballSha1,
-        packageFileCount,
-        suspiciousPackageFiles,
-        licenseTextSha256: sha256(licenseText),
-        sandboxLockEntry: lockEntry || null
-      },
-      security: {
-        auditExitCode: auditResult.status,
-        vulnerabilities
-      },
-      runtime: {
-        node: process.version,
-        platform: process.platform,
-        arch: process.arch,
-        npmUserAgent: process.env.npm_config_user_agent || ''
-      },
-      violations
+      auditExitCode: auditResult.status,
+      vulnerabilities: evaluation.vulnerabilities,
+      violations: evaluation.violations,
+      lockEntry: Object.freeze({
+        version: lockEntry.version,
+        resolved: lockEntry.resolved,
+        integrity: lockEntry.integrity,
+        license: lockEntry.license
+      })
     });
+  } catch (error) {
+    primaryError = error;
+    throw error;
   } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
+    removeGovernedScratchDirectory(tempRoot, { primaryError });
   }
+}
+
+async function verify(options = {}) {
+  const repositoryRoot = path.resolve(
+    options.repositoryRoot || path.resolve(__dirname, '..', '..')
+  );
+  const binding = readRepositoryBinding(repositoryRoot);
+  const violations = validateRepositoryBinding(binding);
+  const expected = binding.supplyChainLock.artifact || {};
+
+  const vulnerabilityVerifier =
+    require('./verify-wp-b-xstate-vulnerability-evidence');
+
+  const vulnerabilityEvidence = vulnerabilityVerifier.verifyEvidence({
+    repositoryRoot,
+    evidencePath:
+      options.vulnerabilityEvidencePath
+      || process.env.WP_B_VULNERABILITY_EVIDENCE_PATH,
+    nowMs: options.nowMs
+  });
+
+  const vulnerabilities = vulnerabilityEvidence.vulnerabilities;
+  const lockEntry = binding.lockEntry || {};
+
+  return Object.freeze({
+    schemaVersion: 5,
+    documentType: 'YANCE_ACV2_WP_B_XSTATE_UPSTREAM_VERIFICATION',
+    ok: violations.length === 0,
+    evidenceMode: 'SEALED_REPOSITORY_EVIDENCE',
+    package: {
+      name: expected.packageName,
+      version: expected.version,
+      license: expected.license,
+      repository:
+        binding.adoptionEvidence?.exactVersionAndLicenseReview?.repository || '',
+      npmGitHead: expected.upstreamCommit,
+      upstreamTag: expected.upstreamTag,
+      upstreamCommit: expected.upstreamCommit,
+      runtimeDependencyCount: Number(expected.runtimeDependencyCount),
+      runtimeDependencies: {},
+      installLifecycleScripts: [...(expected.installLifecycleScripts || [])],
+      distIntegrity: expected.integrity,
+      distShasum: expected.shasum,
+      tarballSha512: expected.integrity,
+      tarballSha1: expected.shasum,
+      packageFileCount: Number(expected.packageFileCount),
+      suspiciousPackageFiles: [...(expected.suspiciousPackageFiles || [])],
+      licenseTextSha256: expected.licenseTextSha256,
+      repositoryLockEntry: lockEntry,
+      sandboxLockEntry: lockEntry
+    },
+    security: {
+      auditExitCode: null,
+      evidenceMode: vulnerabilityEvidence.evidenceMode,
+      evidenceCapturedAt: vulnerabilityEvidence.capturedAt,
+      evidenceExpiresAt: vulnerabilityEvidence.expiresAt,
+      receiptDigestSha256: vulnerabilityEvidence.receiptDigestSha256,
+      vulnerabilities
+    },
+    runtime: {
+      node: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      npmUserAgent: process.env.npm_config_user_agent || ''
+    },
+    violations
+  });
 }
 
 async function main() {
@@ -499,15 +758,27 @@ module.exports = {
   COMMAND_TIMEOUTS,
   EXACT_UPSTREAM_TAG,
   EXACT_VERSION,
+  NPM_AUDIT_ENV,
+  NPM_AUDIT_FETCH_POLICY,
+  NPM_AUDIT_MAX_ATTEMPTS,
+  NPM_AUDIT_MAX_FETCH_CYCLE_MS,
   PACKAGE_NAME,
   PACKAGE_SPEC,
+  SCRATCH_CLEANUP_MAX_RETRIES,
+  SCRATCH_CLEANUP_RETRY_DELAY_MS,
   UPSTREAM_REPOSITORY,
   UPSTREAM_REPOSITORY_URL,
   UPSTREAM_TAG_CANDIDATES,
   auditCounts,
   checkoutExactUpstreamTag,
   createGovernedScratchDirectory,
+  evaluateAuditReport,
+  parseJsonOutput,
+  removeGovernedScratchDirectory,
+  readRepositoryBinding,
+  refreshVulnerabilityEvidence,
   resolveUpstreamTagCommit,
   runGovernedCommand,
+  runGovernedNpmAudit,
   verify
 };
