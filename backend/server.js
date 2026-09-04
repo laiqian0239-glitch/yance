@@ -188,6 +188,7 @@ const { createR32LegacyRouteBlocker } = require('./middleware/r32LegacyRouteBloc
 const { createPersonalAccessGuard } = require('./middleware/personalAccessGuard');
 const { createPersonalAccessRouter } = require('./routes/personalAccess');
 const { createPersonalAccessService } = require('./services/personalAccessService');
+const endUserMatrixIdentityService = require('./services/endUserMatrixIdentityService');
 const { createR32ConversationRouter } = require('./routes/r32Conversations');
 const workspaceRouter = require('./routes/workspace');
 const conversationCapabilitiesRouter = require('./routes/conversationCapabilities');
@@ -481,6 +482,18 @@ const credentialAuthorityProjection = () => {
 };
 app.get('/api/desktop/credential-authority-state', (_req, res) => res.json(credentialAuthorityProjection()));
 app.get('/api/desktop/runtime-projection-snapshot', (_req, res) => res.json(APP_RUNTIME.snapshot()));
+app.get('/api/desktop/matrix-local-identity', (_req, res, next) => {
+  try {
+    res.json(endUserMatrixIdentityService.status());
+  } catch (error) {
+    next(error);
+  }
+});
+app.post('/api/desktop/matrix-local-identity', (req, res, next) => {
+  Promise.resolve(endUserMatrixIdentityService.provision(req.body || {}))
+    .then(result => res.status(201).json(result))
+    .catch(next);
+});
 // M4: owner re-attach handshake. The relaunched DesktopHost calls this over the
 // loopback control channel to resume credential custody after it restarted while
 // the backend kept running. Same trust boundary as the WebSocket control socket
