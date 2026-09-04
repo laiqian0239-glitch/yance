@@ -261,6 +261,10 @@ const CLOSED_GOVERNANCE_FIELDS = Object.freeze([
   'formalRelease', 'publish', 'temporaryBypassAllowed', 'warningOnlyClosureAllowed'
 ]);
 const EXTENSION_STATES = new Set(['OPEN', 'DELEGATES_TO_WP_B_AUTHORITY', 'READ_ONLY_PROJECTION', 'DELETED']);
+const IMPLEMENTATION_PR_ROLES = Object.freeze({
+  WP_B_SUCCESSOR: 'WP_B_SUCCESSOR',
+  GENERIC_DELEGATED: 'GENERIC_DELEGATED'
+});
 
 function fail(code, message, details = {}) {
   throw Object.assign(new Error(message), { code, ...details });
@@ -507,6 +511,47 @@ function isAuthorizedM3ImplementationBranch(currentBranch, options = {}) {
     return false;
   }
 }
+function resolveDelegatedImplementationPrRole(currentBranch, options = {}) {
+  if (currentBranch === EXPECTED_BRANCH) return null;
+  const repositoryRoot = path.resolve(options.repositoryRoot || REPOSITORY_ROOT);
+  try {
+    if (!isAuthorizedM3ImplementationBranch(currentBranch, options)) return null;
+    const trustedPolicyRootValue = String(options.trustedPolicyRoot || process.env.TRUSTED_POLICY_ROOT || '').trim();
+    const trustedMainHead = String(options.trustedMainHead || process.env.TRUSTED_POLICY_SHA || '').trim();
+    const evaluatedHead = String(options.evaluatedHead || process.env.VALIDATION_SHA || '').trim();
+    if (!trustedPolicyRootValue || !FULL_SHA.test(trustedMainHead) || !FULL_SHA.test(evaluatedHead)) return null;
+    const trustedPolicyRoot = fs.realpathSync(path.resolve(trustedPolicyRootValue));
+    const repositoryRealRoot = fs.realpathSync(repositoryRoot);
+    if (repositoryRealRoot === trustedPolicyRoot) return null;
+    const isWpBLineage = isAuthorizedWpBImplementationBranch(currentBranch, undefined, {
+      repositoryRoot: trustedPolicyRoot,
+      delegatedGovernance: { trustedMainHead, evaluatedHead }
+    });
+    return isWpBLineage
+      ? IMPLEMENTATION_PR_ROLES.WP_B_SUCCESSOR
+      : IMPLEMENTATION_PR_ROLES.GENERIC_DELEGATED;
+  } catch (_) {
+    return null;
+  }
+}
+function isCurrentImplementationPrValid(candidate, currentBranch, currentHead, role) {
+  return (role === IMPLEMENTATION_PR_ROLES.WP_B_SUCCESSOR
+      || role === IMPLEMENTATION_PR_ROLES.GENERIC_DELEGATED)
+    && candidate?.state === 'open'
+    && candidate?.merged_at == null
+    && candidate?.head?.ref === currentBranch
+    && candidate?.base?.ref === 'main'
+    && candidate?.head?.sha === currentHead
+    && typeof candidate?.draft === 'boolean'
+    && (role !== IMPLEMENTATION_PR_ROLES.WP_B_SUCCESSOR || candidate.draft === true);
+}
+function isCurrentImplementationPrSetValid(candidatePrs, currentBranch, currentHead, role) {
+  const matches = Array.isArray(candidatePrs)
+    ? candidatePrs.filter(candidate => candidate?.head?.ref === currentBranch && candidate?.base?.ref === 'main')
+    : [];
+  return matches.length === 1
+    && isCurrentImplementationPrValid(matches[0], currentBranch, currentHead, role);
+}
 function verifyLocalRepository(document = readReceipt(), options = {}) {
   const validation = validateReceipt(document);
   const root = path.resolve(options.repositoryRoot || REPOSITORY_ROOT);
@@ -693,25 +738,26 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
   requireThat(historicalPr.head?.ref === document.branch && historicalPr.base?.ref === 'main',
     'WP_B_M3_AUTHORIZATION_REMOTE_PR_HEAD_INVALID', 'Historical PR refs changed');
 
+  let currentPrRole = 'WP_B_HISTORICAL';
+  let prDraftOpenUnmerged = true;
   if (currentBranch === EXPECTED_BRANCH) {
     requireThat(historicalPr.head?.sha === currentHead,
       'WP_B_M3_AUTHORIZATION_REMOTE_PR_HEAD_INVALID', 'Historical PR Head changed');
   } else {
+    currentPrRole = resolveDelegatedImplementationPrRole(currentBranch);
+    requireThat(currentPrRole !== null,
+      'WP_B_M3_AUTHORIZATION_REMOTE_SUCCESSOR_PR_INVALID', 'Current implementation PR role could not be proven');
     const owner = repository.split('/')[0];
     const candidatePrs = await fetchJson(
       `${api}/pulls?state=open&base=main&head=${encodeURIComponent(`${owner}:${currentBranch}`)}&per_page=10`,
       token,
       'WP_B_M3_AUTHORIZATION_REMOTE_SUCCESSOR_PR_REQUEST_FAILED'
     );
-    const matches = Array.isArray(candidatePrs)
-      ? candidatePrs.filter(candidate => candidate?.head?.ref === currentBranch && candidate?.base?.ref === 'main')
-      : [];
-    requireThat(matches.length === 1
-      && matches[0].draft === true
-      && matches[0].merged_at == null
-      && matches[0].head?.sha === currentHead,
-    'WP_B_M3_AUTHORIZATION_REMOTE_SUCCESSOR_PR_INVALID', 'Successor PR must be exact Draft/open/unmerged Head',
-    { currentBranch, currentHead, matches: matches.map(candidate => ({ number: candidate.number, head: candidate.head?.sha, draft: candidate.draft })) });
+    requireThat(isCurrentImplementationPrSetValid(candidatePrs, currentBranch, currentHead, currentPrRole),
+      'WP_B_M3_AUTHORIZATION_REMOTE_SUCCESSOR_PR_INVALID', 'Current implementation PR must be exact/open/unmerged and satisfy WP-B Draft lifecycle when applicable',
+      { currentBranch, currentHead, currentPrRole, matches: Array.isArray(candidatePrs) ? candidatePrs.map(candidate => ({ number: candidate.number, state: candidate.state, base: candidate.base?.ref, head: candidate.head?.sha, draft: candidate.draft })) : [] });
+    const currentPr = candidatePrs.find(candidate => candidate?.head?.ref === currentBranch && candidate?.base?.ref === 'main');
+    prDraftOpenUnmerged = currentPr.draft === true;
   }
   return Object.freeze({
     ok: true,
@@ -723,7 +769,9 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
     scope004DiagnosticArtifactsVerified: true,
     scope005CausalRedVerified: true,
     scope005DiagnosticArtifactsVerified: true,
-    prDraftOpenUnmerged: true,
+    currentPrRole,
+    prExactOpenUnmerged: true,
+    prDraftOpenUnmerged,
     currentHead,
     currentBranch
   });
@@ -746,6 +794,7 @@ module.exports = Object.freeze({
   BASE_ALLOWED_PATHS,
   EXPECTED_ALLOWED_PATHS,
   EXPECTED_AMENDMENTS,
+  IMPLEMENTATION_PR_ROLES,
   INVENTORY_EXTENSION_PATH,
   INVENTORY_PATH,
   SCOPE_001,
@@ -755,11 +804,14 @@ module.exports = Object.freeze({
   SCOPE_005,
   isAuthorizedM3ImplementationBranch,
   isAuthorizedPath,
+  isCurrentImplementationPrSetValid,
+  isCurrentImplementationPrValid,
   isHistoricalPrStateValidForBranch,
   normalizeRepositoryPath,
   pathSetSha256,
   readReceipt,
   resolveAuthorizedPaths,
+  resolveDelegatedImplementationPrRole,
   resolveImplementationAuthority,
   validateBaseInventory,
   validateInventoryExtension,

@@ -137,13 +137,18 @@ test('WP-B M2 independent review admits trusted delegated shared-server candidat
   assert.match(workflow, /name: Confirm clean review workspace/u);
 });
 
-test('WP-B M2 review verifier centralizes local and remote branch admission without removing evidence checks', () => {
+test('WP-B M2 review verifier centralizes admission, PR role classification and exact remote binding', () => {
   const source = fs.readFileSync(path.join(REPO_ROOT, EXACT_M2_REVIEW_VERIFIER), 'utf8');
 
   assert.match(source, /function isAuthorizedReviewImplementationBranch\(currentBranch, options = \{\}\)/u);
+  assert.match(source, /function resolveDelegatedImplementationPrRole\(currentBranch, options = \{\}\)/u);
+  assert.match(source, /function isCurrentImplementationPrSetValid\(candidatePrs, currentBranch, currentHead, role\)/u);
   assert.equal((source.match(/requireThat\(isAuthorizedReviewImplementationBranch\(currentBranch\)/gu) || []).length, 2);
   assert.equal((source.match(/requireThat\(isAuthorizedWpBImplementationBranch\(currentBranch/gu) || []).length, 0);
   assert.match(source, /isHistoricalPrStateValidForBranch/u);
+  assert.match(source, /isAuthorizedWpBImplementationBranch\(currentBranch, undefined/u);
+  assert.match(source, /candidate\?\.state === 'open'/u);
+  assert.match(source, /candidate\?\.merged_at == null/u);
   assert.match(source, /WP_B_M2_REVIEW_REMOTE_SUCCESSOR_PR_INVALID/u);
   assert.match(source, /WP_B_M2_REVIEW_REMOTE_RED_ARTIFACT_MISSING/u);
 });
@@ -168,6 +173,7 @@ test('WP-B M2 review verifier preserves WP-B admission and fail-closed trusted d
   delete require.cache[require.resolve(verifierPath)];
   const verifier = require(verifierPath);
   assert.equal(typeof verifier.isAuthorizedReviewImplementationBranch, 'function');
+  assert.equal(typeof verifier.resolveDelegatedImplementationPrRole, 'function');
 
   assert.equal(verifier.isAuthorizedReviewImplementationBranch('acv2/wp-b-durable-execution-outbox', {
     repositoryRoot: REPO_ROOT
@@ -179,12 +185,17 @@ test('WP-B M2 review verifier preserves WP-B admission and fail-closed trusted d
 
   withDetachedWorktree(delegatedHead, candidateRoot => {
     withDetachedWorktree(trustedMainHead, trustedPolicyRoot => {
-      assert.equal(verifier.isAuthorizedReviewImplementationBranch(delegatedBranch, {
+      const trustedOptions = {
         repositoryRoot: candidateRoot,
         trustedPolicyRoot,
         trustedMainHead,
         evaluatedHead: delegatedHead
-      }), true);
+      };
+      assert.equal(verifier.isAuthorizedReviewImplementationBranch(delegatedBranch, trustedOptions), true);
+      assert.equal(
+        verifier.resolveDelegatedImplementationPrRole(delegatedBranch, trustedOptions),
+        verifier.IMPLEMENTATION_PR_ROLES.GENERIC_DELEGATED
+      );
 
       assert.equal(verifier.isAuthorizedReviewImplementationBranch(delegatedBranch, {
         repositoryRoot: candidateRoot,
@@ -205,6 +216,38 @@ test('WP-B M2 review verifier preserves WP-B admission and fail-closed trusted d
       }), false);
     });
   });
+});
+
+test('WP-B M2 and M3 remote PR predicates separate generic delegated candidates from WP-B successor lifecycle', () => {
+  const m2Path = path.join(REPO_ROOT, EXACT_M2_REVIEW_VERIFIER);
+  const m3Path = path.join(REPO_ROOT, EXACT_M3_VERIFIER);
+  delete require.cache[require.resolve(m2Path)];
+  delete require.cache[require.resolve(m3Path)];
+  const verifiers = [require(m2Path), require(m3Path)];
+  const currentBranch = 'fix/v21-generic-delegated-candidate';
+  const currentHead = 'a'.repeat(40);
+  const exact = {
+    state: 'open',
+    draft: false,
+    merged_at: null,
+    head: { ref: currentBranch, sha: currentHead },
+    base: { ref: 'main' }
+  };
+
+  for (const verifier of verifiers) {
+    const { GENERIC_DELEGATED, WP_B_SUCCESSOR } = verifier.IMPLEMENTATION_PR_ROLES;
+    assert.equal(verifier.isCurrentImplementationPrSetValid([exact], currentBranch, currentHead, GENERIC_DELEGATED), true);
+    assert.equal(verifier.isCurrentImplementationPrSetValid([{ ...exact, draft: true }], currentBranch, currentHead, GENERIC_DELEGATED), true);
+    assert.equal(verifier.isCurrentImplementationPrSetValid([{ ...exact, draft: true }], currentBranch, currentHead, WP_B_SUCCESSOR), true);
+    assert.equal(verifier.isCurrentImplementationPrSetValid([exact], currentBranch, currentHead, WP_B_SUCCESSOR), false);
+    assert.equal(verifier.isCurrentImplementationPrSetValid([
+      { ...exact, head: { ref: currentBranch, sha: 'b'.repeat(40) } }
+    ], currentBranch, currentHead, GENERIC_DELEGATED), false);
+    assert.equal(verifier.isCurrentImplementationPrSetValid([{ ...exact, state: 'closed' }], currentBranch, currentHead, GENERIC_DELEGATED), false);
+    assert.equal(verifier.isCurrentImplementationPrSetValid([{ ...exact, base: { ref: 'develop' } }], currentBranch, currentHead, GENERIC_DELEGATED), false);
+    assert.equal(verifier.isCurrentImplementationPrSetValid([exact, { ...exact }], currentBranch, currentHead, GENERIC_DELEGATED), false);
+    assert.equal(verifier.isCurrentImplementationPrSetValid([{ ...exact, draft: null }], currentBranch, currentHead, GENERIC_DELEGATED), false);
+  }
 });
 
 test('WP-B M3 authorization shared-verifier route uses base-owned generic authority and preserves complete validation', () => {
@@ -232,11 +275,13 @@ test('WP-B M3 authorization shared-verifier route uses base-owned generic author
   assert.match(workflow, /git diff --check/u);
 });
 
-test('WP-B M3 verifier centralizes local and remote branch admission on exact trusted policy context', () => {
+test('WP-B M3 verifier centralizes admission and role-specific remote PR lifecycle on exact trusted policy context', () => {
   const verifierPath = path.join(__dirname, '../../../../', EXACT_M3_VERIFIER);
   const source = fs.readFileSync(verifierPath, 'utf8');
 
   assert.match(source, /function isAuthorizedM3ImplementationBranch\(currentBranch, options = \{\}\)/u);
+  assert.match(source, /function resolveDelegatedImplementationPrRole\(currentBranch, options = \{\}\)/u);
+  assert.match(source, /function isCurrentImplementationPrSetValid\(candidatePrs, currentBranch, currentHead, role\)/u);
   assert.match(source, /isAuthorizedWpBImplementationBranch/u);
   assert.match(source, /TRUSTED_POLICY_ROOT/u);
   assert.match(source, /TRUSTED_POLICY_SHA/u);
@@ -250,10 +295,12 @@ test('WP-B M3 verifier centralizes local and remote branch admission on exact tr
     'local and remote verification must share one branch-admission helper');
   assert.match(source, /catch \(_\) \{\s*return false;\s*\}/u);
   assert.match(source, /WP_B_M3_AUTHORIZATION_REMOTE_SUCCESSOR_PR_INVALID/u);
-  assert.match(source, /matches\[0\]\.draft === true/u);
-  assert.match(source, /matches\[0\]\.merged_at == null/u);
-  assert.match(source, /matches\[0\]\.head\?\.sha === currentHead/u);
+  assert.match(source, /candidate\?\.state === 'open'/u);
+  assert.match(source, /candidate\?\.merged_at == null/u);
+  assert.match(source, /candidate\?\.head\?\.sha === currentHead/u);
+  assert.match(source, /role !== IMPLEMENTATION_PR_ROLES\.WP_B_SUCCESSOR \|\| candidate\.draft === true/u);
   assert.match(source, /module\.exports[\s\S]*isAuthorizedM3ImplementationBranch/u);
+  assert.match(source, /module\.exports[\s\S]*resolveDelegatedImplementationPrRole/u);
 });
 
 test('WP-B M3 permanent contracts require trusted delegated routing without retiring active WP-B authority', () => {
