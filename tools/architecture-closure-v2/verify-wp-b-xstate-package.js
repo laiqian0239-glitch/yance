@@ -19,6 +19,9 @@ const UPSTREAM_TAG_CANDIDATES = Object.freeze([EXACT_UPSTREAM_TAG]);
 const INSTALL_LIFECYCLE_SCRIPTS = Object.freeze(['preinstall', 'install', 'postinstall']);
 const SUSPICIOUS_PACKAGE_FILE_PATTERN = /(?:^|\/)(?:[^/]+\.(?:node|dll|exe|ps1|bat|cmd)|install\.sh)$/iu;
 const MAX_DIAGNOSTIC_BYTES = 64 * 1024;
+const NPM_AUDIT_MAX_ATTEMPTS = 2;
+const SCRATCH_CLEANUP_MAX_RETRIES = 5;
+const SCRATCH_CLEANUP_RETRY_DELAY_MS = 100;
 const COMMAND_TIMEOUTS = Object.freeze({
   GIT_INIT: 30_000,
   GIT_CONFIG: 30_000,
@@ -143,6 +146,29 @@ function runGovernedCommand(command, args, options = {}) {
   });
 }
 
+function runGovernedNpmAudit(auditRoot, options = {}) {
+  const runCommand = options.runCommand || runGovernedCommand;
+  for (let attempt = 1; attempt <= NPM_AUDIT_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return runCommand(npmCommand(), ['audit', '--omit=dev', '--json'], {
+        cwd: auditRoot,
+        allowFailure: true,
+        commandKind: 'NPM_AUDIT',
+        timeoutMs: COMMAND_TIMEOUTS.NPM_AUDIT
+      });
+    } catch (error) {
+      if (error?.code !== 'WP_B_UPSTREAM_COMMAND_TIMEOUT' || attempt === NPM_AUDIT_MAX_ATTEMPTS) {
+        throw error;
+      }
+    }
+  }
+  throw createGovernanceError(
+    'WP_B_UPSTREAM_COMMAND_TIMEOUT',
+    `NPM_AUDIT exceeded its ${COMMAND_TIMEOUTS.NPM_AUDIT}ms hard timeout`,
+    { commandKind: 'NPM_AUDIT', timeoutMs: COMMAND_TIMEOUTS.NPM_AUDIT }
+  );
+}
+
 function parseJsonOutput(result, label) {
   try {
     return JSON.parse(result.stdout);
@@ -189,6 +215,39 @@ function createGovernedScratchDirectory(options = {}) {
   }
   const prefix = String(options.prefix || 'yance-wp-b-xstate-');
   return mkdtempImpl(governedJoin(String(canonicalBase), prefix));
+}
+
+function removeGovernedScratchDirectory(scratchRoot, options = {}) {
+  const rmSyncImpl = options.rmSyncImpl || fs.rmSync;
+  const primaryError = options.primaryError || null;
+  try {
+    rmSyncImpl(scratchRoot, {
+      recursive: true,
+      force: true,
+      maxRetries: SCRATCH_CLEANUP_MAX_RETRIES,
+      retryDelay: SCRATCH_CLEANUP_RETRY_DELAY_MS
+    });
+    return true;
+  } catch (error) {
+    const cleanupCauseCode = String(error?.code || '');
+    const cleanupError = createGovernanceError(
+      'WP_B_UPSTREAM_SCRATCH_CLEANUP_FAILED',
+      'Governed XState upstream scratch cleanup failed after bounded retries',
+      {
+        scratchRoot: String(scratchRoot || ''),
+        cleanupCauseCode,
+        maxRetries: SCRATCH_CLEANUP_MAX_RETRIES,
+        retryDelayMs: SCRATCH_CLEANUP_RETRY_DELAY_MS
+      }
+    );
+    if (primaryError) {
+      primaryError.cleanupCode = cleanupError.code;
+      primaryError.cleanupMessage = cleanupError.message;
+      primaryError.cleanupCauseCode = cleanupCauseCode;
+      return false;
+    }
+    throw cleanupError;
+  }
 }
 
 function checkoutExactUpstreamTag(options = {}) {
@@ -256,11 +315,15 @@ function resolveUpstreamTagCommit(options = {}) {
   const checkoutRoot = options.checkoutRoot || createGovernedScratchDirectory({
     prefix: 'yance-wp-b-xstate-tag-'
   });
+  let primaryError = null;
   try {
     const checkout = checkoutExactUpstreamTag({ ...options, checkoutRoot });
     return Object.freeze({ tagName: checkout.tagName, commitSha: checkout.commitSha });
+  } catch (error) {
+    primaryError = error;
+    throw error;
   } finally {
-    if (ownedRoot) fs.rmSync(checkoutRoot, { recursive: true, force: true });
+    if (ownedRoot) removeGovernedScratchDirectory(checkoutRoot, { primaryError });
   }
 }
 
@@ -300,6 +363,7 @@ function readLicenseText(upstreamCheckout) {
 async function verify(options = {}) {
   const tempRoot = createGovernedScratchDirectory({ prefix: 'yance-wp-b-xstate-package-' });
   const violations = [];
+  let primaryError = null;
   try {
     const metadata = parseJsonOutput(
       runGovernedCommand(npmCommand(), ['view', PACKAGE_SPEC, '--json'], {
@@ -398,12 +462,7 @@ async function verify(options = {}) {
       commandKind: 'NPM_LOCK_INSTALL',
       timeoutMs: COMMAND_TIMEOUTS.NPM_LOCK_INSTALL
     });
-    const auditResult = runGovernedCommand(npmCommand(), ['audit', '--omit=dev', '--json'], {
-      cwd: auditRoot,
-      allowFailure: true,
-      commandKind: 'NPM_AUDIT',
-      timeoutMs: COMMAND_TIMEOUTS.NPM_AUDIT
-    });
+    const auditResult = runGovernedNpmAudit(auditRoot);
     const audit = parseJsonOutput(auditResult, 'npm audit');
     const vulnerabilities = auditCounts(audit);
     if (vulnerabilities.high !== 0 || vulnerabilities.critical !== 0) {
@@ -460,8 +519,11 @@ async function verify(options = {}) {
       },
       violations
     });
+  } catch (error) {
+    primaryError = error;
+    throw error;
   } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
+    removeGovernedScratchDirectory(tempRoot, { primaryError });
   }
 }
 
@@ -499,15 +561,20 @@ module.exports = {
   COMMAND_TIMEOUTS,
   EXACT_UPSTREAM_TAG,
   EXACT_VERSION,
+  NPM_AUDIT_MAX_ATTEMPTS,
   PACKAGE_NAME,
   PACKAGE_SPEC,
+  SCRATCH_CLEANUP_MAX_RETRIES,
+  SCRATCH_CLEANUP_RETRY_DELAY_MS,
   UPSTREAM_REPOSITORY,
   UPSTREAM_REPOSITORY_URL,
   UPSTREAM_TAG_CANDIDATES,
   auditCounts,
   checkoutExactUpstreamTag,
   createGovernedScratchDirectory,
+  removeGovernedScratchDirectory,
   resolveUpstreamTagCommit,
   runGovernedCommand,
+  runGovernedNpmAudit,
   verify
 };
