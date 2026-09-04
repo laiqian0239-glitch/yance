@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-MATRIX-IDENTITY-V9-LANDING-P0-SUCCESSOR-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing fresh-main successor authorization to finally materialize the already-validated V9 end-user Matrix identity lineage that never acquired trusted-main production lineage. Frozen PR #1059 / exact head d329dfda74db0a42f810185895a48b5a504080ff remains immutable CI-RED evidence and must not be amended or rerun. Current main 09bd9b138f771503be5289b1d540c31f19378b8e still lacks the production Matrix identity service and first-use Yance account-creation projection, while frozen V9 47af55383a0b5b52221ccb1e15e2ea68efa5b05b already has real-Windows GREEN account creation, original Element login/session/restart, env forwarding, viewport and durability evidence. GitHub reconciliation from the previous authorization merge 7e473becfec3eed34e9149bf8250265e3c2c85c1 to current main proves zero changed-path intersection with the exact 19-path V9 donor set. This authorization permits exact donor replay only, with no Matrix redesign and no Product successor-v11 mutation.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-matrix-identity-v9-landing-p0-authorization.json",
+    "implementationBranch": "fix/v21-matrix-identity-v9-landing-p0",
+    "reason": "The original authorization ordinary-merged, but its implementation PR #1059 exact head is frozen CI RED and never merged. Current trusted main has advanced while preserving zero path overlap with the exact donor set. A fresh-main successor is required; frozen #1059 remains evidence only and must not be mutated."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "09bd9b138f771503be5289b1d540c31f19378b8e"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-matrix-identity-v9-landing-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-matrix-identity-v9-landing-p0-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-matrix-identity-v9-landing-p0-successor-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "backend/services/endUserMatrixIdentityService.js",
+      "backend/services/facebookPersonalMessengerMautrixAdapter.js",
+      "backend/services/synapseSharedSecretRegistration.js",
+      "backend/tests/endUserMatrixIdentityP0.test.js",
+      "electron/desktopHost/asyncDurability.js",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tests/wp2/single-command-path.test.js",
+      "tools/wp2/command-path-inventory.js",
+      "tools/wp2/evidence-validation.js",
+      "tools/wp4/credential-authority-lifecycle-matrix.js"
+    ],
+    "approvedChangedFileCount": 19,
+    "approvedChangedFileSetSha256": "53f15a5f8d6faeb59857bfccd1b5ce26dc8ef281899073717c5ade9c72a8a1cf",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "landing": "DEVELOPMENT_TO_MAIN / VALIDATED_V9_MATRIX_IDENTITY_LINEAGE_NOT_MATERIALIZED",
+    "historicalProductRoots": "FROZEN GREEN / DO NOT REOPEN",
+    "requiredRepair": "After this authorization ordinary-merges, create the exact successor-v2 implementation branch from that merge and materialize the exact V9 donor blobs for the approved 19-path set. Preserve current-main bytes outside that set. Do not redesign Matrix identity, Element login/session, env forwarding, auth viewport or durable cleanup."
+  },
+  "donor": {
+    "originalAuthorizationMerge": "604b3788fcfd61135870b8bbc972675741694f42",
+    "previousLandingAuthorizationMerge": "7e473becfec3eed34e9149bf8250265e3c2c85c1",
+    "v6ExactHead": "31024c2e159ae6a3241665673ccc4878bda9653c",
+    "v7ExactHead": "1c504b59edcb1fc3a9e2ae7c597fa35e862bb4df",
+    "v8ExactHead": "84c2168a6c7c0bd532eb29b23d260b7d109fbdfc",
+    "v9ExactHead": "47af55383a0b5b52221ccb1e15e2ea68efa5b05b",
+    "v9Tree": "37708a834c6dac84643f0bd04375d7bbcd3dbd62",
+    "frozenV10Child": "94676c71c2678c64114d1912b8bdda760176e58f",
+    "v6Committed16BlobSha256": "300c52a9ff0bd984fc437c73b6a58833c8c6470f4a0837077058ebd05aaa381a"
+  },
+  "currentMainReconciliation": {
+    "from": "7e473becfec3eed34e9149bf8250265e3c2c85c1",
+    "to": "09bd9b138f771503be5289b1d540c31f19378b8e",
+    "donorPathOverlapCount": 0,
+    "backendServerBlobUnchanged": {
+      "shaAtPreviousAuthorizationMerge": "63221579090f20db563225d430ce8a392226ac33",
+      "shaAtCurrentMain": "63221579090f20db563225d430ce8a392226ac33"
+    },
+    "currentMainProductionGap": [
+      "backend/services/endUserMatrixIdentityService.js is absent",
+      "backend/services/synapseSharedSecretRegistration.js is absent",
+      "integration/element-module/src/YanceLogin.tsx contains no first-use Matrix local identity creation flow"
+    ]
+  },
+  "productContract": {
+    "publicMatrixRegistrationRemainsDisabled": true,
+    "elementRemainsInteractiveMatrixLoginAuthority": true,
+    "personalAccessRemainsSeparateProductEntitlementAuthority": true,
+    "desktopLocalSessionIsProvisioningBoundary": true,
+    "oneLocalHumanMatrixIdentityPerInstallation": true,
+    "matrixAccessTokenMustNotReachRenderer": true,
+    "passwordMustNotBePersistedByYance": true,
+    "existingOwnerTesterLifecyclePreserved": true
+  },
+  "ossFit": {
+    "decision": "REUSE_VALIDATED_V9_REPOSITORY_LINEAGE_AND_MATURE_EXISTING_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Validated V9 Yance Matrix identity lineage",
+        "source": "GitHub commits 31024c2e159ae6a3241665673ccc4878bda9653c -> 1c504b59edcb1fc3a9e2ae7c597fa35e862bb4df -> 84c2168a6c7c0bd532eb29b23d260b7d109fbdfc -> 47af55383a0b5b52221ccb1e15e2ea68efa5b05b",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This exact donor already passed focused code closure and real Windows account creation, original Element login/session/restart and durability evidence. Replaying its blobs is lower risk and more truthful than reimplementing the capability."
+      },
+      {
+        "name": "Synapse official shared-secret registration protocol",
+        "source": "existing pinned Synapse runtime and repository Matrix authority",
+        "license": "AGPL-3.0-or-later",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The donor reuses Synapse nonce/HMAC administrator registration while preserving public registration disabled and Element as sole interactive Matrix login/session authority."
+      },
+      {
+        "name": "Node bounded Windows transient-delete semantics",
+        "source": "Node.js fs.rm semantics and repository V9 asyncDurability implementation",
+        "license": "MIT / repository-existing adaptation",
+        "adoptionMode": "thin-adaptation",
+        "fit": "FIT",
+        "reason": "Reuse the V9 bounded transient Windows delete retry semantics and fail-closed behavior instead of inventing another cleanup authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not invent a second Matrix identity, registration, login or session authority.",
+      "Do not enable public Synapse registration and do not persist end-user Matrix passwords or registration access tokens.",
+      "Do not blanket-forward process.env or YANCE_*; preserve the validated explicit Matrix backend authority allowlist.",
+      "Do not replace bounded asyncDurability delete retry with exists-before-delete, unbounded retry, warning-only cleanup or swallowed errors.",
+      "Do not recreate frozen V10 Product UI bytes in this prerequisite.",
+      "Do not add dependencies, package/lockfile changes, workflows, database migrations, runtime topology changes or routing-policy changes."
+    ]
+  },
+  "requiredClosure": [
+    "Ordinary-merge this single-file authorization only after its single automatic authorization validation event is GREEN; no rerun, amend, force-push, squash or rebase.",
+    "After authorization merge, create fix/v21-matrix-identity-v9-landing-p0-successor-v2 only from the exact ordinary merge commit.",
+    "Materialize exactly the approved 19 V9 donor blobs from 47af55383a0b5b52221ccb1e15e2ea68efa5b05b. Current GitHub reconciliation proves zero donor-path overlap since the previous landing authorization merge; any unexpected mismatch is a STOP condition, not permission to hand-merge freely.",
+    "Prove exact path count/hash and exact donor blob identity for all 19 paths before any implementation commit.",
+    "Reuse frozen V6/V7/V8/V9 GREEN evidence for Matrix registration, Element login/session/restart, viewport, env forwarding and Windows durable cleanup. Do not rerun historical Matrix bootstrap/image builds/real account creation merely for reassurance when bytes are donor-identical.",
+    "Run only directly affected current-base transport/static/focused contracts plus git diff --check. If a genuinely different root appears, freeze and separate it.",
+    "Create exactly one implementation commit only after local current-base closure; one push, one implementation PR and one automatic CI event only.",
+    "CI GREEN => verify exact head and fresh main, then ordinary two-parent merge immediately. CI RED => freeze head/run/job/log and never rerun same head.",
+    "Keep the existing local successor-v11 exact-35 worktree untouched and unpromoted until Matrix landing merges. Then forward-reconcile that preserved causal batch onto new main and resume only the mandatory Windows Local Harness; do not repeat Product capability census."
+  ],
+  "frozenEvidence": {
+    "controllerIssue": 1051,
+    "controllerCommentId": 5541315317,
+    "currentMain": "09bd9b138f771503be5289b1d540c31f19378b8e",
+    "frozenPreviousLandingPullRequest": 1059,
+    "frozenPreviousLandingExactHead": "d329dfda74db0a42f810185895a48b5a504080ff",
+    "frozenPreviousLandingCausalRun": 33781548827,
+    "frozenPreviousLandingCausalJob": 100736175569,
+    "previousLandingAuthorizationPullRequest": 1058,
+    "previousLandingAuthorizationHead": "bd75ea2f729cddd5a895aa51dac927ca31a86568",
+    "previousLandingAuthorizationMerge": "7e473becfec3eed34e9149bf8250265e3c2c85c1",
+    "v9RealWindows": "GREEN: fresh account creation, original Element login, session, restart/session, network reconnect",
+    "v9CredentialLifecycle": "GREEN: 27/27 plus transient/persistent delete fault injection",
+    "productSuccessorV11LocalState": "exact-35 local bytes preserved; no Product Exact Head, PR or CI"
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
