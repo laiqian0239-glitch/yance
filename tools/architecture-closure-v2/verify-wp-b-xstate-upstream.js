@@ -180,6 +180,7 @@ async function verify() {
   const tempRoot = packageVerifier.createGovernedScratchDirectory({
     prefix: 'yance-wp-b-xstate-upstream-'
   });
+  let primaryError = null;
   try {
     const upstreamCheckout = packageVerifier.checkoutExactUpstreamTag({
       checkoutRoot: path.join(tempRoot, 'xstate')
@@ -232,8 +233,11 @@ async function verify() {
       upstreamTests,
       violations
     });
+  } catch (error) {
+    primaryError = error;
+    throw error;
   } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
+    packageVerifier.removeGovernedScratchDirectory(tempRoot, { primaryError });
   }
 }
 
