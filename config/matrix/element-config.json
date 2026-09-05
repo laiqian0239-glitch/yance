@@ -13,7 +13,12 @@
   },
   "setting_defaults": {
     "language": "zh-hans",
-    "UIFeature.registration": false
+    "UIFeature.registration": false,
+    "notificationsEnabled": false,
+    "audioNotificationsEnabled": false
   },
-  "disable_login_language_selector": true
+  "disable_login_language_selector": true,
+  "element_call": {
+    "disable": true
+  }
 }

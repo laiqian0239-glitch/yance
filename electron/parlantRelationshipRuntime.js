@@ -312,7 +312,17 @@ function createParlantRelationshipRuntime(options = {}) {
 
   async function ensureStarted() { if (!ready) await start(); }
   const scopedRoute = (contactId, suffix = '') => `/yance/relationship-goals/${relationshipKey(contactId)}${suffix}`;
+  const dailyChatGoalRoute = contactId => `/yance/daily-chat-goals/${relationshipKey(contactId)}`;
   const contactQuery = contactId => `contactId=${encodeURIComponent(clean(contactId))}`;
+  const DAILY_LOCAL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
+
+  function validDailyLocalDate(localDate) {
+    const value = clean(localDate);
+    if (!DAILY_LOCAL_DATE_PATTERN.test(value)) {
+      throw runtimeError('DESKTOP_PARLANT_DAILY_LOCAL_DATE_INVALID', 'Daily chat goal localDate must be YYYY-MM-DD.');
+    }
+    return value;
+  }
 
   async function readRelationshipGoal(input = {}) {
     await ensureStarted();
@@ -361,6 +371,29 @@ function createParlantRelationshipRuntime(options = {}) {
     return request('GET', `${scopedRoute(contactId)}/candidate?${contactQuery(contactId)}&after_offset=${Math.max(0, afterOffset)}&processing_trace_id=${encodeURIComponent(processingTraceId)}`, undefined, { timeoutMs: input.timeoutMs || DEFAULT_REQUEST_TIMEOUT_MS });
   }
 
+  async function readDailyChatGoal(input = {}) {
+    await ensureStarted();
+    const contactId = clean(input.contactId);
+    const localDate = validDailyLocalDate(input.localDate);
+    return request('GET', `${dailyChatGoalRoute(contactId)}?${contactQuery(contactId)}&localDate=${encodeURIComponent(localDate)}`);
+  }
+
+  async function upsertDailyChatGoal(input = {}) {
+    await ensureStarted();
+    const contactId = clean(input.contactId);
+    const localDate = validDailyLocalDate(input.localDate);
+    const goalText = clean(input.goalText);
+    if (!goalText || goalText.length > 4000) throw runtimeError('DESKTOP_PARLANT_GOAL_INVALID', 'Daily chat goal must contain 1 to 4000 characters.');
+    return request('PUT', dailyChatGoalRoute(contactId), { contactId, localDate, goalText });
+  }
+
+  async function deleteDailyChatGoal(input = {}) {
+    await ensureStarted();
+    const contactId = clean(input.contactId);
+    const localDate = validDailyLocalDate(input.localDate);
+    return request('DELETE', `${dailyChatGoalRoute(contactId)}?${contactQuery(contactId)}&localDate=${encodeURIComponent(localDate)}`);
+  }
+
   return Object.freeze({
     start,
     stop,
@@ -370,7 +403,10 @@ function createParlantRelationshipRuntime(options = {}) {
     deleteRelationshipGoal,
     setRelationshipGoalPaused,
     ingestCustomerMessage,
-    requestReplyCandidate
+    requestReplyCandidate,
+    readDailyChatGoal,
+    upsertDailyChatGoal,
+    deleteDailyChatGoal
   });
 }
 

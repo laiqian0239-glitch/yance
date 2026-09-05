@@ -358,3 +358,83 @@ test('new relationship key-node projections anchor to Person while existing even
   assert.match(block, /projectionContactId/u);
   assert.match(block, /sourceContactId/u);
 });
+
+test('Daily Conversation Review proves ceiling coverage and filters to the selected local day', () => {
+  const context = {
+    person: { personId: 'person-1', conversationIds: ['conv-a'] },
+    insights: { sourceScope: {} }
+  };
+  const dayRows = [
+    { id: 'm-today', conversationId: 'conv-a', text: 'today', sentAt: '2026-07-27T06:00:00Z' },
+    { id: 'm-yesterday', conversationId: 'conv-a', text: 'yesterday', sentAt: '2026-07-26T06:00:00Z' }
+  ];
+  const onlyConv = conversationId => (conversationId === 'conv-a' ? dayRows : []);
+
+  const complete = workspaceService.dailyReview('contact-a', {
+    context, timeZone: 'UTC', localDate: '2026-07-27', ceiling: 10,
+    listMessagesForExport: onlyConv
+  });
+  assert.equal(complete.coverageComplete, true);
+  assert.equal(complete.dayMessageCount, 1);
+  assert.deepEqual(complete.messages.map(row => row.id), ['m-today']);
+  assert.equal(complete.scannedMessageCount, 2);
+
+  // cap+1: when a conversation returns more rows than the ceiling, coverage is incomplete
+  const incomplete = workspaceService.dailyReview('contact-a', {
+    context, timeZone: 'UTC', localDate: '2026-07-27', ceiling: 1,
+    listMessagesForExport: conversationId => (conversationId === 'conv-a' ? [
+      { id: 'm-a', conversationId: 'conv-a', text: 'a', sentAt: '2026-07-27T06:00:00Z' },
+      { id: 'm-b', conversationId: 'conv-a', text: 'b', sentAt: '2026-07-27T06:01:00Z' }
+    ] : [])
+  });
+  assert.equal(incomplete.coverageComplete, false);
+});
+
+test('Daily Conversation Review honors explicit IANA timezone boundaries', () => {
+  const context = { person: { personId: 'person-1', conversationIds: ['conv-a'] }, insights: { sourceScope: {} } };
+  // 2026-07-27T01:00Z is 07-27 in UTC but 07-26 21:00 in America/New_York.
+  const rows = [{ id: 'm-boundary', conversationId: 'conv-a', text: 'boundary', sentAt: '2026-07-27T01:00:00Z' }];
+  const onlyConv = conversationId => (conversationId === 'conv-a' ? rows : []);
+
+  const utc = workspaceService.dailyReview('contact-a', { context, timeZone: 'UTC', localDate: '2026-07-27', ceiling: 10, listMessagesForExport: onlyConv });
+  assert.equal(utc.dayMessageCount, 1);
+
+  const ny = workspaceService.dailyReview('contact-a', { context, timeZone: 'America/New_York', localDate: '2026-07-26', ceiling: 10, listMessagesForExport: onlyConv });
+  assert.equal(ny.dayMessageCount, 1);
+
+  const nyWrongDay = workspaceService.dailyReview('contact-a', { context, timeZone: 'America/New_York', localDate: '2026-07-27', ceiling: 10, listMessagesForExport: onlyConv });
+  assert.equal(nyWrongDay.dayMessageCount, 0);
+});
+
+test('Daily Conversation Review lanes are evidence-bound to real selected-day message IDs (fail-closed)', () => {
+  const context = {
+    person: { personId: 'person-1', conversationIds: ['conv-a'] },
+    insights: {
+      sourceScope: {},
+      risks: [
+        { key: 'in-day-risk', value: '需要关注', messageId: 'm-risk' },
+        { key: 'out-day-risk', value: '不在当天', messageId: 'm-out' },
+        { key: 'synthetic-risk', value: '无真实消息 ID' }
+      ],
+      milestones: [
+        { key: 'in-day-mile', value: '里程碑', messageId: 'm-mile', status: 'observed' }
+      ],
+      recommendations: [
+        { key: 'in-day-rec', value: '下一步', messageId: 'm-rec' }
+      ]
+    }
+  };
+  const dayRows = [
+    { id: 'm-risk', conversationId: 'conv-a', text: 'risk', sentAt: '2026-07-27T06:00:00Z' },
+    { id: 'm-mile', conversationId: 'conv-a', text: 'mile', sentAt: '2026-07-27T07:00:00Z' },
+    { id: 'm-rec', conversationId: 'conv-a', text: 'rec', sentAt: '2026-07-27T08:00:00Z' }
+  ];
+  const result = workspaceService.dailyReview('contact-a', {
+    context, timeZone: 'UTC', localDate: '2026-07-27', ceiling: 10,
+    listMessagesForExport: () => dayRows
+  });
+  assert.equal(result.coverageComplete, true);
+  assert.deepEqual(result.problems.map(row => row.id).sort(), ['in-day-risk']);
+  assert.deepEqual(result.successes.map(row => row.id).sort(), ['in-day-mile']);
+  assert.deepEqual(result.nextActions.map(row => row.id).sort(), ['in-day-rec']);
+});

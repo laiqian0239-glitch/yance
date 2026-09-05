@@ -12,6 +12,7 @@ const aiWorkbenchDirectorRuleAuthority = require('./aiWorkbenchDirectorRuleAutho
 const workspaceData = require('./workspaceDataService');
 const { mergeLocalized, chineseFirst } = require('./localizedContentAuthority');
 const { buildSocialAnalysisPresentation } = require('./socialAnalysisPresentationService');
+const { MAX_EXPORT_MESSAGES } = require('./chatExportService');
 
 function summarizeWorkspaceLearningEvidence(contacts = []) {
   return {
@@ -183,6 +184,104 @@ function messagesForPersonContext(context = {}, fallbackId = '', options = {}) {
       || clean(left.conversationId).localeCompare(clean(right.conversationId))
       || clean(left.id || left.messageId || left.externalMessageId).localeCompare(clean(right.id || right.messageId || right.externalMessageId)))
     .slice(-limit);
+}
+
+// Daily Conversation Review (Product Final) — truthful current-local-day review.
+// Reuses the mature export/list-message authority with a cap+1 ceiling proof so
+// that `coverageComplete:true` only when every canonical Person conversation has
+// been proven fully scanned under the repository safety limit.
+function localDayKey(timestamp, timeZone) {
+  const value = clean(timestamp);
+  if (!value) return '';
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return '';
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone, year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(date);
+    const get = type => (parts.find(part => part.type === type) || {}).value || '';
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  } catch (_) { return ''; }
+}
+
+function messageIdentity(row = {}) {
+  return clean(row.id || row.messageId || row.externalMessageId || row.sourceMessageId || row.platformMessageId);
+}
+
+function dailyReview(contactId, options = {}) {
+  const requestedContactId = clean(contactId);
+  const context = options.context || workspaceData.getContextByConversation(requestedContactId);
+  const conversationIds = personConversationIds(context, requestedContactId);
+  const timeZone = clean(options.timeZone) || 'Asia/Shanghai';
+  const localDate = clean(options.localDate) || localDayKey(Date.now(), timeZone);
+  const requestedCeiling = Number(options.ceiling);
+  const ceiling = Math.min(MAX_EXPORT_MESSAGES, Math.max(1, Number.isFinite(requestedCeiling) ? Math.trunc(requestedCeiling) : MAX_EXPORT_MESSAGES));
+  const listMessagesForExport = options.listMessagesForExport || messageStore.listMessagesForExport;
+
+  let coverageComplete = true;
+  const scanned = [];
+  for (const conversationId of conversationIds) {
+    const rows = listMessagesForExport(conversationId, { limit: ceiling + 1 });
+    if (rows.length > ceiling) coverageComplete = false;
+    for (const raw of rows.slice(0, ceiling)) {
+      const row = raw || {};
+      scanned.push({
+        ...row,
+        conversationId: clean(row.conversationId || row.sessionKey, conversationId),
+        sessionKey: clean(row.sessionKey || row.conversationId, conversationId)
+      });
+    }
+  }
+
+  const dayMessages = scanned.filter(row => localDayKey(row.timestamp || row.sentAt || row.createdAt, timeZone) === localDate);
+  const dayMessageIds = new Set(dayMessages.map(messageIdentity).filter(Boolean));
+
+  const analysisPresentation = buildSocialAnalysisPresentation({
+    profile: context.profile || {},
+    insights: context.insights || {},
+    analysis: context.analysis || {},
+    messages: dayMessages,
+    scope: (context.insights && context.insights.sourceScope) || {}
+  });
+
+  const resolvesToDay = row => {
+    const id = clean((row && (row.messageId || row.sourceMessageId || row.platformMessageId)) || '');
+    return Boolean(id) && dayMessageIds.has(id);
+  };
+
+  // Correction B: problems/nextActions/successes are fail-closed. Each lane may
+  // contain only an already-existing mature analysis/signal row that resolves to
+  // a real message ID inside the selected local day. No content:digest fallback.
+  const problems = (analysisPresentation.risks || []).filter(resolvesToDay);
+  const nextActions = (analysisPresentation.recommendations || []).filter(resolvesToDay);
+  const successes = [
+    ...(analysisPresentation.milestones || []).filter(row => resolvesToDay(row)
+      && (row.completed === true || row.userConfirmed === true || row.status === 'observed' || row.status === 'completed')),
+    ...(analysisPresentation.commitments || []).filter(row => resolvesToDay(row) && row.completed === true)
+  ];
+
+  return {
+    ok: true,
+    contactId: requestedContactId,
+    personId: clean((context.person && context.person.personId) || (context.personContext && context.personContext.personId)),
+    localDate,
+    timeZone,
+    coverageComplete,
+    conversationIds,
+    scannedMessageCount: scanned.length,
+    dayMessageCount: dayMessages.length,
+    messages: dayMessages.map(row => ({
+      id: messageIdentity(row),
+      conversationId: clean(row.conversationId),
+      direction: clean(row.direction || row.role),
+      text: clean(row.text || row.caption || row.body).slice(0, 2000),
+      sentAt: clean(row.sentAt || row.timestamp || row.createdAt)
+    })),
+    problems,
+    successes,
+    nextActions,
+    generatedAt: nowIso()
+  };
 }
 
 function contactFromConversation(row) {
@@ -480,5 +579,5 @@ module.exports = {
   bootstrap, saveIdentity, saveProfile, saveTrajectory, saveAiAssets, saveAnalysis, getAnalysis, insights,
   initializeDataPipelines, trajectoryFromInsight, mergeLocalized, chineseFirst, buildSocialAnalysisPresentation,
   emptyIdentity, emptyProfile, deriveTrajectory, contactFromConversation, latestMessageSnippet,
-  personConversationIds, messagesForPersonContext
+  personConversationIds, messagesForPersonContext, dailyReview, localDayKey, messageIdentity
 };

@@ -34,9 +34,28 @@ export type RelationshipIntelligenceProjection = {
   events: readonly RelationshipIntelligenceEvent[];
 };
 
+export type ConversationAutomationMode =
+  | "HUMAN"
+  | "AI_ASSIST"
+  | "AI_AUTO";
+
+export type ConversationRef = {
+  id: string;
+  contactId: string;
+  title: string;
+  platform: string;
+  accountId: string;
+  chatJid: string;
+  sessionKey: string;
+  automationMode: ConversationAutomationMode;
+  updatedAt?: string;
+  relationshipIntelligence?: RelationshipIntelligenceProjection;
+};
+
 export type RelationshipProjection = {
   id: string;
   name: string;
+  conversations: readonly ConversationRef[];
   subtitle: string;
   avatarUrl?: string;
   platform?: string;

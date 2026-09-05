@@ -352,6 +352,7 @@ async function governRuntimeNativeBinariesBootCheck() {
 const YANCE_BACKEND_URL = `http://127.0.0.1:${Number(process.env.YANCE_PORT || 27632)}`;
 const YANCE_ELEMENT_URL = String(process.env.YANCE_ELEMENT_URL || 'http://127.0.0.1:8080').replace(/\/+$/u, '');
 const YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `${YANCE_ELEMENT_URL}/config.json`);
+const YANCE_PRODUCT_LOCATION_URL = `${YANCE_ELEMENT_URL}/#/yance`;
 const WP7_APPLICATION_PROCESS_STARTED_AT_UTC = new Date().toISOString();
 const WP7_NETWORK_OBSERVED_AT_UTC = new Date().toISOString();
 let WP7_NETWORK_ONLINE_AT_PROCESS_START = true;
@@ -3042,7 +3043,7 @@ async function waitForElementShellReady(options = {}) {
 
 function loadElementShell(window) {
   return waitForElementShellReady()
-    .then(() => window.loadURL(YANCE_ELEMENT_URL));
+    .then(() => window.loadURL(YANCE_PRODUCT_LOCATION_URL));
 }
 
 function createWindow() {
@@ -3057,10 +3058,7 @@ function createWindow() {
     show: false,
     backgroundColor: '#2A0F4A',
     title: STATIC_RELEASE_SOURCE.publicProductName,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
-    ...(process.platform === 'darwin' ? {} : {
-      titleBarOverlay: { color: '#2A0F4A', symbolColor: '#FFFFFF', height: 40 }
-    }),
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     icon: iconPath(),
     autoHideMenuBar: true,
     webPreferences: {
@@ -3609,8 +3607,7 @@ function registerIpc() {
   ipcGuardHandle('desktop:set-titlebar-theme', (_event, input = {}) => {
     const color = /^#[0-9a-f]{6}$/i.test(String(input.color || '')) ? String(input.color) : '#2A0F4A';
     const symbolColor = /^#[0-9a-f]{6}$/i.test(String(input.symbolColor || '')) ? String(input.symbolColor) : '#FFFFFF';
-    if (process.platform !== 'darwin' && mainWindow && !mainWindow.isDestroyed()) {
-      if (typeof mainWindow.setTitleBarOverlay === 'function') mainWindow.setTitleBarOverlay({ color, symbolColor, height: 40 });
+    if (mainWindow && !mainWindow.isDestroyed()) {
       if (typeof mainWindow.setBackgroundColor === 'function') mainWindow.setBackgroundColor(color);
     }
     return { ok: true, color, symbolColor, backgroundApplied: Boolean(mainWindow && !mainWindow.isDestroyed()) };

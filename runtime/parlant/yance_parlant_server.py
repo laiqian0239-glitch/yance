@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -71,6 +72,9 @@ LOOPBACK_HEALTH_PATH = "/yance/healthz"
 LOOPBACK_PROOF_DOMAIN = "yance-parlant-health-v1:"
 GOAL_CONDITION = "The active relationship conversation should be guided by its configured Yance relationship goal."
 COMPLETION_CONDITION = "The configured relationship goal has been achieved, abandoned, or is no longer appropriate to pursue."
+DAILY_GOAL_LABEL = "yance-daily-chat-goal"
+DAILY_LOCAL_DATE_LABEL_PREFIX = "yance-local-date"
+DAILY_LOCAL_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def clean(value: Any) -> str:
@@ -114,6 +118,29 @@ def identifiers(key: str) -> dict[str, str]:
         "customer": f"yance-customer-{short}",
         "journey": f"yance-goal-{short}",
         "steering_node": f"yance-steer-{short}",
+    }
+
+
+def valid_daily_local_date(local_date: Any) -> str:
+    value = clean(local_date)
+    if not DAILY_LOCAL_DATE_PATTERN.match(value):
+        raise HTTPException(status_code=422, detail={"reasonCode": "YANCE_PARLANT_DAILY_LOCAL_DATE_INVALID", "message": "localDate must be YYYY-MM-DD"})
+    return value
+
+
+def daily_goal_identifiers(key: str, local_date: str) -> dict[str, str]:
+    # Daily Chat Goal is an additive, per-local-date journey that reuses the exact
+    # canonical relationship agent/customer/session runtime. Only the Daily Goal
+    # Journey + steering node derive identity from relationship + localDate, so a
+    # date rollover opens an independent goal graph without touching the persistent
+    # yance-goal-* Relationship Goal / Private Quest authority.
+    canonical = identifiers(key)
+    short = key[:40]
+    return {
+        "agent": canonical["agent"],
+        "customer": canonical["customer"],
+        "journey": f"yance-daily-chat-goal-{short}-{local_date}",
+        "steering_node": f"yance-daily-steer-{short}-{local_date}",
     }
 
 
@@ -317,6 +344,100 @@ async def goal_projection(key: str, session=None) -> dict[str, Any]:
     }
 
 
+async def find_daily_goal(key: str, local_date: str):
+    ids = daily_goal_identifiers(key, local_date)
+    try:
+        graph = await RUNTIME.app.journeys.read(JourneyId(ids["journey"]))
+        return graph
+    except ItemNotFoundError:
+        return None
+
+
+async def ensure_daily_goal_graph(key: str, goal_text: str, local_date: str):
+    ids, agent, _customer, session = await ensure_relationship(key)
+    dated = daily_goal_identifiers(key, local_date)
+    graph = await find_daily_goal(key, local_date)
+    if graph is None:
+        journey, _conditions = await RUNTIME.app.journeys.create(
+            title="Yance daily chat goal",
+            description=goal_text,
+            conditions=[GOAL_CONDITION],
+            tags=[Tag.for_agent_id(agent.id).id],
+            id=JourneyId(dated["journey"]),
+            composition_mode=None,
+            labels={DAILY_GOAL_LABEL, f"{DAILY_LOCAL_DATE_LABEL_PREFIX}:{local_date}"},
+            priority=10,
+        )
+        steering = await RUNTIME.journey_store.create_node(
+            journey_id=journey.id,
+            action=steering_action(goal_text),
+            tools=[],
+            description="Use the daily chat goal as a conversational direction, not a forced script.",
+            composition_mode=None,
+            id=JourneyNodeId(dated["steering_node"]),
+            labels={"yance-daily-goal-steering"},
+        )
+        await RUNTIME.journey_store.create_edge(
+            journey_id=journey.id,
+            source=journey.root_id,
+            target=steering.id,
+            condition=None,
+        )
+        await RUNTIME.journey_store.create_edge(
+            journey_id=journey.id,
+            source=steering.id,
+            target=JourneyStore.END_NODE_ID,
+            condition=COMPLETION_CONDITION,
+        )
+        await evaluate_goal_graph(journey.id)
+    else:
+        await RUNTIME.app.journeys.update(
+            journey_id=JourneyId(dated["journey"]),
+            title="Yance daily chat goal",
+            description=goal_text,
+            conditions=None,
+            tags=None,
+            composition_mode=None,
+            labels=None,
+            priority=10,
+        )
+        try:
+            await RUNTIME.journey_store.update_node(
+                JourneyNodeId(dated["steering_node"]),
+                {"action": steering_action(goal_text), "description": "Use the daily chat goal as a conversational direction, not a forced script."},
+            )
+        except ItemNotFoundError:
+            raise HTTPException(status_code=409, detail={"reasonCode": "YANCE_PARLANT_GOAL_GRAPH_INVALID", "message": "Parlant goal graph is incomplete"})
+        await evaluate_goal_graph(JourneyId(dated["journey"]))
+    return await daily_goal_projection(key, local_date, session=session)
+
+
+async def daily_goal_projection(key: str, local_date: str, session=None) -> dict[str, Any]:
+    graph = await find_daily_goal(key, local_date)
+    if graph is None:
+        return {"ok": True, "available": True, "exists": False, "goalText": "", "paused": False, "progress": {"path": [], "completed": False}, "localDate": local_date}
+    _ids, _agent, _customer, resolved_session = await ensure_relationship(key)
+    session = session or resolved_session
+    persisted_session = await RUNTIME.session_store.read_session(session.id)
+    journey_id = graph.journey.id
+    path: list[str] = []
+    for state in reversed(persisted_session.agent_states):
+        raw = state.journey_paths.get(journey_id)
+        if raw is not None:
+            path = [clean(node) for node in raw if clean(node)]
+            break
+    completed = bool(path and path[-1] == str(JourneyStore.END_NODE_ID))
+    return {
+        "ok": True,
+        "available": True,
+        "exists": True,
+        "goalText": graph.journey.description,
+        "paused": persisted_session.mode == "manual",
+        "progress": {"path": path, "completed": completed},
+        "localDate": local_date,
+    }
+
+
 async def install_yance_routes(api: FastAPI) -> FastAPI:
     loopback_token = required_loopback_token()
 
@@ -456,6 +577,31 @@ async def install_yance_routes(api: FastAPI) -> FastAPI:
                     }
             await asyncio.sleep(0.25)
         raise HTTPException(status_code=504, detail={"reasonCode": "YANCE_PARLANT_CANDIDATE_TIMEOUT", "message": "Parlant did not produce a candidate before timeout"})
+
+    @api.get("/yance/daily-chat-goals/{route_key}")
+    async def get_daily_chat_goal(route_key: str, contactId: str = Query(...), localDate: str = Query(...)):
+        key = assert_scope(route_key, contactId)
+        local_date = valid_daily_local_date(localDate)
+        return await daily_goal_projection(key, local_date)
+
+    @api.put("/yance/daily-chat-goals/{route_key}")
+    async def put_daily_chat_goal(route_key: str, payload: dict[str, Any] = Body(...)):
+        contact_id = clean(payload.get("contactId"))
+        key = assert_scope(route_key, contact_id)
+        goal_text = clean(payload.get("goalText"))
+        if not goal_text or len(goal_text) > 4000:
+            raise HTTPException(status_code=422, detail={"reasonCode": "YANCE_PARLANT_GOAL_INVALID", "message": "goalText is invalid"})
+        local_date = valid_daily_local_date(payload.get("localDate"))
+        return await ensure_daily_goal_graph(key, goal_text, local_date)
+
+    @api.delete("/yance/daily-chat-goals/{route_key}")
+    async def delete_daily_chat_goal(route_key: str, contactId: str = Query(...), localDate: str = Query(...)):
+        key = assert_scope(route_key, contactId)
+        local_date = valid_daily_local_date(localDate)
+        graph = await find_daily_goal(key, local_date)
+        if graph is not None:
+            await RUNTIME.app.journeys.delete(graph.journey.id)
+        return {"ok": True, "deleted": graph is not None}
 
     return api
 

@@ -214,3 +214,116 @@ test('Parlant loopback transport authenticates the exact Yance-owned child and r
   assert.doesNotMatch(preload, /YANCE_PARLANT_LOOPBACK_TOKEN|x-yance-parlant-token/iu, 'loopback credential must never enter renderer IPC');
   assert.doesNotMatch(workspace, /YANCE_PARLANT_LOOPBACK_TOKEN|x-yance-parlant-token/iu, 'loopback credential must never enter Workspace state');
 });
+
+const jsFunctionBody = (source, name) => {
+  const start = source.indexOf(`async function ${name}(`);
+  if (start === -1) return '';
+  let parenDepth = 0;
+  let openBrace = -1;
+  for (let i = start; i < source.length; i += 1) {
+    const ch = source[i];
+    if (ch === '(') parenDepth += 1;
+    else if (ch === ')') {
+      parenDepth -= 1;
+      if (parenDepth === 0) { openBrace = source.indexOf('{', i); break; }
+    }
+  }
+  if (openBrace === -1) return '';
+  let depth = 0;
+  for (let i = openBrace; i < source.length; i += 1) {
+    if (source[i] === '{') depth += 1;
+    else if (source[i] === '}') { depth -= 1; if (depth === 0) return source.slice(start, i + 1); }
+  }
+  return '';
+};
+
+test('Daily Chat Goal is an additive per-localDate Journey, not a date-scoped Relationship Goal', () => {
+  const server = readText('runtime/parlant/yance_parlant_server.py');
+  const runtime = readText('electron/parlantRelationshipRuntime.js');
+
+  // Persistent Relationship Goal authority stays relationship-stable: no date dimension.
+  assert.match(server, /def identifiers\(key: str\)\s*->\s*dict\[str, str\]/u);
+  assert.match(server, /["']journey["']\s*:\s*f["']yance-goal-\{short\}["']/u);
+  assert.doesNotMatch(server, /yance-goal-\{short\}-\{local_date\}|date_suffix/u);
+
+  // Additive Daily Goal identity reuses canonical agent/customer and derives Journey
+  // identity from relationship + localDate.
+  assert.match(server, /def daily_goal_identifiers\(key: str, local_date: str\)/u);
+  assert.match(server, /["']agent["']\s*:\s*canonical\[["']agent["']\]/u);
+  assert.match(server, /["']customer["']\s*:\s*canonical\[["']customer["']\]/u);
+  assert.match(server, /yance-daily-chat-goal-\{short\}-\{local_date\}/u);
+  assert.match(server, /yance-daily-steer-\{short\}-\{local_date\}/u);
+
+  // Native Parlant labels, strict YYYY-MM-DD validation.
+  assert.match(server, /DAILY_GOAL_LABEL\s*=\s*["']yance-daily-chat-goal["']/u);
+  assert.match(server, /DAILY_LOCAL_DATE_LABEL_PREFIX\s*=\s*["']yance-local-date["']/u);
+  assert.match(server, /f"\{DAILY_LOCAL_DATE_LABEL_PREFIX\}:\{local_date\}"/u);
+  assert.match(server, /YANCE_PARLANT_DAILY_LOCAL_DATE_INVALID/u);
+  assert.match(server, /re\.compile\(r["']\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$["']\)/u);
+
+  // Independent API seam: daily-chat-goals is a separate route family, and the
+  // persistent relationship-goals routes must not accept a localDate dimension.
+  assert.match(server, /\/yance\/daily-chat-goals\/\{route_key\}/u);
+  assert.match(server, /async def get_daily_chat_goal/u);
+  assert.match(server, /async def put_daily_chat_goal/u);
+  assert.match(server, /async def delete_daily_chat_goal/u);
+  assert.doesNotMatch(server, /async def get_relationship_goal\([^)]*localDate/u);
+  assert.doesNotMatch(server, /async def delete_relationship_goal\([^)]*localDate/u);
+  assert.doesNotMatch(server, /async def put_relationship_goal\([^)]*localDate/u);
+
+  // Electron runtime is additive: persistent methods never transport localDate,
+  // daily methods are a separate narrow seam that hits /yance/daily-chat-goals/.
+  for (const name of ['readRelationshipGoal', 'upsertRelationshipGoal', 'deleteRelationshipGoal', 'setRelationshipGoalPaused', 'ingestCustomerMessage', 'requestReplyCandidate']) {
+    const body = jsFunctionBody(runtime, name);
+    assert.ok(body.length > 0, `${name} must remain present`);
+    assert.doesNotMatch(body, /localDate/u, `${name} must not transport localDate`);
+  }
+  for (const name of ['readDailyChatGoal', 'upsertDailyChatGoal', 'deleteDailyChatGoal']) {
+    const body = jsFunctionBody(runtime, name);
+    assert.ok(body.length > 0, `${name} must exist`);
+    assert.match(body, /localDate/u, `${name} must transport localDate`);
+  }
+  assert.match(runtime, /\/yance\/daily-chat-goals\/\$\{relationshipKey\(contactId\)\}/u);
+  assert.match(runtime, /DESKTOP_PARLANT_DAILY_LOCAL_DATE_INVALID/u);
+});
+
+test('Daily Goal identity derives deterministically from relationship + localDate: rollover, idempotent, non-regression, delete isolation', () => {
+  const runtimePath = repositoryPath('electron/parlantRelationshipRuntime.js');
+  delete require.cache[require.resolve(runtimePath)];
+  const { relationshipKey } = require(runtimePath);
+
+  const key = relationshipKey('contact-A');
+  const short = key.slice(0, 40);
+  const dayA = '2026-09-05';
+  const dayB = '2026-09-06';
+
+  const persistentJourney = `yance-goal-${short}`;
+  const persistentSteering = `yance-steer-${short}`;
+  const dailyJourneyA = `yance-daily-chat-goal-${short}-${dayA}`;
+  const dailyJourneyB = `yance-daily-chat-goal-${short}-${dayB}`;
+
+  // rollover: date A -> date B opens a distinct daily journey.
+  assert.notEqual(dailyJourneyA, dailyJourneyB);
+
+  // idempotent: same relationship + same localDate resolves the same journey id.
+  assert.equal(dailyJourneyA, `yance-daily-chat-goal-${relationshipKey('contact-A').slice(0, 40)}-${dayA}`);
+
+  // non-regression + delete isolation: the daily journey id space is disjoint from
+  // the persistent yance-goal-* Relationship Goal authority, so a date rollover or a
+  // delete of day B can never touch the persistent relationship goal graph.
+  assert.notEqual(dailyJourneyA, persistentJourney);
+  assert.notEqual(dailyJourneyB, persistentJourney);
+  assert.ok(dailyJourneyA.startsWith('yance-daily-chat-goal-'));
+  assert.ok(persistentJourney.startsWith('yance-goal-'));
+  assert.ok(!persistentJourney.startsWith('yance-daily-chat-goal-'));
+  assert.ok(!persistentSteering.startsWith('yance-daily-'));
+
+  // identity must carry both relationship scope (short) and localDate.
+  assert.ok(dailyJourneyA.includes(short), 'daily journey must embed relationship scope');
+  assert.ok(dailyJourneyA.endsWith(`-${dayA}`), 'daily journey must embed localDate');
+
+  // The Python source is the authority: assert it uses the exact same derivations.
+  const server = readText('runtime/parlant/yance_parlant_server.py');
+  assert.match(server, /["']journey["']\s*:\s*f["']yance-goal-\{short\}["']/u, 'persistent journey id must be relationship-stable');
+  assert.match(server, /["']journey["']\s*:\s*f["']yance-daily-chat-goal-\{short\}-\{local_date\}["']/u, 'daily journey id must derive from relationship + localDate');
+});

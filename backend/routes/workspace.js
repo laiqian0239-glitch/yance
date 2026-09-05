@@ -180,6 +180,15 @@ router.put('/contacts/:id/analysis', (req, res, next) => {
 router.get('/contacts/:id/insights', (req, res, next) => {
   try { res.json(workspace.insights(req.params.id)); } catch (error) { next(error); }
 });
+router.get('/contacts/:id/daily-review', (req, res, next) => {
+  try {
+    res.setHeader('cache-control', 'no-store, max-age=0');
+    res.json(workspace.dailyReview(req.params.id, {
+      localDate: req.query.localDate,
+      timeZone: req.query.timeZone
+    }));
+  } catch (error) { next(error); }
+});
 router.put('/contacts/:id/identity', (req, res, next) => {
   try { systemPolicy.assertWriteAllowed('contact-identity-update'); res.json({ ok: true, identity: workspace.saveIdentity(req.params.id, req.body || {}) }); } catch (error) { next(error); }
 });

@@ -108,6 +108,17 @@ type DesktopActivationBridge = {
   completeActivationProbe?: (payload: Record<string, unknown>) => void;
 };
 
+type YanceLocationNavigationApi = Api["navigation"] & {
+  registerLocationRenderer?: (path: string, renderer: () => React.JSX.Element) => void;
+  navigateToLocation?: (path: string) => void;
+};
+
+type YanceCustomComponentsApi = Api["customComponents"] & {
+  registerComposerAccessory?: (
+    renderer: (props: { roomId: string }) => React.JSX.Element,
+  ) => void;
+};
+
 function validMatrixRoomId(value: string): boolean {
   return /^[!#][^:\s]+:[^\s]+$/u.test(value);
 }
@@ -165,7 +176,12 @@ const navigateSearchResult = async (relationship: RelationshipProjection): Promi
         <YanceLogin>{originalComponent(props)}</YanceLogin>
       ),
     );
-    this.api.customComponents.registerGlobalRightPanel(
+    const navigationApi = this.api.navigation as YanceLocationNavigationApi;
+    if (typeof navigationApi.registerLocationRenderer !== "function") {
+      throw new Error("ELEMENT_YANCE_LOCATION_AUTHORITY_MISSING");
+    }
+    navigationApi.registerLocationRenderer(
+      "yance",
       () => (
         <YanceWorkspace
           appearanceHost={appearanceHost}
@@ -174,19 +190,18 @@ const navigateSearchResult = async (relationship: RelationshipProjection): Promi
         />
       ),
     );
-    this.api.customComponents.registerComposerPreview(
-      (_composerText, roomId) => Boolean(roomId),
-      (props, originalComponent) => (
-        <>
-          {originalComponent(props)}
-          <ProductComposerAccessory roomId={props.roomId} />
-        </>
-      ),
+
+    const customComponentsApi = this.api.customComponents as YanceCustomComponentsApi;
+    if (typeof customComponentsApi.registerComposerAccessory !== "function") {
+      throw new Error("ELEMENT_YANCE_COMPOSER_ACCESSORY_AUTHORITY_MISSING");
+    }
+    customComponentsApi.registerComposerAccessory(
+      (props) => <ProductComposerAccessory roomId={props.roomId} />,
     );
 
-    const openGlobalRightPanel = (): void => this.api.customComponents.openGlobalRightPanel();
+    const openYanceLocation = (): void => navigationApi.navigateToLocation?.("yance");
     this.api.extras.addRoomHeaderButtonCallback(() => (
-      <button type="button" aria-label="打开言策关系工作台" onClick={openGlobalRightPanel}>言策</button>
+      <button type="button" aria-label="打开言策关系工作台" onClick={openYanceLocation}>言策</button>
     ));
 
     const yanceDesktop = (window as unknown as { yanceDesktop?: DesktopActivationBridge }).yanceDesktop;

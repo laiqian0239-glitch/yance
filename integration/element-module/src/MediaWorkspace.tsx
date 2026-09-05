@@ -269,7 +269,8 @@ export function MediaWorkspace({
       </header>
       <p className={degraded ? "media-status degraded" : "media-status"} aria-live="polite">{status}{health.comfyui?.missingModel ? " · 生成模型缺失" : ""}</p>
 
-      <details>
+      {standaloneMode ? (
+        <details>
         <summary>高级媒体设置</summary>
         <div className="media-grid">
           <label>媒体库地址<input value={immichEndpoint} onChange={(event) => setImmichEndpoint(event.target.value)} placeholder="留空则保持当前地址" /></label>
@@ -281,6 +282,7 @@ export function MediaWorkspace({
           <button type="button" onClick={() => void saveSettings()} disabled={busy}>保存设置</button>
         </div>
       </details>
+      ) : null}
 
       <section>
         <h3>媒体库</h3>

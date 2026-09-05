@@ -1,5 +1,6 @@
 import type {
   BilingualSearchResult,
+  ConversationRef,
   RelationshipAssistantProjection,
   RelationshipGoalProjection,
   RelationshipIntelligenceEvent,
@@ -52,6 +53,18 @@ type ProductDesktopApi = {
   getLettaState: () => Promise<LettaState>;
   listLettaAgents: () => Promise<LettaAgent[]>;
   listLettaConversations: (input: { agentId: string; limit?: number }) => Promise<LettaConversation[]>;
+  listPlatformAccounts: () => Promise<Record<string, unknown>>;
+  getPlatformAccountCapabilities: () => Promise<Record<string, unknown>>;
+  createPlatformAccount: (input: { platform: string; displayName?: string }) => Promise<Record<string, unknown>>;
+  connectPlatformAccount: (input: { id: string }) => Promise<Record<string, unknown>>;
+  reconnectPlatformAccount: (input: { id: string }) => Promise<Record<string, unknown>>;
+  syncPlatformAccount: (input: { id: string }) => Promise<Record<string, unknown>>;
+  syncAllPlatformAccounts: () => Promise<Record<string, unknown>>;
+  runPlatformAccountCommand: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  previewPersonaCharacterCard: (input: { bytes: Uint8Array | ArrayBuffer }) => Promise<Record<string, unknown>>;
+  generateReply: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  approveReply: (input: { candidateId: string }) => Promise<Record<string, unknown>>;
+  rejectReply: (input: { candidateId: string }) => Promise<Record<string, unknown>>;
   onDesktopEvent?: (callback: (event: DesktopEvent) => void) => (() => void);
 };
 
@@ -69,6 +82,29 @@ export type ProductAppearanceProjection = {
   fontScale: number;
   themeId: string;
   themes: readonly ProductAppearanceTheme[];
+};
+
+export type PlatformAccountProjection = {
+  id: string;
+  label: string;
+  platform: string;
+  status: string;
+  isDefault: boolean;
+  authorizationPending: boolean;
+  connectionState: string;
+  pendingAction: string;
+  flowId: string;
+  loginProcessId: string;
+  stepId: string;
+  txnId: string;
+};
+
+export type PersonaCharacterCardPreview = {
+  available: boolean;
+  ok: boolean;
+  name: string;
+  description: string;
+  reasonCode: string;
 };
 
 const RELATIONSHIP_INTELLIGENCE_STATES = new Set([
@@ -254,6 +290,141 @@ export async function updateProductAppearance(
   return loadProductAppearance();
 }
 
+function normalizePlatformAccount(value: unknown): PlatformAccountProjection | null {
+  const row = objectRecord(value);
+  const id = text(row.id || row.accountId);
+  if (!id) return null;
+  return {
+    id,
+    label: text(row.displayName || row.label || row.name || row.username || id),
+    platform: text(row.platform || row.provider || row.type),
+    status: text(row.status || row.state || row.connectionState),
+    isDefault: row.isDefault === true || row.default === true,
+    authorizationPending: row.authorizationPending === true || text(row.lifecycleState) === "pending-auth",
+    connectionState: text(row.state || row.connectionState),
+    pendingAction: text(row.pendingAction || row.requiredAction),
+    flowId: text(row.flowId || row.oauthFlowId),
+    loginProcessId: text(row.loginProcessId),
+    stepId: text(row.stepId),
+    txnId: text(row.txnId),
+  };
+}
+
+export async function loadPlatformAccounts(): Promise<readonly PlatformAccountProjection[]> {
+  const api = desktopApi();
+  if (!api || typeof api.listPlatformAccounts !== "function") throw bridgeUnavailable("platform-accounts");
+  const payload = await api.listPlatformAccounts();
+  const root = objectRecord(payload);
+  return objectArray(root.accounts).map(normalizePlatformAccount).filter((account): account is PlatformAccountProjection => Boolean(account));
+}
+
+export async function loadPlatformAccountCapabilities(): Promise<readonly string[]> {
+  const api = desktopApi();
+  if (!api || typeof api.getPlatformAccountCapabilities !== "function") throw bridgeUnavailable("platform-account-capabilities");
+  const payload = objectRecord(await api.getPlatformAccountCapabilities());
+  return stringArray(payload.platforms || payload.supported || payload.capabilities);
+}
+
+export async function createPlatformAccount(
+  platform: string,
+  displayName = "",
+): Promise<void> {
+  const api = desktopApi();
+  if (!api || typeof api.createPlatformAccount !== "function") throw bridgeUnavailable("create-platform-account");
+  await api.createPlatformAccount({ platform, displayName });
+}
+
+export async function connectPlatformAccount(accountId: string): Promise<void> {
+  const api = desktopApi();
+  if (!api || typeof api.connectPlatformAccount !== "function") throw bridgeUnavailable("connect-platform-account");
+  await api.connectPlatformAccount({ id: accountId });
+}
+
+export async function reconnectPlatformAccount(accountId: string): Promise<void> {
+  const api = desktopApi();
+  if (!api || typeof api.reconnectPlatformAccount !== "function") throw bridgeUnavailable("reconnect-platform-account");
+  await api.reconnectPlatformAccount({ id: accountId });
+}
+
+export async function syncPlatformAccount(accountId: string): Promise<void> {
+  const api = desktopApi();
+  if (!api || typeof api.syncPlatformAccount !== "function") throw bridgeUnavailable("sync-platform-account");
+  await api.syncPlatformAccount({ id: accountId });
+}
+
+export async function runPlatformAccountCommand(
+  accountId: string,
+  action: string,
+  params: Record<string, unknown> = {},
+): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.runPlatformAccountCommand !== "function") throw bridgeUnavailable("platform-account-command");
+  return objectRecord(await api.runPlatformAccountCommand({ id: accountId, action, ...params }));
+}
+
+export async function previewPersonaCharacterCard(
+  bytes: Uint8Array | ArrayBuffer,
+): Promise<PersonaCharacterCardPreview> {
+  const api = desktopApi();
+  if (!api || typeof api.previewPersonaCharacterCard !== "function") {
+    return { available: false, ok: false, name: "", description: "", reasonCode: "DESKTOP_PERSONA_BRIDGE_UNAVAILABLE" };
+  }
+  try {
+    const payload = objectRecord(await api.previewPersonaCharacterCard({ bytes }));
+    const preview = objectRecord(payload.preview || payload);
+    return {
+      available: true,
+      ok: payload.ok === true,
+      name: text(preview.name || preview.characterName || preview.displayName),
+      description: text(preview.description || preview.personality || preview.greeting),
+      reasonCode: "",
+    };
+  } catch (error) {
+    const reasonCode = text((error as { reasonCode?: string; code?: string })?.reasonCode)
+      || text((error as { code?: string })?.code)
+      || "PERSONA_PREVIEW_FAILED";
+    return { available: true, ok: false, name: "", description: "", reasonCode };
+  }
+}
+
+export type ReplyBrainCandidate = {
+  candidateId: string;
+  text: string;
+  requiresUserApproval: boolean;
+  automaticSend: boolean;
+  reasonCode: string;
+};
+
+export async function generateReplyCandidate(
+  input: { conversationId: string; contactId?: string },
+): Promise<ReplyBrainCandidate> {
+  const api = desktopApi();
+  if (!api || typeof api.generateReply !== "function") {
+    return { candidateId: "", text: "", requiresUserApproval: true, automaticSend: false, reasonCode: "DESKTOP_REPLY_BRAIN_BRIDGE_UNAVAILABLE" };
+  }
+  const payload = objectRecord(await api.generateReply({ conversationId: input.conversationId, contactId: input.contactId }));
+  const candidate = objectRecord(payload.candidate || payload);
+  return {
+    candidateId: text(candidate.candidateId || payload.candidateId),
+    text: text(candidate.text),
+    requiresUserApproval: payload.requiresUserApproval !== false,
+    automaticSend: payload.automaticSend === true,
+    reasonCode: "",
+  };
+}
+
+export async function approveReplyCandidate(candidateId: string): Promise<void> {
+  const api = desktopApi();
+  if (!api || typeof api.approveReply !== "function") throw bridgeUnavailable("approve-reply");
+  await api.approveReply({ candidateId });
+}
+
+export async function rejectReplyCandidate(candidateId: string): Promise<void> {
+  const api = desktopApi();
+  if (!api || typeof api.rejectReply !== "function") throw bridgeUnavailable("reject-reply");
+  await api.rejectReply({ candidateId });
+}
+
 function relationshipIntelligenceState(value: unknown): RelationshipIntelligenceProjection["state"] | null {
   const state = text(value);
   return RELATIONSHIP_INTELLIGENCE_STATES.has(state)
@@ -319,9 +490,62 @@ function normalizeRelationshipIntelligence(value: unknown): RelationshipIntellig
   };
 }
 
+function conversationAutomationMode(value: unknown): ConversationRef["automationMode"] {
+  const mode = text(value).toUpperCase();
+  return mode === "AI_ASSIST" || mode === "AI_AUTO" ? mode : "HUMAN";
+}
+
+function normalizeConversationRef(
+  conversationId: string,
+  value: unknown,
+  contactId: string,
+  relationshipIntelligenceValue?: unknown,
+): ConversationRef | null {
+  const id = text(conversationId);
+  if (!id) return null;
+  const row = objectRecord(value);
+  const routeScope = objectRecord(row.routeScope);
+  const platform = text(routeScope.platform || row.platform || row.channel);
+  const accountId = text(routeScope.sourceAccountId || row.sourceAccountId || row.accountId);
+  const chatJid = text(
+    routeScope.platformContactIdentity
+      || row.platformContactIdentity
+      || row.chatJid
+      || row.jid,
+  );
+  const sessionKey = text(
+    routeScope.conversationId
+      || row.conversationId
+      || row.sessionKey
+      || id,
+  );
+
+  return {
+    id,
+    contactId,
+    title: text(row.displayName || row.title || row.name || platform || id),
+    platform,
+    accountId,
+    chatJid,
+    sessionKey,
+    automationMode: conversationAutomationMode(
+      row.automationMode
+        || row.aiAutomationMode
+        || row.replyAutomationMode
+        || row.mode,
+    ),
+    updatedAt: asTimestamp(
+      row.updatedAt || row.lastMessageAt || row.modifiedAt || row.createdAt,
+    ),
+    relationshipIntelligence:
+      normalizeRelationshipIntelligence(relationshipIntelligenceValue),
+  };
+}
+
 function relationshipFromEntry(
   key: string,
   value: unknown,
+  conversations: readonly ConversationRef[],
   relationshipIntelligenceValue?: unknown,
 ): RelationshipProjection | null {
   const row = objectRecord(value);
@@ -329,20 +553,26 @@ function relationshipFromEntry(
   if (!id) return null;
 
   const name = text(row.displayName || row.name || row.title || id) || "关系";
-  const platform = optionalText(row.platform || row.channel || row.source);
-  const accountId = optionalText(row.accountId || row.account);
+  const soleConversation = conversations.length === 1 ? conversations[0] : undefined;
+  const platform = optionalText(row.platform || row.channel || row.source)
+    || soleConversation?.platform;
+  const accountId = optionalText(row.accountId || row.account)
+    || soleConversation?.accountId;
   const subtitleParts = [platform, accountId].filter(Boolean);
   const relationshipIntelligence = normalizeRelationshipIntelligence(relationshipIntelligenceValue);
 
   return {
     id,
     name,
+    conversations,
     subtitle: subtitleParts.join(" · ") || "关系",
     avatarUrl: optionalText(row.avatarUrl || row.avatar || row.photoUrl),
     platform,
     accountId,
-    chatJid: optionalText(row.chatJid || row.jid),
-    sessionKey: optionalText(row.sessionKey || row.sessionId),
+    chatJid: optionalText(row.chatJid || row.jid)
+      || soleConversation?.chatJid,
+    sessionKey: optionalText(row.sessionKey || row.sessionId)
+      || soleConversation?.sessionKey,
     matrixRoomId: optionalText(row.matrixRoomId),
     matrixPermalink: optionalText(row.matrixPermalink),
     updatedAt: asTimestamp(row.updatedAt || row.lastInteractionAt || row.lastMessageAt || row.modifiedAt),
@@ -426,17 +656,33 @@ export async function loadRelationshipProjections(): Promise<readonly Relationsh
   const customers = objectRecord(snapshot.customers);
   const byId = objectRecord(customers.byId);
   const conversationIdsByContactId = objectRecord(root.relationshipConversationIdsByContactId);
+  const conversationsById = objectRecord(root.relationshipConversationsById);
   const relationshipIntelligence = objectRecord(root.relationshipIntelligence);
 
   return Object.entries(byId)
     .map(([key, value]) => {
       const row = objectRecord(value);
       const stableContactId = text(row.contactId || row.id || key);
-      const conversationId = stringArray(conversationIdsByContactId[stableContactId])[0] || "";
+      const conversationIds = stringArray(
+        conversationIdsByContactId[stableContactId],
+      );
+      const conversations = conversationIds
+        .map((conversationId) => normalizeConversationRef(
+          conversationId,
+          conversationsById[conversationId],
+          stableContactId,
+          relationshipIntelligence[conversationId],
+        ))
+        .filter((conversation): conversation is ConversationRef => Boolean(conversation));
+      const soleConversation = conversations.length === 1
+        ? conversations[0]
+        : undefined;
+
       return relationshipFromEntry(
         key,
         value,
-        conversationId ? relationshipIntelligence[conversationId] : undefined,
+        conversations,
+        soleConversation?.relationshipIntelligence,
       );
     })
     .filter((relationship): relationship is RelationshipProjection => Boolean(relationship))

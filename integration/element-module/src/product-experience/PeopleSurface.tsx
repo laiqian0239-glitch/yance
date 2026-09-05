@@ -118,6 +118,7 @@ export function PeopleSurface({
                 role="listitem"
                 className="yance-person-card"
                 data-selected={selected || undefined}
+                data-conversation-count={relationship.conversations.length}
                 data-intelligence-state={relationship.relationshipIntelligence?.state || "unavailable"}
                 aria-pressed={selected}
                 aria-label={`打开与 ${relationship.name} 的关系。${analysisStatusLabel}`}
@@ -131,6 +132,13 @@ export function PeopleSurface({
                 <span className="yance-person-copy">
                   <strong>{relationship.name}</strong>
                   <span>{relationship.subtitle}</span>
+                  <span>
+                    {relationship.conversations.length === 0
+                      ? "尚无可打开的对话"
+                      : relationship.conversations.length === 1
+                        ? "1 个对话"
+                        : `${relationship.conversations.length} 个对话 · 进入后选择`}
+                  </span>
                   <span className="yance-person-intelligence-status">{analysisStatusLabel}</span>
                 </span>
                 <span className="yance-person-open" aria-hidden="true">›</span>

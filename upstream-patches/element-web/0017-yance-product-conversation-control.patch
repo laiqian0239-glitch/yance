@@ -1,0 +1,1894 @@
+diff --git a/apps/web/src/components/structures/LoggedInView.tsx b/apps/web/src/components/structures/LoggedInView.tsx
+index 51f23ec..e84c9df 100644
+--- a/apps/web/src/components/structures/LoggedInView.tsx
++++ b/apps/web/src/components/structures/LoggedInView.tsx
+@@ -693,7 +693,16 @@ class LoggedInView extends React.Component<IProps, IState> {
+ 
+         let content: React.ReactNode;
+         const resizerViewModel = !moduleRenderer ? this.getResizerViewModel() : undefined;
+-        if (resizerViewModel && !moduleRenderer) {
++
++        const productConversationMode =
++            this.props.page_type === PageTypes.RoomView
++            && ModuleApi.instance.navigation.productConversationMode;
++
++        if (productConversationMode) {
++            // Keep the real Element RoomView/timeline/composer.
++            // Yance People remains the only primary navigation.
++            content = roomView;
++        } else if (resizerViewModel && !moduleRenderer) {
+             // Resizable layout with a draggable separator. The SpacePanel lives inside GroupView
+             // (leftPanel omits it).
+             content = (
+diff --git a/apps/web/src/components/views/context_menus/MessageContextMenu.tsx b/apps/web/src/components/views/context_menus/MessageContextMenu.tsx
+index 086301e..a5912e5 100644
+--- a/apps/web/src/components/views/context_menus/MessageContextMenu.tsx
++++ b/apps/web/src/components/views/context_menus/MessageContextMenu.tsx
+@@ -49,6 +49,7 @@ import { _t } from "../../../languageHandler";
+ import Modal from "../../../Modal";
+ import Resend from "../../../Resend";
+ import SettingsStore from "../../../settings/SettingsStore";
++import { ModuleApi } from "../../../modules/Api";
+ import { isUrlPermitted } from "../../../HtmlUtils";
+ import { canEditContent, editEvent, isContentActionable } from "../../../utils/EventUtils";
+ import IconizedContextMenu, { IconizedContextMenuOption, IconizedContextMenuOptionList } from "./IconizedContextMenu";
+@@ -138,6 +139,9 @@ interface IState {
+     canRedact: boolean;
+     canPin: boolean;
+     reactionPickerDisplayed: boolean;
++    canProductReply: boolean;
++    canProductReaction: boolean;
++    canProductRedact: boolean;
+ }
+ 
+ export default class MessageContextMenu extends React.Component<IProps, IState> {
+@@ -145,6 +149,7 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+     declare public context: React.ContextType<typeof RoomContext>;
+ 
+     private reactButtonRef = createRef<any>(); // XXX Ref to a functional component
++    private productPermissionGeneration = 0;
+ 
+     public constructor(props: IProps) {
+         super(props);
+@@ -153,6 +158,9 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+             canRedact: false,
+             canPin: false,
+             reactionPickerDisplayed: false,
++            canProductReply: true,
++            canProductReaction: true,
++            canProductRedact: true,
+         };
+     }
+ 
+@@ -167,6 +175,7 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+     }
+ 
+     public componentWillUnmount(): void {
++        this.productPermissionGeneration += 1;
+         const cli = MatrixClientPeg.get();
+         if (cli) {
+             cli.removeListener(RoomMemberEvent.PowerLevel, this.checkPermissions);
+@@ -188,13 +197,61 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+ 
+         const canPin = PinningUtils.canPin(cli, this.props.mxEvent) || PinningUtils.canUnpin(cli, this.props.mxEvent);
+ 
+-        this.setState({ canRedact, canPin });
++        const generation = ++this.productPermissionGeneration;
++        const mxEvent = this.props.mxEvent;
++
++        const hints =
++            ModuleApi.instance.customComponents.getHintsForMessage(mxEvent);
++
++        this.setState({
++            canRedact,
++            canPin,
++            canProductReply: hints?.allowReply ? false : true,
++            canProductReaction: hints?.allowReaction ? false : true,
++            canProductRedact: hints?.allowRedaction ? false : true,
++        });
++
++        const safe = async (
++            callback?: () => Promise<boolean>,
++        ): Promise<boolean> => {
++            if (!callback) return true;
++
++            try {
++                return (await callback()) === true;
++            } catch {
++                return false;
++            }
++        };
++
++        void Promise.all([
++            safe(hints?.allowReply),
++            safe(hints?.allowReaction),
++            safe(hints?.allowRedaction),
++        ]).then(([
++            canProductReply,
++            canProductReaction,
++            canProductRedact,
++        ]) => {
++            if (
++                generation !== this.productPermissionGeneration
++                || this.props.mxEvent !== mxEvent
++            ) {
++                return;
++            }
++
++            this.setState({
++                canProductReply,
++                canProductReaction,
++                canProductRedact,
++            });
++        });
+     };
+ 
+     private canEndPoll(mxEvent: MatrixEvent): boolean {
+         return (
+             M_POLL_START.matches(mxEvent.getType()) &&
+             this.state.canRedact &&
++            this.state.canProductRedact &&
+             !isPollEnded(mxEvent, MatrixClientPeg.safeGet())
+         );
+     }
+@@ -436,7 +493,11 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+         }
+ 
+         let redactButton: JSX.Element | undefined;
+-        if (isSent && this.state.canRedact) {
++        if (
++            isSent
++            && this.state.canRedact
++            && this.state.canProductRedact
++        ) {
+             redactButton = (
+                 <IconizedContextMenuOption
+                     icon={<DeleteIcon />}
+@@ -640,7 +701,12 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+         }
+ 
+         let replyButton: JSX.Element | undefined;
+-        if (rightClick && contentActionable && canSendMessages) {
++        if (
++            rightClick
++            && contentActionable
++            && canSendMessages
++            && this.state.canProductReply
++        ) {
+             replyButton = (
+                 <IconizedContextMenuOption
+                     icon={<ReplyIcon />}
+@@ -662,7 +728,12 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+         }
+ 
+         let reactButton: JSX.Element | undefined;
+-        if (rightClick && contentActionable && canReact) {
++        if (
++            rightClick
++            && contentActionable
++            && canReact
++            && this.state.canProductReaction
++        ) {
+             reactButton = (
+                 <IconizedContextMenuOption
+                     icon={<ReactionAddIcon />}
+diff --git a/apps/web/src/components/views/rooms/SendMessageComposer.tsx b/apps/web/src/components/views/rooms/SendMessageComposer.tsx
+index 9144992..67d9e98 100644
+--- a/apps/web/src/components/views/rooms/SendMessageComposer.tsx
++++ b/apps/web/src/components/views/rooms/SendMessageComposer.tsx
+@@ -60,6 +60,7 @@ import { KeyBindingAction } from "../../../accessibility/KeyboardShortcuts";
+ import { PosthogAnalytics } from "../../../PosthogAnalytics";
+ import { addReplyToMessageContent } from "../../../utils/Reply";
+ import { doMaybeLocalRoomAction } from "../../../utils/local-room";
++import { ModuleApi } from "../../../modules/Api";
+ import { type Caret } from "../../../editor/caret";
+ import { type IDiff } from "../../../editor/diff";
+ import { getBlobSafeMimeType } from "../../../utils/blobs";
+@@ -459,6 +460,25 @@ export class SendMessageComposer extends React.Component<ISendMessageComposerPro
+                 decorateStartSendingTime(content);
+             }
+ 
++            if (
++                ModuleApi.instance.navigation.productConversationMode
++                && content
++            ) {
++                const originalBody = String(content.body ?? "");
++
++                const prepared =
++                    await ModuleApi.instance.composer.prepareOutgoingMessage({
++                        roomId,
++                        text: originalBody,
++                    });
++
++                if (prepared.text !== originalBody) {
++                    content.body = prepared.text;
++                    Reflect.deleteProperty(content, "format");
++                    Reflect.deleteProperty(content, "formatted_body");
++                }
++            }
++
+             const threadId =
+                 this.props.relation?.rel_type === THREAD_RELATION_TYPE.name ? this.props.relation.event_id : null;
+ 
+diff --git a/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts b/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts
+index d5365d5..b5325f1 100644
+--- a/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts
++++ b/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts
+@@ -21,6 +21,7 @@ import { PosthogAnalytics } from "../../../../../PosthogAnalytics";
+ import SettingsStore from "../../../../../settings/SettingsStore";
+ import { decorateStartSendingTime, sendRoundTripMetric } from "../../../../../sendTimePerformanceMetrics";
+ import { doMaybeLocalRoomAction } from "../../../../../utils/local-room";
++import { ModuleApi } from "../../../../../modules/Api";
+ import { CHAT_EFFECTS } from "../../../../../effects";
+ import { containsEmoji } from "../../../../../effects/utils";
+ import { type IRoomState } from "../../../../structures/RoomView";
+@@ -129,6 +130,25 @@ export async function sendMessage(
+         decorateStartSendingTime(content);
+     }
+ 
++    if (
++        ModuleApi.instance.navigation.productConversationMode
++        && content
++    ) {
++        const originalBody = String(content.body ?? "");
++
++        const prepared =
++            await ModuleApi.instance.composer.prepareOutgoingMessage({
++                roomId,
++                text: originalBody,
++            });
++
++        if (prepared.text !== originalBody) {
++            content.body = prepared.text;
++            Reflect.deleteProperty(content, "format");
++            Reflect.deleteProperty(content, "formatted_body");
++        }
++    }
++
+     const threadId = relation?.event_id && relation?.rel_type === THREAD_RELATION_TYPE.name ? relation.event_id : null;
+ 
+     const prom = doMaybeLocalRoomAction(
+diff --git a/apps/web/src/modules/ComposerApi.ts b/apps/web/src/modules/ComposerApi.ts
+index a4b4dee..c231abc 100644
+--- a/apps/web/src/modules/ComposerApi.ts
++++ b/apps/web/src/modules/ComposerApi.ts
+@@ -31,6 +31,9 @@ export class ComposerApi
+     implements ModuleComposerApi
+ {
+     private readonly configuredFileUploadOptions = new Map<string, ComposerApiFileUploadOption>();
++    private outgoingMessagePrepare?: (
++        input: { roomId: string; text: string },
++    ) => Promise<{ text: string; transformed?: boolean }>;
+ 
+     public constructor(private readonly dispatcher: MatrixDispatcher) {
+         super();
+@@ -43,6 +46,38 @@ export class ComposerApi
+         return [...this.configuredFileUploadOptions.values()];
+     }
+ 
++    public registerOutgoingMessagePrepare(
++        handler: (
++            input: { roomId: string; text: string },
++        ) => Promise<{ text: string; transformed?: boolean }>,
++    ): void {
++        if (this.outgoingMessagePrepare) {
++            throw new Error("Outgoing message prepare hook is already registered");
++        }
++
++        this.outgoingMessagePrepare = handler;
++    }
++
++    public async prepareOutgoingMessage(
++        input: { roomId: string; text: string },
++    ): Promise<{ text: string; transformed?: boolean }> {
++        if (!this.outgoingMessagePrepare) {
++            throw new Error("MODULE_OUTGOING_PREPARE_UNAVAILABLE");
++        }
++
++        const result = await this.outgoingMessagePrepare(input);
++        const text = String(result?.text ?? "").trim();
++
++        if (!text) {
++            throw new Error("MODULE_OUTGOING_PREPARE_EMPTY");
++        }
++
++        return {
++            text,
++            transformed: result?.transformed === true,
++        };
++    }
++
+     public addFileUploadOption(option: ComposerApiFileUploadOption): void {
+         if (this.configuredFileUploadOptions.has(option.type)) {
+             throw new Error(`Option "${option.type}" already exists`);
+diff --git a/apps/web/src/modules/Navigation.ts b/apps/web/src/modules/Navigation.ts
+index 54d3881..13fdb62 100644
+--- a/apps/web/src/modules/Navigation.ts
++++ b/apps/web/src/modules/Navigation.ts
+@@ -15,11 +15,15 @@ import { parsePermalink } from "../utils/permalinks/Permalinks.ts";
+ import dispatcher from "../dispatcher/dispatcher.ts";
+ import { Action } from "../dispatcher/actions.ts";
+ import type { ViewRoomPayload } from "../dispatcher/payloads/ViewRoomPayload.ts";
++import type { OpenToTabPayload } from "../dispatcher/payloads/OpenToTabPayload.ts";
++import { UserTab } from "../components/views/dialogs/UserTab.ts";
+ 
+ export class NavigationApi implements INavigationApi {
+     public locationRenderers = new Map<string, LocationRenderFunction>();
++    public productConversationMode = false;
+ 
+     public async toMatrixToLink(link: string, join = false): Promise<void> {
++        this.productConversationMode = false;
+         navigateToPermalink(link);
+ 
+         const parts = parsePermalink(link);
+@@ -36,9 +40,35 @@ export class NavigationApi implements INavigationApi {
+     }
+ 
+     public navigateToLocation(path: string): void {
++        this.productConversationMode = false;
+         dispatcher.dispatch({ action: Action.ViewHomePage, page: path });
+     }
+ 
++    public setProductConversationPresentation(
++        mode: "default" | "relationship-room",
++    ): void {
++        this.productConversationMode =
++            mode === "relationship-room";
++    }
++
++    public openUserSettings(
++        destination: "account" | "security" | "sessions",
++    ): void {
++        this.productConversationMode = false;
++
++        const initialTabId =
++            destination === "security"
++                ? UserTab.Security
++                : destination === "sessions"
++                    ? UserTab.SessionManager
++                    : UserTab.Account;
++
++        dispatcher.dispatch<OpenToTabPayload>({
++            action: Action.ViewUserSettings,
++            initialTabId,
++        });
++    }
++
+     public openRoom(roomIdOrAlias: string, opts: OpenRoomOptions = {}): void {
+         const key = roomIdOrAlias.startsWith("#") ? "room_alias" : "room_id";
+         dispatcher.dispatch<ViewRoomPayload>({
+diff --git a/apps/web/src/modules/customComponentApi.ts b/apps/web/src/modules/customComponentApi.ts
+index 1062d45..e978dd8 100644
+--- a/apps/web/src/modules/customComponentApi.ts
++++ b/apps/web/src/modules/customComponentApi.ts
+@@ -41,9 +41,17 @@ interface CustomMessageComponentProps extends Omit<ModuleCustomMessageComponentP
+     mxEvent: MatrixEvent;
+ }
+ 
+-interface CustomMessageRenderHints extends Omit<ModuleCustomCustomMessageRenderHints, "allowDownloadingMedia"> {
++interface CustomMessageRenderHints
++    extends Omit<
++        ModuleCustomCustomMessageRenderHints,
++        "allowDownloadingMedia" | "allowReply" | "allowReaction" | "allowRedaction"
++    >
++{
+     // Note. This just makes it easier to use this API on Element Web as we already have the moduleized event stored.
+     allowDownloadingMedia?: () => Promise<boolean>;
++    allowReply?: () => Promise<boolean>;
++    allowReaction?: () => Promise<boolean>;
++    allowRedaction?: () => Promise<boolean>;
+ }
+ 
+ type ComposerPreviewRenderer = {
+@@ -170,6 +178,15 @@ export class CustomComponentsApi implements ICustomComponentsApi {
+                 allowDownloadingMedia: renderer.hints.allowDownloadingMedia
+                     ? () => renderer.hints.allowDownloadingMedia!(moduleEv)
+                     : undefined,
++                allowReply: renderer.hints.allowReply
++                    ? () => renderer.hints.allowReply!(moduleEv)
++                    : undefined,
++                allowReaction: renderer.hints.allowReaction
++                    ? () => renderer.hints.allowReaction!(moduleEv)
++                    : undefined,
++                allowRedaction: renderer.hints.allowRedaction
++                    ? () => renderer.hints.allowRedaction!(moduleEv)
++                    : undefined,
+             };
+         }
+         return null;
+diff --git a/apps/web/src/viewmodels/room/EventTileActionBarViewModel.ts b/apps/web/src/viewmodels/room/EventTileActionBarViewModel.ts
+index ab6dacd..ad32723 100644
+--- a/apps/web/src/viewmodels/room/EventTileActionBarViewModel.ts
++++ b/apps/web/src/viewmodels/room/EventTileActionBarViewModel.ts
+@@ -74,6 +74,8 @@ export interface EventTileActionBarViewModelProps {
+ interface LocalActionBarState {
+     canDownload: boolean;
+     isDownloadLoading: boolean;
++    canReply: boolean;
++    canReact: boolean;
+ }
+ 
+ interface DerivedEventState {
+@@ -108,6 +110,9 @@ export class EventTileActionBarViewModel
+     private downloadRequestId = 0;
+     private canDownload = true;
+     private isDownloadLoading = false;
++    private canReply = true;
++    private canReact = true;
++    private productPermissionRequestId = 0;
+     private readonly downloader = new FileDownloader();
+     private downloadedBlob?: Blob;
+ 
+@@ -117,6 +122,8 @@ export class EventTileActionBarViewModel
+             EventTileActionBarViewModel.buildSnapshot(props, {
+                 canDownload: true,
+                 isDownloadLoading: false,
++                canReply: true,
++                canReact: true,
+             }),
+         );
+         this.setupListeners();
+@@ -127,7 +134,7 @@ export class EventTileActionBarViewModel
+         localState: LocalActionBarState,
+     ): ActionBarViewSnapshot {
+         const client = MatrixClientPeg.safeGet();
+-        const eventState = EventTileActionBarViewModel.getDerivedEventState(props, client);
++        const eventState = EventTileActionBarViewModel.getDerivedEventState(props, client, localState);
+         const mediaState = EventTileActionBarViewModel.getDerivedMediaState(props.mxEvent, client, localState);
+ 
+         return {
+@@ -187,6 +194,7 @@ export class EventTileActionBarViewModel
+     private static getDerivedEventState(
+         props: EventTileActionBarViewModelProps,
+         client: ReturnType<typeof MatrixClientPeg.safeGet>,
++        localState: LocalActionBarState,
+     ): DerivedEventState {
+         const { mxEvent } = props;
+         const contentActionable = isContentActionable(mxEvent);
+@@ -198,8 +206,8 @@ export class EventTileActionBarViewModel
+             showCancel: canCancel(mxEvent.status) || canCancel(editStatus) || canCancel(redactStatus),
+             showEdit: canEditContent(client, mxEvent),
+             showPinOrUnpin: PinningUtils.canPin(client, mxEvent) || PinningUtils.canUnpin(client, mxEvent),
+-            showReact: contentActionable && props.canReact && !props.isSearch,
+-            showReply: contentActionable && props.canSendMessages,
++            showReact: contentActionable && props.canReact && localState.canReact && !props.isSearch,
++            showReply: contentActionable && props.canSendMessages && localState.canReply,
+             isThreadReplyAllowed: !(!!relationType && relationType !== RelationType.Thread),
+             showExpandCollapse: props.isQuoteExpanded !== undefined && shouldDisplayReply(mxEvent),
+             showReplyInThread: contentActionable && EventTileActionBarViewModel.canShowReplyInThreadAction(props),
+@@ -233,6 +241,8 @@ export class EventTileActionBarViewModel
+         return EventTileActionBarViewModel.buildSnapshot(this.props, {
+             canDownload: this.canDownload,
+             isDownloadLoading: this.isDownloadLoading,
++            canReply: this.canReply,
++            canReact: this.canReact,
+         });
+     }
+ 
+@@ -267,6 +277,7 @@ export class EventTileActionBarViewModel
+ 
+         MatrixClientPeg.safeGet().decryptEventIfNeeded(mxEvent);
+         void this.updateDownloadPermission(++this.downloadPermissionRequestId);
++        void this.updateProductActionPermissions();
+     }
+ 
+     private teardownListeners(): void {
+@@ -298,6 +309,9 @@ export class EventTileActionBarViewModel
+         this.downloadedBlob = undefined;
+         this.canDownload = true;
+         this.isDownloadLoading = false;
++        this.canReply = true;
++        this.canReact = true;
++        this.productPermissionRequestId += 1;
+     }
+ 
+     private isCurrentDownloadPermissionRequest(requestId: number, mxEvent: MatrixEvent): boolean {
+@@ -311,6 +325,48 @@ export class EventTileActionBarViewModel
+         return true;
+     }
+ 
++    private async updateProductActionPermissions(): Promise<void> {
++        const requestId = ++this.productPermissionRequestId;
++        const mxEvent = this.props.mxEvent;
++
++        const hints =
++            ModuleApi.instance.customComponents.getHintsForMessage(mxEvent);
++
++        this.canReply = hints?.allowReply ? false : true;
++        this.canReact = hints?.allowReaction ? false : true;
++        this.refreshSnapshot();
++
++        const safe = async (
++            callback?: () => Promise<boolean>,
++        ): Promise<boolean> => {
++            if (!callback) return true;
++
++            try {
++                return (await callback()) === true;
++            } catch {
++                return false;
++            }
++        };
++
++        const [canReply, canReact] =
++            await Promise.all([
++                safe(hints?.allowReply),
++                safe(hints?.allowReaction),
++            ]);
++
++        if (
++            this.isDisposed
++            || requestId !== this.productPermissionRequestId
++            || this.props.mxEvent !== mxEvent
++        ) {
++            return;
++        }
++
++        this.canReply = canReply;
++        this.canReact = canReact;
++        this.refreshSnapshot();
++    }
++
+     private async updateDownloadPermission(requestId: number): Promise<void> {
+         const { mxEvent } = this.props;
+         const hints = ModuleApi.instance.customComponents.getHintsForMessage(mxEvent);
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+index e876959..16f60b7 100644
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -1,634 +1,653 @@
+-## API Report File for "@element-hq/element-web-module-api"
+-
+-> Do not edit this file. It is a report generated by [API Extractor](https://api-extractor.com/).
+-
+-```ts
+-
+-import { ComponentType } from 'react';
+-import { IWidget } from 'matrix-widget-api';
+-import { JSX } from 'react';
+-import { ModuleApi } from '@matrix-org/react-sdk-module-api';
+-import { ReactNode } from 'react';
+-import { Root } from 'react-dom/client';
+-import { RuntimeModule } from '@matrix-org/react-sdk-module-api';
+-import { SVGAttributes } from 'react';
+-
+-// @public
+-export interface AccountAuthApiExtension {
+-    overwriteAccountAuth(accountInfo: AccountAuthInfo): Promise<void>;
+-}
+-
+-// @public
+-export interface AccountAuthInfo {
+-    accessToken: string;
+-    deviceId: string;
+-    homeserverUrl: string;
+-    refreshToken?: string;
+-    userId: string;
+-}
+-
+-// @public
+-export interface AccountDataApi {
+-    delete(eventType: string): Promise<void>;
+-    get(eventType: string): Watchable<unknown>;
+-    set(eventType: string, content: unknown): Promise<void>;
+-}
+-
+-// @alpha @deprecated (undocumented)
+-export interface AliasCustomisations {
+-    // (undocumented)
+-    getDisplayAliasForAliasSet?(canonicalAlias: string | null, altAliases: string[]): string | null;
+-}
+-
+-// Warning: (ae-incompatible-release-tags) The symbol "Api" is marked as @public, but its signature references "LegacyModuleApiExtension" which is marked as @alpha
+-// Warning: (ae-incompatible-release-tags) The symbol "Api" is marked as @public, but its signature references "LegacyCustomisationsApiExtension" which is marked as @alpha
+-//
+-// @public
+-export interface Api extends LegacyModuleApiExtension, LegacyCustomisationsApiExtension, DialogApiExtension, AccountAuthApiExtension, ProfileApiExtension {
+-    // Warning: (ae-forgotten-export) The symbol "AppearanceApi" needs to be exported by the entry point index.d.ts
+-    //
+-    // @alpha
+-    readonly appearance: AppearanceApi;
+-    // @alpha
+-    readonly builtins: BuiltinsApi;
+-    readonly client: ClientApi;
+-    // @alpha
+-    readonly composer: ComposerApi;
+-    readonly config: ConfigApi;
+-    createRoot(element: Element): Root;
+-    // @alpha
+-    readonly customComponents: CustomComponentsApi;
+-    // @alpha
+-    readonly customisations: CustomisationsApi;
+-    // @alpha
+-    readonly extras: ExtrasApi;
+-    readonly i18n: I18nApi;
+-    readonly navigation: NavigationApi;
+-    readonly rootNode: HTMLElement;
+-    // @alpha
+-    readonly settings: SettingsApi;
+-    readonly stores: StoresApi;
+-    // @alpha
+-    readonly widget: WidgetApi;
+-    // @alpha
+-    readonly widgetLifecycle: WidgetLifecycleApi;
+-}
+-
+-// @alpha
+-export interface BuiltinsApi {
+-    renderNotificationDecoration(roomId: string): React.ReactNode;
+-    renderRoomAvatar(roomId: string, size?: string): React.ReactNode;
+-    renderRoomView(roomId: string, props?: RoomViewProps): React.ReactNode;
+-}
+-
+-// @alpha
+-export type CapabilitiesApprover = (widget: WidgetDescriptor, requestedCapabilities: Set<string>) => MaybePromise<Set<string> | undefined>;
+-
+-// @alpha @deprecated (undocumented)
+-export interface ChatExportCustomisations<ExportFormat, ExportType> {
+-    getForceChatExportParameters(): {
+-        format?: ExportFormat;
+-        range?: ExportType;
+-        numberOfMessages?: number;
+-        includeAttachments?: boolean;
+-        sizeMb?: number;
+-    };
+-}
+-
+-// @public
+-export interface ClientApi {
+-    accountData: AccountDataApi;
+-    getRoom: (id: string) => Room | null;
+-}
+-
+-// @alpha @deprecated (undocumented)
+-export interface ComponentVisibilityCustomisations {
+-    shouldShowComponent?(component: "UIComponent.sendInvites" | "UIComponent.roomCreation" | "UIComponent.spaceCreation" | "UIComponent.exploreRooms" | "UIComponent.addIntegrations" | "UIComponent.filterContainer" | "UIComponent.roomOptionsMenu"): boolean;
+-}
+-
+-// @alpha
+-export interface ComposerApi {
+-    addFileUploadOption(option: ComposerApiFileUploadOption): void;
+-    insertPlaintextIntoComposer(plaintext: string, view: ComposerApiTarget): void;
+-    openFileUploadConfirmation(files: File[], view: ComposerApiTarget): void;
+-}
+-
+-// @alpha
+-export type ComposerApiFileUploadOption = {
+-    type: string;
+-    label: string;
+-    icon?: ComponentType<SVGAttributes<SVGElement>>;
+-    onSelected: (roomId?: string, view?: ComposerApiTarget, relation?: {
+-        inReplyToEventId?: string;
+-        relType?: string;
+-    }) => Promise<void> | void;
+-};
+-
+-// @alpha
+-export type ComposerApiTarget = {
+-    view: "room";
+-} | {
+-    view: "thread";
+-};
+-
+-// Warning: (ae-forgotten-export) The symbol "WebConfigJson" needs to be exported by the entry point index.d.ts
+-//
+-// @public
+-export interface Config extends WebConfigJson {
+-    // (undocumented)
+-    brand: string;
+-}
+-
+-// @public
+-export interface ConfigApi {
+-    // (undocumented)
+-    get(): Config;
+-    // (undocumented)
+-    get<K extends keyof Config>(key: K): Config[K];
+-    // (undocumented)
+-    get<K extends keyof Config = never>(key?: K): Config | Config[K];
+-}
+-
+-// @alpha
+-export type Container = "top" | "right" | "center";
+-
+-// @alpha
+-export interface CustomComponentsApi {
+-    openGlobalRightPanel(): void;
+-    registerComposerAccessory(renderer: CustomComposerAccessoryRenderFunction): void;
+-    registerComposerPreview(filterFn: (composerText: string, roomId: string) => boolean, renderer: CustomComposerPreviewRenderFunction): void;
+-    registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction): void;
+-    registerLoginComponent(renderer: CustomLoginRenderFunction): void;
+-    registerMessageRenderer(eventTypeOrFilter: string | ((mxEvent: MatrixEvent) => boolean), renderer: CustomMessageRenderFunction, hints?: CustomMessageRenderHints): void;
+-    registerRoomPreviewBar(renderer: CustomRoomPreviewBarRenderFunction): void;
+-}
+-
+-// @alpha
+-export type CustomComposerAccessoryComponentProps = {
+-    roomId: string;
+-};
+-
+-// @alpha
+-export type CustomComposerAccessoryRenderFunction = (props: CustomComposerAccessoryComponentProps) => JSX.Element;
+-
+-// @alpha
+-export type CustomComposerPreviewComponentProps = {
+-    text: string;
+-    roomId: string;
+-    target?: ComposerApiTarget;
+-    relation?: {
+-        inReplyToEventId?: string;
+-        relType?: string;
+-    };
+-};
+-
+-// @alpha
+-export type CustomComposerPreviewRenderFunction = ExtendablePropsRenderFunction<CustomComposerPreviewComponentProps>;
+-
+-// @alpha
+-export type CustomGlobalRightPanelRenderFunction = () => JSX.Element;
+-
+-// @alpha
+-export interface CustomisationsApi {
+-    registerShouldShowComponent(fn: (this: void, component: UIComponent) => boolean | void): void;
+-}
+-
+-// @alpha
+-export type CustomLoginComponentProps = {
+-    serverConfig: CustomLoginComponentPropsServerConfig;
+-    fragmentAfterLogin?: string;
+-    children?: ReactNode;
+-    onLoggedIn(data: AccountAuthInfo): void;
+-    onServerConfigChange(config: CustomLoginComponentPropsServerConfig): void;
+-};
+-
+-// @alpha
+-export interface CustomLoginComponentPropsServerConfig {
+-    hsName: string;
+-    hsUrl: string;
+-}
+-
+-// @alpha
+-export type CustomLoginRenderFunction = ExtendablePropsRenderFunction<CustomLoginComponentProps>;
+-
+-// @alpha
+-export type CustomMessageComponentProps = {
+-    mxEvent: MatrixEvent;
+-};
+-
+-// @alpha
+-export type CustomMessageRenderFunction = (
+-props: CustomMessageComponentProps,
+-originalComponent?: (props?: OriginalMessageComponentProps) => React.JSX.Element) => JSX.Element;
+-
+-// @alpha
+-export type CustomMessageRenderHints = {
+-    allowEditingEvent?: boolean;
+-    allowDownloadingMedia?: (mxEvent: MatrixEvent) => Promise<boolean>;
+-};
+-
+-// @alpha
+-export type CustomRoomPreviewBarComponentProps = {
+-    roomId?: string;
+-    roomAlias?: string;
+-};
+-
+-// @alpha
+-export type CustomRoomPreviewBarRenderFunction = (
+-props: CustomRoomPreviewBarComponentProps,
+-originalComponent: (props: CustomRoomPreviewBarComponentProps) => JSX.Element) => JSX.Element;
+-
+-// @public
+-export interface DialogApiExtension {
+-    openDialog<M, P extends object>(initialOptions: DialogOptions, dialog: ComponentType<P & DialogProps<M>>, props: P): DialogHandle<M>;
+-}
+-
+-// @public
+-export type DialogHandle<M> = {
+-    finished: Promise<{
+-        ok: boolean;
+-        model: M | null;
+-    }>;
+-    close(): void;
+-};
+-
+-// @public
+-export interface DialogOptions {
+-    title: string;
+-}
+-
+-// @public
+-export type DialogProps<M> = {
+-    onSubmit(model: M): void;
+-    onCancel(): void;
+-};
+-
+-// @alpha @deprecated (undocumented)
+-export interface DirectoryCustomisations {
+-    // (undocumented)
+-    requireCanonicalAliasAccessToPublish?(): boolean;
+-}
+-
+-// @alpha
+-export type ExtendablePropsRenderFunction<BaseProps> = <P extends BaseProps>(
+-props: P,
+-originalComponent: (props: P) => JSX.Element) => JSX.Element;
+-
+-// @alpha
+-export interface ExtrasApi {
+-    addRoomHeaderButtonCallback(cb: RoomHeaderButtonsCallback): void;
+-    getVisibleRoomBySpaceKey(spaceKey: string, cb: () => string[]): void;
+-    setSpacePanelItem(spaceKey: string, props: SpacePanelItemProps): void;
+-}
+-
+-// @public
+-export interface I18nApi {
+-    humanizeTime(this: void, timeMillis: number): string;
+-    get language(): string;
+-    register(this: void, translations: Partial<Translations>): void;
+-    translate(this: void, key: keyof Translations, variables?: StringVariables): string;
+-    translate(this: void, key: keyof Translations, variables: Variables | undefined, tags: Tags): ReactNode;
+-}
+-
+-// @alpha
+-export type IdentityApprover = (widget: WidgetDescriptor) => MaybePromise<boolean | undefined>;
+-
+-// @alpha @deprecated (undocumented)
+-export type LegacyCustomisations<T extends object> = (customisations: T) => void;
+-
+-// @alpha @deprecated (undocumented)
+-export interface LegacyCustomisationsApiExtension {
+-    // @deprecated (undocumented)
+-    readonly _registerLegacyAliasCustomisations: LegacyCustomisations<AliasCustomisations>;
+-    // @deprecated (undocumented)
+-    readonly _registerLegacyChatExportCustomisations: LegacyCustomisations<ChatExportCustomisations<never, never>>;
+-    // @deprecated (undocumented)
+-    readonly _registerLegacyComponentVisibilityCustomisations: LegacyCustomisations<ComponentVisibilityCustomisations>;
+-    // @deprecated (undocumented)
+-    readonly _registerLegacyDirectoryCustomisations: LegacyCustomisations<DirectoryCustomisations>;
+-    // @deprecated (undocumented)
+-    readonly _registerLegacyLifecycleCustomisations: LegacyCustomisations<LifecycleCustomisations>;
+-    // @deprecated (undocumented)
+-    readonly _registerLegacyMediaCustomisations: LegacyCustomisations<MediaCustomisations<never, never, never>>;
+-    // @deprecated (undocumented)
+-    readonly _registerLegacyRoomListCustomisations: LegacyCustomisations<RoomListCustomisations<never>>;
+-    // @deprecated (undocumented)
+-    readonly _registerLegacyUserIdentifierCustomisations: LegacyCustomisations<UserIdentifierCustomisations>;
+-    // @deprecated (undocumented)
+-    readonly _registerLegacyWidgetPermissionsCustomisations: LegacyCustomisations<WidgetPermissionsCustomisations<never, never>>;
+-    // @deprecated (undocumented)
+-    readonly _registerLegacyWidgetVariablesCustomisations: LegacyCustomisations<WidgetVariablesCustomisations>;
+-}
+-
+-// @alpha @deprecated (undocumented)
+-export interface LegacyModuleApiExtension {
+-    // @deprecated
+-    _registerLegacyModule(LegacyModule: RuntimeModuleConstructor): Promise<void>;
+-}
+-
+-// @alpha @deprecated (undocumented)
+-export interface LifecycleCustomisations {
+-    // (undocumented)
+-    onLoggedOutAndStorageCleared?(): void;
+-}
+-
+-// @alpha
+-export type LocationRenderFunction = () => JSX.Element;
+-
+-// @alpha
+-export interface MatrixEvent {
+-    content: Record<string, unknown>;
+-    eventId: string;
+-    originServerTs: number;
+-    roomId: string;
+-    sender: string;
+-    stateKey?: string;
+-    type: string;
+-    unsigned: Record<string, unknown>;
+-}
+-
+-// @public
+-export type MaybePromise<T> = T | PromiseLike<T>;
+-
+-// @alpha @deprecated (undocumented)
+-export interface Media {
+-    // (undocumented)
+-    downloadSource(): Promise<Response>;
+-    // (undocumented)
+-    getSquareThumbnailHttp(dim: number): string | null;
+-    // (undocumented)
+-    getThumbnailHttp(width: number, height: number, mode?: "scale" | "crop"): string | null;
+-    // (undocumented)
+-    getThumbnailOfSourceHttp(width: number, height: number, mode?: "scale" | "crop"): string | null;
+-    // (undocumented)
+-    readonly hasThumbnail: boolean;
+-    // (undocumented)
+-    readonly isEncrypted: boolean;
+-    // (undocumented)
+-    readonly srcHttp: string | null;
+-    // (undocumented)
+-    readonly srcMxc: string;
+-    // (undocumented)
+-    readonly thumbnailHttp: string | null;
+-    // (undocumented)
+-    readonly thumbnailMxc: string | null | undefined;
+-}
+-
+-// @alpha @deprecated (undocumented)
+-export interface MediaContructable<PreparedMedia> {
+-    // (undocumented)
+-    new (prepared: PreparedMedia): Media;
+-}
+-
+-// @alpha @deprecated (undocumented)
+-export interface MediaCustomisations<Content, Client, PreparedMedia> {
+-    // (undocumented)
+-    readonly Media: MediaContructable<PreparedMedia>;
+-    // (undocumented)
+-    mediaFromContent(content: Content, client?: Client): Media;
+-    // (undocumented)
+-    mediaFromMxc(mxc?: string, client?: Client): Media;
+-}
+-
+-// @public
+-export interface Module {
+-    // (undocumented)
+-    load(): Promise<void>;
+-}
+-
+-// @public
+-export interface ModuleFactory {
+-    // (undocumented)
+-    new (api: Api): Module;
+-    // (undocumented)
+-    readonly moduleApiVersion: string;
+-    // (undocumented)
+-    readonly prototype: Module;
+-}
+-
+-// @public
+-export class ModuleIncompatibleError extends Error {
+-    constructor(pluginVersion: string);
+-}
+-
+-// @public
+-export class ModuleLoader {
+-    constructor(api: Api);
+-    // Warning: (ae-forgotten-export) The symbol "ModuleExport" needs to be exported by the entry point index.d.ts
+-    //
+-    // (undocumented)
+-    load(moduleExport: ModuleExport): Promise<void>;
+-    // (undocumented)
+-    start(): Promise<void>;
+-}
+-
+-// @public
+-export interface NavigationApi {
+-    navigateToLocation(path: string): void;
+-    openRoom(roomIdOrAlias: string, opts?: OpenRoomOptions): void;
+-    // @alpha
+-    registerLocationRenderer(path: string, renderer: LocationRenderFunction): void;
+-    toMatrixToLink(link: string, join?: boolean): Promise<void>;
+-}
+-
+-// @public
+-export interface OpenRoomOptions {
+-    autoJoin?: boolean;
+-    viaServers?: string[];
+-}
+-
+-// @alpha
+-export type OriginalMessageComponentProps = {
+-    showUrlPreview?: boolean;
+-};
+-
+-// @alpha
+-export type PreloadApprover = (widget: WidgetDescriptor) => MaybePromise<boolean | undefined>;
+-
+-// @public
+-export interface Profile {
+-    displayName?: string;
+-    isGuest?: boolean;
+-    userId?: string;
+-}
+-
+-// @public
+-export interface ProfileApiExtension {
+-    readonly profile: Watchable<Profile>;
+-}
+-
+-// @public
+-export interface RichVariables {
+-    // (undocumented)
+-    [key: string]: SubstitutionValue;
+-    // (undocumented)
+-    count?: number;
+-}
+-
+-// @public
+-export interface Room {
+-    getLastActiveTimestamp: () => number;
+-    getStateEvents: (eventType: string) => Array<{
+-        stateKey: string;
+-        content: Record<string, unknown>;
+-    }>;
+-    id: string;
+-    name: Watchable<string>;
+-}
+-
+-// @alpha
+-export type RoomHeaderButtonsCallback = (roomId: string) => JSX.Element | undefined;
+-
+-// @alpha @deprecated (undocumented)
+-export interface RoomListCustomisations<Room> {
+-    isRoomVisible?(room: Room): boolean;
+-}
+-
+-// @public
+-export interface RoomListStoreApi {
+-    getRooms(): Watchable<Room[]>;
+-    waitForReady(): Promise<void>;
+-}
+-
+-// @alpha
+-export interface RoomViewProps {
+-    enableReadReceiptsAndMarkersOnActivity?: boolean;
+-    hideComposer?: boolean;
+-    hideHeader?: boolean;
+-    hidePinnedMessageBanner?: boolean;
+-    hideRightPanel?: boolean;
+-    hideWidgets?: boolean;
+-}
+-
+-// @alpha @deprecated (undocumented)
+-export type RuntimeModuleConstructor = new (api: ModuleApi) => RuntimeModule;
+-
+-// @alpha
+-export interface SettingsApi {
+-    getValue<T = any>(settingName: string, roomId?: string | null, excludeDefault?: boolean): T | undefined;
+-}
+-
+-// @alpha
+-export interface SpacePanelItemProps {
+-    className?: string;
+-    icon?: JSX.Element;
+-    label: string;
+-    onSelected: () => void;
+-    style?: React.CSSProperties;
+-    tooltip?: string;
+-}
+-
+-// @public
+-export interface StoresApi {
+-    roomListStore: RoomListStoreApi;
+-}
+-
+-// @public
+-export interface StringVariables {
+-    // (undocumented)
+-    [key: string]: number | string | null | undefined;
+-    // (undocumented)
+-    count?: number;
+-}
+-
+-// @public
+-export type SubstitutionValue = number | string | ReactNode | ((sub: string) => ReactNode);
+-
+-// @public
+-export type Tags = Record<string, SubstitutionValue>;
+-
+-// @public
+-export type Translations = Record<string, {
+-    [ietfLanguageTag: string]: string;
+-}>;
+-
+-// @alpha
+-export const enum UIComponent {
+-    AddIntegrations = "UIComponent.addIntegrations",
+-    CreateRooms = "UIComponent.roomCreation",
+-    CreateSpaces = "UIComponent.spaceCreation",
+-    ExploreRooms = "UIComponent.exploreRooms",
+-    FilterContainer = "UIComponent.filterContainer",
+-    InviteUsers = "UIComponent.sendInvites",
+-    RoomOptionsMenu = "UIComponent.roomOptionsMenu"
+-}
+-
+-// @alpha @deprecated (undocumented)
+-export interface UserIdentifierCustomisations {
+-    getDisplayUserIdentifier(userId: string, opts: {
+-        roomId?: string;
+-        withDisplayName?: boolean;
+-    }): string | null;
+-}
+-
+-// @public
+-export function useWatchable<T>(watchable: Watchable<T>): T;
+-
+-// @public
+-export type Variables = StringVariables | RichVariables;
+-
+-// @public
+-export class Watchable<T> {
+-    constructor(currentValue: T);
+-    // Warning: (ae-forgotten-export) The symbol "WatchFn" needs to be exported by the entry point index.d.ts
+-    //
+-    // (undocumented)
+-    protected readonly listeners: Set<WatchFn<T>>;
+-    protected onFirstWatch(): void;
+-    protected onLastWatch(): void;
+-    // (undocumented)
+-    unwatch(listener: (value: T) => void): void;
+-    get value(): T;
+-    set value(value: T);
+-    // (undocumented)
+-    watch(listener: (value: T) => void): void;
+-}
+-
+-// @alpha
+-export interface WidgetApi {
+-    getAppAvatarUrl(app: IWidget, width?: number, height?: number, resizeMethod?: string): string | null;
+-    getWidgetsInRoom(roomId: string): IWidget[];
+-    isAppInContainer(app: IWidget, container: Container, roomId: string): boolean;
+-    moveAppToContainer(app: IWidget, container: Container, roomId: string): void;
+-}
+-
+-// @alpha
+-export type WidgetDescriptor = {
+-    id: string;
+-    templateUrl: string;
+-    creatorUserId: string;
+-    type: string;
+-    origin: string;
+-    roomId?: string;
+-};
+-
+-// @alpha
+-export interface WidgetLifecycleApi {
+-    registerCapabilitiesApprover(approver: CapabilitiesApprover): void;
+-    registerIdentityApprover(approver: IdentityApprover): void;
+-    registerPreloadApprover(approver: PreloadApprover): void;
+-}
+-
+-// @alpha @deprecated (undocumented)
+-export interface WidgetPermissionsCustomisations<Widget, Capability> {
+-    preapproveCapabilities?(widget: Widget, requestedCapabilities: Set<Capability>): Promise<Set<Capability>>;
+-}
+-
+-// @alpha @deprecated (undocumented)
+-export interface WidgetVariablesCustomisations {
+-    isReady?(): Promise<void>;
+-    provideVariables?(): {
+-        currentUserId: string;
+-        userDisplayName?: string;
+-        userHttpAvatarUrl?: string;
+-        clientId?: string;
+-        clientTheme?: string;
+-        clientLanguage?: string;
+-        deviceId?: string;
+-        baseUrl?: string;
+-    };
+-}
+-
+-// (No @packageDocumentation comment for this package)
+-
+-```
++## API Report File for "@element-hq/element-web-module-api"
++
++> Do not edit this file. It is a report generated by [API Extractor](https://api-extractor.com/).
++
++```ts
++
++import { ComponentType } from 'react';
++import { IWidget } from 'matrix-widget-api';
++import { JSX } from 'react';
++import { ModuleApi } from '@matrix-org/react-sdk-module-api';
++import { ReactNode } from 'react';
++import { Root } from 'react-dom/client';
++import { RuntimeModule } from '@matrix-org/react-sdk-module-api';
++import { SVGAttributes } from 'react';
++
++// @public
++export interface AccountAuthApiExtension {
++    overwriteAccountAuth(accountInfo: AccountAuthInfo): Promise<void>;
++}
++
++// @public
++export interface AccountAuthInfo {
++    accessToken: string;
++    deviceId: string;
++    homeserverUrl: string;
++    refreshToken?: string;
++    userId: string;
++}
++
++// @public
++export interface AccountDataApi {
++    delete(eventType: string): Promise<void>;
++    get(eventType: string): Watchable<unknown>;
++    set(eventType: string, content: unknown): Promise<void>;
++}
++
++// @alpha @deprecated (undocumented)
++export interface AliasCustomisations {
++    // (undocumented)
++    getDisplayAliasForAliasSet?(canonicalAlias: string | null, altAliases: string[]): string | null;
++}
++
++// Warning: (ae-incompatible-release-tags) The symbol "Api" is marked as @public, but its signature references "LegacyModuleApiExtension" which is marked as @alpha
++// Warning: (ae-incompatible-release-tags) The symbol "Api" is marked as @public, but its signature references "LegacyCustomisationsApiExtension" which is marked as @alpha
++//
++// @public
++export interface Api extends LegacyModuleApiExtension, LegacyCustomisationsApiExtension, DialogApiExtension, AccountAuthApiExtension, ProfileApiExtension {
++    // Warning: (ae-forgotten-export) The symbol "AppearanceApi" needs to be exported by the entry point index.d.ts
++    //
++    // @alpha
++    readonly appearance: AppearanceApi;
++    // @alpha
++    readonly builtins: BuiltinsApi;
++    readonly client: ClientApi;
++    // @alpha
++    readonly composer: ComposerApi;
++    readonly config: ConfigApi;
++    createRoot(element: Element): Root;
++    // @alpha
++    readonly customComponents: CustomComponentsApi;
++    // @alpha
++    readonly customisations: CustomisationsApi;
++    // @alpha
++    readonly extras: ExtrasApi;
++    readonly i18n: I18nApi;
++    readonly navigation: NavigationApi;
++    readonly rootNode: HTMLElement;
++    // @alpha
++    readonly settings: SettingsApi;
++    readonly stores: StoresApi;
++    // @alpha
++    readonly widget: WidgetApi;
++    // @alpha
++    readonly widgetLifecycle: WidgetLifecycleApi;
++}
++
++// @alpha
++export interface BuiltinsApi {
++    renderNotificationDecoration(roomId: string): React.ReactNode;
++    renderRoomAvatar(roomId: string, size?: string): React.ReactNode;
++    renderRoomView(roomId: string, props?: RoomViewProps): React.ReactNode;
++}
++
++// @alpha
++export type CapabilitiesApprover = (widget: WidgetDescriptor, requestedCapabilities: Set<string>) => MaybePromise<Set<string> | undefined>;
++
++// @alpha @deprecated (undocumented)
++export interface ChatExportCustomisations<ExportFormat, ExportType> {
++    getForceChatExportParameters(): {
++        format?: ExportFormat;
++        range?: ExportType;
++        numberOfMessages?: number;
++        includeAttachments?: boolean;
++        sizeMb?: number;
++    };
++}
++
++// @public
++export interface ClientApi {
++    accountData: AccountDataApi;
++    getRoom: (id: string) => Room | null;
++}
++
++// @alpha @deprecated (undocumented)
++export interface ComponentVisibilityCustomisations {
++    shouldShowComponent?(component: "UIComponent.sendInvites" | "UIComponent.roomCreation" | "UIComponent.spaceCreation" | "UIComponent.exploreRooms" | "UIComponent.addIntegrations" | "UIComponent.filterContainer" | "UIComponent.roomOptionsMenu"): boolean;
++}
++
++// @alpha
++export interface ComposerApi {
++    addFileUploadOption(option: ComposerApiFileUploadOption): void;
++    insertPlaintextIntoComposer(plaintext: string, view: ComposerApiTarget): void;
++    openFileUploadConfirmation(files: File[], view: ComposerApiTarget): void;
++    prepareOutgoingMessage(input: {
++        roomId: string;
++        text: string;
++    }): Promise<{
++        text: string;
++        transformed?: boolean;
++    }>;
++    registerOutgoingMessagePrepare(handler: (input: {
++        roomId: string;
++        text: string;
++    }) => Promise<{
++        text: string;
++        transformed?: boolean;
++    }>): void;
++}
++
++// @alpha
++export type ComposerApiFileUploadOption = {
++    type: string;
++    label: string;
++    icon?: ComponentType<SVGAttributes<SVGElement>>;
++    onSelected: (roomId?: string, view?: ComposerApiTarget, relation?: {
++        inReplyToEventId?: string;
++        relType?: string;
++    }) => Promise<void> | void;
++};
++
++// @alpha
++export type ComposerApiTarget = {
++    view: "room";
++} | {
++    view: "thread";
++};
++
++// Warning: (ae-forgotten-export) The symbol "WebConfigJson" needs to be exported by the entry point index.d.ts
++//
++// @public
++export interface Config extends WebConfigJson {
++    // (undocumented)
++    brand: string;
++}
++
++// @public
++export interface ConfigApi {
++    // (undocumented)
++    get(): Config;
++    // (undocumented)
++    get<K extends keyof Config>(key: K): Config[K];
++    // (undocumented)
++    get<K extends keyof Config = never>(key?: K): Config | Config[K];
++}
++
++// @alpha
++export type Container = "top" | "right" | "center";
++
++// @alpha
++export interface CustomComponentsApi {
++    openGlobalRightPanel(): void;
++    registerComposerAccessory(renderer: CustomComposerAccessoryRenderFunction): void;
++    registerComposerPreview(filterFn: (composerText: string, roomId: string) => boolean, renderer: CustomComposerPreviewRenderFunction): void;
++    registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction): void;
++    registerLoginComponent(renderer: CustomLoginRenderFunction): void;
++    registerMessageRenderer(eventTypeOrFilter: string | ((mxEvent: MatrixEvent) => boolean), renderer: CustomMessageRenderFunction, hints?: CustomMessageRenderHints): void;
++    registerRoomPreviewBar(renderer: CustomRoomPreviewBarRenderFunction): void;
++}
++
++// @alpha
++export type CustomComposerAccessoryComponentProps = {
++    roomId: string;
++};
++
++// @alpha
++export type CustomComposerAccessoryRenderFunction = (props: CustomComposerAccessoryComponentProps) => JSX.Element;
++
++// @alpha
++export type CustomComposerPreviewComponentProps = {
++    text: string;
++    roomId: string;
++    target?: ComposerApiTarget;
++    relation?: {
++        inReplyToEventId?: string;
++        relType?: string;
++    };
++};
++
++// @alpha
++export type CustomComposerPreviewRenderFunction = ExtendablePropsRenderFunction<CustomComposerPreviewComponentProps>;
++
++// @alpha
++export type CustomGlobalRightPanelRenderFunction = () => JSX.Element;
++
++// @alpha
++export interface CustomisationsApi {
++    registerShouldShowComponent(fn: (this: void, component: UIComponent) => boolean | void): void;
++}
++
++// @alpha
++export type CustomLoginComponentProps = {
++    serverConfig: CustomLoginComponentPropsServerConfig;
++    fragmentAfterLogin?: string;
++    children?: ReactNode;
++    onLoggedIn(data: AccountAuthInfo): void;
++    onServerConfigChange(config: CustomLoginComponentPropsServerConfig): void;
++};
++
++// @alpha
++export interface CustomLoginComponentPropsServerConfig {
++    hsName: string;
++    hsUrl: string;
++}
++
++// @alpha
++export type CustomLoginRenderFunction = ExtendablePropsRenderFunction<CustomLoginComponentProps>;
++
++// @alpha
++export type CustomMessageComponentProps = {
++    mxEvent: MatrixEvent;
++};
++
++// @alpha
++export type CustomMessageRenderFunction = (
++props: CustomMessageComponentProps,
++originalComponent?: (props?: OriginalMessageComponentProps) => React.JSX.Element) => JSX.Element;
++
++// @alpha
++export type CustomMessageRenderHints = {
++    allowEditingEvent?: boolean;
++    allowDownloadingMedia?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    allowReply?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    allowReaction?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    allowRedaction?: (mxEvent: MatrixEvent) => Promise<boolean>;
++};
++
++// @alpha
++export type CustomRoomPreviewBarComponentProps = {
++    roomId?: string;
++    roomAlias?: string;
++};
++
++// @alpha
++export type CustomRoomPreviewBarRenderFunction = (
++props: CustomRoomPreviewBarComponentProps,
++originalComponent: (props: CustomRoomPreviewBarComponentProps) => JSX.Element) => JSX.Element;
++
++// @public
++export interface DialogApiExtension {
++    openDialog<M, P extends object>(initialOptions: DialogOptions, dialog: ComponentType<P & DialogProps<M>>, props: P): DialogHandle<M>;
++}
++
++// @public
++export type DialogHandle<M> = {
++    finished: Promise<{
++        ok: boolean;
++        model: M | null;
++    }>;
++    close(): void;
++};
++
++// @public
++export interface DialogOptions {
++    title: string;
++}
++
++// @public
++export type DialogProps<M> = {
++    onSubmit(model: M): void;
++    onCancel(): void;
++};
++
++// @alpha @deprecated (undocumented)
++export interface DirectoryCustomisations {
++    // (undocumented)
++    requireCanonicalAliasAccessToPublish?(): boolean;
++}
++
++// @alpha
++export type ExtendablePropsRenderFunction<BaseProps> = <P extends BaseProps>(
++props: P,
++originalComponent: (props: P) => JSX.Element) => JSX.Element;
++
++// @alpha
++export interface ExtrasApi {
++    addRoomHeaderButtonCallback(cb: RoomHeaderButtonsCallback): void;
++    getVisibleRoomBySpaceKey(spaceKey: string, cb: () => string[]): void;
++    setSpacePanelItem(spaceKey: string, props: SpacePanelItemProps): void;
++}
++
++// @public
++export interface I18nApi {
++    humanizeTime(this: void, timeMillis: number): string;
++    get language(): string;
++    register(this: void, translations: Partial<Translations>): void;
++    translate(this: void, key: keyof Translations, variables?: StringVariables): string;
++    translate(this: void, key: keyof Translations, variables: Variables | undefined, tags: Tags): ReactNode;
++}
++
++// @alpha
++export type IdentityApprover = (widget: WidgetDescriptor) => MaybePromise<boolean | undefined>;
++
++// @alpha @deprecated (undocumented)
++export type LegacyCustomisations<T extends object> = (customisations: T) => void;
++
++// @alpha @deprecated (undocumented)
++export interface LegacyCustomisationsApiExtension {
++    // @deprecated (undocumented)
++    readonly _registerLegacyAliasCustomisations: LegacyCustomisations<AliasCustomisations>;
++    // @deprecated (undocumented)
++    readonly _registerLegacyChatExportCustomisations: LegacyCustomisations<ChatExportCustomisations<never, never>>;
++    // @deprecated (undocumented)
++    readonly _registerLegacyComponentVisibilityCustomisations: LegacyCustomisations<ComponentVisibilityCustomisations>;
++    // @deprecated (undocumented)
++    readonly _registerLegacyDirectoryCustomisations: LegacyCustomisations<DirectoryCustomisations>;
++    // @deprecated (undocumented)
++    readonly _registerLegacyLifecycleCustomisations: LegacyCustomisations<LifecycleCustomisations>;
++    // @deprecated (undocumented)
++    readonly _registerLegacyMediaCustomisations: LegacyCustomisations<MediaCustomisations<never, never, never>>;
++    // @deprecated (undocumented)
++    readonly _registerLegacyRoomListCustomisations: LegacyCustomisations<RoomListCustomisations<never>>;
++    // @deprecated (undocumented)
++    readonly _registerLegacyUserIdentifierCustomisations: LegacyCustomisations<UserIdentifierCustomisations>;
++    // @deprecated (undocumented)
++    readonly _registerLegacyWidgetPermissionsCustomisations: LegacyCustomisations<WidgetPermissionsCustomisations<never, never>>;
++    // @deprecated (undocumented)
++    readonly _registerLegacyWidgetVariablesCustomisations: LegacyCustomisations<WidgetVariablesCustomisations>;
++}
++
++// @alpha @deprecated (undocumented)
++export interface LegacyModuleApiExtension {
++    // @deprecated
++    _registerLegacyModule(LegacyModule: RuntimeModuleConstructor): Promise<void>;
++}
++
++// @alpha @deprecated (undocumented)
++export interface LifecycleCustomisations {
++    // (undocumented)
++    onLoggedOutAndStorageCleared?(): void;
++}
++
++// @alpha
++export type LocationRenderFunction = () => JSX.Element;
++
++// @alpha
++export interface MatrixEvent {
++    content: Record<string, unknown>;
++    eventId: string;
++    originServerTs: number;
++    roomId: string;
++    sender: string;
++    stateKey?: string;
++    type: string;
++    unsigned: Record<string, unknown>;
++}
++
++// @public
++export type MaybePromise<T> = T | PromiseLike<T>;
++
++// @alpha @deprecated (undocumented)
++export interface Media {
++    // (undocumented)
++    downloadSource(): Promise<Response>;
++    // (undocumented)
++    getSquareThumbnailHttp(dim: number): string | null;
++    // (undocumented)
++    getThumbnailHttp(width: number, height: number, mode?: "scale" | "crop"): string | null;
++    // (undocumented)
++    getThumbnailOfSourceHttp(width: number, height: number, mode?: "scale" | "crop"): string | null;
++    // (undocumented)
++    readonly hasThumbnail: boolean;
++    // (undocumented)
++    readonly isEncrypted: boolean;
++    // (undocumented)
++    readonly srcHttp: string | null;
++    // (undocumented)
++    readonly srcMxc: string;
++    // (undocumented)
++    readonly thumbnailHttp: string | null;
++    // (undocumented)
++    readonly thumbnailMxc: string | null | undefined;
++}
++
++// @alpha @deprecated (undocumented)
++export interface MediaContructable<PreparedMedia> {
++    // (undocumented)
++    new (prepared: PreparedMedia): Media;
++}
++
++// @alpha @deprecated (undocumented)
++export interface MediaCustomisations<Content, Client, PreparedMedia> {
++    // (undocumented)
++    readonly Media: MediaContructable<PreparedMedia>;
++    // (undocumented)
++    mediaFromContent(content: Content, client?: Client): Media;
++    // (undocumented)
++    mediaFromMxc(mxc?: string, client?: Client): Media;
++}
++
++// @public
++export interface Module {
++    // (undocumented)
++    load(): Promise<void>;
++}
++
++// @public
++export interface ModuleFactory {
++    // (undocumented)
++    new (api: Api): Module;
++    // (undocumented)
++    readonly moduleApiVersion: string;
++    // (undocumented)
++    readonly prototype: Module;
++}
++
++// @public
++export class ModuleIncompatibleError extends Error {
++    constructor(pluginVersion: string);
++}
++
++// @public
++export class ModuleLoader {
++    constructor(api: Api);
++    // Warning: (ae-forgotten-export) The symbol "ModuleExport" needs to be exported by the entry point index.d.ts
++    //
++    // (undocumented)
++    load(moduleExport: ModuleExport): Promise<void>;
++    // (undocumented)
++    start(): Promise<void>;
++}
++
++// @public
++export interface NavigationApi {
++    navigateToLocation(path: string): void;
++    openRoom(roomIdOrAlias: string, opts?: OpenRoomOptions): void;
++    openUserSettings(destination: "account" | "security" | "sessions"): void;
++    // @alpha
++    registerLocationRenderer(path: string, renderer: LocationRenderFunction): void;
++    setProductConversationPresentation(mode: "default" | "relationship-room"): void;
++    toMatrixToLink(link: string, join?: boolean): Promise<void>;
++}
++
++// @public
++export interface OpenRoomOptions {
++    autoJoin?: boolean;
++    viaServers?: string[];
++}
++
++// @alpha
++export type OriginalMessageComponentProps = {
++    showUrlPreview?: boolean;
++};
++
++// @alpha
++export type PreloadApprover = (widget: WidgetDescriptor) => MaybePromise<boolean | undefined>;
++
++// @public
++export interface Profile {
++    displayName?: string;
++    isGuest?: boolean;
++    userId?: string;
++}
++
++// @public
++export interface ProfileApiExtension {
++    readonly profile: Watchable<Profile>;
++}
++
++// @public
++export interface RichVariables {
++    // (undocumented)
++    [key: string]: SubstitutionValue;
++    // (undocumented)
++    count?: number;
++}
++
++// @public
++export interface Room {
++    getLastActiveTimestamp: () => number;
++    getStateEvents: (eventType: string) => Array<{
++        stateKey: string;
++        content: Record<string, unknown>;
++    }>;
++    id: string;
++    name: Watchable<string>;
++}
++
++// @alpha
++export type RoomHeaderButtonsCallback = (roomId: string) => JSX.Element | undefined;
++
++// @alpha @deprecated (undocumented)
++export interface RoomListCustomisations<Room> {
++    isRoomVisible?(room: Room): boolean;
++}
++
++// @public
++export interface RoomListStoreApi {
++    getRooms(): Watchable<Room[]>;
++    waitForReady(): Promise<void>;
++}
++
++// @alpha
++export interface RoomViewProps {
++    enableReadReceiptsAndMarkersOnActivity?: boolean;
++    hideComposer?: boolean;
++    hideHeader?: boolean;
++    hidePinnedMessageBanner?: boolean;
++    hideRightPanel?: boolean;
++    hideWidgets?: boolean;
++}
++
++// @alpha @deprecated (undocumented)
++export type RuntimeModuleConstructor = new (api: ModuleApi) => RuntimeModule;
++
++// @alpha
++export interface SettingsApi {
++    getValue<T = any>(settingName: string, roomId?: string | null, excludeDefault?: boolean): T | undefined;
++}
++
++// @alpha
++export interface SpacePanelItemProps {
++    className?: string;
++    icon?: JSX.Element;
++    label: string;
++    onSelected: () => void;
++    style?: React.CSSProperties;
++    tooltip?: string;
++}
++
++// @public
++export interface StoresApi {
++    roomListStore: RoomListStoreApi;
++}
++
++// @public
++export interface StringVariables {
++    // (undocumented)
++    [key: string]: number | string | null | undefined;
++    // (undocumented)
++    count?: number;
++}
++
++// @public
++export type SubstitutionValue = number | string | ReactNode | ((sub: string) => ReactNode);
++
++// @public
++export type Tags = Record<string, SubstitutionValue>;
++
++// @public
++export type Translations = Record<string, {
++    [ietfLanguageTag: string]: string;
++}>;
++
++// @alpha
++export const enum UIComponent {
++    AddIntegrations = "UIComponent.addIntegrations",
++    CreateRooms = "UIComponent.roomCreation",
++    CreateSpaces = "UIComponent.spaceCreation",
++    ExploreRooms = "UIComponent.exploreRooms",
++    FilterContainer = "UIComponent.filterContainer",
++    InviteUsers = "UIComponent.sendInvites",
++    RoomOptionsMenu = "UIComponent.roomOptionsMenu"
++}
++
++// @alpha @deprecated (undocumented)
++export interface UserIdentifierCustomisations {
++    getDisplayUserIdentifier(userId: string, opts: {
++        roomId?: string;
++        withDisplayName?: boolean;
++    }): string | null;
++}
++
++// @public
++export function useWatchable<T>(watchable: Watchable<T>): T;
++
++// @public
++export type Variables = StringVariables | RichVariables;
++
++// @public
++export class Watchable<T> {
++    constructor(currentValue: T);
++    // Warning: (ae-forgotten-export) The symbol "WatchFn" needs to be exported by the entry point index.d.ts
++    //
++    // (undocumented)
++    protected readonly listeners: Set<WatchFn<T>>;
++    protected onFirstWatch(): void;
++    protected onLastWatch(): void;
++    // (undocumented)
++    unwatch(listener: (value: T) => void): void;
++    get value(): T;
++    set value(value: T);
++    // (undocumented)
++    watch(listener: (value: T) => void): void;
++}
++
++// @alpha
++export interface WidgetApi {
++    getAppAvatarUrl(app: IWidget, width?: number, height?: number, resizeMethod?: string): string | null;
++    getWidgetsInRoom(roomId: string): IWidget[];
++    isAppInContainer(app: IWidget, container: Container, roomId: string): boolean;
++    moveAppToContainer(app: IWidget, container: Container, roomId: string): void;
++}
++
++// @alpha
++export type WidgetDescriptor = {
++    id: string;
++    templateUrl: string;
++    creatorUserId: string;
++    type: string;
++    origin: string;
++    roomId?: string;
++};
++
++// @alpha
++export interface WidgetLifecycleApi {
++    registerCapabilitiesApprover(approver: CapabilitiesApprover): void;
++    registerIdentityApprover(approver: IdentityApprover): void;
++    registerPreloadApprover(approver: PreloadApprover): void;
++}
++
++// @alpha @deprecated (undocumented)
++export interface WidgetPermissionsCustomisations<Widget, Capability> {
++    preapproveCapabilities?(widget: Widget, requestedCapabilities: Set<Capability>): Promise<Set<Capability>>;
++}
++
++// @alpha @deprecated (undocumented)
++export interface WidgetVariablesCustomisations {
++    isReady?(): Promise<void>;
++    provideVariables?(): {
++        currentUserId: string;
++        userDisplayName?: string;
++        userHttpAvatarUrl?: string;
++        clientId?: string;
++        clientTheme?: string;
++        clientLanguage?: string;
++        deviceId?: string;
++        baseUrl?: string;
++    };
++}
++
++// (No @packageDocumentation comment for this package)
++
++```
+diff --git a/packages/module-api/src/api/composer.ts b/packages/module-api/src/api/composer.ts
+index c37af72..6730e87 100644
+--- a/packages/module-api/src/api/composer.ts
++++ b/packages/module-api/src/api/composer.ts
+@@ -52,6 +52,22 @@ export type ComposerApiTarget = { view: "room" } | { view: "thread" };
+  * @alpha Likely to change
+  */
+ export interface ComposerApi {
++    /**
++     * Register the single Product outgoing text prepare hook.
++     * Element remains the send/composer owner.
++     */
++    registerOutgoingMessagePrepare(
++        handler: (input: { roomId: string; text: string }) => Promise<{ text: string; transformed?: boolean }>,
++    ): void;
++
++    /**
++     * Prepare user-authored text immediately before the real Element send.
++     * Product mode fails closed when no prepare authority exists.
++     */
++    prepareOutgoingMessage(
++        input: { roomId: string; text: string },
++    ): Promise<{ text: string; transformed?: boolean }>;
++
+     /**
+      * Add a new file upload option for the user.
+      * @throws If another option is already using the same `type`.
+diff --git a/packages/module-api/src/api/custom-components.ts b/packages/module-api/src/api/custom-components.ts
+index adada39..8c6fecc 100644
+--- a/packages/module-api/src/api/custom-components.ts
++++ b/packages/module-api/src/api/custom-components.ts
+@@ -52,6 +52,12 @@ export type CustomMessageRenderHints = {
+      * If this function is not supplied, media downloads are allowed.
+      */
+     allowDownloadingMedia?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    /** Whether the current Product/platform route permits replying. */
++    allowReply?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    /** Whether the current Product/platform route permits reacting. */
++    allowReaction?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    /** Whether the current Product/platform route permits revoke/redaction. */
++    allowRedaction?: (mxEvent: MatrixEvent) => Promise<boolean>;
+ };
+ 
+ /**
+diff --git a/packages/module-api/src/api/navigation.ts b/packages/module-api/src/api/navigation.ts
+index 9f7853b..00f5d56 100644
+--- a/packages/module-api/src/api/navigation.ts
++++ b/packages/module-api/src/api/navigation.ts
+@@ -35,6 +35,19 @@ export interface OpenRoomOptions {
+  * @public
+  */
+ export interface NavigationApi {
++    /**
++     * Toggle Product relationship-room presentation.
++     * The real RoomView/timeline/composer remain Element-owned.
++     */
++    setProductConversationPresentation(
++        mode: "default" | "relationship-room",
++    ): void;
++
++    /** Open an existing end-user settings destination. */
++    openUserSettings(
++        destination: "account" | "security" | "sessions",
++    ): void;
++
+     /**
+      * Navigate to a permalink, optionally causing a join if the user is not already a member of the room/space.
+      * @param link - The permalink to navigate to, e.g. `https://matrix.to/#/!roomId:example.com`.

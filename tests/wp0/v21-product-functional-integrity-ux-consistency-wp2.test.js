@@ -26,8 +26,10 @@ test('WP-2 inventory keeps Element ProductExperienceShell as the production rend
   const elementIndex = read('integration/element-module/src/index.tsx');
   const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
 
-  assert.match(elementIndex, /registerGlobalRightPanel/u);
-  assert.match(elementIndex, /registerComposerPreview/u);
+  assert.match(elementIndex, /registerLocationRenderer/u);
+  assert.match(elementIndex, /navigateToLocation/u);
+  assert.match(elementIndex, /registerComposerAccessory/u);
+  assert.doesNotMatch(elementIndex, /registerGlobalRightPanel|openGlobalRightPanel|registerComposerPreview/u);
   assert.match(workspace, /<ProductExperienceShell/u);
   assert.doesNotMatch(elementIndex, /from\s+["'][^"']*frontend\//u);
   assert.doesNotMatch(workspace, /from\s+["'][^"']*frontend\//u);

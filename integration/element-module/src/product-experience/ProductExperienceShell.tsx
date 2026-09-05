@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LearningWorkspace } from "../LearningWorkspace";
 import { AnimatePresence, motion } from "motion/react";
 import { BilingualSearchPanel } from "./BilingualSearchPanel";
 import { PeopleSurface, type PeopleHomeView } from "./PeopleSurface";
@@ -7,6 +6,7 @@ import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
 import { RelationshipWorld } from "./RelationshipWorld";
 import { ProductSystemSettingsSurface } from "./ProductSystemSettingsSurface";
+import { PlatformAccountsSurface } from "./PlatformAccountsSurface";
 import {
   loadProductAppearance,
   loadRelationshipProjections,
@@ -17,10 +17,12 @@ import {
 import { useExperiencePreferences } from "./experiencePreferences";
 import {
   clearSelectedRelationship,
+  selectConversation,
   selectRelationship,
   useExperienceSession,
 } from "./experienceSession";
 import type {
+  ConversationRef,
   MotionMode,
   RelationshipAiState,
   RelationshipAtmosphere,
@@ -46,6 +48,10 @@ export type ProductAppearanceHost = {
 type ProductExperienceShellProps = {
   appearanceHost?: ProductAppearanceHost;
   navigateSearchResult?: (relationship: RelationshipProjection) => Promise<boolean>;
+  navigateConversation?: (
+    relationship: RelationshipProjection,
+    conversation: ConversationRef,
+  ) => Promise<boolean>;
   readRoomStateEvents?: ReadRoomStateEvents;
 };
 
@@ -64,9 +70,14 @@ function elementCustomThemeColors(semanticVariables: Readonly<Record<string, str
   );
 }
 
+function semanticThemeVariables(appearance: ProductAppearanceProjection): Readonly<Record<string, string>> {
+  return appearance.themes.find((theme) => theme.id === appearance.themeId)?.semanticVariables || {};
+}
+
 export function ProductExperienceShell({
   appearanceHost,
   navigateSearchResult,
+  navigateConversation,
   readRoomStateEvents,
 }: ProductExperienceShellProps): React.JSX.Element {
   const [relationships, setRelationships] = useState<readonly RelationshipProjection[]>([]);
@@ -75,7 +86,6 @@ export function ProductExperienceShell({
   const [appearance, setAppearance] = useState<ProductAppearanceProjection>(EMPTY_APPEARANCE);
   const [appearanceStatus, setAppearanceStatus] = useState("正在同步外观设置");
   const [assistantVisible, setAssistantVisible] = useState(false);
-  const [learningAdminVisible, setLearningAdminVisible] = useState(false);
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
   const [peopleHomeView, setPeopleHomeView] = useState<PeopleHomeView>("list");
   const [focusedRelationshipId, setFocusedRelationshipId] = useState("");
@@ -85,6 +95,7 @@ export function ProductExperienceShell({
   const refreshGenerationRef = useRef(0);
   const appearanceMutationRef = useRef<Promise<void>>(Promise.resolve());
   const appearanceGenerationRef = useRef(0);
+  const documentSemanticVariablesRef = useRef<Map<string, string | null>>(new Map());
 
   useEffect(() => {
     selectedRelationshipIdRef.current = session.selectedRelationshipId;
@@ -176,6 +187,35 @@ export function ProductExperienceShell({
   }, [refreshAppearance]);
 
   useEffect(() => {
+    const rootStyle = document.documentElement.style;
+    const nextVariables = semanticThemeVariables(appearance);
+    const previous = documentSemanticVariablesRef.current;
+
+    for (const token of previous.keys()) {
+      if (!Object.prototype.hasOwnProperty.call(nextVariables, token)) {
+        const original = previous.get(token);
+        if (original) rootStyle.setProperty(token, original);
+        else rootStyle.removeProperty(token);
+        previous.delete(token);
+      }
+    }
+
+    for (const [token, value] of Object.entries(nextVariables)) {
+      if (!token.startsWith("--") || !value) continue;
+      if (!previous.has(token)) previous.set(token, rootStyle.getPropertyValue(token) || null);
+      rootStyle.setProperty(token, value);
+    }
+
+    return () => {
+      for (const [token, original] of previous.entries()) {
+        if (original) rootStyle.setProperty(token, original);
+        else rootStyle.removeProperty(token);
+      }
+      previous.clear();
+    };
+  }, [appearance]);
+
+  useEffect(() => {
     return subscribeRelationshipEvents(() => {
       void refreshRelationships();
     });
@@ -194,6 +234,36 @@ export function ProductExperienceShell({
   const chooseRelationship = (relationshipId: string): void => {
     selectRelationship(relationshipId);
     setStatus("已打开关系");
+  };
+
+  const openConversation = async (conversationId: string): Promise<void> => {
+    if (!selectedRelationship) {
+      setStatus("请先选择一个人");
+      return;
+    }
+
+    const conversation = selectedRelationship.conversations
+      .find((row) => row.id === conversationId);
+
+    if (!conversation) {
+      setStatus("该对话已不可用；不会自动选择其它对话");
+      return;
+    }
+
+    if (!navigateConversation) {
+      setStatus("真实对话导航暂不可用");
+      return;
+    }
+
+    selectConversation(conversation.id);
+    try {
+      const opened = await navigateConversation(selectedRelationship, conversation);
+      setStatus(opened
+        ? "已进入对话"
+        : "没有找到唯一匹配的真实对话；请检查账号同步状态");
+    } catch {
+      setStatus("对话解析失败；言策没有执行猜测性跳转");
+    }
   };
 
   const toggleAssistant = (): void => {
@@ -267,6 +337,9 @@ export function ProductExperienceShell({
               assistantVisible={assistantVisible}
               onBack={clearSelectedRelationship}
               onToggleAssistant={toggleAssistant}
+              onOpenConversation={(conversationId) => {
+                void openConversation(conversationId);
+              }}
             />
             <AnimatePresence initial={false}>
               {assistantVisible ? (
@@ -285,12 +358,7 @@ export function ProductExperienceShell({
         )}
       </AnimatePresence>
 
-      <details
-        className="yance-experience-settings"
-        onToggle={(event) => {
-          if (!event.currentTarget.open) setLearningAdminVisible(false);
-        }}
-      >
+      <details className="yance-experience-settings">
         <summary>体验设置</summary>
         <div className="yance-settings-grid">
           <label>
@@ -352,16 +420,9 @@ export function ProductExperienceShell({
         <p className="yance-appearance-status" role="status" aria-live="polite">{appearanceStatus}</p>
         {preferences.reducedMotion ? <p className="yance-reduced-motion-note">已启用减少动效；状态变化仍会清晰显示，但不会进行空间移动。</p> : null}
 
+        <PlatformAccountsSurface />
         <ProductSystemSettingsSurface />
 
-        <div className="yance-learning-settings-actions">
-          {learningAdminVisible ? (
-            <button type="button" aria-expanded="true" onClick={() => setLearningAdminVisible(false)}>收起学习控制</button>
-          ) : (
-            <button type="button" aria-expanded="false" onClick={() => setLearningAdminVisible(true)}>学习控制</button>
-          )}
-        </div>
-        {learningAdminVisible ? <LearningWorkspace /> : null}
       </details>
 
       <RelationshipOverlayHost readRoomStateEvents={readRoomStateEvents} />

@@ -1,0 +1,41 @@
+diff --git a/apps/web/src/modules/Navigation.ts b/apps/web/src/modules/Navigation.ts
+--- a/apps/web/src/modules/Navigation.ts
++++ b/apps/web/src/modules/Navigation.ts
+@@ -34,6 +34,10 @@ export class NavigationApi implements INavigationApi {
+     public registerLocationRenderer(path: string, renderer: LocationRenderFunction): void {
+         this.locationRenderers.set(path, renderer);
+     }
++
++    public navigateToLocation(path: string): void {
++        dispatcher.dispatch({ action: Action.ViewHomePage, page: path });
++    }
+
+     public openRoom(roomIdOrAlias: string, opts: OpenRoomOptions = {}): void {
+         const key = roomIdOrAlias.startsWith("#") ? "room_alias" : "room_id";
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -415,6 +415,7 @@ export interface ModuleFactory {
+
+ // @public
+ export interface NavigationApi {
++    navigateToLocation(path: string): void;
+     openRoom(roomIdOrAlias: string, opts?: OpenRoomOptions): void;
+     // @alpha
+     registerLocationRenderer(path: string, renderer: LocationRenderFunction): void;
+diff --git a/packages/module-api/src/api/navigation.ts b/packages/module-api/src/api/navigation.ts
+--- a/packages/module-api/src/api/navigation.ts
++++ b/packages/module-api/src/api/navigation.ts
+@@ -50,6 +50,12 @@ export interface NavigationApi {
+      */
+     registerLocationRenderer(path: string, renderer: LocationRenderFunction): void;
+
++    /**
++     * Navigate to a registered module-owned location path.
++     * @param path - The location path registered through {@link registerLocationRenderer}.
++     */
++    navigateToLocation(path: string): void;
++
+     /**
+      * Open a room in element-web.
+      * @param roomIdOrAlias - id/alias of the room to open

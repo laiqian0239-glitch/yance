@@ -34,7 +34,19 @@ const CHANNELS = Object.freeze({
   productDataProtectionState: 'store:product-system-data-protection-state',
   productDataProtectionMutation: 'store:product-system-data-protection-mutation',
   productModelRuntimeState: 'store:product-system-model-runtime-state',
-  productModelRuntimeMutation: 'store:product-system-model-runtime-mutation'
+  productModelRuntimeMutation: 'store:product-system-model-runtime-mutation',
+  conversationAutomationMode: 'store:conversation-automation-mode',
+  outboundPrepare: 'store:outbound-prepare',
+  platformAccountCreate: 'store:platform-account-create',
+  platformAccountCommand: 'store:platform-account-command',
+  platformAccountsList: 'store:platform-accounts-list',
+  platformAccountCapabilities: 'store:platform-account-capabilities',
+  platformAccountAudit: 'store:platform-account-audit',
+  platformAccountConnect: 'store:platform-account-connect',
+  platformAccountReconnect: 'store:platform-account-reconnect',
+  platformAccountSync: 'store:platform-account-sync',
+  platformAccountsSyncAll: 'store:platform-accounts-sync-all',
+  personaCharacterCardPreview: 'store:persona-character-card-preview'
 });
 
 function clean(value) {
@@ -77,6 +89,19 @@ function relationshipConversationIdsByContactId(value) {
       ? rawConversationIds.map(clean).filter(Boolean)
       : [];
     if (contactId && conversationIds.length) projection[contactId] = conversationIds;
+  }
+  return projection;
+}
+
+function relationshipConversationsById(value) {
+  const payload = objectRecord(value);
+  const snapshot = objectRecord(payload.snapshot || payload);
+  const conversations = objectRecord(snapshot.conversations);
+  const byId = objectRecord(conversations.byId);
+  const projection = {};
+  for (const [rawConversationId, rawConversation] of Object.entries(byId)) {
+    const conversationId = clean(rawConversationId);
+    if (conversationId) projection[conversationId] = objectRecord(rawConversation);
   }
   return projection;
 }
@@ -144,6 +169,7 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       return {
         ...objectRecord(snapshot),
         relationshipConversationIdsByContactId: relationshipConversationIdsByContactId(conversationSnapshot),
+        relationshipConversationsById: relationshipConversationsById(conversationSnapshot),
         relationshipIntelligence: trustedRelationshipIntelligence(bootstrap)
       };
     },
@@ -276,6 +302,224 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         confirmPassword: String(input.confirmPassword == null ? '' : input.confirmPassword)
       })
     }),
+    [CHANNELS.conversationAutomationMode]: (_event, input = {}) => {
+      const conversationId = safeRouteSegment(input.conversationId, 'conversationId');
+      const mode = requiredAction(input.mode, ['human', 'ai_assist', 'ai_auto'], 'mode').toUpperCase();
+      return apiRequest(`/api/r32/store/conversations/${conversationId}/automation-mode`, {
+        method: 'PUT',
+        body: jsonBody({
+          contactId: clean(input.contactId),
+          mode
+        })
+      });
+    },
+    [CHANNELS.outboundPrepare]: (_event, input = {}) => {
+      const sessionKey = safeRouteSegment(input.sessionKey, 'sessionKey');
+      const text = String(input.text == null ? '' : input.text).trim();
+      if (!text) {
+        const error = new Error('text is required');
+        error.code = 'MESSAGE_TEXT_EMPTY';
+        error.reasonCode = error.code;
+        throw error;
+      }
+      return apiRequest(`/api/workspace/conversations/${sessionKey}/outbound-prepare`, {
+        method: 'POST',
+        body: jsonBody({
+          text,
+          ...(clean(input.idempotencyKey)
+            ? { idempotencyKey: clean(input.idempotencyKey) }
+            : {})
+        })
+      });
+    },
+    [CHANNELS.platformAccountCreate]: (_event, input = {}) => {
+      const platform = requiredAction(input.platform, ['whatsapp', 'telegram', 'facebook'], 'platform');
+      const displayName = clean(input.displayName) || `${platform} 账号`;
+      const accountKind = clean(input.accountKind);
+      const driverId = clean(input.driverId);
+      return apiRequest('/api/r32/accounts', {
+        method: 'POST',
+        body: jsonBody({
+          platform,
+          displayName,
+          identityLabel: '登录后自动识别',
+          authorizationPending: true,
+          ...(accountKind ? {
+            accountKind,
+            driverId,
+            metadata: { accountKind, driverId }
+          } : {})
+        })
+      });
+    },
+    [CHANNELS.platformAccountCommand]: (_event, input = {}) => {
+      const id = safeRouteSegment(input.id, 'id');
+      const action = requiredAction(input.action, [
+        'auth-challenge',
+        'discard-pending',
+        'telegram-qr-start',
+        'telegram-phone-start',
+        'telegram-cancel',
+        'telegram-code',
+        'telegram-password',
+        'facebook-oauth-start',
+        'facebook-oauth-status',
+        'facebook-select-page',
+        'facebook-oauth-cancel',
+        'facebook-messenger-start',
+        'facebook-messenger-input',
+        'facebook-messenger-wait',
+        'facebook-messenger-cancel'
+      ], 'action');
+
+      if (action === 'auth-challenge') {
+        return apiRequest(`/api/r32/accounts/${id}/auth-challenge`);
+      }
+      if (action === 'discard-pending') {
+        return apiRequest(`/api/r32/accounts/${id}/authorization/discard-pending`, {
+          method: 'POST',
+          body: jsonBody({
+            reason: clean(input.reason) || 'product-authorization-abandoned'
+          })
+        });
+      }
+      if (action === 'telegram-qr-start') {
+        return apiRequest(`/api/r32/accounts/${id}/telegram/qr/start`, {
+          method: 'POST', body: '{}'
+        });
+      }
+      if (action === 'telegram-phone-start') {
+        return apiRequest(`/api/r32/accounts/${id}/telegram/phone/start`, {
+          method: 'POST',
+          body: jsonBody({ phoneNumber: requiredIdentifier(input.phoneNumber, 'phoneNumber') })
+        });
+      }
+      if (action === 'telegram-cancel') {
+        return apiRequest(`/api/r32/accounts/${id}/telegram/cancel`, {
+          method: 'POST', body: '{}'
+        });
+      }
+      if (action === 'telegram-code') {
+        return apiRequest(`/api/r32/accounts/${id}/telegram/code`, {
+          method: 'POST',
+          body: jsonBody({ code: requiredIdentifier(input.code, 'code') })
+        });
+      }
+      if (action === 'telegram-password') {
+        const password = String(input.password == null ? '' : input.password);
+        if (!password) throw Object.assign(new Error('password is required'), {
+          code: 'PASSWORD_REQUIRED',
+          reasonCode: 'PASSWORD_REQUIRED'
+        });
+        return apiRequest(`/api/r32/accounts/${id}/telegram/password`, {
+          method: 'POST',
+          body: jsonBody({ password })
+        });
+      }
+      if (action === 'facebook-oauth-start') {
+        return apiRequest(`/api/r32/accounts/${id}/facebook/oauth/start`, {
+          method: 'POST', body: '{}'
+        });
+      }
+      if (action === 'facebook-oauth-status') {
+        const flowId = safeRouteSegment(input.flowId, 'flowId');
+        return apiRequest(`/api/r32/accounts/${id}/facebook/oauth/status?flowId=${flowId}`);
+      }
+      if (action === 'facebook-select-page') {
+        return apiRequest(`/api/r32/accounts/${id}/facebook/oauth/select-page`, {
+          method: 'POST',
+          body: jsonBody({
+            flowId: requiredIdentifier(input.flowId, 'flowId'),
+            pageId: requiredIdentifier(input.pageId, 'pageId')
+          })
+        });
+      }
+      if (action === 'facebook-oauth-cancel') {
+        return apiRequest(`/api/r32/accounts/${id}/facebook/oauth/cancel`, {
+          method: 'POST',
+          body: jsonBody({ flowId: requiredIdentifier(input.flowId, 'flowId') })
+        });
+      }
+      if (action === 'facebook-messenger-start') {
+        return apiRequest(`/api/r32/accounts/${id}/facebook/messenger/start`, {
+          method: 'POST', body: '{}'
+        });
+      }
+      if (action === 'facebook-messenger-input') {
+        return apiRequest(`/api/r32/accounts/${id}/facebook/messenger/input`, {
+          method: 'POST',
+          body: jsonBody({
+            loginProcessId: requiredIdentifier(input.loginProcessId, 'loginProcessId'),
+            stepId: requiredIdentifier(input.stepId, 'stepId'),
+            txnId: clean(input.txnId),
+            input: objectRecord(input.input)
+          })
+        });
+      }
+      if (action === 'facebook-messenger-wait') {
+        return apiRequest(`/api/r32/accounts/${id}/facebook/messenger/wait`, {
+          method: 'POST',
+          body: jsonBody({
+            loginProcessId: requiredIdentifier(input.loginProcessId, 'loginProcessId'),
+            stepId: requiredIdentifier(input.stepId, 'stepId'),
+            txnId: clean(input.txnId)
+          })
+        });
+      }
+      return apiRequest(`/api/r32/accounts/${id}/facebook/messenger/cancel`, {
+        method: 'POST',
+        body: jsonBody({
+          loginProcessId: clean(input.loginProcessId)
+        })
+      });
+    },
+    [CHANNELS.platformAccountsList]: () => apiRequest('/api/r32/accounts'),
+    [CHANNELS.platformAccountCapabilities]: () => apiRequest('/api/r32/accounts/capabilities'),
+    [CHANNELS.platformAccountAudit]: (_event, input = {}) => {
+      const limit = clean(input.limit);
+      return apiRequest(`/api/r32/accounts/audit${limit ? `?limit=${encodeURIComponent(limit)}` : ''}`);
+    },
+    [CHANNELS.platformAccountConnect]: (_event, input = {}) => apiRequest(`/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/connect`, {
+      method: 'POST',
+      body: '{}'
+    }),
+    [CHANNELS.platformAccountReconnect]: (_event, input = {}) => apiRequest(`/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/reconnect`, {
+      method: 'POST',
+      body: '{}'
+    }),
+    [CHANNELS.platformAccountSync]: (_event, input = {}) => apiRequest(`/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/sync`, {
+      method: 'POST',
+      body: '{}'
+    }),
+    [CHANNELS.platformAccountsSyncAll]: () => apiRequest('/api/r32/accounts/actions/sync-all', {
+      method: 'POST',
+      body: '{}'
+    }),
+    [CHANNELS.personaCharacterCardPreview]: (_event, input = {}) => {
+      // Correction E: renderer ships raw bytes only — never a filesystem path.
+      // The bridge converts the structured-cloned payload to a Buffer and calls the
+      // existing backend route with application/octet-stream. The backend SillyTavern
+      // parser remains the sole Character Card parser; renderer-side parsing is forbidden.
+      const raw = input.bytes;
+      if (!(raw instanceof Uint8Array) && !(raw instanceof ArrayBuffer) && !Buffer.isBuffer(raw)) {
+        const error = new Error('Character Card raw bytes are required');
+        error.code = 'PERSONA_CHARACTER_CARD_BYTES_REQUIRED';
+        error.reasonCode = error.code;
+        throw error;
+      }
+      const buffer = Buffer.isBuffer(raw) ? raw : Buffer.from(raw);
+      if (buffer.length > 8 * 1024 * 1024) {
+        const error = new Error('Character Card exceeds the 8 MB limit');
+        error.code = 'PERSONA_CHARACTER_CARD_TOO_LARGE';
+        error.reasonCode = error.code;
+        throw error;
+      }
+      return apiRequest('/api/v2/persona/character-card/preview', {
+        method: 'POST',
+        headers: { 'content-type': 'application/octet-stream' },
+        body: buffer
+      });
+    },
     [CHANNELS.productDataProtectionState]: async () => {
       const [backups, portableBackups] = await Promise.all([
         apiRequest('/api/r32/system/backups'),

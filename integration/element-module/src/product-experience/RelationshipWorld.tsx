@@ -14,6 +14,7 @@ type RelationshipWorldProps = {
   assistantVisible: boolean;
   onBack: () => void;
   onToggleAssistant: () => void;
+  onOpenConversation: (conversationId: string) => void;
 };
 
 function evidenceSourceLabel(event: RelationshipIntelligenceEvent): string {
@@ -39,6 +40,7 @@ export function RelationshipWorld({
   assistantVisible,
   onBack,
   onToggleAssistant,
+  onOpenConversation,
 }: RelationshipWorldProps): React.JSX.Element {
   const intelligence = relationship.relationshipIntelligence;
   const hasAiAnalysis = intelligence?.source === "ai_analysis";
@@ -76,10 +78,49 @@ export function RelationshipWorld({
       <div className="yance-world-presence">
         <RiveRelationshipCompanion state={aiState} reducedMotion={reducedMotion} />
         <div className="yance-world-copy">
-          <strong>对话仍在 Element</strong>
-          <span>Yance 在关系周围组织上下文、重要时刻和工具，但不会替代 Matrix 对话时间线。</span>
+          <strong>真实对话保持原样</strong>
+          <span>言策在关系周围组织上下文、重要时刻和工具，同时保留真实消息时间线和输入框。</span>
         </div>
       </div>
+
+      <section
+        className="yance-relationship-conversations"
+        aria-label="关系中的对话"
+        data-conversation-count={relationship.conversations.length}
+      >
+        <header>
+          <span className="yance-eyebrow">对话</span>
+          <strong>
+            {relationship.conversations.length
+              ? "选择要继续的对话"
+              : "还没有可继续的对话"}
+          </strong>
+        </header>
+
+        {relationship.conversations.length ? (
+          <div className="yance-relationship-conversation-list">
+            {relationship.conversations.map((conversation) => (
+              <button
+                key={conversation.id}
+                type="button"
+                onClick={() => onOpenConversation(conversation.id)}
+                data-conversation-id={conversation.id}
+              >
+                <strong>{conversation.title || "对话"}</strong>
+                <span>
+                  {[conversation.platform, conversation.accountId]
+                    .filter(Boolean)
+                    .join(" · ") || "已连接对话"}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p role="status">
+            当前人物没有唯一可打开的会话；言策不会猜测或自动选择其它人的对话。
+          </p>
+        )}
+      </section>
 
       <section
         className="yance-relationship-intelligence"
