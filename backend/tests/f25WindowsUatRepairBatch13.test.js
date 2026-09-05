@@ -22,6 +22,8 @@ test('Batch13 source UAT data clone preserves credentials and leaves source unto
   fs.mkdirSync(path.join(source, 'whatsapp-auth', 'account-1'), { recursive: true });
   fs.writeFileSync(path.join(source, 'store', 'yance-r32.db'), 'sqlite-authority');
   fs.writeFileSync(path.join(source, 'store', 'yance-r32.db-wal'), 'sqlite-wal');
+  fs.mkdirSync(path.join(source, 'store', 'yance-r32.db.lock'));
+  fs.writeFileSync(path.join(source, 'store', 'yance-r32.db.lock', 'owner'), 'ephemeral-runtime-lock');
   fs.writeFileSync(path.join(source, 'secure', 'credentials.safe.json'), '{"cipher":"bound-to-user"}');
   fs.writeFileSync(path.join(source, 'whatsapp-auth', 'account-1', 'creds.json'), '{"registered":true}');
   fs.mkdirSync(path.join(source, 'preferences'), { recursive: true });
@@ -37,6 +39,8 @@ test('Batch13 source UAT data clone preserves credentials and leaves source unto
   assert.equal(receipt.criticalFilesMatch, true);
   assert.equal(receipt.baseTreeMatch, true);
   assert.deepEqual(receipt.sourceTreeDigest, receipt.targetBaseTreeDigest);
+  assert.equal(fs.existsSync(path.join(source, 'store', 'yance-r32.db.lock')), true);
+  assert.equal(fs.existsSync(path.join(target, 'store', 'yance-r32.db.lock')), false);
   assert.equal(fs.readFileSync(path.join(target, 'preferences', 'ui.json'), 'utf8'), '{"density":"compact"}');
   assert.equal(fs.readFileSync(path.join(source, 'store', 'yance-r32.db'), 'utf8'), before);
   assert.equal(fs.readFileSync(path.join(target, 'secure', 'credentials.safe.json'), 'utf8'), '{"cipher":"bound-to-user"}');
