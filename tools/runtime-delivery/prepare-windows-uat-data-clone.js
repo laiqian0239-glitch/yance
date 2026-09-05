@@ -8,6 +8,7 @@ const MARKER_FILE = '.yance-source-uat-clone.json';
 const RECEIPT_FILE = 'YANCE_SOURCE_UAT_DATA_CLONE_RECEIPT.json';
 const WHATSAPP_AUTH_DIRECTORIES = Object.freeze(['whatsapp-auth', 'baileys-auth']);
 const COPY_EXCLUDED_NAMES = Object.freeze(['SingletonLock', 'SingletonCookie', 'SingletonSocket', MARKER_FILE, RECEIPT_FILE]);
+const COPY_EXCLUDED_RELATIVE_PATHS = Object.freeze(['store/yance-r32.db.lock']);
 
 function canonicalJson(value) { return `${JSON.stringify(value, null, 2)}\n`; }
 function sha256File(file) {
@@ -52,15 +53,21 @@ function listFiles(root, options = {}) {
   const rows = [];
   if (!fs.existsSync(root)) return rows;
   const excludedNames = new Set(options.excludedNames || []);
+  const excludedRelativePaths = new Set(options.excludedRelativePaths || []);
+  const isExcludedRelativePath = relative => [...excludedRelativePaths].some(excluded =>
+    relative === excluded || relative.startsWith(`${excluded}/`)
+  );
   const walk = dir => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       if (excludedNames.has(entry.name)) continue;
       const file = path.join(dir, entry.name);
+      const relative = path.relative(root, file).replace(/\\/g, '/');
+      if (isExcludedRelativePath(relative)) continue;
       if (entry.isSymbolicLink()) {
         throw Object.assign(new Error(`UAT 数据克隆拒绝符号链接：${file}`), { reasonCode: 'SOURCE_UAT_DATA_CLONE_SYMLINK_REJECTED' });
       }
       if (entry.isDirectory()) walk(file);
-      else if (entry.isFile()) rows.push(path.relative(root, file).replace(/\\/g, '/'));
+      else if (entry.isFile()) rows.push(relative);
     }
   };
   walk(root);
@@ -130,7 +137,11 @@ function copyTree(source, target) {
     preserveTimestamps: true,
     dereference: false,
     filter(sourcePath) {
-      return !COPY_EXCLUDED_NAMES.includes(path.basename(sourcePath));
+      if (COPY_EXCLUDED_NAMES.includes(path.basename(sourcePath))) return false;
+      const relative = path.relative(source, sourcePath).replace(/\\/g, '/');
+      return !COPY_EXCLUDED_RELATIVE_PATHS.some(excluded =>
+        relative === excluded || relative.startsWith(`${excluded}/`)
+      );
     }
   });
   return true;
@@ -188,7 +199,7 @@ function prepareClone(options = {}) {
     throw Object.assign(new Error(`目标 UAT 数据目录必须为空：${targetRoot}`), { reasonCode: 'SOURCE_UAT_DATA_CLONE_TARGET_NOT_EMPTY' });
   }
 
-  const digestOptions = { excludedNames: COPY_EXCLUDED_NAMES };
+  const digestOptions = { excludedNames: COPY_EXCLUDED_NAMES, excludedRelativePaths: COPY_EXCLUDED_RELATIVE_PATHS };
   const sourceBefore = criticalSnapshot(sourceRoot);
   const sourceTreeBefore = directoryDigest(sourceRoot, digestOptions);
   const whatsappSourceBefore = criticalSnapshot(whatsappSourceRoot);
