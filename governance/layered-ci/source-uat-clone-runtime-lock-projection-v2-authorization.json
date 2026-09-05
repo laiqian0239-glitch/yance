@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "SOURCE-UAT-CLONE-RUNTIME-LOCK-V2",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing authorization prerequisite after frozen implementation PR #1105 / exact head 28b939720d480d1827b6452c802f57ea20e43c66 proved the two-path source-UAT clone repair locally GREEN but CI correctly rejected the implementation branch because no trusted-main delegated branch authority predated it. This authorization permits only a fresh branch carrying the same two-path runtime-lock projection repair.",
+  "base": {
+    "branch": "main",
+    "commit": "1ccb651586b3ae8e83fecdc78647759b8cb51a69"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/source-uat-clone-runtime-lock-projection-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/source-uat-clone-runtime-lock-projection-v2-authorization.json"
+    ],
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/source-uat-clone-runtime-lock-projection-v2",
+    "allowedChangedPaths": [
+      "backend/tests/f25WindowsUatRepairBatch13.test.js",
+      "tools/runtime-delivery/prepare-windows-uat-data-clone.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "676c347a0663c73a023272f7d0e17996b4d72fbddb4b0cd8f6a9572ef30d5bd4",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false
+  },
+  "rootCause": {
+    "productDefect": "SOURCE_UAT_DATA_CLONE / EPHEMERAL_RUNTIME_MUTEX_ARTIFACT_PROJECTED",
+    "ciAuthorizationDefect": "DELEGATED_IMPLEMENTATION_AUTHORITY / PREREQUISITE_BRANCH_AUTHORIZATION_MISSING",
+    "frozenRedPullRequest": 1105,
+    "frozenRedHead": "28b939720d480d1827b6452c802f57ea20e43c66",
+    "consumedRun": 33969753687,
+    "requiredRepair": "After this single-file authorization merges by ordinary merge, materialize the already-reviewed two-path implementation on the authorization merge commit and validate that one fresh Exact Head once."
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
