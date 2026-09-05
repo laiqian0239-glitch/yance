@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "SOURCE-UAT-CLONE-RUNTIME-LOCK-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing correction after frozen implementation RED #1105 and frozen delegated-authorization RED #1107. The two-path source-UAT clone repair is already locally GREEN. #1105 proved trusted-main delegated branch authority must predate implementation; #1107 then proved every newly changed delegated authorization must carry auditable OSS-first evidence. This fresh single-file proposal preserves the exact implementation scope and adds the complete OSS-fit evidence required by trusted main without changing implementation bytes.",
+  "base": {
+    "branch": "main",
+    "commit": "1ccb651586b3ae8e83fecdc78647759b8cb51a69"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/source-uat-clone-runtime-lock-projection-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/source-uat-clone-runtime-lock-projection-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7badf7af837f2f19e5dff21609c9355e06b8b4bc79dcd72c4b7be70c32dcc454",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/source-uat-clone-runtime-lock-projection-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/tests/f25WindowsUatRepairBatch13.test.js",
+      "tools/runtime-delivery/prepare-windows-uat-data-clone.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "676c347a0663c73a023272f7d0e17996b4d72fbddb4b0cd8f6a9572ef30d5bd4",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "productDefect": "SOURCE_UAT_DATA_CLONE / EPHEMERAL_RUNTIME_MUTEX_ARTIFACT_PROJECTED",
+    "implementationAuthorizationDefect": "DELEGATED_IMPLEMENTATION_AUTHORITY / PREREQUISITE_BRANCH_AUTHORIZATION_MISSING",
+    "authorizationEvidenceDefect": "OSS_FIRST_AUTHORIZATION_EVIDENCE / OSSFIT_MISSING",
+    "directEvidence": "Frozen run 33970268540 job 101317443862 failed only the trusted-main OSS-first admission subtest because the V2 delegated authorization lacked ossFit evidence. Generic authorization structure and implementation-branch-policy contract steps were otherwise GREEN.",
+    "requiredRepair": "After this one-file authorization is GREEN and merged by ordinary two-parent merge, materialize the already-reviewed two-path implementation bytes on the authorization merge commit and validate one fresh implementation Exact Head once."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.170",
+    "controllerCommentId": 5552327195,
+    "freshMain": "1ccb651586b3ae8e83fecdc78647759b8cb51a69",
+    "frozenImplementationRed": {
+      "pullRequest": 1105,
+      "head": "28b939720d480d1827b6452c802f57ea20e43c66",
+      "run": 33969753687
+    },
+    "frozenAuthorizationRed": {
+      "pullRequest": 1107,
+      "head": "85901b73f4c2b216900f89df44c4083aa79f0173",
+      "run": 33970268540,
+      "job": 101317443862,
+      "exactFailure": "ossFit evidence is required before implementation"
+    },
+    "implementationPathCount": 2,
+    "implementationPathSetSha256": "676c347a0663c73a023272f7d0e17996b4d72fbddb4b0cd8f6a9572ef30d5bd4",
+    "implementationLocalClosureFrozenGreen": true,
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_SOURCE_UAT_CLONE_AND_RUNTIME_MUTEX_AUTHORITIES_THROUGH_THE_EXISTING_REPOSITORY_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance source-UAT data-clone authority",
+        "source": "tools/runtime-delivery/prepare-windows-uat-data-clone.js on trusted main",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns isolated Windows source-UAT data cloning, source-untouched proof, critical credential/session copying and source/target digest comparison. The repair is the narrow exact-path exclusion inside this mature seam rather than a second clone engine."
+      },
+      {
+        "name": "proper-lockfile runtime ownership authority",
+        "source": "proper-lockfile 4.1.2 already pinned in the repository dependency graph and used by the backend runtime mutex",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "Already owns the runtime lock semantics for the canonical SQLite target and proves `store/yance-r32.db.lock` is ephemeral ownership state. It should remain the lock owner; the clone seam must simply avoid projecting that live mutex artifact into the isolated target."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second data-clone engine or alternate SQLite/session copy authority.",
+      "Do not broadly ignore every *.lock path; exclude only the canonical runtime mutex artifact `store/yance-r32.db.lock` while preserving durable state.",
+      "Do not delete or mutate the source runtime lock in the user's live `%APPDATA%/Yance` data root."
+    ]
+  },
+  "requiredBehavior": [
+    "Source-UAT clone preserves the canonical SQLite database, WAL, secure credentials and session/auth trees while leaving the live source untouched.",
+    "The ephemeral proper-lockfile directory `store/yance-r32.db.lock` is not projected into an isolated clone and is excluded from source/target base-tree digest comparison.",
+    "The exclusion remains exact-path scoped and does not weaken symbolic-link rejection, source integrity proof or durable data checks.",
+    "Resume successor-v13 Windows Local Release Harness only after this prerequisite implementation lands."
+  ],
+  "negativeProofs": [
+    "No implementation byte is created by this authorization commit.",
+    "No dependency, package, lockfile, workflow, database migration, credential persistence, runtime topology or Product successor-v13 path change is authorized.",
+    "No rerun, amend or force-push of frozen #1105/#1107 evidence.",
+    "No Product Exact Head, Product CI, RC or real UAT before the source-UAT prerequisite merges and mandatory Windows Local Release Harness is GREEN."
+  ],
+  "requiredValidation": {
+    "authorization": [
+      "base is exact trusted main 1ccb651586b3ae8e83fecdc78647759b8cb51a69",
+      "diff is exactly this one new governance authorization JSON",
+      "authorization path-set SHA-256 is 7badf7af837f2f19e5dff21609c9355e06b8b4bc79dcd72c4b7be70c32dcc454",
+      "selectedAdoptionMode is existing-repository-seam and complete ossFit evidence is present",
+      "implementation path count is 2 and path-set SHA-256 is 676c347a0663c73a023272f7d0e17996b4d72fbddb4b0cd8f6a9572ef30d5bd4"
+    ],
+    "implementationBeforePromotion": [
+      "reuse the already-reviewed two-path implementation bytes without repeating capability investigation",
+      "one fresh implementation Exact Head from this authorization ordinary merge commit",
+      "one implementation CI only; GREEN merges immediately",
+      "then resume Windows Local Release Harness before any Product Exact Head"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
