@@ -2,7 +2,13 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const { RuntimeOwnership } = require('../../backend/runtime/RuntimeOwnership');
+const {
+  acquireAuthorityWriteHost
+} = require('../../backend/services/authorityWriteHost');
 
 const FAR_FUTURE = Date.now() + 10 * 365 * 24 * 60 * 60 * 1000;
 const SOON = new Date(Date.now() + 60000).toISOString();
@@ -59,6 +65,162 @@ async function acquireAndRun(owner, runMs) {
   owner.startHeartbeat();
   await new Promise(resolve => setTimeout(resolve, runMs));
 }
+
+test('branded AuthorityWriteHost capability replaces the duplicate process mutex while runtime lease remains active', async () => {
+  const previousRole =
+    process.env.YANCE_PROCESS_ROLE;
+
+  const root =
+    fs.mkdtempSync(
+      path.join(
+        os.tmpdir(),
+        'yance-runtime-authority-delegation-'
+      )
+    );
+
+  const dbPath =
+    path.join(
+      root,
+      'store',
+      'runtime.sqlite'
+    );
+
+  fs.mkdirSync(
+    path.dirname(dbPath),
+    { recursive: true }
+  );
+
+  process.env.YANCE_PROCESS_ROLE =
+    'desktop-host';
+
+  let host = null;
+  let owner = null;
+
+  const lease = {
+    leaseName: 'app-runtime',
+    ownerInstanceId:
+      'authority-delegated-owner',
+    ownerPid: process.pid,
+    fencingToken: 41,
+    leaseExpiresAtUtc:
+      new Date(
+        Date.now() + 60000
+      ).toISOString()
+  };
+
+  const store = {
+    acquireLease: () => lease,
+    heartbeat: () => ({
+      heartbeatAtUtc:
+        new Date().toISOString(),
+      leaseExpiresAtUtc:
+        lease.leaseExpiresAtUtc
+    }),
+    releaseLease: () => {},
+    close: () => {},
+    getCredentialHydrationState:
+      () => ({})
+  };
+
+  try {
+    host =
+      acquireAuthorityWriteHost({
+        dbPath,
+        instanceId:
+          'runtime-delegation-host',
+        startupNonce:
+          'runtime-delegation-startup'
+      });
+
+    owner =
+      new RuntimeOwnership({
+        dataRoot: root,
+        dbPath,
+        buildId:
+          'runtime-delegation-test',
+        ownerInstanceId:
+          lease.ownerInstanceId,
+        bootAttemptId:
+          'runtime-delegation-boot',
+        runtimePaths: {
+          dataRoot: root,
+          dbPath,
+          mutexIdentity:
+            'delegated-authority',
+          mutexIdentityKind:
+            'authority-write-host',
+          dataRootIdentity:
+            'delegated-data',
+          dbPathIdentity:
+            'delegated-db'
+        },
+        authorityWriteHostCapability:
+          host.capability,
+        storeFactory:
+          () => store,
+        exitOnLeaseLost: false
+      });
+
+    assert.strictEqual(
+      owner.mutex,
+      null,
+      'a real AuthorityWriteHost capability must prevent construction of a second process mutex'
+    );
+
+    await owner.acquire();
+
+    assert.strictEqual(
+      owner.lease,
+      lease,
+      'runtime lease remains the subordinate runtime-state fencing authority'
+    );
+
+    const snapshot =
+      owner.snapshot();
+
+    assert.strictEqual(
+      snapshot.mutexProvider,
+      'AUTHORITY_WRITE_HOST'
+    );
+
+    assert.strictEqual(
+      snapshot.mutex.provider,
+      'AUTHORITY_WRITE_HOST'
+    );
+
+    assert.strictEqual(
+      snapshot.mutex.held,
+      true
+    );
+  } finally {
+    if (owner) {
+      await owner
+        .release()
+        .catch(() => {});
+    }
+
+    try {
+      host?.close();
+    } catch (_) {}
+
+    if (previousRole === undefined) {
+      delete process.env.YANCE_PROCESS_ROLE;
+    } else {
+      process.env.YANCE_PROCESS_ROLE =
+        previousRole;
+    }
+
+    fs.rmSync(
+      root,
+      {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 50
+      }
+    );
+  }
+});
 
 test('healthy heartbeat never fires onLeaseLost', async () => {
   const { owner, lost } = buildOwnership();

@@ -1,11 +1,15 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const path = require('node:path');
 const { NamedRuntimeMutex } = require('./NamedRuntimeMutex');
 const { RuntimeStateStore } = require('./RuntimeStateStore');
 const { normalizeRuntimeError } = require('./errors');
 const { canonicalizeRuntimePaths } = require('./RuntimePathIdentity');
-const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  acquireAuthorityWriteHost,
+  requireAuthorityWriteHostCapability
+} = require('../services/authorityWriteHost');
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms || 0))));
@@ -77,10 +81,64 @@ class RuntimeOwnership {
     this.leaseName = options.leaseName || 'app-runtime';
     this.leaseDurationMs = Math.max(3000, Number(options.leaseDurationMs || 15000));
     this.heartbeatIntervalMs = Math.max(500, Math.min(this.leaseDurationMs / 3, Number(options.heartbeatIntervalMs || 4000)));
-    this.mutex = options.mutex || new NamedRuntimeMutex({
-      lockTarget: runtimePaths.dbPath,
-      acquireTimeoutMs: options.acquireTimeoutMs
-    });
+    this.authorityWriteHostCapability =
+      options.authorityWriteHostCapability
+        ? requireAuthorityWriteHostCapability(
+            options.authorityWriteHostCapability
+          )
+        : null;
+
+    if (this.authorityWriteHostCapability) {
+      const authorityDbPath =
+        path.resolve(
+          String(
+            this.authorityWriteHostCapability.dbPath ||
+            ''
+          )
+        );
+
+      if (authorityDbPath !== this.dbPath) {
+        const error =
+          new Error(
+            'AuthorityWriteHost capability does not match runtime ownership dbPath'
+          );
+
+        error.code =
+          'RUNTIME_AUTHORITY_WRITE_HOST_PATH_MISMATCH';
+
+        error.reasonCode =
+          error.code;
+
+        throw error;
+      }
+
+      if (options.mutex) {
+        const error =
+          new Error(
+            'RuntimeOwnership cannot combine AuthorityWriteHost with a second process mutex'
+          );
+
+        error.code =
+          'RUNTIME_PROCESS_EXCLUSION_AUTHORITY_CONFLICT';
+
+        error.reasonCode =
+          error.code;
+
+        throw error;
+      }
+    }
+
+    this.mutex =
+      this.authorityWriteHostCapability
+        ? null
+        : (
+            options.mutex ||
+            new NamedRuntimeMutex({
+              lockTarget: runtimePaths.dbPath,
+              acquireTimeoutMs:
+                options.acquireTimeoutMs
+            })
+          );
     this._ownedSqliteBroker = null;
     this._ownedAuthorityWriteHost = null;
     this.authorityWriteHostFactory = options.authorityWriteHostFactory || acquireAuthorityWriteHost;
@@ -150,7 +208,9 @@ class RuntimeOwnership {
 
   async acquire() {
     if (this._acquired) return this.snapshot();
-    await this.mutex.acquire();
+    if (this.mutex) {
+      await this.mutex.acquire();
+    }
     const retryDelaysMs = Array.isArray(this.options?.sqliteAcquireRetryDelaysMs)
       ? this.options.sqliteAcquireRetryDelaysMs
       : [50, 150, 300];
@@ -193,7 +253,11 @@ class RuntimeOwnership {
       try { this.store?.close(); } catch (_) {}
       this.store = null;
       this._closeOwnedSqliteAuthority();
-      await this.mutex.release().catch(() => {});
+      if (this.mutex) {
+        await this.mutex
+          .release()
+          .catch(() => {});
+      }
       throw sqliteOwnershipFailure(error, failedPhase);
     }
   }
@@ -302,7 +366,11 @@ class RuntimeOwnership {
       this.store = null;
       this._closeOwnedSqliteAuthority();
     }
-    await this.mutex.release().catch(() => {});
+    if (this.mutex) {
+      await this.mutex
+        .release()
+        .catch(() => {});
+    }
   }
 
   snapshot() {
@@ -320,8 +388,19 @@ class RuntimeOwnership {
       dbPathIdentity: this.runtimePaths.dbPathIdentity,
       mutexIdentityKind: this.runtimePaths.mutexIdentityKind,
       mutexIdentity: this.runtimePaths.mutexIdentity,
-      mutexProvider: this.mutex.provider,
-      mutex: this.mutex.snapshot(),
+      mutexProvider:
+        this.mutex?.provider ||
+        'AUTHORITY_WRITE_HOST',
+
+      mutex:
+        this.mutex?.snapshot?.() ||
+        Object.freeze({
+          name: this.dbPath,
+          target: this.dbPath,
+          provider:
+            'AUTHORITY_WRITE_HOST',
+          held: this._acquired
+        }),
       heartbeatAtUtc: this.lease?.heartbeatAtUtc || '',
       leaseExpiresAtUtc: this.lease?.leaseExpiresAtUtc || ''
     });
