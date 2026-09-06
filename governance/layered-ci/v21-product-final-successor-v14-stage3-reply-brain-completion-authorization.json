@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-SUCCESSOR-V14-STAGE3-REPLY-BRAIN-COMPLETION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Stage-3 exact-source/mature-authority audit under Product Final Controller V5.280 proved the existing V13 exact-40 scope cannot close AI_ASSIST real Element send completion without mutating the existing Store HTTP/command authority. The required same-root repair must reuse backend/routes/store.js and backend/store/commands/registerAiReplyCommands.js so human approval, account/customer/conversation/language preflight and OUTBOX_SEND_RESULT durable learning semantics remain single-owned. backend/tests/replyFeedbackClosedLoop.test.js is the direct mature regression owner. This successor expands the cumulative Product scope only by those three paths, preserves the existing forty-path Product candidate as uncommitted local bytes/evidence, does not manufacture a predecessor Product SHA, and authorizes a fresh successor implementation branch only after ordinary merge.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v13-completeness-v3-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v13",
+    "reason": "V13 remains immutable authority/evidence for the preserved exact-40 local candidate. V14 authorizes the same Stage-3 Product root with the smallest additional mature Store owner/test scope required by V5.280."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "736f5a53107d47d5c22a94814f4c917269858c7c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "736f5a53107d47d5c22a94814f4c917269858c7c",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v14-stage3-reply-brain-completion-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v14-stage3-reply-brain-completion-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e883d1df7816463c1ee216021ef906f3817e5ce30bc1887e5142f603a6d5d0df",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v14",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/routes/workspace.js",
+      "backend/services/workspaceService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 43,
+    "approvedChangedFileSetSha256": "c6ed5226fbb220a41dcc2cee86436ea7afdbd24c839b577ec79e587bc2613409",
+    "newlyAuthorizedPaths": [
+      "backend/routes/store.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js"
+    ],
+    "newlyAuthorizedChangedFileCount": 3,
+    "newlyAuthorizedChangedFileSetSha256": "e5638988b171be35e80cd868da77fec343a197ff0f9233657e4b9d0097314f82",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "product": "PRODUCT_FINAL / REPLY_BRAIN_AI_ASSIST / ELEMENT_SEND_COMPLETION_PROJECTION_MISSING",
+    "scopeBoundary": "V13_EXACT40 / MATURE_STORE_OWNER_OUTSIDE_AUTHORIZED_SCOPE",
+    "directEvidence": "Pinned Element real text send returns Promise<resp.event_id>; existing Product 0017 pre-send hook is the correct thin integration seam. Existing OUTBOX_SEND_CONFIRMED owns human/customer/account/conversation/language guards but also emits the SendQueue-triggering event, so AI_ASSIST cannot reuse it unchanged. Existing OUTBOX_SEND_RESULT owns durable outbox/candidate/task result and candidate_sent Learning semantics but currently has no Matrix completion receipt. Both commands live in backend/store/commands/registerAiReplyCommands.js and their HTTP owner is backend/routes/store.js, both outside V13 exact-40.",
+    "requiredRepair": "Add the narrowest Store-owned Element-send preflight that reuses existing human send guards without transitioning to send_confirmed or entering SendQueue; keep real Element send as sole physical send; on resolved real send Promise project exact Matrix event_id into existing OUTBOX_SEND_RESULT and durable outbox metadata; leave AI_AUTO behavior unchanged."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.280",
+    "controllerCommentId": 5558729038,
+    "freshMain": "736f5a53107d47d5c22a94814f4c917269858c7c",
+    "oldApprovedPathCount": 40,
+    "oldApprovedPathSetSha256": "f617a3f24a7971e8afc06d01674a57f456755b41ef100dfb360f2802c0c2b865",
+    "newApprovedPathCount": 43,
+    "newApprovedPathSetSha256": "c6ed5226fbb220a41dcc2cee86436ea7afdbd24c839b577ec79e587bc2613409",
+    "additionalAuthorizedPaths": [
+      "backend/routes/store.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js"
+    ],
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "Yance People / Relationship World remains the sole Product primary navigation while real Element RoomView, timeline, composer and Matrix session remain authoritative.",
+      "AI_ASSIST human approval/rejection/revision uses existing Store/director/outbox authority and explicit mature approval/rejection contracts.",
+      "AI_ASSIST final physical send is only the real Element send Promise; it must never dispatch OUTBOX_SEND_CONFIRMED or enter SendQueue in parallel.",
+      "The Store-owned Element-send preflight reuses existing approved-human, archived-customer, account-can-attempt-send, stale-conversation and language guards without creating a second send state machine.",
+      "Only a resolved real Element send Promise may complete the AI_ASSIST outbox and persist candidate_sent Learning evidence; queue-local message_sent is never success evidence.",
+      "Exact Matrix event_id and room identity are retained in existing durable outbox metadata as the completion receipt; no new table or delivery store is created.",
+      "AI_AUTO remains on the existing OUTBOX_SEND_CONFIRMED -> aiReplyOutboxService -> SendQueue -> OUTBOX_SEND_RESULT authority with unchanged semantics.",
+      "Failure/retry remains Element-owned and cannot create successful Product learning evidence.",
+      "No duplicate Matrix event, no duplicate candidate_sent learning signal, and stale relationship/conversation/outbox binding fails closed."
+    ],
+    "forbiddenBehavior": [
+      "No txnId/LocalEchoUpdated Product completion state machine.",
+      "No Store mutation endpoint under workspace routes merely to stay inside the old scope.",
+      "No second composer, sender, retry queue, Matrix session, outbox, learning engine, route registry, translation engine or persistence subsystem.",
+      "No dependency, package, lockfile, workflow, database migration, credential, routing-policy or runtime-topology change.",
+      "No Product Exact Head, Product CI, RC or real UAT before the whole successor local closure and Windows Local Release Harness are GREEN."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_PINNED_ELEMENT_PROMISE_AND_EXISTING_STORE_OUTBOX_RESULT_AUTHORITY_THROUGH_THIN_PRODUCT_PROJECTION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Pinned Element real composer/send",
+        "source": "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Already owns both real text composers, physical Matrix send Promise, retry UX and real timeline."
+      },
+      {
+        "name": "Existing Yance Store Reply Brain/Outbox",
+        "source": "backend/routes/store.js + backend/store/commands/registerAiReplyCommands.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns approval, stale-context/account/customer/language send guards, outbox persistence, send result and learning transaction semantics."
+      },
+      {
+        "name": "Existing Reply Brain feedback regression",
+        "source": "backend/tests/replyFeedbackClosedLoop.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-existing-test-owner",
+        "fit": "FIT",
+        "reason": "Directly proves OUTBOX_SEND_RESULT success/failure to Learning behavior and is the narrow regression owner for Matrix completion receipt preservation."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not revive Product-managed txn/local-echo completion lifecycle.",
+      "Do not route Store state mutation through backend/routes/workspace.js.",
+      "Do not modify AI_AUTO physical send ownership."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "authorization": [
+      "base is exact trusted main 736f5a53107d47d5c22a94814f4c917269858c7c",
+      "authorization diff is exactly governance/layered-ci/v21-product-final-successor-v14-stage3-reply-brain-completion-authorization.json",
+      "authorization path-set SHA-256 is e883d1df7816463c1ee216021ef906f3817e5ce30bc1887e5142f603a6d5d0df",
+      "supersedes has exactly authorizationPath, implementationBranch and reason",
+      "implementation path count is 43 and path-set SHA-256 is c6ed5226fbb220a41dcc2cee86436ea7afdbd24c839b577ec79e587bc2613409",
+      "newly authorized path count is 3 and contains only backend/routes/store.js, backend/store/commands/registerAiReplyCommands.js, backend/tests/replyFeedbackClosedLoop.test.js"
+    ],
+    "implementationBeforeExactHead": [
+      "exact current local Product bytes are obtained before mutation",
+      "whole 43-path same-root local causal batch is closed without filler paths",
+      "directly affected focused tests and git diff --check are GREEN",
+      "AI_AUTO preservation regression is GREEN",
+      "real Element send/translation/pre-send/no-duplicate completion contracts are GREEN",
+      "mandatory Windows Local Release Harness is GREEN at 100%, 125% and 150%"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
