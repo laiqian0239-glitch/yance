@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-SUCCESSOR-V15-DATA-PROTECTION-RESTORE",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Product Final Controller V5.288 exact-source adjudication proved the preserved V14 candidate regressed the already-mature active Product data-protection projection: current ProductSystemSettingsSurface exposes only backup count/create while existing repository authority already owns backup verify/stage/cancel/history/retention, portable backup lifecycle/import/export and restart execution semantics. This successor preserves the locally closed cumulative V14 candidate, changes no backend/recovery/Electron authority, and authorizes only the thin Product projection repair before the final stable-candidate Windows harness.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v14-stage3-reply-brain-completion-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v14",
+    "reason": "V14 remains immutable authorization and consumed local evidence for the AI_ASSIST Element-send completion root. V15 preserves those exact candidate bytes while activating the separate data-protection Product reachability regression proven by exact current source."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "22b99203ce023b7ad75c3f41f73b1f3b8e072df3",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "22b99203ce023b7ad75c3f41f73b1f3b8e072df3",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v15-data-protection-restore-portable-reachability-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v15-data-protection-restore-portable-reachability-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "57997e615af316b481734cc0881a56bf56410f5e6e66c86aa8be6a8c65e4d68f",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v15",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/routes/workspace.js",
+      "backend/services/workspaceService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 43,
+    "approvedChangedFileSetSha256": "c6ed5226fbb220a41dcc2cee86436ea7afdbd24c839b577ec79e587bc2613409",
+    "currentRootMutationPaths": [
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+    ],
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "product": "PRODUCT_FINAL / DATA_PROTECTION / RESTORE_PORTABLE_REACHABILITY_REGRESSION",
+    "scopeBoundary": "CURRENT_V14_PRODUCT_SETTINGS / THIN_DATA_PROTECTION_PROJECTION_DROPPED",
+    "directEvidence": "Exact uploaded current ProductSystemSettingsSurface SHA256 1bb2d03fed2b75600200cc6a07cfc70693c4ed22b9ad995fd8acddf0b2f99869 reads existing Product data-protection state but renders only backup count and create-backup. It does not expose verify-backup, staged restore, pending/cancel restore, restore history/retention, portable backup lifecycle/import/export, or restart execution of a staged restore. Existing backend/routes/system.js, electron/r32StoreBridge.js, electron/preload.js and electron/main.js already own all required data/recovery/file-custody/restart semantics; tests/wp0/v21-product-system-settings-reachability-p1.test.js is the existing active-Product regression owner.",
+    "requiredRepair": "Restore only the ProductSystemSettingsSurface projection of the existing data-protection state/actions and Electron portable-file/restart seams. Preserve backend recovery, encrypted portable backup, file custody and restart authorities unchanged."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.288",
+    "controllerCommentId": 5562503170,
+    "freshMain": "22b99203ce023b7ad75c3f41f73b1f3b8e072df3",
+    "uploadedExactSourceArchiveSha256": "fe37f6813bc01b031c893c51178d16ebe9a8381931c34d792e607927fad2dba9",
+    "exactCurrentProductSettingsSha256": "1bb2d03fed2b75600200cc6a07cfc70693c4ed22b9ad995fd8acddf0b2f99869",
+    "preservedV14FocusedGreen": true,
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "Active Product system settings reads the existing product data-protection state and exposes ordinary-user backup count, restore state, restore history and retention truth without a second store.",
+      "Existing backup lifecycle remains create -> verify -> stage restore; Product must not enable staged restore for a selected ordinary backup until verification for that exact selection succeeds.",
+      "Pending staged restore remains visible and cancelable. The explicit restart action warns that restart executes the staged restore and protective backup, then calls the existing Electron restartApp authority.",
+      "Portable backup import/export uses existing Electron file custody only; renderer never receives filesystem authority beyond the existing named methods.",
+      "Portable backup create/verify/stage/delete reuses existing authenticated fixed Store bridge actions. Passphrases remain ephemeral renderer input and are cleared after use.",
+      "No backend recovery, encryption, file-custody, IPC framework or persistence authority is replaced."
+    ],
+    "forbiddenBehavior": [
+      "No second backup/recovery/encryption engine, restore state machine, filesystem bridge or generic arbitrary-route bridge.",
+      "No backend route/service, Electron main/preload/bridge, database, migration, dependency, package, lockfile, workflow, routing policy or runtime topology mutation for this root.",
+      "Do not reintroduce retired frontend System Center as Product authority.",
+      "Do not import Reply Brain, notification-sound, Groups or safe/degraded distinct roots into this causal batch.",
+      "No Product Exact Head, Product CI, RC or real UAT until all known Stage-3 Product roots are locally closed and the single final mature-authority Windows harness is GREEN."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_DATA_PROTECTION_BRIDGE_AND_ELECTRON_FILE_CUSTODY_THROUGH_THIN_PRODUCT_PROJECTION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Product data-protection Store bridge",
+        "source": "electron/r32StoreBridge.js + backend/routes/system.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns the fixed authenticated backup/restore/portable action set and authoritative state."
+      },
+      {
+        "name": "Existing Electron portable file custody and restart",
+        "source": "electron/preload.js + electron/main.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns portable backup file picker/export and bounded application restart; Product needs only the typed calls."
+      },
+      {
+        "name": "Existing active-Product regression owner",
+        "source": "tests/wp0/v21-product-system-settings-reachability-p1.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "preserve-existing-test-owner",
+        "fit": "FIT",
+        "reason": "Already asserts active Element Product portable backup, verification and staged/cancelled restore reachability and forbids relying on retired frontend surfaces."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not restore the old engineering-oriented System Center wholesale.",
+      "Do not create a new recovery API or renderer-held filesystem authority.",
+      "Do not mutate backend recovery semantics to make the Product UI convenient."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "authorization": [
+      "base is exact trusted main 22b99203ce023b7ad75c3f41f73b1f3b8e072df3",
+      "authorization diff is exactly governance/layered-ci/v21-product-final-successor-v15-data-protection-restore-portable-reachability-authorization.json",
+      "authorization path-set SHA-256 is 57997e615af316b481734cc0881a56bf56410f5e6e66c86aa8be6a8c65e4d68f",
+      "supersedes has exactly authorizationPath, implementationBranch and reason",
+      "implementation cumulative path count remains 43 and path-set SHA-256 remains c6ed5226fbb220a41dcc2cee86436ea7afdbd24c839b577ec79e587bc2613409",
+      "current root mutation path is exactly integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+    ],
+    "implementationBeforeFinalCandidate": [
+      "current ProductSystemSettingsSurface input SHA-256 is exactly 1bb2d03fed2b75600200cc6a07cfc70693c4ed22b9ad995fd8acddf0b2f99869 before mutation",
+      "existing tests/wp0/v21-product-system-settings-reachability-p1.test.js Product data-protection reachability contract passes after the repair",
+      "direct Product Final static regression for affected settings remains GREEN",
+      "targeted git diff --check is GREEN",
+      "V14 consumed focused GREEN is not rerun",
+      "no Windows harness is run until all remaining Stage-3 distinct roots are locally closed"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
