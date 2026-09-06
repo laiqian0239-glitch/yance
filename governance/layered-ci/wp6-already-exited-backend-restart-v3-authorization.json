@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "WP6-ALREADY-EXITED-BACKEND-RESTART-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing governance prerequisite after the WP6 already-exited controlled-restart root achieved focused local GREEN and real Windows source-Electron runtime acceptance, while repository policy already proved on frozen PR #1110 that delegated implementation authority must exist on trusted main before publishing an implementation Exact Head. This authorization preserves the already validated two-path bytes and inserts only the trusted-main branch authority required by existing governance.",
+  "base": {
+    "branch": "main",
+    "commit": "947f4d2b6381e9ed63218ab07b698ab0f4611ee7"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/wp6-already-exited-backend-restart-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/wp6-already-exited-backend-restart-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "b1846515b74155051d061aa2ba0debfb3a7aeb0c3efb921b9991707210e4fda9",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/wp6-already-exited-backend-restart-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "electron/main.js",
+      "tests/wp6/restart-stop-recovery-order.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "748d7c0bc217ffba3d98b574889ab1a8922e8bbbaaf71a09ce32e1ee49eb8d4b",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "productDefect": "WP6_CONTROLLED_RESTART / OWNER_EXIT_RECOVERY_BARRIER_MISSING / BASELINE_DISCARDED_BEFORE_DURABLE_OWNER_RELEASE",
+    "implementationAuthorizationDefect": "WP0_GOVERNANCE / DELEGATED_IMPLEMENTATION_BRANCH / TRUSTED_MAIN_AUTHORIZATION_REQUIRED_BEFORE_EXACT_HEAD",
+    "directEvidence": "Controller V5.224 accepts the WP6 production root as locally validated and Windows-runtime accepted. Frozen V6 proof reached the intended NO_BASELINE already-exited window, crossed existing owner-exit recovery, returned runtimeStop.requested=false / confirmed=false / backendExited=true with stopResolution.resolved=true / noStopOperation=true, and produced a trusted replacement owner. Its only RED was the proof-only strict assertion stopResolution.forced===false even though the canonical RuntimeProjectionCoordinator contract returns noStopOperation without a forced field when no stop operation exists. Frozen PR #1110 independently proved trusted-main authorization is required before delegated implementation publication.",
+    "requiredRepair": "Merge this one-file authorization by ordinary two-parent merge, then materialize the already validated two implementation/test bytes on fix/wp6-already-exited-backend-restart-v3 from that exact merge commit as one successor Exact Head."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.224",
+    "controllerCommentId": 5556429073,
+    "freshMain": "947f4d2b6381e9ed63218ab07b698ab0f4611ee7",
+    "localCandidateBranch": "fix/wp6-already-exited-backend-restart-v2",
+    "localCandidateHead": "947f4d2b6381e9ed63218ab07b698ab0f4611ee7",
+    "implementationPathCount": 2,
+    "implementationPathSetSha256": "748d7c0bc217ffba3d98b574889ab1a8922e8bbbaaf71a09ce32e1ee49eb8d4b",
+    "focusedOwnerExitBarrierClosureFrozenGreen": true,
+    "windowsRuntimeAccepted": true,
+    "consumedProofRoots": [
+      "wp6-already-exited-v4-20260906T020123925",
+      "wp6-already-exited-v5-20260906T022231142",
+      "wp6-already-exited-v6-20260906T023809038"
+    ],
+    "v6AcceptedFacts": {
+      "runtimeStopRequested": false,
+      "runtimeStopConfirmed": false,
+      "runtimeStopBackendExited": true,
+      "stopResolutionResolved": true,
+      "stopResolutionNoStopOperation": true,
+      "replacementBackendPid": 36532,
+      "replacementCredentialGeneration": 3,
+      "wp6RuntimeBaselineRequiredReproduced": false
+    },
+    "noFurtherRuntimeProofRequired": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BACKEND_EXIT_OWNER_RECOVERY_AND_RUNTIME_PROJECTION_STOP_AUTHORITIES_WITH_A_THIN_SERIALIZATION_BARRIER",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing BackendProcessHost plus DesktopCredentialApplicationCoordinator owner-exit recovery authority",
+        "source": "electron/desktopHost/BackendProcessHost.js and electron/desktopHost/DesktopCredentialApplicationCoordinator.js on trusted main",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "These existing lifecycle owners already perform durable backend owner-exit observation and credential authority recovery. The accepted implementation only waits for that existing operation before classifying the no-baseline controlled-restart state."
+      },
+      {
+        "name": "Existing RuntimeProjectionCoordinator stop authority",
+        "source": "electron/desktopHost/RuntimeProjectionCoordinator.js on trusted main",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It remains the sole Runtime API v2 stop-operation authority, including no-stop-operation resolution when a backend has already exited. The repair does not create or submit a second stop operation."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not create a second backend restart state machine, process owner registry, credential owner-recovery engine, mutex, lease, fencing or retry authority.",
+      "Do not widen credential, FD5, hydration or backend startup timeouts as compensation for restart ordering.",
+      "Do not reinterpret Product entitlement state as backend trusted-owner readiness.",
+      "Do not require a synthetic forced=false field when canonical noStopOperation=true proves that no stop custody existed to force.",
+      "Reuse the current handleBackendExit and owner-exit recovery promise as the only serialization barrier."
+    ]
+  },
+  "requiredBehavior": [
+    "After an unexpected backend exit discards the Runtime API v2 baseline, controlled restart waits for the already-running owner-exit recovery authority before re-reading backend ownership.",
+    "If no trusted baseline remains and authoritative ownership is absent after recovery, controlled restart projects backendExited=true and does not submit another Runtime API v2 stop.",
+    "If ownership remains present after recovery, controlled restart remains fail-closed with WP6_RUNTIME_BASELINE_REQUIRED.",
+    "If a trusted owner is present, the normal Runtime API v2 stop authority remains in control.",
+    "Already-exited restart must not be classified as forced; canonical noStopOperation=true is an accepted no-force representation.",
+    "Exactly one replacement owner becomes trusted-ready without duplicate Product/runtime infrastructure."
+  ],
+  "negativeProofs": [
+    "This authorization commit contains no production, test, workflow, package, lockfile, database, credential or routing-policy mutation.",
+    "Do not commit or publish the current local v2 implementation branch; it remains frozen local evidence.",
+    "Do not rerun V5.216, V5.220 or V6 Windows proofs.",
+    "Do not rerun consumed focused tests merely because governance is inserted beneath byte-identical implementation.",
+    "No Product successor-v13 mutation, Product Exact Head, RC or real UAT is authorized by this prerequisite."
+  ],
+  "requiredValidation": {
+    "authorization": [
+      "base is exact trusted main 947f4d2b6381e9ed63218ab07b698ab0f4611ee7",
+      "diff is exactly this one new governance authorization JSON",
+      "authorization path-set SHA-256 is b1846515b74155051d061aa2ba0debfb3a7aeb0c3efb921b9991707210e4fda9",
+      "selectedAdoptionMode is existing-repository-seam and complete ossFit evidence including retireOrAvoid is present",
+      "successor implementation branch is fix/wp6-already-exited-backend-restart-v3",
+      "implementation path count is 2 and path-set SHA-256 is 748d7c0bc217ffba3d98b574889ab1a8922e8bbbaaf71a09ce32e1ee49eb8d4b"
+    ],
+    "implementationBeforePromotion": [
+      "start the successor implementation branch only from this authorization ordinary merge commit",
+      "materialize byte-identical reviewed production/test changes from the frozen local v2 candidate",
+      "prove exact two-path and byte equivalence before producing one successor Exact Head",
+      "reuse consumed focused and Windows runtime evidence when implementation bytes are identical",
+      "consume one successor implementation CI only; GREEN merges immediately"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
