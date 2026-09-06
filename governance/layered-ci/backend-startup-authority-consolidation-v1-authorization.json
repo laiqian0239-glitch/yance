@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "BACKEND-STARTUP-AUTHORITY-CONSOLIDATION-V2",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing governance prerequisite after frozen implementation PR #1110 proved that the already locally and Windows-runtime validated backend authority-consolidation bytes were created on an implementation branch that had no delegated authorization on trusted main. Reuse the repository's existing delegated-authorization authority; do not weaken WP0 and do not change production semantics in this authorization commit.",
+  "base": {
+    "branch": "main",
+    "commit": "3550bc811a7dd88b86da3884385fff4442e068b9"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true
+  },
+  "authorizationBranch": {
+    "name": "governance/backend-startup-authority-consolidation-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/backend-startup-authority-consolidation-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "068c5d1a24bb71ae150aff1ff55d052dddf198f4bec428f286c0d7a6b0e70df1",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/backend-startup-authority-consolidation-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/desktopHostedEntry.js",
+      "backend/runtime/BootCoordinator.js",
+      "backend/runtime/RuntimeOwnership.js",
+      "tests/wp0/v21-boot-critical-path-event-loop-p0.test.js",
+      "tests/wp3/m3-runtime-ownership-liveness.test.js",
+      "tests/wp4/backend-launch-environment-and-phase-diagnostics.test.js"
+    ],
+    "approvedChangedFileCount": 6,
+    "approvedChangedFileSetSha256": "a6e087aa968c2715fe28faf615646412dc865ac209868ace535bd78ba6523aea",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "productDefect": "BACKEND_STARTUP / DUPLICATE_PROCESS_EXCLUSION_AUTHORITY / PROPER_LOCKFILE_STALE_WINDOW_BLOCKS_CRASH_RESTART",
+    "implementationAuthorizationDefect": "WP0_GOVERNANCE / DELEGATED_IMPLEMENTATION_BRANCH / TRUSTED_MAIN_AUTHORIZATION_MISSING",
+    "directEvidence": "Frozen Exact Head fa592ffaa9af0037ffab9b7b4ffe9b0f53e6dd68 on PR #1110 passed local 31/31 focused validation and one fresh Windows automatic crash-restart proof, but automatic CI run 34003466740 job 101406374372 failed exactly one of 769 WP0 tests: tests/wp0/implementation-branch-policy.test.js rejected fix/backend-startup-authority-consolidation-v1 because trusted main contains no delegated implementation authorization for that branch. wp0-route and all non-governance production evidence remained GREEN.",
+    "requiredRepair": "Merge this one-file delegated authorization by ordinary two-parent merge, then materialize the already reviewed six implementation/test bytes on fix/backend-startup-authority-consolidation-v2 from that authorization merge commit as one successor Exact Head."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.211",
+    "controllerCommentId": 5556050861,
+    "freshMain": "3550bc811a7dd88b86da3884385fff4442e068b9",
+    "frozenImplementationRed": {
+      "pullRequest": 1110,
+      "head": "fa592ffaa9af0037ffab9b7b4ffe9b0f53e6dd68",
+      "run": 34003466740,
+      "job": 101406374372,
+      "exactFailure": "implementation-branch-policy current repository branch gate returned pass=false because the implementation branch lacked trusted-main delegated authorization"
+    },
+    "frozenImplementationPathCount": 6,
+    "frozenImplementationPathSetSha256": "a6e087aa968c2715fe28faf615646412dc865ac209868ace535bd78ba6523aea",
+    "localFocusedClosureFrozenGreen": true,
+    "localFocusedPassCount": 31,
+    "windowsAutomaticCrashRestartFrozenGreen": true,
+    "automaticRestartScheduleCount": 1,
+    "automaticReplacementLaunchCount": 1,
+    "automaticReplacementTrustedReadyCount": 1,
+    "bootRuntimeMutexHeldObserved": false,
+    "credentialIpcWriteTimeoutObserved": false,
+    "explicitRendererRestartBackendInvocationCount": 0,
+    "abandonedCompensationCandidates": [
+      "V5.202 four-path mutex recovery",
+      "V5.204 three-path credential timeout widening"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_AUTHORITY_WRITE_HOST_AND_SQLITE_OWNERSHIP_AS_CANONICAL_PROCESS_EXCLUSION_AND_REMOVE_DUPLICATE_PRODUCTION_NAMED_RUNTIME_MUTEX",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing AuthorityWriteHost plus sqliteOwnership authority",
+        "source": "backend/services/authorityWriteHost.js and the existing SQLite ownership seam on trusted main",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This is already the canonical writable SQLite authority used by desktop-hosted production, with exact-path ownership, live-owner denial and dead-owner/PID-reuse recovery semantics. The implementation should delegate physical process exclusion to it rather than stack another production lock owner in front."
+      },
+      {
+        "name": "proper-lockfile runtime mutex authority",
+        "source": "proper-lockfile 4.1.2 already pinned in package-lock.json and used by backend/runtime/NamedRuntimeMutex.js",
+        "license": "MIT",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "PARTIAL_FIT",
+        "reason": "It remains a mature lock authority for standalone or legacy RuntimeOwnership paths that do not already hold AuthorityWriteHost. It is not the correct second production pre-gate when AuthorityWriteHost already owns the same canonical runtime target, because its independent stale window delayed immediate crash replacement."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not stack a production NamedRuntimeMutex/proper-lockfile pre-gate in front of AuthorityWriteHost for the same desktop-hosted SQLite target.",
+      "Do not create a custom stale-lock deletion or recovery subsystem.",
+      "Do not add another owner, lease, fencing, retry, process-supervisor or credential-consumer state machine.",
+      "Do not widen credential/FD5 timeouts as compensation for a duplicate lock authority.",
+      "Preserve the existing runtime lease/fencing as subordinate runtime-state authority and preserve NamedRuntimeMutex where no AuthorityWriteHost capability is present."
+    ]
+  },
+  "requiredBehavior": [
+    "Desktop-hosted production acquires the canonical AuthorityWriteHost/SQLite ownership authority without first acquiring a second NamedRuntimeMutex for the same target.",
+    "BootCoordinator passes the existing branded AuthorityWriteHost capability into RuntimeOwnership when the SQLite broker is already composed.",
+    "RuntimeOwnership validates the branded capability and exact dbPath, rejects simultaneous second-mutex injection, and retains its subordinate runtime lease/fencing behavior.",
+    "Standalone RuntimeOwnership without an AuthorityWriteHost capability continues to use the existing NamedRuntimeMutex/proper-lockfile authority.",
+    "A live competing backend remains fail-closed, while a forced old-backend crash permits exactly one automatic replacement launch and trusted-ready transition without BOOT_RUNTIME_MUTEX_HELD or CREDENTIAL_IPC_WRITE_TIMEOUT.",
+    "Credential protocol, credential persistence and credential timeout code remain unchanged."
+  ],
+  "negativeProofs": [
+    "This authorization commit contains no production, test, workflow, package, lockfile, database, credential or routing-policy mutation.",
+    "Do not amend, force-push, rerun or merge frozen PR #1110 / Exact Head fa592ffaa9af0037ffab9b7b4ffe9b0f53e6dd68.",
+    "Do not replay V5.202 or V5.204 compensation candidates.",
+    "Do not rerun the consumed 31/31 focused local tests or V5.208 Windows automatic crash-restart proof merely because this governance prerequisite is inserted underneath identical implementation bytes.",
+    "No Product successor-v13 mutation, Product Exact Head, RC or real UAT is authorized by this prerequisite."
+  ],
+  "requiredValidation": {
+    "authorization": [
+      "base is exact trusted main 3550bc811a7dd88b86da3884385fff4442e068b9",
+      "diff is exactly this one new governance authorization JSON",
+      "authorization path-set SHA-256 is 068c5d1a24bb71ae150aff1ff55d052dddf198f4bec428f286c0d7a6b0e70df1",
+      "selectedAdoptionMode is existing-repository-seam and complete ossFit evidence is present",
+      "successor implementation branch is fix/backend-startup-authority-consolidation-v2",
+      "implementation path count is 6 and path-set SHA-256 is a6e087aa968c2715fe28faf615646412dc865ac209868ace535bd78ba6523aea"
+    ],
+    "implementationBeforePromotion": [
+      "start the successor implementation branch only from this authorization ordinary merge commit",
+      "materialize byte-identical reviewed production/test changes from the frozen v1 head without replaying abandoned compensation candidates",
+      "prove exact six-path and byte equivalence before producing one successor Exact Head",
+      "reuse consumed local focused and Windows runtime evidence when implementation bytes are identical; run only genuinely new validation required by the changed base/governance contract",
+      "consume one successor implementation CI only; GREEN merges immediately"
+    ]
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
