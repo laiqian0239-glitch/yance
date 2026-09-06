@@ -5,8 +5,9 @@ This file is durable, repository-level execution guidance for AI/coding agents w
 ## Precedence
 
 1. Trusted repository policy/code and merged governance authorizations are authoritative.
-2. Exact branch-scoped authorization and base-owned policy contracts override this document when they are more specific.
-3. This document never grants implementation or merge authority by itself.
+2. Exact branch-scoped authorization and base-owned policy contracts override this document when they are more specific about scope, evidence, topology, safety, or merge authority.
+3. The execution-method invariants in **First execution principle — shortest path to Release** are repository-global defaults and MUST NOT be weakened by issue/controller comments, chat/session summaries, ad-hoc scripts, temporary helper instructions, work-package handoffs, or lower-level process documents. Relaxing one of those execution-method invariants requires an explicit merged change to this file authorized by the owner; a later comment or helper cannot silently override it.
+4. This document never grants implementation or merge authority by itself.
 
 ## First execution principle — shortest path to Release (mandatory)
 
@@ -26,6 +27,11 @@ HARNESS_ROLE=validator_not_product
 HELPER_INFRASTRUCTURE_DRIFT=forbidden
 REOPEN_CONSUMED_GREEN=forbidden
 CONTROLLER_VERSION_GROWTH_IS_PROGRESS=false
+EXACT_SOURCE_BEFORE_PRODUCT_MUTATION=mandatory
+SPECULATIVE_LOCAL_PATCH_LOOP=forbidden
+USER_MACHINE_ROLE=deterministic_apply_or_required_windows_proof
+SAME_PURPOSE_HELPER_RED_RETRY=forbidden
+PRELAUNCH_HELPER_RED_IS_PRODUCT_REGRESSION=false
 ```
 
 Before executing any action, answer all of the following:
@@ -36,6 +42,8 @@ Before executing any action, answer all of the following:
 4. Can the risk be proved locally without creating a new SHA, CI run, RC, artifact, or user-operated debugging loop?
 5. Is the evidence already available from GitHub, an existing local proof, source/diff inspection, or a previously consumed GREEN/RED?
 6. Is this action creating a second authority, helper framework, proof framework, workspace emulator, build-system emulator, package-manager emulator, runtime supervisor, route registry, translation engine, state machine, or other general-purpose infrastructure that the mature owner already provides?
+7. If the mutation depends on local worktree bytes, do I have the exact current bytes? If not, stop and obtain the exact file bytes once instead of testing formatting/path/source-shape guesses on the user's machine.
+8. Is any requested local command deterministic and pre-reviewed against its exact inputs, or is it merely discovering the next assumption? If it is exploratory, do not send it to the user.
 
 If an action does not directly advance the current production causal batch, close a real authorization boundary, or produce a required promotion proof, do not do it.
 
@@ -54,6 +62,20 @@ If an action does not directly advance the current production causal batch, clos
 - Do not rebuild a mature upstream distribution when the affected Product contract is a thin module/projection seam and the mature runtime can be reused.
 - Do not use CI or Windows UAT to discover bugs that source inspection, focused local tests, fixtures, or Local Release Harness can prove first.
 
+### Exact-source and user-operator containment (non-waivable execution invariant)
+
+These rules exist specifically to prevent repeated local trial-and-error from replacing engineering work:
+
+- When the current local worktree bytes are the mutation authority, obtain those exact bytes before designing the mutation. Connector-visible `main`, screenshots, console excerpts, remembered line shapes, and partial source snippets are not substitutes for the exact local file.
+- If exact local bytes are not directly accessible to the agent, ask for the relevant file(s) to be uploaded once. Do not ask the user to run successive `Get-Content`, regex, matcher, path-discovery, or source-shape scripts merely to reconstruct a file indirectly.
+- Never send a speculative patch/matcher to the user's machine to discover whether a source shape happens to match. Build and inspect the exact patch against exact input bytes first; only then may a local command apply that pre-reviewed deterministic patch.
+- A local mutation command must have fixed authorized paths, fixed expected input identity or exact uploaded bytes, deterministic transformation semantics, and explicit postconditions before it is sent. If those conditions are not known, the command is not ready.
+- A helper/matcher/script RED caused by source formatting, path assumptions, shell/PowerShell binding, staging topology, or helper logic is **not Product RED**. Freeze it as helper evidence and do not rerun or replace it with another same-purpose speculative helper. Re-anchor on exact source/authority before any further local action.
+- After one same-purpose helper RED, the next user-operated action for that root cause must be either (a) application of an exact pre-reviewed production patch, or (b) a required real Windows/runtime proof. Another exploratory helper iteration is forbidden.
+- A pre-launch helper failure cannot reclassify a previously proven login/startup/runtime capability as regressed. A Product regression requires Product/runtime evidence at the affected authority, not a failed mutation helper.
+- The user's Windows machine is a final local executor and real-Windows proof surface, not a debugger for agent assumptions. Remote/source/GitHub/upstream reasoning must be exhausted first.
+- Repeated local command loops without a production diff or promotion-state advance are a controller failure. Stop the loop and redesign the execution path instead of asking for another retry.
+
 ### Release velocity correction — mandatory operating direction
 
 The main causes of slow release closure are execution drift, not lack of activity. Treat these as stop-signs:
@@ -61,7 +83,9 @@ The main causes of slow release closure are execution drift, not lack of activit
 - repeated controller-state/comment growth without a corresponding production diff or promotion-state advance;
 - repeated re-reading or rerunning of consumed evidence;
 - turning the user into a shell executor for hypotheses that can be settled by GitHub/source/upstream inspection first;
+- more than one user-operated helper attempt for the same production mutation without producing the intended production diff;
 - serial helper/harness iterations that each expose another setup problem instead of the Product root cause;
+- classifying a pre-launch helper or patch-program failure as a Product/login/runtime regression without runtime evidence;
 - manually simulating a mature upstream workspace/build/runtime contract without first reading the complete owner contract;
 - broad rebuilds, package acquisition, environment repair, or capability census when the current root cause has already narrowed to a small Product seam;
 - creating additional prerequisite, governance, helper, proof, or framework work that does not close a real authorization boundary or shorten the Release path.
@@ -73,7 +97,8 @@ fresh controller/main evidence
 -> lock one root cause
 -> exhaust same-root risk from existing authority/source evidence
 -> select mature upstream/repository authority
--> make one cohesive authorized production causal batch
+-> obtain exact mutation source bytes when local bytes are authoritative
+-> make and review one cohesive authorized production causal batch
 -> focused local proof + affected-risk Local Release Harness
 -> one Exact Head
 -> one CI event
@@ -87,6 +112,8 @@ Operational consequences:
 
 - Controller State versions are bookkeeping, not progress. Progress is measured only by production causal closure and promotion state.
 - Once the root cause is sufficiently proven, stop diagnostic expansion and produce the production diff.
+- When exact local bytes are needed, obtain them directly or by one file upload before mutation; never substitute repeated operator-run discovery scripts.
+- Before any user-operated mutation command, the patch must already be exact, reviewed against exact bytes, and limited to authorized paths. The user's machine applies/proves; it does not discover the patch.
 - Once local closure is GREEN, do not add “one more” helper, census, rebuild, or speculative proof before Exact Head.
 - One Exact Head should receive one equivalent validation event. Never rerun the same CI merely for reassurance.
 - One production candidate should produce one RC and one final Windows UAT unless a genuine new Product bug invalidates candidate bytes.
@@ -100,6 +127,7 @@ Operational consequences:
 - Do not use temporary bypasses, validation weakening, placeholder evidence, permissive fallbacks, renamed fallbacks, or ancestry tricks. Root-fix the underlying contract or implementation.
 - Prefer mature OSS as a whole over new Yance-built infrastructure. Any new Yance infrastructure must first satisfy the repository's V2.1 OSS-fit admission requirements.
 - Use GitHub connector/API operations for repository work whenever possible. Ask for local-machine commands only when the connector cannot perform the required operation; keep local commands minimal and avoid disturbing unrelated local staged/working-tree changes.
+- When the connector cannot see the exact dirty/local mutation bytes, prefer one direct file upload over an operator-driven series of shell probes. Do not reconstruct exact source through trial-and-error commands.
 
 ## Fast Landing Execution Mode (mandatory)
 
