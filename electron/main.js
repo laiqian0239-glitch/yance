@@ -1219,6 +1219,7 @@ function backendOwnershipPresent() {
 }
 let rendererWorkState = { unsavedChanges: false, pendingReplyApproval: false, detail: '' };
 let backendObservationChild = null;
+let backendExitHandlingPromise = null;
 let relaunchPending = false;
 let backendReady = false;
 let backendPid = 0;
@@ -2847,7 +2848,15 @@ function startBackendProcessForCoordinator(options = {}) {
       });
       supervisor.observeError(error);
     });
-    child.once('exit', (code, signal) => { handleBackendExit(child, code, signal).catch(error => desktopLog('error', 'backend-exit-handler-failed', { code: error.reasonCode || error.code || '', error: error.message })); });
+    child.once('exit', (code, signal) => {
+      const exitHandling = handleBackendExit(child, code, signal);
+      backendExitHandlingPromise = exitHandling;
+      exitHandling
+        .catch(error => desktopLog('error', 'backend-exit-handler-failed', { code: error.reasonCode || error.code || '', error: error.message }))
+        .finally(() => {
+          if (backendExitHandlingPromise === exitHandling) backendExitHandlingPromise = null;
+        });
+    });
 
     try {
       const readyResult = await supervisor.start();
@@ -2922,8 +2931,13 @@ async function stopBackendProcessForCoordinator(options = {}) {
 }
 
 async function requestApiV2Stop(options = {}) {
+  const pendingExitHandling = backendExitHandlingPromise;
+  if (pendingExitHandling) await pendingExitHandling;
   const projection = runtimeProjectionCoordinator?.snapshot?.();
   if (!projection?.trustedOwnerBound) {
+    if (authoritativeBackend().ownershipPresent !== true) {
+      return { requested: false, confirmed: false, backendExited: true };
+    }
     return { requested: false, confirmed: false, reasonCode: 'WP6_RUNTIME_BASELINE_REQUIRED' };
   }
   const reason = options.reason || 'desktop-runtime-stop';
@@ -3008,7 +3022,7 @@ async function restartBackend(options = {}) {
       stopped: true,
       exitConfirmed: true,
       alreadyStopped: runtimeStop.backendExited === true,
-      forced: runtimeStop.confirmed !== true,
+      forced: runtimeStop.confirmed !== true && runtimeStop.backendExited !== true,
       backendPid: Number(runtimeProjectionCoordinator.snapshot().stopOperation?.ownerBinding?.backendPid || 0)
     });
     return finalizeTrustedBackendReady({ ...result, runtimeStop, stopResolution });
