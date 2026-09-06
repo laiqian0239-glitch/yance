@@ -8,6 +8,91 @@ This file is durable, repository-level execution guidance for AI/coding agents w
 2. Exact branch-scoped authorization and base-owned policy contracts override this document when they are more specific.
 3. This document never grants implementation or merge authority by itself.
 
+## First execution principle — shortest path to Release (mandatory)
+
+This is the highest-priority default execution rule in this repository. Apply it before every action, in every new chat/session, and again whenever a work package has accumulated multiple diagnostic or harness steps. It never overrides a more-specific trusted authorization or safety/policy contract; within those boundaries, it decides which allowed action is worth doing next.
+
+Stable policy markers:
+
+```text
+FIRST_EXECUTION_RULE=mature_authority_then_thin_integration_then_direct_product_diff
+RELEASE_PROGRESS_UNIT=production_diff_to_local_closure_to_exact_head_to_ci_to_merge_to_rc_to_windows_uat_to_release
+ONE_ROOT_ONE_BATCH_ONE_HEAD=mandatory
+LOCAL_FIRST=mandatory
+EVIDENCE_REUSE=mandatory
+CI_ROLE=validator_not_debugger
+UAT_ROLE=final_proof_not_debugger
+HARNESS_ROLE=validator_not_product
+HELPER_INFRASTRUCTURE_DRIFT=forbidden
+REOPEN_CONSUMED_GREEN=forbidden
+CONTROLLER_VERSION_GROWTH_IS_PROGRESS=false
+```
+
+Before executing any action, answer all of the following:
+
+1. Does this action directly shorten the causal path to Release?
+2. Is the current root cause already bounded tightly enough to produce or validate the real production diff?
+3. Has the relevant mature upstream or existing repository authority been read completely enough to avoid reimplementing its behavior?
+4. Can the risk be proved locally without creating a new SHA, CI run, RC, artifact, or user-operated debugging loop?
+5. Is the evidence already available from GitHub, an existing local proof, source/diff inspection, or a previously consumed GREEN/RED?
+6. Is this action creating a second authority, helper framework, proof framework, workspace emulator, build-system emulator, package-manager emulator, runtime supervisor, route registry, translation engine, state machine, or other general-purpose infrastructure that the mature owner already provides?
+
+If an action does not directly advance the current production causal batch, close a real authorization boundary, or produce a required promotion proof, do not do it.
+
+### Mature authority first / no self-reinvention
+
+- Read the pinned upstream and repository's existing production authority before designing a replacement, helper, or workaround.
+- Reuse the mature authority as a whole where practical. Prefer the existing public seam plus the thinnest Product projection/adapter.
+- Do not manually emulate package-manager/workspace resolution, Element/Matrix runtime behavior, process supervision, readiness/state machines, IPC, locking, transactions, persistence, migration, retry/recovery, routing, translation, Electron native integration, or other mature infrastructure merely to make a local proof convenient.
+- If the public seam genuinely does not exist, add only the narrowest additive seam required by the current root cause, within explicit authorization.
+- A validation convenience is never sufficient justification for new production or proof infrastructure.
+
+### Harness and helper containment
+
+- A harness validates the Product; it must not become another product, build system, dependency manager, workspace implementation, runtime authority, or long-lived helper framework.
+- When a harness/helper fails because of its own environment, materialization, path assumption, source-shape assumption, or operator flow, classify that as harness/helper RED, freeze the evidence, and return to the shortest mature-authority path. Do not start a chain of helper-on-helper repairs unless the helper itself is a required trusted production authority.
+- Do not rebuild a mature upstream distribution when the affected Product contract is a thin module/projection seam and the mature runtime can be reused.
+- Do not use CI or Windows UAT to discover bugs that source inspection, focused local tests, fixtures, or Local Release Harness can prove first.
+
+### Release velocity correction — mandatory operating direction
+
+The main causes of slow release closure are execution drift, not lack of activity. Treat these as stop-signs:
+
+- repeated controller-state/comment growth without a corresponding production diff or promotion-state advance;
+- repeated re-reading or rerunning of consumed evidence;
+- turning the user into a shell executor for hypotheses that can be settled by GitHub/source/upstream inspection first;
+- serial helper/harness iterations that each expose another setup problem instead of the Product root cause;
+- manually simulating a mature upstream workspace/build/runtime contract without first reading the complete owner contract;
+- broad rebuilds, package acquisition, environment repair, or capability census when the current root cause has already narrowed to a small Product seam;
+- creating additional prerequisite, governance, helper, proof, or framework work that does not close a real authorization boundary or shorten the Release path.
+
+The default optimal release path is therefore:
+
+```text
+fresh controller/main evidence
+-> lock one root cause
+-> exhaust same-root risk from existing authority/source evidence
+-> select mature upstream/repository authority
+-> make one cohesive authorized production causal batch
+-> focused local proof + affected-risk Local Release Harness
+-> one Exact Head
+-> one CI event
+-> GREEN => ordinary merge immediately
+-> one RC
+-> one real Windows UAT
+-> GREEN => Release immediately
+```
+
+Operational consequences:
+
+- Controller State versions are bookkeeping, not progress. Progress is measured only by production causal closure and promotion state.
+- Once the root cause is sufficiently proven, stop diagnostic expansion and produce the production diff.
+- Once local closure is GREEN, do not add “one more” helper, census, rebuild, or speculative proof before Exact Head.
+- One Exact Head should receive one equivalent validation event. Never rerun the same CI merely for reassurance.
+- One production candidate should produce one RC and one final Windows UAT unless a genuine new Product bug invalidates candidate bytes.
+- If UAT discovers a bug, close the Product root cause locally and improve the existing regression/harness seam that should have caught it; do not normalize UAT as the debugger.
+- Ask the user for Windows-local execution only when the required proof truly needs the user's machine. First settle all source, GitHub, upstream, diff, workflow, log, and authority questions that can be settled remotely, then provide one complete self-contained fail-fast script rather than an interactive sequence of exploratory commands.
+
 ## Default execution mode
 
 - Work in complete work packages and continue through dependent tasks without stopping for approval at every small Task.
