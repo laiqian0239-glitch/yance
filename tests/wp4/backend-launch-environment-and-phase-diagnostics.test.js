@@ -27,16 +27,77 @@ test('early boot phases expose only fixed safe reason codes and stack hashes', (
   }
 });
 
-test('desktop hosted backend acquires process ownership before any writable SQLite authority', () => {
-  const source = fs.readFileSync(path.resolve(__dirname, '../../backend/desktopHostedEntry.js'), 'utf8');
-  const construct = source.indexOf('new NamedRuntimeMutex');
-  const acquire = source.indexOf('await runtimeMutex.acquire()');
-  const authority = source.indexOf('acquireAuthorityWriteHost');
-  const broker = source.indexOf('createSqliteConnectionBroker');
-  assert.ok(construct >= 0 && acquire > construct, 'desktopHostedEntry must construct and acquire the OSS runtime mutex');
-  assert.ok(authority > acquire, 'AuthorityWriteHost must open only after process ownership');
-  assert.ok(broker > authority, 'SQLite broker must open only after process ownership and authority host');
-  assert.match(source, /initializeAppRuntime\(\{[\s\S]*?mutex:\s*runtimeMutex/u);
+test('desktop hosted backend delegates physical process exclusion to the canonical AuthorityWriteHost', () => {
+  const source = fs.readFileSync(
+    path.resolve(__dirname, '../../backend/desktopHostedEntry.js'),
+    'utf8'
+  );
+
+  const boot = fs.readFileSync(
+    path.resolve(__dirname, '../../backend/runtime/BootCoordinator.js'),
+    'utf8'
+  );
+
+  const ownership = fs.readFileSync(
+    path.resolve(__dirname, '../../backend/runtime/RuntimeOwnership.js'),
+    'utf8'
+  );
+
+  const authority =
+    source.indexOf('acquireAuthorityWriteHost');
+
+  const broker =
+    source.indexOf('createSqliteConnectionBroker');
+
+  const runtime =
+    source.indexOf('initializeAppRuntime');
+
+  assert.ok(
+    authority >= 0 &&
+    broker > authority &&
+    runtime > broker,
+    'AuthorityWriteHost must be the physical exclusion authority before broker/runtime composition'
+  );
+
+  assert.doesNotMatch(
+    source,
+    /new NamedRuntimeMutex|runtimeMutex\.acquire\s*\(/u
+  );
+
+  assert.doesNotMatch(
+    source,
+    /mutex:\s*runtimeMutex/u
+  );
+
+  assert.match(
+    source,
+    /initializeAppRuntime\(\{[\s\S]*?sqliteBroker/u
+  );
+
+  assert.match(
+    boot,
+    /authorityWriteHostCapability:\s*[\s\S]*this\.sqliteBroker\?\.authorityWriteHostCapability/u
+  );
+
+  assert.match(
+    boot,
+    /mutex:\s*this\.sqliteBroker\s*\?\s*undefined\s*:\s*this\.options\.mutex/u
+  );
+
+  assert.match(
+    ownership,
+    /requireAuthorityWriteHostCapability/u
+  );
+
+  assert.match(
+    ownership,
+    /this\.authorityWriteHostCapability[\s\S]*\?\s*null[\s\S]*new NamedRuntimeMutex/u
+  );
+
+  assert.match(
+    ownership,
+    /RUNTIME_PROCESS_EXCLUSION_AUTHORITY_CONFLICT/u
+  );
 });
 
 test('desktop hosted runtime wrapper preserves the bounded runtime subphase for parent diagnostics', () => {

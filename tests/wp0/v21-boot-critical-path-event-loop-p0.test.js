@@ -124,9 +124,15 @@ test('desktop-hosted backend remains inert until the startup frame is received',
   assertOrdered(source, [
     'await readStartupFrame(',
     'runBootPhase0Restore',
-    'new NamedRuntimeMutex',
     'acquireAuthorityWriteHost',
+    'createSqliteConnectionBroker',
     'initializeAppRuntime',
     'require(serverEntry)'
   ], 'desktopHostedEntry startup-frame authority boundary');
+
+  assert.doesNotMatch(
+    source,
+    /new NamedRuntimeMutex|runtimeMutex\.acquire\s*\(/u,
+    'desktop-hosted production must not place a second process mutex in front of AuthorityWriteHost'
+  );
 });
