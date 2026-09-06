@@ -55,10 +55,6 @@ async function bootDesktopHostedBackend(options = {}) {
   const primarySqlitePath = path.join(dataRoot, 'store', 'yance-r32.db');
   process.env.YANCE_PRIMARY_SQLITE_PATH = primarySqlitePath;
 
-  const { NamedRuntimeMutex } = require('./runtime/NamedRuntimeMutex');
-  const runtimeMutex = new NamedRuntimeMutex({ lockTarget: primarySqlitePath });
-  await runtimeMutex.acquire();
-
   let authorityWriteHost;
   let sqliteBroker;
   try {
@@ -76,7 +72,6 @@ async function bootDesktopHostedBackend(options = {}) {
   } catch (error) {
     try { sqliteBroker?.close(); } catch (_) {}
     try { authorityWriteHost?.close(); } catch (_) {}
-    await runtimeMutex.release().catch(() => {});
     throw phaseFailure(error, 'BOOT_SQLITE_BROKER_FAILED');
   }
   globalThis.__YANCE_STARTUP_RESTORE__ = startupRestore;
@@ -109,7 +104,6 @@ async function bootDesktopHostedBackend(options = {}) {
         context,
         requireCredentialHydration: true,
         sqliteBroker,
-        mutex: runtimeMutex,
         onCredentialHydrated(metadata) {
           try { sendParentLifecycleMessage({ type: 'backend:credential-hydrated', pid: process.pid, startupNonce: context.startupNonce, ...metadata }); } catch (_) {}
         }
@@ -117,15 +111,13 @@ async function bootDesktopHostedBackend(options = {}) {
     } catch (error) {
       try { sqliteBroker.checkpointAndClose(); } catch (_) {}
       try { authorityWriteHost.close(); } catch (_) {}
-      await runtimeMutex.release().catch(() => {});
-      throw phaseFailure(error, 'BOOT_RUNTIME_INITIALIZATION_FAILED');
+        throw phaseFailure(error, 'BOOT_RUNTIME_INITIALIZATION_FAILED');
     }
   }
   try {
     require(serverEntry);
   } catch (error) {
     await runtimeCoordinator?.stop('server-import-failed').catch(() => {});
-    if (!runtimeCoordinator) await runtimeMutex.release().catch(() => {});
     try { sqliteBroker.checkpointAndClose(); } catch (_) {}
     try { authorityWriteHost.close(); } catch (_) {}
     throw phaseFailure(error, 'BOOT_SERVER_IMPORT_FAILED');

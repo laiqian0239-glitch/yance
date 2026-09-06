@@ -57,7 +57,9 @@ class BootCoordinator {
       platform: this.options.platform,
       leaseDurationMs: this.options.leaseDurationMs,
       heartbeatIntervalMs: this.options.heartbeatIntervalMs,
-      mutex: this.options.mutex,
+      mutex: this.sqliteBroker ? undefined : this.options.mutex,
+      authorityWriteHostCapability:
+        this.sqliteBroker?.authorityWriteHostCapability || null,
       storeFactory: this.options.storeFactory || (this.sqliteBroker ? (storeOptions => {
         const r32Store = this.sqliteBroker.open();
         const { RuntimeStateStore } = require('./RuntimeStateStore');
