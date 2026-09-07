@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-V20-RUNTIME-SAFETY-INVENTORY",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "V19 authorized the final Stage-3 Product runtime-safety root, but pre-mutation same-root static closure proved that adding the required fixed Product safe-exit bridge channel also changes the existing WP2 command-path inventory contract. Without the two existing WP2 authority paths, the new store:* channel would be falsely classified as /api/r32/store/* even though its mature backend authority is recovery.prepareSafeModeExit through authenticated /api/core/command. V20 is therefore the same Root D successor authorization: it preserves the five V19 mutation paths and adds only tools/wp2/command-path-inventory.js plus tests/wp2/single-command-path.test.js so the complete seven-path causal batch can remain truthful and fail closed. No Product bytes were mutated under V19.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v19-runtime-safety-projection-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v19",
+    "reason": "V19 remains immutable merged authorization evidence. V20 widens only the same-root implementation path authorization before any Product mutation because the existing WP2 control-path inventory and its regression are direct consumers of the new fixed safe-exit bridge channel."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "29e063f972ea8b602750026dec88e580250e2a79",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "29e063f972ea8b602750026dec88e580250e2a79",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v20-runtime-safety-inventory-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v20-runtime-safety-inventory-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "e56179820012f80f3d3df0cf003f1ba98e3e13a276b20be19c4a3075a12b736d",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v20",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/routes/workspace.js",
+      "backend/services/telegramAdapter.js",
+      "backend/services/whatsappAdapter.js",
+      "backend/services/workspaceService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tests/wp2/single-command-path.test.js",
+      "tools/matrix/bootstrap.js",
+      "tools/wp2/command-path-inventory.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 47,
+    "approvedChangedFileSetSha256": "71740f65f67165779113c02adefc4cdb8b1d16838d3b85c07669063e24b5faee",
+    "currentRootMutationPaths": [
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp2/single-command-path.test.js",
+      "tools/wp2/command-path-inventory.js"
+    ],
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "rootCause": {
+    "product": "PRODUCT_FINAL / SAFE_DEGRADED_RUNTIME / ACTIONABLE_PRODUCT_PROJECTION_MISSING",
+    "scopeBoundary": "CURRENT_V18_PRODUCT_HOME / EXISTING_RUNTIME_SAFETY_AUTHORITY_NOT_ACTIONABLY_PROJECTED / WP2_CONTROL_PATH_TRUTHFULNESS",
+    "directEvidence": "Existing Product has no actionable safe/degraded/offline/backend-unready projection. V19 established that Runtime API v2, preload runtime events, restartBackend/restartApp/setOperatingMode, RecoveryManager.prepareSafeModeExit and authenticated r32StoreBridge are the mature owners. Pre-mutation inspection of tools/wp2/command-path-inventory.js and tests/wp2/single-command-path.test.js proved the fixed safe-exit channel is also consumed by the WP2 control-path truth contract: unknown store:* channels default to /api/r32/store/* and the current regression enforces that default except already-declared Product system classes.",
+    "requiredRepair": "Keep the V19 thin Product runtime projection and one fixed safe-exit receipt bridge. Extend the existing WP2 inventory classification for exactly that fixed channel so its final authoritative path is renderer -> r32StoreBridge -> authenticated /api/core/command -> recovery.prepareSafeModeExit, while keeping generic renderer core-command execution forbidden. Update the existing WP2 regression only to assert that truthful fixed class; do not weaken exact IPC inventory equality, forwardingOnly, authority ownership or normal store route rules."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.295",
+    "controllerCommentId": 5565129952,
+    "freshMain": "29e063f972ea8b602750026dec88e580250e2a79",
+    "v19AuthorizationMerge": "29e063f972ea8b602750026dec88e580250e2a79",
+    "v19ProductMutationStarted": false,
+    "exactLocalPreloadSha256": "75c3c6710ac204ba0eac140a03fc5fcac1e9980c68785535373f70c3c89b15ff",
+    "v18LocalClosureGreen": true,
+    "v18OutputBatchSha256": "329d0ef30f8e3cde2e5decd9d26b06883b4ba0082ff04590ced68cf52880a1fd",
+    "v17LocalClosureGreen": true,
+    "v17ExactOutputSha256": "e1c05bbe0370f0d3d4b2dbd3418f60b265a8efffd34665cf099cefe1bab576ce",
+    "v16LocalClosureGreen": true,
+    "v16ExactOutputSha256": "ffecab8360cfa9ac747feecbe01070d5c0444df028de8015697492789b8f1ee9",
+    "wp2InventoryAuthority": "tools/wp2/command-path-inventory.js",
+    "wp2RegressionAuthority": "tests/wp2/single-command-path.test.js",
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true
+  },
+  "closureMatrix": [
+    {
+      "boundary": "Runtime lifecycle and safe-mode state",
+      "classification": "PRESERVE",
+      "owner": "Runtime API v2 + RuntimeProjectionCoordinator",
+      "decision": "Consume existing lifecycleState, operatingMode and localReady; no Product runtime state machine."
+    },
+    {
+      "boundary": "Backend readiness and runtime events",
+      "classification": "PRESERVE",
+      "owner": "electron/preload.js existing getState/onBackendState/onRuntimeProjection/onRuntimeHealth",
+      "decision": "Subscribe/read existing authority; Product adds presentation only."
+    },
+    {
+      "boundary": "Safe-mode exit receipt",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "RecoveryManager via existing authenticated r32StoreBridge",
+      "decision": "Add one fixed Product-specific receipt-preparation channel; no generic core-command renderer executor."
+    },
+    {
+      "boundary": "Runtime recovery actions",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "ProductSystemSettingsSurface using existing preload restartBackend/restartApp/setOperatingMode",
+      "decision": "Expose existing actions; normal-mode transition requires valid exit receipt first."
+    },
+    {
+      "boundary": "Product safety visibility",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "ProductExperienceShell + ProductSystemSettingsSurface",
+      "decision": "Render actionable safe/degraded/offline/backend-unready state while healthy normal stays unobtrusive."
+    },
+    {
+      "boundary": "WP2 Electron control-path truth",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "tools/wp2/command-path-inventory.js + tests/wp2/single-command-path.test.js",
+      "decision": "Classify only the new fixed safe-exit store channel against RecoveryManager /api/core/command authority while preserving exact inventory and normal store-route rules."
+    },
+    {
+      "boundary": "Runtime engine, supervision and recovery implementation",
+      "classification": "PRESERVE",
+      "owner": "existing backend/electron runtime authorities",
+      "decision": "No backend runtime, supervisor, retry, state-machine or RecoveryManager rewrite."
+    }
+  ],
+  "productContract": {
+    "requiredBehavior": [
+      "Product globally surfaces safeMode, browser-offline, backend-unready or runtime-degraded conditions from existing authorities without creating a second runtime state machine.",
+      "Healthy normal runtime remains unobtrusive.",
+      "System settings exposes existing restart-backend, restart-app, enter-safe-mode and exit-safe-mode actions.",
+      "Exit safe mode first obtains recovery.prepareSafeModeExit authorization through one fixed Product-specific bridge and requires both exitAuthorizationId and exitAuthorizationToken.",
+      "Only after a valid receipt may Product call existing setOperatingMode('normal', reason, receipt); missing, blocked, expired or malformed authorization fails closed.",
+      "Entering safe mode reuses existing setOperatingMode('safeMode', reason).",
+      "The fixed safe-exit bridge channel is truthfully represented in the existing WP2 inventory as authenticated RecoveryManager authority; generic store channels remain /api/r32/store/*.",
+      "V15/V16/V17/V18 consumed local outputs remain preserved except files explicitly authorized for Root D mutation."
+    ],
+    "forbiddenBehavior": [
+      "No direct setOperatingMode('normal') without a valid safe-mode-exit receipt.",
+      "No generic /api/core/command renderer executor, generic command name/path parameter or retired frontend core-client resurrection.",
+      "No hiding the safe-exit bridge channel from the WP2 inventory and no falsely classifying it as /api/r32/store/*.",
+      "No weakening exact IPC inventory equality, forwardingOnly checks, stateAuthorityOwner checks, or ordinary store-route rules.",
+      "No second runtime state machine, supervisor, recovery engine, retry framework or lifecycle authority.",
+      "No backend runtime/state-store/RecoveryManager mutation, migration, route registry, dependency, workflow, package or lockfile change.",
+      "Do not rerun V14/V15/V16/V17/V18 consumed evidence or the retired synthetic Windows harness.",
+      "No Product Exact Head, Product CI, RC or real UAT until Root D local closure and final local release proof are GREEN."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_RUNTIME_API_V2_RECOVERY_DESKTOP_BRIDGE_AND_WP2_INVENTORY_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Runtime API v2 projection and desktop preload",
+        "source": "shared/runtimeApiV2Contract.js + electron/desktopHost/RuntimeProjectionCoordinator.js + electron/preload.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns authoritative lifecycle, operating mode, local-ready projection and desktop actions/events."
+      },
+      {
+        "name": "Existing RecoveryManager safe-mode exit authorization",
+        "source": "backend/core/recoveryManager.js recovery.prepareSafeModeExit",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already implements global-blocker assessment and single-use exit authorization required before normal-mode transition."
+      },
+      {
+        "name": "Existing authenticated Product store bridge",
+        "source": "electron/r32StoreBridge.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already exposes narrow fixed Product-specific backend actions; one additional fixed safe-exit preparation action avoids a generic renderer command surface."
+      },
+      {
+        "name": "Existing WP2 command-path inventory",
+        "source": "tools/wp2/command-path-inventory.js + tests/wp2/single-command-path.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns exhaustive Electron IPC truth and must classify the new fixed bridge channel instead of creating a parallel proof registry."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not expose generic core-command execution to the Product renderer.",
+      "Do not resurrect frontend/js/core-client.js as Product authority.",
+      "Do not create a Product runtime state machine or supervisor.",
+      "Do not create a second control-path inventory or bypass the existing WP2 inventory."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "authorization": [
+      "base is exact trusted main 29e063f972ea8b602750026dec88e580250e2a79",
+      "authorization diff is exactly governance/layered-ci/v21-product-final-successor-v20-runtime-safety-inventory-authorization.json",
+      "workPackage V21-PRODUCT-FINAL-V20-RUNTIME-SAFETY-INVENTORY satisfies /^[A-Z0-9][A-Z0-9-]{1,63}$/",
+      "authorization path-set SHA-256 is e56179820012f80f3d3df0cf003f1ba98e3e13a276b20be19c4a3075a12b736d",
+      "every ossFit candidate fit is one of FIT, PARTIAL_FIT or GAP",
+      "supersedes has exactly authorizationPath, implementationBranch and reason",
+      "implementation cumulative path count is 47 and path-set SHA-256 is 71740f65f67165779113c02adefc4cdb8b1d16838d3b85c07669063e24b5faee",
+      "current root mutation paths are exactly the five V19 paths plus tests/wp2/single-command-path.test.js and tools/wp2/command-path-inventory.js"
+    ],
+    "implementationBeforeFinalCandidate": [
+      "Use the already uploaded exact current local electron/preload.js SHA-256 75c3c6710ac204ba0eac140a03fc5fcac1e9980c68785535373f70c3c89b15ff.",
+      "Before local mutation obtain the full exact current local bytes of tests/wp2/single-command-path.test.js and tools/wp2/command-path-inventory.js once; no operator source-discovery loop.",
+      "Preserve consumed V15/V16/V17/V18 exact outputs and do not rerun their focused tests.",
+      "Apply the complete seven-path Root D patch in one deterministic batch after this authorization ordinary-merges.",
+      "Run only new Root D focused local proofs plus affected existing WP2 control-path regression; no Product Exact Head/CI yet.",
+      "Prove missing/malformed/blocked/expired safe-exit authorization fails closed and setOperatingMode('normal') is unreachable without both receipt fields.",
+      "Prove healthy normal state remains unobtrusive and degraded/offline/backend-unready/safeMode states are actionable.",
+      "Prove the new fixed safe-exit channel is present in the existing WP2 inventory with RecoveryManager authority and that no generic renderer core-command path exists."
+    ]
+  },
+  "releaseState": {
+    "productExactHead": null,
+    "productPr": null,
+    "productCi": null,
+    "rc": null,
+    "realWindowsUat": null,
+    "sourceRootsLocalClosed": [
+      "DATA_PROTECTION",
+      "REPLY_BRAIN_RELATIONSHIP_NATIVE",
+      "NOTIFICATION_SOUND",
+      "GROUP_CONVERSATION"
+    ],
+    "activeSourceRoot": "SAFE_DEGRADED_RUNTIME"
+  },
+  "nextAllowedAction": "Ordinary-merge this single-file authorization after exact-head automatic validation and fresh-main anti-drift. Then obtain the two exact local WP2 file bytes once and perform one deterministic seven-path Root D apply/focused local proof. Do not create Product Exact Head, Product CI, RC or real UAT before Root D local closure."
+}
