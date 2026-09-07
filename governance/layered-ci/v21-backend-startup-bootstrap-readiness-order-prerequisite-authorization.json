@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-BACKEND-STARTUP-BOOTSTRAP-READINESS-ORDER-PREREQUISITE",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The first V5.330 real Windows Product proof reached a genuine backend runtime RED after Element host, source clone, secret guard, dependency materialization and backend readiness were all GREEN. DesktopHost received backend-process-ready-owner-untrusted, then its pre-trust bootstrap Runtime API request timed out with TRANSPORT_OUTCOME_UNKNOWN and containment correctly terminated the untrusted backend. Fresh source closure in Controller V5.331 proved this is a distinct backend readiness-order root: backend/server.js announces backend:ready before all same-thread post-ready account/AI recovery work is prevented from racing the first /api/desktop/runtime-projection-snapshot. The V20 Product six-file candidate is frozen and out of this root. This prerequisite authorizes only the mature backend startup owner and the existing production-runtime regression seams needed to guarantee that the first bootstrap control-plane response completes before deferred enhancement recovery can consume the event loop.",
+  "base": {
+    "branch": "main",
+    "commit": "5c5c89e6a9ed292bdd9856b169a9029b13a049b7",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "5c5c89e6a9ed292bdd9856b169a9029b13a049b7",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-backend-startup-bootstrap-readiness-order-prerequisite-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-backend-startup-bootstrap-readiness-order-prerequisite-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9485f5eabe5aa9647c57c28760a89cdfcbc657300dba681b9639aa32e6ca344e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-backend-startup-bootstrap-readiness-order-prerequisite",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "tests/wp2/api-session-token-transport-leak-scan.test.js",
+      "tests/wp7/backend-server-ready-lifecycle.test.js",
+      "tools/wp2/production-api-runtime.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "906032ce0308c09bd98212daa2e45794a54f4600c4c42d7323d7272d23bb817b",
+    "productionMutationPaths": [
+      "backend/server.js"
+    ],
+    "existingRegressionAuthorityPaths": [
+      "tools/wp2/production-api-runtime.js",
+      "tests/wp2/api-session-token-transport-leak-scan.test.js",
+      "tests/wp7/backend-server-ready-lifecycle.test.js"
+    ],
+    "failureFirstCommitRequired": false,
+    "preexistingCausalRedRequired": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "rootCause": {
+    "name": "BACKEND_STARTUP / READY_BEFORE_DESKTOP_BOOTSTRAP_CONTROL_PLANE_RESPONSIVE",
+    "directEvidence": "Frozen V5.330 Windows evidence records backend:ready GREEN with credential hydration complete, followed by backend-process-ready-owner-untrusted and a real ApiV2RuntimeClient timeout before owner acceptance. The user-visible terminal projection is '言策启动失败 / Runtime API request timed out / TRANSPORT_OUTCOME_UNKNOWN'. Source closure proves this reason code originates from ApiV2RuntimeClient HTTP transport, not fd6. backend/server.js publishes ready and then still performs synchronous account projection and schedules AI recovery work which can run before the loopback bootstrap request is serviced.",
+    "requiredRepair": "Keep the existing /api/desktop/runtime-projection-snapshot, API-session security, ApiV2RuntimeClient timeout, RuntimeProjectionCoordinator validation and DesktopCredentialApplicationCoordinator containment contracts unchanged. In backend/server.js, ensure no synchronous post-ready account or AI recovery workload can run ahead of the first pre-trust bootstrap snapshot response. Reuse the existing bootstrap endpoint as the control-plane boundary and defer enhancement startup until that response has finished; eliminate or move the redundant post-ready account summary so ready does not precede blocking Product projection work. The fix must be idempotent and must not introduce another readiness state machine, transport, retry loop or owner authority."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.331",
+    "controllerCommentId": 5575614751,
+    "freshMain": "5c5c89e6a9ed292bdd9856b169a9029b13a049b7",
+    "frozenProductBranch": "fix/v21-product-final-living-relationship-os-successor-v20",
+    "frozenWindowsEvidenceDirectory": "C:/Yance-FastLanding/v5330-final-windows-proof-20260908/FROZEN_RED_OWNER_CONTAINMENT_TRANSPORT_UNKNOWN",
+    "frozenReasonCode": "TRANSPORT_OUTCOME_UNKNOWN",
+    "frozenFirstInternalEvent": "backend-process-ready-owner-untrusted",
+    "backendReadyWasGreen": true,
+    "productSixFileCandidateUnchanged": true,
+    "windowsProofRerunForbiddenUntilPrerequisiteLands": true
+  },
+  "closureMatrix": [
+    {
+      "boundary": "Backend ready publication and post-ready workload ordering",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "backend/server.js",
+      "decision": "Guarantee the first DesktopHost bootstrap control-plane response completes before deferred account/AI enhancement recovery can consume the backend event loop."
+    },
+    {
+      "boundary": "Desktop bootstrap projection endpoint and API-session security",
+      "classification": "PRESERVE",
+      "owner": "backend/server.js /api/desktop/runtime-projection-snapshot + createR32LocalApiSecurity",
+      "decision": "Keep APP_RUNTIME.snapshot(), loopback restriction and exact API-session authentication. No entitlement bypass or duplicate projection endpoint."
+    },
+    {
+      "boundary": "Runtime API timeout and stale/owner validation",
+      "classification": "PRESERVE",
+      "owner": "electron/desktopHost/ApiV2RuntimeClient.js + RuntimeProjectionCoordinator.js",
+      "decision": "Do not increase timeout, add retry, bypass stale-response validation or alter owner trust semantics."
+    },
+    {
+      "boundary": "Rejected-owner containment and fd6 lifecycle",
+      "classification": "PRESERVE",
+      "owner": "DesktopCredentialApplicationCoordinator + BackendProcessHost",
+      "decision": "Containment remains fail closed. fd6 is not reclassified as the failed transport and is not mutated."
+    },
+    {
+      "boundary": "Real backend startup/loopback regression",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "tools/wp2/production-api-runtime.js + tests/wp2/api-session-token-transport-leak-scan.test.js",
+      "decision": "Extend the existing real BackendProcessHost -> desktopHostedEntry.js -> server.js harness to issue an immediate authenticated /api/desktop/runtime-projection-snapshot after backend:ready and bind completion to the existing Runtime API timeout budget. No mock-only replacement harness."
+    },
+    {
+      "boundary": "Static ready lifecycle contract",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "tests/wp7/backend-server-ready-lifecycle.test.js",
+      "decision": "Encode the ordering invariant so future source movement cannot put synchronous enhancement recovery back between ready publication and the bootstrap-control-plane completion boundary."
+    },
+    {
+      "boundary": "V20 Product composition candidate",
+      "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+      "owner": "frozen V20 Product six-file candidate",
+      "decision": "No Product mutation, no Product Exact Head and no replacement Windows proof until this prerequisite lands."
+    }
+  ],
+  "requiredBehavior": [
+    "The first authenticated /api/desktop/runtime-projection-snapshot issued immediately after backend:ready must complete within the unchanged ApiV2RuntimeClient timeout contract.",
+    "No synchronous account projection, AI startup recovery or other enhancement workload may run ahead of completion of that first bootstrap response.",
+    "Deferred enhancement startup must be idempotent and must not create a second readiness or owner-trust authority.",
+    "Existing backend:ready payload, credential hydration, APP_RUNTIME snapshot shape, API-session security, owner validation and containment semantics remain unchanged.",
+    "The real regression must execute BackendProcessHost -> backend/desktopHostedEntry.js -> backend/server.js and real loopback HTTP with the active API-session token."
+  ],
+  "forbiddenBehavior": [
+    "No ApiV2RuntimeClient timeout increase, retry loop or TRANSPORT_OUTCOME_UNKNOWN suppression.",
+    "No owner-trust fail-open, containment weakening, fake ready/PASS receipt or fd6 transport rewrite.",
+    "No new bootstrap endpoint, transport, runtime supervisor, readiness state machine or authentication mechanism.",
+    "No mutation to aiBrainOrchestrator.js, aiReplyOutboxService.js, DesktopCredentialApplicationCoordinator.js, BackendProcessHost.js or RuntimeProjectionCoordinator.js in this prerequisite.",
+    "No workflow, routing policy, dependency, package, lockfile, database migration, Product renderer, Matrix/Element or V20 Product path mutation.",
+    "No rerun of the frozen V5.330 Windows RED."
+  ],
+  "requiredValidation": {
+    "focused": [
+      "node --test --test-concurrency=1 tests/wp7/backend-server-ready-lifecycle.test.js",
+      "node --test --test-concurrency=1 tests/wp2/api-session-token-transport-leak-scan.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp6/electron-api-v2-only.test.js"
+    ],
+    "localRuntime": [
+      "Existing production-api-runtime scenario must prove immediate authenticated bootstrap snapshot completion on the real backend startup chain without increasing its 5000ms request bound."
+    ],
+    "formal": [
+      "Exactly one implementation Exact Head after focused/local closure.",
+      "Exactly one automatic CI validation event for that head; CI is validator, not debugger.",
+      "Ordinary merge only after required routed gates are GREEN/path-skipped as designed."
+    ],
+    "postMerge": "Resume the exact frozen V20 Product candidate and perform exactly one replacement Windows local proof. Do not repeat the already frozen source/focused Product evidence."
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_BACKEND_STARTUP_BOOTSTRAP_AND_WP2_PRODUCTION_RUNTIME_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "backend/server.js startup lifecycle",
+        "source": "backend/server.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already owns HTTP readiness publication and the bootstrap endpoint, so ordering belongs here."
+      },
+      {
+        "name": "WP2 production API runtime scenario",
+        "source": "tools/wp2/production-api-runtime.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already executes the real BackendProcessHost, desktopHostedEntry.js, backend/server.js, API-session transport, restart, persistence and loopback HTTP/WS paths."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second backend startup harness.",
+      "Do not add a second runtime API transport or readiness protocol.",
+      "Do not use a timeout increase as the fix."
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "requiredMergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "amendForbidden": true,
+    "forcePushForbidden": true,
+    "historyRewriteForbidden": true
+  }
+}
