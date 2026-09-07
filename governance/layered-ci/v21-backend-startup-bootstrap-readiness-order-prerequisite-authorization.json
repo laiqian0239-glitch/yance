@@ -74,6 +74,16 @@
     "forcePushAllowed": false,
     "historyRewriteAllowed": false
   },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
   "rootCause": {
     "name": "BACKEND_STARTUP / READY_BEFORE_DESKTOP_BOOTSTRAP_CONTROL_PLANE_RESPONSIVE",
     "directEvidence": "Frozen V5.330 Windows evidence records backend:ready GREEN with credential hydration complete, followed by backend-process-ready-owner-untrusted and a real ApiV2RuntimeClient timeout before owner acceptance. The user-visible terminal projection is '言策启动失败 / Runtime API request timed out / TRANSPORT_OUTCOME_UNKNOWN'. Source closure proves this reason code originates from ApiV2RuntimeClient HTTP transport, not fd6. backend/server.js publishes ready and then still performs synchronous account projection and schedules AI recovery work which can run before the loopback bootstrap request is serviced.",
