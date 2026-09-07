@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-V17-NOTIFICATION-SOUND-PROJECTION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "V16 Root A is locally closed and consumed GREEN. Exact-source adjudication plus mature repository notification authority prove the next distinct Product Final root is event-specific notification-sound reachability: the Product settings surface has sound catalog/custom-sound plumbing but does not project the five mature event mappings as ordinary per-event selectors, and its custom-delete reachability used legacy source/kind classification instead of the catalog's custom=true identity. This authorization preserves all V14/V15/V16 candidate bytes and authorizes only the thin Product notification-sound projection after exact current Product settings bytes are recovered.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v16-reply-brain-explanation-projection-v3-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v16",
+    "reason": "V16 remains immutable authorization and consumed local evidence for Reply Brain explanation projection. V17 preserves the exact V16 output and activates the separate notification-sound Product reachability root."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "fb0f093e1c0ebc1d6c8283dc5a5b1ec1fd415450",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "fb0f093e1c0ebc1d6c8283dc5a5b1ec1fd415450",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v17-notification-sound-projection-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v17-notification-sound-projection-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "17f209b0938d5f967958b417bde4585dd86809e38e1e964407bb249591c6b6b9",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v17",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/routes/workspace.js",
+      "backend/services/workspaceService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 43,
+    "approvedChangedFileSetSha256": "c6ed5226fbb220a41dcc2cee86436ea7afdbd24c839b577ec79e587bc2613409",
+    "currentRootMutationPaths": [
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+    ],
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "rootCause": {
+    "product": "PRODUCT_FINAL / NOTIFICATION_SOUND / EVENT_SPECIFIC_SELECTION_PROJECTION_MISSING",
+    "scopeBoundary": "CURRENT_V16_PRODUCT_SETTINGS / MATURE_NOTIFICATION_SOUND_EVENT_MAPPING_NOT_PROJECTED",
+    "directEvidence": "Mature shared/notificationSoundCatalog.js exposes exactly five event rows backed by notificationPolicy setting keys: incomingSoundPattern, outgoingSoundPattern, failureSoundPattern, presenceOnlineSoundPattern and presenceOfflineSoundPattern, plus their existing enabled keys/defaults. Mature backend/services/notificationPolicy.js owns persistence, normalization and custom-sound reference fallback. Mature frontend/r32-system-center.js demonstrates the already-proven behavior seam: selectors are generated from catalog.events and update the event.settingKey, preview uses the existing playSound authority, and custom rows are identified by custom===true. Earlier exact ProductSystemSettingsSurface source showed catalog/custom-sound plumbing without this per-event Product projection and a delete filter based on source/kind custom classification. V15 changed only the data-protection projection; the post-V15 Product settings identity is e933c8877c90ae0a414c0ec8dab735a0425b8524427a513eb93ff87511475037, whose full exact bytes must be obtained once before mutation.",
+    "requiredRepair": "Reuse NotificationSoundAuthority, notificationPolicy and existing desktop sound bridge through the thinnest Product settings projection: expose existing event enable settings and one pattern selector per mature catalog event, preserve real preview, make existing custom-sound delete reachable from catalog custom identity, and do not create a second sound catalog, policy, player or persistence owner."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.291",
+    "controllerCommentId": 5563701277,
+    "freshMain": "fb0f093e1c0ebc1d6c8283dc5a5b1ec1fd415450",
+    "v16LocalClosureGreen": true,
+    "v16ExactOutputSha256": "ffecab8360cfa9ac747feecbe01070d5c0444df028de8015697492789b8f1ee9",
+    "v15LocalClosureGreen": true,
+    "v15ExactOutputSha256": "e933c8877c90ae0a414c0ec8dab735a0425b8524427a513eb93ff87511475037",
+    "notificationCatalogAuthority": "shared/notificationSoundCatalog.js",
+    "notificationPolicyAuthority": "backend/services/notificationPolicy.js",
+    "notificationPlaybackAuthority": "electron/SoundNotificationService.js",
+    "supersededWindowsHarnessRedClassification": "HARNESS_RED / SYNTHETIC_OR_NONFINAL_ELEMENT_BUILD_ROUTE; DO_NOT_REPAIR_OR_RERUN",
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "Product notification settings use the existing sound catalog as the only pattern/event source and do not hard-code a second event registry.",
+      "The five mature event mappings remain incomingSoundPattern, outgoingSoundPattern, failureSoundPattern, presenceOnlineSoundPattern and presenceOfflineSoundPattern with existing notificationPolicy persistence/default semantics.",
+      "Existing event enabled settings remain notificationPolicy-owned; Product exposes them only through the existing update settings seam and does not create renderer persistence.",
+      "Each event pattern selector is populated from existing catalog patterns and updates only that event's existing settingKey.",
+      "Preview uses the existing desktop sound playback authority and never invents a second browser/audio engine for Product runtime.",
+      "Custom sound create/delete remains existing authority; Product recognizes mature custom rows by custom===true (or the existing canonical custom id seam) so delete is actually reachable, and backend fallback resets referenced event mappings.",
+      "V15 data-protection reachability and V16 Reply Brain explanation bytes remain unchanged."
+    ],
+    "forbiddenBehavior": [
+      "No second NotificationSoundAuthority, event registry, sound player, notification policy, persistence store or renderer-local settings truth.",
+      "Do not resurrect retired frontend System Center as Product authority; it is behavioral evidence only.",
+      "No backend notificationPolicy, SoundNotificationService, dependency, package, lockfile, workflow, database, migration, routing policy or runtime-topology mutation for this root.",
+      "Do not import Groups or safe/degraded distinct roots into V17.",
+      "Do not rerun V14/V15/V16 consumed focused evidence or the retired Windows harness.",
+      "No Product Exact Head, Product CI, RC or real UAT until all remaining Stage-3 roots are locally closed and the one final mature-authority Windows proof is GREEN."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_NOTIFICATION_SOUND_AUTHORITY_AND_POLICY_THROUGH_THIN_PRODUCT_SETTINGS_PROJECTION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing NotificationSoundAuthority catalog",
+        "source": "shared/notificationSoundCatalog.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns the canonical sound patterns, custom identity, five event mappings, defaults and event recommendation metadata."
+      },
+      {
+        "name": "Existing notification policy and playback",
+        "source": "backend/services/notificationPolicy.js + electron/SoundNotificationService.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns durable notification settings, event enable flags, pattern normalization, custom-reference fallback and real playback semantics."
+      },
+      {
+        "name": "Existing Product system settings renderer",
+        "source": "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns ordinary Product settings composition and notification/custom-sound plumbing; V17 adds only the missing mature event projection."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not restore frontend/r32-system-center.js as a production Product surface.",
+      "Do not copy its state model; reuse only the same mature catalog/settings/playback seams.",
+      "Do not create hard-coded Product sound-event mappings when catalog.events already owns them."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "authorization": [
+      "base is exact trusted main fb0f093e1c0ebc1d6c8283dc5a5b1ec1fd415450",
+      "authorization diff is exactly governance/layered-ci/v21-product-final-successor-v17-notification-sound-projection-authorization.json",
+      "workPackage V21-PRODUCT-FINAL-V17-NOTIFICATION-SOUND-PROJECTION satisfies /^[A-Z0-9][A-Z0-9-]{1,63}$/",
+      "authorization path-set SHA-256 is 17f209b0938d5f967958b417bde4585dd86809e38e1e964407bb249591c6b6b9",
+      "every ossFit candidate fit is one of FIT, PARTIAL_FIT or GAP",
+      "supersedes has exactly authorizationPath, implementationBranch and reason",
+      "implementation cumulative path count remains 43 and path-set SHA-256 remains c6ed5226fbb220a41dcc2cee86436ea7afdbd24c839b577ec79e587bc2613409",
+      "current root mutation path is exactly integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+    ],
+    "implementationBeforeFinalCandidate": [
+      "obtain the full exact current ProductSystemSettingsSurface.tsx once and require SHA-256 e933c8877c90ae0a414c0ec8dab735a0425b8524427a513eb93ff87511475037 before designing or applying mutation",
+      "same-root source review must cover all five catalog events, event enabled keys, preview and custom delete reachability before the one production patch is finalized",
+      "existing mature notification authority tests remain evidence; do not rerun consumed unrelated Product roots",
+      "the Product root-specific deterministic proof must verify all five event setting keys are projected from catalog.events, preview remains on existing desktop playback, mature custom delete is reachable, V15/V16 exact bytes are preserved, and targeted git diff --check is GREEN",
+      "no Windows harness runs until Root B, Groups and safe/degraded source roots are locally closed"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
