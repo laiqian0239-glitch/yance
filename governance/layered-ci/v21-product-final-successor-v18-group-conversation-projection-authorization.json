@@ -1,0 +1,316 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-V18-GROUP-CONVERSATION-PROJECTION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "V17 Root B notification-sound projection is locally closed and consumed GREEN. The next distinct Product Final root is group-conversation reachability. Fresh repository and pinned-upstream review proves the narrow mature-authority path: WhatsApp and Telegram adapters already own provider-native group identity; r32_conversations payload_json plus messageStore.updateConversationMetadata already own durable conversation metadata; the existing desktop storeSnapshot bridge already fetches workspace bootstrap conversations; and the existing Product canonical conversation-to-Element-room resolver already fails closed against Matrix bridge state. This authorization adds only the two mature platform adapter paths to the cumulative Product scope and permits a thin canonical conversationKind=group projection plus a secondary Groups lane under People, without creating a second conversation, route, Matrix, relationship-intelligence, persistence or navigation authority.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v17-notification-sound-projection-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v17",
+    "reason": "V17 remains immutable authorization and consumed local evidence for notification-sound reachability. V18 preserves its exact output and activates the separate group-conversation reachability root."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "2dd1814ea9ce8c770db176ab2a585d18f838c825",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "2dd1814ea9ce8c770db176ab2a585d18f838c825",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v18-group-conversation-projection-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v18-group-conversation-projection-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d45582305889aee3bfd67fb1832c07363958530f5a67ca8d8625b4b613bac930",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v18",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/routes/workspace.js",
+      "backend/services/telegramAdapter.js",
+      "backend/services/whatsappAdapter.js",
+      "backend/services/workspaceService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 45,
+    "approvedChangedFileSetSha256": "04f428c81ff270c85db6e7fde6a861750d1f3296ca7d3e4bca4ebb130914150a",
+    "currentRootMutationPaths": [
+      "backend/services/telegramAdapter.js",
+      "backend/services/whatsappAdapter.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js"
+    ],
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "rootCause": {
+    "product": "PRODUCT_FINAL / GROUP_CONVERSATION / SECONDARY_GROUPS_LANE_MISSING",
+    "scopeBoundary": "CURRENT_V17_PRODUCT_HOME / CANONICAL_GROUP_CONVERSATION_IDENTITY_NOT_PROJECTED_TO_PEOPLE_SECONDARY_LANE",
+    "directEvidence": "Exact Product evidence shows People currently owns only person relationship views and loadRelationshipProjections reads the customers/RelationshipProjection authority, so Groups cannot truthfully be implemented as another person filter or synthetic RelationshipProjection. Repository source shows r32_conversations payload_json is the existing durable conversation metadata owner and messageStore.updateConversationMetadata merges arbitrary canonical metadata into that payload. The existing Electron storeSnapshot bridge already fetches /api/workspace/bootstrap?conversationLimit=2000&messageLimit=1 but currently drops bootstrap.conversations. WhatsApp adapter already owns @g.us classification inside its identity logic; pinned GramJS Dialog.isGroup and CustomMessage.isGroup own Telegram group classification. Existing Product resolveCanonicalConversationRoom plus Matrix m.bridge/uk.half-shot.bridge state already owns fail-closed conversation-to-room resolution. No new database column, route registry, Matrix store or Product-side provider heuristic is required.",
+    "requiredRepair": "At the mature provider adapters only, project a durable canonical conversationKind=group marker through existing messageStore.updateConversationMetadata for all currently handled history/live group paths. Extend the existing storeSnapshot response with the already-fetched canonical workspace bootstrap conversation catalog. Project only rows carrying the canonical group marker into a separate GroupConversationProjection, render Groups as a secondary People lane, and open a group through the existing exact ConversationRef plus resolveCanonicalConversationRoom/Element navigation and existing Product conversation binding needed by outbound prepare. Do not fabricate a person relationship, private quest or relationship intelligence for a group."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.292",
+    "controllerCommentId": 5563859166,
+    "freshMain": "2dd1814ea9ce8c770db176ab2a585d18f838c825",
+    "v17LocalClosureGreen": true,
+    "v17ExactOutputSha256": "e1c05bbe0370f0d3d4b2dbd3418f60b265a8efffd34665cf099cefe1bab576ce",
+    "v16LocalClosureGreen": true,
+    "v16ExactOutputSha256": "ffecab8360cfa9ac747feecbe01070d5c0444df028de8015697492789b8f1ee9",
+    "canonicalConversationPersistence": "backend/repositories/messageRepository.js updateConversationMetadata -> r32_conversations.payload_json",
+    "canonicalConversationCatalog": "backend/services/workspaceService.js bootstrap.conversations",
+    "existingDesktopReadSeam": "electron/r32StoreBridge.js store:get-snapshot already fetches workspace bootstrap",
+    "whatsappGroupAuthority": "backend/services/whatsappAdapter.js provider-native canonical JID handling; @g.us remains adapter-owned",
+    "telegramGroupAuthority": "pinned GramJS Dialog.isGroup / CustomMessage.isGroup",
+    "matrixRoomResolutionAuthority": "existing Product resolveCanonicalConversationRoom using Element room ids and m.bridge / uk.half-shot.bridge state",
+    "facebookGroupProjectionAuthorized": false,
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true
+  },
+  "closureMatrix": [
+    {
+      "boundary": "WhatsApp group identity observation",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "backend/services/whatsappAdapter.js",
+      "decision": "Project only adapter-owned group truth into conversationKind=group; no Product @g.us logic."
+    },
+    {
+      "boundary": "Telegram history/live group identity observation",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "backend/services/telegramAdapter.js + pinned GramJS",
+      "decision": "Use GramJS dialog/message isGroup; no Yance peer-class reimplementation."
+    },
+    {
+      "boundary": "Conversation metadata durability",
+      "classification": "PRESERVE",
+      "owner": "backend/repositories/messageRepository.js + r32_conversations.payload_json",
+      "decision": "Reuse updateConversationMetadata; no schema/migration/messageRepository mutation."
+    },
+    {
+      "boundary": "All-conversation read catalog",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "electron/r32StoreBridge.js existing storeSnapshot bridge",
+      "decision": "Return the already-fetched workspace bootstrap conversations; no new IPC or backend route."
+    },
+    {
+      "boundary": "Person relationship authority",
+      "classification": "PRESERVE",
+      "owner": "customers + RelationshipProjectionAuthority",
+      "decision": "Groups stay outside RelationshipProjection and never receive synthetic person intelligence."
+    },
+    {
+      "boundary": "Product group projection and secondary lane",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "experienceTypes/experienceProjection/PeopleSurface/ProductExperienceShell",
+      "decision": "Canonical marker only; secondary Groups lane under People."
+    },
+    {
+      "boundary": "Conversation-to-Matrix-room resolution",
+      "classification": "PRESERVE",
+      "owner": "existing resolveCanonicalConversationRoom + Element navigation",
+      "decision": "Reuse exact bridge-state resolution and fail closed on zero/ambiguity; no mapping registry."
+    },
+    {
+      "boundary": "Product conversation session/send preparation",
+      "classification": "PRESERVE",
+      "owner": "existing bindProductConversation + outgoing prepare hook",
+      "decision": "Bind the real group ConversationRef with empty relationship identity rather than fabricate a RelationshipProjection; preserve real Element composer/send path."
+    },
+    {
+      "boundary": "Facebook groups",
+      "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+      "owner": "platform capability authority",
+      "decision": "Current Facebook group capability is unsupported; V18 adds no Facebook group inference or adapter mutation."
+    }
+  ],
+  "productContract": {
+    "requiredBehavior": [
+      "People remains the sole Product primary navigation authority; Groups is a secondary lane/view inside People and never a second primary navigation hierarchy.",
+      "A Product group exists only when the canonical conversation catalog carries conversationKind=group written by the mature platform adapter; Product contains no WhatsApp JID, Telegram peer-id or display-name heuristic.",
+      "WhatsApp group identity is derived only in the WhatsApp adapter from its existing provider-native JID authority and is persisted through the existing conversation metadata seam for handled history/live paths.",
+      "Telegram group identity is derived only from pinned GramJS isGroup authority for dialog/message objects and is persisted through the existing conversation metadata seam for history/live paths.",
+      "No database schema, migration or second group registry is introduced; r32_conversations.payload_json remains the durable metadata owner.",
+      "The existing desktop storeSnapshot IPC remains the renderer read authority and returns the already-fetched workspace bootstrap conversations as a canonical conversation catalog; no new backend route or preload API is created.",
+      "Group projections are separate from RelationshipProjection and expose only canonical conversation identity/display/recency/unread data needed by the Groups lane; no relationship stage, private quest, assistant persona or Relationship Intelligence is synthesized.",
+      "Opening a group reuses its exact ConversationRef and the existing resolveCanonicalConversationRoom bridge-state resolver against real Element rooms. Zero or multiple Matrix portal matches fail closed.",
+      "A resolved group uses the existing Product conversation binding fields needed by outgoing prepare and the real Element timeline/composer; relationship identity stays empty instead of being fabricated.",
+      "V15 data-protection, V16 Reply Brain and V17 notification-sound exact outputs remain unchanged."
+    ],
+    "forbiddenBehavior": [
+      "No Product-side @g.us test, Telegram numeric-id/peer-class heuristic, group-name heuristic or platform-specific duplicate classifier.",
+      "No second conversation store, group table, migration, route registry, Matrix room map/cache, Matrix client/session, navigation authority, timeline, composer, send queue, outbox or relationship engine.",
+      "Do not model a group as a Person Relationship merely to reuse People filtering or private-task UI.",
+      "Do not add Facebook group support or infer it from generic conversation shape in V18.",
+      "Do not resurrect retired frontend account/conversation UI.",
+      "Do not modify messageRepository, workspaceService, backend routes, Electron preload, dependencies, package/lockfiles, workflows, routing policy, credential persistence or runtime topology for this root.",
+      "Do not rerun V14/V15/V16/V17 consumed focused evidence or the retired synthetic Windows harness.",
+      "No Product Exact Head, Product CI, RC or real UAT until all remaining Stage-3 distinct roots are locally closed and the one final mature-authority Windows proof is GREEN."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_PROVIDER_GROUP_IDENTITY_PLUS_EXISTING_CONVERSATION_AND_ELEMENT_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Pinned GramJS group identity",
+        "source": "gram-js/gramjs Dialog.isGroup and CustomMessage/ChatGetter.isGroup",
+        "license": "MIT",
+        "adoptionMode": "existing-pinned-upstream-seam",
+        "fit": "FIT",
+        "reason": "Already classifies Telegram user/chat/megagroup semantics; Yance should consume isGroup rather than reimplement Telegram peer classification."
+      },
+      {
+        "name": "Existing WhatsApp adapter identity authority",
+        "source": "backend/services/whatsappAdapter.js + existing WhatsApp identity/merge authority",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The adapter already owns provider-native canonical JID handling including group JIDs; the thin repair only projects that owned fact into canonical conversation metadata."
+      },
+      {
+        "name": "Existing Yance conversation metadata/catalog authority",
+        "source": "messageStore/r32_conversations payload_json + workspaceService.bootstrap + electron/r32StoreBridge storeSnapshot",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns durable conversation metadata and an all-conversation bootstrap read. V18 needs no new database or IPC; only one additional returned projection field."
+      },
+      {
+        "name": "Existing Element/Matrix portal resolution",
+        "source": "resolveCanonicalConversationRoom + pinned Element room list/navigation + m.bridge/uk.half-shot.bridge",
+        "license": "repository-existing plus pinned Element/Matrix upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already resolves a canonical ConversationRef to exactly one real Matrix portal room and fails closed on ambiguity, preserving Element timeline/composer/session authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a Product group classifier or hard-coded provider heuristics.",
+      "Do not create a group identity table or migrate r32_conversations.",
+      "Do not create a reverse Matrix mapping registry; reuse existing bridge-state resolution.",
+      "Do not create fake RelationshipProjection records for group rooms."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "authorization": [
+      "base is exact trusted main 2dd1814ea9ce8c770db176ab2a585d18f838c825",
+      "authorization diff is exactly governance/layered-ci/v21-product-final-successor-v18-group-conversation-projection-authorization.json",
+      "workPackage V21-PRODUCT-FINAL-V18-GROUP-CONVERSATION-PROJECTION satisfies /^[A-Z0-9][A-Z0-9-]{1,63}$/",
+      "authorization path-set SHA-256 is d45582305889aee3bfd67fb1832c07363958530f5a67ca8d8625b4b613bac930",
+      "every ossFit candidate fit is one of FIT, PARTIAL_FIT or GAP",
+      "supersedes has exactly authorizationPath, implementationBranch and reason",
+      "implementation cumulative path count is 45 and path-set SHA-256 is 04f428c81ff270c85db6e7fde6a861750d1f3296ca7d3e4bca4ebb130914150a",
+      "current root mutation paths are exactly the two mature platform adapters, existing storeSnapshot bridge, Product group projection/composition/navigation files, and the existing Product Final focused test file"
+    ],
+    "implementationBeforeFinalCandidate": [
+      "Before mutation obtain the full exact current local bytes for every V18 currentRootMutationPath whose dirty worktree bytes are authoritative; one complete upload is preferred over any operator source-discovery loop.",
+      "The one V18 production causal batch must preserve the V17 settings SHA-256 e1c05bbe0370f0d3d4b2dbd3418f60b265a8efffd34665cf099cefe1bab576ce and V16 ProductConversationProjection SHA-256 ffecab8360cfa9ac747feecbe01070d5c0444df028de8015697492789b8f1ee9.",
+      "Focused proof must cover WhatsApp history/live marker projection, Telegram history/live GramJS isGroup projection, canonical conversation catalog exposure, Product canonical-marker-only group projection, separate Groups lane, no synthetic relationship intelligence, unique Matrix room resolution/fail-closed behavior, and real Product conversation binding for send preparation.",
+      "Focused proof must negatively prove there is no Product @g.us/Telegram peer heuristic, no new database/migration/route/preload API/Matrix mapping registry/second send authority, no Facebook group implementation and no fake RelationshipProjection.",
+      "Targeted git diff --check must be GREEN and no commit/push/Product CI occurs during local closure.",
+      "No Windows harness runs until Root C and the remaining safe/degraded Stage-3 source root are locally closed."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
