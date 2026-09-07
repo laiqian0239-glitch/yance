@@ -295,5 +295,15 @@
     ],
     "activeSourceRoot": "SAFE_DEGRADED_RUNTIME"
   },
-  "nextAllowedAction": "Ordinary-merge this single-file authorization after exact-head automatic validation and fresh-main anti-drift. Then obtain the two exact local WP2 file bytes once and perform one deterministic seven-path Root D apply/focused local proof. Do not create Product Exact Head, Product CI, RC or real UAT before Root D local closure."
+  "nextAllowedAction": "Ordinary-merge this single-file authorization after exact-head automatic validation and fresh-main anti-drift. Then obtain the two exact local WP2 file bytes once and perform one deterministic seven-path Root D apply/focused local proof. Do not create Product Exact Head, Product CI, RC or real UAT before Root D local closure.",
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
 }
