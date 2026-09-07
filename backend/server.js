@@ -221,6 +221,50 @@ const storeReadyPromise = storeManagerService.initialize({ persistenceOptions: {
 let startupCredentialRecovery = { ok: true, executed: Boolean(APP_RUNTIME.credentialMetadata()?.entryCount), mode: 'credential-ipc-hydrated', completedBeforeReady: true, metadata: APP_RUNTIME.credentialMetadata() };
 let startupModelScan = { ok: true, executed: false, mode: 'pending' };
 
+const OWNER_ESTABLISHMENT_BOOTSTRAP_RESPONSES = 2;
+let bootstrapProjectionResponsesFinished = 0;
+let postBootstrapEnhancementsStarted = false;
+
+function startPostBootstrapEnhancementsOnce() {
+  if (postBootstrapEnhancementsStarted
+      || bootstrapProjectionResponsesFinished < OWNER_ESTABLISHMENT_BOOTSTRAP_RESPONSES) return false;
+  postBootstrapEnhancementsStarted = true;
+  if (APP_RUNTIME.operatingMode === 'safeMode') return false;
+
+  // AI is an enhancement layer. It must never prevent the messaging backend
+  // from announcing readiness or serving Facebook/WhatsApp/Telegram traffic.
+  setImmediate(() => {
+    for (const [name, service] of [
+      ['ai-reply-outbox', aiReplyOutboxService],
+      ['ai-automation', aiAutomation]
+    ]) {
+      try {
+        service.start();
+        eventBus.publish('ai:service-started', { service: name, afterBackendReady: true });
+      } catch (error) {
+        logger.warn('ai', 'post-ready-service-start-failed', { service: name, code: error.code || 'AI_SERVICE_START_FAILED', error: error.message });
+        productionDiagnostics.recordEvent('ai-service-degraded', { severity: 'warning', metadata: { service: name, code: error.code || 'AI_SERVICE_START_FAILED', error: error.message } });
+        eventBus.publish('ai:degraded', { service: name, code: error.code || 'AI_SERVICE_START_FAILED', message: error.message, coreMessagingAvailable: true });
+      }
+    }
+  });
+
+  setTimeout(async () => {
+    try {
+      const discovery = await ollama.discover();
+      const registry = await modelRegistry.mergeDiscovered(discovery);
+      startupModelScan = { ok: true, executed: true, discovery, modelCount: registry.models?.length || 0, at: new Date().toISOString() };
+      eventBus.publish('models:scanned', { automatic: true, discovery, registry });
+      const activation = modelAutoActivation.schedule({ force: false });
+      logger.info('models', 'startup-ollama-scan-completed', { online: discovery.online, count: discovery.models?.length || 0, activationScheduled: activation.scheduled });
+    } catch (error) {
+      startupModelScan = { ok: false, executed: true, error: error.message, code: error.code || 'MODEL_SCAN_FAILED', at: new Date().toISOString() };
+      logger.warn('models', 'startup-ollama-scan-failed', { error: error.message });
+    }
+  }, 500);
+  return true;
+}
+
 const STARTUP_PROTOCOL_VERSION = 1;
 const READY_PROTOCOL_VERSION = Number(DESKTOP_STARTUP_CONTEXT.readyProtocolVersion || 1);
 const STARTUP_NONCE = DESKTOP_STARTUP_CONTEXT.startupNonce;
@@ -481,7 +525,15 @@ const credentialAuthorityProjection = () => {
   };
 };
 app.get('/api/desktop/credential-authority-state', (_req, res) => res.json(credentialAuthorityProjection()));
-app.get('/api/desktop/runtime-projection-snapshot', (_req, res) => res.json(APP_RUNTIME.snapshot()));
+app.get('/api/desktop/runtime-projection-snapshot', (_req, res) => {
+  const countsForOwnerEstablishment = backendReadiness.ready === true;
+  res.once('finish', () => {
+    if (!countsForOwnerEstablishment || res.statusCode !== 200) return;
+    bootstrapProjectionResponsesFinished += 1;
+    startPostBootstrapEnhancementsOnce();
+  });
+  res.json(APP_RUNTIME.snapshot());
+});
 app.get('/api/desktop/matrix-local-identity', (_req, res, next) => {
   try {
     res.json(endUserMatrixIdentityService.status());
@@ -783,40 +835,8 @@ server.listen(CONFIG.port, CONFIG.host, async () => {
     readiness: readySignal
   });
 
-  // WP4: credentials are hydrated before local_ready. Post-ready credential discovery/recovery is forbidden.
-  accountManager.publishSummary();
-
-  // AI is an enhancement layer. It must never prevent the messaging backend
-  // from announcing readiness or serving Facebook/WhatsApp/Telegram traffic.
-  if (!safeModeActive) setImmediate(() => {
-    for (const [name, service] of [
-      ['ai-reply-outbox', aiReplyOutboxService],
-      ['ai-automation', aiAutomation]
-    ]) {
-      try {
-        service.start();
-        eventBus.publish('ai:service-started', { service: name, afterBackendReady: true });
-      } catch (error) {
-        logger.warn('ai', 'post-ready-service-start-failed', { service: name, code: error.code || 'AI_SERVICE_START_FAILED', error: error.message });
-        productionDiagnostics.recordEvent('ai-service-degraded', { severity: 'warning', metadata: { service: name, code: error.code || 'AI_SERVICE_START_FAILED', error: error.message } });
-        eventBus.publish('ai:degraded', { service: name, code: error.code || 'AI_SERVICE_START_FAILED', message: error.message, coreMessagingAvailable: true });
-      }
-    }
-  });
-
-  if (!safeModeActive) setTimeout(async () => {
-    try {
-      const discovery = await ollama.discover();
-      const registry = await modelRegistry.mergeDiscovered(discovery);
-      startupModelScan = { ok: true, executed: true, discovery, modelCount: registry.models?.length || 0, at: new Date().toISOString() };
-      eventBus.publish('models:scanned', { automatic: true, discovery, registry });
-      const activation = modelAutoActivation.schedule({ force: false });
-      logger.info('models', 'startup-ollama-scan-completed', { online: discovery.online, count: discovery.models?.length || 0, activationScheduled: activation.scheduled });
-    } catch (error) {
-      startupModelScan = { ok: false, executed: true, error: error.message, code: error.code || 'MODEL_SCAN_FAILED', at: new Date().toISOString() };
-      logger.warn('models', 'startup-ollama-scan-failed', { error: error.message });
-    }
-  }, 500);
+  // Existing post-ready account/AI/model enhancement work is released only by
+  // the two-response DesktopHost bootstrap completion barrier above.
 
 });
 

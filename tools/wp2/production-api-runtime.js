@@ -55,12 +55,12 @@ function waitMessage(child, type, timeoutMs = 30000) {
   });
 }
 
-function request(port, secret) {
+function request(port, secret, pathname = '/api/ready') {
   return new Promise((resolve, reject) => {
     const req = http.request({
       host: '127.0.0.1',
       port,
-      path: '/api/ready',
+      path: pathname,
       headers: secret ? { Authorization: `Bearer ${secret}` } : {},
       timeout: 5000
     }, res => {
@@ -263,6 +263,8 @@ async function runProductionApiSessionScenario(options = {}) {
     const firstStarted = await host.start(startOptions);
     captureOutput(firstStarted, 'first');
     const firstReady = await waitMessage(firstStarted.child, 'backend:ready');
+    const firstBootstrapCandidate = await request(firstReady.port, firstStarted.apiSessionToken, '/api/desktop/runtime-projection-snapshot');
+    const firstBootstrapBaseline = await request(firstReady.port, firstStarted.apiSessionToken, '/api/desktop/runtime-projection-snapshot');
     verifyProbe(firstReady, dataRoot);
     ensureNoSecretInSpawn(firstStarted.apiSessionToken, firstStarted, spawnOptions[0]);
 
@@ -282,6 +284,8 @@ async function runProductionApiSessionScenario(options = {}) {
     const secondStarted = await host.restart({ ...startOptions, gracefulMs: 5000, forceMs: 5000 });
     captureOutput(secondStarted, 'second');
     const secondReady = await waitMessage(secondStarted.child, 'backend:ready');
+    const secondBootstrapCandidate = await request(secondReady.port, secondStarted.apiSessionToken, '/api/desktop/runtime-projection-snapshot');
+    const secondBootstrapBaseline = await request(secondReady.port, secondStarted.apiSessionToken, '/api/desktop/runtime-projection-snapshot');
     verifyProbe(secondReady, dataRoot);
     ensureNoSecretInSpawn(secondStarted.apiSessionToken, secondStarted, spawnOptions[1]);
 
@@ -303,6 +307,9 @@ async function runProductionApiSessionScenario(options = {}) {
     const secondAuthStats = secondAuthProbe.body?.apiSessionAuth || {};
     const productionDesktopEntryExecuted = path.resolve(startOptions.entry) === path.join(repoRoot, 'backend', 'desktopHostedEntry.js');
     const productionServerEntryExecuted = firstReady.productionRuntimeProbe?.executed === true && secondReady.productionRuntimeProbe?.executed === true;
+    const productionBootstrapProjectionExecuted =
+      firstBootstrapCandidate.statusCode === 200 && firstBootstrapBaseline.statusCode === 200 &&
+      secondBootstrapCandidate.statusCode === 200 && secondBootstrapBaseline.statusCode === 200;
     const productionHttpAuthExecuted =
       firstHttp.statusCode === 200 && wrongHttp.statusCode === 401 &&
       newHttp.statusCode === 200 && oldHttp.statusCode === 401 &&
@@ -320,6 +327,7 @@ async function runProductionApiSessionScenario(options = {}) {
     const execution = {
       productionDesktopEntryExecuted,
       productionServerEntryExecuted,
+      productionBootstrapProjectionExecuted,
       productionHttpAuthExecuted,
       productionWebSocketAuthExecuted,
       productionDiagnosticsPathExecuted,
@@ -339,6 +347,13 @@ async function runProductionApiSessionScenario(options = {}) {
       entry: path.relative(repoRoot, startOptions.entry).replaceAll(path.sep, '/'),
       execution,
       authenticationSource: 'DesktopHost inherited startup pipe -> backend/desktopHostedEntry.js -> backend/server.js -> backend/security/apiSessionAuth.js',
+      bootstrap: {
+        requestTimeoutMs: 5000,
+        firstCandidateStatus: firstBootstrapCandidate.statusCode,
+        firstTrustedBaselineStatus: firstBootstrapBaseline.statusCode,
+        restartCandidateStatus: secondBootstrapCandidate.statusCode,
+        restartTrustedBaselineStatus: secondBootstrapBaseline.statusCode
+      },
       http: {
         currentTokenStatus: firstHttp.statusCode,
         wrongTokenStatus: wrongHttp.statusCode,

@@ -21,6 +21,7 @@ test('required leak scan executes backend/desktopHostedEntry.js and backend/serv
   assert.deepEqual(result.execution, {
     productionDesktopEntryExecuted: true,
     productionServerEntryExecuted: true,
+    productionBootstrapProjectionExecuted: true,
     productionHttpAuthExecuted: true,
     productionWebSocketAuthExecuted: true,
     productionDiagnosticsPathExecuted: true,
@@ -28,6 +29,13 @@ test('required leak scan executes backend/desktopHostedEntry.js and backend/serv
     productionPersistencePathsExecuted: true
   });
   assert.equal(result.entry, 'backend/desktopHostedEntry.js');
+  assert.deepEqual(result.bootstrap, {
+    requestTimeoutMs: 5000,
+    firstCandidateStatus: 200,
+    firstTrustedBaselineStatus: 200,
+    restartCandidateStatus: 200,
+    restartTrustedBaselineStatus: 200
+  });
   assert.equal(result.http.currentTokenStatus, 200);
   assert.equal(result.http.wrongTokenStatus, 401);
   assert.equal(result.http.wrongTokenReasonCode, 'API_SESSION_UNAUTHORIZED');

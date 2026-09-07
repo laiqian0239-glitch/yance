@@ -20,6 +20,68 @@ test('backend ready is announced only after HTTP server stability guard', () => 
   assert.ok(stableIndex < readyIndex, 'pre-ready stability guard must run before announceReady()');
 });
 
+test('post-ready enhancements wait for both successful DesktopHost bootstrap responses to finish', () => {
+  const text = source();
+  const barrierIndex = text.indexOf('const OWNER_ESTABLISHMENT_BOOTSTRAP_RESPONSES = 2;');
+  const helperIndex = text.indexOf('function startPostBootstrapEnhancementsOnce()');
+  const protocolIndex = text.indexOf('const STARTUP_PROTOCOL_VERSION = 1;', helperIndex);
+  const handlerIndex = text.indexOf("app.get('/api/desktop/runtime-projection-snapshot'");
+  const readyGateIndex = text.indexOf('const countsForOwnerEstablishment = backendReadiness.ready === true;', handlerIndex);
+  const finishIndex = text.indexOf("res.once('finish'", handlerIndex);
+  const successIndex = text.indexOf('res.statusCode !== 200', finishIndex);
+  const incrementIndex = text.indexOf('bootstrapProjectionResponsesFinished += 1;', finishIndex);
+  const releaseIndex = text.indexOf('startPostBootstrapEnhancementsOnce();', incrementIndex);
+  const readyIndex = text.indexOf('const readySignal = announceReady();');
+
+  for (const [label, index] of Object.entries({
+    barrierIndex,
+    helperIndex,
+    protocolIndex,
+    handlerIndex,
+    readyGateIndex,
+    finishIndex,
+    successIndex,
+    incrementIndex,
+    releaseIndex,
+    readyIndex
+  })) {
+    assert.notEqual(index, -1, `${label} must exist`);
+  }
+
+  assert.ok(helperIndex < protocolIndex, 'enhancement owner must be a process-local startup helper');
+  assert.ok(
+    handlerIndex < readyGateIndex &&
+      readyGateIndex < finishIndex &&
+      finishIndex < successIndex &&
+      successIndex < incrementIndex &&
+      incrementIndex < releaseIndex,
+    'bootstrap handler must count only successful post-ready response finish events before releasing enhancements'
+  );
+
+  const helperSource = text.slice(helperIndex, protocolIndex);
+  assert.match(helperSource, /bootstrapProjectionResponsesFinished < OWNER_ESTABLISHMENT_BOOTSTRAP_RESPONSES/u);
+  assert.ok(helperSource.includes("['ai-reply-outbox', aiReplyOutboxService]"));
+  assert.ok(helperSource.includes("['ai-automation', aiAutomation]"));
+  assert.match(helperSource, /ollama\.discover\(\)/u);
+
+  const postReadyTail = text.slice(readyIndex);
+  assert.doesNotMatch(
+    postReadyTail,
+    /accountManager\.publishSummary\(\);/u,
+    'no synchronous account projection may run after backend:ready'
+  );
+  assert.doesNotMatch(
+    postReadyTail,
+    /if \(!safeModeActive\) setImmediate/u,
+    'AI startup must not remain directly scheduled in the post-ready tail'
+  );
+  assert.doesNotMatch(
+    postReadyTail,
+    /if \(!safeModeActive\) setTimeout/u,
+    'model scan must not remain directly scheduled in the post-ready tail'
+  );
+});
+
 test('startup failure closes server through fail-closed exit helper', () => {
   const text = source();
   assert.match(text, /function forceExitAfterStartupFailure\(/);
