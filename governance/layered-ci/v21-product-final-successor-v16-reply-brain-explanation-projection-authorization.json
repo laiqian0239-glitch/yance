@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-SUCCESSOR-V16-REPLY-BRAIN-EXPLANATION-PROJECTION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Product Final Controller V5.289 advanced after V15 data-protection local closure. Exact current Product source proves the existing mature Reply Brain projection already carries strategy, reasonZh and goal from Store/director authority while ProductConversationProjection renders only candidate text and approval/use controls. This successor preserves all consumed V14/V15 evidence and authorizes only the thin renderer projection of those already-owned explanation fields before any final Windows harness.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v15-data-protection-restore-portable-reachability-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v15",
+    "reason": "V15 remains immutable authorization and consumed local evidence for data-protection reachability. V16 preserves the cumulative candidate bytes and activates only the separate Reply Brain relationship-native explanation projection root."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "79acc6a3a16e26e192aa93d42803ad28cccd5686",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "79acc6a3a16e26e192aa93d42803ad28cccd5686",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v16-reply-brain-explanation-projection-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v16-reply-brain-explanation-projection-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "6106b0ca65940dfadbef6d9e8d08d8ccc3c8f7139ab02ecdc77f054ac5852ee4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v16",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/routes/workspace.js",
+      "backend/services/workspaceService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 43,
+    "approvedChangedFileSetSha256": "c6ed5226fbb220a41dcc2cee86436ea7afdbd24c839b577ec79e587bc2613409",
+    "currentRootMutationPaths": [
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx"
+    ],
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false
+  },
+  "rootCause": {
+    "product": "PRODUCT_FINAL / REPLY_BRAIN_RELATIONSHIP_NATIVE / REASON_STRATEGY_GOAL_PROJECTION_MISSING",
+    "scopeBoundary": "CURRENT_V15_PRODUCT_CONVERSATION / MATURE_REPLY_BRAIN_FIELDS_NOT_RENDERED",
+    "directEvidence": "Exact current experienceProjection.ts SHA256 23efeb6fc83026f1e419ca6ee3c579e3bfa3dac1f3ebcff14dd13f7274d5614d defines ReplyBrainCandidate.strategy/reasonZh/goal and maps them from automaticDirectorPlan or existing director plan/effective authority. Exact current ProductConversationProjection.tsx SHA256 e46709ba45c9ef0adfb6901aeaf0bdd980478af9facf0503e9deb6533ea75062 consumes that type but renders only candidate.text plus approval/revision/use controls. No backend, Store, director, outbox, sender or learning change is required.",
+    "requiredRepair": "Render only the already-owned candidate reasonZh, strategy and goal beside the candidate text in ProductConversationProjection, without creating a second coach/planner/store or changing send ownership."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.289",
+    "controllerCommentId": 5562571853,
+    "freshMain": "79acc6a3a16e26e192aa93d42803ad28cccd5686",
+    "uploadedExactSourceArchiveSha256": "fe37f6813bc01b031c893c51178d16ebe9a8381931c34d792e607927fad2dba9",
+    "exactCurrentConversationProjectionSha256": "e46709ba45c9ef0adfb6901aeaf0bdd980478af9facf0503e9deb6533ea75062",
+    "exactCurrentExperienceProjectionSha256": "23efeb6fc83026f1e419ca6ee3c579e3bfa3dac1f3ebcff14dd13f7274d5614d",
+    "preservedV14FocusedGreen": true,
+    "v15LocalClosureGreen": true,
+    "v15ExactOutputSha256": "e933c8877c90ae0a414c0ec8dab735a0425b8524427a513eb93ff87511475037",
+    "supersededWindowsHarnessRedClassification": "HARNESS_RED / SYNTHETIC_OR_NONFINAL_ELEMENT_BUILD_ROUTE; DO_NOT_REPAIR_OR_RERUN",
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true
+  },
+  "productContract": {
+    "requiredBehavior": [
+      "The Reply Brain candidate remains the existing Store/director candidate and Product renders the existing reasonZh, strategy and goal without fabricating values.",
+      "Candidate approval/rejection/revision/use semantics remain unchanged and final physical send remains the real Element composer/send authority established by V14.",
+      "Empty mature explanation fields are simply omitted; Product does not invent fallback advice or a second coaching engine.",
+      "Relationship-native explanation is presented as ordinary Product context, not engineering/runtime terminology."
+    ],
+    "forbiddenBehavior": [
+      "No second Reply Brain, coach, planner, model route, Store command, outbox, learning engine, sender, retry state machine or Matrix completion authority.",
+      "No backend/Store/Electron/bridge/Element upstream patch/dependency/workflow/migration/runtime-topology mutation for this root.",
+      "Do not import notification-sound, Groups or safe/degraded distinct roots into V16.",
+      "Do not rerun V14 or V15 consumed focused proofs or the superseded Windows harness RED.",
+      "No Product Exact Head, Product CI, RC or real UAT until all known Stage-3 roots are locally closed and the one final mature-authority Windows harness is GREEN."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_STORE_DIRECTOR_REPLY_CANDIDATE_THROUGH_THIN_PRODUCT_RENDERER_PROJECTION",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance Reply Brain/director projection",
+        "source": "integration/element-module/src/product-experience/experienceProjection.ts + existing Store/director authority",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already exposes candidate text, strategy, reasonZh and goal to the Product renderer."
+      },
+      {
+        "name": "Existing Product conversation renderer",
+        "source": "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns candidate presentation and approval/use interaction; only the existing explanation fields are missing from presentation."
+      },
+      {
+        "name": "Pinned Element real composer/send",
+        "source": "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "source-module",
+        "fit": "PRESERVE",
+        "reason": "Remains sole physical send/timeline/composer authority; V16 must not modify it."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a Product-local recommendation engine.",
+      "Do not derive new explanation content from candidate text.",
+      "Do not couple explanation rendering to a second send path."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "authorization": [
+      "base is exact trusted main 79acc6a3a16e26e192aa93d42803ad28cccd5686",
+      "authorization diff is exactly governance/layered-ci/v21-product-final-successor-v16-reply-brain-explanation-projection-authorization.json",
+      "authorization path-set SHA-256 is 6106b0ca65940dfadbef6d9e8d08d8ccc3c8f7139ab02ecdc77f054ac5852ee4",
+      "supersedes has exactly authorizationPath, implementationBranch and reason",
+      "implementation cumulative path count remains 43 and path-set SHA-256 remains c6ed5226fbb220a41dcc2cee86436ea7afdbd24c839b577ec79e587bc2613409",
+      "current root mutation path is exactly integration/element-module/src/product-experience/ProductConversationProjection.tsx"
+    ],
+    "implementationBeforeFinalCandidate": [
+      "current ProductConversationProjection input SHA-256 is exactly e46709ba45c9ef0adfb6901aeaf0bdd980478af9facf0503e9deb6533ea75062 before mutation",
+      "exact reviewed V16 output SHA-256 is ffecab8360cfa9ac747feecbe01070d5c0444df028de8015697492789b8f1ee9",
+      "post-mutation deterministic source contract proves candidate.reasonZh, candidate.strategy and candidate.goal are each rendered with ordinary Product labels",
+      "targeted git diff --check is GREEN",
+      "V14/V15 consumed focused GREEN is not rerun",
+      "superseded Windows harness RED is not repaired or rerun",
+      "no Windows harness runs until the remaining Stage-3 distinct roots are locally closed"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
