@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-V19-RUNTIME-SAFETY-PROJECTION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "V18 Root C group-conversation projection is locally closed and consumed GREEN. The final distinct Stage-3 source root is Product-safe runtime reachability. Existing Electron Runtime API v2, preload lifecycle/read seams, RecoveryManager safe-mode exit receipts and the authenticated r32StoreBridge already own runtime state, restart and safe-mode semantics. V19 authorizes only a thin Product projection plus one specific safe-mode-exit receipt bridge; no second runtime state machine, supervisor, recovery engine, generic core executor or retired frontend authority is introduced.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v18-group-conversation-projection-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v18",
+    "reason": "V18 remains immutable authorization and consumed local evidence for group-conversation reachability. V19 preserves its exact outputs and activates the separate runtime-safety Product projection root."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "1ad844385f658fe0810ff3f32248e2227bfd617c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "1ad844385f658fe0810ff3f32248e2227bfd617c",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v19-runtime-safety-projection-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v19-runtime-safety-projection-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "efc60375ba9e117d6222ff9bc9522f611fce7d72ec6750d82c3572a4b315537e",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v19",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/routes/workspace.js",
+      "backend/services/telegramAdapter.js",
+      "backend/services/whatsappAdapter.js",
+      "backend/services/workspaceService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 45,
+    "approvedChangedFileSetSha256": "04f428c81ff270c85db6e7fde6a861750d1f3296ca7d3e4bca4ebb130914150a",
+    "currentRootMutationPaths": [
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js"
+    ],
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "rootCause": {
+    "product": "PRODUCT_FINAL / SAFE_DEGRADED_RUNTIME / ACTIONABLE_PRODUCT_PROJECTION_MISSING",
+    "scopeBoundary": "CURRENT_V18_PRODUCT_HOME / EXISTING_RUNTIME_SAFETY_AUTHORITY_NOT_ACTIONABLY_PROJECTED",
+    "directEvidence": "Product Final currently has no actionable safe/degraded/offline/backend-unready projection. Existing preload already exposes getState, getRuntimeProjection, setOperatingMode, restartBackend, restartApp, onBackendState, onRuntimeProjection and onRuntimeHealth. Runtime API v2 owns lifecycleState, operatingMode and localReady. RecoveryManager.prepareSafeModeExit owns fail-closed safe-mode exit authorization. Existing r32StoreBridge is the authenticated Product renderer-to-backend bridge and can expose one fixed receipt-preparation command without adding a generic core executor.",
+    "requiredRepair": "Project existing runtime safety state into the Product shell and system settings. Add only one fixed Product-specific r32StoreBridge/preload seam that requests recovery.prepareSafeModeExit with EXIT_SAFE_MODE confirmation. Exiting safe mode must require a non-empty exitAuthorizationId and exitAuthorizationToken before invoking existing setOperatingMode(normal). Reuse existing restartBackend/restartApp/setOperatingMode and runtime events; fail closed on missing or rejected receipt."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.294",
+    "controllerCommentId": 5564908405,
+    "freshMain": "1ad844385f658fe0810ff3f32248e2227bfd617c",
+    "v18LocalClosureGreen": true,
+    "v18OutputBatchSha256": "329d0ef30f8e3cde2e5decd9d26b06883b4ba0082ff04590ced68cf52880a1fd",
+    "v17LocalClosureGreen": true,
+    "v17ExactOutputSha256": "e1c05bbe0370f0d3d4b2dbd3418f60b265a8efffd34665cf099cefe1bab576ce",
+    "v16LocalClosureGreen": true,
+    "v16ExactOutputSha256": "ffecab8360cfa9ac747feecbe01070d5c0444df028de8015697492789b8f1ee9",
+    "runtimeProjectionAuthority": "Runtime API v2 + RuntimeProjectionCoordinator + electron/preload.js",
+    "safeModeExitAuthority": "backend/core/recoveryManager.js recovery.prepareSafeModeExit",
+    "rendererBackendBridge": "electron/r32StoreBridge.js authenticated fixed Product channels",
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true
+  },
+  "closureMatrix": [
+    {
+      "boundary": "Runtime lifecycle and safe-mode state",
+      "classification": "PRESERVE",
+      "owner": "Runtime API v2 + RuntimeProjectionCoordinator",
+      "decision": "Consume existing lifecycleState, operatingMode and localReady; no Product runtime state machine."
+    },
+    {
+      "boundary": "Backend readiness and runtime events",
+      "classification": "PRESERVE",
+      "owner": "electron/preload.js existing getState/onBackendState/onRuntimeProjection/onRuntimeHealth",
+      "decision": "Subscribe/read existing authority; Product adds presentation only."
+    },
+    {
+      "boundary": "Safe-mode exit receipt",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "RecoveryManager via existing authenticated r32StoreBridge",
+      "decision": "Add one fixed Product-specific receipt-preparation bridge; no generic core-command renderer executor."
+    },
+    {
+      "boundary": "Runtime recovery actions",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "ProductSystemSettingsSurface using existing preload restartBackend/restartApp/setOperatingMode",
+      "decision": "Expose existing actions; normal-mode transition requires valid exit receipt first."
+    },
+    {
+      "boundary": "Product safety visibility",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "ProductExperienceShell + ProductSystemSettingsSurface",
+      "decision": "Render actionable safe/degraded/offline/backend-unready state while healthy normal stays unobtrusive."
+    },
+    {
+      "boundary": "Runtime engine, supervision and recovery implementation",
+      "classification": "PRESERVE",
+      "owner": "existing backend/electron runtime authorities",
+      "decision": "No backend runtime, supervisor, retry, state-machine or recovery-engine rewrite."
+    }
+  ],
+  "productContract": {
+    "requiredBehavior": [
+      "Product globally surfaces safeMode, browser-offline, backend-unready or runtime-degraded conditions from existing authorities without creating a second runtime state machine.",
+      "Healthy normal runtime remains unobtrusive.",
+      "System settings exposes existing restart-backend, restart-app, enter-safe-mode and exit-safe-mode actions.",
+      "Exit safe mode first obtains recovery.prepareSafeModeExit authorization through one fixed Product-specific bridge and requires both exitAuthorizationId and exitAuthorizationToken.",
+      "Only after a valid receipt may Product call existing setOperatingMode('normal', reason, receipt); missing, blocked, expired or malformed authorization fails closed.",
+      "Entering safe mode reuses existing setOperatingMode('safeMode', reason).",
+      "Product does not infer send/platform capability from runtime safety presentation and does not create a duplicate retry or routing authority.",
+      "V16, V17 and V18 exact outputs remain preserved except the V18 files explicitly authorized for Root D mutation."
+    ],
+    "forbiddenBehavior": [
+      "No direct setOperatingMode('normal') without a valid safe-mode-exit receipt.",
+      "No generic /api/core/command renderer executor, generic command name/path parameter or retired frontend core-client resurrection.",
+      "No second runtime state machine, supervisor, recovery engine, retry framework or lifecycle authority.",
+      "No backend runtime/state-store/RecoveryManager mutation, migration, route registry, dependency, workflow, package or lockfile change.",
+      "Do not rerun V14/V15/V16/V17/V18 consumed evidence or the retired synthetic Windows harness.",
+      "No Product Exact Head, Product CI, RC or real UAT until Root D local closure and final local release proof are GREEN."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_RUNTIME_API_V2_RECOVERY_AND_DESKTOP_BRIDGE_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Runtime API v2 projection and desktop preload",
+        "source": "shared/runtimeApiV2Contract.js + electron/desktopHost/RuntimeProjectionCoordinator.js + electron/preload.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns authoritative lifecycle, operating mode, local-ready projection and desktop actions/events."
+      },
+      {
+        "name": "Existing RecoveryManager safe-mode exit authorization",
+        "source": "backend/core/recoveryManager.js recovery.prepareSafeModeExit",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already implements global-blocker assessment and single-use exit authorization required before normal-mode transition."
+      },
+      {
+        "name": "Existing authenticated Product store bridge",
+        "source": "electron/r32StoreBridge.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already exposes narrow fixed Product-specific backend actions; one additional fixed safe-exit preparation action avoids a generic renderer command surface."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not expose generic core-command execution to the Product renderer.",
+      "Do not resurrect frontend/js/core-client.js as Product authority.",
+      "Do not create a Product runtime state machine or supervisor."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "authorization": [
+      "base is exact trusted main 1ad844385f658fe0810ff3f32248e2227bfd617c",
+      "authorization diff is exactly governance/layered-ci/v21-product-final-successor-v19-runtime-safety-projection-authorization.json",
+      "workPackage V21-PRODUCT-FINAL-V19-RUNTIME-SAFETY-PROJECTION satisfies /^[A-Z0-9][A-Z0-9-]{1,63}$/",
+      "authorization path-set SHA-256 is efc60375ba9e117d6222ff9bc9522f611fce7d72ec6750d82c3572a4b315537e",
+      "every ossFit candidate fit is one of FIT, PARTIAL_FIT or GAP",
+      "supersedes has exactly authorizationPath, implementationBranch and reason",
+      "implementation cumulative path count is 45 and path-set SHA-256 is 04f428c81ff270c85db6e7fde6a861750d1f3296ca7d3e4bca4ebb130914150a",
+      "current root mutation paths are exactly preload, r32StoreBridge, ProductExperienceShell, ProductSystemSettingsSurface and the existing Product Final focused test"
+    ],
+    "implementationBeforeFinalCandidate": [
+      "Before mutation obtain the full exact current local electron/preload.js bytes once; no operator source-discovery loop.",
+      "The other four Root D exact inputs are the consumed V17/V18 outputs already bound by Controller evidence.",
+      "Focused proof must cover safeMode projection, backend/runtime degraded or unready projection, browser offline projection, restart actions, safe-mode entry, receipt-first exit and missing-receipt fail-closed behavior.",
+      "Focused proof must negatively prove no generic core-command executor, no direct normal-mode transition without receipt, no second runtime state machine and no retired frontend authority.",
+      "Targeted git diff --check must be GREEN and no commit/push/Product CI occurs during local closure.",
+      "No final Windows harness runs until Root D is locally closed."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
