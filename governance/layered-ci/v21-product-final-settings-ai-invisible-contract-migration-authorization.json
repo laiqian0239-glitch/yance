@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-SETTINGS-AI-INVISIBLE-CONTRACT-MIGRATION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Exact dirty-source acquisition after #1138 ordinary merge proved the previous Settings preservation implementation boundary was wrong before any implementation commit existed. The frozen Product Final contract requires ProductSystemSettingsSurface to remain ordinary end-user settings with no Model Brain/LiteLLM/Ollama/GPU/SHA/endpoint internals, while older Model Brain and Adaptive Local UI contracts still bind those mature support capabilities directly to that same ordinary settings file. The corrected root is therefore a four-path contract-location migration: preserve the exact user Settings bytes, reuse ProductExperienceShell's existing explicit secondary/admin disclosure seam for model-runtime support projection, and migrate only the two stale UI contracts to the shell-level active Product support surface. Backend, Electron bridge/preload, Model Brain, Adaptive Local and Ollama authorities remain unchanged.",
+  "supersedesForImplementationOnly": {
+    "priorAuthorizationPr": 1138,
+    "priorAuthorizationPath": "governance/layered-ci/v21-product-final-successor-v22-settings-preservation-v2-authorization.json",
+    "priorImplementationBranch": "fix/v21-product-final-living-relationship-os-successor-v22-settings-preservation",
+    "priorImplementationBranchHead": "0e45c526877eed179760ff6b781fa2ec5514f358",
+    "reason": "#1138 remains valid immutable governance history, but its implementation interpretation is superseded before mutation. The old implementation branch received zero implementation commits and must remain frozen/no-op."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "0e45c526877eed179760ff6b781fa2ec5514f358",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "0e45c526877eed179760ff6b781fa2ec5514f358",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-settings-ai-invisible-contract-migration-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-settings-ai-invisible-contract-migration-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d314ec2ec1a803fe64dbaedb4e93f41b360988ae5f8d740d63735d4d639f5945",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-settings-ai-invisible-contract-migration",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "tests/wp0/v21-model-brain-ui.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "b3148f350982012884b141720e257c36ccf8e3c90417dac799ddcc46a0257cd9",
+    "productionAllowedChangedPaths": [
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+    ],
+    "productionChangedFileCount": 2,
+    "productionChangedFileSetSha256": "8663ac8d6de7dd2b52e70519597070e9778f882bf3c4e4b2142e83d311ec8815",
+    "contractMigrationAllowedChangedPaths": [
+      "tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "tests/wp0/v21-model-brain-ui.test.js"
+    ],
+    "contractMigrationChangedFileCount": 2,
+    "contractMigrationChangedFileSetSha256": "b0456f95a6382a04aa2dbaf82214557e5aabd721f23b45a5065beb2b857a071a",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "backendAuthorityModificationAllowed": false,
+    "electronBridgeModificationAllowed": false,
+    "ipcManifestModificationAllowed": false,
+    "testMutationAllowed": true,
+    "testWeakeningAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "newProductRouteOrRendererAllowed": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "rootCause": {
+    "name": "PRODUCT_FINAL / SETTINGS_AI_INVISIBLE_CONTRACT_MIGRATION / SUPPORT_MODEL_UI_BOUND_TO_ORDINARY_SETTINGS",
+    "directEvidence": "The exact uploaded dirty ProductSystemSettingsSurface SHA256 639608CAD4D4D80DB29E4167002F36BA0C22FB322C78FA0C10889BC80AD6151E preserves the frozen Product Final ordinary-settings contract and contains no model-engineering internals. The frozen Product Final regression explicitly forbids LiteLLM/Ollama/GPU/Model Brain/API Key/SHA-256 in that ordinary Settings file. Current main v21-model-brain-ui and v21-adaptive-local-llm-runtime-p0 still directly bind support-model UI to that same file. v21-product-system-settings-reachability-p1 only requires those mature capabilities somewhere in the sole active Element Product and can remain unchanged.",
+    "requiredRepair": "Preserve ordinary ProductSystemSettingsSurface end-user settings semantics. Move/reuse the existing Model Brain/LiteLLM/Adaptive Local/Ollama support projection into ProductExperienceShell behind its existing explicit secondary/admin disclosure pattern. Migrate exactly the two stale UI contracts to assert the shell-level active Product support projection while retaining all existing backend/bridge authority assertions."
+  },
+  "preservedEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.341",
+    "controllerCommentId": 5581152343,
+    "freshMainAtAuthorization": "0e45c526877eed179760ff6b781fa2ec5514f358",
+    "exactDirtySettingsSha256": "639608CAD4D4D80DB29E4167002F36BA0C22FB322C78FA0C10889BC80AD6151E",
+    "oldImplementationBranchHasImplementationCommits": false,
+    "productExactHeadCreated": false,
+    "productCiConsumed": false,
+    "windowsActionAuthorized": false,
+    "navigation0017MutationAuthorized": false
+  },
+  "closureMatrix": [
+    {
+      "boundary": "Ordinary Product system settings",
+      "classification": "PRESERVE_EXACT_SOURCE",
+      "owner": "ProductSystemSettingsSurface",
+      "decision": "Keep user-facing account/security/profile/sessions/logout/update/theme/notification/desktop/data-protection settings; keep model-engineering internals absent."
+    },
+    {
+      "boundary": "Model Brain / Adaptive Local support projection",
+      "classification": "RELOCATE_WITHIN_EXISTING_ACTIVE_PRODUCT_SEAM",
+      "owner": "ProductExperienceShell existing secondary/admin disclosure + existing model runtime bridge",
+      "decision": "Reuse the current shell-level explicit admin-toggle pattern and existing getProductModelRuntimeState/mutateProductModelRuntime APIs; default-hidden and user-invoked."
+    },
+    {
+      "boundary": "Model Brain / Adaptive Local UI executable contracts",
+      "classification": "CONTRACT_LOCATION_MIGRATION",
+      "owner": "tests/wp0/v21-model-brain-ui.test.js + tests/wp0/v21-adaptive-local-llm-runtime-p0.test.js",
+      "decision": "Change only the stale source-location binding from ordinary Settings to the active shell support projection; preserve mature authority and forbidden-routing assertions."
+    },
+    {
+      "boundary": "Active Product reachability aggregate contract",
+      "classification": "PRESERVE_READ_ONLY",
+      "owner": "tests/wp0/v21-product-system-settings-reachability-p1.test.js",
+      "decision": "Do not modify; it correctly scans the active Element Product graph and should remain GREEN after relocation."
+    },
+    {
+      "boundary": "Backend / Electron model authority",
+      "classification": "PRESERVE_UNCHANGED",
+      "owner": "LiteLLM Model Brain + Adaptive Local/Ollama + r32StoreBridge/preload",
+      "decision": "No backend, preload, bridge, manifest, runtime or routing mutation."
+    }
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_SHELL_SECONDARY_DISCLOSURE_AND_EXISTING_MODEL_RUNTIME_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing ProductExperienceShell secondary/admin disclosure pattern",
+        "source": "integration/element-module/src/product-experience/ProductExperienceShell.tsx learningAdminVisible + nested settings details",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The active Product already has an explicit user-invoked admin layering seam. Reusing it keeps support internals secondary without adding another navigation authority or renderer."
+      },
+      {
+        "name": "Exact ordinary Product Settings candidate",
+        "source": "uploaded ProductSystemSettingsSurface.tsx SHA256 639608CAD4D4D80DB29E4167002F36BA0C22FB322C78FA0C10889BC80AD6151E",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "These bytes already implement the later Product Final AI-invisible ordinary-settings contract; they must be preserved rather than overwritten with older engineering UI."
+      },
+      {
+        "name": "Existing Electron model-runtime bridge and LiteLLM/Adaptive Local authorities",
+        "source": "electron/preload.js + electron/r32StoreBridge.js + existing model routes/runtime owners",
+        "license": "repository-existing / existing reviewed upstream licenses",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "All required support state/actions already exist. This batch relocates presentation only and must not rebuild model routing, lifecycle, IPC or runtime supervision."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not put Model Brain, LiteLLM, Ollama, GPU/VRAM, SHA-256, endpoint or request-id engineering controls back into ordinary ProductSystemSettingsSurface.",
+      "Do not reactivate retired frontend System Center or AI Workbench as Product authority.",
+      "Do not add a new Product route, navigation hierarchy, renderer, model router, IPC framework, runtime supervisor or proof framework.",
+      "Do not weaken the frozen Product Final ordinary-settings contract or the mature backend/bridge authority assertions."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "localAcceptance": [
+    "Start implementation only after this authorization ordinary merge and from that exact merge commit.",
+    "Use exact uploaded Settings SHA256 639608CAD4D4D80DB29E4167002F36BA0C22FB322C78FA0C10889BC80AD6151E as the ordinary-settings preimage authority.",
+    "Reuse/move existing model support projection semantics into ProductExperienceShell behind an explicit default-hidden secondary/admin disclosure; do not reimplement backend/runtime behavior.",
+    "Keep the frozen Product Final ordinary-settings assertions unchanged and GREEN.",
+    "Focused tests: v21-model-brain-ui, v21-adaptive-local-llm-runtime-p0, v21-product-system-settings-reachability-p1, plus frozen Product Final ordinary-settings assertions.",
+    "Use existing Element module type/build authority only when available without package acquisition; environment-only missing dependencies are HARNESS RED, not Product RED.",
+    "git diff --check GREEN and exact changed path set equals the four authorized paths.",
+    "Do not rerun the consumed 51-test full Product validator until the final reconciled Product candidate requires complete focused closure."
+  ],
+  "promotion": {
+    "afterLocalClosureGreen": "Create one exact four-path implementation head, run one CI validation event, ordinary-merge immediately on GREEN, then create the separate Navigation authorization from the resulting fresh main.",
+    "beforeLocalClosureGreen": "No implementation Exact Head, no implementation CI, no Navigation authorization, no Windows proof and no Product Exact Head."
+  }
+}
