@@ -20,13 +20,17 @@ test('active Element Product exposes current Model Brain/LiteLLM status without 
   const preload = read('electron/preload.js');
 
   assert.match(shell, /ProductSystemSettingsSurface/u);
-  assert.match(surface, /Model Brain/iu);
-  assert.match(surface, /LiteLLM/iu);
-  assert.match(surface, /运行状态|不可用|状态已读取/iu);
-  assert.match(surface, /quick_reply/u);
-  assert.match(surface, /deep_reply/u);
-  assert.match(surface, /director/u);
-  assert.doesNotMatch(surface, /任务路由|主模型|备用模型|primaryModelId|fallbackModelId|replyBrainScore/iu);
+  assert.match(shell, /ProductModelRuntimeSupportSurface/u);
+  assert.match(shell, /modelSupportVisible[\s\S]{0,240}useState\(false\)/u);
+  assert.match(shell, /modelSupportVisible \? <ProductModelRuntimeSupportSurface \/> : null/u);
+  assert.match(shell, /Model Brain/iu);
+  assert.match(shell, /LiteLLM/iu);
+  assert.match(shell, /运行状态|不可用|状态已读取/iu);
+  assert.match(shell, /quick_reply/u);
+  assert.match(shell, /deep_reply/u);
+  assert.match(shell, /director/u);
+  assert.doesNotMatch(shell, /任务路由|主模型|备用模型|primaryModelId|fallbackModelId|replyBrainScore/iu);
+  assert.doesNotMatch(surface, /LiteLLM|Ollama|GPU|Model Brain|API Key|SHA-?256/iu);
 
   assert.match(bridge, /\/api\/r32\/models\/model-brain\/status/u);
   assert.match(bridge + preload, /store:product-system-model-runtime-state/u);
@@ -63,6 +67,7 @@ test('diagnostics, architecture and runtime artifacts expose current Model Brain
 
 test('active Product uses fixed authenticated model capabilities, not Yance scores or an arbitrary renderer route', () => {
   const surface = read('integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx');
+  const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
   const bridge = read('electron/r32StoreBridge.js');
   const preload = read('electron/preload.js');
 
@@ -84,6 +89,7 @@ test('active Product uses fixed authenticated model capabilities, not Yance scor
   ]) assert.match(preload, new RegExp(method, 'u'));
 
   assert.doesNotMatch(bridge, /input\.(?:url|method)|apiRequest\(\s*clean\(input/iu);
-  assert.doesNotMatch(surface, /score slider|质量评分|成本评分|速度评分|首选主模型|备用模型|replyBrainScore/iu);
-  assert.match(surface, /本地模型不会静默替代正式回复/u);
+  assert.doesNotMatch(shell, /score slider|质量评分|成本评分|速度评分|首选主模型|备用模型|replyBrainScore/iu);
+  assert.match(shell, /本地模型不会静默替代正式回复/u);
+  assert.doesNotMatch(surface, /getProductModelRuntimeState|mutateProductModelRuntime|requestId|endpoint/iu);
 });
