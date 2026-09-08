@@ -65,6 +65,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'fix/v21-product-experience-windows-uat-startup-p0',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-2',
+    'fix/v21-product-final-navigation-preservation-v5',
     'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2',
     'release/v21-final-rc-uat-p0',
     'release/v21-final-rc-uat-p0-successor-v2',
@@ -96,6 +97,11 @@ test('Product Experience final validation is an exact-head same-repository pull-
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v15'/gu) || []).length,
     3,
     'successor-v15 must be admitted by exactly the three existing Product Final job guards'
+  );
+  assert.equal(
+    (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-final-navigation-preservation-v5'/gu) || []).length,
+    3,
+    'navigation preservation successor-v5 must be admitted by exactly the three existing Product Final job guards'
   );
   assert.equal(
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-runtime-state-p0'/gu) || []).length,

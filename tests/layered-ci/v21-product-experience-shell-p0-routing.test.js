@@ -36,6 +36,8 @@ const V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS = Object.freeze([
   'upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch'
 ]);
 const WP1_APPEARANCE_PATCH = 'upstream-patches/element-web/0014-yance-module-appearance-authority.patch';
+const NAVIGATION_0017_PATCH = 'upstream-patches/element-web/0017-yance-product-conversation-control.patch';
+const NAVIGATION_0017_ADJACENT_PATCH = 'upstream-patches/element-web/0018-yance-product-conversation-control.patch';
 
 test('V2.1 Product Experience Shell P0 bootstrap paths are exact PRODUCT_WP0 routes', () => {
   assert.equal(new Set(V21_PRODUCT_EXPERIENCE_SHELL_P0_BOOTSTRAP_PATHS).size, 24);
@@ -60,6 +62,22 @@ test('WP-1 Element appearance seam is an exact PRODUCT_WP0 route without broad u
   assert.equal(result.pass, true, JSON.stringify(result));
   assert.equal(result.route, ROUTES.PRODUCT);
   assert.equal(result.productChangesPresent, true);
+});
+
+test('Navigation 0017 is an exact PRODUCT_WP0 route while adjacent Element patches remain fail closed', () => {
+  assert.equal(policy.productExactPaths.includes(NAVIGATION_0017_PATCH), true, NAVIGATION_0017_PATCH);
+  assert.equal(policy.productPrefixes.includes('upstream-patches/'), false, 'upstream-patches/');
+  assert.equal(policy.productPrefixes.includes('upstream-patches/element-web/'), false, 'upstream-patches/element-web/');
+
+  const accepted = classifyWp0Route(policy, [NAVIGATION_0017_PATCH]);
+  assert.equal(accepted.pass, true, JSON.stringify(accepted));
+  assert.equal(accepted.route, ROUTES.PRODUCT);
+  assert.equal(accepted.productChangesPresent, true);
+
+  const denied = classifyWp0Route(policy, [NAVIGATION_0017_ADJACENT_PATCH]);
+  assert.equal(denied.pass, false, JSON.stringify(denied));
+  assert.equal(denied.reasonCode, 'WP0_ROUTE_UNKNOWN_PATH');
+  assert.equal(denied.route, null);
 });
 
 test('V2.1 Product Experience route bootstrap does not authorize broad product prefixes', () => {
