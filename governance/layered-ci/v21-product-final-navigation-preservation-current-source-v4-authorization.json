@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-NAVIGATION-PRESERVATION",
+  "proposalRevision": 4,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Exact Source Before Mutation established that the current Product-worktree 0017 is SHA256 bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00 rather than the historical failure-40 snapshot dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1. PR #1143 correctly preserved that current-source identity but attempted to mutate the already-merged authorization path, so the base-owned proposal transport rejected it because a delegated authorization proposal must be introduced at a path absent from trusted main. This V4 successor uses one new governance authorization path, explicitly supersedes the effective #1142 authority without rewriting it, changes only the successor implementation branch identity required by the trusted supersession contract, and leaves Product scope, failure 40, mature Element ownership, exact current 0017 preimage, implementation path and release semantics unchanged.",
+  "base": {
+    "branch": "main",
+    "commit": "92082d52b950a7197819934e504af205d986266c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-navigation-preservation-authorization.json",
+    "implementationBranch": "fix/v21-product-final-navigation-preservation",
+    "reason": "PR #1142 ordinary-merged the prior navigation authorization at main 92082d52b950a7197819934e504af205d986266c. Exact-local-source review then proved its mutation-preimage identity stale relative to the current Product worktree, while PR #1143 froze RED because it tried to revise that already-existing authorization path in place. V4 supersedes the old implementation authority through the repository's trusted successor graph and preserves the old path and RED evidence immutably."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "92082d52b950a7197819934e504af205d986266c",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-navigation-preservation-current-source-v4-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-navigation-preservation-current-source-v4-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d0944e6816b1d9d416e347915d4fee932cd84c4809adfebd1eb0770dbf306bcb",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-navigation-preservation-v4",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "99bcf714ec5a61bdac23a10b6c34e3c1bd7b30b47511e7e34a155e20cffe686b",
+    "productionAllowedChangedPaths": [
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "productionChangedFileCount": 1,
+    "productionChangedFileSetSha256": "99bcf714ec5a61bdac23a10b6c34e3c1bd7b30b47511e7e34a155e20cffe686b",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "backendAuthorityModificationAllowed": false,
+    "electronBridgeModificationAllowed": false,
+    "ipcManifestModificationAllowed": false,
+    "testMutationAllowed": false,
+    "testWeakeningAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "newProductRouteOrRendererAllowed": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "rootCause": {
+    "name": "PRODUCT_FINAL / FROZEN_V20_NAVIGATION_PRESERVATION / PRODUCT_PRIMARY_HOME_AND_CURRENT_ROOM_SEAM_MISSING",
+    "directEvidence": "The consumed Product Final validator froze failure 40 and separated it from Settings (SAME_ROOT=NO). The historical exact 0017 used by V5.267/failure-40 evidence was SHA256 dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1. Exact-local-source review of the current Product worktree produced SHA256 bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00. Those current bytes retain all historical 0017 relationship-room, outgoing-prepare, action-gate and settings/logout seams and also contain the already-consumed V14 additive host continuation: registerOutgoingMessageCompletion/completeOutgoingMessage, Resend completion projection and replacePlaintextInComposer. They still contain no Product-primary Home renderer override and no getCurrentRoomId/roomViewStore current-room read seam. PR #1143 did not invalidate this Product evidence; its RED was proposal-path topology only.",
+    "requiredRepair": "Starting from exact current 0017 SHA256 bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00, add only the narrow pinned-Element seam required by failure 40: preserve Yance Product-primary Home/location rendering and expose/read the mature current Matrix room identity through the existing Element roomViewStore/navigation boundary used by Product navigation reconciliation. Preserve real Element RoomView/timeline/composer, every historical 0017 prepare/action/settings behavior, and the consumed V14 send-completion/retry/composer-replacement continuation. Do not create a second router, renderer registry, timeline, composer, Matrix session or navigation authority."
+  },
+  "preservedEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.346",
+    "controllerCommentId": 5584478088,
+    "freshMainAtAuthorization": "92082d52b950a7197819934e504af205d986266c",
+    "settingsPrerequisitePr": 1140,
+    "settingsPrerequisiteMerge": "c1d36ced789fac10c10dbfcbf8b34ea98bfb5d7c",
+    "effectiveNavigationAuthorizationPr": 1142,
+    "effectiveNavigationAuthorizationMerge": "92082d52b950a7197819934e504af205d986266c",
+    "failedCurrentSourceProposal": {
+      "pullRequest": 1143,
+      "exactHead": "e77751ef612aa6b67858b8102bbc099b66ea9419",
+      "consumedRun": 34241641170,
+      "failingJob": 102113111075,
+      "failingStep": "Run implementation branch policy contract",
+      "classification": "GOVERNANCE_AUTHORIZATION / PROPOSAL_PATH_ALREADY_EXISTS_ON_TRUSTED_MAIN",
+      "rerunForbidden": true
+    },
+    "frozenProductFocusedValidator": {
+      "tests": 51,
+      "pass": 48,
+      "fail": 3,
+      "navigationFailureOrdinal": 40,
+      "rerunForbiddenBeforeRelevantProductBytesChange": true
+    },
+    "exactCurrent0017Sha256": "bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00",
+    "historical0017Sha256": "dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1",
+    "pinnedElementVersion": "v1.12.25",
+    "pinnedElementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "windowsActionAuthorized": false,
+    "productExactHeadCreated": false,
+    "productCiConsumed": false
+  },
+  "closureMatrix": [
+    {
+      "boundary": "Product-primary authenticated Home/location rendering",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "pinned Element LoggedInView + existing module location renderer",
+      "decision": "Preserve Yance People/Relationship World as the sole Product primary presentation while keeping real Element RoomView for active conversations."
+    },
+    {
+      "boundary": "Current Matrix room read",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "pinned Element roomViewStore/navigation state",
+      "decision": "Expose only the narrow current-room identity read needed by existing Yance navigation reconciliation; no replacement router/state machine."
+    },
+    {
+      "boundary": "Real Matrix conversation runtime",
+      "classification": "PRESERVE",
+      "owner": "Element RoomView/timeline/composer + Matrix session/crypto",
+      "decision": "Do not replace or duplicate timeline, composer, session, crypto or room routing."
+    },
+    {
+      "boundary": "Existing current 0017 conversation-control seams",
+      "classification": "PRESERVE_EXACT_SEMANTICS",
+      "owner": "current exact local 0017 candidate",
+      "decision": "Keep both real-send prepare hooks, Product reply/reaction/redaction gates, relationship-room presentation, existing user-settings/logout navigation, and the consumed V14 send-completion/Resend/composer-replacement continuation."
+    },
+    {
+      "boundary": "Settings AI-invisible contract migration",
+      "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+      "owner": "merged PR #1140 / main",
+      "decision": "Already closed and merged; do not reopen or mutate its four paths in this root."
+    }
+  ],
+  "ossFit": {
+    "decision": "REUSE_PINNED_ELEMENT_NAVIGATION_AND_ROOM_STATE_AUTHORITY_THROUGH_EXISTING_REPOSITORY_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Pinned Element LoggedInView/module location rendering",
+        "source": "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+        "license": "Apache-2.0",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Element already owns authenticated page/room rendering; the Product needs only a narrow projection seam, not another renderer or router."
+      },
+      {
+        "name": "Pinned Element current room state",
+        "source": "existing roomViewStore/navigation state in the same pinned Element source",
+        "license": "Apache-2.0",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "The current room identity already exists in Element's mature state authority. Reusing a read-only seam avoids duplicate navigation state."
+      },
+      {
+        "name": "Existing current 0017 Product conversation control patch",
+        "source": "exact uploaded current Product-worktree 0017 / SHA256 bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00",
+        "license": "repository-existing patch over Apache-2.0 upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The same patch already owns the Product conversation seam family and carries the consumed V14 host continuation. Extending these exact current bytes is narrower and safer than reverting to the historical pre-V14 snapshot or adding another integration system."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second navigation registry, renderer registry, route state machine or Product router.",
+      "Do not create a second timeline/composer/session/crypto owner.",
+      "Do not make generic Element Home/room-list navigation the Product primary UI.",
+      "Do not alter Settings, backend, Electron, dependencies, workflows, 0015 or 0016 for this independent root."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "localAcceptance": [
+    "Start implementation only after this V4 authorization ordinary-merges and from that exact merge commit on fix/v21-product-final-navigation-preservation-v4.",
+    "Use exact current Product-worktree 0017 SHA256 bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00 as the mutation preimage authority; the historical dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1 snapshot remains evidence only and must not replace current dirty bytes.",
+    "Apply/replay against pinned Element v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c after the actual predecessor chain used by the current Product candidate.",
+    "Preserve historical 0017 outgoing prepare, Product relationship-room presentation, action gates and settings/logout behavior plus the consumed V14 send-completion/Resend/composer-replacement continuation.",
+    "Close frozen failure 40 by adding only the Product-primary Home/current-room read seam through the mature Element authority.",
+    "0017 remains an ordinary unified diff and composes/applies cleanly; no predecessor patch bytes change.",
+    "Exact changed path set equals the single authorized 0017 path and git diff --check is GREEN.",
+    "Do not rerun consumed unrelated Product, Settings, PR #1143 or Windows evidence."
+  ],
+  "promotion": {
+    "afterLocalClosureGreen": "Create one exact one-path Navigation implementation head, one PR and one automatic CI validation event; ordinary-merge immediately on GREEN, then reconcile the already-frozen Product successor candidate onto the resulting fresh main without capability recensus.",
+    "beforeLocalClosureGreen": "No Navigation implementation Exact Head, no implementation CI, no Product Exact Head, no RC and no Windows UAT."
+  }
+}
