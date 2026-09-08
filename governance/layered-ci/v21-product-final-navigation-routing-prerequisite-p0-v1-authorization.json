@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-NAVIGATION-ROUTING-PREREQUISITE-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen Product Navigation PR #1145 exact head 9e7e255646c8282fee079398b1a3fc11279b9389 proved the exact authorized Product patch path upstream-patches/element-web/0017-yance-product-conversation-control.patch is not classified by the base-owned WP0 routing policy: Stage run 34252553111 / route job 102150260349 failed closed with WP0_ROUTE_UNKNOWN_PATH. The same base source audit shows the exact path is absent from Layered CI l2ExactPaths, while the Product Experience final-validation workflow does not admit the required fresh successor Navigation implementation branch in its three existing literal job guards. This prerequisite reuses the repository's existing exact-path route-bootstrap authority and changes only the same six mature routing/risk/workflow/test owners used by prior Element upstream-patch admissions. No broad upstream prefix, wildcard branch, Product byte, dependency, runner, release, publish, or gate weakening is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "07a4beb2972d9b9804bdd9001b7b67a11f86e499",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-navigation-routing-prerequisite-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-navigation-routing-prerequisite-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "a11995baf2a56be0814184afdcc36d7661f581edfca640be940f70fc831d6783",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "bootstrapPaths": [
+    "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+  ],
+  "bootstrapPathCount": 1,
+  "bootstrapPathSetSha256": "99bcf714ec5a61bdac23a10b6c34e3c1bd7b30b47511e7e34a155e20cffe686b",
+  "implementation": {
+    "branch": "fix/v21-product-final-navigation-routing-prerequisite-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 6,
+    "approvedChangedFileSetSha256": "90c62b9476f877ba9e082cb0717471a8478d2e2f33d7e2754ebfded76b3a8ecb",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "eca1bb2482379a5df234b391747d035ddde2419b6072f6fd279a58239e4e0322"
+    },
+    "routingPolicyModificationAllowed": true,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "ledgerModificationAllowed": false,
+    "genericRouteMutationGuardRequired": true,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "CI_ROUTE / ELEMENT_UPSTREAM_PATCH_0017_PATH_UNCLASSIFIED",
+    "failureCodes": [
+      "STAGE_WP0_ROUTE / WP0_ROUTE_UNKNOWN_PATH",
+      "LAYERED_CI_RISK / EXACT_0017_L2_CLASSIFICATION_MISSING",
+      "PRODUCT_FINAL / EXACT_SUCCESSOR_BRANCH_NOT_ADMITTED"
+    ],
+    "frozenImplementationPullRequest": 1145,
+    "frozenImplementationHead": "9e7e255646c8282fee079398b1a3fc11279b9389",
+    "frozenStageRun": 34252553111,
+    "frozenStageRouteJob": 102150260349,
+    "frozenStageReasonCode": "WP0_ROUTE_UNKNOWN_PATH",
+    "exactProductPatchPath": "upstream-patches/element-web/0017-yance-product-conversation-control.patch",
+    "frozenProductPatchSha256": "0cdb81593e696782027c73ca6804c7455c38c0007da724e217f8699ec47cf887",
+    "nextProductSuccessorBranch": "fix/v21-product-final-navigation-preservation-v5",
+    "requiredClosure": [
+      "Add exactly upstream-patches/element-web/0017-yance-product-conversation-control.patch to governance/layered-ci/wp0-routing-policy.json productExactPaths; do not add upstream-patches/ or upstream-patches/element-web/ to productPrefixes.",
+      "Add exactly upstream-patches/element-web/0017-yance-product-conversation-control.patch to governance/layered-ci/risk-policy.json l2ExactPaths; preserve unknownPathFailsClosed=true and l3Automatic=false.",
+      "Extend the existing Product Experience WP0 routing static contract to prove the exact 0017 path routes PRODUCT_WP0 while adjacent unregistered Element upstream patches remain WP0_ROUTE_UNKNOWN_PATH.",
+      "Extend the existing Layered risk static contract to prove the exact 0017 path is L2 by EXACT rule while adjacent unregistered Element upstream patches remain unknown.",
+      "Add exactly fix/v21-product-final-navigation-preservation-v5 to each of the three existing Product Experience final-validation literal branch guards and to the exact-allowlist static contract; do not add wildcard, prefix, regex, startsWith or contains matching.",
+      "Preserve same-repository pull-request binding, exact-head checkout, existing Windows/Linux runners, pinned Element materialization, frozen-lockfile validation and all existing Product Final assertions.",
+      "Consume the existing validateDelegatedRoutePolicyMutation guard with the exact one-path bootstrap declaration; do not weaken or replace it.",
+      "Use the existing generic delegated workflowModificationPolicy for only .github/workflows/v21-product-experience-shell-p0-final-validation.yml.",
+      "Do not modify, rerun, amend or force-update frozen Navigation head 9e7e255646c8282fee079398b1a3fc11279b9389 or Stage run 34252553111."
+    ]
+  },
+  "preservedProductEvidence": {
+    "navigationAuthorizationPullRequest": 1144,
+    "navigationAuthorizationMerge": "07a4beb2972d9b9804bdd9001b7b67a11f86e499",
+    "currentSourcePreimageSha256": "bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00",
+    "finalCandidateSha256": "0cdb81593e696782027c73ca6804c7455c38c0007da724e217f8699ec47cf887",
+    "finalCandidateGitBlob": "d1d353d889d5366a4d6bc67dd16b15e2d637cd09",
+    "productBytesRequireChangeForRoutingRoot": false,
+    "productBehaviorRegressionObserved": false
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_FAIL_CLOSED_EXACT_ROUTE_RISK_AND_PRODUCT_FINAL_BRANCH_ADMISSION_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP0 exact Product route policy and delegated mutation guard",
+        "source": "governance/layered-ci/wp0-routing-policy.json + tools/layered-ci/wp0-routing.js + shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "These owners already support fail-closed exact-path PRODUCT_WP0 admission and permanent delegated route mutation validation, so only one exact 0017 registration is required."
+      },
+      {
+        "name": "Existing Layered exact L2 risk policy",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already classifies selected Element upstream patch paths as exact L2 while unknown paths fail closed; 0017 needs the same narrow registration."
+      },
+      {
+        "name": "Existing Product Experience final-validation exact branch guards",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing/GitHub Actions",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The workflow already owns the Windows/Linux pinned-Element Product Final proof and literal branch admission, so adding one successor branch to the three existing guards is narrower than a new workflow or wildcard rule."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add upstream-patches/ or upstream-patches/element-web/ as broad Product route prefixes.",
+      "Do not disable unknown-path fail-closed behavior or change l3Automatic.",
+      "Do not add wildcard, startsWith, contains, regex, workflow_dispatch, push or schedule admission for the Product Final workflow.",
+      "Do not create another routing layer, Product Final workflow or proof framework.",
+      "Do not change Product 0017 bytes in this routing prerequisite."
+    ]
+  },
+  "localAcceptance": [
+    "Exact implementation changed path set is the six authorized mature routing/risk/workflow/test owners and no others.",
+    "The exact 0017 path classifies PRODUCT_WP0 and adjacent unregistered Element upstream patch paths remain WP0_ROUTE_UNKNOWN_PATH.",
+    "The exact 0017 path classifies L2 by EXACT risk reason and adjacent unregistered Element upstream patch paths remain unknown.",
+    "fix/v21-product-final-navigation-preservation-v5 appears exactly in each of the three existing Product Final job guards and the static exact allowlist; no broad branch matcher is introduced.",
+    "All existing layered-ci governance/routing/final-validation focused tests remain GREEN and git diff --check is GREEN."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
