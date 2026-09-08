@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-SUCCESSOR-V22-SETTINGS-PRESERVATION",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The first full successor-v21 local focused validator was executed once after the authorized 9-path post-login-security mutation and froze 51 tests / 48 pass / 3 fail. All successor-v21 post-login-security assertions passed. Exact-source reconciliation proved the three preservation failures are two independent causal roots. Settings failures 33 and 36 belong only to ProductSystemSettingsSurface: the frozen V20 contract requires the existing advanced Model Brain disclosure and race-safe model-runtime mutation projection. Navigation failure 40 belongs to pinned Element patch 0017 and is explicitly excluded. First Settings authorization PR #1137 was closed unmerged after its immutable exact head failed only the base-owned OSS-first evidence gate because that authorization omitted the required ossFit object. This revision preserves the exact one-path Settings causal scope and adds the complete audited OSS-fit evidence required by repository policy; it does not change Product scope or repair semantics.",
+  "supersedesForPrerequisiteOnly": {
+    "rejectedTopologyAuthorizationPr": 1136,
+    "rejectedTopologyAuthorizationPath": "governance/layered-ci/v21-product-final-successor-v22-v20-candidate-preservation-authorization.json",
+    "rejectedTransportAuthorizationPr": 1137,
+    "rejectedTransportAuthorizationHead": "4b2f7d342e7b021948e0cd8d7fa2f17067093231",
+    "rejectedTransportAuthorizationPath": "governance/layered-ci/v21-product-final-successor-v22-settings-preservation-authorization.json",
+    "reason": "PR #1136 grouped causally independent Settings and Navigation roots and stayed closed unmerged. PR #1137 correctly split the Settings root but its immutable authorization head omitted mandatory ossFit evidence and is frozen RED. Neither prior proposal is effective implementation authority."
+  },
+  "preservesProductAuthorization": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v21-post-login-security-shell-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v21",
+    "effect": "Does not invalidate or rewrite the frozen successor-v21 9-path post-login-security candidate. Corrected patch 0018 remains a valid authorized current-root mutation. Product promotion stays blocked until both independent preservation prerequisites are merged and the frozen Product candidate is deterministically reconciled."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "e76112414b0b4a8643cc5991e7e7d3156bb1b36e",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "e76112414b0b4a8643cc5991e7e7d3156bb1b36e",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v22-settings-preservation-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v22-settings-preservation-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "2303879aa60c1bd53e39efb8c4464cce7c7b2c5fd3598a3abf15cd44c046d2f7",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v22-settings-preservation",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "36c080a62e589824801bf7ed47407f2b60148d5a059c39edc1a7e9d64f9b9e19",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "testMutationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "rootCause": {
+    "name": "PRODUCT_FINAL / FROZEN_V20_SETTINGS_PRESERVATION / MODEL_RUNTIME_ADVANCED_PROJECTION_MISSING",
+    "directEvidence": "Frozen one-shot local validator: 51 total, 48 pass, 3 fail, all in tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js. Failures 33 and 36 require the advanced Model Brain disclosure and race-safe existing model-runtime mutation projection in ProductSystemSettingsSurface. The same frozen regression authority is the V5.330 Product contract; successor-v21 post-login-security assertions passed in the same consumed run. Exact-source reconciliation separated Settings from 0017 Navigation because they have different production owners, contracts, seams and runtime boundaries.",
+    "requiredRepair": "Preserve ordinary Product settings and restore only the missing frozen V20 advanced Model Brain/runtime projection behind a secondary disclosure, reusing the existing Product model-runtime bridge and existing getProductModelRuntimeState/mutateProductModelRuntime authority with race-safe request receipt identity. Do not create a second model router, settings authority, runtime supervisor, dependency, helper framework, proof framework or engineering dashboard as primary Product UI."
+  },
+  "causalTopology": {
+    "sameRootWithNavigation": false,
+    "navigationPath": "upstream-patches/element-web/0017-yance-product-conversation-control.patch",
+    "navigationMutationAuthorizedByThisDocument": false,
+    "navigationAuthorizationRule": "A separate Navigation authorization must be created from the new live main only after this Settings prerequisite ordinary merge. The two prerequisite implementation heads must remain causally separate."
+  },
+  "preservedEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.339",
+    "controllerCommentId": 5580532724,
+    "freshMainAtAuthorization": "e76112414b0b4a8643cc5991e7e7d3156bb1b36e",
+    "frozenFocusedValidator": {
+      "tests": 51,
+      "pass": 48,
+      "fail": 3,
+      "rerunForbiddenBeforeProductionBytesChange": true
+    },
+    "frozenAuthorizationRed": {
+      "pullRequest": 1137,
+      "exactHead": "4b2f7d342e7b021948e0cd8d7fa2f17067093231",
+      "stageRun": 34195227779,
+      "failingJob": 101961417058,
+      "failingStep": "Enforce OSS-first development admission",
+      "rootCause": "mandatory ossFit evidence omitted",
+      "rerunForbidden": true
+    },
+    "successorV21SecurityAssertionsPassed": true,
+    "successorV21SecurityCandidatePreserved": true,
+    "corrected0018Sha256": "8D026631A80035F4ABBC24865D00D7E5B83BE76BE06B90951270D88B13016FD2",
+    "sameRoot": false,
+    "unknownBlockers": 0,
+    "productExactHeadCreated": false,
+    "productCiConsumed": false,
+    "windowsActionAuthorized": false
+  },
+  "closureMatrix": [
+    {
+      "boundary": "Ordinary Product settings",
+      "classification": "PRESERVE",
+      "owner": "current ProductSystemSettingsSurface user-facing settings projections",
+      "decision": "Keep account/security/session, runtime safety, desktop behavior, theme, notifications, data protection and updater controls intact."
+    },
+    {
+      "boundary": "Advanced Model Brain/runtime controls",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "existing Product model runtime bridge + LiteLLM Model Brain authority",
+      "decision": "Project the existing get/mutate APIs behind one advanced disclosure using existing runtime state and mutation semantics; no second model router or settings system."
+    },
+    {
+      "boundary": "Element Product-primary navigation / current room read",
+      "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+      "owner": "pinned Element LoggedInView/module location renderer + roomViewStore",
+      "decision": "Belongs to the independent Navigation preservation root and is forbidden in this authorization."
+    },
+    {
+      "boundary": "Successor-v21 post-login security projection",
+      "classification": "PRESERVE_FROZEN",
+      "owner": "existing dirty 9-path successor-v21 candidate",
+      "decision": "Do not modify, revert or rerun equivalent security-only evidence during the Settings prerequisite."
+    }
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_PRODUCT_SETTINGS_MODEL_RUNTIME_BRIDGE_AND_MATURE_MODEL_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Element Product settings surface",
+        "source": "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The active Product settings renderer already exists and already declares the model-runtime desktop API; the preservation gap is only its missing frozen advanced projection, so a second settings surface or renderer would duplicate authority."
+      },
+      {
+        "name": "Existing Electron Product model-runtime bridge",
+        "source": "electron/preload.js getProductModelRuntimeState/mutateProductModelRuntime + existing store IPC authority",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The authenticated Product bridge already exposes the exact model-runtime read and mutation methods required by the frozen contract; reuse them with their existing request/mutation semantics rather than inventing another runtime control channel."
+      },
+      {
+        "name": "Existing LiteLLM and Adaptive Local model runtime authorities",
+        "source": "repository-adopted LiteLLM Model Brain + Adaptive Local runtime seams",
+        "license": "existing reviewed upstream/repository licenses",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Mature adopted model routing and local-runtime authorities already own runtime truth and execution; Settings must only project their existing state and actions and must not rebuild a model gateway, inference engine or runtime supervisor."
+      },
+      {
+        "name": "Existing Product and Model Brain executable regression authority",
+        "source": "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js + tests/wp0/v21-model-brain-ui.test.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The frozen regression and existing Model Brain tests already define the preservation contract; keep them unchanged and use the existing focused/type-build seams rather than adding a second proof framework."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add a second Product settings renderer or engineering dashboard as primary Product UI.",
+      "Do not add a second model router, model gateway, inference engine or runtime supervisor.",
+      "Do not bypass the existing Electron preload/store model-runtime authority with direct renderer networking or new IPC channels.",
+      "Do not create a second focused-test, proof or helper framework and do not weaken the frozen V5.330 regression assertions."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "localAcceptance": [
+    "Do not rerun the consumed 51-test validator before the final reconciled Product bytes require the complete focused closure.",
+    "Use the exact frozen V5.330 regression assertions unchanged.",
+    "Deterministically apply the already-frozen exact-source Settings repair only after this authorization ordinary merge.",
+    "Focused proof must close Settings failures 33 and 36 without touching Navigation patch 0017 or any test/gate.",
+    "ProductSystemSettingsSurface must type/build through the existing Element module toolchain without new dependencies.",
+    "git diff --check must be GREEN and the prerequisite changed production path set must be exactly the authorized one Settings path."
+  ],
+  "promotion": {
+    "afterLocalClosureGreen": "Create one exact Settings prerequisite implementation head, run one CI as validator, ordinary-merge it immediately on GREEN, then create a separate Navigation authorization from the resulting fresh main.",
+    "beforeLocalClosureGreen": "No Settings implementation SHA, no Settings CI, no Navigation authorization based on stale main, no Windows proof and no Product Exact Head."
+  }
+}
