@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-SUCCESSOR-V22-V20-CANDIDATE-PRESERVATION",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The first full successor-v21 local focused validator was executed once after the authorized 9-path post-login-security mutation and froze 51 tests / 48 pass / 3 fail. All V21 post-login-security assertions passed. The three failures are exact frozen V5.330 regression authority failures against two pre-existing V20 candidate production surfaces: ProductSystemSettingsSurface lost the required advanced Model Brain disclosure/projection contract, and 0017-yance-product-conversation-control.patch lacks the frozen Product-primary HomePage renderer/current-room navigation seam. The regression test SHA256 is exactly the V5.330 frozen candidate identity f3a670038ab66058f7e5056ecacf580ed616ebaf9d7c3bfbfcea8be5d838f7e3, therefore weakening or deleting the assertions is forbidden. This is a separate preservation prerequisite root discovered before Product Exact Head; it must close as one two-path causal batch before successor-v21 post-login-security Local Closure may resume.",
+  "supersedesForPrerequisiteOnly": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v21-post-login-security-shell-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v21",
+    "effect": "Does not invalidate or rewrite the frozen successor-v21 9-path post-login-security candidate. It temporarily blocks its promotion until this separate preservation prerequisite is merged and reconciled."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "e76112414b0b4a8643cc5991e7e7d3156bb1b36e",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "e76112414b0b4a8643cc5991e7e7d3156bb1b36e",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-successor-v22-v20-candidate-preservation-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v22-v20-candidate-preservation-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "75dfee3d57e4c988acc204bf4b91e803b7ad3ba7646bcb0627ac5816f92ba0c3",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v22",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "147b6261f5283af524b05ec558c8ab997164c5429148b401cddbe7141cff3123",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "testMutationAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "rootCause": {
+    "name": "PRODUCT_FINAL / FROZEN_V20_CANDIDATE_PRESERVATION / PRIMARY_COMPOSITION_AND_MODEL_SETTINGS_CONTRACT_NOT_PRESERVED",
+    "directEvidence": "Frozen one-shot local validator: 51 total, 48 pass, 3 fail, all in tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js. Failures 33 and 36 require the advanced Model Brain disclosure and race-safe existing model-runtime mutation projection in ProductSystemSettingsSurface. Failure 40 requires the V20 Product-primary HomePage renderer and mature current-room navigation seam in 0017. The same test file is byte-identical to the V5.330 frozen regression authority, proving this is not V21 test drift. V21-specific post-login-security assertions 17, 28, 42 and 51 passed in the same run.",
+    "requiredRepair": "Restore only the missing frozen V20 contracts using existing mature authorities. ProductSystemSettingsSurface keeps ordinary user settings primary and places existing Product Model Brain/runtime controls behind one advanced disclosure, reusing getProductModelRuntimeState/mutateProductModelRuntime with race-safe request receipt identity. 0017 keeps Yance as Product primary HomePage renderer while preserving real Element RoomView/timeline/composer and adds only the mature current-room read seam needed by existing Yance navigation reconciliation. Do not add a second router, renderer registry, composer, Matrix session, model router or test framework."
+  },
+  "preservedEvidence": {
+    "controllerIssue": 1051,
+    "controllerStateAtDiscovery": "V5.337",
+    "freshMainAtDiscovery": "e76112414b0b4a8643cc5991e7e7d3156bb1b36e",
+    "frozenV5330RegressionSha256": "f3a670038ab66058f7e5056ecacf580ed616ebaf9d7c3bfbfcea8be5d838f7e3",
+    "frozenFocusedValidator": {
+      "tests": 51,
+      "pass": 48,
+      "fail": 3,
+      "rerunForbidden": true
+    },
+    "successorV21SecurityCandidatePreserved": true,
+    "productExactHeadCreated": false,
+    "productCiConsumed": false,
+    "windowsActionAuthorized": false
+  },
+  "closureMatrix": [
+    {
+      "boundary": "Ordinary Product settings",
+      "classification": "PRESERVE",
+      "owner": "current ProductSystemSettingsSurface user-facing settings projections",
+      "decision": "Keep account/security/session, runtime safety, desktop behavior, theme, notifications, data protection and updater controls intact."
+    },
+    {
+      "boundary": "Advanced Model Brain/runtime controls",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "existing Product model runtime bridge + LiteLLM Model Brain authority",
+      "decision": "Project existing get/mutate APIs behind a secondary details disclosure only; no ordinary Product engineering dashboard and no second model router."
+    },
+    {
+      "boundary": "Product primary authenticated presentation",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "pinned Element LoggedInView + existing module location renderer",
+      "decision": "Yance location renderer owns Product HomePage presentation; real Element RoomView remains the conversation substrate."
+    },
+    {
+      "boundary": "Current Matrix room read",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "pinned Element roomViewStore",
+      "decision": "Expose the narrow read-only getCurrentRoomId seam used by existing Yance generation-guarded navigation reconciliation; no route registry replacement."
+    },
+    {
+      "boundary": "Successor-v21 post-login security projection",
+      "classification": "PRESERVE_FROZEN",
+      "owner": "existing dirty 9-path successor-v21 candidate",
+      "decision": "Do not modify or rerun it during this prerequisite. Resume its Local Closure only after prerequisite ordinary merge and deterministic reconcile."
+    }
+  ],
+  "localAcceptance": [
+    "Do not rerun the consumed 51-test validator before production bytes change.",
+    "Use the exact frozen V5.330 regression assertions unchanged.",
+    "Focused proof must turn only the three previously failing contracts GREEN while preserving already-passing current V21 security assertions by byte identity, not by rerunning them.",
+    "0017 must parse as ordinary unified diff and apply cleanly after the frozen 0001->0016 stack against pinned Element a2a996ae50d802878bf48e4bbf3730004bdcc55c.",
+    "ProductSystemSettingsSurface must type/build through the existing Element module toolchain without new dependencies.",
+    "git diff --check must be GREEN and changed path set must be exactly the authorized two paths."
+  ],
+  "promotion": {
+    "afterLocalClosureGreen": "Create one exact prerequisite implementation head on successor-v22, run one CI as validator, ordinary-merge it, then reconcile the frozen successor-v21 Product candidate onto the new main without reopening consumed evidence.",
+    "beforeLocalClosureGreen": "No prerequisite implementation SHA, no CI, no Windows proof and no successor-v21 Product Exact Head."
+  }
+}
