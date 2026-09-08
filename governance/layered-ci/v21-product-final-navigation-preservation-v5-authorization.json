@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-NAVIGATION-PRESERVATION-V5",
+  "proposalRevision": 5,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "PR #1148 froze one real Stage RED after the routing prerequisite was proven GREEN: the base-owned implementation-branch-policy gate denied fix/v21-product-final-navigation-preservation-v5 because the merged routing authorization named the next Product successor but did not itself grant trusted-main implementation authority. The Product candidate remains the already-frozen exact 0017 blob d1d353d889d5366a4d6bc67dd16b15e2d637cd09. This single-file successor authorization grants only the exact v5 implementation branch and exact 0017 path, supersedes the prior v4 navigation authority without rewriting it, and uses the repository's existing forward-continuation protocol so the frozen #1148 Product head is preserved as evidence rather than amended or rerun.",
+  "base": {
+    "branch": "main",
+    "commit": "566b7e155e87fca8bfd7ce87f65a80d2e7e6c635",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-navigation-preservation-current-source-v4-authorization.json",
+    "implementationBranch": "fix/v21-product-final-navigation-preservation-v4",
+    "reason": "The v4 authority predates the merged exact-0017 routing prerequisite and does not authorize the required v5 successor identity. Preserve it and its evidence immutably while moving the same one-path Product scope to the exact v5 continuation."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "566b7e155e87fca8bfd7ce87f65a80d2e7e6c635",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-navigation-preservation-v5-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-navigation-preservation-v5-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "25277bf312d958c314c4a20e347de2a25aeeb26fd9c218bcdd21442f6127122c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-navigation-preservation-v5",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "99bcf714ec5a61bdac23a10b6c34e3c1bd7b30b47511e7e34a155e20cffe686b",
+    "productionAllowedChangedPaths": [
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch"
+    ],
+    "productionChangedFileCount": 1,
+    "productionChangedFileSetSha256": "99bcf714ec5a61bdac23a10b6c34e3c1bd7b30b47511e7e34a155e20cffe686b",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "37efead82475b53b8489188dbe0d38505840c2b0"
+    },
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "backendAuthorityModificationAllowed": false,
+    "electronBridgeModificationAllowed": false,
+    "ipcManifestModificationAllowed": false,
+    "testMutationAllowed": false,
+    "testWeakeningAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "newProductRouteOrRendererAllowed": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "rootCause": {
+    "name": "CI_WP0 / PRODUCT_SUCCESSOR_V5_IMPLEMENTATION_AUTHORITY_MISSING",
+    "directEvidence": "PR #1148 Stage run 34266757949 proved wp0-route GREEN, then wp0-product job 102198011035 failed only tests/wp0/implementation-branch-policy.test.js at the live checkRuntimeTargetGate assertion. Exact source shows that checkRuntimeTargetGate delegates branch admission to trusted-main implementation authority. The routing authorization contains nextProductSuccessorBranch but no implementation.branch entry for v5, so workflow admission and route classification are GREEN while WP0 implementation authority is absent.",
+    "requiredRepair": "Ordinary-merge this single-file trusted-main authorization, then forward-continue the frozen #1148 exact Product head as the second parent of the first v5 implementation commit whose first parent is the authorization merge. Preserve the exact frozen Product blob and do not rerun the consumed RED."
+  },
+  "preservedEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.346",
+    "routingPrerequisitePr": 1147,
+    "routingPrerequisiteMerge": "566b7e155e87fca8bfd7ce87f65a80d2e7e6c635",
+    "frozenProductPr": 1148,
+    "frozenProductHead": "37efead82475b53b8489188dbe0d38505840c2b0",
+    "frozenProductBlob": "d1d353d889d5366a4d6bc67dd16b15e2d637cd09",
+    "frozenProductSha256": "0cdb81593e696782027c73ca6804c7455c38c0007da724e217f8699ec47cf887",
+    "consumedStageRun": 34266757949,
+    "consumedWp0ProductJob": 102198011035,
+    "consumedFailure": "tests/wp0/implementation-branch-policy.test.js live checkRuntimeTargetGate pass=false",
+    "routingGateGreen": true,
+    "rerunFrozenProductHeadForbidden": true
+  },
+  "localAcceptance": [
+    "Authorization proposal diff is exactly this one new governance file and passes the existing authorization-proposal transport without granting implementation authority before merge.",
+    "Ordinary two-parent merge must keep 566b7e155e87fca8bfd7ce87f65a80d2e7e6c635 as first parent; if trusted main moves first, regenerate instead of weakening the authority.",
+    "After authorization merge, the first v5 continuation head has parents [AUTHORIZATION_ORDINARY_MERGE_COMMIT, 37efead82475b53b8489188dbe0d38505840c2b0].",
+    "The resulting main-to-v5 diff remains exactly the single 0017 path and exact Product blob d1d353d889d5366a4d6bc67dd16b15e2d637cd09.",
+    "Do not alter Product semantics, workflow, routing policy, dependencies, tests or any other production path in this prerequisite root."
+  ],
+  "promotion": {
+    "afterAuthorizationGreen": "Ordinary-merge immediately, forward-continue frozen #1148 onto the authorization merge without force/amend, then consume one new Product CI event.",
+    "beforeAuthorizationGreen": "No Product byte mutation, no frozen RED rerun, no RC and no Windows UAT."
+  }
+}
