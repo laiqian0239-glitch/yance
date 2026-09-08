@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-POST-LOGIN-SECURITY-SHELL",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The first replacement Windows Product proof after backend-readiness prerequisite #1134 advanced past the former transport/owner-containment RED and reached a real authenticated Matrix post-login security state, but pinned Element COMPLETE_SECURITY took over the full Product window with generic AuthPage scenic background, Matrix footer and Glass security presentation. Controller V5.336 froze that Product RED. Pinned-source closure proves the crypto/session authority is healthy and must remain Element-owned; the missing capability is only a module-level presentation seam for post-login security. The same source graph proves E2E_SETUP uses the same AuthPage/CompleteSecurityBody presentation boundary and belongs in the same causal batch. V21 preserves the frozen V20 47-path Product candidate, adds the existing Yance auth stylesheet as Product visual authority, and adds one narrow pinned-Element upstream patch artifact for the missing presentation seam.",
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-successor-v20-runtime-safety-inventory-authorization.json",
+    "implementationBranch": "fix/v21-product-final-living-relationship-os-successor-v20",
+    "reason": "V20 remains immutable merged cumulative Product authorization evidence and no Product Exact Head was created. V21 preserves its frozen candidate and expands only the newly proven post-login-security projection root before promotion."
+  },
+  "base": {
+    "branch": "main",
+    "commit": "b4cab6db8c0e09ab6f98c743abdc5bc79d7fce39",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "b4cab6db8c0e09ab6f98c743abdc5bc79d7fce39",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true,
+    "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-post-login-security-shell-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-successor-v21-post-login-security-shell-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "89bea3c696bc0eaba05f843fb087f2c970a448c6e4a7b7ef27c5d26cc669b926",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-living-relationship-os-successor-v21",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/routes/workspace.js",
+      "backend/services/telegramAdapter.js",
+      "backend/services/whatsappAdapter.js",
+      "backend/services/workspaceService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tests/wp2/single-command-path.test.js",
+      "tools/matrix/bootstrap.js",
+      "tools/wp2/command-path-inventory.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0017-yance-product-conversation-control.patch",
+      "upstream-patches/element-web/0018-yance-post-login-security-shell.patch"
+    ],
+    "approvedChangedFileCount": 49,
+    "approvedChangedFileSetSha256": "fc2fe1a4950886f346daea91694626dec149d39ccdc1b4bd79aa895c4ce48fcd",
+    "currentRootMutationPaths": [
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/index.tsx",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0018-yance-post-login-security-shell.patch"
+    ],
+    "currentRootMutationPathSetSha256": "b5746800ed26412861f1abd66e8ebb1802540e7c9192850824c634c70a70caf2",
+    "productionMutationPaths": [
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/index.tsx",
+      "tools/matrix/bootstrap.js",
+      "upstream-patches/element-web/0018-yance-post-login-security-shell.patch"
+    ],
+    "existingRegressionAuthorityPaths": [
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js"
+    ],
+    "failureFirstCommitRequired": false,
+    "preexistingCausalRedRequired": true,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "credentialPersistenceModificationAllowed": false,
+    "runtimeTopologyModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "rootCause": {
+    "name": "PRODUCT_FINAL / POST_LOGIN_SECURITY_PROJECTION / RAW_ELEMENT_AUTH_PRIMARY_TAKEOVER",
+    "directEvidence": "Frozen Windows evidence after successful login shows the pinned Element post-login security surface as full Product primary UI: scenic AuthPage background, generic Matrix footer, Glass security card, 确认你的数字身份, 使用另一设备, 无法确认 and 移除此设备. Pinned source proves MatrixChat.postLoginSetup routes authenticated sessions to COMPLETE_SECURITY or E2E_SETUP before LOGGED_IN. CompleteSecurity and E2eSetup both directly render AuthPage-based generic presentation. SetupEncryptionStore remains the mature security authority and hasOtherVerifiedDevices explains the Matrix device/session action without implying a second physical computer. Current public CustomComponentsApi has registerLoginComponent but no post-login-security presentation renderer.",
+    "requiredRepair": "Preserve MatrixChat postLoginSetup, SetupEncryptionStore, InitialCryptoSetupStore, cross-signing, secret storage, recovery, verification requests, reset identity, skip/sign-out and SetupEncryptionBody semantics. Add exactly one narrow additive pinned-Element module presentation seam at the COMPLETE_SECURITY/E2E_SETUP shell boundary. The seam passes already-constructed mature inner security content to a registered renderer and retains Element's current AuthPage/Glass/CompleteSecurityBody rendering as default fallback when no renderer is registered. Register a Yance renderer projecting that mature content inside the existing Yance auth visual hierarchy, with Product-owned explanatory copy for Matrix secure login/session terminology. Do not wrap the whole CompleteSecurity including AuthPage and do not use DOM/CSS guessing to suppress Element lifecycle."
+  },
+  "causalEvidence": {
+    "controllerIssue": 1051,
+    "controllerState": "V5.336",
+    "controllerCommentId": 5576766604,
+    "freshMain": "b4cab6db8c0e09ab6f98c743abdc5bc79d7fce39",
+    "frozenWindowsRed": "PRODUCT_RED / POST_LOGIN_SECURITY_PROJECTION / RAW_ELEMENT_COMPLETE_SECURITY_TAKEOVER",
+    "pinnedElementVersion": "v1.12.25",
+    "pinnedElementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "v20CumulativePathSetSha256": "71740f65f67165779113c02adefc4cdb8b1d16838d3b85c07669063e24b5faee",
+    "v21CumulativePathSetSha256": "fc2fe1a4950886f346daea91694626dec149d39ccdc1b4bd79aa895c4ce48fcd",
+    "unknownBlockers": 0,
+    "noProductExactHeadCreated": true,
+    "noProductCiConsumed": true,
+    "windowsProofRerunForbiddenUntilLocalClosure": true
+  },
+  "closureMatrix": [
+    {
+      "boundary": "Authenticated post-login view routing",
+      "classification": "PRESERVE",
+      "owner": "pinned Element MatrixChat.postLoginSetup + Views",
+      "decision": "Keep COMPLETE_SECURITY, E2E_SETUP, PENDING_CLIENT_START and completion transitions. No Yance auth state machine."
+    },
+    {
+      "boundary": "Cross-signing, verification, recovery and Matrix device/session state",
+      "classification": "PRESERVE",
+      "owner": "SetupEncryptionStore + matrix-js-sdk crypto",
+      "decision": "Keep phases, hasOtherVerifiedDevices, secret storage, verification requests, backup restore, skip and done semantics unchanged."
+    },
+    {
+      "boundary": "COMPLETE_SECURITY primary presentation",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "pinned Element CompleteSecurity presentation + narrow module seam",
+      "decision": "Separate mature inner security content from default AuthPage/Glass presentation only at render time; Yance renderer receives inner content and default Element fallback remains unchanged."
+    },
+    {
+      "boundary": "E2E_SETUP primary presentation",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "pinned Element E2eSetup presentation + same narrow module seam",
+      "decision": "Use the same seam for InitialCryptoSetupDialog so accounts without cross-signing cannot escape to a second raw AuthPage."
+    },
+    {
+      "boundary": "Yance post-login security Product projection",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "YanceLogin.tsx + YanceLogin.css + index.tsx",
+      "decision": "Reuse the existing Yance auth composition and CSS authority; render Element-owned security content without duplicating actions or state."
+    },
+    {
+      "boundary": "Pinned Element materialization",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "tools/matrix/bootstrap.js + 0018 upstream patch",
+      "decision": "Apply 0018 explicitly after the existing ordered patch set. No glob/readdir patch loading and no second materializer."
+    },
+    {
+      "boundary": "Product ownership regressions",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "existing WP0 Product and Element authority tests",
+      "decision": "Fail if raw AuthPage, raw CompleteSecurity or Matrix footer can become authenticated Product primary composition while preserving real Element security authority."
+    },
+    {
+      "boundary": "Golden Journey and visual proof",
+      "classification": "ROOT_IMPLEMENTATION",
+      "owner": "pinned Element Playwright + Synapse/Testcontainers + screenshot authority through 0018",
+      "decision": "Use upstream real homeserver, crypto and screenshot machinery for fresh account, historical verified session, recovery, no-recovery, logout/relogin and restored-session states. No second E2E or screenshot framework."
+    },
+    {
+      "boundary": "SOFT_LOGOUT",
+      "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+      "owner": "pinned Element SoftLogout",
+      "decision": "Token-invalid re-auth state, not an authenticated primary state. Preserve same-device rehydration and clear-data semantics; cover logout/relogin without mutating SoftLogout in this root."
+    },
+    {
+      "boundary": "WELCOME/REGISTER/FORGOT_PASSWORD",
+      "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+      "owner": "pinned Element unauthenticated views + existing Yance login/first-use entry",
+      "decision": "Unauthenticated flows are not the frozen post-login security takeover root."
+    },
+    {
+      "boundary": "CONFIRM_LOCK_THEFT/LOCK_STOLEN",
+      "classification": "OUT_OF_ROOT_CAUSE_WITH_EVIDENCE",
+      "owner": "pinned Element session-lock safety views",
+      "decision": "Exceptional session-lock safety surfaces are not the current post-login security projection root; preserve fail-closed lock semantics."
+    },
+    {
+      "boundary": "Normal LOGGED_IN Product primary composition",
+      "classification": "PRESERVE",
+      "owner": "frozen V20 Yance People / Relationship World / real Element room projection",
+      "decision": "Do not reopen consumed Product roots. Golden Journey validates post-login security completion returns to Yance primary owner rather than raw Element Home."
+    }
+  ],
+  "requiredBehavior": [
+    "Authenticated COMPLETE_SECURITY and E2E_SETUP keep all Element and Matrix security semantics but cannot render generic AuthPage scenic background, generic Matrix footer or raw Element security card as Yance primary Product composition when the Yance module is active.",
+    "Without a registered renderer, pinned Element behavior and presentation remain unchanged.",
+    "The Yance renderer receives mature security content and actions; it does not derive, duplicate or mutate crypto state.",
+    "Matrix device/session wording in the Yance shell must not imply that the user owns a second physical computer.",
+    "Completion, skip, recovery, reset identity, sign-out and error paths remain fail closed and invoke existing Element callbacks and authorities.",
+    "E2E_SETUP is closed in the same batch so an account without cross-signing cannot fall through to a second raw AuthPage takeover.",
+    "Normal authenticated completion returns to the existing Yance Product primary owner while real Element room timeline and composer remain authoritative.",
+    "The Element patch is explicitly ordered in tools/matrix/bootstrap.js; no broad patch discovery or second materializer is introduced."
+  ],
+  "forbiddenBehavior": [
+    "No automatic verification, automatic skip, automatic identity reset, device deletion, secret-storage bypass or cross-signing fail-open.",
+    "No second crypto, session or auth state machine and no Matrix protocol reimplementation.",
+    "No DOM mutation observer, CSS-only hiding of AuthPage lifecycle, selector-based lifecycle detection or duplicated CompleteSecurity implementation.",
+    "No broad Element upgrade, Element Desktop migration, matrix-js-sdk replacement, dependency, workflow, package or lockfile change.",
+    "No raw Element Home, AuthPage, CompleteSecurity, Matrix footer or persistent generic sidebar as authenticated Product primary UI.",
+    "No Windows retry before Local Closure and Golden Journey are GREEN.",
+    "No rerun of consumed backend-readiness prerequisite evidence or unrelated V20 focused GREEN evidence."
+  ],
+  "requiredValidation": {
+    "focused": [
+      "Existing v21-element-workspace-contract proves 0018 is explicitly applied and patch loading remains explicit, not glob/readdir based.",
+      "Existing v21-product-brand-runtime-authority proves Yance registers the post-login security renderer and keeps Element original security authority.",
+      "Existing Product Final and UI-authority regressions prove authenticated primary negative ownership invariants."
+    ],
+    "upstreamElement": [
+      "Use pinned Element unit tests inside 0018 to prove default fallback is unchanged and a registered renderer receives mature COMPLETE_SECURITY and E2E_SETUP inner content.",
+      "Use existing Element Playwright + Synapse/Testcontainers for fresh account, historical verified Matrix session/device record, recovery available, no recovery method, logout/relogin and session restore.",
+      "Use Element's existing visual regression authority for affected post-login security/Product states; no second screenshot framework."
+    ],
+    "goldenJourney": [
+      "startup -> login -> post-login security -> Yance People -> Relationship World -> real encrypted Element room -> real timeline/composer -> real send -> settings -> logout -> relogin -> session restore",
+      "RAW_ELEMENT_HOME_PRIMARY=false, RAW_ELEMENT_AUTH_PAGE_PRIMARY=false, RAW_MATRIX_FOOTER_PRIMARY=false, PERSISTENT_GENERIC_ELEMENT_NAV=false, YANCE_PRIMARY_OWNER=true, REAL_MATRIX_SECURITY_AUTHORITY=true, REAL_ELEMENT_ROOM_AUTHORITY=true"
+    ],
+    "promotion": [
+      "Only after focused, Golden Journey and visual/state matrix are GREEN may one required Windows local proof run.",
+      "Windows GREEN -> one Product Exact Head -> one automatic CI -> ordinary merge -> one packaged RC -> one full Windows UAT -> Release."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_PINNED_ELEMENT_SECURITY_STATE_AND_ADD_ONLY_MISSING_PRESENTATION_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "source-module",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Pinned Element CompleteSecurity, E2eSetup and SetupEncryptionStore",
+        "source": "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+        "license": "AGPL-3.0-only adopted upstream",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Already owns the full authenticated post-login crypto lifecycle, verification, recovery, reset, skip/sign-out and completion semantics; reuse unchanged."
+      },
+      {
+        "name": "Pinned Element CustomComponentsApi",
+        "source": "packages/module-api/src/api/custom-components.ts + apps/web/src/modules/customComponentApi.ts",
+        "license": "AGPL-3.0-only adopted upstream",
+        "adoptionMode": "source-module",
+        "fit": "PARTIAL_FIT",
+        "reason": "Provides the extensibility model already used by Yance login, but has no renderer seam for COMPLETE_SECURITY/E2E_SETUP presentation."
+      },
+      {
+        "name": "Existing Yance auth Product shell",
+        "source": "integration/element-module/src/YanceLogin.tsx + YanceLogin.css + registerLoginComponent",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already owns Yance auth branding and layout; reuse it rather than creating a second auth UI system."
+      },
+      {
+        "name": "Existing Element Playwright, Synapse Testcontainers and visual regression",
+        "source": "pinned element-web playwright/e2e, testcontainers and toMatchScreenshot authority",
+        "license": "AGPL-3.0-only adopted upstream",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Already provides real homeserver, Matrix account, crypto lifecycle and screenshot infrastructure required for pre-Windows Product closure."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not solve post-login security with Yance CSS selectors against raw .mx_* lifecycle structure.",
+      "Do not add a second E2E, crypto, screenshot or auth framework.",
+      "Do not upgrade Element or migrate to Element Desktop for this root.",
+      "Do not duplicate SetupEncryptionStore, SetupEncryptionBody or InitialCryptoSetupDialog."
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "requiredMergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "amendForbidden": true,
+    "forcePushForbidden": true,
+    "historyRewriteForbidden": true
+  }
+}
