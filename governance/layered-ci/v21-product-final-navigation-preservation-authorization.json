@@ -3,18 +3,18 @@
   "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
   "repository": "laiqian0239-glitch/yance",
   "workPackage": "V21-PRODUCT-FINAL-NAVIGATION-PRESERVATION",
-  "proposalRevision": 2,
+  "proposalRevision": 3,
   "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
-  "reason": "The consumed Product Final focused validator separated frozen failure 40 from the Settings root before any Product Exact Head. Settings has now completed Local Closure, one Exact Head, one automatic CI event and ordinary merge in PR #1140. Frozen failure 40 remains an independent Element navigation preservation root: the current Product-candidate 0017 already preserves real Element RoomView/timeline/composer, outgoing prepare and Product action gates, but lacks the narrow Product-primary HomePage/current-room read seam required for canonical Yance People/Relationship World navigation reconciliation. The mature owner is pinned Element LoggedInView/module location rendering plus roomViewStore current-room state. This corrected authorization supersedes only the failed proposal transport in PR #1141: its single automatic run froze an OSS-first admission RED because selectedAdoptionMode used the non-policy token existing-upstream-seam. The correction uses the repository adoption taxonomy without changing Product scope, mature authority, causal batch, implementation path or release semantics.",
+  "reason": "Post-#1142 exact-local-source audit found that the user's current Product worktree 0017 is no longer the historical V5.267/failure-40 frozen SHA256 dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1. The exact uploaded current bytes are SHA256 bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00 and contain the already-consumed additive V14 Element host continuation for send completion/retry and real-composer replacement while still lacking frozen failure 40's Product-primary Home/current-room seam. Because Exact Source Before Mutation forbids mutating a dirty worktree from stale bytes, this revision supersedes revision 2 only for current 0017 mutation-preimage identity and preservation accounting. Product scope, failure 40, mature Element ownership, single implementation path, causal batch and release semantics are unchanged.",
   "base": {
     "branch": "main",
-    "commit": "c1d36ced789fac10c10dbfcbf8b34ea98bfb5d7c",
+    "commit": "92082d52b950a7197819934e504af205d986266c",
     "requiredFreshAtAuthorizationMerge": true
   },
   "effectiveness": {
     "effectiveBeforeMerge": false,
     "requiresOrdinaryTwoParentMainMerge": true,
-    "requiredFirstParent": "c1d36ced789fac10c10dbfcbf8b34ea98bfb5d7c",
+    "requiredFirstParent": "92082d52b950a7197819934e504af205d986266c",
     "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
     "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
     "authorizationProposalTransportIsNotImplementationAuthority": true,
@@ -30,7 +30,7 @@
     "canonicalText": "Join the normalized sorted unique path list with LF and append exactly one trailing LF before hashing."
   },
   "authorizationBranch": {
-    "name": "governance/v21-product-final-navigation-preservation-authorization-v2",
+    "name": "governance/v21-product-final-navigation-preservation-current-source-v3",
     "allowedChangedPaths": [
       "governance/layered-ci/v21-product-final-navigation-preservation-authorization.json"
     ],
@@ -81,14 +81,14 @@
   },
   "rootCause": {
     "name": "PRODUCT_FINAL / FROZEN_V20_NAVIGATION_PRESERVATION / PRODUCT_PRIMARY_HOME_AND_CURRENT_ROOM_SEAM_MISSING",
-    "directEvidence": "The consumed Product Final validator froze failure 40 against the exact Product candidate and separated it from Settings (SAME_ROOT=NO). The frozen 0017 candidate already contains Product relationship-room presentation that keeps real Element RoomView/timeline/composer, outgoing prepare on both real send owners, Product action permission gates and existing user-settings navigation. Failure 40 requires the remaining Product-primary HomePage renderer/current-room read seam. The current candidate source identity is SHA256 dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1, and the exact source is retained in the user's File Library as 0017-yance-product-conversation-control.patch.txt. Live main intentionally does not yet contain 0017 because the cumulative Product batch has not merged.",
-    "requiredRepair": "Starting from the exact frozen 0017 bytes, add only the narrow pinned-Element seam required by failure 40: preserve Yance Product-primary Home/location rendering and expose/read the mature current Matrix room identity through the existing Element roomViewStore/navigation boundary used by Product navigation reconciliation. Preserve real Element RoomView/timeline/composer and every existing 0017 prepare/action/settings behavior. Do not create a second router, renderer registry, timeline, composer, Matrix session or navigation authority."
+    "directEvidence": "The consumed Product Final validator froze failure 40 and separated it from Settings (SAME_ROOT=NO). The historical exact 0017 used by V5.267/failure-40 evidence was SHA256 dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1. A post-#1142 exact-local-source audit of the current Product worktree file produced SHA256 bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00. Those current bytes retain all historical 0017 relationship-room, outgoing-prepare, action-gate and settings/logout seams and also contain the already-consumed V14 additive host continuation: registerOutgoingMessageCompletion/completeOutgoingMessage, Resend completion projection and replacePlaintextInComposer. They still contain no Product-primary Home renderer override and no getCurrentRoomId/roomViewStore current-room read seam. The remaining failure 40 root is therefore unchanged, but revision 2's mutation-preimage identity is stale relative to the actual current worktree.",
+    "requiredRepair": "Starting from exact current 0017 SHA256 bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00, add only the narrow pinned-Element seam required by failure 40: preserve Yance Product-primary Home/location rendering and expose/read the mature current Matrix room identity through the existing Element roomViewStore/navigation boundary used by Product navigation reconciliation. Preserve real Element RoomView/timeline/composer, every historical 0017 prepare/action/settings behavior, and the consumed V14 send-completion/retry/composer-replacement continuation. Do not create a second router, renderer registry, timeline, composer, Matrix session or navigation authority."
   },
   "preservedEvidence": {
     "controllerIssue": 1051,
     "controllerState": "V5.346",
     "controllerCommentId": 5584478088,
-    "freshMainAtAuthorization": "c1d36ced789fac10c10dbfcbf8b34ea98bfb5d7c",
+    "freshMainAtAuthorization": "92082d52b950a7197819934e504af205d986266c",
     "settingsPrerequisitePr": 1140,
     "settingsPrerequisiteMerge": "c1d36ced789fac10c10dbfcbf8b34ea98bfb5d7c",
     "supersededAuthorizationProposal": {
@@ -107,7 +107,7 @@
       "navigationFailureOrdinal": 40,
       "rerunForbiddenBeforeRelevantProductBytesChange": true
     },
-    "exactCurrent0017Sha256": "dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1",
+    "exactCurrent0017Sha256": "bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00",
     "pinnedElementVersion": "v1.12.25",
     "pinnedElementCommit": "a2a996ae50d802878bf48e4bbf3730004bdcc55c",
     "windowsActionAuthorized": false,
@@ -134,10 +134,10 @@
       "decision": "Do not replace or duplicate timeline, composer, session, crypto or room routing."
     },
     {
-      "boundary": "Existing 0017 outgoing prepare/action/settings seams",
+      "boundary": "Existing current 0017 conversation-control seams",
       "classification": "PRESERVE_EXACT_SEMANTICS",
-      "owner": "existing 0017 candidate",
-      "decision": "Keep both real-send prepare hooks, Product reply/reaction/redaction gates, relationship-room presentation and existing user-settings/logout navigation behavior."
+      "owner": "current exact local 0017 candidate",
+      "decision": "Keep both real-send prepare hooks, Product reply/reaction/redaction gates, relationship-room presentation, existing user-settings/logout navigation, and the consumed V14 send-completion/Resend/composer-replacement continuation."
     },
     {
       "boundary": "Settings AI-invisible contract migration",
@@ -169,12 +169,12 @@
         "reason": "The current room identity already exists in Element's mature state authority. Reusing a read-only seam avoids duplicate navigation state."
       },
       {
-        "name": "Existing 0017 Product conversation control patch",
-        "source": "0017-yance-product-conversation-control.patch.txt / frozen SHA256 dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1",
+        "name": "Existing current 0017 Product conversation control patch",
+        "source": "exact uploaded current Product-worktree 0017 / SHA256 bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00",
         "license": "repository-existing patch over Apache-2.0 upstream",
         "adoptionMode": "existing-repository-seam",
         "fit": "FIT",
-        "reason": "The patch already owns the Product conversation seam family. Extending the same public seam is narrower and safer than adding another integration system."
+        "reason": "The same patch already owns the Product conversation seam family and carries the consumed V14 host continuation. Extending these exact current bytes is narrower and safer than reverting to the historical pre-V14 snapshot or adding another integration system."
       }
     ],
     "retireOrAvoid": [
@@ -186,10 +186,10 @@
     "thinYanceAdapterOnly": true
   },
   "localAcceptance": [
-    "Start implementation only after this authorization ordinary-merge and from that exact merge commit.",
-    "Use the exact frozen 0017 source SHA256 dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1 as the mutation preimage authority; if the exact bytes are not directly materializable, reacquire that one complete file once before mutation and do not use user-operated discovery helpers.",
-    "Apply/replay against pinned Element v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c after the actual predecessor chain used by the frozen Product candidate.",
-    "Preserve existing 0017 outgoing prepare, Product relationship-room presentation, action gates and settings/logout behavior.",
+    "Start implementation only after this revision ordinary-merges and from that exact merge commit.",
+    "Use exact current Product-worktree 0017 SHA256 bb1eb000c7b13e2eebea19bdf82e394b5fe91189b730e2c176358c9df82d4b00 as the mutation preimage authority; the historical dbc55c1cc6a2ff1c56eddc8f7047dbd32bda8653e52f075632695985b7f020f1 snapshot remains evidence only and must not replace current dirty bytes.",
+    "Apply/replay against pinned Element v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c after the actual predecessor chain used by the current Product candidate.",
+    "Preserve historical 0017 outgoing prepare, Product relationship-room presentation, action gates and settings/logout behavior plus the consumed V14 send-completion/Resend/composer-replacement continuation.",
     "Close frozen failure 40 by adding only the Product-primary Home/current-room read seam through the mature Element authority.",
     "0017 remains an ordinary unified diff and composes/applies cleanly; no predecessor patch bytes change.",
     "Exact changed path set equals the single authorized 0017 path and git diff --check is GREEN.",
