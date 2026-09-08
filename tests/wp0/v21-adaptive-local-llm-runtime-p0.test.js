@@ -98,16 +98,19 @@ test('active Element Product surfaces adaptive runtime state and user-controlled
   const preload = read('electron/preload.js');
 
   assert.match(shell, /ProductSystemSettingsSurface/u);
+  assert.match(shell, /ProductModelRuntimeSupportSurface/u);
+  assert.match(shell, /modelSupportVisible \? <ProductModelRuntimeSupportSurface \/> : null/u);
   for (const token of ['自适应本地', '本地模型', '安装', '取消', '移除', '下载']) {
-    assert.match(surface, new RegExp(token, 'u'), `missing active Product token ${token}`);
+    assert.match(shell, new RegExp(token, 'u'), `missing active Product support token ${token}`);
   }
+  assert.doesNotMatch(surface, /LiteLLM|Ollama|GPU|VRAM|Model Brain|requestId|endpoint|SHA-?256/iu);
   for (const action of [
     'plan-adaptive-local',
     'materialize-adaptive-runtime',
     'remove-adaptive-runtime',
     'pull-ollama-model',
     'cancel-ollama-pull'
-  ]) assert.match(surface + bridge, new RegExp(action, 'u'));
+  ]) assert.match(shell + bridge, new RegExp(action, 'u'));
   for (const channel of [
     'store:product-system-model-runtime-state',
     'store:product-system-model-runtime-mutation'

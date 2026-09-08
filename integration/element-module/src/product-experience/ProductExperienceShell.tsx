@@ -64,6 +64,258 @@ function elementCustomThemeColors(semanticVariables: Readonly<Record<string, str
   );
 }
 
+type ProductModelRuntimeRecord = Record<string, unknown>;
+
+type ProductModelRuntimeDesktopApi = {
+  getProductModelRuntimeState: () => Promise<unknown>;
+  mutateProductModelRuntime: (input: Record<string, unknown>) => Promise<unknown>;
+};
+
+function modelRuntimeRecord(value: unknown): ProductModelRuntimeRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as ProductModelRuntimeRecord : {};
+}
+
+function modelRuntimeRows(value: unknown): ProductModelRuntimeRecord[] {
+  return Array.isArray(value)
+    ? value.filter((row): row is ProductModelRuntimeRecord => Boolean(row && typeof row === "object" && !Array.isArray(row)))
+    : [];
+}
+
+function modelRuntimeText(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value.trim() || fallback;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return fallback;
+}
+
+function modelRuntimeNumber(value: unknown): number {
+  const next = Number(value || 0);
+  return Number.isFinite(next) ? next : 0;
+}
+
+function modelRuntimeBytes(value: unknown): string {
+  const bytes = modelRuntimeNumber(value);
+  if (bytes <= 0) return "未知";
+  const gib = bytes / (1024 ** 3);
+  return `${gib.toFixed(gib >= 10 ? 0 : 1)} GiB`;
+}
+
+function modelRuntimePlannerCandidates(catalog: ProductModelRuntimeRecord): ProductModelRuntimeRecord[] {
+  return modelRuntimeRows(catalog.models).flatMap((model) => {
+    const runtimeCandidates = Array.isArray(model.runtimeCandidates) ? model.runtimeCandidates : [];
+    return runtimeCandidates.map((runtimeId) => ({
+      model: {
+        id: modelRuntimeText(model.id),
+        parameterCountB: modelRuntimeNumber(model.parameterCountB),
+        quantizedBytes: modelRuntimeNumber(model.quantizedBytes),
+      },
+      runtime: { id: modelRuntimeText(runtimeId) },
+      benchmark: {},
+    }));
+  });
+}
+
+function productModelRuntimeApi(): ProductModelRuntimeDesktopApi | null {
+  const api = (window as unknown as { yanceDesktop?: Partial<ProductModelRuntimeDesktopApi> }).yanceDesktop;
+  if (!api
+    || typeof api.getProductModelRuntimeState !== "function"
+    || typeof api.mutateProductModelRuntime !== "function") return null;
+  return api as ProductModelRuntimeDesktopApi;
+}
+
+function ProductModelRuntimeSupportSurface(): React.JSX.Element {
+  const api = useMemo(() => productModelRuntimeApi(), []);
+  const [modelRuntime, setModelRuntime] = useState<ProductModelRuntimeRecord>({});
+  const [feedback, setFeedback] = useState("正在读取高级系统支持状态");
+  const [busy, setBusy] = useState(false);
+  const [runtimeTargetName, setRuntimeTargetName] = useState("");
+  const [localAssetPath, setLocalAssetPath] = useState("");
+  const [expectedSha256, setExpectedSha256] = useState("");
+  const [requiredBytes, setRequiredBytes] = useState("");
+  const [ollamaModel, setOllamaModel] = useState("");
+  const [ollamaEndpoint, setOllamaEndpoint] = useState("http://127.0.0.1:11434");
+  const [ollamaRequestId, setOllamaRequestId] = useState("");
+
+  const refreshModelRuntime = useCallback(async (): Promise<void> => {
+    if (!api) {
+      setFeedback("高级系统支持桥接暂不可用；不会创建本地替代状态。");
+      return;
+    }
+    setBusy(true);
+    try {
+      setModelRuntime(modelRuntimeRecord(await api.getProductModelRuntimeState()));
+      setFeedback("高级系统支持状态已从现有权威刷新");
+    } catch {
+      setFeedback("高级系统支持状态读取失败；保留现有权威，不启用静默降级。");
+    } finally {
+      setBusy(false);
+    }
+  }, [api]);
+
+  useEffect(() => {
+    void refreshModelRuntime();
+  }, [refreshModelRuntime]);
+
+  const mutateModelRuntime = useCallback(async (
+    input: Record<string, unknown>,
+    successMessage: string,
+  ): Promise<unknown> => {
+    if (!api || busy) return null;
+    setBusy(true);
+    try {
+      const result = await api.mutateProductModelRuntime(input);
+      setFeedback(successMessage);
+      setModelRuntime(modelRuntimeRecord(await api.getProductModelRuntimeState()));
+      return result;
+    } catch {
+      setFeedback("模型运行态操作失败；正式回复仍由 LiteLLM Model Brain 处理，不做本地静默回退。");
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }, [api, busy]);
+
+  const brainState = modelRuntimeRecord(modelRuntime.modelBrain);
+  const brain = modelRuntimeRecord(brainState.modelBrain);
+  const brainRuntime = modelRuntimeRecord(brainState.runtime);
+  const catalog = modelRuntimeRecord(modelRuntime.catalog);
+  const hardwareRoot = modelRuntimeRecord(modelRuntime.hardware);
+  const hardware = modelRuntimeRecord(hardwareRoot.hardware);
+  const adaptiveLocal = modelRuntimeRecord(modelRuntime.adaptiveLocal);
+  const catalogRows = modelRuntimeRows(catalog.models);
+  const materializations = modelRuntimeRows(adaptiveLocal.materializations);
+  const pulls = modelRuntimeRows(adaptiveLocal.pulls);
+  const brainHealth = modelRuntimeText(
+    brain.health || brain.state || brainRuntime.health || brainRuntime.state || brainState.status,
+    brainState.ok === false ? "不可用" : "状态已读取",
+  );
+  const brainAuthority = modelRuntimeText(brain.authority || brain.litellm || brainRuntime.authority, "LiteLLM");
+
+  const planAdaptiveLocal = async (): Promise<void> => {
+    const candidates = modelRuntimePlannerCandidates(catalog);
+    if (!candidates.length) {
+      setFeedback("当前自适应本地模型目录没有可规划候选。");
+      return;
+    }
+    const result = modelRuntimeRecord(await mutateModelRuntime(
+      { action: "plan-adaptive-local", candidates },
+      "自适应本地规划已完成；结果来自现有 planner authority。",
+    ));
+    const best = modelRuntimeRecord(result.best);
+    if (Object.keys(best).length) {
+      setFeedback(`规划结果：${modelRuntimeText(best.modelId, "模型")} / ${modelRuntimeText(best.runtimeId, "运行时")} · ${modelRuntimeText(best.capabilityClass, "未知能力级别")}`);
+    }
+  };
+
+  const pullOllama = async (): Promise<void> => {
+    if (!ollamaModel.trim()) {
+      setFeedback("请输入要下载的 Ollama 模型名称。");
+      return;
+    }
+    const requestId = ollamaRequestId.trim() || globalThis.crypto?.randomUUID?.() || `product-${Date.now()}`;
+    setOllamaRequestId(requestId);
+    await mutateModelRuntime(
+      {
+        action: "pull-ollama-model",
+        model: ollamaModel.trim(),
+        endpoint: ollamaEndpoint.trim(),
+        requestId,
+      },
+      "Ollama 模型下载请求已完成；状态已刷新。",
+    );
+  };
+
+  return (
+    <section aria-label="高级系统支持" data-yance-secondary-system-support>
+      <header>
+        <h4>高级系统支持</h4>
+        <p>仅在明确展开后投影现有模型运行权威；不会创建第二套路由器、运行时或静默回退。</p>
+        <button type="button" onClick={() => void refreshModelRuntime()} disabled={busy}>刷新支持状态</button>
+      </header>
+      <p role="status" aria-live="polite">{feedback}</p>
+      <div className="yance-settings-grid">
+        <section>
+          <h5>Model Brain</h5>
+          <p>Model Brain 运行状态：{brainHealth}</p>
+          <p>正式路由权威：{brainAuthority.includes("LiteLLM") ? brainAuthority : `LiteLLM · ${brainAuthority}`}</p>
+          <p>LiteLLM 继续负责 quick_reply / deep_reply / director；本地模型不会静默替代正式回复。</p>
+        </section>
+
+        <section>
+          <h5>自适应本地运行态</h5>
+          <p>目录：{catalogRows.length} 个模型 · 已 materialize：{materializations.length} 项 · 下载任务：{pulls.length} 项</p>
+          <p>
+            硬件：RAM 可用 {modelRuntimeBytes(hardware.memoryFreeBytes || hardware.freeMemoryBytes)}
+            {" · "}
+            GPU VRAM {modelRuntimeBytes(hardware.gpuVramBytes || hardware.vramBytes)}
+          </p>
+          <button type="button" disabled={busy || catalogRows.length === 0} onClick={() => void planAdaptiveLocal()}>
+            规划自适应本地运行时
+          </button>
+          <ul>
+            {catalogRows.slice(0, 8).map((row) => (
+              <li key={modelRuntimeText(row.id, modelRuntimeText(row.displayName, "model"))}>
+                {modelRuntimeText(row.displayName, modelRuntimeText(row.id, "模型"))}
+                {" · "}
+                {Array.isArray(row.runtimeCandidates) ? row.runtimeCandidates.map((value) => modelRuntimeText(value)).filter(Boolean).join(" / ") : "运行时待定"}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section>
+          <h5>安装 / 移除本地运行时</h5>
+          <label><span>目标名称</span><input value={runtimeTargetName} onChange={(event) => setRuntimeTargetName(event.target.value)} placeholder="例如 llama-runtime.zip" /></label>
+          <label><span>本机已验证资产路径</span><input value={localAssetPath} onChange={(event) => setLocalAssetPath(event.target.value)} placeholder="本机路径" /></label>
+          <label><span>SHA-256</span><input value={expectedSha256} onChange={(event) => setExpectedSha256(event.target.value)} placeholder="预期 SHA-256" /></label>
+          <label><span>所需字节数</span><input inputMode="numeric" value={requiredBytes} onChange={(event) => setRequiredBytes(event.target.value)} /></label>
+          <div className="yance-learning-settings-actions">
+            <button
+              type="button"
+              disabled={busy || !runtimeTargetName || !localAssetPath || !expectedSha256}
+              onClick={() => void mutateModelRuntime(
+                {
+                  action: "materialize-adaptive-runtime",
+                  consent: true,
+                  targetName: runtimeTargetName,
+                  localAssetPath,
+                  expectedSha256,
+                  requiredBytes: modelRuntimeNumber(requiredBytes),
+                },
+                "本地运行时安装 / materialize 完成；状态已刷新。",
+              )}
+            >安装本地运行时</button>
+            <button
+              type="button"
+              disabled={busy || !runtimeTargetName}
+              onClick={() => void mutateModelRuntime(
+                { action: "remove-adaptive-runtime", targetName: runtimeTargetName },
+                "本地运行时已移除；状态已刷新。",
+              )}
+            >移除本地运行时</button>
+          </div>
+        </section>
+
+        <section>
+          <h5>Ollama 模型下载</h5>
+          <label><span>模型</span><input value={ollamaModel} onChange={(event) => setOllamaModel(event.target.value)} placeholder="例如 qwen3:8b" /></label>
+          <label><span>Ollama 地址</span><input value={ollamaEndpoint} onChange={(event) => setOllamaEndpoint(event.target.value)} /></label>
+          <div className="yance-learning-settings-actions">
+            <button type="button" disabled={busy || !ollamaModel.trim()} onClick={() => void pullOllama()}>下载 Ollama 模型</button>
+            <button
+              type="button"
+              disabled={busy || !ollamaRequestId}
+              onClick={() => void mutateModelRuntime(
+                { action: "cancel-ollama-pull", requestId: ollamaRequestId },
+                "已请求取消 Ollama 下载。",
+              )}
+            >取消 Ollama 下载</button>
+          </div>
+        </section>
+      </div>
+    </section>
+  );
+}
+
 export function ProductExperienceShell({
   appearanceHost,
   navigateSearchResult,
@@ -76,6 +328,7 @@ export function ProductExperienceShell({
   const [appearanceStatus, setAppearanceStatus] = useState("正在同步外观设置");
   const [assistantVisible, setAssistantVisible] = useState(false);
   const [learningAdminVisible, setLearningAdminVisible] = useState(false);
+  const [modelSupportVisible, setModelSupportVisible] = useState(false);
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
   const [peopleHomeView, setPeopleHomeView] = useState<PeopleHomeView>("list");
   const [focusedRelationshipId, setFocusedRelationshipId] = useState("");
@@ -288,7 +541,10 @@ export function ProductExperienceShell({
       <details
         className="yance-experience-settings"
         onToggle={(event) => {
-          if (!event.currentTarget.open) setLearningAdminVisible(false);
+          if (!event.currentTarget.open) {
+            setLearningAdminVisible(false);
+            setModelSupportVisible(false);
+          }
         }}
       >
         <summary>体验设置</summary>
@@ -353,6 +609,15 @@ export function ProductExperienceShell({
         {preferences.reducedMotion ? <p className="yance-reduced-motion-note">已启用减少动效；状态变化仍会清晰显示，但不会进行空间移动。</p> : null}
 
         <ProductSystemSettingsSurface />
+
+        <div className="yance-learning-settings-actions">
+          {modelSupportVisible ? (
+            <button type="button" aria-expanded="true" onClick={() => setModelSupportVisible(false)}>收起系统维护</button>
+          ) : (
+            <button type="button" aria-expanded="false" onClick={() => setModelSupportVisible(true)}>系统维护</button>
+          )}
+        </div>
+        {modelSupportVisible ? <ProductModelRuntimeSupportSurface /> : null}
 
         <div className="yance-learning-settings-actions">
           {learningAdminVisible ? (
