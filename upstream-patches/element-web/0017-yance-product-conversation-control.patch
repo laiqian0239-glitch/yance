@@ -1,0 +1,951 @@
+diff --git a/apps/web/src/components/structures/LoggedInView.tsx b/apps/web/src/components/structures/LoggedInView.tsx
+index 51f23ec..e84c9df 100644
+--- a/apps/web/src/components/structures/LoggedInView.tsx
++++ b/apps/web/src/components/structures/LoggedInView.tsx
+@@ -621,6 +621,8 @@ class LoggedInView extends React.Component<IProps, IState> {
+         let pageElement;
+
+         const moduleRenderer = this.props.page_type
+-            ? ModuleApi.instance.navigation.locationRenderers.get(this.props.page_type)
++            ? ModuleApi.instance.navigation.locationRenderers.get(
++                this.props.page_type === PageTypes.HomePage ? "yance" : this.props.page_type,
++            )
+             : undefined;
+
+@@ -641,6 +643,6 @@ class LoggedInView extends React.Component<IProps, IState> {
+                 break;
+
+             case PageTypes.HomePage:
+-                pageElement = <HomePage justRegistered={this.props.justRegistered} />;
++                pageElement = moduleRenderer ? moduleRenderer() : <HomePage justRegistered={this.props.justRegistered} />;
+                 break;
+
+@@ -693,7 +695,20 @@ class LoggedInView extends React.Component<IProps, IState> {
+
+         let content: React.ReactNode;
+         const resizerViewModel = !moduleRenderer ? this.getResizerViewModel() : undefined;
+-        if (resizerViewModel && !moduleRenderer) {
++
++        const productPrimaryHome =
++            this.props.page_type === PageTypes.HomePage
++            && !!moduleRenderer;
++
++        const productConversationMode =
++            this.props.page_type === PageTypes.RoomView
++            && ModuleApi.instance.navigation.productConversationMode;
++
++        if (productPrimaryHome || productConversationMode) {
++            // Keep Yance Home Product-primary and real Element RoomView direct.
++            // Generic Element navigation must not become a competing primary owner.
++            content = roomView;
++        } else if (resizerViewModel && !moduleRenderer) {
+             // Resizable layout with a draggable separator. The SpacePanel lives inside GroupView
+             // (leftPanel omits it).
+             content = (
+diff --git a/apps/web/src/components/views/context_menus/MessageContextMenu.tsx b/apps/web/src/components/views/context_menus/MessageContextMenu.tsx
+index 086301e..a5912e5 100644
+--- a/apps/web/src/components/views/context_menus/MessageContextMenu.tsx
++++ b/apps/web/src/components/views/context_menus/MessageContextMenu.tsx
+@@ -49,6 +49,7 @@ import { _t } from "../../../languageHandler";
+ import Modal from "../../../Modal";
+ import Resend from "../../../Resend";
+ import SettingsStore from "../../../settings/SettingsStore";
++import { ModuleApi } from "../../../modules/Api";
+ import { isUrlPermitted } from "../../../HtmlUtils";
+ import { canEditContent, editEvent, isContentActionable } from "../../../utils/EventUtils";
+ import IconizedContextMenu, { IconizedContextMenuOption, IconizedContextMenuOptionList } from "./IconizedContextMenu";
+@@ -138,6 +139,9 @@ interface IState {
+     canRedact: boolean;
+     canPin: boolean;
+     reactionPickerDisplayed: boolean;
++    canProductReply: boolean;
++    canProductReaction: boolean;
++    canProductRedact: boolean;
+ }
+ 
+ export default class MessageContextMenu extends React.Component<IProps, IState> {
+@@ -145,6 +149,7 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+     declare public context: React.ContextType<typeof RoomContext>;
+ 
+     private reactButtonRef = createRef<any>(); // XXX Ref to a functional component
++    private productPermissionGeneration = 0;
+ 
+     public constructor(props: IProps) {
+         super(props);
+@@ -153,6 +158,9 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+             canRedact: false,
+             canPin: false,
+             reactionPickerDisplayed: false,
++            canProductReply: true,
++            canProductReaction: true,
++            canProductRedact: true,
+         };
+     }
+ 
+@@ -167,6 +175,7 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+     }
+ 
+     public componentWillUnmount(): void {
++        this.productPermissionGeneration += 1;
+         const cli = MatrixClientPeg.get();
+         if (cli) {
+             cli.removeListener(RoomMemberEvent.PowerLevel, this.checkPermissions);
+@@ -188,13 +197,61 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+ 
+         const canPin = PinningUtils.canPin(cli, this.props.mxEvent) || PinningUtils.canUnpin(cli, this.props.mxEvent);
+ 
+-        this.setState({ canRedact, canPin });
++        const generation = ++this.productPermissionGeneration;
++        const mxEvent = this.props.mxEvent;
++
++        const hints =
++            ModuleApi.instance.customComponents.getHintsForMessage(mxEvent);
++
++        this.setState({
++            canRedact,
++            canPin,
++            canProductReply: hints?.allowReply ? false : true,
++            canProductReaction: hints?.allowReaction ? false : true,
++            canProductRedact: hints?.allowRedaction ? false : true,
++        });
++
++        const safe = async (
++            callback?: () => Promise<boolean>,
++        ): Promise<boolean> => {
++            if (!callback) return true;
++
++            try {
++                return (await callback()) === true;
++            } catch {
++                return false;
++            }
++        };
++
++        void Promise.all([
++            safe(hints?.allowReply),
++            safe(hints?.allowReaction),
++            safe(hints?.allowRedaction),
++        ]).then(([
++            canProductReply,
++            canProductReaction,
++            canProductRedact,
++        ]) => {
++            if (
++                generation !== this.productPermissionGeneration
++                || this.props.mxEvent !== mxEvent
++            ) {
++                return;
++            }
++
++            this.setState({
++                canProductReply,
++                canProductReaction,
++                canProductRedact,
++            });
++        });
+     };
+ 
+     private canEndPoll(mxEvent: MatrixEvent): boolean {
+         return (
+             M_POLL_START.matches(mxEvent.getType()) &&
+             this.state.canRedact &&
++            this.state.canProductRedact &&
+             !isPollEnded(mxEvent, MatrixClientPeg.safeGet())
+         );
+     }
+@@ -436,7 +493,11 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+         }
+ 
+         let redactButton: JSX.Element | undefined;
+-        if (isSent && this.state.canRedact) {
++        if (
++            isSent
++            && this.state.canRedact
++            && this.state.canProductRedact
++        ) {
+             redactButton = (
+                 <IconizedContextMenuOption
+                     icon={<DeleteIcon />}
+@@ -640,7 +701,12 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+         }
+ 
+         let replyButton: JSX.Element | undefined;
+-        if (rightClick && contentActionable && canSendMessages) {
++        if (
++            rightClick
++            && contentActionable
++            && canSendMessages
++            && this.state.canProductReply
++        ) {
+             replyButton = (
+                 <IconizedContextMenuOption
+                     icon={<ReplyIcon />}
+@@ -662,7 +728,12 @@ export default class MessageContextMenu extends React.Component<IProps, IState>
+         }
+ 
+         let reactButton: JSX.Element | undefined;
+-        if (rightClick && contentActionable && canReact) {
++        if (
++            rightClick
++            && contentActionable
++            && canReact
++            && this.state.canProductReaction
++        ) {
+             reactButton = (
+                 <IconizedContextMenuOption
+                     icon={<ReactionAddIcon />}
+diff --git a/apps/web/src/components/views/rooms/SendMessageComposer.tsx b/apps/web/src/components/views/rooms/SendMessageComposer.tsx
+index 9144992..67d9e98 100644
+--- a/apps/web/src/components/views/rooms/SendMessageComposer.tsx
++++ b/apps/web/src/components/views/rooms/SendMessageComposer.tsx
+@@ -60,6 +60,7 @@ import { KeyBindingAction } from "../../../accessibility/KeyboardShortcuts";
+ import { PosthogAnalytics } from "../../../PosthogAnalytics";
+ import { addReplyToMessageContent } from "../../../utils/Reply";
+ import { doMaybeLocalRoomAction } from "../../../utils/local-room";
++import { ModuleApi } from "../../../modules/Api";
+ import { type Caret } from "../../../editor/caret";
+ import { type IDiff } from "../../../editor/diff";
+ import { getBlobSafeMimeType } from "../../../utils/blobs";
+@@ -459,6 +460,25 @@ export class SendMessageComposer extends React.Component<ISendMessageComposerPro
+                 decorateStartSendingTime(content);
+             }
+ 
++            if (
++                ModuleApi.instance.navigation.productConversationMode
++                && content
++            ) {
++                const originalBody = String(content.body ?? "");
++
++                const prepared =
++                    await ModuleApi.instance.composer.prepareOutgoingMessage({
++                        roomId,
++                        text: originalBody,
++                    });
++
++                if (prepared.text !== originalBody) {
++                    content.body = prepared.text;
++                    Reflect.deleteProperty(content, "format");
++                    Reflect.deleteProperty(content, "formatted_body");
++                }
++            }
++
+             const threadId =
+                 this.props.relation?.rel_type === THREAD_RELATION_TYPE.name ? this.props.relation.event_id : null;
+ 
+diff --git a/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts b/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts
+index d5365d5..b5325f1 100644
+--- a/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts
++++ b/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts
+@@ -21,6 +21,7 @@ import { PosthogAnalytics } from "../../../../../PosthogAnalytics";
+ import SettingsStore from "../../../../../settings/SettingsStore";
+ import { decorateStartSendingTime, sendRoundTripMetric } from "../../../../../sendTimePerformanceMetrics";
+ import { doMaybeLocalRoomAction } from "../../../../../utils/local-room";
++import { ModuleApi } from "../../../../../modules/Api";
+ import { CHAT_EFFECTS } from "../../../../../effects";
+ import { containsEmoji } from "../../../../../effects/utils";
+ import { type IRoomState } from "../../../../structures/RoomView";
+@@ -129,6 +130,25 @@ export async function sendMessage(
+         decorateStartSendingTime(content);
+     }
+ 
++    if (
++        ModuleApi.instance.navigation.productConversationMode
++        && content
++    ) {
++        const originalBody = String(content.body ?? "");
++
++        const prepared =
++            await ModuleApi.instance.composer.prepareOutgoingMessage({
++                roomId,
++                text: originalBody,
++            });
++
++        if (prepared.text !== originalBody) {
++            content.body = prepared.text;
++            Reflect.deleteProperty(content, "format");
++            Reflect.deleteProperty(content, "formatted_body");
++        }
++    }
++
+     const threadId = relation?.event_id && relation?.rel_type === THREAD_RELATION_TYPE.name ? relation.event_id : null;
+ 
+     const prom = doMaybeLocalRoomAction(
+diff --git a/apps/web/src/modules/ComposerApi.ts b/apps/web/src/modules/ComposerApi.ts
+index a4b4dee..c231abc 100644
+--- a/apps/web/src/modules/ComposerApi.ts
++++ b/apps/web/src/modules/ComposerApi.ts
+@@ -31,6 +31,9 @@ export class ComposerApi
+     implements ModuleComposerApi
+ {
+     private readonly configuredFileUploadOptions = new Map<string, ComposerApiFileUploadOption>();
++    private outgoingMessagePrepare?: (
++        input: { roomId: string; text: string },
++    ) => Promise<{ text: string; transformed?: boolean }>;
+ 
+     public constructor(private readonly dispatcher: MatrixDispatcher) {
+         super();
+@@ -43,6 +46,38 @@ export class ComposerApi
+         return [...this.configuredFileUploadOptions.values()];
+     }
+ 
++    public registerOutgoingMessagePrepare(
++        handler: (
++            input: { roomId: string; text: string },
++        ) => Promise<{ text: string; transformed?: boolean }>,
++    ): void {
++        if (this.outgoingMessagePrepare) {
++            throw new Error("Outgoing message prepare hook is already registered");
++        }
++
++        this.outgoingMessagePrepare = handler;
++    }
++
++    public async prepareOutgoingMessage(
++        input: { roomId: string; text: string },
++    ): Promise<{ text: string; transformed?: boolean }> {
++        if (!this.outgoingMessagePrepare) {
++            throw new Error("MODULE_OUTGOING_PREPARE_UNAVAILABLE");
++        }
++
++        const result = await this.outgoingMessagePrepare(input);
++        const text = String(result?.text ?? "").trim();
++
++        if (!text) {
++            throw new Error("MODULE_OUTGOING_PREPARE_EMPTY");
++        }
++
++        return {
++            text,
++            transformed: result?.transformed === true,
++        };
++    }
++
+     public addFileUploadOption(option: ComposerApiFileUploadOption): void {
+         if (this.configuredFileUploadOptions.has(option.type)) {
+             throw new Error(`Option "${option.type}" already exists`);
+diff --git a/apps/web/src/modules/Navigation.ts b/apps/web/src/modules/Navigation.ts
+index 54d3881..13fdb62 100644
+--- a/apps/web/src/modules/Navigation.ts
++++ b/apps/web/src/modules/Navigation.ts
+@@ -15,11 +15,18 @@ import { parsePermalink } from "../utils/permalinks/Permalinks.ts";
+ import dispatcher from "../dispatcher/dispatcher.ts";
+ import { Action } from "../dispatcher/actions.ts";
+ import type { ViewRoomPayload } from "../dispatcher/payloads/ViewRoomPayload.ts";
++import type { OpenToTabPayload } from "../dispatcher/payloads/OpenToTabPayload.ts";
++import { UserTab } from "../components/views/dialogs/UserTab.ts";
++import { SDKContextClass } from "../contexts/SDKContextClass.ts";
+ 
+ export class NavigationApi implements INavigationApi {
+     public locationRenderers = new Map<string, LocationRenderFunction>();
++    public productConversationMode = false;
++    private productConversationPresentationArmed = false;
+ 
+     public async toMatrixToLink(link: string, join = false): Promise<void> {
++        this.productConversationPresentationArmed = false;
++        this.productConversationMode = false;
+         navigateToPermalink(link);
+ 
+         const parts = parsePermalink(link);
+@@ -36,9 +40,54 @@ export class NavigationApi implements INavigationApi {
+     }
+ 
+     public navigateToLocation(path: string): void {
++        this.productConversationPresentationArmed = false;
++        this.productConversationMode = false;
+         dispatcher.dispatch({ action: Action.ViewHomePage, page: path });
+     }
+ 
++    public getCurrentRoomId(): string | null {
++        return SDKContextClass.instance.roomViewStore.getRoomId();
++    }
++
++    public setProductConversationPresentation(
++        mode: "default" | "relationship-room",
++    ): void {
++        if (mode === "relationship-room") {
++            this.productConversationPresentationArmed = true;
++            return;
++        }
++        this.productConversationPresentationArmed = false;
++        this.productConversationMode = false;
++    }
++
++    public openUserSettings(
++        destination: "account" | "security" | "sessions",
++    ): void {
++        this.productConversationPresentationArmed = false;
++        this.productConversationMode = false;
++
++        const initialTabId =
++            destination === "security"
++                ? UserTab.Security
++                : destination === "sessions"
++                    ? UserTab.SessionManager
++                    : UserTab.Account;
++
++        dispatcher.dispatch<OpenToTabPayload>({
++            action: Action.ViewUserSettings,
++            initialTabId,
++        });
++    }
++
++    public requestLogout(): void {
++        this.productConversationPresentationArmed = false;
++        this.productConversationMode = false;
++        dispatcher.dispatch({ action: Action.TriggerLogout });
++    }
++
+     public openRoom(roomIdOrAlias: string, opts: OpenRoomOptions = {}): void {
++        const productConversationMode = this.productConversationPresentationArmed;
++        this.productConversationPresentationArmed = false;
++        this.productConversationMode = productConversationMode;
+         const key = roomIdOrAlias.startsWith("#") ? "room_alias" : "room_id";
+         dispatcher.dispatch<ViewRoomPayload>({
+diff --git a/apps/web/src/modules/customComponentApi.ts b/apps/web/src/modules/customComponentApi.ts
+index 1062d45..e978dd8 100644
+--- a/apps/web/src/modules/customComponentApi.ts
++++ b/apps/web/src/modules/customComponentApi.ts
+@@ -41,9 +41,17 @@ interface CustomMessageComponentProps extends Omit<ModuleCustomMessageComponentP
+     mxEvent: MatrixEvent;
+ }
+ 
+-interface CustomMessageRenderHints extends Omit<ModuleCustomCustomMessageRenderHints, "allowDownloadingMedia"> {
++interface CustomMessageRenderHints
++    extends Omit<
++        ModuleCustomCustomMessageRenderHints,
++        "allowDownloadingMedia" | "allowReply" | "allowReaction" | "allowRedaction"
++    >
++{
+     // Note. This just makes it easier to use this API on Element Web as we already have the moduleized event stored.
+     allowDownloadingMedia?: () => Promise<boolean>;
++    allowReply?: () => Promise<boolean>;
++    allowReaction?: () => Promise<boolean>;
++    allowRedaction?: () => Promise<boolean>;
+ }
+ 
+ type ComposerPreviewRenderer = {
+@@ -170,6 +178,15 @@ export class CustomComponentsApi implements ICustomComponentsApi {
+                 allowDownloadingMedia: renderer.hints.allowDownloadingMedia
+                     ? () => renderer.hints.allowDownloadingMedia!(moduleEv)
+                     : undefined,
++                allowReply: renderer.hints.allowReply
++                    ? () => renderer.hints.allowReply!(moduleEv)
++                    : undefined,
++                allowReaction: renderer.hints.allowReaction
++                    ? () => renderer.hints.allowReaction!(moduleEv)
++                    : undefined,
++                allowRedaction: renderer.hints.allowRedaction
++                    ? () => renderer.hints.allowRedaction!(moduleEv)
++                    : undefined,
+             };
+         }
+         return null;
+diff --git a/apps/web/src/viewmodels/room/EventTileActionBarViewModel.ts b/apps/web/src/viewmodels/room/EventTileActionBarViewModel.ts
+index ab6dacd..ad32723 100644
+--- a/apps/web/src/viewmodels/room/EventTileActionBarViewModel.ts
++++ b/apps/web/src/viewmodels/room/EventTileActionBarViewModel.ts
+@@ -74,6 +74,8 @@ export interface EventTileActionBarViewModelProps {
+ interface LocalActionBarState {
+     canDownload: boolean;
+     isDownloadLoading: boolean;
++    canReply: boolean;
++    canReact: boolean;
+ }
+ 
+ interface DerivedEventState {
+@@ -108,6 +110,9 @@ export class EventTileActionBarViewModel
+     private downloadRequestId = 0;
+     private canDownload = true;
+     private isDownloadLoading = false;
++    private canReply = true;
++    private canReact = true;
++    private productPermissionRequestId = 0;
+     private readonly downloader = new FileDownloader();
+     private downloadedBlob?: Blob;
+ 
+@@ -117,6 +122,8 @@ export class EventTileActionBarViewModel
+             EventTileActionBarViewModel.buildSnapshot(props, {
+                 canDownload: true,
+                 isDownloadLoading: false,
++                canReply: true,
++                canReact: true,
+             }),
+         );
+         this.setupListeners();
+@@ -127,7 +134,7 @@ export class EventTileActionBarViewModel
+         localState: LocalActionBarState,
+     ): ActionBarViewSnapshot {
+         const client = MatrixClientPeg.safeGet();
+-        const eventState = EventTileActionBarViewModel.getDerivedEventState(props, client);
++        const eventState = EventTileActionBarViewModel.getDerivedEventState(props, client, localState);
+         const mediaState = EventTileActionBarViewModel.getDerivedMediaState(props.mxEvent, client, localState);
+ 
+         return {
+@@ -187,6 +194,7 @@ export class EventTileActionBarViewModel
+     private static getDerivedEventState(
+         props: EventTileActionBarViewModelProps,
+         client: ReturnType<typeof MatrixClientPeg.safeGet>,
++        localState: LocalActionBarState,
+     ): DerivedEventState {
+         const { mxEvent } = props;
+         const contentActionable = isContentActionable(mxEvent);
+@@ -198,8 +206,8 @@ export class EventTileActionBarViewModel
+             showCancel: canCancel(mxEvent.status) || canCancel(editStatus) || canCancel(redactStatus),
+             showEdit: canEditContent(client, mxEvent),
+             showPinOrUnpin: PinningUtils.canPin(client, mxEvent) || PinningUtils.canUnpin(client, mxEvent),
+-            showReact: contentActionable && props.canReact && !props.isSearch,
+-            showReply: contentActionable && props.canSendMessages,
++            showReact: contentActionable && props.canReact && localState.canReact && !props.isSearch,
++            showReply: contentActionable && props.canSendMessages && localState.canReply,
+             isThreadReplyAllowed: !(!!relationType && relationType !== RelationType.Thread),
+             showExpandCollapse: props.isQuoteExpanded !== undefined && shouldDisplayReply(mxEvent),
+             showReplyInThread: contentActionable && EventTileActionBarViewModel.canShowReplyInThreadAction(props),
+@@ -233,6 +241,8 @@ export class EventTileActionBarViewModel
+         return EventTileActionBarViewModel.buildSnapshot(this.props, {
+             canDownload: this.canDownload,
+             isDownloadLoading: this.isDownloadLoading,
++            canReply: this.canReply,
++            canReact: this.canReact,
+         });
+     }
+ 
+@@ -267,6 +277,7 @@ export class EventTileActionBarViewModel
+ 
+         MatrixClientPeg.safeGet().decryptEventIfNeeded(mxEvent);
+         void this.updateDownloadPermission(++this.downloadPermissionRequestId);
++        void this.updateProductActionPermissions();
+     }
+ 
+     private teardownListeners(): void {
+@@ -298,6 +309,9 @@ export class EventTileActionBarViewModel
+         this.downloadedBlob = undefined;
+         this.canDownload = true;
+         this.isDownloadLoading = false;
++        this.canReply = true;
++        this.canReact = true;
++        this.productPermissionRequestId += 1;
+     }
+ 
+     private isCurrentDownloadPermissionRequest(requestId: number, mxEvent: MatrixEvent): boolean {
+@@ -311,6 +325,48 @@ export class EventTileActionBarViewModel
+         return true;
+     }
+ 
++    private async updateProductActionPermissions(): Promise<void> {
++        const requestId = ++this.productPermissionRequestId;
++        const mxEvent = this.props.mxEvent;
++
++        const hints =
++            ModuleApi.instance.customComponents.getHintsForMessage(mxEvent);
++
++        this.canReply = hints?.allowReply ? false : true;
++        this.canReact = hints?.allowReaction ? false : true;
++        this.refreshSnapshot();
++
++        const safe = async (
++            callback?: () => Promise<boolean>,
++        ): Promise<boolean> => {
++            if (!callback) return true;
++
++            try {
++                return (await callback()) === true;
++            } catch {
++                return false;
++            }
++        };
++
++        const [canReply, canReact] =
++            await Promise.all([
++                safe(hints?.allowReply),
++                safe(hints?.allowReaction),
++            ]);
++
++        if (
++            this.isDisposed
++            || requestId !== this.productPermissionRequestId
++            || this.props.mxEvent !== mxEvent
++        ) {
++            return;
++        }
++
++        this.canReply = canReply;
++        this.canReact = canReact;
++        this.refreshSnapshot();
++    }
++
+     private async updateDownloadPermission(requestId: number): Promise<void> {
+         const { mxEvent } = this.props;
+         const hints = ModuleApi.instance.customComponents.getHintsForMessage(mxEvent);
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -112,6 +112,20 @@
+     addFileUploadOption(option: ComposerApiFileUploadOption): void;
+     insertPlaintextIntoComposer(plaintext: string, view: ComposerApiTarget): void;
+     openFileUploadConfirmation(files: File[], view: ComposerApiTarget): void;
++    prepareOutgoingMessage(input: {
++        roomId: string;
++        text: string;
++    }): Promise<{
++        text: string;
++        transformed?: boolean;
++    }>;
++    registerOutgoingMessagePrepare(handler: (input: {
++        roomId: string;
++        text: string;
++    }) => Promise<{
++        text: string;
++        transformed?: boolean;
++    }>): void;
+ }
+ 
+ // @alpha
+@@ -226,6 +240,9 @@
+ export type CustomMessageRenderHints = {
+     allowEditingEvent?: boolean;
+     allowDownloadingMedia?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    allowReply?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    allowReaction?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    allowRedaction?: (mxEvent: MatrixEvent) => Promise<boolean>;
+ };
+ 
+ // @alpha
+@@ -427,8 +444,12 @@
+ export interface NavigationApi {
++    getCurrentRoomId(): string | null;
+     navigateToLocation(path: string): void;
+     openRoom(roomIdOrAlias: string, opts?: OpenRoomOptions): void;
++    openUserSettings(destination: "account" | "security" | "sessions"): void;
++    requestLogout(): void;
+     // @alpha
+     registerLocationRenderer(path: string, renderer: LocationRenderFunction): void;
++    setProductConversationPresentation(mode: "default" | "relationship-room"): void;
+     toMatrixToLink(link: string, join?: boolean): Promise<void>;
+ }
+ 
+diff --git a/packages/module-api/src/api/composer.ts b/packages/module-api/src/api/composer.ts
+index c37af72..6730e87 100644
+--- a/packages/module-api/src/api/composer.ts
++++ b/packages/module-api/src/api/composer.ts
+@@ -52,6 +52,22 @@ export type ComposerApiTarget = { view: "room" } | { view: "thread" };
+  * @alpha Likely to change
+  */
+ export interface ComposerApi {
++    /**
++     * Register the single Product outgoing text prepare hook.
++     * Element remains the send/composer owner.
++     */
++    registerOutgoingMessagePrepare(
++        handler: (input: { roomId: string; text: string }) => Promise<{ text: string; transformed?: boolean }>,
++    ): void;
++
++    /**
++     * Prepare user-authored text immediately before the real Element send.
++     * Product mode fails closed when no prepare authority exists.
++     */
++    prepareOutgoingMessage(
++        input: { roomId: string; text: string },
++    ): Promise<{ text: string; transformed?: boolean }>;
++
+     /**
+      * Add a new file upload option for the user.
+      * @throws If another option is already using the same `type`.
+diff --git a/packages/module-api/src/api/custom-components.ts b/packages/module-api/src/api/custom-components.ts
+index adada39..8c6fecc 100644
+--- a/packages/module-api/src/api/custom-components.ts
++++ b/packages/module-api/src/api/custom-components.ts
+@@ -52,6 +52,12 @@ export type CustomMessageRenderHints = {
+      * If this function is not supplied, media downloads are allowed.
+      */
+     allowDownloadingMedia?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    /** Whether the current Product/platform route permits replying. */
++    allowReply?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    /** Whether the current Product/platform route permits reacting. */
++    allowReaction?: (mxEvent: MatrixEvent) => Promise<boolean>;
++    /** Whether the current Product/platform route permits revoke/redaction. */
++    allowRedaction?: (mxEvent: MatrixEvent) => Promise<boolean>;
+ };
+ 
+ /**
+diff --git a/packages/module-api/src/api/navigation.ts b/packages/module-api/src/api/navigation.ts
+index 9f7853b..00f5d56 100644
+--- a/packages/module-api/src/api/navigation.ts
++++ b/packages/module-api/src/api/navigation.ts
+@@ -35,6 +35,25 @@ export interface OpenRoomOptions {
+  * @public
+  */
+ export interface NavigationApi {
++    /** Read the room currently owned by Element's RoomViewStore. */
++    getCurrentRoomId(): string | null;
++
++    /**
++     * Toggle Product relationship-room presentation.
++     * The real RoomView/timeline/composer remain Element-owned.
++     */
++    setProductConversationPresentation(
++        mode: "default" | "relationship-room",
++    ): void;
++
++    /** Open an existing end-user settings destination. */
++    openUserSettings(
++        destination: "account" | "security" | "sessions",
++    ): void;
++
++    /** Request logout through Element lifecycle. */
++    requestLogout(): void;
++
+     /**
+      * Navigate to a permalink, optionally causing a join if the user is not already a member of the room/space.
+      * @param link - The permalink to navigate to, e.g. `https://matrix.to/#/!roomId:example.com`.
+
+diff --git a/apps/web/src/Resend.ts b/apps/web/src/Resend.ts
+--- a/apps/web/src/Resend.ts
++++ b/apps/web/src/Resend.ts
+@@ -10,6 +10,7 @@
+ import { logger } from "matrix-js-sdk/src/logger";
+
+ import dis from "./dispatcher/dispatcher";
++import { ModuleApi } from "./modules/Api";
+
+ export default class Resend {
+     public static resendUnsentEvents(room: Room): Promise<void[]> {
+@@ -44,6 +45,17 @@ export default class Resend {
+                     action: "message_sent",
+                     event: event,
+                 });
++                if (ModuleApi.instance.navigation.productConversationMode) {
++                    const text = String(event.getContent()?.body ?? "");
++                    void ModuleApi.instance.composer.completeOutgoingMessage({
++                        roomId: event.getRoomId(),
++                        text,
++                        success: true,
++                        eventId: res.event_id,
++                    }).catch((error) => {
++                        logger.error("Product outgoing resend completion projection failed", error);
++                    });
++                }
+             },
+             function (err: Error) {
+                 // XXX: temporary logging to try to diagnose
+diff --git a/apps/web/src/components/views/rooms/SendMessageComposer.tsx b/apps/web/src/components/views/rooms/SendMessageComposer.tsx
+--- a/apps/web/src/components/views/rooms/SendMessageComposer.tsx
++++ b/apps/web/src/components/views/rooms/SendMessageComposer.tsx
+@@ -487,6 +487,34 @@ import { getBlobSafeMimeType } from "../../../utils/blobs";
+                 (actualRoomId: string) => this.props.mxClient.sendMessage(actualRoomId, threadId ?? null, content!),
+                 this.props.mxClient,
+             );
++            if (ModuleApi.instance.navigation.productConversationMode) {
++                const sentText = String(content.body ?? "");
++                void prom.then(
++                    async (resp) => {
++                        try {
++                            await ModuleApi.instance.composer.completeOutgoingMessage({
++                                roomId,
++                                text: sentText,
++                                success: true,
++                                eventId: resp.event_id,
++                            });
++                        } catch (error) {
++                            logger.error("Product outgoing completion projection failed", error);
++                        }
++                    },
++                    async () => {
++                        try {
++                            await ModuleApi.instance.composer.completeOutgoingMessage({
++                                roomId,
++                                text: sentText,
++                                success: false,
++                            });
++                        } catch (error) {
++                            logger.error("Product outgoing failure projection failed", error);
++                        }
++                    },
++                );
++            }
+             if (replyToEvent) {
+                 // Clear reply_to_event as we put the message into the queue
+                 // if the send fails, retry will handle resending.
+@@ -579,6 +607,13 @@ import { getBlobSafeMimeType } from "../../../utils/blobs";
+                     this.editorRef.current?.focus();
+                 }
+                 break;
++            case Action.ClearAndFocusSendMessageComposer:
++                if (payload.timelineRenderingType !== this.context.timelineRenderingType) break;
++                this.model.reset([]);
++                this.editorRef.current?.clearUndoHistory();
++                this.editorRef.current?.focus();
++                this.clearStoredEditorState();
++                break;
+             case Action.ComposerInsert:
+                 if (payload.timelineRenderingType !== this.context.timelineRenderingType) break;
+                 if (payload.composerType !== ComposerType.Send) break;
+diff --git a/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts b/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts
+--- a/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts
++++ b/apps/web/src/components/views/rooms/wysiwyg_composer/utils/message.ts
+@@ -12,6 +12,7 @@
+     THREAD_RELATION_TYPE,
+ } from "matrix-js-sdk/src/matrix";
+ import { type RoomMessageEventContent } from "matrix-js-sdk/src/types";
++import { logger } from "matrix-js-sdk/src/logger";
+ import { type MessageComposerUrlPreviewSnapshot } from "@element-hq/web-shared-components";
+
+ import { PosthogAnalytics } from "../../../../../PosthogAnalytics";
+@@ -156,6 +157,34 @@ import { type IRoomState } from "../../../../structures/RoomView";
+         (actualRoomId: string) => mxClient.sendMessage(actualRoomId, threadId, content!),
+         mxClient,
+     );
++    if (ModuleApi.instance.navigation.productConversationMode) {
++        const sentText = String(content.body ?? "");
++        void prom.then(
++            async (resp) => {
++                try {
++                    await ModuleApi.instance.composer.completeOutgoingMessage({
++                        roomId,
++                        text: sentText,
++                        success: true,
++                        eventId: resp.event_id,
++                    });
++                } catch (error) {
++                    logger.error("Product outgoing completion projection failed", error);
++                }
++            },
++            async () => {
++                try {
++                    await ModuleApi.instance.composer.completeOutgoingMessage({
++                        roomId,
++                        text: sentText,
++                        success: false,
++                    });
++                } catch (error) {
++                    logger.error("Product outgoing failure projection failed", error);
++                }
++            },
++        );
++    }
+
+     if (replyToEvent) {
+         // Clear reply_to_event as we put the message into the queue
+diff --git a/apps/web/src/modules/ComposerApi.ts b/apps/web/src/modules/ComposerApi.ts
+--- a/apps/web/src/modules/ComposerApi.ts
++++ b/apps/web/src/modules/ComposerApi.ts
+@@ -34,6 +34,9 @@
+     private outgoingMessagePrepare?: (
+         input: { roomId: string; text: string },
+     ) => Promise<{ text: string; transformed?: boolean }>;
++    private outgoingMessageCompletion?: (
++        input: { roomId: string; text: string; success: boolean; eventId?: string },
++    ) => Promise<void> | void;
+
+     public constructor(private readonly dispatcher: MatrixDispatcher) {
+         super();
+@@ -78,6 +81,33 @@
+         };
+     }
+
++    public registerOutgoingMessageCompletion(
++        handler: (
++            input: { roomId: string; text: string; success: boolean; eventId?: string },
++        ) => Promise<void> | void,
++    ): void {
++        if (this.outgoingMessageCompletion) {
++            throw new Error("Outgoing message completion hook is already registered");
++        }
++
++        this.outgoingMessageCompletion = handler;
++    }
++
++    public async completeOutgoingMessage(
++        input: { roomId: string; text: string; success: boolean; eventId?: string },
++    ): Promise<void> {
++        if (!this.outgoingMessageCompletion) {
++            throw new Error("MODULE_OUTGOING_COMPLETION_UNAVAILABLE");
++        }
++
++        await this.outgoingMessageCompletion({
++            roomId: String(input.roomId ?? "").trim(),
++            text: String(input.text ?? "").trim(),
++            success: input.success === true,
++            eventId: String(input.eventId ?? "").trim() || undefined,
++        });
++    }
++
+     public addFileUploadOption(option: ComposerApiFileUploadOption): void {
+         if (this.configuredFileUploadOptions.has(option.type)) {
+             throw new Error(`Option "${option.type}" already exists`);
+@@ -112,4 +142,26 @@
+             composerType: ComposerType.Send,
+         } satisfies ComposerInsertPayload);
+     }
++
++    public replacePlaintextInComposer(plaintext: string, view: ComposerApiTarget = { view: "room" }): void {
++        if (!["room", "thread"].includes(view.view)) {
++            throw new Error(`Invalid view '${view.view}'`);
++        }
++        const text = String(plaintext ?? "").trim();
++        if (!text) {
++            throw new Error("MODULE_COMPOSER_REPLACEMENT_EMPTY");
++        }
++        const timelineRenderingType =
++            view.view === "room" ? TimelineRenderingType.Room : TimelineRenderingType.Thread;
++        this.dispatcher.dispatch({
++            action: Action.ClearAndFocusSendMessageComposer,
++            timelineRenderingType,
++        });
++        this.dispatcher.dispatch({
++            action: Action.ComposerInsert,
++            text,
++            timelineRenderingType,
++            composerType: ComposerType.Send,
++        } satisfies ComposerInsertPayload);
++    }
+ }
+diff --git a/packages/module-api/src/api/composer.ts b/packages/module-api/src/api/composer.ts
+--- a/packages/module-api/src/api/composer.ts
++++ b/packages/module-api/src/api/composer.ts
+@@ -68,6 +68,21 @@ export interface ComposerApi {
+         input: { roomId: string; text: string },
+     ): Promise<{ text: string; transformed?: boolean }>;
+
++    /** Register the single Product projection for the settled real Element send Promise. */
++    registerOutgoingMessageCompletion(
++        handler: (
++            input: { roomId: string; text: string; success: boolean; eventId?: string },
++        ) => Promise<void> | void,
++    ): void;
++
++    /** Project the settled real Element send result without taking ownership of send or retry. */
++    completeOutgoingMessage(
++        input: { roomId: string; text: string; success: boolean; eventId?: string },
++    ): Promise<void>;
++
++    /** Replace the current send-composer text using Element's own clear/focus/insert actions. */
++    replacePlaintextInComposer(plaintext: string, view?: ComposerApiTarget): void;
++
+     /**
+      * Add a new file upload option for the user.
+      * @throws If another option is already using the same `type`.
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -112,2 +112,8 @@
+     addFileUploadOption(option: ComposerApiFileUploadOption): void;
++    completeOutgoingMessage(input: {
++        eventId?: string;
++        roomId: string;
++        success: boolean;
++        text: string;
++    }): Promise<void>;
+     insertPlaintextIntoComposer(plaintext: string, view: ComposerApiTarget): void;
+@@ -121,2 +127,8 @@
+     }>;
++    registerOutgoingMessageCompletion(handler: (input: {
++        eventId?: string;
++        roomId: string;
++        success: boolean;
++        text: string;
++    }) => Promise<void> | void): void;
+     registerOutgoingMessagePrepare(handler: (input: {
+@@ -128,2 +140,3 @@
+     }>): void;
++    replacePlaintextInComposer(plaintext: string, view?: ComposerApiTarget): void;
+ }
