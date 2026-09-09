@@ -30,6 +30,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-experience-windows-uat-startup-p0-amendment-2'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'product\/v21-product-system-settings-reachability-p1-successor-v2-amendment-1'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-electron-supported-runtime-p0-production-amendment-5'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-final-materialization-reconciliation-p0-successor-v2'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v2'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v3'/u);
@@ -66,6 +67,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'fix/v21-product-experience-windows-uat-startup-p0',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-2',
+    'fix/v21-product-final-materialization-reconciliation-p0-successor-v2',
     'fix/v21-product-final-navigation-preservation-v5',
     'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2',
     'release/v21-final-rc-uat-p0',
@@ -109,6 +111,11 @@ test('Product Experience final validation is an exact-head same-repository pull-
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-final-navigation-preservation-v5'/gu) || []).length,
     3,
     'navigation preservation successor-v5 must be admitted by exactly the three existing Product Final job guards'
+  );
+  assert.equal(
+    (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-final-materialization-reconciliation-p0-successor-v2'/gu) || []).length,
+    3,
+    'Product reconciliation successor-v2 must be admitted by exactly the three existing Product Final job guards'
   );
   assert.equal(
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-runtime-state-p0'/gu) || []).length,
@@ -356,6 +363,20 @@ test('auth-entry successor-v2 is admitted by exactly the three Product Final job
   assert.doesNotMatch(
     source,
     /head\.ref[\s\S]{0,80}(?:startsWith|contains|matches).*auth-entry-runner/iu
+  );
+});
+
+test('Product reconciliation successor-v2 is admitted by exactly the three Product Final job guards', () => {
+  const source = readWorkflow();
+  const exact = "github.event.pull_request.head.ref == 'fix/v21-product-final-materialization-reconciliation-p0-successor-v2'";
+  assert.equal(
+    source.split(exact).length - 1,
+    3,
+    'Product reconciliation successor-v2 must be admitted by exactly the three Product Final jobs'
+  );
+  assert.doesNotMatch(
+    source,
+    /head\.ref[\s\S]{0,80}(?:startsWith|contains|matches).*product-final-materialization-reconciliation/iu
   );
 });
 
