@@ -346,7 +346,7 @@ test("V20 Product primary navigation and relationship rebinding stay on mature E
   assert.match(patch, /this\.props\.page_type === PageTypes\.HomePage \? "yance" : this\.props\.page_type/u);
   assert.match(patch, /const productPrimaryHome[\s\S]{0,180}PageTypes\.HomePage[\s\S]{0,180}!!moduleRenderer/u);
   assert.match(patch, /if \(productPrimaryHome \|\| productConversationMode\) \{\s*\+\s*\/\/ Keep Yance Home Product-primary and real Element RoomView direct\.\s*\+\s*\/\/ Generic Element navigation must not become a competing primary owner\.\s*\+\s*content = roomView;\s*\+\s*\} else if \(resizerViewModel && !moduleRenderer\) \{/u);
-  assert.match(patch, /window\.location\.hash = `#\/\$\{path\}`/u);
+  assert.match(patch, /public navigateToLocation\(path: string\): void \{[\s\S]{0,240}dispatcher\.dispatch\(\{ action: Action\.ViewHomePage, page: path \}\);/u);
   assert.match(patch, /getCurrentRoomId\(\): string \| null[\s\S]{0,180}roomViewStore\.getRoomId/u);
   assert.match(index, /conversationNavigationGeneration/u);
   assert.match(index, /conversationNavigationQueue/u);
