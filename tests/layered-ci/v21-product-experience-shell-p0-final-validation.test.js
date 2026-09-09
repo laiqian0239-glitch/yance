@@ -45,6 +45,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v13'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v14'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v15'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v16'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-uat-runtime-closure-p0'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-runtime-state-p0'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260830-existing-data-startup-recovery-v2'/u);
@@ -81,7 +82,8 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'release/v21-final-rc-uat-p0-successor-v12',
     'release/v21-final-rc-uat-p0-successor-v13',
     'release/v21-final-rc-uat-p0-successor-v14',
-    'release/v21-final-rc-uat-p0-successor-v15'
+    'release/v21-final-rc-uat-p0-successor-v15',
+    'release/v21-final-rc-uat-p0-successor-v16'
   ].sort());
   assert.equal(
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v13'/gu) || []).length,
@@ -97,6 +99,11 @@ test('Product Experience final validation is an exact-head same-repository pull-
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v15'/gu) || []).length,
     3,
     'successor-v15 must be admitted by exactly the three existing Product Final job guards'
+  );
+  assert.equal(
+    (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'release\/v21-final-rc-uat-p0-successor-v16'/gu) || []).length,
+    3,
+    'successor-v16 must be admitted by exactly the three existing Product Final job guards'
   );
   assert.equal(
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-product-final-navigation-preservation-v5'/gu) || []).length,
