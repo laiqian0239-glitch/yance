@@ -47,6 +47,7 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-product-final-navigation-preservation-v5' ||
         github.event.pull_request.head.ref == 'fix/v21-product-final-materialization-reconciliation-p0-successor-v2' ||
+        github.event.pull_request.head.ref == 'fix/v21-product-final-materialization-reconciliation-p0-successor-v3' ||
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2'
       )
     runs-on: windows-latest
@@ -179,6 +180,7 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-product-final-navigation-preservation-v5' ||
         github.event.pull_request.head.ref == 'fix/v21-product-final-materialization-reconciliation-p0-successor-v2' ||
+        github.event.pull_request.head.ref == 'fix/v21-product-final-materialization-reconciliation-p0-successor-v3' ||
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2'
       )
     runs-on: windows-latest
@@ -731,6 +733,7 @@ jobs:
         github.event.pull_request.head.ref == 'fix/v21-final-rc-materialized-matrix-runtime-state-p0' ||
         github.event.pull_request.head.ref == 'fix/v21-product-final-navigation-preservation-v5' ||
         github.event.pull_request.head.ref == 'fix/v21-product-final-materialization-reconciliation-p0-successor-v2' ||
+        github.event.pull_request.head.ref == 'fix/v21-product-final-materialization-reconciliation-p0-successor-v3' ||
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2'
       )
     runs-on: ubuntu-latest
