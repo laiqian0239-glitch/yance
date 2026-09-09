@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const messageRepository = require('../repositories/messageRepository');
 const workspace = require('../services/workspaceService');
 const systemPolicy = require('../services/systemPolicy');
 const aiAutomation = require('../services/aiBrainOrchestrator');
@@ -103,6 +104,47 @@ router.post('/conversations/:sessionKey/outbound-prepare', async (req, res, next
 });
 
 
+router.post('/conversations/:sessionKey/message-projection', async (req, res, next) => {
+  try {
+    const sessionKey = String(req.params.sessionKey || '').trim();
+    const accountId = String(req.body?.accountId || '').trim();
+    const chatJid = String(req.body?.chatJid || '').trim();
+    const rawIds = Array.isArray(req.body?.messageIds) ? req.body.messageIds : [];
+    const messageIds = [...new Set(rawIds.map(value => String(value || '').trim()).filter(Boolean))];
+    if (!sessionKey || !accountId || !chatJid) return res.status(400).json({ ok:false, code:'MESSAGE_PROJECTION_IDENTITY_REQUIRED' });
+    if (!messageIds.length || messageIds.length > 16 || messageIds.some(value => value.length > 512)) {
+      return res.status(400).json({ ok:false, code:'MESSAGE_PROJECTION_IDS_INVALID' });
+    }
+    const resolved = [];
+    for (const targetId of messageIds) {
+      const row = await messageRepository.getExternalMessage({ accountId, chatJid, targetId });
+      if (!row) continue;
+      const rowSession = String(row.sessionKey || row.conversationId || '').trim();
+      if (rowSession !== sessionKey) continue;
+      resolved.push(row);
+    }
+    const byInternal = new Map();
+    for (const row of resolved) {
+      const id = String(row.id || row.messageId || '').trim();
+      if (id) byInternal.set(id, row);
+    }
+    if (byInternal.size === 0) return res.json({ ok:true, found:false });
+    if (byInternal.size > 1) return res.status(409).json({ ok:false, code:'MESSAGE_IDENTITY_AMBIGUOUS' });
+    const message = [...byInternal.values()][0];
+    const translatedZh = String(message.translatedZh || message.chineseTranslation || message.translationZh || '');
+    const translationStatus = String(message.translationStatus || '');
+    res.json({
+      ok:true, found:true,
+      messageId:String(message.id || message.messageId || ''),
+      conversationId:sessionKey,
+      sourceLanguage:String(message.sourceLanguage || message.language || ''),
+      translatedZh,
+      translationStatus,
+      translated:translationStatus === 'success' && Boolean(translatedZh)
+    });
+  } catch (error) { next(error); }
+});
+
 router.get('/contacts', (req, res, next) => {
   try { res.json({ ok: true, contacts: workspaceData.listContacts({ limit: req.query.limit, search: req.query.search }) }); } catch (error) { next(error); }
 });
@@ -179,6 +221,15 @@ router.put('/contacts/:id/analysis', (req, res, next) => {
 });
 router.get('/contacts/:id/insights', (req, res, next) => {
   try { res.json(workspace.insights(req.params.id)); } catch (error) { next(error); }
+});
+router.get('/contacts/:id/daily-review', (req, res, next) => {
+  try {
+    res.setHeader('cache-control', 'no-store, max-age=0');
+    res.json(workspace.dailyReview(req.params.id, {
+      localDate: req.query.localDate,
+      timeZone: req.query.timeZone
+    }));
+  } catch (error) { next(error); }
 });
 router.put('/contacts/:id/identity', (req, res, next) => {
   try { systemPolicy.assertWriteAllowed('contact-identity-update'); res.json({ ok: true, identity: workspace.saveIdentity(req.params.id, req.body || {}) }); } catch (error) { next(error); }

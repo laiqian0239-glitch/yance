@@ -244,6 +244,10 @@ function bestWhatsAppDisplayName(values = [], jid = '') {
   return 'WhatsApp 联系人';
 }
 
+function whatsappGroupConversationKind(jid = '') {
+  return whatsappIdentityAuthority.normalizeJid(jid).endsWith('@g.us') ? 'group' : '';
+}
+
 function historyDisplayName(row = {}, jid = '') {
   return bestWhatsAppDisplayName([
     row.name, row.notify, row.verifiedBizName, row.verifiedName, row.businessName,
@@ -358,6 +362,7 @@ function persistWhatsAppDirectorySnapshot({ databaseAccountId, contacts = [], ch
       const prior = whatsappIdentityAuthority.resolve(databaseAccountId, aliases);
       const jid = whatsappIdentityAuthority.chooseCanonical([...(prior?.aliases || []), ...aliases], prior?.canonicalJid || '');
       if (!jid) continue;
+      const conversationKind = whatsappGroupConversationKind(jid);
       const mappedName = aliases.map(alias => contactNames.get(alias)).find(name => !isWeakWhatsAppName(name, jid)) || '';
       const contact = whatsappContactRecord(databaseAccountId, { ...chat, id: jid, aliases, name: chat?.name || chat?.notify || mappedName || '' }, source);
       if (!contact) continue;
@@ -376,6 +381,7 @@ function persistWhatsAppDirectorySnapshot({ databaseAccountId, contacts = [], ch
         avatarUrl: contact.avatarUrl || '',
         unreadCount: Math.max(0, Number(chat?.unreadCount || 0)),
         lastMessageAt: optionalTimestampIso(chat?.conversationTimestamp || chat?.lastMessageRecvTimestamp),
+        ...(conversationKind ? { conversationKind } : {}),
         source
       });
       stats.conversations += 1;
@@ -394,6 +400,7 @@ async function ingestWhatsAppHistoryMessages({ databaseAccountId, socket, messag
       if (!message) { stats.skipped += 1; continue; }
       message = await enrichWhatsAppMessageIdentity({ socket, databaseAccountId, info, message });
       message.historical = true;
+      await persistWhatsAppGroupConversationKind(message);
       if (message.type === 'reaction') {
         await messageStore.applyReaction({ accountId: databaseAccountId, chatJid: message.chatJid, targetId: message.targetId, emoji: message.text, actor: message.fromMe ? 'me' : message.chatJid });
       } else if (message.type === 'revoke') {
@@ -416,6 +423,7 @@ async function ingestWhatsAppHistoryMessages({ databaseAccountId, socket, messag
           else stats.mediaQueueSkipped += 1;
         }
         await messageStore.upsert(message);
+        await persistWhatsAppGroupConversationKind(message);
         if (queuedMedia?.queued) whatsappHistoryMediaRecovery.queue.drain();
       }
       stats.messages += 1;
@@ -725,7 +733,16 @@ async function enrichWhatsAppMessageIdentity({ socket, databaseAccountId, info, 
     rawJid: identity.rawJid,
     aliases: identity.aliases || []
   };
+  const conversationKind = whatsappGroupConversationKind(identity.canonicalJid || identity.rawJid || message.chatJid);
+  if (conversationKind) message.conversationKind = conversationKind;
   return whatsappConversationMerge.canonicalizeMessage(message);
+}
+
+async function persistWhatsAppGroupConversationKind(message) {
+  if (message?.conversationKind !== 'group' || !message?.conversationId) return;
+  const current = messageStore.getConversation(message.conversationId);
+  if (current?.conversationKind === 'group') return;
+  await messageStore.updateConversationMetadata(message.conversationId, { conversationKind: 'group' });
 }
 
 class WhatsAppAdapter {
@@ -1482,7 +1499,10 @@ class WhatsAppAdapter {
           claimedConversationId = String(message.conversationId || message.chatJid || '').trim();
           const claim = syncCheckpoint.claimRemoteMessage({ platform: 'whatsapp', accountId: databaseAccountId, remoteMessageId, conversationId: claimedConversationId, messageId: message.id });
           receiptClaimed = claim.claimed === true;
-          if (shouldSkipDuplicateReceipt({ claim, message, accountId: databaseAccountId })) continue;
+          if (shouldSkipDuplicateReceipt({ claim, message, accountId: databaseAccountId })) {
+            await persistWhatsAppGroupConversationKind(message);
+            continue;
+          }
           lastRemoteMessageId = remoteMessageId || lastRemoteMessageId;
           lastRemoteTimestamp = String(message.timestamp || message.sentAt || lastRemoteTimestamp);
           if (message.chatJid && message.direction === 'inbound') {
@@ -1491,6 +1511,8 @@ class WhatsAppAdapter {
               error => logger.warn('whatsapp', 'presence-subscription-failed', { operation: 'ensurePresenceSubscription', accountId: databaseAccountId, conversationId: message.conversationId, reasonCode: error.code || 'WHATSAPP_PRESENCE_SUBSCRIPTION_FAILED', httpStatus: Number(error.status || 0), attempt: 1, nextRetryAt: '' })
             );
           }
+          await persistWhatsAppGroupConversationKind(message);
+          socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'messages.upsert', phase: 'group-kind-prechecked' });
           if (message.type === 'reaction') {
             await messageStore.applyReaction({ accountId: databaseAccountId, chatJid: message.chatJid, targetId: message.targetId, emoji: message.text, actor: message.fromMe ? 'me' : message.chatJid });
             socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'messages.upsert', phase: 'reaction-persisted' });
@@ -1564,6 +1586,8 @@ class WhatsAppAdapter {
             persisted = true;
           }
 
+          await persistWhatsAppGroupConversationKind(message);
+          socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'messages.upsert', phase: 'group-kind-persisted' });
           socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'messages.upsert', phase: 'before-visible-effects' });
           if (message.direction === 'inbound' && message.chatJid) {
             const task = this.avatarTaskForConversation({
