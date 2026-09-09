@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-COMPOSER-OPTIONAL-API-NARROWING-SUCCESSOR-V3-REPAIR-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "The exact successor-v3 Product candidate c99151e0b44bb2ab3bcc255492479bfc8bc2239f replayed the frozen 47 Product blobs byte-for-byte under the isolated V3 authority and produced one deterministic Product Final RED in run 34344254894, frozen Element reproducibility job 102441987699: nx run yance-element-module:lint:types fails at integration/element-module/src/index.tsx line 375 with TS2722 because YanceComposerApi intentionally models replacePlaintextInComposer as optional, the load-time authority guard proves it is a function, but TypeScript does not preserve optional mutable-property narrowing into the later async stageApprovedReplyInElementComposer closure. Element's existing public ComposerApi remains the sole composer owner and its replacePlaintextInComposer implementation is already provided by the existing 0017 patch. This authorization supersedes the consumed exact-replay V3 authority only for the same implementation branch and permits one narrow production-source repair: capture a bound stable function immediately after the existing fail-closed composer authority guard and invoke that bound function in the async staging closure. The other 46 Product blobs remain exact frozen donor identities. No second composer, workflow, route/risk policy, dependency, database, evaluator, RC or publish mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "537d3879a7d07720772cd669e21bc412211da6b7",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "537d3879a7d07720772cd669e21bc412211da6b7",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": true,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-final-materialization-reconciliation-wp-b-isolated-v3-authorization.json",
+    "implementationBranch": "fix/v21-product-final-materialization-reconciliation-p0-successor-v3",
+    "reason": "The V3 exact-replay authority is consumed by frozen Product RED c99151e0b44bb2ab3bcc255492479bfc8bc2239f / run 34344254894; replace it with one same-branch repair authority while preserving that RED head and all historical evidence immutably."
+  },
+  "predecessorEvidence": {
+    "productPullRequest": 1169,
+    "frozenProductRedHead": "c99151e0b44bb2ab3bcc255492479bfc8bc2239f",
+    "productFinalValidationRun": 34344254894,
+    "frozenElementReproducibilityJob": 102441987699,
+    "firstFailingCommand": "nx run yance-element-module:lint:types",
+    "firstCausalFailure": "TS2722 at src/index.tsx:375: composerApi.replacePlaintextInComposer cannot be invoked because the optional mutable property is not narrowed across the async closure.",
+    "frozenDonorHead": "e5b024d5d2141ac8220985d1eaa666d484c448c6",
+    "frozenDonorTree": "e516cecf9181864223bc7c70b4152dc9faa0f122",
+    "productChangedPathCount": 47,
+    "productChangedPathSetSha256": "f023ada3de6f4cbed2ded7b35e000d36fca7f79bd3ed6a999771d81b0f7fa4fe",
+    "rerunForbidden": true,
+    "historicalEvidenceImmutable": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-composer-optional-api-narrowing-successor-v3-repair-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-composer-optional-api-narrowing-successor-v3-repair-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "cdeb5529d8732dc884d43ba71db68a2967effebae49898a1ced6a7211f87fb4c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-materialization-reconciliation-p0-successor-v3",
+    "repairTopology": {
+      "requiredFirstParent": "c99151e0b44bb2ab3bcc255492479bfc8bc2239f",
+      "requiredSecondParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+      "historyRewriteAllowed": false,
+      "forcePushAllowed": false,
+      "preserveFrozenRedHeadAsAncestor": true
+    },
+    "replaySource": {
+      "frozenProductPullRequest": 1165,
+      "frozenProductHead": "e5b024d5d2141ac8220985d1eaa666d484c448c6",
+      "frozenProductTree": "e516cecf9181864223bc7c70b4152dc9faa0f122",
+      "requireExactBlobIdentityOnUnrepairedAuthorizedPaths": true,
+      "exactRepairPath": "integration/element-module/src/index.tsx"
+    },
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/routes/workspace.js",
+      "backend/services/telegramAdapter.js",
+      "backend/services/whatsappAdapter.js",
+      "backend/services/workspaceService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tests/wp2/single-command-path.test.js",
+      "tools/matrix/bootstrap.js",
+      "tools/wp2/command-path-inventory.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0018-yance-post-login-security-shell.patch"
+    ],
+    "approvedChangedFileCount": 47,
+    "approvedChangedFileSetSha256": "f023ada3de6f4cbed2ded7b35e000d36fca7f79bd3ed6a999771d81b0f7fa4fe",
+    "exactRepairChangedPaths": [
+      "integration/element-module/src/index.tsx"
+    ],
+    "exactRepairChangedFileCount": 1,
+    "exactRepairChangedFileSetSha256": "59f42a28091d63ec0d696334527ad74bd2c391bb5b92afa973aaefb0a6f37e96",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": false,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "riskPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "repairContract": {
+    "sourcePath": "integration/element-module/src/index.tsx",
+    "existingGuardMustRemain": "typeof composerApi.replacePlaintextInComposer !== function fails closed with ELEMENT_YANCE_COMPOSER_SEND_AUTHORITY_MISSING",
+    "requiredChange": "Immediately after the existing composer authority guard, capture composerApi.replacePlaintextInComposer.bind(composerApi) into a stable local function and invoke that bound function inside stageApprovedReplyInElementComposer instead of re-reading the optional mutable property.",
+    "elementComposerOwnershipMustRemain": true,
+    "secondComposerForbidden": true,
+    "apiShapeModificationForbidden": true,
+    "upstreamPatchModificationForbidden": true,
+    "behavioralWideningForbidden": true
+  },
+  "requiredClosure": [
+    "Preserve c99151e0b44bb2ab3bcc255492479bfc8bc2239f and Product Final run 34344254894 as immutable consumed RED evidence; never rerun, amend, force-push or rewrite that head.",
+    "After this authorization ordinary-merges, create one non-force repair head on the existing successor-v3 branch whose first parent is the frozen RED head and whose second parent is the authorization ordinary merge commit.",
+    "Change only integration/element-module/src/index.tsx relative to the frozen Product tree; all other 46 authorized Product paths must retain the exact frozen donor blob SHAs.",
+    "Keep the existing fail-closed runtime guard, bind the already-proven Element composer method once, and use the bound stable function in the async staging closure so TypeScript and runtime ownership agree without a second composer or API seam.",
+    "Prove the existing pinned Element materialization typecheck locally before promoting the new Exact Head; then allow one Product Final validator event only.",
+    "On Product CI GREEN, ordinary-merge PR #1169 immediately, then create one fresh Final RC, one full Windows UAT, and Release on UAT GREEN."
+  ],
+  "ossFit": {
+    "decision": "REUSE_EXISTING_ELEMENT_COMPOSER_PUBLIC_SEAM_WITH_TYPE_SAFE_STABLE_BINDING",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Element ComposerApi replacePlaintextInComposer seam",
+        "source": "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c plus repository-existing upstream-patches/element-web/0017-yance-product-conversation-control.patch",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The real Element composer already owns clear/focus/insert behavior through this seam; the defect is only TypeScript narrowing of an optional method across an async closure."
+      },
+      {
+        "name": "Stable bound JavaScript/TypeScript method reference after fail-closed capability guard",
+        "source": "language-level function binding over the existing Element API object",
+        "license": "language-runtime",
+        "adoptionMode": "existing-language-seam",
+        "fit": "FIT",
+        "reason": "Binding preserves ComposerApi this ownership, prevents re-reading an optional mutable property in the later closure, and adds no subsystem or dependency."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not make replacePlaintextInComposer non-optional in the Yance compatibility type solely to silence the compiler.",
+      "Do not use non-null assertions, ts-ignore, any casts or skipLibCheck to bypass the fail-closed contract.",
+      "Do not create a second composer, dispatch layer, runtime adapter, workflow, helper framework or dependency.",
+      "Do not change the other 46 frozen Product blobs, upstream Element patch bytes, route/risk policy, evaluator, RC or publish state."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  }
+}
