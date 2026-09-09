@@ -99,7 +99,7 @@ test('active Element Product surfaces adaptive runtime state and user-controlled
 
   assert.match(shell, /ProductSystemSettingsSurface/u);
   assert.match(shell, /ProductModelRuntimeSupportSurface/u);
-  assert.match(shell, /modelSupportVisible \? <ProductModelRuntimeSupportSurface \/> : null/u);
+  assert.match(shell, /modelSupportVisible\s*&&\s*\([\s\S]{0,240}<details open>[\s\S]{0,240}<ProductModelRuntimeSupportSurface \/>/u);
   for (const token of ['自适应本地', '本地模型', '安装', '取消', '移除', '下载']) {
     assert.match(shell, new RegExp(token, 'u'), `missing active Product support token ${token}`);
   }

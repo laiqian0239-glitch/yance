@@ -30,10 +30,18 @@ test('assisted Windows pipeline is a single WorkBuddy-compatible entry point', (
   assert.doesNotMatch(script, /Scripting\.FileSystemObject|New-Object\s+-ComObject/i);
 });
 
+test('assisted pipeline passes the split trusted packaged Node authority to the Final Builder', () => {
+  assert.match(script, /\[string\]\$TrustedNodeExecutable = 'D:\\node-v22\.23\.1-win-x64\\node\.exe'/);
+  assert.match(script, /Test-Path -LiteralPath \$TrustedNodeExecutable -PathType Leaf/);
+  assert.match(script, /'-TrustedNodeExecutable', \$TrustedNodeExecutable/);
+  assert.match(script, /trustedNodeExecutable = \$TrustedNodeExecutable/);
+});
+
 test('assisted pipeline reports missing build tools as BLOCKED instead of source failure', () => {
   assert.match(script, /YANCE_ASSISTED_BUILD_TOOLS_MISSING/);
   assert.match(script, /\$finalStatus = 'BLOCKED'/);
   assert.match(script, /BUILD_TOOLS_BLOCKER\.json/);
+  assert.match(script, /\$missing \+= \$TrustedNodeExecutable/);
 });
 
 test('assisted pipeline keeps release authorization fail-closed until Builder and UAT', () => {
@@ -42,13 +50,11 @@ test('assisted pipeline keeps release authorization fail-closed until Builder an
   assert.match(script, /formalInstallerAuthorized/);
 });
 
-
 test('assisted pipeline resolves PSScriptRoot defaults after PowerShell 5.1 parameter binding', () => {
   assert.match(script, /\[string\]\$DeliveryRoot = ''/);
   assert.match(script, /IsNullOrWhiteSpace\(\$DeliveryRoot\).*\$PSScriptRoot/);
   assert.doesNotMatch(script, /\[string\]\$DeliveryRoot = \$PSScriptRoot/);
 });
-
 
 test('assisted pipeline packages stable evidence without mutable source, cache or temp trees', () => {
   assert.match(script, /function New-ResultPackage/);
@@ -70,7 +76,6 @@ test('assisted pipeline shows the failing stage and log tail instead of a wrappe
   assert.match(script, /Stage \$\{CurrentStage\}:/);
   assert.doesNotMatch(script, /Stage \$CurrentStage:/);
 });
-
 
 test('PowerShell 5.1 entry scripts remain ASCII-safe and never ask the user to mutate Windows settings', () => {
   const paths = [
