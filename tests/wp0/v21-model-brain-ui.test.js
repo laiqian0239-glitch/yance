@@ -22,7 +22,7 @@ test('active Element Product exposes current Model Brain/LiteLLM status without 
   assert.match(shell, /ProductSystemSettingsSurface/u);
   assert.match(shell, /ProductModelRuntimeSupportSurface/u);
   assert.match(shell, /modelSupportVisible[\s\S]{0,240}useState\(false\)/u);
-  assert.match(shell, /modelSupportVisible \? <ProductModelRuntimeSupportSurface \/> : null/u);
+  assert.match(shell, /modelSupportVisible\s*&&\s*\([\s\S]{0,240}<details open>[\s\S]{0,240}<ProductModelRuntimeSupportSurface \/>/u);
   assert.match(shell, /Model Brain/iu);
   assert.match(shell, /LiteLLM/iu);
   assert.match(shell, /运行状态|不可用|状态已读取/iu);
