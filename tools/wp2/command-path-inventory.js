@@ -155,6 +155,30 @@ const DESKTOP_BACKEND_FORWARDING_IPC = Object.freeze({
   'desktop:media-brain-send-asset': ['/api/r32/models/media-brain/assets/send', 'backend/routes/models.js', true]
 });
 
+const PARLANT_DAILY_CHAT_GOAL_IPC = Object.freeze({
+  'desktop:parlant-get-daily-chat-goal': {
+    electronExecutionModule: 'electron/main.js#ParlantRelationshipRuntime.readDailyChatGoal',
+    backendRoute: 'Parlant loopback /yance/daily-chat-goals/... (relationship+localDate scoped)',
+    backendExecutionModule: 'electron/parlantRelationshipRuntime.js -> runtime/parlant/yance_parlant_server.py#JourneyStore',
+    stateAuthorityOwner: 'PARLANT_JOURNEY_STORE',
+    producesBusinessSideEffect: false
+  },
+  'desktop:parlant-upsert-daily-chat-goal': {
+    electronExecutionModule: 'electron/main.js#ParlantRelationshipRuntime.upsertDailyChatGoal',
+    backendRoute: 'Parlant loopback /yance/daily-chat-goals/... (relationship+localDate scoped)',
+    backendExecutionModule: 'electron/parlantRelationshipRuntime.js -> runtime/parlant/yance_parlant_server.py#JourneyStore',
+    stateAuthorityOwner: 'PARLANT_JOURNEY_STORE',
+    producesBusinessSideEffect: true
+  },
+  'desktop:parlant-delete-daily-chat-goal': {
+    electronExecutionModule: 'electron/main.js#ParlantRelationshipRuntime.deleteDailyChatGoal',
+    backendRoute: 'Parlant loopback /yance/daily-chat-goals/... (relationship+localDate scoped)',
+    backendExecutionModule: 'electron/parlantRelationshipRuntime.js -> runtime/parlant/yance_parlant_server.py#JourneyStore',
+    stateAuthorityOwner: 'PARLANT_JOURNEY_STORE',
+    producesBusinessSideEffect: true
+  }
+});
+
 const FIXED_PRODUCT_SYSTEM_STORE = Object.freeze({
   [CHANNELS.matrixLocalIdentityStatus]: {
     backendRoute: '/api/desktop/matrix-local-identity',
@@ -204,6 +228,13 @@ const FIXED_PRODUCT_SYSTEM_STORE = Object.freeze({
   [CHANNELS.productDataProtectionMutation]: {
     backendRoute: 'fixed data-protection actions -> /api/r32/system/backups, /portable-backups, /restore/pending',
     backendExecutionModule: 'backend/routes/system.js',
+    producesBusinessSideEffect: true
+  },
+  [CHANNELS.productRuntimeSafeExitPrepare]: {
+    backendRoute: '/api/core/command',
+    backendCoreCommand: 'recovery.prepareSafeModeExit',
+    backendExecutionModule: 'backend/core/recoveryManager.js',
+    stateAuthorityOwner: 'BACKEND_RECOVERY_MANAGER',
     producesBusinessSideEffect: true
   },
   [CHANNELS.productModelRuntimeState]: {
@@ -258,21 +289,30 @@ function buildCommandPathInventory(repoRoot) {
     const main = MAIN_IPC[row.channel];
     const isStore = row.channel.startsWith('store:');
     const desktopForwarding = DESKTOP_BACKEND_FORWARDING_IPC[row.channel] || null;
-    if (!main && !isStore && !desktopForwarding) {
+    const parlantDailyChatGoal = PARLANT_DAILY_CHAT_GOAL_IPC[row.channel] || null;
+    if (!main && !isStore && !desktopForwarding && !parlantDailyChatGoal) {
       const error = new Error(`Unclassified Electron IPC channel: ${row.channel}`);
       error.reasonCode = 'WP2_UNREGISTERED_CONTROL_PATH';
       error.details = { channel: row.channel };
       throw error;
     }
     const [module, forwardingOnly, backendRoute, backendCommand, authority] = main
-      || (desktopForwarding ? ['electron/main.js#authenticatedBackendForwarder', true, desktopForwarding[0], null, 'BACKEND_BUSINESS_RUNTIME'] : ['electron/r32StoreBridge.js', true, storeRoute(row.channel), null, 'BACKEND_BUSINESS_RUNTIME']);
+      || (parlantDailyChatGoal
+        ? [parlantDailyChatGoal.electronExecutionModule, true, parlantDailyChatGoal.backendRoute, null, 'BACKEND_BUSINESS_RUNTIME']
+        : desktopForwarding
+          ? ['electron/main.js#authenticatedBackendForwarder', true, desktopForwarding[0], null, 'BACKEND_BUSINESS_RUNTIME']
+          : ['electron/r32StoreBridge.js', true, storeRoute(row.channel), null, 'BACKEND_BUSINESS_RUNTIME']);
     const fixedProductSystem = FIXED_PRODUCT_SYSTEM_STORE[row.channel] || null;
     const resolvedBackendRoute = fixedProductSystem?.backendRoute || backendRoute;
+    const resolvedBackendCoreCommand = fixedProductSystem?.backendCoreCommand || backendCommand;
     const resolvedBackendExecutionModule = fixedProductSystem?.backendExecutionModule
+      || parlantDailyChatGoal?.backendExecutionModule
       || (desktopForwarding ? desktopForwarding[1] : (resolvedBackendRoute ? (isStore ? 'backend/routes/store.js or mapped store service' : row.channel === 'desktop:export-chat' ? 'backend/services/chatExportService.js' : 'backend/core/updateManager.js') : null));
+    const resolvedStateAuthorityOwner = fixedProductSystem?.stateAuthorityOwner || parlantDailyChatGoal?.stateAuthorityOwner || authority;
     const producesBusinessSideEffect = fixedProductSystem?.producesBusinessSideEffect
+      ?? parlantDailyChatGoal?.producesBusinessSideEffect
       ?? (desktopForwarding ? desktopForwarding[2] === true : null)
-      ?? (authority === 'BACKEND_BUSINESS_RUNTIME' || Boolean(backendCommand));
+      ?? (authority === 'BACKEND_BUSINESS_RUNTIME' || Boolean(resolvedBackendCoreCommand));
     return {
       entryKind: 'ELECTRON_IPC',
       channelOrCommandName: row.channel,
@@ -285,11 +325,15 @@ function buildCommandPathInventory(repoRoot) {
       electronExecutionModule: module,
       forwardingOnly,
       backendRoute: resolvedBackendRoute,
-      backendCoreCommand: backendCommand,
+      backendCoreCommand: resolvedBackendCoreCommand,
       backendExecutionModule: resolvedBackendExecutionModule,
-      stateAuthorityOwner: authority,
+      stateAuthorityOwner: resolvedStateAuthorityOwner,
       producesBusinessSideEffect,
-      finalAuthoritativePath: forwardingOnly ? `${mapping?.location || 'renderer'} -> ${row.electronIpcRegistration} -> authenticated backend route ${resolvedBackendRoute || ''}` : `${mapping?.location || row.channel} -> ${row.electronIpcRegistration} -> ${module}`,
+      finalAuthoritativePath: parlantDailyChatGoal
+        ? `${mapping?.location || 'renderer'} -> ${row.electronIpcRegistration} -> ${module} -> ${resolvedBackendRoute} -> ${resolvedBackendExecutionModule}`
+        : forwardingOnly
+          ? `${mapping?.location || 'renderer'} -> ${row.electronIpcRegistration} -> authenticated backend route ${resolvedBackendRoute || ''}${resolvedBackendCoreCommand ? ` -> ${resolvedBackendCoreCommand} -> ${resolvedBackendExecutionModule || ''}` : ''}`
+          : `${mapping?.location || row.channel} -> ${row.electronIpcRegistration} -> ${module}`,
       deletedOrDisabledLegacyPath: 'Electron business CoreRuntime and generic desktop:core-command removed'
     };
   });

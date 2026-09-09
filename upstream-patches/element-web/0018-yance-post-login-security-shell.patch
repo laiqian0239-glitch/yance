@@ -1,0 +1,381 @@
+diff --git a/apps/web/src/components/structures/auth/CompleteSecurity.tsx b/apps/web/src/components/structures/auth/CompleteSecurity.tsx
+index 27676bb..fa53a5c 100644
+--- a/apps/web/src/components/structures/auth/CompleteSecurity.tsx
++++ b/apps/web/src/components/structures/auth/CompleteSecurity.tsx
+@@ -13,6 +13,7 @@ import { CloseIcon } from "@vector-im/compound-design-tokens/assets/web/icons";
+ import { _t } from "../../../languageHandler";
+ import { Phase, SetupEncryptionStore } from "../../../stores/SetupEncryptionStore";
+ import SetupEncryptionBody from "./SetupEncryptionBody";
++import { ModuleApi } from "../../../modules/Api";
+ import AccessibleButton from "../../views/elements/AccessibleButton";
+ import CompleteSecurityBody from "../../views/auth/CompleteSecurityBody";
+ import AuthPage from "../../views/auth/AuthPage";
+@@ -99,21 +100,26 @@ export default class CompleteSecurity extends React.Component<IProps, IState> {
+             );
+         }
+ 
+-        return (
+-            <AuthPage addBlur={false}>
+-                <Glass className="mx_Dialog_border">
+-                    <CompleteSecurityBody>
+-                        <h1 className="mx_CompleteSecurity_header">
+-                            {icon}
+-                            {title}
+-                            {skipButton}
+-                        </h1>
+-                        <div className="mx_CompleteSecurity_body">
+-                            <SetupEncryptionBody onFinished={this.props.onFinished} allowLogout={true} />
+-                        </div>
+-                    </CompleteSecurityBody>
+-                </Glass>
+-            </AuthPage>
++        const securityContent = (
++            <CompleteSecurityBody>
++                <h1 className="mx_CompleteSecurity_header">
++                    {icon}
++                    {title}
++                    {skipButton}
++                </h1>
++                <div className="mx_CompleteSecurity_body">
++                    <SetupEncryptionBody onFinished={this.props.onFinished} allowLogout={true} />
++                </div>
++            </CompleteSecurityBody>
++        );
++
++        return ModuleApi.instance.customComponents.renderPostLoginSecurity(
++            { content: securityContent },
++            () => (
++                <AuthPage addBlur={false}>
++                    <Glass className="mx_Dialog_border">{securityContent}</Glass>
++                </AuthPage>
++            ),
+         );
+     }
+ }
+diff --git a/apps/web/src/components/structures/auth/E2eSetup.tsx b/apps/web/src/components/structures/auth/E2eSetup.tsx
+index af3003d..6523f7b 100644
+--- a/apps/web/src/components/structures/auth/E2eSetup.tsx
++++ b/apps/web/src/components/structures/auth/E2eSetup.tsx
+@@ -8,6 +8,7 @@ Please see LICENSE files in the repository root for full details.
+ 
+ import React from "react";
+ 
++import { ModuleApi } from "../../../modules/Api";
+ import AuthPage from "../../views/auth/AuthPage";
+ import CompleteSecurityBody from "../../views/auth/CompleteSecurityBody";
+ import { InitialCryptoSetupDialog } from "../../views/dialogs/security/InitialCryptoSetupDialog";
+@@ -22,12 +23,15 @@ interface IProps {
+  */
+ export default class E2eSetup extends React.Component<IProps> {
+     public render(): React.ReactNode {
+-        return (
+-            <AuthPage>
+-                <CompleteSecurityBody>
+-                    <InitialCryptoSetupDialog onCancelled={this.props.onCancelled} />
+-                </CompleteSecurityBody>
+-            </AuthPage>
++        const securityContent = (
++            <CompleteSecurityBody>
++                <InitialCryptoSetupDialog onCancelled={this.props.onCancelled} />
++            </CompleteSecurityBody>
++        );
++
++        return ModuleApi.instance.customComponents.renderPostLoginSecurity(
++            { content: securityContent },
++            () => <AuthPage>{securityContent}</AuthPage>,
+         );
+     }
+ }
+diff --git a/apps/web/src/components/structures/auth/PostLoginSecurityShell.test.tsx b/apps/web/src/components/structures/auth/PostLoginSecurityShell.test.tsx
+new file mode 100644
+index 0000000..d5dfac0
+--- /dev/null
++++ b/apps/web/src/components/structures/auth/PostLoginSecurityShell.test.tsx
+@@ -0,0 +1,174 @@
++/*
++Copyright 2026 Yance Contributors
++
++SPDX-License-Identifier: AGPL-3.0-only
++*/
++
++import React, { type ReactElement, type ReactNode } from "react";
++import { Glass } from "@vector-im/compound-web";
++import { logger } from "matrix-js-sdk/src/logger";
++import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
++
++import SdkConfig from "../../../SdkConfig";
++import { ModuleApi } from "../../../modules/Api";
++import { CustomComponentsApi } from "../../../modules/customComponentApi";
++import { Phase, SetupEncryptionStore } from "../../../stores/SetupEncryptionStore";
++import AuthPage from "../../views/auth/AuthPage";
++import CompleteSecurityBody from "../../views/auth/CompleteSecurityBody";
++import { InitialCryptoSetupDialog } from "../../views/dialogs/security/InitialCryptoSetupDialog";
++import CompleteSecurity from "./CompleteSecurity";
++import E2eSetup from "./E2eSetup";
++import SetupEncryptionBody from "./SetupEncryptionBody";
++
++type ContentProps = { content: ReactNode };
++type ChildrenProps = { children?: ReactNode };
++type AnyElement = ReactElement<Record<string, unknown> & ChildrenProps>;
++
++const makeSetupEncryptionStore = (phase: Phase): SetupEncryptionStore =>
++    ({
++        phase,
++        start: vi.fn(),
++        stop: vi.fn(),
++        on: vi.fn(),
++        off: vi.fn(),
++        skip: vi.fn(),
++    }) as unknown as SetupEncryptionStore;
++
++const asElement = (node: ReactNode): AnyElement => node as AnyElement;
++
++describe("post-login security module presentation seam", () => {
++    beforeEach(() => {
++        SdkConfig.reset();
++    });
++
++    afterEach(() => {
++        vi.restoreAllMocks();
++    });
++
++    it("uses Element's original presentation when no module renderer is registered", () => {
++        const api = new CustomComponentsApi();
++        const content = <span data-testid="mature-security-content" />;
++        const originalComponent = vi.fn(({ content: inner }: ContentProps) => (
++            <div data-testid="element-security-fallback">{inner}</div>
++        ));
++
++        const output = api.renderPostLoginSecurity({ content }, originalComponent);
++
++        expect(originalComponent).toHaveBeenCalledTimes(1);
++        expect(originalComponent).toHaveBeenCalledWith({ content });
++        expect(output.props["data-testid"]).toBe("element-security-fallback");
++        expect(output.props.children).toBe(content);
++    });
++
++    it("falls back to Element's original presentation when a module renderer throws", () => {
++        const api = new CustomComponentsApi();
++        const content = <span data-testid="mature-security-content" />;
++        const originalComponent = vi.fn(({ content: inner }: ContentProps) => (
++            <div data-testid="element-security-fallback">{inner}</div>
++        ));
++        vi.spyOn(logger, "warn").mockImplementation(() => undefined);
++        api.registerPostLoginSecurityComponent(() => {
++            throw new Error("module renderer failure");
++        });
++
++        const output = api.renderPostLoginSecurity({ content }, originalComponent);
++
++        expect(originalComponent).toHaveBeenCalledTimes(1);
++        expect(output.props["data-testid"]).toBe("element-security-fallback");
++        expect(output.props.children).toBe(content);
++    });
++
++    it("passes Element-owned content to a registered module renderer", () => {
++        const api = new CustomComponentsApi();
++        const content = <span data-testid="mature-security-content" />;
++        const originalComponent = vi.fn(({ content: inner }: ContentProps) => <div>{inner}</div>);
++        let received: ReactNode;
++        api.registerPostLoginSecurityComponent((props) => {
++            received = props.content;
++            return <section data-testid="product-security-shell">{props.content}</section>;
++        });
++
++        const output = api.renderPostLoginSecurity({ content }, originalComponent);
++
++        expect(received).toBe(content);
++        expect(originalComponent).not.toHaveBeenCalled();
++        expect(output.props["data-testid"]).toBe("product-security-shell");
++        expect(output.props.children).toBe(content);
++    });
++
++    it("keeps CompleteSecurity's exact AuthPage/Glass fallback and mature SetupEncryptionBody", () => {
++        const store = makeSetupEncryptionStore(Phase.Busy);
++        vi.spyOn(SetupEncryptionStore, "sharedInstance").mockReturnValue(store);
++        const customComponents = ModuleApi.instance.customComponents;
++        vi.spyOn(customComponents, "renderPostLoginSecurity").mockImplementation((props, originalComponent) =>
++            originalComponent(props),
++        );
++
++        const output = new CompleteSecurity({ onFinished: vi.fn() }).render() as ReactElement<
++            ChildrenProps & { addBlur?: boolean }
++        >;
++
++        expect(output.type).toBe(AuthPage);
++        expect(output.props.addBlur).toBe(false);
++        const glass = asElement(output.props.children);
++        expect(glass.type).toBe(Glass);
++        const securityBody = asElement(glass.props.children);
++        expect(securityBody.type).toBe(CompleteSecurityBody);
++        const bodyChildren = React.Children.toArray(securityBody.props.children);
++        const body = asElement(bodyChildren[1]);
++        const setupEncryption = asElement(body.props.children);
++        expect(setupEncryption.type).toBe(SetupEncryptionBody);
++        expect(setupEncryption.props.allowLogout).toBe(true);
++    });
++
++    it("passes CompleteSecurity's mature inner content to the registered presentation seam", () => {
++        const store = makeSetupEncryptionStore(Phase.Busy);
++        vi.spyOn(SetupEncryptionStore, "sharedInstance").mockReturnValue(store);
++        let received: ReactNode;
++        vi.spyOn(ModuleApi.instance.customComponents, "renderPostLoginSecurity").mockImplementation((props) => {
++            received = props.content;
++            return <section data-testid="product-security-shell">{props.content}</section>;
++        });
++
++        const output = new CompleteSecurity({ onFinished: vi.fn() }).render() as AnyElement;
++        const securityBody = asElement(received!);
++
++        expect(output.props["data-testid"]).toBe("product-security-shell");
++        expect(securityBody.type).toBe(CompleteSecurityBody);
++        const bodyChildren = React.Children.toArray(securityBody.props.children);
++        const body = asElement(bodyChildren[1]);
++        expect(asElement(body.props.children).type).toBe(SetupEncryptionBody);
++    });
++
++    it("keeps E2eSetup's exact AuthPage fallback", () => {
++        vi.spyOn(ModuleApi.instance.customComponents, "renderPostLoginSecurity").mockImplementation(
++            (props, originalComponent) => originalComponent(props),
++        );
++
++        const output = new E2eSetup({ onCancelled: vi.fn() }).render() as AnyElement;
++        const securityBody = asElement(output.props.children);
++        const dialog = asElement(securityBody.props.children);
++
++        expect(output.type).toBe(AuthPage);
++        expect(securityBody.type).toBe(CompleteSecurityBody);
++        expect(dialog.type).toBe(InitialCryptoSetupDialog);
++    });
++
++    it("passes E2eSetup's real InitialCryptoSetupDialog through the same presentation seam", () => {
++        let received: ReactNode;
++        vi.spyOn(ModuleApi.instance.customComponents, "renderPostLoginSecurity").mockImplementation((props) => {
++            received = props.content;
++            return <section data-testid="product-security-shell">{props.content}</section>;
++        });
++        const onCancelled = vi.fn();
++
++        const output = new E2eSetup({ onCancelled }).render() as AnyElement;
++        const securityBody = asElement(received!);
++        const dialog = asElement(securityBody.props.children);
++
++        expect(output.props["data-testid"]).toBe("product-security-shell");
++        expect(securityBody.type).toBe(CompleteSecurityBody);
++        expect(dialog.type).toBe(InitialCryptoSetupDialog);
++        expect(dialog.props.onCancelled).toBe(onCancelled);
++    });
++});
+diff --git a/apps/web/src/modules/customComponentApi.ts b/apps/web/src/modules/customComponentApi.ts
+index e978dd8..df7bbb7 100644
+--- a/apps/web/src/modules/customComponentApi.ts
++++ b/apps/web/src/modules/customComponentApi.ts
+@@ -22,6 +22,8 @@ import type {
+     CustomGlobalRightPanelRenderFunction,
+     CustomComposerAccessoryRenderFunction,
+     CustomComposerAccessoryComponentProps,
++    CustomPostLoginSecurityComponentProps,
++    CustomPostLoginSecurityRenderFunction,
+ } from "@element-hq/element-web-module-api";
+ import type React from "react";
+ 
+@@ -226,6 +228,35 @@ export class CustomComponentsApi implements ICustomComponentsApi {
+         this._loginRenderer = renderer;
+     }
+ 
++    private _postLoginSecurityRenderer?: CustomPostLoginSecurityRenderFunction;
++
++    /**
++     * Register a Product presentation renderer for Element-owned post-login security content.
++     * The Matrix security lifecycle remains owned by the calling Element components.
++     */
++    public registerPostLoginSecurityComponent(renderer: CustomPostLoginSecurityRenderFunction): void {
++        this._postLoginSecurityRenderer = renderer;
++    }
++
++    /**
++     * Render Element-owned security content through a Product presentation seam.
++     * Missing or throwing module renderers fail safely back to Element's original AuthPage shell.
++     */
++    public renderPostLoginSecurity(
++        props: CustomPostLoginSecurityComponentProps,
++        originalComponent: (props: CustomPostLoginSecurityComponentProps) => React.JSX.Element,
++    ): React.JSX.Element {
++        const renderer = this._postLoginSecurityRenderer;
++        if (renderer) {
++            try {
++                return renderer(props);
++            } catch (ex) {
++                logger.warn("Post-login security renderer failed to render", ex);
++            }
++        }
++        return originalComponent(props);
++    }
++
+     public registerComposerPreview(
+         filter: ComposerPreviewFilterFn,
+         renderer: CustomComposerPreviewRenderFunction,
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+index fb243b6..78e6d4e 100644
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -188,6 +188,7 @@ export interface CustomComponentsApi {
+     registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction): void;
+     registerLoginComponent(renderer: CustomLoginRenderFunction): void;
+     registerMessageRenderer(eventTypeOrFilter: string | ((mxEvent: MatrixEvent) => boolean), renderer: CustomMessageRenderFunction, hints?: CustomMessageRenderHints): void;
++    registerPostLoginSecurityComponent(renderer: CustomPostLoginSecurityRenderFunction): void;
+     registerRoomPreviewBar(renderer: CustomRoomPreviewBarRenderFunction): void;
+ }
+ 
+@@ -258,6 +259,14 @@ export type CustomMessageRenderHints = {
+     allowRedaction?: (mxEvent: MatrixEvent) => Promise<boolean>;
+ };
+ 
++// @alpha
++export type CustomPostLoginSecurityComponentProps = {
++    content: ReactNode;
++};
++
++// @alpha
++export type CustomPostLoginSecurityRenderFunction = (props: CustomPostLoginSecurityComponentProps) => JSX.Element;
++
+ // @alpha
+ export type CustomRoomPreviewBarComponentProps = {
+     roomId?: string;
+diff --git a/packages/module-api/src/api/custom-components.ts b/packages/module-api/src/api/custom-components.ts
+index 8c6fecc..a0d5207 100644
+--- a/packages/module-api/src/api/custom-components.ts
++++ b/packages/module-api/src/api/custom-components.ts
+@@ -196,6 +196,19 @@ export type CustomComposerPreviewComponentProps = {
+  */
+ export type CustomComposerPreviewRenderFunction = ExtendablePropsRenderFunction<CustomComposerPreviewComponentProps>;
+ 
++/**
++ * Element-owned post-login security content which a module may present inside its Product shell.
++ * The content already contains Element's mature security controls and lifecycle semantics.
++ * @alpha Subject to change.
++ */
++export type CustomPostLoginSecurityComponentProps = { content: ReactNode };
++
++/**
++ * Function used only to present already-constructed Element post-login security content.
++ * @alpha Subject to change.
++ */
++export type CustomPostLoginSecurityRenderFunction = (props: CustomPostLoginSecurityComponentProps) => JSX.Element;
++
+ /**
+  * Public props for a module-owned composer accessory. Only the stable room
+  * identity is exposed: no composer text, draft, send or timeline state.
+@@ -297,6 +310,12 @@ export interface CustomComponentsApi {
+      */
+     registerLoginComponent(renderer: CustomLoginRenderFunction): void;
+ 
++    /**
++     * Register a Product presentation renderer for already-constructed Element post-login security content.
++     * Missing renderers leave Element's original security presentation unchanged.
++     */
++    registerPostLoginSecurityComponent(renderer: CustomPostLoginSecurityRenderFunction): void;
++
+     /**
+      * Register a renderer for replacing the preview above the message composer.
+      *

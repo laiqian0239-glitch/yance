@@ -7,9 +7,11 @@ import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
 import { RelationshipWorld } from "./RelationshipWorld";
 import { ProductSystemSettingsSurface } from "./ProductSystemSettingsSurface";
+import { PlatformAccountsSurface } from "./PlatformAccountsSurface";
+
 import {
+  loadPeopleProjections,
   loadProductAppearance,
-  loadRelationshipProjections,
   subscribeRelationshipEvents,
   updateProductAppearance,
   type ProductAppearanceProjection,
@@ -21,6 +23,8 @@ import {
   useExperienceSession,
 } from "./experienceSession";
 import type {
+  ConversationRef,
+  GroupConversationProjection,
   MotionMode,
   RelationshipAiState,
   RelationshipAtmosphere,
@@ -46,8 +50,20 @@ export type ProductAppearanceHost = {
 type ProductExperienceShellProps = {
   appearanceHost?: ProductAppearanceHost;
   navigateSearchResult?: (relationship: RelationshipProjection) => Promise<boolean>;
+  navigateConversation?: (
+    relationship: RelationshipProjection,
+    conversation: ConversationRef,
+  ) => Promise<boolean>;
+  navigateGroupConversation?: (
+    conversation: GroupConversationProjection,
+  ) => Promise<boolean>;
+  navigateProductHome?: () => Promise<void> | void;
   readRoomStateEvents?: ReadRoomStateEvents;
+  openUserSettings?: (destination:"account"|"security"|"sessions")=>void;
+  requestLogout?: ()=>void;
 };
+
+const loadRelationshipProjectionsForPeople = loadPeopleProjections;
 
 const EMPTY_APPEARANCE: ProductAppearanceProjection = {
   available: false,
@@ -63,6 +79,7 @@ function elementCustomThemeColors(semanticVariables: Readonly<Record<string, str
       .map(([token, value]) => [token.slice(2), value]),
   );
 }
+
 
 type ProductModelRuntimeRecord = Record<string, unknown>;
 
@@ -316,12 +333,83 @@ function ProductModelRuntimeSupportSurface(): React.JSX.Element {
   );
 }
 
+type ProductRuntimeSafetyDesktopApi = {
+  getState?: () => Promise<unknown>;
+  getRuntimeProjection?: () => Promise<unknown>;
+  onBackendState?: (callback: (payload: unknown) => void) => (() => void);
+  onRuntimeProjection?: (callback: (payload: unknown) => void) => (() => void);
+  onRuntimeHealth?: (callback: (payload: unknown) => void) => (() => void);
+};
+
+type ProductRuntimeSafetyBanner = {
+  state: "offline" | "backend-unready" | "safe-mode" | "degraded";
+  title: string;
+  detail: string;
+} | null;
+
+function runtimeRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function runtimeDesktopApi(): ProductRuntimeSafetyDesktopApi | null {
+  return (window as unknown as { yanceDesktop?: ProductRuntimeSafetyDesktopApi }).yanceDesktop || null;
+}
+
+function projectRuntimeSafety(
+  browserOnline: boolean,
+  backendReady: boolean | null,
+  projection: Record<string, unknown>,
+  health: Record<string, unknown>,
+  projectionUnavailable: boolean,
+): ProductRuntimeSafetyBanner {
+  if (!browserOnline) {
+    return { state: "offline", title: "网络已离线", detail: "需要联网的关系同步与外部平台操作会暂时不可用。" };
+  }
+  if (backendReady === false) {
+    return { state: "backend-unready", title: "本地服务未就绪", detail: "可在体验设置的运行安全与恢复中重启后台服务。" };
+  }
+  const runtime = runtimeRecord(projection.runtime);
+  if (String(runtime.operatingMode || "") === "safeMode") {
+    return { state: "safe-mode", title: "安全模式已启用", detail: "部分操作受限；退出前会由现有 RecoveryManager 签发一次性授权。" };
+  }
+  const lifecycleState = String(runtime.lifecycleState || "");
+  const reasonCode = String(health.reasonCode || "");
+  if (
+    projectionUnavailable
+    || health.fatal === true
+    || health.recoverable === true
+    || runtime.localReady === false
+    || Boolean(lifecycleState && lifecycleState !== "running")
+  ) {
+    return {
+      state: "degraded",
+      title: "运行状态需要处理",
+      detail: reasonCode
+        ? `运行健康异常：${reasonCode}。可在体验设置中执行恢复操作。`
+        : "运行投影尚未恢复到正常就绪状态；可在体验设置中执行恢复操作。",
+    };
+  }
+  return null;
+}
+
+function semanticThemeVariables(appearance: ProductAppearanceProjection): Readonly<Record<string, string>> {
+  return appearance.themes.find((theme) => theme.id === appearance.themeId)?.semanticVariables || {};
+}
+
 export function ProductExperienceShell({
   appearanceHost,
   navigateSearchResult,
+  navigateConversation,
+  navigateGroupConversation,
+  navigateProductHome,
   readRoomStateEvents,
+  openUserSettings,
+  requestLogout,
 }: ProductExperienceShellProps): React.JSX.Element {
   const [relationships, setRelationships] = useState<readonly RelationshipProjection[]>([]);
+  const [groups, setGroups] = useState<readonly GroupConversationProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("正在加载关系");
   const [appearance, setAppearance] = useState<ProductAppearanceProjection>(EMPTY_APPEARANCE);
@@ -332,38 +420,100 @@ export function ProductExperienceShell({
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
   const [peopleHomeView, setPeopleHomeView] = useState<PeopleHomeView>("list");
   const [focusedRelationshipId, setFocusedRelationshipId] = useState("");
+  const [browserOnline, setBrowserOnline] = useState(() => navigator.onLine);
+  const [runtimeBackendReady, setRuntimeBackendReady] = useState<boolean | null>(null);
+  const [runtimeProjection, setRuntimeProjection] = useState<Record<string, unknown>>({});
+  const [runtimeHealth, setRuntimeHealth] = useState<Record<string, unknown>>({});
+  const [runtimeProjectionUnavailable, setRuntimeProjectionUnavailable] = useState(false);
   const session = useExperienceSession();
   const preferences = useExperiencePreferences();
   const selectedRelationshipIdRef = useRef(session.selectedRelationshipId);
   const refreshGenerationRef = useRef(0);
   const appearanceMutationRef = useRef<Promise<void>>(Promise.resolve());
   const appearanceGenerationRef = useRef(0);
+  const documentSemanticVariablesRef = useRef<Map<string, string | null>>(new Map());
 
   useEffect(() => {
     selectedRelationshipIdRef.current = session.selectedRelationshipId;
   }, [session.selectedRelationshipId]);
 
+  useEffect(() => {
+    const api = runtimeDesktopApi();
+    let active = true;
+    const onOnline = (): void => setBrowserOnline(true);
+    const onOffline = (): void => setBrowserOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+
+    const applyBackendState = (payload: unknown): void => {
+      if (!active) return;
+      const backend = runtimeRecord(payload);
+      if (typeof backend.ready === "boolean") setRuntimeBackendReady(backend.ready);
+    };
+    const applyProjection = (payload: unknown): void => {
+      if (!active) return;
+      setRuntimeProjection(runtimeRecord(payload));
+      setRuntimeHealth({});
+      setRuntimeProjectionUnavailable(false);
+    };
+    const applyHealth = (payload: unknown): void => {
+      if (active) setRuntimeHealth(runtimeRecord(payload));
+    };
+
+    if (api?.getState) {
+      void api.getState().then((payload) => {
+        const backend = runtimeRecord(runtimeRecord(payload).backend);
+        applyBackendState(backend);
+      }, () => {
+        if (active) setRuntimeBackendReady(false);
+      });
+    }
+    if (api?.getRuntimeProjection) {
+      void api.getRuntimeProjection().then(applyProjection, () => {
+        if (active) setRuntimeProjectionUnavailable(true);
+      });
+    }
+
+    const unsubscribeBackend = api?.onBackendState?.(applyBackendState);
+    const unsubscribeProjection = api?.onRuntimeProjection?.(applyProjection);
+    const unsubscribeHealth = api?.onRuntimeHealth?.(applyHealth);
+    return () => {
+      active = false;
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+      unsubscribeBackend?.();
+      unsubscribeProjection?.();
+      unsubscribeHealth?.();
+    };
+  }, []);
+
   const refreshRelationships = useCallback(async (): Promise<void> => {
     const generation = ++refreshGenerationRef.current;
     try {
-      const next = await loadRelationshipProjections();
+      const next = await loadRelationshipProjectionsForPeople();
       if (generation !== refreshGenerationRef.current) return;
-      setRelationships(next);
+      setRelationships(next.relationships);
+      setGroups(next.groups);
       setFocusedRelationshipId((current) => (
-        current && !next.some((row) => row.id === current) ? "" : current
+        current && !next.relationships.some((row) => row.id === current) ? "" : current
       ));
       setLoading(false);
-      setStatus(next.length ? `已载入 ${next.length} 段关系` : "暂无可用关系");
+      setStatus(
+        next.relationships.length || next.groups.length
+          ? `已载入 ${next.relationships.length} 段关系 · ${next.groups.length} 个群聊`
+          : "暂无可用关系或群聊",
+      );
       const selectedRelationshipId = selectedRelationshipIdRef.current;
-      if (selectedRelationshipId && !next.some((row) => row.id === selectedRelationshipId)) {
+      if (selectedRelationshipId && !next.relationships.some((row) => row.id === selectedRelationshipId)) {
         clearSelectedRelationship();
       }
     } catch {
       if (generation !== refreshGenerationRef.current) return;
       setRelationships([]);
+      setGroups([]);
       setFocusedRelationshipId("");
       setLoading(false);
-      setStatus("关系数据暂不可用");
+      setStatus("关系与群聊数据暂不可用");
     }
   }, []);
 
@@ -429,6 +579,35 @@ export function ProductExperienceShell({
   }, [refreshAppearance]);
 
   useEffect(() => {
+    const rootStyle = document.documentElement.style;
+    const nextVariables = semanticThemeVariables(appearance);
+    const previous = documentSemanticVariablesRef.current;
+
+    for (const token of previous.keys()) {
+      if (!Object.prototype.hasOwnProperty.call(nextVariables, token)) {
+        const original = previous.get(token);
+        if (original) rootStyle.setProperty(token, original);
+        else rootStyle.removeProperty(token);
+        previous.delete(token);
+      }
+    }
+
+    for (const [token, value] of Object.entries(nextVariables)) {
+      if (!token.startsWith("--") || !value) continue;
+      if (!previous.has(token)) previous.set(token, rootStyle.getPropertyValue(token) || null);
+      rootStyle.setProperty(token, value);
+    }
+
+    return () => {
+      for (const [token, original] of previous.entries()) {
+        if (original) rootStyle.setProperty(token, original);
+        else rootStyle.removeProperty(token);
+      }
+      previous.clear();
+    };
+  }, [appearance]);
+
+  useEffect(() => {
     return subscribeRelationshipEvents(() => {
       void refreshRelationships();
     });
@@ -444,9 +623,77 @@ export function ProductExperienceShell({
     [relationships, session.selectedRelationshipId],
   );
 
+  const runtimeSafetyBanner = useMemo(
+    () => projectRuntimeSafety(
+      browserOnline,
+      runtimeBackendReady,
+      runtimeProjection,
+      runtimeHealth,
+      runtimeProjectionUnavailable,
+    ),
+    [browserOnline, runtimeBackendReady, runtimeHealth, runtimeProjection, runtimeProjectionUnavailable],
+  );
+
   const chooseRelationship = (relationshipId: string): void => {
     selectRelationship(relationshipId);
     setStatus("已打开关系");
+  };
+
+  const openConversation = async (conversationId: string): Promise<void> => {
+    if (!selectedRelationship) {
+      setStatus("请先选择一个人");
+      return;
+    }
+
+    const conversation = selectedRelationship.conversations
+      .find((row) => row.id === conversationId);
+
+    if (!conversation) {
+      setStatus("该对话已不可用；不会自动选择其它对话");
+      return;
+    }
+
+    if (!navigateConversation) {
+      setStatus("真实对话导航暂不可用");
+      return;
+    }
+
+    try {
+      const opened = await navigateConversation(selectedRelationship, conversation);
+      setStatus(opened
+        ? "已进入对话"
+        : "没有找到唯一匹配的真实对话；请检查账号同步状态");
+    } catch {
+      setStatus("对话解析失败；言策没有执行猜测性跳转");
+    }
+  };
+
+  const openGroupConversation = async (
+    conversation: GroupConversationProjection,
+  ): Promise<void> => {
+    if (!navigateGroupConversation) {
+      setStatus("真实群聊导航暂不可用");
+      return;
+    }
+
+    try {
+      const opened = await navigateGroupConversation(conversation);
+      setStatus(opened
+        ? "已进入群聊"
+        : "没有找到唯一匹配的真实群聊；请检查账号同步状态");
+    } catch {
+      setStatus("群聊解析失败；言策没有执行猜测性跳转");
+    }
+  };
+
+  const returnToPeople = (): void => {
+    if (!navigateProductHome) {
+      setStatus("返回联系人暂不可用；当前关系上下文保持不变");
+      return;
+    }
+    void Promise.resolve(navigateProductHome())
+      .then(() => setStatus("已返回联系人"))
+      .catch(() => setStatus("返回联系人失败；当前关系上下文保持不变"));
   };
 
   const toggleAssistant = (): void => {
@@ -468,6 +715,17 @@ export function ProductExperienceShell({
       aria-label="言策关系智能操作系统"
     >
       <div className="yance-shell-status yance-sr-only" role="status" aria-live="polite">{status}</div>
+      {runtimeSafetyBanner ? (
+        <div
+          className="yance-appearance-status yance-runtime-safety-banner"
+          data-runtime-safety={runtimeSafetyBanner.state}
+          role="status"
+          aria-live="polite"
+        >
+          <strong>{runtimeSafetyBanner.title}</strong>
+          <span>{runtimeSafetyBanner.detail}</span>
+        </div>
+      ) : null}
 
       <BilingualSearchPanel
         relationships={relationships}
@@ -494,6 +752,7 @@ export function ProductExperienceShell({
             ) : (
               <PeopleSurface
                 relationships={relationships}
+                groups={groups}
                 selectedRelationshipId={session.selectedRelationshipId}
                 focusedRelationshipId={focusedRelationshipId}
                 viewMode={peopleHomeView}
@@ -501,6 +760,9 @@ export function ProductExperienceShell({
                 onViewModeChange={setPeopleHomeView}
                 onFocus={setFocusedRelationshipId}
                 onSelect={chooseRelationship}
+                onSelectGroup={(conversation) => {
+                  void openGroupConversation(conversation);
+                }}
               />
             )}
           </motion.div>
@@ -518,8 +780,15 @@ export function ProductExperienceShell({
               aiState={aiState}
               reducedMotion={preferences.reducedMotion}
               assistantVisible={assistantVisible}
-              onBack={clearSelectedRelationship}
+              onBack={returnToPeople}
               onToggleAssistant={toggleAssistant}
+              onOpenConversation={(conversationId) => {
+                void openConversation(conversationId);
+              }}
+              mergeTargets={relationships
+                .filter((row) => row.id !== selectedRelationship.id)
+                .map((row) => ({ id: row.id, name: row.name }))}
+              onRefresh={refreshRelationships}
             />
             <AnimatePresence initial={false}>
               {assistantVisible ? (
@@ -541,10 +810,7 @@ export function ProductExperienceShell({
       <details
         className="yance-experience-settings"
         onToggle={(event) => {
-          if (!event.currentTarget.open) {
-            setLearningAdminVisible(false);
-            setModelSupportVisible(false);
-          }
+          if (!event.currentTarget.open) setLearningAdminVisible(false);
         }}
       >
         <summary>体验设置</summary>
@@ -608,25 +874,32 @@ export function ProductExperienceShell({
         <p className="yance-appearance-status" role="status" aria-live="polite">{appearanceStatus}</p>
         {preferences.reducedMotion ? <p className="yance-reduced-motion-note">已启用减少动效；状态变化仍会清晰显示，但不会进行空间移动。</p> : null}
 
-        <ProductSystemSettingsSurface />
+        <PlatformAccountsSurface />
+        <ProductSystemSettingsSurface openUserSettings={openUserSettings} requestLogout={requestLogout} />
 
-        <div className="yance-learning-settings-actions">
-          {modelSupportVisible ? (
-            <button type="button" aria-expanded="true" onClick={() => setModelSupportVisible(false)}>收起系统维护</button>
-          ) : (
-            <button type="button" aria-expanded="false" onClick={() => setModelSupportVisible(true)}>系统维护</button>
-          )}
-        </div>
-        {modelSupportVisible ? <ProductModelRuntimeSupportSurface /> : null}
-
-        <div className="yance-learning-settings-actions">
+        <section className="yance-learning-disclosure" aria-label="学习与成长">
+          <header>
+            <div><strong>学习与成长</strong><p>仅在需要复盘学习记录与反馈时打开。</p></div>
+          </header>
+          <button type="button" aria-expanded={learningAdminVisible} disabled={learningAdminVisible} onClick={() => setLearningAdminVisible(true)}>学习控制</button>
+          {learningAdminVisible ? <LearningWorkspace /> : null}
           {learningAdminVisible ? (
-            <button type="button" aria-expanded="true" onClick={() => setLearningAdminVisible(false)}>收起学习控制</button>
-          ) : (
-            <button type="button" aria-expanded="false" onClick={() => setLearningAdminVisible(true)}>学习控制</button>
-          )}
+            <button type="button" onClick={() => setLearningAdminVisible(false)}>收起学习控制</button>
+          ) : null}
+        </section>
+
+        <div className="yance-learning-settings-actions">
+          <button type="button" onClick={() => setModelSupportVisible((value) => !value)}>
+            {modelSupportVisible ? "收起高级系统支持" : "高级系统支持"}
+          </button>
         </div>
-        {learningAdminVisible ? <LearningWorkspace /> : null}
+        {modelSupportVisible && (
+          <details open>
+            <summary>高级系统支持</summary>
+            <ProductModelRuntimeSupportSurface />
+          </details>
+        )}
+
       </details>
 
       <RelationshipOverlayHost readRoomStateEvents={readRoomStateEvents} />
