@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: Exact release branch, tag, or commit to build
+        description: Exact merged release ref, tag, or commit to build
         required: true
-        default: rebuild/windows-release-closure-20260715-release-branding-autoupdate
+        default: main
       expected_commit:
-        description: Exact reviewed 40-character source commit
+        description: Exact reviewed 40-character merged release commit
         required: true
       expected_tree:
-        description: Exact reviewed 40-character source tree
+        description: Exact reviewed 40-character merged release source tree
         required: true
       publish:
         description: "Deferred: publish assets to a future trusted Yance-Releases repository"
@@ -24,6 +24,10 @@ permissions:
 
 env:
   NODE_VERSION: 22.16.0
+  TRUSTED_NODE_VERSION: 22.23.1
+  TRUSTED_NODE_ARCHIVE: node-v22.23.1-win-x64.zip
+  TRUSTED_NODE_ARCHIVE_SHA256: 7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29
+  TRUSTED_NODE_EXE_SHA256: f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed
   ELECTRON_VERSION: 43.4.1
   ELECTRON_ARCHIVE_SHA256: c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a
   RELEASE_REPOSITORY: wangyi198675-coder/Yance-Releases
@@ -46,13 +50,13 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Set up reviewed Node runtime
+      - name: Set up reviewed Builder-host Node runtime
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - name: Verify source and release identity
+      - name: Verify source, release branch and Builder-host toolchain identity
         id: identity
         shell: pwsh
         env:
@@ -68,17 +72,25 @@ jobs:
           $actualTree = (git rev-parse 'HEAD^{tree}').Trim()
           if ($actualCommit -ne $env:EXPECTED_COMMIT) { throw "source commit mismatch: $actualCommit" }
           if ($actualTree -ne $env:EXPECTED_TREE) { throw "source tree mismatch: $actualTree" }
-          $buildBranch = "release-candidate-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $releaseDate = [DateTime]::UtcNow.ToString('yyyyMMdd')
+          $buildBranch = "rebuild/windows-release-closure-$releaseDate-run-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           git switch --create $buildBranch
-          if ($LASTEXITCODE -ne 0) { throw 'failed to create the isolated release candidate branch' }
+          if ($LASTEXITCODE -ne 0) { throw 'failed to create the isolated release-closure branch' }
           $dirty = @(git status --porcelain)
           if ($dirty.Count -ne 0) { throw 'release checkout is not clean' }
           $node = (node --version).Trim()
-          if ($node -ne 'v22.16.0') { throw "unexpected Node runtime: $node" }
+          $npm = (npm --version).Trim()
+          if ($node -ne 'v22.16.0') { throw "unexpected Builder-host Node runtime: $node" }
+          if ($npm -ne '10.9.2') { throw "unexpected Builder-host npm runtime: $npm" }
+          $nodeExe = (Get-Command node).Source
+          $nodeRoot = Split-Path -Parent $nodeExe
+          $npmCli = Join-Path $nodeRoot 'node_modules\npm\bin\npm-cli.js'
+          if (-not (Test-Path -LiteralPath $npmCli -PathType Leaf)) { throw "reviewed npm CLI missing from Builder-host Node root: $npmCli" }
           "commit=$actualCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "tree=$actualTree" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "branch=$buildBranch" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "requested_ref=$env:REQUESTED_SOURCE_REF" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "node_root=$nodeRoot" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Install reviewed dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -91,23 +103,37 @@ jobs:
           npm run verify:wp0
           npm run test:wp7
 
-      - name: Prepare externally approved packaging inputs
+      - name: Prepare signing input
         shell: pwsh
         env:
-          PREACCEPTANCE_RECORD_BASE64: ${{ secrets.WP7_PREACCEPTANCE_RECORD_BASE64 }}
-          PREACCEPTANCE_RECORD_SHA256: ${{ secrets.WP7_PREACCEPTANCE_RECORD_SHA256 }}
           SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
           YANCE_WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($name in @('PREACCEPTANCE_RECORD_BASE64','PREACCEPTANCE_RECORD_SHA256','SIGNING_PFX_BASE64','YANCE_WINDOWS_CERTIFICATE_PASSWORD')) {
+          foreach ($name in @('SIGNING_PFX_BASE64','YANCE_WINDOWS_CERTIFICATE_PASSWORD')) {
             if ([string]::IsNullOrWhiteSpace((Get-Item "Env:$name").Value)) { throw "required release secret is missing: $name" }
           }
           New-Item -ItemType Directory -Path $env:RUNNER_TEMP\yance-release-input -Force | Out-Null
-          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\yance-release-input\preacceptance.json", [Convert]::FromBase64String($env:PREACCEPTANCE_RECORD_BASE64))
           [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\yance-release-input\windows-signing.pfx", [Convert]::FromBase64String($env:SIGNING_PFX_BASE64))
-          $actual = (Get-FileHash "$env:RUNNER_TEMP\yance-release-input\preacceptance.json" -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actual -ne $env:PREACCEPTANCE_RECORD_SHA256.ToLowerInvariant()) { throw 'preacceptance record SHA256 mismatch' }
+
+      - name: Materialize and verify trusted packaged Node runtime
+        id: trusted_node
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP $env:TRUSTED_NODE_ARCHIVE
+          Invoke-WebRequest -UseBasicParsing -Uri "https://nodejs.org/dist/v$($env:TRUSTED_NODE_VERSION)/$($env:TRUSTED_NODE_ARCHIVE)" -OutFile $archive
+          $archiveSha = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($archiveSha -ne $env:TRUSTED_NODE_ARCHIVE_SHA256) { throw "trusted Node archive SHA256 mismatch: $archiveSha" }
+          $root = Join-Path $env:RUNNER_TEMP 'yance-trusted-node-runtime'
+          Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+          Expand-Archive -LiteralPath $archive -DestinationPath $root -Force
+          $nodeExe = Join-Path $root "node-v$($env:TRUSTED_NODE_VERSION)-win-x64\node.exe"
+          if (-not (Test-Path -LiteralPath $nodeExe -PathType Leaf)) { throw "trusted Node executable missing: $nodeExe" }
+          $nodeSha = (Get-FileHash -LiteralPath $nodeExe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($nodeSha -ne $env:TRUSTED_NODE_EXE_SHA256) { throw "trusted Node executable SHA256 mismatch: $nodeSha" }
+          if ((& $nodeExe --version).Trim() -ne "v$($env:TRUSTED_NODE_VERSION)") { throw 'trusted Node executable version mismatch' }
+          "executable=$nodeExe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Download and verify official Electron archive
         shell: pwsh
@@ -135,37 +161,128 @@ jobs:
           "signtool=$signtool" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Create immutable source bundle
+        id: source_bundle
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $branch = '${{ steps.identity.outputs.branch }}'
-          git bundle create "$env:RUNNER_TEMP\yance-release-input\source.bundle" "refs/heads/$branch"
+          $bundle = "$env:RUNNER_TEMP\yance-release-input\source.bundle"
+          git bundle create $bundle "refs/heads/$branch"
           if ($LASTEXITCODE -ne 0) { throw 'source bundle creation failed' }
-          git bundle verify "$env:RUNNER_TEMP\yance-release-input\source.bundle"
+          git bundle verify $bundle
+          if ($LASTEXITCODE -ne 0) { throw 'source bundle verification failed' }
+          $bundleSha = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant()
+          "path=$bundle" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "sha256=$bundleSha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Run two independent strict Windows packaging rounds
+        id: windows_rounds
+        shell: pwsh
+        env:
+          BUNDLE_PATH: ${{ steps.source_bundle.outputs.path }}
+          BUNDLE_SHA256: ${{ steps.source_bundle.outputs.sha256 }}
+          EXPECTED_BRANCH: ${{ steps.identity.outputs.branch }}
+          EXPECTED_COMMIT: ${{ steps.identity.outputs.commit }}
+          EXPECTED_TREE: ${{ steps.identity.outputs.tree }}
+          NODE_ROOT: ${{ steps.identity.outputs.node_root }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runner = (Resolve-Path 'tools/release-closure/RUN_WINDOWS_VERIFY_ROUND.ps1').Path
+          $validationRoot = Join-Path $env:RUNNER_TEMP 'yance-release-validation'
+          $common = @(
+            '-BundlePath', $env:BUNDLE_PATH,
+            '-ExpectedBundleSha256', $env:BUNDLE_SHA256,
+            '-ExpectedBranch', $env:EXPECTED_BRANCH,
+            '-ExpectedCommit', $env:EXPECTED_COMMIT,
+            '-ExpectedTree', $env:EXPECTED_TREE,
+            '-NodeRoot', $env:NODE_ROOT,
+            '-VerificationMode', 'STRICT',
+            '-ValidationRoot', $validationRoot
+          )
+          foreach ($round in @(1, 2)) {
+            & powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File $runner -Round $round @common
+            if ($LASTEXITCODE -ne 0) { throw "strict Windows packaging round $round failed with exit code $LASTEXITCODE" }
+          }
+          $round1 = Join-Path $validationRoot 'Round1\ROUND_RESULT.json'
+          $round2 = Join-Path $validationRoot 'Round2\ROUND_RESULT.json'
+          foreach ($result in @($round1, $round2)) {
+            if (-not (Test-Path -LiteralPath $result -PathType Leaf)) { throw "strict round result missing: $result" }
+          }
+          $round1Sha = (Get-FileHash -LiteralPath $round1 -Algorithm SHA256).Hash.ToLowerInvariant()
+          $round2Sha = (Get-FileHash -LiteralPath $round2 -Algorithm SHA256).Hash.ToLowerInvariant()
+          "round1_result=$round1" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "round1_sha256=$round1Sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "round2_result=$round2" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "round2_sha256=$round2Sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Create exact machine-bound final packaging preacceptance
+        id: preacceptance
+        shell: pwsh
+        env:
+          ROUND1_RESULT: ${{ steps.windows_rounds.outputs.round1_result }}
+          ROUND1_SHA256: ${{ steps.windows_rounds.outputs.round1_sha256 }}
+          ROUND2_RESULT: ${{ steps.windows_rounds.outputs.round2_result }}
+          ROUND2_SHA256: ${{ steps.windows_rounds.outputs.round2_sha256 }}
+          EXPECTED_BRANCH: ${{ steps.identity.outputs.branch }}
+          EXPECTED_COMMIT: ${{ steps.identity.outputs.commit }}
+          EXPECTED_TREE: ${{ steps.identity.outputs.tree }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $record = "$env:RUNNER_TEMP\yance-release-input\preacceptance.json"
+          & node tools/release-closure/create-windows-preacceptance.js `
+            --output $record `
+            --round1-result $env:ROUND1_RESULT `
+            --round1-sha256 $env:ROUND1_SHA256 `
+            --round2-result $env:ROUND2_RESULT `
+            --round2-sha256 $env:ROUND2_SHA256 `
+            --expected-branch $env:EXPECTED_BRANCH `
+            --expected-commit $env:EXPECTED_COMMIT `
+            --expected-tree $env:EXPECTED_TREE
+          if ($LASTEXITCODE -ne 0) { throw "preacceptance generation failed with exit code $LASTEXITCODE" }
+          $sha = (Get-FileHash -LiteralPath $record -Algorithm SHA256).Hash.ToLowerInvariant()
+          "record=$record" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "sha256=$sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Build and sign release before metadata sealing
         shell: pwsh
         env:
           YANCE_WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-          PREACCEPTANCE_RECORD_SHA256: ${{ secrets.WP7_PREACCEPTANCE_RECORD_SHA256 }}
+          PREACCEPTANCE_RECORD: ${{ steps.preacceptance.outputs.record }}
+          PREACCEPTANCE_RECORD_SHA256: ${{ steps.preacceptance.outputs.sha256 }}
+          ROUND1_RESULT: ${{ steps.windows_rounds.outputs.round1_result }}
+          ROUND1_SHA256: ${{ steps.windows_rounds.outputs.round1_sha256 }}
+          ROUND2_RESULT: ${{ steps.windows_rounds.outputs.round2_result }}
+          ROUND2_SHA256: ${{ steps.windows_rounds.outputs.round2_sha256 }}
+          BUNDLE_PATH: ${{ steps.source_bundle.outputs.path }}
+          BUNDLE_SHA256: ${{ steps.source_bundle.outputs.sha256 }}
+          NODE_ROOT: ${{ steps.identity.outputs.node_root }}
+          TRUSTED_NODE_EXECUTABLE: ${{ steps.trusted_node.outputs.executable }}
         run: |
           $ErrorActionPreference = 'Stop'
           $timestamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
           & tools/wp7/RUN_WINDOWS_FINAL_BUILDER.ps1 `
-            -SourceBundle "$env:RUNNER_TEMP\yance-release-input\source.bundle" `
+            -SourceBundle $env:BUNDLE_PATH `
             -WorkRoot "$env:RUNNER_TEMP\yance-release-work" `
             -EvidenceRoot "$env:RUNNER_TEMP\yance-release-evidence" `
-            -PreacceptanceRecord "$env:RUNNER_TEMP\yance-release-input\preacceptance.json" `
+            -PreacceptanceRecord $env:PREACCEPTANCE_RECORD `
             -PreacceptanceSha256 $env:PREACCEPTANCE_RECORD_SHA256 `
+            -WindowsRound1Result $env:ROUND1_RESULT `
+            -WindowsRound1Sha256 $env:ROUND1_SHA256 `
+            -WindowsRound2Result $env:ROUND2_RESULT `
+            -WindowsRound2Sha256 $env:ROUND2_SHA256 `
             -ElectronArchive "$env:RUNNER_TEMP\yance-release-input\electron-v${env:ELECTRON_VERSION}-win32-x64.zip" `
             -MakensisPath '${{ steps.tools.outputs.makensis }}' `
             -ExpectedCommit '${{ steps.identity.outputs.commit }}' `
             -ExpectedTree '${{ steps.identity.outputs.tree }}' `
             -ExpectedBranch '${{ steps.identity.outputs.branch }}' `
+            -ExpectedBundleSha256 $env:BUNDLE_SHA256 `
+            -NodeRoot $env:NODE_ROOT `
+            -TrustedNodeExecutable $env:TRUSTED_NODE_EXECUTABLE `
             -BuildTimestampUtc $timestamp `
             -RequireSignedInstaller `
             -SigningCertificate "$env:RUNNER_TEMP\yance-release-input\windows-signing.pfx" `
             -SignToolPath '${{ steps.tools.outputs.signtool }}'
+          if ($LASTEXITCODE -ne 0) { throw "Final Builder failed with exit code $LASTEXITCODE" }
 
       - name: Verify signed release assets
         shell: pwsh

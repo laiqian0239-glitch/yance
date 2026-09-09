@@ -3,6 +3,7 @@ param(
   [string]$DeliveryRoot = '',
   [string]$ConfigPath = '',
   [string]$NodeRoot = 'D:\node-v22.16.0-win-x64',
+  [string]$TrustedNodeExecutable = 'D:\node-v22.23.1-win-x64\node.exe',
   [string]$RunRoot = '',
   [string]$ElectronArchive = 'D:\Yance-Build-Tools\electron-v43.4.1-win32-x64.zip',
   [string]$MakensisPath = 'D:\Yance-Build-Tools\NSIS\makensis.exe',
@@ -45,7 +46,6 @@ function Assert-File([string]$Path, [string]$Label) {
 function Get-Sha256([string]$Path) {
   return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
-
 
 function Write-PipelineStatus([string]$Stage, [string]$Status, [string]$Message, [hashtable]$Details = @{}) {
   $stamp = [DateTime]::Now.ToString('HH:mm:ss')
@@ -402,13 +402,14 @@ try {
       $reasonCode = 'YANCE_ASSISTED_STRICT_ROUNDS_PASS'
       $message = 'Diagnostic and both strict Windows rounds completed successfully; Builder was intentionally skipped'
     }
-    elseif (-not (Test-Path -LiteralPath $ElectronArchive -PathType Leaf) -or -not (Test-Path -LiteralPath $MakensisPath -PathType Leaf)) {
+    elseif (-not (Test-Path -LiteralPath $ElectronArchive -PathType Leaf) -or -not (Test-Path -LiteralPath $MakensisPath -PathType Leaf) -or -not (Test-Path -LiteralPath $TrustedNodeExecutable -PathType Leaf)) {
       $missing = @()
       if (-not (Test-Path -LiteralPath $ElectronArchive -PathType Leaf)) { $missing += $ElectronArchive }
       if (-not (Test-Path -LiteralPath $MakensisPath -PathType Leaf)) { $missing += $MakensisPath }
+      if (-not (Test-Path -LiteralPath $TrustedNodeExecutable -PathType Leaf)) { $missing += $TrustedNodeExecutable }
       Write-AtomicJson (Join-Path $RunRoot 'BUILD_TOOLS_BLOCKER.json') ([ordered]@{
         status = 'BLOCKED'; reasonCode = 'YANCE_ASSISTED_BUILD_TOOLS_MISSING'; missing = $missing
-        electronArchive = $ElectronArchive; makensisPath = $MakensisPath
+        electronArchive = $ElectronArchive; makensisPath = $MakensisPath; trustedNodeExecutable = $TrustedNodeExecutable
       })
       $finalStatus = 'BLOCKED'
       $reasonCode = 'YANCE_ASSISTED_BUILD_TOOLS_MISSING'
@@ -437,6 +438,7 @@ try {
         '-ExpectedBranch', ([string]$config.expectedBranch),
         '-ExpectedBundleSha256', ([string]$config.bundleSha256),
         '-NodeRoot', $NodeRoot,
+        '-TrustedNodeExecutable', $TrustedNodeExecutable,
         '-BuildTimestampUtc', $buildUtc
       ) (Join-Path $LogsRoot 'final-builder') $CurrentStage | Out-Null
       $exitFile = Join-Path $evidenceRoot 'overall-exit-code.txt'
@@ -474,6 +476,7 @@ finally {
       configPath = $ConfigPath
       runRoot = $RunRoot
       nodeRoot = $NodeRoot
+      trustedNodeExecutable = $TrustedNodeExecutable
       electronArchive = $ElectronArchive
       makensisPath = $MakensisPath
       releaseApproved = $false
