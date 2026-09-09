@@ -116,6 +116,49 @@ function normalizeReplySource(value) {
   return source || 'local_model';
 }
 
+function assertFinalOutboxSendGuards(state, current, finalText, fail) {
+  const customer = state.customers.byId[current.contactId];
+  const account = state.auth.accountsById[current.accountId] || {};
+  if (!customer || customer.archived || customer.archivedAt) {
+    fail('ARCHIVED_CUSTOMER_READ_ONLY', 'Customer is no longer eligible for sending', {
+      contactId: current.contactId
+    });
+  }
+  if (account.canAttemptSend !== true) {
+    fail('ACCOUNT_CANNOT_ATTEMPT_SEND', 'The selected account does not satisfy send-attempt prerequisites', {
+      accountId: current.accountId,
+      state: account.state,
+      sendVerified: account.sendVerified === true
+    });
+  }
+  const conversationRevision = currentConversationRevision(state, current.conversationId);
+  if (Number(current.metadata?.conversationRevision || 0) !== conversationRevision) {
+    fail('OUTBOX_REVERIFY_REQUIRED',
+      'Conversation changed before final send confirmation',
+      {
+        outboxId: current.id,
+        conversationId: current.conversationId,
+        expectedRevision: Number(current.metadata?.conversationRevision || 0),
+        currentRevision: conversationRevision,
+        suggestedAction: 'REGENERATE_CANDIDATE'
+      });
+  }
+  const sendText = clean(finalText || current.text);
+  if (!sendText) fail('EMPTY_APPROVED_REPLY', 'Final reply text cannot be empty');
+  const sendLanguage = replyLanguageAuthority.validateCandidate(sendText, current.metadata?.languageAuthority?.code
+    ? current.metadata.languageAuthority
+    : current.metadata?.targetLanguageCode || current.metadata?.targetLanguage);
+  if (!sendLanguage.pass) {
+    fail('AI_REPLY_LANGUAGE_MISMATCH', sendLanguage.message, {
+      outboxId: current.id,
+      expectedLanguage: sendLanguage.expectedCode,
+      actualLanguage: sendLanguage.actualCode,
+      suggestedAction: 'REVISE_OR_CHANGE_CONTACT_LANGUAGE'
+    });
+  }
+  return { text: sendText, languageValidation: sendLanguage, conversationRevision };
+}
+
 function normalizeQuotedContext(value) {
   if (!value || typeof value !== 'object') return null;
   const key = value.key && typeof value.key === 'object' ? value.key : {};
@@ -727,11 +770,137 @@ function registerAiReplyCommands(storeManager, options = {}) {
     };
   });
 
+  storeManager.registerCommand('OUTBOX_ELEMENT_SEND_PREFLIGHT', ({ command, state, cloneState, createId, now, fail }) => {
+    const outboxId = clean(command.payload.outboxId);
+    const current = state.outbox.byId[outboxId];
+    if (!current) fail('OUTBOX_ITEM_NOT_FOUND', 'Outbox item does not exist', { outboxId });
+    if (current.state === 'reverify_required') {
+      fail('OUTBOX_REVERIFY_REQUIRED',
+        'Persona 版本已更新，请重新批准回复候选人',
+        { outboxId, personaVersionId: current.metadata?.personaVersionId, suggestedAction: 'REGENERATE_CANDIDATE' });
+    }
+    if (current.state !== 'approved' || current.userApproved !== true || clean(current.authorizationType).toLowerCase() === 'machine') {
+      fail('OUTBOX_NOT_ELEMENT_SEND_READY', 'Only a human-approved unsent reply may enter the Element send path', {
+        outboxId,
+        state: current.state,
+        authorizationType: clean(current.authorizationType)
+      });
+    }
+    if (command.payload.confirmElementSend !== true) {
+      fail('ELEMENT_SEND_CONFIRMATION_REQUIRED', 'Element send preflight requires explicit user send intent');
+    }
+    const automation = readConversationAutomationState(state, current.conversationId, current.contactId);
+    if (automation.mode !== 'AI_ASSIST') {
+      fail('AI_ASSIST_MODE_REQUIRED', 'The reviewed reply is no longer in AI assist mode', {
+        outboxId,
+        conversationId: current.conversationId,
+        automationMode: automation.mode
+      });
+    }
+
+    const suppliedConversationId = clean(command.payload.conversationId);
+    const suppliedContactId = clean(command.payload.contactId);
+    const suppliedAccountId = clean(command.payload.accountId);
+    const matrixRoomId = clean(command.payload.matrixRoomId);
+    if (!suppliedConversationId || suppliedConversationId !== clean(current.conversationId)
+      || !suppliedContactId || suppliedContactId !== clean(current.contactId)
+      || !suppliedAccountId || suppliedAccountId !== clean(current.accountId)
+      || !matrixRoomId) {
+      fail('ELEMENT_SEND_BINDING_STALE', 'Product relationship/send binding changed before Element send', {
+        outboxId,
+        expectedConversationId: clean(current.conversationId),
+        suppliedConversationId,
+        expectedContactId: clean(current.contactId),
+        suppliedContactId,
+        expectedAccountId: clean(current.accountId),
+        suppliedAccountId,
+        matrixRoomId
+      });
+    }
+
+    const guard = assertFinalOutboxSendGuards(state, current, command.payload.finalText, fail);
+    const existingAttemptId = clean(current.metadata?.elementSendAttemptId);
+    const existingRoomId = clean(current.metadata?.elementMatrixRoomId);
+    const existingText = clean(current.metadata?.elementFinalText);
+    if (existingAttemptId && existingRoomId === matrixRoomId && existingText === guard.text
+      && clean(current.metadata?.elementSendState) === 'prepared') {
+      return {
+        noop: true,
+        result: {
+          outboxId,
+          elementSendAttemptId: existingAttemptId,
+          matrixRoomId,
+          text: guard.text,
+          state: current.state
+        }
+      };
+    }
+
+    const nextState = cloneState();
+    const outbox = nextState.outbox.byId[outboxId];
+    const candidate = nextState.aiBrain.candidatesById[outbox.candidateId];
+    const preparedAt = now();
+    const elementSendAttemptId = createId();
+    const textChanged = clean(outbox.text) !== guard.text;
+    outbox.text = guard.text;
+    outbox.updatedAt = preparedAt;
+    outbox.metadata = {
+      ...(outbox.metadata || {}),
+      automationMode: 'AI_ASSIST',
+      physicalSendOwner: 'element',
+      elementSendState: 'prepared',
+      elementSendAttemptId,
+      elementMatrixRoomId: matrixRoomId,
+      elementFinalText: guard.text,
+      elementSendPreparedAt: preparedAt,
+      languageValidation: guard.languageValidation,
+      ...(textChanged ? { userRevisedFromElementComposer: true } : {})
+    };
+    if (candidate && clean(candidate.text) !== guard.text) {
+      candidate.text = guard.text;
+      candidate.state = 'edited_approved';
+      candidate.updatedAt = preparedAt;
+    }
+    return {
+      nextState,
+      changedDomains: ['outbox', 'aiBrain'],
+      result: {
+        outboxId,
+        elementSendAttemptId,
+        matrixRoomId,
+        text: guard.text,
+        state: outbox.state
+      },
+      events: {
+        type: 'outbox.elementSendPrepared',
+        domain: 'outbox',
+        entityId: outboxId,
+        changedPaths: [
+          `outbox.byId.${outboxId}.text`,
+          `outbox.byId.${outboxId}.metadata.elementSendAttemptId`,
+          `outbox.byId.${outboxId}.metadata.elementMatrixRoomId`
+        ],
+        payload: {
+          outboxId,
+          candidateId: outbox.candidateId,
+          contactId: outbox.contactId,
+          conversationId: outbox.conversationId,
+          accountId: outbox.accountId,
+          matrixRoomId,
+          elementSendAttemptId
+        }
+      },
+      persist: transaction => {
+        transaction?.upsertOutboxItem?.(outbox);
+        if (candidate) transaction?.upsertAiReplyCandidate?.(candidate);
+      }
+    };
+  });
+
   storeManager.registerCommand('OUTBOX_SEND_CONFIRMED', ({ command, state, cloneState, now, fail }) => {
     const outboxId = clean(command.payload.outboxId);
     const current = state.outbox.byId[outboxId];
     if (!current) fail('OUTBOX_ITEM_NOT_FOUND', 'Outbox item does not exist', { outboxId });
-    // AC-037: block send if outbox item is stale (persona version changed since candidate approval)
     if (current.state === 'reverify_required') {
       fail('OUTBOX_REVERIFY_REQUIRED',
         'Persona 版本已更新，请重新批准回复候选人',
@@ -747,38 +916,17 @@ function registerAiReplyCommands(storeManager, options = {}) {
       if (current.userApproved !== true) {
         fail('OUTBOX_NOT_USER_APPROVED', 'Outbox item must be explicitly approved before send confirmation', { outboxId, state: current.state });
       }
+      const automation = readConversationAutomationState(state, current.conversationId, current.contactId);
+      if (automation.mode === 'AI_ASSIST') {
+        fail('AI_ASSIST_ELEMENT_SEND_REQUIRED',
+          'AI assist replies must be sent only by the real Element composer',
+          { outboxId, conversationId: current.conversationId, automationMode: automation.mode });
+      }
       if (command.payload.confirmSend !== true) {
         fail('EXPLICIT_SEND_CONFIRMATION_REQUIRED', 'The user must explicitly confirm sending');
       }
     }
-    const customer = state.customers.byId[current.contactId];
-    const account = state.auth.accountsById[current.accountId] || {};
-    if (!customer || customer.archived || customer.archivedAt) fail('ARCHIVED_CUSTOMER_READ_ONLY', 'Customer is no longer eligible for sending', { contactId: current.contactId });
-    if (account.canAttemptSend !== true) fail('ACCOUNT_CANNOT_ATTEMPT_SEND', 'The selected account does not satisfy send-attempt prerequisites', { accountId: current.accountId, state: account.state, sendVerified: account.sendVerified === true });
-    // Relationship/memory analysis is asynchronous and cannot delay or veto final sending.
-    const conversationRevision = currentConversationRevision(state, current.conversationId);
-    if (Number(current.metadata?.conversationRevision || 0) !== conversationRevision) {
-      fail('OUTBOX_REVERIFY_REQUIRED',
-        'Conversation changed before final send confirmation',
-        {
-          outboxId,
-          conversationId: current.conversationId,
-          expectedRevision: Number(current.metadata?.conversationRevision || 0),
-          currentRevision: conversationRevision,
-          suggestedAction: 'REGENERATE_CANDIDATE'
-        });
-    }
-    const sendLanguage = replyLanguageAuthority.validateCandidate(current.text, current.metadata?.languageAuthority?.code
-      ? current.metadata.languageAuthority
-      : current.metadata?.targetLanguageCode || current.metadata?.targetLanguage);
-    if (!sendLanguage.pass) {
-      fail('AI_REPLY_LANGUAGE_MISMATCH', sendLanguage.message, {
-        outboxId,
-        expectedLanguage: sendLanguage.expectedCode,
-        actualLanguage: sendLanguage.actualCode,
-        suggestedAction: 'REVISE_OR_CHANGE_CONTACT_LANGUAGE'
-      });
-    }
+    const guard = assertFinalOutboxSendGuards(state, current, current.text, fail);
 
     const nextState = cloneState();
     const outbox = nextState.outbox.byId[outboxId];
@@ -789,7 +937,8 @@ function registerAiReplyCommands(storeManager, options = {}) {
       ...(outbox.metadata || {}),
       authorizationType: machineAuthorized ? 'machine' : 'human',
       automationMode: machineAuthorized ? 'AI_AUTO' : readConversationAutomationState(state, outbox.conversationId, outbox.contactId).mode,
-      quoted: normalizeQuotedContext(command.payload.quoted)
+      quoted: normalizeQuotedContext(command.payload.quoted),
+      languageValidation: guard.languageValidation
     };
     return {
       nextState,
@@ -929,28 +1078,109 @@ function registerAiReplyCommands(storeManager, options = {}) {
 
   storeManager.registerCommand('OUTBOX_SEND_RESULT', ({ command, state, cloneState, now, fail }) => {
     const outboxId = clean(command.payload.outboxId);
-    if (!state.outbox.byId[outboxId]) fail('OUTBOX_ITEM_NOT_FOUND', 'Outbox item does not exist', { outboxId });
+    const current = state.outbox.byId[outboxId];
+    if (!current) fail('OUTBOX_ITEM_NOT_FOUND', 'Outbox item does not exist', { outboxId });
+
+    const elementOwned = clean(command.payload.physicalSendOwner).toLowerCase() === 'element';
+    const elementSendAttemptId = clean(command.payload.elementSendAttemptId);
+    const matrixRoomId = clean(command.payload.matrixRoomId);
+    const matrixEventId = clean(command.payload.matrixEventId);
+    const finalText = clean(command.payload.finalText);
+    if (elementOwned) {
+      const expectedAttemptId = clean(current.metadata?.elementSendAttemptId);
+      const expectedRoomId = clean(current.metadata?.elementMatrixRoomId);
+      const expectedText = clean(current.metadata?.elementFinalText || current.text);
+      const completedAttemptId = clean(current.metadata?.elementSendCompletedAttemptId);
+      const completedEventId = clean(current.metadata?.matrixEventId);
+      if (current.state === 'sent') {
+        if (completedAttemptId && completedAttemptId === elementSendAttemptId
+          && completedEventId && completedEventId === matrixEventId
+          && matrixRoomId && matrixRoomId === expectedRoomId
+          && finalText && finalText === expectedText) {
+          return {
+            noop: true,
+            result: {
+              outboxId,
+              state: 'sent',
+              matrixRoomId: expectedRoomId,
+              matrixEventId: completedEventId
+            }
+          };
+        }
+        fail('ELEMENT_SEND_COMPLETION_CONFLICT', 'Element send completion does not match the already committed send', {
+          outboxId,
+          expectedAttemptId: completedAttemptId,
+          suppliedAttemptId: elementSendAttemptId,
+          expectedEventId: completedEventId,
+          suppliedEventId: matrixEventId
+        });
+      }
+      if (current.state !== 'approved' || current.userApproved !== true
+        || clean(current.authorizationType).toLowerCase() === 'machine') {
+        fail('OUTBOX_NOT_ELEMENT_COMPLETION_READY', 'Only an approved human AI assist outbox may accept Element completion', {
+          outboxId,
+          state: current.state,
+          authorizationType: clean(current.authorizationType)
+        });
+      }
+      // The durable preflight attempt is the completion authority. Once the real Element send
+      // starts, a later mode change must not erase a Matrix message that physically succeeded.
+      if (command.payload.success !== true || !elementSendAttemptId || elementSendAttemptId !== expectedAttemptId
+        || !matrixRoomId || matrixRoomId !== expectedRoomId
+        || !matrixEventId
+        || !finalText || finalText !== expectedText) {
+        fail('ELEMENT_SEND_COMPLETION_STALE', 'Resolved Element send completion did not match the Store preflight binding', {
+          outboxId,
+          expectedAttemptId,
+          suppliedAttemptId: elementSendAttemptId,
+          expectedRoomId,
+          suppliedRoomId: matrixRoomId,
+          expectedText,
+          suppliedText: finalText,
+          matrixEventId,
+          success: command.payload.success === true
+        });
+      }
+    }
+
     const nextState = cloneState();
     const outbox = nextState.outbox.byId[outboxId];
+    const completedAt = now();
     outbox.state = command.payload.success === true ? 'sent' : 'failed';
     outbox.sendQueueId = clean(command.payload.sendQueueId || outbox.sendQueueId);
     outbox.error = clean(command.payload.error);
-    outbox.updatedAt = now();
+    outbox.updatedAt = completedAt;
+    if (elementOwned) {
+      outbox.metadata = {
+        ...(outbox.metadata || {}),
+        physicalSendOwner: 'element',
+        elementSendState: 'completed',
+        elementSendCompletedAt: completedAt,
+        elementSendCompletedAttemptId: elementSendAttemptId,
+        matrixRoomId,
+        matrixEventId,
+        elementFinalText: finalText
+      };
+    }
     const task = nextState.aiBrain.tasksById[outbox.taskId];
     if (task) {
       task.status = command.payload.success === true ? 'committed' : 'failed';
       task.error = outbox.error;
-      task.updatedAt = now();
+      task.updatedAt = completedAt;
     }
     const candidate = nextState.aiBrain.candidatesById[outbox.candidateId];
     if (candidate) {
       candidate.state = command.payload.success === true ? 'sent' : 'send_failed';
-      candidate.updatedAt = now();
+      candidate.updatedAt = completedAt;
     }
     return {
       nextState,
       changedDomains: ['outbox', 'aiBrain'],
-      result: { outboxId, state: outbox.state },
+      result: {
+        outboxId,
+        state: outbox.state,
+        ...(elementOwned ? { matrixRoomId, matrixEventId } : {})
+      },
       events: {
         type: command.payload.success === true ? 'outbox.sent' : 'outbox.failed',
         domain: 'outbox',
@@ -968,7 +1198,13 @@ function registerAiReplyCommands(storeManager, options = {}) {
           success: command.payload.success === true,
           error: outbox.error,
           finalText: outbox.text,
-          originalText: outbox.originalText
+          originalText: outbox.originalText,
+          ...(elementOwned ? {
+            physicalSendOwner: 'element',
+            matrixRoomId,
+            matrixEventId,
+            elementSendAttemptId
+          } : {})
         }
       },
       persist: transaction => {
@@ -978,7 +1214,7 @@ function registerAiReplyCommands(storeManager, options = {}) {
         if (command.payload.success === true) {
           replyFeedbackLearningService.persistImmutableLearningSignal(transaction, {
             eventType: 'sent',
-            evidenceId: outboxId,
+            evidenceId: elementOwned ? matrixEventId : outboxId,
             outboxId,
             candidateId: outbox.candidateId,
             contactId: outbox.contactId,
@@ -995,7 +1231,15 @@ function registerAiReplyCommands(storeManager, options = {}) {
             replyTask: outbox.metadata?.replyTask,
             targetLanguage: outbox.metadata?.targetLanguageCode || outbox.metadata?.targetLanguage,
             modelId: outbox.metadata?.modelId,
-            model: outbox.metadata?.model
+            model: outbox.metadata?.model,
+            ...(elementOwned ? {
+              decisionRecord: {
+                physicalSendOwner: 'element',
+                matrixRoomId,
+                matrixEventId,
+                elementSendAttemptId
+              }
+            } : {})
           });
         }
       }

@@ -1,8 +1,11 @@
 import React from "react";
-import { BrandPreviewSurface } from "./BrandPreviewSurface";
 import { PersonalAccessSurface } from "./product-experience/PersonalAccessSurface";
 import { ProductExperienceShell, type ProductAppearanceHost } from "./product-experience/ProductExperienceShell";
-import type { RelationshipProjection } from "./product-experience/experienceTypes";
+import type {
+  ConversationRef,
+  GroupConversationProjection,
+  RelationshipProjection,
+} from "./product-experience/experienceTypes";
 
 export type RoomStateEventContent = {
   stateKey: string;
@@ -17,21 +20,40 @@ export type ReadRoomStateEvents = (
 type YanceWorkspaceProps = {
   appearanceHost?: ProductAppearanceHost;
   navigateSearchResult?: (relationship: RelationshipProjection) => Promise<boolean>;
+  navigateConversation?: (
+    relationship: RelationshipProjection,
+    conversation: ConversationRef,
+  ) => Promise<boolean>;
+  navigateGroupConversation?: (
+    conversation: GroupConversationProjection,
+  ) => Promise<boolean>;
+  navigateProductHome?: () => Promise<void> | void;
   readRoomStateEvents?: ReadRoomStateEvents;
+  openUserSettings?: (destination:"account"|"security"|"sessions")=>void;
+  requestLogout?: ()=>void;
 };
 
 export function YanceWorkspace({
   appearanceHost,
   navigateSearchResult,
+  navigateConversation,
+  navigateGroupConversation,
+  navigateProductHome,
   readRoomStateEvents,
+  openUserSettings,
+  requestLogout,
 }: YanceWorkspaceProps): React.JSX.Element {
   return (
     <PersonalAccessSurface>
-      <BrandPreviewSurface />
       <ProductExperienceShell
         appearanceHost={appearanceHost}
         navigateSearchResult={navigateSearchResult}
+        navigateConversation={navigateConversation}
+        navigateGroupConversation={navigateGroupConversation}
+        navigateProductHome={navigateProductHome}
         readRoomStateEvents={readRoomStateEvents}
+        openUserSettings={openUserSettings}
+        requestLogout={requestLogout}
       />
     </PersonalAccessSurface>
   );
