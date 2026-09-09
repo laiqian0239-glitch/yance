@@ -341,13 +341,18 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'integration/element-module/src/YanceWorkspace.tsx',
     'integration/element-module/src/index.tsx',
     'integration/element-module/src/product-experience/BilingualSearchPanel.tsx',
+    'integration/element-module/src/product-experience/PeopleSurface.tsx',
     'integration/element-module/src/product-experience/PersonalAccessSurface.tsx',
     'integration/element-module/src/product-experience/PlatformAccountsSurface.tsx',
+    'integration/element-module/src/product-experience/ProductComposerAccessory.tsx',
     'integration/element-module/src/product-experience/ProductConversationProjection.tsx',
     'integration/element-module/src/product-experience/ProductExperienceShell.css',
     'integration/element-module/src/product-experience/ProductExperienceShell.tsx',
     'integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx',
+    'integration/element-module/src/product-experience/RelationshipOverlayHost.tsx',
+    'integration/element-module/src/product-experience/RelationshipWorld.tsx',
     'integration/element-module/src/product-experience/experienceProjection.ts',
+    'integration/element-module/src/product-experience/experienceSession.ts',
     'integration/element-module/src/product-experience/experienceTypes.ts',
     'integration/element-module/vite.config.ts',
     'package-lock.json',
@@ -358,6 +363,7 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'release/facebook-production-resources/platform-auth.json',
     'release/facebook-production-resources/platform-auth.sha256',
     'runtime/local-ai/airllm/yance_airllm_worker.py',
+    'runtime/parlant/yance_parlant_server.py',
     'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch',
     'upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch',
     'upstream-patches/element-web/0015-yance-module-location-navigation.patch',
@@ -605,4 +611,46 @@ test('Element auth config uses one exact L2 route without broad config expansion
   const adjacent = classifyChangedFiles(risk, ['config/matrix/element-config.local.json']);
   assert.equal(adjacent.pass, false);
   assert.equal(adjacent.reasonCode, 'CI_UNKNOWN_PATH');
+});
+
+test('Product reconciliation remaining identities use exact L2 while adjacent Product/runtime paths remain fail closed', () => {
+  const targetPaths = [
+    'integration/element-module/src/product-experience/PeopleSurface.tsx',
+    'integration/element-module/src/product-experience/ProductComposerAccessory.tsx',
+    'integration/element-module/src/product-experience/RelationshipOverlayHost.tsx',
+    'integration/element-module/src/product-experience/RelationshipWorld.tsx',
+    'integration/element-module/src/product-experience/experienceSession.ts',
+    'runtime/parlant/yance_parlant_server.py'
+  ];
+
+  assert.equal(new Set(targetPaths).size, 6);
+  for (const file of targetPaths) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'EXACT', file);
+    assert.equal(risk.l2ExactPaths.includes(file), true, file);
+  }
+
+  for (const prefix of [
+    'integration/',
+    'integration/element-module/src/product-experience/',
+    'runtime/',
+    'runtime/parlant/'
+  ]) {
+    assert.equal(risk.l2Prefixes.includes(prefix), false, prefix);
+  }
+
+  for (const file of [
+    'integration/element-module/src/product-experience/RelationshipWorld.local.tsx',
+    'runtime/parlant/yance_parlant_server.local.py'
+  ]) {
+    const denied = classifyChangedFiles(risk, [file]);
+    assert.equal(denied.pass, false, `${file}: ${JSON.stringify(denied)}`);
+    assert.equal(denied.reasonCode, 'CI_UNKNOWN_PATH', file);
+    assert.deepEqual(denied.unknownPaths, [file], file);
+  }
+
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
 });
