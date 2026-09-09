@@ -13,9 +13,9 @@ const runtime = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-ui-runtime.js')
 const preload = fs.readFileSync(path.join(ROOT, 'electron/preload.js'), 'utf8');
 
 test('desktop window starts dark and uses the native-safe integrated titlebar', () => {
-  assert.match(main, /backgroundColor:\s*'#0B1416'/);
-  assert.match(main, /titleBarStyle:\s*process\.platform === 'darwin' \? 'hiddenInset' : 'hidden'/);
-  assert.match(main, /titleBarOverlay:\s*\{\s*color:\s*'#0B1416',\s*symbolColor:\s*'#E6ECEC',\s*height:\s*40\s*\}/);
+  assert.match(main, /backgroundColor:\s*'#2A0F4A'/);
+  assert.match(main, /titleBarStyle:\s*process\.platform === 'darwin' \? 'hiddenInset' : 'default'/);
+  assert.doesNotMatch(main, /titleBarOverlay|setTitleBarOverlay/u);
   assert.doesNotMatch(main, /frame:\s*false/);
 });
 

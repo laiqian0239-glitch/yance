@@ -531,6 +531,39 @@ router.patch('/outbox/:outboxId/text', asyncRoute(async (req, res) => {
 
 router.post('/outbox/:outboxId/send', asyncRoute(async (req, res) => {
   const storeManager = getStoreManager();
+  const phase = String(req.body?.phase || '').trim().toLowerCase();
+  if (phase === 'element-preflight') {
+    const result = await storeManager.dispatch({
+      type: 'OUTBOX_ELEMENT_SEND_PREFLIGHT',
+      source: 'element-send-preflight-api',
+      payload: {
+        outboxId: req.params.outboxId,
+        confirmElementSend: req.body?.confirmElementSend === true,
+        conversationId: req.body?.conversationId,
+        contactId: req.body?.contactId,
+        accountId: req.body?.accountId,
+        matrixRoomId: req.body?.matrixRoomId,
+        finalText: req.body?.finalText
+      }
+    });
+    return res.json({ ok: true, ...result.result, physicalSendOwner: 'element' });
+  }
+  if (phase === 'element-complete') {
+    const result = await storeManager.dispatch({
+      type: 'OUTBOX_SEND_RESULT',
+      source: 'element-send-completion-api',
+      payload: {
+        outboxId: req.params.outboxId,
+        success: true,
+        physicalSendOwner: 'element',
+        elementSendAttemptId: req.body?.elementSendAttemptId,
+        matrixRoomId: req.body?.matrixRoomId,
+        matrixEventId: req.body?.matrixEventId,
+        finalText: req.body?.finalText
+      }
+    });
+    return res.json({ ok: true, ...result.result, physicalSendOwner: 'element' });
+  }
   const result = await storeManager.dispatch({
     type: 'OUTBOX_SEND_CONFIRMED',
     source: 'user-send-confirmation-api',

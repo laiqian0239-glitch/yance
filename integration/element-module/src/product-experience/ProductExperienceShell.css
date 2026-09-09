@@ -183,6 +183,43 @@
   text-align: center;
 }
 
+.yance-platform-accounts {
+  display: grid;
+  gap: var(--yance-space-3);
+  padding: var(--yance-space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-md);
+  background: var(--surface-card);
+}
+
+.yance-platform-account-list {
+  display: grid;
+  gap: var(--yance-space-2);
+}
+
+.yance-platform-account-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--yance-space-3);
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-sm);
+  background: var(--surface-card-raised);
+}
+
+.yance-platform-account-card span {
+  color: var(--text-secondary);
+}
+
+.yance-platform-account-card em {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  color: var(--accent-primary);
+  font-style: normal;
+  font-weight: 700;
+}
+
 .yance-world-header {
   align-items: center;
 }
