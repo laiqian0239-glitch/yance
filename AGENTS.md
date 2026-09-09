@@ -13,6 +13,8 @@ This file is durable, repository-level execution guidance for AI/coding agents w
 
 This is the highest-priority default execution rule in this repository. Apply it before every action, in every new chat/session, and again whenever a work package has accumulated multiple diagnostic or harness steps. It never overrides a more-specific trusted authorization or safety/policy contract; within those boundaries, it decides which allowed action is worth doing next.
 
+**A work cycle MUST NOT terminate at analysis or status reporting when an authorized deterministic mutation or promotion remains available. State recovery is performed once per continuity break; after recovery, execution continues through the current causal batch until Local Closure, an Exact Head, promotion, or a genuine external blocker.**
+
 Stable policy markers:
 
 ```text
