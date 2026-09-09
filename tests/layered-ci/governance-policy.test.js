@@ -272,6 +272,47 @@ test('Navigation 0017 Element patch uses exact L2 while adjacent upstream patche
   assert.equal(risk.l3Automatic, false);
 });
 
+test('Product reconciliation bootstrap identities use exact L2 while adjacent Product paths remain fail closed', () => {
+  const targetPaths = [
+    'integration/element-module/src/product-experience/PlatformAccountsSurface.tsx',
+    'integration/element-module/src/product-experience/ProductConversationProjection.tsx',
+    'upstream-patches/element-web/0015-yance-module-location-navigation.patch',
+    'upstream-patches/element-web/0016-yance-composer-accessory-slot.patch',
+    'upstream-patches/element-web/0018-yance-post-login-security-shell.patch'
+  ];
+
+  assert.equal(new Set(targetPaths).size, 5);
+  for (const file of targetPaths) {
+    const result = classifyChangedFiles(risk, [file]);
+    assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
+    assert.equal(result.requiredLevel, 'L2', file);
+    assert.equal(result.reasons[0].type, 'EXACT', file);
+    assert.equal(risk.l2ExactPaths.includes(file), true, file);
+  }
+
+  for (const prefix of [
+    'integration/',
+    'integration/element-module/src/product-experience/',
+    'upstream-patches/',
+    'upstream-patches/element-web/'
+  ]) {
+    assert.equal(risk.l2Prefixes.includes(prefix), false, prefix);
+  }
+
+  for (const file of [
+    'integration/element-module/src/product-experience/ProductConversationProjection.local.tsx',
+    'upstream-patches/element-web/0019-yance-unregistered-product.patch'
+  ]) {
+    const denied = classifyChangedFiles(risk, [file]);
+    assert.equal(denied.pass, false, `${file}: ${JSON.stringify(denied)}`);
+    assert.equal(denied.reasonCode, 'CI_UNKNOWN_PATH', file);
+    assert.deepEqual(denied.unknownPaths, [file], file);
+  }
+
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
+});
+
 test('adaptive local LLM risk identities use exact L2 without broad-prefix expansion', () => {
   const targetPaths = [
     'config/local-ai/adaptive-local-model-catalog-v1.json',
@@ -301,6 +342,8 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'integration/element-module/src/index.tsx',
     'integration/element-module/src/product-experience/BilingualSearchPanel.tsx',
     'integration/element-module/src/product-experience/PersonalAccessSurface.tsx',
+    'integration/element-module/src/product-experience/PlatformAccountsSurface.tsx',
+    'integration/element-module/src/product-experience/ProductConversationProjection.tsx',
     'integration/element-module/src/product-experience/ProductExperienceShell.css',
     'integration/element-module/src/product-experience/ProductExperienceShell.tsx',
     'integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx',
@@ -317,7 +360,10 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'runtime/local-ai/airllm/yance_airllm_worker.py',
     'upstream-patches/element-web/0011-yance-product-experience-dependency-lock.patch',
     'upstream-patches/element-web/0011a-yance-css-sheet-plugin-lock.patch',
+    'upstream-patches/element-web/0015-yance-module-location-navigation.patch',
+    'upstream-patches/element-web/0016-yance-composer-accessory-slot.patch',
     'upstream-patches/element-web/0017-yance-product-conversation-control.patch',
+    'upstream-patches/element-web/0018-yance-post-login-security-shell.patch',
     'vendor/electron/electron-v39.8.5-win32-x64.zip',
     'vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz',
     'vendor/npm/_at_electron__get-5.0.0.tgz',
