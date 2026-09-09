@@ -119,6 +119,16 @@
     "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
     "thinYanceAdapterOnly": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing repository fail-closed Product routing, Layered risk, and Product Final literal branch admission",
+        "source": "governance/layered-ci/wp0-routing-policy.json; governance/layered-ci/risk-policy.json; .github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already owns all three prerequisite seams needed by frozen Product PR #1157: exact WP0 Product routing, exact L2 risk classification, and literal Product Final branch admission. The causal batch only extends those existing exact allowlists and their existing regression tests."
+      }
+    ],
     "retireOrAvoid": [
       "Do not add broad Product route prefixes for integration/element-module/src/product-experience or upstream-patches/element-web.",
       "Do not disable unknown-path fail-closed behavior or enable automatic L3.",
