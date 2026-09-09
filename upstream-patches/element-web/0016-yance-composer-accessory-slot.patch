@@ -1,0 +1,141 @@
+diff --git a/apps/web/src/components/views/rooms/MessageComposer.tsx b/apps/web/src/components/views/rooms/MessageComposer.tsx
+index e9debaf..c7ee031 100644
+--- a/apps/web/src/components/views/rooms/MessageComposer.tsx
++++ b/apps/web/src/components/views/rooms/MessageComposer.tsx
+@@ -64,6 +64,7 @@ import { MessageComposerUrlPreviewViewModel } from "../../../viewmodels/composer
+ import { useScopedRoomContext } from "../../../contexts/ScopedRoomContext";
+ import PlatformPeg from "../../../PlatformPeg";
+ import { useSettingValue } from "../../../hooks/useSettings";
++import { ModuleApi } from "../../../modules/Api";
+
+ // The prefix used when persisting editor drafts to localstorage.
+ export const WYSIWYG_EDITOR_STATE_STORAGE_PREFIX = "mx_wysiwyg_state_";
+@@ -707,6 +708,9 @@ export class MessageComposer extends React.Component<IProps, IState> {
+                         {leftIcon}
+                         {composer}
+                         <div className="mx_MessageComposer_actions">
++                            {ModuleApi.instance.customComponents.renderComposerAccessory({
++                                roomId: this.props.room.roomId,
++                            })}
+                             {controls}
+                             {canSendMessages && (
+                                 <MessageComposerButtons
+diff --git a/apps/web/src/modules/customComponentApi.ts b/apps/web/src/modules/customComponentApi.ts
+index 7e8d52d..1062d45 100644
+--- a/apps/web/src/modules/customComponentApi.ts
++++ b/apps/web/src/modules/customComponentApi.ts
+@@ -20,6 +20,8 @@ import type {
+     CustomComposerPreviewRenderFunction,
+     CustomComposerPreviewComponentProps,
+     CustomGlobalRightPanelRenderFunction,
++    CustomComposerAccessoryRenderFunction,
++    CustomComposerAccessoryComponentProps,
+ } from "@element-hq/element-web-module-api";
+ import type React from "react";
+
+@@ -80,6 +82,7 @@ export class CustomComponentsApi implements ICustomComponentsApi {
+     private readonly registeredMessageRenderers: EventRenderer[] = [];
+     private readonly registeredComposerPreviewRenderers: ComposerPreviewRenderer[] = [];
+     private _globalRightPanelRenderer?: CustomGlobalRightPanelRenderFunction;
++    private _composerAccessoryRenderer?: CustomComposerAccessoryRenderFunction;
+
+     public get globalRightPanelRenderer(): CustomGlobalRightPanelRenderFunction | undefined {
+         return this._globalRightPanelRenderer;
+@@ -89,6 +92,10 @@ export class CustomComponentsApi implements ICustomComponentsApi {
+         this._globalRightPanelRenderer = renderer;
+     }
+
++    public registerComposerAccessory(renderer: CustomComposerAccessoryRenderFunction): void {
++        this._composerAccessoryRenderer = renderer;
++    }
++
+     public openGlobalRightPanel(): void {
+         if (RightPanelStore.instance.currentCard.phase === null) {
+             RightPanelStore.instance.setCard({ phase: RightPanelPhases.RoomSummary });
+@@ -228,4 +235,20 @@ export class CustomComponentsApi implements ICustomComponentsApi {
+         }
+         return null;
+     }
++
++    /**
++     * Render the module-owned composer accessory for a room.
++     * @param props Props to be passed to the custom renderer: the room identity only.
++     * @returns A component if a module registered an accessory. Otherwise null.
++     */
++    public renderComposerAccessory(props: CustomComposerAccessoryComponentProps): React.JSX.Element | null {
++        const renderer = this._composerAccessoryRenderer;
++        if (!renderer) return null;
++        try {
++            return renderer(props);
++        } catch (ex) {
++            logger.warn("Composer accessory failed to render", ex);
++            return null;
++        }
++    }
+ }
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+index 40d133b..9f27311 100644
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -155,6 +155,7 @@ export type Container = "top" | "right" | "center";
+ // @alpha
+ export interface CustomComponentsApi {
+     openGlobalRightPanel(): void;
++    registerComposerAccessory(renderer: CustomComposerAccessoryRenderFunction): void;
+     registerComposerPreview(filterFn: (composerText: string, roomId: string) => boolean, renderer: CustomComposerPreviewRenderFunction): void;
+     registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction): void;
+     registerLoginComponent(renderer: CustomLoginRenderFunction): void;
+@@ -162,6 +163,14 @@ export interface CustomComponentsApi {
+     registerRoomPreviewBar(renderer: CustomRoomPreviewBarRenderFunction): void;
+ }
+
++// @alpha
++export type CustomComposerAccessoryComponentProps = {
++    roomId: string;
++};
++
++// @alpha
++export type CustomComposerAccessoryRenderFunction = (props: CustomComposerAccessoryComponentProps) => JSX.Element;
++
+ // @alpha
+ export type CustomComposerPreviewComponentProps = {
+     text: string;
+diff --git a/packages/module-api/src/api/custom-components.ts b/packages/module-api/src/api/custom-components.ts
+index 6b2c96f..adada39 100644
+--- a/packages/module-api/src/api/custom-components.ts
++++ b/packages/module-api/src/api/custom-components.ts
+@@ -190,6 +190,21 @@ export type CustomComposerPreviewComponentProps = {
+  */
+ export type CustomComposerPreviewRenderFunction = ExtendablePropsRenderFunction<CustomComposerPreviewComponentProps>;
+
++/**
++ * Public props for a module-owned composer accessory. Only the stable room
++ * identity is exposed: no composer text, draft, send or timeline state.
++ * @alpha Subject to change.
++ */
++export type CustomComposerAccessoryComponentProps = { roomId: string };
++
++/**
++ * Function used to render a module-owned composer accessory. The accessory is
++ * rendered by Element adjacent to the real composer row; Element remains the
++ * composer owner.
++ * @alpha Subject to change.
++ */
++export type CustomComposerAccessoryRenderFunction = (props: CustomComposerAccessoryComponentProps) => JSX.Element;
++
+ /**
+  * Function used to render the persistent global right panel workspace.
+  * @alpha Subject to change.
+@@ -207,6 +222,12 @@ export interface CustomComponentsApi {
+     /** Register a renderer for the persistent global right-panel workspace. */
+     registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction): void;
+
++    /**
++     * Register a module-owned composer accessory. The accessory receives the
++     * room identity only and is rendered by Element next to the real composer.
++     */
++    registerComposerAccessory(renderer: CustomComposerAccessoryRenderFunction): void;
++
+     /**
+      * Register a renderer for a message type in the timeline.
+      *
