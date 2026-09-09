@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "requestedByUserAt": "2026-09-09T12:41:40+07:00",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-MATERIALIZATION-RECONCILIATION-LAYERED-RISK-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh-main Product reconciliation PR #1160 exact head fb52adf03444535a60a78f15e2c26f2c457dc0bb reached Product Final admission but Layered CI Fast Feedback run 34315723118 / layered-ci-risk job 102351408659 failed closed in Select required CI level with CI_UNKNOWN_PATH for exactly six already-authorized Product/runtime paths. The Layered policy job passed. This prerequisite reuses the repository's existing exact L2 risk classifier seam and existing governance-policy regression owner. It changes no Product bytes, routing policy, workflow, dependency, package/lockfile, database, runner, ledger, release or publish state.",
+  "base": {
+    "branch": "main",
+    "commit": "f054fd9947658c108bf3bb37eef3a95f5eb44a88",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "f054fd9947658c108bf3bb37eef3a95f5eb44a88",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "ownerDelegatedContinuationAuthorizationCaptured": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-materialization-reconciliation-layered-risk-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-materialization-reconciliation-layered-risk-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d6ec55c348d9e8209adf2fecc6680d7bd693f1b5004214ff639bf96c903ae9b4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "riskPolicyExactL2Paths": [
+    "integration/element-module/src/product-experience/PeopleSurface.tsx",
+    "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+    "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+    "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+    "integration/element-module/src/product-experience/experienceSession.ts",
+    "runtime/parlant/yance_parlant_server.py"
+  ],
+  "riskPolicyExactL2PathCount": 6,
+  "riskPolicyExactL2PathSetSha256": "7770724e0cdc3f50e387ea42f564a41cbe05dec9b2d10e0af62f672621269e22",
+  "implementation": {
+    "branch": "fix/v21-product-final-materialization-reconciliation-layered-risk-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "governance/layered-ci/risk-policy.json",
+      "tests/layered-ci/governance-policy.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "dda3b27532f387c8ea4e78c3b63b62fc9b822d1efdf31ea6051fe6ea91f22633",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": false,
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true,
+    "testWeakeningAllowed": false,
+    "runnerModificationAllowed": false,
+    "ledgerModificationAllowed": false,
+    "genericRouteMutationGuardRequired": true,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "PREREQUISITE_RISK_AUTHORITY / SIX_PRODUCT_PATHS_MISSING_FROM_EXISTING_L2_CLASSIFICATION",
+    "frozenImplementationPullRequest": 1160,
+    "frozenImplementationHead": "fb52adf03444535a60a78f15e2c26f2c457dc0bb",
+    "frozenLayeredRun": 34315723118,
+    "frozenLayeredRiskJob": 102351408659,
+    "failedStep": "Select required CI level",
+    "reasonCode": "CI_UNKNOWN_PATH",
+    "policyJobPassed": true,
+    "failureOccurredBeforeL2Verification": true,
+    "unknownPaths": [
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "runtime/parlant/yance_parlant_server.py"
+    ],
+    "requiredClosure": [
+      "Add exactly the six riskPolicyExactL2Paths to governance/layered-ci/risk-policy.json l2ExactPaths using the existing canonical exact-path seam.",
+      "Preserve unknownPathFailsClosed=true and l3Automatic=false and do not add or widen any L2 prefix.",
+      "Extend tests/layered-ci/governance-policy.test.js to prove all six identities classify L2 by EXACT rule and adjacent unregistered Product/runtime paths remain CI_UNKNOWN_PATH.",
+      "Update the existing full l2ExactPaths static snapshot in the same regression owner.",
+      "Reuse frozen #1160 Layered run 34315723118 as causal RED evidence; do not rerun that exact head merely to reproduce CI_UNKNOWN_PATH.",
+      "Do not modify the frozen 47 Product bytes while closing this prerequisite."
+    ]
+  },
+  "riskPolicyMigration": {
+    "path": "governance/layered-ci/risk-policy.json",
+    "requiredChange": "Add exactly the six riskPolicyExactL2Paths to l2ExactPaths using canonical sorted exact-path classification.",
+    "requiredLevel": "L2",
+    "unknownPathFailsClosedMustRemain": true,
+    "l3AutomaticMustRemain": false,
+    "broadPrefixModificationAllowed": false,
+    "existingPrefixModificationAllowed": false,
+    "existingClassificationRemovalAllowed": false
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_LAYERED_CI_CLASSIFIER_EXACT_PATH_SEAM",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "thinYanceAdapterOnly": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Layered CI exact-path risk classifier",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The fail-closed classifier and its regression owner are already mature repository authority. The current Product exact head exposed only six missing exact L2 identities; no new classifier, route, workflow or runtime mechanism is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add integration/, integration/element-module/src/product-experience/, runtime/ or runtime/parlant/ as an L2 prefix.",
+      "Do not set unknownPathFailsClosed=false or l3Automatic=true.",
+      "Do not add a PR-specific selector bypass, skip flag, alternate CI router or second risk classifier.",
+      "Do not modify Product payload bytes, workflows, routing policy, dependencies, package manifests, lockfiles or release state."
+    ]
+  },
+  "localAcceptance": [
+    "Authorization branch changes exactly one authorization file and no other path.",
+    "Implementation changes exactly risk-policy.json and governance-policy.test.js and no other path.",
+    "All six frozen CI_UNKNOWN_PATH identities classify L2 by EXACT rule.",
+    "No broad L2 prefix is added or widened; adjacent unregistered Product/runtime identities remain CI_UNKNOWN_PATH.",
+    "unknownPathFailsClosed remains true and l3Automatic remains false.",
+    "Existing full l2ExactPaths static snapshot and focused classifier regression are consistent with the policy."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
