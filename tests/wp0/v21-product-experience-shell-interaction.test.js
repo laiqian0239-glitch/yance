@@ -30,7 +30,6 @@ test('Action Dock exposes Chinese relationship tools while preserving exact acti
     ['照片', 'photo'],
     ['语音', 'voice'],
     ['实时陪伴', 'live'],
-    ['附件', 'attachment'],
   ]) {
     assert.match(
       accessory,
@@ -38,14 +37,16 @@ test('Action Dock exposes Chinese relationship tools while preserving exact acti
       `${label} must remain paired with ${kind}`,
     );
   }
+  assert.doesNotMatch(accessory, /\battachment\b|type=.file.|onAttachFiles|attachmentRef/u);
   assert.match(accessory, /Popover/u);
   assert.match(accessory, /roomId/u);
 });
 
 test('Action Dock is mounted around the existing Element composer rather than replacing it', () => {
   const index = readOrEmpty('integration/element-module/src/index.tsx');
+  assert.match(index, /registerComposerAccessory/u);
   assert.match(index, /registerComposerPreview/u);
-  assert.match(index, /originalComponent|OriginalComponent/u);
+  assert.match(index, /ProductComposerAccessory/u);
   assert.doesNotMatch(index, /createMessageComposer|replaceComposer|new\s+Composer/u);
 });
 

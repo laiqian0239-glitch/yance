@@ -352,6 +352,7 @@ async function governRuntimeNativeBinariesBootCheck() {
 const YANCE_BACKEND_URL = `http://127.0.0.1:${Number(process.env.YANCE_PORT || 27632)}`;
 const YANCE_ELEMENT_URL = String(process.env.YANCE_ELEMENT_URL || 'http://127.0.0.1:8080').replace(/\/+$/u, '');
 const YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `${YANCE_ELEMENT_URL}/config.json`);
+const YANCE_PRODUCT_LOCATION_URL = `${YANCE_ELEMENT_URL}/#/yance`;
 const WP7_APPLICATION_PROCESS_STARTED_AT_UTC = new Date().toISOString();
 const WP7_NETWORK_OBSERVED_AT_UTC = new Date().toISOString();
 let WP7_NETWORK_ONLINE_AT_PROCESS_START = true;
@@ -964,6 +965,22 @@ function projectParlantRelationshipGoal(payload = {}) {
     progress: Object.freeze({ path: Object.freeze(pathProjection), completed: payload?.progress?.completed === true }),
     reasonCode: String(payload.reasonCode || '').slice(0, 128)
   });
+}
+
+
+function normalizeParlantDailyGoalInput(input = {}, includeGoalText = false) {
+  const contactId = String(input.contactId || '').trim();
+  const localDate = String(input.localDate || '').trim();
+  if (!contactId) throw Object.assign(new Error('contactId is required'), { reasonCode:'DESKTOP_PARLANT_CONTACT_REQUIRED' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate)) throw Object.assign(new Error('localDate must be YYYY-MM-DD'), { reasonCode:'DESKTOP_PARLANT_LOCAL_DATE_INVALID' });
+  const [y,m,d] = localDate.split('-').map(Number); const dt = new Date(Date.UTC(y,m-1,d));
+  if (dt.getUTCFullYear()!==y || dt.getUTCMonth()!==m-1 || dt.getUTCDate()!==d) throw Object.assign(new Error('localDate is not a calendar date'), { reasonCode:'DESKTOP_PARLANT_LOCAL_DATE_INVALID' });
+  const out = { contactId, localDate };
+  if (includeGoalText) { const goalText=String(input.goalText||'').trim(); if (!goalText || goalText.length>4000) throw Object.assign(new Error('Daily chat goal must contain 1 to 4000 characters'), { reasonCode:'DESKTOP_PARLANT_DAILY_GOAL_INVALID' }); out.goalText=goalText; }
+  return Object.freeze(out);
+}
+function projectParlantDailyChatGoal(payload = {}) {
+  return Object.freeze({ ...projectParlantRelationshipGoal(payload), localDate:String(payload.localDate || '').slice(0,10) });
 }
 
 async function readParlantRelationshipGoalProjection(input = {}) {
@@ -3056,7 +3073,7 @@ async function waitForElementShellReady(options = {}) {
 
 function loadElementShell(window) {
   return waitForElementShellReady()
-    .then(() => window.loadURL(YANCE_ELEMENT_URL));
+    .then(() => window.loadURL(YANCE_PRODUCT_LOCATION_URL));
 }
 
 function createWindow() {
@@ -3071,10 +3088,7 @@ function createWindow() {
     show: false,
     backgroundColor: '#2A0F4A',
     title: STATIC_RELEASE_SOURCE.publicProductName,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
-    ...(process.platform === 'darwin' ? {} : {
-      titleBarOverlay: { color: '#2A0F4A', symbolColor: '#FFFFFF', height: 40 }
-    }),
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     icon: iconPath(),
     autoHideMenuBar: true,
     webPreferences: {
@@ -3511,6 +3525,18 @@ function registerIpc() {
     const normalized = normalizeParlantGoalInput(input, ['contactId', 'paused']);
     return projectParlantRelationshipGoal(await ensureParlantRelationshipRuntime().setRelationshipGoalPaused(normalized));
   });
+  ipcGuardHandle('desktop:parlant-get-daily-chat-goal', async (_event, input = {}) => {
+    const normalized=normalizeParlantDailyGoalInput(input,false);
+    return projectParlantDailyChatGoal(await ensureParlantRelationshipRuntime().readDailyChatGoal(normalized));
+  });
+  ipcGuardHandle('desktop:parlant-upsert-daily-chat-goal', async (_event, input = {}) => {
+    const normalized=normalizeParlantDailyGoalInput(input,true);
+    return projectParlantDailyChatGoal(await ensureParlantRelationshipRuntime().upsertDailyChatGoal(normalized));
+  });
+  ipcGuardHandle('desktop:parlant-delete-daily-chat-goal', async (_event, input = {}) => {
+    const normalized=normalizeParlantDailyGoalInput(input,false); const result=await ensureParlantRelationshipRuntime().deleteDailyChatGoal(normalized);
+    return Object.freeze({ deleted:result?.deleted===true, localDate:normalized.localDate });
+  });
   ipcGuardHandle('desktop:presence-avatar-health', () => ensurePresenceAvatarRuntime().health());
   ipcGuardHandle('desktop:presence-avatar-create-session', (_event, input = {}) => ensurePresenceAvatarRuntime().createSession(input));
   ipcGuardHandle('desktop:presence-avatar-close-session', (_event, input = {}) => ensurePresenceAvatarRuntime().closeSession(input));
@@ -3623,8 +3649,7 @@ function registerIpc() {
   ipcGuardHandle('desktop:set-titlebar-theme', (_event, input = {}) => {
     const color = /^#[0-9a-f]{6}$/i.test(String(input.color || '')) ? String(input.color) : '#2A0F4A';
     const symbolColor = /^#[0-9a-f]{6}$/i.test(String(input.symbolColor || '')) ? String(input.symbolColor) : '#FFFFFF';
-    if (process.platform !== 'darwin' && mainWindow && !mainWindow.isDestroyed()) {
-      if (typeof mainWindow.setTitleBarOverlay === 'function') mainWindow.setTitleBarOverlay({ color, symbolColor, height: 40 });
+    if (mainWindow && !mainWindow.isDestroyed()) {
       if (typeof mainWindow.setBackgroundColor === 'function') mainWindow.setBackgroundColor(color);
     }
     return { ok: true, color, symbolColor, backgroundApplied: Boolean(mainWindow && !mainWindow.isDestroyed()) };

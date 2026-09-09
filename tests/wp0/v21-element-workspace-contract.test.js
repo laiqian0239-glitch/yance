@@ -50,10 +50,13 @@ test('Yance workspace is an Element runtime module built by the Element monorepo
   assert.match(readText('integration/element-module/tsconfig.json'), /jsx/u);
 });
 
-test('the official module owns Yance UI while the minimal patch only adds the missing global right-panel slot', () => {
+test('the official module owns Yance UI through the Element location renderer and accessory slots', () => {
   const entry = readText('integration/element-module/src/index.tsx');
   const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
-  assert.match(entry, /registerGlobalRightPanel/u);
+  assert.match(entry, /registerLocationRenderer/u);
+  assert.match(entry, /navigateToLocation/u);
+  assert.match(entry, /registerComposerAccessory/u);
+  assert.doesNotMatch(entry, /registerGlobalRightPanel|openGlobalRightPanel/u);
   assert.match(entry, /YanceWorkspace/u);
 
   if (hasProductExperienceLayout()) {
@@ -77,15 +80,16 @@ test('the official module owns Yance UI while the minimal patch only adds the mi
     }
   }
 
-  const patchText = readText('upstream-patches/element-web/0001-yance-global-right-workspace.patch');
+  const patchText = readText('upstream-patches/element-web/0015-yance-module-location-navigation.patch');
   assert.deepEqual(patchedPaths(patchText), [
-    'apps/web/src/components/structures/RightPanel.tsx',
-    'apps/web/src/modules/customComponentApi.ts',
+    'apps/web/src/modules/ClientApi.ts',
+    'apps/web/src/modules/Navigation.ts',
     'packages/module-api/element-web-module-api.api.md',
-    'packages/module-api/src/api/custom-components.ts'
+    'packages/module-api/src/api/client.ts',
+    'packages/module-api/src/api/navigation.ts'
   ]);
-  assert.match(patchText, /registerGlobalRightPanel/u);
-  assert.match(patchText, /globalRightPanelRenderer/u);
+  assert.match(patchText, /registerLocationRenderer/u);
+  assert.match(patchText, /navigateToLocation/u);
   assert.doesNotMatch(patchText, /matrix-js-sdk\/src\/sync|stopClient|logout\(/u);
 
   const apiReportMarker = 'diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md';
@@ -94,19 +98,13 @@ test('the official module owns Yance UI while the minimal patch only adds the mi
   const nextPatchStart = patchText.indexOf('\ndiff --git ', apiReportStart + apiReportMarker.length);
   const apiReportPatch = patchText.slice(apiReportStart, nextPatchStart === -1 ? patchText.length : nextPatchStart);
 
-  assert.match(
-    apiReportPatch,
-    /^index 6557e89ac2949b6d6b46f991ebb4d64085f74d35\.\.[a-f0-9]{40} 100644$/mu,
-    'generated API report textual diff must remain bound to the exact pinned Element old blob'
-  );
   assert.match(apiReportPatch, /^--- a\/packages\/module-api\/element-web-module-api\.api\.md$/mu);
   assert.match(apiReportPatch, /^\+\+\+ b\/packages\/module-api\/element-web-module-api\.api\.md$/mu);
   assert.match(apiReportPatch, /^@@ /mu, 'generated API report must use an ordinary textual hunk');
   assert.doesNotMatch(apiReportPatch, /^GIT binary patch$/mu, 'generated text API report must never use a Git binary patch');
   assert.doesNotMatch(apiReportPatch, /^(?:literal|delta) \d+$/mu, 'generated text API report must not carry binary payload records');
-  assert.match(apiReportPatch, /^\+    openGlobalRightPanel\(\): void;$/mu);
-  assert.match(apiReportPatch, /^\+    registerGlobalRightPanel\(renderer: CustomGlobalRightPanelRenderFunction\): void;$/mu);
-  assert.match(apiReportPatch, /^\+export type CustomGlobalRightPanelRenderFunction = \(\) => JSX\.Element;$/mu);
+  assert.match(apiReportPatch, /^\+    getRooms: \(\) => Room\[\];$/mu);
+  assert.match(apiReportPatch, /^\+    navigateToLocation\(path: string\): void;$/mu);
 });
 
 test('pinned Element declares its own pnpm authority before nested postinstall commands execute', () => {
@@ -154,7 +152,7 @@ test('the right workspace remains inside the unified Element shell and is restor
   const entry = readText('integration/element-module/src/index.tsx');
   const workspace = readText('integration/element-module/src/YanceWorkspace.tsx');
   assert.match(entry, /addRoomHeaderButtonCallback/u);
-  assert.match(entry, /openGlobalRightPanel/u);
+  assert.match(entry, /navigateToLocation/u);
 
   if (hasProductExperienceLayout()) {
     const shell = readText(PRODUCT_SENTINEL);
@@ -184,7 +182,8 @@ test('Electron boots the unified local Element shell instead of the legacy hand-
   const main = readText('electron/main.js');
   assert.match(main, /YANCE_ELEMENT_URL/u);
   assert.match(main, /YANCE_ELEMENT_HEALTH_URL/u);
-  assert.match(main, /loadURL\(.*element/iu);
+  assert.match(main, /YANCE_PRODUCT_LOCATION_URL/u);
+  assert.match(main, /loadURL\(YANCE_PRODUCT_LOCATION_URL\)/u);
   assert.doesNotMatch(main, /LOCAL_FRONTEND_URL/u);
   assert.doesNotMatch(main, /frontend[\\/]index\.html/u);
 });
@@ -527,5 +526,84 @@ test('pinned Element exposes only a narrow appearance authority seam and bootstr
   const bootstrap = readText('tools/matrix/bootstrap.js');
   assert.match(bootstrap, /0014-yance-module-appearance-authority\.patch/u);
   assert.match(bootstrap, /APPEARANCE_AUTHORITY_PATCH/u);
+  assert.doesNotMatch(bootstrap, /glob[^\n]*upstream-patches|readdirSync[^\n]*upstream-patches/iu);
+});
+
+test('activation responder binds before fallible Product projections and workspace readiness promotes only at load tail', () => {
+  const entry = readText('integration/element-module/src/index.tsx');
+
+  const load = entry.indexOf('public async load(): Promise<void>');
+  const migration = entry.indexOf('migrateLegacyElementLocale()', load);
+  const workspaceFalse = entry.indexOf('let workspaceReady = false;', load);
+  const responder = entry.indexOf('yanceDesktop.onActivationProbe', load);
+  const styles = entry.indexOf('ensureYanceElementStyles();', load);
+  const workspaceTrue = entry.indexOf('workspaceReady = true;', load);
+
+  assert.ok(load >= 0, 'Element module load entry must exist');
+  assert.ok(migration > load, 'planned locale reload decision must remain first');
+  assert.ok(workspaceFalse > migration, 'workspace readiness must begin false after planned locale reload decision');
+  assert.ok(responder > workspaceFalse, 'activation responder must bind after workspaceReady begins false');
+  assert.ok(styles > responder, 'activation responder must bind before fallible style projection');
+
+  for (const projection of [
+    'registerLoginComponent',
+    'registerLocationRenderer',
+    'registerOutgoingMessagePrepare',
+    'registerComposerAccessory',
+    'registerComposerPreview',
+    'registerMessageRenderer',
+    'addRoomHeaderButtonCallback',
+    'desktop.onOpenConversation',
+    'desktop.onOpenView',
+  ]) {
+    const projectionIndex = entry.indexOf(projection, load);
+    assert.ok(projectionIndex >= 0, `missing Product setup: ${projection}`);
+    assert.ok(responder < projectionIndex, `activation responder must precede: ${projection}`);
+    assert.ok(workspaceTrue > projectionIndex, `workspaceReady must follow: ${projection}`);
+  }
+
+  assert.match(entry, /const activationReady = backendReady && workspaceReady;/u);
+  assert.match(entry, /id, ok: activationReady, backendReady, sessionReady: backendReady, rendererReady: true, workspaceReady,/u);
+  assert.match(entry, /ELEMENT_WORKSPACE_NOT_READY/u);
+  assert.equal(
+    (entry.match(/yanceDesktop\.onActivationProbe\(/gu) || []).length,
+    1,
+    'Product module must keep exactly one activation responder registration',
+  );
+});
+
+test('pinned Element post-login security seam is explicit, fail-safe and replayed only after 0017', () => {
+  const patchPath = 'upstream-patches/element-web/0018-yance-post-login-security-shell.patch';
+  assert.equal(fs.existsSync(repositoryPath(patchPath)), true, '0018 post-login security patch must exist');
+  const patchText = readText(patchPath);
+  assert.deepEqual(patchedPaths(patchText), [
+    'apps/web/src/components/structures/auth/CompleteSecurity.tsx',
+    'apps/web/src/components/structures/auth/E2eSetup.tsx',
+    'apps/web/src/components/structures/auth/PostLoginSecurityShell.test.tsx',
+    'apps/web/src/modules/customComponentApi.ts',
+    'packages/module-api/element-web-module-api.api.md',
+    'packages/module-api/src/api/custom-components.ts',
+  ]);
+  assert.match(patchText, /registerPostLoginSecurityComponent/u);
+  assert.match(patchText, /renderPostLoginSecurity/u);
+  assert.match(patchText, /Post-login security renderer failed to render/u);
+  assert.match(patchText, /return originalComponent\(props\)/u);
+  assert.match(patchText, /SetupEncryptionBody/u);
+  assert.match(patchText, /InitialCryptoSetupDialog/u);
+  assert.match(patchText, /<AuthPage addBlur=\{false\}>/u);
+  assert.match(patchText, /<AuthPage>/u);
+  assert.match(patchText, /PostLoginSecurityShell\.test\.tsx/u);
+  assert.match(patchText, /uses Element's original presentation when no module renderer is registered/u);
+  assert.match(patchText, /falls back to Element's original presentation when a module renderer throws/u);
+  assert.match(patchText, /passes CompleteSecurity's mature inner content to the registered presentation seam/u);
+  assert.match(patchText, /passes E2eSetup's real InitialCryptoSetupDialog through the same presentation seam/u);
+  assert.doesNotMatch(patchText, /stopClient|accessToken|_matrix\/client|skip\(\);\s*\/\/ Yance|resetIdentity\(/u);
+
+  const bootstrap = readText('tools/matrix/bootstrap.js');
+  const p17 = "applyPatch(element, PRODUCT_CONVERSATION_CONTROL_PATCH, 'Element Product conversation control patch');";
+  const p18 = "applyPatch(element, POST_LOGIN_SECURITY_PATCH, 'Element post-login security shell patch');";
+  assert.match(bootstrap, /0018-yance-post-login-security-shell\.patch/u);
+  assert.ok(bootstrap.indexOf(p17) >= 0, 'bootstrap must preserve 0017 replay');
+  assert.ok(bootstrap.indexOf(p18) > bootstrap.indexOf(p17), '0018 must replay after post-0017 Element bytes');
   assert.doesNotMatch(bootstrap, /glob[^\n]*upstream-patches|readdirSync[^\n]*upstream-patches/iu);
 });

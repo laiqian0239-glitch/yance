@@ -813,3 +813,52 @@
   font-weight: 700 !important;
   text-shadow: none !important;
 }
+
+/* YANCE_POST_LOGIN_SECURITY_PROJECTION_V1
+ * Presentation only: mature Element security content remains mounted unchanged.
+ * Do not target AuthPage lifecycle or hide CompleteSecurity/E2eSetup with DOM selectors.
+ */
+.yance-post-login-security .yance-login-auth-inner {
+  width: min(100%, 620px);
+}
+
+.yance-post-login-security .yance-login-auth-copy p {
+  max-width: 600px;
+}
+
+.yance-post-login-security-card {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 28px;
+  border: 1px solid rgb(42 15 74 / 12%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 18px 60px rgb(42 15 74 / 10%);
+}
+
+.yance-post-login-security-card .mx_CompleteSecurityBody {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.yance-post-login-security-card .mx_CompleteSecurity_header {
+  position: relative;
+  margin-top: 0;
+  color: #2a0f4a;
+}
+
+.yance-post-login-security-card .mx_CompleteSecurity_skip {
+  right: 0;
+}
+
+.yance-post-login-security-note {
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+@media (max-width: 860px) {
+  .yance-post-login-security-card {
+    padding: 22px;
+    border-radius: 20px;
+  }
+}

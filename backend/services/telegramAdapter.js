@@ -46,6 +46,7 @@ class Deferred {
 }
 
 function clean(value, fallback = '') { return value == null ? fallback : String(value).trim(); }
+function telegramGroupConversationKind(value) { return value?.isGroup === true ? 'group' : ''; }
 function targetId(value) { return clean(value).replace(/^telegram:/i, ''); }
 function messageId(value) {
   const number = Number(value);
@@ -1017,9 +1018,11 @@ class TelegramAdapter {
         chatId = clean(msg.chatId || msg.peerId?.channelId || msg.peerId?.chatId || msg.peerId?.userId || 'unknown');
         externalId = clean(msg.id || Date.now());
         conversationId = `${account.id}:${chatId}`;
+        const conversationKind = telegramGroupConversationKind(msg);
         batch = syncCheckpoint.begin({ platform: 'telegram', accountId: account.id, scopeId: chatId, payload: { source: 'telegram-live' } });
         const claim = syncCheckpoint.claimRemoteMessage({ platform: 'telegram', accountId: account.id, remoteMessageId: externalId, conversationId, messageId: `${account.id}:${chatId}:${externalId}` });
         if (claim.duplicate && messageStore.hasExternalMessage({ accountId: account.id, chatJid: `telegram:${chatId}`, targetId: externalId })) {
+          if (conversationKind) await messageStore.updateConversationMetadata(conversationId, { conversationKind });
           fence.assertCurrent('TELEGRAM_SESSION_GENERATION_STALE', { accountId: account.id });
           syncCheckpoint.commit({ platform: 'telegram', accountId: account.id, scopeId: chatId, batchId: batch.batchId, remoteMessageId: externalId, payload: { duplicate: true, persisted: true } });
           return;
@@ -1048,6 +1051,10 @@ class TelegramAdapter {
         // sender profile or avatar network calls.
         const outcome = await messageStore.upsert(message);
         fence.assertCurrent('TELEGRAM_SESSION_GENERATION_STALE', { accountId: account.id, conversationId, messageId: externalId });
+        if (conversationKind) {
+          await messageStore.updateConversationMetadata(conversationId, { conversationKind });
+          fence.assertCurrent('TELEGRAM_SESSION_GENERATION_STALE', { accountId: account.id, conversationId, messageId: externalId });
+        }
         syncCheckpoint.commit({ platform: 'telegram', accountId: account.id, scopeId: chatId, batchId: batch.batchId, remoteMessageId: externalId, remoteTimestamp: timestamp, payload: { source: 'telegram-live', messagePersisted: true, enrichmentPending: msg.media || !fromMe } });
 
         if (outcome.inserted && !fromMe) {
@@ -1262,6 +1269,7 @@ class TelegramAdapter {
       const chatId = clean(dialog.id || entity?.id || dialog.message?.chatId);
       if (!chatId) continue;
       const conversationId = `${account.id}:${chatId}`;
+      const conversationKind = telegramGroupConversationKind(dialog);
       const title = clean(dialog.title || [entity?.firstName, entity?.lastName].filter(Boolean).join(' ') || entity?.username || `Telegram ${chatId}`);
       const previousCheckpoint = syncCheckpoint.read('telegram', account.id, chatId);
       const previousPayload = previousCheckpoint?.payload && typeof previousCheckpoint.payload === 'object' ? previousCheckpoint.payload : {};
@@ -1476,7 +1484,8 @@ class TelegramAdapter {
         await messageStore.updateConversationMetadata(conversationId, {
           accountId: account.id, platform: 'telegram', chatJid: `telegram:${chatId}`, title, contactName: title,
           unreadCount: Number.isFinite(serverUnread) ? Math.max(0, serverUnread) : Math.max(0, unreadBefore),
-          historySyncAt: new Date().toISOString(), lastSyncAt: new Date().toISOString()
+          historySyncAt: new Date().toISOString(), lastSyncAt: new Date().toISOString(),
+          ...(conversationKind ? { conversationKind } : {})
         });
         assertOperationActive(options.signal, 'TELEGRAM_SYNC_ABORTED', { accountId: account.id, conversationId });
         syncCheckpoint.commit({
