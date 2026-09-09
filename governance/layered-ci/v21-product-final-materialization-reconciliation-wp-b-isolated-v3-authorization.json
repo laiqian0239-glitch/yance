@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-FINAL-WPB-ISOLATED-V3-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fast Landing repair for the frozen Product Final successor-v2 WP-B authority RED. PR #1164 introduced an invalid delegated-governance supersession fork by targeting an already-superseded ACV2 WP-B M3 authorization; PR #1165 exact head e5b024d5d2141ac8220985d1eaa666d484c448c6 is frozen with WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID / WP_B_M2_IMPLEMENTATION_BRANCH_UNAUTHORIZED evidence and must not be rewritten or rerun. Product Final successor-v3 exact-route admission is now ordinary-merged. This authorization therefore creates a fresh isolated implementation authority from current trusted main, intentionally declares no supersedes edge, and authorizes only replay of the exact frozen 47 Product blobs onto fix/v21-product-final-materialization-reconciliation-p0-successor-v3. Historical governance and RED evidence remain immutable; no evaluator, route/risk policy, workflow, dependency, database, RC or publish authority is changed.",
+  "base": {
+    "branch": "main",
+    "commit": "3a59b1a1422d330419c16a8a2a37d8a8ed36d92a",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-final-materialization-reconciliation-wp-b-isolated-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-final-materialization-reconciliation-wp-b-isolated-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "d3c3c1f5fea26d139d93db86977e3ea880b79313c1140a7fc483fb8a1fdca864",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-final-materialization-reconciliation-p0-successor-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "replaySource": {
+      "frozenProductPullRequest": 1165,
+      "frozenProductHead": "e5b024d5d2141ac8220985d1eaa666d484c448c6",
+      "frozenProductTree": "e516cecf9181864223bc7c70b4152dc9faa0f122",
+      "requireExactBlobIdentityOnAllAuthorizedPaths": true,
+      "secondParentOrSupersessionEdgeRequired": false
+    },
+    "allowedChangedPaths": [
+      "backend/routes/store.js",
+      "backend/routes/workspace.js",
+      "backend/services/telegramAdapter.js",
+      "backend/services/whatsappAdapter.js",
+      "backend/services/workspaceService.js",
+      "backend/store/commands/registerAiReplyCommands.js",
+      "backend/tests/replyFeedbackClosedLoop.test.js",
+      "backend/tests/round12Round13FinalSevenClosure.test.js",
+      "config/matrix/element-config.json",
+      "electron/m2/ipcManifest.json",
+      "electron/main.js",
+      "electron/parlantRelationshipRuntime.js",
+      "electron/preload.js",
+      "electron/r32StoreBridge.js",
+      "integration/element-module/src/MediaWorkspace.tsx",
+      "integration/element-module/src/PresenceWorkspace.tsx",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/YanceWorkspace.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PeopleSurface.tsx",
+      "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+      "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+      "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+      "integration/element-module/src/product-experience/RelationshipOverlayHost.tsx",
+      "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+      "integration/element-module/src/product-experience/experienceProjection.ts",
+      "integration/element-module/src/product-experience/experienceSession.ts",
+      "integration/element-module/src/product-experience/experienceTypes.ts",
+      "runtime/parlant/yance_parlant_server.py",
+      "tests/desktop-fixes/conversation-center-titlebar.test.js",
+      "tests/wp0/v21-element-workspace-contract.test.js",
+      "tests/wp0/v21-parlant-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "tests/wp0/v21-product-experience-shell-p0.test.js",
+      "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+      "tests/wp0/v21-product-functional-integrity-ux-consistency-wp2.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "tests/wp2/single-command-path.test.js",
+      "tools/matrix/bootstrap.js",
+      "tools/wp2/command-path-inventory.js",
+      "upstream-patches/element-web/0015-yance-module-location-navigation.patch",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+      "upstream-patches/element-web/0018-yance-post-login-security-shell.patch"
+    ],
+    "approvedChangedFileCount": 47,
+    "approvedChangedFileSetSha256": "f023ada3de6f4cbed2ded7b35e000d36fca7f79bd3ed6a999771d81b0f7fa4fe",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "riskPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "requiredClosure": [
+    "This authorization intentionally has no supersedes declaration. Do not connect successor-v3 to the graph-invalid #1164 / ACV2 WP-B M3 supersession component and do not weaken the delegated-governance evaluator.",
+    "After ordinary merge, create fix/v21-product-final-materialization-reconciliation-p0-successor-v3 from the exact authorization merge commit and materialize exactly the 47 authorized paths with byte identity taken from frozen Product head e5b024d5d2141ac8220985d1eaa666d484c448c6.",
+    "Do not modify, regenerate, normalize or widen any frozen Product blob while replaying the 47-path candidate.",
+    "Require exact 47-path census and SHA-256 f023ada3de6f4cbed2ded7b35e000d36fca7f79bd3ed6a999771d81b0f7fa4fe, staged/committed blob identity against the frozen source, and existing focused Product Local Closure before the single implementation Exact Head.",
+    "Preserve Product Final exact-route admission, WP0 route/risk policy, Element/Matrix/Parlant mature authorities and historical RED evidence unchanged.",
+    "One implementation Exact Head, one validator event, ordinary merge on GREEN; no same-head rerun, amend, force-push or history rewrite."
+  ],
+  "ossFit": {
+    "decision": "REUSE_FAIL_CLOSED_DELEGATED_AUTHORITY_AND_FROZEN_PRODUCT_AUTHORITIES_WITH_ISOLATED_REPLAY",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Existing Yance delegated-governance evaluator",
+        "source": "shared/release/implementationBranchPolicyLegacy.js and existing WP-B delegated-authority gates",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The evaluator is already the fail-closed authority and correctly rejects the historical supersession fork; the mature repository repair is a fresh isolated authorization with no supersedes edge rather than evaluator mutation."
+      },
+      {
+        "name": "Element Web pinned Product conversation runtime",
+        "source": "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+        "license": "AGPL-3.0-only",
+        "adoptionMode": "source-module",
+        "fit": "PARTIAL_FIT",
+        "reason": "Element remains the real Matrix RoomView, timeline, composer, send, attachment and session authority; the frozen Yance Product blobs only project Product-specific experience and integration seams."
+      },
+      {
+        "name": "Existing Yance Product, workspace, platform-adapter and Electron authorities",
+        "source": "frozen Product head e5b024d5d2141ac8220985d1eaa666d484c448c6 over current repository authorities",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The authorized 47-path replay preserves already-reviewed Product/store/workspace/Telegram/WhatsApp/Electron/Matrix bootstrap owners byte-for-byte and adds no parallel general-purpose subsystem."
+      },
+      {
+        "name": "Pinned Parlant relationship runtime",
+        "source": "electron/parlantRelationshipRuntime.js and runtime/parlant/yance_parlant_server.py; repository-pinned Parlant 3.3.2",
+        "license": "repository-pinned-upstream",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing Parlant integration remains the mature relationship goal/journey authority; no second relationship runtime is introduced."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not modify implementationBranchPolicyLegacy.js, WP-B evaluators or fail-closed supersession semantics.",
+      "Do not add a supersedes edge from this isolated authority into the #1164 / ACV2 WP-B M3 graph-invalid component.",
+      "Do not create a second Element timeline, composer, Matrix auth session, translation engine, runtime supervisor, route registry or build system.",
+      "Do not mutate, regenerate or widen the frozen 47 Product blobs, route/risk policy, workflow, dependency, database, RC or publish state."
+    ]
+  },
+  "frozenEvidence": {
+    "historicalAuthorizationPullRequest": 1164,
+    "frozenProductPullRequest": 1165,
+    "frozenProductHead": "e5b024d5d2141ac8220985d1eaa666d484c448c6",
+    "frozenProductTree": "e516cecf9181864223bc7c70b4152dc9faa0f122",
+    "frozenWpBM2Run": 34333939488,
+    "frozenWpBM2UbuntuJob": 102408786511,
+    "frozenReasonCode": "WP_B_M2_IMPLEMENTATION_BRANCH_UNAUTHORIZED",
+    "delegatedGovernanceReasonCode": "WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID",
+    "productChangedPathCount": 47,
+    "productChangedPathSetSha256": "f023ada3de6f4cbed2ded7b35e000d36fca7f79bd3ed6a999771d81b0f7fa4fe",
+    "rerunForbidden": true,
+    "historicalEvidenceImmutable": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  }
+}
