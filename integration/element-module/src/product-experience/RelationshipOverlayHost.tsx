@@ -4,6 +4,7 @@ import { MediaWorkspace } from "../MediaWorkspace";
 import { PresenceWorkspace } from "../PresenceWorkspace";
 import { VoiceWorkspace } from "../VoiceWorkspace";
 import { closeRelationshipOverlay, useExperienceSession } from "./experienceSession";
+import type { ConversationRef } from "./experienceTypes";
 
 type ReadRoomStateEvents = (
   roomId: string,
@@ -63,6 +64,88 @@ function bridgeIdentity(value: unknown): BridgeIdentity | null {
   const receiver = clean(channel["fi.mau.receiver"]);
   if (!platform || !chatJid) return null;
   return { platform, chatJid, receiver };
+}
+
+export type CanonicalRoomResolution =
+  | { status: "resolved"; roomId: string }
+  | { status: "unresolved"; reason: string }
+  | { status: "ambiguous"; reason: string };
+
+function conversationMatchesBridgeIdentity(
+  conversation: ConversationRef,
+  identity: BridgeIdentity,
+): boolean {
+  const platform = clean(conversation.platform).toLowerCase();
+  const chatJid = clean(conversation.chatJid);
+  const accountId = clean(conversation.accountId);
+  if (!platform || !chatJid || !accountId) return false;
+  return platform === identity.platform
+    && chatJid === identity.chatJid
+    && (!identity.receiver || accountId === identity.receiver);
+}
+
+export function resolveCanonicalConversationRoom(
+  conversation: ConversationRef,
+  roomIds: readonly string[],
+  readRoomStateEvents?: ReadRoomStateEvents,
+): CanonicalRoomResolution {
+  if (!readRoomStateEvents) {
+    return { status: "unresolved", reason: "当前会话路由读取接口不可用" };
+  }
+  if (!conversation.platform || !conversation.accountId || !conversation.chatJid) {
+    return { status: "unresolved", reason: "canonical conversation 缺少平台路由身份" };
+  }
+
+  const matches = new Set<string>();
+  for (const rawRoomId of roomIds) {
+    const roomId = clean(rawRoomId);
+    if (!roomId) continue;
+
+    let events: readonly { stateKey: string; content: Record<string, unknown> }[];
+    try {
+      events = [
+        ...readRoomStateEvents(roomId, "m.bridge"),
+        ...readRoomStateEvents(roomId, "uk.half-shot.bridge"),
+      ];
+    } catch {
+      continue;
+    }
+
+    const identities = new Map<string, BridgeIdentity>();
+    for (const event of events) {
+      const identity = bridgeIdentity(event.content);
+      if (!identity) continue;
+      identities.set(
+        `${identity.platform}\u0000${identity.chatJid}\u0000${identity.receiver}`,
+        identity,
+      );
+    }
+
+    const matchingIdentities = [...identities.values()]
+      .filter((identity) => conversationMatchesBridgeIdentity(conversation, identity));
+
+    if (matchingIdentities.length > 1) {
+      return {
+        status: "ambiguous",
+        reason: "同一房间存在多个匹配的 bridge identity",
+      };
+    }
+    if (matchingIdentities.length === 1) matches.add(roomId);
+  }
+
+  if (matches.size === 1) {
+    return { status: "resolved", roomId: [...matches][0] };
+  }
+  if (matches.size > 1) {
+    return {
+      status: "ambiguous",
+      reason: "canonical conversation 匹配到多个 Matrix room",
+    };
+  }
+  return {
+    status: "unresolved",
+    reason: "没有找到唯一匹配的真实会话房间",
+  };
 }
 
 function normalizedStoreRoute(key: string, value: unknown): StoreRoute | null {
@@ -168,7 +251,10 @@ export function RelationshipOverlayHost({
 }: RelationshipOverlayHostProps): React.JSX.Element {
   const { overlay, activeMatrixRoomId } = useExperienceSession();
   const open = Boolean(overlay);
-  const productRouteRequired = overlay === "photo" || overlay === "attachment" || overlay === "voice";
+  const productRouteRequired = overlay === "photo"
+    || overlay === "attachment"
+    || overlay === "voice"
+    || overlay === "live";
   const [relationshipToolRoute, setRelationshipToolRoute] = useState<RelationshipToolRouteBinding>({
     status: "unresolved",
     reason: "当前关系工具尚未绑定会话路由",
@@ -212,7 +298,7 @@ export function RelationshipOverlayHost({
               {overlay === "photo" || overlay === "attachment" ? (
                 <MediaWorkspace routeBinding={relationshipToolRoute} />
               ) : null}
-              {overlay === "live" ? <PresenceWorkspace /> : null}
+              {overlay === "live" ? <PresenceWorkspace routeBinding={relationshipToolRoute} /> : null}
               {overlay === "voice" ? <VoiceWorkspace routeBinding={relationshipToolRoute} /> : null}
             </div>
           </Dialog.Popup>

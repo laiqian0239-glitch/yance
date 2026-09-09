@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import type { RelationshipToolRouteBinding } from "./product-experience/RelationshipOverlayHost";
 import {
   connectPresenceLiveKit,
   disconnectPresenceLiveKit,
@@ -39,7 +40,9 @@ function connectionStateLabel(state: PresenceLiveKitSnapshot["state"]): string {
   return "未连接";
 }
 
-export function PresenceWorkspace(): React.JSX.Element {
+export function PresenceWorkspace({
+  routeBinding,
+}: { routeBinding?: RelationshipToolRouteBinding }): React.JSX.Element {
   const api = useMemo(() => desktopApi(), []);
   const mediaHostRef = useRef<HTMLDivElement | null>(null);
   const [health, setHealth] = useState<PresenceHealth>({ degraded: true, reasonCode: "unavailable" });
@@ -86,6 +89,10 @@ export function PresenceWorkspace(): React.JSX.Element {
   }, [api]);
 
   const connect = async (): Promise<void> => {
+    if (routeBinding && routeBinding.status !== "resolved") {
+      setStatus(routeBinding.reason || "当前关系会话尚未完成唯一绑定");
+      return;
+    }
     if (!api || busy || !characterId) return;
     setBusy(true);
     let created: PresenceSession | null = null;
@@ -141,9 +148,18 @@ export function PresenceWorkspace(): React.JSX.Element {
     }
   };
 
-  const ready = health.available === true && health.characterCatalogAvailable === true && characters.length > 0;
+  const routeReady = routeBinding === undefined || routeBinding.status === "resolved";
+  const ready = health.available === true
+    && health.characterCatalogAvailable === true
+    && characters.length > 0
+    && routeReady;
   return (
-    <aside className="yance-presence-workspace" aria-label="实时陪伴">
+    <aside
+      className="yance-presence-workspace"
+      aria-label="实时陪伴"
+      data-yance-route-bound={routeReady || undefined}
+      data-yance-no-character-fail-closed={characters.length === 0 || undefined}
+    >
       <header>
         <div><strong>实时陪伴</strong><span>实时形象 · 语音 · 摄像头</span></div>
         <span className={ready ? "presence-health ready" : "presence-health degraded"}>{ready ? "已就绪" : "暂不可用"}</span>

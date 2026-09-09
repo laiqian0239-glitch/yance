@@ -34,9 +34,39 @@ export type RelationshipIntelligenceProjection = {
   events: readonly RelationshipIntelligenceEvent[];
 };
 
+export type ConversationAutomationMode =
+  | "HUMAN"
+  | "AI_ASSIST"
+  | "AI_AUTO";
+
+export type ConversationKind = "direct" | "group";
+
+export type ConversationRef = {
+  id: string;
+  contactId: string;
+  title: string;
+  platform: string;
+  accountId: string;
+  chatJid: string;
+  sessionKey: string;
+  conversationKind?: ConversationKind;
+  automationMode: ConversationAutomationMode;
+  unreadCount: number;
+  pinned: boolean;
+  archived: boolean;
+  lastMessageAt?: string;
+  updatedAt?: string;
+  relationshipIntelligence?: RelationshipIntelligenceProjection;
+};
+
+export type GroupConversationProjection = ConversationRef & {
+  conversationKind: "group";
+};
+
 export type RelationshipProjection = {
   id: string;
   name: string;
+  conversations: readonly ConversationRef[];
   subtitle: string;
   avatarUrl?: string;
   platform?: string;
@@ -46,6 +76,9 @@ export type RelationshipProjection = {
   matrixRoomId?: string;
   matrixPermalink?: string;
   updatedAt?: string;
+  unreadCount: number;
+  favorite: boolean;
+  recentAt?: string;
   relationshipIntelligence?: RelationshipIntelligenceProjection;
 };
 
@@ -140,3 +173,8 @@ export type RelationshipAiState =
 export type SoundMode = "Off" | "Essential only" | "Immersive";
 export type MotionMode = "Standard" | "Reduced";
 export type RelationshipAtmosphere = "Quiet" | "Warm" | "Vivid";
+
+export type DailyChatGoalProjection = { available:boolean; exists:boolean|null; localDate:string; goalText:string; progress:{path:readonly string[];completed:boolean}; reasonCode:string };
+export type DailyReviewProjection = { contactId:string; personId:string; localDate:string; timeZone:string; coverageComplete:boolean; conversationIds:readonly string[]; scannedMessageCount:number; dayMessageCount:number; messages:readonly unknown[]; problems:readonly unknown[]; successes:readonly unknown[]; nextActions:readonly unknown[] };
+export type PersonaProfileProjection = { id:string; name:string; currentVersion?:string };
+export type PersonaEffectiveProjection = { available:boolean; profileId:string; profileName:string; version:string; sourceScope:string };

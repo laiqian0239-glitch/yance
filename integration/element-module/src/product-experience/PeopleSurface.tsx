@@ -1,11 +1,16 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { motion } from "motion/react";
-import type { RelationshipProjection } from "./experienceTypes";
+import type {
+  GroupConversationProjection,
+  RelationshipProjection,
+} from "./experienceTypes";
 
 export type PeopleHomeView = "list" | "universe";
+type PeopleFilter = "all" | "unread" | "favorite" | "recent";
 
 type PeopleSurfaceProps = {
   relationships: readonly RelationshipProjection[];
+  groups: readonly GroupConversationProjection[];
   selectedRelationshipId: string;
   focusedRelationshipId: string;
   viewMode: PeopleHomeView;
@@ -13,6 +18,7 @@ type PeopleSurfaceProps = {
   onViewModeChange: (view: PeopleHomeView) => void;
   onFocus: (relationshipId: string) => void;
   onSelect: (relationshipId: string) => void;
+  onSelectGroup: (conversation: GroupConversationProjection) => void;
 };
 
 type UniversePosition = {
@@ -24,6 +30,20 @@ type UniversePosition = {
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/u).filter(Boolean);
   return (parts.length > 1 ? `${parts[0][0]}${parts.at(-1)?.[0] || ""}` : parts[0]?.slice(0, 2) || "Y").toUpperCase();
+}
+
+function relationshipUniverseLayout(relationships: readonly RelationshipProjection[]): {
+  denseUniverse: boolean;
+  entries: ReadonlyArray<{ relationship: RelationshipProjection; position: UniversePosition }>;
+} {
+  const denseUniverse = relationships.length >= 8;
+  return {
+    denseUniverse,
+    entries: relationships.map((relationship, index) => ({
+      relationship,
+      position: universePosition(index, relationships.length),
+    })),
+  };
 }
 
 function universePosition(index: number, count: number): UniversePosition {
@@ -56,6 +76,7 @@ function universePosition(index: number, count: number): UniversePosition {
 
 export function PeopleSurface({
   relationships,
+  groups,
   selectedRelationshipId,
   focusedRelationshipId,
   viewMode,
@@ -63,14 +84,17 @@ export function PeopleSurface({
   onViewModeChange,
   onFocus,
   onSelect,
+  onSelectGroup,
 }: PeopleSurfaceProps): React.JSX.Element {
-  const focusedRelationship = relationships.find((row) => row.id === focusedRelationshipId) || null;
+  const [filter,setFilter]=useState<PeopleFilter>("all");
+  const visibleRelationships=useMemo(()=>{ const rows=[...relationships]; if(filter==="unread") return rows.filter(row=>row.unreadCount>0); if(filter==="favorite") return rows.filter(row=>row.favorite===true); if(filter==="recent") return rows.sort((a,b)=>String(b.recentAt||"").localeCompare(String(a.recentAt||""))); return rows; },[relationships,filter]);
+  const focusedRelationship = visibleRelationships.find((row) => row.id === focusedRelationshipId) || null;
   const focusedIntelligence = focusedRelationship?.relationshipIntelligence;
   const latestEvidence = focusedIntelligence && focusedIntelligence.events.length
     ? focusedIntelligence.events[focusedIntelligence.events.length - 1]
     : null;
-  const denseUniverse = relationships.length >= 8;
-  const universeRelationships = relationships.slice(0, 36);
+  const universeRelationships = visibleRelationships.slice(0, 36);
+  const { denseUniverse, entries: universeEntries } = relationshipUniverseLayout(universeRelationships);
 
   return (
     <section className="yance-people" aria-label="我的关系">
@@ -99,14 +123,17 @@ export function PeopleSurface({
         </button>
       </div>
 
-      {!relationships.length ? (
+
+      <div className="yance-people-filter" aria-label="关系筛选">{([['all','全部'],['unread','未读'],['favorite','收藏'],['recent','最近']] as const).map(([value,label])=><button key={value} type="button" aria-pressed={filter===value} onClick={()=>setFilter(value)}>{label}</button>)}</div>
+
+      {!relationships.length && !groups.length ? (
         <div className="yance-empty" role="status">
           <strong>暂无关系</strong>
           <span>已有联系人和会话会在这里形成你的关系空间。</span>
         </div>
       ) : viewMode === "list" ? (
         <div className="yance-people-list" role="list" aria-label="关系列表">
-          {relationships.map((relationship) => {
+          {visibleRelationships.map((relationship) => {
             const selected = relationship.id === selectedRelationshipId;
             const analysisStatusLabel = relationship.relationshipIntelligence?.analysisStatusLabel
               || "暂无已确认的关系智能";
@@ -118,6 +145,7 @@ export function PeopleSurface({
                 role="listitem"
                 className="yance-person-card"
                 data-selected={selected || undefined}
+                data-conversation-count={relationship.conversations.length}
                 data-intelligence-state={relationship.relationshipIntelligence?.state || "unavailable"}
                 aria-pressed={selected}
                 aria-label={`打开与 ${relationship.name} 的关系。${analysisStatusLabel}`}
@@ -125,15 +153,22 @@ export function PeopleSurface({
                 whileTap={reducedMotion ? undefined : { scale: 0.985 }}
                 transition={{ type: "spring", stiffness: 480, damping: 36 }}
               >
-                <span className="yance-avatar" aria-hidden="true">
+                <motion.span layoutId={reducedMotion ? undefined : `relationship-avatar-${relationship.id}`} className="yance-avatar" aria-hidden="true">
                   {relationship.avatarUrl ? <img src={relationship.avatarUrl} alt="" /> : initials(relationship.name)}
-                </span>
+                </motion.span>
                 <span className="yance-person-copy">
                   <strong>{relationship.name}</strong>
                   <span>{relationship.subtitle}</span>
+                  <span>
+                    {relationship.conversations.length === 0
+                      ? "尚无可打开的对话"
+                      : relationship.conversations.length === 1
+                        ? "1 个对话"
+                        : `${relationship.conversations.length} 个对话 · 进入后选择`}
+                  </span>
                   <span className="yance-person-intelligence-status">{analysisStatusLabel}</span>
                 </span>
-                <span className="yance-person-open" aria-hidden="true">›</span>
+                {relationship.unreadCount>0?<span className="yance-count">{relationship.unreadCount}</span>:null}{relationship.favorite?<span>收藏</span>:null}<span className="yance-person-open" aria-hidden="true">›</span>
               </motion.button>
             );
           })}
@@ -160,8 +195,7 @@ export function PeopleSurface({
                 preserveAspectRatio="none"
                 aria-hidden="true"
               >
-                {universeRelationships.map((relationship, index) => {
-                  const position = universePosition(index, universeRelationships.length);
+                {universeEntries.map(({ relationship, position }) => {
                   return (
                     <line
                       key={`spoke-${relationship.id}`}
@@ -179,8 +213,7 @@ export function PeopleSurface({
                 <span>我</span>
               </div>
 
-              {universeRelationships.map((relationship, index) => {
-                const position = universePosition(index, universeRelationships.length);
+              {universeEntries.map(({ relationship, position }) => {
                 const focused = relationship.id === focusedRelationshipId;
                 const selected = relationship.id === selectedRelationshipId;
                 const analysisStatusLabel = relationship.relationshipIntelligence?.analysisStatusLabel
@@ -213,9 +246,13 @@ export function PeopleSurface({
                     whileTap={reducedMotion ? undefined : { scale: 0.97 }}
                     transition={{ duration: reducedMotion ? 0 : 0.16 }}
                   >
-                    <span className="yance-relationship-universe__node-avatar" aria-hidden="true">
+                    <motion.span
+                      layoutId={reducedMotion ? undefined : `relationship-avatar-${relationship.id}`}
+                      className="yance-relationship-universe__node-avatar"
+                      aria-hidden="true"
+                    >
                       {relationship.avatarUrl ? <img src={relationship.avatarUrl} alt="" /> : initials(relationship.name)}
-                    </span>
+                    </motion.span>
                     {denseUniverse ? null : (
                       <span className="yance-relationship-universe__node-copy">
                         <strong>{relationship.name}</strong>
@@ -226,9 +263,9 @@ export function PeopleSurface({
                 );
               })}
             </div>
-            {relationships.length > universeRelationships.length ? (
+            {visibleRelationships.length > universeRelationships.length ? (
               <p className="yance-relationship-universe__overflow-note" role="status">
-                关系宇宙一次显示 36 段关系；切换“列表”可查看全部 {relationships.length} 段。
+                关系宇宙一次显示 36 段关系；切换“列表”可查看当前筛选的全部 {visibleRelationships.length} 段。
               </p>
             ) : null}
           </div>
@@ -292,6 +329,43 @@ export function PeopleSurface({
           </aside>
         </section>
       )}
+
+      {groups.length ? (
+        <section className="yance-people-groups" aria-labelledby="yance-groups-title">
+          <header className="yance-section-heading">
+            <div>
+              <span className="yance-eyebrow">群聊</span>
+              <h3 id="yance-groups-title">群聊</h3>
+            </div>
+            <span className="yance-count" aria-label={`${groups.length} 个群聊`}>{groups.length}</span>
+          </header>
+          <div className="yance-people-list" role="list" aria-label="群聊列表">
+            {groups.map((group) => (
+              <motion.button
+                layout={!reducedMotion}
+                key={group.id}
+                type="button"
+                role="listitem"
+                className="yance-person-card"
+                data-conversation-kind="group"
+                aria-label={`打开群聊 ${group.title}`}
+                onClick={() => onSelectGroup(group)}
+                whileTap={reducedMotion ? undefined : { scale: 0.985 }}
+                transition={{ type: "spring", stiffness: 480, damping: 36 }}
+              >
+                <span className="yance-avatar" aria-hidden="true">{initials(group.title)}</span>
+                <span className="yance-person-copy">
+                  <strong>{group.title}</strong>
+                  <span>{group.platform || "群聊"}</span>
+                  <span>{group.lastMessageAt ? "最近有新互动" : "打开真实群聊"}</span>
+                </span>
+                {group.unreadCount > 0 ? <span className="yance-count">{group.unreadCount}</span> : null}
+                <span className="yance-person-open" aria-hidden="true">›</span>
+              </motion.button>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </section>
   );
 }

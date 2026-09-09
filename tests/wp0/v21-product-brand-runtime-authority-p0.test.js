@@ -37,11 +37,12 @@ test('Yance registers the pinned Element login component seam without a second a
   assert.match(moduleIndex, /YanceLogin/u);
 });
 
-test('product workspace mounts a visible brand preview surface', () => {
+test('brand preview assets remain available but are not the normal Product workspace path', () => {
   const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
   assert.equal(exists('integration/element-module/src/BrandPreviewSurface.tsx'), true);
   assert.equal(exists('integration/element-module/src/BrandPreviewSurface.css'), true);
-  assert.match(workspace, /BrandPreviewSurface/u);
+  assert.doesNotMatch(workspace, /BrandPreviewSurface/u);
+  assert.match(workspace, /ProductExperienceShell/u);
 });
 
 test('Yance login owns final product visual authority while preserving Element auth authority', () => {
@@ -82,7 +83,7 @@ test('Yance login first-use setup creates only a local Matrix identity and keeps
   assert.match(login, /data-yance-local-matrix-identity="first-use"/u);
   assert.match(login, /getMatrixLocalIdentity/u);
   assert.match(login, /createMatrixLocalIdentity/u);
-  assert.match(login, /请用同一密码在下方 Element 登录/u);
+  assert.match(login, /请用同一密码在下方登录/u);
   assert.match(login, /data-yance-login-form-host="element-auth"[\s\S]*?\{children\}/u);
   assert.match(styles, /\.yance-login-local-identity\s*\{/u);
   assert.match(preload, /getMatrixLocalIdentity/u);
@@ -185,6 +186,30 @@ test('legacy Element English locale migrates once to Yance simplified Chinese de
   assert.match(moduleIndex, /mx_local_settings/u);
   assert.match(moduleIndex, /zh-hans/u);
   assert.match(moduleIndex, /window\.location\.reload/u);
-  assert.match(moduleIndex, /currentLanguage === "en"/u);
+  assert.match(moduleIndex, /\["", "en", "en_EN", "en-US", "en-GB"\]\.includes\(currentLanguage\)/u);
   assert.match(moduleIndex, /=== "done"/u);
+});
+
+test('Yance owns post-login security presentation while Element keeps crypto and session authority', () => {
+  const moduleIndex = read('integration/element-module/src/index.tsx');
+  const login = read('integration/element-module/src/YanceLogin.tsx');
+  const styles = read('integration/element-module/src/YanceLogin.css');
+  const patch = read('upstream-patches/element-web/0018-yance-post-login-security-shell.patch');
+
+  assert.match(moduleIndex, /registerPostLoginSecurityComponent\?\.\(/u);
+  assert.match(moduleIndex, /<YancePostLoginSecurity>\{content\}<\/YancePostLoginSecurity>/u);
+  assert.match(login, /data-yance-post-login-security-authority="product"/u);
+  assert.match(login, /data-yance-post-login-security-content="element"/u);
+  assert.match(login, /保护你的安全登录/u);
+  assert.match(login, /“设备”指一次受保护的加密登录会话/u);
+  assert.match(login, /并不意味着你必须有另一台实体设备/u);
+  assert.match(styles, /YANCE_POST_LOGIN_SECURITY_PROJECTION_V1/u);
+  assert.match(styles, /\.yance-post-login-security-card\s*\{/u);
+  assert.doesNotMatch(styles, /yance-post-login-security[^\n{]*mx_AuthPage|:has\([^)]*mx_CompleteSecurity|:has\([^)]*mx_AuthPage/iu);
+
+  assert.match(patch, /SetupEncryptionStore/u);
+  assert.match(patch, /SetupEncryptionBody/u);
+  assert.match(patch, /InitialCryptoSetupDialog/u);
+  assert.match(patch, /originalComponent/u);
+  assert.doesNotMatch(login, /fetch\s*\(|_matrix\/client|accessToken|m\.login\.password/u);
 });
