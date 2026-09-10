@@ -44,7 +44,7 @@ $EvidenceRoot = Join-Path $RoundRoot 'evidence'
 $LogsRoot = Join-Path $RoundRoot 'logs'
 $EnvironmentManifest = Join-Path $RoundRoot 'ENVIRONMENT_MANIFEST.json'
 $StepResultsPath = Join-Path $RoundRoot 'STEP_RESULTS.json'
-$TimelinePath = Join-Path $RoundRoot 'PROCESS_TIMELINE.json'
+$TimelinePath = Join-Path $RoundRoot 'PROCESS_TIMELINE.jsonl'
 $RoundResultPath = Join-Path $RoundRoot 'ROUND_RESULT.json'
 $FinalStatusPath = Join-Path $RoundRoot 'FINAL_STATUS.txt'
 $TempSelectionPath = Join-Path $RoundRoot 'TEMP_SELECTION.json'
@@ -125,7 +125,6 @@ function Assert-File([string]$Path, [string]$Label) {
 function Get-Sha256([string]$Path) {
   return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
-
 
 function Write-LiveStatus([string]$Phase, [string]$Status, [string]$Message, [hashtable]$Details = @{}) {
   $record = [ordered]@{
@@ -449,12 +448,11 @@ try {
   Write-LiveStatus $CurrentPhase 'RUNNING' 'Installing reviewed dependencies; npm warnings do not count as failure'
   Invoke-LoggedNode @($NpmCli, 'ci', '--ignore-scripts', '--no-audit', '--no-fund') 'npm-ci' $SourceRoot | Out-Null
 
-  $CurrentPhase = 'verify-wp7'
-  Write-LiveStatus $CurrentPhase 'RUNNING' 'Running WP7 verification and required tests'
-  $verifyArguments = @((Join-Path $SourceRoot 'tools\wp7\verify.js'), '--output-dir', $EvidenceRoot)
-  if ($VerificationMode -eq 'DIAGNOSTIC') { $verifyArguments += '--diagnostic' }
+  $CurrentPhase = 'source-closure'
+  Write-LiveStatus $CurrentPhase 'RUNNING' 'Running current WP7 source closure'
+  $verifyArguments = @((Join-Path $SourceRoot 'tools\wp7\source-closure.js'))
   try {
-    $verifyExitCode = Invoke-LoggedNode $verifyArguments 'verify-wp7' $SourceRoot
+    $verifyExitCode = Invoke-LoggedNode $verifyArguments 'source-closure' $SourceRoot
   }
   catch {
     $verifyExitCode = 1

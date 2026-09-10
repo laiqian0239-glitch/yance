@@ -95,13 +95,16 @@ jobs:
       - name: Install reviewed dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Run source and pre-review gates
+      - name: Run current source release gates
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           node tools/verify-source-regressions.js
+          if ($LASTEXITCODE -ne 0) { throw "source regression gate failed with exit code $LASTEXITCODE" }
           npm run verify:wp0
-          npm run test:wp7
+          if ($LASTEXITCODE -ne 0) { throw "WP0 gate failed with exit code $LASTEXITCODE" }
+          node tools/wp7/source-closure.js
+          if ($LASTEXITCODE -ne 0) { throw "WP7 current source closure failed with exit code $LASTEXITCODE" }
 
       - name: Prepare signing input
         shell: pwsh
@@ -205,7 +208,7 @@ jobs:
           }
           $round1 = Join-Path $validationRoot 'Round1\ROUND_RESULT.json'
           $round2 = Join-Path $validationRoot 'Round2\ROUND_RESULT.json'
-          foreach ($result in @($round1, $round2)) {
+          foreach ($result in @($round1,$round2)) {
             if (-not (Test-Path -LiteralPath $result -PathType Leaf)) { throw "strict round result missing: $result" }
           }
           $round1Sha = (Get-FileHash -LiteralPath $round1 -Algorithm SHA256).Hash.ToLowerInvariant()

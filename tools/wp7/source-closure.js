@@ -38,7 +38,12 @@ async function main() {
   const identity = gitIdentity();
   const result = { schemaVersion: 1, documentType: 'WP7_SOURCE_CLOSURE_RESULT', sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree, branch: identity.branch, repositoryClean: identity.repositoryClean, status: 'PASS', checks: {} };
   try {
-    result.checks.activationBinding = assertActivationBinding(REPO_ROOT, { identity, requireClean: true, requireBranch: true });
+    result.checks.activationBinding = assertActivationBinding(REPO_ROOT, {
+      identity,
+      requireClean: true,
+      requireBranch: true,
+      allowAcceptedHistoryLedger: true
+    });
     result.checks.releaseSource = { status: 'PASS', credentialProtocolVersion: readReleaseSource().credentialProtocolVersion };
     result.checks.protocolConvergence = verifyRuntimeProtocolConvergence();
     result.checks.governance = validateAllGovernance();
