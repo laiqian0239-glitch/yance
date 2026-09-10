@@ -177,7 +177,7 @@ test('derived source identity descriptor preserves prior repair authorities and 
     assert.equal(descriptor.repairAuthority.openRouterPresentationAuthority, true);
     assert.equal(descriptor.repairAuthority.onboardingAutomationNonMutationAuthority, true);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

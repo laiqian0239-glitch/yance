@@ -21,7 +21,7 @@ test.after(async () => {
   let lastError = null;
   for (let attempt = 0; attempt < 10; attempt += 1) {
     try {
-      fs.rmSync(dataRoot, { recursive: true, force: true });
+      fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
       return;
     } catch (error) {
       lastError = error;

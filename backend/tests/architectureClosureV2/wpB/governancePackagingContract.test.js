@@ -39,7 +39,7 @@ test('packaged governance bytes must equal the reviewed release evidence package
     assert.equal(tampered.ok, false);
     assert.ok(tampered.violations.some(item => item.code === 'WP_B_PACKAGED_GOVERNANCE_BYTES_MISMATCH'));
   } finally {
-    fs.rmSync(payloadRoot, { recursive: true, force: true });
+    fs.rmSync(payloadRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

@@ -31,6 +31,6 @@ test('FIX6N derived descriptor preserves all prior authorities and declares the 
       'candidateTranslationRouteAuthority'
     ]) assert.equal(descriptor.repairAuthority[authority], true, authority);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });

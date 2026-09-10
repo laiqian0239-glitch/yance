@@ -21,7 +21,7 @@ function runNode(source, args = [], options = {}) {
     env: { ...process.env, ...(options.env || {}) },
     timeout: options.timeout || 30000
   });
-  if (!options.keepRoot) fs.rmSync(root, { recursive: true, force: true });
+  if (!options.keepRoot) fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   return result;
 }
 
@@ -95,7 +95,7 @@ test('full-media restore crash after original move preserves current-only media 
     assert.equal(body.asset, 'BACKUP_OLD_MEDIA');
     assert.equal(body.currentOnlyProtected, 'CURRENT_ONLY');
     assert.equal(body.pendingExists, false);
-  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('SQLite settings worker rejects hardlink alias of primary DB and accepts only trusted settings path', () => {
@@ -124,7 +124,7 @@ test('SQLite settings worker rejects hardlink alias of primary DB and accepts on
     });
     assert.equal(allowed.status, 0, allowed.stderr || allowed.stdout);
     assert.equal(JSON.parse(allowed.stdout).written, true);
-  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('legacy stdout ready marker cannot settle startup and full identity tuple is required', async () => {
@@ -186,7 +186,7 @@ test('unawaited nested async transaction failure rolls back root transaction', a
       error => error.code === 'NESTED_FAIL'
     );
     assert.equal(db.prepare('SELECT COUNT(*) AS n FROM t').get().n, 0);
-  } finally { db.close(); fs.rmSync(root, { recursive: true, force: true }); }
+  } finally { db.close(); fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('simultaneous SQLite ownership claim allows at most one process', async () => {
@@ -219,7 +219,7 @@ test('simultaneous SQLite ownership claim allows at most one process', async () 
       assert.equal(claims, 1, JSON.stringify({ a, b }));
       assert.ok([a.stdout, b.stdout].some(value => /SQLITE_OWNERSHIP_(?:CONFLICT|CLAIM_BUSY)/.test(value)), JSON.stringify({ a, b }));
     }
-  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('node test contexts without explicit data root are isolated from user default data', () => {

@@ -15,7 +15,7 @@ function fixture() {
   store.upsertAccount({ id: 'page-1', accountId: 'page-1', adapterAccountId: 'page-1', platform: 'facebook', state: 'online' });
   store.upsertConversation({ sessionKey: 'page-1:psid-1', accountId: 'page-1', platform: 'facebook', title: 'Alex', routeState: 'bound', chatJid: 'psid-1', externalId: 'psid-1' });
   const authority = new OutboxRouteAuthority({ storeProvider: () => store, externalIdentityAuthority: new ExternalIdentityAuthority({ storeProvider: () => store }) });
-  return { root, store, authority, close() { store.close(); fs.rmSync(root, { recursive: true, force: true }); } };
+  return { root, store, authority, close() { store.close(); fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
 }
 function command(f, id='send-1') {
   return {

@@ -24,7 +24,7 @@ function tempDb(prefix = 'yance-acv2-a1-') {
 }
 
 function cleanup(root) {
-  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 }
 
 function loadHostModule() {

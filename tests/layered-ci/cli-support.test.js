@@ -77,6 +77,6 @@ test('GitHub outputs are appended as data records', () => {
   } finally {
     if (previous === undefined) delete process.env.GITHUB_OUTPUT;
     else process.env.GITHUB_OUTPUT = previous;
-    fs.rmSync(directory, { recursive: true, force: true });
+    fs.rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });

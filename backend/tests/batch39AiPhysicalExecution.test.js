@@ -30,7 +30,7 @@ async function waitFor(predicate, timeoutMs = 1000) {
 
 test.after(() => {
   try { closeStore(); } catch (_) {}
-  fs.rmSync(dataRoot, { recursive: true, force: true });
+  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
 test('truthy hard termination without an exit receipt keeps physical capacity occupied', async () => {
@@ -205,7 +205,7 @@ test('model execution host resolves a result only after the isolated child exits
     assert.equal(receipt.terminationClass, 'completed');
     assert.equal(receipt.exitCode, 0);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -242,7 +242,7 @@ test('hard termination returns the matching child exit receipt', async () => {
     );
     await assert.rejects(handle.result, error => error.code === 'MODEL_EXECUTION_TERMINATED');
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

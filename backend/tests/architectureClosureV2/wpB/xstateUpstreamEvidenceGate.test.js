@@ -54,7 +54,7 @@ function withSyntheticRepository(work) {
     fs.writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(exactPackageLock(), null, 2)}\n`);
     return work(root);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 }
 
@@ -140,7 +140,7 @@ test('exact XState tag checkout uses one exact git ref with hard timeouts and no
     assert.equal(calls.every(call => Number.isInteger(call.options.timeoutMs) && call.options.timeoutMs > 0), true);
   } finally {
     global.fetch = originalFetch;
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -225,7 +225,7 @@ test('upstream verification runs the real XState pnpm test:core command', () => 
     assert.ok(calls.some(call => call.args[0] === 'pnpm' && call.args[1] === 'test:core'));
     assert.equal(calls.every(call => Number.isInteger(call.options.timeoutMs) && call.options.timeoutMs > 0), true);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

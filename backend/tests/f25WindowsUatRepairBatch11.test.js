@@ -49,7 +49,7 @@ test('Batch 11 backend launch contract inherits the configured startup timeout i
     });
     assert.equal(contract.readyTimeoutMs, 180000);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -62,7 +62,7 @@ test('Batch 11 backend launch contract caps excessive startup timeouts and rejec
       error => error.reasonCode === 'M1_READY_TIMEOUT_INVALID'
     );
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

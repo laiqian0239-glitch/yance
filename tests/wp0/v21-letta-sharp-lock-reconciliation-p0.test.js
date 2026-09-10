@@ -89,7 +89,7 @@ function withTempLock(lock, callback) {
   try {
     return callback(lockPath);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 }
 

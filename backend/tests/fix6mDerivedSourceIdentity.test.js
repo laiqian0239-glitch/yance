@@ -40,6 +40,6 @@ test('FIX6M derived source identity declares Batch41 architecture authorities an
     assert.equal(descriptor.identityProtocol.sourceUatOnly, true);
     assert.equal(descriptor.identityProtocol.installerBuilt, false);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });

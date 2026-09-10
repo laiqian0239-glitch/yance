@@ -22,7 +22,7 @@ function fixture() {
     store.db.prepare(`INSERT INTO r32_accounts(id,platform,adapter_account_id,display_name,identity_label,state,can_send,can_receive,payload_json,created_at,updated_at)
       VALUES(?,?,?,?,?,'connected',1,1,'{}',?,?)`).run(accountId, platform, accountId, accountId, accountId, at, at);
   }
-  return { root, store, authority, communication, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true }); } };
+  return { root, store, authority, communication, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
 }
 
 test('same display name never auto-merges identities across platforms', () => {

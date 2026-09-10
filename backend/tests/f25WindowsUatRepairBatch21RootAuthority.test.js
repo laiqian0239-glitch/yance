@@ -22,7 +22,7 @@ const { getStore, closeStore } = require('../repositories/storeProvider');
 function tempStore(prefix = 'yance-batch21-isolated-') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  return { store, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true }); } };
+  return { store, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
 }
 
 function inboundMessage(id, overrides = {}) {

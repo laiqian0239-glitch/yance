@@ -14,7 +14,7 @@ test('launcher creates one existing absolute fallback temp root for every child 
     TEMP: nonexistent,
     TMP: nonexistent
   });
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
 
   assert.equal(path.isAbsolute(root), true);
   assert.equal(fs.statSync(root).isDirectory(), true);
@@ -32,8 +32,8 @@ test('launcher prioritizes an explicit compact test temp parent over inherited s
   const parent = fs.mkdtempSync(path.join(process.cwd(), 'yb40-parent-'));
   const inherited = fs.mkdtempSync(path.join(process.cwd(), 'yb40-inherited-'));
   t.after(() => {
-    fs.rmSync(parent, { recursive: true, force: true });
-    fs.rmSync(inherited, { recursive: true, force: true });
+    fs.rmSync(parent, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    fs.rmSync(inherited, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   });
 
   const root = runner.createTestTempRoot({

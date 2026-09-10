@@ -66,7 +66,7 @@ test('WP7 accepted-history ledger fallback rejects tampered historical binding',
       error => error?.reasonCode === 'WP7_ACTIVATION_BINDING_MISMATCH'
     );
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

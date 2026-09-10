@@ -310,7 +310,7 @@ test('B28-P0-12 outcome-unknown crash journal is route/generation fenced before 
   );
   const root = path.join(PATHS.tmp, 'send-queue', 'outcome-unknown');
   const corruptRoot = path.join(root, 'corrupt');
-  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   fs.mkdirSync(corruptRoot, { recursive: true });
   const journalFile = path.join(root, 'journal-queue.json');
   fs.writeFileSync(journalFile, JSON.stringify({
@@ -337,7 +337,7 @@ test('B28-P0-12 outcome-unknown crash journal is route/generation fenced before 
   const recovered = store.getSendQueueItem('journal-queue');
   assert.equal(recovered.state, 'send_outcome_unknown');
   assert.equal(recovered.execution_generation, 'generation-3');
-  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
 test('B28-P0-05 async recovery cursor remains stable while earlier pages become terminal', () => {

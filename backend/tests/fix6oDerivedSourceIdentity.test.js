@@ -31,6 +31,6 @@ test('FIX6O derived descriptor declares scoped safety and split Facebook driver 
     ]) assert.equal(descriptor.repairAuthority[authority], true, authority);
     assert.match(descriptor.artifactClass, /^BATCH42_/u);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });

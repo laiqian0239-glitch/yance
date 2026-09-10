@@ -64,7 +64,7 @@ test('Schema 21 canonical event header carries the complete frozen replay and fe
   } finally {
     try { broker?.close(); } catch (_) {}
     try { host?.close(); } catch (_) {}
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -94,6 +94,6 @@ test('Schema 21 projector checkpoint carries global ledger sequence, lease owner
   } finally {
     try { broker?.close(); } catch (_) {}
     try { host?.close(); } catch (_) {}
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });

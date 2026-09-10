@@ -24,6 +24,6 @@ test('FIX6L derived source descriptor declares candidate-production and unified 
     assert.equal(descriptor.repairAuthority.unifiedDiagnosticSummaryAuthority, true);
     assert.equal(descriptor.repairAuthority.onboardingCandidatePresentationAuthority, true);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });

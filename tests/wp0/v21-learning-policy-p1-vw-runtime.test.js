@@ -115,7 +115,7 @@ test('production Learning runtime falls back to verified canonical history and p
     await OpenFeature.setProviderAndWait('yance-learning-policy', NOOP_PROVIDER);
     if (previousDataRoot === undefined) delete process.env.YANCE_DATA_DIR;
     else process.env.YANCE_DATA_DIR = previousDataRoot;
-    fs.rmSync(dataRoot, { recursive: true, force: true });
+    fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

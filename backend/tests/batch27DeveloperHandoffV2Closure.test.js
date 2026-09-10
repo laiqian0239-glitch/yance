@@ -37,7 +37,7 @@ function temp(prefix) { return fs.mkdtempSync(path.join(os.tmpdir(), prefix)); }
 function fixture(prefix = 'yance-b27-fixture-') {
   const root = temp(prefix);
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  return { root, store, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true }); } };
+  return { root, store, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
 }
 function patch(t, object, key, value) {
   const original = object[key]; object[key] = value;

@@ -54,6 +54,6 @@ test('A8 SQLite broker rejects construction without an externally acquired genui
   } finally {
     try { broker?.close(); } catch (_) {}
     try { authorityWriteHost?.close(); } catch (_) {}
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });

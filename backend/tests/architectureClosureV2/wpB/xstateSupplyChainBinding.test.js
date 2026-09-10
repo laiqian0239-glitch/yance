@@ -147,7 +147,7 @@ function assertResealedIdentityDriftFails(baseReceipt, needle, replacement) {
       verifyReceiptAtCaptureTime(tempEvidence, variant);
     });
   } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
+    fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 }
 

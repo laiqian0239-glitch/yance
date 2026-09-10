@@ -24,7 +24,7 @@ function fixture() {
   const at = clock();
   store.db.prepare(`INSERT INTO r32_accounts(id,platform,adapter_account_id,display_name,identity_label,state,can_send,can_receive,payload_json,created_at,updated_at)
     VALUES('tg-a','telegram','tg-a','Telegram A','Telegram A','connected',1,1,'{}',?,?)`).run(at, at);
-  return { root, store, durable, evidence, communication, service, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true }); } };
+  return { root, store, durable, evidence, communication, service, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
 }
 
 function outboundMessage(communication) {

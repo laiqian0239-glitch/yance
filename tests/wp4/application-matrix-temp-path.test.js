@@ -56,7 +56,7 @@ test('short matrix temp roots can open and close the production SQLite store', (
     } finally {
       try { broker.checkpointAndClose(); } catch (_) {}
       try { host.release(); } catch (_) {}
-      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     }
   }
 });

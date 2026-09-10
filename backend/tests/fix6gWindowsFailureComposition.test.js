@@ -216,5 +216,5 @@ test('terminated route execution projects privacy-safe evidence into the API err
 
     const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
     assert.match(server, /modelExecutionEvidence:\s*executionEvidence/u);
-  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });

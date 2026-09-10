@@ -103,7 +103,7 @@ test('derived identity API accepts a true Git-free export and binds its payload'
     assert.match(document.payloadManifestSha256, /^[0-9a-f]{64}$/u);
     assert.equal(delivery.resolveSourceIdentity(exportRoot).payloadManifestSha256, document.payloadManifestSha256);
   } finally {
-    fs.rmSync(exportRoot, { recursive: true, force: true });
+    fs.rmSync(exportRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -136,7 +136,7 @@ test('derived identity API rejects an export directory nested inside a Git workt
       'a subdirectory of a mutable worktree must never be treated as a sealed export'
     );
   } finally {
-    fs.rmSync(repositoryRoot, { recursive: true, force: true });
+    fs.rmSync(repositoryRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -155,7 +155,7 @@ test('derived identity CLI rejects an export directory nested inside a Git workt
     assert.equal(error.details?.relation, 'GIT_REV_PARSE_CONTEXT');
     assert.ok(error.details?.gitMetadataPath);
   } finally {
-    fs.rmSync(repositoryRoot, { recursive: true, force: true });
+    fs.rmSync(repositoryRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -172,7 +172,7 @@ test('derived identity API rejects a root-level .git file even when its target i
       'a .git file is mutable repository metadata and must invalidate the export seal'
     );
   } finally {
-    fs.rmSync(exportRoot, { recursive: true, force: true });
+    fs.rmSync(exportRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -199,8 +199,8 @@ test('derived identity CLI isolates Git discovery from inherited GIT environment
     assert.ok(fs.existsSync(path.join(exportRoot, DERIVED_IDENTITY)));
     assert.equal(delivery.resolveSourceIdentity(exportRoot).source, DERIVED_IDENTITY);
   } finally {
-    fs.rmSync(repositoryRoot, { recursive: true, force: true });
-    fs.rmSync(exportRoot, { recursive: true, force: true });
+    fs.rmSync(repositoryRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    fs.rmSync(exportRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -218,7 +218,7 @@ test('derived identity API rejects embedded Git metadata below the export root',
       'embedded mutable VCS metadata must invalidate the entire export seal'
     );
   } finally {
-    fs.rmSync(exportRoot, { recursive: true, force: true });
+    fs.rmSync(exportRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -240,8 +240,8 @@ test('derived identity API rejects a root symlink or Windows junction before any
     assert.equal(fs.existsSync(path.join(targetRoot, DERIVED_IDENTITY)), false);
     assert.equal(fs.existsSync(path.join(targetRoot, 'YANCE_ARTIFACT_DESCRIPTOR.json')), false);
   } finally {
-    fs.rmSync(linkParent, { recursive: true, force: true });
-    fs.rmSync(targetRoot, { recursive: true, force: true });
+    fs.rmSync(linkParent, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    fs.rmSync(targetRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -268,8 +268,8 @@ test('derived identity CLI rejects a linked Git subtree even when GIT_CEILING_DI
     assert.equal(error.details?.relation, 'ROOT_SYMBOLIC_LINK_OR_REPARSE_POINT');
     assert.ok(samePhysicalPath(error.details?.canonicalRoot || '', linkedRoot));
   } finally {
-    fs.rmSync(linkParent, { recursive: true, force: true });
-    fs.rmSync(repositoryRoot, { recursive: true, force: true });
+    fs.rmSync(linkParent, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    fs.rmSync(repositoryRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -288,7 +288,7 @@ test('sealed export authority returns one physical canonical root for linked par
     assert.ok(fs.existsSync(path.join(canonicalExport, 'YANCE_ARTIFACT_DESCRIPTOR.json')));
     assert.ok(samePhysicalPath(canonicalExport, physicalExport));
   } finally {
-    fs.rmSync(aliasContainer, { recursive: true, force: true });
-    fs.rmSync(physicalParent, { recursive: true, force: true });
+    fs.rmSync(aliasContainer, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    fs.rmSync(physicalParent, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });

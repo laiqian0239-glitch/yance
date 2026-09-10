@@ -9,7 +9,7 @@ const runner = fs.readFileSync(path.resolve(__dirname, '../../tools/wp0/run-test
 const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8'));
 
 test('WP0 tests run in isolated bounded child processes', () => {
-  assert.equal(pkg.scripts['test:wp0'], 'node tools/wp0/run-tests.js');
+  assert.equal(pkg.scripts['test:wp0'], 'node tools/wp0/run-tests.js && npm run test:acv2:wp-a:a0');
   assert.match(runner, /spawnSync\(process\.execPath, \['--test', '--test-concurrency=1', file\]/);
   assert.match(runner, /timeout = 600000/);
   assert.match(runner, /stdio: \['ignore', stdoutFd, stderrFd\]/);
