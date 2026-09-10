@@ -11,12 +11,59 @@ const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-b39-ai-physical-ro
 process.env.YANCE_DATA_DIR = dataRoot;
 process.env.NODE_ENV = 'test';
 
-const { JobQueue } = require('../services/jobQueue');
 const { AiGateway } = require('../services/aiGateway');
 const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 const { closeStore } = require('../repositories/storeProvider');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const { createSqliteConnectionBroker, resetSqliteConnectionBrokerForTests } = require('../lib/sqliteConnectionBroker');
+const { closeR32Store } = require('../lib/r32StoreSingleton');
+
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({ dbPath, instanceId: `b39-ai-physical-${process.pid}` });
+createSqliteConnectionBroker({ dbPath, authorityWriteHostCapability: authorityWriteHost.capability });
 
 const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+function freezeDeep(value) {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const key of Object.keys(value)) freezeDeep(value[key]);
+  }
+  return value;
+}
+
+function makePersistedAttempt(overrides = {}) {
+  return freezeDeep({
+    executionId: overrides.executionId || 'exec-b39-001',
+    intentId: overrides.intentId || 'intent-b39-001',
+    attemptId: overrides.attemptId || 'attempt-b39-001',
+    idempotencyKey: overrides.idempotencyKey || 'idem-b39-001',
+    ownerId: overrides.ownerId || 'owner-b39-001',
+    claimId: overrides.claimId || 'claim-b39-001',
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1,
+    leaseExpiresAt: overrides.leaseExpiresAt || new Date(Date.now() + 60000).toISOString(),
+    request: overrides.request || { task: 'translation' }
+  });
+}
+
+function makePersistedOperation(overrides = {}) {
+  return Object.freeze({
+    operationKind: 'AI_PROVIDER_EXECUTION',
+    state: 'RUNNING',
+    operationId: overrides.operationId || 'op-b39-001',
+    executionId: overrides.executionId || 'exec-b39-001',
+    ownerId: overrides.ownerId || 'owner-b39-001',
+    claimId: overrides.claimId || 'claim-b39-001',
+    leaseExpiresAt: overrides.leaseExpiresAt || new Date(Date.now() + 60000).toISOString(),
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1
+  });
+}
 
 async function waitFor(predicate, timeoutMs = 1000) {
   const startedAt = Date.now();
@@ -29,146 +76,12 @@ async function waitFor(predicate, timeoutMs = 1000) {
 }
 
 test.after(() => {
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   try { closeStore(); } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
-});
-
-test('truthy hard termination without an exit receipt keeps physical capacity occupied', async () => {
-  const queue = new JobQueue({
-    concurrency: 1,
-    name: `b39-truthy-termination-${Date.now()}`,
-    maxPhysicalZombiesPerProvider: 1,
-    providerCircuitCooldownMs: 1000
-  });
-  const first = queue.add(() => new Promise(() => {}), {
-    providerKey: 'provider-a',
-    executionTimeoutMs: 20,
-    hardTerminate: () => true
-  });
-
-  await assert.rejects(first.promise, error => error.code === 'AI_EXECUTION_TIMEOUT');
-  await delay(30);
-  assert.equal(queue.status().physicalInFlightCount, 1);
-  assert.equal(queue.status().providerCircuits['provider-a'].zombies, 1);
-});
-
-test('mismatched execution exit receipt cannot release another physical slot', async () => {
-  const queue = new JobQueue({
-    concurrency: 1,
-    name: `b39-mismatched-receipt-${Date.now()}`,
-    maxPhysicalZombiesPerProvider: 1,
-    providerCircuitCooldownMs: 1000
-  });
-  const first = queue.add(() => new Promise(() => {}), {
-    providerKey: 'provider-a',
-    executionTimeoutMs: 20,
-    hardTerminate: () => ({
-      terminated: true,
-      executionId: 'different-execution',
-      exitCode: 0,
-      signal: ''
-    })
-  });
-
-  await assert.rejects(first.promise, error => error.code === 'AI_EXECUTION_TIMEOUT');
-  await delay(30);
-  assert.equal(queue.status().physicalInFlightCount, 1);
-  assert.equal(queue.status().providerCircuits['provider-a'].zombies, 1);
-});
-
-test('matching verified exit receipt releases the physical slot', async () => {
-  const queue = new JobQueue({
-    concurrency: 1,
-    name: `b39-matching-receipt-${Date.now()}`,
-    maxPhysicalZombiesPerProvider: 1,
-    providerCircuitCooldownMs: 1000
-  });
-  const first = queue.add(() => new Promise(() => {}), {
-    providerKey: 'provider-a',
-    executionTimeoutMs: 20,
-    hardTerminate: ({ jobId }) => ({
-      terminated: true,
-      executionId: jobId,
-      exitCode: null,
-      signal: 'SIGTERM'
-    })
-  });
-
-  await assert.rejects(first.promise, error => error.code === 'AI_EXECUTION_TIMEOUT');
-  await waitFor(() => queue.status().physicalInFlightCount === 0);
-  assert.equal(queue.status().providerCircuits['provider-a']?.zombies || 0, 0);
-
-  const second = queue.add(async () => 'next-ran', {
-    providerKey: 'provider-b',
-    executionTimeoutMs: 100
-  });
-  assert.equal(await second.promise, 'next-ran');
-});
-
-test('physical provider ownership follows the active fallback attempt', async () => {
-  const queue = new JobQueue({
-    concurrency: 1,
-    name: `b39-provider-ownership-${Date.now()}`,
-    maxPhysicalZombiesPerProvider: 1,
-    providerCircuitCooldownMs: 1000
-  });
-  let queueExecutionId = '';
-  const first = queue.add(async ({ jobId, updateProvider }) => {
-    queueExecutionId = jobId;
-    updateProvider('fallback-provider');
-    return new Promise(() => {});
-  }, {
-    providerKey: 'primary-provider',
-    executionTimeoutMs: 20,
-    hardTerminate: ({ jobId }) => ({
-      terminated: true,
-      executionId: jobId,
-      exitCode: 143,
-      signal: ''
-    })
-  });
-
-  await assert.rejects(first.promise, error => error.code === 'AI_EXECUTION_TIMEOUT');
-  assert.ok(queueExecutionId);
-  await waitFor(() => queue.status().physicalInFlightCount === 0);
-  assert.equal(queue.status().providerCircuits['primary-provider'], undefined);
-  assert.equal(queue.status().physicalInFlightCount, 0);
-  const persisted = queue.status().completed.find(row => row.id === queueExecutionId);
-  assert.equal(persisted.errorCode, 'AI_EXECUTION_TIMEOUT');
-});
-
-test('hard termination receipt matches the bound child execution rather than the logical queue ID', async () => {
-  const queue = new JobQueue({
-    concurrency: 1,
-    name: `b39-child-execution-identity-${Date.now()}`,
-    maxPhysicalZombiesPerProvider: 1,
-    providerCircuitCooldownMs: 1000
-  });
-  let terminationContext = null;
-  const first = queue.add(async ({ bindExecution }) => {
-    bindExecution({
-      executionId: 'child-execution-1',
-      providerKey: 'fallback-provider'
-    });
-    return new Promise(() => {});
-  }, {
-    providerKey: 'primary-provider',
-    executionTimeoutMs: 20,
-    hardTerminate: context => {
-      terminationContext = context;
-      return {
-        terminated: true,
-        executionId: context.executionId,
-        exitCode: null,
-        signal: 'SIGTERM'
-      };
-    }
-  });
-
-  await assert.rejects(first.promise, error => error.code === 'AI_EXECUTION_TIMEOUT');
-  await waitFor(() => queue.status().physicalInFlightCount === 0);
-  assert.equal(terminationContext.executionId, 'child-execution-1');
-  assert.equal(terminationContext.jobId === terminationContext.executionId, false);
 });
 
 test('model execution host resolves a result only after the isolated child exits', async () => {
@@ -195,6 +108,10 @@ test('model execution host resolves a result only after the isolated child exits
       task: 'translation',
       messages: [{ role: 'user', content: 'hello' }],
       options: {},
+      persistedAttempt: makePersistedAttempt({
+        executionId: 'exec-b39-result-001',
+        request: { task: 'translation', modelName: 'model-a' }
+      }),
       childProcessFactory: (_productionPath, args, options) => fork(workerPath, args, options)
     });
     const result = await handle.result;
@@ -229,6 +146,10 @@ test('hard termination returns the matching child exit receipt', async () => {
       task: 'translation',
       messages: [],
       options: {},
+      persistedAttempt: makePersistedAttempt({
+        executionId: 'exec-b39-terminate-001',
+        request: { task: 'translation', modelName: 'model-stuck' }
+      }),
       childProcessFactory: (_productionPath, args, options) => fork(workerPath, args, options),
       terminationGraceMs: 20
     });
@@ -276,28 +197,14 @@ test('production AiGateway attempts execute through the isolated host and update
     recordInvocation: async () => {},
     recordInvocationFailure: async () => {}
   };
-  const hostCalls = [];
-  const providerUpdates = [];
+  const runtimeCalls = [];
   const gateway = new AiGateway({
     registry,
-    startModelExecution(input) {
-      hostCalls.push(input);
-      return {
-        executionId: 'isolated-execution-1',
-        result: Promise.resolve({ text: 'isolated translation' }),
-        exit: Promise.resolve({
-          terminated: true,
-          executionId: 'isolated-execution-1',
-          exitCode: 0,
-          signal: ''
-        }),
-        requestTermination: async () => ({
-          terminated: true,
-          executionId: 'isolated-execution-1',
-          exitCode: null,
-          signal: 'SIGTERM'
-        })
-      };
+    runtime: {
+      execute(payload) {
+        runtimeCalls.push(payload);
+        return Promise.resolve({ text: 'isolated translation', evidence: {} });
+      }
     }
   });
 
@@ -307,11 +214,14 @@ test('production AiGateway attempts execute through the isolated host and update
     messages: [{ role: 'user', content: 'Hallo' }],
     options: {},
     signal: new AbortController().signal,
-    updateProvider: providerKey => providerUpdates.push(providerKey)
+    persistedOperation: makePersistedOperation({
+      operationId: 'op-b39-gateway-001',
+      executionId: 'exec-b39-gateway-001'
+    })
   });
 
   assert.equal(result.text, 'isolated translation');
-  assert.equal(hostCalls.length, 1);
-  assert.equal(hostCalls[0].model.id, model.id);
-  assert.deepEqual(providerUpdates, ['openrouter']);
+  assert.equal(runtimeCalls.length, 1);
+  assert.equal(runtimeCalls[0].catalog[0].id, model.id);
+  assert.equal(runtimeCalls[0].requestId, 'gateway-job-1');
 });

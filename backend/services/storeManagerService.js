@@ -14,7 +14,6 @@ const typingStateService = require('./typingStateService');
 const replyFeedbackLearningService = require('./replyFeedbackLearningService');
 const learningOutcomeAttributionService = require('./learningOutcomeAttributionService').singleton;
 const conversationTurnCoordinator = require('./conversationTurnCoordinator');
-const aiTaskRuntimeRegistry = require('./aiTaskRuntimeRegistry');
 const personaBrainModule = require('../personaBrain');
 
 let started = false;
@@ -95,11 +94,9 @@ async function initialize(options = {}) {
         }
       });
     }
-    const durableAiRecovery = aiTaskRuntimeRegistry.recoverInterrupted();
-    if (interruptedTasks.length || durableAiRecovery.recovered) {
+    if (interruptedTasks.length) {
       logger.warn('store', 'interrupted-ai-tasks-recovered', {
-        storeTasks: interruptedTasks.length,
-        durableOperations: durableAiRecovery.recovered
+        storeTasks: interruptedTasks.length
       });
     }
 

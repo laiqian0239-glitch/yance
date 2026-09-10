@@ -113,9 +113,6 @@ router.post('/conversations/:id/read', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 router.get('/send-queue', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'message.queue.list', { state: req.query.state, limit: req.query.limit })) }); } catch (error) { next(error); } });
-router.post('/send-queue/:id/retry', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'message.queue.retry', { id: req.params.id })) }); } catch (error) { next(error); } });
-router.post('/send-queue/:id/cancel', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'message.queue.cancel', { id: req.params.id })) }); } catch (error) { next(error); } });
-router.post('/send-queue/:id/resolve-outcome', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'message.queue.resolveOutcome', { id: req.params.id, resolution: req.body?.resolution })) }); } catch (error) { next(error); } });
 
 async function sendText(req, res, next) {
   try {

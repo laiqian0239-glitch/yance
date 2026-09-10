@@ -2,8 +2,11 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const { R32SqliteStore } = require('../lib/r32SqliteStore');
+const { DurableInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
 
 const {
   AvatarSyncService,
@@ -29,6 +32,24 @@ function waitFor(predicate, timeoutMs = 2000) {
     };
     tick();
   });
+}
+
+function durableAuthorityFixture(prefix = 'yance-fix14-translation-') {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
+  let sequence = 0;
+  const authority = new DurableInternalOperationAuthority({
+    storeProvider: () => store,
+    tokenProvider: () => store.authorityWriteHostCapability.tokenSnapshot(),
+    idFactory: name => `${name}-${++sequence}`
+  });
+  return {
+    authority,
+    close() {
+      try { store.close(); } catch (_) {}
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    }
+  };
 }
 
 test('Fix14 keeps transient Facebook avatar failures retryable and deterministic unsupported_get non-retryable', () => {
@@ -110,6 +131,7 @@ test('Fix14 restores spaced and double-digit terminology placeholders without sw
 });
 
 test('Fix14 drops a queued translation whose source changed before execution and translates the latest source only once', async () => {
+  const durable = durableAuthorityFixture();
   const rows = new Map();
   rows.set('m1', {
     id: 'm1', accountId: 'fb-a', sessionKey: 'fb-a:contact', conversationId: 'fb-a:contact',
@@ -122,6 +144,7 @@ test('Fix14 drops a queued translation whose source changed before execution and
   let modelCalls = 0;
   const service = new MessageTranslationService({
     storeProvider: () => store,
+    internalOperationAuthorityProvider: () => durable.authority,
     maxConcurrency: 2,
     contactLanguageAuthority: { observeMessage() {} },
     bilingualUnderstandingService: {
@@ -141,18 +164,22 @@ test('Fix14 drops a queued translation whose source changed before execution and
     aiGateway: {}
   });
 
-  const oldJob = service.createJob('m1', { background: true });
-  rows.set('m1', { ...rows.get('m1'), text: 'Hallo neu' });
-  assert.equal(service.enqueue('m1', { background: true }), true);
+  try {
+    const oldJob = service.createJob('m1', { background: true });
+    rows.set('m1', { ...rows.get('m1'), text: 'Hallo neu' });
+    assert.equal(service.enqueue('m1', { background: true }), true);
 
-  await waitFor(() => service.listJobs({ messageId: 'm1' }).every(job => !['queued', 'running'].includes(job.status)));
-  const jobs = service.listJobs({ messageId: 'm1' });
-  const skipped = jobs.find(job => job.id === oldJob.id);
-  assert.equal(skipped.status, 'cancelled');
-  assert.equal(skipped.errorCode, 'TRANSLATION_SUPERSEDED');
-  assert.equal(modelCalls, 1);
-  assert.equal(rows.get('m1').translatedZh, '新的你好');
-  service.close();
+    await waitFor(() => service.listJobs({ messageId: 'm1' }).every(job => !['queued', 'running'].includes(job.status)));
+    const jobs = service.listJobs({ messageId: 'm1' });
+    const skipped = jobs.find(job => job.id === oldJob.id);
+    assert.equal(skipped.status, 'cancelled');
+    assert.equal(skipped.errorCode, 'TRANSLATION_SUPERSEDED');
+    assert.equal(modelCalls, 1);
+    assert.equal(rows.get('m1').translatedZh, '新的你好');
+  } finally {
+    service.close();
+    durable.close();
+  }
 });
 
 test('current Worker deployment verifier binds the exact v11 evidence contract without a root deployment script', () => {

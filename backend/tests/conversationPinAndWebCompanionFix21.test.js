@@ -8,6 +8,24 @@ const path = require('node:path');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-fix21-pin-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `conversation-pin-web-companion-fix21-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
 
 const { getStore, closeStore } = require('../repositories/storeProvider');
 const workspaceRepository = require('../repositories/workspaceRepository');
@@ -18,7 +36,10 @@ const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
 test.after(() => {
   try { closeStore(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
 });
 
 test('conversation pin is persisted per conversation and isolated by account', () => {

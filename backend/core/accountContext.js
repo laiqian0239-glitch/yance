@@ -295,29 +295,6 @@ class AccountContext {
       });
       case 'message.markRead': return this.secured(command, context, async () => this.markRead(payload));
       case 'message.queue.list': return { queue: this.sendQueue.list({ state: payload.state, limit: Number(payload.limit || 200) }) };
-      case 'message.queue.retry': return this.secured(command, context, async () => {
-        const queue = await this.sendQueue.retry(payload.id);
-        if (!queue) throw new CoreError('SEND_QUEUE_ITEM_NOT_FOUND', '发送队列任务不存在', { status: 404 });
-        return { queue };
-      });
-      case 'message.queue.cancel': return this.secured(command, context, async () => {
-        const queue = await this.sendQueue.cancel(payload.id);
-        if (!queue) throw new CoreError('SEND_QUEUE_ITEM_NOT_FOUND', '发送队列任务不存在', { status: 404 });
-        return { queue };
-      });
-      case 'message.queue.resolveOutcome': return this.secured(command, context, async () => {
-        return this.sendQueue.resolveOutcomeUnknown(payload.id, payload.resolution, {
-          actor: clean(context.actor || context.source || 'desktop-user'),
-          reason: clean(payload.reason || (payload.resolution === 'confirmed_sent'
-            ? '用户在对应平台人工确认该消息已发送'
-            : payload.resolution === 'confirmed_not_sent'
-              ? '用户在对应平台人工确认该消息未发送'
-              : '用户取消该不确定发送任务')),
-          evidenceType: 'manual-platform-check',
-          evidenceId: clean(payload.evidenceId),
-          evidence: payload.evidence && typeof payload.evidence === 'object' ? payload.evidence : {}
-        });
-      });
       default: throw new CoreError('ACCOUNT_CONTEXT_COMMAND_UNSUPPORTED', `AccountContext 不支持命令：${command}`, { status: 404 });
     }
   }

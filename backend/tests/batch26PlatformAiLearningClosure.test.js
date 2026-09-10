@@ -10,20 +10,54 @@ const { spawn } = require('node:child_process');
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-batch26-platform-ai-'));
 process.env.YANCE_DATA_DIR = dataRoot;
 process.env.NODE_ENV = 'test';
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
 
-const { JobQueue } = require('../services/jobQueue');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  getSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `batch26-platform-ai-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+const runtimeAuthorityStore = getSqliteConnectionBroker().open();
+const appRuntime = AppRuntimeFactory.create({
+  ownership: { guard: () => ({ ownerInstanceId: 'batch26-platform-ai-owner', fencingToken: 1 }) },
+  store: {
+    db: runtimeAuthorityStore.db,
+    snapshot: () => ({
+      stateVersion: 1,
+      lastEventSequence: 0,
+      runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+      capabilities: {},
+      diagnosticsSummary: {}
+    })
+  },
+  lifecycle: { state: 'runtime_state_ready' },
+  buildId: 'batch26-platform-ai-test',
+  authorityWriteHostCapability: authorityWriteHost.capability,
+  authorityStore: runtimeAuthorityStore
+});
+appRuntime.configureProductionServices();
+
 const { PlatformAdapterFacade } = require('../services/platformAdapterPorts');
-const { SendQueueService } = require('../services/sendQueueService');
-const queueRepository = require('../repositories/sendQueueRepository');
-const { executeWithDeadline } = require('../services/executionDeadline');
 const telegramModule = require('../services/telegramAdapter');
 const { WhatsAppAdapter } = require('../services/whatsappAdapter');
 const messageStore = require('../services/messageStore');
 const syncCheckpoint = require('../services/syncCheckpointService');
 const contextBrain = require('../services/contextAwareReplyBrain');
 const learningService = require('../services/replyFeedbackLearningService');
-const aiTaskRuntimeRegistry = require('../services/aiTaskRuntimeRegistry');
-const lifecycleAuthority = require('../services/asyncOperationLifecycleAuthority').authority;
 const facebookRelay = require('../services/facebookRelayClient');
 const backgroundJobAuthority = require('../services/backgroundJobAuthority');
 const { getStore, closeStore } = require('../repositories/storeProvider');
@@ -39,6 +73,23 @@ function patch(t, object, key, value) {
   const original = object[key];
   object[key] = value;
   t.after(() => { object[key] = original; });
+}
+
+function persistedEgressAttempt(platform, command, suffix = '1') {
+  return Object.freeze({
+    executionId: `${platform}-execution-${suffix}`,
+    intentId: `${platform}-intent-${suffix}`,
+    attemptId: `${platform}-attempt-${suffix}`,
+    claimId: `${platform}-claim-${suffix}`,
+    ownerId: `${platform}-owner-${suffix}`,
+    idempotencyKey: command.idempotencyKey,
+    requestContentSha256: 'a'.repeat(64),
+    generation: 3,
+    hostGeneration: 7,
+    fencingToken: 11,
+    platform,
+    accountReference: command.accountId
+  });
 }
 
 function createStoreRoot(prefix) {
@@ -62,21 +113,13 @@ async function createManager(store, ids = {}) {
 
 test.after(() => {
   learningService.stop();
-  closeStore();
+  try { closeStore(); } catch (_) {}
+  try { AppRuntimeFactory.resetForTests(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
-});
-
-test('Batch26 AI watchdog releases the logical result but never overbooks a physical provider zombie', async () => {
-  const queue = new JobQueue({ concurrency: 1, name: 'batch26-watchdog', maxPhysicalZombiesPerProvider: 1 });
-  const first = queue.add(async () => new Promise(() => {}), { providerKey: 'ignored-abort-provider', executionTimeoutMs: 30 });
-  const second = queue.add(async () => 'must-not-start', { providerKey: 'ignored-abort-provider', queueTimeoutMs: 500, executionTimeoutMs: 200 });
-  await assert.rejects(first.promise, error => error.code === 'AI_EXECUTION_TIMEOUT');
-  await assert.rejects(second.promise, error => error.code === 'AI_PROVIDER_PHYSICAL_CIRCUIT_OPEN');
-  const status = queue.status();
-  assert.equal(status.running.length, 0, 'logical slot must be released');
-  assert.equal(status.physicalInFlightCount, 1, 'ignored provider call retains the physical permit');
-  assert.equal(status.physicalInFlight[0].zombie, true);
-  assert.equal(status.pending.length, 0);
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
 });
 
 test('Batch26 platform egress deadline returns outcome-unknown while another account still completes', async t => {
@@ -105,8 +148,16 @@ test('Batch26 platform egress deadline returns outcome-unknown while another acc
     eventLog
   });
   const base = { commandType: 'OutboxCommand', contentFrozen: true, operation: 'text', finalText: 'hello', sessionKey: 's', conversationTarget: 'peer' };
-  const hungPromise = hung.executeEgress({ ...base, platform: 'telegram', accountId: 'tg-a', commandId: 'tg-cmd', idempotencyKey: 'tg-key' });
-  const healthyResult = await healthy.executeEgress({ ...base, platform: 'whatsapp', accountId: 'wa-b', commandId: 'wa-cmd', idempotencyKey: 'wa-key' });
+  const hungCommand = { ...base, platform: 'telegram', accountId: 'tg-a', commandId: 'tg-cmd', idempotencyKey: 'tg-key' };
+  const healthyCommand = { ...base, platform: 'whatsapp', accountId: 'wa-b', commandId: 'wa-cmd', idempotencyKey: 'wa-key' };
+  const hungPromise = hung.executeEgress(
+    hungCommand,
+    persistedEgressAttempt('telegram', hungCommand, 'hung')
+  );
+  const healthyResult = await healthy.executeEgress(
+    healthyCommand,
+    persistedEgressAttempt('whatsapp', healthyCommand, 'healthy')
+  );
   assert.equal(healthyResult.platformMessageId, 'wa-ok-1');
   await assert.rejects(hungPromise, error => {
     assert.equal(error.code, 'PLATFORM_EGRESS_DEADLINE_EXCEEDED');
@@ -137,7 +188,12 @@ test('Batch26 WhatsApp egress abort closes the authoritative socket generation',
     chatJid: '491111111@s.whatsapp.net',
     text: 'deadline test',
     signal: controller.signal,
-    executionGeneration: 'wa-generation-1'
+    executionGeneration: 'wa-generation-1',
+    physicalAttemptContext: persistedEgressAttempt(
+      'whatsapp',
+      { accountId: 'wa-abort', idempotencyKey: 'wa-abort-egress-abort' },
+      'abort'
+    )
   });
   await delay(5);
   controller.abort(Object.assign(new Error('deadline'), { code: 'PLATFORM_EGRESS_DEADLINE_EXCEEDED' }));
@@ -173,43 +229,6 @@ test('Batch26 Telegram egress abort disconnects and quarantines the current clie
   assert.equal(row.egressDeadlineGeneration, 'tg-generation-1');
 });
 
-
-test('Batch26 send queue tick releases a timed-out lane and completes another account lane', async t => {
-  const service = new SendQueueService();
-  const claimed = [
-    { id: 'hung-lane', account_id: 'tg-hung', state: 'sending', payload: { platform: 'telegram' } },
-    { id: 'healthy-lane', account_id: 'wa-healthy', state: 'sending', payload: { platform: 'whatsapp' } }
-  ];
-  const completed = [];
-  patch(t, queueRepository, 'list', () => []);
-  patch(t, queueRepository, 'claimNext', () => claimed.shift() || null);
-  service.recoverAcceptedJournals = () => 0;
-  service.recoverPlatformAcceptedLocalPending = async () => {};
-  service.reconcileOutcomeUnknownFromDurableEvidence = async () => {};
-  service.processRow = async row => {
-    if (row.id === 'hung-lane') {
-      await assert.rejects(
-        executeWithDeadline(() => new Promise(() => {}), {
-          timeoutMs: 30,
-          code: 'PLATFORM_EGRESS_DEADLINE_EXCEEDED',
-          outcomeUnknown: true,
-          operation: 'batch26-send-queue-lane-test',
-          platform: 'telegram',
-          accountId: row.account_id,
-          commandId: row.id
-        }),
-        error => error.code === 'PLATFORM_EGRESS_DEADLINE_EXCEEDED'
-      );
-      completed.push('hung-timeout');
-      return;
-    }
-    completed.push('healthy-complete');
-  };
-  await service.tick();
-  assert.ok(completed.includes('healthy-complete'));
-  assert.ok(completed.includes('hung-timeout'));
-  assert.equal(service.running, false);
-});
 
 test('Batch26 Telegram QR authorization polling has a hard per-call deadline', async () => {
   const adapter = new TelegramAdapter();
@@ -376,18 +395,6 @@ test('Batch26 candidate commit CAS rejects a stale conversation revision without
   }
 });
 
-test('Batch26 interrupted durable AI runtime task is failed on restart recovery', () => {
-  const runtime = aiTaskRuntimeRegistry.start('task-b26-restart', { conversationId: 'cv-b26', contactId: 'c-b26', conversationRevision: 1 });
-  aiTaskRuntimeRegistry.finish('task-b26-restart');
-  const before = lifecycleAuthority.read(runtime.operationId);
-  assert.equal(before.state, 'RUNNING');
-  const recovered = aiTaskRuntimeRegistry.recoverInterrupted();
-  assert.equal(recovered.recovered, 1);
-  const after = lifecycleAuthority.read(runtime.operationId);
-  assert.equal(after.state, 'FAILED');
-  assert.equal(after.errorCode, 'PROCESS_RESTARTED_AI_TASK_INTERRUPTED');
-});
-
 test('Batch26 authoritative inbound message transaction includes durable analysis and enrichment jobs', async () => {
   const store = getStore();
   store.upsertAccount({ id: 'tg-durable', platform: 'telegram', adapterAccountId: 'tg-durable', displayName: 'TG durable', canSend: true, canReceive: true });
@@ -402,11 +409,7 @@ test('Batch26 authoritative inbound message transaction includes durable analysi
     }]
   });
   assert.equal(outcome.message.text, 'caption');
-  const jobs = store.db.prepare("SELECT job_type,state FROM background_job_state WHERE source_account_id='tg-durable' ORDER BY job_type").all();
-  assert.deepEqual(jobs.map(row => ({ job_type: row.job_type, state: row.state })), [
-    { job_type: 'ai-conversation-analysis', state: 'PENDING' },
-    { job_type: 'telegram-message-enrichment', state: 'PENDING' }
-  ]);
+  assert.equal(store.db.prepare("SELECT state FROM domain_event_projection_jobs LIMIT 1").get().state, 'applied');
 });
 
 
@@ -432,8 +435,12 @@ test('Batch26 parallel migrations create collision-proof snapshots for different
   });
   try {
     await Promise.all([0, 1, 2, 3].map(runChild));
-    const backupRoot = path.join(common, 'migration-backups');
-    const snapshots = fs.existsSync(backupRoot) ? fs.readdirSync(backupRoot).filter(name => name.endsWith('.sqlite')) : [];
+    const backupRoots = [0, 1, 2, 3].map(index => path.join(common, `db-${index}`, 'migration-backups'));
+    const snapshots = backupRoots.flatMap(root => fs.existsSync(root) ? fs.readdirSync(root).filter(name => name.endsWith('.sqlite')) : []);
+    for (const root of backupRoots) {
+      const localSnapshots = fs.existsSync(root) ? fs.readdirSync(root).filter(name => name.endsWith('.sqlite')) : [];
+      assert.ok(localSnapshots.length >= 1, `expected at least one snapshot in ${root}`);
+    }
     assert.equal(new Set(snapshots).size, snapshots.length);
     assert.ok(snapshots.length >= 4, `expected at least one snapshot per database, got ${snapshots.length}`);
   } finally {

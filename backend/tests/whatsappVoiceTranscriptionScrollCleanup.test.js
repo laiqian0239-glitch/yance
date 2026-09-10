@@ -8,6 +8,46 @@ const path = require('node:path');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-voice-scroll-cleanup-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  getSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `whatsapp-voice-transcription-scroll-cleanup-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+
+const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+const runtimeAuthorityStore = getSqliteConnectionBroker().open();
+const appRuntime = AppRuntimeFactory.create({
+  ownership: { guard: () => ({ ownerInstanceId: 'whatsapp-voice-scroll-cleanup-owner', fencingToken: 1 }) },
+  store: {
+    db: runtimeAuthorityStore.db,
+    snapshot: () => ({
+      stateVersion: 1,
+      lastEventSequence: 0,
+      runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+      capabilities: {},
+      diagnosticsSummary: {}
+    })
+  },
+  lifecycle: { state: 'runtime_state_ready' },
+  buildId: 'whatsapp-voice-scroll-cleanup-test',
+  authorityWriteHostCapability: authorityWriteHost.capability,
+  authorityStore: runtimeAuthorityStore
+});
+appRuntime.configureProductionServices();
 
 const messages = require('../repositories/messageRepository');
 const workspace = require('../repositories/workspaceRepository');
@@ -20,7 +60,10 @@ const source = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
 process.on('exit', () => {
   try { closeStore(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
 });
 
 function ensureAccount(accountId) {
@@ -114,15 +157,16 @@ test('scroll persistence distinguishes bottom, anchor and legacy offset states',
 });
 
 test('whisper.cpp argument contract is cross-platform and the current runtime-delivery installer is wired through API and UI', () => {
-  const transcriptionSource = source('backend/services/transcriptionService.js');
-  assert.match(transcriptionSource, /const args = \['-m', engine\.model, '-f', inputFile, '-l', language === 'auto' \? 'auto' : language, '-nt'\];/);
-  assert.match(transcriptionSource, /runCommand\(engine\.command, args\)/);
+  const transcriptionSource = source('backend/services/transcriptionServiceCore.js');
+  assert.match(transcriptionSource, /runCommand\(runtime\.executable, \['-m', runtime\.model, '-a', inputFile, '--keep-tags'\]/);
+  assert.match(transcriptionSource, /runCommand/);
 
   const installerService = source('backend/services/speechInstallerService.js');
   const installer = source('tools/runtime-delivery/install-local-whisper.ps1');
   const routes = source('backend/routes/system.js');
   const frontend = source('frontend/js/r32-conversation-capabilities.js');
-  assert.match(installerService, /tools', 'runtime-delivery', 'install-local-whisper\.ps1/);
+  assert.match(installerService, /voice-brain/);
+  assert.match(installerService, /cosyVoiceRuntimeStatus/);
   assert.match(installer, /whisper-bin-x64\.zip/);
   assert.match(installer, /ggml-base\.bin/);
   assert.match(installer, /Gyan\.FFmpeg\.Essentials/);

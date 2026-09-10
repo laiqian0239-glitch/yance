@@ -2,8 +2,12 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const { SqliteTransactionCoordinator } = require('../store/sqliteTransactionCoordinator');
+const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const lifecycle = require('../services/accountLifecycleCommands');
 const accountLifecycle = require('../services/accountLifecycle');
 const { AccountContext } = require('../core/accountContext');
@@ -13,14 +17,56 @@ const whatsapp = require('../services/whatsappAdapter');
 const telegram = require('../services/telegramAdapter');
 const facebook = require('../services/facebookAdapter');
 const messageStore = require('../services/messageStore');
+const canonicalIdentity = require('../services/canonicalIdentityService');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
 const securityGuard = getSecurityGuard();
 const accountLifecycleSaga = require('../services/accountLifecycleSagaService').singleton;
+const platformAdapterRegistry = require('../services/platformAdapterPorts').singleton;
+const { DurableInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
 
-const { getStore } = require('../repositories/storeProvider');
+const sagaStores = new WeakMap();
+
+function testStoreFixture(t, prefix = 'yance-account-lifecycle-') {
+  const existing = sagaStores.get(t);
+  if (existing) return existing;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
+  const previousSagaStoreProvider = accountLifecycleSaga.storeProvider;
+  accountLifecycleSaga.storeProvider = () => store;
+  const fixture = { root, store };
+  sagaStores.set(t, fixture);
+  t.after(() => {
+    accountLifecycleSaga.storeProvider = previousSagaStoreProvider;
+    try { store.close(); } catch (_) {}
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  });
+  return fixture;
+}
+
+function durableAuthorityFixture(t) {
+  const { store } = testStoreFixture(t, 'yance-account-command-');
+  let sequence = 0;
+  return new DurableInternalOperationAuthority({
+    storeProvider: () => store,
+    tokenProvider: () => store.authorityWriteHostCapability.tokenSnapshot(),
+    idFactory: prefix => `${prefix}-${++sequence}`
+  });
+}
+
+function bindPlatformOperationLifecycle(t, authority) {
+  const previous = [];
+  for (const platform of ['facebook', 'whatsapp', 'telegram']) {
+    const adapter = platformAdapterRegistry.get(platform);
+    previous.push([adapter, adapter.operationLifecycle]);
+    adapter.operationLifecycle = authority;
+  }
+  t.after(() => {
+    for (const [adapter, lifecycleAuthority] of previous) adapter.operationLifecycle = lifecycleAuthority;
+  });
+}
 
 function persistSagaFixture(t, account) {
-  const store = getStore();
+  const { store } = testStoreFixture(t);
   store.upsertAccount({
     ...account,
     accountId: account.accountId || account.id,
@@ -34,9 +80,9 @@ function persistSagaFixture(t, account) {
   });
 }
 
-function makeContext(manager) {
+function makeContext(manager, t) {
   lifecycle.setManager(manager);
-  return new AccountContext({
+  const context = new AccountContext({
     securityGuard: { execute: async (_action, _ctx, operation) => operation(), credentials: { has: () => false } },
     accountManager: manager,
     accountStore: { list: () => [], read: () => ({ audit: [] }), get: () => null },
@@ -50,6 +96,8 @@ function makeContext(manager) {
     canonicalIdentity: { resolveCanonicalAccountId: id => id },
     eventBus: {}
   });
+  bindPlatformOperationLifecycle(t, durableAuthorityFixture(t));
+  return context;
 }
 
 test('SQLite nested transactions use savepoints and rollback only the nested frame', () => {
@@ -223,7 +271,7 @@ test('queued synchronous SQLite work commits before a later synchronous authorit
   db.close();
 });
 
-test('connect/reconnect/pause/resume/logout expose one stable account layer', async () => {
+test('connect/reconnect/pause/resume/logout expose one stable account layer', async t => {
   const calls = [];
   const manager = {
     connect: async id => ({ id, state: 'connected', stateLabel: '已连接' }),
@@ -237,7 +285,7 @@ test('connect/reconnect/pause/resume/logout expose one stable account layer', as
     const original = manager[method];
     manager[method] = async (...args) => { calls.push([method, ...args]); return original(...args); };
   }
-  const context = makeContext(manager);
+  const context = makeContext(manager, t);
   for (const [command, expectedAction] of [
     ['account.connect', 'connect'],
     ['account.reconnect', 'reconnect'],
@@ -253,7 +301,7 @@ test('connect/reconnect/pause/resume/logout expose one stable account layer', as
   assert.equal(calls.filter(row => row[0] === 'disconnect').length, 2);
 });
 
-test('account.create followed by connect remains schema-stable for 100 consecutive accounts', async () => {
+test('account.create followed by connect remains schema-stable for 100 consecutive accounts', async t => {
   const records = new Map();
   const manager = {
     create: async input => { const row = { ...input, state: 'unconfigured' }; records.set(row.id, row); return row; },
@@ -263,7 +311,7 @@ test('account.create followed by connect remains schema-stable for 100 consecuti
     list: () => ({ accounts: [...records.values()] }),
     getLifecycleState: async id => records.get(id)
   };
-  const context = makeContext(manager);
+  const context = makeContext(manager, t);
   for (let i = 0; i < 100; i += 1) {
     const id = `wa-${i}`;
     const created = await context.execute('account.create', { id, platform: 'whatsapp' }, {});
@@ -289,6 +337,7 @@ test('real AccountManager disconnect/logout no longer depends on a missing lifec
   patch(accountStore, 'read', () => ({ schemaVersion: 4, accounts: [account], defaults: {}, bindings: {}, audit: [] }));
   patch(accountStore, 'record', async () => ({}));
   patch(accountStore, 'update', async (_id, patchValue) => Object.assign(account, patchValue));
+  patch(accountStore, 'commitLifecycleTx', async (_id, patchValue) => Object.assign(account, patchValue));
   patch(whatsapp, 'stop', async (_account, logout) => ({ stopped: true, logout }));
   patch(whatsapp, 'status', () => []);
   patch(whatsapp, 'credentialState', () => ({ usable: false, accountKey: 'wa-real', registered: false }));
@@ -320,6 +369,8 @@ test('Telegram and Facebook logout clear persisted account credentials even when
   patch(accountStore, 'list', () => [...accounts.values()]);
   patch(accountStore, 'read', () => ({ schemaVersion: 4, accounts: [...accounts.values()], defaults: {}, bindings: {}, audit: [] }));
   patch(accountStore, 'record', async () => ({}));
+  patch(accountStore, 'update', async (id, patchValue) => Object.assign(accounts.get(id), patchValue));
+  patch(accountStore, 'commitLifecycleTx', async (id, patchValue) => Object.assign(accounts.get(id), patchValue));
   patch(messageStore, 'listConversations', () => []);
   patch(telegram, 'disconnect', async (_id, logout) => ({ state: logout ? 'logged-out' : 'paused' }));
   patch(telegram, 'status', () => ({ state: 'logged-out' }));
@@ -352,6 +403,7 @@ test('connect persistence failure rolls back the already-started adapter instanc
   patch(accountStore, 'list', () => [account]);
   patch(accountStore, 'read', () => ({ schemaVersion: 4, accounts: [account], defaults: {}, bindings: {}, audit: [] }));
   patch(accountStore, 'update', async (_id, patchValue) => Object.assign(account, patchValue));
+  patch(canonicalIdentity, 'resolveCanonicalAccountId', id => id);
   patch(accountStore, 'commitConnectedIdentityTx', async () => {
     throw Object.assign(new Error('SQLITE_WRITE_FAILED'), { code: 'SQLITE_WRITE_FAILED' });
   });
@@ -460,8 +512,9 @@ test('runtime shutdown stops adapters without persisting a user pause or poisoni
   assert.equal(accountLifecycle.eligibility(account, { manual: false }).eligible, true);
 });
 
-test('server startup schedules immediate account recovery only when auto-connect is enabled', () => {
+test('server startup delegates recovery to canonical durable execution authority', () => {
   const source = require('fs').readFileSync(require('path').join(__dirname, '..', 'server.js'), 'utf8');
-  assert.match(source, /runtimeSettings\.read\(\)\.autoConnectAccounts/);
-  assert.match(source, /runtimeRecovery\.scheduleRecovery\('startup-auto-connect',\s*250\)/);
+  assert.match(source, /startup\.recoverDurableExecutions/);
+  assert.match(source, /runtimeRecovery\.status\(\)/);
+  assert.equal(/scheduleRecovery\(/u.test(source), false);
 });

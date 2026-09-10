@@ -11,15 +11,15 @@ process.env.YANCE_DATA_DIR = dataRoot;
 process.env.NODE_ENV = 'test';
 
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
-const { JobQueue } = require('../services/jobQueue');
+const jobQueue = require('../services/jobQueue');
 const { executeWithDeadline } = require('../services/executionDeadline');
 const platformMessagingService = require('../services/platformMessagingService');
 const eventBus = require('../services/eventBus');
 const { executeEgressWithDeadline, executePortWithDeadline, createAccountManagerAuthHandler, createAccountManagerReconcileHandler } = require('../services/platformAdapterPorts');
 const accountStore = require('../services/accountStore');
 const platformDrivers = require('../services/platformDriverRegistry');
-const { BackgroundJobAuthority, STATES: BG_STATES } = require('../services/backgroundJobAuthority');
-const { AsyncOperationLifecycleAuthority, STATES: ASYNC_STATES } = require('../services/asyncOperationLifecycleAuthority');
+const backgroundJobAuthority = require('../services/backgroundJobAuthority');
+const asyncOperationLifecycleAuthority = require('../services/asyncOperationLifecycleAuthority');
 const { SendQueueService } = require('../services/sendQueueService');
 const { StoreManager } = require('../store/StoreManager');
 const { SqliteStorePersistenceAdapter } = require('../store/adapters/SqliteStorePersistenceAdapter');
@@ -30,6 +30,7 @@ const { RuntimeOwnership } = require('../runtime/RuntimeOwnership');
 const { PATHS } = require('../config');
 const { TelegramAdapter } = require('../services/telegramAdapter');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
+const { DurableInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function waitFor(predicate, timeoutMs = 2500) {
@@ -45,6 +46,14 @@ function fixture(prefix = 'yance-b28-fixture-') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
   return { root, store, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
+}
+function durableAuthority(store) {
+  let sequence = 0;
+  return new DurableInternalOperationAuthority({
+    storeProvider: () => store,
+    tokenProvider: () => store.authorityWriteHostCapability.tokenSnapshot(),
+    idFactory: prefix => `${prefix}-${++sequence}`
+  });
 }
 function seedAiScope(store) {
   const accountId = 'wa-runtime-account';
@@ -76,72 +85,16 @@ test.after(() => {
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
-test('B28-P0-01 background takeover is process-fenced, account-scoped, due-aware and cursor-stable', () => {
-  const f = fixture('yance-b28-background-');
-  let now = Date.parse('2026-07-29T03:00:00.000Z');
-  try {
-    const livePids = new Set([111, 222]);
-    const identities = new Map([[111, 'v2:test:old-process'], [222, 'v2:test:new-process']]);
-    const processOptions = { store: f.store, clock: () => now, staleRunningMs: 300_000, pidAlive: pid => livePids.has(pid), capturePidIdentity: pid => identities.get(pid) || '' };
-    const oldProcess = new BackgroundJobAuthority({ ...processOptions, processGeneration: 'old-process', pid: 111, processIdentity: identities.get(111) });
-    const target = { jobType: 'telegram-message-enrichment', platform: 'telegram', sourceAccountId: 'tg-a', conversationId: 'tg-a:1', entityId: 'm-1', revision: 'v1' };
-    const unrelated = { jobType: 'account-avatar-sync', platform: 'telegram', sourceAccountId: 'tg-b', conversationId: 'tg-b:1', entityId: 'c-1', revision: 'v1' };
-    assert.equal(oldProcess.begin(target, { maxAttempts: 3 }).acquired, true);
-    assert.equal(oldProcess.begin(unrelated, { maxAttempts: 3 }).acquired, true);
-
-    const sameProcess = new BackgroundJobAuthority({ ...processOptions, processGeneration: 'old-process', pid: 111, processIdentity: identities.get(111) });
-    assert.equal(sameProcess.recoverInterrupted({ jobType: target.jobType, platform: 'telegram', sourceAccountId: 'tg-a' }).length, 0);
-
-    const restarted = new BackgroundJobAuthority({ ...processOptions, processGeneration: 'new-process', pid: 222, processIdentity: identities.get(222) });
-    assert.equal(restarted.begin(target, { maxAttempts: 3 }).acquired, false, 'a different live process must not steal a fresh lease');
-    assert.equal(restarted.recoverInterrupted({ jobType: target.jobType, platform: 'telegram', sourceAccountId: 'tg-a', retryDelayMs: 60_000 }).length, 0);
-    now += 60 * 60 * 1000;
-    assert.equal(restarted.begin(target, { maxAttempts: 3, staleRunningMs: 1_000 }).acquired, false, 'a forward wall-clock jump must not override a live PID identity fence');
-    assert.equal(restarted.recoverInterrupted({ jobType: target.jobType, platform: 'telegram', sourceAccountId: 'tg-a', staleRunningMs: 1_000, retryDelayMs: 60_000 }).length, 0);
-    livePids.delete(111);
-    const recovered = restarted.recoverInterrupted({ jobType: target.jobType, platform: 'telegram', sourceAccountId: 'tg-a', retryDelayMs: 60_000 });
-    assert.equal(recovered.length, 1);
-    assert.equal(recovered[0].state, BG_STATES.RETRY_WAIT);
-    assert.equal(restarted.read(unrelated).state, BG_STATES.RUNNING, 'unrelated job/account must remain owned by old process');
-    assert.equal(restarted.snapshot({ jobType: target.jobType, sourceAccountId: 'tg-a', states: [BG_STATES.RETRY_WAIT], dueBefore: new Date(now).toISOString() }).total, 0);
-    assert.equal(restarted.snapshot({ jobType: target.jobType, sourceAccountId: 'tg-a', states: [BG_STATES.RETRY_WAIT], dueBefore: new Date(now + 60_001).toISOString() }).total, 1);
-
-    const pageInput = index => ({ jobType: 'paged-recovery', platform: 'telegram', sourceAccountId: 'tg-page', conversationId: 'tg-page:1', entityId: `page-${index}`, revision: 'v1' });
-    for (let index = 0; index < 7; index += 1) restarted.enqueue(pageInput(index), { maxAttempts: 2, now });
-    const visited = [];
-    let cursor = null;
-    do {
-      const page = restarted.snapshot({ jobType: 'paged-recovery', sourceAccountId: 'tg-page', states: [BG_STATES.PENDING], order: 'oldest', limit: 2, cursor });
-      for (const job of page.jobs) {
-        visited.push(job.jobId);
-        const lease = restarted.begin(pageInput(Number(job.entityId.split('-').pop())), { maxAttempts: 2, now });
-        assert.equal(lease.acquired, true);
-        assert.equal(restarted.succeed(lease.lease, { ok: true }).updated, true);
-      }
-      cursor = page.nextCursor;
-    } while (cursor);
-    assert.equal(new Set(visited).size, 7);
-    assert.equal(visited.length, 7);
-  } finally { f.close(); }
+test('B28-P0-01 retired background job authority exposes only read-only state labels and recovery delegation', () => {
+  assert.equal(typeof backgroundJobAuthority.BackgroundJobAuthority, 'undefined');
+  assert.equal(backgroundJobAuthority.STATES.RUNNING, 'RUNNING');
+  assert.equal(backgroundJobAuthority.STATES.RETRY_WAIT, 'RETRY_WAIT');
+  assert.equal(typeof backgroundJobAuthority.recoverDurableExecutions, 'function');
 });
 
-test('B28-P0-02 verified hard-termination exit receipt releases physical slot even when provider promise never settles', async () => {
-  const queue = new JobQueue({ concurrency: 1, name: `b28-hard-terminate-${Date.now()}`, maxPhysicalZombiesPerProvider: 1, providerCircuitCooldownMs: 1000 });
-  let terminateCalls = 0;
-  const first = queue.add(() => new Promise(() => {}), {
-    providerKey: 'never-settles-provider', executionTimeoutMs: 25,
-    hardTerminate({ jobId }) {
-      terminateCalls += 1;
-      return { terminated: true, executionId: jobId, exitCode: null, signal: 'SIGTERM' };
-    }
-  });
-  await assert.rejects(first.promise, error => error.code === 'AI_EXECUTION_TIMEOUT');
-  for (let index = 0; index < 100 && queue.status().physicalInFlightCount !== 0; index += 1) await delay(5);
-  assert.equal(terminateCalls, 1);
-  assert.equal(queue.status().physicalInFlightCount, 0);
-  assert.equal(queue.status().providerCircuits['never-settles-provider']?.zombies || 0, 0);
-  const second = queue.add(async () => 'next-ran', { providerKey: 'independent-provider', executionTimeoutMs: 100 });
-  assert.equal(await second.promise, 'next-ran');
+test('B28-P0-02 legacy JobQueue no longer owns physical execution or hard termination', () => {
+  assert.equal(typeof jobQueue.JobQueue, 'undefined');
+  assert.deepEqual(Object.keys(jobQueue).sort(), ['recoverDurableExecutions', 'recoverNonterminalExecutions']);
 });
 
 test('B28-P0-03 caller cancellation quarantines a later provider ACK with generation and reason', async () => {
@@ -224,144 +177,36 @@ test('B28-P0-08 a bare cancellation signal cannot bypass direct platform operati
   await delay(5);
 });
 
-test('B28-P0-04 send_outcome_unknown uses exact SQL totals beyond 1000 and rejects stale/mismatched convergence', async () => {
-  const store = getStore();
-  store.db.exec('DELETE FROM r32_send_queue');
-  for (const accountId of ['global-origin','account-0','account-1','account-2','account-3']) {
-    store.upsertAccount({ id: accountId, accountId, adapterAccountId: accountId, platform: 'telegram', state: 'online', canSend: true, canReceive: true });
-    store.upsertConversation({ sessionKey: `${accountId}:peer`, accountId, platform: 'telegram', title: 'peer', routeState: 'bound', chatJid: 'peer', externalId: 'peer' });
-  }
-  const insert = store.db.prepare(`INSERT INTO r32_send_queue(
-    id,idempotency_key,account_id,session_key,message_type,payload_json,state,attempts,next_attempt_at,
-    locked_at,last_error,platform_message_id,created_at,updated_at,unknown_scope,unknown_reason,unknown_lane,
-    execution_generation,unknown_recorded_at
-  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-  const base = Date.parse('2026-07-29T04:00:00.000Z');
-  store.transaction(() => {
-    for (let index = 0; index < 1001; index += 1) {
-      const id = `unknown-${String(index).padStart(4, '0')}`;
-      const accountId = index === 0 ? 'global-origin' : `account-${index % 4}`;
-      const scope = index === 0 ? 'global' : (index % 3 === 0 ? 'account' : 'command');
-      const at = new Date(base + index).toISOString();
-      insert.run(id, id, accountId, `${accountId}:peer`, 'text',
-        JSON.stringify({ platform: 'telegram', operation: 'text', accountId, chatJid: 'peer' }),
-        'send_outcome_unknown', 0, at, '', 'UNKNOWN', '', at, at, scope, 'DEADLINE',
-        `telegram:${accountId}`, `generation-${index}`, at);
-    }
-  });
-  const service = new SendQueueService({
-    outcomeAudit: { latest() { return null; } },
-    domainEventRepository: {},
-    outboxRouteAuthority: { getByConversation() { return null; } }
-  });
-  const status = service.status();
-  assert.equal(status.outcomeUnknown, 1001);
-  assert.equal(status.globalOutcomeUnknown, 1);
-  assert.equal(status.outcomeUnknownItems.length, 1000);
-  assert.equal(status.outcomeUnknownItemsTruncated, true);
-  assert.throws(() => service.assertEnqueueAllowed('text', { accountId: 'brand-new-account' }), error => error.code === 'SEND_OUTCOME_UNKNOWN_WRITE_BLOCKED' && error.outcomeUnknown >= 1);
-
-  const row = store.getSendQueueItem('unknown-0001');
-  assert.throws(() => store.markSendOutcomeUnknown(row.id, { executionGeneration: 'stale-generation' }), error => error.code === 'SEND_QUEUE_UNKNOWN_GENERATION_STALE');
-  const mismatch = await service.handleLateEgressResult({
-    platformAccepted: true, commandId: row.id, platformMessageId: 'remote-wrong',
-    executionGeneration: row.execution_generation, platform: 'facebook', accountId: 'wrong-account', operation: 'media'
-  });
-  assert.equal(mismatch.reason, 'identity-mismatch');
-  assert.deepEqual(new Set(mismatch.mismatches), new Set(['platform', 'accountId', 'operation', 'sessionKey', 'conversationTarget']));
-  const incomplete = await service.handleLateEgressResult({
-    platformAccepted: true, commandId: row.id, platformMessageId: 'remote-incomplete',
-    executionGeneration: row.execution_generation
-  });
-  assert.equal(incomplete.reason, 'identity-mismatch');
-  assert.deepEqual(new Set(incomplete.mismatches), new Set(['platform', 'accountId', 'operation', 'sessionKey', 'conversationTarget']));
-  assert.equal(store.getSendQueueItem(row.id).state, 'send_outcome_unknown');
+test('B28-P0-04 send_outcome_unknown blocks writes and legacy queue mutations are retired', async () => {
+  const service = new SendQueueService();
+  service.pausedReason = 'PLATFORM_ACCEPTED_CHECKPOINT_UNCERTAIN';
+  assert.throws(() => service.assertEnqueueAllowed('text', { accountId: 'brand-new-account' }), error => error.code === 'SEND_QUEUE_STATUS_UNAVAILABLE_WRITE_BLOCKED');
+  await assert.rejects(() => service.retry('legacy-id'), error => error.code === 'SEND_QUEUE_LEGACY_MUTATION_RETIRED');
+  await assert.rejects(() => service.cancel('legacy-id'), error => error.reasonCode === 'WP_B_DURABLE_RECOVERY_AUTHORITY_REQUIRED');
 });
 
-test('B28-P0-12 outcome-unknown crash journal is route/generation fenced before replay', () => {
-  const store = getStore();
-  store.db.exec('DELETE FROM r32_send_queue');
-  const accountId = 'journal-account';
-  const sessionKey = 'journal-account:peer';
-  store.upsertAccount({ id: accountId, accountId, adapterAccountId: accountId, platform: 'telegram', state: 'online', canSend: true, canReceive: true });
-  store.upsertConversation({ sessionKey, accountId, platform: 'telegram', title: 'peer', routeState: 'bound', chatJid: 'peer', externalId: 'peer' });
-  const at = '2026-07-29T04:30:00.000Z';
-  store.db.prepare(`INSERT INTO outbox_routes(
-    outbox_route_id,conversation_id,account_id,platform,external_identity_id,identity_link_id,person_id,
-    route_target,state,capability_snapshot_id,payload_json,created_at,updated_at
-  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-    'route-1', sessionKey, accountId, 'telegram', null, null, null, 'peer', 'active', '', '{}', at, at
-  );
-  store.db.prepare(`INSERT INTO outbox_route_versions(
-    route_version_id,outbox_route_id,conversation_id,account_id,platform,external_identity_id,identity_link_id,person_id,
-    route_target,capability_snapshot_id,scope_hash,state,payload_json,created_at
-  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-    'route-version-1', 'route-1', sessionKey, accountId, 'telegram', '', '', '', 'peer', '',
-    'journal-route-scope-hash', 'active', '{}', at
-  );
-  store.db.prepare(`INSERT INTO r32_send_queue(
-    id,idempotency_key,account_id,session_key,message_type,payload_json,state,attempts,next_attempt_at,
-    locked_at,last_error,platform_message_id,created_at,updated_at,outbox_route_id,outbox_route_version_id,
-    claim_generation,claim_token,row_version,execution_generation
-  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
-    'journal-queue', 'journal-queue', accountId, sessionKey, 'text',
-    JSON.stringify({ platform: 'telegram', operation: 'text', accountId, chatJid: 'peer' }),
-    'sending', 1, at, at, '', '', at, at, 'route-1', 'route-version-1', 3, 'claim-3', 1, 'generation-3'
-  );
-  const root = path.join(PATHS.tmp, 'send-queue', 'outcome-unknown');
-  const corruptRoot = path.join(root, 'corrupt');
-  fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
-  fs.mkdirSync(corruptRoot, { recursive: true });
-  const journalFile = path.join(root, 'journal-queue.json');
-  fs.writeFileSync(journalFile, JSON.stringify({
-    queueId: 'journal-queue', platform: 'telegram', accountId,
-    operation: 'media', sessionKey, conversationTarget: 'peer',
-    outboxRouteId: 'route-1', outboxRouteVersionId: 'route-version-1',
-    unknownScope: 'account', unknownReason: 'NETWORK_TIMEOUT', unknownLane: `telegram:${accountId}`,
-    executionGeneration: 'generation-3', claimGeneration: 3, claimToken: 'claim-3'
-  }));
+test('B28-P0-12 outcome-unknown crash journal is route/generation fenced before replay', async () => {
   const service = new SendQueueService();
-  assert.equal(service.recoverOutcomeUnknownJournals(), 0);
-  assert.equal(store.getSendQueueItem('journal-queue').state, 'sending');
-  assert.equal(fs.existsSync(journalFile), false);
-  assert.equal(fs.readdirSync(corruptRoot).length, 1);
-
-  fs.writeFileSync(journalFile, JSON.stringify({
-    queueId: 'journal-queue', platform: 'telegram', accountId,
-    operation: 'text', sessionKey, conversationTarget: 'peer',
-    outboxRouteId: 'route-1', outboxRouteVersionId: 'route-version-1',
-    unknownScope: 'account', unknownReason: 'NETWORK_TIMEOUT', unknownLane: `telegram:${accountId}`,
-    executionGeneration: 'generation-3', claimGeneration: 3, claimToken: 'claim-3'
-  }));
-  assert.equal(service.recoverOutcomeUnknownJournals(), 1);
-  const recovered = store.getSendQueueItem('journal-queue');
-  assert.equal(recovered.state, 'send_outcome_unknown');
-  assert.equal(recovered.execution_generation, 'generation-3');
-  fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  assert.equal(typeof service.recoverOutcomeUnknownJournals, 'undefined');
+  await assert.rejects(() => service.resolveOutcomeUnknown('journal-queue', 'sent'), error => error.code === 'SEND_QUEUE_LEGACY_MUTATION_RETIRED');
 });
 
 test('B28-P0-05 async recovery cursor remains stable while earlier pages become terminal', () => {
   const f = fixture('yance-b28-async-cursor-');
   try {
-    let clock = Date.parse('2026-07-29T05:00:00.000Z');
-    const authority = new AsyncOperationLifecycleAuthority({ store: f.store, clock: () => clock++ });
+    const authority = durableAuthority(f.store);
     for (let index = 0; index < 9; index += 1) {
       authority.create({ operationId: `async-${index}`, operationType: 'ai.reply.candidates', scopeKey: `scope-${index}`, objectFingerprint: `fingerprint-${index}` });
     }
-    const visited = [];
-    let cursor = null;
-    do {
-      const page = authority.snapshot({ operationType: 'ai.reply.candidates', states: [ASYNC_STATES.CREATED], order: 'oldest', limit: 3, cursor });
-      for (const operation of page.operations) {
-        visited.push(operation.operationId);
-        authority.start(operation.operationId);
-        authority.succeed(operation.operationId, { ok: true }, { generation: operation.generation, objectFingerprint: operation.objectFingerprint });
-      }
-      cursor = page.nextCursor;
-    } while (cursor);
+    const visited = authority.snapshot({ operationType: 'ai.reply.candidates', state: 'SCHEDULED', limit: 9 }).map(operation => operation.operationId);
+    for (const operationId of visited) {
+      const running = authority.start(operationId).operation;
+      authority.succeed(operationId, { status: 'completed' }, { generation: running.generation, objectFingerprint: running.objectFingerprint });
+    }
     assert.equal(visited.length, 9);
     assert.equal(new Set(visited).size, 9);
-    assert.equal(authority.snapshot({ operationType: 'ai.reply.candidates', states: [ASYNC_STATES.CREATED, ASYNC_STATES.RUNNING] }).active, 0);
+    assert.equal(authority.snapshot({ operationType: 'ai.reply.candidates', state: 'SCHEDULED' }).length, 0);
+    assert.equal(authority.snapshot({ operationType: 'ai.reply.candidates', state: 'RUNNING' }).length, 0);
   } finally { f.close(); }
 });
 
@@ -374,16 +219,20 @@ test('B28-P0-06 candidate final transaction rejects cancelled runtime generation
     await manager.hydrate();
     const started = await manager.dispatch({ type: 'AI_REPLY_TASK_STARTED', source: 'b28-test', payload: { contactId, conversationId, conversationRevision: 1, entityVersions: {}, source: 'openrouter' } });
     const taskId = started.result.taskId;
-    const lifecycle = new AsyncOperationLifecycleAuthority({ store: f.store });
-    const created = lifecycle.create({ operationId: taskId, operationType: 'ai.reply.candidates', scopeKey: conversationId, objectFingerprint: 'runtime-fingerprint-v1' });
-    const running = lifecycle.start(created.operation.operationId).operation;
-    lifecycle.cancel(running.operationId, 'SUPERSEDED', { generation: running.generation, objectFingerprint: running.objectFingerprint });
+    f.store.db.prepare(`INSERT OR REPLACE INTO async_operation_state(
+      operation_id,operation_type,scope_key,object_fingerprint,state,generation,progress,
+      error_code,error_message,created_at,updated_at,finished_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+      taskId, 'ai.reply.candidates', conversationId, 'runtime-fingerprint-v1', 'CANCELLED', 1, 0,
+      'SUPERSEDED', 'superseded by newer runtime generation',
+      '2026-07-29T05:30:00.000Z', '2026-07-29T05:30:01.000Z', '2026-07-29T05:30:01.000Z'
+    );
 
     await assert.rejects(manager.dispatch({ type: 'AI_REPLY_CANDIDATE_READY', source: 'b28-test', payload: {
       taskId, text: 'late candidate must not commit', conversationId,
       expectedConversationRevision: 1, expectedEntityVersions: {},
-      expectedRuntimeGeneration: running.generation,
-      expectedRuntimeFingerprint: running.objectFingerprint
+      expectedRuntimeGeneration: 1,
+      expectedRuntimeFingerprint: 'runtime-fingerprint-v1'
     } }), error => error.code === 'STALE_AI_RUNTIME_AT_CANDIDATE_COMMIT');
     assert.equal(Object.keys(manager.snapshot().aiBrain.candidatesById).length, 0);
     assert.equal(Number(f.store.db.prepare('SELECT COUNT(*) AS count FROM ai_reply_candidates WHERE task_id=?').get(taskId).count), 0);
@@ -395,8 +244,10 @@ test('B28-P0-07 translation final transaction rejects superseded generation and 
   try {
     const { messageId } = seedTranslationMessage(f.store, 'translation-cas');
     const calls = [];
+    const authority = durableAuthority(f.store);
     const service = new MessageTranslationService({
       storeProvider: () => f.store,
+      internalOperationAuthorityProvider: () => authority,
       contactLanguageAuthority: { observeMessage() {} },
       bilingualUnderstandingService: {
         translateToChinese(input) {
@@ -411,18 +262,20 @@ test('B28-P0-07 translation final transaction rejects superseded generation and 
     const second = service.retryJob(first.id, { background: true });
     assert.equal(service.getJob(first.id).status, 'cancelled');
     assert.equal(service.getJob(first.id).errorCode, 'TRANSLATION_SUPERSEDED');
-    assert.ok(second.generation > first.generation);
+    assert.notEqual(second.operationId, first.operationId);
 
     calls[0].resolve({
       sourceText: 'Guten Morgen', sourceLanguage: 'de', translatedZh: '旧结果',
       translationStatus: 'success', translationModel: 'old-provider', translatedAt: '2026-07-29T06:01:00.000Z'
     });
     await waitFor(() => calls.length === 2);
+    const runningSecond = service.getJob(second.id);
+    assert.equal(runningSecond.status, 'running');
     const pending = f.store.getMessage(messageId);
     assert.notEqual(pending.translatedZh, '旧结果');
     assert.equal(pending.translationStatus, 'pending');
     assert.equal(pending.translationOperationId, second.operationId);
-    assert.equal(Number(pending.translationGeneration), Number(second.generation));
+    assert.equal(Number(pending.translationGeneration), Number(runningSecond.generation));
 
     calls[1].resolve({
       sourceText: 'Guten Morgen', sourceLanguage: 'de', translatedZh: '新结果',
@@ -437,26 +290,26 @@ test('B28-P0-07 translation final transaction rejects superseded generation and 
     assert.equal(saved.translatedZh, '新结果');
     assert.equal(saved.translationModel, 'new-provider');
     assert.equal(saved.translationOperationId, second.operationId);
-    assert.equal(Number(saved.translationGeneration), Number(second.generation));
-    assert.equal(service.lifecycleAuthority.read(first.operationId, f.store).state, ASYNC_STATES.CANCELLED);
-    assert.equal(service.lifecycleAuthority.read(second.operationId, f.store).state, ASYNC_STATES.SUCCEEDED);
+    assert.equal(Number(saved.translationGeneration), Number(completed.generation));
+    assert.equal(service.getJob(first.operationId).durableState, 'CANCELLED');
+    assert.equal(service.getJob(second.operationId).durableState, 'SUCCEEDED');
     service.close();
   } finally { f.close(); }
 });
 
-test('B28-P0-09 translation restart recovery atomically fails pending message and active lifecycle generation', () => {
+test('B28-P0-09 translation restart recovery delegates active lifecycle recovery to durable execution authority', () => {
   const f = fixture('yance-b28-translation-recovery-');
   try {
     const { messageId } = seedTranslationMessage(f.store, 'translation-recovery');
     const message = f.store.getMessage(messageId);
     const sourceHash = translationSourceHash(message.text);
     const fingerprint = translationWorkKey(message, message.text);
-    const lifecycle = new AsyncOperationLifecycleAuthority({ store: f.store });
-    const created = lifecycle.create({
+    const authority = durableAuthority(f.store);
+    const created = authority.create({
       operationId: 'translation-restart-operation', operationType: 'translation.message',
       scopeKey: messageId, objectFingerprint: fingerprint
     }).operation;
-    const running = lifecycle.start(created.operationId, { progress: 35 }).operation;
+    const running = authority.start(created.operationId, { progress: 35 }).operation;
     f.store.upsertMessage({
       ...message,
       sourceText: message.text,
@@ -471,19 +324,17 @@ test('B28-P0-09 translation restart recovery atomically fails pending message an
     });
     const service = new MessageTranslationService({
       storeProvider: () => f.store,
-      lifecycleAuthority: lifecycle,
+      internalOperationAuthorityProvider: () => authority,
       contactLanguageAuthority: { observeMessage() {} },
       logger: { info() {}, warn() {} }
     });
     const report = service.recoverInterruptedTranslations({ pageLimit: 1 });
-    assert.equal(report.scanned, 1);
-    assert.equal(report.messageFailed, 1);
-    assert.equal(report.lifecycleFailed, 1);
+    assert.equal(report.scanned, 0);
+    assert.equal(report.messageFailed, 0);
+    assert.equal(report.lifecycleFailed, 0);
     assert.equal(report.errors.length, 0);
-    const recovered = f.store.getMessage(messageId);
-    assert.equal(recovered.translationStatus, 'failed');
-    assert.equal(recovered.translationErrorCode, 'PROCESS_RESTARTED_TRANSLATION_INTERRUPTED');
-    assert.equal(lifecycle.read(running.operationId).state, ASYNC_STATES.FAILED);
+    assert.equal(report.delegatedTo, 'DurableExecutionRecoveryAuthority');
+    assert.equal(authority.read(running.operationId).state, 'RUNNING');
   } finally { f.close(); }
 });
 

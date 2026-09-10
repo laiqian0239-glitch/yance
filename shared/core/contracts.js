@@ -69,9 +69,6 @@ const COMMANDS = Object.freeze({
   MESSAGE_TYPING_CANCEL: 'message.typing.cancel',
   MESSAGE_MARK_READ: 'message.markRead',
   MESSAGE_QUEUE_LIST: 'message.queue.list',
-  MESSAGE_QUEUE_RETRY: 'message.queue.retry',
-  MESSAGE_QUEUE_CANCEL: 'message.queue.cancel',
-  MESSAGE_QUEUE_RESOLVE_OUTCOME: 'message.queue.resolveOutcome',
 
   UPDATE_GET_RUNTIME_BLOCKERS: 'update.getRuntimeBlockers',
   UPDATE_PREFLIGHT: 'update.preflight',
@@ -94,7 +91,7 @@ const WRITE_PREFIXES = Object.freeze([
   'account.connect', 'account.reconnect', 'account.sync', 'account.pause',
   'account.resume', 'account.logout', 'account.bindConversation', 'account.migration.import',
   'account.telegram.', 'account.facebook.oauth.', 'account.facebook.messenger.', 'account.facebook.avatarImport.start', 'account.facebook.avatarImport.stop', 'message.send', 'message.revoke',
-  'message.presence', 'message.markRead', 'message.queue.retry', 'message.queue.cancel', 'message.queue.resolveOutcome',
+  'message.presence', 'message.markRead',
   'security.saveCredential', 'security.deleteCredential', 'update.prepareInstall',
   'lifecycle.enterSafeMode', 'lifecycle.exitSafeMode', 'recovery.enterSafeMode', 'recovery.clearSafeMode',
   'recovery.createBackup', 'recovery.stageRestore', 'recovery.cancelRestore'

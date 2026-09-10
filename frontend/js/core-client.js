@@ -195,10 +195,7 @@ const api = Object.freeze({
     cancelTyping: payload => command('message.typing.cancel', payload),
     reaction: payload => command('message.sendReaction', payload),
     revoke: payload => command('message.revoke', payload),
-    listQueue: payload => command('message.queue.list', payload || {}),
-    retry: id => command('message.queue.retry', { id }),
-    cancel: id => command('message.queue.cancel', { id }),
-    resolveOutcome: (id, resolution) => command('message.queue.resolveOutcome', { id, resolution })
+    listQueue: payload => command('message.queue.list', payload || {})
   })
 });
 
