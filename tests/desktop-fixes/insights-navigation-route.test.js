@@ -10,6 +10,9 @@ const ROOT = path.resolve(__dirname, '../..');
 const insightsSource = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-insights-runtime.js'), 'utf8');
 const aiWorkbenchSource = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-ai-workbench-runtime.js'), 'utf8');
 const uiRuntimeSource = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-ui-runtime.js'), 'utf8');
+const modelRegistryProjectionSource = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-model-registry-projection.js'), 'utf8');
+const modelRuntimeSnapshotAuthoritySource = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-model-runtime-snapshot-authority.js'), 'utf8');
+const openRouterPresentationAuthoritySource = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-openrouter-presentation-authority.js'), 'utf8');
 
 class FakeClassList {
   constructor() { this.values = new Set(); }
@@ -124,6 +127,9 @@ function createHarness() {
 test('final navigation handler opens the relationship insights workspace even before core data is ready', () => {
   const harness = createHarness();
   vm.runInContext(insightsSource, harness.context, { filename: 'r32-insights-runtime.js' });
+  vm.runInContext(modelRegistryProjectionSource, harness.context, { filename: 'r32-model-registry-projection.js' });
+  vm.runInContext(modelRuntimeSnapshotAuthoritySource, harness.context, { filename: 'r32-model-runtime-snapshot-authority.js' });
+  vm.runInContext(openRouterPresentationAuthoritySource, harness.context, { filename: 'r32-openrouter-presentation-authority.js' });
   vm.runInContext(aiWorkbenchSource, harness.context, { filename: 'r32-ai-workbench-runtime.js' });
 
   const app = harness.get('app');

@@ -36,9 +36,7 @@ test('all nine routed workspaces consume the central shell layout authority', ()
   assert.equal(routed.contactWidth, '0px');
   assert.equal(routed.aiWidth, '0px');
   assert.match(css, /:is\(\.contacts-workspace,[^}]+\)\{grid-column:var\(--ui-route-main-column\)/s);
-  assert.doesNotMatch(`${html}
-${css}
-${layoutCss}`, /\.app\.(?:contact-page-open|profile-page-open|timeline-page-open|insights-page-open|aiwork-page-open|account-center-open|system-center-open|settings-recovery-open|theme-workspace-open)\{[^}]*grid-template-columns:/s);
+  assert.doesNotMatch(`${html}\n${css}\n${layoutCss}`, /\.app\.(?:contact-page-open|profile-page-open|timeline-page-open|insights-page-open|aiwork-page-open|account-center-open|system-center-open|settings-recovery-open|theme-workspace-open)\{[^}]*grid-template-columns:/s);
 });
 
 test('layout diagnostics fail closed for narrow, overflowing and vertically wrapped workspaces', () => {
@@ -135,7 +133,11 @@ test('system diagnostics perform the nine-route layout probe and report real fai
   assert.match(runtime, /YanceLayoutDiagnostics\?\.probeWorkspaceLayouts/);
   assert.match(runtime, /已实测 \$\{layoutResults\.length\} 个工作区/);
   assert.match(runtime, /窄列、逐字竖排或横向溢出/);
-  assert.match(runtime, /<b>10<\/b><span>系统项目/);
+  assert.match(runtime, /authority=window\.YanceDiagnosticSummaryAuthority/);
+  assert.match(runtime, /authority\?\.merge\?authority\.merge\(workspaceTests,backendDiagnostics\)/);
+  assert.match(runtime, /const \{pass,warn,fail,skipped\}=merged\.summary/);
+  assert.match(runtime, /<b>\$\{htmlText\(pass\)\}<\/b><span>通过<\/span>/);
+  assert.match(runtime, /<b>\$\{htmlText\(skipped\)\}<\/b><span>未执行<\/span>/);
   assert.match(layoutSource, /collectVerticalTextSamples/);
 });
 
