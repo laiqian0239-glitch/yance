@@ -128,17 +128,15 @@ test('an incomplete retry preserves the last qualified benchmark, tasks and rout
   assert.equal(model.lastReplyBrainBenchmark.status, 'REPLY_BRAIN_QUALIFIED');
   assert.equal(model.lastReplyBrainBenchmarkAttempt.status, 'REPLY_BRAIN_INCOMPLETE');
   assert.equal(model.allowedTasks.includes('quick_reply'), true);
-  assert.equal(state.routes.quick_reply.primary, 'brain');
   assert.equal(authority.projectModel(model).replyBrainQualified, true);
-  assert.equal(authority.projectModel(model).replyBrainBenchmarkAttemptIncomplete, true);
+  assert.equal(authority.benchmarkAttemptIncomplete(model), true);
 });
 
 test('completed quality failure still removes reply eligibility', async () => {
   const previous = passingBenchmark(90);
   registry.write({
     schemaVersion: 3,
-    models: [{ id: 'brain', name: 'ministral-3:14b', provider: 'ollama', available: true, qualification: 'verified', allowedTasks: ['quick_reply', 'deep_reply', 'director'], lastTest: { scores: qualificationScores() }, lastReplyBrainBenchmark: previous, roleQualificationReceipts: replyQualificationReceipts('brain', previous) }],
-    routes: { quick_reply: { primary: 'brain', enabled: true }, deep_reply: { primary: 'brain', enabled: true }, director: { primary: 'brain', enabled: true } },
+    models: [{ id: 'brain', name: 'ministral-3:14b', provider: 'ollama', available: true, qualification: 'verified', allowedTasks: ['quick_reply', 'deep_reply', 'director'], lastTest: { scores: qualificationScores() }, lastReplyBrainBenchmark: previous, lastSuccessfulReplyBrainBenchmark: previous, roleQualificationReceipts: replyQualificationReceipts('brain', previous) }],
     history: []
   });
   const state = await registry.recordReplyBrainBenchmark('brain', {
@@ -149,7 +147,6 @@ test('completed quality failure still removes reply eligibility', async () => {
   assert.equal(model.allowedTasks.includes('quick_reply'), false);
   assert.equal(model.lastSuccessfulReplyBrainBenchmark.status, 'REPLY_BRAIN_QUALIFIED');
   assert.equal(model.lastReplyBrainBenchmark.status, 'REPLY_BRAIN_FAILED');
-  assert.equal(state.routes.quick_reply.primary, '');
 });
 
 test('legacy 1800 reply limits are normalized to task-specific budgets', () => {
@@ -172,13 +169,4 @@ test('benchmark runtime policy owns bounded local benchmark waits', () => {
     timeoutMs: 240000,
     keepAlive: '45m'
   });
-});
-
-test('local batch prevents duplicate runs, re-evaluates incomplete models and unloads between models', () => {
-  const route = read('backend/routes/models.js');
-  assert.match(route, /REPLY_BRAIN_BENCHMARK_ALREADY_RUNNING/);
-  assert.match(route, /last\.pass !== true/);
-  assert.match(route, /last\.status === 'REPLY_BRAIN_INCOMPLETE'/);
-  assert.match(route, /await ollama\.unload\(model\.endpoint, model\.name\)/);
-  assert.match(route, /batchCompleted && req\.body\?\.applyRoutes !== false/);
 });

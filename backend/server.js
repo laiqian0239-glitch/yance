@@ -157,12 +157,6 @@ const ollama = require('./services/ollamaClient');
 const modelRegistry = require('./services/modelRegistry');
 const modelAutoActivation = require('./services/modelAutoActivationService');
 const { getSecurityGuard } = require('./core/securityGuardSingleton');
-let startupModelRouteRepair = { ok: true, executed: false, quarantined: 0 };
-modelRegistry.repairRoutes({ autoSelectVerified: true }).then(registry => {
-  startupModelRouteRepair = { ok: true, executed: true, quarantined: Array.isArray(registry.routeQuarantine) ? registry.routeQuarantine.length : 0, at: new Date().toISOString() };
-}).catch(error => {
-  startupModelRouteRepair = { ok: false, executed: true, error: error.message, code: error.code || 'MODEL_ROUTE_REPAIR_FAILED', at: new Date().toISOString() };
-});
 const cloudModelCredentialRecovery = require('./services/cloudModelCredentialRecovery');
 cloudModelCredentialRecovery.install();
 const accountManager = require('./services/accountManager');
@@ -478,7 +472,6 @@ app.get('/api/health', (_req, res) => res.json({
   startupRestore,
   startupMigration,
   startupArchitectureClosure,
-  startupModelRouteRepair,
   startupCredentialRecovery,
   startupModelScan,
   startupStoreManager,
@@ -829,7 +822,6 @@ server.listen(CONFIG.port, CONFIG.host, async () => {
     startupRestore,
     startupMigration,
     startupArchitectureClosure,
-    startupModelRouteRepair,
     startupCredentialRecovery,
     startupTimings,
     readiness: readySignal

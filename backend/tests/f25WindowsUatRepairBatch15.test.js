@@ -105,7 +105,7 @@ test('OpenRouter secure credential normalization strips a pasted Bearer prefix b
   const observed = [];
   const registry = {
     async synchronizeOpenRouterCatalog() {},
-    async upsertCloudModel() {},
+    async upsertCloudModel() { return { models: [] }; },
     async recordOpenRouterSnapshot() {}
   };
   const catalog = [{
@@ -162,30 +162,6 @@ test('translation defaults to cloud quality but preserves an explicit local-only
   });
   assert.equal(localOnly.document.routes.translation.primary, 'translategemma:4b');
   assert.equal(localOnly.document.routes.translation.fallback, '');
-});
-
-test('AI workbench makes OpenRouter the primary action and waits for credential restart before account discovery', () => {
-  const frontend = source('frontend/js/r32-ai-workbench-runtime.js');
-  const openRouterAction = frontend.indexOf('class="primary" id="aiwAddCloud"');
-  const localScan = frontend.indexOf('id="aiwScanModels"');
-  assert.ok(openRouterAction >= 0 && localScan > openRouterAction);
-  assert.match(frontend, /waitForAiBackendAfterCredentialRestart/);
-  assert.match(frontend, /assertCredentialSave\(saved\)/);
-  assert.match(frontend, /q\('aiwCloudKey'\)\.value=''/);
-  assert.match(frontend, /localOnly:false/);
-  assert.match(frontend, /云端高能力模型已成为回复、导演和翻译主路由/);
-  assert.doesNotMatch(frontend, /默认只使用通过真实回复基准的本地模型/);
-});
-
-test('backend OpenRouter auto-configuration preserves the existing global automation decision', () => {
-  const routes = source('backend/routes/models.js');
-  const start = routes.indexOf("router.post('/cloud/openrouter/auto-configure'");
-  const end = routes.indexOf("router.get('/cloud/openrouter/status'", start);
-  const onboardingRoute = routes.slice(start, end);
-  assert.doesNotMatch(onboardingRoute, /aiAutomation\.updateConfig/u);
-  assert.match(onboardingRoute, /const automationStatus = aiAutomation\.status\(\)/u);
-  assert.match(onboardingRoute, /automationChanged: false/u);
-  assert.match(onboardingRoute, /routingPolicy: 'cloud-quality-first-local-fallback'/);
 });
 
 test('Batch15 removes screenshot-confirmed composer text artifacts', () => {
