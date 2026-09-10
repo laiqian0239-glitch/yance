@@ -1062,14 +1062,13 @@ function renderIdentityList(){
  renderers.renderIdentityList(document,$('identityList'),rows,selectedIdentity,avatar,primaryState).forEach(b=>b.onclick=()=>{stashConversationState();selectedIdentity=b.dataset.identityId;activeId=selectedIdentity;selectedProfile=activeId;selectedTimeline=activeId;publishActiveContact(activeId,{source:'r32-ui-runtime:contacts',reason:'identity-selected',view:'contacts',allowArchived:allowArchivedContactInCurrentView()});renderIdentityPage();renderHeader();renderNotes();updateSharedUI();persistState()})
 }
 function renderIdentityDetail(){
- const hero=$('contactDetailHero'),grid=$('contactDetailGrid'),r=identityRows().find(x=>x.id===selectedIdentity)||identityRows()[0];
- if(!r){
-  if(hero)hero.innerHTML='';
-  if(grid)grid.innerHTML='<div class="ui-empty-state ui-empty-state-fill"><div><div class="ui-empty-orb"></div><b>请选择一个联系人</b><p>选择左侧联系人后，这里会显示身份来源、客户档案、关系证据和下一步操作。</p></div></div>';
-  return
- }
- const latest=(histories[r.id]||[]).filter(x=>x.side).slice(-1)[0],renderers=window.YanceContactSafeRenderers;
+ const hero=$('contactDetailHero'),
+       grid=$('contactDetailGrid'),
+       r=identityRows().find(x=>x.id===selectedIdentity)||identityRows()[0],
+       renderers=window.YanceContactSafeRenderers;
  if(!renderers){hint('安全渲染模块未加载，联系人详情已停止渲染','error');return}
+ if(!r){renderers.renderIdentityEmptyState(document,hero,grid);return}
+ const latest=(histories[r.id]||[]).filter(x=>x.side).slice(-1)[0];
  const rows=auditLog.filter(x=>x.contactId===r.id).slice(0,5),auditRows=rows.length?rows:[{time:'当前',title:'统一数据源已连接',detail:'联系人、头像、在线、未读、客户备注由同一联系人对象驱动'}];
  renderers.renderIdentityDetail(document,$('contactDetailHero'),$('contactDetailGrid'),r,latest,auditRows,avatar,primaryState,nextAction).forEach(b=>b.onclick=()=>handleContactAction(b.dataset.contactAction,r))
 }
