@@ -5,6 +5,12 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const contactContextAuthority = require('../../backend/services/contactContextAuthority');
+const contactLanguageAuthority = require('../../backend/services/contactLanguageAuthority');
+const aiWorkbenchDirectorRuleAuthority = require('../../backend/services/aiWorkbenchDirectorRuleAuthority');
+const { singleton: aiDirectorStrategyAuthority } = require('../../backend/services/aiDirectorStrategyAuthority');
+const runtimeRegistry = require('../../backend/services/aiTaskRuntimeRegistry');
+const typingStateService = require('../../backend/services/typingStateService');
+const conversationTurnCoordinator = require('../../backend/services/conversationTurnCoordinator');
 const {
   createContextAwareReplyBrain,
   buildModelMessages,
@@ -17,7 +23,6 @@ const { validateReplyCandidate } = require('../../backend/services/replyQualityG
 const { TESTS, allowedTasksFromScores } = require('../../backend/services/modelQualification');
 const { normalizedTask } = require('../../backend/services/modelRoutingIntegrityService');
 const { AiGateway } = require('../../backend/services/aiGateway');
-const { JobQueue } = require('../../backend/services/jobQueue');
 const modelRegistry = require('../../backend/services/modelRegistry');
 const { selectCustomerSocialContext } = require('../../backend/store/selectors/customerSocialSelectors');
 
@@ -49,7 +54,7 @@ function socialContext(overrides = {}) {
 
 function personaStub() {
   return {
-    compileContext() {
+    compileEffectiveContext() {
       return {
         personaVersionId: 7,
         policyHash: 'policy-hash-7',
@@ -95,23 +100,123 @@ function storeManagerStub(context, captured) {
   };
 }
 
+function installReplyGenerationAuthorityMocks(t, context) {
+  const receipt = Object.freeze({
+    schemaVersion: 1,
+    authority: 'AiWorkbenchDirectorRuleAuthority',
+    pass: true,
+    contactId: 'contact-1',
+    conversationId: 'conversation-1',
+    ruleIds: ['persona-brain-test-rule'],
+    ruleSha256: 'persona-brain-test-rule-sha',
+    receiptSha256: 'persona-brain-test-receipt'
+  });
+
+  t.mock.method(contactContextAuthority, 'getSocialContext', () => context);
+  t.mock.method(contactLanguageAuthority, 'read', () => ({
+    currentLanguage: 'de',
+    primaryLanguage: 'de',
+    userOverride: '',
+    confidence: 1,
+    source: 'persona-brain-test'
+  }));
+  t.mock.method(aiWorkbenchDirectorRuleAuthority, 'resolve', input => ({
+    authority: 'AiWorkbenchDirectorRuleAuthority',
+    director: {
+      ...(input.director || {}),
+      instruction: String(input.director?.instruction || 'Use the current contact evidence only.'),
+      ruleStackReceipt: receipt,
+      appliedGlobalRules: [],
+      appliedContactRules: []
+    },
+    receipt,
+    globalRules: [],
+    contactRules: []
+  }));
+  t.mock.method(aiDirectorStrategyAuthority, 'createOrReuse', () => ({
+    authority: 'DirectorStrategyV2Authority',
+    strategy: {
+      strategyId: 'persona-brain-test-strategy',
+      strategyVersion: 1,
+      strategy: { mustUseMemory: [] }
+    }
+  }));
+  t.mock.method(aiDirectorStrategyAuthority, 'createCandidatePlan', () => ({
+    authority: 'CandidateGenerationPlanAuthority',
+    plan: {
+      planId: 'persona-brain-test-plan',
+      sharedConstraints: {},
+      branches: [
+        {
+          axisId: 'persona-brain-test-axis',
+          strategy: 'natural_hook',
+          warmth: 0.65,
+          flirtation: 0.25,
+          directness: 0.35,
+          question: 'light'
+        }
+      ]
+    }
+  }));
+  t.mock.method(conversationTurnCoordinator, 'waitForQuiet', async () => ({ waitedMs: 0 }));
+  t.mock.method(conversationTurnCoordinator, 'capture', (conversationId, persistedRevision) => ({
+    conversationId,
+    runtimeRevision: 0,
+    persistedRevision
+  }));
+  t.mock.method(conversationTurnCoordinator, 'isCurrent', () => true);
+  t.mock.method(conversationTurnCoordinator, 'settle', () => {});
+  t.mock.method(typingStateService, 'beginAiGeneration', async () => ({}));
+  t.mock.method(typingStateService, 'endAiGeneration', async () => ({}));
+  t.mock.method(runtimeRegistry, 'replace', async () => ({
+    signal: new AbortController().signal,
+    generation: 1,
+    objectFingerprint: 'persona-brain-test-runtime-fingerprint'
+  }));
+  t.mock.method(runtimeRegistry, 'assertCurrent', () => true);
+  t.mock.method(runtimeRegistry, 'succeed', () => ({}));
+  t.mock.method(runtimeRegistry, 'fail', () => ({}));
+  t.mock.method(runtimeRegistry, 'finish', () => ({}));
+
+  return {
+    learningPolicyRuntimeAdapter: {
+      async selectLearnedPolicyAction(input) {
+        return Object.freeze({
+          authority: 'LearningPolicyRuntimeAdapter',
+          candidateStrategyBranch: input.baselineAction || input.allowedActions[0],
+          policyVersion: 'persona-brain-test-policy-v1',
+          policyArtifactId: 'persona-brain-test-baseline',
+          actionProbability: 1,
+          exploration: false,
+          degradation: null
+        });
+      }
+    },
+    learningPolicyDecisionContract: {
+      createDecisionRecord() {
+        return { decisionId: 'persona-brain-test-decision' };
+      }
+    }
+  };
+}
+
 test('legacy reply alias resolves to the supported quick_reply task', () => {
   assert.equal(normalizedTask('reply'), 'quick_reply');
 });
 
 
-test('AI task history is bounded without pruning queued or running jobs', async () => {
+test('AI task history is bounded without pruning queued or running jobs', () => {
   const gateway = new AiGateway();
   gateway.jobs.set('running', { status: 'running' });
+  gateway.jobs.set('queued', { status: 'queued' });
   for (let index = 0; index < 8; index += 1) gateway.jobs.set(`done-${index}`, { status: 'completed' });
-  gateway._pruneJobs(4);
-  assert.equal(gateway.jobs.has('running'), true);
-  assert.ok(gateway.jobs.size <= 4);
 
-  const queue = new JobQueue({ concurrency: 2, maxCompleted: 10 });
-  const jobs = Array.from({ length: 18 }, (_, index) => queue.add(async () => index));
-  await Promise.all(jobs.map(job => job.promise));
-  assert.equal(queue.completed.size, 10);
+  gateway.jobRetentionLimit = 4;
+  gateway._pruneJobs();
+
+  assert.equal(gateway.jobs.has('running'), true);
+  assert.equal(gateway.jobs.has('queued'), true);
+  assert.ok(gateway.jobs.size <= 4);
 });
 
 test('experimental models cannot enter a live reply route even when a legacy route opts in', () => {
@@ -127,7 +232,10 @@ test('experimental models cannot enter a live reply route even when a legacy rou
   });
   try {
     const gateway = new AiGateway();
-    assert.equal(gateway.resolveRoute('reply').primary.id, 'verified');
+    const projection = gateway.projection('quick_reply');
+    assert.equal(projection.authority, 'LiteLLM v1.95.0');
+    assert.deepEqual(projection.candidates.map(row => row.id), ['verified']);
+    assert.equal(projection.catalog.some(row => row.id === 'experimental'), true);
   } finally {
     modelRegistry.read = originalRead;
   }
@@ -303,7 +411,7 @@ test('candidate UI sends earlier sibling replies into the diversity gate and use
   assert.match(source, /result\.quality/);
 });
 
-test('generation uses a supported route and repairs a failed first candidate before commit', async () => {
+test('generation uses a supported route and repairs a failed first candidate before commit', async t => {
   const context = socialContext();
   const commands = [];
   const calls = [];
@@ -321,14 +429,13 @@ test('generation uses a supported route and repairs a failed first candidate bef
       return { text: 'Das klingt nach einem langen Tag. Ruh dich erst einmal aus.', modelId: 'model-1', model: 'Model 1' };
     }
   };
-  const original = contactContextAuthority.getSocialContext;
-  contactContextAuthority.getSocialContext = () => context;
-  try {
-    const brain = createContextAwareReplyBrain({
-      storeManager: storeManagerStub(context, commands),
-      aiGateway,
-      personaBrain: personaStub()
-    });
+  const authorityOptions = installReplyGenerationAuthorityMocks(t, context);
+  const brain = createContextAwareReplyBrain({
+    storeManager: storeManagerStub(context, commands),
+    aiGateway,
+    personaBrain: personaStub(),
+    ...authorityOptions
+  });
     const result = await brain.generateCandidate({
       contactId: 'contact-1',
       conversationId: 'conversation-1',
@@ -350,12 +457,9 @@ test('generation uses a supported route and repairs a failed first candidate bef
     assert.equal('entityVersions' in start.payload.socialContextSnapshot, false);
     const commit = commands.find(command => command.type === 'AI_REPLY_CANDIDATE_READY');
     assert.equal(commit.payload.text, result.text);
-  } finally {
-    contactContextAuthority.getSocialContext = original;
-  }
 });
 
-test('candidate is not committed when both original and repair fail quality validation', async () => {
+test('candidate is not committed when both original and repair fail quality validation', async t => {
   const context = socialContext();
   const commands = [];
   const aiGateway = {
@@ -364,14 +468,13 @@ test('candidate is not committed when both original and repair fail quality vali
       return { text: '系统检测到 policyHash。你好吗？你忙吗？', modelId: 'model-1', model: 'Model 1' };
     }
   };
-  const original = contactContextAuthority.getSocialContext;
-  contactContextAuthority.getSocialContext = () => context;
-  try {
-    const brain = createContextAwareReplyBrain({
-      storeManager: storeManagerStub(context, commands),
-      aiGateway,
-      personaBrain: personaStub()
-    });
+  const authorityOptions = installReplyGenerationAuthorityMocks(t, context);
+  const brain = createContextAwareReplyBrain({
+    storeManager: storeManagerStub(context, commands),
+    aiGateway,
+    personaBrain: personaStub(),
+    ...authorityOptions
+  });
     await assert.rejects(
       brain.generateCandidate({
         contactId: 'contact-1',
@@ -384,12 +487,9 @@ test('candidate is not committed when both original and repair fail quality vali
     const failedTask = commands.find(command => command.type === 'AI_REPLY_TASK_CANCELLED');
     assert.equal(failedTask.payload.failed, true);
     assert.equal(failedTask.payload.reason, 'AI_REPLY_LANGUAGE_MISMATCH');
-  } finally {
-    contactContextAuthority.getSocialContext = original;
-  }
 });
 
-test('latest English message overrides stale German profile and Chinese output is repaired before commit', async () => {
+test('latest English message overrides stale German profile and Chinese output is repaired before commit', async t => {
   const context = socialContext();
   const commands = [];
   const calls = [];
@@ -403,12 +503,13 @@ test('latest English message overrides stale German profile and Chinese output i
       return { text: 'That sounds good. Let us talk again tomorrow.', modelId: 'model-1', model: 'Model 1' };
     }
   };
-  const originalContext = contactContextAuthority.getSocialContext;
-  const originalLanguageRead = require('../../backend/services/contactLanguageAuthority').read;
-  contactContextAuthority.getSocialContext = () => context;
-  require('../../backend/services/contactLanguageAuthority').read = () => ({ currentLanguage: 'de', confidence: 0.99, userOverride: '' });
-  try {
-    const brain = createContextAwareReplyBrain({ storeManager: storeManagerStub(context, commands), aiGateway, personaBrain: personaStub() });
+  const authorityOptions = installReplyGenerationAuthorityMocks(t, context);
+  const brain = createContextAwareReplyBrain({
+    storeManager: storeManagerStub(context, commands),
+    aiGateway,
+    personaBrain: personaStub(),
+    ...authorityOptions
+  });
     const result = await brain.generateCandidate({
       contactId: 'contact-1',
       conversationId: 'conversation-1',
@@ -424,8 +525,4 @@ test('latest English message overrides stale German profile and Chinese output i
     const committed = commands.find(command => command.type === 'AI_REPLY_CANDIDATE_READY');
     assert.equal(committed.payload.targetLanguageCode, 'en');
     assert.equal(committed.payload.languageValidation.status, 'pass');
-  } finally {
-    contactContextAuthority.getSocialContext = originalContext;
-    require('../../backend/services/contactLanguageAuthority').read = originalLanguageRead;
-  }
 });

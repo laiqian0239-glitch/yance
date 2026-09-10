@@ -113,9 +113,9 @@ test('candidate quick adjustments change only the current candidate policy and n
   } finally { harness.close(); }
 });
 
-test('all nine attraction styles, three intensity levels and twelve candidate shortcuts are published', () => {
+test('all twelve attraction styles, three intensity levels and twelve candidate shortcuts are published', () => {
   assert.deepEqual(Object.values(STYLE_DIRECTIONS), [
-    '成熟温柔', '女人味', '柔软小女人感', '女王感', '暧昧', '个性', '风骚', '情趣', '调情'
+    '成熟', '温柔', '小女人', '高冷', '暧昧', '个性', '风骚', '俏皮', '调情', '主动', '神秘', '幽默'
   ]);
   assert.deepEqual(Object.keys(QUICK_ADJUSTMENTS), [
     '更温柔', '更有女人味', '更像小女人', '更有女王感', '更暧昧', '更风骚',
@@ -143,14 +143,13 @@ test('frontend exposes dynamic profiles, effective scope labels and candidate-on
   const personaRuntime = fs.readFileSync(path.resolve(__dirname, '../../frontend/js/r32-persona-runtime.js'), 'utf8');
   const statusRuntime = fs.readFileSync(path.resolve(__dirname, '../../frontend/js/r32-persona-status-runtime.js'), 'utf8');
   const uiRuntime = fs.readFileSync(path.resolve(__dirname, '../../frontend/js/r32-ui-runtime.js'), 'utf8');
-  const html = fs.readFileSync(path.resolve(__dirname, '../../frontend/index.html'), 'utf8');
   assert.match(personaRuntime, /\/api\/v2\/persona\/profiles/);
   assert.match(personaRuntime, /\/api\/v2\/persona\/scopes\/\$\{scopeType\}/);
   assert.match(personaRuntime, /temporary: scopeType === 'conversation'/);
   assert.match(personaRuntime, /effectiveLabel/);
   assert.match(statusRuntime, /\/api\/v2\/persona\/effective/);
   for (const shortcut of Object.keys(QUICK_ADJUSTMENTS)) assert.match(uiRuntime, new RegExp(`data-tune="${shortcut}"`));
-  for (const label of Object.values(STYLE_DIRECTIONS)) assert.match(html, new RegExp(label.replace('柔软小女人感', '小女人')));
+  for (const [key, label] of Object.entries(STYLE_DIRECTIONS)) assert.match(personaRuntime, new RegExp(`\\['${key}', '${label}'\\]`));
   for (const forbidden of ['金妍熙', '41岁', '时装设计师']) {
     assert.equal(personaRuntime.includes(forbidden), false, forbidden);
     assert.equal(uiRuntime.includes(forbidden), false, forbidden);

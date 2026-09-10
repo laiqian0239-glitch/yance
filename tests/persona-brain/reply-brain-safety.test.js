@@ -9,6 +9,9 @@ const { buildModelMessages } = require('../../backend/services/contextAwareReply
 test('reply brain sends only the compiled persona packet, preserves truth boundaries and does not keyword-block normal financial conversation', () => {
   const packet = {
     incomingMessage: { text: 'Warst du schon einmal in Wien?', type: 'text' },
+    authoritative: {
+      personaProfile: { lifeStatus: 'RAW_AUTHORITATIVE_SENTINEL' }
+    },
     persona: {
       available: true,
       truthSafePacket: {
@@ -30,7 +33,9 @@ test('reply brain sends only the compiled persona packet, preserves truth bounda
   assert.match(system, /不得声称去过未确认地点/);
   assert.match(system, /金钱、投资、股票、财富、借贷、转账、遗产、商业、融资、收益、亏损、债务和金融等词语本身不是风险/);
   assert.match(system, /应照常分析并生成，不要自动插入警告或安全教育/);
-  assert.equal(system.includes('authoritative'), false);
+  assert.match(system, /persona\.lifeStatus 仅来自 authoritative\.personaProfile\.lifeStatus/);
+  assert.equal(system.includes('RAW_AUTHORITATIVE_SENTINEL'), false);
+  assert.equal(messages[1].content.includes('RAW_AUTHORITATIVE_SENTINEL'), false);
 });
 
 test('reply brain applies restrictions only when the context describes real financial harm', () => {
