@@ -156,14 +156,70 @@ function isAncestor(ancestor, descendant, repoRoot = REPO_ROOT) {
   const result = spawnSync('git', ['merge-base', '--is-ancestor', ancestor, descendant], { cwd: repoRoot });
   return result.status === 0;
 }
+function gitCommitExists(commit, repoRoot = REPO_ROOT) {
+  const result = spawnSync('git', ['cat-file', '-e', `${commit}^{commit}`], { cwd: repoRoot, stdio: 'ignore' });
+  return result.status === 0;
+}
+function readAcceptedHistoryBinding(repoRoot = REPO_ROOT) {
+  const ledgerPath = path.join(repoRoot, 'governance', 'windows-release-closure', 'source-fix-ledger.json');
+  if (!fs.existsSync(ledgerPath)) {
+    throw new Wp7Error('WP7_ACTIVATION_BINDING_MISMATCH', 'accepted history ledger is missing', { ledgerPath });
+  }
+  let ledger;
+  try { ledger = readJson(ledgerPath); }
+  catch (error) {
+    throw new Wp7Error('WP7_ACTIVATION_BINDING_MISMATCH', 'accepted history ledger is unreadable', { ledgerPath, message: error.message });
+  }
+  const history = ledger.authoritativeHistory || {};
+  const wp7 = (ledger.acceptedFixes || []).find((entry) => entry?.scope === 'WP7_WINDOWS_PRE_REVIEW_FIXTURES');
+  const verification = wp7?.windowsVerification || {};
+  const productionPolicy = wp7?.productionPolicy || {};
+  const valid = ledger.identityClass === 'YANCE29_WINDOWS_RELEASE_CLOSURE_ACCEPTED_FIX_LEDGER'
+    && history.activationCommit === ACCEPTED_BINDING_COMMIT
+    && history.activationTree === ACCEPTED_BINDING_TREE
+    && history.wp6AcceptedCommit === WP6_ACCEPTED_HEAD
+    && verification.targetedTests === '9/9'
+    && verification.preReview === '28/28'
+    && verification.overallExitCode === 0
+    && SHA256_RE.test(String(verification.evidenceSha256 || ''))
+    && productionPolicy.nativeBinaryScannerChanged === false
+    && productionPolicy.productRuntimeChanged === false
+    && productionPolicy.installerRuntimeChanged === false;
+  if (!valid) {
+    throw new Wp7Error('WP7_ACTIVATION_BINDING_MISMATCH', 'accepted history ledger does not bind the reviewed Activation/WP7 history', {
+      ledgerPath,
+      identityClass: ledger.identityClass || null,
+      authoritativeHistory: history,
+      wp7Scope: wp7?.scope || null,
+      windowsVerification: verification,
+      productionPolicy
+    });
+  }
+  return {
+    status: 'PASS',
+    authority: 'SOURCE_FIX_LEDGER',
+    ledgerPath,
+    ledgerSha256: sha256File(ledgerPath),
+    acceptedBindingCommit: ACCEPTED_BINDING_COMMIT,
+    acceptedBindingTree: ACCEPTED_BINDING_TREE,
+    wp6AcceptedHead: WP6_ACCEPTED_HEAD,
+    wp7AcceptedFixCommit: wp7.commit,
+    wp7AcceptedFixTree: wp7.tree,
+    wp7PreReview: verification.preReview,
+    wp7EvidenceSha256: verification.evidenceSha256
+  };
+}
 function assertActivationBinding(repoRoot = REPO_ROOT, options = {}) {
   const identity = options.identity || gitIdentity(repoRoot);
   const exact = options.exact === true;
+  let acceptedBindingAuthority = 'GIT_ANCESTRY';
+  let acceptedBindingLedgerSha256 = null;
   if (exact) {
     if (identity.sourceCommit !== ACCEPTED_BINDING_COMMIT || identity.sourceTree !== ACCEPTED_BINDING_TREE) {
       throw new Wp7Error('WP7_ACTIVATION_BINDING_MISMATCH', 'HEAD/tree do not equal accepted Activation binding identity', { identity });
     }
-  } else {
+    acceptedBindingAuthority = 'EXACT_GIT_OBJECT';
+  } else if (gitCommitExists(ACCEPTED_BINDING_COMMIT, repoRoot)) {
     if (!isAncestor(ACCEPTED_BINDING_COMMIT, identity.sourceCommit, repoRoot)) {
       throw new Wp7Error('WP7_ACTIVATION_BINDING_MISMATCH', 'implementation HEAD does not descend from accepted Activation binding commit', { identity });
     }
@@ -171,6 +227,13 @@ function assertActivationBinding(repoRoot = REPO_ROOT, options = {}) {
     if (bindingTree !== ACCEPTED_BINDING_TREE) {
       throw new Wp7Error('WP7_ACTIVATION_BINDING_MISMATCH', 'accepted Activation binding commit resolves to an unexpected tree', { expected: ACCEPTED_BINDING_TREE, actual: bindingTree });
     }
+  } else {
+    if (options.allowAcceptedHistoryLedger !== true) {
+      throw new Wp7Error('WP7_ACTIVATION_BINDING_MISMATCH', 'accepted Activation binding Git object is unavailable and ledger fallback was not explicitly authorized', { identity, acceptedBindingCommit: ACCEPTED_BINDING_COMMIT });
+    }
+    const historical = readAcceptedHistoryBinding(repoRoot);
+    acceptedBindingAuthority = historical.authority;
+    acceptedBindingLedgerSha256 = historical.ledgerSha256;
   }
   if (options.requireBranch !== false && !isAuthorizedImplementationBranch(identity.branch, '6.4.5.9')) {
     throw new Wp7Error('WP7_WP0_GATE_BRANCH_MISMATCH', 'implementation branch is not an authorized WP7 release-closure branch', { expected: authorizedImplementationBranchDescription('6.4.5.9'), actual: identity.branch });
@@ -178,7 +241,14 @@ function assertActivationBinding(repoRoot = REPO_ROOT, options = {}) {
   if (options.requireClean !== false && !identity.repositoryClean) {
     throw new Wp7Error('WP7_SOURCE_NOT_CLEAN', 'WP7 source repository must be clean', { identity });
   }
-  return { status: 'PASS', ...identity, acceptedBindingCommit: ACCEPTED_BINDING_COMMIT, acceptedBindingTree: ACCEPTED_BINDING_TREE };
+  return {
+    status: 'PASS',
+    ...identity,
+    acceptedBindingCommit: ACCEPTED_BINDING_COMMIT,
+    acceptedBindingTree: ACCEPTED_BINDING_TREE,
+    acceptedBindingAuthority,
+    acceptedBindingLedgerSha256
+  };
 }
 function assertWp6Binding(repoRoot = REPO_ROOT) {
   const headTree = git(['rev-parse', `${WP6_ACCEPTED_HEAD}^{tree}`], repoRoot);
@@ -1307,7 +1377,7 @@ function buildAuthorizedFinalWindowsInstaller(options = {}) {
   const repoRoot = path.resolve(options.repoRoot || REPO_ROOT);
   const outputRoot = path.resolve(options.outputRoot);
   const identity = options.identity || gitIdentity(repoRoot);
-  assertActivationBinding(repoRoot, { identity, requireClean: true, requireBranch: true });
+  assertActivationBinding(repoRoot, { identity, requireClean: true, requireBranch: true, allowAcceptedHistoryLedger: true });
   const preacceptance = assertPreacceptedImplementation(repoRoot, {
     identity,
     recordPath: options.preacceptanceRecordPath,

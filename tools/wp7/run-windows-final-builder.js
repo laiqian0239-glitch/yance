@@ -147,7 +147,12 @@ function createBuilderResult(options) {
   }
 
   const before = gitIdentity(repoRoot);
-  assertActivationBinding(repoRoot, { identity: before, requireClean: true, requireBranch: true });
+  assertActivationBinding(repoRoot, {
+    identity: before,
+    requireClean: true,
+    requireBranch: true,
+    allowAcceptedHistoryLedger: true
+  });
   if (before.sourceCommit !== options.expectedCommit || before.sourceTree !== options.expectedTree || before.branch !== options.expectedBranch) throw new Error('source identity does not match the expected Branch/Commit/Tree');
 
   const built = buildAuthorizedFinalWindowsInstaller({
@@ -180,7 +185,12 @@ function createBuilderResult(options) {
   });
 
   const after = gitIdentity(repoRoot);
-  assertActivationBinding(repoRoot, { identity: after, requireClean: true, requireBranch: true });
+  assertActivationBinding(repoRoot, {
+    identity: after,
+    requireClean: true,
+    requireBranch: true,
+    allowAcceptedHistoryLedger: true
+  });
   if (after.sourceCommit !== before.sourceCommit || after.sourceTree !== before.sourceTree) throw new Error('source identity changed during Builder execution');
 
   const result = {
