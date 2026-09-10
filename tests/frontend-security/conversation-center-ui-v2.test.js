@@ -10,6 +10,7 @@ const html = fs.readFileSync(path.join(ROOT, 'frontend/index.html'), 'utf8');
 const runtime = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-ui-runtime.js'), 'utf8');
 const capabilities = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-conversation-capabilities.js'), 'utf8');
 const css = fs.readFileSync(path.join(ROOT, 'frontend/r32-conversation-center-v2.css'), 'utf8');
+const readingCss = fs.readFileSync(path.join(ROOT, 'frontend/r32-global-reading.css'), 'utf8');
 const accountCenter = fs.readFileSync(path.join(ROOT, 'frontend/r32-account-center.js'), 'utf8');
 const systemCenter = fs.readFileSync(path.join(ROOT, 'frontend/r32-system-center.js'), 'utf8');
 const settingsRecovery = fs.readFileSync(path.join(ROOT, 'frontend/r32-settings-recovery.js'), 'utf8');
@@ -56,7 +57,7 @@ test('candidate UI preserves the hardened reply brain lifecycle', () => {
   assert.match(runtime, /quality gate|质量检查|质量门禁/i);
   assert.match(runtime, /stale=Boolean\(s\._stale\)/);
   assert.match(runtime, /avoidCandidates/);
-  assert.match(runtime, /const first=await generateSocialBrainCandidate\(\'自然成熟\',\[\]\);rows\.push\(first\)/);
+  assert.match(runtime, /const first=await generateSocialBrainCandidate\(\'自然成熟\',\[\],'',generationOptions\);ensureCurrent\(\);rows\.push\(first\)/);
   assert.match(runtime, /for\(let index=1;index<variants\.length;index\+\+\)/);
   assert.match(runtime, /人物规则已更新/);
   assert.match(css, /\.candidate\.stale \[data-act="input"\]/);
@@ -106,7 +107,7 @@ test('quick navigation keeps only the four approved real tools with expanded lab
 });
 
 test('conversation state is truthful for connected, blocked and historical accounts', () => {
-  assert.match(runtime, /platformBadge\.dataset\.state=!hasConversation\?'empty':route\.conflict\?'blocked':c\.online\?'online':'history'/);
+  assert.match(runtime, /platformBadge\.dataset\.state=!hasConversation\?'empty':route\.blocked\?'blocked':c\.online\?'online':'history'/);
   assert.match(runtime, /function\s+senderIdentityForMessage\s*\(/);
   assert.match(runtime, /历史我方身份/);
   assert.match(runtime, /sender\.resolved\?'':'neutral'/);
@@ -147,7 +148,7 @@ test('conversation menu is frozen to search, export, contextual clear and archiv
 
 
 test('composer keeps real suggestion state above a multiline input', () => {
-  assert.match(html, /class="composer-suggestion-state"/);
+  assert.match(html, /id="composerSuggestionState" class="sr-only" aria-live="polite"/);
   assert.match(html, /id="saveSuggestionBtn"/);
   assert.match(html, /id="savedSuggestionsBtn"/);
   assert.match(html, /id="composerSuggestionState"/);
@@ -184,9 +185,9 @@ test('screenshot issue closure keeps AI status, primary action and selected conv
 test('screenshot issue closure prevents filter clipping, oversized empty state and AI core metric overlap', () => {
   assert.match(css, /\.filters\{display:flex;flex-wrap:wrap/);
   assert.match(css, /\.messages>\.ui-empty-state>div\{min-height:220px!important/);
-  assert.match(css, /\.core-metrics span\{font-size:8px!important/);
+  assert.match(css, /\.core-metrics span\{font-size:var\(--type-data-value\)/);
   assert.match(css, /\.core-label\.l2,\.core-label\.l4\{bottom:29%!important/);
-  assert.match(css, /html\[data-reading="large"\] \.neural-core/);
+  assert.match(readingCss, /html\[data-reading="large"\]\{[\s\S]*?--type-data-value:34px;/);
 });
 
 test('empty conversation hides duplicated route controls and disables ambiguous composer actions', () => {

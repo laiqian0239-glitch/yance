@@ -266,5 +266,25 @@
     return actions;
   }
 
-  return Object.freeze({ renderMergeOptions, renderMergeCard, renderMergeChecklist, renderWorkbenchQueue, renderIdentityList, renderIdentityDetail, contactBusinessIdentity });
+  function renderIdentityEmptyState(documentRef, heroHost, gridHost) {
+    replaceChildren(heroHost);
+    replaceChildren(gridHost,
+      make(documentRef, 'div', {
+        className: 'ui-empty-state ui-empty-state-fill',
+        children: [
+          make(documentRef, 'div', {
+            children: [
+              make(documentRef, 'div', { className: 'ui-empty-orb' }),
+              make(documentRef, 'b', { text: '请选择一个联系人' }),
+              make(documentRef, 'p', {
+                text: '选择左侧联系人后，这里会显示身份来源、客户档案、关系证据和下一步操作。'
+              })
+            ]
+          })
+        ]
+      })
+    );
+  }
+
+  return Object.freeze({ renderMergeOptions, renderMergeCard, renderMergeChecklist, renderWorkbenchQueue, renderIdentityList, renderIdentityDetail, renderIdentityEmptyState, contactBusinessIdentity });
 });
