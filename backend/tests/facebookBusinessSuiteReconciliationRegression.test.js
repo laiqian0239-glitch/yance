@@ -8,22 +8,64 @@ const assert = require('node:assert/strict');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-facebook-business-suite-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  getSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `facebook-business-suite-reconciliation-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+const runtimeAuthorityStore = getSqliteConnectionBroker().open();
+const appRuntime = AppRuntimeFactory.create({
+  ownership: { guard: () => ({ ownerInstanceId: 'facebook-business-suite-reconciliation-owner', fencingToken: 1 }) },
+  store: {
+    db: runtimeAuthorityStore.db,
+    snapshot: () => ({
+      stateVersion: 1,
+      lastEventSequence: 0,
+      runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+      capabilities: {},
+      diagnosticsSummary: {}
+    })
+  },
+  lifecycle: { state: 'runtime_state_ready' },
+  buildId: 'facebook-business-suite-reconciliation-test',
+  authorityWriteHostCapability: authorityWriteHost.capability,
+  authorityStore: runtimeAuthorityStore
+});
+appRuntime.configureProductionServices();
 
 const facebookModule = require('../services/facebookAdapter');
 const messageStore = require('../services/messageStore');
 const notificationPolicy = require('../services/notificationPolicy');
 const eventBus = require('../services/eventBus');
 const relayClient = require('../services/facebookRelayClient');
-const sendQueueService = require('../services/sendQueueService');
-const queueRepository = require('../repositories/sendQueueRepository');
-const outboundCommandRepository = require('../repositories/outboundCommandRepository');
 const { getStore, closeStore } = require('../repositories/storeProvider');
 
 const { FacebookAdapter, facebookContactId, webhookPeerId, retrySqliteBusy } = facebookModule;
 
 test.after(() => {
-  closeStore();
+  try { closeStore(); } catch (_) {}
+  try { AppRuntimeFactory.resetForTests(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
 });
 
 function patch(t, object, key, value) {
@@ -48,6 +90,22 @@ function facebookAccount(overrides = {}) {
     metadata: { pageId: 'page-10001' },
     ...overrides
   };
+}
+
+function frozenFacebookAttempt(overrides = {}) {
+  return Object.freeze({
+    executionId: 'facebook-physical-execution-1',
+    attemptId: 'facebook-physical-attempt-1',
+    claimId: 'facebook-physical-claim-1',
+    ownerId: 'facebook-physical-owner-1',
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1,
+    state: 'RUNNING',
+    platform: 'facebook',
+    operationKind: 'OUTBOUND_MESSAGE_SEND',
+    ...overrides
+  });
 }
 
 test('Business Suite reconciliation retries a transient SQLite transaction owner conflict before failing a conversation', async () => {
@@ -207,7 +265,7 @@ test('Business Suite outbound echo creates a new contact/conversation and is sto
   assert.equal(persistedEvent.newConversation, true);
 });
 
-test('Facebook post-connect reconciliation runs once, records completion and stops cleanly', async () => {
+test('Facebook post-connect reconciliation delegates history synchronization to durable authority', async () => {
   const adapter = new FacebookAdapter();
   const account = facebookAccount({ id: 'facebook-scheduled-reconciliation' });
   const row = {
@@ -219,25 +277,25 @@ test('Facebook post-connect reconciliation runs once, records completion and sto
   };
   adapter.sessions.set(account.id, row);
   adapter.emit = () => {};
-  adapter.reconciliationPolicy = () => ({ initialDelayMs: 0, intervalMs: 15000, maximumConversations: 25, maximumMessages: 50 });
-  let options = null;
-  adapter.sync = async (_account, input) => {
-    options = input;
-    adapter.stopReconciliation(row);
-    return { conversations: 1, messagesScanned: 2, messagesInserted: 2, avatars: 0, failedConversations: 0, syncedAt: '2026-07-22T13:42:00.000Z' };
-  };
+  adapter.sync = async () => { throw new Error('history synchronization must be owned by DurableExecutionAuthorityV2'); };
+  let delegated = null;
+  const onDelegated = event => { if (event.payload?.accountId === account.id) delegated = event.payload; };
+  eventBus.on('facebook:reconciliation-delegated', onDelegated);
+  try {
+    assert.equal(adapter.scheduleReconciliation(account, row), false);
+  } finally {
+    eventBus.off('facebook:reconciliation-delegated', onDelegated);
+  }
 
-  assert.equal(adapter.scheduleReconciliation(account, row), true);
-  await new Promise(resolve => setTimeout(resolve, 30));
-  assert.equal(options.maximumConversations, 25);
-  assert.equal(options.maximumMessages, 50);
-  assert.match(options.source, /post-connect-reconciliation/);
-  assert.equal(row.reconciliationLastAt, '2026-07-22T13:42:00.000Z');
-  assert.equal(row.reconciliationLastError, '');
-  assert.equal(row.reconciliationLastResult.conversations, 1);
-  assert.equal(row.reconciliationLastResult.messages, 2);
-  assert.equal(row.reconciliationLastResult.failedConversations, 0);
+  assert.equal(delegated.authority, 'DurableExecutionAuthorityV2');
+  assert.equal(delegated.operationKind, 'HISTORY_SYNCHRONIZATION');
+  assert.equal(delegated.reasonCode, 'DURABLE_HISTORY_SYNCHRONIZATION_REQUIRED');
+  assert.equal(row.reconciliationLastAt, '');
+  assert.equal(row.reconciliationLastError, 'DURABLE_HISTORY_SYNCHRONIZATION_REQUIRED');
+  assert.equal(row.reconciliationLastResult, undefined);
   assert.equal(row.reconciliationActive, false);
+  assert.equal(row.reconciliationRunning, false);
+  assert.equal(row.reconciliationTimer, null);
 });
 
 test('Facebook reconciliation exposes a real blocked state without pages_read_engagement', () => {
@@ -256,7 +314,7 @@ test('Facebook reconciliation exposes a real blocked state without pages_read_en
   assert.equal(row.reconciliationActive, false);
   assert.equal(row.reconciliationRunning, false);
   assert.match(row.reconciliationLastError, /pages_read_engagement/);
-  assert.equal(row.reconciliationTimer, undefined);
+  assert.equal(row.reconciliationTimer, null);
   const state = adapter.publicState(row);
   assert.equal(state.historySyncAvailable, false);
   assert.deepEqual(state.missingOptionalPermissions, ['pages_read_engagement']);
@@ -360,47 +418,20 @@ test('Facebook send remains successful after Meta acceptance when local persiste
     facebookAccount({ id: 'facebook-meta-accepted' }),
     'facebook:10000000000000333',
     'already delivered by Meta',
-    { localMessageId: 'local-meta-accepted-1', sessionKey: 'facebook-meta-accepted:10000000000000333' }
+    {
+      localMessageId: 'local-meta-accepted-1',
+      sessionKey: 'facebook-meta-accepted:10000000000000333',
+      physicalAttemptContext: frozenFacebookAttempt({
+        executionId: 'facebook-meta-accepted-execution',
+        attemptId: 'facebook-meta-accepted-attempt',
+        claimId: 'facebook-meta-accepted-claim',
+        ownerId: 'facebook-meta-accepted-owner',
+        accountId: 'facebook-meta-accepted'
+      })
+    }
   );
 
   assert.equal(result.messageId, 'mid-meta-accepted-1');
   assert.equal(result.localPersistencePending, true);
   assert.equal(result.localPersistenceErrorCode, 'ERR_SQLITE_ERROR');
-});
-
-test('send queue never schedules a second network send after platform acceptance when only the local receipt projection fails', async t => {
-  const queueId = 'send-local-projection-pending';
-  const accountId = 'facebook-local-projection';
-  const sessionKey = 'facebook-local-projection:10000000000000444';
-  ensureFacebookPlatformAccount(accountId, 'page-local-projection');
-  getStore().upsertConversation({
-    sessionKey, accountId, platform: 'facebook', title: '10000000000000444',
-    routeState: 'bound', chatJid: 'facebook:10000000000000444', externalId: '10000000000000444'
-  });
-  outboundCommandRepository.createAtomic({
-    route: { conversationId: sessionKey, accountId, platform: 'facebook', routeTarget: 'facebook:10000000000000444', capabilitySnapshotId: '' },
-    queue: {
-      id: queueId,
-      idempotencyKey: 'idem-local-projection-pending',
-      accountId,
-      sessionKey,
-      messageType: 'text',
-      payload: { platform: 'facebook', operation: 'text', chatJid: 'facebook:10000000000000444', text: 'accepted' }
-    }
-  });
-  const row = queueRepository.claimNext();
-  assert.equal(row.id, queueId);
-  patch(t, sendQueueService, 'dispatch', async () => ({ messageId: 'mid-platform-accepted-2', localPersistencePending: true, localPersistenceErrorCode: 'ERR_SQLITE_ERROR' }));
-  patch(t, messageStore, 'updateReceipt', async () => {
-    const error = new Error('local receipt projection failed');
-    error.code = 'ERR_SQLITE_ERROR';
-    throw error;
-  });
-
-  const output = await sendQueueService.processRow(row);
-  assert.equal(output.queue.state, 'platform_accepted_local_pending');
-  assert.equal(output.result.platformMessageId, 'mid-platform-accepted-2');
-  assert.equal(output.result.localPersistencePending, true);
-  assert.equal(queueRepository.get(queueId).state, 'platform_accepted_local_pending');
-  assert.equal(queueRepository.claimNext(), null);
 });

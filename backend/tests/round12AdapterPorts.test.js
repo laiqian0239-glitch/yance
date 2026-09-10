@@ -7,32 +7,71 @@ const os = require('node:os');
 const path = require('node:path');
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
+const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
+const canonicalEventLedger = require('../services/canonicalEventLedgerAuthority');
 const { DomainEventLogService } = require('../services/domainEventLogService');
 const { PlatformAdapterFacade, PlatformAdapterRegistryV2 } = require('../services/platformAdapterPorts');
 const { PlatformDeliveryAuthority } = require('../services/platformDeliveryAuthority');
+const { DurableInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
+
+function createEventLogFixture(root, store) {
+  const coordinator = new AuthorityTransactionCoordinator({ store, eventBus: { publish() {} } });
+  const repository = createPlatformCoreRepository({
+    storeProvider: () => store,
+    coordinatorCapability: coordinator.repositoryCapability()
+  });
+  const ledger = new canonicalEventLedger.CanonicalEventLedgerAuthority({
+    coordinator,
+    store,
+    compatibilityRepository: repository
+  });
+  return {
+    repository,
+    eventLog: new DomainEventLogService({ canonicalAuthority: ledger }),
+    deliveryAuthority: new PlatformDeliveryAuthority({ repository }),
+    authority: new DurableInternalOperationAuthority({
+      storeProvider: () => store,
+      tokenProvider: () => store.authorityWriteHostCapability.tokenSnapshot(),
+      idFactory: prefix => `${prefix}-${path.basename(root)}`
+    })
+  };
+}
 
 function withEventLog(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-adapter-'));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
-  try { return callback({ store, eventLog: new DomainEventLogService({ repository }) }); }
+  const fixture = createEventLogFixture(root, store);
+  try { return callback({ store, ...fixture }); }
   finally { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 }
 
 async function withEventLogAsync(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-adapter-'));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
+  const fixture = createEventLogFixture(root, store);
   try {
-    return await callback({
-      store,
-      eventLog: new DomainEventLogService({ repository }),
-      deliveryAuthority: new PlatformDeliveryAuthority({ repository })
-    });
+    return await callback({ store, ...fixture });
   } finally {
     try { store.close(); } catch (_) {}
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
+}
+
+function persistedEgressAttempt(platform, command, suffix = '1') {
+  return Object.freeze({
+    executionId: `${platform}-execution-${suffix}`,
+    intentId: `${platform}-intent-${suffix}`,
+    attemptId: `${platform}-attempt-${suffix}`,
+    claimId: `${platform}-claim-${suffix}`,
+    ownerId: `${platform}-owner-${suffix}`,
+    idempotencyKey: command.idempotencyKey,
+    requestContentSha256: 'a'.repeat(64),
+    generation: 3,
+    hostGeneration: 7,
+    fencingToken: 11,
+    platform,
+    accountReference: command.accountId
+  });
 }
 
 test('each registered platform exposes exactly auth, ingress, egress and reconcile ports', () => {
@@ -58,7 +97,7 @@ test('ingress produces a redacted, idempotent domain event instead of UI state',
     });
     assert.equal(first.created, true);
     assert.equal(second.created, false);
-    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM domain_events').get().count, 1);
+    assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM canonical_event_headers').get().count, 1);
     assert.equal(first.event.payload.pageToken, '[REDACTED]');
   });
 });
@@ -77,7 +116,10 @@ test('egress refuses non-Outbox payloads and accepts frozen OutboxCommand only',
       accountId: 'tg-1', sessionKey: 'tg-1:peer', conversationTarget: 'peer', operation: 'text', finalText: 'Hallo',
       finalTextSha256: 'x', contentFrozen: true
     };
-    const result = await facade.egress.execute(command);
+    const result = await facade.egress.execute(
+      command,
+      persistedEgressAttempt('telegram', command, 'success')
+    );
     assert.equal(result.success, true);
     assert.equal(result.resultType, 'PlatformSendResult');
     assert.equal(result.platformMessageId, 'm1');
@@ -87,7 +129,10 @@ test('egress refuses non-Outbox payloads and accepts frozen OutboxCommand only',
 });
 
 test('egress treats structured success=false as a rejection instead of platform acceptance', async () => {
+  await withEventLogAsync(async ({ eventLog, deliveryAuthority }) => {
   const facade = new PlatformAdapterFacade('telegram', {
+    eventLog,
+    deliveryAuthority,
     egressAuthorizer: async () => ({ authorized: true, queueId: 'send-failed' }),
     egressHandler: async () => ({ success: false, reasonCode: 'REMOTE_REJECTED', message: 'denied' })
   });
@@ -96,17 +141,25 @@ test('egress treats structured success=false as a rejection instead of platform 
     accountId: 'tg-1', sessionKey: 'tg-1:peer', conversationTarget: 'peer', operation: 'text', finalText: 'Hallo',
     finalTextSha256: 'x', contentFrozen: true
   };
-  await assert.rejects(() => facade.egress.execute(command), error => error.code === 'REMOTE_REJECTED');
+  await assert.rejects(
+    () => facade.egress.execute(command, persistedEgressAttempt('telegram', command, 'rejected')),
+    error => error.code === 'REMOTE_REJECTED'
+  );
+  });
 });
 
 test('reconcile failures degrade only that account and never block realtime traffic', async () => {
+  await withEventLogAsync(async ({ eventLog, authority }) => {
   const facade = new PlatformAdapterFacade('whatsapp', {
+    eventLog,
+    operationLifecycle: authority,
     reconcileHandler: async () => { throw Object.assign(new Error('history failed'), { code: 'HISTORY_PARTIAL' }); }
   });
   const result = await facade.reconcile.execute({ accountId: 'wa-1', mode: 'history' });
   assert.equal(result.status, 'degraded');
   assert.equal(result.realtimeBlocked, false);
   assert.equal(result.reasonCode, 'HISTORY_PARTIAL');
+  });
 });
 
 test('platform ports reject Express, DOM and raw SQLite boundary objects', () => {
@@ -133,7 +186,10 @@ test('platform ports reject binary, prototype-pollution keys and accessors befor
 });
 
 test('durable message egress refuses a claimed success without a platform message id', async () => {
+  await withEventLogAsync(async ({ eventLog, deliveryAuthority }) => {
   const facade = new PlatformAdapterFacade('telegram', {
+    eventLog,
+    deliveryAuthority,
     egressAuthorizer: async () => ({ authorized: true, queueId: 'send-no-id' }),
     egressHandler: async () => ({ success: true })
   });
@@ -142,5 +198,9 @@ test('durable message egress refuses a claimed success without a platform messag
     accountId: 'tg-1', sessionKey: 'tg-1:peer', conversationTarget: 'peer', operation: 'text', finalText: 'Hallo',
     finalTextSha256: 'x', contentFrozen: true
   };
-  await assert.rejects(() => facade.egress.execute(command), error => error.code === 'PLATFORM_SEND_RESULT_ID_REQUIRED');
+  await assert.rejects(
+    () => facade.egress.execute(command, persistedEgressAttempt('telegram', command, 'missing-id')),
+    error => error.code === 'PLATFORM_SEND_RESULT_ID_REQUIRED'
+  );
+  });
 });

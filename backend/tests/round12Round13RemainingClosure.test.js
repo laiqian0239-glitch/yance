@@ -8,11 +8,14 @@ const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
+const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
+const canonicalEventLedger = require('../services/canonicalEventLedgerAuthority');
 const { DomainEventLogService } = require('../services/domainEventLogService');
 const { DomainEventProjectionAuthority, PROJECTOR_NAME, PROJECTOR_VERSION } = require('../services/domainEventProjectionAuthority');
 const { PlatformAdapterRegistryV2 } = require('../services/platformAdapterPorts');
 const { RuntimeRecoveryService } = require('../services/runtimeRecoveryService');
 const { AiGateway } = require('../services/aiGateway');
+const { DurableInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
 const aiQuality = require('../services/aiQualityRouteAuthority');
 const eventBus = require('../services/eventBus');
 
@@ -33,15 +36,34 @@ function highQualityModel(id = 'quality-model') {
     }
   };
 }
-function validRouteReceipt(task = 'quick_reply') {
-  return aiQuality.routeReceipt({ task, selectedModel: highQualityModel(`${task}-model`), routePlan: { state: 'ready', violations: [] } });
+function repositoryFixture(root, store) {
+  const coordinator = new AuthorityTransactionCoordinator({ store, eventBus: { publish() {} } });
+  const repository = createPlatformCoreRepository({
+    storeProvider: () => store,
+    coordinatorCapability: coordinator.repositoryCapability()
+  });
+  const ledger = new canonicalEventLedger.CanonicalEventLedgerAuthority({
+    coordinator,
+    store,
+    compatibilityRepository: repository
+  });
+  let sequence = 0;
+  const authority = new DurableInternalOperationAuthority({
+    storeProvider: () => store,
+    tokenProvider: () => store.authorityWriteHostCapability.tokenSnapshot(),
+    idFactory: prefix => `${prefix}-${path.basename(root)}-${++sequence}`
+  });
+  return {
+    repository,
+    eventLog: ledger,
+    authority
+  };
 }
 function withRepository(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-r13-remaining-'));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
-  const eventLog = new DomainEventLogService({ repository });
-  try { return callback({ root, store, repository, eventLog }); }
+  const fixture = repositoryFixture(root, store);
+  try { return callback({ root, store, ...fixture }); }
   finally {
     try { store.close(); } catch (_) {}
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
@@ -50,9 +72,8 @@ function withRepository(callback) {
 async function withRepositoryAsync(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-r13-remaining-async-'));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
-  const eventLog = new DomainEventLogService({ repository });
-  try { return await callback({ root, store, repository, eventLog }); }
+  const fixture = repositoryFixture(root, store);
+  try { return await callback({ root, store, ...fixture }); }
   finally {
     try { store.close(); } catch (_) {}
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
@@ -64,23 +85,25 @@ function simpleBus() {
   return bus;
 }
 
-test('runtime recovery and account entrypoints use the AuthPort instead of a direct platform connection bypass', async () => {
+test('runtime recovery delegates to the durable recovery authority instead of direct platform reconnects', async () => {
   const calls = [];
   const service = new RuntimeRecoveryService({
-    accountManager: { list: () => ({ accounts: [{ id: 'wa-1', platform: 'whatsapp', state: 'disconnected', credentialReady: true }] }) },
-    accountStore: { get: () => ({ id: 'wa-1', platform: 'whatsapp', lifecycleState: 'active', autoReconnect: true }) },
     sendQueue: { status: () => ({ started: true }), resume: reason => calls.push(['queue.resume', reason]), pause() {} },
     eventBus: { publish: (type, payload) => calls.push([type, payload]) },
-    platformAdapters: { executeAuth: async input => { calls.push(['auth', input]); return { accountId: input.accountId, connected: true }; } }
+    systemPolicy: { read: () => ({ emergencyStop: false }) },
+    safeModeService: { isActive: () => false },
+    recoverNonterminalExecutions: input => {
+      calls.push(['recoverNonterminalExecutions', input]);
+      return [{ executionId: 'exec-1', fromState: 'RUNNING', targetState: 'SCHEDULED', decision: 'REQUEUE_SAFE', reasonCode: input.reasonCode, persistedAttemptCount: 1, authorityTimestamp: input.authorityTimestamp }];
+    }
   });
   const result = await service.recover('network-online');
-  assert.equal(result.lastRecovery[0].ok, true);
-  assert.equal(calls.filter(row => row[0] === 'auth').length, 1);
-  assert.equal(calls.find(row => row[0] === 'auth')[1].operation, 'connect');
-  assert.equal(calls.some(row => row[0] === 'queue.resume'), true);
+  assert.equal(result.lastRecovery[0].decision, 'REQUEUE_SAFE');
+  assert.equal(calls.filter(row => row[0] === 'recoverNonterminalExecutions').length, 1);
 
   const recoverySource = fs.readFileSync(path.join(__dirname, '../services/runtimeRecoveryService.js'), 'utf8');
   assert.equal(/accountManager\.connect\s*\(/u.test(recoverySource), false);
+  assert.match(recoverySource, /recoverNonterminalExecutions/u);
   const accountContextSource = fs.readFileSync(path.join(__dirname, '../core/accountContext.js'), 'utf8');
   for (const command of ['account.connect','account.reconnect','account.pause','account.resume','account.logout','account.sync']) {
     const escaped = command.replace('.', '\\.');
@@ -89,14 +112,14 @@ test('runtime recovery and account entrypoints use the AuthPort instead of a dir
 });
 
 test('all three platform facades bind auth and reconcile handlers and execute through the stable four-port contract', async () => {
+  await withRepositoryAsync(async ({ eventLog, authority }) => {
   const calls = [];
-  const registry = new PlatformAdapterRegistryV2();
-  for (const platform of ['facebook', 'whatsapp', 'telegram']) {
-    registry.bind(platform, {
+  const registry = new PlatformAdapterRegistryV2(Object.fromEntries(['facebook', 'whatsapp', 'telegram'].map(platform => [platform, {
+      eventLog,
+      operationLifecycle: authority,
       authHandler: { execute: async input => { calls.push(['auth', input.platform, input.operation]); return { ok: true, platform: input.platform }; } },
       reconcileHandler: async input => { calls.push(['reconcile', input.platform, input.operation]); return { ok: true, platform: input.platform }; }
-    });
-  }
+  }])));
   for (const platform of ['facebook', 'whatsapp', 'telegram']) {
     const contract = registry.contracts()[platform];
     assert.deepEqual(contract.bindings, { auth: true, ingress: true, egress: true, reconcile: true });
@@ -105,6 +128,7 @@ test('all three platform facades bind auth and reconcile handlers and execute th
   }
   assert.equal(calls.filter(row => row[0] === 'auth').length, 3);
   assert.equal(calls.filter(row => row[0] === 'reconcile').length, 3);
+  });
 });
 
 test('domain events are audited as the authoritative message projection and converge with zero shadow differences', () => {
@@ -130,7 +154,7 @@ test('domain events are audited as the authoritative message projection and conv
     assert.equal(report.converged, true);
     const receipt = repository.getProjectionReceipt(PROJECTOR_NAME, PROJECTOR_VERSION, created.event.eventId);
     assert.equal(receipt.projection_status, 'applied');
-    assert.equal(repository.getDomainEvent(created.event.eventId).replay_state, 'replayed');
+    assert.equal(eventLog.readEvent(created.event.eventId).eventType, 'message.received');
     assert.equal(eventLog.assertConverged({ projectorName: PROJECTOR_NAME, projectorVersion: PROJECTOR_VERSION }).blocking, 0);
   });
 });
@@ -150,44 +174,54 @@ test('domain projection divergence remains a blocking receipt and cannot be decl
     const report = authority.auditExisting();
     assert.equal(report.mismatch, 1);
     assert.equal(report.converged, false);
-    assert.throws(() => eventLog.assertConverged({ projectorName: PROJECTOR_NAME, projectorVersion: PROJECTOR_VERSION }), error => error.code === 'DOMAIN_EVENT_PROJECTION_NOT_CONVERGED');
+    assert.throws(() => eventLog.assertConverged({ projectorName: PROJECTOR_NAME, projectorVersion: PROJECTOR_VERSION }), error => error.code === 'CANONICAL_EVENT_PROJECTION_NOT_CONVERGED');
   });
 });
 
-test('AI timeout recovery retries the same high-tier model with reduced context before switching to a same-tier fallback', async () => {
+test('AI physical execution requires and consumes one running durable provider operation', async () => {
+  await withRepositoryAsync(async ({ authority }) => {
   const primary = highQualityModel('primary-high');
-  const fallback = highQualityModel('fallback-high');
   const calls = [];
   const registry = {
-    read: () => ({ models: [primary, fallback], routes: {} }),
+    read: () => ({ models: [primary], routes: {} }),
     recordInvocation: async () => {},
     recordInvocationFailure: async () => {}
   };
-  let attempt = 0;
+  const created = authority.create({
+    operationId: 'ai-runtime-operation',
+    operationType: 'ai.provider-execution',
+    scopeKey: 'quick-reply:test',
+    objectFingerprint: 'ai-runtime-fingerprint'
+  }).operation;
+  const running = authority.start(created.operationId, { progress: 1 }).operation;
   const gateway = new AiGateway({
     registry,
-    executeModel: async (model, messages) => {
-      attempt += 1;
-      calls.push({ modelId: model.id, chars: messages.reduce((sum, row) => sum + String(row.content || '').length, 0) });
-      if (attempt <= 2) throw Object.assign(new Error('deadline exceeded'), { code: 'MODEL_TIMEOUT', status: 408 });
-      return { text: 'Recovered by same-tier fallback.' };
+    runtime: {
+      status: () => ({ ok: true }),
+      execute: async payload => {
+        calls.push(payload);
+        return {
+          text: 'Model Brain completed.',
+          evidence: {
+            selectedModel: 'primary-high',
+            provider: 'openrouter',
+            latencyMs: 10,
+            totalTokens: 3,
+            fallbackCount: 0
+          }
+        };
+      }
     }
   });
-  gateway.resolveRoute = () => ({
-    task: 'quick_reply', route: {}, primary, fallback, emergency: null,
-    qualityPlan: { state: aiQuality.ROUTE_STATE.READY, violations: [] }, conditional: false, humanReviewRequired: false
-  });
   const messages = [
-    { role: 'system', content: 'S'.repeat(2500) },
-    { role: 'user', content: `<conversation_context>${JSON.stringify({ recentMessages: Array.from({ length: 60 }, (_, index) => ({ index, text: 'H'.repeat(180) })), confirmedFacts: [{ id: 'f1', text: 'fact' }] })}</conversation_context>` }
+    { role: 'user', content: 'Hallo' }
   ];
-  const result = await gateway._run({ jobId: 'timeout-recovery-test', task: 'quick_reply', messages, options: { timeoutMs: 1000 }, signal: new AbortController().signal });
-  assert.deepEqual(calls.map(row => row.modelId), ['primary-high', 'primary-high', 'fallback-high']);
-  assert.equal(calls[1].chars < calls[0].chars, true);
-  assert.equal(result.modelId, 'fallback-high');
-  assert.equal(result.fallbackUsed, true);
-  assert.equal(result.attempts.some(row => row.contextReduced === true && row.recoveryPhase === 'same-model-reduced-context'), true);
-  assert.equal(result.qualityRouteReceipt.qualityTier, 'high');
+  const result = await gateway._run({ jobId: 'durable-ai-runtime-test', task: 'quick_reply', messages, options: { timeoutMs: 1000 }, signal: new AbortController().signal, persistedOperation: running });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].catalog[0].id, 'primary-high');
+  assert.equal(result.modelId, 'primary-high');
+  assert.equal(result.fallbackUsed, false);
+  });
 });
 
 test('eligible evidence enters V4 review without automatic L2/L3 synthesis', async () => { const {createLearningPromotionAdapter}=require('../services/learningPromotionAdapter');const adapter=createLearningPromotionAdapter({openFeature:{setEvaluationContext(){}},flagd:{mode:'in-process-offline'}});await assert.rejects(()=>adapter.promote({status:'READY_FOR_REVIEW',Regression:{passed:true},Shadow:{passed:true},Candidate:{}},{approved:false}),e=>e.reasonCode==='LEARNING_APPROVAL_REQUIRED'); });
@@ -227,8 +261,9 @@ test('architecture authority reports the four requested source cutovers without 
   assert.match(source, /state: 'authoritative-event-first'/u);
   assert.match(source, /authoritativeProjection: true/u);
   assert.match(source, /allLegacyAuthAndReconcileHandlersMigrated: true/u);
-  assert.match(source, /contextReductionBeforeTimeoutFallback: true/u);
+  assert.match(source, /physicalSelectionAuthority: 'LiteLLM Router'/u);
+  assert.match(source, /complexityAuthority: 'LiteLLM ComplexityRouter'/u);
   assert.match(source, /automaticL2L3SynthesisScheduled: true/u);
   assert.match(source, /realDataConvergenceVerified: false/u);
-  assert.match(source, /realOpenRouterQualityVerified: false/u);
+  assert.match(source, /sealedLiteLLMRuntimeVerified: false/u);
 });

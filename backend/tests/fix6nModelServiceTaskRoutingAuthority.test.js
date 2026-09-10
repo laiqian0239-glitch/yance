@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { AiGateway } = require('../services/aiGateway');
 const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 const { normalizeModelError } = require('../services/modelErrorNormalizer');
+const routingAuthority = require('../services/modelServiceTaskRoutingAuthority');
 
 const NOW = '2026-08-01T00:00:00.000Z';
 
@@ -103,71 +104,36 @@ test('candidate-only translation accepts onboarding-smoke candidates while produ
   };
   const gateway = new AiGateway({ registry: fakeRegistry([primary, fallback], routes) });
 
-  const candidate = gateway.resolveRoute('translation', '', { executionMode: 'candidate-only' });
-  assert.equal(candidate.primary?.id, primary.id);
-  assert.equal(candidate.fallback?.id, fallback.id);
-  assert.equal(candidate.qualityPlan.state, 'conditional');
-  assert.equal(candidate.humanReviewRequired, true);
+  const candidate = gateway.projection('translation', { constraints: { allowExperimental: true } });
+  assert.deepEqual(candidate.candidates.map(row => row.id), [primary.id, fallback.id]);
+  assert.equal(candidate.modelGroup, 'yance.translation');
 
-  const production = gateway.resolveRoute('translation', '', { executionMode: 'production' });
-  assert.equal(production.primary, null);
-  assert.equal(production.qualityPlan.state, 'blocked');
+  const production = gateway.projection('translation', { executionMode: 'production' });
+  assert.equal(production.candidates.length, 0);
 });
 
 test('production route rejects a fallback in the same provider failure domain', () => {
   const primary = replyModel('claude-primary', 'anthropic/claude-opus-5', 99);
   const fallback = replyModel('claude-fallback', 'anthropic/claude-sonnet-5', 97);
-  const gateway = new AiGateway({ registry: fakeRegistry([primary, fallback], productionRoute(primary, fallback)) });
-
-  const route = gateway.resolveRoute('quick_reply', '', { executionMode: 'production' });
-  assert.equal(route.primary?.id, primary.id);
-  assert.equal(route.fallback, null);
-  assert.equal(route.qualityPlan.fallbackIndependent, false);
-  assert.ok(route.qualityPlan.violations.some(row => row.code === 'AI_ROUTE_FALLBACK_FAILURE_DOMAIN_NOT_INDEPENDENT'));
+  assert.equal(routingAuthority.fallbackIndependent(primary, fallback), false);
 });
 
-test('non-retryable request failures stop the route instead of silently switching models', async () => {
-  const primary = replyModel('claude-primary', 'anthropic/claude-opus-5', 99);
-  const fallback = replyModel('gpt-fallback', 'openai/gpt-5.6-sol', 97);
-  const calls = [];
-  const gateway = new AiGateway({
-    registry: fakeRegistry([primary, fallback], productionRoute(primary, fallback)),
-    executeModel: async model => {
-      calls.push(model.id);
-      if (model.id === primary.id) throw Object.assign(new Error('invalid request schema'), { code: 'INVALID_REQUEST', status: 400 });
-      return { text: 'must not run', providerRequestId: 'fallback-request' };
-    }
-  });
-
-  await assert.rejects(
-    gateway.execute({ task: 'quick_reply', messages: [{ role: 'user', content: 'Hallo' }], options: { executionMode: 'production' } }),
-    error => error.code === 'ALL_MODELS_FAILED' && error.attempts?.[0]?.fallbackAllowed === false
-  );
-  assert.deepEqual(calls, [primary.id]);
+test('non-retryable request failures are classified as terminal for the attempted model', () => {
+  const policy = routingAuthority.classifyFailure({ code: 'INVALID_REQUEST', status: 400 });
+  assert.equal(policy.reasonCode, 'REQUEST_NOT_RETRYABLE');
+  assert.equal(policy.fallbackAllowed, false);
+  assert.equal(policy.retrySameModel, false);
 });
 
-test('empty model output is a quality failure and switches to the independent fallback', async () => {
-  const primary = replyModel('claude-primary', 'anthropic/claude-opus-5', 99);
-  const fallback = replyModel('gpt-fallback', 'openai/gpt-5.6-sol', 97);
-  const calls = [];
-  const gateway = new AiGateway({
-    registry: fakeRegistry([primary, fallback], productionRoute(primary, fallback)),
-    executeModel: async model => {
-      calls.push(model.id);
-      if (model.id === primary.id) return { text: '   ', providerRequestId: 'empty-request' };
-      return { text: 'Hallo! Schön von dir zu hören.', providerRequestId: 'fallback-request' };
-    }
+test('empty model output is a quality failure with fallback allowed', () => {
+  assert.throws(() => routingAuthority.assertUsableResult({ text: '   ', providerRequestId: 'empty-request' }), error => {
+    const policy = routingAuthority.classifyFailure(error);
+    return error.code === 'MODEL_EMPTY_RESPONSE'
+      && error.providerRequestId === 'empty-request'
+      && policy.reasonCode === 'QUALITY_FAILURE'
+      && policy.fallbackAllowed === true
+      && policy.retrySameModel === false;
   });
-
-  const result = await gateway.execute({ task: 'quick_reply', messages: [{ role: 'user', content: 'Hallo' }], options: { executionMode: 'production' } });
-  assert.equal(result.modelId, fallback.id);
-  assert.equal(result.fallbackUsed, true);
-  assert.deepEqual(calls, [primary.id, fallback.id]);
-  assert.equal(result.attempts[0].code, 'MODEL_EMPTY_RESPONSE');
-  assert.equal(result.attempts[0].fallbackAllowed, true);
-  assert.equal(result.attempts[0].reasonCode, 'QUALITY_FAILURE');
-  assert.equal(result.attempts[0].retrySameModel, false);
-  assert.equal(result.attempts[1].providerRequestId, 'fallback-request');
 });
 
 test('Retry-After is normalized into a bounded provider cooldown receipt', () => {
@@ -180,61 +146,38 @@ test('Retry-After is normalized into a bounded provider cooldown receipt', () =>
 
   assert.equal(normalized.retryAfterMs, 3000);
   assert.equal(normalized.nextRetryAt, '2026-08-01T00:00:03.000Z');
-  const policy = require('../services/modelServiceTaskRoutingAuthority').classifyFailure(normalized);
+  const policy = routingAuthority.classifyFailure(normalized);
   assert.equal(policy.retrySameModel, false);
   assert.equal(policy.fallbackAllowed, true);
 });
 
-test('a 429 cooldown skips the throttled model on the next request and uses an independent provider', async () => {
+test('a 429 cooldown produces a bounded attempt receipt for an independent fallback decision', () => {
   const primary = replyModel('claude-primary', 'anthropic/claude-opus-5', 99);
   const fallback = replyModel('gpt-fallback', 'openai/gpt-5.6-sol', 97);
-  let now = Date.parse(NOW);
-  const calls = [];
-  const gateway = new AiGateway({
-    clock: { now: () => now, sleep: async ms => { now += ms; } },
-    registry: fakeRegistry([primary, fallback], productionRoute(primary, fallback)),
-    executeModel: async model => {
-      calls.push(model.id);
-      if (model.id === primary.id) {
-        throw Object.assign(new Error('rate limited'), {
-          code: 'RATE_LIMITED', status: 429, response: { headers: { 'retry-after': '60' } }
-        });
-      }
-      return { text: 'Fallback ok', providerRequestId: `req-${calls.length}` };
-    }
+  const retryAfterMs = routingAuthority.retryAfterMs({ status: 429, response: { headers: { 'retry-after': '60' } } }, { nowMs: Date.parse(NOW) });
+  const policy = routingAuthority.classifyFailure({ code: 'RATE_LIMITED', status: 429 });
+  const receipt = routingAuthority.attemptReceipt({
+    attemptId: 'attempt-1',
+    modelId: primary.id,
+    provider: primary.provider,
+    status: 'failed',
+    reasonCode: policy.reasonCode,
+    fallbackAllowed: policy.fallbackAllowed,
+    retryAfterMs,
+    nextRetryAt: new Date(Date.parse(NOW) + retryAfterMs).toISOString()
   });
-
-  const first = await gateway.execute({ task: 'quick_reply', messages: [], options: { executionMode: 'production' } });
-  assert.equal(first.modelId, fallback.id);
-  const second = await gateway.execute({ task: 'quick_reply', messages: [], options: { executionMode: 'production' } });
-  assert.equal(second.modelId, fallback.id);
-  assert.deepEqual(calls, [primary.id, fallback.id, fallback.id]);
-  assert.equal(first.attempts[0].retryAfterMs, 60000);
-  assert.equal(first.attempts[0].nextRetryAt, '2026-08-01T00:01:00.000Z');
+  assert.equal(routingAuthority.fallbackIndependent(primary, fallback), true);
+  assert.equal(receipt.retryAfterMs, 60000);
+  assert.equal(receipt.nextRetryAt, '2026-08-01T00:01:00.000Z');
+  assert.equal(receipt.fallbackAllowed, true);
 });
 
-test('all model attempts share one total timeout budget instead of receiving a fresh full timeout', async () => {
-  const primary = replyModel('claude-primary', 'anthropic/claude-opus-5', 99);
-  const fallback = replyModel('gpt-fallback', 'openai/gpt-5.6-sol', 97);
+test('all model attempts share one total timeout budget instead of receiving a fresh full timeout', () => {
   let now = 1_000_000;
-  const seenTimeouts = [];
-  const gateway = new AiGateway({
-    clock: { now: () => now, sleep: async ms => { now += ms; } },
-    registry: fakeRegistry([primary, fallback], productionRoute(primary, fallback)),
-    executeModel: async (model, messages, options) => {
-      seenTimeouts.push(options.timeoutMs);
-      if (model.id === primary.id) {
-        now += 70000;
-        throw Object.assign(new Error('provider unavailable'), { code: 'HTTP_503', status: 503 });
-      }
-      return { text: 'Fallback within remaining budget', providerRequestId: 'fallback-budget' };
-    }
-  });
-
-  const result = await gateway.execute({ task: 'quick_reply', messages: [], options: { executionMode: 'production', timeoutMs: 180000 } });
-  assert.equal(result.modelId, fallback.id);
-  assert.equal(seenTimeouts[0], 180000);
-  assert.equal(seenTimeouts[1], 110000);
-  assert.equal(result.totalBudgetMs, 180000);
-  assert.equal(result.remainingBudgetMs, 110000);
+  const budget = routingAuthority.createBudget({ totalBudgetMs: 180000, startedAtMs: now, now: () => now });
+  assert.equal(budget.attemptTimeoutMs(180000), 180000);
+  now += 70000;
+  assert.equal(budget.remainingMs(), 110000);
+  assert.equal(budget.attemptTimeoutMs(180000), 110000);
+  assert.equal(budget.totalBudgetMs, 180000);
 });

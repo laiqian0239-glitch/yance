@@ -8,6 +8,46 @@ const path = require('node:path');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-round5-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  getSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `source-uat-round5-conversation-identity-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+const runtimeAuthorityStore = getSqliteConnectionBroker().open();
+const appRuntime = AppRuntimeFactory.create({
+  ownership: { guard: () => ({ ownerInstanceId: 'source-uat-round5-conversation-identity-owner', fencingToken: 1 }) },
+  store: {
+    db: runtimeAuthorityStore.db,
+    snapshot: () => ({
+      stateVersion: 1,
+      lastEventSequence: 0,
+      runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+      capabilities: {},
+      diagnosticsSummary: {}
+    })
+  },
+  lifecycle: { state: 'runtime_state_ready' },
+  buildId: 'source-uat-round5-conversation-identity-test',
+  authorityWriteHostCapability: authorityWriteHost.capability,
+  authorityStore: runtimeAuthorityStore
+});
+appRuntime.configureProductionServices();
 
 const { getStore, closeStore } = require('../repositories/storeProvider');
 const { stableId } = require('../lib/r32SqliteStore');
@@ -22,7 +62,12 @@ const readSource = relative => fs.readFileSync(path.join(root, relative), 'utf8'
 
 process.on('exit', () => {
   try { closeStore(); } catch (_) {}
+  try { AppRuntimeFactory.resetForTests(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
 });
 
 function now(offset = 0) { return new Date(Date.now() + offset).toISOString(); }
@@ -353,6 +398,6 @@ test('functional workspaces use semantic theme tokens rather than fixed color li
     assert.match(authorityCss, new RegExp(`${token}\\s*:`));
   }
   const electronMain = readSource('electron/main.js');
-  assert.match(electronMain, /setTitleBarOverlay/);
+  assert.match(electronMain, /desktop:set-titlebar-theme/);
   assert.match(electronMain, /setBackgroundColor\(color\)/);
 });

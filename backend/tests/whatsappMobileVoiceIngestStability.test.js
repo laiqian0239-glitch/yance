@@ -9,6 +9,46 @@ const Module = require('node:module');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-mobile-voice-ingest-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  getSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `whatsapp-mobile-voice-ingest-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+
+const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+const runtimeAuthorityStore = getSqliteConnectionBroker().open();
+const appRuntime = AppRuntimeFactory.create({
+  ownership: { guard: () => ({ ownerInstanceId: 'whatsapp-mobile-voice-ingest-owner', fencingToken: 1 }) },
+  store: {
+    db: runtimeAuthorityStore.db,
+    snapshot: () => ({
+      stateVersion: 1,
+      lastEventSequence: 0,
+      runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+      capabilities: {},
+      diagnosticsSummary: {}
+    })
+  },
+  lifecycle: { state: 'runtime_state_ready' },
+  buildId: 'whatsapp-mobile-voice-ingest-test',
+  authorityWriteHostCapability: authorityWriteHost.capability,
+  authorityStore: runtimeAuthorityStore
+});
+appRuntime.configureProductionServices();
 
 const originalLoad = Module._load;
 Module._load = function patchedLoad(request, parent, isMain) {
@@ -29,7 +69,10 @@ const source = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
 process.on('exit', () => {
   try { closeStore(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
 });
 
 function mobileVoice(id = 'MOBILE-VOICE-1') {

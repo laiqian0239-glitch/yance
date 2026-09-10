@@ -10,16 +10,53 @@ const { spawn, spawnSync } = require('node:child_process');
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-batch27-handoff-v2-'));
 process.env.YANCE_DATA_DIR = dataRoot;
 process.env.NODE_ENV = 'test';
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  getSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `batch27-handoff-v2-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+const runtimeAuthorityStore = getSqliteConnectionBroker().open();
+const appRuntime = AppRuntimeFactory.create({
+  ownership: { guard: () => ({ ownerInstanceId: 'batch27-handoff-v2-owner', fencingToken: 1 }) },
+  store: {
+    db: runtimeAuthorityStore.db,
+    snapshot: () => ({
+      stateVersion: 1,
+      lastEventSequence: 0,
+      runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+      capabilities: {},
+      diagnosticsSummary: {}
+    })
+  },
+  lifecycle: { state: 'runtime_state_ready' },
+  buildId: 'batch27-handoff-v2-test',
+  authorityWriteHostCapability: authorityWriteHost.capability,
+  authorityStore: runtimeAuthorityStore
+});
+appRuntime.configureProductionServices();
 
 const { R32SqliteStore, SCHEMA_VERSION } = require('../lib/r32SqliteStore');
 const { ResilientLeaseClock } = require('../lib/resilientLeaseClock');
 const { ExternalIdentityAuthority } = require('../services/externalIdentityAuthority');
 const { OutboxRouteAuthority } = require('../services/outboxRouteAuthority');
 const outboundCommandRepository = require('../repositories/outboundCommandRepository');
-const { SendQueueService } = require('../services/sendQueueService');
-const { JobQueue } = require('../services/jobQueue');
-const { BackgroundJobAuthority } = require('../services/backgroundJobAuthority');
-const { AsyncOperationLifecycleAuthority, STATES: ASYNC_STATES } = require('../services/asyncOperationLifecycleAuthority');
+const asyncOperationLifecycleAuthority = require('../services/asyncOperationLifecycleAuthority');
 const { executeWithDeadline } = require('../services/executionDeadline');
 const telegramModule = require('../services/telegramAdapter');
 const backgroundJobAuthority = require('../services/backgroundJobAuthority');
@@ -63,6 +100,23 @@ function command(store, scope, id) {
     message: { id, dedupeKey: id, externalMessageId: id, accountId: scope.accountId, conversationId: scope.sessionKey, sessionKey: scope.sessionKey, chatJid: scope.target, platform: scope.platform, direction: 'outbound', fromMe: true, type: 'text', text: id }
   };
 }
+function persistedEgressAttempt(platform, accountId, idempotencyKey, suffix = '1') {
+  return Object.freeze({
+    executionId: `${platform}-execution-${suffix}`,
+    intentId: `${platform}-intent-${suffix}`,
+    attemptId: `${platform}-attempt-${suffix}`,
+    claimId: `${platform}-claim-${suffix}`,
+    ownerId: `${platform}-owner-${suffix}`,
+    idempotencyKey,
+    requestContentSha256: 'b'.repeat(64),
+    generation: 3,
+    hostGeneration: 7,
+    fencingToken: 11,
+    platform,
+    accountReference: accountId,
+    state: 'RUNNING'
+  });
+}
 function spawnAndCollect(file, args, env = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [file, ...args], { cwd: path.resolve(__dirname, '..', '..'), env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -77,7 +131,12 @@ function spawnAndCollect(file, args, env = {}) {
 
 test.after(() => {
   try { closeStore(); } catch (_) {}
+  try { AppRuntimeFactory.resetForTests(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
 });
 
 test('current schema preserves Batch27 structured unknown, learning ledger, AI physical state and recovery metrics', () => {
@@ -152,11 +211,7 @@ test('Batch27 interrupted send preserves command scope and cannot become a globa
     assert.equal(recovered.state, 'send_outcome_unknown');
     assert.equal(recovered.unknown_scope, 'command');
     assert.equal(recovered.unknown_reason, 'PROCESS_RESTART_RECOVERY');
-    const service = new SendQueueService();
-    assert.equal(service.hydrateOutcomeUnknownBlockers(), 0, 'command-scoped unknown must not create a global blocker');
-    const status = service.status();
-    assert.equal(status.resumeBlocked, false);
-    assert.equal(status.writeBlocked, false);
+    assert.equal(f.store.claimNextSend(), null, 'command-scoped unknown must not be reclaimed for automatic resend');
   } finally { f.close(); }
 });
 
@@ -169,44 +224,12 @@ test('Batch27 external AbortSignal settles immediately even when the underlying 
   assert.ok(Date.now() - started < 500, `abort took ${Date.now() - started}ms`);
 });
 
-test('Batch27 background job enqueue outcomes and cursor pagination are explicit beyond 500 rows', () => {
-  const f = fixture('yance-b27-background-pagination-');
-  try {
-    const authority = new BackgroundJobAuthority({ store: f.store });
-    for (let i = 0; i < 501; i += 1) {
-      const created = authority.enqueue({ jobType: 'telegram-message-enrichment', platform: 'telegram', sourceAccountId: 'tg-page', conversationId: 'tg-page:42', entityId: String(i), revision: 'v1' }, { maxAttempts: 3 });
-      assert.equal(created.enqueueOutcome, 'created');
-    }
-    let cursor = null; let total = 0; let pages = 0;
-    do {
-      const page = authority.snapshot({ jobType: 'telegram-message-enrichment', sourceAccountId: 'tg-page', order: 'oldest', limit: 200, cursor });
-      total += page.jobs.length; pages += 1; cursor = page.nextCursor;
-      if (!page.hasMore) break;
-    } while (pages < 10);
-    assert.equal(total, 501);
-    assert.equal(pages, 3);
-    const acquired = authority.begin({ jobType: 'telegram-message-enrichment', platform: 'telegram', sourceAccountId: 'tg-page', conversationId: 'tg-page:42', entityId: '0', revision: 'v1' }, { force: true });
-    authority.succeed(acquired.lease, { ok: true });
-    const noop = authority.enqueue({ jobType: 'telegram-message-enrichment', platform: 'telegram', sourceAccountId: 'tg-page', conversationId: 'tg-page:42', entityId: '0', revision: 'v1' });
-    assert.equal(noop.enqueueOutcome, 'already-succeeded');
-    assert.equal(noop.noop, true);
-  } finally { f.close(); }
-});
-
-test('Batch27 AI physical zombie circuit keeps actual provider concurrency bounded and persists the zombie state', async () => {
-  const store = getStore();
-  const queueName = `batch27-physical-${Date.now()}`;
-  const queue = new JobQueue({ concurrency: 1, name: queueName, maxPhysicalZombiesPerProvider: 1, providerCircuitCooldownMs: 1000 });
-  let physical = 0; let maxPhysical = 0;
-  const first = queue.add(async () => { physical += 1; maxPhysical = Math.max(maxPhysical, physical); return new Promise(() => {}); }, { providerKey: 'ignored-provider', executionTimeoutMs: 30 });
-  const followers = Array.from({ length: 10 }, () => queue.add(async () => { physical += 1; maxPhysical = Math.max(maxPhysical, physical); return 'unexpected'; }, { providerKey: 'ignored-provider', queueTimeoutMs: 1000, executionTimeoutMs: 100 }));
-  await assert.rejects(first.promise, error => error.code === 'AI_EXECUTION_TIMEOUT');
-  for (const follower of followers) await assert.rejects(follower.promise, error => error.code === 'AI_PROVIDER_PHYSICAL_CIRCUIT_OPEN');
-  assert.equal(maxPhysical, 1);
-  assert.equal(queue.status().physicalInFlightCount, 1);
-  const persisted = store.db.prepare('SELECT state,logical_state,provider_key FROM ai_provider_physical_execution_state WHERE queue_name=?').get(queueName);
-  assert.equal(persisted.state, 'zombie');
-  assert.equal(persisted.provider_key, 'ignored-provider');
+test('Batch27 background job compatibility facade exposes only durable recovery state', () => {
+  assert.equal(typeof backgroundJobAuthority.BackgroundJobAuthority, 'undefined');
+  assert.equal(typeof backgroundJobAuthority.enqueue, 'undefined');
+  assert.equal(typeof backgroundJobAuthority.snapshot, 'undefined');
+  assert.equal(typeof backgroundJobAuthority.recoverDurableExecutions, 'function');
+  assert.equal(backgroundJobAuthority.STATES.SUCCEEDED, 'SUCCEEDED');
 });
 
 test('Batch27 Learning V4 uses idempotent immutable signals instead of worker leases', () => { const service=require('../services/replyFeedbackLearningService');const a=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'same',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true}});const b=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'same',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true}});assert.equal(a.idempotencyKey,b.idempotencyKey);assert.equal(service.status().customProjectionScheduler,false); });
@@ -231,21 +254,19 @@ test('Batch27 Telegram enrichment recovery pages oldest-first and uses account-s
   const account = { id: 'tg-a', displayName: 'TG A' };
   const row = { client: { async getMessages() { return [{ id: 101, message: 'hello', out: false, senderId: '42', date: Date.now() / 1000 }]; } } };
   const pages = [
-    { jobs: [
-      { jobId: 'j1', idempotencyKey: 'k1', sourceAccountId: 'tg-a', conversationId: 'tg-a:42', entityId: '101', state: 'PENDING', payload: { chatId: '42', externalId: '101', scopedDedupeKey: 'tg-a:42:101' } },
-      { jobId: 'j2', idempotencyKey: 'k2', sourceAccountId: 'tg-a', conversationId: 'tg-a:43', entityId: '101', state: 'PENDING', payload: { chatId: '43', externalId: '101', scopedDedupeKey: 'tg-a:43:101' } }
-    ], hasMore: true, nextCursor: { updatedAt: '2026-01-01T00:00:00.000Z', jobId: 'j2' }, total: 3, oldestPendingAt: '2026-01-01T00:00:00.000Z' },
-    { jobs: [{ jobId: 'j3', idempotencyKey: 'k3', sourceAccountId: 'tg-a', conversationId: 'tg-a:44', entityId: '102', state: 'PENDING', payload: { chatId: '44', externalId: '102', scopedDedupeKey: 'tg-a:44:102' } }], hasMore: false, nextCursor: null, total: 1, oldestPendingAt: '2026-01-01T00:00:01.000Z' }
+    { messages: [
+      { conversationId: 'tg-a:42', chatJid: 'telegram:42', externalMessageId: '101', dedupeKey: 'tg-a:42:101', updatedAt: '2026-01-01T00:00:00.000Z' },
+      { conversationId: 'tg-a:43', chatJid: 'telegram:43', externalMessageId: '101', dedupeKey: 'tg-a:43:101', updatedAt: '2026-01-01T00:00:00.000Z' }
+    ], hasMore: true, nextCursor: { updatedAt: '2026-01-01T00:00:00.000Z', messageId: 'tg-a:43:101' } },
+    { messages: [{ conversationId: 'tg-a:44', chatJid: 'telegram:44', externalMessageId: '102', dedupeKey: 'tg-a:44:102', updatedAt: '2026-01-01T00:00:01.000Z' }], hasMore: false, nextCursor: null }
   ];
   let snapshotCalls = 0; const lookupKeys = []; const enriched = [];
-  patch(t, backgroundJobAuthority, 'recoverInterrupted', () => []);
-  patch(t, backgroundJobAuthority, 'snapshot', filter => {
-    if (filter.limit === 1) return { jobs: [], total: 0, hasMore: false, nextCursor: null, oldestPendingAt: '' };
+  patch(t, messageStore, 'listPendingTelegramEnrichment', (_accountId, filter = {}) => {
+    if (filter.limit === 1) return { messages: [], hasMore: false, nextCursor: null };
     const page = pages[snapshotCalls++] || { jobs: [], hasMore: false, total: 0, nextCursor: null, oldestPendingAt: '' };
     if (snapshotCalls === 2) assert.deepEqual(filter.cursor, pages[0].nextCursor);
     return page;
   });
-  patch(t, messageStore, 'listPendingTelegramEnrichment', () => ({ messages: [], hasMore: false, nextCursor: null }));
   patch(t, messageStore, 'getMessageByDedupeKey', key => { lookupKeys.push(key); return { id: key, dedupeKey: key, externalMessageId: key.split(':').pop(), conversationId: key.split(':').slice(0, 2).join(':'), chatJid: `telegram:${key.split(':')[1]}` }; });
   patch(t, adapter, 'enrichPersistedMessage', async (_account, _row, _msg, existing) => { enriched.push(existing.dedupeKey); });
   const result = await adapter.recoverMessageEnrichment(account, row, { pageSize: 2, maximumPages: 3, budgetMs: 5000 });
@@ -266,7 +287,16 @@ test('Batch27 WhatsApp late SDK success is quarantined before any local sent pro
   };
   adapter.accounts.set('wa-late', row);
   patch(t, messageStore, 'upsert', async () => { upserts += 1; });
-  const pending = adapter.sendText({ accountId: 'wa-late', chatJid: '491111111@s.whatsapp.net', text: 'late', localMessageId: 'local-late', sessionKey: 'wa-late:491111111@s.whatsapp.net', signal: controller.signal, executionGeneration: 'wa-gen-late' });
+  const pending = adapter.sendText({
+    accountId: 'wa-late',
+    chatJid: '491111111@s.whatsapp.net',
+    text: 'late',
+    localMessageId: 'local-late',
+    sessionKey: 'wa-late:491111111@s.whatsapp.net',
+    signal: controller.signal,
+    executionGeneration: 'wa-gen-late',
+    physicalAttemptContext: persistedEgressAttempt('whatsapp', 'wa-late', 'local-late', 'late')
+  });
   await delay(5);
   controller.abort(Object.assign(new Error('deadline'), { code: 'PLATFORM_EGRESS_DEADLINE_EXCEEDED' }));
   resolveSend({ key: { id: 'remote-late-1' } });
@@ -298,32 +328,11 @@ test('Batch27 Persona version/hash is rechecked inside candidate persistence tra
 });
 
 
-test('Batch27 async lifecycle recovery pages only active states and reports exact remaining work', () => {
-  const f = fixture('yance-b27-async-active-pagination-');
-  try {
-    const authority = new AsyncOperationLifecycleAuthority({ store: f.store });
-    for (let index = 0; index < 25; index += 1) {
-      const created = authority.create({
-        operationType: 'ai.reply.candidates', scopeKey: `scope-${index}`,
-        objectFingerprint: `fingerprint-${index}`
-      });
-      authority.start(created.operation.operationId);
-      if (index < 20) authority.succeed(created.operation.operationId, { ok: true }, {
-        generation: created.operation.generation,
-        objectFingerprint: created.operation.objectFingerprint
-      });
-    }
-    const active = authority.snapshot({
-      operationType: 'ai.reply.candidates', states: [ASYNC_STATES.CREATED, ASYNC_STATES.RUNNING],
-      order: 'oldest', limit: 2
-    });
-    assert.equal(active.total, 5);
-    assert.equal(active.operations.length, 2);
-    assert.equal(active.remaining, 3);
-    assert.equal(active.hasMore, true);
-    assert.ok(active.oldestPendingAt);
-    assert.ok(active.operations.every(row => [ASYNC_STATES.CREATED, ASYNC_STATES.RUNNING].includes(row.state)));
-  } finally { f.close(); }
+test('Batch27 async lifecycle compatibility facade exposes only durable recovery state', () => {
+  assert.equal(typeof asyncOperationLifecycleAuthority.AsyncOperationLifecycleAuthority, 'undefined');
+  assert.equal(typeof asyncOperationLifecycleAuthority.recoverDurableExecutions, 'function');
+  assert.equal(asyncOperationLifecycleAuthority.STATES.RUNNING, 'RUNNING');
+  assert.equal(asyncOperationLifecycleAuthority.TERMINAL.has('SUCCEEDED'), true);
 });
 
 test('Batch27 four processes racing the same fresh SQLite file allow exactly one migration owner', async () => {

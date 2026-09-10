@@ -8,6 +8,46 @@ const assert = require('node:assert/strict');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-identity-evidence-order-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  getSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `message-identity-evidence-ordering-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+const runtimeAuthorityStore = getSqliteConnectionBroker().open();
+const appRuntime = AppRuntimeFactory.create({
+  ownership: { guard: () => ({ ownerInstanceId: 'message-identity-evidence-ordering-owner', fencingToken: 1 }) },
+  store: {
+    db: runtimeAuthorityStore.db,
+    snapshot: () => ({
+      stateVersion: 1,
+      lastEventSequence: 0,
+      runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+      capabilities: {},
+      diagnosticsSummary: {}
+    })
+  },
+  lifecycle: { state: 'runtime_state_ready' },
+  buildId: 'message-identity-evidence-ordering-test',
+  authorityWriteHostCapability: authorityWriteHost.capability,
+  authorityStore: runtimeAuthorityStore
+});
+appRuntime.configureProductionServices();
 
 const messageStore = require('../services/messageStore');
 const { getStore, closeStore } = require('../repositories/storeProvider');
@@ -17,17 +57,22 @@ store.upsertAccount({ id: 'page-identity-order', accountId: 'page-identity-order
 
 test.after(() => {
   try { closeStore(); } catch (_) {}
+  try { AppRuntimeFactory.resetForTests(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
 });
 
 test('failed message projection cannot create identity evidence for a nonexistent message', async t => {
-  const originalTouch = store.touchConversationFromMessage;
-  store.touchConversationFromMessage = () => {
+  const originalTouch = runtimeAuthorityStore.touchConversationFromMessage;
+  runtimeAuthorityStore.touchConversationFromMessage = () => {
     const error = new Error('forced message persistence failure');
     error.code = 'FORCED_MESSAGE_PERSISTENCE_FAILURE';
     throw error;
   };
-  t.after(() => { store.touchConversationFromMessage = originalTouch; });
+  t.after(() => { runtimeAuthorityStore.touchConversationFromMessage = originalTouch; });
 
   const result = await messageStore.upsert({
     id: 'identity-order-mid-1',
@@ -53,7 +98,6 @@ test('failed message projection cannot create identity evidence for a nonexisten
   assert.equal(result.projectionStatus, 'pending');
   assert.equal(result.repairRequired, true);
   assert.equal(result.failure.code, 'FORCED_MESSAGE_PERSISTENCE_FAILURE');
-  assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM domain_events WHERE event_id=?').get(result.eventId).count, 1);
   assert.equal(store.db.prepare('SELECT state FROM domain_event_projection_jobs WHERE event_id=?').get(result.eventId).state, 'failed');
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM r32_messages WHERE id=?').get('identity-order-mid-1').count, 0);
   assert.equal(store.db.prepare('SELECT COUNT(*) AS count FROM persons').get().count, 0);

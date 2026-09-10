@@ -8,11 +8,51 @@ const assert = require('node:assert/strict');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-batch21-root-authority-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  getSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `f25-batch21-root-authority-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+const runtimeAuthorityStore = getSqliteConnectionBroker().open();
+const appRuntime = AppRuntimeFactory.create({
+  ownership: { guard: () => ({ ownerInstanceId: 'f25-batch21-root-authority-owner', fencingToken: 1 }) },
+  store: {
+    db: runtimeAuthorityStore.db,
+    snapshot: () => ({
+      stateVersion: 1,
+      lastEventSequence: 0,
+      runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+      capabilities: {},
+      diagnosticsSummary: {}
+    })
+  },
+  lifecycle: { state: 'runtime_state_ready' },
+  buildId: 'f25-batch21-root-authority-test',
+  authorityWriteHostCapability: authorityWriteHost.capability,
+  authorityStore: runtimeAuthorityStore
+});
+appRuntime.configureProductionServices();
 
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { PlatformDeliveryAuthority, capabilityIdForCommand, isEmojiOnly, ACK_TTL_MS } = require('../services/platformDeliveryAuthority');
-const { AsyncOperationLifecycleAuthority, STATES } = require('../services/asyncOperationLifecycleAuthority');
+const asyncOperationLifecycleAuthority = require('../services/asyncOperationLifecycleAuthority');
 const { PlatformAdapterFacade } = require('../services/platformAdapterPorts');
 const messageStore = require('../services/messageStore');
 const identityLinkAuthority = messageStore._identityLinkAuthority;
@@ -23,6 +63,23 @@ function tempStore(prefix = 'yance-batch21-isolated-') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
   return { store, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
+}
+
+function persistedEgressAttempt(platform, command, suffix = '1') {
+  return Object.freeze({
+    executionId: `${platform}-execution-${suffix}`,
+    intentId: `${platform}-intent-${suffix}`,
+    attemptId: `${platform}-attempt-${suffix}`,
+    claimId: `${platform}-claim-${suffix}`,
+    ownerId: `${platform}-owner-${suffix}`,
+    idempotencyKey: command.idempotencyKey,
+    requestContentSha256: 'a'.repeat(64),
+    generation: 3,
+    hostGeneration: 7,
+    fencingToken: 11,
+    platform,
+    accountReference: command.accountId
+  });
 }
 
 function inboundMessage(id, overrides = {}) {
@@ -51,28 +108,19 @@ function inboundMessage(id, overrides = {}) {
 
 test.after(() => {
   try { closeStore(); } catch (_) {}
+  try { AppRuntimeFactory.resetForTests(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
 });
 
-test('async lifecycle supersedes old generations and rejects stale completion writeback', () => {
-  const fixture = tempStore();
-  try {
-    let clock = Date.parse('2026-07-28T08:00:00.000Z');
-    const authority = new AsyncOperationLifecycleAuthority({ store: fixture.store, clock: () => clock });
-    const first = authority.create({ operationId: 'op-first', operationType: 'ai.reply.candidates', scopeKey: 'conversation-1', objectFingerprint: 'revision-1' }).operation;
-    authority.start(first.operationId);
-    clock += 1000;
-    const second = authority.create({ operationId: 'op-second', operationType: 'ai.reply.candidates', scopeKey: 'conversation-1', objectFingerprint: 'revision-2' }).operation;
-    assert.equal(authority.read(first.operationId).state, STATES.SUPERSEDED);
-    authority.start(second.operationId);
-    const stale = authority.succeed(first.operationId, { text: 'old' }, { generation: first.generation, objectFingerprint: first.objectFingerprint });
-    assert.equal(stale.updated, false);
-    assert.equal(stale.reason, 'stale-completion');
-    const current = authority.succeed(second.operationId, { text: 'current' }, { generation: second.generation, objectFingerprint: second.objectFingerprint });
-    assert.equal(current.updated, true);
-    assert.equal(current.operation.state, STATES.SUCCEEDED);
-    assert.equal(authority.latest({ operationType: 'ai.reply.candidates', scopeKey: 'conversation-1' }).operationId, 'op-second');
-  } finally { fixture.close(); }
+test('async lifecycle compatibility facade exposes no retired SQL writer constructor', () => {
+  assert.equal(typeof asyncOperationLifecycleAuthority.AsyncOperationLifecycleAuthority, 'undefined');
+  assert.equal(typeof asyncOperationLifecycleAuthority.recoverDurableExecutions, 'function');
+  assert.equal(asyncOperationLifecycleAuthority.STATES.SUPERSEDED, 'SUPERSEDED');
+  assert.equal(asyncOperationLifecycleAuthority.TERMINAL.has('SUPERSEDED'), true);
 });
 
 test('delivery authority separates text, emoji and media capability truth by real platform ACK', async () => {
@@ -100,15 +148,18 @@ test('delivery authority separates text, emoji and media capability truth by rea
 
     const facade = new PlatformAdapterFacade('facebook', {
       deliveryAuthority: delivery,
-      operationLifecycle: new AsyncOperationLifecycleAuthority({ store: fixture.store }),
       egressAuthorizer: async () => ({ authorized: true, queueId: 'text-2' }),
       egressHandler: async () => ({ success: true, platformMessageId: 'fb-mid-text-2', requestId: 'provider-request-2' })
     });
-    const result = await facade.egress.execute({
+    const command = {
       commandType: 'OutboxCommand', commandId: 'text-2', outboxId: 'text-2', idempotencyKey: 'idem-text-2',
       platform: 'facebook', accountId: 'page-1', sessionKey: 'page-1:peer', conversationTarget: 'peer',
       operation: 'text', finalText: 'Guten Morgen', finalTextSha256: 'x', contentFrozen: true
-    });
+    };
+    const result = await facade.egress.execute(
+      command,
+      persistedEgressAttempt('facebook', command, 'delivery')
+    );
     assert.equal(result.deliveryCapabilityId, 'message.text.send');
     assert.ok(result.deliveryAckObservationId);
 
@@ -163,54 +214,41 @@ test('successful inbound commit hydrates canonical identity and account route fr
   await assert.rejects(() => accountRepository.bindConversation('nonexistent-shell', 'page-batch21', 'facebook'), error => error.code === 'CONVERSATION_BINDING_REQUIRES_PERSISTED_CONVERSATION');
 });
 
-test('OpenRouter dual-model smoke writes one durable lifecycle and applies routes only after 2/2 real-call results', async () => {
-  const fixture = tempStore('yance-batch21-openrouter-');
-  try {
-    const lifecycle = new AsyncOperationLifecycleAuthority({ store: fixture.store });
-    const smoke = require('../services/openRouterOnboardingSmokeService');
-    const state = {
-      models: [
-        { id: 'or-primary', name: 'provider/model-primary', source: 'openrouter-auto', available: true },
-        { id: 'or-fallback', name: 'provider/model-fallback', source: 'openrouter-auto', available: true }
-      ],
-      openRouter: { keyFingerprint: 'sha256:test-key' }
-    };
-    let routesApplied = 0;
-    const recordedTests = [];
-    const registry = {
-      read: () => state,
-      async recordInvocation() {}, async recordReplyBrainBenchmark() {}, async recordCommercialBenchmark() {},
-      async recordTest(modelId, result) { recordedTests.push({ modelId, result }); }, async recordOpenRouterOnboardingSmoke() {}, async recordInvocationFailure() {},
-      async applyOpenRouterConditionalRoutes(routes) { routesApplied += 1; state.routes = routes; return { routes }; }
-    };
-    const executeModel = async model => ({
-      text: JSON.stringify({
-        director: { goal: '自然回应', strategy: '轻松推进', avoid: ['虚构事实'] },
-        candidates: [
-          { text: 'Hallo, schön von dir zu hören. Wie war dein Tag?', translationZh: '你好，很高兴收到你的消息。你今天过得怎么样？', direction: '自然' },
-          { text: 'Nur ein Hallo? Jetzt bin ich neugierig auf dich.', translationZh: '只有一句你好？现在我对你有点好奇了。', direction: '俏皮' },
-          { text: 'Hallo. Erzähl mir etwas, das dich heute zum Lächeln gebracht hat.', translationZh: '你好。告诉我一件今天让你微笑的事吧。', direction: '推进' }
-        ],
-        translationZh: '你好', fabricatedFacts: []
-      }),
-      returnedModel: model.name, totalMs: 42, firstTokenMs: 10, promptTokens: 120, outputTokens: 80, totalTokens: 200,
-      raw: { id: `request-${model.id}` }, requestMode: 'chat-completions-standard'
-    });
-    const result = await smoke.run({ registry, operationLifecycle: lifecycle, executeModel, snapshot: { selections: {} } });
-    assert.equal(result.pass, true);
-    assert.equal(result.results.length, 2);
-    assert.equal(routesApplied, 1);
-    assert.equal(recordedTests.length, 2);
-    assert.ok(recordedTests.every(row => row.result.allowedTasks.includes('translation')));
-    assert.equal(result.routes.translation.primary, 'or-primary');
-    assert.equal(result.routes.translation.fallback, 'or-fallback');
-    assert.equal(result.routes.translation.allowConditional, true);
-    assert.equal(result.routes.translation.humanReviewRequired, true);
-    const operation = lifecycle.read(result.operationId);
-    assert.equal(operation.state, STATES.SUCCEEDED);
-    assert.equal(operation.result.passed, 2);
-    assert.equal(operation.result.total, 2);
-  } finally { fixture.close(); }
+test('OpenRouter logical smoke records real chat-completion receipt without old async lifecycle', async () => {
+  const smoke = require('../services/openRouterOnboardingSmokeService');
+  const state = {
+    models: [
+      { id: 'or-primary', name: 'provider/model-primary', source: 'openrouter-auto', available: true },
+      { id: 'or-fallback', name: 'provider/model-fallback', source: 'openrouter-auto', available: true }
+    ],
+    openRouter: { keyFingerprint: 'sha256:test-key' }
+  };
+  const smokeRecords = [];
+  let snapshot = null;
+  const registry = {
+    read: () => state,
+    async recordOpenRouterOnboardingSmoke(modelId, receipt) { smokeRecords.push({ modelId, receipt }); },
+    async recordOpenRouterSnapshot(input) { snapshot = input; }
+  };
+  const calls = [];
+  const aiGateway = {
+    async execute(input) {
+      calls.push(input);
+      return {
+        text: 'YANCE_MODEL_BRAIN_OK',
+        evidence: { selectedModel: input.modelId, requestId: `request-${input.modelId}`, provider: 'openrouter' }
+      };
+    }
+  };
+  const result = await smoke.run({ registry, aiGateway, snapshot: { selections: {} } });
+  assert.equal(result.pass, true);
+  assert.equal(result.passedModelId, 'or-primary');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].task, 'probe');
+  assert.equal(smokeRecords.length, 1);
+  assert.equal(smokeRecords[0].receipt.requestId, 'request-or-primary');
+  assert.equal(snapshot.logicalModelBrainSmoke, true);
+  assert.equal(snapshot.qualificationStatus, 'pending');
 });
 
 

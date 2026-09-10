@@ -67,8 +67,7 @@ const PROJECTION_MAX_ATTEMPTS = 5;
 
 function projectionAuthorityForStore(store) {
   try {
-    const runtimeAuthority = currentRuntimeInternalOperationAuthority();
-    if (runtimeAuthority.store().db === store.db) return runtimeAuthority;
+    if (store === getStore()) return currentRuntimeInternalOperationAuthority();
   } catch (_) {}
   const capability = store?.authorityWriteHostCapability;
   if (!capability || typeof capability.tokenSnapshot !== 'function') {
@@ -466,7 +465,6 @@ function inboundIdentityScope(message = {}) {
 }
 
 async function upsert(input) {
-  const requestedBackgroundJobs = Array.isArray(input?.backgroundJobs) ? input.backgroundJobs.filter(Boolean) : [];
   const projectionReplayEventId = String(input?.authoritativeDomainEventId || input?.projectionReplayEventId || '').trim();
   const message = normalizeMessage(input);
   const store = getStore();
@@ -616,29 +614,6 @@ async function upsert(input) {
       // by a process crash between commit and finalizeObservation().
       if (identityObservation) identityDomainEventOutbox.enqueue(identityObservation, null, store);
       saved = store.getMessage(message.id) || message;
-
-      // Durable follow-up work must be committed with the authoritative
-      // message projection. This closes the crash window between message
-      // commit and an in-memory debounce/setImmediate callback.
-      const durableJobs = [...requestedBackgroundJobs];
-      if (messageSpeakerAuthority.isPeerInbound(saved)) {
-        const entityId = String(saved.externalMessageId || saved.id || '').trim();
-        if (entityId) {
-          durableJobs.push({
-            jobType: 'ai-conversation-analysis',
-            platform: String(saved.platform || '').trim().toLowerCase(),
-            sourceAccountId: String(saved.sourceAccountId || saved.accountId || '').trim(),
-            conversationId: String(saved.conversationId || saved.sessionKey || '').trim(),
-            entityId,
-            revision: entityId,
-            maxAttempts: 20,
-            payload: { conversationId: String(saved.conversationId || saved.sessionKey || '').trim(), messageId: entityId }
-          });
-        }
-      }
-      for (const job of durableJobs) {
-        enqueueDurableInternalJobWithinTransaction(job, store);
-      }
 
       if (authoritativeDomainEvent?.event?.eventId) {
         const eventProjection = projectDomainEvent(authoritativeDomainEvent.event);

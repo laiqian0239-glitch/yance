@@ -2,10 +2,15 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 const routing = require('../services/modelRoutingIntegrityService');
 const quality = require('../services/aiQualityRouteAuthority');
 const { AiGateway } = require('../services/aiGateway');
+const { DurableInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
 
 function replyModel(id, score, extra = {}) {
   const evidence = {
@@ -50,18 +55,33 @@ function gateway(document) {
   return new AiGateway({ registry, executeModel: async () => ({ text: 'ok' }) });
 }
 
-test('formal quality plan blocks a configured model that is not the task champion', () => {
+function durableAuthorityFixture() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-champion-ai-'));
+  const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
+  let sequence = 0;
+  const authority = new DurableInternalOperationAuthority({
+    storeProvider: () => store,
+    tokenProvider: () => store.authorityWriteHostCapability.tokenSnapshot(),
+    idFactory: prefix => `${prefix}-${++sequence}`
+  });
+  return {
+    authority,
+    close() {
+      try { store.close(); } catch (_) {}
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    }
+  };
+}
+
+test('retired physical quality route authority remains fail-closed', () => {
   const champion = replyModel('plain-strongest', 98, { provider: 'anthropic', modelSlug: 'anthropic/claude-opus-5' });
   const weaker = replyModel('mistral-small-30b-weaker', 90, { provider: 'openai', modelSlug: 'openai/gpt-5.6-sol' });
-  const plan = quality.routePlan({
+  assert.throws(() => quality.routeReceipt({
     task: 'quick_reply',
     route: { primary: weaker.id, fallback: champion.id, primarySelection: 'manual' },
+    selectedModel: weaker,
     models: [weaker, champion]
-  });
-  assert.equal(plan.primaryPass, false);
-  assert.equal(plan.state, quality.ROUTE_STATE.BLOCKED);
-  assert.equal(plan.violations.some(row => row.code === 'AI_REPLY_PRIMARY_NOT_CHAMPION'), true);
-  assert.equal(plan.championDecision.champion.modelId, champion.id);
+  }), error => error.code === 'MODEL_ROUTING_MANAGED_BY_LITELLM');
 });
 
 test('automatic reply route selects evidence champion instead of name and parameter heuristics', () => {
@@ -88,7 +108,7 @@ test('automatic relationship route selects local privacy model before paid cloud
   assert.equal(result.document.routes.relationship.source, 'workload-placement-authority-auto');
 });
 
-test('gateway protects champion reserve by selecting local background model', () => {
+test('gateway projection honors local-only hard eligibility for relationship work', () => {
   const local = utilityModel('local-private', 'ollama', 'relationship');
   const paid = utilityModel('paid-cloud', 'openrouter', 'relationship', { catalogMetadata: { pricing: { known: true, promptPerMillion: 1, completionPerMillion: 2 } } });
   const document = {
@@ -97,14 +117,13 @@ test('gateway protects champion reserve by selecting local background model', ()
     aiBudgetPolicy: { totalBudgetUsd: 15, championReserveUsd: 5, backgroundPaidEnabled: true },
     aiBudgetUsage: { spentUsd: 11 }
   };
-  const route = gateway(document).resolveRoute('relationship');
-  assert.equal(route.primary.id, local.id);
-  assert.equal(route.placementDecision.policy.lane, 'local-private-first');
-  assert.equal(route.budgetDecision.pass, true);
-  assert.equal(route.budgetDecision.reasonCode, 'AI_NON_PAID_WORKLOAD_ALLOWED');
+  const projection = gateway(document).projection('relationship', { constraints: { localOnly: true } });
+  assert.equal(projection.authority, 'LiteLLM v1.95.0');
+  assert.deepEqual(projection.candidates.map(row => row.id), [local.id]);
+  assert.ok(projection.tags.includes('source:local'));
 });
 
-test('gateway blocks paid-only background work when reserve is protected', () => {
+test('gateway projection blocks paid-only background work through local-only hard eligibility', () => {
   const paid = utilityModel('paid-cloud', 'openrouter', 'relationship', { catalogMetadata: { pricing: { known: true, promptPerMillion: 1, completionPerMillion: 2 } } });
   const document = {
     models: [paid],
@@ -112,13 +131,12 @@ test('gateway blocks paid-only background work when reserve is protected', () =>
     aiBudgetPolicy: { totalBudgetUsd: 15, championReserveUsd: 5, backgroundPaidEnabled: true },
     aiBudgetUsage: { spentUsd: 11 }
   };
-  const route = gateway(document).resolveRoute('relationship');
-  assert.equal(route.primary, null);
-  assert.equal(route.budgetDecision.pass, false);
-  assert.equal(route.budgetDecision.reasonCode, 'AI_BACKGROUND_PAID_BUDGET_PROTECTED');
+  const projection = gateway(document).projection('relationship', { constraints: { localOnly: true } });
+  assert.equal(projection.candidates.length, 0);
+  assert.equal(projection.hardEligibility.privacy, true);
 });
 
-test('budget protection never downgrades or blocks the formal champion reply', () => {
+test('Model Brain projection exposes verified reply deployments without Yance physical reranking', () => {
   const strongest = replyModel('strongest', 98);
   const backup = replyModel('backup', 94);
   const document = {
@@ -127,44 +145,45 @@ test('budget protection never downgrades or blocks the formal champion reply', (
     aiBudgetPolicy: { totalBudgetUsd: 15, championReserveUsd: 5, backgroundPaidEnabled: true },
     aiBudgetUsage: { spentUsd: 14.8 }
   };
-  const route = gateway(document).resolveRoute('quick_reply');
-  assert.equal(route.primary.id, strongest.id);
-  assert.equal(route.budgetDecision.pass, true);
-  assert.equal(route.budgetDecision.reasonCode, 'AI_CHAMPION_RESERVE_ALLOWED');
+  const projection = gateway(document).projection('quick_reply', { executionMode: 'production' });
+  assert.equal(projection.modelBrain, 'Model Brain');
+  assert.deepEqual(new Set(projection.candidates.map(row => row.id)), new Set([strongest.id, backup.id]));
 });
 
 test('queued background translation preserves workload profile during initial and execution route resolution', async () => {
+  const durable = durableAuthorityFixture();
+  const observedMeta = [];
+  const observedRun = [];
+  const signal = new AbortController().signal;
   const instance = new AiGateway({
     concurrency: 1,
-    registry: { read: () => ({ models: [], routes: {} }) }
+    registry: { read: () => ({ models: [], routes: {} }) },
+    internalOperationAuthorityProvider: () => durable.authority,
+    queue: {
+      add(task, meta) {
+        observedMeta.push({ ...meta });
+        return { id: meta.jobId, promise: Promise.resolve().then(() => task({ signal })) };
+      },
+      cancel: () => false,
+      status: () => ({ pending: [], running: [], completed: [] })
+    }
   });
-  const observed = [];
-  instance.resolveRoute = (_task, _modelId, options = {}) => {
-    observed.push({ ...options });
-    return {
-      primary: { id: 'local-translator', name: 'local-translator', provider: 'ollama' },
-      fallback: null,
-      emergency: null,
-      route: {},
-      task: 'translation',
-      qualityPlan: { state: 'ready' },
-      conditional: false,
-      humanReviewRequired: false
-    };
-  };
   instance._run = async ({ options }) => {
-    instance.resolveRoute('translation', '', options);
+    observedRun.push({ ...options });
     return { modelId: 'local-translator' };
   };
-  const { jobId } = instance.submit({
-    task: 'translation',
-    background: true,
-    options: { translationProfile: 'history' }
-  });
-  await instance.waitForJob(jobId);
-  assert.equal(observed.length >= 2, true);
-  assert.equal(observed[0].background, true);
-  assert.equal(observed[0].translationProfile, 'history');
-  assert.equal(observed[1].background, true);
-  assert.equal(observed[1].translationProfile, 'history');
+  try {
+    const { jobId } = instance.submit({
+      task: 'translation',
+      background: true,
+      messages: [{ role: 'user', content: 'Hallo' }],
+      options: { translationProfile: 'history' }
+    });
+    await instance.waitForJob(jobId);
+    assert.equal(observedMeta[0].background, true);
+    assert.equal(observedMeta[0].task, 'translation');
+    assert.equal(observedRun[0].translationProfile, 'history');
+  } finally {
+    durable.close();
+  }
 });
