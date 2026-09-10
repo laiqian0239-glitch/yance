@@ -15,6 +15,7 @@ async function createApi(service) {
   const app = express();
   app.use(express.json({ limit: '2mb' }));
   app.use('/api/v2/persona', createPersonaBrainRouter({
+    brain: { compileEffectiveContext() { return {}; } },
     service,
     eventBus: { publish(type, payload) { events.push({ type, payload }); } },
     systemPolicy: { assertWriteAllowed(operation) { writes.push(operation); } }
