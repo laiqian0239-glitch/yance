@@ -47,8 +47,8 @@ test('production runtime probe is a fail-closed packaged startup requirement whe
 
   assert.match(block, /YANCE_WP2_PRODUCTION_RUNTIME_PROBE/u, 'packaged startup validation must inspect the production probe enable flag');
   assert.match(block, /productionRuntimeProbe/u, 'packaged startup validation must consume /api/ready productionRuntimeProbe evidence');
-  assert.match(block, /enabled\s*===\s*true/u, 'production probe must report enabled=true');
-  assert.match(block, /executed\s*===\s*true/u, 'production probe must report executed=true');
+  assert.match(block, /enabled\s*!==\s*true/u, 'production probe must fail closed unless enabled=true');
+  assert.match(block, /executed\s*!==\s*true/u, 'production probe must fail closed unless executed=true');
 });
 
 test('legacy minimize-to-tray setting is migrated off and removed from visible settings UI', () => {
