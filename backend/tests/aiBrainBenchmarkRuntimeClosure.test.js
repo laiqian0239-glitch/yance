@@ -8,6 +8,24 @@ const path = require('node:path');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-ai-brain-runtime-closure-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `ai-brain-benchmark-runtime-closure-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
 
 const runtimePolicy = require('../services/replyBrainBenchmarkRuntimePolicy');
 const taskPolicy = require('../services/modelTaskRuntimePolicy');
@@ -46,8 +64,11 @@ function replyQualificationReceipts(modelId, evidence) {
 }
 
 test.after(() => {
-  closeR32Store();
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
 });
 
 test('benchmark runtime policy gives 5.9B and 14B different warmup and scenario budgets', () => {
@@ -139,13 +160,18 @@ test('legacy 1800 reply limits are normalized to task-specific budgets', () => {
   assert.equal(repaired.document.routes.quick_reply.maxTokens, 320);
 });
 
-test('workbench waits for long local benchmarks and explains serial warmup', () => {
-  const ui = read('frontend/js/r32-ai-workbench-runtime.js');
-  assert.match(ui, /timeoutMs:7200000/);
-  assert.match(ui, /timeoutMs:2400000/);
-  assert.match(ui, /正在串行预热并评估/);
-  assert.match(ui, /本次评估未完成，未覆盖上次成功结果/);
-  assert.match(ui, /TASK_TOKEN_LIMITS/);
+test('benchmark runtime policy owns bounded local benchmark waits', () => {
+  const large = runtimePolicy.profileForModel({ id: 'large', name: 'ministral-3:14b', provider: 'ollama', parameterSize: '14B' });
+  assert.equal(large.warmupTimeoutMs, 240000);
+  assert.equal(large.scenarioTimeoutMs, 240000);
+  assert.equal(large.baseQualificationTimeoutMs, 270000);
+  assert.equal(large.serialRequired, true);
+  assert.equal(large.warmupRequired, true);
+  assert.deepEqual(runtimePolicy.scenarioOptions(large, { id: 'director_schema' }), {
+    maxTokens: 220,
+    timeoutMs: 240000,
+    keepAlive: '45m'
+  });
 });
 
 test('local batch prevents duplicate runs, re-evaluates incomplete models and unloads between models', () => {
