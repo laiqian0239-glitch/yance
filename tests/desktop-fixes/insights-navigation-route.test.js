@@ -116,6 +116,11 @@ function createHarness() {
     innerHeight: 960,
     fetch: async () => ({ ok: true, json: async () => ({}) }),
     Event: class Event {},
+    MutationObserver: class MutationObserver {
+      observe() {}
+      disconnect() {}
+      takeRecords() { return []; }
+    },
     Blob: class Blob {},
     URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
     crypto: { randomUUID: () => 'uuid' }
