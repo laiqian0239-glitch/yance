@@ -25,7 +25,7 @@ function fixture(prefix) {
     store,
     close() {
       try { store.close(); } catch (_) {}
-      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     }
   };
 }
@@ -46,7 +46,7 @@ function job(index, overrides = {}) {
 
 test.after(() => {
   try { closeStore(); } catch (_) {}
-  fs.rmSync(dataRoot, { recursive: true, force: true });
+  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
 test('startup recovery is analysis-scoped, due-aware, and cursor-stable while jobs become terminal', () => {

@@ -101,7 +101,7 @@ test('Batch 9: runtime governance binds authorization, independent review, candi
     assert.equal(result.formalRelease, false);
     assert.ok(result.recordSha256);
     assert.ok(result.gateReceiptSha256);
-  } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('Batch 9: governance binding fails closed when runtime gate or identity is tampered', () => {
@@ -119,7 +119,7 @@ test('Batch 9: governance binding fails closed when runtime gate or identity is 
     });
     assert.equal(result.pass, false);
     assert.equal(result.reasonCode, 'SOURCE_PRE_REVIEW_RUNTIME_GATE_NOT_VERIFIED');
-  } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('Batch 9: release readiness exposes Windows UAT authorization as an independent gate', () => {
@@ -167,7 +167,7 @@ test('Batch 9: retention removes old automatic restore points but preserves manu
     assert.equal(applied.failures.length, 0);
     assert.equal(fs.existsSync(path.join(root, 'auto-old')), false);
     assert.equal(fs.existsSync(path.join(root, 'manual-old')), true);
-  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('Batch 9: WhatsApp version discovery uses exponential backoff and cached version without repeated network attempts', () => {

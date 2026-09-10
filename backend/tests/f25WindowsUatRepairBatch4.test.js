@@ -20,7 +20,7 @@ function patch(target, values) {
 function tempStore() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-batch4-'));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'store.db') });
-  return { store, close() { store.close(); fs.rmSync(root, { recursive: true, force: true }); } };
+  return { store, close() { store.close(); fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
 }
 
 test('background job snapshot uses full-table authoritative aggregates independent of display limit', () => {

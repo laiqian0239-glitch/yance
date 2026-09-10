@@ -72,5 +72,5 @@ test('domain event and projection job survive a projection failure and converge 
 
 test.after(() => {
   try { closeR32Store(); } catch (_) {}
-  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });

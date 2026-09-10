@@ -31,7 +31,7 @@ test('runtime child inherits only safe OS bootstrap environment and never provid
   } finally {
     if(previousSystemRoot===undefined)delete process.env.SystemRoot;else process.env.SystemRoot=previousSystemRoot;
     if(previousKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=previousKey;
-    fs.rmSync(dir,{recursive:true,force:true});
+    fs.rmSync(dir,{recursive:true,force:true, maxRetries: 10, retryDelay: 50});
   }
 });
 

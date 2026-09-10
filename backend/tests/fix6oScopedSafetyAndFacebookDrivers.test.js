@@ -13,7 +13,7 @@ const { RuntimeSafetySupervisor } = require('../services/runtimeSafetySupervisor
 function tempStore() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-fix6o-'));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'store.db') });
-  return { root, store, close() { store.close(); fs.rmSync(root, { recursive: true, force: true }); } };
+  return { root, store, close() { store.close(); fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
 }
 
 test('single-account authentication failure is quarantined without global safe mode', () => {

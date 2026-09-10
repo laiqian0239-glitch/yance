@@ -38,6 +38,6 @@ test('Learning runtime inventory excludes only the root runtime-seal.json', () =
     assert.equal(paths.includes('runtime-seal.json'), false);
     assert.equal(paths.includes('nested/runtime-seal.json'), true);
   } finally {
-    fs.rmSync(runtimeRoot, { recursive: true, force: true });
+    fs.rmSync(runtimeRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });

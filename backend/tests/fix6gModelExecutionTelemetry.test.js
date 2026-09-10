@@ -53,7 +53,7 @@ process.once('message', message => {
     assert.equal(receipt.correlationId, 'corr-success');
     assert.equal(receipt.terminationClass, 'completed');
     assert.equal(receipt.terminationReason, 'MODEL_EXECUTION_COMPLETED');
-  } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('started resolves only after the worker emits its execution-ready envelope', async () => {
@@ -89,7 +89,7 @@ process.once('message', message => {
     assert.equal(startReceipt.workerStarted, true);
     await handle.requestTermination(Object.assign(new Error('test complete'), { code: 'MODEL_CANCELLED', abortSource: 'caller' }));
     await assert.rejects(handle.result, error => error.code === 'MODEL_EXECUTION_TERMINATED');
-  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('non-zero worker exit preserves bounded stderr and exit classification', async () => {
@@ -110,7 +110,7 @@ process.once('message', message => {
     assert.equal(receipt.terminationReason, 'WORKER_EXIT_CODE_7');
     assert.match(receipt.stderrTail, /provider transport exploded/u);
     assert.ok(receipt.stderrTail.length <= 4096);
-  } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('caller abort is distinguishable from timeout and generic termination', async () => {
@@ -130,7 +130,7 @@ process.once('message', message => {
     assert.equal(receipt.terminationClass, 'caller-abort');
     assert.equal(receipt.terminationReason, 'MODEL_CANCELLED');
     assert.equal(receipt.workerStarted, true);
-  } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('result envelope loss is reported separately from worker failure', async () => {
@@ -146,7 +146,7 @@ process.once('message', message => {
     assert.equal(receipt.terminationClass, 'result-envelope-lost');
     assert.equal(receipt.terminationReason, 'WORKER_EXITED_WITHOUT_RESULT');
     assert.equal(receipt.lastWorkerMessageType, 'started');
-  } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('explicit timeout termination is classified and records the request source', async () => {
@@ -164,7 +164,7 @@ process.once('message', message => {
     assert.equal(receipt.abortSource, 'deadline');
     assert.equal(receipt.terminationClass, 'timeout');
     assert.equal(receipt.terminationReason, 'AI_EXECUTION_TIMEOUT');
-  } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
+  } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('system diagnostics exposes recent privacy-safe model execution evidence', () => {

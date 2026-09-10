@@ -44,7 +44,7 @@ test('A8 primary store singleton has no process-local constructor fallback', () 
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
     assert.equal(fs.existsSync(path.join(dataRoot, 'store', 'yance-r32.db')), false);
   } finally {
-    fs.rmSync(dataRoot, { recursive: true, force: true });
+    fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

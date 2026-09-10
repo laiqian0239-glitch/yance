@@ -22,7 +22,7 @@ test('FIX6D typography audit rejects dynamic font-size writes and unknown semant
   const fs = require('node:fs');
   const os = require('node:os');
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fix6d-typography-audit-'));
-  t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   const frontend = path.join(tempRoot, 'frontend');
   fs.mkdirSync(frontend, { recursive: true });
   fs.writeFileSync(path.join(frontend, 'probe.css'), '.probe{font-size:var(--type-unknown)}\n');
@@ -36,7 +36,7 @@ test('FIX6D typography audit covers the shipping Element module', t => {
   const fs = require('node:fs');
   const os = require('node:os');
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fix6d-element-typography-audit-'));
-  t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   const elementSrc = path.join(tempRoot, 'integration', 'element-module', 'src');
   fs.mkdirSync(elementSrc, { recursive: true });
   fs.writeFileSync(path.join(elementSrc, 'probe.css'), '.probe{font-size:13px}\n');

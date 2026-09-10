@@ -15,7 +15,7 @@ function tempDb() {
   return { root, dbPath: path.join(root, 'yance-r32.db') };
 }
 
-function cleanup(root) { fs.rmSync(root, { recursive: true, force: true }); }
+function cleanup(root) { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 
 const childProgram = String.raw`
 'use strict';

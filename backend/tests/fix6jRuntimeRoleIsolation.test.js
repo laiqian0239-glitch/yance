@@ -32,7 +32,7 @@ function runWorkerStorageProbe(name, source) {
       timeout: 10000
     });
   } finally {
-    fs.rmSync(dataRoot, { recursive: true, force: true });
+    fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 }
 

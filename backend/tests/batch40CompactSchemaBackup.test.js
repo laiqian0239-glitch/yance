@@ -19,7 +19,7 @@ test('schema adoption backup uses a bounded filename instead of embedding migrat
   let store;
   t.after(() => {
     if (store) store.close();
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   });
 
   store = new R32SqliteStore({ dbPath });

@@ -92,7 +92,7 @@ test('startup capsule persists its structured failure reason before nonzero exit
     assert.equal(typeof failure.details, 'object');
     assert.ok(Number.isFinite(Date.parse(String(failure.generatedAtUtc || ''))), 'failure telemetry must carry a parseable UTC timestamp');
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -134,7 +134,7 @@ test('startup capsule verifier consumes canonical production diagnostics for ser
     const result = isolated.exports.__verifyStartupDiagnostics(root, startedAtMs);
     assert.equal(result.recordCount, 2, 'canonical production diagnostics and server readiness records must both participate in startup proof');
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -202,6 +202,6 @@ test('startup capsule preserves fixture child logs in helper-owned failure diagn
     assert.equal(fs.readFileSync(preserved, 'utf8'), record, 'fixture child log bytes must be preserved in helper-owned diagnostics');
     assert.equal(fs.readFileSync(path.join(logsRoot, 'desktop-bootstrap.jsonl'), 'utf8'), record, 'diagnostic preservation must not mutate the source fixture');
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });

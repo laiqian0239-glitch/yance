@@ -12,7 +12,7 @@ process.env.YANCE_DATA_DIR = dataRoot;
 const registry = require('../services/modelRegistry');
 
 test.after(() => {
-  fs.rmSync(dataRoot, { recursive: true, force: true });
+  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
 test('a Retry-After cooldown is persisted immediately even before the circuit failure threshold', async () => {

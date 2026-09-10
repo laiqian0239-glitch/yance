@@ -113,7 +113,7 @@ test('tracked Git LFS blobs require verified materialized worktree bytes before 
   const ordinaryBlob = Buffer.from('ordinary-git-blob\n', 'utf8');
   fs.writeFileSync(worktreePath, Buffer.from('worktree-does-not-authorize-ordinary-blob\n', 'utf8'));
   assert.deepEqual(resolveTrackedPayloadData(repo, entry, ordinaryBlob), ordinaryBlob);
-  fs.rmSync(tempRoot, { recursive: true, force: true });
+  fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
 test('round12/13 generated command and PowerShell files are ASCII CRLF', () => {
@@ -146,7 +146,7 @@ test('round12/13 identity-bound payload contains exactly one delivery checkpoint
   const names = listZipEntryNames(payloadPath);
   assert.equal(names.filter(name => name === 'YANCE_SOURCE_CHECKPOINT.json').length, 1);
   assert.equal(new Set(names).size, names.length);
-  fs.rmSync(tempRoot, { recursive: true, force: true });
+  fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
 test('round12/13 payload includes every tracked file even when export-ignore is set', () => {
@@ -166,5 +166,5 @@ test('round12/13 payload includes every tracked file even when export-ignore is 
   createIdentityBoundArchive(repo, payloadPath, '{"commit":"delivery"}\n');
   const names = listZipEntryNames(payloadPath);
   assert.deepEqual(names.sort(), ['.gitattributes', 'YANCE_SOURCE_CHECKPOINT.json', 'app.txt', 'hidden.ps1'].sort());
-  fs.rmSync(tempRoot, { recursive: true, force: true });
+  fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });

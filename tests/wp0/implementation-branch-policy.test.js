@@ -1007,7 +1007,7 @@ test('generic delegated authority verifies a real two-parent Git introduction an
     assert.equal(rejected.reasonCode, 'WP0_DELEGATED_GOVERNANCE_SCOPE_DENIED');
     assert.deepEqual(rejected.unauthorizedPaths, ['shared/release/unreviewed-authority.js']);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -1084,7 +1084,7 @@ test('authorization proposal transport rejects a rename disguised as a single de
     });
     assert.equal(result.pass, false, JSON.stringify(result));
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -1192,7 +1192,7 @@ test('root AGENTS protocol document transport is exact, regular and never grants
     const unrelated = evaluate(unrelatedBranch, base, unrelatedHead);
     assert.equal(unrelated.pass, false, 'root protocol transport must not widen arbitrary branch admission');
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -1327,7 +1327,7 @@ test('generic delegated authority scopes implementation from the unique current 
     assert.equal(rejected.reasonCode, 'WP0_DELEGATED_GOVERNANCE_SCOPE_DENIED');
     assert.deepEqual(rejected.unauthorizedPaths, ['shared/release/unreviewed-authority.js']);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -1440,7 +1440,7 @@ test('delegated authorization with invalid supersession declaration fails with s
     assert.equal(invalidResult.reasonCode, 'WP0_DELEGATED_GOVERNANCE_SUPERSESSION_INVALID');
     assert.equal(invalidResult.authorizationPath, invalidAuthorizationPath);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -1619,7 +1619,7 @@ test('later effective delegated authorization supersedes the exact earlier imple
       v1AuthorizationPath
     ]);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -1853,7 +1853,7 @@ test('delegated forward continuation requires the exact frozen predecessor two-p
       JSON.stringify(reversed)
     );
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

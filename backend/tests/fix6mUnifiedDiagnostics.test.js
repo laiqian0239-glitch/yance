@@ -15,7 +15,7 @@ function fixture() {
   let id = 0; const idFactory = prefix => `${prefix}-${++id}`;
   const gate = new ArchitectureShadowGate({ storeProvider: () => store, idFactory, clock: () => '2026-08-01T10:00:00.000Z' });
   const diagnostics = new Fix6MArchitectureDiagnostics({ storeProvider: () => store, shadowGate: gate, clock: () => new Date('2026-08-01T10:00:00.000Z') });
-  return { root, store, gate, diagnostics, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true }); } };
+  return { root, store, gate, diagnostics, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
 }
 
 test('authority warning/failure cannot be overwritten by a local UI all-green result', () => {

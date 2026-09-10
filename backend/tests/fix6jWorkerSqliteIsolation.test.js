@@ -20,7 +20,7 @@ getR32Store();
 
 test.after(() => {
   try { closeR32Store(); } catch (_) {}
-  fs.rmSync(dataRoot, { recursive: true, force: true });
+  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
 test('production worker reaches protocol readiness while the parent owns SQLite', async () => {

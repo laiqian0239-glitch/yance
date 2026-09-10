@@ -36,7 +36,7 @@ function withTemporaryDirectory(fn) {
   try {
     return fn(root);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 }
 

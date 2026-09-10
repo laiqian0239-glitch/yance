@@ -25,7 +25,7 @@ function fixture(prefix = 'yance-b24-') {
     store,
     close() {
       try { store.close(); } catch (_) {}
-      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     }
   };
 }
@@ -107,7 +107,7 @@ test('Boot Phase 0 rejects restore after the broker-owned SQLite handle is open 
     );
   } finally {
     brokerModule.resetSqliteConnectionBrokerForTests();
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
   }
 });
@@ -139,7 +139,7 @@ test('Electron settings worker rejects the broker-owned primary SQLite database'
     assert.equal(allowed.status, 0);
     assert.equal(allowedBody.written, true);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -406,7 +406,7 @@ test('a second OS process cannot open the broker-owned primary SQLite database',
     assert.match(result.stdout, /SQLITE_(OWNERSHIP_CONFLICT|SECOND_WRITE_OWNER_REJECTED)/);
   } finally {
     owner.close();
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

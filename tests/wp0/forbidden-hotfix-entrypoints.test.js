@@ -109,7 +109,7 @@ test('local build package and release commands are guarded by executable WP0 gat
       assert.equal(result.workPackageScope.effectiveBranch, FIXTURE_BRANCH);
     }
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -144,7 +144,7 @@ test('reviewed provenance evidence is not interpreted as an executable legacy re
     assert.equal(provenance?.classification, 'SUPPLY_CHAIN_EVIDENCE');
     assert.equal(scan.violationCount, 0, JSON.stringify(scan.violations));
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -158,7 +158,7 @@ test('a case-variant evidence path remains active and fails closed', () => {
     assert.equal(scan.violations[0]?.reasonCode, 'WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM');
     assert.equal(scan.violations[0]?.file, relativePath);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -172,7 +172,7 @@ test('an unknown future third-party file remains active and fails closed on a le
     assert.equal(scan.violations[0]?.reasonCode, 'WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM');
     assert.equal(scan.violations[0]?.file, relativePath);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -185,7 +185,7 @@ test('the reviewed provenance token remains forbidden under an active tools path
     assert.equal(scan.violations[0]?.reasonCode, 'WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM');
     assert.equal(scan.violations[0]?.file, relativePath);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -205,7 +205,7 @@ test('reviewed WP7 binding inventory does not interpret the Letta postinstall pa
     assert.equal(binding?.classification, 'SUPPLY_CHAIN_EVIDENCE');
     assert.equal(scan.violationCount, 0, JSON.stringify(scan.violations));
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -219,7 +219,7 @@ test('an unknown future release binding remains active and fails closed on the e
     assert.equal(scan.violations[0]?.reasonCode, 'WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM');
     assert.equal(scan.violations[0]?.file, relativePath);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -233,7 +233,7 @@ test('the exact Letta postinstall patch token remains forbidden under an active 
     assert.equal(scan.violations[0]?.reasonCode, 'WP0_FORBIDDEN_LEGACY_RELEASE_MECHANISM');
     assert.equal(scan.violations[0]?.file, relativePath);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -260,7 +260,7 @@ test('historical audit delivery is classified by policy as reference-only', () =
     const scanned = result.details.scannedFiles.find((item) => item.path === 'INDEPENDENT_AUDIT_DELIVERY/FULL_SOURCE_FILE_MANIFEST.json');
     assert.equal(scanned?.classification, 'REFERENCE_ONLY_AUDIT_DELIVERY');
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -278,7 +278,7 @@ test('the same rejected-stage text remains forbidden in active tools', () => {
     assert.equal(result.reasonCode, 'WP0_FORBIDDEN_HOTFIX_ENTRYPOINT');
     assert.equal(result.details.violations[0]?.file, 'tools/release/release-plan.json');
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

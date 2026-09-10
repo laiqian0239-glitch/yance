@@ -21,7 +21,7 @@ function fixture() {
 
 test('verified snapshot binds canonical source identity, target bytes, and atomic manifest', t => {
   const value = fixture();
-  t.after(() => fs.rmSync(value.root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   const result = createVerifiedSnapshot({
     dbPath: value.dbPath,
     migrationId: 'migration-40',
@@ -45,7 +45,7 @@ test('verified snapshot binds canonical source identity, target bytes, and atomi
 
 test('temporary manifest publication names stay within the Windows path budget', t => {
   const value = fixture();
-  t.after(() => fs.rmSync(value.root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   const original = fs.openSync;
   let temporaryManifest = '';
   fs.openSync = (file, flags, ...args) => {
@@ -69,7 +69,7 @@ test('temporary manifest publication names stay within the Windows path budget',
 
 test('Windows directory fsync EPERM does not invalidate an otherwise durable snapshot', t => {
   const value = fixture();
-  t.after(() => fs.rmSync(value.root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   const original = fs.fsyncSync;
   let calls = 0;
   fs.fsyncSync = descriptor => {
@@ -94,7 +94,7 @@ test('Windows directory fsync EPERM does not invalidate an otherwise durable sna
 
 test('Windows snapshot file fsync uses a writable descriptor', t => {
   const value = fixture();
-  t.after(() => fs.rmSync(value.root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   const originalOpen = fs.openSync;
   const originalClose = fs.closeSync;
   const originalFsync = fs.fsyncSync;
@@ -147,7 +147,7 @@ test('Windows snapshot file fsync uses a writable descriptor', t => {
 
 test('Windows file fsync EPERM remains fail-closed', t => {
   const value = fixture();
-  t.after(() => fs.rmSync(value.root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   const original = fs.fsyncSync;
   fs.fsyncSync = () => {
     throw Object.assign(new Error('file fsync failed'), { code: 'EPERM' });
@@ -167,7 +167,7 @@ test('Windows file fsync EPERM remains fail-closed', t => {
 
 test('Windows directory fsync errors other than EPERM remain fail-closed', t => {
   const value = fixture();
-  t.after(() => fs.rmSync(value.root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   const original = fs.fsyncSync;
   let calls = 0;
   fs.fsyncSync = descriptor => {
@@ -191,7 +191,7 @@ test('Windows directory fsync errors other than EPERM remain fail-closed', t => 
 test('source replacement and corrupted target abort before publishing a manifest', t => {
   for (const fault of ['source-replaced', 'target-corrupted']) {
     const value = fixture();
-    t.after(() => fs.rmSync(value.root, { recursive: true, force: true }));
+    t.after(() => fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
     const original = fs.copyFileSync;
     fs.copyFileSync = (source, target, ...args) => {
       original(source, target, ...args);
@@ -220,7 +220,7 @@ test('source replacement and corrupted target abort before publishing a manifest
 
 test('manifest rename failure is fail-closed and leaves no published authority', t => {
   const value = fixture();
-  t.after(() => fs.rmSync(value.root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   const original = fs.renameSync;
   fs.renameSync = () => { throw Object.assign(new Error('rename unavailable'), { code: 'EACCES' }); };
   try {
@@ -242,7 +242,7 @@ test('a busy or incomplete WAL checkpoint is rejected even when SQLite does not 
   const dbPath = path.join(storeRoot, 'live.sqlite');
   fs.mkdirSync(storeRoot, { recursive: true });
   fs.writeFileSync(dbPath, Buffer.from('sqlite-with-busy-wal'));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   const db = {
     prepare(sql) {
       if (sql === 'PRAGMA database_list') return { all: () => [{ name: 'main', file: dbPath }] };
@@ -275,7 +275,7 @@ test('a failed WAL checkpoint aborts before a migration snapshot is published', 
   const dbPath = path.join(storeRoot, 'live.sqlite');
   fs.mkdirSync(storeRoot, { recursive: true });
   fs.writeFileSync(dbPath, Buffer.from('sqlite-with-uncheckpointed-wal'));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
 
   const db = {
     prepare(sql) {
@@ -341,7 +341,7 @@ test('all VACUUM migration snapshots use a bounded collision-safe filename', t =
     ['self-check', createSelfCheckSnapshot]
   ]) {
     const value = vacuumFixture(`yance-b40-${name}-path-budget-`);
-    t.after(() => fs.rmSync(value.root, { recursive: true, force: true }));
+    t.after(() => fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
     const result = createSnapshot(value.db);
     assert.equal(result.created, true);
     assert.ok(path.basename(result.path).length <= 72,

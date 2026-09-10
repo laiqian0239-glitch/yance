@@ -12,7 +12,7 @@ test('command runner streams output, writes UTF-8 evidence, and emits terminal-o
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-b40-heartbeat-runner-'));
   const child = path.join(root, 'child.js');
   const log = path.join(root, 'evidence', 'child.log');
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }));
   fs.writeFileSync(child, [
     "process.stdout.write('current-test: alpha\\n');",
     "setTimeout(() => process.stdout.write('done\\n'), 140);"

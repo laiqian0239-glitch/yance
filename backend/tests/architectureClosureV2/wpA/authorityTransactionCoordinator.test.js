@@ -83,7 +83,7 @@ function createHarness(options = {}) {
     close() {
       try { broker.close(); } catch (_) {}
       try { host.close(); } catch (_) {}
-      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     }
   };
 }

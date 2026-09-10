@@ -17,7 +17,7 @@ function withLegacyVaultFile() {
   const file = path.join(root, 'secure', 'credentials.safe.json');
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, '{}\n', 'utf8');
-  return { root, file, close: () => fs.rmSync(root, { recursive: true, force: true }) };
+  return { root, file, close: () => fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }) };
 }
 
 test('per-ref recovery replaces a matching unreadable destination without one bad ref poisoning the scan', async () => {

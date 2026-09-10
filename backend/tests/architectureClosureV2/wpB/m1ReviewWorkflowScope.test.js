@@ -39,7 +39,7 @@ function withDetachedWorktree(ref, callback) {
     try {
       execFileSync('git', ['worktree', 'remove', '--force', worktree], { cwd: REPO_ROOT, stdio: 'ignore' });
     } finally {
-      fs.rmSync(parent, { recursive: true, force: true });
+      fs.rmSync(parent, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     }
   }
 }

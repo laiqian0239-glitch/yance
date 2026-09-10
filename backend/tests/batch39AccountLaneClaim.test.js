@@ -22,7 +22,7 @@ function fixture(prefix) {
     store,
     close() {
       try { store.close(); } catch (_) {}
-      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
     }
   };
 }
@@ -109,7 +109,7 @@ function makeUnknown(store, scope, id, unknownScope = 'account') {
 }
 
 test.after(() => {
-  fs.rmSync(dataRoot, { recursive: true, force: true });
+  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 });
 
 test('account-scoped unknown atomically skips only its platform/account lane', () => {

@@ -85,7 +85,7 @@ function generateBindingInIsolatedRepo() {
 
     return JSON.parse(fs.readFileSync(path.join(sandboxRoot, 'release', 'production-dependency-binding.json'), 'utf8'));
   } finally {
-    fs.rmSync(sandboxRoot, { recursive: true, force: true });
+    fs.rmSync(sandboxRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 }
 

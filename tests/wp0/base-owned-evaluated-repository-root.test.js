@@ -47,7 +47,7 @@ test('base-owned WP0 split-root caller binds candidate identity and preserves ex
     else delete require.cache[policyModulePath];
     if (previousWp0Lib) require.cache[wp0LibPath] = previousWp0Lib;
     else delete require.cache[wp0LibPath];
-    fs.rmSync(candidateRoot, { recursive: true, force: true });
+    fs.rmSync(candidateRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   });
 
   process.env.YANCE_EVALUATED_REPOSITORY_ROOT = candidateRoot;

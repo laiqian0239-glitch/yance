@@ -24,7 +24,7 @@ const { shouldCancelAiForAccountState } = require('../core/projections/storeProj
 function fixture(prefix = 'yance-b22-') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  return { root, store, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true }); } };
+  return { root, store, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
 }
 
 function seedScope(store) {

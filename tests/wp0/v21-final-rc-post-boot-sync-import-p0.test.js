@@ -103,7 +103,7 @@ test('existing-data legacy discovery excludes Yance-owned migration snapshots wi
       'Yance-owned migration-backups SQLite snapshots must never be rediscovered as fresh legacy import sources'
     );
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -130,8 +130,8 @@ test('completed SQLite migration identity is stable when the same existing-data 
       'SQLite migration completion identity must be content-stable across an isolated-root copy; absolute fixture location cannot manufacture a new migration source identity'
     );
   } finally {
-    fs.rmSync(sourceRoot, { recursive: true, force: true });
-    fs.rmSync(isolatedRoot, { recursive: true, force: true });
+    fs.rmSync(sourceRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    fs.rmSync(isolatedRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -153,8 +153,8 @@ test('completed legacy JSON migration identity is stable across the same isolate
       'legacy JSON completion identity must not change solely because the existing-data root was copied to an isolated UAT location'
     );
   } finally {
-    fs.rmSync(sourceRoot, { recursive: true, force: true });
-    fs.rmSync(isolatedRoot, { recursive: true, force: true });
+    fs.rmSync(sourceRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    fs.rmSync(isolatedRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -175,7 +175,7 @@ test('a relocated SQLite copy honors its historical path-bound completion receip
       sourceFingerprint: historicalFingerprint,
       status: 'completed'
     };
-    fs.rmSync(sourceRoot, { recursive: true, force: true });
+    fs.rmSync(sourceRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 
     let reimportAttempted = false;
     const store = {
@@ -204,8 +204,8 @@ test('a relocated SQLite copy honors its historical path-bound completion receip
     assert.equal(report?.mode, 'already-imported');
     assert.equal(report?.previousRunId, historicalReceipt.id);
   } finally {
-    fs.rmSync(sourceRoot, { recursive: true, force: true });
-    fs.rmSync(isolatedRoot, { recursive: true, force: true });
+    fs.rmSync(sourceRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    fs.rmSync(isolatedRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 

@@ -261,7 +261,7 @@ test('Batch40 FIX6D Windows acceptance manifest encodes every exact automated ga
   });
   assert.equal(verifyAcceptanceSourceBinding({ sourceArchive: identityArchive, identity }).ok, true);
   assert.throws(() => verifyAcceptanceSourceBinding({ sourceArchive: identityArchive, identity: { ...identity, tree: '0'.repeat(40) } }), /tree mismatch/);
-  fs.rmSync(identityRoot, { recursive: true, force: true });
+  fs.rmSync(identityRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
 
   assert.deepEqual(parseBackendRun(backendLog([
     { file: 'tests/a.test.js', tests: 2 },
@@ -397,7 +397,7 @@ test('one-click launcher binds the candidate SHA, runs all exact gates, and reco
       /(?:Acceptance package exact automated gates mismatch|Batch40 focused test count 66 does not equal required 65)/
     );
   } finally {
-    fs.rmSync(files.root, { recursive: true, force: true });
+    fs.rmSync(files.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
 
@@ -411,6 +411,6 @@ test('acceptance package staging falls back to the writable output directory', (
     assert.equal(path.dirname(staging), outputRoot);
     assert.equal(fs.statSync(staging).isDirectory(), true);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 });
