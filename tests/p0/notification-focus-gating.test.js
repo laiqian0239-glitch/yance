@@ -3,7 +3,46 @@
 // Verifies that the active-conversation suppression only fires when the
 // window is focused, and that `focused` is accepted + persisted by update().
 const assert = require('node:assert');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-p0-notification-focus-'));
+process.env.YANCE_DATA_DIR = dataRoot;
+process.env.WORKBUDDY_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../../backend/services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../../backend/lib/sqliteConnectionBroker');
+const { closeR32Store } = require('../../backend/lib/r32StoreSingleton');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `p0-notification-focus-${process.pid}`
+});
+
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+
 const np = require('../../backend/services/notificationPolicy.js');
+
+function cleanup() {
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
+  try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.WORKBUDDY_DATA_DIR;
+  delete process.env.YANCE_DATA_DIR;
+}
 
 let passed = 0;
 function check(name, fn) {
@@ -59,9 +98,11 @@ function check(name, fn) {
   await np.update({ activeConversationId: '', focused: false });
 
   console.log('\nPhase 3a backend focus-gating: ' + passed + '/' + passed + ' passed');
+  cleanup();
   process.exit(0);
 })().catch(err => {
   console.error('\nPhase 3a backend focus-gating FAILED:');
   console.error(err && err.stack ? err.stack : err);
+  cleanup();
   process.exit(1);
 });
