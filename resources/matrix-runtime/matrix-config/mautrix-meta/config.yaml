@@ -1,0 +1,42 @@
+homeserver:
+  address: http://synapse:8008
+  domain: yance.local
+  software: standard
+appservice:
+  address: http://mautrix-meta:29319
+  hostname: 0.0.0.0
+  port: 29319
+  id: yance-mautrix-meta
+  bot:
+    username: yance_meta_bot
+    displayname: Yance Meta Bridge
+  username_template: meta_{{.}}
+database:
+  type: sqlite3-fk-wal
+  uri: /data/mautrix-meta.db
+bridge:
+  command_prefix: '!meta'
+  unknown_error_auto_reconnect: 5m
+  unknown_error_max_auto_reconnects: 10
+  permissions:
+    '*': relay
+    'yance.local': user
+provisioning:
+  # Fail closed in the committed template. The same runtime secret consumed by
+  # Yance is injected through YANCE_MAUTRIX_META_PROVISIONING__SHARED_SECRET.
+  shared_secret: disable
+  allow_matrix_auth: false
+  debug_endpoints: false
+  enable_session_transfers: false
+  fail_on_webauthn: false
+mode: messenger-lite
+allowed_modes:
+  - messenger-lite
+thread_backfill:
+  batch_count: -1
+  batch_delay: 2s
+cache_connection_state: true
+send_presence_on_typing: true
+env_config_prefix: YANCE_MAUTRIX_META_
+logging:
+  min_level: info

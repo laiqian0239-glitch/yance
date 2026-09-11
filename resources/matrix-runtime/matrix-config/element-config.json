@@ -1,0 +1,24 @@
+{
+  "brand": "Yance",
+  "default_server_config": {
+    "m.homeserver": {
+      "base_url": "http://127.0.0.1:8008",
+      "server_name": "yance.local"
+    }
+  },
+  "disable_custom_urls": true,
+  "disable_guests": true,
+  "embedded_pages": {
+    "login_for_welcome": true
+  },
+  "setting_defaults": {
+    "language": "zh-hans",
+    "UIFeature.registration": false,
+    "notificationsEnabled": false,
+    "audioNotificationsEnabled": false
+  },
+  "disable_login_language_selector": true,
+  "element_call": {
+    "disable": true
+  }
+}

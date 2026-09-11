@@ -40,14 +40,23 @@ function isTrustedMainFrameIpcEvent(event, options = {}) {
 
 function installR32WindowSecurity(options = {}) {
   const app = options.app;
-  if (!app || app.__r32WindowSecurityInstalled) return false;
+  if (!app || app.__r32WindowSecurityInstalled) return { installed: false, updateNavigationOrigins: () => {} };
   app.__r32WindowSecurityInstalled = true;
 
-  const navigationOrigins = new Set((options.allowedNavigationOrigins || []).map(normalizeOrigin).filter(Boolean));
+  let navigationOrigins = new Set((options.allowedNavigationOrigins || []).map(normalizeOrigin).filter(Boolean));
   const webviewOrigins = new Set((options.allowedWebviewOrigins || []).map(normalizeOrigin).filter(Boolean));
   const externalOrigins = new Set((options.allowedExternalOrigins || []).map(normalizeOrigin).filter(Boolean));
   const allowedPreloads = new Set((options.allowedWebviewPreloadPaths || []).map(normalizeFilePath).filter(Boolean));
   const openExternal = typeof options.openExternal === 'function' ? options.openExternal : null;
+
+  /**
+   * Dynamically update allowed navigation origins at runtime.
+   * Used when Matrix/Element runtime endpoint is discovered after startup
+   * (dynamic port allocation via Docker Compose).
+   */
+  function updateNavigationOrigins(origins = []) {
+    navigationOrigins = new Set((Array.isArray(origins) ? origins : [origins]).map(normalizeOrigin).filter(Boolean));
+  }
 
   app.on('web-contents-created', (_event, contents) => {
     contents.setWindowOpenHandler(({ url }) => {
@@ -88,7 +97,7 @@ function installR32WindowSecurity(options = {}) {
     });
   });
 
-  return true;
+  return { installed: true, updateNavigationOrigins };
 }
 
 module.exports = { installR32WindowSecurity, isAllowedURL, isTrustedMainFrameIpcEvent };

@@ -1,0 +1,65 @@
+{
+  "manifestVersion": "1.0",
+  "bundleClass": "yance-matrix-runtime",
+  "description": "Yance Matrix runtime bundle: Synapse + Element + mautrix bridges with dynamic port allocation.",
+  "authority": "docker-compose",
+  "composeProjectName": "yance-runtime",
+  "portAllocation": "dynamic",
+  "fixedHostPorts": false,
+  "persistentVolumes": [
+    "synapse-data",
+    "mautrix-whatsapp-data",
+    "mautrix-meta-data",
+    "synapse-secret-data",
+    "mautrix-meta-secret-data"
+  ],
+  "services": [
+    {
+      "name": "synapse",
+      "containerPort": 8008,
+      "discoveryCommand": "docker compose --project-name yance-runtime port synapse 8008",
+      "envKey": "YANCE_MATRIX_BASE_URL",
+      "healthEndpoint": "/_matrix/client/versions"
+    },
+    {
+      "name": "element",
+      "containerPort": 80,
+      "discoveryCommand": "docker compose --project-name yance-runtime port element 80",
+      "envKey": "YANCE_ELEMENT_URL",
+      "healthEndpoint": "/config.json"
+    },
+    {
+      "name": "mautrix-meta",
+      "containerPort": 29318,
+      "discoveryCommand": "docker compose --project-name yance-runtime port mautrix-meta 29318",
+      "envKey": "YANCE_MAUTRIX_META_PROVISIONING_URL"
+    }
+  ],
+  "files": [
+    "docker-compose.yml",
+    "matrix-config/element-config.json",
+    "matrix-config/synapse/homeserver.yaml",
+    "matrix-config/mautrix-meta/config.yaml",
+    "matrix-config/mautrix-whatsapp/config.yaml"
+  ],
+  "optionalFiles": [
+    "matrix-images.tar"
+  ],
+  "matureAuthorities": {
+    "containerRuntime": "Docker Desktop / Docker Engine",
+    "orchestration": "Docker Compose",
+    "homeserver": "Synapse",
+    "client": "Element",
+    "bridges": "mautrix-whatsapp, mautrix-meta"
+  },
+  "customInfrastructure": {
+    "containerRuntime": false,
+    "dockerEngine": false,
+    "compose": false,
+    "portAllocator": false,
+    "matrixRuntime": false,
+    "matrixSession": false,
+    "matrixCrypto": false,
+    "processSupervisor": false
+  }
+}

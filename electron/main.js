@@ -94,6 +94,7 @@ const WebSocket = require('ws');
 const { disposeEventSocket } = require('./eventSocketLifecycle');
 const { installR32LocalApiHeader } = require('./r32LocalApiSession');
 const { installR32WindowSecurity, isTrustedMainFrameIpcEvent } = require('./r32WindowSecurity');
+const matrixRuntime = require('./matrixRuntimeManager');
 const { CredentialVault } = require('./credentialVault');
 const { recoverCredentialVaults } = require('./credentialVaultRecovery');
 const { R32DesktopSettings } = require('./r32DesktopSettings');
@@ -189,7 +190,7 @@ function m2Guard(channel, fn) {
 function assertPrivilegedIpcEvent(event, channel) {
   if (!mainWindow || !isTrustedMainFrameIpcEvent(event, {
     webContents: mainWindow.webContents,
-    allowedOrigins: [YANCE_ELEMENT_URL]
+    allowedOrigins: [getElementUrl()]
   })) {
     const error = new Error(`Rejected privileged IPC from an untrusted frame: ${channel}`);
     error.reasonCode = 'DESKTOP_IPC_UNTRUSTED_FRAME';
@@ -350,9 +351,36 @@ async function governRuntimeNativeBinariesBootCheck() {
 }
 
 const YANCE_BACKEND_URL = `http://127.0.0.1:${Number(process.env.YANCE_PORT || 27632)}`;
-const YANCE_ELEMENT_URL = String(process.env.YANCE_ELEMENT_URL || 'http://127.0.0.1:8080').replace(/\/+$/u, '');
-const YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `${YANCE_ELEMENT_URL}/config.json`);
-const YANCE_PRODUCT_LOCATION_URL = `${YANCE_ELEMENT_URL}/#/yance`;
+// Element/Matrix URLs are resolved at runtime via Docker Compose dynamic port discovery.
+// Default values are used only for pre-runtime static initialization; actual values are
+// set by ensureMatrixRuntime() before the Product window is created.
+let YANCE_ELEMENT_URL = String(process.env.YANCE_ELEMENT_URL || 'http://127.0.0.1:8080').replace(/\/+$/u, '');
+let YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `${YANCE_ELEMENT_URL}/config.json`);
+let YANCE_PRODUCT_LOCATION_URL = `${YANCE_ELEMENT_URL}/#/yance`;
+let r32WindowSecurityController = { updateNavigationOrigins: () => {} };
+let matrixRuntimeStarted = false;
+
+function getElementUrl() { return YANCE_ELEMENT_URL; }
+function getElementHealthUrl() { return YANCE_ELEMENT_HEALTH_URL; }
+function getProductLocationUrl() { return YANCE_PRODUCT_LOCATION_URL; }
+
+function updateMatrixRuntimeEndpoints(endpoints) {
+  if (endpoints?.element?.url) {
+    YANCE_ELEMENT_URL = endpoints.element.url;
+    YANCE_ELEMENT_HEALTH_URL = `${endpoints.element.url}/config.json`;
+    YANCE_PRODUCT_LOCATION_URL = `${endpoints.element.url}/#/yance`;
+    process.env.YANCE_ELEMENT_URL = YANCE_ELEMENT_URL;
+    process.env.YANCE_ELEMENT_HEALTH_URL = YANCE_ELEMENT_HEALTH_URL;
+    if (endpoints.synapse?.url) {
+      process.env.YANCE_MATRIX_BASE_URL = endpoints.synapse.url;
+    }
+    r32WindowSecurityController.updateNavigationOrigins([YANCE_ELEMENT_URL]);
+    desktopLog('info', 'matrix-runtime-endpoints-updated', {
+      elementUrl: YANCE_ELEMENT_URL,
+      synapseUrl: endpoints.synapse?.url || ''
+    });
+  }
+}
 const WP7_APPLICATION_PROCESS_STARTED_AT_UTC = new Date().toISOString();
 const WP7_NETWORK_OBSERVED_AT_UTC = new Date().toISOString();
 let WP7_NETWORK_ONLINE_AT_PROCESS_START = true;
@@ -436,7 +464,7 @@ function parseDesktopLaunchIntent(argv = process.argv) {
 const INITIAL_DESKTOP_LAUNCH_INTENT = parseDesktopLaunchIntent(process.argv);
 
 installR32LocalApiHeader({ app, session, baseURL: YANCE_BACKEND_URL, tokenProvider: () => currentApiSessionToken({ required: false }) });
-installR32WindowSecurity({
+r32WindowSecurityController = installR32WindowSecurity({
   app,
   allowedNavigationOrigins: [YANCE_ELEMENT_URL],
   allowedWebviewOrigins: ['https://web.whatsapp.com', 'https://web.telegram.org', 'https://www.facebook.com', 'https://business.facebook.com'],
@@ -1149,7 +1177,8 @@ async function stopApplicationOwnedRuntimes(options = {}) {
     ['letta', stopRuntimeWithDeadline('letta', () => stopLettaAgentRuntime(), runtimeStopTimeoutMs)],
     ['parlant', stopRuntimeWithDeadline('parlant', () => stopParlantRelationshipRuntime(), runtimeStopTimeoutMs)],
     ['graphiti', stopRuntimeWithDeadline('graphiti', () => stopGraphitiRelationshipRuntime(), runtimeStopTimeoutMs)],
-    ['backend', stopRuntimeWithDeadline('backend', () => stopBackend({ forShutdown: true, reason }), backendStopTimeoutMs)]
+    ['backend', stopRuntimeWithDeadline('backend', () => stopBackend({ forShutdown: true, reason }), backendStopTimeoutMs)],
+    ['matrix', stopRuntimeWithDeadline('matrix', () => matrixRuntime.stopMatrixRuntime({ reason }), runtimeStopTimeoutMs)]
   ];
   const settled = await Promise.allSettled(operations.map(([, operation]) => operation));
   const resultByName = new Map(operations.map(([name], index) => [name, settled[index]]));
@@ -1171,16 +1200,19 @@ async function stopApplicationOwnedRuntimes(options = {}) {
   const graphitiError = errorFor('graphiti');
   const backendStop = valueFor('backend');
   const backendError = errorFor('backend');
+  const matrixStop = valueFor('matrix');
+  const matrixError = errorFor('matrix');
 
-  if (presenceError || lettaError || parlantError || graphitiError || backendError) {
+  if (presenceError || lettaError || parlantError || graphitiError || backendError || matrixError) {
     const error = new Error('Application-owned runtime shutdown was not fully confirmed');
-    error.reasonCode = presenceError?.reasonCode || lettaError?.reasonCode || parlantError?.reasonCode || graphitiError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
+    error.reasonCode = presenceError?.reasonCode || lettaError?.reasonCode || parlantError?.reasonCode || graphitiError?.reasonCode || backendError?.reasonCode || matrixError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
     error.details = {
       presence: presenceError ? { reasonCode: presenceError.reasonCode || '', message: presenceError.message } : presenceStop,
       letta: lettaError ? { reasonCode: lettaError.reasonCode || '', message: lettaError.message } : lettaStop,
       parlant: parlantError ? { reasonCode: parlantError.reasonCode || '', message: parlantError.message } : parlantStop,
       graphiti: graphitiError ? { reasonCode: graphitiError.reasonCode || '', message: graphitiError.message } : graphitiStop,
-      backend: backendError ? { reasonCode: backendError.reasonCode || '', message: backendError.message } : backendStop
+      backend: backendError ? { reasonCode: backendError.reasonCode || '', message: backendError.message } : backendStop,
+      matrix: matrixError ? { reasonCode: matrixError.reasonCode || '', message: matrixError.message } : matrixStop
     };
     throw error;
   }
@@ -1191,7 +1223,8 @@ async function stopApplicationOwnedRuntimes(options = {}) {
     presence: presenceStop,
     letta: lettaStop,
     parlant: parlantStop,
-    graphiti: graphitiStop
+    graphiti: graphitiStop,
+    matrix: matrixStop
   };
 }
 
@@ -2904,6 +2937,106 @@ function startBackendProcessForCoordinator(options = {}) {
   return task;
 }
 
+/**
+ * Ensure Matrix runtime (Synapse + Element + mautrix bridges) is running.
+ * Uses mature Docker Desktop / Docker Compose authorities with dynamic port discovery.
+ * Never requires manual Docker UI interaction from the user.
+ * Fail closed if Docker Desktop is not installed.
+ */
+async function ensureMatrixRuntime() {
+  // Allow opt-out for development / CI environments that provide their own Matrix runtime
+  // via fixed YANCE_ELEMENT_URL (e.g. existing external Matrix server).
+  if (process.env.YANCE_MATRIX_RUNTIME_DISABLED === '1') {
+    desktopLog('info', 'matrix-runtime-disabled-by-env');
+    return { started: false, reason: 'disabled_by_env' };
+  }
+
+  // If an external Element URL is explicitly configured and differs from the default,
+  // assume an external Matrix runtime is provided and skip Docker Compose management.
+  const explicitElementUrl = process.env.YANCE_ELEMENT_URL;
+  if (explicitElementUrl && explicitElementUrl !== 'http://127.0.0.1:8080') {
+    desktopLog('info', 'matrix-runtime-external-element-url', { url: explicitElementUrl });
+    updateMatrixRuntimeEndpoints({
+      element: { url: explicitElementUrl.replace(/\/+$/, '') },
+      synapse: { url: process.env.YANCE_MATRIX_BASE_URL || '' }
+    });
+    return { started: false, reason: 'external_element_url' };
+  }
+
+  if (matrixRuntimeStarted) {
+    desktopLog('info', 'matrix-runtime-already-started');
+    return { started: false, reason: 'already_started' };
+  }
+
+  // Locate matrix-runtime resources: in packaged app, resources are alongside the app;
+  // in development, they are in the repo resources/ directory.
+  const resourcesPath = controlledResourcesPath();
+  const matrixRuntimeDir = path.join(resourcesPath, 'matrix-runtime');
+  const composeFile = path.join(matrixRuntimeDir, 'docker-compose.yml');
+  const imagesTarPath = path.join(matrixRuntimeDir, 'matrix-images.tar');
+
+  if (!fs.existsSync(composeFile)) {
+    // In development mode, matrix runtime may not be packaged yet; fall back to
+    // the repo-level materialized compose if available.
+    const devCompose = path.join(__dirname, '..', 'tools', 'product-experience', 'materialized-matrix-compose.yml');
+    if (fs.existsSync(devCompose)) {
+      desktopLog('info', 'matrix-runtime-using-dev-compose', { path: devCompose });
+      try {
+        const endpoints = await matrixRuntime.startMatrixRuntime({
+          composeFile: devCompose,
+          projectDir: path.dirname(devCompose),
+          env: { YANCE_UAT_CANDIDATE_SHA: process.env.YANCE_UAT_CANDIDATE_SHA || 'dev' }
+        });
+        matrixRuntimeStarted = true;
+        updateMatrixRuntimeEndpoints(endpoints);
+        return { started: true, endpoints };
+      } catch (error) {
+        desktopLog('warn', 'matrix-runtime-dev-start-failed', { message: error.message, reasonCode: error.reasonCode });
+        // Don't block startup in dev mode if Matrix runtime can't start;
+        // the Product window will show connection error state.
+        return { started: false, reason: 'dev_start_failed', error: error.message };
+      }
+    }
+    desktopLog('warn', 'matrix-runtime-compose-not-found', { matrixRuntimeDir, composeFile });
+    return { started: false, reason: 'compose_not_found' };
+  }
+
+  try {
+    desktopLog('info', 'matrix-runtime-starting', { matrixRuntimeDir, composeFile });
+    const endpoints = await matrixRuntime.startMatrixRuntime({
+      composeFile,
+      projectDir: matrixRuntimeDir,
+      imagesTarPath: fs.existsSync(imagesTarPath) ? imagesTarPath : null,
+      env: { YANCE_UAT_CANDIDATE_SHA: process.env.YANCE_UAT_CANDIDATE_SHA || 'release' }
+    });
+    matrixRuntimeStarted = true;
+    updateMatrixRuntimeEndpoints(endpoints);
+    desktopLog('info', 'matrix-runtime-started', {
+      elementPort: endpoints.element?.hostPort,
+      synapsePort: endpoints.synapse?.hostPort
+    });
+    return { started: true, endpoints };
+  } catch (error) {
+    desktopLog('error', 'matrix-runtime-start-failed', {
+      reasonCode: error.reasonCode || 'MATRIX_RUNTIME_START_FAILED',
+      message: error.message,
+      details: error.details
+    });
+    // In packaged production, Matrix runtime failure is a hard startup blocker
+    // because the Product UI depends on Element. Surface a clear error.
+    if (app.isPackaged) {
+      const userError = new Error(
+        error.reasonCode === 'DOCKER_DESKTOP_REQUIRED'
+          ? 'Docker Desktop is required to run 言策. Please install Docker Desktop and restart the app.'
+          : `Matrix runtime failed to start: ${error.message}`
+      );
+      userError.reasonCode = error.reasonCode || 'MATRIX_RUNTIME_START_FAILED';
+      throw userError;
+    }
+    return { started: false, reason: 'start_failed', error: error.message };
+  }
+}
+
 async function launchBackend(options = {}) {
   if (!desktopCredentialApplicationCoordinator || !runtimeProjectionCoordinator) {
     const error = new Error('WP6 production lifecycle coordinators are unavailable');
@@ -3051,14 +3184,15 @@ async function waitForElementShellReady(options = {}) {
   const pollIntervalMs = Math.max(100, Number(options.pollIntervalMs || 400));
   const deadline = Date.now() + timeoutMs;
   let lastError = null;
+  const healthUrl = getElementHealthUrl();
   while (Date.now() < deadline && !quitting && !relaunchPending) {
     try {
-      const response = await fetch(YANCE_ELEMENT_HEALTH_URL, {
+      const response = await fetch(healthUrl, {
         method: 'GET',
         redirect: 'follow',
         signal: AbortSignal.timeout(Math.min(5000, Math.max(500, deadline - Date.now())))
       });
-      if (response.ok) return { ready: true, status: response.status, url: YANCE_ELEMENT_HEALTH_URL };
+      if (response.ok) return { ready: true, status: response.status, url: healthUrl };
       lastError = new Error(`Element shell health returned HTTP ${response.status}`);
     } catch (error) {
       lastError = error;
@@ -3067,13 +3201,13 @@ async function waitForElementShellReady(options = {}) {
   }
   const error = new Error(lastError?.message || 'Element shell readiness timed out');
   error.reasonCode = 'YANCE_ELEMENT_SHELL_READY_TIMEOUT';
-  error.details = { url: YANCE_ELEMENT_HEALTH_URL, timeoutMs };
+  error.details = { url: healthUrl, timeoutMs };
   throw error;
 }
 
 function loadElementShell(window) {
   return waitForElementShellReady()
-    .then(() => window.loadURL(YANCE_PRODUCT_LOCATION_URL));
+    .then(() => window.loadURL(getProductLocationUrl()));
 }
 
 function createWindow() {
@@ -3823,24 +3957,24 @@ ipcGuardHandle('desktop:set-active-conversation', (_event, data = {}) => {
   return { ok: true };
 });
   ipcMain.on('desktop:preload-ready', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [getElementUrl()] })) return;
     ensureMainWindowActivationController().markPreloadReady(mainWindow, payload);
   });
   ipcMain.on('desktop:renderer-ready', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [getElementUrl()] })) return;
     ensureMainWindowActivationController().markRendererReady(mainWindow, payload);
   });
   ipcMain.on('desktop:activation-probe-responder-ready', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [getElementUrl()] })) return;
     ensureMainWindowActivationController().markActivationProbeResponderReady(mainWindow, payload);
   });
   ipcMain.on('desktop:activation-probe-complete', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [getElementUrl()] })) return;
     ensureMainWindowRuntimeReadiness().complete(event.sender, payload);
   });
   ipcGuardHandle('desktop:report-sound-result', (_event, result) => ({ accepted: resolveSound(result || {}) }));
   ipcMain.on('sound:result', (event, result) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [getElementUrl()] })) return;
     resolveSound(result || {});
   });
   ipcGuardHandle('desktop:save-credential', (_event, input) => saveCredentialFromDesktop(input?.ref, input?.value || {}, { requestId: input?.requestId }));
@@ -4007,6 +4141,7 @@ if (!app.requestSingleInstanceLock()) {
     createTray();
     createSoundWindow();
     try {
+      await ensureMatrixRuntime();
       await ensureLettaAgentRuntime().start();
       await launchBackend();
       if (wp7ProbeRequested()) {
