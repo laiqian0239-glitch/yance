@@ -3424,7 +3424,7 @@ async function waitForElementShellReady(options = {}) {
 
 function loadElementShell(window) {
   return waitForElementShellReady()
-    .then(() => window.loadURL(getProductLocationUrl()));
+    .then(() => window.loadURL(YANCE_PRODUCT_LOCATION_URL));
 }
 
 function createWindow() {
