@@ -132,8 +132,16 @@ services:
       - mautrix-meta-data:/mautrix-meta:ro
       - mautrix-whatsapp-data:/mautrix-whatsapp:ro
       - synapse-secret-data:/run/secrets:ro
+    # Dynamic host port: Docker Compose assigns an ephemeral host port.
+    # Yance discovers the actual port via `docker compose port synapse 8008`.
     ports:
-      - "127.0.0.1:8008:8008"
+      - "127.0.0.1::8008"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8008/_matrix/client/versions', timeout=5)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     depends_on:
       matrix-secret-projection:
         condition: service_completed_successfully
@@ -148,8 +156,16 @@ services:
     image: yance-product-uat-element:${YANCE_UAT_CANDIDATE_SHA}
     volumes:
       - ./matrix-config/element-config.json:/app/config.json:ro
+    # Dynamic host port: Docker Compose assigns an ephemeral host port.
+    # Yance discovers the actual port via `docker compose port element 80`.
     ports:
-      - "127.0.0.1:8080:80"
+      - "127.0.0.1::80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/config.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     depends_on:
       - synapse
 

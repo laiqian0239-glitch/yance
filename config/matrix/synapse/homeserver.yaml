@@ -1,6 +1,6 @@
 server_name: yance.local
 pid_file: /data/homeserver.pid
-public_baseurl: http://127.0.0.1:8008/
+public_baseurl: http://synapse:8008/
 listeners:
   - port: 8008
     tls: false

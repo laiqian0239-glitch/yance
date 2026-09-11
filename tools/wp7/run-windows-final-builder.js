@@ -31,7 +31,11 @@ const REQUIRED_OPTIONS = Object.freeze([
   'expected-branch',
   'expected-commit',
   'expected-tree',
-  'build-timestamp-utc'
+  'build-timestamp-utc',
+  'matrix-runtime-source',
+  'matrix-runtime-candidate-branch',
+  'matrix-runtime-candidate-commit',
+  'matrix-runtime-candidate-tree'
 ]);
 
 function parseArgs(argv) {
@@ -262,7 +266,13 @@ function main(argv = process.argv.slice(2)) {
     timestampUrl: args['timestamp-url'],
     platformAuthConfigPath: args['platform-auth-config'],
     platformAuthHashPath: args['platform-auth-sha256'],
-    requirePlatformAuth: args['require-platform-auth'] === 'true'
+    requirePlatformAuth: args['require-platform-auth'] === 'true',
+    matrixRuntimeSource: args['matrix-runtime-source'],
+    matrixRuntimeIdentity: args['matrix-runtime-source'] ? {
+      candidateBranch: args['matrix-runtime-candidate-branch'],
+      candidateCommit: args['matrix-runtime-candidate-commit'],
+      candidateTree: args['matrix-runtime-candidate-tree']
+    } : undefined
   });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
