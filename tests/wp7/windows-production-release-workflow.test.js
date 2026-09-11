@@ -65,34 +65,42 @@ test('final builder signs before deriving update hashes and blockmap', () => {
   assert.ok(signing > 0 && metadata > signing && finalHash > metadata);
   assert.doesNotMatch(lib.slice(signing, metadata), /emitUpdateMetadata/);
 });
-test('sealed Matrix promotion validates Product Experience run provenance and carries PR-head identity into Final Builder', () => {
+test('sealed Matrix promotion validates exact Product Experience run provenance before download and carries PR-head identity into Final Builder', () => {
   const matrixStart = workflow.indexOf('- name: Download and verify same-source sealed Matrix runtime artifact');
   const builderStart = workflow.indexOf('- name: Build and sign release before metadata sealing');
   const verifyStart = workflow.indexOf('- name: Verify signed release assets');
   assert.ok(matrixStart >= 0 && builderStart > matrixStart && verifyStart > builderStart);
 
   const matrixStep = workflow.slice(matrixStart, builderStart);
-  const runView = matrixStep.indexOf('gh run view $env:MATRIX_RUN_ID --repo $env:GITHUB_REPOSITORY --json name,event,status,conclusion,headSha,headBranch');
+  const runLookup = matrixStep.indexOf('gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:MATRIX_RUN_ID"');
   const download = matrixStep.indexOf('gh run download $env:MATRIX_RUN_ID');
-  assert.ok(runView >= 0 && download > runView, 'run provenance validation must happen before artifact download');
+  assert.ok(runLookup >= 0 && download > runLookup, 'exact run provenance validation must happen before artifact download');
 
   for (const token of [
-    "[string]$run.name -ne 'V21 Product Experience Shell P0 Final Validation'",
+    'EXPECTED_MATRIX_BRANCH: rebuild/windows-release-closure-20260911-matrix-runtime',
+    'EXPECTED_MATRIX_WORKFLOW_PATH: .github/workflows/v21-product-experience-shell-p0-final-validation.yml',
+    '[string]$run.repository.full_name -ne $env:GITHUB_REPOSITORY',
+    '[string]$run.path -ne $env:EXPECTED_MATRIX_WORKFLOW_PATH',
     "[string]$run.event -ne 'pull_request'",
     "[string]$run.status -ne 'completed'",
     "[string]$run.conclusion -ne 'success'",
-    '$artifactName = "Product-Experience-Materialized-Matrix-UAT-$($run.headSha)"',
-    '[string]$manifest.candidateCommit -ne [string]$run.headSha',
-    '[string]$manifest.candidateBranch -ne [string]$run.headBranch',
+    '[string]$run.head_branch -ne $env:EXPECTED_MATRIX_BRANCH',
+    "[string]$run.head_sha -notmatch '^[0-9a-f]{40}$'",
+    '$runAttempt = [int]$run.run_attempt',
+    '$artifactName = "Product-Experience-Materialized-Matrix-UAT-$($run.head_sha)"',
+    '[string]$manifest.candidateCommit -ne [string]$run.head_sha',
+    '[string]$manifest.candidateBranch -ne [string]$run.head_branch',
     '[string]$manifest.candidateTree -ne $env:EXPECTED_TREE',
     '--candidate-branch $manifest.candidateBranch',
     '--candidate-commit $manifest.candidateCommit',
     '--candidate-tree $manifest.candidateTree',
     '"candidate_branch=$($manifest.candidateBranch)"',
     '"candidate_commit=$($manifest.candidateCommit)"',
-    '"candidate_tree=$($manifest.candidateTree)"'
-  ]) assert.ok(matrixStep.includes(token), `missing Matrix promotion token: ${token}`);
+    '"candidate_tree=$($manifest.candidateTree)"',
+    '"run_attempt=$runAttempt"'
+  ]) assert.ok(matrixStep.includes(token), `missing exact Matrix promotion token: ${token}`);
 
+  assert.doesNotMatch(matrixStep, /gh run view/u);
   assert.doesNotMatch(matrixStep, /Product-Experience-Materialized-Matrix-UAT-\$env:EXPECTED_COMMIT/u);
   assert.doesNotMatch(matrixStep, /candidateCommit -ne \$env:EXPECTED_COMMIT/u);
 
@@ -101,11 +109,13 @@ test('sealed Matrix promotion validates Product Experience run provenance and ca
     'MATRIX_RUNTIME_CANDIDATE_BRANCH: ${{ steps.matrix_runtime.outputs.candidate_branch }}',
     'MATRIX_RUNTIME_CANDIDATE_COMMIT: ${{ steps.matrix_runtime.outputs.candidate_commit }}',
     'MATRIX_RUNTIME_CANDIDATE_TREE: ${{ steps.matrix_runtime.outputs.candidate_tree }}',
+    '-ExpectedCommit \'${{ steps.identity.outputs.commit }}\'',
+    '-ExpectedTree \'${{ steps.identity.outputs.tree }}\'',
     '-MatrixRuntimeCandidateBranch $env:MATRIX_RUNTIME_CANDIDATE_BRANCH',
     '-MatrixRuntimeCandidateCommit $env:MATRIX_RUNTIME_CANDIDATE_COMMIT',
     '-MatrixRuntimeCandidateTree $env:MATRIX_RUNTIME_CANDIDATE_TREE',
     '-RequireSignedInstaller'
-  ]) assert.ok(builderStep.includes(token), `missing Final Builder identity/signing token: ${token}`);
+  ]) assert.ok(builderStep.includes(token), `missing Final Builder source/artifact identity or signing token: ${token}`);
 
   assert.doesNotMatch(builderStep, /-MatrixRuntimeCandidateCommit '\$\{\{ steps\.identity\.outputs\.commit \}\}'/u);
   assert.doesNotMatch(builderStep, /-MatrixRuntimeCandidateTree '\$\{\{ steps\.identity\.outputs\.tree \}\}'/u);
