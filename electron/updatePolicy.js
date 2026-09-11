@@ -38,10 +38,23 @@ function githubUpdateConfig({ env = process.env, isPackaged = false, source = re
     };
   }
 
-  // Internal-test builds intentionally use manual installer updates. This keeps
-  // the product fully local and avoids requiring a server, paid infrastructure,
-  // publishing credentials, or a production release repository.
-  if (source.onlineUpdatesEnabled !== true) {
+  // Owner-authorized unsigned public update channel.
+  // Code signing is deferred, but stable GitHub auto-update remains enabled.
+  if (isPackaged) {
+    return {
+      configured: true,
+      provider: 'github',
+      owner: 'wangyi198675-coder',
+      repo: 'Yance-Releases',
+      channel: 'latest',
+      allowPrerelease: false,
+      source: 'github-packaged-unsigned-stable',
+      token: null
+    };
+  }
+
+  // Development builds remain opt-in unless explicitly enabled.
+  if (source.onlineUpdatesEnabled !== true && env.YANCE_ENABLE_GITHUB_UPDATES !== '1') {
     return {
       configured: false,
       provider: 'github',
@@ -49,19 +62,16 @@ function githubUpdateConfig({ env = process.env, isPackaged = false, source = re
       repo: '',
       channel: clean(env.YANCE_UPDATE_CHANNEL || 'latest'),
       allowPrerelease: false,
-      source: 'internal-test-manual-installer',
+      source: 'development-update-disabled',
       mode: source.updateMode || 'MANUAL_INSTALLER_ONLY',
       token: null
     };
   }
 
-  // A future explicitly-authorized online release may opt in. Packaged builds
-  // use source-controlled values; development builds may override only after an
-  // explicit enable flag. No token is read by the desktop client.
-  const owner = clean(isPackaged ? source.updateGithubOwner : env.YANCE_UPDATE_GITHUB_OWNER);
-  const repo = clean(isPackaged ? source.updateGithubRepo : env.YANCE_UPDATE_GITHUB_REPO);
-  const channel = clean((isPackaged ? source.updateChannel : env.YANCE_UPDATE_CHANNEL) || 'latest');
-  const explicitlyEnabled = isPackaged || env.YANCE_ENABLE_GITHUB_UPDATES === '1';
+  const owner = clean(env.YANCE_UPDATE_GITHUB_OWNER || 'wangyi198675-coder');
+  const repo = clean(env.YANCE_UPDATE_GITHUB_REPO || 'Yance-Releases');
+  const channel = clean(env.YANCE_UPDATE_CHANNEL || 'latest');
+  const explicitlyEnabled = env.YANCE_ENABLE_GITHUB_UPDATES === '1';
   if (!explicitlyEnabled || !owner || !repo) {
     return { configured: false, provider: 'github', owner: '', repo: '', channel, allowPrerelease: false, source: 'github-unconfigured', token: null };
   }
@@ -72,7 +82,7 @@ function githubUpdateConfig({ env = process.env, isPackaged = false, source = re
     repo,
     channel,
     allowPrerelease: channel === 'beta' || channel === 'alpha',
-    source: isPackaged ? 'github-packaged-fixed' : 'github-env-override',
+    source: 'github-env-override',
     token: null
   };
 }

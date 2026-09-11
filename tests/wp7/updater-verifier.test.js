@@ -5,7 +5,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { mkdtempSync, writeFileSync, rmSync } = fs;
+const { mkdtempSync, writeFileSync } = fs;
 const crypto = require('node:crypto');
 const {
   sha512File,
@@ -21,13 +21,12 @@ const {
 function tmp() { return mkdtempSync(path.join(os.tmpdir(), 'upd-ver-'), { recursive: true }); }
 function write(buf, name) { const d = tmp(); const p = path.join(d, name); writeFileSync(p, buf); return p; }
 
-// minimal x64 PE (MZ + PE header, machine=0x8664)
 function makeExe(machine = 0x8664) {
   const buf = Buffer.alloc(128);
   buf.write('MZ', 0, 'ascii');
-  buf.writeUInt32LE(0x40, 0x3c); // e_lfanew -> 0x40
-  buf.writeUInt32LE(0x00004550, 0x40); // PE\0\0
-  buf.writeUInt16LE(machine, 0x44); // Machine
+  buf.writeUInt32LE(0x40, 0x3c);
+  buf.writeUInt32LE(0x00004550, 0x40);
+  buf.writeUInt16LE(machine, 0x44);
   return buf;
 }
 
@@ -62,11 +61,8 @@ test('rejects non-installer file', () => {
 test('rejects hash mismatch (tampered)', () => {
   const f = write(makeExe(), 'u.exe');
   const r = validateUpdatePackage({
-    filePath: f,
-    expectedSha512: 'deadbeef', // wrong
-    expectedVersion: '29.2.6',
-    currentVersion: '29.2.5',
-    expectedArch: 'x64'
+    filePath: f, expectedSha512: 'deadbeef', expectedVersion: '29.2.6',
+    currentVersion: '29.2.5', expectedArch: 'x64'
   });
   assert.strictEqual(r.ok, false);
   assert.ok(r.reasons.includes(REJECTION_REASONS.HASH_MISMATCH));
@@ -79,15 +75,12 @@ test('rejects downgrade', () => {
 });
 
 test('rejects arch mismatch (manifest vs expected, or extracted exe x86)', () => {
-  // (a) NSIS installer stub is always PE32 i386; this must NOT trip ARCH_MISMATCH.
-  const stub = write(makeExe(0x014c), 'setup.exe'); // ia32 stub
+  const stub = write(makeExe(0x014c), 'setup.exe');
   const rStub = validateUpdatePackage({ filePath: stub, expectedArch: 'x64', expectedVersion: '29.2.6', currentVersion: '29.2.5' });
-  assert.ok(!rStub.reasons.includes(REJECTION_REASONS.ARCH_MISMATCH), 'NSIS stub PE must not trigger ARCH_MISMATCH');
-  // (b) manifest arch mismatch is rejected.
+  assert.ok(!rStub.reasons.includes(REJECTION_REASONS.ARCH_MISMATCH));
   const f = write(makeExe(0x8664), 'u.exe');
   const rManifest = validateUpdatePackage({ filePath: f, expectedArch: 'x64', expectedManifestArch: 'ia32', expectedVersion: '29.2.6', currentVersion: '29.2.5' });
   assert.ok(rManifest.reasons.includes(REJECTION_REASONS.ARCH_MISMATCH));
-  // (c) extracted packaged exe being x86 is rejected.
   const x86Exe = write(makeExe(0x014c), 'Yance.exe');
   const rExe = validateUpdatePackage({ filePath: f, expectedArch: 'x64', extractedExePath: x86Exe, expectedVersion: '29.2.6', currentVersion: '29.2.5' });
   assert.ok(rExe.reasons.includes(REJECTION_REASONS.ARCH_MISMATCH));
@@ -97,17 +90,13 @@ test('accepts valid package (development mode, unsigned ok)', () => {
   const f = write(makeExe(), 'u.exe');
   const sha = sha512File(f);
   const r = validateUpdatePackage({
-    filePath: f,
-    expectedSha512: sha,
-    expectedVersion: '29.2.6',
-    currentVersion: '29.2.5',
-    expectedArch: 'x64',
-    mode: 'development'
+    filePath: f, expectedSha512: sha, expectedVersion: '29.2.6',
+    currentVersion: '29.2.5', expectedArch: 'x64', mode: 'development'
   });
   assert.strictEqual(r.ok, true, JSON.stringify(r));
 });
 
-test('production mode rejects unsigned exe', () => {
+test('production mode accepts unsigned identity while signing is deferred', () => {
   const f = write(makeExe(), 'u.exe');
   const sha = sha512File(f);
   const r = validateUpdatePackage({
@@ -115,23 +104,23 @@ test('production mode rejects unsigned exe', () => {
     expectedSha512: sha,
     expectedVersion: '29.2.6',
     currentVersion: '29.2.5',
+    expectedProductName: '言策',
+    expectedPublisher: '言策科技',
     expectedArch: 'x64',
     mode: 'production',
-    extractVersionInfo: () => ({ productName: '言策', publisher: '言策科技', signed: false })
+    extractVersionInfo: () => ({ productName: '言策', productVersion: '29.2.6', publisher: '言策科技', signed: false })
   });
-  assert.ok(r.reasons.includes(REJECTION_REASONS.SIGNATURE_INVALID));
+  assert.strictEqual(r.ok, true, JSON.stringify(r));
+  assert.ok(!r.reasons.includes(REJECTION_REASONS.SIGNATURE_INVALID));
+  assert.match(r.details.signatureWarning, /deferred/i);
 });
 
 test('production mode accepts valid signed identity', () => {
   const f = write(makeExe(), 'u.exe');
   const sha = sha512File(f);
   const r = validateUpdatePackage({
-    filePath: f,
-    expectedSha512: sha,
-    expectedVersion: '29.2.6',
-    currentVersion: '29.2.5',
-    expectedArch: 'x64',
-    mode: 'production',
+    filePath: f, expectedSha512: sha, expectedVersion: '29.2.6', currentVersion: '29.2.5',
+    expectedArch: 'x64', mode: 'production',
     extractVersionInfo: () => ({ productName: '言策', publisher: '言策科技', signed: true })
   });
   assert.strictEqual(r.ok, true, JSON.stringify(r));
@@ -143,7 +132,7 @@ test('rejects product/publisher mismatch', () => {
   const r = validateUpdatePackage({
     filePath: f, expectedSha512: sha, expectedVersion: '29.2.6', currentVersion: '29.2.5',
     expectedProductName: '言策', expectedPublisher: '言策科技', mode: 'production',
-    extractVersionInfo: () => ({ productName: 'OtherApp', publisher: 'Evil', signed: true })
+    extractVersionInfo: () => ({ productName: 'OtherApp', publisher: 'Evil', signed: false })
   });
   assert.ok(r.reasons.includes(REJECTION_REASONS.PRODUCT_MISMATCH));
   assert.ok(r.reasons.includes(REJECTION_REASONS.PUBLISHER_MISMATCH));

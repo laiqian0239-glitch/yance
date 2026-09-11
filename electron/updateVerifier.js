@@ -22,10 +22,10 @@ function peMachineFromFile(filePath) {
   const buf = fs.readFileSync(filePath);
   if (buf.length < 64) return null;
   const dosMagic = buf.readUInt16LE(0);
-  if (dosMagic !== 0x5a4d) return null; // 'MZ'
+  if (dosMagic !== 0x5a4d) return null;
   const peOffset = buf.readUInt32LE(0x3c);
   if (peOffset + 4 > buf.length) return null;
-  if (buf.readUInt32LE(peOffset) !== 0x00004550) return null; // 'PE\0\0'
+  if (buf.readUInt32LE(peOffset) !== 0x00004550) return null;
   return buf.readUInt16LE(peOffset + 4);
 }
 
@@ -76,8 +76,6 @@ const REJECTION_MESSAGES = Object.freeze({
   UPDATE_REJECTED_METADATA_MISMATCH: '更新元数据（latest.yml）与安装包不匹配。'
 });
 
-// injectedExtractors lets tests verify decision logic without a real EXE.
-// extractVersionInfo(filePath) -> { productName, productVersion, publisher, signed } | null
 function validateUpdatePackage(options = {}) {
   const {
     filePath,
@@ -86,15 +84,8 @@ function validateUpdatePackage(options = {}) {
     currentVersion,
     expectedProductName,
     expectedPublisher,
-    // expectedArch is the APP architecture, declared by the release manifest's
-    // nativeBinaryTargetArch (NOT the NSIS installer stub's PE machine — the NSIS
-    // stub is always PE32 i386 and does NOT reflect the packaged Yance.exe).
     expectedArch = 'x64',
-    // expectedManifestArch: the build-time recorded target arch from the release
-    // manifest (authoritative). If provided, it must equal expectedArch.
     expectedManifestArch = null,
-    // extractedExePath: optional path to the REAL packaged Yance.exe (extracted
-    // from the installer payload); its PE machine is checked for x64.
     extractedExePath = null,
     allowDowngrade = false,
     blockmapConsistent = true,
@@ -111,9 +102,6 @@ function validateUpdatePackage(options = {}) {
     return { ok: false, reasons, messages: toMessages(reasons), details };
   }
 
-  // 1. Hash integrity. The expected digest must come from electron-updater's
-  // resolved UpdateInfo metadata. Computing both sides from the downloaded file
-  // would be self-comparison and is not a security check.
   if (!expectedSha512) {
     reasons.push(REJECTION_REASONS.METADATA_MISMATCH);
     details.expectedSha512Missing = true;
@@ -127,10 +115,6 @@ function validateUpdatePackage(options = {}) {
     }
   }
 
-  // 2. Architecture — derived from the RELEASE MANIFEST target arch, never the
-  //    NSIS installer stub PE machine. The packaged Yance.exe (if extracted)
-  //    is additionally checked for x64. The installer stub being PE32 i386 is
-  //    expected and must NOT trigger ARCH_MISMATCH.
   if (expectedManifestArch && expectedManifestArch !== expectedArch) {
     reasons.push(REJECTION_REASONS.ARCH_MISMATCH);
     details.expectedArch = expectedArch;
@@ -148,7 +132,6 @@ function validateUpdatePackage(options = {}) {
     }
   }
 
-  // 3. Version downgrade
   if (expectedVersion && currentVersion) {
     const cmp = compareVersion(expectedVersion, currentVersion);
     if (cmp !== null && cmp < 0 && !allowDowngrade) {
@@ -158,8 +141,9 @@ function validateUpdatePackage(options = {}) {
     }
   }
 
-  // 4. Embedded EXE identity (product name / publisher / version / signature).
-  // Production treats missing identity or an unknown signature as a failure.
+  // Current owner-authorized policy: Authenticode signing is deferred.
+  // Production still requires real embedded product/company/version identity,
+  // plus SHA-512, metadata, architecture and downgrade checks.
   if (typeof extractVersionInfo === 'function') {
     let info = null;
     try { info = extractVersionInfo(filePath); } catch (error) { details.extractError = String(error.message); }
@@ -182,7 +166,7 @@ function validateUpdatePackage(options = {}) {
         details.expectedProductVersion = expectedVersion;
       }
       if (mode === 'production' && info.signed !== true) {
-        reasons.push(REJECTION_REASONS.SIGNATURE_INVALID);
+        details.signatureWarning = 'unsigned Windows update accepted because Authenticode signing is currently deferred';
       } else if (mode !== 'production' && info.signed !== true) {
         details.signatureWarning = 'internal-test build without verified Authenticode signature';
       }
@@ -192,7 +176,6 @@ function validateUpdatePackage(options = {}) {
     details.extractorMissing = true;
   }
 
-  // 5. Blockmap + metadata consistency (computed by caller from latest.yml/blockmap)
   if (!blockmapConsistent) reasons.push(REJECTION_REASONS.BLOCKMAP_MISMATCH);
   if (!metadataConsistent) reasons.push(REJECTION_REASONS.METADATA_MISMATCH);
 
@@ -203,13 +186,9 @@ function toMessages(reasons) {
   return reasons.map(r => REJECTION_MESSAGES[r] || r);
 }
 
-// Validate electron-updater's resolved UpdateInfo metadata against the actual
-// downloaded file. Blockmap parsing is intentionally not claimed here: differential
-// download and blockmap integrity are managed internally by electron-updater.
 function validateReleaseMetadata(options = {}) {
   let { metadata, downloadedFilePath, metadataComparison } = options;
 
-  // Backward-compatible conversion for older callers/tests.
   if (!metadata && options.latestYml) {
     metadata = {
       version: options.latestYml.version || '',
