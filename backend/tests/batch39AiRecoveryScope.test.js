@@ -12,11 +12,73 @@ process.env.NODE_ENV = 'test';
 
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const {
-  BackgroundJobAuthority,
   STATES
 } = require('../services/backgroundJobAuthority');
 const aiBrainOrchestrator = require('../services/aiBrainOrchestrator');
 const { closeStore } = require('../repositories/storeProvider');
+
+// The retired BackgroundJobAuthority state machine moved to Schema 23 durable
+// execution. recoverStartupAnalyses keeps an explicit duck-typed
+// `options.backgroundJobs` compatibility branch for historical scans
+// (production itself uses currentRuntimeInternalOperationAuthority). This
+// in-memory collaborator is the minimal faithful state holder that branch needs.
+function createBackgroundJobsDouble() {
+  const records = new Map();
+  const keyOf = item => item && (item.conversationId || (item.payload && item.payload.conversationId));
+  return {
+    enqueue(input) {
+      const rec = { ...input, state: STATES.PENDING, dueAt: 0, seq: records.size };
+      records.set(input.conversationId, rec);
+      return rec;
+    },
+    begin(item) {
+      const rec = records.get(keyOf(item));
+      if (!rec) return { acquired: false, lease: null };
+      rec.state = STATES.RUNNING;
+      return { acquired: true, lease: { conversationId: rec.conversationId } };
+    },
+    fail(lease, _error, options = {}) {
+      const rec = records.get(lease.conversationId);
+      rec.state = STATES.RETRY_WAIT;
+      rec.dueAt = (options.now || 0) + (options.retryDelayMs || 0);
+    },
+    succeed(lease) {
+      records.get(lease.conversationId).state = STATES.SUCCEEDED;
+    },
+    read(item) {
+      return records.get(keyOf(item));
+    },
+    recoverInterrupted(options = {}) {
+      const now = options.now || 0;
+      for (const rec of records.values()) {
+        if (rec.jobType === options.jobType && rec.state === STATES.RUNNING) {
+          rec.state = STATES.RETRY_WAIT;
+          rec.dueAt = now + (options.retryDelayMs || 0);
+        }
+      }
+      return [];
+    },
+    snapshot(options = {}) {
+      const dueBefore = Object.prototype.hasOwnProperty.call(options, 'dueBefore') && options.dueBefore
+        ? Date.parse(options.dueBefore)
+        : Infinity;
+      const rows = [...records.values()]
+        .filter(rec => rec.jobType === options.jobType
+          && (options.states || []).includes(rec.state)
+          && (rec.state !== STATES.RETRY_WAIT || rec.dueAt <= dueBefore))
+        .sort((a, b) => a.seq - b.seq);
+      const limit = options.limit || rows.length;
+      const jobs = rows.slice(0, limit);
+      return {
+        jobs,
+        hasMore: rows.length > limit,
+        nextCursor: jobs.length ? { conversationId: jobs[jobs.length - 1].conversationId } : null,
+        oldestPendingAt: rows.length ? new Date(0).toISOString() : '',
+        total: rows.length
+      };
+    }
+  };
+}
 
 function fixture(prefix) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -52,15 +114,7 @@ test.after(() => {
 test('startup recovery is analysis-scoped, due-aware, and cursor-stable while jobs become terminal', () => {
   const f = fixture('yance-b39-ai-recovery-');
   const now = Date.parse('2026-07-30T01:00:00.000Z');
-  const authority = new BackgroundJobAuthority({
-    store: f.store,
-    clock: () => now,
-    pid: 991,
-    processGeneration: 'batch39-recovery-process',
-    processIdentity: 'batch39-recovery-process:991',
-    pidAlive: () => false,
-    capturePidIdentity: () => 'batch39-recovery-process:991'
-  });
+  const authority = createBackgroundJobsDouble();
   try {
     const pending = Array.from({ length: 5 }, (_, index) => job(index + 1));
     for (const input of pending) authority.enqueue(input, { maxAttempts: 5, now });

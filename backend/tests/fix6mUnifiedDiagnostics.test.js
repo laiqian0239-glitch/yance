@@ -44,8 +44,11 @@ test('shadow mismatch blocks read-path cutover until the acceptance window is cl
 test('FIX6M diagnostics exposes stalled execution, media failure, uncertain delivery and shadow mismatch', () => {
   const f = fixture();
   try {
-    f.store.db.prepare(`INSERT INTO durable_executions(execution_id,trace_id,operation_kind,idempotency_key,state,generation,owner_id,lease_sequence,last_heartbeat_at,cancellation_requested_at,cancellation_actor,retry_count,max_attempts,next_attempt_at,failure_code,metadata_json,created_at,updated_at,completed_at)
-      VALUES('exec-stalled','trace-1','media-fetch','media-1','RUNNING',1,'worker-a',0,'2026-08-01T08:00:00.000Z','','',0,3,'','','{}','2026-08-01T08:00:00.000Z','2026-08-01T08:00:00.000Z','')`).run();
+    // Schema23 requires a verified lowercase command hash on insert, and a leased RUNNING row must
+    // carry the full claim quadruple (claim_id/owner_id/host_generation/fencing_token).
+    const stalledCommandHash = 'a'.repeat(64);
+    f.store.db.prepare(`INSERT INTO durable_executions(execution_id,trace_id,operation_kind,idempotency_key,command_content_sha256,content_hash_version,state,generation,owner_id,claim_id,host_generation,fencing_token,lease_sequence,last_heartbeat_at,cancellation_requested_at,cancellation_actor,retry_count,max_attempts,next_attempt_at,failure_code,metadata_json,created_at,updated_at,completed_at)
+      VALUES('exec-stalled','trace-1','media-fetch','media-1',?,1,'RUNNING',1,'worker-a','claim-stalled',1,1,0,'2026-08-01T08:00:00.000Z','','',0,3,'','','{}','2026-08-01T08:00:00.000Z','2026-08-01T08:00:00.000Z','')`).run(stalledCommandHash);
     f.store.db.prepare(`INSERT INTO communication_media_assets(media_id,trace_id,platform,source_account_id,external_reference,media_kind,mime_type,animated,state,version,local_path,thumbnail_path,sha256,failure_code,next_retry_at,metadata_json,created_at,updated_at)
       VALUES('media-failed','','telegram','tg-a','ref-1','avatar','image/jpeg',0,'FAILED_RETRYABLE',2,'','','','AUTH_EXPIRED','2026-08-01T10:05:00.000Z','{}','2026-08-01T09:00:00.000Z','2026-08-01T09:00:00.000Z')`).run();
     f.store.db.prepare(`INSERT INTO r32_accounts(id,platform,adapter_account_id,display_name,identity_label,state,can_send,can_receive,payload_json,created_at,updated_at)

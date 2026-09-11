@@ -19,6 +19,30 @@ const typingStateService = require('../services/typingStateService');
 const aiTaskRuntimeRegistry = require('../services/aiTaskRuntimeRegistry');
 const { createContextAwareReplyBrain } = require('../services/contextAwareReplyBrain');
 
+// The reply-brain pipeline reaches module-singleton repositories through getStore(); provide one
+// broker-owned global store. Behavioural test 2 still uses its own explicit isolated store.
+const brokerRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-b17-broker-'));
+process.env.YANCE_DATA_DIR = brokerRoot;
+process.env.WORKBUDDY_DATA_DIR = brokerRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const { createSqliteConnectionBroker, resetSqliteConnectionBrokerForTests } = require('../lib/sqliteConnectionBroker');
+const { closeR32Store } = require('../lib/r32StoreSingleton');
+const brokerDbPath = path.join(brokerRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(brokerDbPath), { recursive: true });
+const brokerWriteHost = acquireAuthorityWriteHost({ dbPath: brokerDbPath, instanceId: `f25-batch17-${process.pid}` });
+createSqliteConnectionBroker({ dbPath: brokerDbPath, authorityWriteHostCapability: brokerWriteHost.capability });
+
+test.after(() => {
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { brokerWriteHost.close(); } catch (_) {}
+  fs.rmSync(brokerRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.WORKBUDDY_DATA_DIR;
+  delete process.env.YANCE_DATA_DIR;
+});
+
 function qualityModel(id = 'openrouter-quality-model') {
   return {
     id, name: id, provider: 'openrouter', qualification: 'verified', available: true,

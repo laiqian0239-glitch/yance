@@ -6,21 +6,39 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { R32SqliteStore } = require('../lib/r32SqliteStore');
+const { SqliteConnectionBroker } = require('../lib/sqliteConnectionBroker');
+const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
+const canonicalEventLedgerAuthority = require('../services/canonicalEventLedgerAuthority');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { IdentityLinkAuthority } = require('../services/identityLinkAuthority');
 const { IdentityGovernanceService } = require('../services/identityGovernanceService');
 const { DomainEventProjectionAuthority } = require('../services/domainEventProjectionAuthority');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
 
+// File-level durable authority assembly: host -> broker -> store -> coordinator -> repository -> canonical ledger.
+const authorityRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-product-governance-auth-'));
+const authorityDbPath = path.join(authorityRoot, 'database', 'yance.db');
+fs.mkdirSync(path.dirname(authorityDbPath), { recursive: true });
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+canonicalEventLedgerAuthority.resetSingletonForTests();
+const pgHost = acquireAuthorityWriteHost({ dbPath: authorityDbPath, instanceId: `pg-auth-${process.pid}` });
+const pgBroker = new SqliteConnectionBroker({ dbPath: authorityDbPath, authorityWriteHostCapability: pgHost.capability });
+const pgStore = pgBroker.open();
+const pgCoordinator = new AuthorityTransactionCoordinator({ store: pgStore, eventBus: { publish() {} } });
+const pgRepository = createPlatformCoreRepository({ storeProvider: () => pgStore, coordinatorCapability: pgCoordinator.repositoryCapability() });
+const pgLedger = new canonicalEventLedgerAuthority.CanonicalEventLedgerAuthority({ coordinator: pgCoordinator, store: pgStore, compatibilityRepository: pgRepository });
+canonicalEventLedgerAuthority.configureSingleton(pgLedger);
+test.after(() => {
+  try { canonicalEventLedgerAuthority.resetSingletonForTests(); } catch (_) {}
+  try { pgBroker.checkpointAndClose(); } catch (_) {}
+  try { pgHost.release(); } catch (_) {}
+  try { fs.rmSync(authorityRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+});
 function withRepository(callback) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-product-governance-'));
-  const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
-  try { return callback({ root, store, repository }); }
-  finally {
-    try { store.close(); } catch (_) {}
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
-  }
+  return callback({ root: authorityRoot, store: pgStore, repository: pgRepository });
 }
 function bus() { const value = new EventEmitter(); value.publish = (type, payload) => { value.emit(type, { type, payload }); return { type, payload }; }; return value; }
 
@@ -42,7 +60,8 @@ test('concrete platform adapters are restricted to the driver composition root a
   scan(backendRoot);
   assert.deepEqual(violations, []);
   const services = path.join(__dirname, '../services');
-  const accountManager = fs.readFileSync(path.join(services, 'accountManager.js'), 'utf8');
+  // accountManager.js is a thin facade; concrete lifecycle dispatch lives in accountManagerCore.js.
+  const accountManager = fs.readFileSync(path.join(services, 'accountManagerCore.js'), 'utf8');
   const messaging = fs.readFileSync(path.join(services, 'platformMessagingService.js'), 'utf8');
   assert.match(accountManager, /platformDriverRegistry/u);
   assert.match(messaging, /platformDriverRegistry/u);
@@ -82,8 +101,8 @@ test('identity governance only proposes strong evidence links, requires human me
 test('event projection authority scans every page and repairs a blocking event with an audited replay', async () => {
   const projection = { id: 'message-2', platform: 'telegram', accountId: 'tg-1', sourceAccountId: 'tg-1', conversationId: 'conv-1', externalMessageId: 'remote-2', direction: 'inbound', fromMe: false, type: 'text', text: 'Hallo', timestamp: '2026-07-27T00:00:00.000Z' };
   const events = [
-    { event_id: 'event-1', event_type: 'message.received', replay_state: 'pending', payload: { projection: { ...projection, id: 'message-1', externalMessageId: 'remote-1' } } },
-    { event_id: 'event-2', event_type: 'message.received', replay_state: 'pending', payload: { projection } }
+    { event_id: 'event-1', ledgerSequence: 1, event_type: 'message.received', replay_state: 'pending', payload: { projection: { ...projection, id: 'message-1', externalMessageId: 'remote-1' } } },
+    { event_id: 'event-2', ledgerSequence: 2, event_type: 'message.received', replay_state: 'pending', payload: { projection } }
   ];
   const messages = new Map([['message-1', { ...events[0].payload.projection }]]);
   const receipts = new Map();
@@ -95,6 +114,10 @@ test('event projection authority scans every page and repairs a blocking event w
     getProjectionReceipt: (_name, _version, id) => receipts.get(id) || null
   };
   const eventLog = {
+    readEvent: id => events.find(row => row.event_id === id) || null,
+    countEvents: () => events.length,
+    listEvents: ({ limit, offset }) => events.slice(offset, offset + limit),
+    recordSkippedProjection: () => {},
     recordProjectionFailure: input => receipts.set(input.eventId, { event_id: input.eventId, projection_status: 'failed', failure_code: input.failureCode, failure_reason: input.failureReason, attempt: 1, projected_at: new Date().toISOString() }),
     recordShadowProjection: input => receipts.set(input.eventId, { event_id: input.eventId, projection_status: 'shadow-mismatch', failure_code: 'SHADOW_PROJECTION_MISMATCH', attempt: 1, projected_at: new Date().toISOString() }),
     recordAppliedProjection: input => { const row = { event_id: input.eventId, projection_status: 'applied', attempt: 1, projected_at: new Date().toISOString() }; receipts.set(input.eventId, row); return row; },

@@ -67,19 +67,29 @@ test('contact context menu is reduced to open, pin and archive', () => {
   }
 });
 
-test('AI workbench distinguishes enabled, configured and operational routes', () => {
+test('AI workbench distinguishes disabled, qualified and catalog models through Model Brain projection', () => {
   const source = read('frontend/js/r32-ai-workbench-runtime.js');
-  assert.match(source, /configuredRoutes/);
-  assert.match(source, /operationalRoutes/);
-  assert.match(source, /blockedRoutes/);
+  // Current authority: registryServices projects each model into disabled/qualified/catalog
+  // states from hard qualification evidence instead of physical route buckets.
+  assert.match(source, /function registryServices/);
+  assert.match(source, /'disabled'/);
+  assert.match(source, /'qualified'/);
+  assert.match(source, /'catalog'/);
+  assert.match(source, /m\.enabled===false\|\|m\.userDisabled===true\?'disabled'/);
+  // Retired physical-route operational formula must not return.
   assert.doesNotMatch(source, /operational=r\.operational===true\|\|\(requestedEnabled&&configured\)/);
 });
 
 test('reply brain cannot become candidate-ready without director and commercially qualified translation', () => {
   const source = read('backend/services/replyBrainModelAuthority.js');
-  assert.match(source, /candidateGenerationReady = quick\.primaryUsable && quick\.fallbackUsable/u);
-  assert.match(source, /director\.primaryUsable && director\.fallbackUsable/u);
-  assert.match(source, /&& translation\.pass/u);
-  assert.match(source, /qualifyingTasks\.includes\('translation'\)/);
-  assert.match(source, /missing\.push\('导演备用模型'\)/);
+  // director remains a first-class reply task alongside quick/deep reply.
+  assert.match(source, /REPLY_TASKS = Object\.freeze\(\['quick_reply', 'deep_reply', 'director'\]\)/u);
+  // A model is a full candidate only when verified, benchmark-passed and task-allowed.
+  assert.match(source, /const full = clean\(model\.qualification\) === 'verified' && benchmarkPass\(model\) && allowed/u);
+  assert.match(source, /allowedSet\(model\)\.has\(target\)/u);
+  // candidate readiness counts only fully qualified models per task.
+  assert.match(source, /replyTaskQualifications\[task\]\?\.full === true/u);
+  assert.match(source, /pass: CORE_REPLY_TASKS\.every\(task => taskAvailability\[task\] > 0\)/u);
+  // commercial translation requires its own commercial benchmark evidence.
+  assert.match(source, /lastCommercialBenchmark\?\.pass === true && allowedSet\(model\)\.has\('translation'\)/u);
 });

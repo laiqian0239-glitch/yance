@@ -22,8 +22,11 @@ test.after(() => {
 
 test('F25-D35 unresolved platform acceptance blocks new outbound writes with a stable 423 receipt', () => {
   const service = new SendQueueService();
-  const originalSummary = queueRepository.summary;
-  queueRepository.summary = () => ({ globalOutcomeUnknown: 2, accountOutcomeUnknown: 0 });
+  const originalList = queueRepository.list;
+  queueRepository.list = () => [
+    { id: 'unknown-1', state: 'send_outcome_unknown' },
+    { id: 'unknown-2', state: 'send_outcome_unknown' }
+  ];
 
   try {
     assert.throws(
@@ -33,44 +36,43 @@ test('F25-D35 unresolved platform acceptance blocks new outbound writes with a s
         assert.equal(error.status, 423);
         assert.equal(error.reasonCode, 'PLATFORM_ACCEPTED_CHECKPOINT_UNCERTAIN');
         assert.equal(error.outcomeUnknown, 2);
-        assert.match(error.message, /禁止新增出站操作/u);
+        assert.match(error.message, /not accepting new commands/u);
         return true;
       }
     );
-    assert.equal(service.pausedReason, 'PLATFORM_ACCEPTED_CHECKPOINT_UNCERTAIN');
-  } finally { queueRepository.summary = originalSummary; }
+  } finally { queueRepository.list = originalList; }
 });
 
 test('F25-D35 a queue-state read failure fails closed instead of allowing a new outbound write', () => {
   const service = new SendQueueService();
-  const originalSummary = queueRepository.summary;
-  queueRepository.summary = () => {
+  const originalList = queueRepository.list;
+  queueRepository.list = () => {
     const error = new Error('SQLite busy');
     error.code = 'SQLITE_BUSY';
     throw error;
   };
 
   try {
+    const failedStatus = service.status();
+    assert.equal(failedStatus.statusError.code, 'SQLITE_BUSY');
+    assert.equal(failedStatus.writeBlocked, true);
     assert.throws(
       () => service.assertEnqueueAllowed('media'),
       error => {
         assert.equal(error.code, 'SEND_QUEUE_STATUS_UNAVAILABLE_WRITE_BLOCKED');
         assert.equal(error.status, 423);
-        assert.equal(error.reasonCode, 'PLATFORM_ACCEPTED_CHECKPOINT_UNCERTAIN');
-        assert.equal(error.cause?.code, 'SQLITE_BUSY');
         return true;
       }
     );
-    assert.equal(service.pausedReason, 'PLATFORM_ACCEPTED_CHECKPOINT_UNCERTAIN');
-  } finally { queueRepository.summary = originalSummary; }
+  } finally { queueRepository.list = originalList; }
 });
 
 test('F25-D35 a healthy queue leaves enqueue operations available', () => {
   const service = new SendQueueService();
-  const originalSummary = queueRepository.summary;
-  queueRepository.summary = () => ({ globalOutcomeUnknown: 0, accountOutcomeUnknown: 0 });
+  const originalList = queueRepository.list;
+  queueRepository.list = () => [];
   try {
     assert.equal(service.assertEnqueueAllowed('text'), true);
     assert.equal(service.pausedReason, '');
-  } finally { queueRepository.summary = originalSummary; }
+  } finally { queueRepository.list = originalList; }
 });

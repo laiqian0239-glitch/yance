@@ -1259,7 +1259,7 @@ function ensureBlockingGate() {
   gate.id = 'yancePersonalAccessGate';
   Object.assign(gate.style, {
     position: 'fixed', inset: '0', zIndex: '2147483000', display: 'grid', placeItems: 'center',
-    background: 'rgba(10,14,20,.82)', backdropFilter: 'blur(12px)', padding: '24px'
+    background: 'var(--overlay-scrim)', backdropFilter: 'blur(12px)', padding: '24px'
   });
   const card = el('div', 'sc32-section wide');
   Object.assign(card.style, { width: 'min(640px, 92vw)', maxHeight: '88vh', overflow: 'auto' });
@@ -1366,7 +1366,7 @@ function openOwnerManager() {
   let modal = document.getElementById('yancePersonalAccessOwnerManager');
   if (!modal) {
     modal = el('section'); modal.id = 'yancePersonalAccessOwnerManager';
-    Object.assign(modal.style, { position: 'fixed', inset: '0', zIndex: '2147483001', background: 'rgba(10,14,20,.78)', display: 'grid', placeItems: 'center', padding: '24px' });
+    Object.assign(modal.style, { position: 'fixed', inset: '0', zIndex: '2147483001', background: 'var(--overlay-scrim)', display: 'grid', placeItems: 'center', padding: '24px' });
     const card = el('div', 'sc32-section wide'); card.dataset.ownerManagerCard = '1';
     Object.assign(card.style, { width: 'min(860px, 94vw)', maxHeight: '88vh', overflow: 'auto' });
     modal.append(card); document.body.append(modal);

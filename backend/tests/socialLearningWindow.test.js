@@ -3,15 +3,47 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
+
+const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-social-learning-window-'));
+process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `social-learning-window-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+
+const { getR32Store, closeR32Store } = require('../lib/r32StoreSingleton');
 const { SqliteStorePersistenceAdapter } = require('../store/adapters/SqliteStorePersistenceAdapter');
 const { selectCustomerSocialContext } = require('../store/selectors/customerSocialSelectors');
 const { inferInteractionPreferences } = require('../store/social/preferenceLearningEngine');
 const { RECENT_SOCIAL_MESSAGE_LIMIT } = require('../store/social/learningPolicy');
 
+test.after(() => {
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
+  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+});
+
 test('social learning uses one 60-message window before and after restart', () => {
   assert.equal(RECENT_SOCIAL_MESSAGE_LIMIT, 60);
-  const adapter = new SqliteStorePersistenceAdapter({ store: { db: {} } });
+  const adapter = new SqliteStorePersistenceAdapter({ store: getR32Store() });
   assert.equal(adapter.recentMessageLimit, 60);
 
   const messages = Array.from({ length: 80 }, (_, index) => ({

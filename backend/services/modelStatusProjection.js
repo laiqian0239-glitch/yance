@@ -14,7 +14,11 @@ function project(state = {}, options = {}) {
   const replyBrain = replyBrainAuthority.evaluate(models);
   const rawOpenRouter = state.openRouter && typeof state.openRouter === 'object' ? state.openRouter : {};
   const { credentialRef: _secretRef, ...openRouterSnapshot } = rawOpenRouter;
-  const trackedCloudCostUsd = models.reduce((sum, model) => sum + Number(model.totalCostUsd || 0), 0);
+  // totalCostUsd is a registry accounting field and is intentionally read from the
+  // raw state models: the normalizeModel shape projection does not carry it, so summing
+  // normalized models would always yield zero.
+  const trackedCloudCostUsd = (Array.isArray(state.models) ? state.models : [])
+    .reduce((sum, model) => sum + Number(model.totalCostUsd || 0), 0);
   return {
     schemaVersion: 6,
     source: 'sqlite:model-registry',

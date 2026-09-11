@@ -48,8 +48,13 @@ test('health readiness cannot be green when account operations fail or AI has no
   assert.equal(ai.verified, 0);
   assert.equal(ai.routingEligible, 0);
   assert.equal(ai.pass, false);
-  assert.equal(ai.replyBrain.state, 'REPLY_BRAIN_INCOMPLETE');
-  assert.ok(ai.replyBrain.missing.includes('快速回复主模型'));
+  // Current Model Brain hard-qualification authority: with no qualified model, every reply task has
+  // zero full candidates and the reply brain cannot pass (replaces the retired dual-model state string).
+  assert.equal(ai.replyBrain.pass, false);
+  assert.equal(ai.replyBrain.coreCandidateCount, 0);
+  for (const task of ['quick_reply', 'deep_reply', 'director']) {
+    assert.equal(ai.replyBrain.taskAvailability[task], 0, `no fully qualified model for ${task}`);
+  }
 });
 
 test('unconfigured platforms are not creatable/connectable while WhatsApp remains available', () => {

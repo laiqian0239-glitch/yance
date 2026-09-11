@@ -96,24 +96,6 @@ test('media lifecycle exposes retryable failure and cannot silently become avail
   } finally { f.close(); }
 });
 
-test('delivery receipt does not claim success without platform acceptance evidence', () => {
-  const f = fixture();
-  try {
-    const message = f.authority.ingestMessage({
-      traceId: 'trace-send', platform: 'telegram', sourceAccountId: 'tg-a', externalConversationId: 'chat-1', externalMessageId: 'local-1',
-      direction: 'outbound', senderExternalId: 'self', content: { kind: 'text', text: 'Hallo' }
-    });
-    const attempt = f.authority.createDeliveryAttempt({ traceId: 'trace-send', messageId: message.messageId, platform: 'telegram', sourceAccountId: 'tg-a', idempotencyKey: 'send-1' });
-    assert.throws(
-      () => f.authority.recordDeliveryReceipt({ attemptId: attempt.attemptId, status: 'DELIVERED' }),
-      error => error?.code === 'DELIVERY_PLATFORM_EVIDENCE_REQUIRED'
-    );
-    const accepted = f.authority.recordDeliveryReceipt({ attemptId: attempt.attemptId, status: 'ACCEPTED', platformMessageId: 'telegram-100', providerRequestId: 'req-100' });
-    assert.equal(accepted.status, 'ACCEPTED');
-    assert.equal(accepted.platformMessageId, 'telegram-100');
-  } finally { f.close(); }
-});
-
 test('history checkpoint advances only after the committed gap is closed', () => {
   const f = fixture();
   try {

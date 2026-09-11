@@ -5,7 +5,6 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { IdentityLinkAuthority } = require('../services/identityLinkAuthority');
 const { mergeFacts, canonicalFactKey } = require('../services/personContextAuthority');
@@ -13,17 +12,68 @@ const relationshipProjectionAuthority = require('../services/relationshipProject
 const workspace = require('../repositories/workspaceRepository');
 const presentation = require('../../frontend/js/r32-business-presentation-authority');
 
+// One broker-owned production-shaped runtime: configureProductionServices binds the canonical event
+// ledger singleton and the AuthorityTransactionCoordinator to the same capability-bearing store that
+// IdentityLinkAuthority records domain events through.
+const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-f25-b6-'));
+process.env.YANCE_DATA_DIR = runtimeRoot;
+process.env.WORKBUDDY_DATA_DIR = runtimeRoot;
+process.env.NODE_ENV = 'test';
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  getSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+const canonicalEventLedger = require('../services/canonicalEventLedgerAuthority');
+const brokerDbPath = path.join(runtimeRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(brokerDbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({ dbPath: brokerDbPath, instanceId: `f25-batch6-${process.pid}` });
+createSqliteConnectionBroker({ dbPath: brokerDbPath, authorityWriteHostCapability: authorityWriteHost.capability });
+const rawStore = getSqliteConnectionBroker().open();
+const appRuntime = AppRuntimeFactory.create({
+  ownership: { guard: () => ({ ownerInstanceId: 'f25-batch6-owner', fencingToken: 1 }) },
+  store: {
+    db: rawStore.db,
+    snapshot: () => ({
+      stateVersion: 1,
+      lastEventSequence: 0,
+      runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+      capabilities: {},
+      diagnosticsSummary: {}
+    })
+  },
+  lifecycle: { state: 'runtime_state_ready' },
+  buildId: 'f25-batch6-test',
+  authorityWriteHostCapability: authorityWriteHost.capability,
+  authorityStore: rawStore
+});
+appRuntime.configureProductionServices();
+const { getR32Store, closeR32Store } = require('../lib/r32StoreSingleton');
+const primaryStore = getR32Store();
+
+test.after(() => {
+  try { canonicalEventLedger.resetSingletonForTests(); } catch (_) {}
+  try { AppRuntimeFactory.resetForTests(); } catch (_) {}
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
+  fs.rmSync(runtimeRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+  delete process.env.WORKBUDDY_DATA_DIR;
+  delete process.env.YANCE_DATA_DIR;
+});
+
 function runtime() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-f25-b6-'));
-  const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
+  const repository = createPlatformCoreRepository({ storeProvider: () => primaryStore });
   const identity = new IdentityLinkAuthority({ repository });
-  return { root, store, repository, identity };
+  return { store: primaryStore, repository, identity };
 }
-function cleanup(value) {
-  try { value.store.close(); } catch (_) {}
-  fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 20 });
-}
+function cleanup() { /* the single broker-owned primary store is closed once in test.after */ }
 
 function evidenceFact(key, value, messageId = 'm-1') {
   return {
@@ -72,7 +122,9 @@ test('relationship projection cannot label stored rule or stale insight as curre
     analysisCurrent: false,
     analysisRunId: 'old-run'
   });
-  assert.equal(projection.source, 'social_rule_projection');
+  // No current AI analysis: the stale stored insight is not labelled as AI analysis at all (source stays empty).
+  assert.equal(projection.source, 'empty');
+  assert.notEqual(projection.source, 'ai_analysis');
   assert.equal(projection.analysisCurrent, false);
   assert.notEqual(projection.state, 'ready');
   assert.equal(projection.trajectory.analysisCommitted, false);
@@ -143,11 +195,12 @@ test('conversation context exposes one Person/Profile/Relationship snapshot acro
     assert.ok(context.profile.health > 0, 'confirmed facts and observed identity must yield a non-zero auditable profile health');
 
     const temperature = context.relationshipProjection.trajectory.temperature;
-    assert.equal(temperature, 100);
+    // A stale, non-committed insight must not leak its cached intimacy score; the projection starts at 0.
+    assert.equal(temperature, 0);
     assert.equal(context.profile.temperature, temperature);
     assert.equal(context.insights.intimacyScore, temperature);
     assert.equal(context.authoritySnapshot.relationship.temperature, temperature);
-    assert.equal(context.insights.sourceType, 'social_rule_projection');
+    assert.equal(context.insights.sourceType, 'empty');
     assert.equal(context.insights.analysisCommitted, false);
     assert.equal(context.insights.analysisRunId, '');
     assert.notEqual(context.insights.summary, '旧的完整 AI 结论');

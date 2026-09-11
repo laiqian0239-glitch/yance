@@ -31,10 +31,15 @@ test('runtime projection gives Batch-only models a non-interactive purpose', () 
   assert.equal(chat.interactiveReplyVisible, true);
 });
 
-test('AI workbench renders Batch-only models outside the reply model grid', () => {
+test('AI workbench registers models through the unified service projection, not a physical route grid', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'js', 'r32-ai-workbench-runtime.js'), 'utf8');
-  assert.match(source, /interactiveServices/u);
-  assert.match(source, /batchServices/u);
-  assert.match(source, /Batch 与后台模型/u);
-  assert.match(source, /interactiveReplyVisible/u);
+  // The workbench only registers catalog/capability/qualification facts through the
+  // unified projection and splits them by local/cloud source; physical model selection
+  // (including batch vs interactive) is owned upstream by LiteLLM/Model Brain.
+  assert.match(source, /registryServices/u);
+  assert.match(source, /sourceType===['"]local['"]/u);
+  assert.match(source, /sourceType===['"]cloud['"]/u);
+  // The retired interactive/batch physical route-grid split must not be reintroduced.
+  assert.doesNotMatch(source, /interactiveServices/u);
+  assert.doesNotMatch(source, /batchServices/u);
 });

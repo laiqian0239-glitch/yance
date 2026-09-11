@@ -60,6 +60,13 @@ class DomainEventLogService {
     Object.freeze(this);
   }
 
+  get repository() {
+    const authority = this.canonicalAuthority;
+    return authority?.compatibilityRepository
+      || (typeof authority?.getCompatibilityRepository === 'function' && authority.getCompatibilityRepository())
+      || null;
+  }
+
   append(input = {}) {
     return invokeCanonicalAuthority(this.canonicalAuthority, 'append', input);
   }
@@ -86,6 +93,18 @@ class DomainEventLogService {
 
   recordProjectionFailure(input = {}) {
     return invokeCanonicalAuthority(this.canonicalAuthority, 'recordProjectionFailure', input);
+  }
+
+  recordSkippedProjection(input = {}) {
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'recordSkippedProjection', input);
+  }
+
+  countEvents(input = {}) {
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'countEvents', input);
+  }
+
+  listEvents(input = {}) {
+    return invokeCanonicalAuthority(this.canonicalAuthority, 'listEvents', input);
   }
 
   replay(input = {}) {

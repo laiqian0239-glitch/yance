@@ -16,6 +16,15 @@ const paletteSources = new Set([
   'frontend/r32-theme-motion.js',
   'frontend/r32-theme-authority.css'
 ]);
+// Authorized brand/auth surfaces own their concrete brand palette (and SVG logo
+// fills) by design; they are color-definition owners, analogous to paletteSources,
+// not runtime components that must consume semantic tokens.
+const brandSurfaceSources = new Set([
+  'integration/element-module/src/YanceLogin.css',
+  'integration/element-module/src/YanceLogin.tsx',
+  'integration/element-module/src/BrandPreviewSurface.css',
+  'integration/element-module/src/BrandPreviewSurface.tsx'
+]);
 const legacyDebt = Object.freeze({
   'frontend/index.html': 0
 });
@@ -64,7 +73,7 @@ for (const [relative, baseline] of Object.entries(legacyDebt)) {
   if (count > baseline) failures.push(`${relative}: fixed-color debt increased ${baseline} -> ${count}`);
 }
 for (const row of all) {
-  if (paletteSources.has(row.file) || Object.hasOwn(legacyDebt, row.file) || maintainedRuntimeFiles.includes(row.file)) continue;
+  if (paletteSources.has(row.file) || brandSurfaceSources.has(row.file) || Object.hasOwn(legacyDebt, row.file) || maintainedRuntimeFiles.includes(row.file)) continue;
   failures.push(`${row.file}: unclassified fixed-color source (${row.count})`);
 }
 
@@ -74,6 +83,7 @@ const report = {
     semanticContract: 'frontend/r32-theme-semantic-contract.css',
     scanRoots,
     paletteSources: [...paletteSources],
+    brandSurfaceSources: [...brandSurfaceSources],
     maintainedRuntimeFiles: [...maintainedRuntimeFiles],
     legacyDebt
   },

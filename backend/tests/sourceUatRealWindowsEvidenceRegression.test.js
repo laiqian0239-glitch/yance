@@ -8,7 +8,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { SqliteStorePersistenceAdapter } = require('../store/adapters/SqliteStorePersistenceAdapter');
-const modelStatusProjection = require('../services/modelStatusProjection');
+const modelRuntimeAuthority = require('../services/modelRuntimeAuthority');
 
 function fixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-real-windows-evidence-'));
@@ -58,36 +58,31 @@ test('real Windows social-message projection can persist the 17-column interacti
 });
 
 test('cloud qualification failure is not mislabeled as generic service offline', () => {
-  const result = modelStatusProjection.project({
-    ollamaOnline: false,
-    models: [{
-      id: 'gpt',
-      name: 'gpt-4o',
-      provider: 'openai-compatible',
-      configured: true,
-      available: true,
-      endpoint: 'https://api.openai.com/v1',
-      credentialRef: 'cred',
-      qualification: 'failed',
-      lastTest: { connectivity: { pass: false, status: 401, code: 'invalid_api_key', error: 'API key invalid' } }
-    }],
-    routes: {}
-  }, { credentialReady: () => true });
-  assert.equal(result.models[0].configured, true);
-  assert.equal(result.models[0].credentialReady, true);
-  assert.equal(result.models[0].runtimeOnline, false);
-  assert.equal(result.models[0].runtimeState, modelStatusProjection.STATES.unavailable);
-  assert.equal(result.models[0].runtimeStateLabel, '不可用');
-  assert.match(result.models[0].userSummary, /凭据无效|权限不足/u);
-  assert.equal(result.models[0].qualificationFailure.status, 401);
-  assert.equal(result.models[0].qualificationFailure.code, 'invalid_api_key');
-  assert.doesNotMatch(result.models[0].userSummary, /模型配置未发现|服务离线/u);
+  const result = modelRuntimeAuthority.projectModel({
+    id: 'gpt',
+    name: 'gpt-4o',
+    provider: 'openai-compatible',
+    configured: true,
+    endpoint: 'https://api.openai.com/v1',
+    credentialRef: 'cred',
+    qualification: 'failed',
+    lastTest: { connectivity: { pass: false, status: 401, code: 'invalid_api_key', error: 'API key invalid' } }
+  }, {}, { credentialReady: () => true });
+  assert.equal(result.configured, true);
+  assert.equal(result.credentialReady, true);
+  assert.equal(result.runtimeOnline, false);
+  assert.equal(result.runtimeState, modelRuntimeAuthority.STATES.unavailable);
+  assert.equal(result.runtimeStateLabel, '不可用');
+  assert.match(result.userSummary, /凭据无效|权限不足/u);
+  assert.equal(result.qualificationFailure.status, 401);
+  assert.equal(result.qualificationFailure.code, 'invalid_api_key');
+  assert.doesNotMatch(result.userSummary, /模型配置未发现|服务离线/u);
 });
 
 test('Facebook page and contact avatar chains retain platform-specific identity', () => {
   const root = path.resolve(__dirname, '..', '..');
   const adapter = fs.readFileSync(path.join(root, 'backend/services/facebookAdapter.js'), 'utf8');
-  const manager = fs.readFileSync(path.join(root, 'backend/services/accountManager.js'), 'utf8');
+  const manager = fs.readFileSync(path.join(root, 'backend/services/accountManagerCore.js'), 'utf8');
   const desktopApi = fs.readFileSync(path.join(root, 'services/facebook-worker/src/desktopApi.js'), 'utf8');
   const runtime = fs.readFileSync(path.join(root, 'frontend/js/r32-ui-runtime.js'), 'utf8');
   assert.match(adapter, /pagePicture/u);

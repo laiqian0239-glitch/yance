@@ -692,7 +692,7 @@ class CanonicalEventLedgerAuthority {
       eventId,
       ledgerSequence: event.ledgerSequence,
       projectionStatus: 'skipped',
-      projectionHash: '',
+      projectionHash: canonicalHash(input.projection ?? null),
       targetRefs: input.targetRefs || [],
       failureCode: optional(input.failureCode, 'failureCode', 256) || 'CANONICAL_EVENT_PROJECTOR_UNSUPPORTED',
       failureReason: optional(input.failureReason, 'failureReason', 2048),
@@ -713,7 +713,7 @@ class CanonicalEventLedgerAuthority {
       eventId,
       ledgerSequence: event.ledgerSequence,
       projectionStatus: 'failed',
-      projectionHash: '',
+      projectionHash: canonicalHash(input.projection ?? null),
       targetRefs: input.targetRefs || [],
       failureCode: optional(input.failureCode || input.error?.code, 'failureCode', 256) || 'CANONICAL_EVENT_PROJECTION_FAILED',
       failureReason: optional(input.failureReason || input.error?.message, 'failureReason', 2048),
@@ -744,6 +744,7 @@ class CanonicalEventLedgerAuthority {
         projectorName,
         projectorVersion,
         eventId,
+        ledgerSequence: event?.ledgerSequence,
         projectionStatus: 'applied',
         projectionHash,
         targetRefs: result?.targetRefs || [],
@@ -758,8 +759,9 @@ class CanonicalEventLedgerAuthority {
         projectorName,
         projectorVersion,
         eventId,
+        ledgerSequence: event?.ledgerSequence,
         projectionStatus: 'failed',
-        projectionHash: '',
+        projectionHash: canonicalHash(null),
         targetRefs: [],
         failureCode: optional(cause?.code, 'failureCode', 256) || 'CANONICAL_EVENT_REPLAY_FAILED',
         failureReason: optional(cause?.message, 'failureReason', 2048),
@@ -838,7 +840,8 @@ const singleton = Object.freeze({
   assertConverged: input => resolveSingleton().assertConverged(input),
   recordProjectionFailure: input => resolveSingleton().recordProjectionFailure(input),
   recordSkippedProjection: input => resolveSingleton().recordSkippedProjection(input),
-  replay: input => resolveSingleton().replay(input)
+  replay: input => resolveSingleton().replay(input),
+  getCompatibilityRepository: () => resolveSingleton()?.compatibilityRepository || null
 });
 
 module.exports = {

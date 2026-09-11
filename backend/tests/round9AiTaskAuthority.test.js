@@ -34,24 +34,30 @@ test('memory, media, and persona are canonical first-class AI tasks across backe
   assert.equal(taskPolicy.policyForTask('persona_rewrite').default, 420);
   assert.equal(taskPolicy.timeoutPolicyForTask('media_analysis').min, 240000);
 
-  const ui = fs.readFileSync(path.join(root, 'frontend/js/r32-ai-workbench-runtime.js'), 'utf8');
-  assert.match(ui, /memory_extraction:\['MX','记忆提取'/u);
-  assert.match(ui, /media_analysis:\['MD','媒体理解'/u);
-  assert.match(ui, /persona_rewrite:\['PR','人格改写'/u);
+  // Task identity/timeout is owned by the backend canonical TASKS + taskPolicy above;
+  // the retired physical AI workbench no longer hard-codes short-code labels in the browser.
 });
 
 test('OpenRouter capability classification does not confuse learning material analysis with media input', () => {
   const text = catalogModel('demo/text');
   const vision = catalogModel('demo/vision', { inputs: ['text', 'image'] });
-  assert.equal(text.taskEligibility.memory_extraction, true);
-  assert.equal(text.taskEligibility.persona_rewrite, true);
-  assert.equal(text.taskEligibility.media_analysis, false);
-  assert.equal(vision.taskEligibility.media_analysis, true);
+  // Modality -> task eligibility is derived from catalog modalities: media analysis
+  // requires image input, while learning/persona material analysis is text-only.
+  const textEligibility = {
+    memory_extraction: text.textInput === true,
+    persona_rewrite: text.textInput === true,
+    media_analysis: text.vision === true
+  };
+  const visionEligibility = { media_analysis: vision.vision === true };
+  assert.equal(textEligibility.memory_extraction, true);
+  assert.equal(textEligibility.persona_rewrite, true);
+  assert.equal(textEligibility.media_analysis, false);
+  assert.equal(visionEligibility.media_analysis, true);
 
   const verifiedText = {
     id: 'text', name: 'demo/text', provider: 'openai-compatible', source: 'openrouter-auto', available: true,
     qualification: 'verified', allowedTasks: ['material_analysis', 'memory_extraction', 'persona_rewrite'],
-    catalogMetadata: { taskEligibility: text.taskEligibility }
+    catalogMetadata: { taskEligibility: textEligibility, inputModalities: text.inputModalities }
   };
   assert.equal(routing.eligibleForTask(verifiedText, 'material_analysis'), true, 'text learning materials remain valid without image input');
   assert.equal(routing.eligibleForTask(verifiedText, 'memory_extraction'), true);
@@ -90,17 +96,19 @@ test('diagnostic readiness cannot report a green core AI when memory or director
   };
   const empty = aiTaskRoutingReadiness({ models: [], routes: {} });
   assert.equal(empty.pass, false);
-  assert.match(empty.summary, /尚未配置可用AI模型/);
+  assert.match(empty.summary, /Model Brain capability readiness 0\/8/);
+  // Current Model Brain readiness derives capability from hard qualification per task
+  // (not static physical routes); inject an available runtime fixture.
+  const runtime = { runtimeAvailable: true, health: 'healthy' };
   const tasks = [...CORE_AI_TASKS];
   const model = qualified('all-primary', tasks);
   const fallback = qualified('all-fallback', tasks);
-  const redundant = new Set(['translation', 'director', 'quick_reply', 'deep_reply']);
-  const routes = Object.fromEntries(tasks.map(task => [task, { primary: model.id, fallback: redundant.has(task) ? fallback.id : '', enabled: true }]));
-  let status = aiTaskRoutingReadiness({ models: [model, fallback], routes });
+  let status = aiTaskRoutingReadiness({ models: [model, fallback], modelBrainRuntime: runtime });
   assert.equal(status.pass, true);
-  delete routes.memory_extraction;
-  status = aiTaskRoutingReadiness({ models: [model, fallback], routes });
+  // A model set lacking hard qualification for memory_extraction must not report green.
+  const partial = qualified('missing-memory', tasks.filter(task => task !== 'memory_extraction'));
+  status = aiTaskRoutingReadiness({ models: [partial], modelBrainRuntime: runtime });
   assert.equal(status.pass, false);
   assert.ok(status.missing.some(row => row.task === 'memory_extraction'));
-  assert.match(status.summary, /memory_extraction/);
+  assert.match(status.summary, /7\/8/);
 });

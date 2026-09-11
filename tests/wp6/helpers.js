@@ -110,7 +110,8 @@ async function createRuntimeHarness(options = {}) {
   lifecycle.state = 'local_ready';
   const runtime = new AppRuntime({ ownership: authority.ownership, store: authority.store, lifecycle, buildId: 'wp6-test-build', onStopRequested: options.onStopRequested || (() => {}) });
   const sideEffects = [];
-  runtime.composition = {
+  process.env.YANCE_TEST_ONLY_RUNTIME_COMPOSITION_ATTACH = '1';
+  runtime.attachRuntimeCompositionForTest({
     accountContext: {
       online: async () => sideEffects.push('online'),
       offline: async () => sideEffects.push('offline'),
@@ -123,8 +124,9 @@ async function createRuntimeHarness(options = {}) {
     eventBus: { publish: () => true },
     productionDiagnostics: { beginOperation: () => '', completeOperation: () => true, failOperation: () => true },
     participants: [],
-    logger: { warn() {}, info() {}, error() {} }
-  };
+    logger: { warn() {}, info() {}, error() {} },
+    ...(options.composition || {})
+  });
   runtime.productionServicesStarted = true;
   return { authority, lifecycle, runtime, sideEffects, async close() { await authority.close(); } };
 }

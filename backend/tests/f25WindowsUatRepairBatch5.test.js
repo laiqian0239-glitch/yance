@@ -78,45 +78,50 @@ test('analysis result authority rejects empty output and produces a committed au
   assert.match(receipt.receiptSha256, /^[a-f0-9]{64}$/);
 });
 
-test('translation readiness requires a distinct qualified primary and fallback model', () => {
+test('translation readiness requires hard commercial qualification and never fabricates primary/fallback routing', () => {
   const primary = qualifiedModel('translation-primary', taskReadinessAuthority.CORE_AI_TASKS, 'openrouter', 'anthropic/translation-primary');
-  const fallback = qualifiedModel('translation-fallback', taskReadinessAuthority.CORE_AI_TASKS, 'openrouter', 'openai/translation-fallback');
-  let result = replyBrainAuthority.evaluate([primary], {
-    translation: { primary: primary.id, fallback: '', requestedEnabled: true }
-  });
-  assert.equal(result.translation.primaryQualityPass, true);
-  assert.equal(result.translation.pass, false);
-  assert.match(result.translation.reason, /备用模型/);
+  // Translation is gated by hard commercial benchmark evidence, not by a physical primary/fallback route.
+  assert.equal(replyBrainAuthority.translationBenchmarkPass(primary), true);
+  assert.equal(replyBrainAuthority.translationStatus(primary).pass, true);
 
-  result = replyBrainAuthority.evaluate([primary, fallback], {
-    translation: { primary: primary.id, fallback: fallback.id, requestedEnabled: true }
-  });
-  assert.equal(result.translation.pass, true);
-  assert.equal(result.translation.fallbackDistinct, true);
+  const unqualified = {
+    ...primary,
+    id: 'translation-unqualified',
+    allowedTasks: primary.allowedTasks.filter(task => task !== 'translation'),
+    lastCommercialBenchmark: { ...primary.lastCommercialBenchmark, pass: false }
+  };
+  assert.equal(replyBrainAuthority.translationBenchmarkPass(unqualified), false);
+  assert.equal(replyBrainAuthority.translationStatus(unqualified).pass, false);
+
+  // The retired physical primary/fallback route shape must not be resurrected by reply-brain evaluation,
+  // and no task may demand a distinct fallback model anymore.
+  const result = replyBrainAuthority.evaluate([primary]);
+  assert.equal(result.translation, undefined);
+  assert.equal(result.primaryQualityPass, undefined);
+  assert.equal(result.fallbackDistinct, undefined);
+  assert.deepEqual(taskReadinessAuthority.REDUNDANCY_REQUIRED_TASKS, []);
 });
 
-test('core AI readiness distinguishes requested activation, primary operation, and resilient main-backup readiness', () => {
+test('core AI readiness is driven by hard-qualified capability count and Model Brain runtime, not physical routes', () => {
   const primary = qualifiedModel('primary');
   const fallback = qualifiedModel('fallback');
-  const redundant = new Set(taskReadinessAuthority.REDUNDANCY_REQUIRED_TASKS);
-  const routes = Object.fromEntries(taskReadinessAuthority.CORE_AI_TASKS.map(task => [task, {
-    primary: primary.id,
-    fallback: redundant.has(task) ? fallback.id : '',
-    requestedEnabled: true,
-    enabled: true
-  }]));
-  let readiness = taskReadinessAuthority.evaluate({ models: [primary, fallback], routes });
+  const runtime = { health: 'ok', runtimeAvailable: true };
+  let readiness = taskReadinessAuthority.evaluate({ models: [primary, fallback], modelBrainRuntime: runtime });
   assert.equal(readiness.pass, true);
   assert.equal(readiness.operational, readiness.coreTasks.length);
-  assert.equal(readiness.resilient, readiness.coreTasks.length);
+  assert.equal(readiness.configured, readiness.coreTasks.length);
+  assert.ok(readiness.tasks.every(row => row.ready === true && row.capabilityCount > 0));
+  // Distinct-fallback redundancy is retired: there is no per-task resilient flag and an empty redundancy set.
+  assert.equal(readiness.resilient, undefined);
+  assert.deepEqual(taskReadinessAuthority.REDUNDANCY_REQUIRED_TASKS, []);
 
-  routes.director = { primary: primary.id, fallback: '', requestedEnabled: true, enabled: true };
-  readiness = taskReadinessAuthority.evaluate({ models: [primary, fallback], routes });
+  // With no hard-qualified model every task reports the stable no-capability reason and readiness fails closed.
+  readiness = taskReadinessAuthority.evaluate({ models: [], modelBrainRuntime: runtime });
   const director = readiness.tasks.find(row => row.task === 'director');
-  assert.equal(director.operational, true);
-  assert.equal(director.resilient, false);
+  assert.equal(director.ready, false);
+  assert.equal(director.reason, 'no-hard-qualified-capability');
   assert.equal(readiness.pass, false);
-  assert.match(director.reason, /独立备用模型/);
+  assert.equal(readiness.operational, 0);
 });
 
 test('workspace analysis and frontend use terminal receipts instead of unconditional success text', () => {

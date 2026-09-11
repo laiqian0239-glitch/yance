@@ -154,7 +154,7 @@ function validateReceipt(document) {
   });
 }
 
-function verifyLocalRepository(document) {
+function verifyLocalRepository(document, options = {}) {
   validateReceipt(document);
   const reviewed = document.reviewedImplementation;
   const sealHead = document.seal.head;
@@ -197,8 +197,13 @@ function verifyLocalRepository(document) {
     assertCondition(actualBlob === expectedBlob, 'WP_B_M1_REVIEW_BLOB_MISMATCH', 'Reviewed blob does not match receipt', { filePath, expected: expectedBlob, actual: actualBlob });
   }
 
-  const status = git(['status', '--porcelain=v1', '--untracked-files=all']);
-  assertCondition(status === '', 'WP_B_M1_REVIEW_WORKTREE_DIRTY', 'Seal verification requires a clean worktree', { status });
+  if (options.historicalArtifactOnly !== true) {
+    // Live gate for an actual M1 implementation continuation. A read-only historical-artifact audit
+    // (Final RC release-closure checkout / immutable receipt regression) validates frozen history only
+    // and neither requires nor grants current checkout cleanliness authority.
+    const status = git(['status', '--porcelain=v1', '--untracked-files=all']);
+    assertCondition(status === '', 'WP_B_M1_REVIEW_WORKTREE_DIRTY', 'Seal verification requires a clean worktree', { status });
+  }
   return Object.freeze({
     ok: true,
     reviewedHead: reviewed.head,
@@ -261,7 +266,10 @@ async function verifyRemoteRuns(document, options = {}) {
 
 async function main() {
   const document = readReceipt();
-  const local = verifyLocalRepository(document);
+  // Read-only historical-artifact audit (Final RC release-closure checkout / immutable receipt
+  // regression) validates frozen M1 history only and never demands a clean live implementation tree.
+  const historicalArtifactOnly = process.env.YANCE_M1_HISTORICAL_ARTIFACT_AUDIT === '1';
+  const local = verifyLocalRepository(document, { historicalArtifactOnly });
   const remote = process.argv.includes('--remote')
     ? await verifyRemoteRuns(document)
     : null;

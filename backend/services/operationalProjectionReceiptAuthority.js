@@ -12,7 +12,10 @@ function verifyAndRecord(input={}){
   const store=input.store||repository?.store?.();
   const eventId=clean(input.eventId||input.created?.event?.eventId||input.created?.event?.event_id);
   if(!eventLog||!repository||!store||!eventId)return null;
-  const event=repository.getDomainEvent(eventId);
+  // Canonical ledger is the read authority; the legacy domain_events table is append-forbidden.
+  const event=(typeof eventLog.readEvent==='function'&&eventLog.readEvent(eventId))
+    ||(typeof repository.getDomainEvent==='function'&&repository.getDomainEvent(eventId))
+    ||null;
   if(!event)return null;
   const expected=operationalProjector.projection({...event,payload:event.payload||{}});
   const actual=operationalProjector.actualFor({...event,payload:event.payload||{}},store,{accountStateProvider:input.accountStateProvider});

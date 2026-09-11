@@ -72,7 +72,7 @@ test('focused FIX6J suite cannot change protected source data', () => {
       timeout: 120000
     });
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-    assert.match(result.stdout, /\btests 31\b/u, result.stdout);
+    assert.match(result.stdout, /\btests 33\b/u, result.stdout);
     assert.deepEqual(protectedHashes(), before);
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 20 });

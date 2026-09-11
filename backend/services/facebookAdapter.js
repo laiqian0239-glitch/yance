@@ -1157,79 +1157,14 @@ class FacebookAdapter {
     });
   }
 
-  async downloadRemoteAttachment({ account, accountId, conversationId, messageId, attachment, index = 0, physicalOperationContext = null, signal = null }) {
-    const options = Object.freeze({ physicalOperationContext, signal, account });
-    requirePersistedLegacyFacebookOperation(options, account);
-    const workerMedia = attachment?.payload?.worker_media || attachment?.workerMedia || null;
-    const workerEventId = clean(workerMedia?.eventId || workerMedia?.event_id);
-    if (!workerMedia || !workerEventId) {
-      throw Object.assign(new Error('Legacy Facebook remote media URL fetch is retired; a Worker media reference is required'), {
-        code: 'FACEBOOK_LEGACY_MEDIA_REFERENCE_REQUIRED', status: 409
-      });
-    }
-    fs.mkdirSync(PATHS.tmp, { recursive: true });
-    const tempFile = path.join(PATHS.tmp, `facebook-${crypto.randomUUID()}-${index}.download`);
-    try {
-      const { secret } = this.credentials(account);
-      const result = await relayClient.downloadMedia(secret, workerEventId, Number(workerMedia.index ?? index), tempFile, options);
-      if (Number(result.bytes || 0) > CONFIG.mediaMaxBytes) throw Object.assign(new Error('Facebook媒体超过大小限制'), { code: 'MEDIA_TOO_LARGE' });
-      return mediaPipeline.saveFile({
-        accountId, conversationId, messageId: `${messageId}-${index}`, filePath: tempFile,
-        descriptor: {
-          id: `${messageId}:${index}`, kind: this.attachmentType(attachment),
-          mimeType: clean(result.mimeType, clean(workerMedia?.mime_type || workerMedia?.mimeType, 'application/octet-stream')),
-          filename: clean(workerMedia?.filename || attachment?.name, `facebook-${messageId}-${index}`),
-          sourceUrl: '', workerMedia: { eventId: workerEventId, index: Number(workerMedia.index ?? index) },
-          ...facebookExpressionDescriptor(attachment), status: 'ready', downloadStatus: 'ready'
-        }
-      });
-    } finally {
-      try { fs.rmSync(tempFile, { force: true }); } catch (error) { logCriticalFailure('facebookMedia.removeTemporaryFile', error, { accountId: account.id, conversationId, reasonCode: 'FACEBOOK_MEDIA_TEMP_CLEANUP_FAILED' }); }
-    }
+  async downloadRemoteAttachment(payload) {
+    // Implementation lives in the sealed Worker relay client (registered MEDIA_TRANSFER authority).
+    return relayClient.downloadRemoteAttachment(payload);
   }
 
   async cacheWebhookAttachments(account, baseMessage, rawAttachments = [], options = {}) {
-    requirePersistedLegacyFacebookOperation(options, account);
-    if (!rawAttachments.length) return baseMessage;
-    const attachments = await Promise.all(rawAttachments.map((attachment, index) => {
-      const workerMedia = attachment?.payload?.worker_media || attachment?.workerMedia || null;
-      const workerEventId = clean(workerMedia?.eventId || workerMedia?.event_id);
-      const downloadState = clean(attachment?.downloadStatus || attachment?.status).toLowerCase();
-      if (downloadState === 'ready') return Promise.resolve(attachment);
-      if (['failed', 'unavailable'].includes(downloadState)) {
-        return Promise.resolve({
-          ...attachment,
-          sourceUrl: '', url: '', mediaUrl: '',
-          status: downloadState,
-          downloadStatus: downloadState,
-          downloadError: clean(
-            attachment?.downloadError,
-            downloadState === 'failed' ? 'FACEBOOK_WORKER_MEDIA_FAILED' : 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED'
-          )
-        });
-      }
-      if (!workerEventId || !['pending', 'remote'].includes(downloadState)) {
-        return Promise.resolve({
-          ...attachment,
-          sourceUrl: '', url: '', mediaUrl: '',
-          status: 'unavailable', downloadStatus: 'unavailable',
-          downloadError: workerEventId ? 'FACEBOOK_WORKER_MEDIA_STATE_INVALID' : 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED'
-        });
-      }
-      return this.downloadRemoteAttachment({
-        account,
-        accountId: account.id,
-        conversationId: baseMessage.conversationId,
-        messageId: baseMessage.externalMessageId,
-        attachment,
-        index,
-        physicalOperationContext: options.physicalOperationContext,
-        signal: options.signal
-      });
-    }));
-    const outcome = await messageStore.upsert({ ...baseMessage, attachments });
-    eventBus.publish('facebook:media-cached', { accountId: account.id, conversationId: baseMessage.conversationId, messageId: baseMessage.externalMessageId, attachments });
-    return outcome;
+    // Implementation lives in the sealed Worker relay client (registered MEDIA_TRANSFER authority).
+    return relayClient.cacheWebhookAttachments(account, baseMessage, rawAttachments, options);
   }
 
   attachmentType(attachment = {}) {

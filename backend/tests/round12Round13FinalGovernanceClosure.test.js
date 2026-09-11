@@ -6,7 +6,6 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { IdentityLinkAuthority } = require('../services/identityLinkAuthority');
 const { PersonContextAuthority } = require('../services/personContextAuthority');
@@ -17,18 +16,41 @@ const architectureHealth = require('../services/architectureRuntimeHealthService
 const finalMigration = require('../migrations/round12Round13FinalGovernanceClosure');
 const finalSevenMigration = require('../migrations/round12Round13FinalSevenClosure');
 const batch24Migration = require('../migrations/batch24StateTransactionConsistency');
-const batch41Migration = require('../migrations/batch41Fix6MArchitectureReferenceClosure');
-const batch42Migration = require('../migrations/batch42Fix6OScopedSafetyAndOmnichannelRuntime');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const { SqliteConnectionBroker } = require('../lib/sqliteConnectionBroker');
+const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
+const canonicalEventLedgerAuthority = require('../services/canonicalEventLedgerAuthority');
+
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
 
 function withRepository(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-final-governance-'));
-  const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
+  const dbPath = path.join(root, 'database', 'yance.db');
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  const host = acquireAuthorityWriteHost({ dbPath, instanceId: `final-governance-${process.pid}-${Math.random().toString(36).slice(2)}` });
+  const broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
+  const store = broker.open();
+  const coordinator = new AuthorityTransactionCoordinator({ store, eventBus: { publish() {} } });
+  const coordinatorCapability = coordinator.repositoryCapability();
+  const repository = createPlatformCoreRepository({ storeProvider: () => store, coordinatorCapability });
+  const ledger = new canonicalEventLedgerAuthority.CanonicalEventLedgerAuthority({
+    coordinator,
+    store,
+    compatibilityRepository: repository
+  });
+  canonicalEventLedgerAuthority.resetSingletonForTests();
+  canonicalEventLedgerAuthority.configureSingleton(ledger);
   for (const [id, platform] of [['wa-1','whatsapp'],['tg-1','telegram'],['page-1','facebook'],['private-account','whatsapp'],['a-account','whatsapp'],['b-account','telegram']]) {
     store.upsertAccount({ id, accountId:id, adapterAccountId:id, platform, state:'online', canSend:false, canReceive:true });
   }
-  try { return callback({ root, store, repository }); }
-  finally { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
+  try {
+    return callback({ root, store, repository, ledger });
+  } finally {
+    try { canonicalEventLedgerAuthority.resetSingletonForTests(); } catch (_) {}
+    try { broker.checkpointAndClose(); } catch (_) {}
+    try { host.release(); } catch (_) {}
+    try { fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
+  }
 }
 function at(offset = 0) { return new Date(Date.parse('2026-07-27T00:00:00.000Z') + offset).toISOString(); }
 
@@ -53,7 +75,7 @@ function insertContext(store, contactId, conversationId) {
 
 test('current schema preserves durable Person anchors and future writes inherit the active Person automatically', () => {
   withRepository(({ store, repository }) => {
-    assert.equal(store.getMeta('schemaVersion', 0), batch42Migration.TARGET_SCHEMA_VERSION);
+    assert.equal(store.getMeta('schemaVersion', 0), store.supportedSchemaVersion());
     const schema13Receipt = store.db.prepare('SELECT target_schema_version FROM r32_schema_migrations WHERE migration_id=?').get(finalMigration.MIGRATION_ID);
     assert.equal(Number(schema13Receipt?.target_schema_version || 0), finalMigration.TARGET_SCHEMA_VERSION);
     for (const trigger of ['trg_person_contact_binding_propagate','trg_person_contact_binding_reactivate','trg_conversation_binding_propagate','trg_conversation_binding_reactivate']) {
@@ -136,16 +158,16 @@ test('detach and verify transitions have executable audited rollback, including 
 });
 
 test('operational event bridge verifies media lifecycle state before recording an applied receipt', () => {
-  withRepository(({ store, repository }) => {
+  withRepository(({ store, repository, ledger }) => {
     store.upsertContact({ id: 'contact-1', platform: 'facebook', accountId: 'page-1', externalId: 'peer-1', displayName: 'Peer' });
     store.upsertConversation({ sessionKey: 'conv-1', contactId: 'contact-1', accountId: 'page-1', platform: 'facebook', title: 'Peer' });
     store.upsertMessage({ id: 'msg-1', dedupeKey: 'msg-1', externalMessageId: 'external-1', platform: 'facebook', accountId: 'page-1', sourceAccountId: 'page-1', conversationId: 'conv-1', sessionKey: 'conv-1', contactId: 'contact-1', direction: 'inbound', fromMe: false, type: 'image', messageType: 'image', text: '', timestamp: at(), attachments: [{ kind: 'image', mimeType: 'image/jpeg', downloadStatus: 'ready', fileHash: 'abc' }] });
-    const eventLog = new DomainEventLogService({ repository });
+    const eventLog = new DomainEventLogService({ canonicalAuthority: ledger });
     const bridge = new DomainOperationalEventBridge({ eventLog, logger: { warn() {} } });
     const result = bridge.capture({ id: 'bus-1', type: 'facebook:media-cached', at: at(), payload: { accountId: 'page-1', conversationId: 'conv-1', messageId: 'msg-1', attachment: { kind: 'image', mimeType: 'image/jpeg', downloadStatus: 'ready', fileHash: 'abc' } } });
     assert.equal(result.created, true);
-    const event = repository.getDomainEvent(result.event.eventId);
-    assert.equal(event.event_type, 'media.lifecycle.updated');
+    const event = eventLog.readEvent(result.event.eventId);
+    assert.equal(event.eventType, 'media.lifecycle.updated');
     const receipt = repository.getProjectionReceipt('operational-projection', 'round13-v2', result.event.eventId);
     assert.equal(receipt.projection_status, 'applied');
   });
@@ -153,10 +175,10 @@ test('operational event bridge verifies media lifecycle state before recording a
 
 
 test('operational events never self-prove: missing state is blocking until an independent audit sees persisted state', () => {
-  withRepository(({ store, repository }) => {
+  withRepository(({ store, repository, ledger }) => {
     const bus = new EventEmitter();
     bus.publish = function publish(type, payload) { this.emit(type, { type, payload }); return { type, payload }; };
-    const eventLog = new DomainEventLogService({ repository, eventBus: bus });
+    const eventLog = new DomainEventLogService({ canonicalAuthority: ledger });
     const bridge = new DomainOperationalEventBridge({ eventLog, eventBus: bus, logger: { warn() {} } });
     const result = bridge.capture({ id: 'bus-missing-1', type: 'facebook:media-cached', at: at(), payload: { platform: 'facebook', accountId: 'page-1', conversationId: 'conv-1', messageId: 'msg-missing', attachment: { kind: 'image', mimeType: 'image/jpeg', downloadStatus: 'ready', fileHash: 'abc' } } });
     assert.equal(result.created, true);
@@ -177,13 +199,16 @@ test('operational events never self-prove: missing state is blocking until an in
 });
 
 test('blocking projection pagination deduplicates events across statuses and keeps offsets stable', () => {
-  withRepository(({ repository }) => {
+  withRepository(({ repository, ledger }) => {
+    const projectionHash = '0'.repeat(64);
+    const canonical = new Map();
     for (let index = 0; index < 3; index += 1) {
       const id = `event-${index}`;
-      repository.insertDomainEvent({ eventId: id, schemaVersion: 1, platform: 'telegram', sourceAccountId: 'tg-1', externalEventId: id, eventType: 'message.received', idempotencyKey: id, correlationId: '', causationId: '', occurredAt: at(index), receivedAt: at(index), redactionVersion: 'test', payload: { projection: { id } }, payloadSha256: `hash-${index}`, retentionUntil: at(86400000), replayState: 'available' });
-      repository.upsertProjectionReceipt({ projectorName: 'message-projection', projectorVersion: 'round12-v2', eventId: id, projectionStatus: index === 2 ? 'failed' : 'shadow-mismatch', projectionHash: '', targetRefs: [], failureCode: 'X', failureReason: 'x', attempt: 1, projectedAt: at(index) });
+      const appended = ledger.append({ platform: 'telegram', sourceAccountId: 'tg-1', externalEventId: id, eventType: 'message.received', idempotencyKey: id, occurredAt: at(index), receivedAt: at(index), payload: { projection: { id } } });
+      canonical.set(id, { eventId: appended.event.eventId, ledgerSequence: appended.event.ledgerSequence });
+      repository.upsertProjectionReceipt({ projectorName: 'message-projection', projectorVersion: 'round12-v2', eventId: appended.event.eventId, ledgerSequence: appended.event.ledgerSequence, projectionStatus: index === 2 ? 'failed' : 'shadow-mismatch', projectionHash, targetRefs: [], failureCode: 'X', failureReason: 'x', attempt: 1, projectedAt: at(index) });
     }
-    repository.upsertProjectionReceipt({ projectorName: 'operational-projection', projectorVersion: 'round13-v2', eventId: 'event-0', projectionStatus: 'failed', projectionHash: '', targetRefs: [], failureCode: 'Y', failureReason: 'y', attempt: 1, projectedAt: at(100) });
+    repository.upsertProjectionReceipt({ projectorName: 'operational-projection', projectorVersion: 'round13-v2', eventId: canonical.get('event-0').eventId, ledgerSequence: canonical.get('event-0').ledgerSequence, projectionStatus: 'failed', projectionHash, targetRefs: [], failureCode: 'Y', failureReason: 'y', attempt: 1, projectedAt: at(100) });
     assert.equal(repository.countBlockingProjectionEvents({ statuses: ['failed','shadow-mismatch'] }), 3);
     const first = repository.listBlockingProjectionReceipts({ statuses: ['failed','shadow-mismatch'], limit: 2, offset: 0 });
     const second = repository.listBlockingProjectionReceipts({ statuses: ['failed','shadow-mismatch'], limit: 2, offset: 2 });
