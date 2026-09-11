@@ -16,6 +16,7 @@ const { copyTrustedNodeRuntime } = require('./node-runtime-identity');
 const { CONTROLLED_METADATA_PATHS, validateReviewedApplicationSourceClosure } = require('./packaged-payload-closure');
 const { canonicalBuffer: nativeBinaryCanonicalBuffer, verifyNativeBinaries } = require('./verify-native-binaries');
 const { validateProductionRuntimeSourceDependencies } = require('./runtime-source-dependency-closure');
+const { verifyCandidateBundle, BUNDLE_CLASSES: MATRIX_BUNDLE_CLASSES } = require('../product-experience/create-materialized-uat-candidate');
 const releasePlatformAuth = require('../../backend/services/releasePlatformAuth');
 const {
   canonicalStageBranch,
@@ -562,6 +563,79 @@ function copyPresealedLearningRuntime(sourceRoot, resourcesRoot) {
   }
   return Object.freeze({ ...copied, relativeRoot: 'resources/learning-runtime' });
 }
+/**
+ * Presealed Matrix runtime consumption.
+ *
+ * Reuses the mature Product Experience Materialized Matrix candidate authority
+ * (tools/product-experience/create-materialized-uat-candidate.js) and its
+ * verifyCandidateBundle() to validate bundleClass, candidate identity, file set,
+ * size, and SHA-256. No second manifest authority, no custom bundle verifier.
+ *
+ * matrix-images.tar is REQUIRED (not optional) — the Final installer must carry
+ * the complete sealed Matrix runtime, including pre-built Docker images.
+ */
+function presealedMatrixRuntimeRecords(runtimeRoot) {
+  const root = path.resolve(runtimeRoot);
+  if (!fs.existsSync(root)) throw new Wp7Error('WP7_MATRIX_RUNTIME_REQUIRED', 'presealed Matrix runtime input is missing', { runtimeRoot: root });
+  const rootStat = fs.lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Wp7Error('WP7_MATRIX_RUNTIME_INVALID', 'presealed Matrix runtime must be a real non-symlink directory', { runtimeRoot: root });
+  const records = [];
+  function visit(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const absolute = path.join(directory, entry.name);
+      if (entry.isSymbolicLink()) throw new Wp7Error('WP7_MATRIX_RUNTIME_SYMLINK_REJECTED', 'symlinks are forbidden in the presealed Matrix runtime', { path: absolute });
+      if (entry.isDirectory()) visit(absolute);
+      else if (entry.isFile()) {
+        const relative = path.relative(root, absolute).split(path.sep).join('/');
+        if (relative === 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json') continue;
+        const stat = fs.statSync(absolute);
+        records.push(Object.freeze({ path: relative, sizeBytes: stat.size, sha256: sha256File(absolute) }));
+      } else throw new Wp7Error('WP7_MATRIX_RUNTIME_INVALID', 'unsupported file type in presealed Matrix runtime', { path: absolute });
+    }
+  }
+  visit(root);
+  return Object.freeze(wp1.canonicalizePayloadRecords(records));
+}
+function validatePresealedMatrixRuntime(runtimeRoot, expectedIdentity = {}) {
+  const root = path.resolve(runtimeRoot);
+  // matrix-images.tar is REQUIRED
+  const imagesTar = path.join(root, 'matrix-images.tar');
+  if (!fs.existsSync(imagesTar) || !fs.lstatSync(imagesTar).isFile()) {
+    throw new Wp7Error('WP7_MATRIX_RUNTIME_IMAGES_REQUIRED', 'matrix-images.tar is required in the presealed Matrix runtime', { runtimeRoot: root });
+  }
+  // docker-compose.yml is required (sealed bundle name: materialized-matrix-compose.yml)
+  const composeFile = path.join(root, 'materialized-matrix-compose.yml');
+  if (!fs.existsSync(composeFile) || !fs.lstatSync(composeFile).isFile()) {
+    throw new Wp7Error('WP7_MATRIX_RUNTIME_COMPOSE_REQUIRED', 'materialized-matrix-compose.yml is required in the presealed Matrix runtime', { runtimeRoot: root });
+  }
+  // Reuse mature verifyCandidateBundle() — no second manifest authority
+  const manifest = verifyCandidateBundle({
+    root,
+    expectedBundleClass: MATRIX_BUNDLE_CLASSES.MATRIX,
+    candidateBranch: expectedIdentity.candidateBranch,
+    candidateCommit: expectedIdentity.candidateCommit,
+    candidateTree: expectedIdentity.candidateTree
+  });
+  const records = presealedMatrixRuntimeRecords(root);
+  return Object.freeze({
+    root: fs.realpathSync(root),
+    fileCount: records.length,
+    manifest,
+    manifestSha256: sha256File(path.join(root, 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json')),
+    imagesTarSha256: sha256File(imagesTar)
+  });
+}
+function copyPresealedMatrixRuntime(sourceRoot, resourcesRoot, expectedIdentity = {}) {
+  const source = validatePresealedMatrixRuntime(sourceRoot, expectedIdentity);
+  const destinationRoot = path.join(path.resolve(resourcesRoot), 'matrix-runtime');
+  if (fs.existsSync(destinationRoot)) throw new Wp7Error('WP7_MATRIX_RUNTIME_DESTINATION_NOT_EMPTY', 'Matrix runtime destination must not already exist', { destinationRoot });
+  copyTree(source.root, destinationRoot, { missingReason: 'WP7_MATRIX_RUNTIME_REQUIRED' });
+  const copied = validatePresealedMatrixRuntime(destinationRoot, expectedIdentity);
+  if (copied.fileCount !== source.fileCount || copied.manifestSha256 !== source.manifestSha256 || copied.imagesTarSha256 !== source.imagesTarSha256) {
+    throw new Wp7Error('WP7_MATRIX_RUNTIME_COPY_MISMATCH', 'copied Matrix runtime differs from the presealed source', { source, copied });
+  }
+  return Object.freeze({ ...copied, relativeRoot: 'resources/matrix-runtime' });
+}
 function copyProductionDependencyTree(sourceRoot, destinationRoot) {
   const excludedGeneratedBinDirectories = [];
   const sourceBase = path.resolve(sourceRoot);
@@ -734,6 +808,9 @@ function assembleWindowsApplication(options = {}) {
   const learningRuntime = options.learningRuntimeSource
     ? copyPresealedLearningRuntime(options.learningRuntimeSource, path.join(payloadRoot, 'resources'))
     : null;
+  const matrixRuntime = options.matrixRuntimeSource
+    ? copyPresealedMatrixRuntime(options.matrixRuntimeSource, path.join(payloadRoot, 'resources'), options.matrixRuntimeIdentity)
+    : null;
   return {
     status: 'PASS',
     payloadRoot,
@@ -744,6 +821,7 @@ function assembleWindowsApplication(options = {}) {
     nodeRuntime,
     parlantRuntime,
     learningRuntime,
+    matrixRuntime,
     productionDependencyCanonicalization
   };
 }
@@ -776,7 +854,9 @@ function buildFinalWindowsPayload(options = {}) {
     targetArch,
     trustedNodeExecutable: options.trustedNodeExecutable,
     parlantRuntimeSource: options.parlantRuntimeSource,
-    learningRuntimeSource: options.learningRuntimeSource
+    learningRuntimeSource: options.learningRuntimeSource,
+    matrixRuntimeSource: options.matrixRuntimeSource,
+    matrixRuntimeIdentity: options.matrixRuntimeIdentity
   });
   const sourceClosure = validateReviewedApplicationSourceClosure(payloadRoot, repoRoot, identity.sourceCommit, { platform: targetPlatform });
   const dependencies = verifyProductionDependencyClosure({ repoRoot, appRoot: runtime.appRoot, sourceCommit: identity.sourceCommit, platform: targetPlatform, arch: targetArch });
@@ -1425,7 +1505,9 @@ function buildAuthorizedFinalWindowsInstaller(options = {}) {
       platformAuthHashPath: options.platformAuthHashPath,
       requirePlatformAuth: options.requirePlatformAuth === true,
       parlantRuntimeSource: options.parlantRuntimeSource,
-      learningRuntimeSource: options.learningRuntimeSource
+      learningRuntimeSource: options.learningRuntimeSource,
+      matrixRuntimeSource: options.matrixRuntimeSource,
+      matrixRuntimeIdentity: options.matrixRuntimeIdentity
     });
     if (typeof options.afterPayloadHook === 'function') options.afterPayloadHook({ repoRoot, frozenRoot: frozen.frozenRoot, stagingRoot, identity, built });
     assertSourceStillFrozen(repoRoot, identity, frozen.frozenRoot, frozenContent);
@@ -1629,6 +1711,7 @@ module.exports = {
   ensureDirectoryEmpty, acquireExclusiveLease, assertCanonicalPayloadPath, assertNoWp1Reuse, buildSessionId,
   writePreReviewInstallerFixture, readPreReviewInstallerFixture, copyTree, presealedParlantRuntimeRecords, validatePresealedParlantRuntime, copyPresealedParlantRuntime,
   presealedLearningRuntimeRecords, validatePresealedLearningRuntime, copyPresealedLearningRuntime,
+  presealedMatrixRuntimeRecords, validatePresealedMatrixRuntime, copyPresealedMatrixRuntime,
   copyProductionDependencyTree, installReleasePlatformAuth, assembleWindowsApplication, buildFinalWindowsPayload, buildManifestAndPayload, buildPreReviewFixture,
   assertSessionSealed, validateBuildIdentity, validateRiskRegister, validateDeferredScope, validateEvidenceReferences,
   validateEvidenceCommon, validateCrossFileIdentity, validateCleanInstallEvidence, validateBootFailureDiagnostics,

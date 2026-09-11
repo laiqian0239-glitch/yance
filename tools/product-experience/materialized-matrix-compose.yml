@@ -132,8 +132,16 @@ services:
       - mautrix-meta-data:/mautrix-meta:ro
       - mautrix-whatsapp-data:/mautrix-whatsapp:ro
       - synapse-secret-data:/run/secrets:ro
+    # UAT default: stable host port. Production projects a random published
+    # port through this native Compose parameter.
     ports:
-      - "127.0.0.1:8008:8008"
+      - "${YANCE_MATRIX_SYNAPSE_PORT_BINDING:-127.0.0.1:8008:8008}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8008/_matrix/client/versions', timeout=5)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     depends_on:
       matrix-secret-projection:
         condition: service_completed_successfully
@@ -148,8 +156,16 @@ services:
     image: yance-product-uat-element:${YANCE_UAT_CANDIDATE_SHA}
     volumes:
       - ./matrix-config/element-config.json:/app/config.json:ro
+    # UAT default: stable host port. Production projects a random published
+    # port through this native Compose parameter.
     ports:
-      - "127.0.0.1:8080:80"
+      - "${YANCE_MATRIX_ELEMENT_PORT_BINDING:-127.0.0.1:8080:80}"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/config.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     depends_on:
       - synapse
 
@@ -171,6 +187,17 @@ services:
     volumes:
       - mautrix-meta-secret-data:/run/secrets:ro
       - mautrix-meta-data:/data
+    # Dynamic host port for provisioning API consumed by backend on Windows host.
+    # Yance discovers the actual port via `docker compose port mautrix-meta 29319`.
+    ports:
+      - "${YANCE_MATRIX_MAUTRIX_META_PORT_BINDING:-127.0.0.1::29319}"
+    healthcheck:
+      # Provisioning API requires auth (401); readiness is the listener being up.
+      test: ["CMD", "nc", "-z", "localhost", "29319"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
     depends_on:
       matrix-secret-projection:
         condition: service_completed_successfully

@@ -24,7 +24,14 @@ param(
   [switch]$RequireSignedInstaller,
   [string]$SigningCertificate,
   [string]$SignToolPath,
-  [string]$TimestampUrl = 'http://timestamp.digicert.com'
+  [string]$TimestampUrl = 'http://timestamp.digicert.com',
+  # Sealed Materialized Matrix bundle (product-experience candidate) consumed by Final Builder.
+  # When supplied, the bundle is verified via verifyCandidateBundle() and copied into
+  # application-payload/resources/matrix-runtime. matrix-images.tar is REQUIRED.
+  [string]$MatrixRuntimeSource,
+  [string]$MatrixRuntimeCandidateBranch,
+  [string]$MatrixRuntimeCandidateCommit,
+  [string]$MatrixRuntimeCandidateTree
 )
 
 $ErrorActionPreference = 'Stop'
@@ -170,6 +177,15 @@ try {
     if ([IO.Path]::GetExtension($SignToolPath).ToLowerInvariant() -ne '.exe') { throw 'SignToolPath must point to a native .exe' }
     if ([string]::IsNullOrWhiteSpace($env:YANCE_WINDOWS_CERTIFICATE_PASSWORD)) { throw 'YANCE_WINDOWS_CERTIFICATE_PASSWORD is required' }
   }
+  $matrixRuntimeSupplied = -not [string]::IsNullOrWhiteSpace($MatrixRuntimeSource)
+  if ($matrixRuntimeSupplied) {
+    if (-not (Test-Path -LiteralPath $MatrixRuntimeSource -PathType Container)) { throw "sealed Matrix runtime bundle missing: $MatrixRuntimeSource" }
+    if (-not (Test-Path -LiteralPath (Join-Path $MatrixRuntimeSource 'matrix-images.tar') -PathType Leaf)) { throw 'sealed Matrix runtime matrix-images.tar is required' }
+    if (-not (Test-Path -LiteralPath (Join-Path $MatrixRuntimeSource 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json') -PathType Leaf)) { throw 'sealed Matrix runtime manifest is required' }
+    foreach ($identityField in @($MatrixRuntimeCandidateBranch, $MatrixRuntimeCandidateCommit, $MatrixRuntimeCandidateTree)) {
+      if ([string]::IsNullOrWhiteSpace($identityField)) { throw 'Matrix runtime candidate branch/commit/tree must all be supplied together' }
+    }
+  }
   if (Test-Path -LiteralPath $WorkRoot) { throw "WorkRoot must not already exist: $WorkRoot" }
   if (Test-Path -LiteralPath $EvidenceRoot) { throw "EvidenceRoot must not already exist: $EvidenceRoot" }
 
@@ -249,6 +265,14 @@ try {
         '--signing-certificate', $SigningCertificate,
         '--signtool-path', $SignToolPath,
         '--timestamp-url', $TimestampUrl
+      )
+    }
+    if ($matrixRuntimeSupplied) {
+      $arguments += @(
+        '--matrix-runtime-source', $MatrixRuntimeSource,
+        '--matrix-runtime-candidate-branch', $MatrixRuntimeCandidateBranch,
+        '--matrix-runtime-candidate-commit', $MatrixRuntimeCandidateCommit,
+        '--matrix-runtime-candidate-tree', $MatrixRuntimeCandidateTree
       )
     }
     $argumentLine = ($arguments | ForEach-Object { ConvertTo-NativeArgument ([string]$_) }) -join ' '

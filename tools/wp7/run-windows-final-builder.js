@@ -31,7 +31,11 @@ const REQUIRED_OPTIONS = Object.freeze([
   'expected-branch',
   'expected-commit',
   'expected-tree',
-  'build-timestamp-utc'
+  'build-timestamp-utc',
+  'matrix-runtime-source',
+  'matrix-runtime-candidate-branch',
+  'matrix-runtime-candidate-commit',
+  'matrix-runtime-candidate-tree'
 ]);
 
 function parseArgs(argv) {
@@ -171,6 +175,8 @@ function createBuilderResult(options) {
     rceditPath: options.rceditPath ? path.resolve(options.rceditPath) : undefined,
     iconPath: options.iconPath ? path.resolve(options.iconPath) : path.join(repoRoot, 'frontend', 'assets', 'icon.ico'),
     trustedNodeExecutable: path.resolve(options.trustedNodeExecutable),
+    matrixRuntimeSource: options.matrixRuntimeSource,
+    matrixRuntimeIdentity: options.matrixRuntimeIdentity,
     platformAuthConfigPath,
     platformAuthHashPath,
     requirePlatformAuth,
@@ -229,6 +235,9 @@ function createBuilderResult(options) {
     authenticodeSignerThumbprint: built.authenticode?.signerThumbprint || null,
     platformAuthConfigured: built.platformAuth?.configured === true,
     platformAuthConfigSha256: built.platformAuth?.sha256 || null,
+    matrixRuntimeRelativeRoot: built.matrixRuntime?.relativeRoot || null,
+    matrixRuntimeManifestSha256: built.matrixRuntime?.manifestSha256 || null,
+    matrixRuntimeImagesTarSha256: built.matrixRuntime?.imagesTarSha256 || null,
     sourceIdentityStable: true,
     gitCleanAfter: true
   };
@@ -262,7 +271,13 @@ function main(argv = process.argv.slice(2)) {
     timestampUrl: args['timestamp-url'],
     platformAuthConfigPath: args['platform-auth-config'],
     platformAuthHashPath: args['platform-auth-sha256'],
-    requirePlatformAuth: args['require-platform-auth'] === 'true'
+    requirePlatformAuth: args['require-platform-auth'] === 'true',
+    matrixRuntimeSource: args['matrix-runtime-source'],
+    matrixRuntimeIdentity: args['matrix-runtime-source'] ? {
+      candidateBranch: args['matrix-runtime-candidate-branch'],
+      candidateCommit: args['matrix-runtime-candidate-commit'],
+      candidateTree: args['matrix-runtime-candidate-tree']
+    } : undefined
   });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }

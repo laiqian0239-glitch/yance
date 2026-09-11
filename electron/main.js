@@ -3,7 +3,7 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { spawn } = require('child_process');
+const { spawn, execFile } = require('child_process');
 const { randomUUID, createHash } = require('crypto');
 const STATIC_RELEASE_SOURCE = require('../release/release-source.json');
 const { resolveYanceDataRootSync } = require('./dataRootMigration');
@@ -189,7 +189,7 @@ function m2Guard(channel, fn) {
 function assertPrivilegedIpcEvent(event, channel) {
   if (!mainWindow || !isTrustedMainFrameIpcEvent(event, {
     webContents: mainWindow.webContents,
-    allowedOrigins: [YANCE_ELEMENT_URL]
+    allowedOrigins: [getElementUrl()]
   })) {
     const error = new Error(`Rejected privileged IPC from an untrusted frame: ${channel}`);
     error.reasonCode = 'DESKTOP_IPC_UNTRUSTED_FRAME';
@@ -350,9 +350,56 @@ async function governRuntimeNativeBinariesBootCheck() {
 }
 
 const YANCE_BACKEND_URL = `http://127.0.0.1:${Number(process.env.YANCE_PORT || 27632)}`;
-const YANCE_ELEMENT_URL = String(process.env.YANCE_ELEMENT_URL || 'http://127.0.0.1:8080').replace(/\/+$/u, '');
-const YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `${YANCE_ELEMENT_URL}/config.json`);
-const YANCE_PRODUCT_LOCATION_URL = `${YANCE_ELEMENT_URL}/#/yance`;
+// Element/Matrix URLs are resolved at runtime via Docker Compose dynamic port discovery.
+// Default values are used only for pre-runtime static initialization; actual values are
+// set by ensureMatrixRuntime() before the Product window is created.
+let YANCE_ELEMENT_URL = String(process.env.YANCE_ELEMENT_URL || 'http://127.0.0.1:8080').replace(/\/+$/u, '');
+let YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `${YANCE_ELEMENT_URL}/config.json`);
+let YANCE_PRODUCT_LOCATION_URL = `${YANCE_ELEMENT_URL}/#/yance`;
+let r32WindowSecurityController = { updateNavigationOrigins: () => {} };
+let matrixRuntimeStarted = false;
+const MATRIX_RUNTIME_ORIGINAL_ENV = Object.freeze({
+  YANCE_ELEMENT_URL: process.env.YANCE_ELEMENT_URL,
+  YANCE_ELEMENT_HEALTH_URL: process.env.YANCE_ELEMENT_HEALTH_URL,
+  YANCE_PRODUCT_LOCATION_URL: process.env.YANCE_PRODUCT_LOCATION_URL,
+  YANCE_MATRIX_BASE_URL: process.env.YANCE_MATRIX_BASE_URL,
+  YANCE_MAUTRIX_META_PROVISIONING_URL: process.env.YANCE_MAUTRIX_META_PROVISIONING_URL,
+  YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE: process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE,
+  YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE: process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE
+});
+
+function getElementUrl() { return YANCE_ELEMENT_URL; }
+function getElementHealthUrl() { return YANCE_ELEMENT_HEALTH_URL; }
+function getProductLocationUrl() { return YANCE_PRODUCT_LOCATION_URL; }
+
+function updateMatrixRuntimeEndpoints(endpoints) {
+  if (endpoints?.element?.url) {
+    YANCE_ELEMENT_URL = endpoints.element.url;
+    YANCE_ELEMENT_HEALTH_URL = `${endpoints.element.url}/config.json`;
+    YANCE_PRODUCT_LOCATION_URL = `${endpoints.element.url}/#/yance`;
+    process.env.YANCE_ELEMENT_URL = YANCE_ELEMENT_URL;
+    process.env.YANCE_ELEMENT_HEALTH_URL = YANCE_ELEMENT_HEALTH_URL;
+    if (endpoints.synapse?.url) {
+      process.env.YANCE_MATRIX_BASE_URL = endpoints.synapse.url;
+    }
+    r32WindowSecurityController.updateNavigationOrigins([YANCE_ELEMENT_URL]);
+    desktopLog('info', 'matrix-runtime-endpoints-updated', {
+      elementUrl: YANCE_ELEMENT_URL,
+      synapseUrl: endpoints.synapse?.url || ''
+    });
+  }
+}
+
+function restoreMatrixRuntimeDynamicEnvironment() {
+  for (const [key, value] of Object.entries(MATRIX_RUNTIME_ORIGINAL_ENV)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  YANCE_ELEMENT_URL = String(process.env.YANCE_ELEMENT_URL || 'http://127.0.0.1:8080').replace(/\/+$/u, '');
+  YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `${YANCE_ELEMENT_URL}/config.json`);
+  YANCE_PRODUCT_LOCATION_URL = String(process.env.YANCE_PRODUCT_LOCATION_URL || `${YANCE_ELEMENT_URL}/#/yance`);
+  r32WindowSecurityController.updateNavigationOrigins([YANCE_ELEMENT_URL]);
+}
 const WP7_APPLICATION_PROCESS_STARTED_AT_UTC = new Date().toISOString();
 const WP7_NETWORK_OBSERVED_AT_UTC = new Date().toISOString();
 let WP7_NETWORK_ONLINE_AT_PROCESS_START = true;
@@ -436,7 +483,7 @@ function parseDesktopLaunchIntent(argv = process.argv) {
 const INITIAL_DESKTOP_LAUNCH_INTENT = parseDesktopLaunchIntent(process.argv);
 
 installR32LocalApiHeader({ app, session, baseURL: YANCE_BACKEND_URL, tokenProvider: () => currentApiSessionToken({ required: false }) });
-installR32WindowSecurity({
+r32WindowSecurityController = installR32WindowSecurity({
   app,
   allowedNavigationOrigins: [YANCE_ELEMENT_URL],
   allowedWebviewOrigins: ['https://web.whatsapp.com', 'https://web.telegram.org', 'https://www.facebook.com', 'https://business.facebook.com'],
@@ -1149,7 +1196,29 @@ async function stopApplicationOwnedRuntimes(options = {}) {
     ['letta', stopRuntimeWithDeadline('letta', () => stopLettaAgentRuntime(), runtimeStopTimeoutMs)],
     ['parlant', stopRuntimeWithDeadline('parlant', () => stopParlantRelationshipRuntime(), runtimeStopTimeoutMs)],
     ['graphiti', stopRuntimeWithDeadline('graphiti', () => stopGraphitiRelationshipRuntime(), runtimeStopTimeoutMs)],
-    ['backend', stopRuntimeWithDeadline('backend', () => stopBackend({ forShutdown: true, reason }), backendStopTimeoutMs)]
+    ['backend', stopRuntimeWithDeadline('backend', () => stopBackend({ forShutdown: true, reason }), backendStopTimeoutMs)],
+    ['matrix', stopRuntimeWithDeadline('matrix', async () => {
+      if (matrixRuntimeEphemeral) {
+        await stopMatrixCompose(matrixRuntimeEphemeral.runtimeDir, matrixRuntimeEphemeral.allComposeFiles);
+        // Clean ephemeral secret/config projection; never touch named volumes.
+        const ephemeral = matrixRuntimeEphemeral;
+        matrixRuntimeEphemeral = null;
+        matrixRuntimeStarted = false;
+        try {
+          for (const target of [
+            ephemeral.secretProjection?.ephemeral ? ephemeral.secretProjection.secretDir : null,
+            ephemeral.projection?.runtimeConfigDir,
+            ephemeral.projection?.overridePath
+          ]) {
+            if (target && fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true });
+          }
+        } catch (cleanupError) {
+          desktopLog('warn', 'matrix-runtime-ephemeral-cleanup-failed', { message: cleanupError.message });
+        } finally {
+          restoreMatrixRuntimeDynamicEnvironment();
+        }
+      }
+    }, runtimeStopTimeoutMs)]
   ];
   const settled = await Promise.allSettled(operations.map(([, operation]) => operation));
   const resultByName = new Map(operations.map(([name], index) => [name, settled[index]]));
@@ -1171,16 +1240,19 @@ async function stopApplicationOwnedRuntimes(options = {}) {
   const graphitiError = errorFor('graphiti');
   const backendStop = valueFor('backend');
   const backendError = errorFor('backend');
+  const matrixStop = valueFor('matrix');
+  const matrixError = errorFor('matrix');
 
-  if (presenceError || lettaError || parlantError || graphitiError || backendError) {
+  if (presenceError || lettaError || parlantError || graphitiError || backendError || matrixError) {
     const error = new Error('Application-owned runtime shutdown was not fully confirmed');
-    error.reasonCode = presenceError?.reasonCode || lettaError?.reasonCode || parlantError?.reasonCode || graphitiError?.reasonCode || backendError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
+    error.reasonCode = presenceError?.reasonCode || lettaError?.reasonCode || parlantError?.reasonCode || graphitiError?.reasonCode || backendError?.reasonCode || matrixError?.reasonCode || 'DESKTOP_RUNTIME_STOP_NOT_CONFIRMED';
     error.details = {
       presence: presenceError ? { reasonCode: presenceError.reasonCode || '', message: presenceError.message } : presenceStop,
       letta: lettaError ? { reasonCode: lettaError.reasonCode || '', message: lettaError.message } : lettaStop,
       parlant: parlantError ? { reasonCode: parlantError.reasonCode || '', message: parlantError.message } : parlantStop,
       graphiti: graphitiError ? { reasonCode: graphitiError.reasonCode || '', message: graphitiError.message } : graphitiStop,
-      backend: backendError ? { reasonCode: backendError.reasonCode || '', message: backendError.message } : backendStop
+      backend: backendError ? { reasonCode: backendError.reasonCode || '', message: backendError.message } : backendStop,
+      matrix: matrixError ? { reasonCode: matrixError.reasonCode || '', message: matrixError.message } : matrixStop
     };
     throw error;
   }
@@ -1191,7 +1263,8 @@ async function stopApplicationOwnedRuntimes(options = {}) {
     presence: presenceStop,
     letta: lettaStop,
     parlant: parlantStop,
-    graphiti: graphitiStop
+    graphiti: graphitiStop,
+    matrix: matrixStop
   };
 }
 
@@ -2904,6 +2977,307 @@ function startBackendProcessForCoordinator(options = {}) {
   return task;
 }
 
+/**
+ * Thin Docker/Compose adapter for Matrix runtime lifecycle.
+ *
+ * Uses ONLY official Docker Desktop / Docker Engine / Docker Compose CLI.
+ * No custom container runtime, port allocator, process supervisor, readiness
+ * polling loop, or state machine. Readiness is delegated entirely to Compose
+ * healthcheck + `up --wait`. Dynamic port discovery uses official
+ * `docker compose port`. Runtime config projection is the narrowest transform
+ * from sealed bundle config to host-reachable endpoints.
+ */
+const crypto = require('crypto');
+const MATRIX_COMPOSE_PROJECT = 'yance-runtime';
+const MATRIX_MANIFEST_FILE = 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json';
+const MATRIX_COMPOSE_FILE = 'materialized-matrix-compose.yml';
+
+// Tracks ephemeral artifacts created for this launch so quit can clean them.
+let matrixRuntimeEphemeral = null;
+
+function dockerExec(args, options = {}) {
+  return new Promise((resolve, reject) => {
+    execFile('docker', args, {
+      maxBuffer: options.maxBuffer || 10 * 1024 * 1024,
+      timeout: options.timeoutMs || 300000,
+      cwd: options.cwd,
+      env: { ...process.env, ...(options.env || {}) }
+    }, (error, stdout, stderr) => {
+      if (error) {
+        const err = new Error(stderr?.trim() || error.message || `docker ${args[0]} failed`);
+        err.code = error.code || 'DOCKER_COMMAND_FAILED';
+        err.stdout = stdout?.trim() || '';
+        err.stderr = stderr?.trim() || '';
+        reject(err);
+        return;
+      }
+      resolve({ stdout: stdout?.trim() || '', stderr: stderr?.trim() || '' });
+    });
+  });
+}
+
+function matrixComposeBaseArgs(projectDir, composeFiles) {
+  const args = ['compose', '--project-name', MATRIX_COMPOSE_PROJECT, '--project-directory', projectDir];
+  for (const file of composeFiles) args.push('-f', file);
+  return args;
+}
+
+// One-shot Docker Desktop availability check. The official `docker desktop
+// start` command itself owns engine bring-up; we do not run a polling loop.
+async function ensureDockerDesktopAvailable() {
+  try {
+    await dockerExec(['info'], { timeoutMs: 10000 });
+    return; // Engine already reachable; never restart a running Docker Desktop.
+  } catch (_) {
+    // Engine not reachable — ask Docker Desktop to start and synchronously wait
+    // for the engine (official readiness; no --detach, no Yance polling loop).
+    try {
+      await dockerExec(['desktop', 'start', '--timeout', '120'], { timeoutMs: 130000 });
+    } catch (startError) {
+      // On non-Desktop engines the subcommand may not exist; surface a clear error.
+      const error = new Error('Docker Desktop is required to run 言策 and could not be started.');
+      error.reasonCode = 'DOCKER_DESKTOP_REQUIRED';
+      error.details = { cause: startError.message };
+      throw error;
+    }
+  }
+}
+
+function composePort(result) {
+  const match = String(result.stdout || '').match(/:(\d+)\s*$/);
+  if (!match) throw new Error(`could not parse published port from: ${result.stdout}`);
+  return parseInt(match[1], 10);
+}
+
+/**
+ * Project the two runtime secrets consumed by BOTH Compose and the backend.
+ * Reuses the existing secret-file authority (env vars point at files). If the
+ * owner already exported the env vars they are reused as-is; otherwise we
+ * create narrow ephemeral files (same shape as the mature UAT harness).
+ * No new vault, no secret database, no plaintext secret in the installer.
+ */
+function matrixRuntimeStateRoot() {
+  return path.join(DATA_ROOT, 'matrix-runtime');
+}
+
+function projectMatrixRuntimeSecrets(runtimeStateRoot) {
+  const existing = process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE
+    && process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE;
+  if (existing) {
+    for (const name of ['YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE', 'YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE']) {
+      if (!fs.existsSync(process.env[name])) {
+        const error = new Error(`Configured Matrix secret file is missing: ${name}`);
+        error.reasonCode = 'MATRIX_RUNTIME_SECRET_UNAVAILABLE';
+        throw error;
+      }
+    }
+    return { ephemeral: false };
+  }
+  const secretDir = path.join(runtimeStateRoot, 'runtime-secrets');
+  fs.mkdirSync(secretDir, { recursive: true, mode: 0o700 });
+  const registrationFile = path.join(secretDir, 'matrix-registration-secret');
+  const provisioningFile = path.join(secretDir, 'mautrix-meta-provisioning-secret');
+  for (const target of [registrationFile, provisioningFile]) {
+    fs.writeFileSync(target, crypto.randomBytes(32).toString('base64'), { mode: 0o600 });
+  }
+  process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE = registrationFile;
+  process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE = provisioningFile;
+  return { ephemeral: true, secretDir };
+}
+
+/**
+ * Narrow runtime projection of the sealed Element config so the host-side
+ * Runtime config overrides live under DATA_ROOT. Synapse is started once
+ * in phase 1 with production dynamic-port Compose parameters and MUST NOT be
+ * re-mounted in phase 2: doing so recreates the container, which makes Docker
+ * reassign its dynamic host port and invalidates the very port baked into the
+ * Element config. Container-to-container bridge traffic keeps using the
+ * internal `synapse:8008` DNS name; the host renderer uses the discovered host
+ * port via this projected Element config. The sealed bundle stays immutable.
+ * No proxy, no wildcard origin, no second sealed config authority.
+ */
+function projectMatrixRuntimeConfigs(runtimeStateRoot, sealedConfigDir, synapseHostPort) {
+  const projectedDir = path.join(runtimeStateRoot, 'runtime-config');
+  fs.mkdirSync(projectedDir, { recursive: true });
+
+  // Element config: only swap the homeserver base_url to the dynamic host port.
+  const sealedElementConfig = path.join(sealedConfigDir, 'element-config.json');
+  const elementConfig = JSON.parse(fs.readFileSync(sealedElementConfig, 'utf8'));
+  elementConfig.default_server_config['m.homeserver'].base_url = `http://127.0.0.1:${synapseHostPort}`;
+  const runtimeElementConfig = path.join(projectedDir, 'element-config.json');
+  fs.writeFileSync(runtimeElementConfig, JSON.stringify(elementConfig, null, 2) + '\n', { mode: 0o600 });
+
+  // Element-only override: remap just Element's config.json. Synapse is absent
+  // here on purpose, so phase 2 never recreates it or changes its host port.
+  const overridePath = path.join(runtimeStateRoot, 'runtime-override.yml');
+  const override = [
+    'services:',
+    '  element:',
+    '    volumes:',
+    `      - ${runtimeElementConfig.replace(/\\/g, '/')}:/app/config.json:ro`,
+    ''
+  ].join('\n');
+  fs.writeFileSync(overridePath, override, { mode: 0o600 });
+  return { overridePath, runtimeConfigDir: projectedDir, runtimeElementConfig };
+}
+
+async function stopMatrixCompose(projectDir, composeFiles) {
+  if (!projectDir || !composeFiles?.length) return;
+  await dockerExec([
+    ...matrixComposeBaseArgs(projectDir, composeFiles),
+    'down', '--remove-orphans' // NEVER --volumes: preserve user Matrix/session data.
+  ], { timeoutMs: 60000 });
+}
+
+/**
+ * Ensure Matrix runtime (Synapse + Element + mautrix bridges) is running.
+ * Thin adapter over official Docker Desktop / Docker Compose CLI.
+ * Two-phase startup resolves the dynamic-port / Element-config dependency:
+ *   Phase 1 brings up Synapse+bridges and discovers the real Synapse host port.
+ *   Phase 2 projects host-reachable configs and brings up Element via override.
+ * Compose healthcheck + `up --wait` is the sole readiness authority.
+ */
+async function ensureMatrixRuntime() {
+  if (process.env.YANCE_MATRIX_RUNTIME_DISABLED === '1') {
+    desktopLog('info', 'matrix-runtime-disabled-by-env');
+    return { started: false, reason: 'disabled_by_env' };
+  }
+
+  const explicitElementUrl = process.env.YANCE_ELEMENT_URL;
+  if (explicitElementUrl && explicitElementUrl !== 'http://127.0.0.1:8080') {
+    desktopLog('info', 'matrix-runtime-external-element-url', { url: explicitElementUrl });
+    updateMatrixRuntimeEndpoints({
+      element: { url: explicitElementUrl.replace(/\/+$/, '') },
+      synapse: { url: process.env.YANCE_MATRIX_BASE_URL || '' }
+    });
+    return { started: false, reason: 'external_element_url' };
+  }
+
+  if (matrixRuntimeStarted) return { started: false, reason: 'already_started' };
+
+  const resourcesPath = controlledResourcesPath();
+  const runtimeDir = path.join(resourcesPath, 'matrix-runtime');
+  const runtimeStateRoot = matrixRuntimeStateRoot();
+  const composeFile = path.join(runtimeDir, MATRIX_COMPOSE_FILE);
+  const imagesTarPath = path.join(runtimeDir, 'matrix-images.tar');
+  const manifestPath = path.join(runtimeDir, MATRIX_MANIFEST_FILE);
+  const sealedConfigDir = path.join(runtimeDir, 'matrix-config');
+
+  // Packaged mode: exact sealed runtime is the only production source → fail closed.
+  const required = [
+    { p: composeFile, code: 'MATRIX_RUNTIME_COMPOSE_REQUIRED' },
+    { p: imagesTarPath, code: 'MATRIX_RUNTIME_IMAGES_REQUIRED' },
+    { p: manifestPath, code: 'MATRIX_RUNTIME_MANIFEST_REQUIRED' },
+    { p: sealedConfigDir, code: 'MATRIX_RUNTIME_CONFIG_REQUIRED', directory: true }
+  ];
+  for (const item of required) {
+    const exists = item.directory ? fs.existsSync(item.p) && fs.statSync(item.p).isDirectory() : fs.existsSync(item.p);
+    if (!exists) {
+      const message = `Required sealed Matrix runtime asset is missing: ${path.basename(item.p)}`;
+      desktopLog('error', 'matrix-runtime-asset-missing', { path: item.p, code: item.code });
+      if (app.isPackaged) {
+        const error = new Error(message);
+        error.reasonCode = item.code;
+        throw error;
+      }
+      return { started: false, reason: 'asset_missing', missing: item.code };
+    }
+  }
+
+  // Sealed candidate identity drives the image tag (no hard-coded SHA).
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const candidateCommit = manifest.candidateCommit;
+  if (!/^[0-9a-f]{40}$/.test(String(candidateCommit || ''))) {
+    const error = new Error('Sealed Matrix manifest candidateCommit is invalid');
+    error.reasonCode = 'MATRIX_RUNTIME_MANIFEST_IDENTITY_INVALID';
+    throw error;
+  }
+  const composeEnv = {
+    YANCE_UAT_CANDIDATE_SHA: candidateCommit,
+    YANCE_MATRIX_SYNAPSE_PORT_BINDING: '127.0.0.1::8008',
+    YANCE_MATRIX_ELEMENT_PORT_BINDING: '127.0.0.1::80',
+    YANCE_MATRIX_MAUTRIX_META_PORT_BINDING: '127.0.0.1::29319'
+  };
+
+  try {
+    // 1. Docker Desktop availability (official CLI owns engine bring-up).
+    await ensureDockerDesktopAvailable();
+
+    // 2. Shared secret projection for Compose + backend (same authority).
+    fs.mkdirSync(runtimeStateRoot, { recursive: true, mode: 0o700 });
+    const secretProjection = projectMatrixRuntimeSecrets(runtimeStateRoot);
+
+    // 3. Load sealed images (official: docker load).
+    desktopLog('info', 'matrix-images-loading', { candidateCommit });
+    await dockerExec(['load', '-i', imagesTarPath], { timeoutMs: 300000 });
+
+    // 4. Phase 1: Synapse + bridges; Compose healthcheck/--wait owns readiness.
+    const baseArgs = matrixComposeBaseArgs(runtimeDir, [composeFile]);
+    desktopLog('info', 'matrix-runtime-phase1-up', { project: MATRIX_COMPOSE_PROJECT });
+    await dockerExec([
+      ...baseArgs, 'up', '-d', '--no-build', '--wait',
+      'synapse', 'mautrix-meta', 'mautrix-whatsapp'
+    ], { timeoutMs: 300000, cwd: runtimeDir, env: composeEnv });
+
+    // 5. Discover the real dynamic Synapse host port (official: compose port).
+    const synapsePortResult = await dockerExec([...baseArgs, 'port', 'synapse', '8008'], { timeoutMs: 15000 });
+    const synapseHostPort = composePort(synapsePortResult);
+
+    // 6. Project host-reachable Element config + Compose override.
+    const projection = projectMatrixRuntimeConfigs(runtimeStateRoot, sealedConfigDir, synapseHostPort);
+    const allComposeFiles = [composeFile, projection.overridePath];
+    const allArgs = matrixComposeBaseArgs(runtimeDir, allComposeFiles);
+
+    // 7. Phase 2: bring up Element with the projected config.
+    desktopLog('info', 'matrix-runtime-phase2-up', { synapseHostPort });
+    await dockerExec([
+      ...allArgs, 'up', '-d', '--no-build', '--wait', '--remove-orphans'
+    ], { timeoutMs: 300000, cwd: runtimeDir, env: composeEnv });
+
+    // 8. Discover Element + mautrix-meta dynamic host ports.
+    const elementPortResult = await dockerExec([...allArgs, 'port', 'element', '80'], { timeoutMs: 15000 });
+    const elementHostPort = composePort(elementPortResult);
+    const metaPortResult = await dockerExec([...allArgs, 'port', 'mautrix-meta', '29319'], { timeoutMs: 15000 });
+    const metaHostPort = composePort(metaPortResult);
+    const mautrixProvisioningUrl = `http://127.0.0.1:${metaHostPort}/_matrix/provision`;
+    process.env.YANCE_MAUTRIX_META_PROVISIONING_URL = mautrixProvisioningUrl;
+
+    // 9. Project host-reachable endpoints for the backend / renderer.
+    const synapseUrl = `http://127.0.0.1:${synapseHostPort}`;
+    const elementUrl = `http://127.0.0.1:${elementHostPort}`;
+    process.env.YANCE_MATRIX_BASE_URL = synapseUrl;
+    process.env.YANCE_ELEMENT_URL = elementUrl;
+    process.env.YANCE_ELEMENT_HEALTH_URL = `${elementUrl}/config.json`;
+    process.env.YANCE_PRODUCT_LOCATION_URL = `${elementUrl}/#/yance`;
+
+    const endpoints = {
+      synapse: { hostPort: synapseHostPort, url: synapseUrl },
+      element: { hostPort: elementHostPort, url: elementUrl },
+      mautrixMeta: { url: mautrixProvisioningUrl }
+    };
+    matrixRuntimeEphemeral = { runtimeDir, allComposeFiles, secretProjection, projection };
+    matrixRuntimeStarted = true;
+    updateMatrixRuntimeEndpoints(endpoints);
+    desktopLog('info', 'matrix-runtime-ready', { synapseHostPort, elementHostPort });
+    return { started: true, endpoints, candidateCommit };
+  } catch (error) {
+    desktopLog('error', 'matrix-runtime-start-failed', {
+      reasonCode: error.reasonCode || 'MATRIX_RUNTIME_START_FAILED',
+      message: error.message
+    });
+    if (app.isPackaged) {
+      const userError = new Error(
+        error.reasonCode === 'DOCKER_DESKTOP_REQUIRED'
+          ? 'Docker Desktop is required to run 言策. Please install Docker Desktop and restart the app.'
+          : `Matrix runtime failed to start: ${error.message}`
+      );
+      userError.reasonCode = error.reasonCode || 'MATRIX_RUNTIME_START_FAILED';
+      throw userError;
+    }
+    return { started: false, reason: 'start_failed', error: error.message };
+  }
+}
+
 async function launchBackend(options = {}) {
   if (!desktopCredentialApplicationCoordinator || !runtimeProjectionCoordinator) {
     const error = new Error('WP6 production lifecycle coordinators are unavailable');
@@ -3051,14 +3425,15 @@ async function waitForElementShellReady(options = {}) {
   const pollIntervalMs = Math.max(100, Number(options.pollIntervalMs || 400));
   const deadline = Date.now() + timeoutMs;
   let lastError = null;
+  const healthUrl = getElementHealthUrl();
   while (Date.now() < deadline && !quitting && !relaunchPending) {
     try {
-      const response = await fetch(YANCE_ELEMENT_HEALTH_URL, {
+      const response = await fetch(healthUrl, {
         method: 'GET',
         redirect: 'follow',
         signal: AbortSignal.timeout(Math.min(5000, Math.max(500, deadline - Date.now())))
       });
-      if (response.ok) return { ready: true, status: response.status, url: YANCE_ELEMENT_HEALTH_URL };
+      if (response.ok) return { ready: true, status: response.status, url: healthUrl };
       lastError = new Error(`Element shell health returned HTTP ${response.status}`);
     } catch (error) {
       lastError = error;
@@ -3067,7 +3442,7 @@ async function waitForElementShellReady(options = {}) {
   }
   const error = new Error(lastError?.message || 'Element shell readiness timed out');
   error.reasonCode = 'YANCE_ELEMENT_SHELL_READY_TIMEOUT';
-  error.details = { url: YANCE_ELEMENT_HEALTH_URL, timeoutMs };
+  error.details = { url: healthUrl, timeoutMs };
   throw error;
 }
 
@@ -3823,24 +4198,24 @@ ipcGuardHandle('desktop:set-active-conversation', (_event, data = {}) => {
   return { ok: true };
 });
   ipcMain.on('desktop:preload-ready', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [getElementUrl()] })) return;
     ensureMainWindowActivationController().markPreloadReady(mainWindow, payload);
   });
   ipcMain.on('desktop:renderer-ready', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [getElementUrl()] })) return;
     ensureMainWindowActivationController().markRendererReady(mainWindow, payload);
   });
   ipcMain.on('desktop:activation-probe-responder-ready', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [getElementUrl()] })) return;
     ensureMainWindowActivationController().markActivationProbeResponderReady(mainWindow, payload);
   });
   ipcMain.on('desktop:activation-probe-complete', (event, payload = {}) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [getElementUrl()] })) return;
     ensureMainWindowRuntimeReadiness().complete(event.sender, payload);
   });
   ipcGuardHandle('desktop:report-sound-result', (_event, result) => ({ accepted: resolveSound(result || {}) }));
   ipcMain.on('sound:result', (event, result) => {
-    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [YANCE_ELEMENT_URL] })) return;
+    if (!mainWindow || !isTrustedMainFrameIpcEvent(event, { webContents: mainWindow.webContents, allowedOrigins: [getElementUrl()] })) return;
     resolveSound(result || {});
   });
   ipcGuardHandle('desktop:save-credential', (_event, input) => saveCredentialFromDesktop(input?.ref, input?.value || {}, { requestId: input?.requestId }));
@@ -4007,6 +4382,7 @@ if (!app.requestSingleInstanceLock()) {
     createTray();
     createSoundWindow();
     try {
+      await ensureMatrixRuntime();
       await ensureLettaAgentRuntime().start();
       await launchBackend();
       if (wp7ProbeRequested()) {

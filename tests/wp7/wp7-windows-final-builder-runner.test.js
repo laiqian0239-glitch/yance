@@ -25,6 +25,10 @@ test('formal Builder CLI requires all identity and external artifact arguments',
     '--expected-branch', 'rebuild/windows-release-closure-test',
     '--expected-commit', 'b'.repeat(40),
     '--expected-tree', 'c'.repeat(40),
+    '--matrix-runtime-source', 'D:\\matrix-runtime',
+    '--matrix-runtime-candidate-branch', 'rebuild/windows-release-closure-test',
+    '--matrix-runtime-candidate-commit', 'b'.repeat(40),
+    '--matrix-runtime-candidate-tree', 'c'.repeat(40),
     '--build-timestamp-utc', '2026-07-12T16:00:00.000Z'
   ]);
   assert.equal(parsed['compiler-path'], 'C:\\NSIS\\makensis.exe');
@@ -68,6 +72,11 @@ test('PowerShell Builder wrapper contains the formal isolation and split runtime
     'Get-SanitizedPath',
     'SignToolPath'
   ]) assert.match(script, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(script, /MatrixRuntimeSource/);
+  assert.match(script, /MatrixRuntimeCandidateBranch/);
+  assert.match(script, /MatrixRuntimeCandidateCommit/);
+  assert.match(script, /MatrixRuntimeCandidateTree/);
+  assert.match(script, /sealed Matrix runtime matrix-images\.tar is required/);
   assert.match(script, /\$NodeExe --version\)\.Trim\(\) -ne 'v22\.16\.0'/u);
   assert.match(script, /\$TrustedNodeExecutable --version\)\.Trim\(\) -ne 'v22\.23\.1'/u);
   assert.match(script, /\$NodeExe \$NpmCli --version\)\.Trim\(\) -ne '10\.9\.2'/u);
@@ -102,4 +111,27 @@ test('PowerShell Builder treats npm warnings as stderr diagnostics and uses the 
   assert.match(npmBlock, /if \(\$npmCiExitCode -ne 0\)/);
   assert.match(npmBlock, /\$ErrorActionPreference = \$previousErrorActionPreference/);
   assert.match(script, /Final Builder is still running; do not close this window/);
+});
+
+test('release workflow downloads and verifies the same-source sealed Matrix runtime before Final Builder', () => {
+  const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'windows-production-release.yml'), 'utf8');
+  const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
+
+  assert.match(workflow, /materialized_matrix_run_id:/u);
+  assert.match(workflow, /actions:\s*read/u);
+  assert.match(workflow, /gh run download \$env:MATRIX_RUN_ID[^\n]*--name \$artifactName[^\n]*--dir \$root/u);
+  assert.match(workflow, /Product-Experience-Materialized-Matrix-UAT-\$env:EXPECTED_COMMIT/u);
+  assert.match(workflow, /PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);
+  assert.match(workflow, /matrix-images\.tar/u);
+  assert.match(workflow, /create-materialized-uat-candidate\.js verify/u);
+  assert.match(workflow, /sealed Matrix artifact commit mismatch/u);
+  assert.match(workflow, /sealed Matrix artifact tree mismatch/u);
+  assert.match(workflow, /-MatrixRuntimeSource \$env:MATRIX_RUNTIME_SOURCE/u);
+  assert.match(workflow, /-MatrixRuntimeCandidateCommit '\$\{\{ steps\.identity\.outputs\.commit \}\}'/u);
+  assert.match(workflow, /-MatrixRuntimeCandidateTree '\$\{\{ steps\.identity\.outputs\.tree \}\}'/u);
+
+  assert.match(builder, /matrixRuntimeSource:\s*options\.matrixRuntimeSource/u);
+  assert.match(builder, /matrixRuntimeIdentity:\s*options\.matrixRuntimeIdentity/u);
+  assert.match(builder, /matrixRuntimeRelativeRoot/u);
+  assert.match(builder, /matrixRuntimeImagesTarSha256/u);
 });
