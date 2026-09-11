@@ -188,7 +188,7 @@ test('M2-FAULT-009 receipt persistence path completes without a fault barrier', 
 ));
 
 test('M2-FAULT-010 all eighteen scenarios execute and emit zero-leak zero-duplicate evidence', async () => withTempRoot(
-  'yance-wp-b-all-process-faults-',
+  'yance-wp-b-faults-',
   async workspaceRoot => {
     const { runFaultMatrix } = matrixModule();
     const report = await runFaultMatrix({ workspaceRoot, timeoutMs: 30_000 });
