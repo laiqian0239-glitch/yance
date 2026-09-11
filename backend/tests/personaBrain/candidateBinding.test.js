@@ -11,6 +11,44 @@ const { createPersonaBrain } = require('../../personaBrain');
 const { createContextAwareReplyBrain } = require('../../services/contextAwareReplyBrain');
 const contactContextAuthority = require('../../services/contactContextAuthority');
 const { compilePersonaContext } = require('../../routes/personaBrain');
+const fs = require('node:fs');
+const os = require('node:os');
+const nodePath = require('node:path');
+const { acquireAuthorityWriteHost } = require('../../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../../lib/sqliteConnectionBroker');
+const { closeR32Store } = require('../../lib/r32StoreSingleton');
+
+// File-level broker bootstrap: director-rule authority resolves the broker-owned primary store singleton.
+const dataRoot = fs.mkdtempSync(nodePath.join(os.tmpdir(), 'yance-persona-candidate-binding-'));
+process.env.YANCE_DATA_DIR = dataRoot;
+process.env.WORKBUDDY_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+const brokerDbPath = nodePath.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(nodePath.dirname(brokerDbPath), { recursive: true });
+const candidateBindingHost = acquireAuthorityWriteHost({
+  dbPath: brokerDbPath,
+  instanceId: `persona-candidate-binding-${process.pid}`
+});
+const candidateBindingBroker = createSqliteConnectionBroker({
+  dbPath: brokerDbPath,
+  authorityWriteHostCapability: candidateBindingHost.capability
+});
+candidateBindingBroker.open();
+
+test.after(() => {
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { candidateBindingHost.close(); } catch (_) {}
+  try {
+    fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.WORKBUDDY_DATA_DIR;
+  delete process.env.YANCE_DATA_DIR;
+});
 
 // 与 P0-A/B 同款最小 store shim（:memory: + transaction）
 function makeStore() {
@@ -21,6 +59,17 @@ function makeStore() {
       db.exec('BEGIN');
       try {
         const result = fn();
+        db.exec('COMMIT');
+        return result;
+      } catch (err) {
+        db.exec('ROLLBACK');
+        throw err;
+      }
+    },
+    async transactionAsync(fn) {
+      db.exec('BEGIN');
+      try {
+        const result = await fn();
         db.exec('COMMIT');
         return result;
       } catch (err) {
@@ -89,7 +138,7 @@ test('AC-036: upsertAiReplyCandidate 持久化 persona_version_id + persona_poli
   db.exec('CREATE TABLE contacts (id TEXT PRIMARY KEY);');
   db.exec("INSERT INTO contacts(id) VALUES ('c1');");
   db.exec(CANDIDATE_DDL);
-  const adapter = new SqliteStorePersistenceAdapter({ store: { db } });
+  const adapter = new SqliteStorePersistenceAdapter({ store: { db, transactionAsync: async fn => fn() } });
   const tx = adapter._createTransaction();
   tx.upsertAiReplyCandidate({
     candidateId: 'c1', taskId: 't1', contactId: 'c1', conversationId: 'conv1',

@@ -12,7 +12,7 @@ const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
 test('F25-D05 WhatsApp runtime state mapping is exported and AccountManager never calls an undefined local symbol', () => {
   const registry = read('backend/services/platformDriverRegistry.js');
-  const manager = read('backend/services/accountManager.js');
+  const manager = read('backend/services/accountManagerCore.js');
   assert.match(registry, /module\.exports\s*=\s*\{[^}]*mapWhatsAppState/u);
   assert.match(manager, /platformDrivers\.mapWhatsAppState\(payload\.state\)/u);
   assert.doesNotMatch(manager, /state:\s*mapWhatsAppState\(payload\.state\)/u);
@@ -39,7 +39,7 @@ test('F25-D04 pending authorization accounts are blocked from automatic recovery
 });
 
 test('F25-D04 account creation uses a pending authorization lifecycle and cannot become default before success', () => {
-  const manager = read('backend/services/accountManager.js');
+  const manager = read('backend/services/accountManagerCore.js');
   const repository = read('backend/repositories/accountRepository.js');
   const frontend = read('frontend/r32-account-center.js');
   assert.match(frontend, /authorizationPending:true/u);
@@ -49,7 +49,7 @@ test('F25-D04 account creation uses a pending authorization lifecycle and cannot
 });
 
 test('F25-D04 failed and cancelled authorization has an idempotent cleanup command wired end-to-end', () => {
-  const manager = read('backend/services/accountManager.js');
+  const manager = read('backend/services/accountManagerCore.js');
   const context = read('backend/core/accountContext.js');
   const routes = read('backend/routes/accounts.js');
   const frontend = read('frontend/r32-account-center.js');
@@ -74,7 +74,7 @@ test('F25-D06 account connection has a bounded 60 second core budget and reports
 });
 
 test('F25-D04 successful authorization promotes the account and only then enables automatic recovery', () => {
-  const manager = read('backend/services/accountManager.js');
+  const manager = read('backend/services/accountManagerCore.js');
   const repository = read('backend/repositories/accountRepository.js');
   assert.match(manager, /async promotePendingAuthorization/u);
   assert.match(manager, /lifecycleState:\s*'active'/u);

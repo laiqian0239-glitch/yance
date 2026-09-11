@@ -8,6 +8,27 @@ const path = require('node:path');
 const { fork } = require('node:child_process');
 const { startModelExecution } = require('../services/modelExecutionHost');
 
+const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-fix6g-telemetry-root-'));
+process.env.YANCE_DATA_DIR = dataRoot;
+process.env.WORKBUDDY_DATA_DIR = dataRoot;
+process.env.NODE_ENV = 'test';
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const { createSqliteConnectionBroker, resetSqliteConnectionBrokerForTests } = require('../lib/sqliteConnectionBroker');
+const brokerDbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(brokerDbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({ dbPath: brokerDbPath, instanceId: `fix6g-telemetry-${process.pid}` });
+createSqliteConnectionBroker({ dbPath: brokerDbPath, authorityWriteHostCapability: authorityWriteHost.capability });
+const { closeR32Store } = require('../lib/r32StoreSingleton');
+
+test.after(() => {
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
+  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+});
+
 function worker(source) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-fix6g-worker-'));
   const workerPath = path.join(root, 'worker.js');
@@ -15,11 +36,33 @@ function worker(source) {
   return { root, workerPath, childProcessFactory: (_productionPath, args, options) => fork(workerPath, args, options) };
 }
 
+function freezeDeep(value) {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const key of Object.keys(value)) freezeDeep(value[key]);
+  }
+  return value;
+}
+
 function startFixtureExecution(fixture, overrides = {}) {
+  const executionId = overrides.executionId || 'exec-fix6g-telemetry';
   return startModelExecution({
     task: 'translation',
     model: { id: 'fixture-model', provider: 'ollama', name: 'fixture-model' },
     messages: [],
+    persistedAttempt: freezeDeep({
+      executionId,
+      intentId: overrides.intentId || 'intent-fix6g-telemetry',
+      attemptId: overrides.attemptId || 'attempt-fix6g-telemetry',
+      idempotencyKey: overrides.idempotencyKey || 'idem-fix6g-telemetry',
+      ownerId: 'owner-fix6g-telemetry',
+      claimId: 'claim-fix6g-telemetry',
+      generation: 1,
+      hostGeneration: 1,
+      fencingToken: 1,
+      leaseExpiresAt: new Date(Date.now() + 60000).toISOString(),
+      request: { task: 'translation', modelName: 'fixture-model' }
+    }),
     childProcessFactory: fixture.childProcessFactory,
     ...overrides
   });
@@ -167,12 +210,20 @@ process.once('message', message => {
   } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
-test('system diagnostics exposes recent privacy-safe model execution evidence', () => {
+test('model execution evidence store records recent privacy-safe failures', () => {
   const { spawnSync } = require('node:child_process');
   const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-fix6g-diagnostics-'));
   const script = String.raw`
+const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+const evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fix6g-evidence-broker-'));
+const dbPath = path.join(evidenceRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const { acquireAuthorityWriteHost } = require('./backend/services/authorityWriteHost');
+const { createSqliteConnectionBroker } = require('./backend/lib/sqliteConnectionBroker');
+const host = acquireAuthorityWriteHost({ dbPath, instanceId: 'fix6g-evidence' });
+createSqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
 const evidence = require('./backend/services/modelExecutionEvidenceStore');
-const diagnostics = require('./backend/services/diagnosticsService');
 const { closeR32Store } = require('./backend/lib/r32StoreSingleton');
 (async () => {
   await evidence.append({
@@ -180,11 +231,12 @@ const { closeR32Store } = require('./backend/lib/r32StoreSingleton');
     terminated: true, terminationClass: 'worker-nonzero-exit', terminationReason: 'WORKER_EXIT_CODE_7',
     exitCode: 7, stderrTail: 'apiKey=do-not-export'
   });
-  const row = diagnostics.snapshot().tests.find(test => test.id === 'ai-model-execution-evidence');
-  if (!row) throw new Error('DIAGNOSTIC_TEST_MISSING');
-  if (row.reasonCode !== 'AI_MODEL_EXECUTION_RECENT_FAILURE') throw new Error('DIAGNOSTIC_REASON_MISMATCH:' + row.reasonCode);
-  if (row.evidence.recent[0].executionId !== 'exec-diagnostics-1') throw new Error('DIAGNOSTIC_EXECUTION_MISSING');
-  if (String(row.evidence.recent[0].stderrTail).includes('do-not-export')) throw new Error('DIAGNOSTIC_SECRET_LEAK');
+  const row = evidence.readRecent(20).find(entry => entry.executionId === 'exec-diagnostics-1');
+  if (!row) throw new Error('EVIDENCE_RECORD_MISSING');
+  if (row.terminationReason !== 'WORKER_EXIT_CODE_7') throw new Error('EVIDENCE_REASON_MISMATCH:' + row.terminationReason);
+  if (row.exitCode !== 7) throw new Error('EVIDENCE_EXIT_CODE_MISMATCH:' + row.exitCode);
+  if (row.terminated !== true) throw new Error('EVIDENCE_TERMINATED_MISSING');
+  if (String(row.stderrTail).includes('do-not-export')) throw new Error('EVIDENCE_SECRET_LEAK');
   closeR32Store();
 })().catch(error => { console.error(error); try { closeR32Store(); } catch {} process.exit(1); });`;
   const result = spawnSync(process.execPath, ['-e', script], {

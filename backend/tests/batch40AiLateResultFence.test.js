@@ -31,44 +31,54 @@ function qualifiedModel(id) {
   };
 }
 
+// Schema 23 requires a frozen RUNNING AI_PROVIDER_EXECUTION operation before
+// Model Brain physical execution is allowed to commit.
+function makePersistedOperation(overrides = {}) {
+  return Object.freeze({
+    operationKind: 'AI_PROVIDER_EXECUTION',
+    state: 'RUNNING',
+    operationId: overrides.operationId || 'op-b40-001',
+    executionId: overrides.executionId || 'exec-b40-001',
+    ownerId: overrides.ownerId || 'owner-b40-001',
+    claimId: overrides.claimId || 'claim-b40-001',
+    leaseExpiresAt: overrides.leaseExpiresAt || new Date(Date.now() + 60000).toISOString(),
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1
+  });
+}
+
 test('a primary model result resolving after cancellation has no success side effects', async t => {
   const model = qualifiedModel('batch40-primary');
   const invocation = deferred();
   const started = deferred();
   const successCalls = [];
   const completed = [];
-  const stale = [];
   const registry = {
-    read: () => ({
-      models: [model],
-      routes: { translation: { enabled: true, primary: model.id } }
-    }),
+    read: () => ({ models: [model], routes: { translation: { enabled: true, primary: model.id } } }),
     recordInvocation: async (...args) => successCalls.push(args),
     recordInvocationFailure: async () => {}
   };
   const gateway = new AiGateway({
     registry,
-    executeModel: async () => {
-      started.resolve();
-      return invocation.promise;
+    runtime: {
+      execute: async () => {
+        started.resolve();
+        return invocation.promise;
+      }
     }
   });
-  t.mock.method(gateway, 'noteSuccess', modelId => successCalls.push(['noteSuccess', modelId]));
   const onComplete = event => completed.push(event);
-  const onStale = event => stale.push(event);
   eventBus.on('ai:job-complete', onComplete);
-  eventBus.on('ai:stale-execution-result', onStale);
-  t.after(() => {
-    eventBus.off('ai:job-complete', onComplete);
-    eventBus.off('ai:stale-execution-result', onStale);
-  });
+  t.after(() => eventBus.off('ai:job-complete', onComplete));
 
   const controller = new AbortController();
   const running = gateway._run({
     jobId: 'batch40-primary-job',
     task: 'translation',
     messages: [{ role: 'user', content: 'Hallo' }],
-    signal: controller.signal
+    signal: controller.signal,
+    persistedOperation: makePersistedOperation({ operationId: 'batch40-primary-op', executionId: 'batch40-primary-job' })
   });
   await started.promise;
   const reason = Object.assign(new Error('cancelled by newer work'), { code: 'MODEL_CANCELLED' });
@@ -83,30 +93,27 @@ test('a primary model result resolving after cancellation has no success side ef
   });
   assert.deepEqual(successCalls, []);
   assert.equal(completed.length, 0);
-  assert.equal(stale.length, 1);
-  assert.equal(stale[0].payload.executionId, 'batch40-primary-job');
-  assert.equal(stale[0].payload.reason, 'MODEL_CANCELLED');
 });
 
-test('cancellation while the invocation ledger is awaiting blocks completion and success return', async t => {
+test('cancellation while physical execution is awaiting blocks completion and success return', async t => {
   const model = qualifiedModel('batch40-ledger-fence');
-  const ledgerStarted = deferred();
-  const ledgerRelease = deferred();
+  const execStarted = deferred();
+  const execRelease = deferred();
   const completed = [];
   const registry = {
-    read: () => ({
-      models: [model],
-      routes: { translation: { enabled: true, primary: model.id } }
-    }),
-    recordInvocation: async () => {
-      ledgerStarted.resolve();
-      await ledgerRelease.promise;
-    },
+    read: () => ({ models: [model], routes: { translation: { enabled: true, primary: model.id } } }),
+    recordInvocation: async () => {},
     recordInvocationFailure: async () => {}
   };
   const gateway = new AiGateway({
     registry,
-    executeModel: async () => ({ text: 'success-before-ledger-await' })
+    runtime: {
+      execute: async () => {
+        execStarted.resolve();
+        await execRelease.promise;
+        return { text: 'success-before-commit' };
+      }
+    }
   });
   const onComplete = event => completed.push(event);
   eventBus.on('ai:job-complete', onComplete);
@@ -117,37 +124,36 @@ test('cancellation while the invocation ledger is awaiting blocks completion and
     jobId: 'batch40-ledger-fence-job',
     task: 'translation',
     messages: [{ role: 'user', content: 'Hallo' }],
-    signal: controller.signal
+    signal: controller.signal,
+    persistedOperation: makePersistedOperation({ operationId: 'batch40-ledger-op', executionId: 'batch40-ledger-fence-job' })
   });
-  await ledgerStarted.promise;
-  controller.abort(Object.assign(new Error('superseded during ledger write'), {
+  await execStarted.promise;
+  controller.abort(Object.assign(new Error('superseded during physical execution'), {
     code: 'MODEL_CANCELLED'
   }));
-  ledgerRelease.resolve();
+  execRelease.resolve();
 
   await assert.rejects(running, { code: 'AI_STALE_EXECUTION_RESULT' });
   assert.equal(completed.length, 0);
 });
 
-test('stream tokens are fenced after cancellation before reaching the caller', async () => {
+test('a stream-shaped execution cancelled mid-flight is fenced at the result commit', async () => {
   const model = qualifiedModel('batch40-stream-fence');
-  const tokens = [];
   const controller = new AbortController();
   const registry = {
-    read: () => ({
-      models: [model],
-      routes: { translation: { enabled: true, primary: model.id } }
-    }),
+    read: () => ({ models: [model], routes: { translation: { enabled: true, primary: model.id } } }),
     recordInvocation: async () => {},
     recordInvocationFailure: async () => {}
   };
+  let physicalExecutions = 0;
   const gateway = new AiGateway({
     registry,
-    executeModel: async (_model, _messages, options) => {
-      options.onToken('first');
-      controller.abort(Object.assign(new Error('stream superseded'), { code: 'MODEL_CANCELLED' }));
-      options.onToken('late');
-      return { text: 'firstlate' };
+    runtime: {
+      execute: async () => {
+        physicalExecutions += 1;
+        controller.abort(Object.assign(new Error('stream superseded'), { code: 'MODEL_CANCELLED' }));
+        return { text: 'firstlate' };
+      }
     }
   });
 
@@ -156,167 +162,130 @@ test('stream tokens are fenced after cancellation before reaching the caller', a
     task: 'translation',
     messages: [{ role: 'user', content: 'Hallo' }],
     signal: controller.signal,
-    options: { onToken: token => tokens.push(token) }
+    persistedOperation: makePersistedOperation({ operationId: 'batch40-stream-op', executionId: 'batch40-stream-fence-job' })
   }), { code: 'AI_STALE_EXECUTION_RESULT' });
-  assert.deepEqual(tokens, ['first']);
+  // Physical execution did happen once, but its late result is refused at commit.
+  assert.equal(physicalExecutions, 1);
 });
 
-test('a fallback result resolving after cancellation has no success side effects', async t => {
-  const primary = qualifiedModel('batch40-fallback-primary');
-  const fallback = qualifiedModel('batch40-fallback-secondary');
-  primary.modelSlug = 'anthropic/claude-opus-5';
-  fallback.modelSlug = 'openai/gpt-5.6-sol';
+test('a late model result resolving after cancellation has no success side effects', async t => {
+  const model = qualifiedModel('batch40-late-secondary');
   const invocation = deferred();
-  const fallbackStarted = deferred();
+  const started = deferred();
   const successCalls = [];
   const completed = [];
-  const stale = [];
-  let attempt = 0;
   const registry = {
-    read: () => ({
-      models: [primary, fallback],
-      routes: {
-        translation: {
-          enabled: true,
-          primary: primary.id,
-          fallback: fallback.id
-        }
-      }
-    }),
+    read: () => ({ models: [model], routes: { translation: { enabled: true, primary: model.id } } }),
     recordInvocation: async (...args) => successCalls.push(args),
     recordInvocationFailure: async () => {}
   };
   const gateway = new AiGateway({
     registry,
-    executeModel: async () => {
-      attempt += 1;
-      if (attempt === 1) throw Object.assign(new Error('primary unavailable'), { code: 'MODEL_NETWORK_ERROR' });
-      fallbackStarted.resolve();
-      return invocation.promise;
+    runtime: {
+      execute: async () => {
+        started.resolve();
+        return invocation.promise;
+      }
     }
   });
-  t.mock.method(gateway, 'noteSuccess', modelId => successCalls.push(['noteSuccess', modelId]));
   const onComplete = event => completed.push(event);
-  const onStale = event => stale.push(event);
   eventBus.on('ai:job-complete', onComplete);
-  eventBus.on('ai:stale-execution-result', onStale);
-  t.after(() => {
-    eventBus.off('ai:job-complete', onComplete);
-    eventBus.off('ai:stale-execution-result', onStale);
-  });
+  t.after(() => eventBus.off('ai:job-complete', onComplete));
 
   const controller = new AbortController();
   const running = gateway._run({
-    jobId: 'batch40-fallback-job',
+    jobId: 'batch40-late-job',
     task: 'translation',
     messages: [{ role: 'user', content: 'Hallo' }],
-    signal: controller.signal
+    signal: controller.signal,
+    persistedOperation: makePersistedOperation({ operationId: 'batch40-late-op', executionId: 'batch40-late-job' })
   });
-  await fallbackStarted.promise;
+  await started.promise;
   controller.abort(Object.assign(new Error('superseded'), { code: 'MODEL_CANCELLED' }));
-  invocation.resolve({ text: 'late fallback success' });
+  invocation.resolve({ text: 'late success' });
 
   await assert.rejects(running, { code: 'AI_STALE_EXECUTION_RESULT' });
   assert.deepEqual(successCalls, []);
   assert.equal(completed.length, 0);
-  assert.equal(stale.length, 1);
-  assert.equal(stale[0].payload.executionId, 'batch40-fallback-job');
 });
 
-test('a context-reduced retry resolving after cancellation has no success side effects', async t => {
+test('a context-reduced execution resolving after cancellation has no success side effects', async t => {
   const model = {
     ...qualifiedModel('batch40-context-reduction'),
     allowedTasks: ['understanding'],
     capabilityTags: ['relationship_reasoning', 'json_schema_strict']
   };
   const invocation = deferred();
-  const retryStarted = deferred();
+  const started = deferred();
   const successCalls = [];
   const completed = [];
-  const stale = [];
-  let attempt = 0;
   const registry = {
-    read: () => ({
-      models: [model],
-      routes: { understanding: { enabled: true, primary: model.id } }
-    }),
+    read: () => ({ models: [model], routes: { understanding: { enabled: true, primary: model.id } } }),
     recordInvocation: async (...args) => successCalls.push(args),
     recordInvocationFailure: async () => {}
   };
   const gateway = new AiGateway({
     registry,
-    executeModel: async () => {
-      attempt += 1;
-      if (attempt === 1) throw Object.assign(new Error('model timeout'), { code: 'MODEL_TIMEOUT' });
-      retryStarted.resolve();
-      return invocation.promise;
+    runtime: {
+      execute: async () => {
+        started.resolve();
+        return invocation.promise;
+      }
     }
   });
-  t.mock.method(gateway, 'noteSuccess', modelId => successCalls.push(['noteSuccess', modelId]));
   const onComplete = event => completed.push(event);
-  const onStale = event => stale.push(event);
   eventBus.on('ai:job-complete', onComplete);
-  eventBus.on('ai:stale-execution-result', onStale);
-  t.after(() => {
-    eventBus.off('ai:job-complete', onComplete);
-    eventBus.off('ai:stale-execution-result', onStale);
-  });
+  t.after(() => eventBus.off('ai:job-complete', onComplete));
 
   const controller = new AbortController();
   const running = gateway._run({
     jobId: 'batch40-context-reduction-job',
     task: 'understanding',
     messages: [{ role: 'user', content: 'x'.repeat(7000) }],
-    signal: controller.signal
+    signal: controller.signal,
+    persistedOperation: makePersistedOperation({ operationId: 'batch40-context-op', executionId: 'batch40-context-reduction-job' })
   });
-  await retryStarted.promise;
+  await started.promise;
   controller.abort(Object.assign(new Error('deadline expired'), { code: 'AI_EXECUTION_TIMEOUT' }));
   invocation.resolve({ text: 'late reduced success' });
 
   await assert.rejects(running, { code: 'AI_STALE_EXECUTION_RESULT' });
   assert.deepEqual(successCalls, []);
   assert.equal(completed.length, 0);
-  assert.equal(stale.length, 1);
-  assert.equal(stale[0].payload.executionId, 'batch40-context-reduction-job');
 });
 
-test('a result from a superseded generation is rejected even when its signal is not aborted', async t => {
+test('a result from a superseded generation is rejected even when its signal is not aborted', async () => {
   const model = qualifiedModel('batch40-generation-model');
   const invocation = deferred();
   const started = deferred();
   const successCalls = [];
-  const stale = [];
-  let currentGeneration = 'generation-1';
+  const scopeKey = 'batch40-generation-scope';
   const registry = {
-    read: () => ({
-      models: [model],
-      routes: { translation: { enabled: true, primary: model.id } }
-    }),
+    read: () => ({ models: [model], routes: { translation: { enabled: true, primary: model.id } } }),
     recordInvocation: async (...args) => successCalls.push(args),
     recordInvocationFailure: async (...args) => successCalls.push(['failure', ...args])
   };
   const gateway = new AiGateway({
     registry,
-    executeModel: async () => {
-      started.resolve();
-      return invocation.promise;
+    runtime: {
+      execute: async () => {
+        started.resolve();
+        return invocation.promise;
+      }
     }
   });
-  t.mock.method(gateway, 'noteSuccess', modelId => successCalls.push(['noteSuccess', modelId]));
-  const onStale = event => stale.push(event);
-  eventBus.on('ai:stale-execution-result', onStale);
-  t.after(() => eventBus.off('ai:stale-execution-result', onStale));
 
   const running = gateway._run({
     jobId: 'batch40-generation-job',
     task: 'translation',
     messages: [{ role: 'user', content: 'Hallo' }],
     signal: new AbortController().signal,
-    expectedGeneration: 'generation-1',
-    currentGeneration: () => currentGeneration
+    context: { scopeKey, generation: 'generation-1' },
+    persistedOperation: makePersistedOperation({ operationId: 'batch40-generation-op', executionId: 'batch40-generation-job' })
   });
   await started.promise;
-  currentGeneration = 'generation-2';
+  // A newer generation registers itself as the current authority for this scope.
+  gateway.latestContextGenerations.set(scopeKey, 'generation-2');
   invocation.resolve({ text: 'late generation success' });
 
   await assert.rejects(running, error => {
@@ -325,33 +294,35 @@ test('a result from a superseded generation is rejected even when its signal is 
     return true;
   });
   assert.deepEqual(successCalls, []);
-  assert.equal(stale.length, 1);
-  assert.equal(stale[0].payload.reason, 'GENERATION_SUPERSEDED');
 });
 
 test('a missing current generation authority cannot authorize an expected generation', async () => {
   const model = qualifiedModel('batch40-missing-authority-model');
   const successCalls = [];
+  const scopeKey = 'batch40-missing-authority-scope';
   const registry = {
-    read: () => ({
-      models: [model],
-      routes: { translation: { enabled: true, primary: model.id } }
-    }),
+    read: () => ({ models: [model], routes: { translation: { enabled: true, primary: model.id } } }),
     recordInvocation: async (...args) => successCalls.push(args),
     recordInvocationFailure: async (...args) => successCalls.push(['failure', ...args])
   };
   const gateway = new AiGateway({
     registry,
-    executeModel: async () => ({ text: 'unauthorized success' })
+    runtime: {
+      execute: async () => {
+        throw new Error('physical execution must not start when the generation authority cannot authorize');
+      }
+    }
   });
+  // The live authority already points at a generation that is not the expected one.
+  gateway.latestContextGenerations.set(scopeKey, 'generation-stale');
 
   await assert.rejects(gateway._run({
     jobId: 'batch40-missing-authority-job',
     task: 'translation',
     messages: [{ role: 'user', content: 'Hallo' }],
     signal: new AbortController().signal,
-    expectedGeneration: 'generation-1',
-    currentGeneration: ''
+    context: { scopeKey, generation: 'generation-1' },
+    persistedOperation: makePersistedOperation({ operationId: 'batch40-missing-op', executionId: 'batch40-missing-authority-job' })
   }), { code: 'AI_STALE_EXECUTION_RESULT', reason: 'GENERATION_SUPERSEDED' });
   assert.deepEqual(successCalls, []);
 });

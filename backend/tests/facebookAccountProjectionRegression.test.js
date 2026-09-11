@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 test('Facebook account API preserves Business Suite reconciliation authority fields', () => {
-  const source = fs.readFileSync(path.resolve(__dirname, '../services/accountManager.js'), 'utf8');
+  const source = fs.readFileSync(path.resolve(__dirname, '../services/accountManagerCore.js'), 'utf8');
   for (const field of [
     'missingOptionalPermissions',
     'newMessagingReady',

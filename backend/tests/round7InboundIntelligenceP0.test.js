@@ -6,6 +6,37 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
+// Current SQLite authority: service singletons (modelRegistry/messageStore/...) resolve
+// through the broker-owned primary store, so establish the standard broker bootstrap once.
+const brokerDataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-round7-inbound-broker-'));
+process.env.YANCE_DATA_DIR = brokerDataRoot;
+process.env.WORKBUDDY_DATA_DIR = brokerDataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+const { closeR32Store } = require('../lib/r32StoreSingleton');
+const brokerDbPath = path.join(brokerDataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(brokerDbPath), { recursive: true });
+const brokerWriteHost = acquireAuthorityWriteHost({
+  dbPath: brokerDbPath,
+  instanceId: `round7-inbound-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath: brokerDbPath,
+  authorityWriteHostCapability: brokerWriteHost.capability
+});
+
+test.after(() => {
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { brokerWriteHost.close(); } catch (_) {}
+  try { fs.rmSync(brokerDataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+});
+
 function insertKurtFixture(store) {
   const now = '2026-07-25T00:00:00.000Z';
   store.db.prepare(`
@@ -136,8 +167,10 @@ test('production UI refreshes profile projection when explicit facts arrive', ()
   assert.match(ui, /customer\.facts\.updated/);
   assert.match(ui, /scheduleStoreSocialContextRefresh\(activeId,event\?\.eventType==='customer\.facts\.updated'\?120:500\)/);
   assert.match(orchestrator, /persistDeterministicFactsForConversation\(conversationId/);
+  assert.match(orchestrator, /const analysisTask = 'understanding'/);
+  assert.match(orchestrator, /eligibleModel\(analysisTask, config\)/);
   const factIndex = orchestrator.indexOf('persistDeterministicFactsForConversation(conversationId');
-  const modelIndex = orchestrator.indexOf("eligibleModel('understanding', config)");
+  const modelIndex = orchestrator.indexOf('eligibleModel(analysisTask, config)');
   assert.equal(factIndex >= 0 && modelIndex >= 0 && factIndex < modelIndex, true);
 });
 

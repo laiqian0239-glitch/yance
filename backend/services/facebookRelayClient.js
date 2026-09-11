@@ -2,12 +2,44 @@
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const path = require('node:path');
 const logger = require('./logger');
 const platformAuthConfig = require('./platformAuthConfig');
 const { executeWithDeadline } = require('./executionDeadline');
 const { createSessionGenerationFence } = require('./sessionGenerationFence');
+const { CONFIG, PATHS } = require('../config');
+const { getSecurityGuard } = require('../core/securityGuardSingleton');
+const messageStore = require('./messageStore');
+const mediaPipeline = require('./mediaPipeline');
+const eventBus = require('./eventBus');
+
+const securityGuard = getSecurityGuard();
 
 function clean(value) { return value == null ? '' : String(value).trim(); }
+function facebookExpressionId(attachment = {}) {
+  return clean(attachment?.payload?.sticker_id || attachment?.payload?.stickerId || attachment?.sticker_id || attachment?.stickerId);
+}
+function facebookExpressionDescriptor(attachment = {}) {
+  const platformExpressionId = facebookExpressionId(attachment);
+  return platformExpressionId ? { platformExpressionId, presentation: 'compact-expression' } : {};
+}
+function workerAttachmentType(attachment = {}) {
+  if (facebookExpressionId(attachment)) return 'sticker';
+  const value = clean(attachment.type).toLowerCase();
+  if (value === 'image') return 'image';
+  if (value === 'video') return 'video';
+  if (value === 'audio') return 'audio';
+  if (value === 'file') return 'document';
+  if (value === 'fallback') return 'unknown';
+  return value || 'unknown';
+}
+function workerMediaCredentials(account) {
+  const secret = securityGuard.credentials.get(account.credentialRef) || {};
+  if (!clean(secret.cloudAccountId) || !clean(secret.workerBaseUrl) || !clean(secret.deviceId) || !clean(secret.devicePrivateKeyPkcs8)) {
+    throw Object.assign(new Error('Facebook 公共主页尚未完成云端授权'), { code: 'FACEBOOK_NOT_AUTHORIZED', status: 409 });
+  }
+  return { secret, version: secret.graphVersion || platformAuthConfig.DEFAULT_FACEBOOK_GRAPH_VERSION };
+}
 function workerErrorCode(value, fallback = 'FACEBOOK_WORKER_REQUEST_FAILED') {
   const code = clean(value);
   return /^FACEBOOK_[A-Z0-9_]+$/u.test(code) ? code : fallback;
@@ -415,6 +447,100 @@ class FacebookRelayClient {
     const bytes = Buffer.from(await readRawBodyWithDeadline(response, { timeoutMs: 60_000, code: 'FACEBOOK_MEDIA_BODY_TIMEOUT', operation: 'facebook-media-body' }));
     fs.writeFileSync(outputPath, bytes, { flag: 'wx' });
     return { bytes: bytes.length, mimeType: clean(response.headers.get('content-type'), 'application/octet-stream'), filename: clean(response.headers.get('content-disposition')) };
+  }
+
+  // Persisted-attempt-gated Worker media materialization. No direct Meta/CDN fetch, no autonomous
+  // background I/O: every entry requires an explicit persisted operation whose account scope matches,
+  // then the sealed Worker relay downloads the bytes and they are persisted through the media pipeline.
+  async downloadRemoteAttachment({ account, accountId, conversationId, messageId, attachment, index = 0, physicalOperationContext = null, signal = null }) {
+    const options = Object.freeze({ physicalOperationContext, signal, account });
+    const persisted = persistedOperationIdentity(options);
+    const scopeId = clean(account?.id || account);
+    if (persisted.accountId && scopeId && persisted.accountId !== scopeId) {
+      throw Object.assign(new Error('Facebook worker media persisted operation account scope mismatch'), {
+        code: 'FACEBOOK_LEGACY_PERSISTED_OPERATION_SCOPE_MISMATCH', status: 409, accountId: scopeId, persistedAccountId: persisted.accountId
+      });
+    }
+    const workerMedia = attachment?.payload?.worker_media || attachment?.workerMedia || null;
+    const workerEventId = clean(workerMedia?.eventId || workerMedia?.event_id);
+    if (!workerMedia || !workerEventId) {
+      throw Object.assign(new Error('Legacy Facebook remote media URL fetch is retired; a Worker media reference is required'), {
+        code: 'FACEBOOK_LEGACY_MEDIA_REFERENCE_REQUIRED', status: 409
+      });
+    }
+    fs.mkdirSync(PATHS.tmp, { recursive: true });
+    const tempFile = path.join(PATHS.tmp, `facebook-${crypto.randomUUID()}-${index}.download`);
+    try {
+      const { secret } = workerMediaCredentials(account);
+      const result = await this.downloadMedia(secret, workerEventId, Number(workerMedia.index ?? index), tempFile, options);
+      if (Number(result.bytes || 0) > CONFIG.mediaMaxBytes) throw Object.assign(new Error('Facebook媒体超过大小限制'), { code: 'MEDIA_TOO_LARGE' });
+      return mediaPipeline.saveFile({
+        accountId, conversationId, messageId: `${messageId}-${index}`, filePath: tempFile,
+        descriptor: {
+          id: `${messageId}:${index}`, kind: workerAttachmentType(attachment),
+          mimeType: clean(result.mimeType) || clean(workerMedia?.mime_type || workerMedia?.mimeType) || 'application/octet-stream',
+          filename: clean(workerMedia?.filename || attachment?.name) || `facebook-${messageId}-${index}`,
+          sourceUrl: '', workerMedia: { eventId: workerEventId, index: Number(workerMedia.index ?? index) },
+          ...facebookExpressionDescriptor(attachment), status: 'ready', downloadStatus: 'ready'
+        }
+      });
+    } finally {
+      try { fs.rmSync(tempFile, { force: true }); }
+      catch (error) {
+        logger.warn('facebook', 'critical-operation-failed', {
+          operation: 'facebookMedia.removeTemporaryFile', accountId: clean(account?.id), conversationId: clean(conversationId),
+          reasonCode: clean(error?.code) || 'FACEBOOK_MEDIA_TEMP_CLEANUP_FAILED', httpStatus: Number(error?.status || 0),
+          error: clean(error?.message || error)
+        });
+      }
+    }
+  }
+
+  async cacheWebhookAttachments(account, baseMessage, rawAttachments = [], options = {}) {
+    const persisted = persistedOperationIdentity(options);
+    const scopeId = clean(account?.id || account);
+    if (persisted.accountId && scopeId && persisted.accountId !== scopeId) {
+      throw Object.assign(new Error('Facebook worker media persisted operation account scope mismatch'), {
+        code: 'FACEBOOK_LEGACY_PERSISTED_OPERATION_SCOPE_MISMATCH', status: 409, accountId: scopeId, persistedAccountId: persisted.accountId
+      });
+    }
+    if (!rawAttachments.length) return baseMessage;
+    const attachments = await Promise.all(rawAttachments.map((attachment, index) => {
+      const workerMedia = attachment?.payload?.worker_media || attachment?.workerMedia || null;
+      const workerEventId = clean(workerMedia?.eventId || workerMedia?.event_id);
+      const downloadState = clean(attachment?.downloadStatus || attachment?.status).toLowerCase();
+      if (downloadState === 'ready') return Promise.resolve(attachment);
+      if (['failed', 'unavailable'].includes(downloadState)) {
+        return Promise.resolve({
+          ...attachment,
+          sourceUrl: '', url: '', mediaUrl: '',
+          status: downloadState,
+          downloadStatus: downloadState,
+          downloadError: clean(attachment?.downloadError) || (downloadState === 'failed' ? 'FACEBOOK_WORKER_MEDIA_FAILED' : 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED')
+        });
+      }
+      if (!workerEventId || !['pending', 'remote'].includes(downloadState)) {
+        return Promise.resolve({
+          ...attachment,
+          sourceUrl: '', url: '', mediaUrl: '',
+          status: 'unavailable', downloadStatus: 'unavailable',
+          downloadError: workerEventId ? 'FACEBOOK_WORKER_MEDIA_STATE_INVALID' : 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED'
+        });
+      }
+      return this.downloadRemoteAttachment({
+        account,
+        accountId: account.id,
+        conversationId: baseMessage.conversationId,
+        messageId: baseMessage.externalMessageId,
+        attachment,
+        index,
+        physicalOperationContext: options.physicalOperationContext,
+        signal: options.signal
+      });
+    }));
+    const outcome = await messageStore.upsert({ ...baseMessage, attachments });
+    eventBus.publish('facebook:media-cached', { accountId: account.id, conversationId: baseMessage.conversationId, messageId: baseMessage.externalMessageId, attachments });
+    return outcome;
   }
 
   async revoke(accountId, secret = {}, options = {}) {

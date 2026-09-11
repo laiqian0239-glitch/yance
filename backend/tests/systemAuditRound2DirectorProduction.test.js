@@ -2,6 +2,41 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+// Current SQLite authority: director/reply production path resolves stores through the
+// broker-owned primary store. Establish the standard broker bootstrap once for this suite.
+const brokerDataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-sysaudit-director-'));
+process.env.YANCE_DATA_DIR = brokerDataRoot;
+process.env.WORKBUDDY_DATA_DIR = brokerDataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+const { closeR32Store } = require('../lib/r32StoreSingleton');
+const brokerDbPath = path.join(brokerDataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(brokerDbPath), { recursive: true });
+const brokerWriteHost = acquireAuthorityWriteHost({
+  dbPath: brokerDbPath,
+  instanceId: `sysaudit-director-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath: brokerDbPath,
+  authorityWriteHostCapability: brokerWriteHost.capability
+});
+
+test.after(() => {
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { brokerWriteHost.close(); } catch (_) {}
+  try { fs.rmSync(brokerDataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+});
+
 const contactContextAuthority = require('../services/contactContextAuthority');
 const conversationTurnCoordinator = require('../services/conversationTurnCoordinator');
 const typingStateService = require('../services/typingStateService');

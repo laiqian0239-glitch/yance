@@ -622,9 +622,9 @@ class AccountManager {
         code: 'FACEBOOK_WORKER_MEDIA_REFERENCE_NOT_FOUND', status: 409, accountId: id, messageId
       });
     }
-    const facebookAdapter = require('./facebookAdapter');
+    const facebookDriver = driverFor(account);
     await withAbortSignal(
-      facebookAdapter.cacheWebhookAttachments(account, {
+      facebookDriver.cacheWebhookAttachments(account, {
         ...persisted,
         accountId: id,
         platform: 'facebook',

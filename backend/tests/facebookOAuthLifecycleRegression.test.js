@@ -37,6 +37,24 @@ function response(status, data) {
   };
 }
 
+// Schema 23 WP-B requires a frozen RUNNING persisted operation before OAuth Worker I/O.
+function frozenOAuthOperation(accountId = 'facebook-oauth-account') {
+  return Object.freeze({
+    executionId: 'facebook-oauth-execution-1',
+    operationId: 'facebook-oauth-operation-1',
+    operationKind: 'OAUTH_FLOW',
+    ownerId: 'facebook-oauth-owner-1',
+    claimId: 'facebook-oauth-claim-1',
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1,
+    state: 'RUNNING',
+    platform: 'facebook',
+    deadlineAt: new Date(Date.now() + 60000).toISOString(),
+    accountId
+  });
+}
+
 test('Facebook Page OAuth begin fails closed to Chatwoot before any Worker or device authority is touched', async t => {
   const account = fakeAccount();
   let configCalls = 0;
@@ -206,10 +224,10 @@ test('official Facebook personal identity login completes without Page selection
   });
   t.after(() => facebookOAuthService._flows.clear());
 
-  const started = await facebookOAuthService.begin(account.id);
+  const started = await facebookOAuthService.begin(account.id, { physicalOperationContext: frozenOAuthOperation(account.id) });
   assert.equal(started.mode, 'identity');
   assert.equal(new URL(started.authorizationUrl).searchParams.get('mode'), 'identity');
-  const completed = await facebookOAuthService.poll(account.id, started.flowId);
+  const completed = await facebookOAuthService.poll(account.id, started.flowId, { physicalOperationContext: frozenOAuthOperation(account.id) });
   assert.equal(completed.status, 'completed');
   assert.equal(completed.mode, 'identity');
   assert.equal(completed.identity.messagingSupported, false);

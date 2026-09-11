@@ -84,48 +84,49 @@ test('Batch 10 candidate policy always provides 3 to 5 selectable directions', (
 
 test('Batch 10 blocks candidate learning without a passing Persona truth receipt', () => { const {routeLearningEligibility}=require('../services/candidateInteractionLearningService');assert.equal(routeLearningEligibility({personaTruthReceipt:{pass:false}}).eligible,false);assert.equal(routeLearningEligibility({personaTruthReceipt:{pass:false}}).reasonCode,'PERSONA_TRUTH_RECEIPT_NOT_LEARNING_ELIGIBLE'); });
 
-test('Batch 10 runtime recovery blocks in safe mode and applies per-account exponential backoff', async () => {
-  let authCalls = 0;
-  const rows = [{ id: 'acc1', platform: 'whatsapp', state: 'disconnected', credentialReady: true }];
-  const recoveryRepository = memoryRepository(null);
+test('Batch 10 runtime recovery blocks in safe mode and projects durable recovery receipts', async () => {
+  const events = [];
+  const eventBus = { publish(name, payload) { events.push({ name, payload }); } };
   const base = {
-    repository: recoveryRepository,
-    accountManager: { list: () => ({ accounts: rows }) },
-    accountStore: { get: () => ({ id: 'acc1', platform: 'whatsapp', lifecycleState: 'active', enabled: true, credentialReady: true }) },
+    accountManager: { list: () => ({ accounts: [] }) },
+    accountStore: { get: () => null },
     sendQueue: { status: () => ({ writeBlocked: false, resumeBlocked: false, unknownOutcomeCount: 0 }), resume() {}, pause() {} },
-    eventBus: { publish() {} },
-    systemPolicy: { read: () => ({ emergencyStop: false }) },
-    initialBackoffMs: 1000,
-    maximumBackoffMs: 8000
+    eventBus,
+    systemPolicy: { read: () => ({ emergencyStop: false }) }
   };
 
-  const safe = new RuntimeRecoveryService({ ...base, safeModeService: { isActive: () => true }, platformAdapters: { async executeAuth() { authCalls += 1; } } });
+  // Safe mode must block before the canonical durable recovery authority is ever invoked.
+  let authorityCalls = 0;
+  const safe = new RuntimeRecoveryService({
+    ...base,
+    safeModeService: { isActive: () => true },
+    recoverNonterminalExecutions: () => { authorityCalls += 1; return []; }
+  });
   const safeStatus = await safe.recover('watchdog');
-  assert.equal(authCalls, 0);
+  assert.equal(authorityCalls, 0);
   assert.equal(safeStatus.lastRecoveryBlocked.code, 'SAFE_MODE_ACTIVE');
 
+  // Outside safe mode the service delegates per-account retry/backoff to the durable recovery
+  // authority and projects its receipts (backoff timing itself belongs to that authority).
+  const receipts = [
+    { executionId: 'exec-1', fromState: 'running', targetState: 'queued', decision: 'requeue_safe', reasonCode: 'PERSISTED_RETRYABLE_FAILURE_RETRY_DUE', persistedAttemptCount: 1, authorityTimestamp: '2026-07-27T03:00:00.000Z' },
+    { executionId: 'exec-2', fromState: 'running', targetState: 'running', decision: 'no_action', reasonCode: 'PERSISTED_RETRYABLE_FAILURE_NOT_DUE', persistedAttemptCount: 2, authorityTimestamp: '2026-07-27T03:00:00.000Z' }
+  ];
   const recovery = new RuntimeRecoveryService({
     ...base,
     safeModeService: { isActive: () => false },
-    platformAdapters: { async executeAuth() { authCalls += 1; const error = new Error('temporary'); error.code = 'CONNECT_FAILED'; throw error; } }
+    recoverNonterminalExecutions: () => { authorityCalls += 1; return receipts; }
   });
-  const first = await recovery.recover('watchdog');
-  assert.equal(first.lastRecovery[0].code, 'CONNECT_FAILED');
-  assert.equal(first.lastRecovery[0].failureCount, 1);
-  const callsAfterFirst = authCalls;
-  const second = await recovery.recover('watchdog');
-  assert.equal(authCalls, callsAfterFirst, 'backoff must prevent immediate duplicate connect attempts');
-  assert.equal(second.lastRecovery[0].code, 'ACCOUNT_RECOVERY_BACKOFF');
-
-  const restarted = new RuntimeRecoveryService({
-    ...base,
-    safeModeService: { isActive: () => false },
-    platformAdapters: { async executeAuth() { authCalls += 1; } }
-  });
-  const afterRestart = await restarted.recover('watchdog');
-  assert.equal(authCalls, callsAfterFirst, 'persisted backoff must survive an application restart');
-  assert.equal(afterRestart.lastRecovery[0].code, 'ACCOUNT_RECOVERY_BACKOFF');
-  assert.equal(afterRestart.attemptStateError, '');
+  const status = await recovery.recover('watchdog');
+  assert.equal(authorityCalls, 1);
+  assert.equal(status.lastRecovery.length, 2);
+  assert.equal(status.lastRecovery[0].reasonCode, 'PERSISTED_RETRYABLE_FAILURE_RETRY_DUE');
+  assert.equal(status.lastRecovery[0].persistedAttemptCount, 1);
+  assert.equal(status.lastRecovery[1].reasonCode, 'PERSISTED_RETRYABLE_FAILURE_NOT_DUE');
+  assert.equal(status.lastRecovery[1].persistedAttemptCount, 2);
+  assert.ok(status.lastRecoveryAt);
+  assert.equal(status.recovering, false);
+  assert.ok(events.some(event => event.name === 'runtime:recovery-completed'));
 });
 
 test('Batch 10 user-facing runtime errors are localized while technical evidence remains available', () => {

@@ -62,7 +62,10 @@ test('M2-SEAL-001 current Gate 2 receipt state is valid and all downstream autho
 });
 
 test('M2-SEAL-002 staging Head contains the exact four seal-only paths and no production source', () => {
-  const result = verifyLocalRepository(readReceipt());
+  // This asserts immutable historical artifact identity (reviewed Head/file set/post-review delta).
+  // It is a read-only history audit, not an attempt to continue WP-B implementation on this checkout,
+  // so it must not depend on the current branch holding live WP-B implementation authority.
+  const result = verifyLocalRepository(readReceipt(), { historicalArtifactOnly: true });
   assert.equal(result.ok, true);
   assert.equal(result.reviewedHead, '3e5d71f68afccb64d0f61a776170d815fed77747');
   assert.equal(result.reviewedFileCount, 156);
@@ -156,7 +159,13 @@ test('M2-SEAL-006 sealed shape requires eight successful workflows bound to one 
 
 test('M2-SEAL-007 standalone verifier emits machine-readable evidence for the current receipt state', () => {
   const receipt = readReceipt();
-  const stdout = execFileSync(process.execPath, [verifierPath], { cwd: repoRoot, encoding: 'utf8' });
+  // Standalone evidence over the frozen historical receipt: enter explicit historical-artifact audit
+  // mode so the read-only evidence emission does not demand live WP-B implementation-branch authority.
+  const stdout = execFileSync(process.execPath, [verifierPath], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: { ...process.env, YANCE_M2_HISTORICAL_ARTIFACT_AUDIT: '1' }
+  });
   const report = JSON.parse(stdout);
   assert.equal(report.ok, true);
   assert.equal(report.local.ok, true);

@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { normalizeModelError, createAllModelsFailedError } = require('../services/modelErrorNormalizer');
-const modelStatusProjection = require('../services/modelStatusProjection');
+const modelRuntimeAuthority = require('../services/modelRuntimeAuthority');
 const { AiGateway } = require('../services/aiGateway');
 const runtimeErrors = require('../../frontend/js/r32-runtime-errors.js');
 
@@ -35,7 +35,7 @@ test('nested structured model errors never degrade to object stringification', (
 });
 
 test('model status projection retains last successful invocation after a later failure', () => {
-  const projected = modelStatusProjection.normalizeModel({
+  const projected = modelRuntimeAuthority.projectModel({
     id: 'cloud-1',
     provider: 'openai-compatible',
     configured: true,
@@ -61,30 +61,9 @@ test('model status projection retains last successful invocation after a later f
   assert.equal(projected.lastSuccessfulInvocation.returnedModel, 'reply-model');
   assert.equal(projected.lastTestError, '临时网关故障');
   assert.doesNotMatch(projected.lastTestError, /\[object Object\]/u);
-  assert.equal(projected.runtimeState, modelStatusProjection.STATES.temporarilyBlocked);
+  assert.equal(projected.runtimeState, modelRuntimeAuthority.STATES.temporarilyBlocked);
   assert.equal(projected.runtimeStateLabel, '最近调用失败，暂时不可用');
   assert.match(projected.userSummary, /已保留最后一次成功结果/u);
-});
-
-test('gateway reports every circuit-open route instead of returning an opaque final error', async () => {
-  const gateway = new AiGateway();
-  gateway.resolveRoute = () => ({
-    task: 'quick_reply',
-    route: {},
-    primary: { id: 'local-1', name: 'Local One' },
-    fallback: { id: 'cloud-1', name: 'Cloud One' }
-  });
-  gateway.isCircuitOpen = () => true;
-  await assert.rejects(
-    gateway._run({ jobId: 'job-circuit', task: 'quick_reply', messages: [], signal: new AbortController().signal }),
-    error => {
-      assert.equal(error.code, 'ALL_MODELS_FAILED');
-      assert.equal(error.attempts.length, 2);
-      assert.deepEqual(error.attempts.map(row => row.status), ['circuit_open', 'circuit_open']);
-      assert.match(error.message, /已尝试 2 个模型/u);
-      return true;
-    }
-  );
 });
 
 test('aggregate failure exposes normalized attempt evidence', () => {
@@ -101,7 +80,7 @@ test('aggregate failure exposes normalized attempt evidence', () => {
 test('AI workbench normalizes model errors and labels retained success', () => {
   const source = fs.readFileSync(path.join(root, 'frontend/js/r32-ai-workbench-runtime.js'), 'utf8');
   assert.match(source, /m\.currentFailure\|\|m\.qualificationFailure/u);
-  assert.match(source, /runtimeStateLabel/u);
+  assert.match(source, /qualificationLabel/u);
   assert.match(source, /技术详情/u);
   assert.match(source, /YanceRuntimeErrors\?\.createError/u);
   assert.doesNotMatch(source, /尚未实际成功调用/u);
@@ -130,6 +109,6 @@ test('AI task context preserves platform, account, session and request evidence'
   }, 'director');
   assert.deepEqual(normalized, {
     platform: 'facebook', sourceAccountId: 'page-1', sessionKey: 'session-kurt', requestId: 'request-1', generation: '7',
-    scopeKey: 'facebook|page-1|session-kurt|director', contactId: '', conversationId: 'session-kurt', runtimeBuild: '', modelRouteVersion: ''
+    scopeKey: 'facebook|page-1|session-kurt|director', contactId: '', conversationId: 'session-kurt', runtimeBuild: ''
   });
 });

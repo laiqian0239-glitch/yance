@@ -8,15 +8,37 @@ const assert = require('node:assert/strict');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-fix6n-cooldown-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
 
-const registry = require('../services/modelRegistry');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
 
-test.after(() => {
-  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `fix6n-cooldown-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
 });
 
-test('a Retry-After cooldown is persisted immediately even before the circuit failure threshold', async () => {
-  const cooldownUntil = '2099-08-01T00:01:00.000Z';
+const registry = require('../services/modelRegistry');
+const { closeR32Store } = require('../lib/r32StoreSingleton');
+
+test.after(() => {
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
+  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+});
+
+test('a 429 rate-limited invocation failure is persisted immediately with its normalized status', async () => {
   registry.write({
     schemaVersion: 3,
     models: [{
@@ -24,9 +46,7 @@ test('a Retry-After cooldown is persisted immediately even before the circuit fa
       provider: 'openrouter',
       modelSlug: 'anthropic/claude-opus',
       available: true,
-      consecutiveFailureCount: 0,
-      circuitOpenedAt: '',
-      circuitOpenedUntil: ''
+      failureCount: 0
     }],
     routes: {},
     history: [],
@@ -36,12 +56,13 @@ test('a Retry-After cooldown is persisted immediately even before the circuit fa
 
   await registry.recordInvocationFailure(
     'rate-limited-model',
-    Object.assign(new Error('rate limited'), { code: 'RATE_LIMITED', status: 429 }),
-    { countForCircuit: true, cooldownUntil }
+    Object.assign(new Error('rate limited'), { code: 'RATE_LIMITED', status: 429 })
   );
 
   const model = registry.read().models.find(row => row.id === 'rate-limited-model');
-  assert.equal(model.consecutiveFailureCount, 1);
-  assert.equal(model.circuitOpenedUntil, cooldownUntil);
-  assert.ok(model.circuitOpenedAt);
+  assert.equal(model.failureCount, 1);
+  assert.equal(model.lastErrorCode, 'RATE_LIMITED');
+  assert.equal(model.lastHttpStatus, 429);
+  assert.equal(model.lastInvocationStatus, 'failed');
+  assert.ok(model.lastFailedAt);
 });

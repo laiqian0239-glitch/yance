@@ -14,7 +14,8 @@ const { OutboxRouteAuthority } = require('../services/outboxRouteAuthority');
 const { IdentityDomainEventOutboxService } = require('../services/identityDomainEventOutboxService');
 const { PlatformDeliveryAuthority } = require('../services/platformDeliveryAuthority');
 const { normalizeAccountRuntime } = require('../services/accountRuntimeAuthority');
-const { AsyncOperationLifecycleAuthority, STATES } = require('../services/asyncOperationLifecycleAuthority');
+const { STATES } = require('../services/asyncOperationLifecycleAuthority');
+const { DurableInternalOperationAuthority } = require('../services/durableInternalOperationAuthority');
 const { PlatformAuthWorkflowAuthority } = require('../services/platformAuthWorkflowAuthority');
 const { PlatformAdapterFacade } = require('../services/platformAdapterPorts');
 const syncStability = require('../../frontend/js/r32-sync-stability.js');
@@ -25,6 +26,16 @@ function fixture(prefix = 'yance-b22-') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
   return { root, store, close() { try { store.close(); } catch (_) {} fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } };
+}
+
+let lifecycleSeq = 0;
+// Current durable Schema 23 operation lifecycle replaces the retired in-memory AsyncOperationLifecycleAuthority.
+function createLifecycle(store) {
+  return new DurableInternalOperationAuthority({
+    storeProvider: () => store,
+    tokenProvider: () => store.authorityWriteHostCapability.tokenSnapshot(),
+    idFactory: prefix => `${prefix}-${++lifecycleSeq}`
+  });
 }
 
 function seedScope(store) {
@@ -62,7 +73,7 @@ test('message:inserted is a behavioral SQLite reload trigger', async () => {
 test('interactive authentication remains RUNNING until later platform state settles the same workflow', async () => {
   const f = fixture('yance-b22-auth-');
   try {
-    const lifecycle = new AsyncOperationLifecycleAuthority({ store: f.store });
+    const lifecycle = createLifecycle(f.store);
     const authority = new PlatformAuthWorkflowAuthority({ lifecycle });
     let directStartCalls = 0;
     const facade = new PlatformAdapterFacade('telegram', {
@@ -223,14 +234,14 @@ test('send queue and immutable OutboxRoute version are committed atomically and 
 test('a completed lifecycle can reuse a business operation hint without primary-key collision', () => {
   const f = fixture('yance-b22-operation-reuse-');
   try {
-    const lifecycle = new AsyncOperationLifecycleAuthority({ store: f.store });
-    const first = lifecycle.create({ operationId: 'task-stable', operationType: 'ai.reply.candidates', scopeKey: 'conv-1', objectFingerprint: 'rev-1' }).operation;
+    const lifecycle = createLifecycle(f.store);
+    const first = lifecycle.create({ operationType: 'ai.reply.candidates', scopeKey: 'conv-1', objectFingerprint: 'rev-1' }).operation;
     lifecycle.start(first.operationId);
-    lifecycle.succeed(first.operationId, { ok: true });
-    const second = lifecycle.create({ operationId: 'task-stable', operationType: 'ai.reply.candidates', scopeKey: 'conv-1', objectFingerprint: 'rev-2' }).operation;
-    assert.notEqual(second.operationId, first.operationId);
-    assert.equal(second.generation, first.generation + 1);
-    assert.equal(lifecycle.read(first.operationId).state, STATES.SUCCEEDED);
+    lifecycle.succeed(first.operationId, { status: 'succeeded' });
+    const second = lifecycle.create({ operationType: 'ai.reply.candidates', scopeKey: 'conv-1', objectFingerprint: 'rev-2' }).operation;
+    assert.notEqual(second.operationId, first.operationId, 'a changed fingerprint must open a new durable operation rather than collide on the same row');
+    assert.equal(second.objectFingerprint, 'rev-2');
+    assert.equal(lifecycle.read(first.operationId).state, STATES.SUCCEEDED, 'the completed prior operation must stay terminal and untouched');
   } finally { f.close(); }
 });
 

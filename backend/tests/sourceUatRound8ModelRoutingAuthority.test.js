@@ -64,7 +64,7 @@ test('translation-only and coder policies prevent invalid live chat routes', () 
   assert.equal(routing.eligibleForTask(coder, 'fact_extraction'), true);
 });
 
-test('auto activation prioritizes stronger chat candidates and excludes coder models', () => {
+test('auto activation keeps usable chat and translation candidates and excludes coder models', () => {
   const chosen = autoActivation.chooseCandidates([
     model('coder', 'qwen2.5-coder:14b', 'untested', [], 9_000_000_000),
     model('q4', 'qwen3.5:4b-q4_K_M', 'failed', [], 3_400_000_000),
@@ -72,10 +72,13 @@ test('auto activation prioritizes stronger chat candidates and excludes coder mo
     model('min', 'ministral-3:14b', 'experimental', ['quick_reply'], 9_000_000_000),
     model('tr', 'translategemma:4b', 'verified', ['translation'], 3_300_000_000)
   ]);
-  assert.equal(chosen[0].model.id, 'min');
-  assert.ok(chosen.filter(row => row.role !== 'translation').length >= 3);
+  // Coder models are never auto-activated; candidate strength ordering belongs to the Model Brain/LiteLLM layer.
   assert.equal(chosen.some(row => row.model.id === 'coder'), false);
-  assert.equal(chosen.some(row => row.model.id === 'tr' && row.role === 'translation'), true);
+  const chat = chosen.filter(row => !row.tests.includes('translation'));
+  assert.ok(chat.length >= 3);
+  assert.deepEqual(chat.map(row => row.model.id).sort(), ['min', 'q4', 'q9']);
+  const translator = chosen.find(row => row.model.id === 'tr');
+  assert.ok(translator && translator.tests.includes('translation'));
 });
 
 test('hallucination judge accepts correct cannot-know Chinese wording', () => {
@@ -121,29 +124,29 @@ test('conversation id is authoritative over a stale contact hint', async () => {
   }
 });
 
-test('AI workbench route health is based on assigned registry routes, not eleven UI switches', () => {
+test('AI workbench delegates route health to the runtime snapshot authority, not eleven UI switches', () => {
   const ui = read('frontend/js/r32-ai-workbench-runtime.js');
-  assert.match(ui, /configured=Boolean\(actualMain\)/);
-  assert.match(ui, /primarySelection==='auto'/);
-  assert.match(ui, /actualMain/);
+  // Route health is projected by the runtime snapshot authority (LiteLLM Model Brain); the retired inline
+  // physical-route UI (configured=Boolean(actualMain), primarySelection auto/fallback, eleven switches) must not return.
   assert.match(ui, /YanceModelRuntimeSnapshotAuthority/u);
+  assert.doesNotMatch(ui, /primarySelection==='auto'/);
   assert.match(ui, /modelRuntimeSnapshotAuthority\.projectModelRuntimeSnapshot/u);
   const snapshotAuthority = require('../../frontend/js/r32-model-runtime-snapshot-authority');
   const readiness = { pass: true, tasks: [{ task: 'quick_reply', operational: true }], missing: [] };
   const snapshot = snapshotAuthority.projectModelRuntimeSnapshot({
-    modelState: { models: [], routes: { quick_reply: { primary: 'resolved-model' } }, taskReadiness: readiness },
-    previousState: { routes: [], taskReadiness: {} },
+    modelState: { models: [], taskReadiness: readiness },
+    previousState: { taskReadiness: {} },
     defaults: { taskReadiness: {}, replyBrain: {}, modelPools: {}, openRouter: {}, aiAutomation: {} },
     adapters: {
       projectServices: models => models,
-      projectRoutes: (routes, taskReadiness) => [{ id: 'quick_reply', actualMain: routes.quick_reply.primary, taskReadiness }],
       summarizeServices: services => ({ count: services.length }),
       mergeAuthoritativeSummary: (derived, authoritative) => ({ ...derived, ...authoritative })
     }
   });
   assert.strictEqual(snapshot.taskReadiness, readiness);
-  assert.equal(snapshot.routes[0].actualMain, 'resolved-model');
-  assert.strictEqual(snapshot.routes[0].taskReadiness, readiness);
-  assert.match(ui, /\$\{configuredRoutes\}\/\$\{totalRoutes\} 已配置 · \$\{operationalRoutes\} 主路由可运行 · \$\{resilientRoutes\} 主备就绪/);
+  assert.deepEqual(snapshot.services, []);
+  assert.equal(snapshot.modelSummary.count, 0);
+  // Physical routes are no longer projected by this snapshot; LiteLLM owns physical routing.
+  assert.equal(Object.prototype.hasOwnProperty.call(snapshot, 'routes'), false);
   assert.doesNotMatch(ui, /state\.routes\.length===Object\.keys\(TASK_META\)\.length/);
 });

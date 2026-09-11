@@ -97,7 +97,8 @@ function snapshot(options = {}) {
       sourceAndAutomationOnly: true,
       windowsVerified: false,
       realPlatformVerified: false,
-      sealedLiteLLMRuntimeVerified: false
+      sealedLiteLLMRuntimeVerified: false,
+      realOpenRouterQualityVerified: false
     },
     platformCore: {
       capabilityAuthority: {

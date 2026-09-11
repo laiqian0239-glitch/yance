@@ -1,83 +1,72 @@
 'use strict';
 
+// V21 Model Brain / LiteLLM retired the Yance-owned physical quality route planner
+// (authority.routePlan / ROUTE_STATE): candidate-vs-production gating is owned by the
+// execution mode and Model Brain hard qualification, while physical routing is LiteLLM.
+// The surviving contract here is evidence isolation: a candidate-only historical receipt
+// can never be promoted into delivery learning or formal qualification evidence, and the
+// retired physical routeReceipt entry point stays fail-closed.
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const authority = require('../services/aiQualityRouteAuthority');
-const executionMode = require('../services/aiExecutionModeAuthority');
 
-function diagnosticConditionalModel(id = 'cloud-d9e82540c0683a44f8') {
-  return {
-    id,
-    name: 'anthropic/claude-opus-5',
-    provider: 'openrouter',
-    available: true,
-    userDisabled: false,
-    qualification: 'verified',
-    allowedTasks: ['quick_reply', 'deep_reply', 'director'],
-    lastSuccessfulInvocation: { requestId: 'gen-onboarding-smoke' },
-    lastReplyBrainBenchmark: {
-      authority: 'YanceReplyBrainBenchmark',
-      status: 'REPLY_BRAIN_CONDITIONAL',
-      completed: true,
-      pass: false,
-      score: 97,
-      qualifyingTasks: [],
-      scenarios: [
-        { id: 'german_whatsapp', pass: true, weight: 20, score: 20, issues: [] },
-        { id: 'english_whatsapp', pass: true, weight: 20, score: 20, issues: [] },
-        { id: 'persona_boundary', pass: true, weight: 25, score: 24, issues: [] },
-        { id: 'director_schema', pass: true, weight: 20, score: 20, issues: [] },
-        { id: 'latency', pass: false, weight: 15, score: 13, issues: [] }
-      ]
-    }
+process.env.YANCE_AI_ROUTE_RECEIPT_SECRET = 'test-only-route-receipt-secret-0123456789abcdef';
+
+function signedCandidateReceipt() {
+  const payload = {
+    authority: 'AIQualityRouteAuthority',
+    schemaVersion: 2,
+    task: 'quick_reply',
+    selectedModelId: 'cloud-d9e82540c0683a44f8',
+    qualityTier: 'high',
+    executionMode: 'candidate-only',
+    deliveryEligible: false,
+    formalReceiptEligible: false,
+    learningEligible: false,
+    humanReviewRequired: true
   };
+  const receiptHash = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+  const receiptSignature = crypto
+    .createHmac('sha256', Buffer.from(process.env.YANCE_AI_ROUTE_RECEIPT_SECRET))
+    .update(receiptHash)
+    .digest('base64url');
+  return { ...payload, receiptHash, receiptSignature };
 }
 
-test('candidate-only quality plan accepts a selectable conditional primary without weakening persisted route policy', () => {
-  const model = diagnosticConditionalModel();
-  const plan = authority.routePlan({
-    task: 'quick_reply',
-    executionMode: executionMode.EXECUTION_MODE.CANDIDATE_ONLY,
-    route: { primary: model.id, fallback: '', allowConditional: false, humanReviewRequired: false },
-    models: [model]
-  });
-  assert.equal(plan.state, authority.ROUTE_STATE.CONDITIONAL);
-  assert.equal(plan.primaryConditional, true);
-  assert.equal(plan.humanReviewRequired, true);
-  assert.equal(plan.executionMode, 'candidate-only');
+test('candidate-only historical receipt cannot become formal qualification evidence by default', () => {
+  const receipt = signedCandidateReceipt();
+  assert.throws(
+    () => authority.verifyRouteReceipt(receipt, { task: 'quick_reply' }),
+    error => error.code === 'AI_QUALITY_ROUTE_RECEIPT_FORMAL_INELIGIBLE'
+  );
 });
 
-test('production quality plan rejects the same conditional route even when a stale route flag says allowConditional', () => {
-  const model = diagnosticConditionalModel();
-  const plan = authority.routePlan({
-    task: 'quick_reply',
-    executionMode: executionMode.EXECUTION_MODE.PRODUCTION,
-    route: { primary: model.id, fallback: '', allowConditional: true, humanReviewRequired: true },
-    models: [model]
-  });
-  assert.equal(plan.state, authority.ROUTE_STATE.BLOCKED);
-  assert.equal(plan.primaryConditional, false);
-  assert.equal(plan.executionMode, 'production');
+test('waiving formal eligibility still blocks a candidate receipt from delivery learning', () => {
+  const receipt = signedCandidateReceipt();
+  assert.throws(
+    () => authority.verifyRouteReceipt(receipt, { task: 'quick_reply', requireFormalReceiptEligible: false }),
+    error => error.code === 'AI_QUALITY_ROUTE_RECEIPT_LEARNING_INELIGIBLE'
+  );
 });
 
-test('candidate route receipt cannot become delivery learning or formal qualification evidence', () => {
-  const model = diagnosticConditionalModel();
-  const plan = authority.routePlan({
+test('candidate receipt stays readable as history but remains learning/formal ineligible', () => {
+  const receipt = signedCandidateReceipt();
+  const verified = authority.verifyRouteReceipt(receipt, {
     task: 'quick_reply',
-    executionMode: 'candidate-only',
-    route: { primary: model.id },
-    models: [model]
+    requireFormalReceiptEligible: false,
+    requireLearningEligible: false
   });
-  const receipt = authority.routeReceipt({
-    task: 'quick_reply',
-    executionMode: 'candidate-only',
-    selectedModel: model,
-    routePlan: plan,
-    attempts: [{ modelId: model.id, status: 'success' }]
-  });
-  assert.equal(receipt.executionMode, 'candidate-only');
-  assert.equal(receipt.deliveryEligible, false);
-  assert.equal(receipt.learningEligible, false);
-  assert.equal(receipt.formalReceiptEligible, false);
-  assert.equal(receipt.humanReviewRequired, true);
+  assert.equal(verified.ok, true);
+  assert.equal(verified.historical, true);
+  assert.equal(verified.learningEligible, false);
+  assert.equal(verified.qualityTier, 'high');
+});
+
+test('retired physical routeReceipt planner remains a fail-closed LiteLLM boundary', () => {
+  assert.throws(
+    () => authority.routeReceipt({ task: 'quick_reply' }),
+    error => error.code === 'MODEL_ROUTING_MANAGED_BY_LITELLM'
+  );
 });

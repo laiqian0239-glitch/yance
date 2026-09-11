@@ -149,27 +149,23 @@ test('GIF and sticker library never feeds expired remote URLs to image cards or 
 });
 
 test('dynamic WebP, GIF and video recognition extracts a local representative PNG frame', async () => {
-  const originalDiscover = transcription.discoverFfmpeg;
-  const originalRun = transcription.runCommand;
   const calls = [];
-  transcription.discoverFfmpeg = () => 'fake-ffmpeg';
-  transcription.runCommand = async (command, args) => {
-    calls.push({ command, args });
-    fs.writeFileSync(args.at(-1), Buffer.from('png-frame'));
+  // Inject the frame converter through the public DI seam instead of mutating the frozen transcription module.
+  const converter = {
+    discoverFfmpeg: () => 'fake-ffmpeg',
+    runCommand: async (command, args) => {
+      calls.push({ command, args });
+      fs.writeFileSync(args.at(-1), Buffer.from('png-frame'));
+    }
   };
-  try {
-    assert.equal(mediaIntelligence.requiresRepresentativeFrame('image', 'image/webp', ''), true);
-    assert.equal(mediaIntelligence.requiresRepresentativeFrame('image', 'image/jpeg', ''), false);
-    const input = await mediaIntelligence.prepareVisionInput({ buffer: Buffer.from('webp'), mimeType: 'image/webp', kind: 'image' });
-    assert.equal(input.mimeType, 'image/png');
-    assert.equal(input.buffer.toString(), 'png-frame');
-    assert.equal(calls.length, 1);
-    assert.match(calls[0].args.join(' '), /-frames:v 1/);
-    input.cleanup();
-  } finally {
-    transcription.discoverFfmpeg = originalDiscover;
-    transcription.runCommand = originalRun;
-  }
+  assert.equal(mediaIntelligence.requiresRepresentativeFrame('image', 'image/webp', ''), true);
+  assert.equal(mediaIntelligence.requiresRepresentativeFrame('image', 'image/jpeg', ''), false);
+  const input = await mediaIntelligence.prepareVisionInput({ buffer: Buffer.from('webp'), mimeType: 'image/webp', kind: 'image' }, converter);
+  assert.equal(input.mimeType, 'image/png');
+  assert.equal(input.buffer.toString(), 'png-frame');
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].args.join(' '), /-frames:v 1/);
+  input.cleanup();
 });
 
 test('media analysis shows one friendly error surface and hides raw WhatsApp URLs from media recovery cards', () => {

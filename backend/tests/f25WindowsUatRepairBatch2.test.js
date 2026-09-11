@@ -17,16 +17,16 @@ test('F25-D07 manual pending-auth connection reaches the WhatsApp adapter while 
 
   const registry = read('backend/services/platformDriverRegistry.js');
   const adapter = read('backend/services/whatsappAdapter.js');
-  const manager = read('backend/services/accountManager.js');
+  const manager = read('backend/services/accountManagerCore.js');
   assert.match(manager, /driver\.connect\(account, \{[\s\S]*manual: true,[\s\S]*attemptId,[\s\S]*signal: options\.signal/u);
   assert.match(registry, /whatsapp\.start\(account, \{ manual: options\.manual === true, attemptId:/u);
   assert.match(adapter, /async start\(accountId = 'account-a', options = \{\}\)/u);
   assert.match(adapter, /assertEligible\(reference, \{ manual: options\.manual === true \}\)/u);
-  assert.match(adapter, /this\.start\(latest\)/u, 'automatic reconnect must not opt into the manual authorization bypass');
+  assert.match(adapter, /this\.start\(stableKey\)/u, 'automatic reconnect must not opt into the manual authorization bypass');
 });
 
 test('F25-D07 every connection attempt has an auditable attempt id and lifecycle timestamps', () => {
-  const manager = read('backend/services/accountManager.js');
+  const manager = read('backend/services/accountManagerCore.js');
   assert.match(manager, /const attemptId = String\(options\.attemptId \|\| ''\)\.trim\(\) \|\| crypto\.randomUUID\(\)/u);
   assert.match(manager, /connectionStartedAt = new Date\(\)\.toISOString\(\)/u);
   assert.match(manager, /connectionAttemptId: attemptId/u);
@@ -36,7 +36,7 @@ test('F25-D07 every connection attempt has an auditable attempt id and lifecycle
 });
 
 test('F25-D07 WhatsApp terminal events preserve the real error and stable reason code', () => {
-  const manager = read('backend/services/accountManager.js');
+  const manager = read('backend/services/accountManagerCore.js');
   const adapter = read('backend/services/whatsappAdapter.js');
   assert.match(manager, /lastError: payload\.lastError \|\| payload\.error/u);
   assert.match(manager, /reasonCode: payload\.reasonCode \|\| payload\.code/u);
@@ -57,7 +57,7 @@ test('F25-D09 WhatsApp adapter states map to one canonical account runtime vocab
 });
 
 test('F25-D07 runtime event merging preserves request ownership instead of replacing the whole state object', () => {
-  const manager = read('backend/services/accountManager.js');
+  const manager = read('backend/services/accountManagerCore.js');
   assert.match(manager, /const previous = this\.runtime\.get\(account\.id\) \|\| \{\}/u);
   assert.match(manager, /\.\.\.previous,[\s\S]*\.\.\.payload/u);
   assert.match(manager, /connectionAttemptId: payload\.attemptId \|\| previous\.connectionAttemptId/u);
@@ -65,7 +65,7 @@ test('F25-D07 runtime event merging preserves request ownership instead of repla
 });
 
 test('F25-D07 stale adapter events cannot overwrite a newer connection attempt', () => {
-  const manager = read('backend/services/accountManager.js');
+  const manager = read('backend/services/accountManagerCore.js');
   assert.match(manager, /eventAttemptId && activeAttemptId && eventAttemptId !== activeAttemptId/u);
   assert.match(manager, /stale-whatsapp-state-ignored/u);
   assert.match(manager, /stale-adapter-state-ignored/u);

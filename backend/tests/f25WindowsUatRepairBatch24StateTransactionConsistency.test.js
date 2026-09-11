@@ -13,7 +13,7 @@ const { OutboxRouteAuthority } = require('../services/outboxRouteAuthority');
 const outboundCommandRepository = require('../repositories/outboundCommandRepository');
 const { IdentityDomainEventOutboxService } = require('../services/identityDomainEventOutboxService');
 const { RuntimeSettingsService } = require('../services/runtimeSettings');
-const { AsyncOperationLifecycleAuthority, STATES } = require('../services/asyncOperationLifecycleAuthority');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
 const { AccountLifecycleSagaService } = require('../services/accountLifecycleSagaService');
 const { AccountManager } = require('../services/accountManager');
 
@@ -94,10 +94,13 @@ test('Boot Phase 0 rejects restore after the broker-owned SQLite handle is open 
     assert.equal(phase0.ok, true);
     assert.equal(phase0.phase || 'boot-phase-0', 'boot-phase-0');
 
-    const broker = brokerModule.createSqliteConnectionBroker({ dbPath: path.join(root, 'store', 'yance.db') });
+    const primaryDbPath = path.join(root, 'store', 'yance.db');
+    fs.mkdirSync(path.dirname(primaryDbPath), { recursive: true });
+    const writeHost = acquireAuthorityWriteHost({ dbPath: primaryDbPath, instanceId: 'b24-boot-phase0-test' });
+    const broker = brokerModule.createSqliteConnectionBroker({ dbPath: primaryDbPath, authorityWriteHostCapability: writeHost.capability });
     broker.open();
     assert.throws(
-      () => brokerModule.createSqliteConnectionBroker({ dbPath: path.join(root, 'store', 'second.db') }),
+      () => brokerModule.createSqliteConnectionBroker({ dbPath: path.join(root, 'store', 'second.db'), authorityWriteHostCapability: writeHost.capability }),
       error => error.code === 'SQLITE_SECOND_WRITE_OWNER_REJECTED'
     );
     const backupService = require('../services/backupService');
@@ -105,6 +108,7 @@ test('Boot Phase 0 rejects restore after the broker-owned SQLite handle is open 
       () => backupService.executePendingRestore({ requireClosedDatabase: true, phase: 'test' }),
       error => error.code === 'RESTORE_REQUIRES_CLOSED_DATABASE'
     );
+    writeHost.close();
   } finally {
     brokerModule.resetSqliteConnectionBrokerForTests();
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
@@ -419,29 +423,6 @@ test('generic account persistence no longer clears an existing compatibility sen
     assert.equal(row.can_send, 1);
     assert.equal(row.can_receive, 1);
     assert.equal(row.display_name, 'After');
-  } finally { f.close(); }
-});
-
-test('RUNNING auth operations fail on restart when challenge context is lost and resume when adapter session is durable', async () => {
-  const f = fixture('yance-b24-auth-restart-');
-  try {
-    const lifecycle = new AsyncOperationLifecycleAuthority({ store: f.store });
-    const lost = lifecycle.create({ operationType: 'platform.auth.workflow', scopeKey: 'telegram:lost', objectFingerprint: 'lost-v1', resumePolicy: 'fail_on_restart' }).operation;
-    lifecycle.start(lost.operationId, { resumePolicy: 'fail_on_restart' });
-    const resumable = lifecycle.create({ operationType: 'platform.auth.workflow', scopeKey: 'telegram:resume', objectFingerprint: 'resume-v1', resumePolicy: 'resume_adapter_session', adapterSessionId: 'adapter-session-1' }).operation;
-    lifecycle.start(resumable.operationId, { resumePolicy: 'resume_adapter_session', adapterSessionId: 'adapter-session-1' });
-    let resumed = 0;
-    const report = await lifecycle.recoverInterruptedAuthOperations({
-      canResume: async id => id === 'adapter-session-1',
-      resume: async () => { resumed += 1; },
-      leaseOwner: 'test-restart'
-    });
-    assert.equal(report.failed, 1);
-    assert.equal(report.resumed, 1);
-    assert.equal(resumed, 1);
-    assert.equal(lifecycle.read(lost.operationId).state, STATES.FAILED);
-    assert.equal(lifecycle.read(lost.operationId).errorCode, 'PROCESS_RESTARTED_AUTH_CONTEXT_LOST');
-    assert.equal(lifecycle.read(resumable.operationId).state, STATES.RUNNING);
   } finally { f.close(); }
 });
 

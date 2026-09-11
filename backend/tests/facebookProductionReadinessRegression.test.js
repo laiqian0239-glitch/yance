@@ -3,6 +3,54 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+// Schema 23 durable media transfer / enrichment run through the real SQLite broker
+// and the composed production runtime; establish them before requiring services.
+const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-facebook-production-readiness-'));
+process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  getSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `facebook-production-readiness-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+const { AppRuntimeFactory } = require('../runtime/AppRuntimeFactory');
+const runtimeAuthorityStore = getSqliteConnectionBroker().open();
+const appRuntime = AppRuntimeFactory.create({
+  ownership: { guard: () => ({ ownerInstanceId: 'facebook-production-readiness-owner', fencingToken: 1 }) },
+  store: {
+    db: runtimeAuthorityStore.db,
+    snapshot: () => ({
+      stateVersion: 1,
+      lastEventSequence: 0,
+      runtime: { operatingMode: 'normal', operatingModeRevision: 1 },
+      capabilities: {},
+      diagnosticsSummary: {}
+    })
+  },
+  lifecycle: { state: 'runtime_state_ready' },
+  buildId: 'facebook-production-readiness-test',
+  authorityWriteHostCapability: authorityWriteHost.capability,
+  authorityStore: runtimeAuthorityStore
+});
+appRuntime.configureProductionServices();
+
 const facebookModule = require('../services/facebookAdapter');
 const relayClient = require('../services/facebookRelayClient');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
@@ -12,9 +60,20 @@ const avatarService = require('../services/avatarService');
 const notificationPolicy = require('../services/notificationPolicy');
 const eventBus = require('../services/eventBus');
 const syncCheckpoint = require('../services/syncCheckpointService');
+const { closeStore } = require('../repositories/storeProvider');
 
 const { FacebookAdapter } = facebookModule;
 const securityGuard = getSecurityGuard();
+
+test.after(() => {
+  try { closeStore(); } catch (_) {}
+  try { AppRuntimeFactory.resetForTests(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
+  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+});
 
 function flushImmediate() { return new Promise(resolve => setImmediate(resolve)); }
 
@@ -68,6 +127,24 @@ function installCredentials(t, value = secret()) {
   patch(t, securityGuard, 'readCredential', () => value);
 }
 
+// Schema 23 WP-B requires a frozen RUNNING persisted attempt before Facebook relay physical I/O.
+function frozenAttempt(overrides = {}) {
+  return Object.freeze({
+    executionId: 'fb-readiness-exec-1',
+    attemptId: 'fb-readiness-attempt-1',
+    claimId: 'fb-readiness-claim-1',
+    ownerId: 'fb-readiness-owner-1',
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1,
+    state: 'RUNNING',
+    platform: 'facebook',
+    operationKind: 'HISTORY_SYNCHRONIZATION',
+    accountId: 'facebook-readiness',
+    ...overrides
+  });
+}
+
 test('Facebook authorization with missing required permissions is never reported connected', async t => {
   const adapter = new FacebookAdapter();
   installCredentials(t, secret({ permissions: ['pages_messaging'] }));
@@ -76,7 +153,7 @@ test('Facebook authorization with missing required permissions is never reported
   patch(t, relayClient, 'connect', async () => { relayCalls += 1; return { state: 'connected' }; });
   patch(t, relayClient, 'status', () => ({ state: 'unconfigured', connectedAt: '', lastError: '' }));
 
-  const state = await adapter.connect(account());
+  const state = await adapter.connect(account(), { physicalAttemptContext: frozenAttempt() });
   assert.equal(state.state, 'reauthorize');
   assert.equal(state.permissionReady, false);
   assert.deepEqual(state.missingPermissions, ['pages_show_list', 'pages_manage_metadata']);
@@ -94,7 +171,7 @@ test('Facebook Page without cloud webhook subscription can send but cannot recei
   patch(t, relayClient, 'connect', async () => { relayCalls += 1; return { state: 'connected' }; });
   patch(t, relayClient, 'status', () => ({ state: 'unconfigured', connectedAt: '', lastError: '' }));
 
-  const state = await adapter.connect(account());
+  const state = await adapter.connect(account(), { physicalAttemptContext: frozenAttempt() });
   assert.equal(state.state, 'limited');
   assert.equal(state.permissionReady, true);
   assert.equal(state.subscriptionReady, false);
@@ -115,7 +192,7 @@ test('Facebook new messaging remains ready when only history permission is unava
     onState(relayStatus);
     return relayStatus;
   });
-  const state = await adapter.connect(account());
+  const state = await adapter.connect(account(), { physicalAttemptContext: frozenAttempt() });
   assert.equal(state.state, 'limited');
   assert.equal(state.permissionReady, true);
   assert.equal(state.newMessagingReady, true);
@@ -141,7 +218,7 @@ test('Facebook becomes receive-ready only after permissions, cloud subscription 
     return relayStatus;
   });
 
-  const state = await adapter.connect(account());
+  const state = await adapter.connect(account(), { physicalAttemptContext: frozenAttempt() });
   assert.equal(state.state, 'connected');
   assert.equal(state.permissionReady, true);
   assert.equal(state.subscriptionReady, true);
@@ -285,7 +362,7 @@ test('Facebook cloud history sync imports real history without exposing Page Tok
   let conversationPatch = null;
   patch(t, messageStore, 'updateConversationMetadata', async (_id, value) => { conversationPatch = value; return value; });
 
-  const result = await adapter.sync(currentAccount);
+  const result = await adapter.sync(currentAccount, { physicalAttemptContext: frozenAttempt() });
 
   assert.equal(calls.length, 1);
   assert.equal(imported.length, 2);
@@ -310,12 +387,13 @@ test('Facebook Worker media persists a visible placeholder before asynchronous c
   const upserts = [];
   patch(t, messageStore, 'upsert', async value => { upserts.push(value); return { inserted: upserts.length === 1, message: value, conversation: { title: '媒体客户' } }; });
   patch(t, mediaPipeline, 'saveFile', value => ({ id: 'saved-media', kind: 'image', localPath: value.filePath, status: 'ready', downloadStatus: 'ready' }));
-  patch(t, relayClient, 'downloadMedia', async (_secret, eventId, index, outputPath) => {
-    assert.equal(eventId, 'fbevt-media-1'); assert.equal(index, 0);
-    fs.writeFileSync(outputPath, Buffer.from('image-bytes'), { flag: 'wx' });
-    return { bytes: 11, mimeType: 'image/jpeg', filename: 'photo.jpg' };
-  });
+  let physicalDownloads = 0;
+  patch(t, relayClient, 'downloadMedia', async () => { physicalDownloads += 1; return { bytes: 11, mimeType: 'image/jpeg', filename: 'photo.jpg' }; });
   patch(t, notificationPolicy, 'notify', () => {});
+  const scheduled = [];
+  const onScheduled = event => scheduled.push(event.payload || event);
+  eventBus.on('facebook:webhook-media-scheduled', onScheduled);
+  t.after(() => eventBus.off('facebook:webhook-media-scheduled', onScheduled));
 
   const result = await adapter.handleWebhook({ object: 'page', entry: [{ id: '10001', messaging: [{
     sender: { id: '123456' }, recipient: { id: '10001' }, timestamp: Date.now(),
@@ -323,11 +401,18 @@ test('Facebook Worker media persists a visible placeholder before asynchronous c
   }] }] }, [currentAccount]);
 
   assert.equal(result.accepted, 1);
+  // The placeholder is persisted synchronously and stays visible before the durable transfer completes.
   assert.equal(upserts.length, 1);
   assert.equal(upserts[0].attachments[0].status, 'pending');
+  // Physical transfer is delegated to a durable MEDIA_TRANSFER operation; the adapter only schedules it.
+  assert.equal(scheduled.length, 1);
+  assert.equal(scheduled[0].operationKind, 'MEDIA_TRANSFER');
+  assert.ok(scheduled[0].executionId);
+  assert.ok(scheduled[0].idempotencyKey.includes('mid-media-1'));
   await flushImmediate();
-  assert.equal(upserts.length, 2);
-  assert.equal(upserts[1].attachments[0].status, 'ready');
+  // The adapter performs no inline second write and no inline physical Worker download.
+  assert.equal(upserts.length, 1);
+  assert.equal(physicalDownloads, 0);
 });
 
 
@@ -340,18 +425,28 @@ test('Facebook Worker media failure keeps the message and marks only the attachm
   patch(t, messageStore, 'getConversation', () => null);
   const upserts = [];
   patch(t, messageStore, 'upsert', async value => { upserts.push(value); return { inserted: upserts.length === 1, message: value, conversation: {} }; });
-  patch(t, relayClient, 'downloadMedia', async () => { throw Object.assign(new Error('temporary worker media error'), { code: 'FACEBOOK_MEDIA_NOT_AVAILABLE', status: 503 }); });
+  let physicalDownloads = 0;
+  patch(t, relayClient, 'downloadMedia', async () => { physicalDownloads += 1; throw Object.assign(new Error('temporary worker media error'), { code: 'FACEBOOK_MEDIA_NOT_AVAILABLE', status: 503 }); });
+  const scheduled = [];
+  const onScheduled = event => scheduled.push(event.payload || event);
+  eventBus.on('facebook:webhook-media-scheduled', onScheduled);
+  t.after(() => eventBus.off('facebook:webhook-media-scheduled', onScheduled));
 
   const result = await adapter.handleWebhook({ object: 'page', entry: [{ id: '10001', messaging: [{
     sender: { id: '123456' }, recipient: { id: '10001' }, timestamp: Date.now(),
     message: { mid: 'mid-media-retry', attachments: [{ type: 'image', payload: { worker_media: { event_id: 'fbevt-media-retry', index: 0, mime_type: 'image/jpeg' } } }] }
   }] }] }, [currentAccount]);
   assert.equal(result.accepted, 1);
+  // The message and its pending placeholder are kept even though physical transfer is delegated.
   assert.equal(upserts[0].attachments[0].status, 'pending');
+  assert.equal(scheduled.length, 1);
+  assert.ok(scheduled[0].executionId);
   await flushImmediate();
-  assert.equal(upserts.length, 2);
-  assert.equal(upserts[1].attachments[0].status, 'failed');
-  assert.equal(upserts[1].attachments[0].retryable, true);
+  // The adapter writes no inline failure result; the durable worker owns the failed/retryable transition.
+  assert.equal(upserts.length, 1);
+  assert.equal(physicalDownloads, 0);
+  // Current authority classifies a temporary Worker media failure as retryable.
+  assert.equal(mediaPipeline.mediaFailureRetryable(Object.assign(new Error('temporary worker media error'), { code: 'FACEBOOK_MEDIA_NOT_AVAILABLE' })), true);
 });
 
 
@@ -373,7 +468,7 @@ test('Facebook Business Suite reconciliation resumes from a durable cursor and r
   patch(t, syncCheckpoint, 'commit', input => { committed = input; return input; });
   patch(t, syncCheckpoint, 'fail', () => { throw new Error('unexpected checkpoint failure'); });
 
-  const result = await adapter.sync(currentAccount, { source: 'facebook-history-periodic-reconciliation', maximumConversations: 50 });
+  const result = await adapter.sync(currentAccount, { source: 'facebook-history-periodic-reconciliation', maximumConversations: 50, physicalAttemptContext: frozenAttempt() });
   assert.deepEqual(historyCalls, ['cursor-start', 'cursor-next']);
   assert.equal(begun.cursor, 'cursor-start');
   assert.equal(committed.cursor, '');
@@ -387,12 +482,18 @@ test('Windows FacebookAdapter refuses all direct Graph API calls', async () => {
 });
 
 
-test('Windows legacy media fallback revalidates every redirect destination', async t => {
+test('Windows legacy media path stays fail-closed: non-allowlisted URL blocked and direct CDN fetch retired', async t => {
   const adapter = new FacebookAdapter();
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => new Response(null, { status: 302, headers: { location: 'https://evil.example/steal' } });
+  let fetchCalls = 0;
+  globalThis.fetch = async () => { fetchCalls += 1; return new Response(null, { status: 302, headers: { location: 'https://evil.example/steal' } }); };
   t.after(() => { globalThis.fetch = originalFetch; });
-  await assert.rejects(adapter.fetchAttachmentUrl('https://cdn.fbcdn.net/source.jpg'), error => error.code === 'FACEBOOK_MEDIA_URL_BLOCKED');
+  const persisted = { physicalAttemptContext: frozenAttempt({ operationKind: 'MEDIA_DOWNLOAD', accountId: '' }) };
+  // A non-allowlisted host is rejected by URL validation before any physical I/O, so no redirect can ever be followed.
+  await assert.rejects(adapter.fetchAttachmentUrl('https://evil.example/steal', undefined, persisted), error => error.code === 'FACEBOOK_MEDIA_URL_BLOCKED');
+  // Even an allowlisted CDN URL never performs a direct Windows fetch; the path is retired to the persisted Worker adapter.
+  await assert.rejects(adapter.fetchAttachmentUrl('https://cdn.fbcdn.net/source.jpg', undefined, persisted), error => error.code === 'FACEBOOK_LEGACY_MEDIA_FETCH_RETIRED');
+  assert.equal(fetchCalls, 0);
 });
 
 test('Facebook history helpers reject untrusted pagination hosts and normalize attachment descriptors', () => {
@@ -464,7 +565,7 @@ test('Facebook outbound echo is persisted as outbound and never triggers an inco
   assert.equal(notifications, 0);
 });
 
-test('Facebook page avatar proxy runs asynchronously after realtime connection is available', async t => {
+test('Facebook page avatar proxy runs through the current refresh seam after realtime connection', async t => {
   const adapter = new FacebookAdapter();
   installCredentials(t);
   patch(t, relayClient, 'accounts', async () => ({ accounts: [cloudAccount({ pagePicture: '', picture: '' })] }));
@@ -478,13 +579,18 @@ test('Facebook page avatar proxy runs asynchronously after realtime connection i
   patch(t, relayClient, 'status', () => ({ state: 'connected', connectedAt: '2026-07-21T00:00:00.000Z', lastError: '' }));
   patch(t, relayClient, 'connect', async () => ({ state: 'connected', connectedAt: '2026-07-21T00:00:00.000Z', lastError: '' }));
 
-  const state = await adapter.connect(account());
+  const currentAccount = account();
+  const state = await adapter.connect(currentAccount, { physicalAttemptContext: frozenAttempt() });
   assert.equal(state.state, 'connected');
+  // connect delegates history/avatar work to the durable authority; it never downloads inline.
   assert.equal(pageAvatarCalls, 0);
-  await flushImmediate();
+  // The durable HISTORY_SYNCHRONIZATION consumer refreshes the page avatar through the current seam.
+  const row = adapter.sessions.get(currentAccount.id);
+  await adapter.refreshPageAvatar(currentAccount, row, secret(), 1, { physicalAttemptContext: frozenAttempt() });
   const enriched = adapter.status('facebook-readiness');
   assert.equal(pageAvatarCalls, 1);
   assert.equal(enriched.page.picture, '/api/r32/messages/media/facebook/page-avatar.jpg');
+  assert.equal(enriched.page.avatarStatus, 'ready');
 });
 
 test('Facebook first-message profile avatar uses signed Worker proxy before a conversation row exists', async t => {
@@ -506,7 +612,7 @@ test('Facebook first-message profile avatar uses signed Worker proxy before a co
   });
   patch(t, avatarService, 'cacheBuffer', async () => { throw new Error('must not require an existing conversation'); });
 
-  const profile = await adapter.senderProfile(account(), 'facebook:user-42', 'facebook-readiness:user-42');
+  const profile = await adapter.senderProfile(account(), 'facebook:user-42', 'facebook-readiness:user-42', { physicalAttemptContext: frozenAttempt({ operationKind: 'PROFILE_FETCH' }) });
   assert.equal(proxyCalls, 1);
   assert.equal(profile.name, 'Anna Meyer');
   assert.equal(profile.avatarUrl, '/api/r32/messages/media/facebook/user-42-avatar.jpg');
@@ -529,7 +635,7 @@ test('Facebook profile-name failure does not suppress the independent avatar req
   patch(t, messageStore, 'getConversation', () => null);
   patch(t, avatarService, 'cacheStandaloneBuffer', async () => ({ avatarUrl: '/api/r32/messages/media/facebook/user-42-avatar.jpg' }));
 
-  const profile = await adapter.senderProfile(account(), 'facebook:user-42', 'facebook-readiness:user-42');
+  const profile = await adapter.senderProfile(account(), 'facebook:user-42', 'facebook-readiness:user-42', { physicalAttemptContext: frozenAttempt({ operationKind: 'PROFILE_FETCH' }) });
   assert.equal(proxyCalls, 1);
   assert.equal(profile.avatarUrl, '/api/r32/messages/media/facebook/user-42-avatar.jpg');
   assert.equal(profile.profileStatus, 'failed');
@@ -546,15 +652,18 @@ test('Facebook page-avatar failure remains visible in account runtime instead of
   patch(t, relayClient, 'status', () => ({ state: 'connected', connectedAt: '2026-07-21T00:00:00.000Z', lastError: '' }));
   patch(t, relayClient, 'connect', async () => ({ state: 'connected', connectedAt: '2026-07-21T00:00:00.000Z', lastError: '' }));
 
-  const state = await adapter.connect(account());
+  const currentAccount = account();
+  const state = await adapter.connect(currentAccount, { physicalAttemptContext: frozenAttempt() });
   assert.equal(state.state, 'connected');
-  await flushImmediate();
+  // The durable consumer refreshes the page avatar through the current seam; its failure stays visible.
+  const row = adapter.sessions.get(currentAccount.id);
+  await adapter.refreshPageAvatar(currentAccount, row, secret(), 1, { physicalAttemptContext: frozenAttempt() });
   const enriched = adapter.status('facebook-readiness');
   assert.equal(enriched.page.avatarStatus, 'failed');
   assert.equal(enriched.page.avatarLastError, 'FACEBOOK_AVATAR_FETCH_FAILED');
 });
 
-test('Facebook reconnect schedules avatar repair for existing contacts without waiting for history sync or a new webhook', async t => {
+test('Facebook reconnect delegates existing-contact avatar repair to durable history synchronization', async t => {
   const adapter = new FacebookAdapter();
   installCredentials(t);
   patch(t, relayClient, 'accounts', async () => ({ accounts: [cloudAccount()] }));
@@ -562,16 +671,19 @@ test('Facebook reconnect schedules avatar repair for existing contacts without w
   patch(t, avatarService, 'cacheStandaloneBuffer', async () => ({ avatarUrl: '/api/r32/messages/media/facebook/page-avatar.jpg', avatarUpdatedAt: '2026-07-21T00:00:00.000Z' }));
   patch(t, relayClient, 'status', () => ({ state: 'connected', connectedAt: '2026-07-21T00:00:00.000Z', lastError: '' }));
   patch(t, relayClient, 'connect', async () => ({ state: 'connected', connectedAt: '2026-07-21T00:00:00.000Z', lastError: '' }));
-  let scheduled = 0;
-  patch(t, adapter, 'scheduleExistingContactAvatarRepair', input => {
-    assert.equal(input.id, 'facebook-readiness');
-    scheduled += 1;
-    return Promise.resolve({ scanned: 0 });
-  });
+  const delegated = [];
+  const onDelegated = event => delegated.push(event.payload || event);
+  eventBus.on('facebook:reconciliation-delegated', onDelegated);
+  t.after(() => eventBus.off('facebook:reconciliation-delegated', onDelegated));
 
-  const state = await adapter.connect(account());
+  const state = await adapter.connect(account(), { physicalAttemptContext: frozenAttempt() });
   assert.equal(state.state, 'connected');
-  assert.equal(scheduled, 1);
+  // reconnect hands contact avatar repair to durable HISTORY_SYNCHRONIZATION instead of an inline scan.
+  assert.equal(delegated.length, 1);
+  assert.equal(delegated[0].operationKind, 'HISTORY_SYNCHRONIZATION');
+  assert.equal(delegated[0].authority, 'DurableExecutionAuthorityV2');
+  // The legacy inline scheduler is a delegated tombstone and performs no inline work.
+  assert.equal(adapter.scheduleExistingContactAvatarRepair(account()), null);
 });
 
 test('Facebook existing-contact repair resolves PSID from persisted chatJid and writes the cached avatar', async t => {
@@ -608,7 +720,7 @@ test('Facebook existing-contact repair resolves PSID from persisted chatJid and 
     return { avatarUrl: '/api/r32/messages/media/facebook/contact-avatar.jpg', avatarUpdatedAt: '2026-07-21T00:00:00.000Z' };
   });
 
-  const result = await adapter.refreshExistingContactAvatars(account(), { limit: 10, delayMs: 0 });
+  const result = await adapter.refreshExistingContactAvatars(account(), { limit: 10, delayMs: 0, physicalAttemptContext: frozenAttempt({ operationKind: 'AVATAR_REPAIR' }) });
   assert.equal(profilePsid, '123456');
   assert.equal(result.attempted, 1);
   assert.equal(result.ready, 1);
@@ -640,7 +752,7 @@ test('Facebook existing-contact repair persists an explicit failure when no vali
   let senderProfileCalls = 0;
   patch(t, adapter, 'senderProfile', async () => { senderProfileCalls += 1; return {}; });
 
-  const result = await adapter.refreshExistingContactAvatars(account(), { limit: 10, delayMs: 0 });
+  const result = await adapter.refreshExistingContactAvatars(account(), { limit: 10, delayMs: 0, physicalAttemptContext: frozenAttempt({ operationKind: 'AVATAR_REPAIR' }) });
   assert.equal(senderProfileCalls, 0);
   assert.equal(result.attempted, 0);
   assert.equal(result.failed, 1);
@@ -657,11 +769,10 @@ test('Facebook first-contact webhook persists and notifies before optional profi
   patch(t, adapter, 'senderProfile', async () => {
     throw new Error('senderProfile must not run on the critical webhook persistence path');
   });
-  let enrichment = null;
-  patch(t, adapter, 'scheduleWebhookContactEnrichment', (...args) => {
-    enrichment = args;
-    return Promise.resolve({ ok: true });
-  });
+  const enrichmentDelegated = [];
+  const onEnrichmentDelegated = event => enrichmentDelegated.push(event.payload || event);
+  eventBus.on('facebook:webhook-profile-enrichment-delegated', onEnrichmentDelegated);
+  t.after(() => eventBus.off('facebook:webhook-profile-enrichment-delegated', onEnrichmentDelegated));
   let persisted = null;
   patch(t, messageStore, 'upsert', async value => {
     persisted = value;
@@ -689,38 +800,41 @@ test('Facebook first-contact webhook persists and notifies before optional profi
   assert.equal(persisted.contactName, 'Facebook Messenger 联系人');
   assert.equal(notification.body, 'Hallo');
   assert.equal(notification.conversationId, `${currentAccount.id}:10000000000000999`);
-  assert.equal(enrichment[1], '10000000000000999');
-  assert.equal(enrichment[2], `${currentAccount.id}:10000000000000999`);
+  // Persistence/notification finish first; profile/avatar enrichment is then delegated off the critical webhook path.
+  assert.equal(enrichmentDelegated.length, 1);
+  assert.equal(enrichmentDelegated[0].peerId, '10000000000000999');
+  assert.equal(enrichmentDelegated[0].conversationId, `${currentAccount.id}:10000000000000999`);
+  assert.equal(enrichmentDelegated[0].operationKind, 'HISTORY_SYNCHRONIZATION');
 });
 
-test('Facebook webhook contact enrichment is asynchronous, deduplicated and non-destructive', async t => {
+test('Facebook webhook contact enrichment is delegated to durable history and never runs inline profile I/O', async t => {
   const adapter = new FacebookAdapter();
   const currentAccount = account();
-  let releaseProfile;
-  const profileGate = new Promise(resolve => { releaseProfile = resolve; });
   let profileCalls = 0;
   patch(t, adapter, 'senderProfile', async () => {
     profileCalls += 1;
-    await profileGate;
     return { name: 'Michael Catalin', avatarUrl: '/api/r32/messages/media/avatar-michael', profileStatus: 'ready', profileLastError: '' };
   });
   let metadata = null;
   patch(t, messageStore, 'updateConversationMetadata', async (_conversationId, value) => { metadata = value; return value; });
 
-  const first = adapter.scheduleWebhookContactEnrichment(currentAccount, '10000000000000888', `${currentAccount.id}:10000000000000888`, 'Facebook Messenger 联系人');
-  const second = adapter.scheduleWebhookContactEnrichment(currentAccount, '10000000000000888', `${currentAccount.id}:10000000000000888`, 'Facebook Messenger 联系人');
-  assert.equal(first, second);
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(profileCalls, 1);
-  releaseProfile();
-  const result = await first;
+  const conversationId = `${currentAccount.id}:10000000000000888`;
+  const first = await adapter.scheduleWebhookContactEnrichment(currentAccount, '10000000000000888', conversationId, 'Facebook Messenger 联系人');
+  const second = await adapter.scheduleWebhookContactEnrichment(currentAccount, '10000000000000888', conversationId, 'Facebook Messenger 联系人');
 
-  assert.equal(result.ok, true);
-  assert.equal(metadata.title, 'Michael Catalin');
-  assert.equal(metadata.contactName, 'Michael Catalin');
-  assert.equal(metadata.avatarUrl, '/api/r32/messages/media/avatar-michael');
-  assert.equal(metadata.profileStatus, 'ready');
-  assert.equal(adapter.webhookContactEnrichmentTasks.size, 0);
+  // Both calls only return a non-destructive delegation receipt; the adapter performs no inline enrichment.
+  for (const receipt of [first, second]) {
+    assert.equal(receipt.ok, false);
+    assert.equal(receipt.delegated, true);
+    assert.equal(receipt.authority, 'DurableExecutionAuthorityV2');
+    assert.equal(receipt.operationKind, 'HISTORY_SYNCHRONIZATION');
+    assert.equal(receipt.code, 'FACEBOOK_WEBHOOK_PROFILE_ENRICHMENT_DELEGATED');
+    assert.equal(receipt.peerId, '10000000000000888');
+    assert.equal(receipt.conversationId, conversationId);
+  }
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(profileCalls, 0);
+  assert.equal(metadata, null);
 });
 
 test('Facebook notification failure never rolls back an already persisted inbound message', async t => {

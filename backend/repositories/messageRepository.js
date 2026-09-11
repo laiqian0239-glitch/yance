@@ -217,30 +217,17 @@ function settleProjectionOperation(store, claim, state, error = null) {
 }
 
 function existingAuthoritativeDomainEvent(eventId) {
-  const row = platformCoreRepository.getDomainEvent(String(eventId || '').trim());
-  if (!row) throw Object.assign(new Error('Authoritative domain event for projection replay was not found'), {
-    code: 'DOMAIN_EVENT_NOT_FOUND', status: 404, eventId: String(eventId || '').trim()
+  const cleanEventId = String(eventId || '').trim();
+  // Replay reads the canonical ledger (canonical_event_headers + authority payload
+  // store); the legacy domain_events compatibility table is append-forbidden and no
+  // longer materialized by the canonical ledger.
+  const event = domainEventLog.readEvent(cleanEventId);
+  if (!event) throw Object.assign(new Error('Authoritative domain event for projection replay was not found'), {
+    code: 'DOMAIN_EVENT_NOT_FOUND', status: 404, eventId: cleanEventId
   });
   return {
     created: false,
-    event: {
-      eventId: row.event_id,
-      schemaVersion: Number(row.schema_version || 1),
-      platform: row.platform,
-      sourceAccountId: row.source_account_id,
-      externalEventId: row.external_event_id,
-      eventType: row.event_type,
-      idempotencyKey: row.idempotency_key,
-      correlationId: row.correlation_id,
-      causationId: row.causation_id,
-      occurredAt: row.occurred_at,
-      receivedAt: row.received_at,
-      redactionVersion: row.redaction_version,
-      payload: row.payload || {},
-      payloadSha256: row.payload_sha256,
-      retentionUntil: row.retention_until,
-      replayState: row.replay_state
-    }
+    event
   };
 }
 

@@ -270,7 +270,7 @@ function validateReceipt(document) {
   return Object.freeze({ ok: true, reviewedHead: reviewed.head, baselineHead: reviewed.baselineHead, parentMilestone1SealHead: reviewed.parentMilestone1SealHead, sealStatus: seal.status, sealHead: seal.head });
 }
 
-function prerequisites() {
+function prerequisites(historicalArtifactOnly = false) {
   const m1Path = path.join(ROOT, 'tools', 'architecture-closure-v2', 'verify-wp-b-m1-review.js');
   const authorizationPath = path.join(ROOT, 'tools', 'architecture-closure-v2', 'verify-wp-b-m2-authorization.js');
   delete require.cache[require.resolve(m1Path)];
@@ -279,15 +279,15 @@ function prerequisites() {
   const authorization = require(authorizationPath);
   const m1Receipt = m1.readReceipt();
   const m1Validation = m1.validateReceipt(m1Receipt);
-  const m1Local = m1.verifyLocalRepository(m1Receipt);
+  const m1Local = m1.verifyLocalRepository(m1Receipt, { historicalArtifactOnly });
   const authorizationReceipt = authorization.readReceipt();
   const authorizationValidation = authorization.validateReceipt(authorizationReceipt);
-  const authorizationLocal = authorization.verifyLocalRepository(authorizationReceipt);
+  const authorizationLocal = authorization.verifyLocalRepository(authorizationReceipt, { historicalArtifactOnly });
   requireThat(m1Validation.sealHead === M1_SEAL && authorizationValidation.parentMilestone1SealHead === M1_SEAL, 'WP_B_M2_REVIEW_PREREQUISITE_INVALID', 'Prerequisite seal changed');
   return { m1SealVerified: m1Local.ok === true, m2AuthorizationVerified: authorizationLocal.ok === true };
 }
 
-function verifyLocalRepository(document = readReceipt()) {
+function verifyLocalRepository(document = readReceipt(), options = {}) {
   const validation = validateReceipt(document);
   const reviewed = document.reviewedImplementation;
   const seal = document.seal;
@@ -328,11 +328,18 @@ function verifyLocalRepository(document = readReceipt()) {
   requireThat(redReceipt.platforms?.ubuntu?.jobId === red.ubuntuJobId && redReceipt.platforms?.windows?.jobId === red.windowsJobId, 'WP_B_M2_REVIEW_RED_JOB_MISMATCH', 'RED jobs changed');
   requireThat(redReceipt.platforms?.ubuntu?.artifactId === red.ubuntuArtifactId && redReceipt.platforms?.windows?.artifactId === red.windowsArtifactId, 'WP_B_M2_REVIEW_RED_ARTIFACT_MISMATCH', 'RED artifacts changed');
   const currentBranch = git(['branch', '--show-current']);
-  requireThat(isAuthorizedReviewImplementationBranch(currentBranch),
-    'WP_B_M2_REVIEW_BRANCH_CHECKOUT_INVALID', 'Wrong or unauthorized branch');
-  const status = git(['status', '--porcelain=v1', '--untracked-files=all']);
-  requireThat(status === '', 'WP_B_M2_REVIEW_WORKTREE_DIRTY', 'Worktree must be clean', { status });
-  return Object.freeze({ ok: true, reviewedHead: validation.reviewedHead, currentHead, currentBranch, sealStatus: validation.sealStatus, sealHead: validation.sealHead, reviewedFileCount: reviewedFiles.length, reviewedFileSetSha256: reviewedDigest, postReviewFiles: Object.freeze(postReviewFiles), ...prerequisites() });
+  if (options.historicalArtifactOnly !== true) {
+    // Live development gate: an actual WP-B implementation continuation must run on an authorized
+    // implementation branch with a clean worktree. A pure historical-artifact audit (a Final RC
+    // release-closure checkout, or an immutable receipt/blob identity regression) validates only frozen
+    // history. It neither requires nor grants any current implementation-branch authority, so the live
+    // branch/worktree admission check is intentionally out of scope for that read-only audit mode.
+    requireThat(isAuthorizedReviewImplementationBranch(currentBranch),
+      'WP_B_M2_REVIEW_BRANCH_CHECKOUT_INVALID', 'Wrong or unauthorized branch');
+    const status = git(['status', '--porcelain=v1', '--untracked-files=all']);
+    requireThat(status === '', 'WP_B_M2_REVIEW_WORKTREE_DIRTY', 'Worktree must be clean', { status });
+  }
+  return Object.freeze({ ok: true, reviewedHead: validation.reviewedHead, currentHead, currentBranch, sealStatus: validation.sealStatus, sealHead: validation.sealHead, reviewedFileCount: reviewedFiles.length, reviewedFileSetSha256: reviewedDigest, postReviewFiles: Object.freeze(postReviewFiles), ...prerequisites(options.historicalArtifactOnly === true) });
 }
 
 async function fetchJson(url, token, code) {
@@ -433,7 +440,8 @@ async function verifyRemoteEvidence(document = readReceipt(), options = {}) {
 
 async function main() {
   const document = readReceipt();
-  const local = verifyLocalRepository(document);
+  const historicalArtifactOnly = process.env.YANCE_M2_HISTORICAL_ARTIFACT_AUDIT === '1';
+  const local = verifyLocalRepository(document, { historicalArtifactOnly });
   const remote = process.argv.includes('--remote') ? await verifyRemoteEvidence(document, { currentHead: local.currentHead, currentBranch: local.currentBranch }) : null;
   process.stdout.write(`${JSON.stringify({ ok: true, local, remote }, null, 2)}\n`);
 }

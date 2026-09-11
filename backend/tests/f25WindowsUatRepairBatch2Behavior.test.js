@@ -8,9 +8,18 @@ const path = require('node:path');
 
 const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-f25-batch2-behavior-'));
 process.env.YANCE_DATA_DIR = dataRoot;
+process.env.WORKBUDDY_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const { createSqliteConnectionBroker, resetSqliteConnectionBrokerForTests } = require('../lib/sqliteConnectionBroker');
+const brokerDbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(brokerDbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({ dbPath: brokerDbPath, instanceId: `f25-batch2-behavior-${process.pid}` });
+createSqliteConnectionBroker({ dbPath: brokerDbPath, authorityWriteHostCapability: authorityWriteHost.capability });
 
 const accountRepository = require('../repositories/accountRepository');
 const { closeStore } = require('../repositories/storeProvider');
+const { closeR32Store } = require('../lib/r32StoreSingleton');
 const accountManager = require('../services/accountManager');
 const whatsapp = require('../services/whatsappAdapter');
 
@@ -44,8 +53,14 @@ test.after(() => {
   whatsapp.start = originalStart;
   whatsapp.stop = originalStop;
   accountManager.hydration = originalHydration;
-  closeStore();
+  try { closeStore(); } catch (_) {}
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
   fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.WORKBUDDY_DATA_DIR;
+  delete process.env.YANCE_DATA_DIR;
 });
 
 test('manual pending-auth connect reaches the real driver contract with an auditable attempt id', async () => {

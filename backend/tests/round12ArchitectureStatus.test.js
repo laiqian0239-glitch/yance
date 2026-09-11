@@ -5,11 +5,43 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { R32SqliteStore } = require('../lib/r32SqliteStore');
+const { SqliteConnectionBroker } = require('../lib/sqliteConnectionBroker');
+const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
+const canonicalEventLedgerAuthority = require('../services/canonicalEventLedgerAuthority');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { IdentityLinkAuthority } = require('../services/identityLinkAuthority');
 const { DomainEventLogService } = require('../services/domainEventLogService');
 const { snapshot } = require('../services/round12ArchitectureStatusService');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+
+// File-level durable authority assembly: host -> broker -> store -> coordinator -> repository -> canonical ledger.
+const authorityRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-status-auth-'));
+const authorityDbPath = path.join(authorityRoot, 'database', 'yance.db');
+fs.mkdirSync(path.dirname(authorityDbPath), { recursive: true });
+process.env.YANCE_TEST_ONLY_RUNTIME_RESET = '1';
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+canonicalEventLedgerAuthority.resetSingletonForTests();
+const r12Host = acquireAuthorityWriteHost({ dbPath: authorityDbPath, instanceId: `r12-status-${process.pid}` });
+const r12Broker = new SqliteConnectionBroker({ dbPath: authorityDbPath, authorityWriteHostCapability: r12Host.capability });
+const r12Store = r12Broker.open();
+const r12Coordinator = new AuthorityTransactionCoordinator({ store: r12Store, eventBus: { publish() {} } });
+const r12CoordinatorCapability = r12Coordinator.repositoryCapability();
+const r12Repository = createPlatformCoreRepository({ storeProvider: () => r12Store, coordinatorCapability: r12CoordinatorCapability });
+const r12Ledger = new canonicalEventLedgerAuthority.CanonicalEventLedgerAuthority({
+  coordinator: r12Coordinator,
+  store: r12Store,
+  compatibilityRepository: r12Repository
+});
+canonicalEventLedgerAuthority.configureSingleton(r12Ledger);
+
+test.after(() => {
+  try { canonicalEventLedgerAuthority.resetSingletonForTests(); } catch (_) {}
+  try { r12Broker.checkpointAndClose(); } catch (_) {}
+  try { r12Host.release(); } catch (_) {}
+  try { fs.rmSync(authorityRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_RUNTIME_RESET;
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+});
 
 function qualifiedModel(id, provider = 'openrouter') {
   return {
@@ -44,14 +76,11 @@ function qualifiedModel(id, provider = 'openrouter') {
 }
 
 test('round12 status exposes one non-sensitive authority snapshot for platform core and AI quality', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-status-'));
-  const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
-  try {
-    const identity = new IdentityLinkAuthority({ repository });
-    identity.observe({ platform: 'facebook', sourceAccountId: 'page-secret', externalId: 'psid-secret', displayName: 'Alex' });
-    const events = new DomainEventLogService({ repository });
-    events.append({ platform: 'facebook', sourceAccountId: 'page-secret', externalEventId: 'event-secret', eventType: 'message.received', payload: { text: 'Hallo' } });
+  const repository = r12Repository;
+  const identity = new IdentityLinkAuthority({ repository });
+  identity.observe({ platform: 'facebook', sourceAccountId: 'page-secret', externalId: 'psid-secret', displayName: 'Alex' });
+  const events = new DomainEventLogService({ canonicalAuthority: r12Ledger });
+  events.append({ platform: 'facebook', sourceAccountId: 'page-secret', externalEventId: 'event-secret', eventType: 'message.received', payload: { text: 'Hallo' } });
 
     const modelState = {
       models: [qualifiedModel('primary'), qualifiedModel('fallback', 'another-provider')],
@@ -72,7 +101,12 @@ test('round12 status exposes one non-sensitive authority snapshot for platform c
     assert.equal(status.authority, 'Round12ArchitectureStatusAuthority');
     assert.equal(status.completionSemantics.windowsVerified, false);
     assert.equal(status.platformCore.persistence.identity.persons, 1);
-    assert.equal(status.platformCore.persistence.ingress.domainEvents, 1);
+    // Ingress events are persisted in the canonical ledger; the legacy domain_events table is append-forbidden.
+    const canonicalIngress = r12Store.db
+      .prepare("SELECT COUNT(*) AS n FROM canonical_event_headers WHERE event_type=?")
+      .get('message.received').n;
+    assert.equal(canonicalIngress, 1);
+    assert.equal(status.platformCore.persistence.ingress.domainEvents, 0);
     assert.deepEqual(status.platformCore.adapterContracts.facebook.ports, ['auth', 'ingress', 'egress', 'reconcile']);
     assert.equal(status.platformCore.cutover.egressOutbox.state, 'production-wired');
     assert.deepEqual(status.platformCore.cutover.egressOutbox.coveredOperations, ['text', 'media', 'native_expression', 'reaction', 'revoke']);
@@ -82,31 +116,36 @@ test('round12 status exposes one non-sensitive authority snapshot for platform c
     assert.equal(status.platformCore.cutover.ingressEventModel.authoritativeProjection, true);
     assert.equal(status.platformCore.cutover.adapterPorts.allLegacyAuthAndReconcileHandlersMigrated, true);
     assert.equal(status.platformCore.cutover.adapterPorts.runtimeRecoveryUsesAuthPort, true);
-    assert.equal(status.aiQuality.invariants.emergencyModeVisibleAndLearningIsolated, true);
-    assert.equal(status.aiQuality.cutover.failureRecovery.sameModelSchemaCorrectionRetry, true);
-    assert.equal(status.aiQuality.cutover.learning.l1ProductionSignalsActive, true);
-    assert.equal(status.aiQuality.cutover.learning.automaticL2L3SynthesisScheduled, true);
-    assert.equal(status.aiQuality.cutover.learning.l3HumanApprovalRequired, true);
-    assert.equal(status.aiQuality.cutover.failureRecovery.contextReductionBeforeTimeoutFallback, true);
-    assert.equal(status.aiQuality.cutover.failureRecovery.sameModelReducedContextRetry, true);
-    assert.equal(status.aiQuality.tasks.quick_reply.highCapabilityPathReady, true);
+    // Model Brain replaces the retired physical AI-quality router: physical Yance ranking stays
+    // disabled while mandatory tag semantics, fail-closed tag matching and learning governance stay wired.
+    assert.equal(status.modelBrain.invariants.yancePhysicalModelRanking, false);
+    assert.equal(status.modelBrain.invariants.mandatoryTagsUseAndSemantics, true);
+    assert.equal(status.modelBrain.invariants.noAllTagsMatchFailsClosed, true);
+    assert.equal(status.modelBrain.learning.l1ProductionSignalsActive, true);
+    assert.equal(status.modelBrain.learning.automaticL2L3SynthesisScheduled, true);
+    assert.equal(status.modelBrain.learning.l3HumanApprovalRequired, true);
+    // Two verified models provide hard quick_reply capability; readiness stays fail-closed only on the absent local runtime.
+    assert.ok(status.modelBrain.logicalTasks.quick_reply.capabilityCount >= 2);
+    assert.equal(status.modelBrain.logicalTasks.quick_reply.ready, false);
+    assert.equal(status.modelBrain.logicalTasks.quick_reply.reason, 'model-brain-runtime-unavailable');
     const serialized = JSON.stringify(status);
     assert.equal(serialized.includes('page-secret'), false);
     assert.equal(serialized.includes('psid-secret'), false);
     assert.equal(serialized.includes('event-secret'), false);
-  } finally {
-    try { store.close(); } catch (_) {}
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
-  }
 });
 
 test('production routes expose explicit architecture and quality diagnostics endpoints', () => {
   const systemRoute = fs.readFileSync(path.join(__dirname, '..', 'routes', 'system.js'), 'utf8');
   const modelRoute = fs.readFileSync(path.join(__dirname, '..', 'routes', 'models.js'), 'utf8');
+  const qualityAuthority = fs.readFileSync(path.join(__dirname, '..', 'services', 'aiQualityRouteAuthority.js'), 'utf8');
   assert.match(systemRoute, /router\.get\('\/architecture\/round12'/);
   assert.match(systemRoute, /round12ArchitectureStatus\.snapshot\(\)/);
-  assert.match(modelRoute, /router\.get\('\/quality-routing'/);
-  assert.match(modelRoute, /aiQualityRouteAuthority\.routePlan/);
+  // Current model/quality diagnostics are exposed by the Model Brain status endpoint.
+  assert.match(modelRoute, /router\.get\('\/model-brain\/status'/);
+  // The physical routePlan is retired to a tombstone; receipt verification stays the live seam.
+  assert.match(qualityAuthority, /verifyRouteReceipt/);
+  assert.match(qualityAuthority, /routeReceipt: retiredPhysicalAuthority/);
+  assert.doesNotMatch(modelRoute, /aiQualityRouteAuthority\.routePlan/);
 });
 
 

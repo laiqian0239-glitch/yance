@@ -4,6 +4,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const service = require('../services/openRouterAutoConfigurationService');
 
+// V21 Model Brain / LiteLLM retired Yance-owned task ranking/selection from catalog
+// auto-configuration. This service now only normalizes the OpenRouter catalog, rejects
+// non-chat special-purpose generators (audio/image/embedding/...), and registers the usable
+// text-chat models; per-task candidate selection is owned downstream by Model Brain.
+
 function model(id, options = {}) {
   return {
     id,
@@ -25,7 +30,7 @@ function model(id, options = {}) {
   };
 }
 
-test('one OpenRouter credential auto-discovers, filters, ranks, and registers a compact Yance model pool', async () => {
+test('one OpenRouter credential auto-discovers, filters non-chat generators, and registers usable text models', async () => {
   const credentialRef = 'model:openrouter:default';
   const securityGuard = { credentials: new Map([[credentialRef, { apiKey: 'secret-not-exported' }]]) };
   const registered = [];
@@ -58,31 +63,28 @@ test('one OpenRouter credential auto-discovers, filters, ranks, and registers a 
   const snapshot = await service.autoConfigure({ credentialRef, securityGuard, registry, requestJson });
 
   assert.deepEqual(calls, ['https://openrouter.ai/api/v1/key', 'https://openrouter.ai/api/v1/models/user']);
-  assert.equal(snapshot.modelCount, catalog.length);
-  assert.equal(snapshot.freeModelCount, 2);
+  assert.equal(snapshot.catalogCount, catalog.length);
+  assert.equal(snapshot.usableCatalogCount, 7);
   assert.equal(snapshot.registeredModelCount, registered.length);
+  assert.equal(registered.length, 7);
   assert.equal(synchronized.endpoint, 'https://openrouter.ai/api/v1');
   assert.equal(synchronized.credentialRef, credentialRef);
-  assert.equal(synchronized.models.some(row => row.name === 'openrouter/free'), false);
-  assert.equal(synchronized.models.some(row => /coder/u.test(row.name)), false);
+  // Audio/image generators never enter the usable text-chat catalog.
+  assert.equal(synchronized.models.some(row => /lyria/iu.test(row.name)), false);
+  assert.equal(synchronized.models.some(row => row.name === 'vendor/image-only'), false);
   assert.equal(synchronized.models.some(row => row.name === 'anthropic/claude-sonnet'), true);
-  assert.equal(synchronized.models.some(row => /lyria/iu.test(row.name)), false, 'audio generation models never enter chat or translation candidates');
-  assert.ok(registered.length >= 4 && registered.length <= 18);
   assert.equal(registered.every(row => row.credentialRef === credentialRef), true);
   assert.equal(registered.every(row => row.endpoint === 'https://openrouter.ai/api/v1'), true);
-  assert.equal(registered.some(row => row.name === 'openrouter/free'), false, 'random free router is not a formal Yance route');
-  assert.equal(registered.some(row => /coder/u.test(row.name)), false, 'coding models are filtered from relationship reply tasks');
-  assert.equal(registered.every(row => row.taskHints.every(task => ['translation', 'quick_reply', 'director', 'deep_reply', 'media_analysis', 'memory_extraction', 'fact_extraction', 'understanding', 'summary', 'persona_rewrite'].includes(task))), true, 'registered task hints use canonical executable Yance task names');
-  assert.equal(registered.some(row => row.taskHints.includes('memory_extraction')), true, 'memory extraction is a first-class executable task');
-  assert.equal(registered.some(row => row.taskHints.includes('media_analysis')), true, 'media analysis is a first-class executable task');
-  assert.equal(registered.some(row => row.taskHints.includes('persona_rewrite')), true, 'persona rewrite is a first-class executable task');
-  assert.equal(snapshot.selections.translation.some(row => row.free), true, 'free models are actively used for translation candidates');
-  assert.equal(snapshot.selections.director.some(row => /claude|gpt/u.test(row.id)), true, 'high-quality paid models remain director candidates');
-  assert.equal(snapshot.selections.media_analysis.every(row => row.visionInput), true);
+  // A text-in/image-in -> text-out model carries the vision capability alongside text.
+  assert.deepEqual(registered.find(row => row.name === 'google/gemini-flash:free').capabilities, ['text', 'vision']);
+  assert.equal(registered.every(row => Array.isArray(row.catalogMetadata.supportedParameters)), true);
   assert.equal(savedSnapshot.credentialRef, credentialRef);
+  assert.equal(savedSnapshot.accountStatus, 'connected');
   assert.equal(JSON.stringify(snapshot).includes('secret-not-exported'), false, 'API key never enters the public snapshot');
-  assert.equal(snapshot.benchmarkStatus, 'pending');
+  assert.equal(snapshot.accountStatus, 'connected');
+  assert.equal(snapshot.qualificationStatus, 'pending');
   assert.equal(snapshot.key.usageWeekly, 0);
+  assert.equal(snapshot.key.limitRemaining, 15);
 });
 
 test('missing secure credential blocks auto configuration before any model is registered', async () => {
@@ -99,24 +101,24 @@ test('missing secure credential blocks auto configuration before any model is re
   assert.equal(registered, 0);
 });
 
-test('catalog normalization recognizes zero-price free variants and model capabilities', () => {
+test('catalog normalization exposes modality and parameter capabilities', () => {
   const row = service.normalizeCatalogModel(model('demo/free-model', {
     inputModalities: ['text', 'image', 'audio'],
     supportedParameters: ['structured_outputs', 'reasoning', 'tools']
   }));
-  assert.equal(row.free, true);
   assert.equal(row.textOutput, true);
-  assert.equal(row.visionInput, true);
-  assert.equal(row.audioInput, true);
+  assert.equal(row.text, true);
+  assert.equal(row.vision, true);
+  assert.equal(row.audio, true);
   assert.equal(row.structuredOutput, true);
   assert.equal(row.reasoning, true);
   assert.equal(row.tools, true);
-  assert.equal(row.pricingKnown, true);
-  assert.equal(row.taskEligibility.translation, true);
-  assert.equal(row.taskEligibility.media_analysis, true);
+  assert.deepEqual(row.inputModalities, ['text', 'image', 'audio']);
+  assert.equal(row.promptPerMillion, 0);
+  assert.equal(row.completionPerMillion, 0);
 });
 
-test('capability classifier separates chat analysis models from image, audio, and video generators', () => {
+test('capability classifier separates chat analysis models from image and audio generators', () => {
   const chatVision = service.normalizeCatalogModel(model('google/gemini-multimodal', {
     inputModalities: ['text', 'image', 'audio'],
     outputModalities: ['text']
@@ -131,23 +133,22 @@ test('capability classifier separates chat analysis models from image, audio, an
     inputModalities: ['text', 'image'],
     outputModalities: ['image']
   }));
-  assert.equal(chatVision.taskEligibility.quick_reply, true);
-  assert.equal(chatVision.taskEligibility.media_analysis, true);
-  assert.equal(music.generationOnly, true);
-  assert.equal(music.taskEligibility.quick_reply, false);
-  assert.equal(music.taskEligibility.media_analysis, false);
-  assert.equal(image.generationOnly, true);
-  assert.equal(image.taskEligibility.translation, false);
+  assert.equal(chatVision.text, true);
+  assert.equal(chatVision.vision, true);
+  assert.equal(chatVision.audio, true);
+  assert.equal(service.isSpecialPurpose(chatVision), false);
+  assert.equal(music.text, false);
   assert.equal(service.isSpecialPurpose(music), true);
+  assert.equal(image.text, false);
   assert.equal(service.isSpecialPurpose(image), true);
 });
 
-test('missing OpenRouter price fields are unknown rather than silently treated as free', () => {
+test('missing OpenRouter price fields normalize to zero numeric rates rather than a free flag', () => {
   const raw = model('demo/price-unknown');
   delete raw.pricing;
   const row = service.normalizeCatalogModel(raw);
-  assert.equal(row.pricingKnown, false);
-  assert.equal(row.free, false);
+  assert.equal(row.promptPerMillion, 0);
+  assert.equal(row.completionPerMillion, 0);
 });
 
 test('account status refresh reads the real key endpoint without exposing the API key', async () => {
@@ -168,6 +169,7 @@ test('account status refresh reads the real key endpoint without exposing the AP
   assert.equal(observed.apiKey, 'refresh-secret');
   assert.equal(result.key.limitRemaining, 7.5);
   assert.equal(result.key.usageWeekly, 1.5);
-  assert.equal(saved.balanceRefreshStatus, 'success');
+  assert.equal(result.accountStatus, 'connected');
+  assert.equal(saved.accountStatus, 'connected');
   assert.equal(JSON.stringify(result).includes('refresh-secret'), false);
 });

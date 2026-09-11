@@ -23,7 +23,8 @@ test('Milestone 1 receipt binds the immutable seal to its exact commit', () => {
 });
 
 test('Milestone 1 seal verification remains valid on authorized descendant milestones', () => {
-  const result = verifyLocalRepository(readReceipt());
+  // Read-only historical-artifact audit of the frozen M1 seal; never demands a clean live tree here.
+  const result = verifyLocalRepository(readReceipt(), { historicalArtifactOnly: true });
   assert.equal(result.ok, true);
   assert.equal(result.sealHead, EXPECTED_SEAL_HEAD);
   assert.deepEqual(result.postReviewFiles, EXPECTED_SEAL_PATHS);

@@ -46,15 +46,38 @@ function childFactory(script) {
   };
 }
 
+function freezeDeep(value) {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const key of Object.keys(value)) freezeDeep(value[key]);
+  }
+  return value;
+}
+
 function hostInput(overrides = {}) {
   const credentialRef = 'credential-ref-private';
+  const executionId = overrides.executionId || 'evidence-exec';
+  const persistedAttempt = freezeDeep({
+    executionId,
+    intentId: overrides.intentId || 'evidence-intent',
+    attemptId: overrides.attemptId || 'evidence-attempt',
+    idempotencyKey: overrides.idempotencyKey || 'evidence-idem',
+    ownerId: 'evidence-owner',
+    claimId: 'evidence-claim',
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1,
+    leaseExpiresAt: new Date(Date.now() + 60000).toISOString(),
+    request: { task: 'translation', modelName: 'fixture' }
+  });
   return {
-    executionId: overrides.executionId || 'evidence-exec',
+    executionId,
     correlationId: overrides.correlationId || 'evidence-correlation',
     task: 'translation',
     model: { id: 'evidence-model', provider: 'cloud', name: 'fixture', credentialRef },
     messages: [],
     options: { timeoutMs: 5000 },
+    persistedAttempt,
     readSystemPolicy: () => ({ emergencyStop: false, privacyMode: false, sourceVersion: 9 }),
     resolveExecutionSpec: () => ({
       provider: 'cloud', endpoint: 'https://provider.invalid/v1', modelName: 'fixture',

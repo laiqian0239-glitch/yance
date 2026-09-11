@@ -5,13 +5,50 @@ const assert = require('node:assert/strict');
 
 const authorityPath = '../../frontend/js/r32-model-runtime-snapshot-authority';
 
-function adapters() {
-  return {
+// The legacy physical route editor (routeDraftDirty / shouldPreserveRoutes / routes projection)
+// has been permanently retired: physical routing is owned by LiteLLM and the Product surface no
+// longer edits routes. The snapshot authority now projects only model services, Model Brain and
+// task readiness, and its commit must write exactly those projected fields without touching
+// unrelated state.
+
+test('commit projects current model runtime fields and leaves unrelated state untouched', () => {
+  const authority = require(authorityPath);
+  const untouchedRoutes = [{ id: 'deep_reply', main: 'draft-model' }];
+  const targetState = {
+    routes: untouchedRoutes,
+    taskReadiness: { pass: false, tasks: [], missing: ['old'] },
+    services: [],
+    modelSummary: {},
+    replyBrain: {},
+    openRouter: {},
+    aiAutomation: {}
+  };
+  const nextReadiness = { pass: true, tasks: [{ task: 'deep_reply', operational: true }], missing: [] };
+  const snapshot = Object.freeze({
+    services: [{ id: 'cloud-2' }],
+    modelSummary: { count: 1 },
+    modelBrain: { name: 'Model Brain', runtimeAvailable: true },
+    replyBrain: { pass: true },
+    taskReadiness: nextReadiness,
+    openRouter: { connected: true },
+    aiAutomation: { enabled: true }
+  });
+
+  authority.commitModelRuntimeSnapshot(targetState, snapshot);
+
+  // Routes are no longer managed by the runtime snapshot and must not be replaced.
+  assert.strictEqual(targetState.routes, untouchedRoutes);
+  assert.strictEqual(targetState.taskReadiness, nextReadiness);
+  assert.deepEqual(targetState.services, [{ id: 'cloud-2' }]);
+  assert.deepEqual(targetState.modelSummary, { count: 1 });
+  assert.equal(targetState.modelBrain.runtimeAvailable, true);
+});
+
+test('project derives services, merged summary, model brain and readiness through adapters', () => {
+  const authority = require(authorityPath);
+  const adapters = {
     projectServices(models) {
       return (Array.isArray(models) ? models : []).map(model => ({ id: model.id, projected: true }));
-    },
-    projectRoutes(routes, taskReadiness) {
-      return Object.entries(routes || {}).map(([id, route]) => ({ id, primary: route.primary || '', taskReadiness }));
     },
     summarizeServices(services) {
       return { count: services.length };
@@ -20,117 +57,27 @@ function adapters() {
       return { ...derived, ...(authoritative || {}) };
     }
   };
-}
-
-function defaults() {
-  return {
-    taskReadiness: { pass: false, tasks: [], missing: [] },
-    replyBrain: { pass: false },
-    modelPools: { inventory: [] },
-    openRouter: {},
-    aiAutomation: { enabled: false }
-  };
-}
-
-test('routing drafts remain authoritative while fresh readiness and model state are projected', () => {
-  const authority = require(authorityPath);
-  const draftRoutes = [{ id: 'quick_reply', main: 'manual-draft' }];
   const incomingReadiness = { pass: false, tasks: [{ task: 'quick_reply', operational: true }], missing: [] };
-  const previousState = {
-    tab: 'routing',
-    routeDraftDirty: true,
-    routes: draftRoutes,
-    taskReadiness: { pass: false, tasks: [], missing: ['old'] },
-    replyBrain: { pass: false },
-    modelPools: {},
-    openRouter: {},
-    aiAutomation: { enabled: false }
-  };
-
-  const preserveRoutes = authority.shouldPreserveRoutes(previousState);
   const snapshot = authority.projectModelRuntimeSnapshot({
     modelState: {
       models: [{ id: 'cloud-1' }],
-      routes: { quick_reply: { primary: 'server-route' } },
       taskReadiness: incomingReadiness,
-      summary: { routingEligible: 1 }
+      summary: { routingEligible: 1 },
+      modelBrain: { runtimeAvailable: true, health: 'available' }
     },
-    previousState,
-    defaults: defaults(),
-    adapters: adapters(),
-    preserveRoutes
+    previousState: {},
+    defaults: {
+      taskReadiness: { pass: false, tasks: [], missing: [] },
+      replyBrain: { pass: false },
+      openRouter: {},
+      aiAutomation: { enabled: false }
+    },
+    adapters
   });
 
-  assert.equal(preserveRoutes, true);
-  assert.strictEqual(snapshot.routes, draftRoutes);
-  assert.strictEqual(snapshot.taskReadiness, incomingReadiness);
   assert.deepEqual(snapshot.services, [{ id: 'cloud-1', projected: true }]);
   assert.deepEqual(snapshot.modelSummary, { count: 1, routingEligible: 1 });
+  assert.strictEqual(snapshot.taskReadiness, incomingReadiness);
+  assert.equal(snapshot.modelBrain.runtimeAvailable, true);
   assert.equal(Object.isFrozen(snapshot), true);
-});
-
-test('committing a preserved draft updates readiness without replacing unsaved routes', () => {
-  const authority = require(authorityPath);
-  const draftRoutes = [{ id: 'deep_reply', main: 'draft-model' }];
-  const targetState = {
-    routes: draftRoutes,
-    taskReadiness: { pass: false, tasks: [], missing: ['old'] },
-    services: [],
-    modelSummary: {},
-    replyBrain: {},
-    modelPools: {},
-    openRouter: {},
-    aiAutomation: {}
-  };
-  const nextReadiness = { pass: true, tasks: [{ task: 'deep_reply', operational: true }], missing: [] };
-  const snapshot = Object.freeze({
-    services: [{ id: 'cloud-2' }],
-    modelSummary: { count: 1 },
-    replyBrain: { pass: true },
-    modelPools: { champions: ['cloud-2'] },
-    taskReadiness: nextReadiness,
-    routes: [{ id: 'deep_reply', main: 'server-model' }],
-    openRouter: { connected: true },
-    aiAutomation: { enabled: true }
-  });
-
-  authority.commitModelRuntimeSnapshot(targetState, snapshot, { preserveRoutes: true });
-
-  assert.strictEqual(targetState.routes, draftRoutes);
-  assert.strictEqual(targetState.taskReadiness, nextReadiness);
-  assert.deepEqual(targetState.services, [{ id: 'cloud-2' }]);
-  assert.deepEqual(targetState.modelSummary, { count: 1 });
-});
-
-test('normal refresh projects and commits assigned registry routes with current readiness', () => {
-  const authority = require(authorityPath);
-  const targetState = {
-    tab: 'models',
-    routeDraftDirty: false,
-    routes: [{ id: 'quick_reply', main: 'old' }],
-    taskReadiness: { pass: false, tasks: [], missing: [] },
-    services: [],
-    modelSummary: {},
-    replyBrain: {},
-    modelPools: {},
-    openRouter: {},
-    aiAutomation: {}
-  };
-  const incomingReadiness = { pass: true, tasks: [{ task: 'quick_reply', operational: true }], missing: [] };
-  const snapshot = authority.projectModelRuntimeSnapshot({
-    modelState: {
-      models: [],
-      routes: { quick_reply: { primary: 'resolved-model' } },
-      taskReadiness: incomingReadiness
-    },
-    previousState: targetState,
-    defaults: defaults(),
-    adapters: adapters(),
-    preserveRoutes: authority.shouldPreserveRoutes(targetState)
-  });
-
-  authority.commitModelRuntimeSnapshot(targetState, snapshot);
-
-  assert.deepEqual(targetState.routes, [{ id: 'quick_reply', primary: 'resolved-model', taskReadiness: incomingReadiness }]);
-  assert.strictEqual(targetState.taskReadiness, incomingReadiness);
 });

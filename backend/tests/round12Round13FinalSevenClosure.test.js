@@ -2,9 +2,11 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+process.env.YANCE_AI_ROUTE_RECEIPT_SECRET = 'test-only-route-receipt-secret-0123456789abcdef';
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
 const { PersonContextAuthority } = require('../services/personContextAuthority');
@@ -38,6 +40,33 @@ function enqueueVersioned(store, input = {}) {
 }
 
 function at(offset = 0) { return new Date(Date.parse('2026-07-27T06:00:00.000Z') + offset).toISOString(); }
+// V21 Model Brain / LiteLLM retired the Yance physical route planner (routeReceipt is a fail-closed tombstone);
+// surviving historical route evidence is a self-signed receipt that aiQuality.verifyRouteReceipt validates.
+function signedQualityRouteReceipt(overrides = {}) {
+  const payload = {
+    authority: aiQualityRouteAuthority.AUTHORITY,
+    schemaVersion: aiQualityRouteAuthority.SCHEMA_VERSION,
+    task: 'quick_reply',
+    selectedModelId: 'model-x',
+    provider: 'provider-x',
+    qualityTier: 'high',
+    executionMode: 'production',
+    deliveryEligible: true,
+    formalReceiptEligible: true,
+    learningEligible: true,
+    highCapabilityPath: true,
+    fallbackUsed: true,
+    attempts: [{
+      modelId: 'model-x', status: 'success', qualityTier: 'high',
+      recoveryAction: 'retry_reduced_context', recoveryPhase: 'same_model_reduced_context',
+      contextReduced: true, originalContextChars: 12000, reducedContextChars: 6000
+    }],
+    ...overrides
+  };
+  const receiptHash = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+  const receiptSignature = crypto.createHmac('sha256', Buffer.from(process.env.YANCE_AI_ROUTE_RECEIPT_SECRET)).update(receiptHash).digest('base64url');
+  return { ...payload, receiptHash, receiptSignature };
+}
 function withRepository(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-final-seven-'));
   const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
@@ -51,8 +80,13 @@ function withRepository(callback) {
 function bindPerson({ store, repository, personId = 'person-1', contacts = ['contact-a','contact-b'] }) {
   repository.insertPerson({ personId, workspaceId: 'default', displayName: 'Person', state: 'active', profileContactId: contacts[0], confidence: 1, payload: {}, createdAt: at(), updatedAt: at() });
   contacts.forEach((contactId, index) => {
-    store.upsertContact({ id: contactId, platform: index ? 'telegram' : 'whatsapp', accountId: index ? 'tg-1' : 'wa-1', externalId: `external-${index}`, displayName: contactId });
+    const platform = index ? 'telegram' : 'whatsapp';
+    const accountId = index ? 'tg-1' : 'wa-1';
+    const externalId = `external-${index}`;
+    store.upsertContact({ id: contactId, platform, accountId, externalId, displayName: contactId });
     repository.upsertPersonContactBinding({ personId, contactId, workspaceId: 'default', state: 'active', source: 'test', evidenceRefs: [`message-${index}`], createdAt: at(index), updatedAt: at(index) });
+    // Current PersonContextAuthority.resolve requires at least one usable (non-detached) identity link per Person.
+    repository.insertIdentityLink({ identityLinkId: `link-${personId}-${index}`, workspaceId: 'default', personId, platform, sourceAccountId: accountId, externalId, linkStatus: 'observed', confidence: 1, verificationMethod: 'test', evidenceRefs: [`message-${index}`], createdBy: 'test', createdAt: at(index), updatedAt: at(index) });
   });
 }
 function insertProfile(store, contactId, facts) {
@@ -156,17 +190,7 @@ test('runtime evidence exports hashed identities, immutable command receipts and
   withRepository(({ store }) => {
     store.upsertContact({ id: 'contact-a', platform: 'whatsapp', accountId: 'private-account', externalId: 'private-external', displayName: 'Private' });
     store.upsertConversation({ sessionKey: 'private-conversation', accountId: 'private-account', platform: 'whatsapp', contactId: 'contact-a', title: 'Private', routeState: 'bound', chatJid: 'private-external', externalId: 'private-external' });
-    const qualityRouteReceipt = aiQualityRouteAuthority.routeReceipt({
-      task: 'quick_reply', selectedModel: {
-        id: 'model-x', name: 'Model X', provider: 'provider-x', qualification: 'verified',
-        allowedTasks: ['quick_reply', 'deep_reply'],
-        capabilityTags: ['social_dialogue_high', 'style_axis_control', 'candidate_diversity', 'persona_consistency_long_context'],
-        lastQualificationTest: { scores: { persona: { pass: true }, hallucination: { pass: true } } },
-        lastReplyBrainBenchmark: { authority: 'YanceReplyBrainBenchmark', pass: true, status: 'REPLY_BRAIN_QUALIFIED', score: 96, scenarios: [] }
-      },
-      routePlan: { state: 'ready', violations: [] }, fallbackUsed: true,
-      attempts: [{ modelId: 'model-x', status: 'success', qualityTier: 'high', recoveryAction: 'retry_reduced_context', recoveryPhase: 'same_model_reduced_context', contextReduced: true, originalContextChars: 12000, reducedContextChars: 6000 }]
-    });
+    const qualityRouteReceipt = signedQualityRouteReceipt();
     enqueueVersioned(store, { id: 'send-1', idempotencyKey: 'private-key', accountId: 'private-account', sessionKey: 'private-conversation', messageType: 'text', payload: { outboxCommand: { commandSha256: 'c'.repeat(64), sendPolicySha256: 'p'.repeat(64), sendPolicyVersion: 'v1', contentFrozen: true, approvalReceiptId: 'approval-1', qualityRouteReceipt } }, outboxId: 'outbox-1', sendPolicy: { version: 'v1' }, capabilitySnapshotId: 'cap-1', qualityTier: 'high' });
     const base = ['outbox-1','task-1','candidate-1','contact-a','private-conversation','private-account','whatsapp','Hallo','Hallo','approved',1,at(),'user','send-1',1,'{}','owner',1,'hash',at(),at()];
     store.db.prepare(`INSERT INTO ai_reply_outbox(id,task_id,candidate_id,contact_id,conversation_id,account_id,platform,text,original_text,state,user_approved,approved_at,approved_by,send_queue_id,context_version,metadata_json,persona_profile_id,persona_version_id,persona_policy_hash,created_at,updated_at,target_language,final_text_sha256,idempotency_key,send_policy_version,capability_snapshot_id,approval_receipt_id,quality_route_receipt_json,learning_eligible) VALUES(${new Array(29).fill('?').join(',')})`).run(...base,'de','f'.repeat(64),'private-key','v1','cap-1','approval-1',JSON.stringify(qualityRouteReceipt),1);

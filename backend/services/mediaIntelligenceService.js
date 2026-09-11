@@ -46,7 +46,7 @@ function requiresRepresentativeFrame(kind, mimeType = '', filePath = '') {
   const ext = path.extname(String(filePath || '')).toLowerCase();
   return kind === 'video' || /(?:gif|webp|video)/i.test(mime) || ['.gif', '.webp', '.mp4', '.webm', '.mov', '.m4v'].includes(ext);
 }
-async function extractRepresentativeFrame({ filePath = '', buffer = null, mimeType = '', kind = 'image' }) {
+async function extractRepresentativeFrame({ filePath = '', buffer = null, mimeType = '', kind = 'image' }, converter = transcription) {
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-media-frame-'));
   try {
     let input = filePath;
@@ -54,11 +54,11 @@ async function extractRepresentativeFrame({ filePath = '', buffer = null, mimeTy
       input = path.join(temporaryRoot, `input${frameExtension(mimeType, filePath)}`);
       fs.writeFileSync(input, buffer);
     }
-    const ffmpeg = transcription.discoverFfmpeg();
+    const ffmpeg = converter.discoverFfmpeg();
     if (!ffmpeg) throw Object.assign(new Error('动态贴纸、GIF 或视频需要 FFmpeg 提取可识别画面。请先完成本地语音组件安装。'), { code: 'MEDIA_FRAME_CONVERTER_NOT_CONFIGURED', status: 409 });
     const output = path.join(temporaryRoot, 'representative-frame.png');
     try {
-      await transcription.runCommand(ffmpeg, ['-nostdin', '-y', '-i', input, '-frames:v', '1', '-vf', 'scale=min(1600\\,iw):-2', output], 120000);
+      await converter.runCommand(ffmpeg, ['-nostdin', '-y', '-i', input, '-frames:v', '1', '-vf', 'scale=min(1600\\,iw):-2', output], 120000);
     } catch (error) {
       throw Object.assign(new Error('未能从动态贴纸、GIF 或视频中提取可识别画面。'), { code: 'MEDIA_FRAME_EXTRACTION_FAILED', status: 422, cause: error });
     }
@@ -69,8 +69,8 @@ async function extractRepresentativeFrame({ filePath = '', buffer = null, mimeTy
     throw error;
   }
 }
-async function prepareVisionInput({ filePath = '', buffer = null, mimeType = '', kind = 'image' }) {
-  if (requiresRepresentativeFrame(kind, mimeType, filePath)) return extractRepresentativeFrame({ filePath, buffer, mimeType, kind });
+async function prepareVisionInput({ filePath = '', buffer = null, mimeType = '', kind = 'image' }, converter = transcription) {
+  if (requiresRepresentativeFrame(kind, mimeType, filePath)) return extractRepresentativeFrame({ filePath, buffer, mimeType, kind }, converter);
   if (buffer) return { buffer, mimeType: mimeType || 'image/jpeg', kind, cleanup: () => {} };
   const file = readFile(filePath);
   return { buffer: file.buffer, mimeType: mimeType || 'image/jpeg', kind, cleanup: () => {} };
