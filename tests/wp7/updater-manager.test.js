@@ -83,18 +83,21 @@ function makeManager({ updater, extractor, apiRequest, appPackaged = true } = {}
 
 const validIdentity = () => ({ productName: '言策', publisher: '言策科技', productVersion: '29.2.7', signed: true });
 
-
-test('packaged internal-test client uses manual installer updates and no server', () => {
+test('packaged client uses fixed stable GitHub updates while signing is deferred', () => {
   const fixture = makeExe();
   const info = updateInfo({ file: fixture.file, size: fixture.exe.length, sha512: fixture.sha512 });
   const updater = new FakeUpdater({ info, downloadedFile: fixture.file });
   const manager = makeManager({ updater });
-  assert.strictEqual(manager.state.configured, false);
-  assert.strictEqual(manager.state.configSource, 'internal-test-manual-installer');
-  assert.strictEqual(updater.feed, null);
+  assert.strictEqual(manager.state.configured, true);
+  assert.strictEqual(manager.state.configSource, 'github-packaged-unsigned-stable');
+  assert.deepStrictEqual(updater.feed, {
+    provider: 'github',
+    owner: 'wangyi198675-coder',
+    repo: 'Yance-Releases',
+    channel: 'latest'
+  });
   assert.strictEqual(updater.allowPrerelease, false);
 });
-
 
 test('real event contract: update-downloaded downloadedFile drives verification', async () => {
   process.env.YANCE_INTERNAL_UPDATE_TEST = '1';
@@ -116,7 +119,6 @@ test('real event contract: update-downloaded downloadedFile drives verification'
   }
 });
 
-
 test('downloadUpdate returned paths are a safe fallback when event is absent', async () => {
   process.env.YANCE_INTERNAL_UPDATE_TEST = '1';
   try {
@@ -131,7 +133,6 @@ test('downloadUpdate returned paths are a safe fallback when event is absent', a
     delete process.env.YANCE_INTERNAL_UPDATE_TEST;
   }
 });
-
 
 test('tampered installer is rejected using UpdateInfo sha512', async () => {
   process.env.YANCE_INTERNAL_UPDATE_TEST = '1';
@@ -149,7 +150,6 @@ test('tampered installer is rejected using UpdateInfo sha512', async () => {
   }
 });
 
-
 test('missing updater metadata is rejected instead of self-hashing the file', async () => {
   process.env.YANCE_INTERNAL_UPDATE_TEST = '1';
   try {
@@ -165,7 +165,6 @@ test('missing updater metadata is rejected instead of self-hashing the file', as
     delete process.env.YANCE_INTERNAL_UPDATE_TEST;
   }
 });
-
 
 test('available and downloaded metadata drift is rejected', async () => {
   process.env.YANCE_INTERNAL_UPDATE_TEST = '1';
@@ -188,8 +187,7 @@ test('available and downloaded metadata drift is rejected', async () => {
   }
 });
 
-
-test('production mode rejects unsigned or unknown Authenticode identity', async () => {
+test('production mode accepts unsigned identity while signing is deferred', async () => {
   delete process.env.YANCE_INTERNAL_UPDATE_TEST;
   process.env.YANCE_UPDATE_TEST_TRANSPORT = '1';
   try {
@@ -199,13 +197,12 @@ test('production mode rejects unsigned or unknown Authenticode identity', async 
     const manager = makeManager({ updater, extractor: () => ({ ...validIdentity(), signed: null }) });
     await manager.check({ manual: true });
     await manager.download();
-    assert.strictEqual(manager.state.phase, 'rejected');
-    assert.ok(manager.state.rejectedReasons.includes('UPDATE_REJECTED_SIGNATURE_INVALID'));
+    assert.strictEqual(manager.state.phase, 'ready', JSON.stringify(manager.state));
+    assert.ok(!manager.state.rejectedReasons?.includes('UPDATE_REJECTED_SIGNATURE_INVALID'));
   } finally {
     delete process.env.YANCE_UPDATE_TEST_TRANSPORT;
   }
 });
-
 
 test('install remains blocked when renderer has unsaved changes', async () => {
   process.env.YANCE_INTERNAL_UPDATE_TEST = '1';
