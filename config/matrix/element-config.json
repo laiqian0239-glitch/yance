@@ -2,7 +2,7 @@
   "brand": "Yance",
   "default_server_config": {
     "m.homeserver": {
-      "base_url": "http://synapse:8008",
+      "base_url": "http://127.0.0.1:8008",
       "server_name": "yance.local"
     }
   },

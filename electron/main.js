@@ -1177,11 +1177,26 @@ async function stopApplicationOwnedRuntimes(options = {}) {
     ['parlant', stopRuntimeWithDeadline('parlant', () => stopParlantRelationshipRuntime(), runtimeStopTimeoutMs)],
     ['graphiti', stopRuntimeWithDeadline('graphiti', () => stopGraphitiRelationshipRuntime(), runtimeStopTimeoutMs)],
     ['backend', stopRuntimeWithDeadline('backend', () => stopBackend({ forShutdown: true, reason }), backendStopTimeoutMs)],
-    ['matrix', stopRuntimeWithDeadline('matrix', () => {
-      const resourcesPath = controlledResourcesPath();
-      const matrixRuntimeDir = path.join(resourcesPath, 'matrix-runtime');
-      const composeFile = path.join(matrixRuntimeDir, 'docker-compose.yml');
-      return stopMatrixCompose(composeFile, matrixRuntimeDir);
+    ['matrix', stopRuntimeWithDeadline('matrix', async () => {
+      if (matrixRuntimeEphemeral) {
+        await stopMatrixCompose(matrixRuntimeEphemeral.runtimeDir, matrixRuntimeEphemeral.allComposeFiles);
+        // Clean ephemeral secret/config projection; never touch named volumes.
+        const ephemeral = matrixRuntimeEphemeral;
+        matrixRuntimeEphemeral = null;
+        matrixRuntimeStarted = false;
+        try {
+          if (ephemeral.secretProjection?.ephemeral && ephemeral.secretProjection.secretDir) {
+            fs.rmSync(ephemeral.secretProjection.secretDir, { recursive: true, force: true });
+          }
+          const runtimeConfigDir = path.join(ephemeral.runtimeDir, 'runtime-config');
+          if (fs.existsSync(runtimeConfigDir)) fs.rmSync(runtimeConfigDir, { recursive: true, force: true });
+          if (ephemeral.projection?.overridePath && fs.existsSync(ephemeral.projection.overridePath)) {
+            fs.rmSync(ephemeral.projection.overridePath, { force: true });
+          }
+        } catch (cleanupError) {
+          desktopLog('warn', 'matrix-runtime-ephemeral-cleanup-failed', { message: cleanupError.message });
+        }
+      }
     }, runtimeStopTimeoutMs)]
   ];
   const settled = await Promise.allSettled(operations.map(([, operation]) => operation));
@@ -2945,17 +2960,25 @@ function startBackendProcessForCoordinator(options = {}) {
  * Thin Docker/Compose adapter for Matrix runtime lifecycle.
  *
  * Uses ONLY official Docker Desktop / Docker Engine / Docker Compose CLI.
- * No custom container runtime, port allocator, process supervisor, or readiness framework.
- * Readiness is delegated to Compose healthcheck + `up --wait`.
- * Dynamic port discovery uses official `docker compose port`.
+ * No custom container runtime, port allocator, process supervisor, readiness
+ * polling loop, or state machine. Readiness is delegated entirely to Compose
+ * healthcheck + `up --wait`. Dynamic port discovery uses official
+ * `docker compose port`. Runtime config projection is the narrowest transform
+ * from sealed bundle config to host-reachable endpoints.
  */
+const crypto = require('crypto');
 const MATRIX_COMPOSE_PROJECT = 'yance-runtime';
+const MATRIX_MANIFEST_FILE = 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json';
+const MATRIX_COMPOSE_FILE = 'materialized-matrix-compose.yml';
+
+// Tracks ephemeral artifacts created for this launch so quit can clean them.
+let matrixRuntimeEphemeral = null;
 
 function dockerExec(args, options = {}) {
   return new Promise((resolve, reject) => {
     execFile('docker', args, {
       maxBuffer: options.maxBuffer || 10 * 1024 * 1024,
-      timeout: options.timeoutMs || 120000,
+      timeout: options.timeoutMs || 300000,
       cwd: options.cwd,
       env: { ...process.env, ...(options.env || {}) }
     }, (error, stdout, stderr) => {
@@ -2972,105 +2995,125 @@ function dockerExec(args, options = {}) {
   });
 }
 
-async function ensureDockerDesktopRunning() {
-  // Official Docker Desktop CLI: docker desktop status
-  try {
-    const status = await dockerExec(['desktop', 'status'], { timeoutMs: 15000 });
-    const output = (status.stdout + status.stderr).toLowerCase();
-    if (output.includes('running') || output.includes('started')) {
-      return { started: false, wasRunning: true };
-    }
-  } catch (error) {
-    // docker desktop command may not exist on Linux; treat as engine-direct
-    if (error.code === 'ENOENT' || error.stderr?.includes('not a docker command')) {
-      // Fall through to engine readiness check
-    } else {
-      desktopLog('warn', 'docker-desktop-status-failed', { message: error.message });
-    }
-  }
-
-  // Try to start Docker Desktop if stopped (official: docker desktop start --detach)
-  // Never restart an already-running Docker Desktop. Never `docker desktop stop`.
-  try {
-    await dockerExec(['desktop', 'start', '--detach'], { timeoutMs: 30000 });
-  } catch (error) {
-    desktopLog('warn', 'docker-desktop-start-command-returned', { message: error.message });
-  }
-
-  // Wait for Docker Engine readiness (official: docker info)
-  const deadline = Date.now() + 120000;
-  let lastError = null;
-  while (Date.now() < deadline) {
-    try {
-      await dockerExec(['info'], { timeoutMs: 10000 });
-      return { started: true, wasRunning: false };
-    } catch (error) {
-      lastError = error;
-      await new Promise(r => setTimeout(r, 2000));
-    }
-  }
-  const error = new Error('Docker Engine did not become ready within timeout');
-  error.reasonCode = 'DOCKER_ENGINE_READINESS_TIMEOUT';
-  error.details = { lastError: lastError?.message };
-  throw error;
+function matrixComposeBaseArgs(projectDir, composeFiles) {
+  const args = ['compose', '--project-name', MATRIX_COMPOSE_PROJECT, '--project-directory', projectDir];
+  for (const file of composeFiles) args.push('-f', file);
+  return args;
 }
 
-async function discoverMatrixComposePorts(composeFile, projectDir) {
-  const baseArgs = ['compose', '--project-name', MATRIX_COMPOSE_PROJECT, '--project-directory', projectDir, '-f', composeFile];
-  const services = [
-    { name: 'synapse', containerPort: 8008, envKey: 'YANCE_MATRIX_BASE_URL' },
-    { name: 'element', containerPort: 80, envKey: 'YANCE_ELEMENT_URL' }
-  ];
-  const endpoints = {};
-  for (const service of services) {
+// One-shot Docker Desktop availability check. The official `docker desktop
+// start` command itself owns engine bring-up; we do not run a polling loop.
+async function ensureDockerDesktopAvailable() {
+  try {
+    await dockerExec(['info'], { timeoutMs: 10000 });
+    return; // Engine already reachable; never restart a running Docker Desktop.
+  } catch (_) {
+    // Engine not reachable — ask Docker Desktop to start and synchronously wait
+    // for the engine (official readiness; no --detach, no Yance polling loop).
     try {
-      // Official: docker compose port <service> <container-port>
-      const result = await dockerExec([...baseArgs, 'port', service.name, String(service.containerPort)], { timeoutMs: 15000 });
-      const match = result.stdout.match(/:(\d+)$/);
-      if (match) {
-        const hostPort = parseInt(match[1], 10);
-        const url = `http://127.0.0.1:${hostPort}`;
-        endpoints[service.name] = { hostPort, containerPort: service.containerPort, url, envKey: service.envKey };
-        process.env[service.envKey] = url;
+      await dockerExec(['desktop', 'start', '--timeout', '120'], { timeoutMs: 130000 });
+    } catch (startError) {
+      // On non-Desktop engines the subcommand may not exist; surface a clear error.
+      const error = new Error('Docker Desktop is required to run 言策 and could not be started.');
+      error.reasonCode = 'DOCKER_DESKTOP_REQUIRED';
+      error.details = { cause: startError.message };
+      throw error;
+    }
+  }
+}
+
+function composePort(result) {
+  const match = String(result.stdout || '').match(/:(\d+)\s*$/);
+  if (!match) throw new Error(`could not parse published port from: ${result.stdout}`);
+  return parseInt(match[1], 10);
+}
+
+/**
+ * Project the two runtime secrets consumed by BOTH Compose and the backend.
+ * Reuses the existing secret-file authority (env vars point at files). If the
+ * owner already exported the env vars they are reused as-is; otherwise we
+ * create narrow ephemeral files (same shape as the mature UAT harness).
+ * No new vault, no secret database, no plaintext secret in the installer.
+ */
+function projectMatrixRuntimeSecrets(runtimeDir) {
+  const existing = process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE
+    && process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE;
+  if (existing) {
+    for (const name of ['YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE', 'YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE']) {
+      if (!fs.existsSync(process.env[name])) {
+        const error = new Error(`Configured Matrix secret file is missing: ${name}`);
+        error.reasonCode = 'MATRIX_RUNTIME_SECRET_UNAVAILABLE';
+        throw error;
       }
-    } catch (error) {
-      desktopLog('warn', 'matrix-port-discovery-failed', { service: service.name, error: error.message });
     }
+    return { ephemeral: false };
   }
-  if (!endpoints.element || !endpoints.synapse) {
-    const error = new Error('Failed to discover Matrix runtime ports');
-    error.reasonCode = 'MATRIX_PORT_DISCOVERY_FAILED';
-    error.details = { endpoints };
-    throw error;
+  const secretDir = path.join(runtimeDir, 'runtime-secrets');
+  fs.mkdirSync(secretDir, { recursive: true, mode: 0o700 });
+  const registrationFile = path.join(secretDir, 'matrix-registration-secret');
+  const provisioningFile = path.join(secretDir, 'mautrix-meta-provisioning-secret');
+  for (const target of [registrationFile, provisioningFile]) {
+    fs.writeFileSync(target, crypto.randomBytes(32).toString('base64'), { mode: 0o600 });
   }
-  process.env.YANCE_ELEMENT_HEALTH_URL = `${endpoints.element.url}/config.json`;
-  process.env.YANCE_PRODUCT_LOCATION_URL = `${endpoints.element.url}/#/yance`;
-  return endpoints;
+  process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE = registrationFile;
+  process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE = provisioningFile;
+  return { ephemeral: true, secretDir };
 }
 
-async function stopMatrixCompose(composeFile, projectDir) {
-  if (!composeFile || !fs.existsSync(composeFile)) return { stopped: false, wasRunning: false };
-  try {
-    // Official: docker compose down --remove-orphans
-    // NEVER uses --volumes (preserves user Matrix/session data).
-    // NEVER touches unrelated Docker projects.
-    await dockerExec([
-      'compose', '--project-name', MATRIX_COMPOSE_PROJECT,
-      '--project-directory', projectDir, '-f', composeFile,
-      'down', '--remove-orphans'
-    ], { timeoutMs: 60000 });
-    return { stopped: true, wasRunning: true };
-  } catch (error) {
-    desktopLog('error', 'matrix-runtime-stop-failed', { message: error.message });
-    throw error;
-  }
+/**
+ * Narrow runtime projection of the sealed Element config so the host-side
+ * Element renderer reaches Synapse through the actual dynamic host port.
+ *
+ * Only Element is overridden. Synapse is started once in phase 1 with its
+ * sealed config and MUST NOT be re-mounted in phase 2: doing so recreates the
+ * container, which makes Docker reassign its dynamic host port and invalidates
+ * the very port baked into the Element config (verified with a real two-phase
+ * Compose proof). Container-to-container bridge traffic keeps using the
+ * internal `synapse:8008` DNS name; the host renderer uses the discovered
+ * host port via this projected Element config. The sealed bundle stays
+ * immutable — we emit one transformed Element copy + an Element-only override.
+ * No proxy, no wildcard origin, no second config authority.
+ */
+function projectMatrixRuntimeConfigs(runtimeDir, sealedConfigDir, synapseHostPort) {
+  const projectedDir = path.join(runtimeDir, 'runtime-config');
+  fs.mkdirSync(projectedDir, { recursive: true });
+
+  // Element config: only swap the homeserver base_url to the dynamic host port.
+  const sealedElementConfig = path.join(sealedConfigDir, 'element-config.json');
+  const elementConfig = JSON.parse(fs.readFileSync(sealedElementConfig, 'utf8'));
+  elementConfig.default_server_config['m.homeserver'].base_url = `http://127.0.0.1:${synapseHostPort}`;
+  const runtimeElementConfig = path.join(projectedDir, 'element-config.json');
+  fs.writeFileSync(runtimeElementConfig, JSON.stringify(elementConfig, null, 2) + '\n', { mode: 0o600 });
+
+  // Element-only override: remap just Element's config.json. Synapse is absent
+  // here on purpose, so phase 2 never recreates it or changes its host port.
+  const overridePath = path.join(runtimeDir, 'runtime-override.yml');
+  const override = [
+    'services:',
+    '  element:',
+    '    volumes:',
+    `      - ${runtimeElementConfig.replace(/\\/g, '/')}:/app/config.json:ro`,
+    ''
+  ].join('\n');
+  fs.writeFileSync(overridePath, override, { mode: 0o600 });
+  return { overridePath, runtimeElementConfig };
+}
+
+async function stopMatrixCompose(projectDir, composeFiles) {
+  if (!projectDir || !composeFiles?.length) return;
+  await dockerExec([
+    ...matrixComposeBaseArgs(projectDir, composeFiles),
+    'down', '--remove-orphans' // NEVER --volumes: preserve user Matrix/session data.
+  ], { timeoutMs: 60000 });
 }
 
 /**
  * Ensure Matrix runtime (Synapse + Element + mautrix bridges) is running.
  * Thin adapter over official Docker Desktop / Docker Compose CLI.
- * Readiness via Compose healthcheck + `up --wait` (no custom polling).
- * Dynamic port discovery via official `docker compose port`.
+ * Two-phase startup resolves the dynamic-port / Element-config dependency:
+ *   Phase 1 brings up Synapse+bridges and discovers the real Synapse host port.
+ *   Phase 2 projects host-reachable configs and brings up Element via override.
+ * Compose healthcheck + `up --wait` is the sole readiness authority.
  */
 async function ensureMatrixRuntime() {
   if (process.env.YANCE_MATRIX_RUNTIME_DISABLED === '1') {
@@ -3088,49 +3131,111 @@ async function ensureMatrixRuntime() {
     return { started: false, reason: 'external_element_url' };
   }
 
-  if (matrixRuntimeStarted) {
-    return { started: false, reason: 'already_started' };
-  }
+  if (matrixRuntimeStarted) return { started: false, reason: 'already_started' };
 
   const resourcesPath = controlledResourcesPath();
-  const matrixRuntimeDir = path.join(resourcesPath, 'matrix-runtime');
-  const composeFile = path.join(matrixRuntimeDir, 'docker-compose.yml');
-  const imagesTarPath = path.join(matrixRuntimeDir, 'matrix-images.tar');
+  const runtimeDir = path.join(resourcesPath, 'matrix-runtime');
+  const composeFile = path.join(runtimeDir, MATRIX_COMPOSE_FILE);
+  const imagesTarPath = path.join(runtimeDir, 'matrix-images.tar');
+  const manifestPath = path.join(runtimeDir, MATRIX_MANIFEST_FILE);
+  const sealedConfigDir = path.join(runtimeDir, 'matrix-config');
 
-  if (!fs.existsSync(composeFile)) {
-    desktopLog('warn', 'matrix-runtime-compose-not-found', { matrixRuntimeDir, composeFile });
-    return { started: false, reason: 'compose_not_found' };
+  // Packaged mode: exact sealed runtime is the only production source → fail closed.
+  const required = [
+    { p: composeFile, code: 'MATRIX_RUNTIME_COMPOSE_REQUIRED' },
+    { p: imagesTarPath, code: 'MATRIX_RUNTIME_IMAGES_REQUIRED' },
+    { p: manifestPath, code: 'MATRIX_RUNTIME_MANIFEST_REQUIRED' },
+    { p: sealedConfigDir, code: 'MATRIX_RUNTIME_CONFIG_REQUIRED', directory: true }
+  ];
+  for (const item of required) {
+    const exists = item.directory ? fs.existsSync(item.p) && fs.statSync(item.p).isDirectory() : fs.existsSync(item.p);
+    if (!exists) {
+      const message = `Required sealed Matrix runtime asset is missing: ${path.basename(item.p)}`;
+      desktopLog('error', 'matrix-runtime-asset-missing', { path: item.p, code: item.code });
+      if (app.isPackaged) {
+        const error = new Error(message);
+        error.reasonCode = item.code;
+        throw error;
+      }
+      return { started: false, reason: 'asset_missing', missing: item.code };
+    }
   }
 
-  try {
-    // 1. Ensure Docker Desktop is running (official CLI, never restart running, never stop)
-    await ensureDockerDesktopRunning();
+  // Sealed candidate identity drives the image tag (no hard-coded SHA).
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const candidateCommit = manifest.candidateCommit;
+  if (!/^[0-9a-f]{40}$/.test(String(candidateCommit || ''))) {
+    const error = new Error('Sealed Matrix manifest candidateCommit is invalid');
+    error.reasonCode = 'MATRIX_RUNTIME_MANIFEST_IDENTITY_INVALID';
+    throw error;
+  }
+  const composeEnv = { YANCE_UAT_CANDIDATE_SHA: candidateCommit };
 
-    // 2. Load pre-built Matrix images if present (official: docker load -i)
-    if (fs.existsSync(imagesTarPath)) {
-      desktopLog('info', 'matrix-images-loading', { path: imagesTarPath });
-      await dockerExec(['load', '-i', imagesTarPath], { timeoutMs: 300000 });
+  try {
+    // 1. Docker Desktop availability (official CLI owns engine bring-up).
+    await ensureDockerDesktopAvailable();
+
+    // 2. Shared secret projection for Compose + backend (same authority).
+    const secretProjection = projectMatrixRuntimeSecrets(runtimeDir);
+
+    // 3. Load sealed images (official: docker load).
+    desktopLog('info', 'matrix-images-loading', { candidateCommit });
+    await dockerExec(['load', '-i', imagesTarPath], { timeoutMs: 300000 });
+
+    // 4. Phase 1: Synapse + bridges; Compose healthcheck/--wait owns readiness.
+    const baseArgs = matrixComposeBaseArgs(runtimeDir, [composeFile]);
+    desktopLog('info', 'matrix-runtime-phase1-up', { project: MATRIX_COMPOSE_PROJECT });
+    await dockerExec([
+      ...baseArgs, 'up', '-d', '--no-build', '--wait',
+      'synapse', 'mautrix-meta', 'mautrix-whatsapp'
+    ], { timeoutMs: 300000, cwd: runtimeDir, env: composeEnv });
+
+    // 5. Discover the real dynamic Synapse host port (official: compose port).
+    const synapsePortResult = await dockerExec([...baseArgs, 'port', 'synapse', '8008'], { timeoutMs: 15000 });
+    const synapseHostPort = composePort(synapsePortResult);
+
+    // 6. Project host-reachable Element/Synapse configs + Compose override.
+    const projection = projectMatrixRuntimeConfigs(runtimeDir, sealedConfigDir, synapseHostPort);
+    const allComposeFiles = [composeFile, projection.overridePath];
+    const allArgs = matrixComposeBaseArgs(runtimeDir, allComposeFiles);
+
+    // 7. Phase 2: bring up Element and reconcile Synapse with projected config.
+    desktopLog('info', 'matrix-runtime-phase2-up', { synapseHostPort });
+    await dockerExec([
+      ...allArgs, 'up', '-d', '--no-build', '--wait', '--remove-orphans'
+    ], { timeoutMs: 300000, cwd: runtimeDir, env: composeEnv });
+
+    // 8. Discover Element + mautrix-meta dynamic host ports.
+    const elementPortResult = await dockerExec([...allArgs, 'port', 'element', '80'], { timeoutMs: 15000 });
+    const elementHostPort = composePort(elementPortResult);
+    let mautrixProvisioningUrl = '';
+    try {
+      const metaPortResult = await dockerExec([...allArgs, 'port', 'mautrix-meta', '29319'], { timeoutMs: 15000 });
+      const metaHostPort = composePort(metaPortResult);
+      mautrixProvisioningUrl = `http://127.0.0.1:${metaHostPort}/_matrix/provision`;
+      process.env.YANCE_MAUTRIX_META_PROVISIONING_URL = mautrixProvisioningUrl;
+    } catch (error) {
+      desktopLog('warn', 'matrix-mautrix-port-discovery-failed', { message: error.message });
     }
 
-    // 3. Start Matrix runtime via Compose with official --wait (readiness = Compose healthcheck)
-    // Official: docker compose up -d --no-build --wait --remove-orphans
-    desktopLog('info', 'matrix-runtime-compose-up', { project: MATRIX_COMPOSE_PROJECT, composeFile });
-    await dockerExec([
-      'compose', '--project-name', MATRIX_COMPOSE_PROJECT,
-      '--project-directory', matrixRuntimeDir, '-f', composeFile,
-      'up', '-d', '--no-build', '--wait', '--remove-orphans'
-    ], { timeoutMs: 300000, cwd: matrixRuntimeDir });
+    // 9. Project host-reachable endpoints for the backend / renderer.
+    const synapseUrl = `http://127.0.0.1:${synapseHostPort}`;
+    const elementUrl = `http://127.0.0.1:${elementHostPort}`;
+    process.env.YANCE_MATRIX_BASE_URL = synapseUrl;
+    process.env.YANCE_ELEMENT_URL = elementUrl;
+    process.env.YANCE_ELEMENT_HEALTH_URL = `${elementUrl}/config.json`;
+    process.env.YANCE_PRODUCT_LOCATION_URL = `${elementUrl}/#/yance`;
 
-    // 4. Discover actual dynamic ports (official: docker compose port)
-    const endpoints = await discoverMatrixComposePorts(composeFile, matrixRuntimeDir);
+    const endpoints = {
+      synapse: { hostPort: synapseHostPort, url: synapseUrl },
+      element: { hostPort: elementHostPort, url: elementUrl },
+      mautrixMeta: { url: mautrixProvisioningUrl }
+    };
+    matrixRuntimeEphemeral = { runtimeDir, allComposeFiles, secretProjection, projection };
     matrixRuntimeStarted = true;
     updateMatrixRuntimeEndpoints(endpoints);
-
-    desktopLog('info', 'matrix-runtime-ready', {
-      elementPort: endpoints.element?.hostPort,
-      synapsePort: endpoints.synapse?.hostPort
-    });
-    return { started: true, endpoints };
+    desktopLog('info', 'matrix-runtime-ready', { synapseHostPort, elementHostPort });
+    return { started: true, endpoints, candidateCommit };
   } catch (error) {
     desktopLog('error', 'matrix-runtime-start-failed', {
       reasonCode: error.reasonCode || 'MATRIX_RUNTIME_START_FAILED',
@@ -3138,7 +3243,7 @@ async function ensureMatrixRuntime() {
     });
     if (app.isPackaged) {
       const userError = new Error(
-        error.reasonCode === 'DOCKER_DESKTOP_REQUIRED' || error.reasonCode === 'DOCKER_ENGINE_READINESS_TIMEOUT'
+        error.reasonCode === 'DOCKER_DESKTOP_REQUIRED'
           ? 'Docker Desktop is required to run 言策. Please install Docker Desktop and restart the app.'
           : `Matrix runtime failed to start: ${error.message}`
       );

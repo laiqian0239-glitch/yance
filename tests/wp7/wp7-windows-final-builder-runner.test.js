@@ -25,6 +25,10 @@ test('formal Builder CLI requires all identity and external artifact arguments',
     '--expected-branch', 'rebuild/windows-release-closure-test',
     '--expected-commit', 'b'.repeat(40),
     '--expected-tree', 'c'.repeat(40),
+    '--matrix-runtime-source', 'D:\\matrix-runtime',
+    '--matrix-runtime-candidate-branch', 'rebuild/windows-release-closure-test',
+    '--matrix-runtime-candidate-commit', 'b'.repeat(40),
+    '--matrix-runtime-candidate-tree', 'c'.repeat(40),
     '--build-timestamp-utc', '2026-07-12T16:00:00.000Z'
   ]);
   assert.equal(parsed['compiler-path'], 'C:\\NSIS\\makensis.exe');

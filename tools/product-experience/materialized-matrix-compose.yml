@@ -187,6 +187,17 @@ services:
     volumes:
       - mautrix-meta-secret-data:/run/secrets:ro
       - mautrix-meta-data:/data
+    # Dynamic host port for provisioning API consumed by backend on Windows host.
+    # Yance discovers the actual port via `docker compose port mautrix-meta 29319`.
+    ports:
+      - "127.0.0.1::29319"
+    healthcheck:
+      # Provisioning API requires auth (401); readiness is the listener being up.
+      test: ["CMD", "nc", "-z", "localhost", "29319"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
     depends_on:
       matrix-secret-projection:
         condition: service_completed_successfully

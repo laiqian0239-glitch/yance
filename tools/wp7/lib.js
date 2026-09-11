@@ -603,10 +603,10 @@ function validatePresealedMatrixRuntime(runtimeRoot, expectedIdentity = {}) {
   if (!fs.existsSync(imagesTar) || !fs.lstatSync(imagesTar).isFile()) {
     throw new Wp7Error('WP7_MATRIX_RUNTIME_IMAGES_REQUIRED', 'matrix-images.tar is required in the presealed Matrix runtime', { runtimeRoot: root });
   }
-  // docker-compose.yml is required
-  const composeFile = path.join(root, 'docker-compose.yml');
+  // docker-compose.yml is required (sealed bundle name: materialized-matrix-compose.yml)
+  const composeFile = path.join(root, 'materialized-matrix-compose.yml');
   if (!fs.existsSync(composeFile) || !fs.lstatSync(composeFile).isFile()) {
-    throw new Wp7Error('WP7_MATRIX_RUNTIME_COMPOSE_REQUIRED', 'docker-compose.yml is required in the presealed Matrix runtime', { runtimeRoot: root });
+    throw new Wp7Error('WP7_MATRIX_RUNTIME_COMPOSE_REQUIRED', 'materialized-matrix-compose.yml is required in the presealed Matrix runtime', { runtimeRoot: root });
   }
   // Reuse mature verifyCandidateBundle() — no second manifest authority
   const manifest = verifyCandidateBundle({
