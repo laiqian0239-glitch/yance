@@ -262,10 +262,19 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           if ($env:MATRIX_RUN_ID -notmatch '^[0-9]+$') { throw 'materialized_matrix_run_id must be a GitHub Actions run id' }
+          $runJson = & gh run view $env:MATRIX_RUN_ID --repo $env:GITHUB_REPOSITORY --json name,event,status,conclusion,headSha,headBranch
+          if ($LASTEXITCODE -ne 0) { throw "failed to read Product Experience workflow run provenance: $env:MATRIX_RUN_ID" }
+          $run = ($runJson -join "`n") | ConvertFrom-Json
+          if ([string]$run.name -ne 'V21 Product Experience Shell P0 Final Validation') { throw "unexpected Matrix artifact workflow: $($run.name)" }
+          if ([string]$run.event -ne 'pull_request') { throw "unexpected Matrix artifact workflow event: $($run.event)" }
+          if ([string]$run.status -ne 'completed') { throw "Matrix artifact workflow is not completed: $($run.status)" }
+          if ([string]$run.conclusion -ne 'success') { throw "Matrix artifact workflow did not succeed: $($run.conclusion)" }
+          if ([string]$run.headSha -notmatch '^[0-9a-f]{40}$') { throw "Matrix artifact workflow headSha is malformed: $($run.headSha)" }
+          if ([string]::IsNullOrWhiteSpace([string]$run.headBranch)) { throw 'Matrix artifact workflow headBranch is missing' }
           $root = "$env:RUNNER_TEMP\yance-release-input\matrix-runtime"
           Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path $root -Force | Out-Null
-          $artifactName = "Product-Experience-Materialized-Matrix-UAT-$env:EXPECTED_COMMIT"
+          $artifactName = "Product-Experience-Materialized-Matrix-UAT-$($run.headSha)"
           gh run download $env:MATRIX_RUN_ID --repo $env:GITHUB_REPOSITORY --name $artifactName --dir $root
           if ($LASTEXITCODE -ne 0) { throw "failed to download sealed Matrix runtime artifact $artifactName from run $env:MATRIX_RUN_ID" }
           foreach ($relative in @('PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json','matrix-images.tar','materialized-matrix-compose.yml','matrix-config\element-config.json','matrix-config\synapse\homeserver.yaml')) {
@@ -273,17 +282,20 @@ jobs:
           }
           $manifest = Get-Content -LiteralPath (Join-Path $root 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json') -Raw | ConvertFrom-Json
           if ($manifest.bundleClass -ne 'PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY') { throw "sealed Matrix artifact bundleClass mismatch: $($manifest.bundleClass)" }
-          if ($manifest.candidateCommit -ne $env:EXPECTED_COMMIT) { throw "sealed Matrix artifact commit mismatch: $($manifest.candidateCommit)" }
-          if ($manifest.candidateTree -ne $env:EXPECTED_TREE) { throw "sealed Matrix artifact tree mismatch: $($manifest.candidateTree)" }
+          if ([string]$manifest.candidateCommit -ne [string]$run.headSha) { throw "sealed Matrix artifact commit/run mismatch: artifact=$($manifest.candidateCommit) run=$($run.headSha)" }
+          if ([string]$manifest.candidateBranch -ne [string]$run.headBranch) { throw "sealed Matrix artifact branch/run mismatch: artifact=$($manifest.candidateBranch) run=$($run.headBranch)" }
+          if ([string]$manifest.candidateTree -ne $env:EXPECTED_TREE) { throw "sealed Matrix artifact/release tree mismatch: artifact=$($manifest.candidateTree) release=$env:EXPECTED_TREE" }
           & node tools/product-experience/create-materialized-uat-candidate.js verify `
             --root $root `
             --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY `
             --candidate-branch $manifest.candidateBranch `
-            --candidate-commit $env:EXPECTED_COMMIT `
-            --candidate-tree $env:EXPECTED_TREE
+            --candidate-commit $manifest.candidateCommit `
+            --candidate-tree $manifest.candidateTree
           if ($LASTEXITCODE -ne 0) { throw "verifyCandidateBundle() rejected sealed Matrix runtime artifact from run $env:MATRIX_RUN_ID" }
           "source=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "candidate_branch=$($manifest.candidateBranch)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "candidate_commit=$($manifest.candidateCommit)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "candidate_tree=$($manifest.candidateTree)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Build and sign release before metadata sealing
         shell: pwsh
@@ -301,6 +313,8 @@ jobs:
           TRUSTED_NODE_EXECUTABLE: ${{ steps.trusted_node.outputs.executable }}
           MATRIX_RUNTIME_SOURCE: ${{ steps.matrix_runtime.outputs.source }}
           MATRIX_RUNTIME_CANDIDATE_BRANCH: ${{ steps.matrix_runtime.outputs.candidate_branch }}
+          MATRIX_RUNTIME_CANDIDATE_COMMIT: ${{ steps.matrix_runtime.outputs.candidate_commit }}
+          MATRIX_RUNTIME_CANDIDATE_TREE: ${{ steps.matrix_runtime.outputs.candidate_tree }}
         run: |
           $ErrorActionPreference = 'Stop'
           $timestamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
@@ -325,8 +339,8 @@ jobs:
             -BuildTimestampUtc $timestamp `
             -MatrixRuntimeSource $env:MATRIX_RUNTIME_SOURCE `
             -MatrixRuntimeCandidateBranch $env:MATRIX_RUNTIME_CANDIDATE_BRANCH `
-            -MatrixRuntimeCandidateCommit '${{ steps.identity.outputs.commit }}' `
-            -MatrixRuntimeCandidateTree '${{ steps.identity.outputs.tree }}' `
+            -MatrixRuntimeCandidateCommit $env:MATRIX_RUNTIME_CANDIDATE_COMMIT `
+            -MatrixRuntimeCandidateTree $env:MATRIX_RUNTIME_CANDIDATE_TREE `
             -RequireSignedInstaller `
             -SigningCertificate "$env:RUNNER_TEMP\yance-release-input\windows-signing.pfx" `
             -SignToolPath '${{ steps.tools.outputs.signtool }}'
