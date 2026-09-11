@@ -288,6 +288,7 @@ jobs:
           "run_attempt=$runAttempt" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Build unsigned release before metadata sealing
+        id: final_builder
         shell: pwsh
         env:
           PREACCEPTANCE_RECORD: ${{ steps.preacceptance.outputs.record }}
@@ -346,6 +347,7 @@ jobs:
           }
 
       - name: Upload unsigned release evidence
+        if: ${{ always() && steps.final_builder.outcome != 'skipped' }}
         uses: actions/upload-artifact@v4
         with:
           name: yance-unsigned-windows-release
