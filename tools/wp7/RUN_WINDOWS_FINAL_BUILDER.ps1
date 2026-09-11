@@ -11,6 +11,7 @@ param(
   [Parameter(Mandatory = $true)][string]$WindowsRound2Sha256,
   [Parameter(Mandatory = $true)][string]$ElectronArchive,
   [Parameter(Mandatory = $true)][string]$MakensisPath,
+  [Parameter(Mandatory = $true)][string]$RceditPath,
   [Parameter(Mandatory = $true)][string]$ExpectedCommit,
   [Parameter(Mandatory = $true)][string]$ExpectedTree,
   [Parameter(Mandatory = $true)][string]$ExpectedBranch,
@@ -40,6 +41,7 @@ Set-StrictMode -Version Latest
 $NodeExe = Join-Path $NodeRoot 'node.exe'
 $NpmCli = Join-Path $NodeRoot 'node_modules\npm\bin\npm-cli.js'
 $TrustedNodeExecutable = [IO.Path]::GetFullPath($TrustedNodeExecutable)
+$RceditPath = [IO.Path]::GetFullPath($RceditPath)
 $OriginalPath = $env:PATH
 $OriginalNpmCache = $env:NPM_CONFIG_CACHE
 $OriginalElectronSkipBinaryDownload = $env:ELECTRON_SKIP_BINARY_DOWNLOAD
@@ -164,6 +166,8 @@ try {
   if (-not (Test-Path -LiteralPath $ElectronArchive -PathType Leaf)) { throw "Electron archive missing: $ElectronArchive" }
   if (-not (Test-Path -LiteralPath $MakensisPath -PathType Leaf)) { throw "makensis.exe missing: $MakensisPath" }
   if ([IO.Path]::GetExtension($MakensisPath).ToLowerInvariant() -ne '.exe') { throw 'MakensisPath must point to a native .exe' }
+  if (-not (Test-Path -LiteralPath $RceditPath -PathType Leaf)) { throw "rcedit.exe missing: $RceditPath" }
+  if ([IO.Path]::GetExtension($RceditPath).ToLowerInvariant() -ne '.exe') { throw 'RceditPath must point to a native .exe' }
   if ($RequirePlatformAuth) {
     if (-not (Test-Path -LiteralPath $PlatformAuthConfig -PathType Leaf)) { throw "sealed platform auth configuration missing: $PlatformAuthConfig" }
     if (-not (Test-Path -LiteralPath $PlatformAuthSha256 -PathType Leaf)) { throw "platform auth SHA-256 missing: $PlatformAuthSha256" }
@@ -246,6 +250,7 @@ try {
       '--electron-dist', $electronDist,
       '--electron-archive', $ElectronArchive,
       '--compiler-path', $MakensisPath,
+      '--rcedit-path', $RceditPath,
       '--trusted-node-executable', $TrustedNodeExecutable,
       '--expected-branch', $ExpectedBranch,
       '--expected-commit', $ExpectedCommit,

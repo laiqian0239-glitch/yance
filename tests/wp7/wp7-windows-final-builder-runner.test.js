@@ -21,6 +21,7 @@ test('formal Builder CLI requires all identity and external artifact arguments',
     '--electron-dist', 'D:\\electron',
     '--electron-archive', 'D:\\electron.zip',
     '--compiler-path', 'C:\\NSIS\\makensis.exe',
+    '--rcedit-path', 'D:\\rcedit\\rcedit.exe',
     '--trusted-node-executable', 'D:\\trusted-node-22.23.1\\node.exe',
     '--expected-branch', 'rebuild/windows-release-closure-test',
     '--expected-commit', 'b'.repeat(40),
@@ -32,6 +33,7 @@ test('formal Builder CLI requires all identity and external artifact arguments',
     '--build-timestamp-utc', '2026-07-12T16:00:00.000Z'
   ]);
   assert.equal(parsed['compiler-path'], 'C:\\NSIS\\makensis.exe');
+  assert.equal(parsed['rcedit-path'], 'D:\\rcedit\\rcedit.exe');
   assert.equal(parsed['trusted-node-executable'], 'D:\\trusted-node-22.23.1\\node.exe');
 });
 
@@ -63,6 +65,8 @@ test('PowerShell Builder wrapper contains the formal isolation and split runtime
     'ExpectedBundleSha256',
     'NodeRoot',
     'TrustedNodeExecutable',
+    'RceditPath',
+    '--rcedit-path',
     '--trusted-node-executable',
     'v22.23.1',
     'YANCE_NPM_CLI_JS',
@@ -80,6 +84,7 @@ test('PowerShell Builder wrapper contains the formal isolation and split runtime
   assert.match(script, /\$NodeExe --version\)\.Trim\(\) -ne 'v22\.16\.0'/u);
   assert.match(script, /\$TrustedNodeExecutable --version\)\.Trim\(\) -ne 'v22\.23\.1'/u);
   assert.match(script, /\$NodeExe \$NpmCli --version\)\.Trim\(\) -ne '10\.9\.2'/u);
+  assert.match(script, /\[Parameter\(Mandatory = \$true\)\]\[string\]\$RceditPath/u);
   assert.doesNotMatch(script, /allowNonWindows/i);
   assert.doesNotMatch(script, /--branch rebuild\/windows-release-closure-20260712-controlled-builder/);
 });
@@ -111,6 +116,21 @@ test('PowerShell Builder treats npm warnings as stderr diagnostics and uses the 
   assert.match(npmBlock, /if \(\$npmCiExitCode -ne 0\)/);
   assert.match(npmBlock, /\$ErrorActionPreference = \$previousErrorActionPreference/);
   assert.match(script, /Final Builder is still running; do not close this window/);
+});
+
+test('PowerShell Builder exposes child logs when Final Builder fails', () => {
+  const script = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'RUN_WINDOWS_FINAL_BUILDER.ps1'), 'utf8');
+  const launch = script.indexOf('Start-Process');
+  const wait = script.indexOf('$process.WaitForExit()', launch);
+  const exit = script.indexOf('$process.ExitCode | Set-Content', wait);
+  const failure = script.indexOf('if ($process.ExitCode -ne 0)', exit);
+  assert.ok(launch > 0 && wait > launch && exit > wait && failure > exit);
+
+  const failureBlock = script.slice(failure, script.indexOf('throw "Builder failed with exit', failure));
+  assert.match(failureBlock, /Final Builder stderr/u);
+  assert.match(failureBlock, /Get-Content -LiteralPath \$stderr/u);
+  assert.match(failureBlock, /Final Builder stdout/u);
+  assert.match(failureBlock, /Get-Content -LiteralPath \$stdout/u);
 });
 
 test('release workflow downloads and verifies the same-source sealed Matrix runtime before Final Builder', () => {
