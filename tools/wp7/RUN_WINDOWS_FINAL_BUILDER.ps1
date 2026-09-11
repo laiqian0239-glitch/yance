@@ -290,8 +290,19 @@ try {
         throw 'source identity or worktree changed during Builder execution'
       }
     }
+    $process.WaitForExit()
     $process.ExitCode | Set-Content -Encoding ASCII $exitFile
-    if ($process.ExitCode -ne 0) { throw "Builder failed with exit $($process.ExitCode)" }
+    if ($process.ExitCode -ne 0) {
+      Write-Host '--- Final Builder stderr ---'
+      if (Test-Path -LiteralPath $stderr -PathType Leaf) {
+        Get-Content -LiteralPath $stderr | ForEach-Object { Write-Host $_ }
+      }
+      Write-Host '--- Final Builder stdout ---'
+      if (Test-Path -LiteralPath $stdout -PathType Leaf) {
+        Get-Content -LiteralPath $stdout | ForEach-Object { Write-Host $_ }
+      }
+      throw "Builder failed with exit $($process.ExitCode)"
+    }
   }
   finally { Pop-Location }
 
