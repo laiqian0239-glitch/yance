@@ -203,7 +203,11 @@ const clean=value=>String(value==null?'':value).trim();
 const notify=(message,tone='info')=>window.YanceNotificationLayoutAuthority?.show?.({message,tone,source:'adaptive-local',timeoutMs:tone==='error'?6500:3200});
 async function json(url,options={}){
   const response=await fetch(url,{method:options.method||'GET',headers:{Accept:'application/json','Content-Type':'application/json',...(options.headers||{})},body:options.body===undefined?undefined:JSON.stringify(options.body)});
-  const payload=await response.json().catch(()=>({}));
+  let payload;
+  try { payload = await response.json(); }
+  catch (cause) {
+    throw Object.assign(new Error('AI 工作台返回了无法解析的响应'), { code: 'AIW_INVALID_RESPONSE', status: response.status, cause });
+  }
   if(!response.ok||payload.ok===false)throw Object.assign(new Error(payload.message||payload.error||`HTTP ${response.status}`),{code:payload.code||payload.error||'ADAPTIVE_LOCAL_REQUEST_FAILED',status:response.status,payload});
   return payload;
 }
@@ -327,7 +331,7 @@ let inFlight=false;
 const clean=value=>String(value==null?'':value).trim();
 const candidatesFromCatalog=catalog=>(Array.isArray(catalog?.models)?catalog.models:[]).flatMap(model=>(Array.isArray(model.runtimeCandidates)?model.runtimeCandidates:[]).map(runtimeId=>({model:{id:clean(model.id),parameterCountB:Number(model.parameterCountB||0),quantizedBytes:Number(model.quantizedBytes||0)},runtime:{id:clean(runtimeId)},benchmark:{}})));
 const formatBytes=value=>{const bytes=Number(value||0);if(!Number.isFinite(bytes)||bytes<=0)return 'unknown';const gib=bytes/(1024**3);return `${gib.toFixed(gib>=10?0:1)} GiB`};
-async function readJson(url,options={}){const response=await fetch(url,{method:options.method||'GET',headers:{Accept:'application/json','Content-Type':'application/json'},body:options.body===undefined?undefined:JSON.stringify(options.body)}),payload=await response.json().catch(()=>({}));if(!response.ok||payload.ok===false)throw Object.assign(new Error(payload.message||payload.error||`HTTP ${response.status}`),{code:payload.code||payload.error||'ADAPTIVE_LOCAL_PLAN_FAILED'});return payload}
+async function readJson(url,options={}){const response=await fetch(url,{method:options.method||'GET',headers:{Accept:'application/json','Content-Type':'application/json'},body:options.body===undefined?undefined:JSON.stringify(options.body)}),payload=await response.json().catch(cause=>{throw Object.assign(new Error('AI 工作台返回了无法解析的响应'),{code:'AIW_INVALID_RESPONSE',status:response.status,cause})});if(!response.ok||payload.ok===false)throw Object.assign(new Error(payload.message||payload.error||`HTTP ${response.status}`),{code:payload.code||payload.error||'ADAPTIVE_LOCAL_PLAN_FAILED'});return payload}
 function renderEvidence(plan){
   const shell=document.querySelector('[data-adaptive-local-shell]');if(!shell)return false;
   const body=shell.querySelector('.adaptive-local-body');if(!body)return false;

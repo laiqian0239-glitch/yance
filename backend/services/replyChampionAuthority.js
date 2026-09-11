@@ -53,7 +53,7 @@ function projection(model = {}, task = '', options = {}) {
     modelName: clean(model.name || model.id),
     provider: clean(model.provider),
     task: target,
-    taskScore: Number(qualification.score || 0),
+    taskScore: Number(replyBrainAuthority.taskBenchmarkScore(model) || 0),
     benchmarkScore: Number(replyBrainAuthority.benchmarkScore(model) || 0),
     runtimeEvidence: Boolean(model.lastSuccessfulInvocation || model.lastSuccessAt || Number(model.callCount || 0) > 0),
     currentFailure: Boolean(model.currentFailure || model.lastInvocationStatus === 'failed' || model.lastError),

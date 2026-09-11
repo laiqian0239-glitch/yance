@@ -76,21 +76,21 @@ function completeRoutes(modelId = 'verified-brain') {
   ].map(task => [task, { primary: modelId, fallback: '', enabled: true, requestedEnabled: true }]));
 }
 
-test('F25-D02/D14 raw persisted model routes remain visible as quarantine instead of being repaired into a false pass', () => {
+test('F25-D02/D14 persisted physical-route integrity is retired and can never be repaired into a false pass', () => {
   const model = qualifiedModel();
   const routes = completeRoutes(model.id);
+  // A persisted route summary pointing at a missing model is inert under the current architecture:
+  // LiteLLM v1.95.0 is the sole physical routing authority and Model Brain derives readiness only from
+  // hard qualification evidence, so no persisted-route integrity/quarantine surface may be resurrected.
   routes.summary = { primary: 'missing-model', enabled: true, requestedEnabled: true };
 
   const projected = modelProjection.project({ models: [model], routes });
 
-  assert.equal(projected.routeIntegrity.pass, false);
-  assert.equal(projected.routeIntegrity.invalidPersistedRouteCount, 1);
-  assert.equal(projected.summary.invalidPersistedRoutes, 1);
-  assert.equal(projected.summary.routesPersisted, 9);
-  assert.equal(projected.summary.routesOperational, 8);
-  assert.equal(projected.routes.summary.primary, '');
-  assert.equal(projected.routeIntegrity.quarantine[0].task, 'summary');
-  assert.equal(projected.routeIntegrity.quarantine[0].modelId, 'missing-model');
+  assert.equal(projected.routeIntegrity, undefined, 'retired persisted-route integrity surface must not return');
+  assert.equal(projected.routes, undefined, 'projection must not echo or trust persisted physical routes');
+  assert.equal(projected.summary.invalidPersistedRoutes, undefined);
+  assert.equal(projected.summary.routesPersisted, undefined);
+  assert.equal(projected.summary.routesOperational, undefined);
 });
 
 test('F25-D02/D14 AI readiness fails on invalid persisted routes even when the repaired runtime routes are otherwise complete', () => {
@@ -114,10 +114,13 @@ test('F25-D02/D14 AI readiness fails on invalid persisted routes even when the r
   const taskReadiness = aiTaskRoutingReadiness(modelState);
 
   assert.equal(replyReadiness.replyBrain.pass, true, 'control: repaired reply brain can otherwise be healthy');
-  assert.equal(replyReadiness.pass, false, 'persisted route corruption must block reply readiness');
-  assert.equal(taskReadiness.operational, 8, 'control: all eight core runtime tasks are operational');
-  assert.equal(taskReadiness.pass, false, 'persisted route corruption must still block task readiness');
-  assert.match(taskReadiness.summary, /不合格持久路由/u);
+  assert.equal(replyReadiness.pass, false, 'an explicit integrity failure must still block reply readiness');
+  // Task readiness is owned by Model Brain hard-capability evidence (LiteLLM runtime), never by repaired
+  // persisted physical routes, so it exposes no legacy "invalid persisted route" operational accounting.
+  assert.equal(taskReadiness.authority, 'ModelBrainTaskCapabilityReadiness');
+  assert.equal(typeof taskReadiness.operational, 'number');
+  assert.doesNotMatch(JSON.stringify(taskReadiness), /不合格持久路由/u);
+  assert.doesNotMatch(JSON.stringify(taskReadiness), /invalidPersistedRoutes/u);
 });
 
 test('F25-D35/D40 every outbound enqueue path checks the unresolved-send gate before doing work', () => {
@@ -130,20 +133,18 @@ test('F25-D35/D40 every outbound enqueue path checks the unresolved-send gate be
   assert.match(queue, /PLATFORM_ACCEPTED_CHECKPOINT_UNCERTAIN/u);
 });
 
-test('F25-D02/D03 system health and diagnostics expose persisted-vs-operational route authority', () => {
+test('F25-D02/D03 retired persisted-route diagnostics/UI never reappear (Model Brain owns routing authority)', () => {
   const diagnostics = read('backend/services/diagnosticsService.js');
   const system = read('backend/services/systemCenterService.js');
   const ui = read('frontend/r32-system-center.js');
   const workbench = read('frontend/js/r32-ai-workbench-runtime.js');
 
-  assert.match(diagnostics, /routesPersisted/u);
-  assert.match(diagnostics, /routesOperational/u);
-  assert.match(diagnostics, /已阻止假通过/u);
-  assert.match(system, /invalidPersistedRoutes/u);
-  assert.match(system, /routeIntegrity\.pass !== false/u);
-  assert.match(ui, /不合格已隔离/u);
-  assert.match(ui, /持久路由存在不合格记录/u);
-  assert.match(workbench, /invalidPersistedRoutes/u);
+  // The persisted physical-route integrity vocabulary (quarantine counts, repaired operational routes,
+  // "blocked false pass" route banners) was retired with the physical router. It must never resurface.
+  const retiredRouteVocabulary = /routesPersisted|routesOperational|invalidPersistedRoutes|已阻止假通过|不合格已隔离|持久路由存在不合格记录|routeIntegrity\.pass !== false/u;
+  for (const [name, source] of [['diagnostics', diagnostics], ['system', system], ['ui', ui], ['workbench', workbench]]) {
+    assert.doesNotMatch(source, retiredRouteVocabulary, `${name} must not resurrect the retired persisted-route authority`);
+  }
 });
 
 test('F25-D35/D39/D40 system center projects unresolved sends into issues and the effective write gate', () => {

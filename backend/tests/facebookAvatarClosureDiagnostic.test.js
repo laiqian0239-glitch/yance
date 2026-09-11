@@ -17,6 +17,24 @@ function patch(t, target, key, value) {
   t.after(() => { target[key] = previous; });
 }
 
+// Schema 23 WP-B requires a frozen RUNNING persisted attempt before any
+// Facebook relay physical I/O, including read-only avatar closure diagnostics.
+function frozenAvatarAttempt() {
+  return Object.freeze({
+    executionId: 'facebook-avatar-execution-1',
+    attemptId: 'facebook-avatar-attempt-1',
+    claimId: 'facebook-avatar-claim-1',
+    ownerId: 'facebook-avatar-owner-1',
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1,
+    state: 'RUNNING',
+    platform: 'facebook',
+    operationKind: 'AVATAR_CLOSURE_DIAGNOSTIC',
+    accountId: 'fb-account'
+  });
+}
+
 test('Facebook Avatar Closure diagnostic traces identity, signed Worker bytes, SQLite and cache without exposing raw PSID', async t => {
   const adapter = new FacebookAdapter();
   patch(t, adapter, 'credentials', () => ({ secret: { workerBaseUrl: 'https://worker.example', pageId: 'page-1' } }));
@@ -34,9 +52,12 @@ test('Facebook Avatar Closure diagnostic traces identity, signed Worker bytes, S
   patch(t, avatarService, 'validateBuffer', buffer => ({ bytes: buffer.length, mimeType: 'image/jpeg', hash: 'a'.repeat(64) }));
   patch(t, avatarService, 'validateCachedAvatar', () => ({ valid: true, bytes: 4, mimeType: 'image/jpeg', avatarHash: 'b'.repeat(64), localFile: 'C:/redacted/avatar.jpg' }));
 
-  const report = await adapter.diagnoseAvatarClosure({ id: 'fb-account' }, { limit: 5 });
+  const report = await adapter.diagnoseAvatarClosure({ id: 'fb-account' }, { limit: 5, physicalAttemptContext: frozenAvatarAttempt() });
   assert.equal(report.documentType, 'YANCE_FACEBOOK_AVATAR_CLOSURE_DIAGNOSTIC');
-  assert.equal(report.worker.publicHealth.contract.version, 9);
+  // The legacy unsigned public health probe is retired; signed Worker health is the current authority.
+  assert.equal(report.worker.publicHealth.error, 'LEGACY_PUBLIC_HEALTH_PROBE_RETIRED');
+  assert.equal(report.worker.signedHealth.ok, true);
+  assert.equal(report.worker.signedHealth.status, 'ready');
   assert.equal(report.summary.fullyReady, 1);
   assert.equal(report.contacts[0].identity.source, 'pageScopedUserId');
   assert.equal(report.contacts[0].identity.confidence, 'authoritative');
@@ -84,7 +105,7 @@ test('Facebook Avatar Closure preserves Worker V9 Picture Edge, generic picture 
     platform: 'facebook', accountId: 'fb-account', conversationId: 'fb-account:123456789',
     pageScopedUserId: '123456789', title: 'Contact', avatarUrl: '', avatarStatus: 'failed'
   }]);
-  const report = await adapter.diagnoseAvatarClosure({ id: 'fb-account' }, { limit: 1 });
+  const report = await adapter.diagnoseAvatarClosure({ id: 'fb-account' }, { limit: 1, physicalAttemptContext: frozenAvatarAttempt() });
   assert.equal(report.schemaVersion, 6);
   assert.equal(report.evidenceContract, 'worker-v11-avatar-unavailable-and-translation-persistence');
   assert.equal(report.contacts[0].workerProbe.pictureEdge.code, 'FACEBOOK_REQUEST_INVALID');
@@ -134,7 +155,7 @@ test('Facebook Avatar Closure compares persisted identity with message-derived i
   }]);
   patch(t, avatarService, 'validateBuffer', buffer => ({ bytes: buffer.length, mimeType: 'image/jpeg', hash: 'c'.repeat(64) }));
 
-  const report = await adapter.diagnoseAvatarClosure({ id: 'fb-account' }, { limit: 1 });
+  const report = await adapter.diagnoseAvatarClosure({ id: 'fb-account' }, { limit: 1, physicalAttemptContext: frozenAvatarAttempt() });
   assert.equal(report.summary.persistedIdentityDiffers, 1);
   assert.equal(report.summary.messageDerivedWorkerReady, 1);
   assert.equal(report.contacts[0].identityProvenance.messageDerivedResolved, true);

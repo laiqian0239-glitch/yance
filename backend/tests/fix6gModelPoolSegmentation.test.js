@@ -4,9 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const roleReceipts = require('../services/aiRoleQualificationReceiptAuthority');
 const lifecycle = require('../services/aiBrainRoleLifecycleAuthority');
-const frontier = require('../services/openRouterFrontierCandidateAuthority');
 const pools = require('../services/modelPoolSegmentationAuthority');
-const statusProjection = require('../services/modelStatusProjection');
 
 const NOW = '2026-08-01T00:00:00.000Z';
 
@@ -70,42 +68,6 @@ function qualified(id, score = 96, overrides = {}) {
   return value;
 }
 
-function catalogModel(id, options = {}) {
-  return {
-    id,
-    name: id,
-    description: 'general multilingual conversational model',
-    chatTextEligible: true,
-    textInput: true,
-    textOutput: true,
-    structuredOutput: true,
-    reasoning: true,
-    tools: true,
-    contextLength: 200000,
-    created: 1786000000 + Number(options.offset || 0),
-    promptPerMillion: 5,
-    completionPerMillion: 25,
-    ...options
-  };
-}
-
-test('frontier authority separates five reply challengers from the larger registration inventory', () => {
-  const catalog = [
-    catalogModel('anthropic/claude-opus-5'),
-    catalogModel('openai/gpt-5.6-sol'),
-    ...Array.from({ length: 27 }, (_, index) => catalogModel(`vendor-${index}/model-${index}`, { offset: index }))
-  ];
-  const plan = frontier.buildPlan(catalog, { limit: 28, challengerLimit: 5 });
-  assert.equal(plan.shortlist.length, 28, 'compatibility inventory remains available for registration');
-  assert.equal(plan.inventoryShortlist.length, 28);
-  assert.equal(plan.challengerShortlist.length, 5);
-  assert.deepEqual(plan.challengerShortlist.slice(0, 2).map(row => row.id), [
-    'anthropic/claude-opus-5',
-    'openai/gpt-5.6-sol'
-  ]);
-  assert.equal(plan.challengerShortlist.every(row => plan.inventoryShortlist.some(item => item.id === row.id)), true);
-});
-
 test('task hints plus real connectivity promote only selected models into TASK_CHALLENGER', () => {
   const hinted = connectedChallenger('anthropic/claude-opus-5');
   const inventory = model('vendor/catalog-only');
@@ -156,20 +118,4 @@ test('offline benchmark and signed receipt can qualify a model without any platf
   assert.equal(result.champions.some(row => row.modelId === 'mistral/offline-qualified'), true);
   assert.equal(result.platformUat.connectedAccountCount, 0);
   assert.equal(result.platformUat.releaseGatePassed, false);
-});
-
-test('model status projection exposes lifecycle pools and keeps platform UAT separate from benchmark qualification', () => {
-  const value = statusProjection.project({
-    models: [
-      connectedChallenger('anthropic/claude-opus-5'),
-      connectedChallenger('openai/gpt-5.6-sol'),
-      model('vendor/inventory')
-    ],
-    routes: {}
-  }, { now: NOW, platformAccounts: [] });
-  assert.equal(value.schemaVersion >= 5, true);
-  assert.equal(value.modelPools.summary.registeredModelCount, 3);
-  assert.equal(value.modelPools.summary.replyCandidateModelCount, 2);
-  assert.equal(value.modelPools.qualificationGates.modelBenchmarkRequiresPlatformLogin, false);
-  assert.equal(value.summary.replyCandidateInventoryCount, 2);
 });

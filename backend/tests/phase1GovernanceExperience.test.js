@@ -44,8 +44,12 @@ test('translation retry uses a cancellable job lifecycle instead of a blocking d
 test('candidate cards expose the exact reviewed learning applied to generation', () => {
   const brain = source('backend/services/contextAwareReplyBrain.js');
   const ui = source('frontend/js/r32-ui-runtime.js');
-  assert.match(brain, /projectLearningApplication/);
-  assert.match(brain, /learningApplication/);
+  // Current learning authority is the VW learning-policy receipt attached to generation metadata.
+  assert.match(brain, /learningPolicyReceipt/);
+  assert.match(brain, /LearningPolicyRuntimeAdapter/);
+  assert.match(brain, /learningPolicy: learningPolicyReceipt/);
+  // The retired inline learning-application projector must not be resurrected.
+  assert.doesNotMatch(brain, /projectLearningApplication/);
   assert.match(ui, /本次命中的已审核学习/);
   assert.match(ui, /result\.learningApplication/);
 });

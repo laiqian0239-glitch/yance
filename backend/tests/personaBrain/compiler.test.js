@@ -96,10 +96,13 @@ test('OD-004: 集成 - 真实 store 中 brain.compileContext 绑定活跃版本'
   assert.strictEqual(init.created, true);
 
   const current = brain.service.getCurrent('owner');
+  const effective = brain.service.resolveEffective({ profileId: 'owner' });
   const compiled = brain.compileContext('owner');
   assert.strictEqual(compiled.safeFallback, false);
   assert.strictEqual(compiled.personaVersionId, current.version.version);
-  assert.strictEqual(compiled.policyHash, current.version.contentSha256);
+  // policyHash binds the active scope-resolved effective version; the base content hash is retained separately.
+  assert.strictEqual(compiled.policyHash, effective.version.contentSha256);
+  assert.strictEqual(compiled.basePolicyHash, current.version.contentSha256);
   assert.strictEqual(compiled.policyHash.length > 0, true);
 });
 
@@ -108,7 +111,7 @@ test('OD-004: 集成 - 未初始化 profile -> safeFallback', () => {
   const brain = createPersonaBrain({ store });
   const compiled = brain.compileContext('owner');
   assert.strictEqual(compiled.safeFallback, true);
-  assert.strictEqual(compiled.reason, 'profile-not-initialized');
+  assert.strictEqual(compiled.reason, 'missing-version');
 });
 
 test('V21 Persona P0: compiler exposes SillyTavern-backed structured composition without legacy flat style prompt', () => {

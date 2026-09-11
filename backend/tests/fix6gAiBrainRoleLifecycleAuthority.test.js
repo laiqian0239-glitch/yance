@@ -64,11 +64,11 @@ test('real invocation without task evidence becomes CONNECTIVITY_VERIFIED', () =
 });
 
 test('conditional task eligibility becomes TASK_CHALLENGER', () => {
+  // Under the current state machine a failed benchmark only reaches CONNECTIVITY_VERIFIED
+  // (covered above). A connected model becomes an evaluable, non-formal challenger by
+  // explicitly declaring challenger intent for the task, without a signed role receipt.
   const model = connectedModel('challenger', {
-    lastReplyBrainBenchmark: {
-      authority: 'YanceReplyBrainBenchmark', status: 'REPLY_BRAIN_FAILED', completed: true, pass: false,
-      score: 82, testedAt: '2026-07-31T12:00:00.000Z', qualifyingTasks: [], scenarios: []
-    }
+    challengerTasks: ['quick_reply']
   });
   const result = lifecycle.deriveModelTaskLifecycle(model, 'quick_reply', { now: NOW });
   assert.equal(result.state, lifecycle.STATES.TASK_CHALLENGER);

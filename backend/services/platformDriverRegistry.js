@@ -5,6 +5,7 @@ const telegram = require('./telegramAdapter');
 const facebookChatwoot = require('./facebookChatwootMatrixBridge');
 const facebookPersonalIdentity = require('./facebookPersonalIdentityAdapter');
 const facebookPersonalMessengerMautrixAdapter = require('./facebookPersonalMessengerMautrixAdapter');
+const facebookRelayClient = require('./facebookRelayClient');
 const { validatePersistedEgressContext } = require('./platformAdapterPorts');
 const syncCheckpoint = require('./syncCheckpointService');
 
@@ -119,7 +120,12 @@ const drivers = Object.freeze({
     async sendText(context, input) { return facebookChatwoot.sendText(context, input); },
     async sendMedia(context, input) { return facebookChatwoot.sendMedia(context, input); },
     async sendPresence(context, input) { return facebookChatwoot.sendPresence(context, input); },
-    async markRead(context, input = {}) { return facebookChatwoot.markRead(context, input); }
+    async markRead(context, input = {}) { return facebookChatwoot.markRead(context, input); },
+    // Worker-backed webhook media materialization is owned by the sealed relay client (registered
+    // MEDIA_TRANSFER authority); the registry delegates rather than importing the legacy Page adapter.
+    async cacheWebhookAttachments(account, baseMessage, rawAttachments = [], options = {}) {
+      return facebookRelayClient.cacheWebhookAttachments(account, baseMessage, rawAttachments, options);
+    }
   })
 });
 

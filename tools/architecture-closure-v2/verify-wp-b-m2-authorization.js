@@ -217,7 +217,7 @@ function verifyLocalRepository(document = readReceipt(), options = {}) {
   const m1Receipt = m1Verifier.readReceipt(m1ReceiptPath);
   const m1Validation = m1Verifier.validateReceipt(m1Receipt);
   assertCondition(m1Validation.sealHead === result.parentMilestone1SealHead, 'WP_B_M2_AUTHORIZATION_M1_SEAL_MISMATCH', 'Milestone 2 parent does not match the immutable M1 Seal Head');
-  const m1Local = m1Verifier.verifyLocalRepository(m1Receipt);
+  const m1Local = m1Verifier.verifyLocalRepository(m1Receipt, { historicalArtifactOnly: options.historicalArtifactOnly === true });
 
   let currentHead;
   try {
@@ -228,8 +228,12 @@ function verifyLocalRepository(document = readReceipt(), options = {}) {
     throw authorizationError('WP_B_M2_AUTHORIZATION_GIT_ANCESTRY_INVALID', 'Current Head must descend from the exact Milestone 1 Seal Head', { cause: cause?.message || String(cause) });
   }
 
-  const status = git(repositoryRoot, ['status', '--porcelain=v1', '--untracked-files=all']);
-  assertCondition(status === '', 'WP_B_M2_AUTHORIZATION_WORKTREE_DIRTY', 'Authorization verification requires a clean worktree', { status });
+  if (options.historicalArtifactOnly !== true) {
+    // Live gate for an actual Milestone 2 authorization continuation. A read-only historical-artifact
+    // audit validates the immutable M1/M2 chain without demanding a clean current checkout.
+    const status = git(repositoryRoot, ['status', '--porcelain=v1', '--untracked-files=all']);
+    assertCondition(status === '', 'WP_B_M2_AUTHORIZATION_WORKTREE_DIRTY', 'Authorization verification requires a clean worktree', { status });
+  }
   return Object.freeze({
     ok: true,
     currentHead,

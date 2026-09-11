@@ -16,6 +16,29 @@ process.env.YANCE_LEGACY_DATA_DIR = path.join(dataRoot, 'legacy');
 const { startModelExecution } = require('../services/modelExecutionHost');
 const { verifyModelExecutionEnvelope } = require('../services/modelExecutionEnvelopeAuthority');
 
+function freezeDeep(value) {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const key of Object.keys(value)) freezeDeep(value[key]);
+  }
+  return value;
+}
+function makePersistedAttempt(overrides = {}) {
+  return freezeDeep({
+    executionId: overrides.executionId || 'exec-fix6j-guard-001',
+    intentId: overrides.intentId || 'intent-fix6j-guard-001',
+    attemptId: overrides.attemptId || 'attempt-fix6j-guard-001',
+    idempotencyKey: overrides.idempotencyKey || 'idem-fix6j-guard-001',
+    ownerId: overrides.ownerId || 'owner-fix6j-guard-001',
+    claimId: overrides.claimId || 'claim-fix6j-guard-001',
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1,
+    leaseExpiresAt: new Date(Date.now() + 60000).toISOString(),
+    request: overrides.request || { task: 'translation' }
+  });
+}
+
 test.after(async () => {
   try { require('../lib/r32StoreSingleton').closeR32Store(); } catch (_) {}
   let lastError = null;
@@ -68,6 +91,10 @@ test('missing credential fails before fork and before evidence persistence', () 
       model: { id: 'cloud-missing', provider: 'cloud', name: 'gpt', credentialRef: 'private-ref' },
       task: 'translation',
       messages: [],
+      persistedAttempt: makePersistedAttempt({
+        executionId: 'exec-fix6j-missing-credential',
+        request: { task: 'translation', modelName: 'gpt' }
+      }),
       childProcessFactory: fakeChildFactory(observe),
       evidenceWriter: async () => { observe.evidenceWrites += 1; },
       resolveExecutionSpec() {
@@ -100,6 +127,12 @@ test('valid input creates and verifies exactly one envelope before fork', async 
     executionId: 'exec-task4',
     correlationId: 'corr-task4',
     task: 'translation',
+    persistedAttempt: makePersistedAttempt({
+      executionId: 'exec-task4',
+      intentId: 'intent-task4', attemptId: 'attempt-task4', idempotencyKey: 'idem-task4',
+      ownerId: 'owner-task4', claimId: 'claim-task4',
+      request: { task: 'translation', modelName: 'gpt' }
+    }),
     model: {
       id: 'cloud-valid', provider: 'cloud', name: 'gpt',
       roleQualificationReceipts: { translation: qualificationReceipt }
@@ -122,7 +155,7 @@ test('valid input creates and verifies exactly one envelope before fork', async 
   assert.equal(observe.forkCount, 1);
   await handle.spawned;
   assert.equal(observe.messages.length, 1);
-  assert.deepEqual(Object.keys(observe.messages[0]).sort(), ['envelope', 'type']);
+  assert.deepEqual(Object.keys(observe.messages[0]).sort(), ['envelope', 'persistedAttempt', 'type']);
   assert.equal(observe.messages[0].type, 'execute');
   const envelope = verifyModelExecutionEnvelope(observe.messages[0].envelope);
   assert.equal(envelope.executionId, 'exec-task4');

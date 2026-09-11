@@ -25,11 +25,30 @@ function response(status, data) {
   return { ok: status >= 200 && status < 300, status, async json() { return data; } };
 }
 
+// Schema 23 WP-B requires a frozen RUNNING persisted operation before OAuth Worker I/O.
+function frozenFormalOAuthOperation() {
+  return Object.freeze({
+    executionId: 'exec-facebook-formal-oauth',
+    operationId: 'op-facebook-formal-oauth',
+    operationKind: 'OAUTH_FLOW',
+    ownerId: 'owner-facebook-formal',
+    claimId: 'claim-facebook-formal',
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1,
+    state: 'RUNNING',
+    platform: 'facebook',
+    deadlineAt: new Date(Date.now() + 60000).toISOString(),
+    accountId: 'facebook-formal-worker-account'
+  });
+}
+
 async function installOAuthHarness(t) {
   let vault = {};
   const account = {
     id: 'facebook-formal-worker-account', platform: 'facebook', displayName: 'Facebook', identityLabel: '待授权',
-    credentialRef: 'facebook-formal-worker-credential', metadata: {}
+    credentialRef: 'facebook-formal-worker-credential',
+    metadata: { accountKind: 'personal-identity', driverId: 'facebook-personal-identity-official', authorizationPending: true }
   };
   patch(t, accountStore, 'get', () => account);
   patch(t, platformAuthConfig, 'facebook', () => ({ configured: true, workerBaseUrl: FORMAL_WORKER, graphVersion: 'v25.0' }));
@@ -43,7 +62,9 @@ async function installOAuthHarness(t) {
     return response(200, {
       ok: true, service: 'yance-facebook-gateway', graphVersion: 'v25.0',
       oauthContract: {
-        version: 5, authorizationMode: 'business-login-configuration', legacyScopeParameter: false,
+        version: 6, authorizationMode: 'business-login-configuration', legacyScopeParameter: false,
+        supportedModes: ['page', 'identity'],
+        personalIdentity: { messagingSupported: false, tokenReturnedToDesktop: false },
         callbackUrl: `${FORMAL_WORKER}/oauth/facebook/callback`,
         requiredPermissions: ['pages_show_list','pages_messaging','pages_manage_metadata'],
         optionalPermissions: ['pages_read_engagement'],
@@ -57,7 +78,7 @@ async function installOAuthHarness(t) {
     });
   });
   t.after(() => facebookOAuthService._flows.clear());
-  const started = await facebookOAuthService.begin(account.id);
+  const started = await facebookOAuthService.begin(account.id, { physicalOperationContext: frozenFormalOAuthOperation() });
   return { account, started, flow: facebookOAuthService._flows.get(started.flowId) };
 }
 
@@ -122,31 +143,19 @@ test('browser OAuth starts at the formal Worker and never places Meta App creden
   assert.equal(url.searchParams.has('page_token'), false);
 });
 
-test('OAuth page selection rejects Worker, device, page and Graph binding changes before credentials persist', async t => {
-  const { account, started } = await installOAuthHarness(t);
+test('OAuth page selection is retired to Chatwoot and never persists a Worker page binding', async t => {
   let persisted = 0;
   patch(t, securityGuard, 'persistCredential', async () => { persisted += 1; });
-  patch(t, global, 'fetch', async (_url, options = {}) => {
-    if ((options.method || 'GET') === 'POST') return response(200, {
-      ok: true,
-      cloudAccountId: 'fbacct-formal',
-      deviceId: 'fbdev-other',
-      workerBaseUrl: FORMAL_WORKER,
-      graphVersion: 'v25.0',
-      page: { id: '1203748086150141', name: 'Yeonhee Kim', permissions: ['pages_show_list','pages_messaging','pages_manage_metadata','pages_read_engagement'] }
-    });
-    return response(200, {
-      ok: true, status: 'authorized',
-      pages: [{ id: '1203748086150141', name: 'Yeonhee Kim', permissions: ['pages_show_list','pages_messaging','pages_manage_metadata','pages_read_engagement'] }]
-    });
-  });
-  await facebookOAuthService.poll(account.id, started.flowId);
-  persisted = 0;
+  let fetchCalls = 0;
+  patch(t, global, 'fetch', async () => { fetchCalls += 1; return response(200, { ok: true }); });
+  // Page OAuth is owned by Chatwoot; the Worker selectPage surface is an unconditional fail-closed tombstone
+  // that performs no Worker I/O and never persists a device/page/Graph binding.
   await assert.rejects(
-    facebookOAuthService.selectPage(account.id, started.flowId, '1203748086150141'),
-    error => error.code === 'FACEBOOK_DEVICE_REGISTRATION_MISMATCH'
+    facebookOAuthService.selectPage('any-account', 'any-flow', '1203748086150141'),
+    error => error.code === 'FACEBOOK_PAGE_OAUTH_OWNED_BY_CHATWOOT'
   );
   assert.equal(persisted, 0);
+  assert.equal(fetchCalls, 0);
 });
 
 test('event polling counts only ACKs confirmed by Worker after local processing', async () => {
@@ -179,7 +188,8 @@ test('Facebook relay readiness remains permission/subscription scoped and state 
   assert.match(adapter, /row\.canSend = row\.permissionReady && row\.tokenStatus === 'active'/u);
   assert.match(adapter, /row\.canReceive = relay\.state === 'connected' && row\.subscriptionReady/u);
   assert.match(relay, /worker-state-listener-failed/u);
-  assert.match(relay, /row\.workerStatus = 'unreachable'/u);
+  // connect() performs exactly one health observation; retry/reachability is owned by the durable pump.
+  assert.match(relay, /row\.workerStatus = health\.status \|\| 'unknown'/u);
 });
 
 test('persisted WP-B attempt identity leaves Worker URLs and remains explicit signed request metadata', async t => {

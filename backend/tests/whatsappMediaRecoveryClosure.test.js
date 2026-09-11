@@ -121,18 +121,19 @@ test('runtime has thumbnail fallback, retry action and durable recovery route', 
   assert.match(adapter, /getBusinessProfile/);
 });
 
-test('transcription reports configured command or precise engine-not-configured status', () => {
-  const previous = process.env.YANCE_WHISPER_COMMAND;
-  process.env.YANCE_WHISPER_COMMAND = 'whisper-cli --file {file} --language {language}';
-  try {
-    const status = transcription.engineStatus();
-    assert.equal(status.available, true);
-    assert.equal(status.source, 'YANCE_WHISPER_COMMAND');
-    assert.equal(status.command, 'whisper-cli');
-  } finally {
-    if (previous == null) delete process.env.YANCE_WHISPER_COMMAND;
-    else process.env.YANCE_WHISPER_COMMAND = previous;
+test('transcription reports the sealed SenseVoice runtime status and a precise not-ready reason', () => {
+  // The legacy YANCE_WHISPER_COMMAND CLI path is retired; transcription now runs on a pinned SenseVoice sealed runtime.
+  const status = transcription.engineStatus();
+  assert.equal(status.kind, 'sensevoice');
+  assert.equal(status.authority, 'SenseVoice');
+  assert.equal(status.source, 'sealed-runtime');
+  assert.equal(status.sealedRuntimeRequired, true);
+  const runtimePresent = Boolean(status.command) && Boolean(status.model);
+  assert.equal(status.available, runtimePresent);
+  if (!runtimePresent) {
+    assert.ok(['SENSEVOICE_RUNTIME_MISSING', 'SENSEVOICE_MODEL_MISSING'].includes(status.reasonCode));
   }
+  assert.equal(status.audioConverterAvailable, Boolean(status.audioConverter));
 });
 
 test('on-demand history refetch is treated as media patching, not another full conversation reload', () => {
@@ -149,13 +150,15 @@ test('WhatsApp Business names use real directory/profile fields and never avatar
   const diagnostics = source('tools/uat/whatsappIdentityDiagnostics.js');
   assert.match(adapter, /row\.verifiedBizName/);
   assert.match(adapter, /profile\.verifiedBizName/);
-  assert.match(adapter, /never derive a name from avatar pixels/);
+  // Display names come only from real directory/profile fields via the ordered field whitelist, never avatar pixels.
+  assert.match(adapter, /function historyDisplayName/);
+  assert.match(adapter, /bestWhatsAppDisplayName/);
   assert.match(diagnostics, /avatarProvenanceErrors/);
   assert.doesNotMatch(diagnostics, /WHATSAPP_AVATAR_PLATFORM_CONTENT_MISMATCH/);
 });
 
 test('voice transcription discovers ffmpeg for WhatsApp OGG Opus conversion before whisper.cpp', () => {
-  const speech = source('backend/services/transcriptionService.js');
+  const speech = source('backend/services/transcriptionServiceCore.js');
   assert.match(speech, /discoverFfmpeg/);
   assert.match(speech, /pcm_s16le/);
   assert.match(speech, /AUDIO_CONVERTER_NOT_CONFIGURED/);

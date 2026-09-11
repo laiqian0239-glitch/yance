@@ -11,14 +11,13 @@ const root = path.resolve(__dirname, '../..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const syncStability = require('../../frontend/js/r32-sync-stability');
 const { WhatsAppHistoryMediaRecoveryQueue } = require('../services/whatsappHistoryMediaRecovery');
-const modelStatus = require('../services/modelStatusProjection');
+const modelRuntime = require('../services/modelRuntimeAuthority');
 const cloud = require('../services/openAiCompatibleClient');
 const modelExecutor = require('../services/modelExecutor');
 const workspaceRepository = require('../repositories/workspaceRepository');
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const accountManager = require('../services/accountManager');
 const accountStore = require('../services/accountStore');
-const { RuntimeRecoveryService } = require('../services/runtimeRecoveryService');
 
 async function waitFor(predicate, timeoutMs = 2000) {
   const started = Date.now();
@@ -250,55 +249,55 @@ test('customer social context resolves a direct conversation id back to its cano
 });
 
 
-test('startup auto-connect restores Telegram sessions that are credential-ready but initially unconfigured', async t => {
-  const recovery = new RuntimeRecoveryService();
-  const originalList = accountManager.list;
-  const originalConnect = accountManager.connect;
-  const originalGet = accountStore.get;
+test('startup auto-connect restores Telegram sessions that are lifecycle-eligible but initially unconfigured', async t => {
+  // Startup session restore is owned by AccountManager.reconnectAll, filtered through accountLifecycle.eligibility
+  // (manual:false); RuntimeRecoveryService now only replays durable executions, not account connections.
+  const { AccountManager } = accountManager;
+  const manager = new AccountManager();
+  const originalList = accountStore.list;
+  const originalReconnect = manager.reconnect;
   t.after(() => {
-    accountManager.list = originalList;
-    accountManager.connect = originalConnect;
-    accountStore.get = originalGet;
-    recovery.stop();
+    accountStore.list = originalList;
+    manager.reconnect = originalReconnect;
+    try { manager.stop(); } catch (_) {}
   });
-  accountManager.list = () => ({ accounts: [
-    { id: 'telegram-session', platform: 'telegram', state: 'unconfigured', credentialReady: true },
-    { id: 'telegram-empty', platform: 'telegram', state: 'unconfigured', credentialReady: false }
-  ] });
-  accountStore.get = id => ({ id, platform: 'telegram', paused: false, autoReconnect: true, lifecycleState: 'active' });
+  accountStore.list = () => [
+    { id: 'telegram-session', platform: 'telegram', state: 'unconfigured', lifecycleState: 'active', paused: false, autoReconnect: true },
+    { id: 'telegram-disabled', platform: 'telegram', state: 'unconfigured', lifecycleState: 'active', paused: false, autoReconnect: false }
+  ];
   const connected = [];
-  accountManager.connect = async id => { connected.push(id); return { id, state: 'connected' }; };
+  manager.reconnect = async id => { connected.push(id); return { id, state: 'connected' }; };
 
-  const status = await recovery.recover('startup-auto-connect');
+  const results = await manager.reconnectAll();
   assert.deepEqual(connected, ['telegram-session']);
-  assert.equal(status.lastRecovery[0].ok, true);
+  assert.equal(results[0].ok, true);
+  assert.equal(results[0].accountId, 'telegram-session');
 });
 
 test('cloud model failure remains configured and exposes the real HTTP error', () => {
-  const failed = modelStatus.normalizeModel({
+  const failed = modelRuntime.projectModel({
     id: 'cloud-1',
     provider: 'openai-compatible',
     configured: true,
-    available: true,
     endpoint: 'https://api.openai.com/v1',
     name: 'test-model',
     credentialRef: 'vault:cloud',
     qualification: 'failed',
-    lastTest: { connectivity: { pass: false, status: 404, code: 'model_not_found', error: 'The model does not exist' } }
-  }, {}, { credentialReady: () => true, routedTasks: [] });
+    lastQualificationTest: { connectivity: { pass: false, status: 404, code: 'model_not_found', error: 'The model does not exist' } }
+  }, {}, { credentialReady: () => true, routeAssignments: [{ task: 'general' }] });
   assert.equal(failed.configured, true);
   assert.equal(failed.discovered, true);
   assert.equal(failed.runtimeOnline, false);
-  assert.doesNotMatch(failed.stateLabel, /模型配置未发现/u);
-  assert.match(failed.stateLabel, /HTTP 404/u);
-  assert.match(failed.stateLabel, /model_not_found/u);
+  // The real upstream HTTP error is surfaced through the qualification failure projection.
+  assert.equal(failed.qualificationFailure.status, 404);
+  assert.equal(failed.qualificationFailure.code, 'model_not_found');
+  assert.match(failed.qualificationFailure.technicalMessage, /The model does not exist/);
 
-  const recovered = modelStatus.normalizeModel({
+  const recovered = modelRuntime.projectModel({
     ...failed,
     qualification: 'experimental',
-    lastTest: { connectivity: { pass: true, status: 200 } },
-    lastError: ''
-  }, {}, { credentialReady: () => true, routedTasks: ['general'] });
+    lastQualificationTest: { connectivity: { pass: true, status: 200 } }
+  }, {}, { credentialReady: () => true, routeAssignments: [{ task: 'general', allowExperimental: true }] });
   assert.equal(recovered.runtimeOnline, true);
   assert.equal(recovered.routingEligible, true);
 });
@@ -344,32 +343,34 @@ test('OpenAI-compatible test retries modern completion parameter shape after a 4
 
 
 test('cloud model verification performs discovery, text inference and optional image inference', async t => {
-  const previousFetch = global.fetch;
-  t.after(() => { global.fetch = previousFetch; });
-  const requestBodies = [];
-  global.fetch = async (url, init = {}) => {
-    if (String(url).endsWith('/models')) {
-      return new Response(JSON.stringify({ data: [{ id: 'vision-model' }] }), { status: 200, headers: { 'content-type': 'application/json' } });
-    }
-    const body = JSON.parse(init.body || '{}');
-    requestBodies.push(body);
-    const vision = Array.isArray(body.messages?.[0]?.content);
-    return new Response(JSON.stringify({
-      id: vision ? 'vision-call' : 'text-call',
-      model: 'vision-model',
-      choices: [{ message: { content: vision ? 'YANCE_VISION_OK' : 'YANCE_MODEL_OK' } }],
-      usage: { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 }
-    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  // Physical inference now runs through the sealed Model Brain runtime; stub the child-process boundary
+  // (probe/execute) instead of global.fetch, and assert the verifyCloudAccess orchestration contract.
+  const modelBrainRuntime = require('../services/modelBrainRuntime');
+  const originalProbe = modelBrainRuntime.probe;
+  const originalExecute = modelBrainRuntime.execute;
+  const calls = [];
+  t.after(() => { modelBrainRuntime.probe = originalProbe; modelBrainRuntime.execute = originalExecute; });
+  modelBrainRuntime.probe = async input => {
+    calls.push({ kind: 'text', input });
+    return { probePass: true, text: 'YANCE_MODEL_OK', evidence: { selectedModel: 'vision-model', latencyMs: 3, totalTokens: 3 } };
+  };
+  modelBrainRuntime.execute = async input => {
+    calls.push({ kind: 'vision', input });
+    return { probePass: true, text: 'YANCE_VISION_OK', evidence: { selectedModel: 'vision-model', latencyMs: 2, totalTokens: 3 } };
   };
 
   const verification = await modelExecutor.verifyCloudAccess({
     endpoint: 'https://api.example.test/v1', apiKey: 'test-key', model: 'vision-model', runInference: true, testVision: true
   });
   assert.deepEqual(verification.models, ['vision-model']);
+  assert.equal(verification.tests.discovery.pass, true);
   assert.equal(verification.tests.text.pass, true);
   assert.equal(verification.tests.vision.pass, true);
-  assert.equal(requestBodies.length, 2);
-  assert.equal(requestBodies[1].messages[0].content.some(part => part.type === 'image_url' && /^data:image\/png;base64,/u.test(part.image_url.url)), true);
+  assert.equal(calls.length, 2);
+  const visionCall = calls.find(call => call.kind === 'vision');
+  const content = visionCall.input.messages[0].content;
+  assert.equal(Array.isArray(content), true);
+  assert.equal(content.some(part => part.type === 'image_url' && /^data:image\/png;base64,/u.test(part.image_url.url)), true);
 });
 
 test('cloud model network failures expose TLS and transport error categories', async t => {
@@ -402,7 +403,7 @@ test('Facebook avatar proxy authorizes upstream Facebook image reads without exp
 });
 
 test('Facebook account state persists the proxied Page avatar into account metadata', () => {
-  const manager = read('backend/services/accountManager.js');
+  const manager = read('backend/services/accountManagerCore.js');
   assert.match(manager, /account && \(payload\.user \|\| payload\.page\)/u);
   assert.match(manager, /metadata\.picture = result\.page\.picture/u);
   assert.match(manager, /metadata\.pagePicture = metadata\.picture/u);
@@ -415,10 +416,11 @@ test('cloud model setup discovers visible models and requires a minimum real inf
   const ui = read('frontend/js/r32-ai-workbench-runtime.js');
   const html = read('frontend/index.html');
   assert.match(routes, /\/cloud\/discover/u);
-  assert.match(routes, /verifyCloudCredential\(\{ endpoint, credentialRef, model: name, runInference: true, testVision \}\)/u);
-  assert.match(routes, /YANCE_MODEL_OK/u);
-  assert.match(routes, /YANCE_VISION_OK/u);
-  assert.match(executor, /Reply with exactly: YANCE_MODEL_OK/u);
+  assert.match(routes, /verifyCloudCredential\(\{ endpoint, credentialRef, model: name, provider, runInference: true, testVision \}\)/u);
+  // Saving requires a minimum real inference: the route gates on the sealed runtime probePass rather than marker strings.
+  assert.match(routes, /verification\.inference\?\.probePass !== true/u);
+  assert.match(executor, /Reply with exactly YANCE_VISION_OK/u);
+  assert.match(executor, /YANCE_VISION_OK/iu);
   assert.match(executor, /image_url/u);
   assert.match(ui, /discoverCloudModels/u);
   assert.match(ui, /测试并保存/u);

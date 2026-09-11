@@ -6,6 +6,21 @@ const { EventEmitter } = require('node:events');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+
+// The reply brain reads global settings (director rules) through the broker-owned primary store,
+// so establish the standard SQLite broker before any service require chain runs.
+const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-dating-reply-learning-'));
+process.env.YANCE_DATA_DIR = dataRoot;
+process.env.WORKBUDDY_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const { createSqliteConnectionBroker, resetSqliteConnectionBrokerForTests } = require('../lib/sqliteConnectionBroker');
+const brokerDbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(brokerDbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({ dbPath: brokerDbPath, instanceId: `dating-reply-learning-${process.pid}` });
+createSqliteConnectionBroker({ dbPath: brokerDbPath, authorityWriteHostCapability: authorityWriteHost.capability });
+const { getR32Store, closeR32Store } = require('../lib/r32StoreSingleton');
+
 const { DatabaseSync } = require('node:sqlite');
 const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { StoreManager, createInitialState } = require('../store/StoreManager');
@@ -229,21 +244,24 @@ test('approved reply persists learning mode, source and conversation binding in 
   assert.deepEqual(outbox.metadata.contextMessageIds, ['m1', 'm2']);
 });
 
-test('send_only successful messages do not enter reply learning', async () => {
-  let dispatches = 0;
-  const manager = {
-    select(selector) {
-      return selector({
-        outbox: { byId: { o1: { id: 'o1', candidateId: 'c1', contactId: 'contact1', metadata: { learningMode: 'send_only' } } } },
-        aiBrain: { candidatesById: { c1: { candidateId: 'c1', contactId: 'contact1', originalText: 'A', text: 'B' } } }
-      });
-    },
-    async dispatch() { dispatches += 1; }
-  };
-  await learningService.processEvent(manager, { service: {} }, { getProfile: () => null }, {
-    eventType: 'outbox.sent', entityId: 'o1', payload: { outboxId: 'o1' }
+test('send_only successful messages do not enter reply learning', () => {
+  // Current authority: LearningV4 decides eligibility from the immutable feedback signal before any
+  // persistence. send_only / exception / do_not_learn outcomes are skipped deterministically.
+  for (const learningMode of ['send_only', 'exception', 'do_not_learn']) {
+    const skipped = learningService.buildImmutableFeedbackSignal({
+      eventType: 'outbox.sent', learningMode, outboxId: 'o1', candidateId: 'c1',
+      contactId: 'contact1', conversationId: 'conv1', personaTruthReceipt: { pass: true }
+    });
+    assert.equal(skipped.skipped, true, `${learningMode} must not enter learning`);
+    assert.ok(skipped.reasonCode);
+  }
+  // Contrast: a send_and_learn outcome with a verified Persona truth receipt is eligible and not skipped.
+  const learned = learningService.buildImmutableFeedbackSignal({
+    eventType: 'sent', learningMode: 'send_and_learn', outboxId: 'o2', candidateId: 'c2',
+    contactId: 'contact1', conversationId: 'conv1', source: 'test', personaTruthReceipt: { pass: true }
   });
-  assert.equal(dispatches, 0);
+  assert.equal(learned.skipped, false);
+  assert.equal(learned.signalType, 'candidate_sent');
 });
 
 test('fast reply generation runs director then reply and commits aggregated context binding', async t => {
@@ -316,61 +334,40 @@ test('fast reply generation runs director then reply and commits aggregated cont
 });
 
 
-test('a successfully sent reply becomes an immediate contact-only example without waiting for style threshold', async () => {
-  const state = commandState({ conversationRevision: 3 });
-  const manager = new StoreManager({ persistence: memoryPersistence(state) });
-  registerAiReplyCommands(manager);
-  await manager.hydrate();
-  const result = await manager.dispatch({
-    type: 'AI_REPLY_FEEDBACK_RECORDED',
-    source: 'test',
-    payload: {
-      evidenceId: 'sent:o-direct',
-      eventType: 'sent',
-      candidateId: 'candidate-direct',
-      outboxId: 'o-direct',
-      contactId: 'contact1',
-      conversationId: 'conv1',
-      personaProfileId: 'owner',
-      personaFeedbackProfile: {},
-      originalText: '刚看到你的消息。',
-      finalText: '刚看到你的消息，忍不住笑了一下。',
-      replyStrategy: {},
-      source: 'chatgpt_web_edited',
-      contextRevision: 3,
-      contextMessageIds: ['m1', 'm2'],
-      performanceMode: 'rapid'
-    }
+test('a successfully sent reply is persisted once as an immutable contact-scoped learning signal', () => {
+  // Current authority: a sent outcome writes one idempotent LearningV4 signal to the ledger; it never
+  // mutates a preference profile automatically and never stores raw private chat text.
+  const store = getR32Store();
+  const signal = learningService.buildImmutableFeedbackSignal({
+    eventType: 'sent', learningMode: 'send_and_learn', evidenceId: 'sent:o-direct',
+    candidateId: 'candidate-direct', outboxId: 'o-direct', contactId: 'contact1', conversationId: 'conv1',
+    personaProfileId: 'owner', originalText: '刚看到你的消息。',
+    finalText: '刚看到你的消息，忍不住笑了一下。', source: 'chatgpt_web_edited',
+    personaTruthReceipt: { pass: true, receiptSha256: 'truth-1' }, performanceMode: 'rapid'
   });
-  assert.equal(result.result.learned, true);
-  const learned = manager.select(current => current.memories.byContactId.contact1.feedbackLearning);
-  assert.equal(learned.recentExamples.length, 1);
-  assert.equal(learned.recentExamples[0].finalText, '刚看到你的消息，忍不住笑了一下。');
-  assert.equal(learned.recentExamples[0].source, 'chatgpt_web_edited');
-  assert.equal(learned.recentExamples[0].qualityWeight, 0.95);
-});
+  assert.equal(signal.skipped, false);
+  assert.equal(signal.contactId, 'contact1');
 
-test('immediate learned examples are included in the next prompt as style-only contact context', () => {
-  const context = socialContext();
-  context.feedbackLearning.recentExamples = [{
-    id: 'sent:o-direct',
-    finalText: '刚看到你的消息，忍不住笑了一下。',
-    source: 'chatgpt_web_edited',
-    qualityWeight: 0.95
-  }];
-  const messages = buildModelMessages({
-    ...context,
-    incomingMessage: { id: 'm3', text: '今天过得怎么样？', type: 'text' },
-    relevantMemories: context.memory,
-    relationshipTimeline: [],
-    recentSignals: [],
-    director: {},
-    persona: { truthSafePacket: { preferredLanguage: 'Chinese', style: {} }, learned: {} },
-    performanceMode: 'rapid'
-  }, { performancePolicy: performancePolicy.MODES.rapid });
-  assert.match(messages[0].content, /recentExamples 可从下一次回复起立即参考/);
-  assert.match(messages[1].content, /刚看到你的消息，忍不住笑了一下/);
-  assert.match(messages[0].content, /不复制其中的私人事实/);
+  const persisted = store.transaction(tx => learningService.persistImmutableLearningSignal(tx, signal));
+  assert.equal(persisted.persisted, true);
+  assert.equal(persisted.profileChanged, false);
+
+  const row = store.db
+    .prepare('SELECT signal_type, signal_json, learning_eligible FROM learning_signal_ledger WHERE idempotency_key=?')
+    .get(signal.idempotencyKey);
+  assert.equal(row.signal_type, 'candidate_sent');
+  assert.equal(row.learning_eligible, 1);
+  const envelope = JSON.parse(row.signal_json);
+  assert.equal(envelope.metadata.source, 'chatgpt_web_edited');
+  assert.equal(envelope.metadata.rawPrivateChatPersisted, false);
+  assert.equal(envelope.metadata.automaticProfileMutation, false);
+
+  // Idempotent: re-persisting the same immutable signal must not create a duplicate ledger row.
+  store.transaction(tx => learningService.persistImmutableLearningSignal(tx, signal));
+  const count = store.db
+    .prepare('SELECT COUNT(*) c FROM learning_signal_ledger WHERE idempotency_key=?')
+    .get(signal.idempotencyKey).c;
+  assert.equal(count, 1);
 });
 
 test('conversation UI exposes fast modes, send-learning controls, incoming invalidation and local learning management', () => {
@@ -461,4 +458,14 @@ test('approval and final send are blocked when an English candidate contains Chi
       confirmSend: true
     }
   }), error => error.code === 'AI_REPLY_LANGUAGE_MISMATCH');
+});
+
+test.after(() => {
+  try { closeR32Store(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
+  fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+  delete process.env.WORKBUDDY_DATA_DIR;
+  delete process.env.YANCE_DATA_DIR;
 });

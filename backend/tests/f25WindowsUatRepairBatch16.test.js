@@ -89,7 +89,7 @@ test('Facebook page and historical account aliases resolve to one canonical acco
 
 test('conversation sender uses the resolved canonical runtime account instead of a stale page alias', () => {
   const ui = source('frontend/js/r32-ui-runtime.js');
-  const manager = source('backend/services/accountManager.js');
+  const manager = source('backend/services/accountManagerCore.js');
   assert.match(ui, /function accountIdentityAliases\(account=\{\}\)/);
   assert.match(ui, /runtimeAccounts\.find\(a=>accountIdentityAliases\(a\)\.includes\(boundId\)\)/);
   assert.match(ui, /accountId:route\.account\.id\|\|route\.account\.canonicalAccountId\|\|c\.accountId/);
@@ -129,23 +129,24 @@ test('isolated UAT clone overlays only the selected WhatsApp account session', (
   assert.equal(fs.existsSync(path.join(targetRoot, 'whatsapp-auth', 'wa-primary', 'app-state-6.json')), true);
 });
 
-test('OpenRouter shortlist is quality-first for final replies and keeps free models as utility fallback', () => {
+test('OpenRouter role shortlist ranking is retired; only the Model Brain catalog seam remains', () => {
+  // Physical per-role ranking/shortlist is owned by Model Brain + LiteLLM now. The old OpenRouter
+  // rankForRole/usagePolicy/buildSelections/chooseRegistrationRows surface must never come back.
+  for (const retired of ['rankForRole', 'usagePolicy', 'buildSelections', 'chooseRegistrationRows']) {
+    assert.equal(openRouter[retired], undefined, `${retired} must stay retired in favour of Model Brain role authority`);
+  }
+  // The catalog normalization seam that feeds Model Brain is still the live public surface.
   const premium = rawModel('deepseek/deepseek-v4-pro', 'DeepSeek V4 Pro');
-  const fast = rawModel('deepseek/deepseek-v4-flash', 'DeepSeek V4 Flash');
   const free = rawModel('unknown/free-chat:free', 'Free chat model', ['0', '0']);
-  const quick = openRouter.rankForRole([free, fast, premium], 'quick_reply', 3);
-  const memory = openRouter.rankForRole([free, fast, premium], 'memory_extraction', 3);
-  assert.equal(quick[0].id, 'deepseek/deepseek-v4-pro');
-  assert.ok(quick.findIndex(row => row.id === free.id) > 0);
-  assert.ok(memory.some(row => row.id === free.id));
-  assert.equal(openRouter.usagePolicy(premium).primaryPolicy, 'quality-first-cloud');
-  assert.equal(openRouter.usagePolicy(free).primaryPolicy, 'utility-or-budget-fallback');
-  const registered = openRouter.chooseRegistrationRows(openRouter.buildSelections([free, fast, premium]));
-  assert.notEqual(registered[0].id, free.id);
+  assert.equal(premium.id, 'deepseek/deepseek-v4-pro');
+  assert.equal(free.id, 'unknown/free-chat:free');
+  assert.equal(typeof openRouter.normalizeCatalogModel, 'function');
+  assert.equal(typeof openRouter.capabilityProfile, 'function');
+  assert.doesNotThrow(() => openRouter.capabilityProfile(free));
+
   const ui = source('frontend/js/r32-ai-workbench-runtime.js');
-  assert.match(ui, /OpenRouter 云端质量策略/);
-  assert.match(ui, /免费模型主要承担摘要、事实提取、草稿池和低风险备用/);
-  assert.match(ui, /projectModelRuntimeSnapshot\(status,state,\{\s*preserveRoutes\s*:\s*false\s*\}\)/);
-  assert.match(ui, /commitModelRuntimeSnapshot\(modelSnapshot,\{\s*preserveRoutes\s*:\s*false\s*\}\)/);
+  assert.doesNotMatch(ui, /OpenRouter 云端质量策略/);
+  assert.doesNotMatch(ui, /免费模型主要承担摘要/);
+  assert.doesNotMatch(ui, /preserveRoutes/);
   assert.doesNotMatch(ui, /state\.openRouter=status\.openRouter\|\|snap\|\|state\.openRouter/);
 });

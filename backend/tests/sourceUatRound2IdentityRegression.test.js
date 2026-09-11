@@ -51,7 +51,7 @@ test('Telegram login source contains QR authorization polling, account avatar ca
 });
 
 test('runtime identity persistence carries Telegram and WhatsApp live avatars into account metadata', () => {
-  const source = read('backend/services/accountManager.js');
+  const source = read('backend/services/accountManagerCore.js');
   assert.match(source, /metadata\.liveUser = \{ \.\.\.\(metadata\.liveUser \|\| \{\}\), \.\.\.result\.user \}/);
   assert.match(source, /if \(payload\.user\) this\.updateIdentityFromRuntime/);
 });
@@ -70,18 +70,20 @@ test('native Windows titlebar and relationship surfaces follow the active theme'
   const theme = read('frontend/r32-theme-motion.js');
   const css = read('frontend/r32-theme-authority.css');
   assert.match(main, /desktop:set-titlebar-theme/);
-  assert.match(main, /setTitleBarOverlay/);
+  assert.match(main, /setBackgroundColor/);
   assert.match(preload, /setTitlebarTheme/);
   assert.match(theme, /setTitlebarTheme/);
   assert.match(css, /\.insight29-main/);
   assert.match(css, /\.relationship-workbench/);
 });
 
-test('Facebook authorization copy separates official Page, official personal identity and experimental Messenger', () => {
+test('Facebook authorization copy separates official Page, official personal identity and Personal Messenger', () => {
   const source = read('frontend/r32-account-center.js');
   assert.match(source, /Facebook 公共主页（官方）/);
   assert.match(source, /Facebook 个人身份（官方，仅身份）/);
-  assert.match(source, /Facebook 个人 Messenger（非官方实验）/);
+  // Personal Messenger is a separate, pinned mautrix/meta path rather than an official Facebook Login surface.
+  assert.match(source, /Facebook 个人 Messenger/);
+  assert.match(source, /mautrix\/meta · messenger-lite/);
   assert.match(source, /个人身份登录不提供 Messenger 私信/);
-  assert.match(source, /不会创建一个无法登录的假账号/);
+  assert.match(source, /避免把身份授权伪装成 Messenger 接入/);
 });

@@ -2,10 +2,20 @@
   "schemaVersion": 1,
   "policy": {
     "semanticContract": "frontend/r32-theme-semantic-contract.css",
+    "scanRoots": [
+      "frontend",
+      "integration/element-module/src"
+    ],
     "paletteSources": [
       "frontend/r32-theme-motion.css",
       "frontend/r32-theme-motion.js",
       "frontend/r32-theme-authority.css"
+    ],
+    "brandSurfaceSources": [
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/BrandPreviewSurface.css",
+      "integration/element-module/src/BrandPreviewSurface.tsx"
     ],
     "maintainedRuntimeFiles": [
       "frontend/js/r32-ui-runtime.js",
@@ -27,12 +37,28 @@
       "count": 703
     },
     {
+      "file": "integration/element-module/src/YanceLogin.css",
+      "count": 102
+    },
+    {
       "file": "frontend/r32-theme-authority.css",
       "count": 9
     },
     {
       "file": "frontend/r32-theme-motion.js",
       "count": 9
+    },
+    {
+      "file": "integration/element-module/src/BrandPreviewSurface.css",
+      "count": 6
+    },
+    {
+      "file": "integration/element-module/src/YanceLogin.tsx",
+      "count": 6
+    },
+    {
+      "file": "integration/element-module/src/BrandPreviewSurface.tsx",
+      "count": 3
     }
   ],
   "failures": []

@@ -9,13 +9,10 @@ const syncStability = require('../../frontend/js/r32-sync-stability');
 const { telegramPresenceUpdate } = require('../services/telegramAdapter');
 const { optionalTimestampIso } = require('../services/whatsappAdapter');
 const workspaceService = require('../services/workspaceService');
-const { buildModelMessages, compactSocialDecisionPacket, serializeSocialDecisionPacket, learningFingerprint } = require('../services/contextAwareReplyBrain');
+const { buildModelMessages, compactSocialDecisionPacket, serializeSocialDecisionPacket } = require('../services/contextAwareReplyBrain');
 const { SCENARIOS, PLATFORM_COVERAGE } = require('../services/replyBrainBenchmark');
 const { SoundNotificationService } = require('../../electron/SoundNotificationService');
-const {
-  layerReplyLearningContext,
-  settleReplyLearning
-} = require('../services/contextAwareReplyBrain');
+const { ConversationTurnCoordinator } = require('../services/conversationTurnCoordinator');
 
 const root = path.resolve(__dirname, '../..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
@@ -220,34 +217,27 @@ test('reply-learning events invalidate only the affected contact conversation ca
   assert.doesNotMatch(ui, /delete replyLearningCache\[activeId\];if\(r32RuntimeState\.aiPanel==='learning'\)/u);
 });
 
-test('reply generation waits for pending learning and preserves layered learning after quiet-window refresh', async () => {
+test('reply generation waits for the conversation quiet window and keeps retired inline learning injection out', async () => {
+  // The current authority for "wait for pending inbound activity before generating" is the turn coordinator.
+  const coordinator = new ConversationTurnCoordinator();
+  const row = coordinator._row('contact-1');
+  row.lastContentAtMs = Date.now(); // inbound content just arrived
   const order = [];
-  await settleReplyLearning(async () => {
-    await new Promise(resolve => setTimeout(resolve, 5));
-    order.push('learned');
-  });
+  const wait = coordinator.waitForQuiet('contact-1', { quietWindowMs: 20 }).then(() => order.push('quiet'));
+  order.push('waiting');
+  await wait;
   order.push('generated');
-  assert.deepEqual(order, ['learned', 'generated']);
-
-  let received = null;
-  const context = layerReplyLearningContext({
-    customer: { platform: 'whatsapp', accountId: 'wa-main' },
-    feedbackLearning: { version: 3, effective: { replyLength: { value: 'short' } } }
-  }, 'contact-1', {
-    layered(input) {
-      received = input;
-      return { version: 4, effective: { replyLength: { value: 'short', scope: 'contact' } } };
-    }
-  });
-  assert.equal(received.contactId, 'contact-1');
-  assert.equal(received.platform, 'whatsapp');
-  assert.equal(received.sourceAccountId, 'wa-main');
-  assert.equal(context.feedbackLearning.version, 4);
+  assert.deepEqual(order, ['waiting', 'quiet', 'generated']);
+  coordinator.stop();
 
   const source = read('backend/services/contextAwareReplyBrain.js');
-  const waits = source.match(/await settleReplyLearning\(waitForLearningIdle\)/gu) || [];
-  assert.ok(waits.length >= 2, 'learning must settle both before initial context and after quiet-window refresh');
-  assert.match(source, /layerReplyLearningContext\(contactContextAuthority\.getSocialContext/u);
+  // Generation waits for the quiet window, captures the turn and settles it after the refresh.
+  assert.match(source, /await conversationTurnCoordinator\.waitForQuiet\(conversationId,/u);
+  assert.match(source, /conversationTurnCoordinator\.capture\(conversationId, conversationRevision\)/u);
+  assert.match(source, /conversationTurnCoordinator\.settle\(conversationId\)/u);
+  // The old inline layered learning profile injection is retired; the VW learning policy is consumed by dedicated gates.
+  assert.match(source, /learning-profile-injection-retired/u);
+  assert.equal(/settleReplyLearning|layerReplyLearningContext/u.test(source), false);
 });
 
 test('presence events carry contact identity and avatar into notifications', () => {
@@ -381,8 +371,9 @@ test('reply-brain qualification performs real generation coverage across all thr
   assert.match(facebook.messages[0].content, /Facebook Messenger/u);
   assert.match(whatsapp.messages[0].content, /WhatsApp/u);
 
+  // The legacy AI Workbench physical-route surface (and its three-platform benchmark banner) is retired;
+  // real three-platform generation coverage remains protected above through PLATFORM_COVERAGE/SCENARIOS.
   const workbench = read('frontend/js/r32-ai-workbench-runtime.js');
-  assert.match(workbench, /WhatsApp、Telegram、Facebook Messenger 跨平台真实聊天基准/u);
   assert.doesNotMatch(workbench, /缺少通过真实 WhatsApp 基准的主模型/u);
 });
 
@@ -411,22 +402,27 @@ test('reply-brain context compression preserves contact language, boundaries and
   assert.match(serialized, /家庭疾病属于敏感话题/u);
 });
 
-test('candidate dedupe fingerprint changes when learned preferences change', () => {
-  const short = learningFingerprint({
-    version: 3,
-    updatedAt: '2026-07-24T12:00:00.000Z',
-    effective: { replyLength: { value: 'short', scope: 'contact', confidence: 0.9 } }
-  });
-  const warm = learningFingerprint({
-    version: 3,
-    updatedAt: '2026-07-24T12:00:00.000Z',
-    effective: { replyLength: { value: 'short', scope: 'contact', confidence: 0.9 }, tone: { value: 'warm', scope: 'platform', confidence: 0.8 } }
-  });
+test('candidate dedupe packet changes when learned preferences change', () => {
+  const base = {
+    customer: { platform: 'whatsapp', accountId: 'wa-main' },
+    incomingMessage: { id: 'm1', text: 'hi' },
+    preferences: { replyLength: { value: 'short', scope: 'contact', confidence: 0.9 } }
+  };
+  const learned = {
+    ...base,
+    preferences: { ...base.preferences, tone: { value: 'warm', scope: 'platform', confidence: 0.8 } }
+  };
+  const short = serializeSocialDecisionPacket(base);
+  const warm = serializeSocialDecisionPacket(learned);
   assert.notEqual(short, warm);
+
   const source = read('backend/services/contextAwareReplyBrain.js');
-  assert.match(source, /learningFingerprint\(socialContext\.feedbackLearning\)/u);
-  assert.match(source, /clean\(personaCtx\.policyHash\)/u);
-  assert.match(source, /clean\(languageAuthority\.code\)/u);
+  // The learned persona policy hash feeds the generation/dedupe fingerprint.
+  assert.match(source, /personaPolicyHash: personaCtx\.policyHash/u);
+  // Director target language flows through the current language authority.
+  assert.match(source, /replyLanguageAuthority\.normalizeLanguageCode\(languageAuthority\.code\)/u);
+  // The retired standalone learningFingerprint helper is not resurrected.
+  assert.equal(/learningFingerprint/.test(source), false);
 });
 
 test('current product replaces obsolete Fix11 launcher with production-chain regression tests', () => {

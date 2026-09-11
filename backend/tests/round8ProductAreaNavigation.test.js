@@ -41,10 +41,14 @@ test('AI workbench is presented as the AI reply brain while keeping advanced int
 
 test('AI reply brain defaults to a calm business mode and keeps model internals behind an advanced toggle', () => {
   assert.match(source, /aiwAdvancedModeToggle/);
-  assert.match(source, /高级模型设置/);
+  assert.match(source, /高级 AI 设置/);
   assert.match(source, /aiw30-business-mode/);
-  assert.match(source, /data-aiw-tab=\\?"models\\?"/);
-  assert.match(source, /data-aiw-tab=\\?"routing\\?"/);
+  // Business (calm) mode hides the advanced persona internals behind the toggle.
+  assert.match(source, /aiw30-business-mode \.aiw30-tab\[data-aiw-tab="persona"\]\{display:none/);
+  // Read-only model service status tab remains in markup; physical routing tab is retired to LiteLLM.
+  assert.match(html, /data-aiw-tab="models"/);
+  assert.doesNotMatch(html, /data-aiw-tab="routing"/);
+  assert.doesNotMatch(source, /data-aiw-tab="routing"/);
 });
 
 test('cross-module status copy is descriptive and does not hard-code unverified completion or waiting labels', () => {

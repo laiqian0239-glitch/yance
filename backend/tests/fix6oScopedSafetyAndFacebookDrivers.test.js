@@ -153,15 +153,18 @@ test('safe mode exit authorization ignores account-scoped failures but cannot by
 
 test('runtime API v2 cannot exit global safe mode without a scoped recovery authorization receipt', async () => {
   const { createRuntimeHarness } = require('../../tests/wp6/helpers');
-  const h = await createRuntimeHarness();
-  try {
-    let accepted = false;
-    h.runtime.composition.recoveryManager = {
-      consumeSafeModeExitAuthorization(payload) {
-        if (payload.exitAuthorizationId === 'safe-exit-1' && payload.exitAuthorizationToken === 'token-1') { accepted = true; return true; }
-        const error = new Error('authorization required'); error.code = 'SAFE_MODE_EXIT_AUTHORIZATION_REQUIRED'; throw error;
+  let accepted = false;
+  const h = await createRuntimeHarness({
+    composition: {
+      recoveryManager: {
+        consumeSafeModeExitAuthorization(payload) {
+          if (payload.exitAuthorizationId === 'safe-exit-1' && payload.exitAuthorizationToken === 'token-1') { accepted = true; return true; }
+          const error = new Error('authorization required'); error.code = 'SAFE_MODE_EXIT_AUTHORIZATION_REQUIRED'; throw error;
+        }
       }
-    };
+    }
+  });
+  try {
     const enterState = h.runtime.store.snapshot();
     await h.runtime.executeCommand({
       contractVersion: 2, commandId: '11111111-1111-4111-8111-111111111111', commandType: 'runtime.setOperatingMode',
@@ -222,7 +225,7 @@ test('system center projects account and platform safety issues without labellin
 
 test('account API exposes typed Facebook driver contracts and UI cannot confuse identity login with Page or Messenger', () => {
   const root = path.join(__dirname, '..', '..');
-  const manager = fs.readFileSync(path.join(root, 'backend', 'services', 'accountManager.js'), 'utf8');
+  const manager = fs.readFileSync(path.join(root, 'backend', 'services', 'accountManagerCore.js'), 'utf8');
   const frontend = fs.readFileSync(path.join(root, 'frontend', 'r32-account-center.js'), 'utf8');
   assert.match(manager, /driverContracts:\s*platformDrivers\.driverContracts\(\)/u);
   const architectureStatus = fs.readFileSync(path.join(root, 'backend', 'services', 'round12ArchitectureStatusService.js'), 'utf8');
@@ -230,9 +233,10 @@ test('account API exposes typed Facebook driver contracts and UI cannot confuse 
   assert.match(frontend, /id="ac32FormFacebookKind"/u);
   assert.match(frontend, /facebook-page-official/u);
   assert.match(frontend, /facebook-personal-identity-official/u);
-  assert.match(frontend, /facebook-personal-messenger-experimental/u);
+  assert.match(frontend, /facebook-personal-messenger-mautrix-meta/u);
   assert.match(frontend, /个人身份登录不提供 Messenger 私信/u);
-  assert.match(frontend, /非官方实验能力/u);
+  assert.match(frontend, /mautrix\/meta/u);
+  assert.match(frontend, /言策不保存 Facebook 密码/u);
   assert.match(frontend, /accountKind/u);
   assert.match(frontend, /driverId/u);
 });

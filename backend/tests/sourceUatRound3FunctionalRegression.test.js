@@ -25,11 +25,14 @@ test('a real connectivity response makes a local model experimental instead of u
   }), 'verified');
 });
 
-test('successful qualification automatically creates task routes', () => {
+test('qualification records role receipts while physical routing stays with LiteLLM', () => {
   const registry = source('backend/services/modelRegistry.js');
-  assert.match(registry, /source: 'qualification-auto-route'/);
-  assert.match(registry, /allowExperimental: result\.qualification === 'experimental'/);
-  assert.match(registry, /routingIntegrity\.repairRegistryDocument/);
+  // Successful qualification updates logical role eligibility/receipts only;
+  // LiteLLM v1.95.0 remains the single physical routing authority (no auto task-route creation).
+  assert.match(registry, /roleQualificationReceipts/);
+  assert.match(registry, /allowedTasks/);
+  assert.match(registry, /routingAuthority: 'LiteLLM v1\.95\.0 Model Brain'/);
+  assert.doesNotMatch(registry, /source: 'qualification-auto-route'/);
 });
 
 test('archived filter, contact context actions and alternate online accounts are interactive', () => {

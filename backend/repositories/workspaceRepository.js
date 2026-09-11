@@ -28,7 +28,12 @@ function first(...values) { return values.find(value => value !== undefined && v
 
 function personSnapshot(input = {}, store = getStore()) {
   try {
-    if (store === getStore()) return personContextAuthority.snapshot(input);
+    // getStore() throws when no process-primary store is registered (explicit
+    // store supplied by caller/tests); in that case resolve through the supplied
+    // store instead of letting the comparison abort the fallback branch.
+    let primaryStore = null;
+    try { primaryStore = getStore(); } catch (_) { primaryStore = null; }
+    if (primaryStore && store === primaryStore) return personContextAuthority.snapshot(input);
     const repository = createPlatformCoreRepository({ storeProvider: () => store });
     return new PersonContextAuthority({ repository }).snapshot(input);
   } catch (_) {

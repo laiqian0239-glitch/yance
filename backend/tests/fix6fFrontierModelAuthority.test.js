@@ -4,13 +4,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const frontier = require('../services/openRouterFrontierCandidateAuthority');
 const autoConfig = require('../services/openRouterAutoConfigurationService');
-const onboarding = require('../services/openRouterOnboardingSmokeService');
 
 function catalogModel(id, options = {}) {
   const created = options.created ?? 1_786_000_000;
   return autoConfig.normalizeCatalogModel({
     id,
-    name: options.name || id,
+    name: id,
     description: options.description || 'General multilingual conversational model',
     created,
     context_length: options.contextLength || 1_000_000,
@@ -29,49 +28,23 @@ function catalogModel(id, options = {}) {
   });
 }
 
-function registryModel(id, source = 'openrouter-auto') {
-  return {
-    id: `model:${id}`,
-    name: id,
-    displayName: id,
-    source,
-    provider: 'openai-compatible',
-    endpoint: 'https://openrouter.ai/api/v1',
-    credentialRef: 'model:openrouter:default',
-    available: true,
-    configured: true,
-    capabilities: ['text'],
-    catalogMetadata: { taskEligibility: { quick_reply: true, director: true, deep_reply: true, translation: true } }
-  };
-}
+// V21 Model Brain / LiteLLM retired Yance-owned preferred-primary/fallback/shortlist planning
+// (frontier.buildPlan) and onboarding independent-model ordering. Physical provider selection,
+// fallback and cross-provider independence are owned by LiteLLM. The remaining Yance seams are
+// catalog normalization, special-purpose exclusion and non-interactive Batch rejection.
 
-test('frontier authority guarantees exact preferred cross-provider primary and fallback when catalog exposes both', () => {
-  const models = [
-    catalogModel('anthropic/claude-opus-5-fast', { prompt: 0.00001, completion: 0.00005, created: 1_786_100_000 }),
-    catalogModel('anthropic/claude-opus-5', { created: 1_786_000_000 }),
-    catalogModel('openai/gpt-5.6-sol', { completion: 0.00003, created: 1_785_000_000 }),
-    catalogModel('x-ai/grok-4.5', { prompt: 0.000004, completion: 0.00002, created: 1_787_000_000 }),
-    catalogModel('google/gemini-3.6-pro', { prompt: 0.000003, completion: 0.000018, created: 1_788_000_000 })
-  ];
-  const plan = frontier.buildPlan(models);
-  assert.equal(plan.preferredPrimary.slug, 'anthropic/claude-opus-5');
-  assert.equal(plan.preferredFallback.slug, 'openai/gpt-5.6-sol');
-  assert.equal(plan.preferredPrimary.provider, 'anthropic');
-  assert.equal(plan.preferredFallback.provider, 'openai');
-  assert.deepEqual(plan.shortlist.slice(0, 2).map(row => row.id), ['anthropic/claude-opus-5', 'openai/gpt-5.6-sol']);
-  assert.equal(plan.shortlist.some(row => row.id === 'anthropic/claude-opus-5-fast'), true, 'Fast may remain a challenger but cannot replace the selected regular primary');
-});
-
-test('frontier authority excludes Batch-only models from interactive shortlist and role selections', () => {
+test('Batch-only catalog models are flagged and excluded while interactive text models remain usable', () => {
   const batch = catalogModel('anthropic/claude-opus-5:batch');
   const normal = catalogModel('anthropic/claude-opus-5');
-  const plan = frontier.buildPlan([batch, normal]);
-  assert.equal(batch.batchOnly, true);
-  assert.equal(plan.shortlist.some(row => /:batch$/u.test(row.id)), false);
-  assert.equal(plan.rejected.some(row => row.slug === 'anthropic/claude-opus-5:batch' && row.reasonCode === 'BATCH_ONLY_INTERACTIVE_FORBIDDEN'), true);
+  assert.equal(frontier.isBatchOnly(batch), true);
+  assert.equal(autoConfig.exclusionReason(batch), 'batch-only-model');
+  assert.equal(autoConfig.isSpecialPurpose(batch), true);
+  assert.equal(frontier.isBatchOnly(normal), false);
+  assert.equal(autoConfig.exclusionReason(normal), '');
+  assert.equal(autoConfig.isSpecialPurpose(normal), false);
 });
 
-test('auto configuration persists preferred route intent and never registers Batch-only models', async () => {
+test('auto configuration registers usable text chat models and never registers Batch-only models', async () => {
   const credentialRef = 'model:openrouter:default';
   const securityGuard = { credentials: new Map([[credentialRef, { apiKey: 'secret' }]]) };
   const registered = [];
@@ -95,52 +68,14 @@ test('auto configuration persists preferred route intent and never registers Bat
       : { data: rawCatalog }
   });
   assert.equal(registered.some(row => /:batch$/u.test(row.name)), false);
-  assert.equal(result.preferredRoute.primarySlug, 'anthropic/claude-opus-5');
-  assert.equal(result.preferredRoute.fallbackSlug, 'openai/gpt-5.6-sol');
-  assert.equal(snapshot.preferredRoute.primarySlug, 'anthropic/claude-opus-5');
-  assert.deepEqual(result.selections.quick_reply.slice(0, 2).map(row => row.id), ['anthropic/claude-opus-5', 'openai/gpt-5.6-sol']);
-});
-
-test('onboarding smoke uses preferred primary then preferred fallback before other candidates', () => {
-  const models = [
-    registryModel('x-ai/grok-4.5'),
-    registryModel('openai/gpt-5.6-sol'),
-    registryModel('anthropic/claude-opus-5')
-  ];
-  const selected = onboarding.selectIndependentModels({
-    preferredRoute: {
-      primarySlug: 'anthropic/claude-opus-5',
-      fallbackSlug: 'openai/gpt-5.6-sol'
-    },
-    selections: { quick_reply: [{ id: 'x-ai/grok-4.5' }] }
-  }, models, 3);
-  assert.deepEqual(selected.map(row => row.name), [
+  assert.equal(result.catalogCount, 4);
+  assert.equal(result.usableCatalogCount, 3);
+  assert.equal(result.registeredModelCount, 3);
+  assert.deepEqual(result.registered.map(row => row.name).sort(), [
     'anthropic/claude-opus-5',
-    'openai/gpt-5.6-sol',
-    'x-ai/grok-4.5'
+    'google/gemma-4-31b-it:free',
+    'openai/gpt-5.6-sol'
   ]);
-});
-
-test('onboarding smoke preserves provider independence when preferred fallback is unavailable', () => {
-  const models = [
-    registryModel('anthropic/claude-opus-5'),
-    registryModel('anthropic/claude-sonnet-5'),
-    registryModel('openai/gpt-5.6-terra')
-  ];
-  const selected = onboarding.selectIndependentModels({
-    preferredRoute: {
-      primarySlug: 'anthropic/claude-opus-5',
-      fallbackSlug: 'openai/gpt-5.6-sol'
-    },
-    selections: {
-      quick_reply: [
-        { id: 'anthropic/claude-sonnet-5' },
-        { id: 'openai/gpt-5.6-terra' }
-      ]
-    }
-  }, models, 3);
-  assert.deepEqual(selected.slice(0, 2).map(row => row.name), [
-    'anthropic/claude-opus-5',
-    'openai/gpt-5.6-terra'
-  ]);
+  assert.equal(snapshot.usableCatalogCount, 3);
+  assert.equal(snapshot.accountStatus, 'connected');
 });

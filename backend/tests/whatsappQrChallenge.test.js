@@ -3,13 +3,44 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+
+const dataRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wa-qr-'));
+process.env.YANCE_DATA_DIR = dataRoot;
+process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const {
+  createSqliteConnectionBroker,
+  resetSqliteConnectionBrokerForTests
+} = require('../lib/sqliteConnectionBroker');
+const dbPath = path.join(dataRoot, 'store', 'yance-r32.db');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const authorityWriteHost = acquireAuthorityWriteHost({
+  dbPath,
+  instanceId: `wa-qr-${process.pid}`
+});
+createSqliteConnectionBroker({
+  dbPath,
+  authorityWriteHostCapability: authorityWriteHost.capability
+});
+
 const challenges = require('../services/authChallengeService');
 const accountManagerModule = require('../services/accountManager');
 const accountStore = require('../services/accountStore');
 const whatsapp = require('../services/whatsappAdapter');
 const telegram = require('../services/telegramAdapter');
 const messageStore = require('../services/messageStore');
+const { closeStore } = require('../repositories/storeProvider');
+
+process.on('exit', () => {
+  try { closeStore(); } catch (_) {}
+  try { resetSqliteConnectionBrokerForTests(); } catch (_) {}
+  try { authorityWriteHost.close(); } catch (_) {}
+  try { fs.rmSync(dataRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch (_) {}
+  delete process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET;
+});
 
 const SECRET_QR = 'data:image/png;base64,TOP_SECRET_QR_BYTES';
 
@@ -82,7 +113,7 @@ test('Telegram QR production path issues and clears a short-lived challenge inst
   const root = path.resolve(__dirname, '..', '..');
   const frontend = fs.readFileSync(path.join(root, 'frontend/r32-account-center.js'), 'utf8');
   const adapter = fs.readFileSync(path.join(root, 'backend/services/telegramAdapter.js'), 'utf8');
-  const manager = fs.readFileSync(path.join(root, 'backend/services/accountManager.js'), 'utf8');
+  const manager = fs.readFileSync(path.join(root, 'backend/services/accountManagerCore.js'), 'utf8');
   const coreClient = fs.readFileSync(path.join(root, 'frontend/js/core-client.js'), 'utf8');
   assert.match(adapter, /type: 'telegram-qr'/);
   assert.match(adapter, /authChallenges\.issue/);
@@ -144,7 +175,8 @@ test('WhatsApp QR startup has a hard timeout, stale-socket replacement and a use
   assert.match(adapter, /version-discovery-timeout/);
   assert.match(adapter, /stale-startup-replaced/);
   assert.match(adapter, /WHATSAPP_QR_START_TIMEOUT/);
-  assert.match(adapter, /!row\.startupTimedOut/);
+  assert.match(adapter, /row\.startupTimedOut = true/);
+  assert.match(adapter, /sessionFence\.invalidate\('WHATSAPP_QR_START_TIMEOUT'\)/);
   assert.match(frontend, /state\.awaitingQrAccountId = ''[\s\S]*renderWorkbench\(\)[\s\S]*return false/);
   assert.match(frontend, /WhatsApp 未生成二维码。连接已停止，请检查网络后点击重试。/);
 });

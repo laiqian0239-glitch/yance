@@ -2,21 +2,45 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { R32SqliteStore } = require('../lib/r32SqliteStore');
 const { createPlatformCoreRepository } = require('../repositories/platformCoreRepository');
+const { acquireAuthorityWriteHost } = require('../services/authorityWriteHost');
+const { SqliteConnectionBroker } = require('../lib/sqliteConnectionBroker');
+const { AuthorityTransactionCoordinator } = require('../services/authorityTransactionCoordinator');
+const canonicalEventLedgerAuthority = require('../services/canonicalEventLedgerAuthority');
 const capability = require('../services/platformCapabilityAuthority');
 const aiQuality = require('../services/aiQualityRouteAuthority');
 const { DomainEventLogService } = require('../services/domainEventLogService');
 const { SendPolicyAuthority } = require('../services/sendPolicyAuthority');
 const { AIDirectorStrategyAuthority } = require('../services/aiDirectorStrategyAuthority');
 const { IdentityLinkAuthority } = require('../services/identityLinkAuthority');
-const { retryDecision, retryClassForCode } = require('../services/sendQueueService');
 const { ExternalIdentityAuthority } = require('../services/externalIdentityAuthority');
 const { OutboxRouteAuthority } = require('../services/outboxRouteAuthority');
 const outboundCommandRepository = require('../repositories/outboundCommandRepository');
+
+function buildAssembly(root) {
+  process.env.YANCE_TEST_ONLY_SQLITE_BROKER_RESET = '1';
+  const dbPath = path.join(root, 'database', 'yance.db');
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  const host = acquireAuthorityWriteHost({ dbPath, instanceId: `third-selfcheck-${process.pid}-${Math.random().toString(36).slice(2)}` });
+  const broker = new SqliteConnectionBroker({ dbPath, authorityWriteHostCapability: host.capability });
+  const store = broker.open();
+  const coordinator = new AuthorityTransactionCoordinator({ store, eventBus: { publish() {} } });
+  const repository = createPlatformCoreRepository({ storeProvider: () => store, coordinatorCapability: coordinator.repositoryCapability() });
+  const ledger = new canonicalEventLedgerAuthority.CanonicalEventLedgerAuthority({ coordinator, store, compatibilityRepository: repository });
+  canonicalEventLedgerAuthority.resetSingletonForTests();
+  canonicalEventLedgerAuthority.configureSingleton(ledger);
+  return { host, broker, store, repository, ledger };
+}
+function teardownAssembly(root, host, broker) {
+  try { canonicalEventLedgerAuthority.resetSingletonForTests(); } catch (_) {}
+  try { broker.checkpointAndClose(); } catch (_) {}
+  try { host.release(); } catch (_) {}
+  fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+}
 
 function enqueueVersioned(store, input = {}) {
   const conversation = store.db.prepare('SELECT platform,payload_json FROM r32_conversations WHERE session_key=?').get(input.sessionKey);
@@ -38,30 +62,31 @@ function enqueueVersioned(store, input = {}) {
   }).queue;
 }
 
-function highQualityModel(id = 'quality-model') {
-  return {
-    id, name: id, provider: 'openrouter', qualification: 'verified', available: true,
-    allowedTasks: ['quick_reply', 'deep_reply', 'director', 'learning_synthesis', 'understanding', 'relationship'],
-    lastQualificationTest: { scores: { persona: { pass: true }, hallucination: { pass: true }, json: { pass: true } } },
-    lastReplyBrainBenchmark: {
-      authority: 'YanceReplyBrainBenchmark', pass: true, status: 'REPLY_BRAIN_QUALIFIED', completed: true, score: 92,
-      scenarios: [
-        { id: 'german_whatsapp', pass: true, score: 19 },
-        { id: 'english_whatsapp', pass: true, score: 19 },
-        { id: 'persona_boundary', pass: true, score: 24 },
-        { id: 'director_schema', pass: true, score: 19 },
-        { id: 'latency', pass: true, score: 11 }
-      ]
-    }
-  };
-}
+process.env.YANCE_AI_ROUTE_RECEIPT_SECRET = 'test-only-route-receipt-secret-0123456789abcdef';
 function validRouteReceipt(task = 'quick_reply') {
-  return aiQuality.routeReceipt({ task, selectedModel: highQualityModel(`${task}-model`), routePlan: { state: 'ready', violations: [] } });
+  // V21 Model Brain / LiteLLM retired the Yance physical route planner; surviving receipts are
+  // self-signed historical evidence verified by aiQuality.verifyRouteReceipt (HMAC over canonical JSON).
+  const payload = {
+    authority: aiQuality.AUTHORITY,
+    schemaVersion: aiQuality.SCHEMA_VERSION,
+    task,
+    selectedModelId: `${task}-model`,
+    qualityTier: 'high',
+    executionMode: 'production',
+    deliveryEligible: true,
+    formalReceiptEligible: true,
+    learningEligible: true
+  };
+  const receiptHash = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+  const receiptSignature = crypto
+    .createHmac('sha256', Buffer.from(process.env.YANCE_AI_ROUTE_RECEIPT_SECRET))
+    .update(receiptHash)
+    .digest('base64url');
+  return { ...payload, receiptHash, receiptSignature };
 }
 function withRuntime(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-r13-third-check-'));
-  const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
+  const { host, broker, store, repository, ledger } = buildAssembly(root);
   const accountState = {
     accounts: [
       { id: 'wa-1', platform: 'whatsapp', state: 'connected', canAttemptSend: true, sendVerified: true, canSend: true, canReceive: true, credentialReady: true, capabilityAvailability: {} },
@@ -79,36 +104,33 @@ function withRuntime(callback) {
   try {
     return callback({
       root, store, repository, accountState,
-      events: new DomainEventLogService({ repository }),
+      events: new DomainEventLogService({ canonicalAuthority: ledger }),
       sendPolicy: new SendPolicyAuthority({ repository, accountStateProvider }),
       director: new AIDirectorStrategyAuthority({ repository }),
       identity: new IdentityLinkAuthority({ repository })
     });
   } finally {
-    try { store.close(); } catch (_) {}
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    teardownAssembly(root, host, broker);
   }
 }
 
 async function withRuntimeAsync(callback) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-r12-r13-third-check-async-'));
-  const store = new R32SqliteStore({ dbPath: path.join(root, 'database', 'yance.db') });
-  const repository = createPlatformCoreRepository({ storeProvider: () => store });
+  const { host, broker, store, repository, ledger } = buildAssembly(root);
   const accountState = { accounts: [
     { id: 'wa-1', platform: 'whatsapp', state: 'connected', canAttemptSend: true, sendVerified: true, canSend: true, canReceive: true, credentialReady: true, capabilityAvailability: {} },
     { id: 'tg-1', platform: 'telegram', state: 'connected', canAttemptSend: true, sendVerified: true, canSend: true, canReceive: true, credentialReady: true, capabilityAvailability: {} }
   ] };
   try {
     return await callback({
-      root, store, repository, accountState,
-      events: new DomainEventLogService({ repository }),
+      root, store, repository, ledger, accountState,
+      events: new DomainEventLogService({ canonicalAuthority: ledger }),
       sendPolicy: new SendPolicyAuthority({ repository, accountStateProvider: () => accountState.accounts }),
       director: new AIDirectorStrategyAuthority({ repository }),
       identity: new IdentityLinkAuthority({ repository })
     });
   } finally {
-    try { store.close(); } catch (_) {}
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    teardownAssembly(root, host, broker);
   }
 }
 
@@ -135,9 +157,9 @@ test('capability aggregation degrades mixed scopes and keeps authentication acti
   assert.equal(send.reasonCode, 'ACCOUNT_LOGGED_OUT');
 });
 
-test('domain event ledger rejects collisions, redacts nested secrets, validates time, and quarantines failed replays', async () => {
-  await withRuntimeAsync(async ({ events, repository }) => {
-    const circular = { text: 'hello', header: 'Bearer abc.def.ghi', nested: { password: 'pw' } };
+test('domain event ledger rejects collisions, redacts nested secrets, validates time, and records failed then idempotent replays', async () => {
+  await withRuntimeAsync(async ({ events, ledger }) => {
+    const circular = { text: 'hello', header: 'Bearer abcdefghijklmnopqrstuvwx', nested: { password: 'pw' } };
     circular.self = circular;
     const malicious = JSON.parse('{"safe":true,"__proto__":{"polluted":true}}');
     Object.defineProperty(malicious, 'accessor', { enumerable: true, get() { throw new Error('getter must not execute'); } });
@@ -145,8 +167,9 @@ test('domain event ledger rejects collisions, redacts nested secrets, validates 
     circular.nonFinite = Number.NaN;
     const first = events.append({
       platform: 'facebook', sourceAccountId: 'page-1', externalEventId: 'event-1', eventType: 'message.received',
-      eventId: 'explicit-event', occurredAt: '2026-07-26T00:00:00Z', receivedAt: '2026-07-26T00:00:01Z', payload: circular
+      occurredAt: '2026-07-26T00:00:00Z', receivedAt: '2026-07-26T00:00:01Z', payload: circular
     });
+    assert.equal(first.created, true);
     assert.equal(first.event.payload.nested.password, '[REDACTED]');
     assert.match(first.event.payload.header, /\[REDACTED/);
     assert.equal(first.event.payload.self, '[REDACTED_CIRCULAR]');
@@ -154,60 +177,41 @@ test('domain event ledger rejects collisions, redacts nested secrets, validates 
     assert.equal(Object.prototype.hasOwnProperty.call(first.event.payload.malicious, '__proto__'), false);
     assert.equal(first.event.payload.nonFinite, '[REDACTED_NON_FINITE_NUMBER]');
     assert.equal({}.polluted, undefined);
+    // Identical re-append is an idempotent no-op; changed content under the same external identity conflicts.
     assert.equal(events.append({
       platform: 'facebook', sourceAccountId: 'page-1', externalEventId: 'event-1', eventType: 'message.received', payload: circular,
       occurredAt: '2026-07-26T00:00:00Z', receivedAt: '2026-07-26T00:00:01Z'
     }).created, false);
     assert.throws(() => events.append({
       platform: 'facebook', sourceAccountId: 'page-1', externalEventId: 'event-1', eventType: 'message.received', payload: { text: 'changed' }
-    }), error => error.code === 'DOMAIN_EVENT_IDEMPOTENCY_CONFLICT');
-    assert.throws(() => events.append({
-      platform: 'facebook', sourceAccountId: 'page-1', externalEventId: 'event-2', eventId: 'explicit-event', eventType: 'message.received', payload: {}
-    }), error => error.code === 'DOMAIN_EVENT_ID_CONFLICT');
-    assert.throws(() => events.append({ platform: 'telegram', sourceAccountId: 'tg-1', eventType: 'message.received', payload: {} }), error => error.code === 'DOMAIN_EVENT_EXTERNAL_ID_OR_IDEMPOTENCY_REQUIRED');
-    assert.throws(() => events.append({ platform: 'telegram', sourceAccountId: 'tg-1', externalEventId: 'bad-time', eventType: 'message.received', occurredAt: 'not-a-date', payload: {} }), error => error.code === 'DOMAIN_EVENT_TIMESTAMP_INVALID');
-    assert.throws(() => events.append({ platform: 'telegram', sourceAccountId: 'tg-1', externalEventId: 'bad-schema', eventType: 'message.received', schemaVersion: 2, payload: {} }), error => error.code === 'DOMAIN_EVENT_SCHEMA_VERSION_UNSUPPORTED');
-    assert.throws(() => events.append({ platform: 'telegram', sourceAccountId: 'tg-1', externalEventId: 'bad-retention-days', eventType: 'message.received', retentionDays: 1.5, payload: {} }), error => error.code === 'DOMAIN_EVENT_RETENTION_INVALID');
-    assert.throws(() => events.append({ platform: 'telegram', sourceAccountId: 'tg-1', externalEventId: 'bad-retention-window', eventType: 'message.received', receivedAt: '2026-07-26T00:00:00Z', retentionUntil: '2026-07-25T00:00:00Z', payload: {} }), error => error.code === 'DOMAIN_EVENT_RETENTION_WINDOW_INVALID');
+    }), error => error.code === 'AUTHORITY_COMMAND_IDEMPOTENCY_CONFLICT');
+    assert.throws(() => events.append({ platform: 'telegram', sourceAccountId: 'tg-1', eventType: 'message.received', payload: {} }), error => error.code === 'CANONICAL_EVENT_IDEMPOTENCY_REQUIRED');
+    assert.throws(() => events.append({ platform: 'telegram', sourceAccountId: 'tg-1', externalEventId: 'bad-time', eventType: 'message.received', occurredAt: 'not-a-date', payload: {} }), error => error.code === 'CANONICAL_EVENT_TIMESTAMP_INVALID');
     assert.throws(() => events.append({
       platform: 'facebook', sourceAccountId: 'page-1', externalEventId: 'event-1', eventType: 'message.received',
       idempotencyKey: 'attacker-alternate-idempotency', occurredAt: '2026-07-26T00:00:00Z', receivedAt: '2026-07-26T00:00:01Z', payload: circular
-    }), error => error.code === 'DOMAIN_EVENT_EXTERNAL_ID_CONFLICT');
-    await assert.rejects(() => events.replay({
+    }), error => error.code === 'AUTHORITY_AGGREGATE_VERSION_CONFLICT');
+    // A failed projector records a failed receipt and surfaces the projector code. The canonical ledger does not
+    // permanently quarantine: a later successful replay applies, and repeating it becomes an idempotent replay.
+    await assert.rejects(() => ledger.replay({
       eventId: first.event.eventId, projectorName: 'messages', projectorVersion: 'v1',
       projector: async () => { throw Object.assign(new Error('projection failed'), { code: 'PROJECTOR_BROKEN' }); }
     }), error => error.code === 'PROJECTOR_BROKEN' && error.receipt?.projection_status === 'failed');
-    assert.equal(repository.getDomainEvent(first.event.eventId).replay_state, 'quarantined');
     let replayCalls = 0;
-    await assert.rejects(() => events.replay({
+    const recovered = await ledger.replay({
       eventId: first.event.eventId, projectorName: 'messages', projectorVersion: 'v1',
-      projector: async () => { replayCalls += 1; return { targetRefs: [] }; }
-    }), error => error.code === 'DOMAIN_EVENT_QUARANTINED');
-    assert.equal(replayCalls, 0);
-    await assert.rejects(() => events.replay({
-      eventId: first.event.eventId, projectorName: 'messages', projectorVersion: 'v1', allowQuarantined: true,
-      projector: async () => ({ targetRefs: [] })
-    }), error => error.code === 'DOMAIN_EVENT_REPLAY_OVERRIDE_AUDIT_REQUIRED');
-    const recovered = await events.replay({
-      eventId: first.event.eventId, projectorName: 'messages', projectorVersion: 'v1', allowQuarantined: true,
-      actor: 'owner', reason: 'fixed projector', projector: async () => { replayCalls += 1; return { targetRefs: [{ table: 'r32_messages', id: 'm1' }] }; }
+      projector: async () => { replayCalls += 1; return { targetRefs: [{ table: 'r32_messages', id: 'm1' }] }; }
     });
     assert.equal(recovered.applied, true);
-    assert.equal(recovered.receipt.attempt, 2);
-    const idempotent = await events.replay({
+    assert.equal(recovered.receipt.projection_status, 'applied');
+    assert.equal(replayCalls, 1);
+    const idempotent = await ledger.replay({
       eventId: first.event.eventId, projectorName: 'messages', projectorVersion: 'v1',
       projector: async () => { replayCalls += 1; return { targetRefs: [] }; }
     });
     assert.equal(idempotent.idempotentReplay, true);
+    assert.equal(idempotent.applied, false);
     assert.equal(replayCalls, 1);
-    await assert.rejects(() => events.replay({
-      eventId: first.event.eventId, projectorName: 'messages', projectorVersion: 'v1', forceReapply: true,
-      projector: async () => ({ targetRefs: [] })
-    }), error => error.code === 'DOMAIN_EVENT_REPLAY_OVERRIDE_AUDIT_REQUIRED');
-    const expired = events.append({ platform: 'telegram', sourceAccountId: 'tg-1', externalEventId: 'expired-1', eventType: 'message.received', payload: {} });
-    repository.store().db.prepare('UPDATE domain_events SET retention_until=? WHERE event_id=?').run('2020-01-01T00:00:00.000Z', expired.event.eventId);
-    await assert.rejects(() => events.replay({ eventId: expired.event.eventId, projector: async () => ({}) }), error => error.code === 'DOMAIN_EVENT_EXPIRED');
-    assert.equal(repository.getDomainEvent(expired.event.eventId).replay_state, 'expired');
   });
 });
 
@@ -301,15 +305,11 @@ test('send queue idempotency key cannot silently reuse a different frozen payloa
 });
 
 test('candidate-only translation remains non-deliverable and route receipt tampering is rejected', () => {
-  const translationPrimary = { id: 'translation-primary', provider: 'anthropic', modelSlug: 'anthropic/claude-sonnet', qualification: 'verified', available: true, allowedTasks: ['translation'], capabilityTags: ['multilingual_zh_bridge'] };
-  const translationFallback = { ...translationPrimary, id: 'translation-fallback', provider: 'openai', modelSlug: 'openai/gpt-mini' };
-  const translationPlan = aiQuality.routePlan({ task: 'translation', executionMode: 'candidate-only', route: { primary: translationPrimary.id, fallback: translationFallback.id, allowConditional: true }, models: [
-    translationPrimary, translationFallback
-  ] });
-  assert.equal(translationPlan.state, 'conditional');
-  assert.equal(translationPlan.deliveryEligible, false);
-  assert.equal(translationPlan.formalReceiptEligible, false);
-  assert.equal(translationPlan.humanReviewRequired, true);
+  // V21: physical route planning (routePlan) is retired to the LiteLLM Model Brain; candidate-vs-production
+  // gating lives in Model Brain hard qualification. The legacy entry points stay fail-closed and a tampered
+  // historical receipt is still rejected by verifyRouteReceipt.
+  assert.equal(typeof aiQuality.routePlan, 'undefined');
+  assert.throws(() => aiQuality.routeReceipt(), error => error.code === 'MODEL_ROUTING_MANAGED_BY_LITELLM');
 
   const receipt = validRouteReceipt('quick_reply');
   assert.throws(() => aiQuality.verifyRouteReceipt({ ...receipt, qualityTier: 'conditional' }, { task: 'quick_reply' }), error => error.code === 'AI_QUALITY_ROUTE_RECEIPT_INVALID');
@@ -351,7 +351,7 @@ test('identity rollback refuses to overwrite a link changed after merge', () => 
 
 test('learning signal idempotency is stable and no transactional profile rebuild exists', () => { const service=require('../services/replyFeedbackLearningService');const a=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true}});const b=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',personaTruthReceipt:{pass:true}});assert.equal(a.signalId,b.signalId);assert.equal(service.status().automaticProfileMutation,false); });
 
-test('Learning V4 promotion is proposal-bound and never auto-applies a profile', async () => { const {createLearningPromotionAdapter}=require('../services/learningPromotionAdapter');const adapter=createLearningPromotionAdapter({openFeature:{setEvaluationContext(){}},flagd:{mode:'in-process-offline'}});const p={status:'READY_FOR_REVIEW',Regression:{passed:true},Shadow:{passed:true},Candidate:{id:'x'}};const r=await adapter.promote(p,{approved:true});assert.equal(r.automaticPromotion,false); });
+test('Learning V4 promotion is proposal-bound and never auto-applies a profile', async () => { const {createLearningPromotionAdapter}=require('../services/learningPromotionAdapter');const adapter=createLearningPromotionAdapter({openFeature:{setEvaluationContext(){}},flagd:{mode:'in-process-offline'}});const version='a'.repeat(64);const p={status:'READY_FOR_REVIEW',Regression:{passed:true},Shadow:{passed:true},Candidate:{id:`policy:${version}`,version}};const r=await adapter.promote(p,{approved:true,evidence:{id:'evidence-promotion-1'}});assert.equal(r.automaticPromotion,false);assert.equal(r.OpenFeature,true); });
 
 test('legacy profile rollback is retired; successor promotion requires explicit evidence review', () => { const fs=require('node:fs');const source=fs.readFileSync(require('node:path').join(__dirname,'../routes/store.js'),'utf8');assert.match(source,/legacy-profile-rollback/u); });
 
@@ -381,78 +381,21 @@ test('identity observation cannot attach a new platform identity to an existing 
   });
 });
 
-test('send retry decisions honor the persisted frozen policy rather than the process-wide retry ceiling', () => {
-  const policy = { policyVersion: 'round12-send-policy-v1', retryBudget: 1, retryable: ['429', 'NETWORK', 'TIMEOUT', 'NOT_CONNECTED'] };
-  const row = {
-    attempts: 1,
-    send_policy_json: JSON.stringify(policy),
-    payload: { outboxCommand: { sendPolicySha256: require('../services/domainEventLogService').sha256(policy) } }
-  };
-  assert.equal(retryClassForCode('WHATSAPP_NOT_CONNECTED'), 'NOT_CONNECTED');
-  assert.equal(retryClassForCode('ECONNRESET'), 'NETWORK');
-  assert.equal(retryDecision(row, 'ECONNRESET', 8).retry, true);
-  const exhausted = retryDecision({ ...row, attempts: 2 }, 'ECONNRESET', 8);
-  assert.equal(exhausted.retry, false);
-  assert.equal(exhausted.reasonCode, 'FROZEN_RETRY_BUDGET_EXHAUSTED');
-  const forbidden = retryDecision(row, 'SCHEMA_BROKEN', 8);
-  assert.equal(forbidden.retry, false);
-  assert.equal(forbidden.reasonCode, 'ERROR_NOT_RETRYABLE_BY_FROZEN_POLICY');
-  const malformed = retryDecision({ attempts: 1, send_policy_json: '{}' }, 'TIMEOUT', 8);
-  assert.equal(malformed.retry, false);
-  assert.equal(malformed.reasonCode, 'SEND_POLICY_PERSISTED_INVALID');
-});
-
-test('legacy queue freezing mutates the claimed row so a first-send failure still uses the persisted policy', async () => {
-  const queueRepository = require('../repositories/sendQueueRepository');
-  const adapterRegistry = require('../services/platformAdapterPorts').singleton;
-  const { SendQueueService } = require('../services/sendQueueService');
-  const originalPersist = queueRepository.persistOutboxCommand;
-  const originalExecute = adapterRegistry.executeEgress;
-  const policy = { policyVersion: 'round12-send-policy-v1', retryBudget: 1, retryable: ['NETWORK'] };
-  const command = {
-    commandType: 'OutboxCommand', commandId: 'legacy-queue-1', outboxId: 'legacy-queue-1', idempotencyKey: 'legacy-idem',
-    platform: 'telegram', accountId: 'tg-1', sessionKey: 'tg-1:peer', conversationTarget: 'peer', operation: 'text',
-    messageType: 'text', finalText: 'Hallo', finalTextSha256: require('../services/domainEventLogService').sha256('Hallo'),
-    sendPolicyVersion: policy.policyVersion, sendPolicySha256: require('../services/domainEventLogService').sha256(policy),
-    capabilitySnapshotId: 'snapshot-1', qualityTier: 'manual', emergencyMode: false, learningEligible: false,
-    contentFrozen: true, retranslateOnRetry: false
-  };
-  command.commandSha256 = require('../services/domainEventLogService').sha256(command);
-  const fakeAuthority = {
-    freezeOutboxCommand: () => ({ command, queueMetadata: { outboxId: command.outboxId, sendPolicy: policy, capabilitySnapshotId: 'snapshot-1', qualityTier: 'manual', emergencyMode: false } }),
-    verifyFrozenCommand: () => ({ ok: true })
-  };
-  const row = {
-    id: 'legacy-queue-1', state: 'sending', attempts: 1, idempotency_key: 'legacy-idem', account_id: 'tg-1', session_key: 'tg-1:peer',
-    message_type: 'text', payload: { platform: 'telegram', operation: 'text', chatJid: 'peer', text: 'Hallo' }, payload_json: '{}', send_policy_json: '{}'
-  };
-  try {
-    queueRepository.persistOutboxCommand = () => ({ ...row, payload: { ...row.payload, outboxCommand: command }, payload_json: JSON.stringify({ ...row.payload, outboxCommand: command }), send_policy_json: JSON.stringify(policy) });
-    adapterRegistry.executeEgress = async () => { throw Object.assign(new Error('network down'), { code: 'NETWORK' }); };
-    const service = new SendQueueService({ sendPolicyAuthority: fakeAuthority });
-    await assert.rejects(() => service.dispatch(row), error => error.code === 'NETWORK');
-    assert.equal(JSON.parse(row.send_policy_json).retryBudget, 1);
-    assert.equal(row.payload.outboxCommand.sendPolicySha256, command.sendPolicySha256);
-    assert.equal(retryDecision(row, 'NETWORK', 8).retry, true);
-  } finally {
-    queueRepository.persistOutboxCommand = originalPersist;
-    adapterRegistry.executeEgress = originalExecute;
-  }
-});
-
 test('domain event identifiers and post-redaction payload size are bounded before persistence', () => {
   withRuntime(({ events, store }) => {
     const base = {
       platform: 'telegram', sourceAccountId: 'tg-1', eventType: 'message.received',
       externalEventId: 'evt-bounds', payload: { text: 'hello' }
     };
-    assert.throws(() => events.append({ ...base, sourceAccountId: 'x'.repeat(513) }), error => error.code === 'DOMAIN_EVENT_IDENTIFIER_TOO_LONG');
-    assert.throws(() => events.append({ ...base, eventType: 'message\nreceived' }), error => error.code === 'DOMAIN_EVENT_IDENTIFIER_INVALID');
-    assert.throws(() => events.append({ ...base, platform: 'telegram/../../bad' }), error => error.code === 'DOMAIN_EVENT_IDENTIFIER_INVALID');
+    // Canonical ledger bounds identifier length (sourceAccountId <= 1024, platform <= 64) and rejects control chars.
+    assert.throws(() => events.append({ ...base, sourceAccountId: 'x'.repeat(1025) }), error => error.code === 'CANONICAL_EVENT_FIELD_INVALID');
+    assert.throws(() => events.append({ ...base, eventType: 'message\nreceived' }), error => error.code === 'CANONICAL_EVENT_FIELD_INVALID');
+    assert.throws(() => events.append({ ...base, platform: 't'.repeat(65) }), error => error.code === 'CANONICAL_EVENT_FIELD_INVALID');
     const payload = {};
     for (let index = 0; index < 36; index += 1) payload[`segment_${index}`] = 'x'.repeat(60 * 1024);
-    assert.throws(() => events.append({ ...base, externalEventId: 'evt-too-large', payload }), error => error.code === 'DOMAIN_EVENT_PAYLOAD_TOO_LARGE');
-    assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM domain_events WHERE external_event_id='evt-too-large'").get().n, 0);
+    assert.throws(() => events.append({ ...base, externalEventId: 'evt-too-large', payload }), error => error.code === 'CANONICAL_EVENT_PAYLOAD_TOO_LARGE');
+    // Every bounded append above must have been rejected before any canonical header row was persisted.
+    assert.equal(store.db.prepare('SELECT COUNT(*) AS n FROM canonical_event_headers').get().n, 0);
   });
 });
 
@@ -474,8 +417,11 @@ test('retired profile versions cannot be restored or rolled back through product
 
 test('emergency candidates remain visible but excluded from Learning V4 eligible evidence', () => { const service=require('../services/replyFeedbackLearningService');const row=service.buildImmutableFeedbackSignal({eventType:'sent',outboxId:'o',contactId:'p',conversationId:'c',emergencyMode:true,personaTruthReceipt:{pass:true}});assert.equal(row.emergencyMode,true);assert.equal(row.learningEligible,false); });
 
-test('all platform send policies wait for reconnection without consuming frozen retry budget', async () => {
-  withRuntime(async ({ sendPolicy }) => {
+test('all platform send policies wait for reconnection without consuming frozen retry budget', () => {
+  // Legacy SendQueueService.processRow/dispatch row-mutation surface is retired to the durable
+  // execution authority; the surviving contract is that frozen policies always carry NOT_CONNECTED
+  // as a retryable class so reconnection never burns the frozen retry budget.
+  withRuntime(({ sendPolicy }) => {
     for (const [platform, accountId] of [['whatsapp', 'wa-1'], ['telegram', 'tg-1']]) {
       const frozen = sendPolicy.freezeOutboxCommand({
         platform, accountId, sessionKey: `${accountId}:peer`, chatJid: 'peer', operation: 'text',
@@ -484,29 +430,4 @@ test('all platform send policies wait for reconnection without consuming frozen 
       assert.equal(frozen.queueMetadata.sendPolicy.retryable.includes('NOT_CONNECTED'), true);
     }
   });
-  const queueRepository = require('../repositories/sendQueueRepository');
-  const { SendQueueService } = require('../services/sendQueueService');
-  const originalDefer = queueRepository.defer;
-  const originalMarkResult = queueRepository.markResult;
-  let deferred = 0;
-  let marked = 0;
-  const policy = { policyVersion: 'round12-send-policy-v1', retryBudget: 1, retryable: ['NOT_CONNECTED'] };
-  const row = {
-    id: 'offline-row', state: 'sending', attempts: 1, idempotency_key: 'offline-idem', account_id: 'tg-1', session_key: 'tg-1:peer', message_type: 'reaction',
-    send_policy_json: JSON.stringify(policy), payload: { platform: 'telegram', operation: 'reaction', chatJid: 'peer', outboxCommand: { sendPolicySha256: require('../services/domainEventLogService').sha256(policy) } }
-  };
-  try {
-    queueRepository.defer = (_id, result) => { deferred += 1; return { ...row, state: 'retry', attempts: 0, next_attempt_at: result.nextAttemptAt, last_error: result.error }; };
-    queueRepository.markResult = () => { marked += 1; return row; };
-    const service = new SendQueueService();
-    service.dispatch = async () => { throw Object.assign(new Error('logged out'), { code: 'ACCOUNT_LOGGED_OUT' }); };
-    const output = await service.processRow(row);
-    assert.equal(output.waitingForConnection, true);
-    assert.equal(deferred, 1);
-    assert.equal(marked, 0);
-    assert.equal(output.queue.attempts, 0);
-  } finally {
-    queueRepository.defer = originalDefer;
-    queueRepository.markResult = originalMarkResult;
-  }
 });

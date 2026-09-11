@@ -22,6 +22,23 @@ function patch(t, target, key, value) {
   t.after(() => { target[key] = previous; });
 }
 
+function frozenAttempt(overrides = {}) {
+  return Object.freeze({
+    executionId: 'fix13-exec-1',
+    attemptId: 'fix13-attempt-1',
+    claimId: 'fix13-claim-1',
+    ownerId: 'fix13-owner-1',
+    generation: 1,
+    hostGeneration: 1,
+    fencingToken: 1,
+    state: 'RUNNING',
+    platform: 'facebook',
+    operationKind: 'HISTORY_SYNCHRONIZATION',
+    accountId: 'fb-account',
+    ...overrides
+  });
+}
+
 function fakeStore(seed = {}) {
   const messages = new Map(Object.entries(seed));
   return {
@@ -108,8 +125,7 @@ test('Fix13 repairs malformed YANCE terminology placeholders before persisting C
         calls.push(request);
         if (calls.length === 1) return { text: 'WhatsApp [YANCE_TERM_0]', model: 'translategemma:4b' };
         return { text: '好的，没问题。Sheti 的 WhatsApp 是 [YANCE_TERM_0]', model: 'fallback-translation' };
-      },
-      resolveRoute() { return { fallback: { id: 'fallback-translation' } }; }
+      }
     }
   });
 
@@ -117,7 +133,11 @@ test('Fix13 repairs malformed YANCE terminology placeholders before persisting C
   assert.equal(result.translatedZh.includes('+491746634486'), true);
   assert.equal(result.translatedZh.includes('YANCE_TERM'), false);
   assert.equal(result.translationAttempts.length, 2);
-  assert.equal(calls[1].modelId, 'fallback-translation');
+  // The second pass is a logical quality repair, not a physical primary/fallback route.
+  assert.equal(result.translationAttempts[0].status, 'primary');
+  assert.equal(result.translationAttempts[1].status, 'logical-repair');
+  assert.equal(result.translationAttempts[1].model, 'fallback-translation');
+  assert.equal(calls[1].dedupeKey.endsWith(':repair'), true);
 });
 
 test('Fix13 SQLite upserts preserve successful translations across delivery updates and mark them stale only when source text changes', t => {
@@ -184,7 +204,7 @@ test('Fix13 classifies deterministic Meta unsupported_get as an unavailable cont
     pageScopedUserId: '123456789', title: 'Contact', avatarUrl: '/existing/avatar.jpg', avatarStatus: 'ready'
   }]);
 
-  const report = await adapter.diagnoseAvatarClosure({ id: 'fb-account' }, { limit: 1 });
+  const report = await adapter.diagnoseAvatarClosure({ id: 'fb-account' }, { limit: 1, physicalAttemptContext: frozenAttempt() });
   assert.equal(report.contacts[0].rootCause, 'META_CONTACT_AVATAR_UNSUPPORTED_GET');
   assert.equal(report.contacts[0].capability.status, 'meta-api-unavailable');
   assert.equal(report.contacts[0].capability.retryRecommended, false);
@@ -198,7 +218,7 @@ test('Fix13 classifies deterministic Meta unsupported_get as an unavailable cont
 test('current product keeps outgoing translation, persistence and Worker v11 classification without obsolete root runners', () => {
   const ui = source('frontend/js/r32-ui-runtime.js');
   const bilingualRuntime = source('frontend/js/r32-bilingual-experience-runtime.js');
-  const store = source('backend/lib/r32SqliteStore.js');
+  const store = source('backend/lib/r32SqliteStoreEngineLegacy.js');
   const adapter = source('backend/services/facebookAdapter.js');
   const worker = source('services/facebook-worker/src/index.js');
   const deploy = source('tools/facebook/deploy-avatar-proxy-routes.js');

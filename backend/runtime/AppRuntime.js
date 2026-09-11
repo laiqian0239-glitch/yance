@@ -176,6 +176,28 @@ class AppRuntime {
     return composition;
   }
 
+  // Test-only seam for deterministic runtime harnesses (e.g. tests/wp6). Production never
+  // sets YANCE_TEST_ONLY_RUNTIME_COMPOSITION_ATTACH, so this path is unreachable outside
+  // tests; a bound composition is frozen and cannot be replaced once attached.
+  attachRuntimeCompositionForTest(candidate) {
+    if (process.env.YANCE_TEST_ONLY_RUNTIME_COMPOSITION_ATTACH !== '1') {
+      throw new AppRuntimeError(
+        'APP_RUNTIME_COMPOSITION_ATTACH_FORBIDDEN',
+        'Runtime composition test attachment is disabled outside explicit test harnesses',
+        { status: 403 }
+      );
+    }
+    if (!candidate || typeof candidate !== 'object') {
+      throw new AppRuntimeError('APP_RUNTIME_COMPOSITION_INVALID', 'Test composition must be an object', { status: 503 });
+    }
+    if (RUNTIME_COMPOSITIONS.has(this)) {
+      throw new AppRuntimeError('APP_RUNTIME_COMPOSITION_EXISTS', 'A runtime composition is already bound', { status: 409 });
+    }
+    const frozen = Object.freeze(candidate);
+    RUNTIME_COMPOSITIONS.set(this, frozen);
+    return frozen;
+  }
+
   async startProductionServices() {
     const composition = this.configureProductionServices();
     if (this.productionServicesStarted) return this.productionServicesSnapshot();
