@@ -120,12 +120,14 @@ jobs:
           const trustedMainHead = process.env.TRUSTED_POLICY_SHA;
           const evaluatedHead = process.env.VALIDATION_SHA;
           const branch = process.env.IMPLEMENTATION_BRANCH;
+          const activeAuthority = require('./shared/release/acv2ActiveWorkPackageAuthority');
           const releaseSource = require(path.join(root, 'release/release-source.json'));
           const policy = require(path.join(root, 'shared/release/implementationBranchPolicy'));
-          const authorized = policy.isAuthorizedImplementationBranch(branch, releaseSource.stageVersion, {
+          const activeAuthorized = activeAuthority.isAuthorizedWpBImplementationBranch(branch);
+          const trustedPolicyAuthorized = policy.isAuthorizedImplementationBranch(branch, releaseSource.stageVersion, {
             delegatedGovernance: { trustedMainHead, evaluatedHead }
           });
-          if (!authorized) {
+          if (!activeAuthorized && !trustedPolicyAuthorized) {
             console.error('WP_B_M2_IMPLEMENTATION_BRANCH_UNAUTHORIZED');
             process.exit(1);
           }
