@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
 const ROOT = path.resolve(__dirname, '../..');
 const workflow = fs.readFileSync(path.join(ROOT, '.github/workflows/windows-production-release.yml'), 'utf8');
 
-test('production release workflow binds the current Final Builder packaging contract before signing', () => {
+test('production release workflow supports unsigned packaging while preserving optional signing', () => {
   for (const token of [
     'NODE_VERSION: 22.16.0',
     'TRUSTED_NODE_VERSION: 22.23.1',
@@ -20,19 +20,29 @@ test('production release workflow binds the current Final Builder packaging cont
     'RUN_WINDOWS_VERIFY_ROUND.ps1',
     "'-VerificationMode', 'STRICT'",
     'create-windows-preacceptance.js',
-    '-WindowsRound1Result',
-    '-WindowsRound1Sha256',
-    '-WindowsRound2Result',
-    '-WindowsRound2Sha256',
-    '-ExpectedBundleSha256',
-    '-NodeRoot',
-    '-TrustedNodeExecutable',
+    'WindowsRound1Result = $env:ROUND1_RESULT',
+    'WindowsRound1Sha256 = $env:ROUND1_SHA256',
+    'WindowsRound2Result = $env:ROUND2_RESULT',
+    'WindowsRound2Sha256 = $env:ROUND2_SHA256',
+    'ExpectedBundleSha256 = $env:BUNDLE_SHA256',
+    'NodeRoot = $env:NODE_ROOT',
+    'TrustedNodeExecutable = $env:TRUSTED_NODE_EXECUTABLE',
+    'sign:',
+    'default: false',
+    'Prepare optional signing input',
+    'if: ${{ inputs.sign }}',
     'WINDOWS_CERTIFICATE_PFX_BASE64',
     'WINDOWS_CERTIFICATE_PASSWORD',
-    '-RequireSignedInstaller',
+    '$builderArgs.RequireSignedInstaller = $true',
+    '$builderArgs.SigningCertificate',
+    '$builderArgs.SignToolPath',
     'Get-AuthenticodeSignature',
+    "authenticodeStatus -ne 'Unsigned'",
+    "Status -ne 'NotSigned'",
     'latestYmlFile',
-    'blockmapFile'
+    'blockmapFile',
+    'Publish unsigned Windows prerelease',
+    '--prerelease'
   ]) assert.match(workflow, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 
   assert.doesNotMatch(workflow, /release-candidate-\$env:GITHUB_RUN_ID/);
@@ -40,20 +50,26 @@ test('production release workflow binds the current Final Builder packaging cont
   assert.doesNotMatch(workflow, /WP7_PREACCEPTANCE_RECORD_SHA256/);
 });
 
-test('workflow creates exact strict-round preacceptance before the signed Final Builder', () => {
+test('workflow creates exact strict-round preacceptance before the optional-signing Final Builder', () => {
   const round = workflow.indexOf('Run two independent strict Windows packaging rounds');
   const preacceptance = workflow.indexOf('Create exact machine-bound final packaging preacceptance');
-  const builder = workflow.indexOf('Build and sign release before metadata sealing');
-  const verify = workflow.indexOf('Verify signed release assets');
-  const publish = workflow.indexOf('Publish trusted update release');
-  assert.ok(round > 0 && preacceptance > round && builder > preacceptance && verify > builder && publish > verify);
+  const builder = workflow.indexOf('Build release before metadata sealing');
+  const verify = workflow.indexOf('Verify packaged release assets');
+  const upload = workflow.indexOf('Upload packaged release evidence');
+  assert.ok(round > 0 && preacceptance > round && builder > preacceptance && verify > builder && upload > verify);
 });
 
-test('workflow never publishes before signed builder verification', () => {
-  assert.match(workflow, /if: \$\{\{ inputs\.publish \}\}/);
+test('workflow keeps signed final publishing gated while allowing unsigned prerelease publishing', () => {
+  assert.match(workflow, /if: \$\{\{ inputs\.publish && inputs\.sign \}\}/);
+  assert.match(workflow, /if: \$\{\{ inputs\.publish && !inputs\.sign \}\}/);
   assert.match(workflow, /RELEASE_REPOSITORY: wangyi198675-coder\/Yance-Releases/);
   assert.match(workflow, /Verify public signed release policy/);
   assert.match(workflow, /PUBLIC_SIGNED_AUTOUPDATE/);
+  assert.match(workflow, /Publish unsigned Windows prerelease/);
+  assert.match(workflow, /--prerelease/);
+  const unsignedPublish = workflow.slice(workflow.indexOf('- name: Publish unsigned Windows prerelease'));
+  assert.doesNotMatch(unsignedPublish, /\$builder\.latestYmlFile/);
+  assert.doesNotMatch(unsignedPublish, /\$builder\.blockmapFile/);
   assert.doesNotMatch(workflow, /Set-Content -Encoding UTF8 release-identity\.json/);
 });
 
@@ -67,8 +83,8 @@ test('final builder signs before deriving update hashes and blockmap', () => {
 });
 test('sealed Matrix promotion validates exact Product Experience run provenance before download and carries PR-head identity into Final Builder', () => {
   const matrixStart = workflow.indexOf('- name: Download and verify same-source sealed Matrix runtime artifact');
-  const builderStart = workflow.indexOf('- name: Build and sign release before metadata sealing');
-  const verifyStart = workflow.indexOf('- name: Verify signed release assets');
+  const builderStart = workflow.indexOf('- name: Build release before metadata sealing');
+  const verifyStart = workflow.indexOf('- name: Verify packaged release assets');
   assert.ok(matrixStart >= 0 && builderStart > matrixStart && verifyStart > builderStart);
 
   const matrixStep = workflow.slice(matrixStart, builderStart);
@@ -109,14 +125,14 @@ test('sealed Matrix promotion validates exact Product Experience run provenance 
     'MATRIX_RUNTIME_CANDIDATE_BRANCH: ${{ steps.matrix_runtime.outputs.candidate_branch }}',
     'MATRIX_RUNTIME_CANDIDATE_COMMIT: ${{ steps.matrix_runtime.outputs.candidate_commit }}',
     'MATRIX_RUNTIME_CANDIDATE_TREE: ${{ steps.matrix_runtime.outputs.candidate_tree }}',
-    '-ExpectedCommit \'${{ steps.identity.outputs.commit }}\'',
-    '-ExpectedTree \'${{ steps.identity.outputs.tree }}\'',
-    '-MatrixRuntimeCandidateBranch $env:MATRIX_RUNTIME_CANDIDATE_BRANCH',
-    '-MatrixRuntimeCandidateCommit $env:MATRIX_RUNTIME_CANDIDATE_COMMIT',
-    '-MatrixRuntimeCandidateTree $env:MATRIX_RUNTIME_CANDIDATE_TREE',
-    '-RequireSignedInstaller'
+    "ExpectedCommit = '${{ steps.identity.outputs.commit }}'",
+    "ExpectedTree = '${{ steps.identity.outputs.tree }}'",
+    'MatrixRuntimeCandidateBranch = $env:MATRIX_RUNTIME_CANDIDATE_BRANCH',
+    'MatrixRuntimeCandidateCommit = $env:MATRIX_RUNTIME_CANDIDATE_COMMIT',
+    'MatrixRuntimeCandidateTree = $env:MATRIX_RUNTIME_CANDIDATE_TREE',
+    '$builderArgs.RequireSignedInstaller = $true'
   ]) assert.ok(builderStep.includes(token), `missing Final Builder source/artifact identity or signing token: ${token}`);
 
-  assert.doesNotMatch(builderStep, /-MatrixRuntimeCandidateCommit '\$\{\{ steps\.identity\.outputs\.commit \}\}'/u);
-  assert.doesNotMatch(builderStep, /-MatrixRuntimeCandidateTree '\$\{\{ steps\.identity\.outputs\.tree \}\}'/u);
+  assert.doesNotMatch(builderStep, /MatrixRuntimeCandidateCommit = '\$\{\{ steps\.identity\.outputs\.commit \}\}'/u);
+  assert.doesNotMatch(builderStep, /MatrixRuntimeCandidateTree = '\$\{\{ steps\.identity\.outputs\.tree \}\}'/u);
 });

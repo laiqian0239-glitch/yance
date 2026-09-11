@@ -1,4 +1,4 @@
-name: Yance Windows Release (Deferred Public Publishing)
+name: Yance Windows Release
 
 on:
   workflow_dispatch:
@@ -14,7 +14,12 @@ on:
         description: Exact reviewed 40-character merged release source tree
         required: true
       publish:
-        description: "Deferred: publish assets to a future trusted Yance-Releases repository"
+        description: Publish packaged assets to the Yance-Releases repository
+        required: true
+        type: boolean
+        default: false
+      sign:
+        description: Sign the installer with the trusted Windows certificate before final publishing
         required: true
         type: boolean
         default: false
@@ -38,7 +43,7 @@ env:
   RELEASE_REPOSITORY: wangyi198675-coder/Yance-Releases
 
 jobs:
-  signed-windows-release:
+  windows-release:
     runs-on: windows-2022
     timeout-minutes: 180
     steps:
@@ -111,7 +116,8 @@ jobs:
           node tools/wp7/source-closure.js
           if ($LASTEXITCODE -ne 0) { throw "WP7 current source closure failed with exit code $LASTEXITCODE" }
 
-      - name: Prepare signing input
+      - name: Prepare optional signing input
+        if: ${{ inputs.sign }}
         shell: pwsh
         env:
           SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
@@ -155,6 +161,8 @@ jobs:
       - name: Locate native build tools
         id: tools
         shell: pwsh
+        env:
+          SIGN_RELEASE: ${{ inputs.sign }}
         run: |
           $ErrorActionPreference = 'Stop'
           $makensis = @(
@@ -162,9 +170,12 @@ jobs:
             'C:\Program Files\NSIS\makensis.exe'
           ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
           if (-not $makensis) { throw 'native makensis.exe is not installed on this runner' }
-          $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe' -ErrorAction SilentlyContinue |
-            Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
-          if (-not $signtool) { throw 'x64 signtool.exe is not installed on this runner' }
+          $signtool = ''
+          if ($env:SIGN_RELEASE -eq 'true') {
+            $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe' -ErrorAction SilentlyContinue |
+              Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+            if (-not $signtool) { throw 'x64 signtool.exe is not installed on this runner' }
+          }
           "makensis=$makensis" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "signtool=$signtool" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
@@ -303,9 +314,10 @@ jobs:
           "candidate_tree=$($manifest.candidateTree)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "run_attempt=$runAttempt" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Build and sign release before metadata sealing
+      - name: Build release before metadata sealing
         shell: pwsh
         env:
+          SIGN_RELEASE: ${{ inputs.sign }}
           YANCE_WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
           PREACCEPTANCE_RECORD: ${{ steps.preacceptance.outputs.record }}
           PREACCEPTANCE_RECORD_SHA256: ${{ steps.preacceptance.outputs.sha256 }}
@@ -324,57 +336,71 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $timestamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
-          & tools/wp7/RUN_WINDOWS_FINAL_BUILDER.ps1 `
-            -SourceBundle $env:BUNDLE_PATH `
-            -WorkRoot "$env:RUNNER_TEMP\yance-release-work" `
-            -EvidenceRoot "$env:RUNNER_TEMP\yance-release-evidence" `
-            -PreacceptanceRecord $env:PREACCEPTANCE_RECORD `
-            -PreacceptanceSha256 $env:PREACCEPTANCE_RECORD_SHA256 `
-            -WindowsRound1Result $env:ROUND1_RESULT `
-            -WindowsRound1Sha256 $env:ROUND1_SHA256 `
-            -WindowsRound2Result $env:ROUND2_RESULT `
-            -WindowsRound2Sha256 $env:ROUND2_SHA256 `
-            -ElectronArchive "$env:RUNNER_TEMP\yance-release-input\electron-v${env:ELECTRON_VERSION}-win32-x64.zip" `
-            -MakensisPath '${{ steps.tools.outputs.makensis }}' `
-            -ExpectedCommit '${{ steps.identity.outputs.commit }}' `
-            -ExpectedTree '${{ steps.identity.outputs.tree }}' `
-            -ExpectedBranch '${{ steps.identity.outputs.branch }}' `
-            -ExpectedBundleSha256 $env:BUNDLE_SHA256 `
-            -NodeRoot $env:NODE_ROOT `
-            -TrustedNodeExecutable $env:TRUSTED_NODE_EXECUTABLE `
-            -BuildTimestampUtc $timestamp `
-            -MatrixRuntimeSource $env:MATRIX_RUNTIME_SOURCE `
-            -MatrixRuntimeCandidateBranch $env:MATRIX_RUNTIME_CANDIDATE_BRANCH `
-            -MatrixRuntimeCandidateCommit $env:MATRIX_RUNTIME_CANDIDATE_COMMIT `
-            -MatrixRuntimeCandidateTree $env:MATRIX_RUNTIME_CANDIDATE_TREE `
-            -RequireSignedInstaller `
-            -SigningCertificate "$env:RUNNER_TEMP\yance-release-input\windows-signing.pfx" `
-            -SignToolPath '${{ steps.tools.outputs.signtool }}'
+          $builderArgs = @{
+            SourceBundle = $env:BUNDLE_PATH
+            WorkRoot = "$env:RUNNER_TEMP\yance-release-work"
+            EvidenceRoot = "$env:RUNNER_TEMP\yance-release-evidence"
+            PreacceptanceRecord = $env:PREACCEPTANCE_RECORD
+            PreacceptanceSha256 = $env:PREACCEPTANCE_RECORD_SHA256
+            WindowsRound1Result = $env:ROUND1_RESULT
+            WindowsRound1Sha256 = $env:ROUND1_SHA256
+            WindowsRound2Result = $env:ROUND2_RESULT
+            WindowsRound2Sha256 = $env:ROUND2_SHA256
+            ElectronArchive = "$env:RUNNER_TEMP\yance-release-input\electron-v${env:ELECTRON_VERSION}-win32-x64.zip"
+            MakensisPath = '${{ steps.tools.outputs.makensis }}'
+            ExpectedCommit = '${{ steps.identity.outputs.commit }}'
+            ExpectedTree = '${{ steps.identity.outputs.tree }}'
+            ExpectedBranch = '${{ steps.identity.outputs.branch }}'
+            ExpectedBundleSha256 = $env:BUNDLE_SHA256
+            NodeRoot = $env:NODE_ROOT
+            TrustedNodeExecutable = $env:TRUSTED_NODE_EXECUTABLE
+            BuildTimestampUtc = $timestamp
+            MatrixRuntimeSource = $env:MATRIX_RUNTIME_SOURCE
+            MatrixRuntimeCandidateBranch = $env:MATRIX_RUNTIME_CANDIDATE_BRANCH
+            MatrixRuntimeCandidateCommit = $env:MATRIX_RUNTIME_CANDIDATE_COMMIT
+            MatrixRuntimeCandidateTree = $env:MATRIX_RUNTIME_CANDIDATE_TREE
+          }
+          if ($env:SIGN_RELEASE -eq 'true') {
+            $builderArgs.RequireSignedInstaller = $true
+            $builderArgs.SigningCertificate = "$env:RUNNER_TEMP\yance-release-input\windows-signing.pfx"
+            $builderArgs.SignToolPath = '${{ steps.tools.outputs.signtool }}'
+          }
+          & tools/wp7/RUN_WINDOWS_FINAL_BUILDER.ps1 @builderArgs
           if ($LASTEXITCODE -ne 0) { throw "Final Builder failed with exit code $LASTEXITCODE" }
 
-      - name: Verify signed release assets
+      - name: Verify packaged release assets
         shell: pwsh
+        env:
+          SIGN_RELEASE: ${{ inputs.sign }}
         run: |
           $ErrorActionPreference = 'Stop'
           $output = "$env:RUNNER_TEMP\yance-release-evidence\builder-output"
           $builder = Get-Content "$output\builder-result.json" -Raw | ConvertFrom-Json
-          if ($builder.status -ne 'PASS' -or $builder.authenticodeStatus -ne 'Valid') { throw 'signed Builder result is not valid' }
+          if ($builder.status -ne 'PASS') { throw 'Builder result is not PASS' }
           $signature = Get-AuthenticodeSignature -FilePath $builder.installerFile
-          if ($signature.Status -ne 'Valid') { throw "installer signature status: $($signature.Status)" }
+          if ($env:SIGN_RELEASE -eq 'true') {
+            if ($builder.authenticodeStatus -ne 'Valid' -or $signature.Status -ne 'Valid') {
+              throw "signed installer verification failed: builder=$($builder.authenticodeStatus) authenticode=$($signature.Status)"
+            }
+          } else {
+            if ($builder.authenticodeStatus -ne 'Unsigned' -or $signature.Status -ne 'NotSigned') {
+              throw "unsigned installer verification failed: builder=$($builder.authenticodeStatus) authenticode=$($signature.Status)"
+            }
+          }
           foreach ($asset in @($builder.installerFile,$builder.latestYmlFile,$builder.blockmapFile,$builder.releaseEvidenceFile,"$output\build-session-seal.json")) {
             if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) { throw "release asset missing: $asset" }
           }
 
-      - name: Upload signed release evidence
+      - name: Upload packaged release evidence
         uses: actions/upload-artifact@v4
         with:
-          name: yance-signed-windows-release
+          name: yance-windows-release
           path: ${{ runner.temp }}\yance-release-evidence\**
           if-no-files-found: error
           retention-days: 30
 
       - name: Verify public signed release policy
-        if: ${{ inputs.publish }}
+        if: ${{ inputs.publish && inputs.sign }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -385,8 +411,8 @@ jobs:
             throw 'stage policy does not authorize public signed release publishing'
           }
 
-      - name: Publish trusted update release
-        if: ${{ inputs.publish }}
+      - name: Publish trusted signed update release
+        if: ${{ inputs.publish && inputs.sign }}
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.YANCE_RELEASES_TOKEN }}
@@ -401,3 +427,21 @@ jobs:
           $notes = "Signed Windows release for $title. Technical update version: $($source.productVersion)."
           gh release create $tag --repo $env:RELEASE_REPOSITORY --title $title --notes $notes `
             $builder.installerFile $builder.latestYmlFile $builder.blockmapFile $builder.releaseEvidenceFile "$output\build-session-seal.json" "$output\builder-result.json"
+
+      - name: Publish unsigned Windows prerelease
+        if: ${{ inputs.publish && !inputs.sign }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.YANCE_RELEASES_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) { throw 'YANCE_RELEASES_TOKEN is required to publish' }
+          $source = Get-Content release/release-source.json -Raw | ConvertFrom-Json
+          $output = "$env:RUNNER_TEMP\yance-release-evidence\builder-output"
+          $builder = Get-Content "$output\builder-result.json" -Raw | ConvertFrom-Json
+          if ($builder.status -ne 'PASS' -or $builder.authenticodeStatus -ne 'Unsigned') { throw 'unsigned prerelease requires a PASS unsigned Builder result' }
+          $tag = "v$($source.productVersion)-unsigned.$env:GITHUB_RUN_ID"
+          $title = "$($source.publicProductName) / $($source.publicProductNameEnglish) $($source.publicVersion) (unsigned preview)"
+          $notes = "Unsigned Windows prerelease for $title. Windows may show Unknown Publisher or SmartScreen warnings. This prerelease is not the signed auto-update channel."
+          gh release create $tag --repo $env:RELEASE_REPOSITORY --title $title --notes $notes --prerelease `
+            $builder.installerFile $builder.releaseEvidenceFile "$output\build-session-seal.json" "$output\builder-result.json"
