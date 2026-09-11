@@ -120,15 +120,16 @@ test('release workflow downloads and verifies the same-source sealed Matrix runt
   assert.match(workflow, /materialized_matrix_run_id:/u);
   assert.match(workflow, /actions:\s*read/u);
   assert.match(workflow, /gh run download \$env:MATRIX_RUN_ID[^\n]*--name \$artifactName[^\n]*--dir \$root/u);
-  assert.match(workflow, /Product-Experience-Materialized-Matrix-UAT-\$env:EXPECTED_COMMIT/u);
+  assert.match(workflow, /\$artifactName = "Product-Experience-Materialized-Matrix-UAT-\$\(\$run\.head_sha\)"/u);
   assert.match(workflow, /PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);
   assert.match(workflow, /matrix-images\.tar/u);
   assert.match(workflow, /create-materialized-uat-candidate\.js verify/u);
-  assert.match(workflow, /sealed Matrix artifact commit mismatch/u);
-  assert.match(workflow, /sealed Matrix artifact tree mismatch/u);
+  assert.match(workflow, /sealed Matrix artifact commit\/run mismatch/u);
+  assert.match(workflow, /sealed Matrix artifact\/release tree mismatch/u);
   assert.match(workflow, /-MatrixRuntimeSource \$env:MATRIX_RUNTIME_SOURCE/u);
-  assert.match(workflow, /-MatrixRuntimeCandidateCommit '\$\{\{ steps\.identity\.outputs\.commit \}\}'/u);
-  assert.match(workflow, /-MatrixRuntimeCandidateTree '\$\{\{ steps\.identity\.outputs\.tree \}\}'/u);
+  assert.match(workflow, /-MatrixRuntimeCandidateCommit \$env:MATRIX_RUNTIME_CANDIDATE_COMMIT/u);
+  assert.match(workflow, /-MatrixRuntimeCandidateTree \$env:MATRIX_RUNTIME_CANDIDATE_TREE/u);
+  assert.doesNotMatch(workflow, /-RequireSignedInstaller/u);
 
   assert.match(builder, /matrixRuntimeSource:\s*options\.matrixRuntimeSource/u);
   assert.match(builder, /matrixRuntimeIdentity:\s*options\.matrixRuntimeIdentity/u);
