@@ -343,9 +343,10 @@ test('B28-P1-01 Learning V4 ledger separates eligible evidence without custom re
 
 test('B28-P0-10 RuntimeOwnership honors its canonical dbPath and releases process guards', async () => {
   const baselineExitListeners = process.listenerCount('exit');
+  const tmpRoot = fs.realpathSync.native(os.tmpdir());
   const roots = [
-    fs.mkdtempSync(path.join(os.tmpdir(), 'yance-b28-runtime-path-a-')),
-    fs.mkdtempSync(path.join(os.tmpdir(), 'yance-b28-runtime-path-b-'))
+    fs.mkdtempSync(path.join(tmpRoot, 'yance-b28-runtime-path-a-')),
+    fs.mkdtempSync(path.join(tmpRoot, 'yance-b28-runtime-path-b-'))
   ];
   try {
     for (let index = 0; index < roots.length; index += 1) {
@@ -354,8 +355,8 @@ test('B28-P0-10 RuntimeOwnership honors its canonical dbPath and releases proces
       const owner = new RuntimeOwnership({ dataRoot: root, dbPath, buildId: `b28-runtime-path-${index}` });
       await owner.acquire();
       try {
-        assert.equal(fs.realpathSync(owner.dbPath), fs.realpathSync(dbPath));
-        assert.equal(fs.realpathSync(owner.store.dbPath), fs.realpathSync(dbPath));
+        assert.equal(owner.dbPath, path.resolve(dbPath));
+        assert.equal(owner.store.dbPath, path.resolve(dbPath));
         assert.equal(owner.store.snapshot().stateVersion, 1);
         assert.equal(fs.existsSync(dbPath), true);
         assert.equal(process.listenerCount('exit'), baselineExitListeners + 1);
