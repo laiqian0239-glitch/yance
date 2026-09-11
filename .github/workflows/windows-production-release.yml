@@ -340,7 +340,7 @@ jobs:
           $builder = Get-Content "$output\builder-result.json" -Raw | ConvertFrom-Json
           if ($builder.status -ne 'PASS' -or $builder.authenticodeStatus -ne 'Unsigned') { throw 'unsigned Builder result is not valid' }
           $signature = Get-AuthenticodeSignature -FilePath $builder.installerFile
-          if ($signature.Status -ne 'NotSigned') { throw "installer must remain unsigned for preview publishing; signature status: $($signature.Status)" }
+          if ($signature.Status -ne 'NotSigned') { throw "installer must remain unsigned while Authenticode signing is deferred; signature status: $($signature.Status)" }
           foreach ($asset in @($builder.installerFile,$builder.latestYmlFile,$builder.blockmapFile,$builder.releaseEvidenceFile,"$output\build-session-seal.json","$output\builder-result.json")) {
             if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) { throw "release asset missing: $asset" }
           }
@@ -364,17 +364,17 @@ jobs:
           $source = Get-Content release/release-source.json -Raw | ConvertFrom-Json
           $output = "$env:RUNNER_TEMP\yance-release-evidence\builder-output"
           $builder = Get-Content "$output\builder-result.json" -Raw | ConvertFrom-Json
-          if ($builder.authenticodeStatus -ne 'Unsigned') { throw "preview release must be unsigned, got: $($builder.authenticodeStatus)" }
+          if ($builder.authenticodeStatus -ne 'Unsigned') { throw "unsigned release must remain unsigned, got: $($builder.authenticodeStatus)" }
           $tag = "v$($source.productVersion)"
           $title = "$($source.publicProductName) / $($source.publicProductNameEnglish) $($source.publicVersion)"
           $notes = @"
-Unsigned Windows release. Authenticode signing is intentionally deferred.
-
-Source commit: ${{ steps.identity.outputs.commit }}
-Source tree: ${{ steps.identity.outputs.tree }}
-
-This release includes latest.yml and blockmap for normal automatic updates. Windows may show an Unknown Publisher / SmartScreen warning until code signing is enabled later.
-"@
+          Unsigned Windows release. Authenticode signing is intentionally deferred.
+          
+          Source commit: ${{ steps.identity.outputs.commit }}
+          Source tree: ${{ steps.identity.outputs.tree }}
+          
+          This release includes latest.yml and blockmap for normal automatic updates. Windows may show an Unknown Publisher / SmartScreen warning until code signing is enabled later.
+          "@
           gh release create $tag --repo $env:RELEASE_REPOSITORY --title $title --notes $notes `
             $builder.installerFile $builder.latestYmlFile $builder.blockmapFile $builder.releaseEvidenceFile "$output\build-session-seal.json" "$output\builder-result.json"
           if ($LASTEXITCODE -ne 0) { throw "unsigned release publishing failed with exit code $LASTEXITCODE" }
