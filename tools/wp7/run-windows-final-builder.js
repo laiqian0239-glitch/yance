@@ -27,6 +27,7 @@ const REQUIRED_OPTIONS = Object.freeze([
   'electron-dist',
   'electron-archive',
   'compiler-path',
+  'rcedit-path',
   'trusted-node-executable',
   'expected-branch',
   'expected-commit',

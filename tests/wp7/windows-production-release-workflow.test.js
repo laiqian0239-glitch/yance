@@ -14,6 +14,7 @@ test('production release workflow binds current Final Builder packaging contract
     'TRUSTED_NODE_VERSION: 22.23.1',
     'TRUSTED_NODE_ARCHIVE_SHA256: 7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29',
     'TRUSTED_NODE_EXE_SHA256: f8d162c0641dcee512132f3bcf8a68169c7ecb852efd8e1a46c9fec5a0f469ed',
+    'RCEDIT_SHA256: 3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a',
     'expected_commit:',
     'expected_tree:',
     'rebuild/windows-release-closure-$releaseDate-run-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT',
@@ -27,6 +28,7 @@ test('production release workflow binds current Final Builder packaging contract
     '-ExpectedBundleSha256',
     '-NodeRoot',
     '-TrustedNodeExecutable',
+    "-RceditPath '${{ steps.tools.outputs.rcedit }}'",
     "authenticodeStatus -ne 'Unsigned'",
     "signature.Status -ne 'NotSigned'",
     'latestYmlFile',
@@ -42,6 +44,44 @@ test('production release workflow binds current Final Builder packaging contract
   assert.doesNotMatch(workflow, /release-candidate-\$env:GITHUB_RUN_ID/);
   assert.doesNotMatch(workflow, /WP7_PREACCEPTANCE_RECORD_BASE64/);
   assert.doesNotMatch(workflow, /WP7_PREACCEPTANCE_RECORD_SHA256/);
+});
+
+test('production release workflow verifies exact native Git rcedit custody before Final Builder', () => {
+  const toolsStart = workflow.indexOf('- name: Locate native build tools');
+  const bundleStart = workflow.indexOf('- name: Create immutable source bundle');
+  const builderStart = workflow.indexOf('- name: Build unsigned release before metadata sealing');
+  const verifyStart = workflow.indexOf('- name: Verify unsigned release assets');
+  assert.ok(toolsStart >= 0 && bundleStart > toolsStart && builderStart > bundleStart && verifyStart > builderStart);
+
+  const toolsStep = workflow.slice(toolsStart, bundleStart);
+  for (const token of [
+    'vendor/rcedit/rcedit-v2.0.0-x64.exe',
+    '$env:RCEDIT_SHA256.ToLowerInvariant()',
+    'git rev-parse "HEAD:$relativeRceditPath"',
+    'git hash-object --no-filters -- $relativeRceditPath',
+    '[int64]1360384',
+    'Get-FileHash -LiteralPath $rcedit -Algorithm SHA256',
+    '"rcedit=$rcedit"'
+  ]) assert.ok(toolsStep.includes(token), `missing rcedit custody token: ${token}`);
+  assert.doesNotMatch(toolsStep, /\b(?:Invoke-WebRequest|Start-BitsTransfer|curl(?:\.exe)?|wget(?:\.exe)?)\b/iu);
+  assert.doesNotMatch(toolsStep, /\b(?:npm|pnpm|yarn)\b/iu);
+  assert.doesNotMatch(toolsStep, /node_modules[\\/]rcedit/iu);
+
+  const builderStep = workflow.slice(builderStart, verifyStart);
+  assert.match(builderStep, /-RceditPath '\$\{\{ steps\.tools\.outputs\.rcedit \}\}'/u);
+});
+
+test('production release workflow preserves Final Builder evidence after failure', () => {
+  const builderStart = workflow.indexOf('- name: Build unsigned release before metadata sealing');
+  const uploadStart = workflow.indexOf('- name: Upload unsigned release evidence');
+  const publishStart = workflow.indexOf('- name: Publish unsigned Windows release');
+  assert.ok(builderStart > 0 && uploadStart > builderStart && publishStart > uploadStart);
+  const builderStep = workflow.slice(builderStart, uploadStart);
+  const uploadStep = workflow.slice(uploadStart, publishStart);
+  assert.match(builderStep, /id: final_builder/u);
+  assert.match(uploadStep, /if:\s*\$\{\{\s*always\(\) && steps\.final_builder\.outcome != 'skipped'\s*\}\}/u);
+  assert.match(uploadStep, /path: \$\{\{ runner\.temp \}\}\\yance-release-evidence\\\*\*/u);
+  assert.match(uploadStep, /if-no-files-found: error/u);
 });
 
 test('workflow creates exact strict-round preacceptance before the unsigned Final Builder', () => {
