@@ -358,6 +358,15 @@ let YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `$
 let YANCE_PRODUCT_LOCATION_URL = `${YANCE_ELEMENT_URL}/#/yance`;
 let r32WindowSecurityController = { updateNavigationOrigins: () => {} };
 let matrixRuntimeStarted = false;
+const MATRIX_RUNTIME_ORIGINAL_ENV = Object.freeze({
+  YANCE_ELEMENT_URL: process.env.YANCE_ELEMENT_URL,
+  YANCE_ELEMENT_HEALTH_URL: process.env.YANCE_ELEMENT_HEALTH_URL,
+  YANCE_PRODUCT_LOCATION_URL: process.env.YANCE_PRODUCT_LOCATION_URL,
+  YANCE_MATRIX_BASE_URL: process.env.YANCE_MATRIX_BASE_URL,
+  YANCE_MAUTRIX_META_PROVISIONING_URL: process.env.YANCE_MAUTRIX_META_PROVISIONING_URL,
+  YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE: process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE,
+  YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE: process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE
+});
 
 function getElementUrl() { return YANCE_ELEMENT_URL; }
 function getElementHealthUrl() { return YANCE_ELEMENT_HEALTH_URL; }
@@ -379,6 +388,17 @@ function updateMatrixRuntimeEndpoints(endpoints) {
       synapseUrl: endpoints.synapse?.url || ''
     });
   }
+}
+
+function restoreMatrixRuntimeDynamicEnvironment() {
+  for (const [key, value] of Object.entries(MATRIX_RUNTIME_ORIGINAL_ENV)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  YANCE_ELEMENT_URL = String(process.env.YANCE_ELEMENT_URL || 'http://127.0.0.1:8080').replace(/\/+$/u, '');
+  YANCE_ELEMENT_HEALTH_URL = String(process.env.YANCE_ELEMENT_HEALTH_URL || `${YANCE_ELEMENT_URL}/config.json`);
+  YANCE_PRODUCT_LOCATION_URL = String(process.env.YANCE_PRODUCT_LOCATION_URL || `${YANCE_ELEMENT_URL}/#/yance`);
+  r32WindowSecurityController.updateNavigationOrigins([YANCE_ELEMENT_URL]);
 }
 const WP7_APPLICATION_PROCESS_STARTED_AT_UTC = new Date().toISOString();
 const WP7_NETWORK_OBSERVED_AT_UTC = new Date().toISOString();
@@ -1185,16 +1205,17 @@ async function stopApplicationOwnedRuntimes(options = {}) {
         matrixRuntimeEphemeral = null;
         matrixRuntimeStarted = false;
         try {
-          if (ephemeral.secretProjection?.ephemeral && ephemeral.secretProjection.secretDir) {
-            fs.rmSync(ephemeral.secretProjection.secretDir, { recursive: true, force: true });
-          }
-          const runtimeConfigDir = path.join(ephemeral.runtimeDir, 'runtime-config');
-          if (fs.existsSync(runtimeConfigDir)) fs.rmSync(runtimeConfigDir, { recursive: true, force: true });
-          if (ephemeral.projection?.overridePath && fs.existsSync(ephemeral.projection.overridePath)) {
-            fs.rmSync(ephemeral.projection.overridePath, { force: true });
+          for (const target of [
+            ephemeral.secretProjection?.ephemeral ? ephemeral.secretProjection.secretDir : null,
+            ephemeral.projection?.runtimeConfigDir,
+            ephemeral.projection?.overridePath
+          ]) {
+            if (target && fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true });
           }
         } catch (cleanupError) {
           desktopLog('warn', 'matrix-runtime-ephemeral-cleanup-failed', { message: cleanupError.message });
+        } finally {
+          restoreMatrixRuntimeDynamicEnvironment();
         }
       }
     }, runtimeStopTimeoutMs)]
@@ -3035,7 +3056,11 @@ function composePort(result) {
  * create narrow ephemeral files (same shape as the mature UAT harness).
  * No new vault, no secret database, no plaintext secret in the installer.
  */
-function projectMatrixRuntimeSecrets(runtimeDir) {
+function matrixRuntimeStateRoot() {
+  return path.join(DATA_ROOT, 'matrix-runtime');
+}
+
+function projectMatrixRuntimeSecrets(runtimeStateRoot) {
   const existing = process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE
     && process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE;
   if (existing) {
@@ -3048,7 +3073,7 @@ function projectMatrixRuntimeSecrets(runtimeDir) {
     }
     return { ephemeral: false };
   }
-  const secretDir = path.join(runtimeDir, 'runtime-secrets');
+  const secretDir = path.join(runtimeStateRoot, 'runtime-secrets');
   fs.mkdirSync(secretDir, { recursive: true, mode: 0o700 });
   const registrationFile = path.join(secretDir, 'matrix-registration-secret');
   const provisioningFile = path.join(secretDir, 'mautrix-meta-provisioning-secret');
@@ -3062,20 +3087,17 @@ function projectMatrixRuntimeSecrets(runtimeDir) {
 
 /**
  * Narrow runtime projection of the sealed Element config so the host-side
- * Element renderer reaches Synapse through the actual dynamic host port.
- *
- * Only Element is overridden. Synapse is started once in phase 1 with its
- * sealed config and MUST NOT be re-mounted in phase 2: doing so recreates the
- * container, which makes Docker reassign its dynamic host port and invalidates
- * the very port baked into the Element config (verified with a real two-phase
- * Compose proof). Container-to-container bridge traffic keeps using the
- * internal `synapse:8008` DNS name; the host renderer uses the discovered
- * host port via this projected Element config. The sealed bundle stays
- * immutable — we emit one transformed Element copy + an Element-only override.
- * No proxy, no wildcard origin, no second config authority.
+ * Runtime config overrides live under DATA_ROOT. Synapse is started once
+ * in phase 1 with production dynamic-port Compose parameters and MUST NOT be
+ * re-mounted in phase 2: doing so recreates the container, which makes Docker
+ * reassign its dynamic host port and invalidates the very port baked into the
+ * Element config. Container-to-container bridge traffic keeps using the
+ * internal `synapse:8008` DNS name; the host renderer uses the discovered host
+ * port via this projected Element config. The sealed bundle stays immutable.
+ * No proxy, no wildcard origin, no second sealed config authority.
  */
-function projectMatrixRuntimeConfigs(runtimeDir, sealedConfigDir, synapseHostPort) {
-  const projectedDir = path.join(runtimeDir, 'runtime-config');
+function projectMatrixRuntimeConfigs(runtimeStateRoot, sealedConfigDir, synapseHostPort) {
+  const projectedDir = path.join(runtimeStateRoot, 'runtime-config');
   fs.mkdirSync(projectedDir, { recursive: true });
 
   // Element config: only swap the homeserver base_url to the dynamic host port.
@@ -3087,7 +3109,7 @@ function projectMatrixRuntimeConfigs(runtimeDir, sealedConfigDir, synapseHostPor
 
   // Element-only override: remap just Element's config.json. Synapse is absent
   // here on purpose, so phase 2 never recreates it or changes its host port.
-  const overridePath = path.join(runtimeDir, 'runtime-override.yml');
+  const overridePath = path.join(runtimeStateRoot, 'runtime-override.yml');
   const override = [
     'services:',
     '  element:',
@@ -3096,7 +3118,7 @@ function projectMatrixRuntimeConfigs(runtimeDir, sealedConfigDir, synapseHostPor
     ''
   ].join('\n');
   fs.writeFileSync(overridePath, override, { mode: 0o600 });
-  return { overridePath, runtimeElementConfig };
+  return { overridePath, runtimeConfigDir: projectedDir, runtimeElementConfig };
 }
 
 async function stopMatrixCompose(projectDir, composeFiles) {
@@ -3135,6 +3157,7 @@ async function ensureMatrixRuntime() {
 
   const resourcesPath = controlledResourcesPath();
   const runtimeDir = path.join(resourcesPath, 'matrix-runtime');
+  const runtimeStateRoot = matrixRuntimeStateRoot();
   const composeFile = path.join(runtimeDir, MATRIX_COMPOSE_FILE);
   const imagesTarPath = path.join(runtimeDir, 'matrix-images.tar');
   const manifestPath = path.join(runtimeDir, MATRIX_MANIFEST_FILE);
@@ -3169,14 +3192,20 @@ async function ensureMatrixRuntime() {
     error.reasonCode = 'MATRIX_RUNTIME_MANIFEST_IDENTITY_INVALID';
     throw error;
   }
-  const composeEnv = { YANCE_UAT_CANDIDATE_SHA: candidateCommit };
+  const composeEnv = {
+    YANCE_UAT_CANDIDATE_SHA: candidateCommit,
+    YANCE_MATRIX_SYNAPSE_PORT_BINDING: '127.0.0.1::8008',
+    YANCE_MATRIX_ELEMENT_PORT_BINDING: '127.0.0.1::80',
+    YANCE_MATRIX_MAUTRIX_META_PORT_BINDING: '127.0.0.1::29319'
+  };
 
   try {
     // 1. Docker Desktop availability (official CLI owns engine bring-up).
     await ensureDockerDesktopAvailable();
 
     // 2. Shared secret projection for Compose + backend (same authority).
-    const secretProjection = projectMatrixRuntimeSecrets(runtimeDir);
+    fs.mkdirSync(runtimeStateRoot, { recursive: true, mode: 0o700 });
+    const secretProjection = projectMatrixRuntimeSecrets(runtimeStateRoot);
 
     // 3. Load sealed images (official: docker load).
     desktopLog('info', 'matrix-images-loading', { candidateCommit });
@@ -3194,12 +3223,12 @@ async function ensureMatrixRuntime() {
     const synapsePortResult = await dockerExec([...baseArgs, 'port', 'synapse', '8008'], { timeoutMs: 15000 });
     const synapseHostPort = composePort(synapsePortResult);
 
-    // 6. Project host-reachable Element/Synapse configs + Compose override.
-    const projection = projectMatrixRuntimeConfigs(runtimeDir, sealedConfigDir, synapseHostPort);
+    // 6. Project host-reachable Element config + Compose override.
+    const projection = projectMatrixRuntimeConfigs(runtimeStateRoot, sealedConfigDir, synapseHostPort);
     const allComposeFiles = [composeFile, projection.overridePath];
     const allArgs = matrixComposeBaseArgs(runtimeDir, allComposeFiles);
 
-    // 7. Phase 2: bring up Element and reconcile Synapse with projected config.
+    // 7. Phase 2: bring up Element with the projected config.
     desktopLog('info', 'matrix-runtime-phase2-up', { synapseHostPort });
     await dockerExec([
       ...allArgs, 'up', '-d', '--no-build', '--wait', '--remove-orphans'
@@ -3208,15 +3237,10 @@ async function ensureMatrixRuntime() {
     // 8. Discover Element + mautrix-meta dynamic host ports.
     const elementPortResult = await dockerExec([...allArgs, 'port', 'element', '80'], { timeoutMs: 15000 });
     const elementHostPort = composePort(elementPortResult);
-    let mautrixProvisioningUrl = '';
-    try {
-      const metaPortResult = await dockerExec([...allArgs, 'port', 'mautrix-meta', '29319'], { timeoutMs: 15000 });
-      const metaHostPort = composePort(metaPortResult);
-      mautrixProvisioningUrl = `http://127.0.0.1:${metaHostPort}/_matrix/provision`;
-      process.env.YANCE_MAUTRIX_META_PROVISIONING_URL = mautrixProvisioningUrl;
-    } catch (error) {
-      desktopLog('warn', 'matrix-mautrix-port-discovery-failed', { message: error.message });
-    }
+    const metaPortResult = await dockerExec([...allArgs, 'port', 'mautrix-meta', '29319'], { timeoutMs: 15000 });
+    const metaHostPort = composePort(metaPortResult);
+    const mautrixProvisioningUrl = `http://127.0.0.1:${metaHostPort}/_matrix/provision`;
+    process.env.YANCE_MAUTRIX_META_PROVISIONING_URL = mautrixProvisioningUrl;
 
     // 9. Project host-reachable endpoints for the backend / renderer.
     const synapseUrl = `http://127.0.0.1:${synapseHostPort}`;

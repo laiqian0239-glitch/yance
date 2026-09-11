@@ -175,6 +175,8 @@ function createBuilderResult(options) {
     rceditPath: options.rceditPath ? path.resolve(options.rceditPath) : undefined,
     iconPath: options.iconPath ? path.resolve(options.iconPath) : path.join(repoRoot, 'frontend', 'assets', 'icon.ico'),
     trustedNodeExecutable: path.resolve(options.trustedNodeExecutable),
+    matrixRuntimeSource: options.matrixRuntimeSource,
+    matrixRuntimeIdentity: options.matrixRuntimeIdentity,
     platformAuthConfigPath,
     platformAuthHashPath,
     requirePlatformAuth,
@@ -233,6 +235,9 @@ function createBuilderResult(options) {
     authenticodeSignerThumbprint: built.authenticode?.signerThumbprint || null,
     platformAuthConfigured: built.platformAuth?.configured === true,
     platformAuthConfigSha256: built.platformAuth?.sha256 || null,
+    matrixRuntimeRelativeRoot: built.matrixRuntime?.relativeRoot || null,
+    matrixRuntimeManifestSha256: built.matrixRuntime?.manifestSha256 || null,
+    matrixRuntimeImagesTarSha256: built.matrixRuntime?.imagesTarSha256 || null,
     sourceIdentityStable: true,
     gitCleanAfter: true
   };

@@ -18,9 +18,14 @@ on:
         required: true
         type: boolean
         default: false
+      materialized_matrix_run_id:
+        description: Exact successful Product Experience Matrix UAT workflow run carrying this source commit's sealed Matrix bundle
+        required: true
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 env:
   NODE_VERSION: 22.16.0
@@ -246,6 +251,40 @@ jobs:
           "record=$record" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "sha256=$sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
+      - name: Download and verify same-source sealed Matrix runtime artifact
+        id: matrix_runtime
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MATRIX_RUN_ID: ${{ inputs.materialized_matrix_run_id }}
+          EXPECTED_COMMIT: ${{ steps.identity.outputs.commit }}
+          EXPECTED_TREE: ${{ steps.identity.outputs.tree }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:MATRIX_RUN_ID -notmatch '^[0-9]+$') { throw 'materialized_matrix_run_id must be a GitHub Actions run id' }
+          $root = "$env:RUNNER_TEMP\yance-release-input\matrix-runtime"
+          Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $root -Force | Out-Null
+          $artifactName = "Product-Experience-Materialized-Matrix-UAT-$env:EXPECTED_COMMIT"
+          gh run download $env:MATRIX_RUN_ID --repo $env:GITHUB_REPOSITORY --name $artifactName --dir $root
+          if ($LASTEXITCODE -ne 0) { throw "failed to download sealed Matrix runtime artifact $artifactName from run $env:MATRIX_RUN_ID" }
+          foreach ($relative in @('PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json','matrix-images.tar','materialized-matrix-compose.yml','matrix-config\element-config.json','matrix-config\synapse\homeserver.yaml')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $root $relative) -PathType Leaf)) { throw "sealed Matrix runtime artifact missing $relative" }
+          }
+          $manifest = Get-Content -LiteralPath (Join-Path $root 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json') -Raw | ConvertFrom-Json
+          if ($manifest.bundleClass -ne 'PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY') { throw "sealed Matrix artifact bundleClass mismatch: $($manifest.bundleClass)" }
+          if ($manifest.candidateCommit -ne $env:EXPECTED_COMMIT) { throw "sealed Matrix artifact commit mismatch: $($manifest.candidateCommit)" }
+          if ($manifest.candidateTree -ne $env:EXPECTED_TREE) { throw "sealed Matrix artifact tree mismatch: $($manifest.candidateTree)" }
+          & node tools/product-experience/create-materialized-uat-candidate.js verify `
+            --root $root `
+            --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY `
+            --candidate-branch $manifest.candidateBranch `
+            --candidate-commit $env:EXPECTED_COMMIT `
+            --candidate-tree $env:EXPECTED_TREE
+          if ($LASTEXITCODE -ne 0) { throw "verifyCandidateBundle() rejected sealed Matrix runtime artifact from run $env:MATRIX_RUN_ID" }
+          "source=$root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "candidate_branch=$($manifest.candidateBranch)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
       - name: Build and sign release before metadata sealing
         shell: pwsh
         env:
@@ -260,6 +299,8 @@ jobs:
           BUNDLE_SHA256: ${{ steps.source_bundle.outputs.sha256 }}
           NODE_ROOT: ${{ steps.identity.outputs.node_root }}
           TRUSTED_NODE_EXECUTABLE: ${{ steps.trusted_node.outputs.executable }}
+          MATRIX_RUNTIME_SOURCE: ${{ steps.matrix_runtime.outputs.source }}
+          MATRIX_RUNTIME_CANDIDATE_BRANCH: ${{ steps.matrix_runtime.outputs.candidate_branch }}
         run: |
           $ErrorActionPreference = 'Stop'
           $timestamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
@@ -282,6 +323,10 @@ jobs:
             -NodeRoot $env:NODE_ROOT `
             -TrustedNodeExecutable $env:TRUSTED_NODE_EXECUTABLE `
             -BuildTimestampUtc $timestamp `
+            -MatrixRuntimeSource $env:MATRIX_RUNTIME_SOURCE `
+            -MatrixRuntimeCandidateBranch $env:MATRIX_RUNTIME_CANDIDATE_BRANCH `
+            -MatrixRuntimeCandidateCommit '${{ steps.identity.outputs.commit }}' `
+            -MatrixRuntimeCandidateTree '${{ steps.identity.outputs.tree }}' `
             -RequireSignedInstaller `
             -SigningCertificate "$env:RUNNER_TEMP\yance-release-input\windows-signing.pfx" `
             -SignToolPath '${{ steps.tools.outputs.signtool }}'

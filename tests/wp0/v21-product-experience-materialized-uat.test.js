@@ -228,6 +228,8 @@ test('Windows UAT runner is verify-only and starts an image-only Matrix compose 
   assert.doesNotMatch(compose, /^\s+build:\s*/gmu);
   assert.doesNotMatch(compose, /^\s+context:\s*/gmu);
   assert.match(compose, /YANCE_UAT_CANDIDATE_SHA/u);
+  assert.match(compose, /\$\{YANCE_MATRIX_SYNAPSE_PORT_BINDING:-127\.0\.0\.1:8008:8008\}/u, 'UAT must keep the stable Synapse host port by default');
+  assert.match(compose, /\$\{YANCE_MATRIX_ELEMENT_PORT_BINDING:-127\.0\.0\.1:8080:80\}/u, 'UAT must keep the stable Element host port by default');
   assert.match(
     compose,
     /^x-mautrix-meta-service:\s*&mautrix-meta-service\s*\{\s*image:\s*"yance-product-uat-mautrix-meta:\$\{YANCE_UAT_CANDIDATE_SHA\}"\s*\}\s*$/mu,
@@ -611,6 +613,32 @@ test('failure-first binds complete materialized Matrix runtime topology, ephemer
   const desktopLaunchIndex = runner.indexOf('$process = Start-Process -FilePath $yanceExe.FullName');
   assert.ok(readinessIndex >= 0 && desktopLaunchIndex > readinessIndex, 'real Matrix readiness must be established before packaged Desktop launch');
   assert.doesNotMatch(runner, /materialized-uat-evidence\.json[^\n]*(?:secret|shared_secret)/iu, 'plaintext secrets must never become evidence authority');
+});
+
+test('production Matrix runtime keeps sealed resources read-only and projects dynamic ports under DATA_ROOT', () => {
+  const main = read('electron/main.js');
+  const compose = read(COMPOSE);
+
+  assert.match(main, /function matrixRuntimeStateRoot\(\)[\s\S]*?DATA_ROOT[\s\S]*?matrix-runtime/u);
+  assert.match(main, /projectMatrixRuntimeSecrets\(runtimeStateRoot\)/u);
+  assert.match(main, /YANCE_MATRIX_SYNAPSE_PORT_BINDING:\s*'127\.0\.0\.1::8008'/u);
+  assert.match(main, /YANCE_MATRIX_ELEMENT_PORT_BINDING:\s*'127\.0\.0\.1::80'/u);
+  assert.match(main, /YANCE_MATRIX_MAUTRIX_META_PORT_BINDING:\s*'127\.0\.0\.1::29319'/u);
+  assert.match(main, /const baseArgs = matrixComposeBaseArgs\(runtimeDir,\s*\[composeFile\]\)/u);
+  assert.match(main, /projectMatrixRuntimeConfigs\(runtimeStateRoot,\s*sealedConfigDir,\s*synapseHostPort\)/u);
+  assert.match(main, /const overridePath = path\.join\(runtimeStateRoot, 'runtime-override\.yml'\)/u);
+  assert.match(main, /const allComposeFiles = \[composeFile,\s*projection\.overridePath\]/u);
+  assert.match(main, /127\.0\.0\.1::8008/u, 'production override must ask Compose for a random Synapse host port');
+  assert.match(main, /127\.0\.0\.1::80/u, 'production override must ask Compose for a random Element host port');
+  assert.match(main, /127\.0\.0\.1::29319/u, 'production override must expose mautrix-meta provisioning on a random host port');
+  assert.doesNotMatch(main, /path\.join\(runtimeDir,\s*'runtime-(?:config|override|secrets)/u, 'sealed resources/matrix-runtime must not receive runtime projections');
+  assert.match(main, /restoreMatrixRuntimeDynamicEnvironment/u, 'shutdown and relaunch must restore dynamic Matrix env before the new process starts');
+  assert.doesNotMatch(main, /matrix-mautrix-port-discovery-failed[\s\S]{0,200}warn/u, 'mautrix-meta port discovery must fail closed, not warn and continue');
+  assert.match(main, /const metaPortResult = await dockerExec\(\[\.\.\.allArgs, 'port', 'mautrix-meta', '29319'\]/u);
+  assert.match(main, /const mautrixProvisioningUrl = `http:\/\/127\.0\.0\.1:\$\{metaHostPort\}\/_matrix\/provision`/u);
+
+  assert.match(compose, /\$\{YANCE_MATRIX_SYNAPSE_PORT_BINDING:-127\.0\.0\.1:8008:8008\}/u);
+  assert.match(compose, /\$\{YANCE_MATRIX_ELEMENT_PORT_BINDING:-127\.0\.0\.1:8080:80\}/u);
 });
 
 test('Matrix runtime state stays writable, registers WhatsApp, and isolates every real Windows UAT project', () => {
