@@ -354,8 +354,8 @@ test('B28-P0-10 RuntimeOwnership honors its canonical dbPath and releases proces
       const owner = new RuntimeOwnership({ dataRoot: root, dbPath, buildId: `b28-runtime-path-${index}` });
       await owner.acquire();
       try {
-        assert.equal(owner.dbPath, path.resolve(dbPath));
-        assert.equal(owner.store.dbPath, path.resolve(dbPath));
+        assert.equal(fs.realpathSync(owner.dbPath), fs.realpathSync(dbPath));
+        assert.equal(fs.realpathSync(owner.store.dbPath), fs.realpathSync(dbPath));
         assert.equal(owner.store.snapshot().stateVersion, 1);
         assert.equal(fs.existsSync(dbPath), true);
         assert.equal(process.listenerCount('exit'), baselineExitListeners + 1);
