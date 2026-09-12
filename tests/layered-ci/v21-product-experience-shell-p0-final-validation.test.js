@@ -53,6 +53,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-final-rc-materialized-matrix-runtime-state-p0'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260830-existing-data-startup-recovery-v2'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260911-matrix-runtime'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260912-final-builder-rc-internal-closure-v6'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
     'product/v21-product-experience-bilingual-search-translation-task-ux-p0',
@@ -76,6 +77,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'fix/v21-product-final-navigation-preservation-v5',
     'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2',
     'rebuild/windows-release-closure-20260911-matrix-runtime',
+    'rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6',
     'release/v21-final-rc-uat-p0',
     'release/v21-final-rc-uat-p0-successor-v2',
     'release/v21-final-rc-uat-p0-successor-v3',
@@ -147,6 +149,11 @@ test('Product Experience final validation is an exact-head same-repository pull-
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260911-matrix-runtime'/gu) || []).length,
     3,
     'current Matrix runtime closure branch must be admitted by exactly the three existing Product Final job guards'
+  );
+  assert.equal(
+    (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260912-final-builder-rc-internal-closure-v6'/gu) || []).length,
+    3,
+    'Final Builder successor-v6 must be admitted by exactly the three existing Product Final job guards'
   );
   assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
   assert.match(source, /runs-on:\s*windows-latest/u);
