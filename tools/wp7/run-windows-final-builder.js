@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { signAuthenticode } = require('./windows-authenticode');
+const { spawnFailureDetails } = require('./host-command-runner');
 const { validateRoundPair } = require('../release-closure/windows-round-binding');
 const {
   FINAL_PACKAGING_TOKEN,
@@ -27,6 +28,7 @@ const REQUIRED_OPTIONS = Object.freeze([
   'electron-dist',
   'electron-archive',
   'compiler-path',
+  'expected-compiler-sha256',
   'rcedit-path',
   'trusted-node-executable',
   'expected-branch',
@@ -76,6 +78,35 @@ function assertFile(filePath, label) {
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) throw new Error(`${label} is missing: ${filePath}`);
 }
 
+function safeOutputRoot(argv) {
+  const index = argv.indexOf('--output-root');
+  if (index < 0 || !argv[index + 1] || argv[index + 1].startsWith('--')) return null;
+  return path.resolve(argv[index + 1]);
+}
+
+function failureKind(error) {
+  if (error?.details?.failureKind) return error.details.failureKind;
+  if (error?.code) return spawnFailureDetails({ error }).failureKind;
+  return 'EXIT_CODE';
+}
+
+function writeBuilderFailure(outputRoot, error) {
+  if (!outputRoot) return;
+  fs.mkdirSync(outputRoot, { recursive: true });
+  const document = {
+    schemaVersion: 1,
+    documentType: 'YANCE_WINDOWS_FINAL_BUILDER_FAILURE',
+    status: 'FAIL',
+    reasonCode: error?.reasonCode || 'YANCE_WINDOWS_FINAL_BUILDER_FAILED',
+    failureKind: failureKind(error),
+    message: error?.message || String(error),
+    stack: error?.stack || '',
+    details: error?.details || {},
+    generatedAtUtc: new Date().toISOString()
+  };
+  fs.writeFileSync(path.join(outputRoot, 'builder-failure.json'), canonicalJsonBuffer(document));
+}
+
 function assertDirectory(directory, label) {
   if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) throw new Error(`${label} is missing: ${directory}`);
 }
@@ -96,6 +127,7 @@ function createBuilderResult(options) {
   assertGitObject(options.expectedCommit, 'expected commit');
   assertGitObject(options.expectedTree, 'expected tree');
   assertSha256(options.preacceptanceSha256, 'preacceptance SHA256');
+  assertSha256(options.expectedCompilerSha256, 'expected compiler SHA256');
   const buildTimestampUtc = canonicalTimestamp(options.buildTimestampUtc);
 
   const preacceptanceRecordPath = path.resolve(options.preacceptanceRecordPath);
@@ -116,6 +148,8 @@ function createBuilderResult(options) {
   assertFile(compilerPath, 'NSIS compiler');
   assertFile(trustedNodeExecutable, 'trusted Node runtime executable');
   if (path.extname(compilerPath).toLowerCase() !== '.exe') throw new Error('formal NSIS compiler must be a native .exe');
+  const compilerSha256 = sha256File(compilerPath);
+  if (compilerSha256 !== options.expectedCompilerSha256) throw new Error(`NSIS compiler SHA256 mismatch: expected=${options.expectedCompilerSha256} actual=${compilerSha256}`);
   if (requirePlatformAuth) {
     assertFile(platformAuthConfigPath, 'sealed platform auth configuration');
     assertFile(platformAuthHashPath, 'platform auth detached SHA-256');
@@ -213,17 +247,14 @@ function createBuilderResult(options) {
     installerFile: built.outputFile,
     installerSizeBytes: fs.statSync(built.outputFile).size,
     installerSha256: built.installerSha256,
-    latestYmlFile: built.latestYmlPath,
-    latestYmlSha256: built.latestYmlSha256,
-    blockmapFile: built.blockmapPath,
-    blockmapSha256: built.blockmapSha256,
     releaseEvidenceFile: built.evidencePath,
     releaseEvidenceSha256: sha256File(built.evidencePath),
     buildSessionSealFile: path.join(outputRoot, 'build-session-seal.json'),
     buildSessionSealSha256: sha256File(path.join(outputRoot, 'build-session-seal.json')),
     electronArchiveSha256: sha256File(electronArchivePath),
     trustedNodeExecutableSha256: sha256File(trustedNodeExecutable),
-    compilerSha256: sha256File(compilerPath),
+    compilerSha256,
+    expectedCompilerSha256: options.expectedCompilerSha256,
     preacceptanceRecordSha256: options.preacceptanceSha256,
     windowsRound1ResultSha256: windowsRoundBinding?.round1.sha256 || null,
     windowsRound2ResultSha256: windowsRoundBinding?.round2.sha256 || null,
@@ -259,6 +290,7 @@ function main(argv = process.argv.slice(2)) {
     electronDist: args['electron-dist'],
     electronArchivePath: args['electron-archive'],
     compilerPath: args['compiler-path'],
+    expectedCompilerSha256: args['expected-compiler-sha256'],
     trustedNodeExecutable: args['trusted-node-executable'],
     rceditPath: args['rcedit-path'],
     iconPath: args['icon-path'],
@@ -287,6 +319,7 @@ if (require.main === module) {
   try { main(); }
   catch (error) {
     process.stderr.write(`${error.stack || error.message}\n`);
+    writeBuilderFailure(safeOutputRoot(process.argv.slice(2)), error);
     process.exitCode = 1;
   }
 }

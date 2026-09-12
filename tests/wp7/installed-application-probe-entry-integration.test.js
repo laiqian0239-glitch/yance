@@ -394,7 +394,8 @@ test('formal pre-review product and evidence commands require actual reviewed in
   assert.doesNotMatch(builder, /closure\.releaseIdentity/);
   assert.match(builder, /WP7_PRE_REVIEW_TRUSTED_PRODUCT_BUILD/);
   for (const envName of ['WP7_ELECTRON_RELEASE_ARCHIVE', 'WP7_ELECTRON_DISTRIBUTION_ROOT', 'WP7_PRODUCTION_NODE_MODULES', 'WP7_TRUSTED_NODE_EXECUTABLE', 'WP7_RCEDIT_PATH', 'WP7_PRE_REVIEW_PRODUCT_OUTPUT', 'WP7_PRE_REVIEW_BUILD_SESSION_ID']) assert.match(builder, new RegExp(envName));
-  assert.match(builder, /NODE_USTAR_STREAM_GZIP_V2/);
+  assert.doesNotMatch(builder, /NODE_USTAR_STREAM_GZIP_V2/);
+  assert.match(builder, /NODE_TAR_PAX_GZIP_V1/);
   assert.doesNotMatch(builder, /spawnSync\(['"]tar['"]/);
   assert.doesNotMatch(builder, /artifactClass:\s*['"]WP7_FINAL_RELEASE['"]/);
   assert.doesNotMatch(builder, /formalWindowsEvidenceEligible:\s*true/);

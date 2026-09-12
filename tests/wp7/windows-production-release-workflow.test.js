@@ -8,8 +8,9 @@ const assert = require('node:assert/strict');
 const ROOT = path.resolve(__dirname, '../..');
 const workflow = fs.readFileSync(path.join(ROOT, '.github/workflows/windows-production-release.yml'), 'utf8');
 
-test('production release workflow binds current Final Builder packaging contract without requiring signing', () => {
+test('production release workflow binds current RC internal-UAT packaging contract without requiring signing', () => {
   for (const token of [
+    'name: Yance Windows RC Internal UAT Packaging',
     'NODE_VERSION: 22.16.0',
     'TRUSTED_NODE_VERSION: 22.23.1',
     'TRUSTED_NODE_ARCHIVE_SHA256: 7df0bc9375723f4a86b3aa1b7cc73342423d9677a8df4538aca31a049e309c29',
@@ -20,6 +21,8 @@ test('production release workflow binds current Final Builder packaging contract
     'rebuild/windows-release-closure-$releaseDate-run-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT',
     'RUN_WINDOWS_VERIFY_ROUND.ps1',
     "'-VerificationMode', 'STRICT'",
+    "'-MakensisPath', $env:MAKENSIS_PATH",
+    "'-ExpectedMakensisSha256', $env:MAKENSIS_SHA256",
     'create-windows-preacceptance.js',
     '-WindowsRound1Result',
     '-WindowsRound1Sha256',
@@ -28,14 +31,17 @@ test('production release workflow binds current Final Builder packaging contract
     '-ExpectedBundleSha256',
     '-NodeRoot',
     '-TrustedNodeExecutable',
+    "-ExpectedMakensisSha256 '${{ steps.tools.outputs.makensis_sha256 }}'",
     "-RceditPath '${{ steps.tools.outputs.rcedit }}'",
     "authenticodeStatus -ne 'Unsigned'",
     "signature.Status -ne 'NotSigned'",
-    'latestYmlFile',
-    'blockmapFile',
     'yance-unsigned-windows-release'
   ]) assert.match(workflow, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 
+  assert.doesNotMatch(workflow, /inputs\.publish/);
+  assert.doesNotMatch(workflow, /RELEASE_REPOSITORY/);
+  assert.doesNotMatch(workflow, /latestYmlFile/);
+  assert.doesNotMatch(workflow, /blockmapFile/);
   assert.doesNotMatch(workflow, /WINDOWS_CERTIFICATE_PFX_BASE64/);
   assert.doesNotMatch(workflow, /WINDOWS_CERTIFICATE_PASSWORD/);
   assert.doesNotMatch(workflow, /-RequireSignedInstaller/);
@@ -46,7 +52,7 @@ test('production release workflow binds current Final Builder packaging contract
   assert.doesNotMatch(workflow, /WP7_PREACCEPTANCE_RECORD_SHA256/);
 });
 
-test('production release workflow verifies exact native Git rcedit custody before Final Builder', () => {
+test('production release workflow verifies exact native tool custody before Final Builder', () => {
   const toolsStart = workflow.indexOf('- name: Locate native build tools');
   const bundleStart = workflow.indexOf('- name: Create immutable source bundle');
   const builderStart = workflow.indexOf('- name: Build unsigned release before metadata sealing');
@@ -55,6 +61,10 @@ test('production release workflow verifies exact native Git rcedit custody befor
 
   const toolsStep = workflow.slice(toolsStart, bundleStart);
   for (const token of [
+    '$makensisSha256 = (Get-FileHash -LiteralPath $makensis -Algorithm SHA256).Hash.ToLowerInvariant()',
+    '$makensisBanner = (& $makensis /VERSION 2>&1 | Select-Object -First 5) -join "`n"',
+    '"makensis=$makensis"',
+    '"makensis_sha256=$makensisSha256"',
     'vendor/rcedit/rcedit-v2.0.0-x64.exe',
     '$env:RCEDIT_SHA256.ToLowerInvariant()',
     'git rev-parse "HEAD:$relativeRceditPath"',
@@ -69,15 +79,16 @@ test('production release workflow verifies exact native Git rcedit custody befor
 
   const builderStep = workflow.slice(builderStart, verifyStart);
   assert.match(builderStep, /-RceditPath '\$\{\{ steps\.tools\.outputs\.rcedit \}\}'/u);
+  assert.match(builderStep, /-MakensisPath '\$\{\{ steps\.tools\.outputs\.makensis \}\}'/u);
+  assert.match(builderStep, /-ExpectedMakensisSha256 '\$\{\{ steps\.tools\.outputs\.makensis_sha256 \}\}'/u);
 });
 
 test('production release workflow preserves Final Builder evidence after failure', () => {
   const builderStart = workflow.indexOf('- name: Build unsigned release before metadata sealing');
   const uploadStart = workflow.indexOf('- name: Upload unsigned release evidence');
-  const publishStart = workflow.indexOf('- name: Publish unsigned Windows release');
-  assert.ok(builderStart > 0 && uploadStart > builderStart && publishStart > uploadStart);
+  assert.ok(builderStart > 0 && uploadStart > builderStart);
   const builderStep = workflow.slice(builderStart, uploadStart);
-  const uploadStep = workflow.slice(uploadStart, publishStart);
+  const uploadStep = workflow.slice(uploadStart);
   assert.match(builderStep, /id: final_builder/u);
   assert.match(uploadStep, /if:\s*\$\{\{\s*always\(\) && steps\.final_builder\.outcome != 'skipped'\s*\}\}/u);
   assert.match(uploadStep, /path: \$\{\{ runner\.temp \}\}\\yance-release-evidence\\\*\*/u);
@@ -89,33 +100,29 @@ test('workflow creates exact strict-round preacceptance before the unsigned Fina
   const preacceptance = workflow.indexOf('Create exact machine-bound final packaging preacceptance');
   const builder = workflow.indexOf('Build unsigned release before metadata sealing');
   const verify = workflow.indexOf('Verify unsigned release assets');
-  const publish = workflow.indexOf('Publish unsigned Windows release');
-  assert.ok(round > 0 && preacceptance > round && builder > preacceptance && verify > builder && publish > verify);
+  assert.ok(round > 0 && preacceptance > round && builder > preacceptance && verify > builder);
+  assert.equal(workflow.indexOf('Publish unsigned Windows release'), -1);
 });
 
-test('unsigned publishing is stable and includes auto-update metadata', () => {
-  assert.match(workflow, /if: \$\{\{ inputs\.publish \}\}/);
-  assert.match(workflow, /RELEASE_REPOSITORY: wangyi198675-coder\/Yance-Releases/);
-  assert.match(workflow, /gh release create \$tag [^\n]*--repo \$env:RELEASE_REPOSITORY/u);
-  assert.doesNotMatch(workflow, /--prerelease/u);
-  assert.match(workflow, /latest\.yml and blockmap for normal automatic updates/u);
-
-  const publishStart = workflow.indexOf('- name: Publish unsigned Windows release');
-  const publishStep = workflow.slice(publishStart);
-  assert.match(publishStep, /\$builder\.installerFile/u);
-  assert.match(publishStep, /\$builder\.releaseEvidenceFile/u);
-  assert.match(publishStep, /\$builder\.latestYmlFile/u);
-  assert.match(publishStep, /\$builder\.blockmapFile/u);
-  assert.doesNotMatch(workflow, /PUBLIC_SIGNED_AUTOUPDATE/);
+test('RC workflow produces sealed artifacts without public publish or auto-update metadata', () => {
+  assert.doesNotMatch(workflow, /gh release create/u);
+  assert.doesNotMatch(workflow, /latest\.yml/u);
+  assert.doesNotMatch(workflow, /blockmap/u);
+  const verifyStart = workflow.indexOf('- name: Verify unsigned release assets');
+  const uploadStart = workflow.indexOf('- name: Upload unsigned release evidence');
+  const verifyStep = workflow.slice(verifyStart, uploadStart);
+  assert.match(verifyStep, /\$builder\.installerFile/u);
+  assert.match(verifyStep, /\$builder\.releaseEvidenceFile/u);
+  assert.match(verifyStep, /build-session-seal\.json/u);
+  assert.match(verifyStep, /builder-result\.json/u);
 });
 
-test('final builder preserves signing-before-update-metadata order when signing is enabled later', () => {
+test('final builder active path does not emit manual-installer auto-update metadata', () => {
   const lib = fs.readFileSync(path.join(ROOT, 'tools/wp7/lib.js'), 'utf8');
   const signing = lib.indexOf("options.signInstaller({");
-  const metadata = lib.indexOf('const updateMeta = emitUpdateMetadata({', signing);
-  const finalHash = lib.indexOf('const installerSha256 = sha256File(outputFile);', metadata);
-  assert.ok(signing > 0 && metadata > signing && finalHash > metadata);
-  assert.doesNotMatch(lib.slice(signing, metadata), /emitUpdateMetadata/);
+  const finalHash = lib.indexOf('const installerSha256 = sha256File(outputFile);', signing);
+  assert.ok(signing > 0 && finalHash > signing);
+  assert.doesNotMatch(lib.slice(signing, finalHash), /emitUpdateMetadata/);
 });
 
 test('sealed Matrix promotion validates exact Product Experience run provenance before download and carries PR-head identity into Final Builder', () => {

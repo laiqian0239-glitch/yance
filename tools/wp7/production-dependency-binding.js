@@ -321,6 +321,20 @@ function compareRecords(expected, actual, keyFields) {
   const mismatched = expected.filter((row) => actualMap.has(row.path) && keyFields.some((field) => JSON.stringify(actualMap.get(row.path)[field]) !== JSON.stringify(row[field]))).map((row) => ({ path: row.path, expected: Object.fromEntries(keyFields.map((field) => [field, row[field]])), actual: Object.fromEntries(keyFields.map((field) => [field, actualMap.get(row.path)[field]])) }));
   return { missing, extra, mismatched };
 }
+function controlledPackagedPackageJsonSha256(repoRoot = REPO_ROOT) {
+  const root = path.resolve(repoRoot);
+  const wp1 = require('../wp1/lib');
+  const releaseSource = wp1.readReleaseSource(
+    path.join(root, 'release', 'release-source.json')
+  );
+  const schemaAuthority = wp1.deriveDatabaseSchemaVersion(root);
+  const projected = wp1.generatedPackageMetadata(
+    root,
+    releaseSource,
+    schemaAuthority.databaseSchemaVersion
+  );
+  return sha256Buffer(wp1.canonicalJsonBuffer(projected));
+}
 function verifyProductionDependencyClosure(options = {}) {
   const repoRoot = path.resolve(options.repoRoot || REPO_ROOT);
   const appRoot = fs.realpathSync(path.resolve(options.appRoot || ''));
@@ -335,9 +349,49 @@ function verifyProductionDependencyClosure(options = {}) {
   const nodeModulesRoot = path.join(appRoot, 'node_modules');
   for (const filePath of [packagedLockPath, packagedPackagePath]) if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) fail('WP7_PRODUCTION_DEPENDENCY_GRAPH_MISMATCH', 'packaged dependency authority input is missing', { filePath });
   if (!fs.existsSync(nodeModulesRoot) || !fs.statSync(nodeModulesRoot).isDirectory()) fail('WP7_PRODUCTION_DEPENDENCY_DIRECTORY_TREE_MISMATCH', 'packaged production node_modules is missing or not a directory', { nodeModulesRoot });
+  const sourcePackageLockSha256 = sha256File(
+    path.join(repoRoot, 'package-lock.json')
+  );
+  const sourcePackageJsonSha256 = sha256File(
+    path.join(repoRoot, 'package.json')
+  );
+
+  if (
+    sourcePackageLockSha256 !== external.binding.packageLockSha256 ||
+    sourcePackageJsonSha256 !== external.binding.packageJsonSha256
+  ) {
+    fail(
+      'WP7_PRODUCTION_DEPENDENCY_EXTERNAL_BINDING_INVALID',
+      'reviewed dependency binding differs from the source package authority',
+      {
+        sourcePackageLockSha256,
+        expectedPackageLockSha256: external.binding.packageLockSha256,
+        sourcePackageJsonSha256,
+        expectedPackageJsonSha256: external.binding.packageJsonSha256
+      }
+    );
+  }
+
   const packageLockSha256 = sha256File(packagedLockPath);
   const packageJsonSha256 = sha256File(packagedPackagePath);
-  if (packageLockSha256 !== external.binding.packageLockSha256 || packageJsonSha256 !== external.binding.packageJsonSha256) fail('WP7_PRODUCTION_DEPENDENCY_GRAPH_MISMATCH', 'packaged package metadata differs from the reviewed external binding', { packageLockSha256, expectedPackageLockSha256: external.binding.packageLockSha256, packageJsonSha256, expectedPackageJsonSha256: external.binding.packageJsonSha256 });
+  const expectedPackagedPackageJsonSha256 =
+    controlledPackagedPackageJsonSha256(repoRoot);
+
+  if (
+    packageLockSha256 !== external.binding.packageLockSha256 ||
+    packageJsonSha256 !== expectedPackagedPackageJsonSha256
+  ) {
+    fail(
+      'WP7_PRODUCTION_DEPENDENCY_GRAPH_MISMATCH',
+      'packaged package metadata differs from the reviewed source and controlled projection authorities',
+      {
+        packageLockSha256,
+        expectedPackageLockSha256: external.binding.packageLockSha256,
+        packageJsonSha256,
+        expectedPackageJsonSha256: expectedPackagedPackageJsonSha256
+      }
+    );
+  }
   const lock = readJson(packagedLockPath);
   const pkg = readJson(packagedPackagePath);
   if (lock.lockfileVersion !== external.binding.lockfileVersion || JSON.stringify(canonicalMap(pkg.dependencies)) !== JSON.stringify(external.binding.rootDependencies) || JSON.stringify(canonicalMap(lock.packages?.['']?.dependencies)) !== JSON.stringify(external.binding.rootDependencies)) fail('WP7_PRODUCTION_DEPENDENCY_GRAPH_MISMATCH', 'root production dependency graph differs from the reviewed external binding');

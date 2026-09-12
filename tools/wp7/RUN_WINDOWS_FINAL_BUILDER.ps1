@@ -11,6 +11,7 @@ param(
   [Parameter(Mandatory = $true)][string]$WindowsRound2Sha256,
   [Parameter(Mandatory = $true)][string]$ElectronArchive,
   [Parameter(Mandatory = $true)][string]$MakensisPath,
+  [Parameter(Mandatory = $true)][ValidatePattern('^[0-9a-fA-F]{64}$')][string]$ExpectedMakensisSha256,
   [Parameter(Mandatory = $true)][string]$RceditPath,
   [Parameter(Mandatory = $true)][string]$ExpectedCommit,
   [Parameter(Mandatory = $true)][string]$ExpectedTree,
@@ -166,6 +167,8 @@ try {
   if (-not (Test-Path -LiteralPath $ElectronArchive -PathType Leaf)) { throw "Electron archive missing: $ElectronArchive" }
   if (-not (Test-Path -LiteralPath $MakensisPath -PathType Leaf)) { throw "makensis.exe missing: $MakensisPath" }
   if ([IO.Path]::GetExtension($MakensisPath).ToLowerInvariant() -ne '.exe') { throw 'MakensisPath must point to a native .exe' }
+  $makensisSha256 = (Get-FileHash -LiteralPath $MakensisPath -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($makensisSha256 -ne $ExpectedMakensisSha256.ToLowerInvariant()) { throw "makensis.exe SHA256 mismatch: expected=$($ExpectedMakensisSha256.ToLowerInvariant()) actual=$makensisSha256" }
   if (-not (Test-Path -LiteralPath $RceditPath -PathType Leaf)) { throw "rcedit.exe missing: $RceditPath" }
   if ([IO.Path]::GetExtension($RceditPath).ToLowerInvariant() -ne '.exe') { throw 'RceditPath must point to a native .exe' }
   if ($RequirePlatformAuth) {
@@ -250,6 +253,7 @@ try {
       '--electron-dist', $electronDist,
       '--electron-archive', $ElectronArchive,
       '--compiler-path', $MakensisPath,
+      '--expected-compiler-sha256', $ExpectedMakensisSha256.ToLowerInvariant(),
       '--rcedit-path', $RceditPath,
       '--trusted-node-executable', $TrustedNodeExecutable,
       '--expected-branch', $ExpectedBranch,
