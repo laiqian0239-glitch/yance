@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-BUILDER-STAGE-WP0-ROUTING-TRANSPORT-P0-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization after frozen implementation PR #1211 exact head 47fc6d6b37384ec7a136a6b2df360a95d7fe7cdc / Stage run 34685499737 exposed a promotion-admission failure inside the permanent Stage WP0 trust-bootstrap boundary. The v1 implementation correctly closed the installer Product/L2 classification and Product Final successor-v6 admission, and its wp0-route job proved the repository resolve-diff-range action can resolve the PR range. However, the v1 authorization selected that candidate-local composite action for permanent Stage even though the pre-existing base-owned WP0 contract explicitly forbids it. The action also does not preserve Stage's existing explicit unsupported-event rejection or git merge-base --is-ancestor check. V2 therefore preserves the original seven-path causal batch but supersedes only the diff-range repair method: keep the permanent Stage inline bootstrap, reuse the existing zero/all-invalid push-base fallback semantics from resolve-diff-range inside that inline step, and preserve all stronger Stage fail-closed ancestry/event checks. The global open-source work-package authorization contract remains unchanged and must pass as part of the full pre-head npm run test:wp0 boundary closure.",
+  "base": {
+    "branch": "main",
+    "commit": "520d27f324121e552845919968f3d1848b933320",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-builder-stage-wp0-routing-transport-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-builder-stage-wp0-routing-transport-p0-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "657beb1faac0f06a7021c21a776ed02b64f1c5533f8afef072d20ec16ab89af0",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "bootstrapPaths": [
+    "installer/wp7/YanceFinalInstaller.nsi"
+  ],
+  "bootstrapPathCount": 1,
+  "bootstrapPathSetSha256": "67ea936a5da5276c86be120c36514e57375233dcf11a07281b01956fd5d9548c",
+  "implementation": {
+    "branch": "fix/v21-final-builder-stage-wp0-routing-transport-p0-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 7,
+    "approvedChangedFileSetSha256": "171b51d3d567e3a21da977eb5cb4befbf739b384148d739c5690ba2d92e3e85f",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/stage-6459-wp0-gates.yml",
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 2,
+      "approvedWorkflowPathSetSha256": "aced9ed6d9fe979ebdd3391062353da13c0f59a8881b2a22a817bae7fb0f3178"
+    },
+    "routingPolicyModificationAllowed": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "genericRouteMutationGuardRequired": true,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "STAGE_WP0_TRUST_BOOTSTRAP_AUTHORITY_CONFLICT",
+    "upstreamRootCause": "STAGE_WP0_ROUTING_AUTHORITY_BOUNDARY",
+    "failureCodes": [
+      "WP0_ROUTE_UNKNOWN_PATH / installer/wp7/YanceFinalInstaller.nsi",
+      "NEW_REBUILD_BRANCH_PUSH / PUSH_BASE_SHA_ZERO",
+      "LAYERED_CI_RISK / INSTALLER_EXACT_L2_CLASSIFICATION_MISSING",
+      "PRODUCT_FINAL / SUCCESSOR_V6_EXACT_BRANCH_NOT_ADMITTED",
+      "STAGE_WP0_GLOBAL_CONTRACT / CANDIDATE_LOCAL_RESOLVE_DIFF_RANGE_FORBIDDEN",
+      "STAGE_DIFF_RANGE / ANCESTRY_CHECK_REMOVED",
+      "STAGE_DIFF_RANGE / UNSUPPORTED_EVENT_FAIL_CLOSED_REMOVED",
+      "PROMOTION_ADMISSION / FULL_WP0_BOUNDARY_SUITE_OMITTED_PRE_HEAD"
+    ],
+    "frozenProductPullRequest": 1209,
+    "frozenProductHead": "9fd63e70fee710cda893c2c792ceeb5b1242fe94",
+    "frozenPrerequisitePullRequest": 1211,
+    "frozenPrerequisiteHead": "47fc6d6b37384ec7a136a6b2df360a95d7fe7cdc",
+    "frozenStageRun": 34685499737,
+    "frozenStageProductJob": 103531707192,
+    "exactProductBootstrapPath": "installer/wp7/YanceFinalInstaller.nsi",
+    "nextProductSuccessorBranch": "rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6",
+    "requiredClosure": [
+      "Replay the v1 exact installer PRODUCT_WP0 admission: add exactly installer/wp7/YanceFinalInstaller.nsi to governance/layered-ci/wp0-routing-policy.json productExactPaths; do not add installer/ or installer/wp7/ to productPrefixes.",
+      "Replay the v1 exact installer L2 admission: add exactly installer/wp7/YanceFinalInstaller.nsi to governance/layered-ci/risk-policy.json l2ExactPaths; preserve unknownPathFailsClosed=true and l3Automatic=false.",
+      "Keep Stage WP0 diff-range resolution inside the existing inline Resolve exact event diff range bootstrap; do not execute ./.github/actions/resolve-diff-range from permanent Stage.",
+      "For push only, when PUSH_BASE_SHA is malformed or all-zero, reuse the repository resolve-diff-range fallback semantics by fetching origin main into refs/remotes/origin/main and resolving that exact commit as BASE_SHA before the existing validations.",
+      "Preserve Stage's explicit pull_request/push case split, unsupported-event fail-closed exit, 40-hex validation for base/head, git cat-file commit existence checks, git merge-base --is-ancestor validation, and exact base/head GITHUB_OUTPUT contract.",
+      "Extend tests/layered-ci/wp0-routing.test.js to prove the permanent Stage workflow does not use the local resolve-diff-range action, retains unsupported-event and ancestry fail-closed checks, and contains the bounded new-branch push-base fallback while preserving base-owned route-policy materialization.",
+      "Preserve tests/wp0/open-source-work-package-authorization.test.js unchanged as the independent permanent Stage base-owned authority contract; full npm run test:wp0 must be GREEN before any successor implementation Exact Head.",
+      "Replay the v1 exact installer routing and Layered risk regression cases: exact installer passes by exact rule while an adjacent unregistered installer path remains fail closed.",
+      "Replay the v1 Product Final exact literal admission for rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6 in each of the three existing Product Final job guards and exact allowlist contract; no wildcard, prefix, regex, startsWith or contains matching.",
+      "Preserve same-repository pull-request binding, exact-head checkout, existing runners, permissions, fail-closed routing, base-owned policy roots and all existing Product Final assertions.",
+      "Consume the existing validateDelegatedRoutePolicyMutation guard with the exact one-path bootstrap declaration; do not weaken or replace it.",
+      "Freeze and never amend, force-update or rerun prerequisite PR #1211 / head 47fc6d6b37384ec7a136a6b2df360a95d7fe7cdc / Stage run 34685499737, and never modify or rerun frozen Product PR #1209 / head 9fd63e70fee710cda893c2c792ceeb5b1242fe94."
+    ]
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-final-builder-stage-wp0-routing-transport-p0-v1-authorization.json",
+    "authorizationPullRequest": 1210,
+    "authorizationMerge": "520d27f324121e552845919968f3d1848b933320",
+    "frozenImplementationPullRequest": 1211,
+    "frozenImplementationHead": "47fc6d6b37384ec7a136a6b2df360a95d7fe7cdc",
+    "frozenStageRun": 34685499737,
+    "reason": "The predecessor selected a candidate-local composite action for the permanent Stage trust bootstrap, conflicting with the already-enforced base-owned WP0 contract and dropping stronger Stage ancestry/event fail-closed semantics. Preserve all frozen evidence and continue only under this successor."
+  },
+  "ossFit": {
+    "decision": "REUSE_PERMANENT_STAGE_INLINE_TRUST_BOOTSTRAP_WITH_EXISTING_ZERO_BASE_FALLBACK_SEMANTICS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Permanent Stage inline trust-bootstrap plus base-owned policy contract",
+        "source": ".github/workflows/stage-6459-wp0-gates.yml + tests/wp0/open-source-work-package-authorization.test.js",
+        "license": "repository-existing/GitHub Actions",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "This is the established permanent Stage bootstrap authority and already preserves explicit event rejection, commit existence, ancestry validation and base-owned route-policy execution before Product/governance routing."
+      },
+      {
+        "name": "Existing resolve-diff-range composite action",
+        "source": ".github/actions/resolve-diff-range/action.yml",
+        "license": "repository-existing/GitHub Actions",
+        "adoptionMode": "reference-only",
+        "fit": "NOT_FIT_FOR_PERMANENT_STAGE_BOOTSTRAP",
+        "reason": "Its bounded zero/all-invalid push-base fallback semantics are reusable, but executing the candidate-local action from permanent Stage is explicitly forbidden by the independent base-owned WP0 contract and the action does not preserve Stage's existing unsupported-event rejection or ancestry check."
+      },
+      {
+        "name": "Existing WP0 exact Product route and delegated mutation guard",
+        "source": "governance/layered-ci/wp0-routing-policy.json + shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "These owners already provide exact-path PRODUCT_WP0 admission and exact bootstrap-only delegated route mutations without broad installer prefixes."
+      },
+      {
+        "name": "Existing Layered exact L2 risk policy and Product Final exact branch guards",
+        "source": "governance/layered-ci/risk-policy.json + .github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing/GitHub Actions",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The original v1 exact L2 classification and literal Product Final branch-admission seams remain correct and are replayed unchanged."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not execute ./.github/actions/resolve-diff-range from permanent Stage WP0.",
+      "Do not remove or weaken Stage unsupported-event, SHA-shape, commit-existence or ancestry checks.",
+      "Do not modify the independent tests/wp0/open-source-work-package-authorization.test.js contract to accommodate the frozen v1 candidate.",
+      "Do not add installer/ or installer/wp7/ broad Product or L2 prefixes.",
+      "Do not weaken unknown-path fail-closed behavior or l3Automatic=false.",
+      "Do not create another diff-range helper, routing framework, workflow, Product Final workflow or proof framework.",
+      "Do not modify Final Builder Product bytes in this prerequisite.",
+      "Do not wildcard-admit rebuild branches to Product Final."
+    ]
+  },
+  "localAcceptance": [
+    "Exact implementation changed path set is the same seven authorized routing/risk/workflow/test owners and no others.",
+    "installer/wp7/YanceFinalInstaller.nsi routes PRODUCT_WP0 while an adjacent unregistered installer path remains WP0_ROUTE_UNKNOWN_PATH.",
+    "installer/wp7/YanceFinalInstaller.nsi classifies L2 by EXACT while an adjacent unregistered installer path remains CI_UNKNOWN_PATH.",
+    "Permanent Stage keeps inline diff-range bootstrap, does not use ./.github/actions/resolve-diff-range, handles malformed/all-zero push base with the bounded origin/main fallback, and preserves explicit event rejection, commit existence and ancestry validation before base-owned route classification.",
+    "The independent permanent Stage base-owned contract in tests/wp0/open-source-work-package-authorization.test.js remains byte-unchanged and GREEN.",
+    "rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6 appears exactly in the three existing Product Final job guards and exact allowlist contract.",
+    "Full npm run test:wp0 is GREEN in addition to the focused routing/risk/Product Final/delegated-governance contracts; diff integrity and exact scope are clean.",
+    "unknownBlockers=0."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
