@@ -21,6 +21,7 @@ test('formal Builder CLI requires all identity and external artifact arguments',
     '--electron-dist', 'D:\\electron',
     '--electron-archive', 'D:\\electron.zip',
     '--compiler-path', 'C:\\NSIS\\makensis.exe',
+    '--expected-compiler-sha256', 'f'.repeat(64),
     '--rcedit-path', 'D:\\rcedit\\rcedit.exe',
     '--trusted-node-executable', 'D:\\trusted-node-22.23.1\\node.exe',
     '--expected-branch', 'rebuild/windows-release-closure-test',
@@ -33,6 +34,7 @@ test('formal Builder CLI requires all identity and external artifact arguments',
     '--build-timestamp-utc', '2026-07-12T16:00:00.000Z'
   ]);
   assert.equal(parsed['compiler-path'], 'C:\\NSIS\\makensis.exe');
+  assert.equal(parsed['expected-compiler-sha256'], 'f'.repeat(64));
   assert.equal(parsed['rcedit-path'], 'D:\\rcedit\\rcedit.exe');
   assert.equal(parsed['trusted-node-executable'], 'D:\\trusted-node-22.23.1\\node.exe');
 });
@@ -66,6 +68,8 @@ test('PowerShell Builder wrapper contains the formal isolation and split runtime
     'NodeRoot',
     'TrustedNodeExecutable',
     'RceditPath',
+    'ExpectedMakensisSha256',
+    '--expected-compiler-sha256',
     '--rcedit-path',
     '--trusted-node-executable',
     'v22.23.1',

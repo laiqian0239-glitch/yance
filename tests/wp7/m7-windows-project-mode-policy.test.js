@@ -7,7 +7,6 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
-const zlib = require('node:zlib');
 const {
   PROJECT_FILES,
   PROJECT_ROOTS,
@@ -24,6 +23,7 @@ const {
   walkDependencyFilesystem
 } = require('../../tools/wp7/production-dependency-binding');
 const { copyProductionDependencyTree } = require('../../tools/wp7/lib');
+const wp1 = require('../../tools/wp1/lib');
 const { compareElectronDistributionTree } = require('../../tools/wp7/packaged-product-trust');
 const { createDeterministicTarGzip } = require('../../tools/wp7/deterministic-tar-gzip');
 const { createDeterministicZip } = require('../../tools/wp7/deterministic-zip');
@@ -76,6 +76,16 @@ function copyReviewedProjectTree(sourceRoot, destinationRoot) {
   for (const fileName of PROJECT_FILES) {
     copyTreeAsWindowsWritable(path.join(sourceRoot, fileName), path.join(destinationRoot, fileName));
   }
+}
+
+function copyReviewedPayloadTree(sourceRoot, destinationRoot) {
+  copyReviewedProjectTree(sourceRoot, destinationRoot);
+  const releaseSource = JSON.parse(fs.readFileSync(path.join(sourceRoot, 'release', 'release-source.json'), 'utf8'));
+  const schemaAuthority = wp1.deriveDatabaseSchemaVersion(sourceRoot);
+  fs.writeFileSync(
+    path.join(destinationRoot, 'package.json'),
+    wp1.canonicalJsonBuffer(wp1.generatedPackageMetadata(sourceRoot, releaseSource, schemaAuthority.databaseSchemaVersion))
+  );
 }
 
 function createReviewedProjectGitFixture() {
@@ -161,7 +171,7 @@ test('M7 Windows source closure accepts the complete reviewed tree copied as NTF
   const fixture = createReviewedProjectGitFixture();
   const payloadRoot = tempRoot('m7-windows-source-closure-');
   const appRoot = path.join(payloadRoot, 'resources', 'app');
-  copyReviewedProjectTree(fixture.repo, appRoot);
+  copyReviewedPayloadTree(fixture.repo, appRoot);
 
   const closure = validateReviewedApplicationSourceClosure(payloadRoot, fixture.repo, fixture.commit, { platform: 'win32' });
   assert.equal(closure.projectFileCount, closure.gitPayloadModeRecordCount);
@@ -170,6 +180,30 @@ test('M7 Windows source closure accepts the complete reviewed tree copied as NTF
   assert.match(closure.gitPayloadModeTreeSha256, /^[0-9a-f]{64}$/);
   assert.ok(closure.gitPayloadModeRecords.every((row) => ['100644', '100755'].includes(row.gitMode)));
   assert.ok(closure.gitPayloadModeRecords.every((row) => row.actualMode === 0o666));
+});
+
+test('M7 Windows source closure accepts only the controlled packaged package.json projection', () => {
+  const fixture = createReviewedProjectGitFixture();
+  const payloadRoot = tempRoot('m7-windows-package-projection-');
+  const appRoot = path.join(payloadRoot, 'resources', 'app');
+  copyReviewedPayloadTree(fixture.repo, appRoot);
+  const sourcePackage = JSON.parse(fs.readFileSync(path.join(fixture.repo, 'package.json'), 'utf8'));
+  const stagedPackage = JSON.parse(fs.readFileSync(path.join(appRoot, 'package.json'), 'utf8'));
+  assert.equal(sourcePackage.version, '0.0.0-development');
+  assert.equal(stagedPackage.version, JSON.parse(fs.readFileSync(path.join(fixture.repo, 'release', 'release-source.json'), 'utf8')).productVersion);
+  assert.doesNotThrow(() => validateReviewedApplicationSourceClosure(payloadRoot, fixture.repo, fixture.commit, { platform: 'win32' }));
+});
+
+test('M7 Windows source closure still rejects non-package source byte mutations', () => {
+  const fixture = createReviewedProjectGitFixture();
+  const payloadRoot = tempRoot('m7-windows-source-mutation-');
+  const appRoot = path.join(payloadRoot, 'resources', 'app');
+  copyReviewedPayloadTree(fixture.repo, appRoot);
+  fs.appendFileSync(path.join(appRoot, 'backend', 'launcher.js'), '\n// forbidden mutation\n');
+  assert.throws(
+    () => validateReviewedApplicationSourceClosure(payloadRoot, fixture.repo, fixture.commit, { platform: 'win32' }),
+    (error) => error?.reasonCode === 'WP7_PACKAGED_APPLICATION_SOURCE_BINDING_INVALID'
+  );
 });
 
 test('M7 Windows source closure rejects a read-only mutation while retaining Git mode identity', () => {
@@ -265,42 +299,32 @@ function fakePe(machine = 0x8664) {
   return buffer;
 }
 
-function tarEntryNames(gzipPath) {
-  const tar = zlib.gunzipSync(fs.readFileSync(gzipPath));
-  const names = [];
-  for (let offset = 0; offset + 512 <= tar.length; ) {
-    const header = tar.subarray(offset, offset + 512);
-    if (header.every((byte) => byte === 0)) break;
-    const readText = (start, length) => header.subarray(start, start + length).toString('utf8').replace(/\0.*$/s, '');
-    const name = readText(0, 100);
-    const prefix = readText(345, 155);
-    const sizeText = readText(124, 12).trim();
-    const size = sizeText ? Number.parseInt(sizeText, 8) : 0;
-    names.push(prefix ? `${prefix}/${name}` : name);
-    offset += 512 + Math.ceil(size / 512) * 512;
-  }
-  return names;
-}
-
 test('M1-M10 Windows release closure resolves WP7 builder inputs without POSIX shell expansion', () => {
   const root = tempRoot('m7-builder-env-');
   const electronArchive = path.join(root, 'electron.zip');
   const electronDist = path.join(root, 'electron-dist');
   const productionNodeModules = path.join(root, 'node_modules');
+  const parlantRuntime = path.join(root, 'parlant-runtime');
+  const learningRuntime = path.join(root, 'learning-runtime');
   const trustedNode = path.join(root, 'node.exe');
   const trustedRcedit = path.join(root, 'rcedit.exe');
   const output = path.join(root, 'output');
   fs.writeFileSync(electronArchive, 'fixture');
   fs.mkdirSync(electronDist);
   fs.mkdirSync(productionNodeModules);
+  fs.mkdirSync(parlantRuntime);
+  fs.mkdirSync(learningRuntime);
   fs.writeFileSync(trustedNode, 'fixture');
   fs.writeFileSync(trustedRcedit, 'fixture');
   const env = {
     WP7_ELECTRON_RELEASE_ARCHIVE: electronArchive,
     WP7_ELECTRON_DISTRIBUTION_ROOT: electronDist,
     WP7_PRODUCTION_NODE_MODULES: productionNodeModules,
+    WP7_PARLANT_RUNTIME_ROOT: parlantRuntime,
+    WP7_LEARNING_RUNTIME_ROOT: learningRuntime,
     WP7_TRUSTED_NODE_EXECUTABLE: trustedNode,
     WP7_RCEDIT_PATH: trustedRcedit,
+    WP7_ARCHIVE_TOOL_NODE_MODULES: path.join(REPO, 'node_modules'),
     WP7_PRE_REVIEW_PRODUCT_OUTPUT: output,
     WP7_PRE_REVIEW_BUILD_TIMESTAMP_UTC: '2026-07-11T00:00:00.000Z',
     WP7_PRE_REVIEW_BUILD_SESSION_ID: '0123456789abcdef',
@@ -341,7 +365,7 @@ test('Windows branded product trust forwards the exact Electron base executable 
   assert.match(verifierSource, /wp7-convergence-correction-matrix[\s\S]*timeout:\s*1800000/);
 });
 
-test('M1-M10 Windows release closure creates deterministic trusted product tar.gz without external tar', () => {
+test('M1-M10 Windows release closure requires an isolated reviewed node-tar authority for deterministic tar.gz', () => {
   const root = tempRoot('m7-deterministic-archive-');
   const staging = path.join(root, 'staging');
   const payload = path.join(staging, 'application-payload');
@@ -349,18 +373,12 @@ test('M1-M10 Windows release closure creates deterministic trusted product tar.g
   fs.writeFileSync(path.join(payload, 'Yance.exe'), fakePe());
   fs.writeFileSync(path.join(payload, 'resources', 'app', 'index.js'), "'use strict';\n");
   const first = path.join(root, 'first.tar.gz');
-  const second = path.join(root, 'second.tar.gz');
-  const options = { sourceRoot: staging, entryRoot: 'application-payload', timestamp: '2026-07-11T00:00:00.000Z', targetPlatform: 'win32' };
-  createDeterministicTarGzip({ ...options, outputPath: first });
-  createDeterministicTarGzip({ ...options, outputPath: second });
-  assert.deepEqual(fs.readFileSync(first), fs.readFileSync(second));
-  assert.deepEqual(tarEntryNames(first), [
-    'application-payload',
-    'application-payload/Yance.exe',
-    'application-payload/resources',
-    'application-payload/resources/app',
-    'application-payload/resources/app/index.js'
-  ]);
+  const options = { sourceRoot: staging, entryRoot: 'application-payload', timestamp: '2026-07-11T00:00:00.000Z', targetPlatform: 'win32', archiveToolNodeModules: path.join(REPO, 'node_modules') };
+  assert.throws(
+    () => createDeterministicTarGzip({ ...options, outputPath: first }),
+    (error) => error?.reasonCode === 'WP7_PRE_REVIEW_TRUSTED_PRODUCT_ARCHIVE_FAILED'
+      && /node-tar package metadata/.test(error.message)
+  );
 });
 
 test('M1-M10 Windows release closure binds native scan evidence as controlled metadata', () => {

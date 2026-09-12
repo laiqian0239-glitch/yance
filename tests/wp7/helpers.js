@@ -164,13 +164,13 @@ function createFakeElectronDist(root, platform = process.platform) {
   }
   return dist;
 }
-function createFakeTrustedNodeRuntime(root) {
+function createFakeTrustedNodeRuntime(root, requiredVersion = '22.23.1') {
   const executable = path.join(root, process.platform === 'win32' ? 'fake-node-22.23.1.exe' : 'fake-node-22.23.1');
   if (process.platform === 'win32') {
-    if (process.version !== 'v22.23.1') throw new Error(`WP7 Windows trusted Node fixture requires test host v22.23.1, got ${process.version}`);
+    if (process.version !== `v${requiredVersion}`) throw new Error(`WP7 Windows trusted Node fixture requires test host v${requiredVersion}, got ${process.version}`);
     fs.copyFileSync(process.execPath, executable);
   } else {
-    fs.writeFileSync(executable, '#!/bin/sh\nif [ "$1" = "--version" ]; then echo v22.23.1; exit 0; fi\necho fixture runtime only >&2\nexit 64\n');
+    fs.writeFileSync(executable, `#!/bin/sh\nif [ "$1" = "--version" ]; then echo v${requiredVersion}; exit 0; fi\necho fixture runtime only >&2\nexit 64\n`);
     fs.chmodSync(executable, 0o755);
   }
   return executable;

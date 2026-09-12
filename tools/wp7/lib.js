@@ -730,6 +730,7 @@ function assembleWindowsApplication(options = {}) {
   const electronExecutable = path.join(electronDist, targetPlatform === 'win32' ? 'electron.exe' : 'electron');
   if (!fs.existsSync(electronExecutable)) throw new Wp7Error('WP7_ELECTRON_RUNTIME_INPUT_MISSING', 'tracked final build requires the pinned Electron runtime dependency to be installed', { electronDist });
   const releaseSource = readReleaseSource(repoRoot);
+  const schemaAuthority = wp1.deriveDatabaseSchemaVersion(repoRoot);
   const productVersion = releaseSource.productVersion;
   const fileVersion = productVersion.split('.').length === 3 ? `${productVersion}.0` : productVersion;
   ensureDirectoryEmpty(payloadRoot);
@@ -771,13 +772,14 @@ function assembleWindowsApplication(options = {}) {
   for (const rootName of ['backend', 'shared', 'electron', 'diagnostics', 'release', 'assets', 'vendor/sillytavern/1.18.0']) {
     copyTree(path.join(repoRoot, rootName), path.join(appRoot, rootName), { excludeNames: rootName === 'backend' ? ['tests'] : [] });
   }
-  for (const file of ['package.json', 'package-lock.json', 'installer/installedIdentityReceipt.js', 'frontend/theme-catalog.json']) {
+  for (const file of ['package-lock.json', 'installer/installedIdentityReceipt.js', 'frontend/theme-catalog.json']) {
     const source = path.join(repoRoot, file);
     const destination = path.join(appRoot, file);
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.copyFileSync(source, destination);
     if (process.platform !== 'win32') fs.chmodSync(destination, fs.statSync(source).mode & 0o777);
   }
+  writeCanonicalJson(path.join(appRoot, 'package.json'), wp1.generatedPackageMetadata(repoRoot, releaseSource, schemaAuthority.databaseSchemaVersion));
   let productionDependencyCanonicalization = Object.freeze({ policy: GENERATED_NPM_BIN_SHIM_POLICY, excludedGeneratedBinDirectories: Object.freeze([]) });
   if (options.productionNodeModulesSource) {
     productionDependencyCanonicalization = copyProductionDependencyTree(path.resolve(options.productionNodeModulesSource), path.join(appRoot, 'node_modules'));
@@ -800,7 +802,8 @@ function assembleWindowsApplication(options = {}) {
   const nodeRuntime = copyTrustedNodeRuntime({
     sourceExecutable: trustedNodeExecutable,
     destinationRoot: path.join(payloadRoot, 'resources', 'runtime', 'node22'),
-    platform: targetPlatform
+    platform: targetPlatform,
+    requiredVersion: options.allowNonWindows === true ? options.trustedNodeRequiredVersion : undefined
   });
   const parlantRuntime = options.parlantRuntimeSource
     ? copyPresealedParlantRuntime(options.parlantRuntimeSource, path.join(payloadRoot, 'resources'))
@@ -853,6 +856,7 @@ function buildFinalWindowsPayload(options = {}) {
     targetPlatform,
     targetArch,
     trustedNodeExecutable: options.trustedNodeExecutable,
+    trustedNodeRequiredVersion: options.trustedNodeRequiredVersion,
     parlantRuntimeSource: options.parlantRuntimeSource,
     learningRuntimeSource: options.learningRuntimeSource,
     matrixRuntimeSource: options.matrixRuntimeSource,
@@ -1310,24 +1314,23 @@ function validateNsisSourcePaths(options = {}) {
   const sources = [];
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim();
-    if (!/^File\b/i.test(line)) continue;
     const quoted = [...line.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
-    if (!quoted.length) continue;
-    const source = quoted[quoted.length - 1];
-    if (!source.startsWith('${STAGING_ROOT}\\')) continue;
-    const relative = source.slice('${STAGING_ROOT}\\'.length).replace(/\\/g, '/');
-    const wildcard = /\*\.\*$/.test(relative);
-    const normalized = wildcard ? relative.replace(/\/\*\.\*$/, '') : relative;
-    const resolved = path.resolve(stagingRoot, ...normalized.split('/'));
-    if (!resolved.startsWith(`${stagingRoot}${path.sep}`) && resolved !== stagingRoot) {
-      throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS source escapes staging root', { source, resolved });
+    for (const source of quoted) {
+      if (!source.startsWith('${STAGING_ROOT}\\')) continue;
+      const relative = source.slice('${STAGING_ROOT}\\'.length).replace(/\\/g, '/');
+      const wildcard = /\*\.\*$/.test(relative);
+      const normalized = wildcard ? relative.replace(/\/\*\.\*$/, '') : relative;
+      const resolved = path.resolve(stagingRoot, ...normalized.split('/'));
+      if (!resolved.startsWith(`${stagingRoot}${path.sep}`) && resolved !== stagingRoot) {
+        throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS source escapes staging root', { source, resolved });
+      }
+      if (!fs.existsSync(resolved) || (wildcard && (!fs.statSync(resolved).isDirectory() || fs.readdirSync(resolved).length === 0))) {
+        throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS source is missing from final staging', { source, resolved, wildcard });
+      }
+      sources.push({ source, resolved, wildcard });
     }
-    if (!fs.existsSync(resolved) || (wildcard && (!fs.statSync(resolved).isDirectory() || fs.readdirSync(resolved).length === 0))) {
-      throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS source is missing from final staging', { source, resolved, wildcard });
-    }
-    sources.push({ source, resolved, wildcard });
   }
-  if (!sources.length) throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS script has no staging-bound File sources');
+  if (!sources.length) throw new Wp7Error('WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH', 'NSIS script has no staging-bound compile-time sources');
   return { status: 'PASS', scriptPath, sources };
 }
 function directorySizeBytes(root) {
@@ -1386,70 +1389,8 @@ function runNsisCompiler(options = {}) {
   return { status: 'PASS', outputFile: options.outputFile, sha256: sha256File(options.outputFile), stdout: result.stdout, sourceValidation, estimatedSizeBytes, estimatedSizeKb };
 }
 
-// Emit electron-updater update metadata (latest.yml + <setup>.blockmap) from the
-// GENUINE installer binary produced by the same build. This is exactly the
-// derivation electron-builder performs: path/size/sha512 of the real file and a
-// blockmap of full-file chunks. These artifacts are written only once the real
-// installer exists, so they always match the shipped binary (no pre-faked data).
 function emitUpdateMetadata(options = {}) {
-  const installerPath = path.resolve(options.installerPath);
-  if (!fs.existsSync(installerPath)) throw new Wp7Error('WP7_UPDATE_METADATA_INSTALLER_MISSING', 'cannot emit update metadata before a real installer exists');
-  const buf = fs.readFileSync(installerPath);
-  const size = buf.length;
-  const sha512 = crypto.createHash('sha512').update(buf).digest('base64');
-  const installerName = path.basename(installerPath);
-  const channel = options.channel || 'latest';
-  const prerelease = options.prerelease === true;
-  const releaseDate = options.buildTimestampUtc || new Date().toISOString();
-  const latestYml =
-    `version: ${options.productVersion}\n` +
-    `publicVersion: ${options.publicVersion || options.productVersion}\n` +
-    `releaseName: ${options.publicProductName || 'Yance'} ${options.publicVersion || options.productVersion}\n` +
-    `files:\n` +
-    `  - url: ${installerName}\n` +
-    `    sha512: ${sha512}\n` +
-    `    size: ${size}\n` +
-    `path: ${installerName}\n` +
-    `sha512: ${sha512}\n` +
-    `releaseDate: ${releaseDate}\n` +
-    `channel: ${channel}\n` +
-    `prerelease: ${prerelease}\n`;
-  const latestYmlPath = path.join(options.outputRoot, 'latest.yml');
-  fs.writeFileSync(latestYmlPath, latestYml, 'utf8');
-  // Real electron-updater blockmap. electron-updater's BlockMap schema (builder-util-runtime)
-  // is:
-  //   { version: "1", files: [ { name, offset, checksums: string[], sizes: number[] } ] }
-  // Each entry in `checksums`/`sizes` describes one fixed-size chunk of the installer
-  // binary (sha512 per chunk). `offset` is the byte offset of the file within the
-  // package (0 for a standalone installer). The DifferentialDownloader parses this
-  // format natively for partial/differential downloads. We do NOT fabricate a single
-  // block or use a custom `blocks[]` shape.
-  const BLOCK_SIZE = 1024 * 1024; // 1 MiB chunks
-  const checksums = [];
-  const sizes = [];
-  for (let pos = 0; pos < buf.length; pos += BLOCK_SIZE) {
-    const end = Math.min(pos + BLOCK_SIZE, buf.length);
-    const chunk = buf.subarray(pos, end);
-    checksums.push(crypto.createHash('sha512').update(chunk).digest('base64'));
-    sizes.push(chunk.length);
-  }
-  const blockmap = {
-    version: '1',
-    files: [{ name: installerName, offset: 0, checksums, sizes }]
-  };
-  const blockmapName = `${installerName}.blockmap`;
-  const blockmapPath = path.join(options.outputRoot, blockmapName);
-  fs.writeFileSync(blockmapPath, JSON.stringify(blockmap, null, 2), 'utf8');
-  return {
-    status: 'PASS',
-    latestYmlPath,
-    blockmapPath,
-    latestYmlSha256: sha256File(latestYmlPath),
-    blockmapSha256: sha256File(blockmapPath),
-    installerName,
-    installerSize: size,
-    installerSha512: sha512
-  };
+  throw new Wp7Error('WP7_PUBLIC_UPDATE_METADATA_DISABLED', 'current Final Builder authority is manual-installer-only; public update metadata must be emitted by the reviewed electron-builder authority when online updates are authorized', { outputRoot: options.outputRoot || null });
 }
 
 function buildAuthorizedFinalWindowsInstaller(options = {}) {
@@ -1497,6 +1438,7 @@ function buildAuthorizedFinalWindowsInstaller(options = {}) {
       targetPlatform: options.allowNonWindows === true ? (options.targetPlatform || process.platform) : 'win32',
       targetArch: 'x64',
       trustedNodeExecutable: options.trustedNodeExecutable,
+      trustedNodeRequiredVersion: options.allowNonWindows === true ? options.trustedNodeRequiredVersion : undefined,
       rceditPath: options.rceditPath,
       iconPath: options.iconPath,
       reviewFixtureBrandingCapability: options.reviewFixtureBrandingCapability,
@@ -1541,19 +1483,6 @@ function buildAuthorizedFinalWindowsInstaller(options = {}) {
     } else if (options.requireSignedInstaller === true) {
       throw new Wp7Error('WP7_INSTALLER_AUTHENTICODE_SIGNATURE_REQUIRED', 'production release requires a signed installer before update metadata is emitted');
     }
-    // Emit electron-updater metadata only AFTER optional Authenticode signing.
-    // Signing mutates the installer bytes; metadata generated before this point
-    // would contain stale SHA-512, size and blockmap values.
-    const updateMeta = emitUpdateMetadata({
-      installerPath: outputFile,
-      outputRoot,
-      productVersion: built.releaseSource.productVersion,
-      publicVersion: built.releaseSource.publicVersion,
-      publicProductName: built.releaseSource.publicProductNameEnglish || 'Yance',
-      channel: 'latest',
-      prerelease: false,
-      buildTimestampUtc: buildTimestampUtc
-    });
     if (typeof options.beforeSealHook === 'function') options.beforeSealHook({ repoRoot, frozenRoot: frozen.frozenRoot, stagingRoot, outputFile, identity, built });
     assertSourceStillFrozen(repoRoot, identity, frozen.frozenRoot, frozenContent);
     const installerSha256 = sha256File(outputFile);
@@ -1622,10 +1551,6 @@ function buildAuthorizedFinalWindowsInstaller(options = {}) {
       authenticodeSignerSubject: authenticode.signerSubject || null,
       authenticodeSignerThumbprint: authenticode.signerThumbprint || null,
       authenticodeTimestampSubject: authenticode.timestampSubject || null,
-      latestYmlPath: updateMeta.latestYmlPath,
-      latestYmlSha256: updateMeta.latestYmlSha256,
-      blockmapPath: updateMeta.blockmapPath,
-      blockmapSha256: updateMeta.blockmapSha256,
       upstreamBindings: JSON.parse(JSON.stringify(UPSTREAM_ACCEPTED_BINDINGS)),
       inheritedRiskAcceptances: RISK_IDS.map((id) => ({ id, scopeExpansionAllowed: false })),
       assertions: ['sealedInstaller', 'cleanStaging', 'singleManifestIdentity', 'detachedFrozenSource', 'exactPreacceptedImplementationIdentity', 'nsisSourcesExist'],
@@ -1684,7 +1609,7 @@ function buildAuthorizedFinalWindowsInstaller(options = {}) {
     };
     writeCanonicalJson(path.join(outputRoot, 'build-session-seal.json'), seal);
     assertSourceStillFrozen(repoRoot, identity, frozen.frozenRoot, frozenContent);
-    return { status: 'PASS', outputRoot, stagingRoot, outputFile, evidencePath, installerSha256, latestYmlPath: updateMeta.latestYmlPath, blockmapPath: updateMeta.blockmapPath, latestYmlSha256: updateMeta.latestYmlSha256, blockmapSha256: updateMeta.blockmapSha256, authenticode, identity, preacceptance, sessionId, completeProjectSourceTreeSha256: projectSourceSha256, ...built };
+    return { status: 'PASS', outputRoot, stagingRoot, outputFile, evidencePath, installerSha256, authenticode, identity, preacceptance, sessionId, completeProjectSourceTreeSha256: projectSourceSha256, ...built };
   } finally {
     if (frozen) frozen.release();
     fs.rmSync(frozenParent, { recursive: true, force: true });

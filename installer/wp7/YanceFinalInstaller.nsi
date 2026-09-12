@@ -44,8 +44,8 @@ RequestExecutionLevel user
 !define LEGACY_EXECUTABLE_NAME "Yance29.exe"
 
 ; ---- Branding resources ----------------------------------------------------
-!define MUI_ICON "${STAGING_ROOT}\application-payload\resources\app\frontend\assets\icon.ico"
-!define MUI_UNICON "${STAGING_ROOT}\application-payload\resources\app\frontend\assets\icon.ico"
+!define MUI_ICON "${STAGING_ROOT}\application-payload\resources\app\assets\branding\yance\generated\Yance.ico"
+!define MUI_UNICON "${STAGING_ROOT}\application-payload\resources\app\assets\branding\yance\generated\Yance.ico"
 
 Name "${PUBLIC_PRODUCT_NAME}"
 OutFile "${OUTPUT_FILE}"

@@ -1,4 +1,4 @@
-name: Yance Windows Release (Unsigned Public Auto Update)
+name: Yance Windows RC Internal UAT Packaging
 
 on:
   workflow_dispatch:
@@ -13,11 +13,6 @@ on:
       expected_tree:
         description: Exact reviewed 40-character merged release source tree
         required: true
-      publish:
-        description: "Publish unsigned installer plus latest.yml/blockmap for stable auto-update"
-        required: true
-        type: boolean
-        default: true
       materialized_matrix_run_id:
         description: Exact successful Product Experience Matrix UAT workflow run carrying this source commit's sealed Matrix bundle
         required: true
@@ -36,7 +31,6 @@ env:
   ELECTRON_VERSION: 43.4.1
   ELECTRON_ARCHIVE_SHA256: c2ef9a5f65472c34d14bd3e67b7d14e66b0c01f124aba45263d6a4232160e13a
   RCEDIT_SHA256: 3e7801db1a5edbec91b49a24a094aad776cb4515488ea5a4ca2289c400eade2a
-  RELEASE_REPOSITORY: wangyi198675-coder/Yance-Releases
 
 jobs:
   unsigned-windows-release:
@@ -151,6 +145,11 @@ jobs:
             'C:\Program Files\NSIS\makensis.exe'
           ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
           if (-not $makensis) { throw 'native makensis.exe is not installed on this runner' }
+          $makensis = (Resolve-Path -LiteralPath $makensis).Path
+          if ([IO.Path]::GetExtension($makensis).ToLowerInvariant() -ne '.exe') { throw 'makensis must resolve to a native .exe' }
+          $makensisSha256 = (Get-FileHash -LiteralPath $makensis -Algorithm SHA256).Hash.ToLowerInvariant()
+          $makensisBanner = (& $makensis /VERSION 2>&1 | Select-Object -First 5) -join "`n"
+          if ([string]::IsNullOrWhiteSpace($makensisBanner)) { throw 'makensis version/banner evidence is empty' }
 
           $relativeRceditPath = 'vendor/rcedit/rcedit-v2.0.0-x64.exe'
           $expectedRceditSha256 = $env:RCEDIT_SHA256.ToLowerInvariant()
@@ -171,6 +170,7 @@ jobs:
           if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'rcedit native Git verification must leave release source clean' }
 
           "makensis=$makensis" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "makensis_sha256=$makensisSha256" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "rcedit=$rcedit" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Create immutable source bundle
@@ -198,6 +198,8 @@ jobs:
           EXPECTED_COMMIT: ${{ steps.identity.outputs.commit }}
           EXPECTED_TREE: ${{ steps.identity.outputs.tree }}
           NODE_ROOT: ${{ steps.identity.outputs.node_root }}
+          MAKENSIS_PATH: ${{ steps.tools.outputs.makensis }}
+          MAKENSIS_SHA256: ${{ steps.tools.outputs.makensis_sha256 }}
         run: |
           $ErrorActionPreference = 'Stop'
           $runner = (Resolve-Path 'tools/release-closure/RUN_WINDOWS_VERIFY_ROUND.ps1').Path
@@ -209,6 +211,8 @@ jobs:
             '-ExpectedCommit', $env:EXPECTED_COMMIT,
             '-ExpectedTree', $env:EXPECTED_TREE,
             '-NodeRoot', $env:NODE_ROOT,
+            '-MakensisPath', $env:MAKENSIS_PATH,
+            '-ExpectedMakensisSha256', $env:MAKENSIS_SHA256,
             '-VerificationMode', 'STRICT',
             '-ValidationRoot', $validationRoot
           )
@@ -341,6 +345,7 @@ jobs:
             -WindowsRound2Sha256 $env:ROUND2_SHA256 `
             -ElectronArchive "$env:RUNNER_TEMP\yance-release-input\electron-v${env:ELECTRON_VERSION}-win32-x64.zip" `
             -MakensisPath '${{ steps.tools.outputs.makensis }}' `
+            -ExpectedMakensisSha256 '${{ steps.tools.outputs.makensis_sha256 }}' `
             -RceditPath '${{ steps.tools.outputs.rcedit }}' `
             -ExpectedCommit '${{ steps.identity.outputs.commit }}' `
             -ExpectedTree '${{ steps.identity.outputs.tree }}' `
@@ -364,7 +369,7 @@ jobs:
           if ($builder.status -ne 'PASS' -or $builder.authenticodeStatus -ne 'Unsigned') { throw 'unsigned Builder result is not valid' }
           $signature = Get-AuthenticodeSignature -FilePath $builder.installerFile
           if ($signature.Status -ne 'NotSigned') { throw "installer must remain unsigned while Authenticode signing is deferred; signature status: $($signature.Status)" }
-          foreach ($asset in @($builder.installerFile,$builder.latestYmlFile,$builder.blockmapFile,$builder.releaseEvidenceFile,"$output\build-session-seal.json","$output\builder-result.json")) {
+          foreach ($asset in @($builder.installerFile,$builder.releaseEvidenceFile,"$output\build-session-seal.json","$output\builder-result.json")) {
             if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) { throw "release asset missing: $asset" }
           }
 
@@ -376,29 +381,3 @@ jobs:
           path: ${{ runner.temp }}\yance-release-evidence\**
           if-no-files-found: error
           retention-days: 30
-
-      - name: Publish unsigned Windows release
-        if: ${{ inputs.publish }}
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.YANCE_RELEASES_TOKEN }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) { throw 'YANCE_RELEASES_TOKEN is required to publish' }
-          $source = Get-Content release/release-source.json -Raw | ConvertFrom-Json
-          $output = "$env:RUNNER_TEMP\yance-release-evidence\builder-output"
-          $builder = Get-Content "$output\builder-result.json" -Raw | ConvertFrom-Json
-          if ($builder.authenticodeStatus -ne 'Unsigned') { throw "unsigned release must remain unsigned, got: $($builder.authenticodeStatus)" }
-          $tag = "v$($source.productVersion)"
-          $title = "$($source.publicProductName) / $($source.publicProductNameEnglish) $($source.publicVersion)"
-          $notes = @"
-          Unsigned Windows release. Authenticode signing is intentionally deferred.
-          
-          Source commit: ${{ steps.identity.outputs.commit }}
-          Source tree: ${{ steps.identity.outputs.tree }}
-          
-          This release includes latest.yml and blockmap for normal automatic updates. Windows may show an Unknown Publisher / SmartScreen warning until code signing is enabled later.
-          "@
-          gh release create $tag --repo $env:RELEASE_REPOSITORY --title $title --notes $notes `
-            $builder.installerFile $builder.latestYmlFile $builder.blockmapFile $builder.releaseEvidenceFile "$output\build-session-seal.json" "$output\builder-result.json"
-          if ($LASTEXITCODE -ne 0) { throw "unsigned release publishing failed with exit code $LASTEXITCODE" }

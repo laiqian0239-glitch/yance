@@ -162,13 +162,35 @@ function reviewedProjectEntries(repoRoot, sourceCommit) {
     return { ...row, sizeBytes: bytes.length, sha256: sha256Buffer(bytes) };
   }).sort((a, b) => Buffer.from(a.payloadPath).compare(Buffer.from(b.payloadPath)));
 }
+function controlledPackageProjectionEntry(repoRoot, sourceCommit) {
+  const releaseSource = JSON.parse(git(['show', `${sourceCommit}:release/release-source.json`], repoRoot, 'utf8'));
+  const schemaAuthority = wp1.deriveDatabaseSchemaVersion(repoRoot);
+  const bytes = wp1.canonicalJsonBuffer(wp1.generatedPackageMetadata(repoRoot, releaseSource, schemaAuthority.databaseSchemaVersion));
+  return {
+    sourcePath: 'package.json',
+    payloadPath: 'resources/app/package.json',
+    mode: '100644',
+    blob: null,
+    controlledProjection: 'WP1_GENERATED_PACKAGE_METADATA',
+    sizeBytes: bytes.length,
+    sha256: sha256Buffer(bytes)
+  };
+}
+function reviewedProjectEntriesWithControlledProjections(repoRoot, sourceCommit) {
+  const entries = reviewedProjectEntries(repoRoot, sourceCommit);
+  if (!entries.some((row) => row.payloadPath === 'resources/app/package.json')) return entries;
+  const projectedPackage = controlledPackageProjectionEntry(repoRoot, sourceCommit);
+  return entries
+    .map((row) => row.payloadPath === projectedPackage.payloadPath ? projectedPackage : row)
+    .sort((a, b) => Buffer.from(a.payloadPath).compare(Buffer.from(b.payloadPath)));
+}
 function validateReviewedApplicationSourceClosure(payloadRoot, repoRoot, sourceCommit, options = {}) {
   const runtimeDependencyClosure = validateProductionRuntimeSourceDependencies({ repoRoot });
   const root = fs.realpathSync(path.resolve(payloadRoot));
   const platform = options.platform || process.platform;
   const modePolicy = projectFileModePolicyForPlatform(platform);
   const appRoot = path.join(root, 'resources', 'app');
-  const expected = reviewedProjectEntries(repoRoot, sourceCommit);
+  const expected = reviewedProjectEntriesWithControlledProjections(repoRoot, sourceCommit);
   const expectedMap = new Map(expected.map((row) => [row.payloadPath, row]));
   const actualProject = [];
   for (const rootName of PROJECT_ROOTS) {
@@ -311,6 +333,7 @@ module.exports = {
   PROJECT_ROOTS,
   parsePayloadFiles,
   recordsEqual,
+  reviewedProjectEntriesWithControlledProjections,
   reviewedProjectEntries,
   expectedPayloadMode,
   gitPayloadModeTreeSha256,

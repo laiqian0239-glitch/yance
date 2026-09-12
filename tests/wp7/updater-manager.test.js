@@ -63,12 +63,12 @@ class FakeUpdater extends EventEmitter {
   quitAndInstall() { this.installCalls += 1; }
 }
 
-function makeManager({ updater, extractor, apiRequest, appPackaged = true } = {}) {
-  const dialog = { showMessageBox: async () => ({ response: 1 }) };
+function makeManager({ updater, extractor, apiRequest, appPackaged = true, dialog } = {}) {
+  const actualDialog = dialog || { showMessageBox: async () => ({ response: 1 }) };
   const manager = new UpdateManager({
     app: { isPackaged: appPackaged, getAppPath: () => __dirname },
     releaseIdentity: { buildId: 'B', productName: '言策', publicProductName: '言策', publicVersion: '0.9.0', productVersion: '29.2.7', nativeBinaryTargetArch: 'x64' },
-    dialog,
+    dialog: actualDialog,
     apiRequest: apiRequest || (async () => ({ ok: true, safeToInstall: true, blockers: [] })),
     sendToRenderer: () => {},
     getSettings: () => ({ autoCheckUpdates: false, autoDownloadUpdates: false }),
@@ -83,20 +83,20 @@ function makeManager({ updater, extractor, apiRequest, appPackaged = true } = {}
 
 const validIdentity = () => ({ productName: '言策', publisher: '言策科技', productVersion: '29.2.7', signed: true });
 
-test('packaged client uses fixed stable GitHub updates while signing is deferred', () => {
+test('packaged INTERNAL_TEST_ONLY client keeps online updater disabled', async () => {
   const fixture = makeExe();
   const info = updateInfo({ file: fixture.file, size: fixture.exe.length, sha512: fixture.sha512 });
   const updater = new FakeUpdater({ info, downloadedFile: fixture.file });
-  const manager = makeManager({ updater });
-  assert.strictEqual(manager.state.configured, true);
-  assert.strictEqual(manager.state.configSource, 'github-packaged-unsigned-stable');
-  assert.deepStrictEqual(updater.feed, {
-    provider: 'github',
-    owner: 'wangyi198675-coder',
-    repo: 'Yance-Releases',
-    channel: 'latest'
-  });
-  assert.strictEqual(updater.allowPrerelease, false);
+  const dialogs = [];
+  const manager = makeManager({ updater, dialog: { showMessageBox: async (message) => { dialogs.push(message); return { response: 0 }; } } });
+  assert.strictEqual(manager.state.configured, false);
+  assert.strictEqual(manager.state.configSource, 'packaged-release-authority-update-disabled');
+  assert.strictEqual(updater.feed, null);
+  const state = await manager.check({ manual: true });
+  assert.strictEqual(state.phase, 'unconfigured');
+  assert.match(state.error, /内部测试版本，暂不提供在线更新/);
+  assert.equal(dialogs.length, 1);
+  assert.match(dialogs[0].detail, /手动覆盖升级/);
 });
 
 test('real event contract: update-downloaded downloadedFile drives verification', async () => {
