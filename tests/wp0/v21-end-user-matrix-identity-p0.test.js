@@ -55,7 +55,13 @@ test('YanceLogin adds first-use setup while preserving Element login/session aut
   assert.match(login, /data-yance-local-matrix-identity="first-use"/u);
   assert.match(login, /getMatrixLocalIdentity/u);
   assert.match(login, /createMatrixLocalIdentity/u);
-  assert.match(login, new RegExp('@\\$\\{trimmedLocalpart\\}:yance\\.local', 'u'));
+  assert.match(login, /identity\?: \{ localpart\?: string; matrixUserId\?: string \}/u);
+  assert.match(login, /setLoginLocalpart\(result\.identity\?\.localpart \|\| ""\)/u);
+  assert.match(login, /setLoginLocalpart\(result\.identity\?\.localpart \|\| trimmedLocalpart\)/u);
+  assert.match(login, /登录用户名/u);
+  assert.match(login, /请在下方登录表单使用这个用户名和你刚刚设置的密码登录/u);
+  assert.doesNotMatch(login, /@\$\\?\{trimmedLocalpart\}:yance\.local/u);
+  assert.doesNotMatch(login, /账号 ID 和你刚刚设置的密码登录/u);
   assert.match(login, /data-yance-login-form-host="element-auth"[\s\S]*?\{children\}/u);
   assert.match(styles, /\.yance-login-local-identity\s*\{/u);
   for (const forbidden of ['_matrix/client', 'm.login.password', 'accessToken', 'localStorage.setItem', 'fetch(']) {

@@ -237,7 +237,7 @@ function createBuilderResult(options) {
     electronArchivePath,
     compilerPath,
     rceditPath: options.rceditPath ? path.resolve(options.rceditPath) : undefined,
-    iconPath: options.iconPath ? path.resolve(options.iconPath) : path.join(repoRoot, 'frontend', 'assets', 'icon.ico'),
+    iconPath: options.iconPath ? path.resolve(options.iconPath) : path.join(repoRoot, 'assets', 'branding', 'yance', 'generated', 'Yance.ico'),
     trustedNodeExecutable: path.resolve(options.trustedNodeExecutable),
     matrixRuntimeSource: options.matrixRuntimeSource,
     matrixRuntimeIdentity: options.matrixRuntimeIdentity,

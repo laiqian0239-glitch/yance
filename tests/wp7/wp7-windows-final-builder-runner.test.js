@@ -167,6 +167,13 @@ test('formal Builder failure output preserves structured npm install diagnostics
   assert.match(document.stderrTail, /npm error code EBADENGINE/u);
 });
 
+test('formal Builder defaults to the canonical generated Yance icon authority', () => {
+  const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
+  assert.match(builder, /path\.join\(repoRoot, 'assets', 'branding', 'yance', 'generated', 'Yance\.ico'\)/u);
+  assert.doesNotMatch(builder, /path\.join\(repoRoot, 'frontend', 'assets', 'icon\.ico'\)/u);
+  assert.match(builder, /iconPath:\s*options\.iconPath \? path\.resolve\(options\.iconPath\) :/u);
+});
+
 test('release workflow downloads and verifies the same-source sealed Matrix runtime before Final Builder', () => {
   const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'windows-production-release.yml'), 'utf8');
   const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');

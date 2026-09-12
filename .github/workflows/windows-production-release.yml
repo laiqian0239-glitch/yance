@@ -333,6 +333,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $timestamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+          $platformAuthConfig = 'release/facebook-production-resources/platform-auth.json'
+          $platformAuthSha256 = 'release/facebook-production-resources/platform-auth.sha256'
+          if (-not (Test-Path -LiteralPath $platformAuthConfig -PathType Leaf)) { throw "platform auth config missing: $platformAuthConfig" }
+          if (-not (Test-Path -LiteralPath $platformAuthSha256 -PathType Leaf)) { throw "platform auth SHA-256 seal missing: $platformAuthSha256" }
           & tools/wp7/RUN_WINDOWS_FINAL_BUILDER.ps1 `
             -SourceBundle $env:BUNDLE_PATH `
             -WorkRoot "$env:RUNNER_TEMP\yance-release-work" `
@@ -354,6 +358,9 @@ jobs:
             -NodeRoot $env:NODE_ROOT `
             -TrustedNodeExecutable $env:TRUSTED_NODE_EXECUTABLE `
             -BuildTimestampUtc $timestamp `
+            -PlatformAuthConfig $platformAuthConfig `
+            -PlatformAuthSha256 $platformAuthSha256 `
+            -RequirePlatformAuth `
             -MatrixRuntimeSource $env:MATRIX_RUNTIME_SOURCE `
             -MatrixRuntimeCandidateBranch $env:MATRIX_RUNTIME_CANDIDATE_BRANCH `
             -MatrixRuntimeCandidateCommit $env:MATRIX_RUNTIME_CANDIDATE_COMMIT `
@@ -367,6 +374,9 @@ jobs:
           $output = "$env:RUNNER_TEMP\yance-release-evidence\builder-output"
           $builder = Get-Content "$output\builder-result.json" -Raw | ConvertFrom-Json
           if ($builder.status -ne 'PASS' -or $builder.authenticodeStatus -ne 'Unsigned') { throw 'unsigned Builder result is not valid' }
+          $actualPlatformAuthSha256 = (Get-FileHash -LiteralPath 'release/facebook-production-resources/platform-auth.json' -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($builder.platformAuthConfigured -ne $true) { throw 'unsigned Builder result did not materialize required platform auth' }
+          if ([string]$builder.platformAuthConfigSha256 -ne $actualPlatformAuthSha256) { throw "unsigned Builder platform auth hash mismatch: expected=$actualPlatformAuthSha256 actual=$($builder.platformAuthConfigSha256)" }
           $signature = Get-AuthenticodeSignature -FilePath $builder.installerFile
           if ($signature.Status -ne 'NotSigned') { throw "installer must remain unsigned while Authenticode signing is deferred; signature status: $($signature.Status)" }
           foreach ($asset in @($builder.installerFile,$builder.releaseEvidenceFile,"$output\build-session-seal.json","$output\builder-result.json")) {
