@@ -34,6 +34,13 @@ SPECULATIVE_LOCAL_PATCH_LOOP=forbidden
 USER_MACHINE_ROLE=deterministic_apply_or_required_windows_proof
 SAME_PURPOSE_HELPER_RED_RETRY=forbidden
 PRELAUNCH_HELPER_RED_IS_PRODUCT_REGRESSION=false
+PROMOTION_ADMISSION_REQUIRES_BOUNDARY_CLOSURE=mandatory
+CI_RC_UAT_AS_BLOCKER_DISCOVERY=forbidden
+SERIAL_BLOCKER_PEELING=forbidden
+SAME_BOUNDARY_LATE_RED_AUDIT=mandatory
+PROMOTION_UNKNOWN_BLOCKERS_ZERO=mandatory
+MANDATORY_PRE_ACTION_COMPLIANCE_CHECK=mandatory
+NO_PROGRESS_WORK_CYCLE=forbidden
 ```
 
 Before executing any action, answer all of the following:
@@ -48,6 +55,49 @@ Before executing any action, answer all of the following:
 8. Is any requested local command deterministic and pre-reviewed against its exact inputs, or is it merely discovering the next assumption? If it is exploratory, do not send it to the user.
 
 If an action does not directly advance the current production causal batch, close a real authorization boundary, or produce a required promotion proof, do not do it.
+
+### Promotion admission closure — no serial blocker discovery (non-waivable execution invariant)
+
+The release chain is a promotion chain, not a diagnostic ladder. A later gate MUST NOT be used merely to reveal the next blocker that could have been found from exact source, existing authority, focused tests, fixtures, a production-equivalent local harness, or already available failure evidence.
+
+Before creating an Exact Head or starting CI, RC packaging, or Windows UAT, the Controller MUST close the currently affected production boundary as a whole, not one surfaced error message at a time. The pre-promotion boundary audit must cover every currently observable same-owner/same-contract dependency that can invalidate that promotion, including where applicable:
+
+- authoritative inputs and input custody;
+- environment and pinned runtime/toolchain identity;
+- native tools/binaries and their handoff into child processes;
+- path, quoting, shell, workspace, and process boundaries;
+- artifact identity, provenance, exact-tree/source binding, and materialization;
+- package/build/packaging semantics and production-equivalent invocation;
+- metadata/resource sealing and mutation order;
+- output contract, asset verification, cleanup, exit-code propagation, and failure evidence preservation;
+- publish/update semantics and any gate-specific ownership contract.
+
+Promotion is forbidden until the known boundary graph is exhausted, every currently observable same-root risk is classified, the intended root fix covers the complete causal batch, focused/local production-equivalent proof is GREEN, and `unknownBlockers = 0` for that boundary. `ONE_ROOT_ONE_BATCH_ONE_HEAD` means all already-discoverable blockers in the same owner/authority/contract/runtime boundary, not one symptom or one log line per cycle.
+
+If CI, Final Builder, RC, or Windows UAT exposes a failure that could reasonably have been proven before that gate, classify the event as a **promotion-admission failure in Controller execution** in addition to the Product/tooling root cause. Freeze the exact evidence. Do not immediately patch only the surfaced symptom and launch another equivalent promotion. The next allowed sequence is:
+
+```text
+exact late-RED evidence
+-> lock the first true root cause
+-> audit the entire same production boundary
+-> collect all currently observable same-root blockers into one causal batch
+-> add or strengthen the earliest existing regression/proof seam that should have caught the defect
+-> Local Closure with production-equivalent inputs
+-> one new Exact Head
+-> one validator event
+```
+
+A late RED inside the same boundary therefore triggers `SAME_BOUNDARY_LATE_RED_AUDIT=mandatory`. Serial blocker peeling such as `fix one Final Builder error -> create another RC -> discover next Final Builder error` is forbidden. A successor RC/UAT is allowed only after the entire affected boundary has been re-closed locally.
+
+Before **every** action, the Controller must perform a hard compliance check against the owner directive and answer:
+
+1. Does this directly close `CURRENT ROOT CAUSE` or its already-discovered same-root causal batch?
+2. Does it directly produce one of the recognized progress units: production diff, Local Closure, Exact Head, CI GREEN, Merge, RC, UAT GREEN, or Release?
+3. Does it shorten the remaining path to Release rather than create another authority, process layer, helper, status artifact, or diagnostic round?
+
+If all applicable answers are not `YES`, the action is forbidden unless it is the single exact evidence read required to lock a fresh RED or an unavoidable external/authorization boundary. The Controller must ask this check **before acting**, not explain a deviation after time has already been spent.
+
+A work cycle may not end merely because a status was read, a Controller comment was written, a helper ran, or a new SHA/run exists. Unless a genuine external blocker prevents continuation, the cycle must continue until one of the recognized progress units above is achieved. Repeated cycles with no recognized progress are a Controller execution failure and require immediate path correction, not another status round.
 
 ### Mature authority first / no self-reinvention
 
