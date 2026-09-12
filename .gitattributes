@@ -35,7 +35,6 @@ tools/runtime-delivery/templates/INSTALL_TEST_AND_START_YANCE_UAT.ps1.template -
 /INSTALL_FACEBOOK_AVATAR_IMPORTER.* export-ignore
 /INSTALL_LOCAL_WHISPER_FOR_YANCE.* export-ignore
 /P0_PREFLIGHT_SOURCE_UAT.* export-ignore
-/RUN_WHATSAPP_REAL_UAT_SAFE.* export-ignore
 /RUN_YANCE_FIX*_WINDOWS_UAT.ps1 export-ignore
 /START_FACEBOOK_AVATAR_CLOSURE_DIAGNOSTIC.cmd export-ignore
 /START_YANCE_SOURCE_UAT*.cmd export-ignore

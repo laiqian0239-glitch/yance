@@ -83,6 +83,39 @@ test('production release workflow verifies exact native tool custody before Fina
   assert.match(builderStep, /-ExpectedMakensisSha256 '\$\{\{ steps\.tools\.outputs\.makensis_sha256 \}\}'/u);
 });
 
+test('production release workflow requires the sealed platform auth source before Final Builder', () => {
+  const builderStart = workflow.indexOf('- name: Build unsigned release before metadata sealing');
+  const verifyStart = workflow.indexOf('- name: Verify unsigned release assets');
+  const uploadStart = workflow.indexOf('- name: Upload unsigned release evidence');
+  assert.ok(builderStart >= 0 && verifyStart > builderStart && uploadStart > verifyStart);
+
+  const builderStep = workflow.slice(builderStart, verifyStart);
+  for (const token of [
+    "$platformAuthConfig = 'release/facebook-production-resources/platform-auth.json'",
+    "$platformAuthSha256 = 'release/facebook-production-resources/platform-auth.sha256'",
+    'Test-Path -LiteralPath $platformAuthConfig -PathType Leaf',
+    'Test-Path -LiteralPath $platformAuthSha256 -PathType Leaf',
+    '-PlatformAuthConfig $platformAuthConfig',
+    '-PlatformAuthSha256 $platformAuthSha256',
+    '-RequirePlatformAuth'
+  ]) assert.ok(builderStep.includes(token), `missing platform-auth Builder token: ${token}`);
+
+  const verifyStep = workflow.slice(verifyStart, uploadStart);
+  for (const token of [
+    "Get-FileHash -LiteralPath 'release/facebook-production-resources/platform-auth.json' -Algorithm SHA256",
+    "$builder.platformAuthConfigured -ne $true",
+    '$builder.platformAuthConfigSha256',
+    'unsigned Builder platform auth hash mismatch'
+  ]) assert.ok(verifyStep.includes(token), `missing platform-auth result token: ${token}`);
+
+  assert.doesNotMatch(builderStep, /Get-Content\s+-LiteralPath\s+\$platformAuthSha256\s+-Raw/u);
+  assert.doesNotMatch(builderStep, /platform auth SHA-256 seal is not a lowercase 64-character digest/u);
+  assert.doesNotMatch(builderStep, /\^\[0-9a-f\]\{64\}\$/u);
+  assert.doesNotMatch(builderStep, /platform auth config SHA-256 mismatch/u);
+  assert.doesNotMatch(verifyStep, /Get-Content\s+-LiteralPath\s+'release\/facebook-production-resources\/platform-auth\.sha256'\s+-Raw/u);
+  assert.doesNotMatch(builderStep, /platformAuthConfigured=false/u);
+});
+
 test('production release workflow preserves Final Builder evidence after failure', () => {
   const builderStart = workflow.indexOf('- name: Build unsigned release before metadata sealing');
   const uploadStart = workflow.indexOf('- name: Upload unsigned release evidence');

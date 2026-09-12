@@ -2,7 +2,7 @@ import React from "react";
 type MatrixLocalIdentity = {
   exists?: boolean;
   blocked?: boolean;
-  identity?: { matrixUserId?: string } | null;
+  identity?: { localpart?: string; matrixUserId?: string } | null;
   pending?: { localpart?: string } | null;
 };
 
@@ -33,7 +33,7 @@ declare global {
 
 export function YanceLogin({ children }: { children: React.ReactNode }): React.JSX.Element {
   const [identityState, setIdentityState] = React.useState<"loading" | "absent" | "blocked" | "present" | "unavailable">("loading");
-  const [matrixUserId, setMatrixUserId] = React.useState("");
+  const [loginLocalpart, setLoginLocalpart] = React.useState("");
   const [pendingLocalpart, setPendingLocalpart] = React.useState("");
   const [localpart, setLocalpart] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -47,7 +47,7 @@ export function YanceLogin({ children }: { children: React.ReactNode }): React.J
       .then((result) => {
         if (!alive) return;
         if (result?.exists) {
-          setMatrixUserId(result.identity?.matrixUserId || "");
+          setLoginLocalpart(result.identity?.localpart || "");
           setIdentityState("present");
         } else if (result?.blocked) {
           setPendingLocalpart(result.pending?.localpart || "");
@@ -88,7 +88,7 @@ export function YanceLogin({ children }: { children: React.ReactNode }): React.J
       const result = await bridge({ localpart: trimmedLocalpart, password, confirmPassword });
       setPassword("");
       setConfirmPassword("");
-      setMatrixUserId(result.identity?.matrixUserId || `@${trimmedLocalpart}:yance.local`);
+      setLoginLocalpart(result.identity?.localpart || trimmedLocalpart);
       setIdentityState("present");
     } catch (caught) {
       const code = caught instanceof Error ? String((caught as Error & { code?: string }).code || "") : "";
@@ -211,11 +211,11 @@ export function YanceLogin({ children }: { children: React.ReactNode }): React.J
             </section>
           )}
 
-          {identityState === "present" && matrixUserId && (
+          {identityState === "present" && loginLocalpart && (
             <section className="yance-login-local-identity yance-login-local-identity-ready" data-yance-local-matrix-identity="ready">
-              <span className="yance-login-setup-eyebrow">本机账号 ID</span>
-              <strong>{matrixUserId}</strong>
-              <p>请在下方登录表单使用这个账号 ID 和你刚刚设置的密码登录。</p>
+              <span className="yance-login-setup-eyebrow">登录用户名</span>
+              <strong>{loginLocalpart}</strong>
+              <p>请在下方登录表单使用这个用户名和你刚刚设置的密码登录。</p>
             </section>
           )}
 
