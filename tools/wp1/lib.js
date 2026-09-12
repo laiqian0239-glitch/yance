@@ -386,6 +386,7 @@ function generatedPackageMetadata(repoRoot, releaseSource, databaseSchemaVersion
     dependencies: sourcePackage.dependencies || {},
     engines: sourcePackage.engines || {},
     packageManager: sourcePackage.packageManager,
+    overrides: sourcePackage.overrides || {},
     yanceRelease: {
       generatedFrom: 'release/release-source.json',
       publicProductName: releaseSource.publicProductName,
