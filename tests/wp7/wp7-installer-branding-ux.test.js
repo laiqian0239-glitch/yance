@@ -31,7 +31,9 @@ test('1. NSIS script uses Chinese UI, directory selection, and Yance icon', () =
   assert.match(t, /!insertmacro\s+MUI_LANGUAGE\s+"SimpChinese"/i);
   assert.match(t, /!include\s+"MUI2\.nsh"/i);
   assert.match(t, /!insertmacro\s+MUI_PAGE_DIRECTORY/i);
-  assert.match(t, /!define MUI_ICON "\$\{STAGING_ROOT\}\\application-payload\\resources\\app\\frontend\\assets\\icon\.ico"/i);
+  assert.match(t, /!define MUI_ICON "\$\{STAGING_ROOT\}\\application-payload\\resources\\app\\assets\\branding\\yance\\generated\\Yance\.ico"/i);
+  assert.match(t, /!define MUI_UNICON "\$\{STAGING_ROOT\}\\application-payload\\resources\\app\\assets\\branding\\yance\\generated\\Yance\.ico"/i);
+  assert.doesNotMatch(t, /frontend\\assets\\icon\.ico/i);
 });
 
 test('2. new desktop and start-menu shortcuts are created and removed consistently', () => {
@@ -141,7 +143,8 @@ test('9. non-Windows branding fixture remains explicitly review-only and carries
       installProductionDependencies: false,
       targetPlatform: 'win32',
       targetArch: 'x64',
-      trustedNodeExecutable: process.execPath
+      trustedNodeExecutable: process.execPath,
+      trustedNodeRequiredVersion: process.version.replace(/^v/, '')
     };
     const authorizedFixture = createReviewFixtureBrandingOptions(createFakeRceditRunner());
     assert.throws(() => assembleWindowsApplication({ ...common, ...authorizedFixture, payloadRoot: path.join(root, 'formal-payload'), allowNonWindows: false }), error => error.reasonCode === 'WP7_REVIEW_FIXTURE_BRANDING_NOT_AUTHORIZED');
