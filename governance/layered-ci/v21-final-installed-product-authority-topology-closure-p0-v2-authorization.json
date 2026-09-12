@@ -37,8 +37,8 @@
     "branch": "rebuild/windows-release-closure-20260913-final-installed-product-authority-topology-closure-p0-v2",
     "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
     "allowedChangedPaths": [
-      ".github/workflows/windows-production-release.yml",
       ".gitattributes",
+      ".github/workflows/windows-production-release.yml",
       "installer/wp7/YanceFinalInstaller.nsi",
       "integration/element-module/src/YanceLogin.tsx",
       "tests/desktop-fixes/installer-finish-launch.test.js",
