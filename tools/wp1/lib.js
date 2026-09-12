@@ -384,6 +384,8 @@ function generatedPackageMetadata(repoRoot, releaseSource, databaseSchemaVersion
     main: sourcePackage.main,
     type: sourcePackage.type,
     dependencies: sourcePackage.dependencies || {},
+    devDependencies: sourcePackage.devDependencies || {},
+    overrides: sourcePackage.overrides || {},
     engines: sourcePackage.engines || {},
     packageManager: sourcePackage.packageManager,
     yanceRelease: {
