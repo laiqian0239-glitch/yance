@@ -262,7 +262,8 @@
     "integration/element-module/src/BrandPreviewSurface.css",
     "integration/element-module/src/BrandPreviewSurface.tsx",
     "integration/element-module/src/YanceLogin.css",
-    "integration/element-module/src/YanceLogin.tsx"
+    "integration/element-module/src/YanceLogin.tsx",
+    "installer/wp7/YanceFinalInstaller.nsi"
   ],
   "productPrefixes": [
     ".github/",

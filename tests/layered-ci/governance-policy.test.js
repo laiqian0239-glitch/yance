@@ -167,6 +167,25 @@ test('Personal Access sealed release resources use exact L2 without broad releas
   assert.equal(risk.l3Automatic, false);
 });
 
+test('Final Builder installer identity uses exact L2 while adjacent installer paths remain fail closed', () => {
+  const file = 'installer/wp7/YanceFinalInstaller.nsi';
+  const result = classifyChangedFiles(risk, [file]);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.requiredLevel, 'L2');
+  assert.equal(result.reasons[0].type, 'EXACT');
+  assert.equal(risk.l2ExactPaths.includes(file), true);
+  assert.equal(risk.l2Prefixes.includes('installer/'), false);
+  assert.equal(risk.l2Prefixes.includes('installer/wp7/'), false);
+
+  const adjacent = 'installer/wp7/YanceFinalInstaller.local.nsi';
+  const denied = classifyChangedFiles(risk, [adjacent]);
+  assert.equal(denied.pass, false, JSON.stringify(denied));
+  assert.equal(denied.reasonCode, 'CI_UNKNOWN_PATH');
+  assert.deepEqual(denied.unknownPaths, [adjacent]);
+  assert.equal(risk.unknownPathFailsClosed, true);
+  assert.equal(risk.l3Automatic, false);
+});
+
 test('nested dependency manifests always escalate to L2', () => {
   for (const file of [
     'packages/desktop/package.json',
@@ -334,6 +353,7 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'config/matrix/element-config.json',
     'config/matrix/synapse/homeserver.yaml',
     'config/upstreams/v21-adaptive-local-llm-runtime-p0-v1.json',
+    'installer/wp7/YanceFinalInstaller.nsi',
     'integration/element-module/src/LearningWorkspace.tsx',
     'integration/element-module/src/MediaWorkspace.tsx',
     'integration/element-module/src/PresenceWorkspace.tsx',
