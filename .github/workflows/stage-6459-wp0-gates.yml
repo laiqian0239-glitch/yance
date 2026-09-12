@@ -53,6 +53,10 @@ jobs:
             push)
               BASE_SHA="${PUSH_BASE_SHA}"
               HEAD_SHA="${PUSH_HEAD_SHA}"
+              if [[ ! "${BASE_SHA}" =~ ^[0-9a-f]{40}$ ]] || [[ "${BASE_SHA}" == "0000000000000000000000000000000000000000" ]]; then
+                git fetch --no-tags --force origin main:refs/remotes/origin/main
+                BASE_SHA="$(git rev-parse refs/remotes/origin/main)"
+              fi
               ;;
             *)
               echo "unsupported WP0 event: ${EVENT_NAME}" >&2
@@ -61,7 +65,6 @@ jobs:
           esac
           [[ "${BASE_SHA}" =~ ^[0-9a-f]{40}$ ]]
           [[ "${HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]
-          test "${BASE_SHA}" != "0000000000000000000000000000000000000000"
           git cat-file -e "${BASE_SHA}^{commit}"
           git cat-file -e "${HEAD_SHA}^{commit}"
           git merge-base --is-ancestor "${BASE_SHA}" "${HEAD_SHA}"

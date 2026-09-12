@@ -151,6 +151,24 @@ test('current-main OSS-A supply-chain bootstrap uses exact PRODUCT_WP0 paths wit
   }
 });
 
+test('Final Builder installer identity uses exact PRODUCT_WP0 while adjacent installer paths stay fail closed', () => {
+  const file = 'installer/wp7/YanceFinalInstaller.nsi';
+  const result = classifyWp0Route(policy, [file]);
+  assert.equal(result.pass, true, JSON.stringify(result));
+  assert.equal(result.route, ROUTES.PRODUCT);
+  assert.equal(result.productChangesPresent, true);
+  assert.equal(policy.productExactPaths.includes(file), true);
+  assert.equal(policy.productPrefixes.includes('installer/'), false);
+  assert.equal(policy.productPrefixes.includes('installer/wp7/'), false);
+
+  const adjacent = 'installer/wp7/YanceFinalInstaller.local.nsi';
+  const denied = classifyWp0Route(policy, [adjacent]);
+  assert.equal(denied.pass, false, JSON.stringify(denied));
+  assert.equal(denied.reasonCode, 'WP0_ROUTE_UNKNOWN_PATH');
+  assert.deepEqual(denied.unknownPaths, [adjacent]);
+  assert.equal(policy.unknownPathFailsClosed, true);
+});
+
 test('specific layered governance documents retain governance priority over product documentation prefixes', () => {
   const result = classifyWp0Route(policy, [
     'docs/superpowers/specs/2026-08-02-layered-ci-reviewed-candidate-design.md'
@@ -209,6 +227,23 @@ test('Stage WP0 workflow has base-owned routing and separate routes behind one a
   const productJob = lines.slice(productStart, documentationStart).join('\n');
 
   assert.match(routeJob, /Resolve exact event diff range/u);
+  assert.match(routeJob, /shell:\s*bash/u);
+  assert.match(routeJob, /EVENT_NAME:\s*\$\{\{ github\.event_name \}\}/u);
+  assert.match(routeJob, /PULL_REQUEST_BASE_SHA:\s*\$\{\{ github\.event\.pull_request\.base\.sha \}\}/u);
+  assert.match(routeJob, /PULL_REQUEST_HEAD_SHA:\s*\$\{\{ github\.event\.pull_request\.head\.sha \}\}/u);
+  assert.match(routeJob, /PUSH_BASE_SHA:\s*\$\{\{ github\.event\.before \}\}/u);
+  assert.match(routeJob, /PUSH_HEAD_SHA:\s*\$\{\{ github\.sha \}\}/u);
+  assert.match(routeJob, /case "\$\{EVENT_NAME\}" in/u);
+  assert.match(routeJob, /pull_request\)/u);
+  assert.match(routeJob, /push\)/u);
+  assert.match(routeJob, /unsupported WP0 event: \$\{EVENT_NAME\}/u);
+  assert.match(routeJob, /git fetch --no-tags --force origin main:refs\/remotes\/origin\/main/u);
+  assert.match(routeJob, /BASE_SHA="\$\(git rev-parse refs\/remotes\/origin\/main\)"/u);
+  assert.match(routeJob, /\[\[ "\$\{BASE_SHA\}" =~ \^\[0-9a-f\]\{40\}\$ \]\]/u);
+  assert.match(routeJob, /\[\[ "\$\{HEAD_SHA\}" =~ \^\[0-9a-f\]\{40\}\$ \]\]/u);
+  assert.match(routeJob, /git cat-file -e "\$\{BASE_SHA\}\^\{commit\}"/u);
+  assert.match(routeJob, /git cat-file -e "\$\{HEAD_SHA\}\^\{commit\}"/u);
+  assert.match(routeJob, /git merge-base --is-ancestor "\$\{BASE_SHA\}" "\$\{HEAD_SHA\}"/u);
   assert.match(routeJob, /TRUSTED_ROUTE_POLICY_ROOT:\s*\$\{\{ runner\.temp \}\}\/yance-wp0-trusted-route/u);
   assert.match(routeJob, /git archive --format=tar "\$\{BASE_SHA\}" --/u);
   for (const exactBasePath of [
