@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-INSTALLED-PRODUCT-AUTHORITY-TOPOLOGY-CLOSURE-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close frozen Windows UAT Controller State V5.358 FINAL_INSTALLED_PRODUCT_AUTHORITY_TOPOLOGY_CLOSURE_FAILURE as one A+B+C+D production causal batch, reusing existing Electron/Matrix/Element, Final Builder platform-auth seal, NSIS installer mechanics, and canonical Yance branding authorities without adding shadow owners.",
+  "base": {
+    "branch": "main",
+    "commit": "f02226ed068cb7e21e70ccbf7a736fee37c5cf8f",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-installed-product-authority-topology-closure-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-installed-product-authority-topology-closure-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "df26795ca78c22f9c20b32a0ebc1676675457d023b910f7ec87e23a459038ded",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-final-installed-product-authority-topology-closure-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/windows-production-release.yml",
+      "installer/wp7/YanceFinalInstaller.nsi",
+      "integration/element-module/src/YanceLogin.tsx",
+      "tests/desktop-fixes/installer-finish-launch.test.js",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp7/windows-production-release-workflow.test.js",
+      "tests/wp7/wp7-windows-final-builder-runner.test.js",
+      "tools/wp7/run-windows-final-builder.js"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "341b632d54998a4bf86a351a544f77469ce15c11319a6329ca609806897d4504",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/windows-production-release.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "2a162e5672592872e57a61fbae0f7f71d208e71878d41e372a2de16db9838c1a"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureFirstEvidence": {
+    "source": "FROZEN_REAL_WINDOWS_UAT",
+    "controllerState": "V5.358",
+    "controllerCommentId": 5647715100,
+    "rcRunId": 34703774006,
+    "exactSourceCommit": "f02226ed068cb7e21e70ccbf7a736fee37c5cf8f",
+    "acceptedAsCausalRedForThisExactRepair": true,
+    "rerunForbidden": true
+  },
+  "authorityPreservation": {
+    "A": {
+      "existingMatureOwner": "Electron + packaged Matrix runtime readiness lifecycle",
+      "repair": "Remove NSIS runtime-readiness deadline/poll ownership; installer only starts installed executable and handles process-creation failure."
+    },
+    "B": {
+      "existingMatureOwner": "Final Builder releasePlatformAuth seal/materialization authority",
+      "repair": "Formal RC workflow consumes existing release/facebook-production-resources platform-auth.json + sha256 and requires the existing Builder seal path."
+    },
+    "C": {
+      "existingMatureOwner": "Pinned Element login/homeserver/session plus packaged Matrix config",
+      "repair": "Yance projects the existing local identity localpart into login guidance only; no Matrix auth/session/transport/autodiscovery implementation."
+    },
+    "D": {
+      "existingMatureOwner": "assets/branding/yance canonical brand authority + Electron/NSIS/rcedit native consumers",
+      "repair": "Final Builder EXE icon input uses the canonical generated Yance.ico; no shortcut-specific icon authority."
+    },
+    "secondOwnerAllowed": false,
+    "mirrorStateAllowed": false,
+    "parallelLifecycleAllowed": false,
+    "customFallbackAllowed": false
+  },
+  "closureAdmission": {
+    "unknownBlockers": "PENDING_IMPLEMENTATION_LOCAL_CLOSURE",
+    "exactHeadForbiddenUntilLocalClosure": true,
+    "ciRole": "VALIDATOR_NOT_DEBUGGER",
+    "uatRole": "FINAL_PROOF_NOT_DEBUGGER"
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
