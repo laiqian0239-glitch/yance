@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseArgs, assertExternalOutput, canonicalTimestamp } = require('../../tools/wp7/run-windows-final-builder');
+const { parseArgs, assertExternalOutput, canonicalTimestamp, stderrFailureDocument } = require('../../tools/wp7/run-windows-final-builder');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 
@@ -74,6 +74,7 @@ test('PowerShell Builder wrapper contains the formal isolation and split runtime
     '--trusted-node-executable',
     'v22.23.1',
     'YANCE_NPM_CLI_JS',
+    'YANCE_NODE_EXE',
     'ELECTRON_SKIP_BINARY_DOWNLOAD',
     'Expand-ValidatedElectronArchive',
     'electron-offline-bootstrap.json',
@@ -98,7 +99,9 @@ test('PowerShell Builder bootstraps Electron from the reviewed archive without n
   const skip = script.indexOf("$env:ELECTRON_SKIP_BINARY_DOWNLOAD = '1'");
   const npmCi = script.indexOf('& $NodeExe $NpmCli ci --no-audit --no-fund');
   const extract = script.indexOf('Expand-ValidatedElectronArchive $ElectronArchive');
+  const trustedProductionNode = script.indexOf('$env:YANCE_NODE_EXE = $TrustedNodeExecutable', extract);
   assert.ok(skip >= 0 && npmCi > skip && extract > npmCi, 'Electron download must be disabled before npm ci and the reviewed archive extracted afterwards');
+  assert.ok(trustedProductionNode > extract, 'Final Builder production npm install must use the trusted packaged Node runtime after root bootstrap');
   assert.match(script, /Electron archive path escapes destination/);
   assert.match(script, /Electron archive contains a duplicate path/);
   assert.match(script, /Electron archive contains a dot path segment/);
@@ -135,6 +138,33 @@ test('PowerShell Builder exposes child logs when Final Builder fails', () => {
   assert.match(failureBlock, /Get-Content -LiteralPath \$stderr/u);
   assert.match(failureBlock, /Final Builder stdout/u);
   assert.match(failureBlock, /Get-Content -LiteralPath \$stdout/u);
+});
+
+test('formal Builder failure output preserves structured npm install diagnostics in stderr', () => {
+  const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
+  assert.match(builder, /JSON\.stringify\(stderrFailureDocument\(error\), null, 2\)/u);
+  assert.match(builder, /firstInstallDiagnostic/u);
+  assert.match(builder, /stdoutTail/u);
+  assert.match(builder, /stderrTail/u);
+  assert.match(builder, /writeBuilderFailure\(safeOutputRoot\(process\.argv\.slice\(2\)\), error\)/u);
+
+  const document = stderrFailureDocument({
+    reasonCode: 'WP7_PRODUCTION_DEPENDENCY_INSTALL_FAILED',
+    message: 'production dependency installation failed',
+    details: {
+      failureKind: 'EXIT_CODE',
+      status: 1,
+      stderr: 'npm warn EBADENGINE Unsupported engine\nnpm error code EBADENGINE\nnpm error notsup Required: {"node":">=22.19.0"}\n',
+      stdout: 'installing\n',
+      targetPlatform: 'win32',
+      targetArch: 'x64'
+    }
+  });
+  assert.equal(document.reasonCode, 'WP7_PRODUCTION_DEPENDENCY_INSTALL_FAILED');
+  assert.equal(document.status, 1);
+  assert.equal(document.targetPlatform, 'win32');
+  assert.match(document.firstInstallDiagnostic, /npm warn EBADENGINE Unsupported engine/u);
+  assert.match(document.stderrTail, /npm error code EBADENGINE/u);
 });
 
 test('release workflow downloads and verifies the same-source sealed Matrix runtime before Final Builder', () => {

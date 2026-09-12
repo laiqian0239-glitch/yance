@@ -107,6 +107,35 @@ function writeBuilderFailure(outputRoot, error) {
   fs.writeFileSync(path.join(outputRoot, 'builder-failure.json'), canonicalJsonBuffer(document));
 }
 
+function textTail(value, limit = 8000) {
+  const text = String(value || '');
+  return text.length > limit ? text.slice(-limit) : text;
+}
+
+function firstInstallDiagnostic(details = {}) {
+  const text = [details.stderr, details.stdout, details.errorMessage].map((value) => String(value || '')).join('\n');
+  const line = text.split(/\r?\n/).find((entry) => /\b(?:npm\s+(?:ERR!|error|warn)\s+EBADENGINE|npm\s+(?:ERR!|error)|ERR!|error:|fatal:)\b/i.test(entry));
+  return line ? line.trim().slice(0, 2000) : null;
+}
+
+function stderrFailureDocument(error) {
+  const details = error?.details || {};
+  return {
+    reasonCode: error?.reasonCode || null,
+    message: error?.message || null,
+    failureKind: failureKind(error),
+    status: Number.isInteger(details.status) ? details.status : null,
+    signal: typeof details.signal === 'string' ? details.signal : null,
+    errorCode: typeof details.errorCode === 'string' ? details.errorCode : null,
+    errorMessage: typeof details.errorMessage === 'string' ? details.errorMessage : null,
+    firstInstallDiagnostic: firstInstallDiagnostic(details),
+    stdoutTail: textTail(details.stdout),
+    stderrTail: textTail(details.stderr),
+    targetPlatform: details.targetPlatform || null,
+    targetArch: details.targetArch || null
+  };
+}
+
 function assertDirectory(directory, label) {
   if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) throw new Error(`${label} is missing: ${directory}`);
 }
@@ -319,6 +348,9 @@ if (require.main === module) {
   try { main(); }
   catch (error) {
     process.stderr.write(`${error.stack || error.message}\n`);
+    if (error?.reasonCode || error?.details) {
+      process.stderr.write(`${JSON.stringify(stderrFailureDocument(error), null, 2)}\n`);
+    }
     writeBuilderFailure(safeOutputRoot(process.argv.slice(2)), error);
     process.exitCode = 1;
   }
@@ -329,5 +361,6 @@ module.exports = {
   assertExternalOutput,
   canonicalTimestamp,
   createBuilderResult,
+  stderrFailureDocument,
   parseArgs
 };
