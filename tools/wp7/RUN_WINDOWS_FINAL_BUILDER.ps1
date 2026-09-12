@@ -240,6 +240,7 @@ try {
     Expand-ValidatedElectronArchive $ElectronArchive $electronDist $electronPackageRoot (Join-Path $EvidenceRoot 'electron-offline-bootstrap.json')
     if ($null -eq $OriginalElectronSkipBinaryDownload) { Remove-Item Env:ELECTRON_SKIP_BINARY_DOWNLOAD -ErrorAction SilentlyContinue } else { $env:ELECTRON_SKIP_BINARY_DOWNLOAD = $OriginalElectronSkipBinaryDownload }
     if (-not (Test-Path -LiteralPath (Join-Path $electronDist 'electron.exe') -PathType Leaf)) { throw 'Electron distribution was not installed from the reviewed offline archive' }
+    $env:YANCE_NODE_EXE = $TrustedNodeExecutable
 
     $arguments = @(
       'tools/wp7/run-windows-final-builder.js',
