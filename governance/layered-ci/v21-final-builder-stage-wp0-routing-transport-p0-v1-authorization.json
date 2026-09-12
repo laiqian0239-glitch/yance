@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-BUILDER-STAGE-WP0-ROUTING-TRANSPORT-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Frozen Final Builder PR #1209 exact head 9fd63e70fee710cda893c2c792ceeb5b1242fe94 proved a Stage WP0 routing/transport prerequisite after complete local Product closure: PR Stage run 34682557355 / route job 103523752358 fails closed with WP0_ROUTE_UNKNOWN_PATH for installer/wp7/YanceFinalInstaller.nsi; the consumed first-publication push run 34682546813 also proves the Stage workflow's inline push diff-range resolver rejects GitHub's all-zero before SHA for a new rebuild branch. Fresh base-source audit found the same installer path absent from Layered l2ExactPaths, and the existing Product Experience final-validation workflow would skip the required successor-v6 rebuild branch because its three job guards use exact branch literals. This prerequisite closes all four discoverable routing/transport blockers in one causal batch using only the repository's existing exact Product route, exact L2 risk, resolve-diff-range action, Product Final branch-admission seam, and existing static contracts. No Final Builder Product byte, package behavior, dependency, runner, publish or release authority is changed.",
+  "base": {
+    "branch": "main",
+    "commit": "271d18e5df61ef8723421284185e3dac34eec5f5",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-builder-stage-wp0-routing-transport-p0-v1-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-builder-stage-wp0-routing-transport-p0-v1-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "7b3c978205537433349eda7f5cd705f2cb74aac42df5e1f314e932976da6fec4",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "bootstrapPaths": [
+    "installer/wp7/YanceFinalInstaller.nsi"
+  ],
+  "bootstrapPathCount": 1,
+  "bootstrapPathSetSha256": "67ea936a5da5276c86be120c36514e57375233dcf11a07281b01956fd5d9548c",
+  "implementation": {
+    "branch": "fix/v21-final-builder-stage-wp0-routing-transport-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/stage-6459-wp0-gates.yml",
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "governance/layered-ci/risk-policy.json",
+      "governance/layered-ci/wp0-routing-policy.json",
+      "tests/layered-ci/governance-policy.test.js",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js",
+      "tests/layered-ci/wp0-routing.test.js"
+    ],
+    "approvedChangedFileCount": 7,
+    "approvedChangedFileSetSha256": "171b51d3d567e3a21da977eb5cb4befbf739b384148d739c5690ba2d92e3e85f",
+    "newDependencyAllowed": false,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/stage-6459-wp0-gates.yml",
+        ".github/workflows/v21-product-experience-shell-p0-final-validation.yml"
+      ],
+      "approvedWorkflowPathCount": 2,
+      "approvedWorkflowPathSetSha256": "aced9ed6d9fe979ebdd3391062353da13c0f59a8881b2a22a817bae7fb0f3178"
+    },
+    "routingPolicyModificationAllowed": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "genericRouteMutationGuardRequired": true,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "STAGE_WP0_ROUTING_AUTHORITY_BOUNDARY",
+    "failureCodes": [
+      "WP0_ROUTE_UNKNOWN_PATH / installer/wp7/YanceFinalInstaller.nsi",
+      "NEW_REBUILD_BRANCH_PUSH / PUSH_BASE_SHA_ZERO",
+      "LAYERED_CI_RISK / INSTALLER_EXACT_L2_CLASSIFICATION_MISSING",
+      "PRODUCT_FINAL / SUCCESSOR_V6_EXACT_BRANCH_NOT_ADMITTED"
+    ],
+    "frozenProductPullRequest": 1209,
+    "frozenProductHead": "9fd63e70fee710cda893c2c792ceeb5b1242fe94",
+    "frozenStageRun": 34682557355,
+    "frozenStageRouteJob": 103523752358,
+    "consumedPushRun": 34682546813,
+    "exactProductBootstrapPath": "installer/wp7/YanceFinalInstaller.nsi",
+    "nextProductSuccessorBranch": "rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6",
+    "requiredClosure": [
+      "Add exactly installer/wp7/YanceFinalInstaller.nsi to governance/layered-ci/wp0-routing-policy.json productExactPaths; do not add installer/ or installer/wp7/ to productPrefixes.",
+      "Add exactly installer/wp7/YanceFinalInstaller.nsi to governance/layered-ci/risk-policy.json l2ExactPaths; preserve unknownPathFailsClosed=true and l3Automatic=false.",
+      "Replace only the Stage WP0 inline diff-range resolver with the existing ./.github/actions/resolve-diff-range action and preserve the base/head outputs and base-owned route-policy checkout semantics.",
+      "Extend the existing WP0 routing static contract to prove the exact installer path routes PRODUCT_WP0 while an adjacent unregistered installer path remains WP0_ROUTE_UNKNOWN_PATH.",
+      "Extend the existing Layered risk static contract to prove the exact installer path is L2 by EXACT rule while an adjacent unregistered installer path remains CI_UNKNOWN_PATH.",
+      "Add exactly rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6 to each of the three existing Product Experience final-validation literal branch guards and to the exact allowlist static contract; do not add wildcard, prefix, regex, startsWith or contains matching.",
+      "Preserve same-repository pull-request binding, exact-head checkout, existing runners, permissions, fail-closed routing, and all existing Product Final assertions.",
+      "Consume the existing validateDelegatedRoutePolicyMutation guard with the exact one-path bootstrap declaration; do not weaken or replace it.",
+      "Do not modify, rerun, amend, merge or force-update frozen Product PR #1209 / head 9fd63e70fee710cda893c2c792ceeb5b1242fe94."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_FAIL_CLOSED_ROUTE_RISK_DIFF_RANGE_AND_PRODUCT_FINAL_ADMISSION_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP0 exact Product route policy and delegated route mutation guard",
+        "source": "governance/layered-ci/wp0-routing-policy.json + shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "These owners already provide fail-closed exact-path PRODUCT_WP0 admission and enforce exact bootstrap-only route mutations."
+      },
+      {
+        "name": "Existing Layered exact L2 risk policy",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already supports exact L2 registrations while adjacent unknown paths fail closed."
+      },
+      {
+        "name": "Existing resolve-diff-range composite action",
+        "source": ".github/actions/resolve-diff-range/action.yml",
+        "license": "repository-existing/GitHub Actions",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The action already owns pull-request and push diff-range resolution and explicitly falls back from an invalid or all-zero push base to fresh origin/main, so no new helper is needed."
+      },
+      {
+        "name": "Existing Product Experience final-validation exact branch guards",
+        "source": ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+        "license": "repository-existing/GitHub Actions",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The workflow already owns the Product Final proof and intentionally enumerates exact candidate branches; successor-v6 needs only one literal admission in the existing three guards."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not add installer/ or installer/wp7/ broad Product or L2 prefixes.",
+      "Do not weaken unknown-path fail-closed behavior or l3Automatic=false.",
+      "Do not create another diff-range helper, routing framework, workflow, Product Final workflow or proof framework.",
+      "Do not modify Final Builder Product bytes in this prerequisite.",
+      "Do not wildcard-admit rebuild branches to Product Final."
+    ]
+  },
+  "localAcceptance": [
+    "Exact implementation changed path set is the seven authorized routing/risk/workflow/test owners and no others.",
+    "installer/wp7/YanceFinalInstaller.nsi routes PRODUCT_WP0 while an adjacent unregistered installer path remains WP0_ROUTE_UNKNOWN_PATH.",
+    "installer/wp7/YanceFinalInstaller.nsi classifies L2 by EXACT while an adjacent unregistered installer path remains CI_UNKNOWN_PATH.",
+    "Stage WP0 consumes ./.github/actions/resolve-diff-range and no longer contains the duplicate inline resolver; base/head outputs still bind base-owned route classification.",
+    "rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6 appears exactly in the three existing Product Final job guards and exact allowlist contract.",
+    "All focused existing routing, risk, workflow and delegated-governance contracts are GREEN and diff integrity is clean.",
+    "unknownBlockers=0."
+  ],
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
