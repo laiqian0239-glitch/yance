@@ -98,7 +98,7 @@ test('PowerShell Builder bootstraps Electron from the reviewed archive without n
   const script = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'RUN_WINDOWS_FINAL_BUILDER.ps1'), 'utf8');
   const skip = script.indexOf("$env:ELECTRON_SKIP_BINARY_DOWNLOAD = '1'");
   const npmCi = script.indexOf('& $NodeExe $NpmCli ci --no-audit --no-fund');
-  const extract = script.indexOf('Expand-ValidatedElectronArchive $ElectronArchive', npmStart);
+  const extract = script.indexOf('Expand-ValidatedElectronArchive $ElectronArchive');
   const trustedProductionNode = script.indexOf('$env:YANCE_NODE_EXE = $TrustedNodeExecutable', extract);
   assert.ok(skip >= 0 && npmCi > skip && extract > npmCi, 'Electron download must be disabled before npm ci and the reviewed archive extracted afterwards');
   assert.ok(trustedProductionNode > extract, 'Final Builder production npm install must use the trusted packaged Node runtime after root bootstrap');
