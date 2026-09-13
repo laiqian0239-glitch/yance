@@ -98,6 +98,15 @@ type YanceNavigationApi = Api["navigation"] & {
   requestLogout?: () => void;
 };
 type YanceClientApi = Api["client"] & { getRooms?: () => readonly { id: string }[] };
+type MatrixOpenIdToken = {
+  access_token: string;
+  token_type: string;
+  matrix_server_name: string;
+  expires_in: number;
+};
+type YanceOpenIdClientApi = YanceClientApi & {
+  getOpenIdToken?: () => Promise<MatrixOpenIdToken>;
+};
 type YanceComposerApi = {
   registerOutgoingMessagePrepare?: (
     handler: (input: { roomId: string; text: string }) => Promise<{ text: string; transformed?: boolean }>,
@@ -196,7 +205,7 @@ class YanceElementModule implements Module {
     ensureYanceElementStyles();
 
     const navigationApi = this.api.navigation as YanceNavigationApi;
-    const clientApi = this.api.client as YanceClientApi;
+    const clientApi = this.api.client as YanceOpenIdClientApi;
     const composerApi = (this.api as unknown as { composer?: YanceComposerApi }).composer;
     const messageComponentsApi = this.api.customComponents as unknown as ProductMessageComponentsApi;
     const desktop = (window as unknown as { yanceDesktop?: ProductDesktop }).yanceDesktop || {};
@@ -324,6 +333,9 @@ class YanceElementModule implements Module {
         navigateGroupConversation={activateProductGroupConversation}
         navigateProductHome={navigateProductHome}
         readRoomStateEvents={readRoomStateEvents}
+        getMatrixOpenIdToken={typeof clientApi.getOpenIdToken === "function"
+          ? clientApi.getOpenIdToken.bind(clientApi)
+          : undefined}
         openUserSettings={(destination) => navigationApi.openUserSettings?.(destination)}
         requestLogout={() => {
           void clearProductConversation().then(() => navigationApi.requestLogout?.());

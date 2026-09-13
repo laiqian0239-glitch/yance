@@ -18,20 +18,19 @@ const LOCATION_NAVIGATION_PATCH = path.join(ROOT, 'upstream-patches/element-web/
 const COMPOSER_ACCESSORY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0016-yance-composer-accessory-slot.patch');
 const PRODUCT_CONVERSATION_CONTROL_PATCH = path.join(ROOT, 'upstream-patches/element-web/0017-yance-product-conversation-control.patch');
 const POST_LOGIN_SECURITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0018-yance-post-login-security-shell.patch');
+const MODULE_OPENID_TOKEN_PATCH = path.join(ROOT, 'upstream-patches/element-web/0019-yance-module-openid-token.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
   const isStrictGitApply = command === 'git' && args[0] === 'apply';
-  const options = isStrictGitApply
-    ? {
-        env: {
-          ...process.env,
-          GIT_CONFIG_COUNT: '1',
-          GIT_CONFIG_KEY_0: 'core.autocrlf',
-          GIT_CONFIG_VALUE_0: 'true'
-        }
-      }
-    : {};
+  const env = { ...process.env };
+  if (command === 'git') env.GIT_TERMINAL_PROMPT = '0';
+  if (isStrictGitApply) {
+    env.GIT_CONFIG_COUNT = '1';
+    env.GIT_CONFIG_KEY_0 = 'core.autocrlf';
+    env.GIT_CONFIG_VALUE_0 = 'true';
+  }
+  const options = { env };
   const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: false, ...options });
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed with ${result.status}`);
 }
@@ -58,9 +57,11 @@ function materialize(name, upstream) {
   const dir = path.join(RUNTIME, name);
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(RUNTIME, { recursive: true });
-  run(RUNTIME, 'git', ['clone', '--no-checkout', upstream.repository, name]);
-  run(dir, 'git', ['fetch', 'origin', upstream.commit, '--depth=1']);
-  run(dir, 'git', ['checkout', '--detach', upstream.commit]);
+  fs.mkdirSync(dir, { recursive: true });
+  run(dir, 'git', ['init']);
+  run(dir, 'git', ['remote', 'add', 'origin', upstream.repository]);
+  run(dir, 'git', ['-c', 'http.lowSpeedLimit=1', '-c', 'http.lowSpeedTime=120', 'fetch', '--depth=1', '--no-tags', 'origin', upstream.commit]);
+  run(dir, 'git', ['checkout', '--detach', 'FETCH_HEAD']);
   assertExactCommit(dir, upstream.commit);
   return dir;
 }
@@ -98,6 +99,7 @@ function main() {
   applyPatch(element, COMPOSER_ACCESSORY_PATCH, 'Element composer accessory patch');
   applyPatch(element, PRODUCT_CONVERSATION_CONTROL_PATCH, 'Element Product conversation control patch');
   applyPatch(element, POST_LOGIN_SECURITY_PATCH, 'Element post-login security shell patch');
+  applyPatch(element, MODULE_OPENID_TOKEN_PATCH, 'Element module OpenID token patch');
 
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);

@@ -1,0 +1,58 @@
+diff --git a/apps/web/src/modules/ClientApi.ts b/apps/web/src/modules/ClientApi.ts
+index 4aeccf6..c5ff6ac 100644
+--- a/apps/web/src/modules/ClientApi.ts
++++ b/apps/web/src/modules/ClientApi.ts
+@@ -22,4 +22,13 @@ export class ClientApi implements IClientApi {
+         return MatrixClientPeg.safeGet().getRooms()
+             .map((sdkRoom) => new ModuleRoom(sdkRoom));
+     }
++
++    public async getOpenIdToken(): Promise<{
++        access_token: string;
++        token_type: string;
++        matrix_server_name: string;
++        expires_in: number;
++    }> {
++        return MatrixClientPeg.safeGet().getOpenIdToken();
++    }
+ }
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+index 3aba084..3b036f0 100644
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -100,8 +100,17 @@ export interface ClientApi {
+     accountData: AccountDataApi;
+     getRoom: (id: string) => Room | null;
+     getRooms: () => Room[];
++    getOpenIdToken: () => Promise<MatrixOpenIdToken>;
+ }
+
++// @public
++export type MatrixOpenIdToken = {
++    access_token: string;
++    token_type: string;
++    matrix_server_name: string;
++    expires_in: number;
++};
++
+ // @alpha @deprecated (undocumented)
+ export interface ComponentVisibilityCustomisations {
+     shouldShowComponent?(component: "UIComponent.sendInvites" | "UIComponent.roomCreation" | "UIComponent.spaceCreation" | "UIComponent.exploreRooms" | "UIComponent.addIntegrations" | "UIComponent.filterContainer" | "UIComponent.roomOptionsMenu"): boolean;
+diff --git a/packages/module-api/src/api/client.ts b/packages/module-api/src/api/client.ts
+index 5097885..73270f5 100644
+--- a/packages/module-api/src/api/client.ts
++++ b/packages/module-api/src/api/client.ts
+@@ -49,4 +49,13 @@ export interface ClientApi {
+      * @returns Room objects projected through the existing module Room wrapper.
+      */
+     getRooms: () => Room[];
++    getOpenIdToken: () => Promise<MatrixOpenIdToken>;
+ }
++
++// @public
++export type MatrixOpenIdToken = {
++    access_token: string;
++    token_type: string;
++    matrix_server_name: string;
++    expires_in: number;
++};

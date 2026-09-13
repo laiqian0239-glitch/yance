@@ -59,6 +59,15 @@ function invokeStoreCancelable(channel, input, options = {}) {
   });
 }
 
+function assertCredentialRefWritable(ref) {
+  if (String(ref || '').trim() === 'personal-access.owner-admin') {
+    const error = new Error('Protected OWNER credential ref is not writable from renderer');
+    error.code = 'PERSONAL_ACCESS_OWNER_REF_PROTECTED';
+    error.reasonCode = error.code;
+    throw error;
+  }
+}
+
 contextBridge.exposeInMainWorld('yanceDesktop', Object.freeze({
   getState: () => ipcRenderer.invoke('desktop:get-state'),
   reportRuntimeEnvironment: input => ipcRenderer.invoke('desktop:report-runtime-environment', input || {}),
@@ -159,12 +168,8 @@ contextBridge.exposeInMainWorld('yanceDesktop', Object.freeze({
   storeApplyTheme: input => invokeStore('store:apply-theme', input),
   storeSetMotionLevel: input => invokeStore('store:set-motion-level', input),
   storeSetBackgroundEffect: input => invokeStore('store:set-background-effect', input),
-  getPersonalAccessStatus: () => invokeStore('store:personal-access-status'),
-  submitPersonalAccessRequest: input => invokeStore('store:personal-access-submit-request', input),
-  refreshPersonalAccessRequest: () => invokeStore('store:personal-access-refresh-request'),
-  listPersonalAccessOwnerRequests: () => invokeStore('store:personal-access-owner-requests'),
-  mutatePersonalAccessOwnerRequest: input => invokeStore('store:personal-access-owner-request-mutation', input),
-  mutatePersonalAccessOwnerGrant: input => invokeStore('store:personal-access-owner-grant-mutation', input),
+  getPersonalAccessStatus: input => invokeStore('store:personal-access-status', input || {}),
+  activatePersonalAccess: input => invokeStore('store:personal-access-activate', input || {}),
   getMatrixLocalIdentity: () => invokeStore('desktop:matrix-local-identity-status'),
   createMatrixLocalIdentity: input => invokeStore('desktop:matrix-local-identity-create', input),
   setConversationAutomationMode: input => invokeStore('store:conversation-automation-mode', input || {}),
@@ -184,8 +189,14 @@ contextBridge.exposeInMainWorld('yanceDesktop', Object.freeze({
   getProductModelRuntimeState: () => invokeStore('store:product-system-model-runtime-state'),
   mutateProductModelRuntime: input => invokeStore('store:product-system-model-runtime-mutation', input),
   prepareProductSafeModeExit: input => invokeStore('store:product-system-runtime-safe-exit-prepare', input || {}),
-  saveCredential: (ref, value, requestId = randomUUID()) => ipcRenderer.invoke('desktop:save-credential', { ref, value, requestId }),
-  deleteCredential: (ref, requestId = randomUUID()) => ipcRenderer.invoke('desktop:delete-credential', { ref, requestId }),
+  saveCredential: (ref, value, requestId = randomUUID()) => {
+    assertCredentialRefWritable(ref);
+    return ipcRenderer.invoke('desktop:save-credential', { ref, value, requestId });
+  },
+  deleteCredential: (ref, requestId = randomUUID()) => {
+    assertCredentialRefWritable(ref);
+    return ipcRenderer.invoke('desktop:delete-credential', { ref, requestId });
+  },
   openAuthUrl: (url, provider) => ipcRenderer.invoke('desktop:open-auth-url', { url, provider }),
   getUpdateState: () => ipcRenderer.invoke('desktop:update-get-state'),
   checkForUpdates: () => ipcRenderer.invoke('desktop:update-check'),

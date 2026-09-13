@@ -10,9 +10,17 @@ const requiredProductionPaths = [
   'backend/middleware/personalAccessGuard.js',
   'backend/routes/personalAccess.js',
   'backend/services/personalAccessService.js',
-  'services/personal-access-worker/migrations/0001_personal_access.sql',
   'services/personal-access-worker/src/index.mjs',
-  'services/personal-access-worker/wrangler.toml'
+  'services/personal-access-worker/wrangler.toml',
+  'integration/element-module/src/index.tsx',
+  'integration/element-module/src/YanceWorkspace.tsx',
+  'integration/element-module/src/product-experience/PersonalAccessSurface.tsx',
+  'electron/preload.js',
+  'electron/r32StoreBridge.js',
+  'electron/m2/ipcManifest.json',
+  'tools/wp2/command-path-inventory.js',
+  'tools/matrix/bootstrap.js',
+  'upstream-patches/element-web/0019-yance-module-openid-token.patch'
 ];
 
 function read(relativePath) {
@@ -23,9 +31,10 @@ test('personal access production authority exists at every authorized runtime se
   for (const relativePath of requiredProductionPaths) {
     assert.equal(fs.existsSync(path.join(ROOT, ...relativePath.split('/'))), true, `missing ${relativePath}`);
   }
+  assert.equal(fs.existsSync(path.join(ROOT, 'services/personal-access-worker/migrations/0001_personal_access.sql')), false);
 });
 
-test('server preserves local caller authentication before personal entitlement and guards product APIs', () => {
+test('server preserves local caller authentication before invitation entitlement and guards product APIs', () => {
   const source = read('backend/server.js');
   const localSecurity = source.indexOf('app.use(createR32LocalApiSecurity(');
   const bodyParser = source.indexOf('app.use(express.json(');
@@ -34,85 +43,78 @@ test('server preserves local caller authentication before personal entitlement a
   const protectedMessages = source.indexOf("app.use('/api/r32/messages'");
   assert.ok(localSecurity >= 0, 'existing local API session security must remain installed');
   assert.ok(bodyParser > localSecurity, 'existing local API security must run before JSON body parsing');
-  assert.ok(personalRoutes > bodyParser, 'personal-access request/status routes must remain behind local API security');
-  assert.ok(personalGuard > personalRoutes, 'minimal request/status surface must be mounted before the entitlement guard');
+  assert.ok(personalRoutes > bodyParser, 'personal-access status/activate routes must remain behind local API security');
+  assert.ok(personalGuard > personalRoutes, 'minimal status/activate surface must be mounted before the entitlement guard');
   assert.ok(protectedMessages > personalGuard, 'protected product routes must be mounted after the entitlement guard');
   assert.match(source, /createPersonalAccessGuard/);
   assert.match(source, /createPersonalAccessRouter/);
 });
 
-test('local entitlement service keeps owner secret in existing secure credential authority and fails tester closed', () => {
+test('backend keeps OWNER marker local and stores only opaque invitation key for TESTER', () => {
   const source = read('backend/services/personalAccessService.js');
   assert.match(source, /personal-access\.owner-admin/);
-  assert.match(source, /getSecurityGuard|credentialStore/);
-  assert.doesNotMatch(source, /owner.*secret.*(?:INSERT|UPDATE).*sqlite/is);
-  assert.match(source, /REMOTE_AUTHORITY_UNAVAILABLE/);
-  assert.match(source, /INSTALLATION_MISMATCH/);
-  assert.match(source, /GRANT_SUSPENDED/);
-  assert.match(source, /GRANT_REVOKED/);
+  assert.match(source, /personal-access\.invitation-key/);
+  assert.match(source, /matrixSubject/);
+  assert.match(source, /_matrix\/federation\/v1\/openid\/userinfo/);
+  assert.match(source, /MATRIX_SUBJECT_MISMATCH/);
+  assert.match(source, /ENTITLEMENT_VALID/);
+  assert.doesNotMatch(source, /owner.*secret.*remote|authorization:\s*`Bearer/is);
+  assert.doesNotMatch(source, /installationId|grantState|requestState/);
 });
 
-test('Worker and D1 are a narrow shared entitlement authority, not a billing or identity platform', () => {
+test('Worker and wrangler are stateless Unkey projection authority', () => {
   const worker = read('services/personal-access-worker/src/index.mjs');
-  const migration = read('services/personal-access-worker/migrations/0001_personal_access.sql');
   const wrangler = read('services/personal-access-worker/wrangler.toml');
   assert.equal(fs.existsSync(path.join(ROOT, 'services/personal-access-worker/src/index.js')), false);
   assert.match(worker, /export\s+default\s*\{\s*async\s+fetch\(request,\s*env\)/u);
-  assert.doesNotMatch(worker, /module\.exports/u);
-  assert.match(worker, /OWNER_ADMIN_SECRET/);
-  assert.match(worker, /PENDING/);
-  assert.match(worker, /ASSIGNED/);
-  assert.match(worker, /APPROVED/);
-  assert.match(worker, /REJECTED/);
-  assert.match(worker, /ACTIVE/);
-  assert.match(worker, /SUSPENDED/);
-  assert.match(worker, /REVOKED/);
-  assert.match(migration, /personal_access_requests/i);
-  assert.match(migration, /personal_access_grants/i);
-  assert.match(migration, /installation_id/i);
-  assert.match(wrangler, /d1_databases/i);
+  assert.match(worker, /UNKEY_ROOT_KEY/);
+  assert.match(worker, /api\.unkey\.com\/v2\/keys\.verifyKey/u);
+  assert.match(worker, /path !== '\/verify'/u);
+  assert.doesNotMatch(worker, /module\.exports|prepare\(|SELECT|INSERT|UPDATE|DELETE/u);
   assert.match(wrangler, /main\s*=\s*"src\/index\.mjs"/u);
   assert.match(wrangler, /workers_dev\s*=\s*true/u);
-  assert.match(wrangler, /database_id\s*=\s*"e81b4218-8a66-4377-b07d-eb785c7698cf"/u);
-  assert.doesNotMatch(wrangler, /REPLACE_WITH_D1_DATABASE_ID/u);
-  for (const forbidden of ['billing', 'subscription', 'payment_intent', 'hardware_fingerprint']) {
-    assert.doesNotMatch(`${worker}\n${migration}`, new RegExp(forbidden, 'i'), forbidden);
+  assert.match(wrangler, /UNKEY_ROOT_KEY/u);
+  assert.doesNotMatch(wrangler, /d1_databases|database_id|migrations_dir/u);
+});
+
+test('Element Product uses upstream Matrix OpenID seam and invitation activation only', () => {
+  const surface = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
+  const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
+  const index = read('integration/element-module/src/index.tsx');
+  const preload = read('electron/preload.js');
+  const bridge = read('electron/r32StoreBridge.js');
+  const manifest = read('electron/m2/ipcManifest.json');
+  assert.match(workspace, /getMatrixOpenIdToken/);
+  assert.match(index, /getOpenIdToken\.bind\(clientApi\)/);
+  assert.match(surface, /邀请码/);
+  assert.match(surface, /activatePersonalAccess/);
+  assert.match(surface, /ELEMENT_MATRIX_OPENID_SEAM_MISSING/);
+  assert.match(preload, /\bgetPersonalAccessStatus\s*:/);
+  assert.match(preload, /\bactivatePersonalAccess\s*:/);
+  assert.match(preload, /PERSONAL_ACCESS_OWNER_REF_PROTECTED/);
+  assert.match(bridge, /\/api\/r32\/personal-access\/status/);
+  assert.match(bridge, /\/api\/r32\/personal-access\/activate/);
+  assert.match(manifest, /store:personal-access-activate/);
+  for (const retired of ['submitPersonalAccessRequest', 'refreshPersonalAccessRequest', 'listPersonalAccessOwnerRequests', 'mutatePersonalAccessOwnerRequest', 'mutatePersonalAccessOwnerGrant']) {
+    assert.doesNotMatch(`${surface}\n${preload}\n${bridge}\n${manifest}`, new RegExp(retired, 'u'));
   }
 });
 
-test('active Element Product exposes personal-use request and owner tester controls without claiming cloud backup', () => {
-  const surface = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
-  const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
-  const preload = read('electron/preload.js');
-  const bridge = read('electron/r32StoreBridge.js');
-  assert.match(workspace, /PersonalAccessSurface/);
-  assert.match(surface, /申请使用权限/);
-  assert.match(surface, /批准/);
-  assert.match(surface, /拒绝/);
-  assert.match(surface, /暂停/);
-  assert.match(surface, /撤销/);
-  for (const api of [
-    'getPersonalAccessStatus',
-    'submitPersonalAccessRequest',
-    'refreshPersonalAccessRequest',
-    'listPersonalAccessOwnerRequests',
-    'mutatePersonalAccessOwnerRequest',
-    'mutatePersonalAccessOwnerGrant'
-  ]) assert.match(preload, new RegExp(`\\b${api}\\s*:`));
-  assert.match(bridge, /\/api\/r32\/personal-access\/status/);
-  assert.match(bridge, /\/api\/r32\/personal-access\/owner\/requests/);
-  assert.doesNotMatch(`${surface}\n${workspace}`, /个人数据云备份已启用|cloud backup enabled/i);
+test('Element OpenID module API patch is explicit and replayed after 0018', () => {
+  const patch = read('upstream-patches/element-web/0019-yance-module-openid-token.patch');
+  const bootstrap = read('tools/matrix/bootstrap.js');
+  assert.match(patch, /packages\/module-api\/src\/api\/client\.ts/);
+  assert.match(patch, /packages\/module-api\/element-web-module-api\.api\.md/);
+  assert.match(patch, /apps\/web\/src\/modules\/ClientApi\.ts/);
+  assert.match(patch, /MatrixClientPeg\.safeGet\(\)\.getOpenIdToken\(\)/);
+  assert.match(bootstrap, /0019-yance-module-openid-token\.patch/);
+  assert.ok(bootstrap.indexOf('MODULE_OPENID_TOKEN_PATCH') > bootstrap.indexOf('POST_LOGIN_SECURITY_PATCH'));
+  assert.doesNotMatch(bootstrap, /glob[^\n]*upstream-patches|readdirSync[^\n]*upstream-patches/iu);
 });
 
 test('authorization explicitly keeps channel identity authorities and release work outside this batch', () => {
   const authorization = JSON.parse(read('governance/layered-ci/v21-personal-access-control-p0-v1-authorization.json'));
-  assert.equal(authorization.workPackage, 'V21-PERSONAL-ACCESS-CONTROL-P0-V1');
-  assert.equal(authorization.productContract.sharedAuthority.testerStateMustBeServerAuthoritative, true);
-  assert.equal(authorization.productContract.localEnforcement.ownerMustNotBeLockedOutByRemoteTesterState, true);
-  assert.deepEqual(authorization.productContract.localEnforcement.minimalUnauthenticatedEntitlementSurface, [
-    'status', 'submit-request', 'refresh-request'
-  ]);
-  assert.ok(authorization.productContract.outOfScope.includes('cloud backup or restore'));
   assert.equal(authorization.governance.formalReleaseAuthorized, false);
   assert.equal(authorization.governance.publishAuthorized, false);
+  assert.ok(authorization.productContract.outOfScope.includes('cloud backup or restore'));
 });

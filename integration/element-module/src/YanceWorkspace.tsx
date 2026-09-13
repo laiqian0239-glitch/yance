@@ -17,6 +17,13 @@ export type ReadRoomStateEvents = (
   eventType: string,
 ) => readonly RoomStateEventContent[];
 
+export type MatrixOpenIdToken = {
+  access_token: string;
+  token_type: string;
+  matrix_server_name: string;
+  expires_in: number;
+};
+
 type YanceWorkspaceProps = {
   appearanceHost?: ProductAppearanceHost;
   navigateSearchResult?: (relationship: RelationshipProjection) => Promise<boolean>;
@@ -29,6 +36,7 @@ type YanceWorkspaceProps = {
   ) => Promise<boolean>;
   navigateProductHome?: () => Promise<void> | void;
   readRoomStateEvents?: ReadRoomStateEvents;
+  getMatrixOpenIdToken?: () => Promise<MatrixOpenIdToken>;
   openUserSettings?: (destination:"account"|"security"|"sessions")=>void;
   requestLogout?: ()=>void;
 };
@@ -40,11 +48,12 @@ export function YanceWorkspace({
   navigateGroupConversation,
   navigateProductHome,
   readRoomStateEvents,
+  getMatrixOpenIdToken,
   openUserSettings,
   requestLogout,
 }: YanceWorkspaceProps): React.JSX.Element {
   return (
-    <PersonalAccessSurface>
+    <PersonalAccessSurface getMatrixOpenIdToken={getMatrixOpenIdToken}>
       <ProductExperienceShell
         appearanceHost={appearanceHost}
         navigateSearchResult={navigateSearchResult}
