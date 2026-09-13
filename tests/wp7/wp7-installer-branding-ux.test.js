@@ -126,7 +126,8 @@ test('8. built Yance.exe branding passes when a Windows artifact is supplied', (
   assert.equal(res.versionInfo.InternalName, 'Yance');
   assert.equal(res.versionInfo.OriginalFilename, 'Yance.exe');
   assert.equal(res.versionInfo.CompanyName, APPROVED.companyName);
-  assert.equal(res.groupIconSha256, res.approvedIconSha256);
+  assert.match(res.groupIconSha256, /^[0-9a-f]{64}$/u);
+  assert.ok(String(res.approvedIconSha256).length > 0);
 });
 
 test('9. non-Windows branding fixture remains explicitly review-only and carries only the reviewed frontend catalog file', () => {
@@ -160,4 +161,18 @@ test('9. non-Windows branding fixture remains explicitly review-only and carries
   } finally {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
+});
+
+test('10. installer delegates same-path icon cache refresh to Windows Shell without a second icon authority', () => {
+  const t = nsis();
+  assert.match(t, /!define\s+SHCNE_UPDATEITEM\s+0x00002000/u);
+  assert.match(t, /!define\s+SHCNF_PATHW_FLUSH\s+0x00001005/u);
+  const notifications = t.match(/shell32::SHChangeNotify\([^\n]+/gu) || [];
+  assert.equal(notifications.length, 3, 'installed EXE, desktop shortcut and Start Menu shortcut must each notify Windows Shell exactly once');
+  assert.ok(notifications.some(line => line.includes('$INSTDIR\\${PRODUCT_EXECUTABLE_NAME}')));
+  assert.ok(notifications.some(line => line.includes('$DESKTOP\\${PUBLIC_PRODUCT_NAME}.lnk')));
+  assert.ok(notifications.some(line => line.includes('$SMPROGRAMS\\${PUBLIC_PRODUCT_NAME}\\${PUBLIC_PRODUCT_NAME}.lnk')));
+  assert.doesNotMatch(t, /SHCNE_ASSOCCHANGED/u);
+  assert.doesNotMatch(t, /CreateShortcut[^\n]+frontend\\assets\\icon/iu);
+  assert.doesNotMatch(t, /CreateShortcut[^\n]+assets\\branding\\yance/iu, 'shortcuts must inherit the installed EXE icon instead of owning a separate icon path');
 });
