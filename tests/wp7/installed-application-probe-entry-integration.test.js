@@ -379,6 +379,10 @@ test('formal pre-review packaged command launches product executable and execute
   assert.match(runner, /WP7_PACKAGED_YANCE_PRE_ENTITLEMENT_PROBE_INTEGRATION_RESULT/);
   assert.match(runner, /for \(const probeId of probeIds\)/);
   assert.match(runner, /executable:\s*context\.trust\.productExecutable/);
+  assert.match(runner, /formalProbeFailsafeWatchdogMs\(options\.timeoutMs\)/);
+  assert.match(runner, /fallback:\s*FORMAL_PROBE_FAILSAFE_WATCHDOG_MS/);
+  assert.doesNotMatch(runner, /fallback:\s*180000/);
+  assert.doesNotMatch(runner, /options\.timeoutMs \|\| 180000/);
   assert.doesNotMatch(runner, /spawnSync\(trust\.productExecutable,\s*\['--version'\]/);
 });
 

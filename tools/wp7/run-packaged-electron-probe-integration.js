@@ -12,6 +12,7 @@ const { loadReleaseIdentity } = require('../../shared/release/releaseIdentity');
 const { validateMeasurements } = require('../../electron/wp7InstalledRuntimeProbe');
 const {
   ENTITLED_PRODUCT_PROBE_IDS,
+  FORMAL_PROBE_FAILSAFE_WATCHDOG_MS,
   FORMAL_PROBE_IDS,
   PRE_ENTITLEMENT_PROBE_IDS
 } = require('../../shared/wp7/formalProbeIds');
@@ -65,6 +66,13 @@ const ENV_BY_ARGUMENT = Object.freeze({
   '--timeout-ms': 'WP7_PACKAGED_PROBE_TIMEOUT_MS'
 });
 function arg(name, fallback = '') { return optionValue(name, { envName: ENV_BY_ARGUMENT[name], fallback }); }
+function formalProbeFailsafeWatchdogMs(value) {
+  const requested = (value === undefined || value === null || value === '') ? 0 : Number(value);
+  if (!Number.isFinite(requested) || requested < 0) {
+    fail('WP7_PACKAGED_PROBE_FAILSAFE_WATCHDOG_INVALID', 'formal probe fail-safe watchdog must be a finite non-negative number', { value });
+  }
+  return Math.max(FORMAL_PROBE_FAILSAFE_WATCHDOG_MS, Math.floor(requested));
+}
 function git(args, repoRoot = REPO_ROOT) {
   const result = spawnSync('git', args, { cwd: repoRoot, encoding: 'utf8' });
   if (result.status !== 0) fail('WP7_PACKAGED_APPLICATION_ARTIFACT_INVALID', 'cannot resolve repository identity for packaged integration', { args, stderr: result.stderr });
@@ -228,7 +236,7 @@ function spawnProduct(options) {
     };
     child.stdout.on('data', (chunk) => append(stdout, chunk, 'stdout'));
     child.stderr.on('data', (chunk) => append(stderr, chunk, 'stderr'));
-    const timeoutMs = Number(options.timeoutMs || 180000);
+    const timeoutMs = Number(options.timeoutMs || FORMAL_PROBE_FAILSAFE_WATCHDOG_MS);
     const timer = setTimeout(() => {
       if (settled) return;
       timeoutTriggered = true;
@@ -399,7 +407,10 @@ async function runOneProbe(context, probeId) {
       env.WP7_WINDOWS_NETWORK_ISOLATION_GUARDIAN_PID = String(attestation.guardianPid);
       return spawnAndAssert();
     }, {
-      watchdogMs: Math.min(Number(context.timeoutMs || 180000) + 30000, 600000)
+      // Network isolation owns only emergency restoration. Its watchdog must
+      // never expire before the packaged Product's own bounded startup/runtime
+      // lifecycle has had authority to complete or fail.
+      watchdogMs: formalProbeFailsafeWatchdogMs(context.timeoutMs)
     });
   } else {
     processResult = await spawnAndAssert();
@@ -559,7 +570,7 @@ async function launchAll(options = {}) {
   })() : null;
   const buildSessionId = preReviewSealedArtifact.document.buildSessionId;
   if (!GIT_RE.test(identity.sourceCommit) || !GIT_RE.test(identity.sourceTree)) fail('WP7_PACKAGED_APPLICATION_ARTIFACT_INVALID', 'packaged release identity is malformed');
-  const context = { repoRoot, trust, payload, identity, installer, outputRoot, buildSessionId, preReviewSealedArtifact, timeoutMs: options.timeoutMs, env: options.env, networkIsolation, windowsNetworkIsolation };
+  const context = { repoRoot, trust, payload, identity, installer, outputRoot, buildSessionId, preReviewSealedArtifact, timeoutMs: formalProbeFailsafeWatchdogMs(options.timeoutMs), env: options.env, networkIsolation, windowsNetworkIsolation };
   const requestedProbeId = String(options.probeId || '');
   if (requestedProbeId && !FORMAL_PROBE_IDS.includes(requestedProbeId)) {
     fail('WP7_PACKAGED_PROBE_INTEGRATION_SCOPE_INCOMPLETE', 'requested probe is not in the formal probe authority', { requestedProbeId });
@@ -665,7 +676,7 @@ if (require.main === module) {
     resourcesRoot: arg('--resources-root'),
     outputRoot: arg('--output-root'),
     preReviewSealedArtifactPath: arg('--pre-review-sealed-artifact'),
-    timeoutMs: numericOption('--timeout-ms', { envName: ENV_BY_ARGUMENT['--timeout-ms'], fallback: 180000 }),
+    timeoutMs: numericOption('--timeout-ms', { envName: ENV_BY_ARGUMENT['--timeout-ms'], fallback: FORMAL_PROBE_FAILSAFE_WATCHDOG_MS }),
     probeId: arg('--probe-id')
   }).then((report) => {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -677,6 +688,7 @@ if (require.main === module) {
 
 module.exports = {
   assertPreReviewProductClassification,
+  formalProbeFailsafeWatchdogMs,
   launchAll,
   readIdentity,
   runOneProbe,

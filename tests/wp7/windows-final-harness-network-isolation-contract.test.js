@@ -120,3 +120,10 @@ test('formal harness invokes the first-party control CLI and hash-binds its sess
   assert.doesNotMatch(source, /config\.offlineNetworkControl\.restore/);
   assert.doesNotMatch(source, /config\.offlineNetworkControl\.disable/);
 });
+
+
+test('formal Product probes and offline isolation use only the non-preemptive catastrophic fail-safe horizon', () => {
+  assert.match(source, /context\.probeId \? FORMAL_PROBE_FAILSAFE_WATCHDOG_MS/);
+  assert.match(source, /'--watchdog-ms', String\(FORMAL_PROBE_FAILSAFE_WATCHDOG_MS\)/);
+  assert.doesNotMatch(source, /'--watchdog-ms', '300000'/);
+});

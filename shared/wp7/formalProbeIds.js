@@ -27,6 +27,12 @@ const ENTITLED_PRODUCT_PROBE_IDS = Object.freeze([
   'event-gap-recovery'
 ]);
 
+// Catastrophic harness safety bound only. Formal probe startup/runtime lifecycle
+// remains owned by the packaged Product and its mature subsystem owners.
+// This value must stay comfortably above the complete bounded Product startup
+// chain so validation never becomes a second lifecycle authority.
+const FORMAL_PROBE_FAILSAFE_WATCHDOG_MS = 3_600_000;
+
 function assertExactProbeIdSet(candidate, expected, reasonCode, message) {
   const actual = Array.isArray(candidate) ? candidate.map((value) => String(value)) : [];
   if (actual.length !== expected.length || actual.some((value, index) => value !== expected[index])) {
@@ -77,6 +83,7 @@ function probeAccessClass(probeId) {
 
 module.exports = {
   ENTITLED_PRODUCT_PROBE_IDS,
+  FORMAL_PROBE_FAILSAFE_WATCHDOG_MS,
   FORMAL_PROBE_IDS,
   PRE_ENTITLEMENT_PROBE_IDS,
   assertEntitledProductProbeIdSet,
