@@ -370,43 +370,100 @@ test('real Git fixture proves Matrix EOL semantics belong only to strict git app
   assert.doesNotMatch(
     workflow,
     /GIT_CONFIG_COUNT=1\s*\\\s*\n\s*GIT_CONFIG_KEY_0=core\.autocrlf\s*\\\s*\n\s*GIT_CONFIG_VALUE_0=true\s*\\\s*\n\s*node tools\/matrix\/bootstrap\.js/u,
-    'Matrix bootstrap must not inherit CRLF conversion across clone/fetch/checkout and Docker materialization'
+    'Matrix bootstrap must not inherit CRLF conversion across source materialization'
   );
-  assert.match(bootstrapSource, /GIT_CONFIG_COUNT/u, 'bootstrap owner layer must scope Git runtime config itself');
-  assert.match(bootstrapSource, /core\.autocrlf/u, 'bootstrap owner layer must opt only strict apply children into Git-native CRLF semantics');
+  assert.match(bootstrapSource, /const isStrictGitApply = command === 'git' && args\[0\] === 'apply'/u);
+  assert.match(bootstrapSource, /const isExactSourceMaterializationGit/u);
+  assert.match(bootstrapSource, /\['clone', 'fetch', 'checkout'\]\.includes\(args\[0\]\)/u);
+  assert.match(bootstrapSource, /env\.GIT_CONFIG_VALUE_0 = 'true'/u);
+  assert.match(bootstrapSource, /env\.GIT_CONFIG_VALUE_0 = 'false'/u);
+  assert.match(bootstrapSource, /function materializeExactReleaseTag\(/u);
+  assert.match(bootstrapSource, /const tagRef = `refs\/tags\/\$\{version\}`/u);
+  assert.match(bootstrapSource, /'fetch',\s*'--no-tags',\s*'--depth=1',\s*'origin',\s*`\$\{tagRef\}:\$\{tagRef\}`/su);
+  assert.match(bootstrapSource, /materializeExactReleaseTag\(element, LOCK\.upstreams\.elementWeb, 'Element'\);/u);
+  assert.equal((bootstrapSource.match(/materializeExactReleaseTag\(/gu) || []).length, 2, 'release-tag materialization must have one helper definition and one Element-only call');
+  assert.doesNotMatch(bootstrapSource, /run\([^;]*'git'[^;]*\['tag'/su, 'bootstrap must never manufacture a local release tag');
   assert.doesNotMatch(bootstrapSource, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
   assert.doesNotMatch(bootstrapSource, /--ignore-whitespace|--ignore-space-change|--reject|--3way|--recount|--unidiff-zero/u);
 
   delete require.cache[require.resolve(bootstrapPath)];
   const matrixBootstrap = require(bootstrapPath);
-  assert.equal(typeof matrixBootstrap.applyPatch, 'function', 'real fixture requires the production strict-apply seam');
+  assert.equal(typeof matrixBootstrap.applyPatch, 'function');
+  assert.equal(typeof matrixBootstrap.run, 'function');
+  assert.equal(typeof matrixBootstrap.materializeExactReleaseTag, 'function');
 
   withTemporaryDirectory(root => {
-    const targetPath = path.join(root, 'target.txt');
-    const shellPath = path.join(root, 'keep-native.sh');
+    const origin = path.join(root, 'origin');
+    const checkout = path.join(root, 'checkout');
     const patchPath = path.join(root, 'change.patch');
-    const gitFixture = args => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    fs.mkdirSync(origin, { recursive: true });
 
-    gitFixture(['init', '-q']);
-    gitFixture(['config', 'user.name', 'fixture']);
-    gitFixture(['config', 'user.email', 'fixture@local.invalid']);
-    gitFixture(['config', 'core.autocrlf', 'false']);
-    fs.writeFileSync(targetPath, Buffer.from('alpha\r\nbeta\r\n', 'utf8'));
-    fs.writeFileSync(shellPath, Buffer.from('#!/usr/bin/env bash\necho keep-native\n', 'utf8'));
-    if (process.platform !== 'win32') fs.chmodSync(shellPath, 0o755);
-    gitFixture(['add', 'target.txt', 'keep-native.sh']);
-    gitFixture(['commit', '-q', '-m', 'fixture baseline']);
+    const gitAt = (cwd, args) => execFileSync('git', args, {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    gitAt(origin, ['init', '-q']);
+    gitAt(origin, ['config', 'user.name', 'fixture']);
+    gitAt(origin, ['config', 'user.email', 'fixture@local.invalid']);
+    gitAt(origin, ['config', 'core.autocrlf', 'false']);
+
+    fs.writeFileSync(path.join(origin, 'target.txt'), Buffer.from('alpha\r\nbeta\r\n', 'utf8'));
+    fs.writeFileSync(path.join(origin, 'keep-native.sh'), Buffer.from('#!/usr/bin/env bash\necho keep-native\n', 'utf8'));
+    if (process.platform !== 'win32') fs.chmodSync(path.join(origin, 'keep-native.sh'), 0o755);
+
+    gitAt(origin, ['add', 'target.txt', 'keep-native.sh']);
+    gitAt(origin, ['commit', '-q', '-m', 'fixture baseline']);
+    const fixtureCommit = gitAt(origin, ['rev-parse', 'HEAD']).trim();
+    gitAt(origin, ['tag', '-a', 'v1.2.3', '-m', 'fixture release', fixtureCommit]);
+
     fs.writeFileSync(
       patchPath,
       'diff --git a/target.txt b/target.txt\n--- a/target.txt\n+++ b/target.txt\n@@ -1,2 +1,2 @@\n alpha\n-beta\n+gamma\n',
       'utf8'
     );
 
-    const shellBefore = fs.readFileSync(shellPath);
-    matrixBootstrap.applyPatch(root, patchPath, 'fixture CRLF target');
-    assert.deepEqual(fs.readFileSync(targetPath), Buffer.from('alpha\r\ngamma\r\n', 'utf8'));
-    assert.deepEqual(fs.readFileSync(shellPath), shellBefore, 'unrelated executable checkout bytes must stay byte-identical');
-    assert.equal(fs.readFileSync(shellPath).includes(0x0d), false, 'unrelated shell script must remain LF-native');
+    const keys = ['GIT_CONFIG_COUNT', 'GIT_CONFIG_KEY_0', 'GIT_CONFIG_VALUE_0'];
+    const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+
+    try {
+      process.env.GIT_CONFIG_COUNT = '1';
+      process.env.GIT_CONFIG_KEY_0 = 'core.autocrlf';
+      process.env.GIT_CONFIG_VALUE_0 = 'true';
+
+      matrixBootstrap.run(root, 'git', ['clone', '--no-checkout', '--no-tags', origin, checkout]);
+      assert.equal(gitAt(checkout, ['tag', '--list']).trim(), '', 'clone must begin without release tags');
+
+      matrixBootstrap.run(checkout, 'git', ['fetch', '--depth=1', '--no-tags', 'origin', fixtureCommit]);
+      matrixBootstrap.run(checkout, 'git', ['checkout', '--detach', fixtureCommit]);
+
+      const targetBefore = fs.readFileSync(path.join(checkout, 'target.txt'));
+      const shellBefore = fs.readFileSync(path.join(checkout, 'keep-native.sh'));
+      assert.deepEqual(targetBefore, Buffer.from('alpha\r\nbeta\r\n', 'utf8'));
+      assert.equal(shellBefore.includes(0x0d), false, 'hostile ambient autocrlf must not rewrite LF-native shell bytes');
+
+      matrixBootstrap.materializeExactReleaseTag(
+        checkout,
+        { version: 'v1.2.3', commit: fixtureCommit },
+        'fixture'
+      );
+
+      const tags = gitAt(checkout, ['tag', '--list']).trim().split(/\r?\n/u).filter(Boolean);
+      assert.deepEqual(tags, ['v1.2.3'], 'only the exact requested release tag may be materialized');
+      assert.equal(gitAt(checkout, ['rev-parse', 'refs/tags/v1.2.3^{commit}']).trim(), fixtureCommit);
+      assert.equal(gitAt(checkout, ['describe', '--abbrev=0', '--tags', fixtureCommit]).trim(), 'v1.2.3');
+
+      matrixBootstrap.applyPatch(checkout, patchPath, 'fixture CRLF target');
+      assert.deepEqual(fs.readFileSync(path.join(checkout, 'target.txt')), Buffer.from('alpha\r\ngamma\r\n', 'utf8'));
+      assert.deepEqual(fs.readFileSync(path.join(checkout, 'keep-native.sh')), shellBefore, 'unrelated executable checkout bytes must remain byte-identical');
+      assert.equal(fs.readFileSync(path.join(checkout, 'keep-native.sh')).includes(0x0d), false);
+    } finally {
+      for (const key of keys) {
+        if (previous[key] === undefined) delete process.env[key];
+        else process.env[key] = previous[key];
+      }
+    }
   });
 });
 

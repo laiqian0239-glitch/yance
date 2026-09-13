@@ -23,12 +23,18 @@ const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
   const isStrictGitApply = command === 'git' && args[0] === 'apply';
+  const isExactSourceMaterializationGit =
+    command === 'git' && ['clone', 'fetch', 'checkout'].includes(args[0]);
   const env = { ...process.env };
   if (command === 'git') env.GIT_TERMINAL_PROMPT = '0';
   if (isStrictGitApply) {
     env.GIT_CONFIG_COUNT = '1';
     env.GIT_CONFIG_KEY_0 = 'core.autocrlf';
     env.GIT_CONFIG_VALUE_0 = 'true';
+  } else if (isExactSourceMaterializationGit) {
+    env.GIT_CONFIG_COUNT = '1';
+    env.GIT_CONFIG_KEY_0 = 'core.autocrlf';
+    env.GIT_CONFIG_VALUE_0 = 'false';
   }
   const options = { env };
   const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: false, ...options });
@@ -66,9 +72,39 @@ function materialize(name, upstream) {
   return dir;
 }
 
+
+function materializeExactReleaseTag(repoDir, upstream, label) {
+  const version = String(upstream?.version || '');
+  if (version.length === 0 || version.trim() !== version) {
+    throw new Error(`${label}: exact upstream release version is required`);
+  }
+
+  const tagRef = `refs/tags/${version}`;
+  run(repoDir, 'git', [
+    'fetch',
+    '--no-tags',
+    '--depth=1',
+    'origin',
+    `${tagRef}:${tagRef}`
+  ]);
+
+  const peeledCommit = output(repoDir, 'git', ['rev-parse', `${tagRef}^{commit}`]);
+  if (peeledCommit !== upstream.commit) {
+    throw new Error(`${label}: release tag ${version} resolves to ${peeledCommit}, expected ${upstream.commit}`);
+  }
+
+  const describedVersion = output(repoDir, 'git', ['describe', '--abbrev=0', '--tags', upstream.commit]);
+  if (describedVersion !== version) {
+    throw new Error(`${label}: git describe returned ${describedVersion}, expected ${version}`);
+  }
+
+  return version;
+}
+
 function main() {
   const synapse = materialize('synapse', LOCK.upstreams.synapse);
   const element = materialize('element-web', LOCK.upstreams.elementWeb);
+  materializeExactReleaseTag(element, LOCK.upstreams.elementWeb, 'Element');
   const mautrix = materialize('mautrix-whatsapp', LOCK.upstreams.mautrixWhatsapp);
   const mautrixMeta = materialize('mautrix-meta', LOCK.externalRuntimes.mautrixMeta);
 
@@ -108,4 +144,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { applyPatch, assertExactCommit, main };
+module.exports = { applyPatch, assertExactCommit, main, run, materializeExactReleaseTag };
