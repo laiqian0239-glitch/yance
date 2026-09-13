@@ -1384,8 +1384,7 @@ function wp7RunSafeModeScenario(sources) {
       legacyRoot: wp7LegacyRoot,
       desktopSettingsPath: settingsStore?.filePath || path.join(DATA_ROOT, 'desktop-settings.json'),
       rendererStorageSession: ensureWp7RendererStorageSession(),
-      projectionSnapshot: () => runtimeProjectionCoordinator?.snapshot?.() || {},
-      pollOnce: () => runtimeProjectionCoordinator.pollOnce()
+      runtimeSnapshot: () => runtimeApiV2Client.getBootstrapSnapshot({ requireTrusted: true, expectedBuildId: releaseIdentity().buildId })
     });
   }
   return wp7SafeModeScenarioRunner(sources);
@@ -1445,7 +1444,7 @@ async function runWp7InstalledRuntimeProbe() {
     getBackendReady: () => wp7ProbeBackendReadyDocument(),
     readElectronIdentity: (resourcesPath) => getElectronReleaseIdentity({ resourcesPath, expectedBuildId: identity.buildId, reload: true }),
     readInstallerIdentityReceipt,
-    getDiagnosticsIdentity: () => apiRequest('/api/r32/system/release-identity'),
+    getDiagnosticsIdentity: () => apiRequest('/api/desktop/release-identity'),
     identityObservationRoot: () => path.join(path.resolve(process.env.WP7_PROBE_ROOT), 'release-identity-observations'),
     ownerSnapshot: () => trustedBackendProjection(),
     knownOwnerPids: () => [...wp7KnownOwnerPids],
@@ -1472,7 +1471,7 @@ async function runWp7InstalledRuntimeProbe() {
   });
   const operations = createInstalledRuntimeProbeOperations({
     ...adapter,
-    runtimeSnapshot: () => runtimeApiV2Client.getSnapshot({ requireTrusted: true, expectedBuildId: identity.buildId }),
+    runtimeSnapshot: () => runtimeApiV2Client.getBootstrapSnapshot({ requireTrusted: true, expectedBuildId: identity.buildId }),
     projectionSnapshot: () => runtimeProjectionCoordinator.snapshot(),
     stopBackend: (options) => stopBackend(options),
     dataRoot: DATA_ROOT,

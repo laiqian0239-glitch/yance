@@ -151,6 +151,7 @@ markStartupPhase('dataPipelinesReadyMs');
 const modelsRouter = require('./routes/models');
 const messagesRouter = require('./routes/messages');
 const systemRouter = require('./routes/system');
+const { releaseIdentityDocument } = systemRouter;
 const accountsRouter = require('./routes/accounts');
 const facebookAvatarImportBridge = require('./routes/facebookAvatarImportBridge');
 const ollama = require('./services/ollamaClient');
@@ -527,6 +528,7 @@ app.get('/api/desktop/runtime-projection-snapshot', (_req, res) => {
   });
   res.json(APP_RUNTIME.snapshot());
 });
+app.get('/api/desktop/release-identity', (_req, res) => res.json(releaseIdentityDocument()));
 app.get('/api/desktop/matrix-local-identity', (_req, res, next) => {
   try {
     res.json(endUserMatrixIdentityService.status());

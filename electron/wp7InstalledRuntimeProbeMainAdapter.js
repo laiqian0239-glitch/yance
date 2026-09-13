@@ -162,7 +162,7 @@ function createWp7InstalledRuntimeProbeMainAdapter(deps = {}) {
           producerProcess: diagnosticsDocument.producerProcess,
           producerPid: diagnosticsDocument.producerPid,
           sourceKind: 'http-endpoint',
-          observationSource: '/api/r32/system/release-identity',
+          observationSource: '/api/desktop/release-identity',
           observedAtUtc: diagnosticsDocument.observedAtUtc
         }, diagnosticsDocument)
       };

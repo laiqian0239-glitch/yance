@@ -9,7 +9,12 @@ const crypto = require('node:crypto');
 const { spawn, spawnSync } = require('node:child_process');
 const { readInstallerIdentityReceipt } = require('../../installer/installedIdentityReceipt');
 const { loadReleaseIdentity } = require('../../shared/release/releaseIdentity');
-const { FORMAL_PROBE_IDS, validateMeasurements } = require('../../electron/wp7InstalledRuntimeProbe');
+const { validateMeasurements } = require('../../electron/wp7InstalledRuntimeProbe');
+const {
+  ENTITLED_PRODUCT_PROBE_IDS,
+  FORMAL_PROBE_IDS,
+  PRE_ENTITLEMENT_PROBE_IDS
+} = require('../../shared/wp7/formalProbeIds');
 const { sha256File, verifyTrustedProductExecutable } = require('./packaged-product-trust');
 const { validateApplicationPayloadClosure } = require('./packaged-payload-closure');
 const { readFormalProbeScope, SCOPE_RELATIVE_PATH } = require('./trusted-product-probe-scope');
@@ -556,16 +561,26 @@ async function launchAll(options = {}) {
   if (!GIT_RE.test(identity.sourceCommit) || !GIT_RE.test(identity.sourceTree)) fail('WP7_PACKAGED_APPLICATION_ARTIFACT_INVALID', 'packaged release identity is malformed');
   const context = { repoRoot, trust, payload, identity, installer, outputRoot, buildSessionId, preReviewSealedArtifact, timeoutMs: options.timeoutMs, env: options.env, networkIsolation, windowsNetworkIsolation };
   const requestedProbeId = String(options.probeId || '');
-  if (requestedProbeId && !FORMAL_PROBE_IDS.includes(requestedProbeId)) fail('WP7_PACKAGED_PROBE_INTEGRATION_SCOPE_INCOMPLETE', 'requested probe is not in the formal probe authority', { requestedProbeId });
-  const probeIds = requestedProbeId ? [requestedProbeId] : FORMAL_PROBE_IDS;
+  if (requestedProbeId && !FORMAL_PROBE_IDS.includes(requestedProbeId)) {
+    fail('WP7_PACKAGED_PROBE_INTEGRATION_SCOPE_INCOMPLETE', 'requested probe is not in the formal probe authority', { requestedProbeId });
+  }
+  if (requestedProbeId && ENTITLED_PRODUCT_PROBE_IDS.includes(requestedProbeId)) {
+    fail('WP7_PRE_REVIEW_PRODUCT_ENTITLEMENT_REQUIRED',
+      'entitled Product probes cannot run in the fresh isolated pre-review context', {
+        requestedProbeId,
+        entitledProductProbeIds: [...ENTITLED_PRODUCT_PROBE_IDS]
+      });
+  }
+  const probeIds = requestedProbeId ? [requestedProbeId] : PRE_ENTITLEMENT_PROBE_IDS;
   const probeResults = [];
   for (const probeId of probeIds) probeResults.push(await runOneProbe(context, probeId));
   if (probeResults.length !== probeIds.length || probeResults.some((row) => row.status !== 'PASS')) {
-    fail('WP7_PACKAGED_PROBE_INTEGRATION_SCOPE_INCOMPLETE', 'all nine packaged application probes must execute independently and pass', { probeResults });
+    fail('WP7_PACKAGED_PROBE_INTEGRATION_SCOPE_INCOMPLETE',
+      'required pre-entitlement packaged application probes must execute independently and pass', { probeResults });
   }
   return {
-    schemaVersion: 2,
-    documentType: 'WP7_PACKAGED_YANCE_NINE_PROBE_INTEGRATION_RESULT',
+    schemaVersion: 3,
+    documentType: 'WP7_PACKAGED_YANCE_PRE_ENTITLEMENT_PROBE_INTEGRATION_RESULT',
     status: 'PASS',
     generatedAtUtc: new Date().toISOString(),
     executionClass: 'PRE_REVIEW_PACKAGED_INTEGRATION',
@@ -627,9 +642,14 @@ async function launchAll(options = {}) {
     sourceTree: identity.sourceTree,
     formalProbeAuthority: formalProbeScope.document.authorityModule,
     formalProbeScopePath: SCOPE_RELATIVE_PATH,
+    formalProbeIds: [...FORMAL_PROBE_IDS],
+    preEntitlementProbeIds: [...PRE_ENTITLEMENT_PROBE_IDS],
+    entitledProductProbeIds: [...ENTITLED_PRODUCT_PROBE_IDS],
+    entitledProductProbeStatus: 'DEFERRED_REQUIRES_REAL_PERSONAL_ACCESS_PRODUCT_ENTITLEMENT',
+    preReviewScopeComplete: requestedProbeId === '',
     networkIsolationSourceSha256: networkIsolation?.sourceSha256 || null,
     networkIsolationLibrarySha256: networkIsolation?.librarySha256 || null,
-    requiredProbeIds: [...FORMAL_PROBE_IDS],
+    requiredProbeIds: [...probeIds],
     executedProbeCount: probeResults.length,
     probeResults
   };
