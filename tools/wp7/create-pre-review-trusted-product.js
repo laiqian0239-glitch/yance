@@ -29,6 +29,10 @@ const ENV_BY_ARGUMENT = Object.freeze({
   '--trusted-node-executable': 'WP7_TRUSTED_NODE_EXECUTABLE',
   '--parlant-runtime': 'WP7_PARLANT_RUNTIME_ROOT',
   '--learning-runtime': 'WP7_LEARNING_RUNTIME_ROOT',
+  '--matrix-runtime-source': 'WP7_MATRIX_RUNTIME_SOURCE',
+  '--matrix-runtime-candidate-branch': 'WP7_MATRIX_RUNTIME_CANDIDATE_BRANCH',
+  '--matrix-runtime-candidate-commit': 'WP7_MATRIX_RUNTIME_CANDIDATE_COMMIT',
+  '--matrix-runtime-candidate-tree': 'WP7_MATRIX_RUNTIME_CANDIDATE_TREE',
   '--rcedit-path': 'WP7_RCEDIT_PATH',
   '--archive-tool-node-modules': 'WP7_ARCHIVE_TOOL_NODE_MODULES',
   '--platform-auth-config': 'WP7_PLATFORM_AUTH_CONFIG_PATH',
@@ -93,6 +97,9 @@ function resolveBuildInputs(options = {}) {
   const targetArch = argumentValue('--target-arch', { ...options, fallback: 'x64' });
   const allowNonWindowsReviewFixture = booleanArgument('--allow-non-windows-review-fixture', { ...options, envName: 'WP7_ALLOW_NON_WINDOWS_REVIEW_FIXTURE' });
   const electronNpmPackageRootValue = argumentValue('--electron-npm-package-root', options);
+  const candidateBranch = argumentValue('--matrix-runtime-candidate-branch', options);
+  const candidateCommit = argumentValue('--matrix-runtime-candidate-commit', options);
+  const candidateTree = argumentValue('--matrix-runtime-candidate-tree', options);
   if (targetPlatform !== 'win32' || targetArch !== 'x64') {
     fail('WP7_WINDOWS_FINAL_BUILD_REQUIRED', 'pre-review trusted product builder is bound to the Windows x64 release target', { targetPlatform, targetArch });
   }
@@ -110,6 +117,13 @@ function resolveBuildInputs(options = {}) {
     trustedNodeExecutable: assertRegular(argumentValue('--trusted-node-executable', options), 'WP7_NODE_RUNTIME_EXECUTABLE_MISSING', 'trusted Node executable'),
     parlantRuntimeSource: assertDirectory(argumentValue('--parlant-runtime', options), 'WP7_PARLANT_RUNTIME_REQUIRED', 'presealed Parlant runtime'),
     learningRuntimeSource: assertDirectory(argumentValue('--learning-runtime', options), 'WP7_LEARNING_RUNTIME_REQUIRED', 'presealed Learning runtime'),
+    matrixRuntimeSource: assertDirectory(argumentValue('--matrix-runtime-source', options), 'WP7_MATRIX_RUNTIME_REQUIRED', 'presealed Matrix runtime'),
+    matrixRuntimeIdentity: (() => {
+      if (!candidateBranch || !candidateCommit || !candidateTree) {
+        fail('WP7_MATRIX_RUNTIME_IDENTITY_REQUIRED', 'presealed Matrix runtime candidate identity is required');
+      }
+      return Object.freeze({ candidateBranch, candidateCommit, candidateTree });
+    })(),
     rceditPath: assertRegular(argumentValue('--rcedit-path', options), 'WP7_RCEDIT_EXECUTABLE_REQUIRED', 'trusted rcedit executable'),
     archiveToolNodeModules: assertDirectory(argumentValue('--archive-tool-node-modules', options), 'WP7_PRE_REVIEW_TRUSTED_PRODUCT_ARCHIVE_FAILED', 'isolated archive OSS node_modules'),
     platformAuthConfigPath: argumentValue('--platform-auth-config', options) ? assertRegular(argumentValue('--platform-auth-config', options), 'WP7_PLATFORM_AUTH_RELEASE_CONFIG_MISSING', 'sealed platform auth configuration') : null,
@@ -136,7 +150,7 @@ function run(options = {}) {
   const inputs = resolveBuildInputs(options);
   const {
     repoRoot, outputRoot, electronArchivePath, electronDist, electronNpmPackageRoot, productionNodeModulesSource,
-    trustedNodeExecutable, parlantRuntimeSource, learningRuntimeSource, rceditPath, archiveToolNodeModules, platformAuthConfigPath, platformAuthHashPath, requirePlatformAuth,
+    trustedNodeExecutable, parlantRuntimeSource, learningRuntimeSource, matrixRuntimeSource, matrixRuntimeIdentity, rceditPath, archiveToolNodeModules, platformAuthConfigPath, platformAuthHashPath, requirePlatformAuth,
     buildTimestampUtc, buildSessionId, targetPlatform, targetArch, allowNonWindowsReviewFixture
   } = inputs;
   if (!/^[0-9a-f]{16,64}$/.test(buildSessionId)) fail('WP7_PRE_REVIEW_BUILD_SESSION_ID_INVALID', 'build session ID must be 16-64 lowercase hexadecimal characters', { buildSessionId });
@@ -157,6 +171,8 @@ function run(options = {}) {
     trustedNodeExecutable,
     parlantRuntimeSource,
     learningRuntimeSource,
+    matrixRuntimeSource,
+    matrixRuntimeIdentity,
     electronArchivePath,
     rceditPath,
     platformAuthConfigPath,
@@ -248,6 +264,13 @@ function run(options = {}) {
     learningRuntimeSealSha256: built.runtime.learningRuntime.sealSha256,
     learningRuntimeTreeSha256: built.runtime.learningRuntime.treeSha256,
     learningRuntimeFileCount: built.runtime.learningRuntime.fileCount,
+    matrixRuntimeRelativePath: built.runtime.matrixRuntime.relativeRoot,
+    matrixRuntimeFileCount: built.runtime.matrixRuntime.fileCount,
+    matrixRuntimeManifestSha256: built.runtime.matrixRuntime.manifestSha256,
+    matrixRuntimeImagesTarSha256: built.runtime.matrixRuntime.imagesTarSha256,
+    matrixRuntimeCandidateBranch: built.runtime.matrixRuntime.manifest.candidateBranch,
+    matrixRuntimeCandidateCommit: built.runtime.matrixRuntime.manifest.candidateCommit,
+    matrixRuntimeCandidateTree: built.runtime.matrixRuntime.manifest.candidateTree,
     nativeBinaryScanSha256: closure.nativeBinaryScanSha256,
     nativeBinaryFileCount: closure.nativeBinaryScan.fileCount,
     nativeBinaryFailureCount: closure.nativeBinaryScan.failureCount,
