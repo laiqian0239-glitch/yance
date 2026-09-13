@@ -50,6 +50,8 @@ function assertPreReviewProductClassification(identity) {
 }
 const ENV_BY_ARGUMENT = Object.freeze({
   '--electron-archive': 'WP7_ELECTRON_RELEASE_ARCHIVE',
+  '--electron-npm-package-root': 'WP7_ELECTRON_NPM_PACKAGE_ROOT',
+  '--electron-dist': 'WP7_ELECTRON_DISTRIBUTION_ROOT',
   '--product-executable': 'WP7_PACKAGED_PRODUCT_EXECUTABLE',
   '--payload-root': 'WP7_PACKAGED_PAYLOAD_ROOT',
   '--resources-root': 'WP7_PACKAGED_RESOURCES_ROOT',
@@ -496,6 +498,8 @@ async function launchAll(options = {}) {
   const trust = verifyTrustedProductExecutable({
     repoRoot,
     electronArchivePath: options.electronArchivePath,
+    electronNpmPackageRoot: options.electronNpmPackageRoot,
+    electronDist: options.electronDist,
     productExecutablePath: options.productExecutablePath,
     payloadRoot: options.payloadRoot,
     platform: process.platform,
@@ -634,6 +638,8 @@ async function launchAll(options = {}) {
 if (require.main === module) {
   launchAll({
     electronArchivePath: arg('--electron-archive'),
+    electronNpmPackageRoot: arg('--electron-npm-package-root'),
+    electronDist: arg('--electron-dist'),
     productExecutablePath: arg('--product-executable'),
     payloadRoot: arg('--payload-root'),
     resourcesRoot: arg('--resources-root'),
