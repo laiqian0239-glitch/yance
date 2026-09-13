@@ -98,7 +98,7 @@ test('PowerShell Builder bootstraps Electron from the reviewed archive without n
   const script = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'RUN_WINDOWS_FINAL_BUILDER.ps1'), 'utf8');
   const skip = script.indexOf("$env:ELECTRON_SKIP_BINARY_DOWNLOAD = '1'");
   const npmCi = script.indexOf('& $NodeExe $NpmCli ci --no-audit --no-fund');
-  const extract = script.indexOf('Expand-ValidatedElectronArchive $ElectronArchive');
+  const extract = script.indexOf('Expand-ValidatedElectronArchive $ElectronArchive', npmStart);
   const trustedProductionNode = script.indexOf('$env:YANCE_NODE_EXE = $TrustedNodeExecutable', extract);
   assert.ok(skip >= 0 && npmCi > skip && extract > npmCi, 'Electron download must be disabled before npm ci and the reviewed archive extracted afterwards');
   assert.ok(trustedProductionNode > extract, 'Final Builder production npm install must use the trusted packaged Node runtime after root bootstrap');
@@ -202,7 +202,6 @@ test('formal Builder fails closed on actual final EXE and installer PE icon read
   const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
   assert.match(builder, /require\('\.\/pe-resource-editor'\)/u);
   assert.match(builder, /peResourceEditor\.assertBranding\(\{/u);
-  assert.match(builder, /allowedElectronExePath:\s*path\.join\(electronDist, 'electron\.exe'\)/u);
   assert.match(builder, /peResourceEditor\.extractIconImageSet\(/u);
   assert.match(builder, /peResourceEditor\.extractIconImageSetFromIcoFile\(/u);
   assert.match(builder, /verifyEmbeddedIconSet\(built\.outputFile, approvedIconPath, 'final NSIS installer'\)/u);
@@ -210,5 +209,6 @@ test('formal Builder fails closed on actual final EXE and installer PE icon read
   assert.match(builder, /productExecutableIconGroupSha256:\s*productExecutableBranding\.groupIconSha256/u);
   assert.match(builder, /installerIconStatus:\s*installerIconIdentity\.status/u);
   assert.match(builder, /installerIconGroupSha256:\s*installerIconIdentity\.groupIconSha256/u);
+  assert.doesNotMatch(builder, /allowedElectronExePath/u, 'Electron code-image equivalence remains owned by packaged-product-trust, not a duplicate runner check');
   assert.doesNotMatch(builder, /frontend['"],\s*'assets['"],\s*'icon\.ico/u);
 });
