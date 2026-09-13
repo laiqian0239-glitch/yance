@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const { signAuthenticode } = require('./windows-authenticode');
 const { spawnFailureDetails } = require('./host-command-runner');
 const { validateRoundPair } = require('../release-closure/windows-round-binding');
+const peResourceEditor = require('./pe-resource-editor');
 const {
   FINAL_PACKAGING_TOKEN,
   REPO_ROOT,
@@ -146,6 +147,30 @@ function canonicalTimestamp(value) {
   return value;
 }
 
+function iconSetDigest(values) {
+  return crypto.createHash('sha256').update(Buffer.from(values.join(''), 'utf8')).digest('hex');
+}
+
+function verifyEmbeddedIconSet(executablePath, approvedIconPath, label) {
+  assertFile(executablePath, label);
+  assertFile(approvedIconPath, 'approved Yance icon');
+  const pe = peResourceEditor.readPe(fs.readFileSync(executablePath));
+  const embedded = peResourceEditor.extractIconImageSet(pe);
+  if (!embedded || embedded.length === 0) throw new Error(`${label} does not contain embedded RT_ICON images`);
+  const approved = peResourceEditor.extractIconImageSetFromIcoFile(approvedIconPath);
+  const embeddedUnique = [...new Set(embedded)].sort();
+  const approvedUnique = [...new Set(approved)].sort();
+  const same = embeddedUnique.length === approvedUnique.length && embeddedUnique.every((hash, index) => hash === approvedUnique[index]);
+  if (!same) throw new Error(`${label} embedded RT_ICON images do not match the approved Yance icon`);
+  return Object.freeze({
+    status: 'PASS',
+    imageCount: embedded.length,
+    uniqueImageCount: embeddedUnique.length,
+    groupIconSha256: iconSetDigest(embeddedUnique),
+    approvedIconSha256: sha256File(approvedIconPath)
+  });
+}
+
 function createBuilderResult(options) {
   const repoRoot = fs.realpathSync(path.resolve(options.repoRoot || REPO_ROOT));
   if (repoRoot !== fs.realpathSync(REPO_ROOT)) throw new Error('builder runner must execute from its own frozen source repository');
@@ -164,6 +189,9 @@ function createBuilderResult(options) {
   const electronArchivePath = path.resolve(options.electronArchivePath);
   const compilerPath = path.resolve(options.compilerPath);
   const trustedNodeExecutable = path.resolve(options.trustedNodeExecutable);
+  const approvedIconPath = options.iconPath
+    ? path.resolve(options.iconPath)
+    : path.join(repoRoot, 'assets', 'branding', 'yance', 'generated', 'Yance.ico');
   const requirePlatformAuth = options.requirePlatformAuth === true;
   const platformAuthConfigPath = options.platformAuthConfigPath ? path.resolve(options.platformAuthConfigPath) : null;
   const platformAuthHashPath = options.platformAuthHashPath ? path.resolve(options.platformAuthHashPath) : null;
@@ -176,6 +204,7 @@ function createBuilderResult(options) {
   assertFile(electronArchivePath, 'official Electron archive');
   assertFile(compilerPath, 'NSIS compiler');
   assertFile(trustedNodeExecutable, 'trusted Node runtime executable');
+  assertFile(approvedIconPath, 'approved Yance icon');
   if (path.extname(compilerPath).toLowerCase() !== '.exe') throw new Error('formal NSIS compiler must be a native .exe');
   const compilerSha256 = sha256File(compilerPath);
   if (compilerSha256 !== options.expectedCompilerSha256) throw new Error(`NSIS compiler SHA256 mismatch: expected=${options.expectedCompilerSha256} actual=${compilerSha256}`);
@@ -237,7 +266,7 @@ function createBuilderResult(options) {
     electronArchivePath,
     compilerPath,
     rceditPath: options.rceditPath ? path.resolve(options.rceditPath) : undefined,
-    iconPath: options.iconPath ? path.resolve(options.iconPath) : path.join(repoRoot, 'assets', 'branding', 'yance', 'generated', 'Yance.ico'),
+    iconPath: approvedIconPath,
     trustedNodeExecutable: path.resolve(options.trustedNodeExecutable),
     matrixRuntimeSource: options.matrixRuntimeSource,
     matrixRuntimeIdentity: options.matrixRuntimeIdentity,
@@ -253,6 +282,16 @@ function createBuilderResult(options) {
       password: process.env.YANCE_WINDOWS_CERTIFICATE_PASSWORD
     }) : undefined
   });
+
+  const productExecutablePath = path.resolve(built.payloadRoot, ...String(built.productExecutable).split('/'));
+  const productExecutableBranding = peResourceEditor.assertBranding({
+    exePath: productExecutablePath,
+    iconPath: approvedIconPath,
+    releaseSource: built.releaseSource,
+    allowedElectronExePath: path.join(electronDist, 'electron.exe')
+  });
+  if (productExecutableBranding.status !== 'PASS') throw new Error('materialized Yance.exe branding readback did not PASS');
+  const installerIconIdentity = verifyEmbeddedIconSet(built.outputFile, approvedIconPath, 'final NSIS installer');
 
   const after = gitIdentity(repoRoot);
   assertActivationBinding(repoRoot, {
@@ -292,6 +331,12 @@ function createBuilderResult(options) {
     publicProductName: built.releaseSource.publicProductName,
     publicVersion: built.releaseSource.publicVersion,
     productVersion: built.releaseSource.productVersion,
+    productExecutableBrandingStatus: productExecutableBranding.status,
+    productExecutableIconGroupSha256: productExecutableBranding.groupIconSha256,
+    productExecutableIconSourceSha256: sha256File(approvedIconPath),
+    installerIconStatus: installerIconIdentity.status,
+    installerIconGroupSha256: installerIconIdentity.groupIconSha256,
+    installerIconSourceSha256: installerIconIdentity.approvedIconSha256,
     authenticodeStatus: built.authenticode?.signatureStatus || 'Unsigned',
     authenticodeSignerThumbprint: built.authenticode?.signerThumbprint || null,
     platformAuthConfigured: built.platformAuth?.configured === true,
@@ -329,7 +374,7 @@ function main(argv = process.argv.slice(2)) {
     buildTimestampUtc: args['build-timestamp-utc'],
     requireSignedInstaller: args['require-signed-installer'] === 'true',
     signingCertificatePath: args['signing-certificate'],
-    signToolPath: args['signtool-path'],
+    signToolPath: args['sign-tool-path'],
     timestampUrl: args['timestamp-url'],
     platformAuthConfigPath: args['platform-auth-config'],
     platformAuthHashPath: args['platform-auth-sha256'],
@@ -362,5 +407,6 @@ module.exports = {
   canonicalTimestamp,
   createBuilderResult,
   stderrFailureDocument,
-  parseArgs
+  parseArgs,
+  verifyEmbeddedIconSet
 };
