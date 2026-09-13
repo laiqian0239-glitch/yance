@@ -287,8 +287,7 @@ function createBuilderResult(options) {
   const productExecutableBranding = peResourceEditor.assertBranding({
     exePath: productExecutablePath,
     iconPath: approvedIconPath,
-    releaseSource: built.releaseSource,
-    allowedElectronExePath: path.join(electronDist, 'electron.exe')
+    releaseSource: built.releaseSource
   });
   if (productExecutableBranding.status !== 'PASS') throw new Error('materialized Yance.exe branding readback did not PASS');
   const installerIconIdentity = verifyEmbeddedIconSet(built.outputFile, approvedIconPath, 'final NSIS installer');
@@ -374,7 +373,7 @@ function main(argv = process.argv.slice(2)) {
     buildTimestampUtc: args['build-timestamp-utc'],
     requireSignedInstaller: args['require-signed-installer'] === 'true',
     signingCertificatePath: args['signing-certificate'],
-    signToolPath: args['sign-tool-path'],
+    signToolPath: args['signtool-path'],
     timestampUrl: args['timestamp-url'],
     platformAuthConfigPath: args['platform-auth-config'],
     platformAuthHashPath: args['platform-auth-sha256'],
