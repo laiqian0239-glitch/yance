@@ -106,7 +106,7 @@ test('trusted Linux CI materializes pinned Matrix sources, builds three images, 
   const composeCopyIndex = source.indexOf('cp tools/product-experience/materialized-matrix-compose.yml "$bundle/materialized-matrix-compose.yml"');
   const composeParseIndex = source.indexOf('docker compose -f "$bundle/materialized-matrix-compose.yml" config');
   const sealIndex = source.indexOf('create-materialized-uat-candidate.js seal', composeParseIndex);
-  const matrixUploadIndex = source.indexOf(MATRIX_ARTIFACT_PREFIX);
+  const matrixUploadIndex = source.indexOf(MATRIX_ARTIFACT_PREFIX, sealIndex);
   assert.ok(
     saveIndex >= 0 && composeCopyIndex > saveIndex && composeParseIndex > composeCopyIndex && sealIndex > composeParseIndex && matrixUploadIndex > sealIndex,
     'Matrix upload must follow exact materialized compose parse and candidate seal'
@@ -262,7 +262,7 @@ test('trusted Linux Matrix bootstrap keeps checkout native and scopes Git CRLF s
   assert.ok(cleanIndex > compareIndex, 'root git-clean proof must follow the ambient config restoration proof');
   assert.match(source, /ambient_core_autocrlf_before="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
   assert.match(source, /ambient_core_autocrlf_after="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
-  assert.match(source, /test "\$ambient_core_autocrlf_after" = "\$ambient_core_autocrlf_before"/u);
+  assert.match(source, /test "\$ambient_core_autocrlf_after" = "$ambient_core_autocrlf_before"/u);
   assert.doesNotMatch(source, /GIT_CONFIG_COUNT=1|GIT_CONFIG_KEY_0=core\.autocrlf|GIT_CONFIG_VALUE_0=true/u);
   assert.match(bootstrap, /const isStrictGitApply = command === 'git' && args\[0\] === 'apply'/u);
   assert.match(bootstrap, /env\.GIT_CONFIG_COUNT\s*=\s*['"]1['"]/u);
