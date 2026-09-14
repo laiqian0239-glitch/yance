@@ -701,6 +701,34 @@ test('production Matrix runtime keeps sealed resources read-only and projects dy
   assert.doesNotMatch(main, /matrix-mautrix-port-discovery-failed[\s\S]{0,200}warn/u, 'mautrix-meta port discovery must fail closed, not warn and continue');
   assert.match(main, /const metaPortResult = await dockerExec\(\[\.\.\.allArgs, 'port', 'mautrix-meta', '29319'\]/u);
   assert.match(main, /const mautrixProvisioningUrl = `http:\/\/127\.0\.0\.1:\$\{metaHostPort\}\/_matrix\/provision`/u);
+  assert.match(main, /const MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS = 300/u);
+  assert.match(main, /const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT = '5\.5\.1'/u);
+  assert.match(main, /dockerExec\(\['compose', 'version', '--short'\], \{ timeoutMs: 15000 \}\)/u);
+  assert.match(
+    main,
+    /timeout:\s*options\.timeoutMs === undefined \? 300000 : options\.timeoutMs/u,
+    'dockerExec must honor explicit timeoutMs=0 so Compose, not Node, owns readiness timeout'
+  );
+  assert.equal(
+    (main.match(/'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\)/gu) || []).length,
+    2,
+    'both production Compose readiness phases must use the mature --wait-timeout owner seam'
+  );
+  assert.equal(
+    (main.match(/\{ timeoutMs: 0, cwd: runtimeDir, env: composeEnv \}/gu) || []).length,
+    2,
+    'Node must not impose a competing lifecycle timeout around Compose --wait'
+  );
+  assert.doesNotMatch(
+    main,
+    /'up'[\s\S]{0,240}'--wait'[\s\S]{0,240}\{ timeoutMs: 300000, cwd: runtimeDir, env: composeEnv \}/u,
+    'production Compose readiness must not retain the retired Node 300s shadow deadline'
+  );
+  assert.match(
+    compose,
+    /condition:\s*service_completed_successfully/u,
+    'Compose version admission must cover the init dependency shape that previously exposed wait-timeout hangs'
+  );
 
   assert.match(compose, /\$\{YANCE_MATRIX_SYNAPSE_PORT_BINDING:-127\.0\.0\.1:8008:8008\}/u);
   assert.match(compose, /\$\{YANCE_MATRIX_ELEMENT_PORT_BINDING:-127\.0\.0\.1:8080:80\}/u);
