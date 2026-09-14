@@ -134,6 +134,24 @@
     "selectedAdoptionMode": "existing-repository-seam",
     "newGeneralPurposeInfrastructure": false,
     "thinYanceAdapterOnly": true,
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP0 exact-path routing authority",
+        "source": "governance/layered-ci/wp0-routing-policy.json + tools/layered-ci/select-wp0-route.js + tools/layered-ci/wp0-routing.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The base-owned WP0 router already fails closed for unknown paths and supports exact Product path registration; the missing 0019 identity requires one exact entry, not a new router, prefix, workflow, or branch bypass."
+      },
+      {
+        "name": "Existing Layered CI exact-path risk authority",
+        "source": "governance/layered-ci/risk-policy.json + tools/layered-ci/governance-policy.js",
+        "license": "N/A (same-repository governance seam)",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing Layered classifier already owns fail-closed L2 classification and only lacks the exact 0019 path identity; reusing l2ExactPaths preserves a single policy owner and avoids a second classifier."
+      }
+    ],
     "retireOrAvoid": [
       "No broad upstream-patches/ or upstream-patches/element-web/ prefix.",
       "No selector/workflow bypass, warning-only fallback, second router or second risk classifier.",
