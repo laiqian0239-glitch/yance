@@ -2981,8 +2981,9 @@ function startBackendProcessForCoordinator(options = {}) {
  *
  * Uses ONLY official Docker Desktop / Docker Engine / Docker Compose CLI.
  * No custom container runtime, port allocator, process supervisor, readiness
- * polling loop, or state machine. Readiness is delegated entirely to Compose
- * healthcheck + `up --wait`. Dynamic port discovery uses official
+ * polling loop, or state machine. Dependency/start completion and final
+ * running/healthy readiness remain delegated entirely to Compose public seams.
+ * Dynamic port discovery uses official
  * `docker compose port`. Runtime config projection is the narrowest transform
  * from sealed bundle config to host-reachable endpoints.
  */
@@ -3172,7 +3173,8 @@ async function stopMatrixCompose(projectDir, composeFiles) {
  * Two-phase startup resolves the dynamic-port / Element-config dependency:
  *   Phase 1 brings up Synapse+bridges and discovers the real Synapse host port.
  *   Phase 2 projects host-reachable configs and brings up Element via override.
- * Compose healthcheck + `up --wait` is the sole readiness authority.
+ * Each phase keeps dependency/start completion and final health waits inside
+ * Docker Compose; Yance only sequences the two mature public seams.
  */
 async function ensureMatrixRuntime() {
   if (process.env.YANCE_MATRIX_RUNTIME_DISABLED === '1') {
@@ -3252,11 +3254,20 @@ async function ensureMatrixRuntime() {
     desktopLog('info', 'matrix-images-loading', { candidateCommit });
     await dockerExec(['load', '-i', imagesTarPath], { timeoutMs: 300000 });
 
-    // 5. Phase 1: Synapse + bridges; Compose healthcheck/--wait owns readiness.
+    // 5. Phase 1: Compose owns both bounded dependency/start completion and
+    // final health readiness. The first public-seam call keeps the real
+    // service_completed_successfully DAG but avoids the aggregate --wait path
+    // that is frozen RED for this graph. The second call narrows the model to
+    // long-lived services only and forbids recreation while Compose waits.
     const baseArgs = matrixComposeBaseArgs(runtimeDir, [composeFile]);
     desktopLog('info', 'matrix-runtime-phase1-up', { project: MATRIX_COMPOSE_PROJECT });
     await dockerExec([
-      ...baseArgs, 'up', '-d', '--no-build', '--wait',
+      ...baseArgs, 'up', '-d', '--no-build',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
+      'synapse', 'mautrix-meta', 'mautrix-whatsapp'
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
+    await dockerExec([
+      ...baseArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
       '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
       'synapse', 'mautrix-meta', 'mautrix-whatsapp'
     ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
@@ -3270,12 +3281,20 @@ async function ensureMatrixRuntime() {
     const allComposeFiles = [composeFile, projection.overridePath];
     const allArgs = matrixComposeBaseArgs(runtimeDir, allComposeFiles);
 
-    // 8. Phase 2: bring up Element with the projected config.
+    // 8. Phase 2: keep the same mature two-pass contract. The full-project
+    // start pass retains orphan cleanup and the projected Element override;
+    // the reduced-model health pass intentionally omits --remove-orphans so
+    // omitted one-shot services can never be reclassified as cleanup targets.
     desktopLog('info', 'matrix-runtime-phase2-up', { synapseHostPort });
     await dockerExec([
-      ...allArgs, 'up', '-d', '--no-build', '--wait',
+      ...allArgs, 'up', '-d', '--no-build',
       '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
       '--remove-orphans'
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
+    await dockerExec([
+      ...allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
+      'element', 'synapse', 'mautrix-meta', 'mautrix-whatsapp'
     ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
     // 9. Discover Element + mautrix-meta dynamic host ports.

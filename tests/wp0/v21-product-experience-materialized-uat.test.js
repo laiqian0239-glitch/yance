@@ -711,13 +711,28 @@ test('production Matrix runtime keeps sealed resources read-only and projects dy
   );
   assert.equal(
     (main.match(/'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\)/gu) || []).length,
-    2,
-    'both production Compose readiness phases must use the mature --wait-timeout owner seam'
+    4,
+    'both production phases must keep bounded Compose ownership across dependency/start and health passes'
   );
   assert.equal(
     (main.match(/\{ timeoutMs: 0, cwd: runtimeDir, env: composeEnv \}/gu) || []).length,
+    4,
+    'Node must not impose a competing lifecycle timeout around any Compose readiness pass'
+  );
+  assert.equal(
+    (main.match(/'--no-deps', '--no-recreate', '--wait'/gu) || []).length,
     2,
-    'Node must not impose a competing lifecycle timeout around Compose --wait'
+    'each final health pass must use the reduced Compose model without recreating already-started services'
+  );
+  assert.match(
+    main,
+    /\.\.\.baseArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse', 'mautrix-meta', 'mautrix-whatsapp'[\s\S]{0,180}\.\.\.baseArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse', 'mautrix-meta', 'mautrix-whatsapp'/u,
+    'phase 1 must preserve the real dependency DAG only in the bounded start pass, then wait on long-lived services only'
+  );
+  assert.match(
+    main,
+    /\.\.\.allArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'--remove-orphans'[\s\S]{0,220}\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'element', 'synapse', 'mautrix-meta', 'mautrix-whatsapp'/u,
+    'phase 2 must keep full-project orphan cleanup in start pass and exclude it from the reduced-model health pass'
   );
   assert.doesNotMatch(
     main,
