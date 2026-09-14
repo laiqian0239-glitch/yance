@@ -54,6 +54,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260830-existing-data-startup-recovery-v2'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260911-matrix-runtime'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260912-final-builder-rc-internal-closure-v6'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260914-invite-only-product-login-p0'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
     'product/v21-product-experience-bilingual-search-translation-task-ux-p0',
@@ -78,6 +79,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2',
     'rebuild/windows-release-closure-20260911-matrix-runtime',
     'rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6',
+    'rebuild/windows-release-closure-20260914-invite-only-product-login-p0',
     'release/v21-final-rc-uat-p0',
     'release/v21-final-rc-uat-p0-successor-v2',
     'release/v21-final-rc-uat-p0-successor-v3',
@@ -154,6 +156,11 @@ test('Product Experience final validation is an exact-head same-repository pull-
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260912-final-builder-rc-internal-closure-v6'/gu) || []).length,
     3,
     'Final Builder successor-v6 must be admitted by exactly the three existing Product Final job guards'
+  );
+  assert.equal(
+    (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260914-invite-only-product-login-p0'/gu) || []).length,
+    3,
+    'invite-only Product login successor must be admitted by exactly the three existing Product Final job guards'
   );
   assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
   assert.match(source, /runs-on:\s*windows-latest/u);
