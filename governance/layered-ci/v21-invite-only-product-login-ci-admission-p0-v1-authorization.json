@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-INVITE-ONLY-PRODUCT-LOGIN-CI-ADMISSION-P0-V1",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "base": {
+    "branch": "main",
+    "commit": "a01c6c691c305fd75469c815e7c69d513d466012",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-invite-only-product-login-ci-admission-p0-v1-authorization",
+    "allowedChangedPaths": ["governance/layered-ci/v21-invite-only-product-login-ci-admission-p0-v1-authorization.json"],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "50bfa275a1c43d7d65623993b01301a574ab1b80a43bcc349df9cf8399b35d7e",
+    "mustRemainSingleFile": true
+  },
+  "implementation": {
+    "branch": "fix/v21-invite-only-product-login-ci-admission-p0-v1",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-product-experience-shell-p0-final-validation.yml",
+      "tests/layered-ci/v21-product-experience-shell-p0-final-validation.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "0fe120e1cd4c2692f06a11c3becc1d5db4324efcbaf59f2cc62154b008fd9d6e",
+    "workflowModificationAllowed": true,
+    "routingPolicyModificationAllowed": false,
+    "riskPolicyModificationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "testModificationAllowed": true
+  },
+  "causalBatch": {
+    "rootCause": "REMOTE_PROMOTION_ADMISSION / PRODUCT_FINAL_SUCCESSOR_BRANCH_NOT_ADMITTED",
+    "controllerState": "V5.473",
+    "nextProductSuccessorBranch": "rebuild/windows-release-closure-20260914-invite-only-product-login-p0",
+    "requiredClosure": [
+      "Add the exact successor branch to the three existing Product Final literal job guards.",
+      "Add the exact successor branch to the existing static exact-allowlist contract.",
+      "Preserve exact-head, same-repository and existing Product Final validation behavior.",
+      "Do not add wildcard or prefix branch admission."
+    ]
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}
