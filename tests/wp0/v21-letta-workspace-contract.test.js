@@ -150,10 +150,14 @@ test('Letta IPC contracts remain readonly projections without arbitrary path or 
   assert.equal(Object.prototype.hasOwnProperty.call(conversations.inputSchema?.properties || {}, 'command'), false);
 });
 
-test('Letta IPC manifest validation summary and source locations stay traceable', () => {
+test('Letta IPC manifest authoritative arrays and source locations stay traceable without mirror counts', () => {
   const manifest = readJson('electron/m2/ipcManifest.json');
-  const rendererToMain = manifest.handlers.filter(handler => handler.direction === 'renderer-to-main');
-  assert.equal(manifest.validationSummary?.rendererToMainHandlerCount, rendererToMain.length, 'declared renderer-to-main count must equal actual handlers');
+  assert.equal(Object.prototype.hasOwnProperty.call(manifest, 'validationSummary'), false, 'derived validation summary must stay retired instead of mirroring authoritative arrays');
+  assert.equal(manifest.handlers.every(handler => handler.direction === 'renderer-to-main'), true, 'handlers[] is the renderer-to-main contract authority');
+  assert.equal(manifest.outboundRendererChannels.every(channel => channel.direction === 'main-to-renderer'), true, 'outboundRendererChannels[] is the main-to-renderer contract authority');
+  assert.equal(new Set(manifest.handlers.map(handler => handler.channel)).size, manifest.handlers.length, 'renderer-to-main channels must stay unique');
+  assert.equal(new Set(manifest.outboundRendererChannels.map(channel => channel.channel)).size, manifest.outboundRendererChannels.length, 'main-to-renderer channels must stay unique');
+  assert.equal(new Set(manifest.denylist.map(entry => entry.action)).size, manifest.denylist.length, 'denylist actions must stay unique without a mirrored count');
   const byChannel = new Map(manifest.handlers.map(handler => [handler.channel, handler]));
   for (const channel of CHANNELS) {
     const contract = byChannel.get(channel);

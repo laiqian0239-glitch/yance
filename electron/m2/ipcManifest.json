@@ -5318,16 +5318,6 @@
       "m2RequiredAction": "standardize payload schema and lifecycle guards"
     }
   ],
-  "validationSummary": {
-    "rendererToMainHandlerCount": 85,
-    "mainToRendererChannelCount": 8,
-    "allRendererToMainHandlersHaveRequiredFields": true,
-    "allOutboundChannelsHaveRequiredFields": true,
-    "denylistCount": 9,
-    "sourceModificationPerformed": false,
-    "testingStarted": false,
-    "windowsVerificationStarted": false
-  },
   "moduleBoundary": {
     "M2Allowed": [
       "Electron main lifecycle",
