@@ -195,28 +195,8 @@ const FIXED_PRODUCT_SYSTEM_STORE = Object.freeze({
     backendExecutionModule: 'backend/routes/personalAccess.js',
     producesBusinessSideEffect: false
   },
-  [CHANNELS.personalAccessSubmitRequest]: {
-    backendRoute: '/api/r32/personal-access/submit-request',
-    backendExecutionModule: 'backend/routes/personalAccess.js',
-    producesBusinessSideEffect: true
-  },
-  [CHANNELS.personalAccessRefreshRequest]: {
-    backendRoute: '/api/r32/personal-access/refresh-request',
-    backendExecutionModule: 'backend/routes/personalAccess.js',
-    producesBusinessSideEffect: true
-  },
-  [CHANNELS.personalAccessOwnerRequests]: {
-    backendRoute: '/api/r32/personal-access/owner/requests',
-    backendExecutionModule: 'backend/routes/personalAccess.js',
-    producesBusinessSideEffect: false
-  },
-  [CHANNELS.personalAccessOwnerRequestMutation]: {
-    backendRoute: '/api/r32/personal-access/owner/requests/:requestId/:action',
-    backendExecutionModule: 'backend/routes/personalAccess.js',
-    producesBusinessSideEffect: true
-  },
-  [CHANNELS.personalAccessOwnerGrantMutation]: {
-    backendRoute: '/api/r32/personal-access/owner/grants/:grantId/:action',
+  [CHANNELS.personalAccessActivate]: {
+    backendRoute: '/api/r32/personal-access/activate',
     backendExecutionModule: 'backend/routes/personalAccess.js',
     producesBusinessSideEffect: true
   },

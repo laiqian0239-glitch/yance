@@ -208,7 +208,7 @@ function createCandidate(options) {
     buildId: seal.document.buildId,
     trustedProductArchiveSha256: sha256File(productArchive),
     officialElectronArchiveSha256: sha256File(electronArchive),
-    trustedProductProbeExecutions: 'PASS_9_OF_9',
+    trustedProductProbeExecutions: 'PASS_PRE_ENTITLEMENT_6_DEFER_ENTITLED_3',
     independentReviewStatus: 'PENDING',
     preAcceptanceIssued: false,
     finalPackagingAuthorized: false,

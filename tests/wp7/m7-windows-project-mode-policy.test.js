@@ -33,7 +33,9 @@ const { resolveBuildInputs } = require('../../tools/wp7/create-pre-review-truste
 const { runtimeExecutableName } = require('../../tools/wp7/node-runtime-identity');
 const { applicationPayloadFilesystemIdentitySha256 } = require('../../tools/wp7/filesystem-identity');
 const { createPreReviewSealedArtifact, readAndVerifyPreReviewSealedArtifact } = require('../../tools/wp7/pre-review-sealed-artifact');
-const { verifyOuterCandidateZip } = require('../../tools/wp7/verify-convergence-pre-review-candidate');
+function verifyOuterCandidateZip(...args) {
+  return require('../../tools/wp7/verify-convergence-pre-review-candidate').verifyOuterCandidateZip(...args);
+}
 
 const REPO = path.resolve(__dirname, '..', '..');
 const temporaryRoots = new Set();
@@ -306,6 +308,8 @@ test('M1-M10 Windows release closure resolves WP7 builder inputs without POSIX s
   const productionNodeModules = path.join(root, 'node_modules');
   const parlantRuntime = path.join(root, 'parlant-runtime');
   const learningRuntime = path.join(root, 'learning-runtime');
+  const archiveToolNodeModules = path.join(root, 'archive-tool-node-modules');
+  const matrixRuntime = path.join(root, 'matrix-runtime');
   const trustedNode = path.join(root, 'node.exe');
   const trustedRcedit = path.join(root, 'rcedit.exe');
   const output = path.join(root, 'output');
@@ -314,6 +318,8 @@ test('M1-M10 Windows release closure resolves WP7 builder inputs without POSIX s
   fs.mkdirSync(productionNodeModules);
   fs.mkdirSync(parlantRuntime);
   fs.mkdirSync(learningRuntime);
+  fs.mkdirSync(archiveToolNodeModules);
+  fs.mkdirSync(matrixRuntime);
   fs.writeFileSync(trustedNode, 'fixture');
   fs.writeFileSync(trustedRcedit, 'fixture');
   const env = {
@@ -322,9 +328,13 @@ test('M1-M10 Windows release closure resolves WP7 builder inputs without POSIX s
     WP7_PRODUCTION_NODE_MODULES: productionNodeModules,
     WP7_PARLANT_RUNTIME_ROOT: parlantRuntime,
     WP7_LEARNING_RUNTIME_ROOT: learningRuntime,
+    WP7_MATRIX_RUNTIME_SOURCE: matrixRuntime,
+    WP7_MATRIX_RUNTIME_CANDIDATE_BRANCH: 'test/matrix-runtime',
+    WP7_MATRIX_RUNTIME_CANDIDATE_COMMIT: '1111111111111111111111111111111111111111',
+    WP7_MATRIX_RUNTIME_CANDIDATE_TREE: '2222222222222222222222222222222222222222',
     WP7_TRUSTED_NODE_EXECUTABLE: trustedNode,
     WP7_RCEDIT_PATH: trustedRcedit,
-    WP7_ARCHIVE_TOOL_NODE_MODULES: path.join(REPO, 'node_modules'),
+    WP7_ARCHIVE_TOOL_NODE_MODULES: archiveToolNodeModules,
     WP7_PRE_REVIEW_PRODUCT_OUTPUT: output,
     WP7_PRE_REVIEW_BUILD_TIMESTAMP_UTC: '2026-07-11T00:00:00.000Z',
     WP7_PRE_REVIEW_BUILD_SESSION_ID: '0123456789abcdef',
@@ -335,14 +345,41 @@ test('M1-M10 Windows release closure resolves WP7 builder inputs without POSIX s
   assert.equal(resolved.targetArch, 'x64');
   assert.equal(resolved.electronArchivePath, fs.realpathSync(electronArchive));
   assert.equal(resolved.productionNodeModulesSource, fs.realpathSync(productionNodeModules));
+  assert.equal(resolved.matrixRuntimeSource, fs.realpathSync(matrixRuntime));
+  assert.equal(resolved.matrixRuntimeIdentity.candidateBranch, 'test/matrix-runtime');
+  assert.equal(resolved.matrixRuntimeIdentity.candidateCommit, '1111111111111111111111111111111111111111');
+  assert.equal(resolved.matrixRuntimeIdentity.candidateTree, '2222222222222222222222222222222222222222');
   assert.equal(resolved.rceditPath, fs.realpathSync(trustedRcedit));
   assert.throws(
     () => resolveBuildInputs({ argv: [], env: { ...env, WP7_RCEDIT_PATH: '' } }),
     (error) => error?.reasonCode === 'WP7_RCEDIT_EXECUTABLE_REQUIRED'
   );
+  assert.throws(
+    () => resolveBuildInputs({ argv: [], env: { ...env, WP7_MATRIX_RUNTIME_SOURCE: '' } }),
+    (error) => error?.reasonCode === 'WP7_MATRIX_RUNTIME_REQUIRED'
+  );
+  for (const key of ['WP7_MATRIX_RUNTIME_CANDIDATE_BRANCH', 'WP7_MATRIX_RUNTIME_CANDIDATE_COMMIT', 'WP7_MATRIX_RUNTIME_CANDIDATE_TREE']) {
+    assert.throws(
+      () => resolveBuildInputs({ argv: [], env: { ...env, [key]: '' } }),
+      (error) => error?.reasonCode === 'WP7_MATRIX_RUNTIME_IDENTITY_REQUIRED'
+    );
+  }
   const builderSource = fs.readFileSync(path.join(REPO, 'tools', 'wp7', 'create-pre-review-trusted-product.js'), 'utf8');
-  assert.match(builderSource, /buildFinalWindowsPayload\(\{[\s\S]*rceditPath/);
+  assert.match(builderSource, /buildFinalWindowsPayload\(\{[\s\S]*matrixRuntimeSource,[\s\S]*matrixRuntimeIdentity,[\s\S]*rceditPath/);
   assert.match(builderSource, /rceditSha256:\s*sha256File\(rceditPath\)/);
+  for (const field of [
+    'matrixRuntimeRelativePath',
+    'matrixRuntimeFileCount',
+    'matrixRuntimeManifestSha256',
+    'matrixRuntimeImagesTarSha256',
+    'matrixRuntimeCandidateBranch',
+    'matrixRuntimeCandidateCommit',
+    'matrixRuntimeCandidateTree'
+  ]) {
+    assert.match(builderSource, new RegExp(`${field}:`));
+  }
+  assert.match(builderSource, /matrixRuntimeRelativePath:\s*built\.runtime\.matrixRuntime\.relativeRoot/);
+  assert.match(builderSource, /matrixRuntimeCandidateBranch:\s*built\.runtime\.matrixRuntime\.manifest\.candidateBranch/);
   assert.equal(resolved.outputRoot, path.resolve(output));
   const script = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8')).scripts['build:wp7:pre-review-product'];
   assert.equal(script, 'node tools/wp7/create-pre-review-trusted-product.js');

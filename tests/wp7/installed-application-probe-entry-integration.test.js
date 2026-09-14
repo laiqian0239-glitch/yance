@@ -19,7 +19,12 @@ const {
 } = require('../../tools/wp7/packaged-payload-closure');
 const { readReviewedBinding, verifyProductionDependencyClosure, validateBindingDocument, walkDependencyFilesystem, treeHash, normalizedDependencyMode, normalizedDependencyDirectoryMode } = require('../../tools/wp7/production-dependency-binding');
 const { applicationPayloadFilesystemIdentitySha256 } = require('../../tools/wp7/filesystem-identity');
-const { FORMAL_PROBE_IDS, assertFormalProbeIdSet } = require('../../shared/wp7/formalProbeIds');
+const {
+  ENTITLED_PRODUCT_PROBE_IDS,
+  FORMAL_PROBE_IDS,
+  PRE_ENTITLEMENT_PROBE_IDS,
+  assertFormalProbeIdSet
+} = require('../../shared/wp7/formalProbeIds');
 const { createTrustedProductProbeBlocker, readFormalProbeScope } = require('../../tools/wp7/trusted-product-probe-scope');
 const wp1 = require('../../tools/wp1/lib');
 const { createFakeElectronDist, createFakeTrustedNodeRuntime, fakeElectronOfficialRecords, productionDependencyFixture, cloneDirectoryFast, detachFile, remapPaths, createFakeRceditRunner } = require('./helpers');
@@ -361,16 +366,23 @@ test('full packaged result validator rejects fake document, wrong identity, plat
   }
 });
 
-test('formal packaged command launches product executable and does not pin only first-start', () => {
+test('formal pre-review packaged command launches product executable and executes exactly the pre-entitlement scope', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'));
   const script = pkg.scripts['test:wp7:packaged-electron'];
   assert.equal(script, 'node tools/wp7/run-packaged-electron-probe-integration.js');
   assert.doesNotMatch(script, /\$WP7_|%WP7_|--installer-sha256|--probe-id\s+first-start/);
   const runner = fs.readFileSync(path.join(REPO, 'tools', 'wp7', 'run-packaged-electron-probe-integration.js'), 'utf8');
   for (const token of ['--product-executable', '--electron-archive', '--pre-review-sealed-artifact', 'WP7_PACKAGED_PRODUCT_EXECUTABLE', 'WP7_ELECTRON_RELEASE_ARCHIVE', 'WP7_PRE_REVIEW_SEALED_ARTIFACT']) assert.match(runner, new RegExp(token));
-  assert.match(runner, /const probeIds = requestedProbeId \? \[requestedProbeId\] : FORMAL_PROBE_IDS/);
+  assert.match(runner, /const probeIds = requestedProbeId \? \[requestedProbeId\] : PRE_ENTITLEMENT_PROBE_IDS/);
+  assert.match(runner, /ENTITLED_PRODUCT_PROBE_IDS\.includes\(requestedProbeId\)/);
+  assert.match(runner, /WP7_PRE_REVIEW_PRODUCT_ENTITLEMENT_REQUIRED/);
+  assert.match(runner, /WP7_PACKAGED_YANCE_PRE_ENTITLEMENT_PROBE_INTEGRATION_RESULT/);
   assert.match(runner, /for \(const probeId of probeIds\)/);
   assert.match(runner, /executable:\s*context\.trust\.productExecutable/);
+  assert.match(runner, /formalProbeFailsafeWatchdogMs\(options\.timeoutMs\)/);
+  assert.match(runner, /fallback:\s*FORMAL_PROBE_FAILSAFE_WATCHDOG_MS/);
+  assert.doesNotMatch(runner, /fallback:\s*180000/);
+  assert.doesNotMatch(runner, /options\.timeoutMs \|\| 180000/);
   assert.doesNotMatch(runner, /spawnSync\(trust\.productExecutable,\s*\['--version'\]/);
 });
 
@@ -413,7 +425,7 @@ test('formal pre-review product and evidence commands require actual reviewed in
 
   const generator = fs.readFileSync(path.join(REPO, 'tools', 'wp7', 'generate-pre-review-evidence.js'), 'utf8');
   for (const token of ['--probe-output-dir', '--nine-probe-result', '--pre-review-sealed-artifact', '--trusted-product-archive', '--electron-archive', '--build-json', '--verification-root', '--output-dir', 'WP7_PROBE_OUTPUT_DIR', 'WP7_NINE_PROBE_RESULT', 'WP7_PRE_REVIEW_EVIDENCE_OUTPUT']) assert.match(generator, new RegExp(token));
-  assert.match(generator, /validateNineProbeRawEvidence/);
+  assert.match(generator, /validatePreEntitlementProbeRawEvidence/);
   assert.match(generator, /readAndVerifyPreReviewSealedArtifact/);
   assert.match(generator, /WP7_PRE_REVIEW_EVIDENCE_INDEX\.json/);
   assert.match(generator, /WP7_PRE_REVIEW_INTERNAL_SHA256\.txt/);
@@ -676,10 +688,17 @@ test('Windows dependency mode policy is explicit and machine-readable', () => {
   assert.throws(() => normalizedDependencyDirectoryMode(0o40222, 'win32'), (error) => error?.reasonCode === 'WP7_PRODUCTION_DEPENDENCY_DIRECTORY_MODE_MISMATCH');
 });
 
-test('formal trusted-product probe IDs have one executable and governance authority', () => {
+test('formal trusted-product probe IDs and the pre-entitlement/Product partition have one executable and governance authority', () => {
   const scope = readFormalProbeScope(REPO);
+  assert.equal(scope.document.schemaVersion, 2);
   assert.deepEqual(scope.document.formalProbeIds, [...FORMAL_PROBE_IDS]);
   assert.equal(scope.document.requiredProbeCount, 9);
+  assert.deepEqual(scope.document.preEntitlementProbeIds, [...PRE_ENTITLEMENT_PROBE_IDS]);
+  assert.equal(scope.document.preEntitlementProbeCount, 6);
+  assert.deepEqual(scope.document.entitledProductProbeIds, [...ENTITLED_PRODUCT_PROBE_IDS]);
+  assert.equal(scope.document.entitledProductProbeCount, 3);
+  assert.equal(scope.document.preReviewRunnerExecutesPreEntitlementOnly, true);
+  assert.equal(scope.document.finalWindowsHarnessRequiresAllFormalProbes, true);
   const blocker = createTrustedProductProbeBlocker({ repoRoot: REPO, sourceCommit: 'a'.repeat(40), sourceTree: 'b'.repeat(40), generatedAtUtc: '2026-07-06T00:00:00.000Z' });
   assert.deepEqual(blocker.formalProbeIds, [...FORMAL_PROBE_IDS]);
   assert.equal(blocker.required, 9);

@@ -62,17 +62,20 @@ router.get('/health', (_req, res) => {
     architectureGovernance
   });
 });
-router.get('/release-identity', (_req, res) => res.json({
-  schemaVersion: 1,
-  documentType: 'YANCE_BACKEND_DIAGNOSTICS_RELEASE_IDENTITY',
-  consumer: 'diagnostics',
-  producerType: 'backend-diagnostics-endpoint',
-  producerProcess: 'backend/routes/system.js',
-  producerPid: process.pid,
-  sourceKind: 'http-endpoint',
-  observedAtUtc: new Date().toISOString(),
-  ...identityTuple(getBackendReleaseIdentity())
-}));
+function releaseIdentityDocument() {
+  return {
+    schemaVersion: 1,
+    documentType: 'YANCE_BACKEND_DIAGNOSTICS_RELEASE_IDENTITY',
+    consumer: 'diagnostics',
+    producerType: 'backend-diagnostics-endpoint',
+    producerProcess: 'backend/routes/system.js',
+    producerPid: process.pid,
+    sourceKind: 'http-endpoint',
+    observedAtUtc: new Date().toISOString(),
+    ...identityTuple(getBackendReleaseIdentity())
+  };
+}
+router.get('/release-identity', (_req, res) => res.json(releaseIdentityDocument()));
 router.get('/runtime', (_req, res) => res.json({ ok: true, runtime: runtimeRecovery.status() }));
 router.get('/update-preflight', async (req, res, next) => { try { const output = await getAppRuntime().executeBusinessCommand({ command: 'update.preflight', payload: {}, context: { actor: 'system-route', correlationId: req.get('x-correlation-id') || '' } }); res.json(output.result); } catch (error) { next(error); } });
 router.post('/runtime/recover', async (req, res, next) => { try { res.json({ ok: true, runtime: await runtimeRecovery.recover(req.body?.reason || 'manual') }); } catch (error) { next(error); } });
@@ -249,3 +252,4 @@ router.post('/speech/transcribe', async (req, res, next) => {
 });
 
 module.exports = router;
+module.exports.releaseIdentityDocument = releaseIdentityDocument;

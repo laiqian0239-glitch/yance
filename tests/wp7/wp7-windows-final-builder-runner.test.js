@@ -171,7 +171,7 @@ test('formal Builder defaults to the canonical generated Yance icon authority', 
   const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
   assert.match(builder, /path\.join\(repoRoot, 'assets', 'branding', 'yance', 'generated', 'Yance\.ico'\)/u);
   assert.doesNotMatch(builder, /path\.join\(repoRoot, 'frontend', 'assets', 'icon\.ico'\)/u);
-  assert.match(builder, /iconPath:\s*options\.iconPath \? path\.resolve\(options\.iconPath\) :/u);
+  assert.match(builder, /iconPath:\s*approvedIconPath/u);
 });
 
 test('release workflow downloads and verifies the same-source sealed Matrix runtime before Final Builder', () => {
@@ -196,4 +196,19 @@ test('release workflow downloads and verifies the same-source sealed Matrix runt
   assert.match(builder, /matrixRuntimeIdentity:\s*options\.matrixRuntimeIdentity/u);
   assert.match(builder, /matrixRuntimeRelativeRoot/u);
   assert.match(builder, /matrixRuntimeImagesTarSha256/u);
+});
+
+test('formal Builder fails closed on actual final EXE and installer PE icon readback', () => {
+  const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
+  assert.match(builder, /require\('\.\/pe-resource-editor'\)/u);
+  assert.match(builder, /peResourceEditor\.assertBranding\(\{/u);
+  assert.match(builder, /peResourceEditor\.extractIconImageSet\(/u);
+  assert.match(builder, /peResourceEditor\.extractIconImageSetFromIcoFile\(/u);
+  assert.match(builder, /verifyEmbeddedIconSet\(built\.outputFile, approvedIconPath, 'final NSIS installer'\)/u);
+  assert.match(builder, /productExecutableBrandingStatus:\s*productExecutableBranding\.status/u);
+  assert.match(builder, /productExecutableIconGroupSha256:\s*productExecutableBranding\.groupIconSha256/u);
+  assert.match(builder, /installerIconStatus:\s*installerIconIdentity\.status/u);
+  assert.match(builder, /installerIconGroupSha256:\s*installerIconIdentity\.groupIconSha256/u);
+  assert.doesNotMatch(builder, /allowedElectronExePath/u, 'Electron code-image equivalence remains owned by packaged-product-trust, not a duplicate runner check');
+  assert.doesNotMatch(builder, /frontend['"],\s*'assets['"],\s*'icon\.ico/u);
 });

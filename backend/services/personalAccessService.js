@@ -1,57 +1,51 @@
 'use strict';
 
-const { randomUUID } = require('node:crypto');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
+const { matrixBaseUrl, matrixServerName } = require('./synapseSharedSecretRegistration');
 
-const REQUEST_STATES = Object.freeze(['PENDING', 'ASSIGNED', 'APPROVED', 'REJECTED']);
-const GRANT_STATES = Object.freeze(['ACTIVE', 'SUSPENDED', 'REVOKED']);
 const OWNER_CREDENTIAL_REF = 'personal-access.owner-admin';
-const INSTALLATION_CREDENTIAL_REF = 'personal-access.installation';
+const INVITATION_CREDENTIAL_REF = 'personal-access.invitation-key';
 
-function clean(value) { return String(value == null ? '' : value).trim(); }
+function clean(value) {
+  return String(value == null ? '' : value).trim();
+}
 
-function evaluateEntitlement({ ownerCredentialPresent = false, installationId = '', remoteState = null } = {}) {
-  if (ownerCredentialPresent) {
-    return Object.freeze({ role: 'OWNER', usable: true, reasonCode: 'OWNER_PERMANENT_ACCESS' });
-  }
-  if (!remoteState) {
-    return Object.freeze({ role: 'TESTER', usable: false, reasonCode: 'REMOTE_AUTHORITY_UNAVAILABLE' });
-  }
-  const requestState = clean(remoteState.requestState || remoteState.state).toUpperCase();
-  const grantState = clean(remoteState.grantState).toUpperCase();
-  const localInstallationId = clean(installationId);
-  const remoteInstallationId = clean(remoteState.installationId);
-  if (remoteState.role && clean(remoteState.role).toUpperCase() !== 'TESTER') {
-    return Object.freeze({ role: 'TESTER', usable: false, reasonCode: 'REMOTE_ROLE_INVALID', requestState, grantState });
-  }
-  if (requestState === 'PENDING') return Object.freeze({ role: 'TESTER', usable: false, reasonCode: 'REQUEST_PENDING', requestState, grantState: grantState || null });
-  if (requestState === 'ASSIGNED') return Object.freeze({ role: 'TESTER', usable: false, reasonCode: 'REQUEST_ASSIGNED', requestState, grantState: grantState || null });
-  if (requestState === 'REJECTED') return Object.freeze({ role: 'TESTER', usable: false, reasonCode: 'REQUEST_REJECTED', requestState, grantState: grantState || null });
-  if (requestState !== 'APPROVED') return Object.freeze({ role: 'TESTER', usable: false, reasonCode: 'REQUEST_NOT_APPROVED', requestState: requestState || null, grantState: grantState || null });
-  if (grantState === 'SUSPENDED') return Object.freeze({ role: 'TESTER', usable: false, reasonCode: 'GRANT_SUSPENDED', requestState, grantState });
-  if (grantState === 'REVOKED') return Object.freeze({ role: 'TESTER', usable: false, reasonCode: 'GRANT_REVOKED', requestState, grantState });
-  if (grantState !== 'ACTIVE') return Object.freeze({ role: 'TESTER', usable: false, reasonCode: 'GRANT_NOT_ACTIVE', requestState, grantState: grantState || null });
-  if (!localInstallationId || !remoteInstallationId || localInstallationId !== remoteInstallationId) {
-    return Object.freeze({ role: 'TESTER', usable: false, reasonCode: 'INSTALLATION_MISMATCH', requestState, grantState });
-  }
-  return Object.freeze({ role: 'TESTER', usable: true, reasonCode: 'TESTER_ACTIVE', requestState, grantState, installationId: localInstallationId });
+function record(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
 function normalizeAuthorityUrl(value) {
   const raw = clean(value).replace(/\/+$/u, '');
   if (!raw) return '';
   let parsed;
-  try { parsed = new URL(raw); } catch (_) { return ''; }
+  try {
+    parsed = new URL(raw);
+  } catch (_) {
+    return '';
+  }
   if (!['http:', 'https:'].includes(parsed.protocol)) return '';
   return parsed.toString().replace(/\/+$/u, '');
 }
 
-function createRemoteError(code, message, status = 503) {
+function fail(code, message, status = 403) {
   const error = new Error(message);
   error.code = code;
   error.reasonCode = code;
   error.status = status;
   return error;
+}
+
+function stableEntitlement(fields = {}) {
+  return Object.freeze({
+    ok: true,
+    role: fields.role || 'TESTER',
+    usable: fields.usable === true,
+    reasonCode: fields.reasonCode || 'PERSONAL_ACCESS_REQUIRED',
+    ...(fields.subject ? { subject: fields.subject } : {}),
+    ...(fields.keyId ? { keyId: fields.keyId } : {}),
+    ...(fields.expires ? { expires: fields.expires } : {}),
+    ...(fields.workerRequestId ? { workerRequestId: fields.workerRequestId } : {})
+  });
 }
 
 class PersonalAccessService {
@@ -63,7 +57,8 @@ class PersonalAccessService {
         : () => getSecurityGuard().credentials;
     this.fetchImpl = options.fetchImpl || globalThis.fetch;
     this.authorityUrl = normalizeAuthorityUrl(options.authorityUrl ?? process.env.YANCE_PERSONAL_ACCESS_AUTHORITY_URL);
-    this.ownerAdminSecretEnv = clean(options.ownerAdminSecret ?? process.env.YANCE_PERSONAL_ACCESS_OWNER_ADMIN_SECRET);
+    this.matrixBaseUrl = matrixBaseUrl(options);
+    this.matrixServerName = matrixServerName(options);
     this.requestTimeoutMs = Math.max(1000, Number(options.requestTimeoutMs || 5000));
   }
 
@@ -71,118 +66,138 @@ class PersonalAccessService {
     return this.credentialStoreProvider?.() || null;
   }
 
-  ownerCredential() {
-    const stored = this.resolveCredentialStore()?.get?.(OWNER_CREDENTIAL_REF) || null;
-    const secret = clean(stored?.secret || stored?.value || this.ownerAdminSecretEnv);
-    return secret ? Object.freeze({ secret, source: stored ? 'credentialStore' : 'environment' }) : null;
+  ownerMarkerPresent() {
+    return Boolean(this.resolveCredentialStore()?.get?.(OWNER_CREDENTIAL_REF));
   }
 
-  installationReceipt() {
-    const stored = this.resolveCredentialStore()?.get?.(INSTALLATION_CREDENTIAL_REF) || null;
-    const installationId = clean(stored?.installationId || process.env.YANCE_PERSONAL_ACCESS_INSTALLATION_ID);
-    const requestId = clean(stored?.requestId);
-    return Object.freeze({ installationId, requestId });
+  storedInvitation() {
+    const stored = record(this.resolveCredentialStore()?.get?.(INVITATION_CREDENTIAL_REF));
+    return clean(stored.key);
   }
 
-  async ensureInstallationReceipt() {
-    const current = this.installationReceipt();
-    if (current.installationId) return current;
-    const next = { installationId: randomUUID(), requestId: '' };
-    await this.resolveCredentialStore().persist(INSTALLATION_CREDENTIAL_REF, next, { actor: 'backend-core' });
-    return Object.freeze(next);
+  async persistInvitation(key) {
+    const cleanKey = clean(key);
+    if (!cleanKey) throw fail('INVITATION_KEY_REQUIRED', 'Invitation key is required', 400);
+    const store = this.resolveCredentialStore();
+    if (!store || typeof store.persist !== 'function') throw fail('CREDENTIAL_STORE_UNAVAILABLE', 'Credential store is unavailable', 503);
+    await store.persist(INVITATION_CREDENTIAL_REF, { key: cleanKey }, { actor: 'backend-core' });
   }
 
-  async persistReceipt(receipt) {
-    const next = { installationId: clean(receipt?.installationId), requestId: clean(receipt?.requestId) };
-    if (!next.installationId) throw createRemoteError('INSTALLATION_ID_REQUIRED', 'Installation id is required', 400);
-    await this.resolveCredentialStore().persist(INSTALLATION_CREDENTIAL_REF, next, { actor: 'backend-core' });
-    return Object.freeze(next);
-  }
-
-  async remote(pathname, options = {}) {
-    if (!this.authorityUrl || typeof this.fetchImpl !== 'function') throw createRemoteError('REMOTE_AUTHORITY_UNAVAILABLE', 'Personal access authority is not configured');
+  async boundedFetch(url, options = {}, code = 'REMOTE_AUTHORITY_UNAVAILABLE') {
+    if (typeof this.fetchImpl !== 'function') throw fail(code, 'Fetch authority is unavailable', 503);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.requestTimeoutMs);
     timer.unref?.();
-    let response;
     try {
-      response = await this.fetchImpl(`${this.authorityUrl}${pathname}`, {
-        method: options.method || 'GET',
-        headers: { 'content-type': 'application/json', ...(options.headers || {}) },
-        body: options.body === undefined ? undefined : JSON.stringify(options.body),
-        signal: controller.signal
-      });
+      const response = await this.fetchImpl(url, { ...options, signal: controller.signal });
+      const text = await response.text();
+      let body = {};
+      try {
+        body = text ? JSON.parse(text) : {};
+      } catch (_) {
+        body = {};
+      }
+      if (!response.ok || body.ok === false) throw fail(clean(body.reasonCode || body.code || code), 'Authority rejected personal access verification', Number(response.status || 502));
+      return body;
     } catch (error) {
-      throw createRemoteError('REMOTE_AUTHORITY_UNAVAILABLE', error?.name === 'AbortError' ? 'Personal access authority timed out' : 'Personal access authority is unavailable');
+      if (error?.reasonCode || error?.code) throw error;
+      throw fail(code, error?.name === 'AbortError' ? 'Authority timed out' : 'Authority is unavailable', 503);
     } finally {
       clearTimeout(timer);
     }
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload.ok === false) {
-      throw createRemoteError(clean(payload.code || payload.reasonCode || 'REMOTE_AUTHORITY_REJECTED'), clean(payload.message || 'Personal access authority rejected the request'), Number(response.status || 502));
-    }
-    return payload;
   }
 
-  async status() {
-    const owner = this.ownerCredential();
-    const receipt = this.installationReceipt();
-    if (owner) return { ok: true, ...evaluateEntitlement({ ownerCredentialPresent: true, installationId: receipt.installationId }), installationId: receipt.installationId || null };
-    if (!receipt.installationId) return { ok: true, role: 'TESTER', usable: false, reasonCode: 'INSTALLATION_UNREGISTERED', installationId: null, requestId: null };
-    if (!receipt.requestId) return { ok: true, role: 'TESTER', usable: false, reasonCode: 'REQUEST_NOT_SUBMITTED', installationId: receipt.installationId, requestId: null };
+  async matrixSubject(matrixOpenId = {}) {
+    const proof = record(matrixOpenId);
+    const accessToken = clean(proof.access_token || proof.accessToken);
+    const tokenType = clean(proof.token_type || proof.tokenType);
+    const serverName = clean(proof.matrix_server_name || proof.matrixServerName);
+    if (!accessToken) throw fail('MATRIX_OPENID_TOKEN_REQUIRED', 'Matrix OpenID token is required', 400);
+    if (serverName !== this.matrixServerName) throw fail('MATRIX_OPENID_SERVER_MISMATCH', 'Matrix OpenID token is not from the configured server', 403);
+    if (tokenType && tokenType.toLowerCase() !== 'bearer') throw fail('MATRIX_OPENID_TOKEN_TYPE_INVALID', 'Matrix OpenID token type is invalid', 403);
+    const url = `${this.matrixBaseUrl.replace(/\/+$/u, '')}/_matrix/federation/v1/openid/userinfo?access_token=${encodeURIComponent(accessToken)}`;
+    const body = await this.boundedFetch(url, { method: 'GET' }, 'MATRIX_OPENID_USERINFO_UNAVAILABLE');
+    const subject = clean(body.sub);
+    if (!subject) throw fail('MATRIX_OPENID_SUBJECT_MISSING', 'Matrix OpenID userinfo did not return a subject', 502);
+    return subject;
+  }
+
+  async verifyInvitationForSubject(key, subject) {
+    const invitationKey = clean(key);
+    const matrixSubject = clean(subject);
+    if (!invitationKey) return stableEntitlement({ reasonCode: 'INVITATION_REQUIRED' });
+    if (!this.authorityUrl) return stableEntitlement({ reasonCode: 'UNKEY_AUTHORITY_UNAVAILABLE' });
+    let body;
     try {
-      const remoteState = await this.remote(`/status?requestId=${encodeURIComponent(receipt.requestId)}&installationId=${encodeURIComponent(receipt.installationId)}`);
-      return { ok: true, ...evaluateEntitlement({ installationId: receipt.installationId, remoteState }), installationId: receipt.installationId, requestId: receipt.requestId, remoteState };
+      body = await this.boundedFetch(`${this.authorityUrl}/verify`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ key: invitationKey })
+      }, 'UNKEY_AUTHORITY_UNAVAILABLE');
     } catch (error) {
-      return { ok: true, ...evaluateEntitlement({ installationId: receipt.installationId, remoteState: null }), installationId: receipt.installationId, requestId: receipt.requestId, remoteErrorCode: error.code || 'REMOTE_AUTHORITY_UNAVAILABLE' };
+      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'UNKEY_AUTHORITY_UNAVAILABLE' });
     }
-  }
-
-  async submitRequest(input = {}) {
-    if (this.ownerCredential()) return { ok: true, ...(await this.status()) };
-    const receipt = await this.ensureInstallationReceipt();
-    const payload = await this.remote('/requests', {
-      method: 'POST',
-      body: { installationId: receipt.installationId, displayName: clean(input.displayName).slice(0, 120) }
+    const identity = record(body.identity);
+    const externalId = clean(identity.externalId);
+    if (body.valid !== true) return stableEntitlement({ reasonCode: clean(body.code) || 'UNKEY_ENTITLEMENT_INVALID' });
+    if (body.enabled === false) return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_DISABLED' });
+    const expires = clean(body.expires);
+    if (expires && Number.isFinite(Date.parse(expires)) && Date.parse(expires) <= Date.now()) {
+      return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_EXPIRED', expires });
+    }
+    if (!externalId || externalId !== matrixSubject) return stableEntitlement({ reasonCode: 'MATRIX_SUBJECT_MISMATCH', subject: matrixSubject, keyId: clean(body.keyId) });
+    return stableEntitlement({
+      role: 'TESTER',
+      usable: true,
+      reasonCode: 'ENTITLEMENT_VALID',
+      subject: matrixSubject,
+      keyId: clean(body.keyId),
+      expires,
+      workerRequestId: clean(body.requestId)
     });
-    const requestId = clean(payload.id || payload.requestId);
-    if (!requestId) throw createRemoteError('REMOTE_AUTHORITY_INVALID_RESPONSE', 'Personal access authority did not return a request id', 502);
-    await this.persistReceipt({ installationId: receipt.installationId, requestId });
-    return this.status();
   }
 
-  async refreshRequest() { return this.status(); }
-  async authorizeProductRequest() { return this.status(); }
-
-  async ownerRemote(pathname, options = {}) {
-    const owner = this.ownerCredential();
-    if (!owner) throw createRemoteError('OWNER_ACCESS_REQUIRED', 'OWNER credential is required', 403);
-    return this.remote(pathname, { ...options, headers: { ...(options.headers || {}), authorization: `Bearer ${owner.secret}` } });
+  async status(input = {}) {
+    if (this.ownerMarkerPresent()) return stableEntitlement({ role: 'OWNER', usable: true, reasonCode: 'OWNER_PERMANENT_ACCESS' });
+    const key = this.storedInvitation();
+    if (!key) return stableEntitlement({ reasonCode: 'INVITATION_REQUIRED' });
+    let subject;
+    try {
+      subject = await this.matrixSubject(input.matrixOpenId);
+    } catch (error) {
+      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'MATRIX_OPENID_REQUIRED' });
+    }
+    return this.verifyInvitationForSubject(key, subject);
   }
 
-  async listOwnerRequests() { return this.ownerRemote('/owner/requests'); }
-  async mutateOwnerRequest(requestId, action) {
-    const id = clean(requestId);
-    const op = clean(action).toLowerCase();
-    if (!id || !['assign', 'approve', 'reject'].includes(op)) throw createRemoteError('INVALID_OWNER_REQUEST_MUTATION', 'Invalid request mutation', 400);
-    return this.ownerRemote(`/owner/requests/${encodeURIComponent(id)}/${op}`, { method: 'POST', body: {} });
+  async activate(input = {}) {
+    if (this.ownerMarkerPresent()) return this.status(input);
+    const invitationKey = clean(input.invitationKey);
+    if (!invitationKey) return stableEntitlement({ reasonCode: 'INVITATION_KEY_REQUIRED' });
+    let subject;
+    try {
+      subject = await this.matrixSubject(input.matrixOpenId);
+    } catch (error) {
+      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'MATRIX_OPENID_REQUIRED' });
+    }
+    const entitlement = await this.verifyInvitationForSubject(invitationKey, subject);
+    if (entitlement.usable !== true) return entitlement;
+    await this.persistInvitation(invitationKey);
+    return this.verifyInvitationForSubject(invitationKey, subject);
   }
-  async mutateOwnerGrant(grantId, action) {
-    const id = clean(grantId);
-    const op = clean(action).toLowerCase();
-    if (!id || !['suspend', 'revoke'].includes(op)) throw createRemoteError('INVALID_OWNER_GRANT_MUTATION', 'Invalid grant mutation', 400);
-    return this.ownerRemote(`/owner/grants/${encodeURIComponent(id)}/${op}`, { method: 'POST', body: {} });
+
+  async authorizeProductRequest(input = {}) {
+    return this.status(input);
   }
 }
 
-function createPersonalAccessService(options = {}) { return new PersonalAccessService(options); }
+function createPersonalAccessService(options = {}) {
+  return new PersonalAccessService(options);
+}
 
 module.exports = {
-  REQUEST_STATES,
-  GRANT_STATES,
   OWNER_CREDENTIAL_REF,
-  INSTALLATION_CREDENTIAL_REF,
-  evaluateEntitlement,
+  INVITATION_CREDENTIAL_REF,
   PersonalAccessService,
   createPersonalAccessService
 };
