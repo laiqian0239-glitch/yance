@@ -890,19 +890,31 @@ test('Product Final RED diagnostics preserve Windows process identity evidence',
   assert.match(source, /server\.jsonl/u);
 });
 
-test('materialized UAT preserves first-use local Matrix identity without public Synapse registration', () => {
+test('materialized UAT uses invitation JWT login and has no retired local Matrix account entry', () => {
   const homeserver = read('config/matrix/synapse/homeserver.yaml');
   const login = read('integration/element-module/src/YanceLogin.tsx');
-  const service = read('backend/services/endUserMatrixIdentityService.js');
+  const server = read('backend/server.js');
   const bridge = read('electron/r32StoreBridge.js');
+  const preload = read('electron/preload.js');
+  const inventory = read('tools/wp2/command-path-inventory.js');
+  const personalAccess = read('backend/services/personalAccessService.js');
+  const materializedCompose = read('tools/product-experience/materialized-matrix-compose.yml');
 
   assert.match(homeserver, /^enable_registration:\s*false\s*$/mu);
-  assert.match(login, /data-yance-local-matrix-identity="first-use"/u);
-  assert.match(login, /data-yance-login-form-host="element-auth"[\s\S]*?\{children\}/u);
-  assert.match(service, /YANCE_LOCAL_MATRIX_HUMAN_IDENTITY_RECEIPT_V1/u);
-  assert.match(service, /registerSynapseUserWithSharedSecret/u);
-  assert.match(bridge, /\/api\/desktop\/matrix-local-identity/u);
-  assert.doesNotMatch(login, /_matrix\/client|m\.login\.password|accessToken|fetch\s*\(/u);
+  assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
+  assert.match(login, /overwriteAccountAuth/u);
+  assert.match(personalAccess, /jwt\.sign/u);
+  assert.match(personalAccess, /org\.matrix\.login\.jwt/u);
+  assert.match(personalAccess, /_matrix\/client\/v3\/login/u);
+  assert.match(materializedCompose, /yance_jwt_config\.yaml/u);
+  assert.match(materializedCompose, /issuer: yance-personal-access/u);
+  assert.match(materializedCompose, /audiences:/u);
+  assert.match(materializedCompose, /- yance\.local/u);
+  assert.match(bridge, /\/api\/r32\/personal-access\/login/u);
+  for (const source of [server, bridge, preload, inventory]) {
+    assert.doesNotMatch(source, /matrixLocalIdentity|matrix-local-identity|endUserMatrixIdentityService/u);
+  }
+  assert.doesNotMatch(login, /data-yance-local-matrix-identity="first-use"|m\.login\.password|fetch\s*\(/u);
 });
 
 test('backendEnvironment forwards the five Matrix backend authority env keys before child spawn', () => {

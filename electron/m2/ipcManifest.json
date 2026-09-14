@@ -4740,7 +4740,7 @@
       "crossModuleDependency": "Existing M3 Personal Access backend, Matrix OpenID userinfo, and Unkey Worker verify authority."
     },
     {
-      "channel": "store:personal-access-activate",
+      "channel": "store:personal-access-login",
       "direction": "renderer-to-main",
       "phase": "trusted-ready",
       "inputSchema": {
@@ -4751,6 +4751,68 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 512
+          }
+        },
+        "required": [
+          "invitationKey"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "usable": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "accountAuth": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": []
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "invitationKey",
+        "accountAuth.accessToken"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 390
+      },
+      "rendererExposure": {
+        "api": "loginPersonalAccess",
+        "file": "electron/preload.js",
+        "line": 169
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Consumes a transient invitation key, receives a transient Matrix accountAuth from the backend JWT login seam, and hands it to Element overwriteAccountAuth only.",
+      "m2RequiredAction": "Do not persist invitation keys or Matrix access tokens in M2; keep Element as the account/session authority.",
+      "crossModuleDependency": "Existing M3 Personal Access backend, Synapse JWT login, and Element AccountAuth overwrite authority."
+    },
+    {
+      "channel": "store:personal-access-activate",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
           },
           "matrixOpenId": {
             "type": "object",
@@ -4758,7 +4820,7 @@
           }
         },
         "required": [
-          "invitationKey",
+          "keyId",
           "matrixOpenId"
         ]
       },
@@ -4771,7 +4833,6 @@
       "allowedDuringRestart": false,
       "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
       "sensitiveFields": [
-        "invitationKey",
         "matrixOpenId.access_token"
       ],
       "ipcType": "invoke",
@@ -4786,12 +4847,12 @@
       },
       "risk": "P0",
       "m2Scope": true,
-      "currentObservation": "Activates only an opaque invitation key after backend Matrix subject and Unkey identity verification.",
-      "m2RequiredAction": "Persist only the opaque invitation key in the existing credential authority; never persist grant state or Matrix tokens.",
+      "currentObservation": "Persists only a non-secret Unkey keyId receipt after backend Matrix OpenID subject and Unkey getKey identity verification.",
+      "m2RequiredAction": "Persist only { keyId } in the existing credential authority; never persist raw invitation keys or Matrix tokens.",
       "crossModuleDependency": "Existing M3 Personal Access backend, Matrix OpenID userinfo, and Unkey Worker verify authority."
     },
     {
-      "channel": "desktop:matrix-local-identity-status",
+      "channel": "store:personal-access-logout",
       "direction": "renderer-to-main",
       "phase": "trusted-ready",
       "inputSchema": {
@@ -4812,78 +4873,20 @@
       "ipcType": "invoke",
       "handler": {
         "file": "electron/r32StoreBridge.js",
-        "line": 267
+        "line": 395
       },
       "rendererExposure": {
-        "api": "getMatrixLocalIdentity",
+        "api": "logoutPersonalAccess",
         "file": "electron/preload.js",
-        "line": 143
+        "line": 174
       },
       "risk": "P0",
       "m2Scope": true,
-      "currentObservation": "Reads the non-secret local human Matrix identity receipt through the existing local desktop API security boundary before Personal Access entitlement.",
-      "m2RequiredAction": "Keep Element as the Matrix session authority; M2 may only forward this non-secret status endpoint and must not expose Matrix client login or access tokens.",
-      "crossModuleDependency": "Existing local Synapse shared-secret registration authority and Element login surface."
+      "currentObservation": "Clears only the non-secret Personal Access keyId receipt before Element owns explicit Matrix logout.",
+      "m2RequiredAction": "Do not implement Matrix logout or session lifecycle in M2; only clear the Personal Access receipt projection.",
+      "crossModuleDependency": "Existing M3 Personal Access backend and Element AccountAuth logout authority."
     },
-    {
-      "channel": "desktop:matrix-local-identity-create",
-      "direction": "renderer-to-main",
-      "phase": "trusted-ready",
-      "inputSchema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "localpart": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 64
-          },
-          "password": {
-            "type": "string",
-            "minLength": 12,
-            "maxLength": 512
-          },
-          "confirmPassword": {
-            "type": "string",
-            "minLength": 12,
-            "maxLength": 512
-          }
-        },
-        "required": [
-          "localpart",
-          "password",
-          "confirmPassword"
-        ]
-      },
-      "outputSchema": {
-        "type": "object",
-        "additionalProperties": true
-      },
-      "requiresBackendReady": true,
-      "allowedDuringQuitting": false,
-      "allowedDuringRestart": false,
-      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
-      "sensitiveFields": [
-        "password",
-        "confirmPassword"
-      ],
-      "ipcType": "invoke",
-      "handler": {
-        "file": "electron/r32StoreBridge.js",
-        "line": 268
-      },
-      "rendererExposure": {
-        "api": "createMatrixLocalIdentity",
-        "file": "electron/preload.js",
-        "line": 144
-      },
-      "risk": "P0",
-      "m2Scope": true,
-      "currentObservation": "Creates the one allowed local human Matrix identity by forwarding username/password once to the backend-owned shared-secret Synapse registration helper.",
-      "m2RequiredAction": "Keep password transient, store only a non-secret receipt, reject duplicate provisioning, keep Synapse public registration disabled, and keep Element as the only login/session authority.",
-      "crossModuleDependency": "Existing local Synapse shared-secret registration authority and Element login surface."
-    },
-    {
+            {
       "channel": "store:platform-accounts-list",
       "direction": "renderer-to-main",
       "phase": "trusted-ready",

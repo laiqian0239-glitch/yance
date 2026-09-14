@@ -45,13 +45,14 @@ test('brand preview assets remain available but are not the normal Product works
   assert.match(workspace, /ProductExperienceShell/u);
 });
 
-test('Yance login owns final product visual authority while preserving Element auth authority', () => {
+test('Yance login owns invite-only visual authority while preserving Element account-auth authority', () => {
   const moduleIndex = read('integration/element-module/src/index.tsx');
   const login = read('integration/element-module/src/YanceLogin.tsx');
   const styles = read('integration/element-module/src/YanceLogin.css');
 
   assert.match(login, /data-yance-login-authority="v2"/u);
-  assert.match(login, /data-yance-login-form-host="element-auth"/u);
+  assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
+  assert.match(login, /data-yance-invitation-login="jwt-overwrite-account-auth"/u);
   assert.match(login, /欢迎回来/u);
   assert.match(login, /让每一次沟通/u);
   assert.match(login, /yance-login-card/u);
@@ -65,34 +66,34 @@ test('Yance login owns final product visual authority while preserving Element a
 
   assert.match(
     moduleIndex,
-    /registerLoginComponent\s*\([\s\S]*?originalComponent\(props\)/u
+    /registerLoginComponent\s*\([\s\S]*?<YanceLogin accountAuthApi=\{accountAuthApi\}/u
   );
 
-  // Authentication remains on Element's reviewed login implementation.
+  // Matrix session installation remains on Element's reviewed AccountAuth implementation.
+  assert.match(login, /overwriteAccountAuth/u);
   assert.doesNotMatch(login, /fetch\s*\(/u);
   assert.doesNotMatch(login, /_matrix\/client/u);
   assert.doesNotMatch(login, /m\.login\.password/u);
-  assert.doesNotMatch(login, /accessToken/u);
 });
 
-test('Yance login first-use setup creates only a local Matrix identity and keeps Element as login authority', () => {
+test('Yance login does not expose local Matrix account creation or raw Element password controls', () => {
   const login = read('integration/element-module/src/YanceLogin.tsx');
   const styles = read('integration/element-module/src/YanceLogin.css');
   const preload = read('electron/preload.js');
 
-  assert.match(login, /data-yance-local-matrix-identity="first-use"/u);
-  assert.match(login, /getMatrixLocalIdentity/u);
-  assert.match(login, /createMatrixLocalIdentity/u);
-  assert.match(login, /请用同一密码在下方登录/u);
-  assert.match(login, /data-yance-login-form-host="element-auth"[\s\S]*?\{children\}/u);
+  assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
+  assert.match(login, /loginPersonalAccess/u);
+  assert.match(login, /overwriteAccountAuth/u);
+  assert.doesNotMatch(login, /data-yance-local-matrix-identity="first-use"/u);
+  assert.doesNotMatch(login, /getMatrixLocalIdentity/u);
+  assert.doesNotMatch(login, /createMatrixLocalIdentity/u);
+  assert.doesNotMatch(login, /请用同一密码在下方登录/u);
   assert.match(styles, /\.yance-login-local-identity\s*\{/u);
-  assert.match(preload, /getMatrixLocalIdentity/u);
-  assert.match(preload, /createMatrixLocalIdentity/u);
+  assert.doesNotMatch(preload, /getMatrixLocalIdentity|createMatrixLocalIdentity/u);
 
   assert.doesNotMatch(login, /fetch\s*\(/u);
   assert.doesNotMatch(login, /_matrix\/client/u);
   assert.doesNotMatch(login, /m\.login\.password/u);
-  assert.doesNotMatch(login, /accessToken/u);
 });
 
 test('Element auth surface routes anonymous startup to the registered Yance V2 login via login_for_welcome', () => {
@@ -123,11 +124,10 @@ test('Element auth surface routes anonymous startup to the registered Yance V2 l
   const moduleIndex = read('integration/element-module/src/index.tsx');
   const login = read('integration/element-module/src/YanceLogin.tsx');
   assert.match(moduleIndex, /registerLoginComponent\s*\(/u);
-  assert.match(moduleIndex, /originalComponent\(props\)/u);
-  // Authentication authority stays on Element's reviewed login implementation.
+  assert.match(moduleIndex, /overwriteAccountAuth/u);
+  // Authentication authority stays on Element's reviewed AccountAuth implementation.
   assert.doesNotMatch(login, /fetch\s*\(/u);
   assert.doesNotMatch(login, /_matrix\/client/u);
-  assert.doesNotMatch(login, /accessToken/u);
   assert.doesNotMatch(login, /m\.login\.password/u);
 });
 
@@ -211,5 +211,5 @@ test('Yance owns post-login security presentation while Element keeps crypto and
   assert.match(patch, /SetupEncryptionBody/u);
   assert.match(patch, /InitialCryptoSetupDialog/u);
   assert.match(patch, /originalComponent/u);
-  assert.doesNotMatch(login, /fetch\s*\(|_matrix\/client|accessToken|m\.login\.password/u);
+  assert.doesNotMatch(login, /fetch\s*\(|_matrix\/client|m\.login\.password/u);
 });

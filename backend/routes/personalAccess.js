@@ -14,9 +14,25 @@ function createPersonalAccessRouter({ personalAccessService } = {}) {
     }
   });
 
+  router.post('/login', async (req, res, next) => {
+    try {
+      res.json(await personalAccessService.login(req.body || {}));
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post('/activate', async (req, res, next) => {
     try {
       res.json(await personalAccessService.activate(req.body || {}));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post('/logout', async (_req, res, next) => {
+    try {
+      res.json(await personalAccessService.logout());
     } catch (error) {
       next(error);
     }
