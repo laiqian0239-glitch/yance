@@ -212,6 +212,7 @@
     "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
     "upstream-patches/element-web/0017-yance-product-conversation-control.patch",
     "upstream-patches/element-web/0018-yance-post-login-security-shell.patch",
+    "upstream-patches/element-web/0019-yance-module-openid-token.patch",
     "config/upstreams/v21-agent-lightning-p1.json",
     "runtime/deep-training/agent-lightning/agent_lightning_entrypoint.py",
     "runtime/deep-training/agent-lightning/generate_runtime_sbom.py",
