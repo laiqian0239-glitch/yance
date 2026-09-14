@@ -22,7 +22,11 @@ const {
 const { assertNoCallerClaims } = require('./final-context');
 const { validateMeasurements } = require('../../electron/wp7InstalledRuntimeProbe');
 const { readPreMainProof } = require('./linux-network-isolation');
-const { FORMAL_PROBE_IDS, assertFormalProbeIdSet } = require('../../shared/wp7/formalProbeIds');
+const {
+  FORMAL_PROBE_FAILSAFE_WATCHDOG_MS,
+  FORMAL_PROBE_IDS,
+  assertFormalProbeIdSet
+} = require('../../shared/wp7/formalProbeIds');
 const { finalOutputs, FINAL_RELEASE_PATH, AGGREGATE_PATH } = require('./final-evidence');
 
 const WINDOWS_VALIDATION_TOKEN = 'WP7_FINAL_WINDOWS_VALIDATION_AUTHORIZED';
@@ -191,7 +195,11 @@ function executeTrustedStep(step, context = {}) {
       } : {})
     },
     encoding: 'utf8',
-    timeout: step.timeoutMs || 180000,
+    // Formal application probes must not be preempted by the harness before
+    // the packaged Product's mature lifecycle owners finish. Keep only a
+    // catastrophic fail-safe boundary; non-Product utility steps retain their
+    // existing command-specific timeout behavior.
+    timeout: context.probeId ? FORMAL_PROBE_FAILSAFE_WATCHDOG_MS : (step.timeoutMs || 180000),
     maxBuffer: step.maxBufferBytes || 32 * 1024 * 1024,
     windowsHide: true
   });
@@ -523,7 +531,7 @@ function runWindowsFinalHarness(config, options = {}) {
             '--installer-sha256', common.installerSha256,
             '--product-executable-sha256', sha256File(applicationExecutablePath),
             '--main-entry-sha256', sha256File(mainEntryPath),
-            '--watchdog-ms', '300000'
+            '--watchdog-ms', String(FORMAL_PROBE_FAILSAFE_WATCHDOG_MS)
           ]
         }, { rawRoot });
         commandResults.push(disable.record);

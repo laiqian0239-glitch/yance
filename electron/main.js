@@ -1384,8 +1384,7 @@ function wp7RunSafeModeScenario(sources) {
       legacyRoot: wp7LegacyRoot,
       desktopSettingsPath: settingsStore?.filePath || path.join(DATA_ROOT, 'desktop-settings.json'),
       rendererStorageSession: ensureWp7RendererStorageSession(),
-      projectionSnapshot: () => runtimeProjectionCoordinator?.snapshot?.() || {},
-      pollOnce: () => runtimeProjectionCoordinator.pollOnce()
+      runtimeSnapshot: () => runtimeApiV2Client.getBootstrapSnapshot({ requireTrusted: true, expectedBuildId: releaseIdentity().buildId })
     });
   }
   return wp7SafeModeScenarioRunner(sources);
@@ -1445,7 +1444,7 @@ async function runWp7InstalledRuntimeProbe() {
     getBackendReady: () => wp7ProbeBackendReadyDocument(),
     readElectronIdentity: (resourcesPath) => getElectronReleaseIdentity({ resourcesPath, expectedBuildId: identity.buildId, reload: true }),
     readInstallerIdentityReceipt,
-    getDiagnosticsIdentity: () => apiRequest('/api/r32/system/release-identity'),
+    getDiagnosticsIdentity: () => apiRequest('/api/desktop/release-identity'),
     identityObservationRoot: () => path.join(path.resolve(process.env.WP7_PROBE_ROOT), 'release-identity-observations'),
     ownerSnapshot: () => trustedBackendProjection(),
     knownOwnerPids: () => [...wp7KnownOwnerPids],
@@ -1472,7 +1471,7 @@ async function runWp7InstalledRuntimeProbe() {
   });
   const operations = createInstalledRuntimeProbeOperations({
     ...adapter,
-    runtimeSnapshot: () => runtimeApiV2Client.getSnapshot({ requireTrusted: true, expectedBuildId: identity.buildId }),
+    runtimeSnapshot: () => runtimeApiV2Client.getBootstrapSnapshot({ requireTrusted: true, expectedBuildId: identity.buildId }),
     projectionSnapshot: () => runtimeProjectionCoordinator.snapshot(),
     stopBackend: (options) => stopBackend(options),
     dataRoot: DATA_ROOT,
@@ -2982,8 +2981,9 @@ function startBackendProcessForCoordinator(options = {}) {
  *
  * Uses ONLY official Docker Desktop / Docker Engine / Docker Compose CLI.
  * No custom container runtime, port allocator, process supervisor, readiness
- * polling loop, or state machine. Readiness is delegated entirely to Compose
- * healthcheck + `up --wait`. Dynamic port discovery uses official
+ * polling loop, or state machine. Dependency/start completion and final
+ * running/healthy readiness remain delegated entirely to Compose public seams.
+ * Dynamic port discovery uses official
  * `docker compose port`. Runtime config projection is the narrowest transform
  * from sealed bundle config to host-reachable endpoints.
  */
@@ -2991,6 +2991,9 @@ const crypto = require('crypto');
 const MATRIX_COMPOSE_PROJECT = 'yance-runtime';
 const MATRIX_MANIFEST_FILE = 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json';
 const MATRIX_COMPOSE_FILE = 'materialized-matrix-compose.yml';
+const MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS = 300;
+const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION = Object.freeze([5, 5, 1]);
+const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT = '5.5.1';
 
 // Tracks ephemeral artifacts created for this launch so quit can clean them.
 let matrixRuntimeEphemeral = null;
@@ -2999,7 +3002,7 @@ function dockerExec(args, options = {}) {
   return new Promise((resolve, reject) => {
     execFile('docker', args, {
       maxBuffer: options.maxBuffer || 10 * 1024 * 1024,
-      timeout: options.timeoutMs || 300000,
+      timeout: options.timeoutMs === undefined ? 300000 : options.timeoutMs,
       cwd: options.cwd,
       env: { ...process.env, ...(options.env || {}) }
     }, (error, stdout, stderr) => {
@@ -3047,6 +3050,41 @@ function composePort(result) {
   const match = String(result.stdout || '').match(/:(\d+)\s*$/);
   if (!match) throw new Error(`could not parse published port from: ${result.stdout}`);
   return parseInt(match[1], 10);
+}
+
+function parseDockerComposeVersion(value) {
+  const match = String(value || '').trim().match(/^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/u);
+  if (!match) {
+    const error = new Error(`Docker Compose version is not a stable semantic version: ${String(value || '').trim() || '(empty)'}`);
+    error.reasonCode = 'MATRIX_RUNTIME_COMPOSE_VERSION_INVALID';
+    throw error;
+  }
+  return match.slice(1, 4).map(part => Number(part));
+}
+
+function composeVersionAtLeast(actual, minimum) {
+  for (let index = 0; index < minimum.length; index += 1) {
+    if (actual[index] > minimum[index]) return true;
+    if (actual[index] < minimum[index]) return false;
+  }
+  return true;
+}
+
+async function ensureDockerComposeWaitAuthorityAvailable() {
+  const result = await dockerExec(['compose', 'version', '--short'], { timeoutMs: 15000 });
+  const actual = parseDockerComposeVersion(result.stdout);
+  if (!composeVersionAtLeast(actual, MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION)) {
+    const error = new Error(
+      `Docker Compose ${MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT} or newer is required for bounded mature Matrix readiness.`
+    );
+    error.reasonCode = 'MATRIX_RUNTIME_COMPOSE_WAIT_AUTHORITY_REQUIRED';
+    error.details = {
+      actualVersion: actual.join('.'),
+      minimumVersion: MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT
+    };
+    throw error;
+  }
+  return { version: actual.join('.') };
 }
 
 /**
@@ -3135,7 +3173,8 @@ async function stopMatrixCompose(projectDir, composeFiles) {
  * Two-phase startup resolves the dynamic-port / Element-config dependency:
  *   Phase 1 brings up Synapse+bridges and discovers the real Synapse host port.
  *   Phase 2 projects host-reachable configs and brings up Element via override.
- * Compose healthcheck + `up --wait` is the sole readiness authority.
+ * Each phase keeps dependency/start completion and final health waits inside
+ * Docker Compose; Yance only sequences the two mature public seams.
  */
 async function ensureMatrixRuntime() {
   if (process.env.YANCE_MATRIX_RUNTIME_DISABLED === '1') {
@@ -3203,38 +3242,62 @@ async function ensureMatrixRuntime() {
     // 1. Docker Desktop availability (official CLI owns engine bring-up).
     await ensureDockerDesktopAvailable();
 
-    // 2. Shared secret projection for Compose + backend (same authority).
+    // 2. Compose itself owns Matrix readiness and its bounded wait outcome.
+    // v5.5.1 fixes dependency wait timeout propagation; fail closed on older owners.
+    const composeWaitAuthority = await ensureDockerComposeWaitAuthorityAvailable();
+
+    // 3. Shared secret projection for Compose + backend (same authority).
     fs.mkdirSync(runtimeStateRoot, { recursive: true, mode: 0o700 });
     const secretProjection = projectMatrixRuntimeSecrets(runtimeStateRoot);
 
-    // 3. Load sealed images (official: docker load).
+    // 4. Load sealed images (official: docker load).
     desktopLog('info', 'matrix-images-loading', { candidateCommit });
     await dockerExec(['load', '-i', imagesTarPath], { timeoutMs: 300000 });
 
-    // 4. Phase 1: Synapse + bridges; Compose healthcheck/--wait owns readiness.
+    // 5. Phase 1: Compose owns both bounded dependency/start completion and
+    // final health readiness. The first public-seam call keeps the real
+    // service_completed_successfully DAG but avoids the aggregate --wait path
+    // that is frozen RED for this graph. The second call narrows the model to
+    // long-lived services only and forbids recreation while Compose waits.
     const baseArgs = matrixComposeBaseArgs(runtimeDir, [composeFile]);
     desktopLog('info', 'matrix-runtime-phase1-up', { project: MATRIX_COMPOSE_PROJECT });
     await dockerExec([
-      ...baseArgs, 'up', '-d', '--no-build', '--wait',
+      ...baseArgs, 'up', '-d', '--no-build',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
       'synapse', 'mautrix-meta', 'mautrix-whatsapp'
-    ], { timeoutMs: 300000, cwd: runtimeDir, env: composeEnv });
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
+    await dockerExec([
+      ...baseArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
+      'synapse', 'mautrix-meta', 'mautrix-whatsapp'
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
-    // 5. Discover the real dynamic Synapse host port (official: compose port).
+    // 6. Discover the real dynamic Synapse host port (official: compose port).
     const synapsePortResult = await dockerExec([...baseArgs, 'port', 'synapse', '8008'], { timeoutMs: 15000 });
     const synapseHostPort = composePort(synapsePortResult);
 
-    // 6. Project host-reachable Element config + Compose override.
+    // 7. Project host-reachable Element config + Compose override.
     const projection = projectMatrixRuntimeConfigs(runtimeStateRoot, sealedConfigDir, synapseHostPort);
     const allComposeFiles = [composeFile, projection.overridePath];
     const allArgs = matrixComposeBaseArgs(runtimeDir, allComposeFiles);
 
-    // 7. Phase 2: bring up Element with the projected config.
+    // 8. Phase 2: keep the same mature two-pass contract. The full-project
+    // start pass retains orphan cleanup and the projected Element override;
+    // the reduced-model health pass intentionally omits --remove-orphans so
+    // omitted one-shot services can never be reclassified as cleanup targets.
     desktopLog('info', 'matrix-runtime-phase2-up', { synapseHostPort });
     await dockerExec([
-      ...allArgs, 'up', '-d', '--no-build', '--wait', '--remove-orphans'
-    ], { timeoutMs: 300000, cwd: runtimeDir, env: composeEnv });
+      ...allArgs, 'up', '-d', '--no-build',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
+      '--remove-orphans'
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
+    await dockerExec([
+      ...allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
+      'element', 'synapse', 'mautrix-meta', 'mautrix-whatsapp'
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
-    // 8. Discover Element + mautrix-meta dynamic host ports.
+    // 9. Discover Element + mautrix-meta dynamic host ports.
     const elementPortResult = await dockerExec([...allArgs, 'port', 'element', '80'], { timeoutMs: 15000 });
     const elementHostPort = composePort(elementPortResult);
     const metaPortResult = await dockerExec([...allArgs, 'port', 'mautrix-meta', '29319'], { timeoutMs: 15000 });
@@ -3242,7 +3305,7 @@ async function ensureMatrixRuntime() {
     const mautrixProvisioningUrl = `http://127.0.0.1:${metaHostPort}/_matrix/provision`;
     process.env.YANCE_MAUTRIX_META_PROVISIONING_URL = mautrixProvisioningUrl;
 
-    // 9. Project host-reachable endpoints for the backend / renderer.
+    // 10. Project host-reachable endpoints for the backend / renderer.
     const synapseUrl = `http://127.0.0.1:${synapseHostPort}`;
     const elementUrl = `http://127.0.0.1:${elementHostPort}`;
     process.env.YANCE_MATRIX_BASE_URL = synapseUrl;
@@ -3258,8 +3321,12 @@ async function ensureMatrixRuntime() {
     matrixRuntimeEphemeral = { runtimeDir, allComposeFiles, secretProjection, projection };
     matrixRuntimeStarted = true;
     updateMatrixRuntimeEndpoints(endpoints);
-    desktopLog('info', 'matrix-runtime-ready', { synapseHostPort, elementHostPort });
-    return { started: true, endpoints, candidateCommit };
+    desktopLog('info', 'matrix-runtime-ready', {
+      synapseHostPort,
+      elementHostPort,
+      composeVersion: composeWaitAuthority.version
+    });
+    return { started: true, endpoints, candidateCommit, composeVersion: composeWaitAuthority.version };
   } catch (error) {
     desktopLog('error', 'matrix-runtime-start-failed', {
       reasonCode: error.reasonCode || 'MATRIX_RUNTIME_START_FAILED',

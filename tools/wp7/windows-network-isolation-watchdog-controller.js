@@ -11,6 +11,7 @@ const LAUNCH_DOCUMENT_TYPE = 'WP7_WINDOWS_NETWORK_ISOLATION_WATCHDOG_LAUNCH';
 const RELEASE_DOCUMENT_TYPE = 'WP7_WINDOWS_NETWORK_ISOLATION_RELEASE_SIGNAL';
 const SHA256_RE = /^[0-9a-f]{64}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MAX_NETWORK_ISOLATION_FAILSAFE_WATCHDOG_MS = 3_600_000;
 
 function fail(reasonCode, message, details = {}) {
   const error = new Error(message);
@@ -217,7 +218,11 @@ class WindowsIsolationWatchdogController {
   }
 
   async acquire(options = {}) {
-    const watchdogMs = Math.max(30_000, Math.min(Number(options.watchdogMs || 120_000), 600_000));
+    const requestedWatchdogMs = Number(options.watchdogMs || 120_000);
+    if (!Number.isFinite(requestedWatchdogMs) || requestedWatchdogMs <= 0) {
+      fail('WP7_WINDOWS_NETWORK_ISOLATION_REQUEST_INVALID', 'watchdog duration must be a finite positive number', { watchdogMs: options.watchdogMs });
+    }
+    const watchdogMs = Math.max(30_000, Math.min(Math.floor(requestedWatchdogMs), MAX_NETWORK_ISOLATION_FAILSAFE_WATCHDOG_MS));
     const executionNonce = String(options.executionNonce || crypto.randomUUID());
     if (!UUID_RE.test(executionNonce)) {
       fail('WP7_WINDOWS_NETWORK_ISOLATION_REQUEST_INVALID', 'watchdog execution nonce must be a UUID', { executionNonce });
@@ -446,6 +451,7 @@ async function withWindowsNetworkIsolation(provider, operation, options = {}) {
 }
 
 module.exports = {
+  MAX_NETWORK_ISOLATION_FAILSAFE_WATCHDOG_MS,
   REQUEST_DOCUMENT_TYPE,
   STATE_DOCUMENT_TYPE,
   LAUNCH_DOCUMENT_TYPE,

@@ -8,6 +8,7 @@ const { pathToFileURL } = require('node:url');
 
 const WORKER_PATH = path.resolve(__dirname, '../src/index.mjs');
 const OLD_WORKER_PATH = path.resolve(__dirname, '../src/index.js');
+const MIGRATION_PATH = path.resolve(__dirname, '../migrations/0001_personal_access.sql');
 const WRANGLER_PATH = path.resolve(__dirname, '../wrangler.toml');
 
 async function loadWorker() {
@@ -15,75 +16,82 @@ async function loadWorker() {
   return import(pathToFileURL(WORKER_PATH).href);
 }
 
-test('Worker owns the exact request and grant lifecycle state sets', async () => {
-  const { REQUEST_STATES, GRANT_STATES } = await loadWorker();
-  assert.deepEqual(Array.from(REQUEST_STATES), ['PENDING', 'ASSIGNED', 'APPROVED', 'REJECTED']);
-  assert.deepEqual(Array.from(GRANT_STATES), ['ACTIVE', 'SUSPENDED', 'REVOKED']);
-});
-
-test('request transition contract requires assignment before owner approval or rejection', async () => {
-  const { transitionRequestState } = await loadWorker();
-  assert.equal(transitionRequestState('PENDING', 'ASSIGN'), 'ASSIGNED');
-  assert.equal(transitionRequestState('ASSIGNED', 'APPROVE'), 'APPROVED');
-  assert.equal(transitionRequestState('ASSIGNED', 'REJECT'), 'REJECTED');
-  assert.throws(() => transitionRequestState('PENDING', 'APPROVE'), /INVALID_REQUEST_TRANSITION/);
-  assert.throws(() => transitionRequestState('APPROVED', 'REJECT'), /INVALID_REQUEST_TRANSITION/);
-  assert.throws(() => transitionRequestState('REJECTED', 'ASSIGN'), /INVALID_REQUEST_TRANSITION/);
-});
-
-test('tester grant transition contract is ACTIVE to SUSPENDED or REVOKED and never self-reactivates', async () => {
-  const { transitionGrantState } = await loadWorker();
-  assert.equal(transitionGrantState('ACTIVE', 'SUSPEND'), 'SUSPENDED');
-  assert.equal(transitionGrantState('ACTIVE', 'REVOKE'), 'REVOKED');
-  assert.equal(transitionGrantState('SUSPENDED', 'REVOKE'), 'REVOKED');
-  assert.throws(() => transitionGrantState('SUSPENDED', 'ACTIVATE'), /INVALID_GRANT_TRANSITION/);
-  assert.throws(() => transitionGrantState('REVOKED', 'ACTIVATE'), /INVALID_GRANT_TRANSITION/);
-});
-
-test('shared authority requires owner secret for mutations and installation binding for tester status', async () => {
+test('Worker is a stateless Unkey verify proxy with one route', async () => {
   const { createPersonalAccessWorker } = await loadWorker();
   const calls = [];
-  const repository = {
-    async submitRequest(input) { calls.push(['submit', input]); return { id: 'req-1', state: 'PENDING', installationId: input.installationId }; },
-    async getTesterStatus(input) { calls.push(['status', input]); return { role: 'TESTER', requestState: 'APPROVED', grantState: 'ACTIVE', installationId: input.installationId }; },
-    async listRequests() { calls.push(['list']); return []; },
-    async mutateRequest() { throw new Error('not-used'); },
-    async mutateGrant() { throw new Error('not-used'); }
-  };
-  const worker = createPersonalAccessWorker({ repository, ownerAdminSecret: 'owner-secret' });
+  const worker = createPersonalAccessWorker({
+    rootKey: 'root-secret',
+    fetchImpl: async (url, init = {}) => {
+      calls.push({ url, init });
+      return new Response(JSON.stringify({
+        meta: { requestId: 'unkey-req-1' },
+        data: {
+          valid: true,
+          code: 'VALID',
+          keyId: 'key_123',
+          enabled: true,
+          expires: '2027-01-01T00:00:00.000Z',
+          identity: { externalId: '@tester:yance.local', internalId: 'not-projected' }
+        }
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+  });
 
-  const submit = await worker.fetch(new Request('https://access.example/requests', {
+  const result = await worker.fetch(new Request('https://access.example/verify', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ installationId: 'install-a', displayName: 'Tester A' })
+    body: JSON.stringify({ key: 'invite_live' })
   }));
-  assert.equal(submit.status, 201);
+  assert.equal(result.status, 200);
+  assert.deepEqual(await result.json(), {
+    ok: true,
+    valid: true,
+    code: 'VALID',
+    keyId: 'key_123',
+    enabled: true,
+    expires: '2027-01-01T00:00:00.000Z',
+    identity: { externalId: '@tester:yance.local' },
+    requestId: 'unkey-req-1'
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, 'https://api.unkey.com/v2/keys.verifyKey');
+  assert.equal(calls[0].init.headers.authorization, 'Bearer root-secret');
+  assert.deepEqual(JSON.parse(calls[0].init.body), { key: 'invite_live' });
 
-  const status = await worker.fetch(new Request('https://access.example/status?requestId=req-1&installationId=install-a'));
-  assert.equal(status.status, 200);
-  const statusBody = await status.json();
-  assert.equal(statusBody.grantState, 'ACTIVE');
-  assert.equal(statusBody.installationId, 'install-a');
-
-  const unauthorized = await worker.fetch(new Request('https://access.example/owner/requests'));
-  assert.equal(unauthorized.status, 401);
-
-  const authorized = await worker.fetch(new Request('https://access.example/owner/requests', {
-    headers: { authorization: 'Bearer owner-secret' }
-  }));
-  assert.equal(authorized.status, 200);
-  assert.ok(calls.some(([name]) => name === 'list'));
+  assert.equal((await worker.fetch(new Request('https://access.example/verify'))).status, 404);
+  assert.equal((await worker.fetch(new Request('https://access.example/owner'))).status, 404);
 });
 
-test('production Worker uses Cloudflare module Worker ESM entry with real D1 binding', () => {
+test('Worker fails closed without leaking root key or upstream body', async () => {
+  const { createPersonalAccessWorker } = await loadWorker();
+  assert.throws(() => createPersonalAccessWorker({ rootKey: '' }), /UNKEY_ROOT_KEY/);
+  const worker = createPersonalAccessWorker({
+    rootKey: 'root-secret',
+    fetchImpl: async () => new Response(JSON.stringify({ error: 'secret upstream detail' }), { status: 403 })
+  });
+  const result = await worker.fetch(new Request('https://access.example/verify', {
+    method: 'POST',
+    body: JSON.stringify({ key: 'bad-key' })
+  }));
+  assert.equal(result.status, 403);
+  const body = await result.json();
+  assert.equal(body.reasonCode, 'UNKEY_AUTHORITY_REJECTED');
+  assert.doesNotMatch(JSON.stringify(body), /root-secret|secret upstream detail/);
+});
+
+test('production Worker keeps Cloudflare module Worker ESM entry and removes local lifecycle storage', () => {
   assert.equal(fs.existsSync(WORKER_PATH), true, 'index.mjs must be the production Worker entry');
   assert.equal(fs.existsSync(OLD_WORKER_PATH), false, 'old production index.js must not remain');
+  assert.equal(fs.existsSync(MIGRATION_PATH), false, 'old local lifecycle migration must not remain');
   const source = fs.readFileSync(WORKER_PATH, 'utf8');
   const wrangler = fs.readFileSync(WRANGLER_PATH, 'utf8');
   assert.match(source, /export\s+default\s*\{\s*async\s+fetch\(request,\s*env\)/u);
+  assert.match(source, /UNKEY_ROOT_KEY/u);
+  assert.match(source, /api\.unkey\.com\/v2\/keys\.verifyKey/u);
   assert.doesNotMatch(source, /module\.exports/u);
+  assert.doesNotMatch(source, /OWNER_ADMIN_SECRET|prepare\(|SELECT|INSERT|UPDATE|DELETE/u);
   assert.match(wrangler, /main\s*=\s*"src\/index\.mjs"/u);
   assert.match(wrangler, /workers_dev\s*=\s*true/u);
-  assert.match(wrangler, /database_id\s*=\s*"e81b4218-8a66-4377-b07d-eb785c7698cf"/u);
-  assert.doesNotMatch(wrangler, /REPLACE_WITH_D1_DATABASE_ID/u);
+  assert.match(wrangler, /UNKEY_ROOT_KEY/u);
+  assert.doesNotMatch(wrangler, /d1_databases|database_id|migrations_dir/u);
 });

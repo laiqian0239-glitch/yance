@@ -81,6 +81,21 @@ test('Desktop bootstrap runtime projection is local-session protected before hum
     'bootstrap endpoint must reuse the canonical APP_RUNTIME snapshot instead of a duplicate projection');
 });
 
+test('Desktop diagnostics release identity is projected through the same local-control boundary without duplicating its producer', () => {
+  const serverSource = read('backend/server.js');
+  const systemSource = read('backend/routes/system.js');
+  const diagnosticsIndex = serverSource.indexOf("app.get('/api/desktop/release-identity'");
+  const personalGuardIndex = serverSource.indexOf('app.use(createPersonalAccessGuard({ personalAccessService }))');
+
+  assert.ok(diagnosticsIndex >= 0 && diagnosticsIndex < personalGuardIndex,
+    'formal pre-entitlement diagnostics identity must be reachable before Personal Access entitlement');
+  assert.match(serverSource.slice(Math.max(0, diagnosticsIndex - 300), diagnosticsIndex + 250), /releaseIdentityDocument\(\)/u,
+    'Desktop diagnostics endpoint must project the existing diagnostics document producer');
+  assert.match(systemSource, /function releaseIdentityDocument\(\)/u);
+  assert.match(systemSource, /router\.get\('\/release-identity',[\s\S]*releaseIdentityDocument\(\)/u);
+  assert.match(systemSource, /module\.exports\.releaseIdentityDocument = releaseIdentityDocument/u);
+});
+
 test('ApiV2RuntimeClient separates bootstrap projection transport from entitled product snapshots', () => {
   const source = read('electron/desktopHost/ApiV2RuntimeClient.js');
   const bootstrapStart = source.indexOf('async getBootstrapSnapshot(');
@@ -127,7 +142,7 @@ test('fresh unregistered TESTER can establish owner baseline without product ent
     async getSnapshot() {
       calls.product += 1;
       const error = new Error('Fresh TESTER installation has not yet been registered');
-      error.reasonCode = 'INSTALLATION_UNREGISTERED';
+      error.reasonCode = 'INVITATION_REQUIRED';
       throw error;
     },
     abortAll() {}
@@ -179,9 +194,9 @@ test('pre-entitlement event polling has an explicit bounded entitlement-wait sta
     'coordinator must define a bounded retry interval for human-entitlement denial');
   assert.match(source, /WAITING_FOR_PRODUCT_ENTITLEMENT/u,
     'human entitlement denial must have a distinct non-owner-failure state');
-  assert.match(source, /INSTALLATION_UNREGISTERED/u);
-  assert.match(source, /GRANT_REVOKED/u,
-    'terminal/non-usable tester grant states must use the same bounded entitlement wait classification');
+  assert.match(source, /INVITATION_REQUIRED/u);
+  assert.match(source, /UNKEY_ENTITLEMENT_DISABLED/u,
+    'terminal/non-usable entitlement states must use the same bounded entitlement wait classification');
 });
 
 test('pre-entitlement polling retains owner baseline, suppresses retry storms, and recovers after entitlement', async () => {
@@ -199,7 +214,7 @@ test('pre-entitlement polling retains owner baseline, suppresses retry storms, a
       eventCalls += 1;
       if (!entitled) {
         const error = new Error('Product entitlement is not available yet');
-        error.reasonCode = 'INSTALLATION_UNREGISTERED';
+        error.reasonCode = 'INVITATION_REQUIRED';
         throw error;
       }
       return {
@@ -235,7 +250,7 @@ test('pre-entitlement polling retains owner baseline, suppresses retry storms, a
     'human entitlement denial must never discard the trusted backend owner baseline');
   assert.equal(projection.state, 'WAITING_FOR_PRODUCT_ENTITLEMENT',
     'projection must distinguish product-entitlement wait from API-session or owner failure');
-  assert.equal(projection.lastFailure?.reasonCode, 'INSTALLATION_UNREGISTERED');
+  assert.equal(projection.lastFailure?.reasonCode, 'INVITATION_REQUIRED');
   assert.ok(deniedCalls <= 1,
     `pre-entitlement polling must back off instead of hammering /api/app/v2/events; calls=${deniedCalls}`);
   assert.ok(failureCallbacks <= 1,
@@ -251,6 +266,37 @@ test('pre-entitlement polling retains owner baseline, suppresses retry storms, a
   assert.equal(projection.state, 'POLLING_PERSISTED_EVENTS');
   assert.equal(projection.lastFailure, null,
     'successful entitled reconciliation must clear the previous entitlement-wait failure');
+});
+
+test('formal pre-review probes consume bootstrap authority while entitled Product operations retain Runtime API v2', () => {
+  const mainSource = read('electron/main.js');
+  const productionHostSource = read('electron/wp7InstalledRuntimeProbeProductionHost.js');
+  const adapterSource = read('electron/wp7InstalledRuntimeProbeMainAdapter.js');
+
+  const probeStart = mainSource.indexOf('async function runWp7InstalledRuntimeProbe()');
+  const probeEnd = mainSource.indexOf('async function completeWp7ProbeAndExit(', probeStart);
+  assert.ok(probeStart >= 0 && probeEnd > probeStart);
+  const probeBlock = mainSource.slice(probeStart, probeEnd);
+
+  assert.match(probeBlock, /getDiagnosticsIdentity:\s*\(\) => apiRequest\('\/api\/desktop\/release-identity'\)/u);
+  assert.match(probeBlock, /runtimeSnapshot:\s*\(\) => runtimeApiV2Client\.getBootstrapSnapshot\(/u,
+    'pre-entitlement formal observations must use the existing bootstrap snapshot seam');
+  assert.doesNotMatch(probeBlock, /runtimeSnapshot:\s*\(\) => runtimeApiV2Client\.getSnapshot\(/u,
+    'fresh formal observations must not require Personal Access Product entitlement');
+
+  const safeModeStart = mainSource.indexOf('function wp7RunSafeModeScenario(');
+  const safeModeEnd = mainSource.indexOf('function wp7LastOwnerExitAtUtc(', safeModeStart);
+  assert.ok(safeModeStart >= 0 && safeModeEnd > safeModeStart);
+  const safeModeBlock = mainSource.slice(safeModeStart, safeModeEnd);
+  assert.match(safeModeBlock, /runtimeSnapshot:\s*\(\) => runtimeApiV2Client\.getBootstrapSnapshot\(/u,
+    'safe-mode negative proof must receive canonical bootstrap runtime state');
+  assert.doesNotMatch(safeModeBlock, /runtimeProjectionCoordinator\.pollOnce/u);
+  assert.match(productionHostSource, /const runtimeSnapshot = options\.runtimeSnapshot/u);
+  assert.doesNotMatch(productionHostSource.slice(
+    productionHostSource.indexOf('function createSafeModeScenarioRunner('),
+    productionHostSource.indexOf('function readNetworkIsolationStartupObservation(')
+  ), /pollOnce/u, 'safe-mode negative proof must not invoke entitled Product event polling');
+  assert.match(adapterSource, /observationSource:\s*'\/api\/desktop\/release-identity'/u);
 });
 
 test('all backend-generation acceptance and recovery paths preserve fail-closed owner validation before acceptance', () => {
@@ -322,9 +368,9 @@ test('fresh TESTER permission UI remains reachable while Product children stay b
   const accessSource = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
   const guardSource = read('backend/middleware/personalAccessGuard.js');
 
-  assert.match(workspaceSource, /<PersonalAccessSurface>[\s\S]*<ProductExperienceShell/u,
+  assert.match(workspaceSource, /<PersonalAccessSurface\b[^>]*>[\s\S]*<ProductExperienceShell/u,
     'personal-access surface must remain outside ProductExperienceShell');
-  assert.match(accessSource, /case "INSTALLATION_UNREGISTERED"/u);
+  assert.match(accessSource, /case "INVITATION_REQUIRED"/u);
   assert.match(accessSource, /if \(!usable\) return/u,
     'unregistered TESTER must see the permission surface without mounting Product children');
   assert.match(guardSource, /path\.startsWith\('\/api\/desktop\/'\)/u,

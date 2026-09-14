@@ -24,7 +24,7 @@ const {
 const {
   normalizeRelativePath,
   sha256File,
-  validateNineProbeRawEvidence,
+  validatePreEntitlementProbeRawEvidence,
   walkRegularFiles
 } = require('./pre-review-evidence-package');
 
@@ -121,18 +121,18 @@ try {
   const protocol = verifyRuntimeProtocolConvergence();
   const governance = validateAllGovernance();
 
-  const probeOutputRoot = assertDirectory(probeOutputRootInput, 'WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING', 'nine-probe raw output directory');
-  const aggregatePath = assertRegular(aggregateInput, 'WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING', 'nine-probe aggregate result');
+  const probeOutputRoot = assertDirectory(probeOutputRootInput, 'WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING', 'pre-entitlement raw probe output directory');
+  const aggregatePath = assertRegular(aggregateInput, 'WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING', 'pre-entitlement probe aggregate result');
   const sealedArtifactPath = assertRegular(sealedArtifactInput, 'WP7_PRE_REVIEW_SEALED_ARTIFACT_MISSING', 'Pre-Review sealed artifact');
   const trustedProductArchivePath = assertRegular(trustedProductArchiveInput, 'WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING', 'trusted product archive');
   const electronArchivePath = assertRegular(electronArchiveInput, 'WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING', 'official Electron archive');
   const buildJsonPath = assertRegular(buildJsonInput, 'WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING', 'trusted product build identity');
   const verificationRoot = assertDirectory(verificationRootInput, 'WP7_COMPLETE_TEST_RAW_RESULTS_MISSING', 'complete verification output');
 
-  if (path.dirname(aggregatePath) !== probeOutputRoot) fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'nine-probe aggregate must be located at the raw probe output root', { aggregatePath, probeOutputRoot });
-  const sourceValidation = validateNineProbeRawEvidence({ evidenceRoot: probeOutputRoot, aggregateRelativePath: path.basename(aggregatePath), sealedArtifactPath });
+  if (path.dirname(aggregatePath) !== probeOutputRoot) fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'pre-entitlement probe aggregate must be located at the raw probe output root', { aggregatePath, probeOutputRoot });
+  const sourceValidation = validatePreEntitlementProbeRawEvidence({ evidenceRoot: probeOutputRoot, aggregateRelativePath: path.basename(aggregatePath), sealedArtifactPath });
   const aggregate = sourceValidation.aggregate;
-  assertIdentity(aggregate, { sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree }, 'WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'nine-probe aggregate');
+  assertIdentity(aggregate, { sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree }, 'WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'pre-entitlement probe aggregate');
   const seal = readAndVerifyPreReviewSealedArtifact(sealedArtifactPath, { buildSessionId: aggregate.buildSessionId, buildId: aggregate.buildId, sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree });
   const build = readJson(buildJsonPath, 'WP7_CANDIDATE_REQUIRED_DELIVERY_ARTIFACTS_MISSING', 'trusted product build identity');
   assertIdentity(build, {
@@ -153,7 +153,7 @@ try {
     nodeRuntimeTreeSha256: aggregate.nodeRuntimeTreeSha256,
     nativeBinaryScanSha256: aggregate.nativeBinaryScanSha256
   }, 'WP7_PRE_REVIEW_BUILD_IDENTITY_INVALID', 'trusted product build document');
-  if (sha256File(electronArchivePath) !== aggregate.electronReleaseArchiveSha256) fail('WP7_OFFICIAL_ELECTRON_ARCHIVE_IDENTITY_MISMATCH', 'official Electron archive SHA256 does not match the nine-probe aggregate');
+  if (sha256File(electronArchivePath) !== aggregate.electronReleaseArchiveSha256) fail('WP7_OFFICIAL_ELECTRON_ARCHIVE_IDENTITY_MISMATCH', 'official Electron archive SHA256 does not match the pre-entitlement probe aggregate');
 
   const verificationSummaryPath = path.join(verificationRoot, 'WP7_PRE_REVIEW_VERIFICATION_SUMMARY.json');
   const verificationResultsRoot = path.join(verificationRoot, 'results');
@@ -185,7 +185,7 @@ try {
   const rawProbeRoot = path.join(outputRoot, 'raw-probes');
   copyTree(probeOutputRoot, rawProbeRoot);
   const copiedSeal = readAndVerifyPreReviewSealedArtifact(sealDestination, { buildSessionId: aggregate.buildSessionId, buildId: aggregate.buildId, sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree });
-  const copiedRawValidation = validateNineProbeRawEvidence({ evidenceRoot: rawProbeRoot, aggregateRelativePath: path.basename(aggregatePath), sealedArtifactPath: sealDestination });
+  const copiedRawValidation = validatePreEntitlementProbeRawEvidence({ evidenceRoot: rawProbeRoot, aggregateRelativePath: path.basename(aggregatePath), sealedArtifactPath: sealDestination });
   if (copiedRawValidation.aggregateSha256 !== sourceValidation.aggregateSha256 || copiedSeal.sha256 !== seal.sha256) fail('WP7_PRE_REVIEW_EVIDENCE_COPY_MISMATCH', 'copied raw evidence or seal differs from its validated source');
 
   const rawTestRoot = path.join(outputRoot, 'raw-tests');
@@ -240,9 +240,9 @@ try {
     'upstream-contract-binding.json': { ...common('WP7_PRE_REVIEW_UPSTREAM_BINDING', 'UPSTREAM_BINDING'), assertions: ['WP6_ACCEPTED', 'WP7_ACTIVATION_ACCEPTED', 'WP7_DESIGN_GATE_CONFIRMED'], wp6 },
     'protocol-version-binding.json': { ...common('WP7_PRE_REVIEW_PROTOCOL_BINDING', 'PROTOCOL_BINDING'), assertions: ['credentialProtocolVersion=3'], protocol },
     'build-identity.json': { ...common('WP7_PRE_REVIEW_BUILD_IDENTITY', 'BUILD_IDENTITY'), assertions: ['electron=backend=installerReceipt=diagnostics', 'preReviewSealVerified'], consumers: ['electron','backend','installerReceipt','diagnostics'] },
-    'build-session-integrity.json': { ...common('WP7_PRE_REVIEW_BUILD_SESSION_INTEGRITY', 'BUILD_SESSION'), assertions: ['actualSealFileVerified', 'nineProbeFreshSetSameSession'], rawProbeAggregateSha256: copiedRawValidation.aggregateSha256 },
+    'build-session-integrity.json': { ...common('WP7_PRE_REVIEW_BUILD_SESSION_INTEGRITY', 'BUILD_SESSION'), assertions: ['actualSealFileVerified', 'preEntitlementFreshSetSameSession'], rawProbeAggregateSha256: copiedRawValidation.aggregateSha256 },
     'trusted-product-identity.json': { ...common('WP7_PRE_REVIEW_TRUSTED_PRODUCT_IDENTITY', 'TRUSTED_PRODUCT'), assertions: ['officialElectronBound', 'node22Bound', 'dependencyTreeBound', 'payloadFilesystemBound'], productExecutableSha256: aggregate.productExecutableSha256, electronDistributionTreeSha256: aggregate.electronDistributionTreeSha256, nodeRuntimeTreeSha256: aggregate.nodeRuntimeTreeSha256, productionDependencyFileTreeSha256: aggregate.productionDependencyFileTreeSha256, nativeBinaryScanSha256: aggregate.nativeBinaryScanSha256, nativeBinaryFileCount: aggregate.nativeBinaryFileCount, nativeBinaryFailureCount: aggregate.nativeBinaryFailureCount },
-    'raw-probe-evidence-closure.json': { ...common('WP7_PRE_REVIEW_RAW_PROBE_EVIDENCE_CLOSURE', 'RAW_PROBE_EVIDENCE'), assertions: ['9/9 raw result JSON', '9/9 stdout', '9/9 stderr', '9/9 process custody', '9/9 execution context', 'offline pre-main proof'], executedProbeCount: aggregate.executedProbeCount, rawProbeArtifactCount: copiedRawValidation.artifactRecords.length },
+    'raw-probe-evidence-closure.json': { ...common('WP7_PRE_REVIEW_RAW_PROBE_EVIDENCE_CLOSURE', 'RAW_PROBE_EVIDENCE'), assertions: ['6/6 pre-entitlement raw result JSON', '6/6 stdout', '6/6 stderr', '6/6 process custody', '6/6 execution context', 'offline pre-main proof', '3 entitled Product probes explicitly deferred'], executedProbeCount: aggregate.executedProbeCount, rawProbeArtifactCount: copiedRawValidation.artifactRecords.length },
     'governance-validation.json': { ...common('WP7_PRE_REVIEW_GOVERNANCE_VALIDATION', 'GOVERNANCE'), assertions: ['A01-A10 mapped', 'WS01-WS10 traceable', 'noPreAcceptanceClaim', 'noFinalPackagingAuthorization'], governance }
   };
   const supportingEvidence = [];
@@ -280,7 +280,8 @@ try {
     buildId: aggregate.buildId,
     preReviewSealedArtifactSha256: seal.sha256,
     preReviewSealedArtifactType: SEALED_ARTIFACT_TYPE,
-    trustedProductProbeStatus: 'PASS_9_OF_9',
+    trustedProductProbeStatus: 'PASS_PRE_ENTITLEMENT_6_DEFER_ENTITLED_3',
+    deferredEntitledProductProbeCount: aggregate.entitledProductProbeIds.length,
     executedProbeCount: aggregate.executedProbeCount,
     correctionMatrixExpectedTotal: 128,
     deliveryArtifacts,

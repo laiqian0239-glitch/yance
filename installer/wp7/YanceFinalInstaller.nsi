@@ -43,6 +43,14 @@ RequestExecutionLevel user
 !define LEGACY_INTERNAL_PRODUCT_ID "Yance29"
 !define LEGACY_EXECUTABLE_NAME "Yance29.exe"
 
+; Windows Shell owns cached item/icon presentation. When an upgrade replaces the
+; same installed EXE and recreates the same shortcut paths, notify only those
+; existing items through the narrow Shell public seam. SHCNF_PATHW (0x0005)
+; carries a Unicode path and SHCNF_FLUSH (0x1000) completes delivery before
+; installer success is reported.
+!define SHCNE_UPDATEITEM 0x00002000
+!define SHCNF_PATHW_FLUSH 0x00001005
+
 ; ---- Branding resources ----------------------------------------------------
 !define MUI_ICON "${STAGING_ROOT}\application-payload\resources\app\assets\branding\yance\generated\Yance.ico"
 !define MUI_UNICON "${STAGING_ROOT}\application-payload\resources\app\assets\branding\yance\generated\Yance.ico"
@@ -205,6 +213,14 @@ Section "Install"
   CreateShortcut "$SMPROGRAMS\${PUBLIC_PRODUCT_NAME}\卸载.lnk" "$INSTDIR\Uninstall.exe"
   CreateShortcut "$DESKTOP\${PUBLIC_PRODUCT_NAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE_NAME}"
   IfErrors transactional_install_metadata_failed
+
+  ; The target executable remains the single icon authority for shortcuts and
+  ; Apps & Features. Tell the mature Windows Shell cache owner that these same-
+  ; path items changed; do not create shortcut-specific icon state or reset the
+  ; global image cache.
+  System::Call 'shell32::SHChangeNotify(i ${SHCNE_UPDATEITEM}, i ${SHCNF_PATHW_FLUSH}, w "$INSTDIR\${PRODUCT_EXECUTABLE_NAME}", p 0)'
+  System::Call 'shell32::SHChangeNotify(i ${SHCNE_UPDATEITEM}, i ${SHCNF_PATHW_FLUSH}, w "$DESKTOP\${PUBLIC_PRODUCT_NAME}.lnk", p 0)'
+  System::Call 'shell32::SHChangeNotify(i ${SHCNE_UPDATEITEM}, i ${SHCNF_PATHW_FLUSH}, w "$SMPROGRAMS\${PUBLIC_PRODUCT_NAME}\${PUBLIC_PRODUCT_NAME}.lnk", p 0)'
 
   ; The new install is complete and launchable. Only now retire the rollback
   ; directory and migration-only legacy system entries/install files.
