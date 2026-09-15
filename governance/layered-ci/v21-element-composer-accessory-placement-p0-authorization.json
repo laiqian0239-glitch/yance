@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-ELEMENT-COMPOSER-ACCESSORY-PLACEMENT-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Controller V5.500 consumed the existing real Windows Product evidence and reconciled it against current live source. The remaining concrete source root is not an Element composer implementation defect: Yance's existing narrow module extension inserts a full-width Product accessory containing reply-mode controls, relationship tools, status and optional ReplyBrain review UI inside Element's native compact mx_MessageComposer_actions cluster. Pinned Element v1.12.25 owns the real composer row, input, draft, attachments, accessories and send lifecycle; its native input is flex:1/min-height:60px while its actions cluster is intended for compact controls. Authorize only the three-path repair that keeps the existing roomId-only Element-owned extension seam but moves the Product accessory to its own sibling row before the untouched native composer row and bounds/wraps the existing Product UI. No second composer, private Element state access, Matrix/runtime, Electron/titlebar, dependency, timeout, workflow or release mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "17db62affda0d9d19f4af05df0f142a2cb4b543c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "17db62affda0d9d19f4af05df0f142a2cb4b543c",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-element-composer-accessory-placement-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-element-composer-accessory-placement-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "8490a1d7688f83900017eb049d7d05492cae70c4199c0b39ef09b245348bd412",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-element-composer-accessory-placement-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch"
+    ],
+    "approvedChangedFileCount": 3,
+    "approvedChangedFileSetSha256": "49bb9af7e58d22c33f72b8c97b6e32d4fdf4e90110a15d8181876e10aec8f82d",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureFirstEvidence": {
+    "source": "CONSUMED_REAL_WINDOWS_PRODUCT_UI_SCREENSHOTS",
+    "observedFailure": "The real encrypted Element composer showed the encrypted-message placeholder while the normal composer container/usable geometry was visibly compressed at the bottom with the Yance relationship/reply accessory occupying the native action area.",
+    "classification": "PRODUCT_RED_ELEMENT_COMPOSER_ACCESSORY_PLACEMENT",
+    "rerunBeforeSourceClosureForbidden": true,
+    "windowsOperatorActionForbiddenUntilNewAuthorizedCandidate": true
+  },
+  "causalBatch": {
+    "matureOwner": "Element Web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+    "requiredBehavior": [
+      "Keep Element's mx_MessageComposer_row and mx_MessageComposer_actions as the mature composer geometry and native control owners.",
+      "Move the existing renderComposerAccessory roomId-only projection from inside mx_MessageComposer_actions to a dedicated sibling before mx_MessageComposer_row inside the existing Element MessageComposer wrapper.",
+      "Keep the Product accessory bounded and wrapping on its own row, including reply-mode buttons, relationship-tool trigger, status and optional ReplyBrain candidate/review content.",
+      "Preserve ProductExperienceShell.css adoption through the existing module CSSStyleSheet authority and preserve the existing relationship-tool popover styling."
+    ],
+    "forbiddenBehavior": [
+      "No second composer, draft store, send lifecycle, retry owner, attachment/emoji owner or Matrix session authority.",
+      "No Yance CSS selector may target mx_MessageComposer or other mx_ private composer geometry.",
+      "No DOM query into private Element composer/timeline state.",
+      "No Electron, Matrix, Compose, titlebar, dependency, upstream pin, timeout or workflow mutation."
+    ]
+  },
+  "authorityTopology": {
+    "elementOwns": [
+      "timeline",
+      "composer input and draft",
+      "plain/WYSIWYG editor",
+      "attachments",
+      "emoji/native composer controls",
+      "send/reply lifecycle",
+      "crypto and Matrix session behavior"
+    ],
+    "yanceOwns": [
+      "relationship/reply-mode Product projection",
+      "relationship tool Product projection",
+      "ReplyBrain Product projection"
+    ],
+    "adapter": "Existing 0016 roomId-only stateless custom-component render seam",
+    "secondOwnerAdded": false
+  },
+  "ossFit": {
+    "decision": "REUSE_PINNED_ELEMENT_MESSAGE_COMPOSER_AND_EXISTING_NARROW_MODULE_EXTENSION",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-pinned-upstream-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Pinned Element Web composer",
+        "source": "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c",
+        "license": "AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Commercial",
+        "adoptionMode": "mature-owner-preserved",
+        "fit": "FIT",
+        "reason": "Element already owns all real composer geometry, input, draft and send behavior; only Yance's extension placement is wrong."
+      },
+      {
+        "name": "Existing Yance 0016 module extension",
+        "source": "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+        "license": "repository-existing patch over pinned Element",
+        "adoptionMode": "thin-projection",
+        "fit": "FIT",
+        "reason": "Pinned upstream module API lacks an always-on general composer accessory slot, so retain the existing roomId-only seam and change only its host placement rather than creating a second composer or broad fork."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire accessory placement inside mx_MessageComposer_actions.",
+      "Avoid private DOM queries, private composer state mirrors, CSS overrides of Element composer geometry, custom send/draft logic, and core Element upgrade before Release."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "localClosure": [
+      "Apply-check 0016 against exact Element Web v1.12.25 commit a2a996ae50d802878bf48e4bbf3730004bdcc55c.",
+      "Prove the patched MessageComposer renders the Product accessory before mx_MessageComposer_row and that mx_MessageComposer_actions no longer contains renderComposerAccessory.",
+      "Prove Product CSS bounds/wraps the existing accessory and ReplyBrain/reply-mode content without any mx_ selector.",
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-shell-interaction.test.js",
+      "git diff --check",
+      "Exact three-path diff boundary."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "No RC or Windows UAT until ordinary merge and remaining native/visual final-proof obligations are admitted."
+    ]
+  },
+  "remainingFinalProofObligations": [
+    "Real Element composer normal visible geometry, focus, typing, multiline growth, attachment/accessory alignment, real send and bottom spacing.",
+    "Windows 100/125/150 percent scaling.",
+    "Windows drag, caption safe area and caption background continuity.",
+    "Yance People primary Product navigation and relationship context in the materialized Windows Product.",
+    "Real multi-platform account login entry and Golden Journey."
+  ],
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "promotionUnknownBlockersZeroAsserted": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}
