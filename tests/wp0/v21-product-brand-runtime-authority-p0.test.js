@@ -45,7 +45,7 @@ test('brand preview assets remain available but are not the normal Product works
   assert.match(workspace, /ProductExperienceShell/u);
 });
 
-test('Yance login owns invite-only visual authority while preserving Element login-completion authority', () => {
+test('Yance login owns invitation and durable-device visual projection while Element keeps login-completion authority', () => {
   const moduleIndex = read('integration/element-module/src/index.tsx');
   const login = read('integration/element-module/src/YanceLogin.tsx');
   const styles = read('integration/element-module/src/YanceLogin.css');
@@ -53,6 +53,9 @@ test('Yance login owns invite-only visual authority while preserving Element log
   assert.match(login, /data-yance-login-authority="v2"/u);
   assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
   assert.match(login, /data-yance-invitation-login="jwt-element-on-logged-in"/u);
+  assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u);
+  assert.match(login, /已授权设备登录/u);
+  assert.match(login, /已授权设备可直接进入；首次使用请输入邀请码/u);
   assert.match(login, /欢迎回来/u);
   assert.match(login, /让每一次沟通/u);
   assert.match(login, /yance-login-card/u);
@@ -69,17 +72,18 @@ test('Yance login owns invite-only visual authority while preserving Element log
     /registerLoginComponent\s*\([\s\S]*?\(props\)\s*=>\s*<YanceLogin onLoggedIn=\{props\.onLoggedIn\}/u
   );
 
-  // Initial login must enter through Element's CustomLoginComponentProps.onLoggedIn public seam.
+  // Initial and resumed login must enter through Element's CustomLoginComponentProps.onLoggedIn public seam.
   assert.match(login, /onLoggedIn\(result\.accountAuth\)/u);
   assert.doesNotMatch(login, /await\s+overwriteAccountAuth\s*\(|overwriteAccountAuth\s*\(result\.accountAuth\)/u);
   assert.doesNotMatch(moduleIndex, /YanceAccountAuthApi|accountAuthApi/u);
   assert.doesNotMatch(moduleIndex, /overwriteAccountAuth/u);
+  assert.doesNotMatch(moduleIndex, /desktop\.logoutPersonalAccess/u, 'Element session logout must leave durable device entitlement untouched');
   assert.doesNotMatch(login, /fetch\s*\(/u);
   assert.doesNotMatch(login, /_matrix\/client/u);
   assert.doesNotMatch(login, /m\.login\.password/u);
 });
 
-test('successful one-time invitation handoff cannot reopen a second submission window', () => {
+test('successful invitation or device-resume handoff cannot reopen a second submission window', () => {
   const login = read('integration/element-module/src/YanceLogin.tsx');
   assert.match(login, /submissionInFlightRef\s*=\s*React\.useRef\(false\)/u);
   assert.match(login, /handoffCommittedRef\s*=\s*React\.useRef\(false\)/u);
@@ -89,6 +93,7 @@ test('successful one-time invitation handoff cannot reopen a second submission w
   assert.match(login, /handoffCommittedRef\.current = true/u);
   assert.match(login, /if \(!handoffAccepted\)\s*\{[\s\S]*?submissionInFlightRef\.current = false[\s\S]*?setSubmitting\(false\)/u);
   assert.match(login, /disabled=\{submitting \|\| handoffCommitted\}/u);
+  assert.match(login, /正在确认本机授权/u);
   assert.match(login, /正在进入言策/u);
 });
 
