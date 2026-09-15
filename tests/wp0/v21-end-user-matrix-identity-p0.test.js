@@ -36,7 +36,7 @@ test('retired local Matrix identity IPC is absent from preload, bridge, manifest
   }
 });
 
-test('YanceLogin uses invitation JWT login and Element login-completion seam without local identity UI', () => {
+test('YanceLogin uses invitation or durable-device resume while Element remains the sole login-completion authority', () => {
   const login = read('integration/element-module/src/YanceLogin.tsx');
   const loginOnly = login.slice(0, login.indexOf('export function YancePostLoginSecurity'));
   const index = read('integration/element-module/src/index.tsx');
@@ -45,9 +45,13 @@ test('YanceLogin uses invitation JWT login and Element login-completion seam wit
   assert.match(login, /onLoggedIn\(result\.accountAuth\)/u);
   assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
   assert.match(login, /data-yance-invitation-login="jwt-element-on-logged-in"/u);
+  assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u);
+  assert.match(login, /已授权设备登录/u);
+  assert.match(login, /mode === "invitation" \? \{ invitationKey: key \} : \{\}/u);
   assert.match(login, /邀请码/u);
   assert.match(index, /<YanceLogin onLoggedIn=\{props\.onLoggedIn\}/u);
   assert.doesNotMatch(index, /overwriteAccountAuth|accountAuthApi/u);
+  assert.doesNotMatch(index, /desktop\.logoutPersonalAccess/u, 'Element session logout must not clear the independent durable device entitlement');
   assert.doesNotMatch(loginOnly, /overwriteAccountAuth\s*\(/u);
   assert.match(loginOnly, /submissionInFlightRef/u);
   assert.match(loginOnly, /handoffCommittedRef/u);
