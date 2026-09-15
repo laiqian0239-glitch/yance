@@ -607,3 +607,26 @@ test('pinned Element post-login security seam is explicit, fail-safe and replaye
   assert.ok(bootstrap.indexOf(p18) > bootstrap.indexOf(p17), '0018 must replay after post-0017 Element bytes');
   assert.doesNotMatch(bootstrap, /glob[^\n]*upstream-patches|readdirSync[^\n]*upstream-patches/iu);
 });
+
+test('pinned Element Matrix OpenID seam is explicit and replayed only after 0018', () => {
+  const patchPath = 'upstream-patches/element-web/0019-yance-module-openid-token.patch';
+  assert.equal(fs.existsSync(repositoryPath(patchPath)), true, '0019 Matrix OpenID patch must exist');
+  const patchText = readText(patchPath);
+  assert.deepEqual(patchedPaths(patchText), [
+    'apps/web/src/modules/ClientApi.ts',
+    'packages/module-api/element-web-module-api.api.md',
+    'packages/module-api/src/api/client.ts',
+  ]);
+  assert.match(patchText, /getOpenIdToken/u);
+  assert.match(patchText, /MatrixClientPeg\.safeGet\(\)\.getOpenIdToken\(\)/u);
+  assert.match(patchText, /MatrixOpenIdToken/u);
+  assert.doesNotMatch(patchText, /access_token[^\n]*(?:localStorage|sessionStorage|persist|fetch\()/u);
+
+  const bootstrap = readText('tools/matrix/bootstrap.js');
+  const p18 = "applyPatch(element, POST_LOGIN_SECURITY_PATCH, 'Element post-login security shell patch');";
+  const p19 = "applyPatch(element, MODULE_OPENID_TOKEN_PATCH, 'Element module OpenID token patch');";
+  assert.match(bootstrap, /0019-yance-module-openid-token\.patch/u);
+  assert.ok(bootstrap.indexOf(p18) >= 0, 'bootstrap must preserve 0018 replay');
+  assert.ok(bootstrap.indexOf(p19) > bootstrap.indexOf(p18), '0019 must replay after post-login security bytes');
+  assert.doesNotMatch(bootstrap, /glob[^\n]*upstream-patches|readdirSync[^\n]*upstream-patches/iu);
+});

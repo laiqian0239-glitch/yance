@@ -73,7 +73,11 @@ function runNpmCommand(args, options = {}) {
 
 function spawnFailureDetails(result) {
   const value = result || {};
+  let failureKind = 'EXIT_CODE';
+  if (value.error) failureKind = value.error?.code === 'ETIMEDOUT' ? 'TIMEOUT' : 'SPAWN_ERROR';
+  else if (typeof value.signal === 'string' && value.signal) failureKind = 'SIGNAL';
   return {
+    failureKind,
     status: Number.isInteger(value.status) ? value.status : null,
     signal: typeof value.signal === 'string' ? value.signal : null,
     errorCode: typeof value.error?.code === 'string' ? value.error.code : null,

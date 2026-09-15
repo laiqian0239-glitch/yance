@@ -86,6 +86,7 @@ type ProductDesktop = DesktopActivationBridge & {
   prepareOutboundMessage?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   storeConfirmSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   listPlatformAccounts?: () => Promise<Record<string, unknown>>;
+  logoutPersonalAccess?: () => Promise<Record<string, unknown>>;
   onOpenConversation?: (callback: (payload: Record<string, unknown>) => void | Promise<void>) => (() => void) | void;
   onOpenView?: (callback: (payload: Record<string, unknown>) => void | Promise<void>) => (() => void) | void;
 };
@@ -98,6 +99,15 @@ type YanceNavigationApi = Api["navigation"] & {
   requestLogout?: () => void;
 };
 type YanceClientApi = Api["client"] & { getRooms?: () => readonly { id: string }[] };
+type MatrixOpenIdToken = {
+  access_token: string;
+  token_type: string;
+  matrix_server_name: string;
+  expires_in: number;
+};
+type YanceOpenIdClientApi = YanceClientApi & {
+  getOpenIdToken?: () => Promise<MatrixOpenIdToken>;
+};
 type YanceComposerApi = {
   registerOutgoingMessagePrepare?: (
     handler: (input: { roomId: string; text: string }) => Promise<{ text: string; transformed?: boolean }>,
@@ -196,7 +206,7 @@ class YanceElementModule implements Module {
     ensureYanceElementStyles();
 
     const navigationApi = this.api.navigation as YanceNavigationApi;
-    const clientApi = this.api.client as YanceClientApi;
+    const clientApi = this.api.client as YanceOpenIdClientApi;
     const composerApi = (this.api as unknown as { composer?: YanceComposerApi }).composer;
     const messageComponentsApi = this.api.customComponents as unknown as ProductMessageComponentsApi;
     const desktop = (window as unknown as { yanceDesktop?: ProductDesktop }).yanceDesktop || {};
@@ -309,7 +319,7 @@ class YanceElementModule implements Module {
     };
 
     this.api.customComponents.registerLoginComponent(
-      (props, originalComponent) => <YanceLogin>{originalComponent(props)}</YanceLogin>,
+      (props) => <YanceLogin onLoggedIn={props.onLoggedIn} />,
     );
     messageComponentsApi.registerPostLoginSecurityComponent?.(
       ({ content }) => <YancePostLoginSecurity>{content}</YancePostLoginSecurity>,
@@ -324,9 +334,15 @@ class YanceElementModule implements Module {
         navigateGroupConversation={activateProductGroupConversation}
         navigateProductHome={navigateProductHome}
         readRoomStateEvents={readRoomStateEvents}
+        getMatrixOpenIdToken={typeof clientApi.getOpenIdToken === "function"
+          ? clientApi.getOpenIdToken.bind(clientApi)
+          : undefined}
         openUserSettings={(destination) => navigationApi.openUserSettings?.(destination)}
         requestLogout={() => {
-          void clearProductConversation().then(() => navigationApi.requestLogout?.());
+          window.yancePersonalAccessHandoff = null;
+          void clearProductConversation()
+            .then(() => desktop.logoutPersonalAccess?.())
+            .then(() => navigationApi.requestLogout?.());
         }}
       />
     ));

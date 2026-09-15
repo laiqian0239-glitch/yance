@@ -2,7 +2,14 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { FORMAL_PROBE_IDS, assertFormalProbeIdSet } = require('../../shared/wp7/formalProbeIds');
+const {
+  ENTITLED_PRODUCT_PROBE_IDS,
+  FORMAL_PROBE_IDS,
+  PRE_ENTITLEMENT_PROBE_IDS,
+  assertEntitledProductProbeIdSet,
+  assertFormalProbeIdSet,
+  assertPreEntitlementProbeIdSet
+} = require('../../shared/wp7/formalProbeIds');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const SCOPE_RELATIVE_PATH = 'governance/wp7/formal-trusted-product-probe-scope.json';
@@ -10,14 +17,29 @@ const SCOPE_RELATIVE_PATH = 'governance/wp7/formal-trusted-product-probe-scope.j
 function readFormalProbeScope(repoRoot = REPO_ROOT) {
   const scopePath = path.join(path.resolve(repoRoot), ...SCOPE_RELATIVE_PATH.split('/'));
   const document = JSON.parse(fs.readFileSync(scopePath, 'utf8'));
-  if (document.schemaVersion !== 1 || document.documentType !== 'WP7_FORMAL_TRUSTED_PRODUCT_PROBE_SCOPE' || document.requiredProbeCount !== FORMAL_PROBE_IDS.length || document.authorityModule !== 'shared/wp7/formalProbeIds.js') {
+  if (document.schemaVersion !== 2
+      || document.documentType !== 'WP7_FORMAL_TRUSTED_PRODUCT_PROBE_SCOPE'
+      || document.requiredProbeCount !== FORMAL_PROBE_IDS.length
+      || document.preEntitlementProbeCount !== PRE_ENTITLEMENT_PROBE_IDS.length
+      || document.entitledProductProbeCount !== ENTITLED_PRODUCT_PROBE_IDS.length
+      || document.authorityModule !== 'shared/wp7/formalProbeIds.js'
+      || document.preReviewRunnerExecutesPreEntitlementOnly !== true
+      || document.finalWindowsHarnessRequiresAllFormalProbes !== true) {
     const error = new Error('formal trusted-product probe scope governance document is invalid');
     error.reasonCode = 'WP7_TRUSTED_PRODUCT_PROBE_ID_SET_INCONSISTENT';
     error.details = { scopePath };
     throw error;
   }
   assertFormalProbeIdSet(document.formalProbeIds);
-  return Object.freeze({ scopePath, document, formalProbeIds: FORMAL_PROBE_IDS });
+  assertPreEntitlementProbeIdSet(document.preEntitlementProbeIds);
+  assertEntitledProductProbeIdSet(document.entitledProductProbeIds);
+  return Object.freeze({
+    scopePath,
+    document,
+    formalProbeIds: FORMAL_PROBE_IDS,
+    preEntitlementProbeIds: PRE_ENTITLEMENT_PROBE_IDS,
+    entitledProductProbeIds: ENTITLED_PRODUCT_PROBE_IDS
+  });
 }
 
 function createTrustedProductProbeBlocker(options = {}) {

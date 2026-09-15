@@ -3,7 +3,12 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { FORMAL_PROBE_IDS, validateMeasurements } = require('../../electron/wp7InstalledRuntimeProbe');
+const { validateMeasurements } = require('../../electron/wp7InstalledRuntimeProbe');
+const {
+  ENTITLED_PRODUCT_PROBE_IDS,
+  FORMAL_PROBE_IDS,
+  PRE_ENTITLEMENT_PROBE_IDS
+} = require('../../shared/wp7/formalProbeIds');
 const { readPreMainProof } = require('./linux-network-isolation');
 const {
   ARTIFACT_CLASS,
@@ -85,25 +90,34 @@ function assertEqual(actual, expected, reasonCode, message, details = {}) {
   if (actual !== expected) fail(reasonCode, message, { ...details, expected, actual });
 }
 function validateAggregateIdentity(aggregate) {
-  if (!aggregate || aggregate.schemaVersion !== 2 || aggregate.documentType !== 'WP7_PACKAGED_YANCE_NINE_PROBE_INTEGRATION_RESULT' || aggregate.status !== 'PASS') {
-    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'nine-probe aggregate schema or status is invalid');
+  if (!aggregate || aggregate.schemaVersion !== 3
+      || aggregate.documentType !== 'WP7_PACKAGED_YANCE_PRE_ENTITLEMENT_PROBE_INTEGRATION_RESULT'
+      || aggregate.status !== 'PASS'
+      || aggregate.preReviewScopeComplete !== true) {
+    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'pre-entitlement probe aggregate schema or status is invalid');
   }
   if (aggregate.executionClass !== EVIDENCE_CLASS || aggregate.formalWindowsEvidenceEligible !== false || aggregate.artifactClass !== ARTIFACT_CLASS || aggregate.finalReleaseEvidence !== false) {
-    fail('WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_INVALID', 'nine-probe aggregate is not classified as Pre-Review-only evidence', {
+    fail('WP7_PRE_REVIEW_ARTIFACT_CLASSIFICATION_INVALID', 'pre-entitlement probe aggregate is not classified as Pre-Review-only evidence', {
       executionClass: aggregate.executionClass,
       formalWindowsEvidenceEligible: aggregate.formalWindowsEvidenceEligible,
       artifactClass: aggregate.artifactClass,
       finalReleaseEvidence: aggregate.finalReleaseEvidence
     });
   }
+  if (JSON.stringify(aggregate.formalProbeIds) !== JSON.stringify(FORMAL_PROBE_IDS)
+      || JSON.stringify(aggregate.preEntitlementProbeIds) !== JSON.stringify(PRE_ENTITLEMENT_PROBE_IDS)
+      || JSON.stringify(aggregate.entitledProductProbeIds) !== JSON.stringify(ENTITLED_PRODUCT_PROBE_IDS)
+      || aggregate.entitledProductProbeStatus !== 'DEFERRED_REQUIRES_REAL_PERSONAL_ACCESS_PRODUCT_ENTITLEMENT') {
+    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'pre-review probe authority partition is invalid');
+  }
   if (!GIT_RE.test(aggregate.sourceCommit) || !GIT_RE.test(aggregate.sourceTree) || typeof aggregate.buildId !== 'string' || !aggregate.buildId || typeof aggregate.buildSessionId !== 'string' || !aggregate.buildSessionId) {
-    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'nine-probe aggregate source or build identity is malformed');
+    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'pre-entitlement probe aggregate source or build identity is malformed');
   }
   if (!SHA256_RE.test(aggregate.nativeBinaryScanSha256 || '') || !Number.isInteger(aggregate.nativeBinaryFileCount) || aggregate.nativeBinaryFileCount < 0 || aggregate.nativeBinaryFailureCount !== 0 || !['linux', 'win32'].includes(aggregate.nativeBinaryTargetPlatform) || aggregate.nativeBinaryTargetArch !== 'x64') {
-    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'nine-probe aggregate native binary identity is malformed');
+    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'pre-entitlement probe aggregate native binary identity is malformed');
   }
   if (!SHA256_RE.test(aggregate.preReviewSealedArtifactSha256) || aggregate.preReviewSealedArtifactType !== SEALED_ARTIFACT_TYPE) {
-    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'nine-probe aggregate sealed artifact identity is malformed');
+    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'pre-entitlement probe aggregate sealed artifact identity is malformed');
   }
   assertNoAbsoluteOrTempReferences(aggregate);
 }
@@ -197,9 +211,9 @@ function validateRawProbeRecord({ evidenceRoot, aggregate, row, probeId }) {
   }
   return Object.values(files).map(({ relativePath, sha256, sizeBytes }) => ({ path: relativePath, sha256, sizeBytes, probeId }));
 }
-function validateNineProbeRawEvidence(options = {}) {
+function validatePreEntitlementProbeRawEvidence(options = {}) {
   const evidenceRoot = fs.realpathSync(path.resolve(options.evidenceRoot || ''));
-  const aggregateRelativePath = normalizeRelativePath(options.aggregateRelativePath || 'nine-fresh-final-result.json', 'aggregateRelativePath');
+  const aggregateRelativePath = normalizeRelativePath(options.aggregateRelativePath || 'pre-entitlement-probe-result.json', 'aggregateRelativePath');
   const aggregateRecord = resolveEvidenceFile(evidenceRoot, aggregateRelativePath, 'aggregateRelativePath');
   const aggregate = readJsonFile(aggregateRecord);
   validateAggregateIdentity(aggregate);
@@ -227,11 +241,15 @@ function validateNineProbeRawEvidence(options = {}) {
     nativeBinaryScanSha256: aggregate.nativeBinaryScanSha256
   });
   assertEqual(seal.sha256, aggregate.preReviewSealedArtifactSha256, 'WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'aggregate sealed artifact SHA256 does not match the supplied file');
-  if (!Array.isArray(aggregate.requiredProbeIds) || JSON.stringify(aggregate.requiredProbeIds) !== JSON.stringify(FORMAL_PROBE_IDS) || aggregate.executedProbeCount !== FORMAL_PROBE_IDS.length || !Array.isArray(aggregate.probeResults) || aggregate.probeResults.length !== FORMAL_PROBE_IDS.length) {
-    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING', 'nine-probe aggregate does not contain exactly the canonical nine probes');
+  if (!Array.isArray(aggregate.requiredProbeIds)
+      || JSON.stringify(aggregate.requiredProbeIds) !== JSON.stringify(PRE_ENTITLEMENT_PROBE_IDS)
+      || aggregate.executedProbeCount !== PRE_ENTITLEMENT_PROBE_IDS.length
+      || !Array.isArray(aggregate.probeResults)
+      || aggregate.probeResults.length !== PRE_ENTITLEMENT_PROBE_IDS.length) {
+    fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING', 'pre-review aggregate does not contain exactly the canonical six pre-entitlement probes');
   }
   const probeArtifacts = [];
-  aggregate.probeResults.forEach((row, index) => probeArtifacts.push(...validateRawProbeRecord({ evidenceRoot, aggregate, row, probeId: FORMAL_PROBE_IDS[index] })));
+  aggregate.probeResults.forEach((row, index) => probeArtifacts.push(...validateRawProbeRecord({ evidenceRoot, aggregate, row, probeId: PRE_ENTITLEMENT_PROBE_IDS[index] })));
   const uniquePaths = new Set(probeArtifacts.map((row) => row.path));
   if (uniquePaths.size !== probeArtifacts.length) fail('WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_INVALID', 'multiple raw evidence records reference the same file');
   return Object.freeze({
@@ -240,7 +258,7 @@ function validateNineProbeRawEvidence(options = {}) {
     aggregateSha256: aggregateRecord.sha256,
     aggregate,
     sealedArtifact: seal,
-    artifactRecords: [{ path: aggregateRecord.relativePath, sha256: aggregateRecord.sha256, sizeBytes: aggregateRecord.sizeBytes, class: 'NINE_PROBE_AGGREGATE' }, ...probeArtifacts]
+    artifactRecords: [{ path: aggregateRecord.relativePath, sha256: aggregateRecord.sha256, sizeBytes: aggregateRecord.sizeBytes, class: 'PRE_ENTITLEMENT_PROBE_AGGREGATE' }, ...probeArtifacts]
   });
 }
 function walkRegularFiles(root, relativeRoot = '') {
@@ -267,6 +285,6 @@ module.exports = {
   normalizeRelativePath,
   resolveEvidenceFile,
   sha256File,
-  validateNineProbeRawEvidence,
+  validatePreEntitlementProbeRawEvidence,
   walkRegularFiles
 };

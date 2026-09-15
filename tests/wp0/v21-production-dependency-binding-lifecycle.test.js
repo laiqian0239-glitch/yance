@@ -7,10 +7,24 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { validateBindingDocument } = require('../../tools/wp7/production-dependency-binding');
+const wp1 = require('../../tools/wp1/lib');
+const {
+  validateBindingDocument,
+  verifyProductionDependencyClosure
+} = require('../../tools/wp7/production-dependency-binding');
 
 const ROOT = path.resolve(__dirname, '../..');
 const EXACT_NPM_VERSION = '10.9.2';
+const WIN32_PRODUCTION_NPM_CI_ARGS = [
+  'ci',
+  '--omit=dev',
+  '--ignore-scripts',
+  '--no-audit',
+  '--no-fund',
+  '--no-bin-links',
+  '--os=win32',
+  '--cpu=x64'
+];
 
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(ROOT, ...relativePath.split('/')), 'utf8'));
@@ -27,13 +41,18 @@ function sha256File(relativePath) {
 }
 
 function npmCommand() {
-  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  return process.platform === 'win32' ? process.env.ComSpec || 'cmd.exe' : 'npm';
+}
+
+function npmArgs(args) {
+  const exactArgs = ['exec', '--yes', `--package=npm@${EXACT_NPM_VERSION}`, '--', ...args];
+  return process.platform === 'win32' ? ['/d', '/s', '/c', 'npm.cmd', ...exactArgs] : exactArgs;
 }
 
 function spawnExactNpm(args, options = {}) {
   return spawnSync(
     npmCommand(),
-    ['exec', '--yes', `--package=npm@${EXACT_NPM_VERSION}`, '--', ...args],
+    npmArgs(args),
     {
       cwd: options.cwd,
       env: options.env || process.env,
@@ -51,6 +70,20 @@ function commandFailure(result) {
     result.stdout || '',
     result.stderr || ''
   ].filter(Boolean).join('\n');
+}
+
+function copyFrozenLock(sandboxRoot) {
+  fs.copyFileSync(
+    path.join(ROOT, 'package-lock.json'),
+    path.join(sandboxRoot, 'package-lock.json')
+  );
+}
+
+function writeProjectedPackageJson(sandboxRoot, metadata) {
+  fs.writeFileSync(
+    path.join(sandboxRoot, 'package.json'),
+    wp1.canonicalJsonBuffer(metadata)
+  );
 }
 
 function generateBindingInIsolatedRepo() {
@@ -122,6 +155,81 @@ test('WP7 reviewed production dependency binding follows the current root packag
   assert.match(generator, /runNpmCommand/u, 'existing generator must materialize the reviewed npm production closure');
   assert.doesNotMatch(generator, /packageJsonSha256\s*[:=]\s*['"][0-9a-f]{64}/u, 'generator must never hard-code reviewed package hashes');
   assert.doesNotMatch(generator, /packageLockSha256\s*[:=]\s*['"][0-9a-f]{64}/u, 'generator must never hard-code reviewed lock hashes');
+});
+
+test('Final Builder projected package metadata remains frozen-lock compatible under exact win32 production npm authority', () => {
+  let brokenRoot;
+  let intactRoot;
+  try {
+    const sourcePackage = readJson('package.json');
+    const releaseSource = readJson('release/release-source.json');
+    const schemaAuthority = wp1.deriveDatabaseSchemaVersion(ROOT);
+    const projected = wp1.generatedPackageMetadata(
+      ROOT,
+      releaseSource,
+      schemaAuthority.databaseSchemaVersion
+    );
+
+    assert.deepEqual(projected.dependencies, sourcePackage.dependencies);
+    assert.deepEqual(projected.devDependencies, sourcePackage.devDependencies);
+    assert.deepEqual(projected.overrides, sourcePackage.overrides);
+    assert.equal(projected.overrides?.['@letta-ai/letta-code']?.sharp, '0.35.3');
+
+    brokenRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp7-projected-lock-broken-'));
+    intactRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-wp7-projected-lock-intact-'));
+    copyFrozenLock(brokenRoot);
+    copyFrozenLock(intactRoot);
+
+    const versionResult = spawnExactNpm(['npm', '--version'], { cwd: intactRoot });
+    assert.equal(versionResult.status, 0, `exact npm@${EXACT_NPM_VERSION} bootstrap failed\n${commandFailure(versionResult)}`);
+    assert.equal(
+      versionResult.stdout.trim(),
+      EXACT_NPM_VERSION,
+      `projected lock compatibility gate must use exact npm@${EXACT_NPM_VERSION}, not ambient npm`
+    );
+
+    const brokenProjected = JSON.parse(JSON.stringify(projected));
+    delete brokenProjected.overrides;
+    writeProjectedPackageJson(brokenRoot, brokenProjected);
+    const brokenResult = spawnExactNpm(['npm', ...WIN32_PRODUCTION_NPM_CI_ARGS], {
+      cwd: brokenRoot,
+      timeout: 540000,
+      maxBuffer: 128 * 1024 * 1024
+    });
+    const brokenFailure = commandFailure(brokenResult);
+    assert.notEqual(
+      brokenResult.status,
+      0,
+      'missing projected overrides must reproduce the frozen-lock npm ci failure'
+    );
+    assert.match(brokenFailure, /\bEUSAGE\b/u, brokenFailure);
+    assert.match(brokenFailure, /Missing:\s*sharp@0\.34\.5\s+from lock file/u, brokenFailure);
+
+    writeProjectedPackageJson(intactRoot, projected);
+    const intactResult = spawnExactNpm(['npm', ...WIN32_PRODUCTION_NPM_CI_ARGS], {
+      cwd: intactRoot,
+      timeout: 540000,
+      maxBuffer: 128 * 1024 * 1024
+    });
+    assert.equal(
+      intactResult.status,
+      0,
+      `projected package metadata must remain compatible with the frozen root lock under exact win32 production npm authority\n${commandFailure(intactResult)}`
+    );
+
+    const closure = verifyProductionDependencyClosure({
+      repoRoot: ROOT,
+      appRoot: intactRoot,
+      sourceCommit: 'HEAD',
+      platform: 'win32',
+      arch: 'x64'
+    });
+    assert.equal(closure.platform, 'win32-x64');
+  } finally {
+    for (const sandboxRoot of [brokenRoot, intactRoot]) {
+      if (sandboxRoot) fs.rmSync(sandboxRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    }
+  }
 });
 
 test('WP7 reviewed production dependency binding exactly matches isolated generator output', {

@@ -4704,7 +4704,12 @@
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
-        "properties": {},
+        "properties": {
+          "matrixOpenId": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
         "required": []
       },
       "outputSchema": {
@@ -4715,37 +4720,109 @@
       "allowedDuringQuitting": false,
       "allowedDuringRestart": false,
       "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
-      "sensitiveFields": [],
+      "sensitiveFields": [
+        "matrixOpenId.access_token"
+      ],
       "ipcType": "invoke",
       "handler": {
         "file": "electron/r32StoreBridge.js",
-        "line": 237
+        "line": 390
       },
       "rendererExposure": {
         "api": "getPersonalAccessStatus",
         "file": "electron/preload.js",
-        "line": 137
+        "line": 169
       },
       "risk": "P0",
       "m2Scope": true,
-      "currentObservation": "Projects the existing PersonalAccessService entitlement status into the sole active Element Product without renderer-local entitlement truth.",
-      "m2RequiredAction": "Keep PersonalAccessService and the remote Personal Access authority as the sole entitlement authority; M2 only routes the existing authenticated local API.",
-      "crossModuleDependency": "Existing M3 Personal Access backend authority; no second renderer-local entitlement state or backend route."
+      "currentObservation": "Projects Matrix OpenID-backed Personal Access status through the existing backend authority.",
+      "m2RequiredAction": "Keep entitlement verification backend-owned; renderer may send a transient Matrix OpenID proof only.",
+      "crossModuleDependency": "Existing M3 Personal Access backend, Matrix OpenID userinfo, and Unkey Worker verify authority."
     },
     {
-      "channel": "store:personal-access-submit-request",
+      "channel": "store:personal-access-login",
       "direction": "renderer-to-main",
       "phase": "trusted-ready",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "displayName": {
+          "invitationKey": {
             "type": "string",
-            "maxLength": 120
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "invitationKey"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "usable": {
+            "type": "boolean"
+          },
+          "reasonCode": {
+            "type": "string"
+          },
+          "accountAuth": {
+            "type": "object",
+            "additionalProperties": true
           }
         },
         "required": []
+      },
+      "requiresBackendReady": true,
+      "allowedDuringQuitting": false,
+      "allowedDuringRestart": false,
+      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
+      "sensitiveFields": [
+        "invitationKey",
+        "accountAuth.accessToken"
+      ],
+      "ipcType": "invoke",
+      "handler": {
+        "file": "electron/r32StoreBridge.js",
+        "line": 390
+      },
+      "rendererExposure": {
+        "api": "loginPersonalAccess",
+        "file": "electron/preload.js",
+        "line": 169
+      },
+      "risk": "P0",
+      "m2Scope": true,
+      "currentObservation": "Consumes a transient invitation key, receives a transient Matrix accountAuth from the backend JWT login seam, and hands it to Element overwriteAccountAuth only.",
+      "m2RequiredAction": "Do not persist invitation keys or Matrix access tokens in M2; keep Element as the account/session authority.",
+      "crossModuleDependency": "Existing M3 Personal Access backend, Synapse JWT login, and Element AccountAuth overwrite authority."
+    },
+    {
+      "channel": "store:personal-access-activate",
+      "direction": "renderer-to-main",
+      "phase": "trusted-ready",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "matrixOpenId": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "keyId",
+          "matrixOpenId"
+        ]
       },
       "outputSchema": {
         "type": "object",
@@ -4756,26 +4833,26 @@
       "allowedDuringRestart": false,
       "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
       "sensitiveFields": [
-        "displayName"
+        "matrixOpenId.access_token"
       ],
       "ipcType": "invoke",
       "handler": {
         "file": "electron/r32StoreBridge.js",
-        "line": 238
+        "line": 393
       },
       "rendererExposure": {
-        "api": "submitPersonalAccessRequest",
+        "api": "activatePersonalAccess",
         "file": "electron/preload.js",
-        "line": 138
+        "line": 170
       },
       "risk": "P0",
       "m2Scope": true,
-      "currentObservation": "Routes the TESTER request action to the existing Personal Access request endpoint; installation/request receipts remain owned by PersonalAccessService.",
-      "m2RequiredAction": "Keep PersonalAccessService and the remote Personal Access authority as the sole entitlement authority; validate only the bounded display name at the renderer boundary.",
-      "crossModuleDependency": "Existing M3 Personal Access backend authority; no second renderer-local entitlement state or backend route."
+      "currentObservation": "Persists only a non-secret Unkey keyId receipt after backend Matrix OpenID subject and Unkey getKey identity verification.",
+      "m2RequiredAction": "Persist only { keyId } in the existing credential authority; never persist raw invitation keys or Matrix tokens.",
+      "crossModuleDependency": "Existing M3 Personal Access backend, Matrix OpenID userinfo, and Unkey Worker verify authority."
     },
     {
-      "channel": "store:personal-access-refresh-request",
+      "channel": "store:personal-access-logout",
       "direction": "renderer-to-main",
       "phase": "trusted-ready",
       "inputSchema": {
@@ -4796,255 +4873,20 @@
       "ipcType": "invoke",
       "handler": {
         "file": "electron/r32StoreBridge.js",
-        "line": 241
+        "line": 395
       },
       "rendererExposure": {
-        "api": "refreshPersonalAccessRequest",
+        "api": "logoutPersonalAccess",
         "file": "electron/preload.js",
-        "line": 139
+        "line": 174
       },
       "risk": "P0",
       "m2Scope": true,
-      "currentObservation": "Refreshes authoritative entitlement state through the existing Personal Access service; the renderer does not synthesize grant state.",
-      "m2RequiredAction": "Keep PersonalAccessService and the remote Personal Access authority as the sole entitlement authority; M2 only routes the refresh request.",
-      "crossModuleDependency": "Existing M3 Personal Access backend authority; no second renderer-local entitlement state or backend route."
+      "currentObservation": "Clears only the non-secret Personal Access keyId receipt before Element owns explicit Matrix logout.",
+      "m2RequiredAction": "Do not implement Matrix logout or session lifecycle in M2; only clear the Personal Access receipt projection.",
+      "crossModuleDependency": "Existing M3 Personal Access backend and Element AccountAuth logout authority."
     },
-    {
-      "channel": "store:personal-access-owner-requests",
-      "direction": "renderer-to-main",
-      "phase": "trusted-ready",
-      "inputSchema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {},
-        "required": []
-      },
-      "outputSchema": {
-        "type": "object",
-        "additionalProperties": true
-      },
-      "requiresBackendReady": true,
-      "allowedDuringQuitting": false,
-      "allowedDuringRestart": false,
-      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
-      "sensitiveFields": [],
-      "ipcType": "invoke",
-      "handler": {
-        "file": "electron/r32StoreBridge.js",
-        "line": 244
-      },
-      "rendererExposure": {
-        "api": "listPersonalAccessOwnerRequests",
-        "file": "electron/preload.js",
-        "line": 140
-      },
-      "risk": "P0",
-      "m2Scope": true,
-      "currentObservation": "Lists OWNER-visible Personal Access request/grant state through the existing owner-authenticated backend authority.",
-      "m2RequiredAction": "Keep OWNER credential custody and request/grant state in the existing PersonalAccessService and remote authority; expose only the existing bounded projection.",
-      "crossModuleDependency": "Existing M3 Personal Access backend authority; OWNER secret remains outside renderer custody."
-    },
-    {
-      "channel": "store:personal-access-owner-request-mutation",
-      "direction": "renderer-to-main",
-      "phase": "trusted-ready",
-      "inputSchema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "requestId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 512
-          },
-          "action": {
-            "type": "string",
-            "enum": [
-              "assign",
-              "approve",
-              "reject"
-            ]
-          }
-        },
-        "required": [
-          "requestId",
-          "action"
-        ]
-      },
-      "outputSchema": {
-        "type": "object",
-        "additionalProperties": true
-      },
-      "requiresBackendReady": true,
-      "allowedDuringQuitting": false,
-      "allowedDuringRestart": false,
-      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
-      "sensitiveFields": [
-        "requestId"
-      ],
-      "ipcType": "invoke",
-      "handler": {
-        "file": "electron/r32StoreBridge.js",
-        "line": 245
-      },
-      "rendererExposure": {
-        "api": "mutatePersonalAccessOwnerRequest",
-        "file": "electron/preload.js",
-        "line": 141
-      },
-      "risk": "P0",
-      "m2Scope": true,
-      "currentObservation": "Allows only the existing OWNER request transitions assign/approve/reject after renderer-boundary identifier/action validation.",
-      "m2RequiredAction": "Keep request transition semantics, OWNER authentication and persistence in the existing Personal Access backend/remote authority; M2 must not invent transitions.",
-      "crossModuleDependency": "Existing M3 Personal Access backend authority; OWNER secret remains outside renderer custody."
-    },
-    {
-      "channel": "store:personal-access-owner-grant-mutation",
-      "direction": "renderer-to-main",
-      "phase": "trusted-ready",
-      "inputSchema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "grantId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 512
-          },
-          "action": {
-            "type": "string",
-            "enum": [
-              "suspend",
-              "revoke"
-            ]
-          }
-        },
-        "required": [
-          "grantId",
-          "action"
-        ]
-      },
-      "outputSchema": {
-        "type": "object",
-        "additionalProperties": true
-      },
-      "requiresBackendReady": true,
-      "allowedDuringQuitting": false,
-      "allowedDuringRestart": false,
-      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
-      "sensitiveFields": [
-        "grantId"
-      ],
-      "ipcType": "invoke",
-      "handler": {
-        "file": "electron/r32StoreBridge.js",
-        "line": 252
-      },
-      "rendererExposure": {
-        "api": "mutatePersonalAccessOwnerGrant",
-        "file": "electron/preload.js",
-        "line": 142
-      },
-      "risk": "P0",
-      "m2Scope": true,
-      "currentObservation": "Allows only the existing OWNER grant transitions suspend/revoke after renderer-boundary identifier/action validation.",
-      "m2RequiredAction": "Keep grant transition semantics, OWNER authentication and persistence in the existing Personal Access backend/remote authority; M2 must not invent transitions.",
-      "crossModuleDependency": "Existing M3 Personal Access backend authority; OWNER secret remains outside renderer custody."
-    },
-    {
-      "channel": "desktop:matrix-local-identity-status",
-      "direction": "renderer-to-main",
-      "phase": "trusted-ready",
-      "inputSchema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {},
-        "required": []
-      },
-      "outputSchema": {
-        "type": "object",
-        "additionalProperties": true
-      },
-      "requiresBackendReady": true,
-      "allowedDuringQuitting": false,
-      "allowedDuringRestart": false,
-      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
-      "sensitiveFields": [],
-      "ipcType": "invoke",
-      "handler": {
-        "file": "electron/r32StoreBridge.js",
-        "line": 267
-      },
-      "rendererExposure": {
-        "api": "getMatrixLocalIdentity",
-        "file": "electron/preload.js",
-        "line": 143
-      },
-      "risk": "P0",
-      "m2Scope": true,
-      "currentObservation": "Reads the non-secret local human Matrix identity receipt through the existing local desktop API security boundary before Personal Access entitlement.",
-      "m2RequiredAction": "Keep Element as the Matrix session authority; M2 may only forward this non-secret status endpoint and must not expose Matrix client login or access tokens.",
-      "crossModuleDependency": "Existing local Synapse shared-secret registration authority and Element login surface."
-    },
-    {
-      "channel": "desktop:matrix-local-identity-create",
-      "direction": "renderer-to-main",
-      "phase": "trusted-ready",
-      "inputSchema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "localpart": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 64
-          },
-          "password": {
-            "type": "string",
-            "minLength": 12,
-            "maxLength": 512
-          },
-          "confirmPassword": {
-            "type": "string",
-            "minLength": 12,
-            "maxLength": 512
-          }
-        },
-        "required": [
-          "localpart",
-          "password",
-          "confirmPassword"
-        ]
-      },
-      "outputSchema": {
-        "type": "object",
-        "additionalProperties": true
-      },
-      "requiresBackendReady": true,
-      "allowedDuringQuitting": false,
-      "allowedDuringRestart": false,
-      "reasonCodeOnFailure": "DESKTOP_BACKEND_NOT_READY",
-      "sensitiveFields": [
-        "password",
-        "confirmPassword"
-      ],
-      "ipcType": "invoke",
-      "handler": {
-        "file": "electron/r32StoreBridge.js",
-        "line": 268
-      },
-      "rendererExposure": {
-        "api": "createMatrixLocalIdentity",
-        "file": "electron/preload.js",
-        "line": 144
-      },
-      "risk": "P0",
-      "m2Scope": true,
-      "currentObservation": "Creates the one allowed local human Matrix identity by forwarding username/password once to the backend-owned shared-secret Synapse registration helper.",
-      "m2RequiredAction": "Keep password transient, store only a non-secret receipt, reject duplicate provisioning, keep Synapse public registration disabled, and keep Element as the only login/session authority.",
-      "crossModuleDependency": "Existing local Synapse shared-secret registration authority and Element login surface."
-    },
-    {
+            {
       "channel": "store:platform-accounts-list",
       "direction": "renderer-to-main",
       "phase": "trusted-ready",
@@ -5479,16 +5321,6 @@
       "m2RequiredAction": "standardize payload schema and lifecycle guards"
     }
   ],
-  "validationSummary": {
-    "rendererToMainHandlerCount": 85,
-    "mainToRendererChannelCount": 8,
-    "allRendererToMainHandlersHaveRequiredFields": true,
-    "allOutboundChannelsHaveRequiredFields": true,
-    "denylistCount": 9,
-    "sourceModificationPerformed": false,
-    "testingStarted": false,
-    "windowsVerificationStarted": false
-  },
   "moduleBoundary": {
     "M2Allowed": [
       "Electron main lifecycle",

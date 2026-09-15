@@ -159,13 +159,12 @@ function authorityChanged(before, after) {
 }
 
 function createSafeModeScenarioRunner(options = {}) {
-  const projectionSnapshot = options.projectionSnapshot;
-  const pollOnce = options.pollOnce;
+  const runtimeSnapshot = options.runtimeSnapshot;
   const rendererStorageSession = options.rendererStorageSession;
   const dataRoot = path.resolve(options.dataRoot || '.');
   const legacyRoot = path.resolve(options.legacyRoot || path.join(dataRoot, '..', 'Yance27'));
   const desktopSettingsPath = path.resolve(options.desktopSettingsPath || path.join(dataRoot, 'desktop-settings.json'));
-  if (typeof projectionSnapshot !== 'function' || typeof pollOnce !== 'function') throw new TypeError('safe-mode runner requires projectionSnapshot and pollOnce');
+  if (typeof runtimeSnapshot !== 'function') throw new TypeError('safe-mode runner requires runtimeSnapshot');
 
   const legacyFile = path.join(legacyRoot, 'safe-mode-state.json');
   const systemPolicyFile = path.join(dataRoot, 'system-policy.json');
@@ -185,7 +184,7 @@ function createSafeModeScenarioRunner(options = {}) {
   return async function runSafeModeScenario(sources = []) {
     const normalized = [...new Set((Array.isArray(sources) ? sources : []).map(String))].sort();
     const sourceId = normalized.length > 1 ? 'combined-conflict' : normalized[0];
-    const beforeProjection = projectionSnapshot();
+    const beforeProjection = await runtimeSnapshot();
     const beforeAuthority = runtimeAuthority(beforeProjection);
     const saved = {
       legacyFile: saveFile(legacyFile),
@@ -223,8 +222,7 @@ function createSafeModeScenarioRunner(options = {}) {
           throw Object.assign(new Error(`unknown safe-mode source: ${source}`), { reasonCode: 'WP7_SAFE_MODE_NEGATIVE_SOURCE_MATRIX_INCOMPLETE' });
         }
       }
-      await pollOnce();
-      const afterProjection = projectionSnapshot();
+      const afterProjection = await runtimeSnapshot();
       const afterAuthority = runtimeAuthority(afterProjection);
       const changes = authorityChanged(beforeAuthority, afterAuthority) ? 1 : 0;
       return Object.freeze({

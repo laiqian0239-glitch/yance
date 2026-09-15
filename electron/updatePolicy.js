@@ -38,9 +38,11 @@ function githubUpdateConfig({ env = process.env, isPackaged = false, source = re
     };
   }
 
-  // Owner-authorized unsigned public update channel.
-  // Code signing is deferred, but stable GitHub auto-update remains enabled.
-  if (isPackaged) {
+  const publicOnlineUpdateAuthorized = source.onlineUpdatesEnabled === true &&
+    source.formalPublicReleaseAuthorized === true &&
+    source.updateMode !== 'MANUAL_INSTALLER_ONLY' &&
+    source.releaseChannel !== 'INTERNAL_TEST_ONLY';
+  if (isPackaged && publicOnlineUpdateAuthorized) {
     return {
       configured: true,
       provider: 'github',
@@ -48,13 +50,12 @@ function githubUpdateConfig({ env = process.env, isPackaged = false, source = re
       repo: 'Yance-Releases',
       channel: 'latest',
       allowPrerelease: false,
-      source: 'github-packaged-unsigned-stable',
+      source: 'github-packaged-public-authority',
       token: null
     };
   }
 
-  // Development builds remain opt-in unless explicitly enabled.
-  if (source.onlineUpdatesEnabled !== true && env.YANCE_ENABLE_GITHUB_UPDATES !== '1') {
+  if (!publicOnlineUpdateAuthorized && env.YANCE_ENABLE_GITHUB_UPDATES !== '1') {
     return {
       configured: false,
       provider: 'github',
@@ -62,7 +63,7 @@ function githubUpdateConfig({ env = process.env, isPackaged = false, source = re
       repo: '',
       channel: clean(env.YANCE_UPDATE_CHANNEL || 'latest'),
       allowPrerelease: false,
-      source: 'development-update-disabled',
+      source: isPackaged ? 'packaged-release-authority-update-disabled' : 'development-update-disabled',
       mode: source.updateMode || 'MANUAL_INSTALLER_ONLY',
       token: null
     };

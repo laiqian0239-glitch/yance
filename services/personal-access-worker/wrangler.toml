@@ -4,11 +4,5 @@ compatibility_date = "2026-08-21"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
-[[d1_databases]]
-binding = "DB"
-database_name = "yance-personal-access"
-database_id = "e81b4218-8a66-4377-b07d-eb785c7698cf"
-migrations_dir = "migrations"
-
-# OWNER_ADMIN_SECRET must be supplied with `wrangler secret put OWNER_ADMIN_SECRET`.
-# Never place the secret in this file or in D1.
+# UNKEY_ROOT_KEY must be supplied with `wrangler secret put UNKEY_ROOT_KEY`.
+# Never place the root key in this file or expose it to Yance clients.

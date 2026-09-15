@@ -3,10 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 const { compareVersion } = require('../../electron/updateVerifier');
-const { emitUpdateMetadata } = require('../../tools/wp7/lib');
 
 const ROOT = path.resolve(__dirname, '../..');
 const releaseSource = JSON.parse(fs.readFileSync(path.join(ROOT, 'release/release-source.json'), 'utf8'));
@@ -114,28 +112,16 @@ test('legacy compatibility is explicit, non-visible and time-bounded', () => {
   assert.match(legacy.reason, /migration compatibility/i);
 });
 
-test('update metadata uses new public naming even in manual installer mode', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'yance-brand-update-'));
-  try {
-    const installerPath = path.join(root, 'Yance-Setup-1.0.0-x64.exe');
-    fs.writeFileSync(installerPath, Buffer.from('real-installer-fixture'));
-    const result = emitUpdateMetadata({
-      installerPath,
-      outputRoot: root,
-      productVersion: releaseSource.productVersion,
-      publicVersion: releaseSource.publicVersion,
-      publicProductName: releaseSource.publicProductNameEnglish,
-      buildTimestampUtc: '2026-07-15T00:00:00.000Z'
-    });
-    const latest = fs.readFileSync(result.latestYmlPath, 'utf8');
-    assert.match(latest, new RegExp(`^version: ${releaseSource.productVersion}$`, 'm'));
-    assert.match(latest, new RegExp(`^publicVersion: ${releaseSource.publicVersion}$`, 'm'));
-    assert.match(latest, /^releaseName: Yance 1\.0\.0$/m);
-    assert.match(latest, /^path: Yance-Setup-1\.0\.0-x64\.exe$/m);
-    assert.doesNotMatch(latest, /Yance29|言策29|\bY29\b/);
-    const releaseName = latest.match(/^releaseName:\s*(.+)$/m)?.[1]?.trim();
-    assert.equal(releaseName, 'Yance 1.0.0');
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
-  }
+test('manual installer release source does not emit public auto-update metadata in the active Final Builder path', () => {
+  assert.equal(releaseSource.updateMode, 'MANUAL_INSTALLER_ONLY');
+  assert.equal(releaseSource.onlineUpdatesEnabled, false);
+  assert.equal(releaseSource.formalPublicReleaseAuthorized, false);
+  const sourcePackage = JSON.parse(read('package.json'));
+  const generated = require('../../tools/wp1/lib').generatedPackageMetadata(ROOT, releaseSource, 1);
+  const builderSource = read('tools/wp7/lib.js');
+  assert.equal(sourcePackage.version, '0.0.0-development');
+  assert.equal(generated.version, releaseSource.productVersion);
+  assert.doesNotMatch(builderSource, /const updateMeta = emitUpdateMetadata/);
+  assert.doesNotMatch(builderSource, /latestYmlPath: updateMeta/);
+  assert.doesNotMatch(builderSource, /blockmapPath: updateMeta/);
 });

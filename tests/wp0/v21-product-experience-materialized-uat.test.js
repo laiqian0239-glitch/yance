@@ -106,7 +106,7 @@ test('trusted Linux CI materializes pinned Matrix sources, builds three images, 
   const composeCopyIndex = source.indexOf('cp tools/product-experience/materialized-matrix-compose.yml "$bundle/materialized-matrix-compose.yml"');
   const composeParseIndex = source.indexOf('docker compose -f "$bundle/materialized-matrix-compose.yml" config');
   const sealIndex = source.indexOf('create-materialized-uat-candidate.js seal', composeParseIndex);
-  const matrixUploadIndex = source.indexOf(MATRIX_ARTIFACT_PREFIX);
+  const matrixUploadIndex = source.indexOf(MATRIX_ARTIFACT_PREFIX, sealIndex);
   assert.ok(
     saveIndex >= 0 && composeCopyIndex > saveIndex && composeParseIndex > composeCopyIndex && sealIndex > composeParseIndex && matrixUploadIndex > sealIndex,
     'Matrix upload must follow exact materialized compose parse and candidate seal'
@@ -199,7 +199,7 @@ test('materialized candidate creator seals every file and verification fails clo
   });
 });
 
-test('Windows UAT runner is verify-only and starts an image-only Matrix compose with no user-machine build or package resolution', () => {
+test('Windows UAT runner delegates Matrix host-port allocation to Compose and remains image-only', () => {
   const runner = read(RUNNER);
   const compose = read(COMPOSE);
 
@@ -220,6 +220,24 @@ test('Windows UAT runner is verify-only and starts an image-only Matrix compose 
   assert.doesNotMatch(runner, /^\s*(?:&\s*)?docker(?:\.exe)?\s+build\b/imu);
   assert.doesNotMatch(runner, /^\s*(?:&\s*)?docker(?:\.exe)?\s+compose[^\n]*\sbuild(?:\s|$)/imu);
   assert.doesNotMatch(runner, /Invoke-WebRequest|Start-BitsTransfer|git\s+clone/iu);
+  assert.doesNotMatch(runner, /Get-NetTCPConnection|Test-NetConnection|TcpListener|TcpClient/iu, 'runner must not create a second port-allocation authority');
+
+  assert.match(runner, /\$env:YANCE_MATRIX_SYNAPSE_PORT_BINDING\s*=\s*'127\.0\.0\.1::8008'/u);
+  assert.match(runner, /\$env:YANCE_MATRIX_ELEMENT_PORT_BINDING\s*=\s*'127\.0\.0\.1::80'/u);
+  assert.match(runner, /function Get-ComposePublishedPort/u);
+  assert.match(runner, /docker\.exe compose --project-name \$ProjectName --project-directory \$ProjectDirectory -f \$ComposeFile port \$Service \$ContainerPort/u);
+  assert.match(runner, /Get-ComposePublishedPort[^\n]*-Service 'synapse' -ContainerPort 8008/u);
+  assert.match(runner, /Get-ComposePublishedPort[^\n]*-Service 'element' -ContainerPort 80/u);
+  assert.match(runner, /\$synapseUrl = "http:\/\/127\.0\.0\.1:\$synapseHostPort"/u);
+  assert.match(runner, /\$sealedElementUrl = "http:\/\/127\.0\.0\.1:\$elementHostPort"/u);
+  assert.match(runner, /\$sealedElementHealthUrl = "\$sealedElementUrl\/config\.json"/u);
+  assert.match(runner, /\$env:YANCE_MATRIX_BASE_URL = \$synapseUrl/u);
+  assert.match(runner, /\$env:YANCE_ELEMENT_URL = \$sealedElementUrl/u);
+  assert.match(runner, /\$env:YANCE_ELEMENT_HEALTH_URL = \$sealedElementHealthUrl/u);
+  assert.doesNotMatch(runner, /\$SealedElementUrl\s*=\s*'http:\/\/127\.0\.0\.1:8080'/u);
+  assert.doesNotMatch(runner, /\$SealedElementHealthUrl\s*=\s*'http:\/\/127\.0\.0\.1:8080\/config\.json'/u);
+  assert.doesNotMatch(runner, /Invoke-RestMethod[^\n]*127\.0\.0\.1:8008/u);
+  assert.doesNotMatch(runner, /docker\.exe compose --project-directory \$matrix\.root -f \$composePath down --volumes --remove-orphans/u, 'runner must never clean an unscoped/default Compose project');
 
   for (const service of ['synapse', 'element', 'mautrix-whatsapp']) {
     assert.match(compose, new RegExp(`^\\s{2}${service}:\\s*$`, 'mu'));
@@ -228,8 +246,8 @@ test('Windows UAT runner is verify-only and starts an image-only Matrix compose 
   assert.doesNotMatch(compose, /^\s+build:\s*/gmu);
   assert.doesNotMatch(compose, /^\s+context:\s*/gmu);
   assert.match(compose, /YANCE_UAT_CANDIDATE_SHA/u);
-  assert.match(compose, /\$\{YANCE_MATRIX_SYNAPSE_PORT_BINDING:-127\.0\.0\.1:8008:8008\}/u, 'UAT must keep the stable Synapse host port by default');
-  assert.match(compose, /\$\{YANCE_MATRIX_ELEMENT_PORT_BINDING:-127\.0\.0\.1:8080:80\}/u, 'UAT must keep the stable Element host port by default');
+  assert.match(compose, /\$\{YANCE_MATRIX_SYNAPSE_PORT_BINDING:-127\.0\.0\.1:8008:8008\}/u, 'compose may retain a fallback Synapse port; the runner must override it dynamically');
+  assert.match(compose, /\$\{YANCE_MATRIX_ELEMENT_PORT_BINDING:-127\.0\.0\.1:8080:80\}/u, 'compose may retain a fallback Element port; the runner must override it dynamically');
   assert.match(
     compose,
     /^x-mautrix-meta-service:\s*&mautrix-meta-service\s*\{\s*image:\s*"yance-product-uat-mautrix-meta:\$\{YANCE_UAT_CANDIDATE_SHA\}"\s*\}\s*$/mu,
@@ -265,16 +283,24 @@ test('trusted Linux Matrix bootstrap keeps checkout native and scopes Git CRLF s
   assert.match(source, /test "\$ambient_core_autocrlf_after" = "\$ambient_core_autocrlf_before"/u);
   assert.doesNotMatch(source, /GIT_CONFIG_COUNT=1|GIT_CONFIG_KEY_0=core\.autocrlf|GIT_CONFIG_VALUE_0=true/u);
   assert.match(bootstrap, /const isStrictGitApply = command === 'git' && args\[0\] === 'apply'/u);
-  assert.match(bootstrap, /GIT_CONFIG_COUNT:\s*'1'/u);
-  assert.match(bootstrap, /GIT_CONFIG_KEY_0:\s*'core\.autocrlf'/u);
-  assert.match(bootstrap, /GIT_CONFIG_VALUE_0:\s*'true'/u);
+  assert.match(bootstrap, /env\.GIT_CONFIG_COUNT\s*=\s*['"]1['"]/u);
+  assert.match(bootstrap, /env\.GIT_CONFIG_KEY_0\s*=\s*['"]core\.autocrlf['"]/u);
+  assert.match(bootstrap, /env\.GIT_CONFIG_VALUE_0\s*=\s*['"]true['"]/u);
+  assert.match(bootstrap, /env\.GIT_TERMINAL_PROMPT\s*=\s*['"]0['"]/u);
   assert.match(bootstrap, /run\(repoDir, 'git', \['apply', '--check', patchPath\]\);/u);
   assert.match(bootstrap, /run\(repoDir, 'git', \['apply', patchPath\]\);/u);
   assert.match(bootstrap, /run\(element, 'git', \['apply', '--check', MODULE_DELIVERY_PATCH\]\);/u);
   assert.match(bootstrap, /run\(element, 'git', \['apply', MODULE_DELIVERY_PATCH\]\);/u);
-  assert.match(bootstrap, /run\(RUNTIME, 'git', \['clone', '--no-checkout', upstream\.repository, name\]\)/u);
-  assert.match(bootstrap, /run\(dir, 'git', \['fetch', 'origin', upstream\.commit, '--depth=1'\]\)/u);
-  assert.match(bootstrap, /run\(dir, 'git', \['checkout', '--detach', upstream\.commit\]\)/u);
+  assert.match(bootstrap, /fs\.rmSync\(dir,\s*\{\s*recursive:\s*true,\s*force:\s*true\s*\}\)/u);
+  assert.match(bootstrap, /fs\.mkdirSync\(dir,\s*\{\s*recursive:\s*true\s*\}\)/u);
+  assert.match(bootstrap, /run\(dir,\s*'git',\s*\['init'\]\)/u);
+  assert.match(bootstrap, /run\(dir,\s*'git',\s*\['remote',\s*'add',\s*'origin',\s*upstream\.repository\]\)/u);
+  assert.match(bootstrap, /run\(dir,\s*'git',\s*\[[^\]]*'http\.lowSpeedLimit=1'[^\]]*'http\.lowSpeedTime=120'[^\]]*'fetch'[^\]]*'--depth=1'[^\]]*'--no-tags'[^\]]*'origin'[^\]]*upstream\.commit[^\]]*\]\)/u);
+  assert.match(bootstrap, /run\(dir,\s*'git',\s*\['checkout',\s*'--detach',\s*'FETCH_HEAD'\]\)/u);
+  assert.match(bootstrap, /assertExactCommit\(dir,\s*upstream\.commit\)/u);
+  assert.doesNotMatch(bootstrap, /clone',\s*'--no-checkout'|git\s+clone\s+--no-checkout/u);
+  assert.doesNotMatch(bootstrap, /checkout',\s*'--detach',\s*upstream\.commit|checkout[^\n]*(?:main|master|origin\/HEAD)/u);
+  assert.doesNotMatch(bootstrap, /retry|fallback|mirror/iu);
   assert.doesNotMatch(bootstrap, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
   assert.doesNotMatch(bootstrap, /--ignore-whitespace|--ignore-space-change|--reject|--3way|--recount|--unidiff-zero/u);
   assert.doesNotMatch(source, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
@@ -362,43 +388,100 @@ test('real Git fixture proves Matrix EOL semantics belong only to strict git app
   assert.doesNotMatch(
     workflow,
     /GIT_CONFIG_COUNT=1\s*\\\s*\n\s*GIT_CONFIG_KEY_0=core\.autocrlf\s*\\\s*\n\s*GIT_CONFIG_VALUE_0=true\s*\\\s*\n\s*node tools\/matrix\/bootstrap\.js/u,
-    'Matrix bootstrap must not inherit CRLF conversion across clone/fetch/checkout and Docker materialization'
+    'Matrix bootstrap must not inherit CRLF conversion across source materialization'
   );
-  assert.match(bootstrapSource, /GIT_CONFIG_COUNT/u, 'bootstrap owner layer must scope Git runtime config itself');
-  assert.match(bootstrapSource, /core\.autocrlf/u, 'bootstrap owner layer must opt only strict apply children into Git-native CRLF semantics');
+  assert.match(bootstrapSource, /const isStrictGitApply = command === 'git' && args\[0\] === 'apply'/u);
+  assert.match(bootstrapSource, /const isExactSourceMaterializationGit/u);
+  assert.match(bootstrapSource, /\['clone', 'fetch', 'checkout'\]\.includes\(args\[0\]\)/u);
+  assert.match(bootstrapSource, /env\.GIT_CONFIG_VALUE_0 = 'true'/u);
+  assert.match(bootstrapSource, /env\.GIT_CONFIG_VALUE_0 = 'false'/u);
+  assert.match(bootstrapSource, /function materializeExactReleaseTag\(/u);
+  assert.match(bootstrapSource, /const tagRef = `refs\/tags\/\$\{version\}`/u);
+  assert.match(bootstrapSource, /'fetch',\s*'--no-tags',\s*'--depth=1',\s*'origin',\s*`\$\{tagRef\}:\$\{tagRef\}`/su);
+  assert.match(bootstrapSource, /materializeExactReleaseTag\(element, LOCK\.upstreams\.elementWeb, 'Element'\);/u);
+  assert.equal((bootstrapSource.match(/materializeExactReleaseTag\(/gu) || []).length, 2, 'release-tag materialization must have one helper definition and one Element-only call');
+  assert.doesNotMatch(bootstrapSource, /run\([^;]*'git'[^;]*\['tag'/su, 'bootstrap must never manufacture a local release tag');
   assert.doesNotMatch(bootstrapSource, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
   assert.doesNotMatch(bootstrapSource, /--ignore-whitespace|--ignore-space-change|--reject|--3way|--recount|--unidiff-zero/u);
 
   delete require.cache[require.resolve(bootstrapPath)];
   const matrixBootstrap = require(bootstrapPath);
-  assert.equal(typeof matrixBootstrap.applyPatch, 'function', 'real fixture requires the production strict-apply seam');
+  assert.equal(typeof matrixBootstrap.applyPatch, 'function');
+  assert.equal(typeof matrixBootstrap.run, 'function');
+  assert.equal(typeof matrixBootstrap.materializeExactReleaseTag, 'function');
 
   withTemporaryDirectory(root => {
-    const targetPath = path.join(root, 'target.txt');
-    const shellPath = path.join(root, 'keep-native.sh');
+    const origin = path.join(root, 'origin');
+    const checkout = path.join(root, 'checkout');
     const patchPath = path.join(root, 'change.patch');
-    const gitFixture = args => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    fs.mkdirSync(origin, { recursive: true });
 
-    gitFixture(['init', '-q']);
-    gitFixture(['config', 'user.name', 'fixture']);
-    gitFixture(['config', 'user.email', 'fixture@local.invalid']);
-    gitFixture(['config', 'core.autocrlf', 'false']);
-    fs.writeFileSync(targetPath, Buffer.from('alpha\r\nbeta\r\n', 'utf8'));
-    fs.writeFileSync(shellPath, Buffer.from('#!/usr/bin/env bash\necho keep-native\n', 'utf8'));
-    if (process.platform !== 'win32') fs.chmodSync(shellPath, 0o755);
-    gitFixture(['add', 'target.txt', 'keep-native.sh']);
-    gitFixture(['commit', '-q', '-m', 'fixture baseline']);
+    const gitAt = (cwd, args) => execFileSync('git', args, {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    gitAt(origin, ['init', '-q']);
+    gitAt(origin, ['config', 'user.name', 'fixture']);
+    gitAt(origin, ['config', 'user.email', 'fixture@local.invalid']);
+    gitAt(origin, ['config', 'core.autocrlf', 'false']);
+
+    fs.writeFileSync(path.join(origin, 'target.txt'), Buffer.from('alpha\r\nbeta\r\n', 'utf8'));
+    fs.writeFileSync(path.join(origin, 'keep-native.sh'), Buffer.from('#!/usr/bin/env bash\necho keep-native\n', 'utf8'));
+    if (process.platform !== 'win32') fs.chmodSync(path.join(origin, 'keep-native.sh'), 0o755);
+
+    gitAt(origin, ['add', 'target.txt', 'keep-native.sh']);
+    gitAt(origin, ['commit', '-q', '-m', 'fixture baseline']);
+    const fixtureCommit = gitAt(origin, ['rev-parse', 'HEAD']).trim();
+    gitAt(origin, ['tag', '-a', 'v1.2.3', '-m', 'fixture release', fixtureCommit]);
+
     fs.writeFileSync(
       patchPath,
       'diff --git a/target.txt b/target.txt\n--- a/target.txt\n+++ b/target.txt\n@@ -1,2 +1,2 @@\n alpha\n-beta\n+gamma\n',
       'utf8'
     );
 
-    const shellBefore = fs.readFileSync(shellPath);
-    matrixBootstrap.applyPatch(root, patchPath, 'fixture CRLF target');
-    assert.deepEqual(fs.readFileSync(targetPath), Buffer.from('alpha\r\ngamma\r\n', 'utf8'));
-    assert.deepEqual(fs.readFileSync(shellPath), shellBefore, 'unrelated executable checkout bytes must stay byte-identical');
-    assert.equal(fs.readFileSync(shellPath).includes(0x0d), false, 'unrelated shell script must remain LF-native');
+    const keys = ['GIT_CONFIG_COUNT', 'GIT_CONFIG_KEY_0', 'GIT_CONFIG_VALUE_0'];
+    const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+
+    try {
+      process.env.GIT_CONFIG_COUNT = '1';
+      process.env.GIT_CONFIG_KEY_0 = 'core.autocrlf';
+      process.env.GIT_CONFIG_VALUE_0 = 'true';
+
+      matrixBootstrap.run(root, 'git', ['clone', '--no-checkout', '--no-tags', origin, checkout]);
+      assert.equal(gitAt(checkout, ['tag', '--list']).trim(), '', 'clone must begin without release tags');
+
+      matrixBootstrap.run(checkout, 'git', ['fetch', '--depth=1', '--no-tags', 'origin', fixtureCommit]);
+      matrixBootstrap.run(checkout, 'git', ['checkout', '--detach', fixtureCommit]);
+
+      const targetBefore = fs.readFileSync(path.join(checkout, 'target.txt'));
+      const shellBefore = fs.readFileSync(path.join(checkout, 'keep-native.sh'));
+      assert.deepEqual(targetBefore, Buffer.from('alpha\r\nbeta\r\n', 'utf8'));
+      assert.equal(shellBefore.includes(0x0d), false, 'hostile ambient autocrlf must not rewrite LF-native shell bytes');
+
+      matrixBootstrap.materializeExactReleaseTag(
+        checkout,
+        { version: 'v1.2.3', commit: fixtureCommit },
+        'fixture'
+      );
+
+      const tags = gitAt(checkout, ['tag', '--list']).trim().split(/\r?\n/u).filter(Boolean);
+      assert.deepEqual(tags, ['v1.2.3'], 'only the exact requested release tag may be materialized');
+      assert.equal(gitAt(checkout, ['rev-parse', 'refs/tags/v1.2.3^{commit}']).trim(), fixtureCommit);
+      assert.equal(gitAt(checkout, ['describe', '--abbrev=0', '--tags', fixtureCommit]).trim(), 'v1.2.3');
+
+      matrixBootstrap.applyPatch(checkout, patchPath, 'fixture CRLF target');
+      assert.deepEqual(fs.readFileSync(path.join(checkout, 'target.txt')), Buffer.from('alpha\r\ngamma\r\n', 'utf8'));
+      assert.deepEqual(fs.readFileSync(path.join(checkout, 'keep-native.sh')), shellBefore, 'unrelated executable checkout bytes must remain byte-identical');
+      assert.equal(fs.readFileSync(path.join(checkout, 'keep-native.sh')).includes(0x0d), false);
+    } finally {
+      for (const key of keys) {
+        if (previous[key] === undefined) delete process.env[key];
+        else process.env[key] = previous[key];
+      }
+    }
   });
 });
 
@@ -488,22 +571,27 @@ test('materialized UAT GREEN is receipt-bound and fails if packaged Yance exits 
   assert.ok(receiptIndex >= 0 && greenIndex > receiptIndex, 'GREEN evidence must be emitted only after receipt validation');
 });
 
-test('materialized UAT binds packaged desktop launch to sealed Element 8080 authority', () => {
+test('materialized UAT binds packaged desktop launch to Compose-discovered Matrix endpoints', () => {
   const runner = read(RUNNER);
   const startProcessIndex = runner.indexOf('$process = Start-Process -FilePath $yanceExe.FullName');
-  const elementUrlIndex = runner.indexOf("$env:YANCE_ELEMENT_URL = $SealedElementUrl");
-  const elementHealthIndex = runner.indexOf("$env:YANCE_ELEMENT_HEALTH_URL = $SealedElementHealthUrl");
-  const preflightConfigIndex = runner.indexOf('$sealedElementConfig = Invoke-RestMethod -Method Get -Uri $SealedElementHealthUrl');
+  const matrixBaseIndex = runner.indexOf('$env:YANCE_MATRIX_BASE_URL = $synapseUrl');
+  const elementUrlIndex = runner.indexOf('$env:YANCE_ELEMENT_URL = $sealedElementUrl');
+  const elementHealthIndex = runner.indexOf('$env:YANCE_ELEMENT_HEALTH_URL = $sealedElementHealthUrl');
+  const preflightConfigIndex = runner.indexOf('$sealedElementConfig = Invoke-RestMethod -Method Get -Uri $sealedElementHealthUrl');
   const modulePreflightIndex = runner.indexOf("@($sealedElementConfig.modules) -contains '/modules/yance/lib/index.js'");
 
-  assert.match(runner, /\$SealedElementUrl\s*=\s*'http:\/\/127\.0\.0\.1:8080'/u);
-  assert.match(runner, /\$SealedElementHealthUrl\s*=\s*'http:\/\/127\.0\.0\.1:8080\/config\.json'/u);
-  assert.ok(preflightConfigIndex >= 0 && preflightConfigIndex < startProcessIndex, 'sealed Element config must be read again before desktop launch');
+  assert.match(runner, /\$synapseHostPort = Get-ComposePublishedPort[^\n]*'synapse'[^\n]*8008/u);
+  assert.match(runner, /\$elementHostPort = Get-ComposePublishedPort[^\n]*'element'[^\n]*80/u);
+  assert.match(runner, /\$synapseUrl\s*=\s*"http:\/\/127\.0\.0\.1:\$synapseHostPort"/u);
+  assert.match(runner, /\$sealedElementUrl\s*=\s*"http:\/\/127\.0\.0\.1:\$elementHostPort"/u);
+  assert.match(runner, /\$sealedElementHealthUrl\s*=\s*"\$sealedElementUrl\/config\.json"/u);
+  assert.ok(preflightConfigIndex >= 0 && preflightConfigIndex < startProcessIndex, 'Compose-discovered Element config must be read again before desktop launch');
   assert.ok(modulePreflightIndex >= 0 && modulePreflightIndex < startProcessIndex, 'Yance module mount must be fail-closed before desktop launch');
-  assert.ok(elementUrlIndex >= 0 && elementUrlIndex < startProcessIndex, 'YANCE_ELEMENT_URL must be bound before Start-Process');
-  assert.ok(elementHealthIndex >= 0 && elementHealthIndex < startProcessIndex, 'YANCE_ELEMENT_HEALTH_URL must be bound before Start-Process');
-  assert.doesNotMatch(runner, /\$env:YANCE_ELEMENT_URL\s*=\s*['"]http:\/\/127\.0\.0\.1:18080/u);
-  assert.doesNotMatch(runner, /\$env:YANCE_ELEMENT_HEALTH_URL\s*=\s*['"]http:\/\/127\.0\.0\.1:18080\/config\.json/u);
+  assert.ok(matrixBaseIndex >= 0 && matrixBaseIndex < startProcessIndex, 'YANCE_MATRIX_BASE_URL must bind the exact discovered Synapse endpoint before Start-Process');
+  assert.ok(elementUrlIndex >= 0 && elementUrlIndex < startProcessIndex, 'YANCE_ELEMENT_URL must bind the exact discovered Element endpoint before Start-Process');
+  assert.ok(elementHealthIndex >= 0 && elementHealthIndex < startProcessIndex, 'YANCE_ELEMENT_HEALTH_URL must bind the exact discovered Element health endpoint before Start-Process');
+  assert.doesNotMatch(runner, /\$env:YANCE_ELEMENT_URL\s*=\s*['"]http:\/\/127\.0\.0\.1:(?:8080|18080)/u);
+  assert.doesNotMatch(runner, /\$env:YANCE_ELEMENT_HEALTH_URL\s*=\s*['"]http:\/\/127\.0\.0\.1:(?:8080|18080)\/config\.json/u);
 });
 
 test('Product Final preserves packaged startup diagnostics after a failing receipt-bound launch', () => {
@@ -636,6 +724,49 @@ test('production Matrix runtime keeps sealed resources read-only and projects dy
   assert.doesNotMatch(main, /matrix-mautrix-port-discovery-failed[\s\S]{0,200}warn/u, 'mautrix-meta port discovery must fail closed, not warn and continue');
   assert.match(main, /const metaPortResult = await dockerExec\(\[\.\.\.allArgs, 'port', 'mautrix-meta', '29319'\]/u);
   assert.match(main, /const mautrixProvisioningUrl = `http:\/\/127\.0\.0\.1:\$\{metaHostPort\}\/_matrix\/provision`/u);
+  assert.match(main, /const MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS = 300/u);
+  assert.match(main, /const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT = '5\.5\.1'/u);
+  assert.match(main, /dockerExec\(\['compose', 'version', '--short'\], \{ timeoutMs: 15000 \}\)/u);
+  assert.match(
+    main,
+    /timeout:\s*options\.timeoutMs === undefined \? 300000 : options\.timeoutMs/u,
+    'dockerExec must honor explicit timeoutMs=0 so Compose, not Node, owns readiness timeout'
+  );
+  assert.equal(
+    (main.match(/'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\)/gu) || []).length,
+    4,
+    'both production phases must keep bounded Compose ownership across dependency/start and health passes'
+  );
+  assert.equal(
+    (main.match(/\{ timeoutMs: 0, cwd: runtimeDir, env: composeEnv \}/gu) || []).length,
+    4,
+    'Node must not impose a competing lifecycle timeout around any Compose readiness pass'
+  );
+  assert.equal(
+    (main.match(/'--no-deps', '--no-recreate', '--wait'/gu) || []).length,
+    2,
+    'each final health pass must use the reduced Compose model without recreating already-started services'
+  );
+  assert.match(
+    main,
+    /\.\.\.baseArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse', 'mautrix-meta', 'mautrix-whatsapp'[\s\S]{0,180}\.\.\.baseArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse', 'mautrix-meta', 'mautrix-whatsapp'/u,
+    'phase 1 must preserve the real dependency DAG only in the bounded start pass, then wait on long-lived services only'
+  );
+  assert.match(
+    main,
+    /\.\.\.allArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'--remove-orphans'[\s\S]{0,220}\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'element', 'synapse', 'mautrix-meta', 'mautrix-whatsapp'/u,
+    'phase 2 must keep full-project orphan cleanup in start pass and exclude it from the reduced-model health pass'
+  );
+  assert.doesNotMatch(
+    main,
+    /'up'[\s\S]{0,240}'--wait'[\s\S]{0,240}\{ timeoutMs: 300000, cwd: runtimeDir, env: composeEnv \}/u,
+    'production Compose readiness must not retain the retired Node 300s shadow deadline'
+  );
+  assert.match(
+    compose,
+    /condition:\s*service_completed_successfully/u,
+    'Compose version admission must cover the init dependency shape that previously exposed wait-timeout hangs'
+  );
 
   assert.match(compose, /\$\{YANCE_MATRIX_SYNAPSE_PORT_BINDING:-127\.0\.0\.1:8008:8008\}/u);
   assert.match(compose, /\$\{YANCE_MATRIX_ELEMENT_PORT_BINDING:-127\.0\.0\.1:8080:80\}/u);
@@ -662,7 +793,8 @@ test('Matrix runtime state stays writable, registers WhatsApp, and isolates ever
 
   assert.match(runner, /\$matrixProjectName = "yance-uat-/u);
   assert.match(runner, /--project-name \$matrixProjectName/u);
-  assert.match(runner, /down --volumes --remove-orphans/u);
+  assert.match(runner, /docker\.exe compose --project-name \$matrixProjectName[^\n]*down --volumes --remove-orphans/u);
+  assert.doesNotMatch(runner, /docker\.exe compose --project-directory \$matrix\.root -f \$composePath down --volumes --remove-orphans/u);
   for (const service of ['synapse-data-init', 'mautrix-meta-registration', 'mautrix-whatsapp-registration']) {
     assert.match(runner, new RegExp(service, 'u'));
   }
@@ -782,19 +914,31 @@ test('Product Final RED diagnostics preserve Windows process identity evidence',
   assert.match(source, /server\.jsonl/u);
 });
 
-test('materialized UAT preserves first-use local Matrix identity without public Synapse registration', () => {
+test('materialized UAT uses invitation JWT login and has no retired local Matrix account entry', () => {
   const homeserver = read('config/matrix/synapse/homeserver.yaml');
   const login = read('integration/element-module/src/YanceLogin.tsx');
-  const service = read('backend/services/endUserMatrixIdentityService.js');
+  const server = read('backend/server.js');
   const bridge = read('electron/r32StoreBridge.js');
+  const preload = read('electron/preload.js');
+  const inventory = read('tools/wp2/command-path-inventory.js');
+  const personalAccess = read('backend/services/personalAccessService.js');
+  const materializedCompose = read('tools/product-experience/materialized-matrix-compose.yml');
 
   assert.match(homeserver, /^enable_registration:\s*false\s*$/mu);
-  assert.match(login, /data-yance-local-matrix-identity="first-use"/u);
-  assert.match(login, /data-yance-login-form-host="element-auth"[\s\S]*?\{children\}/u);
-  assert.match(service, /YANCE_LOCAL_MATRIX_HUMAN_IDENTITY_RECEIPT_V1/u);
-  assert.match(service, /registerSynapseUserWithSharedSecret/u);
-  assert.match(bridge, /\/api\/desktop\/matrix-local-identity/u);
-  assert.doesNotMatch(login, /_matrix\/client|m\.login\.password|accessToken|fetch\s*\(/u);
+  assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
+  assert.match(login, /overwriteAccountAuth/u);
+  assert.match(personalAccess, /jwt\.sign/u);
+  assert.match(personalAccess, /org\.matrix\.login\.jwt/u);
+  assert.match(personalAccess, /_matrix\/client\/v3\/login/u);
+  assert.match(materializedCompose, /yance_jwt_config\.yaml/u);
+  assert.match(materializedCompose, /issuer: yance-personal-access/u);
+  assert.match(materializedCompose, /audiences:/u);
+  assert.match(materializedCompose, /- yance\.local/u);
+  assert.match(bridge, /\/api\/r32\/personal-access\/login/u);
+  for (const source of [server, bridge, preload, inventory]) {
+    assert.doesNotMatch(source, /matrixLocalIdentity|matrix-local-identity|endUserMatrixIdentityService/u);
+  }
+  assert.doesNotMatch(login, /data-yance-local-matrix-identity="first-use"|m\.login\.password|fetch\s*\(/u);
 });
 
 test('backendEnvironment forwards the five Matrix backend authority env keys before child spawn', () => {
@@ -832,9 +976,10 @@ test('backendEnvironment forwards the five Matrix backend authority env keys bef
   assert.doesNotMatch(body, /readFileSync\([^)]*secret/u, 'backendEnvironment must not inline secret file contents into the child env');
   assert.doesNotMatch(body, /desktopLog\([^)]*(?:env|secret|YANCE_MATRIX)/u, 'backendEnvironment must not log assembled env or Matrix authority values');
 
-  // Windows materialized-UAT runner establishes the two secret-file env keys the backend requires with no default.
+  // Windows materialized-UAT runner establishes the authority env required by the packaged backend.
   assert.match(runner, /\$env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE\s*=/u);
   assert.match(runner, /\$env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE\s*=/u);
+  assert.match(runner, /\$env:YANCE_MATRIX_BASE_URL\s*=\s*\$synapseUrl/u);
   // The child env seam (fork) consumes backendEnvironment() output.
   assert.match(main, /env:\s*await backendEnvironment\(launch, startupTimeoutMs\)/u);
 });

@@ -6,7 +6,7 @@ const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { npmCommandForPlatform, npmInvocationForPlatform, runNpmCommand, spawnFailureDetails } = require('../../tools/wp7/host-command-runner');
-const { runNsisCompiler, Wp7Error } = require('../../tools/wp7/lib');
+const { runNsisCompiler, validateNsisSourcePaths, Wp7Error } = require('../../tools/wp7/lib');
 
 function capture(result = { status: 0, stdout: '', stderr: '' }) {
   const calls = [];
@@ -70,6 +70,7 @@ test('Windows npm rejects arbitrary shell shims and metacharacters', () => {
 test('spawn failures retain status, signal and native error diagnostics', () => {
   const error = Object.assign(new Error('invalid argument'), { code: 'EINVAL' });
   assert.deepEqual(spawnFailureDetails({ status: null, signal: null, error, stdout: '', stderr: '' }), {
+    failureKind: 'SPAWN_ERROR',
     status: null,
     signal: null,
     errorCode: 'EINVAL',
@@ -77,6 +78,36 @@ test('spawn failures retain status, signal and native error diagnostics', () => 
     stdout: '',
     stderr: ''
   });
+  assert.equal(spawnFailureDetails({ status: 7, stdout: 'out', stderr: 'err' }).failureKind, 'EXIT_CODE');
+  assert.equal(spawnFailureDetails({ status: null, signal: 'SIGTERM', stdout: '', stderr: '' }).failureKind, 'SIGNAL');
+  assert.deepEqual(spawnFailureDetails({ status: null, signal: null, error: Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' }), stdout: 'out', stderr: 'err' }), {
+    failureKind: 'TIMEOUT',
+    status: null,
+    signal: null,
+    errorCode: 'ETIMEDOUT',
+    errorMessage: 'timed out',
+    stdout: 'out',
+    stderr: 'err'
+  });
+});
+
+test('NSIS source validation catches missing non-File staging references while wildcard File still passes', () => {
+  const fixture = nsisFixtureRoot();
+  try {
+    fs.writeFileSync(fixture.script, [
+      '!define MUI_ICON "${STAGING_ROOT}\\application-payload\\missing.ico"',
+      'File /r "${STAGING_ROOT}\\application-payload\\*.*"'
+    ].join('\n'));
+    assert.throws(
+      () => validateNsisSourcePaths({ stagingRoot: fixture.staging, scriptPath: fixture.script }),
+      (error) => error instanceof Wp7Error && error.reasonCode === 'WP7_FINAL_INSTALLER_STAGING_PATH_MISMATCH'
+        && error.details.source.endsWith('\\missing.ico')
+    );
+    fs.writeFileSync(fixture.script, 'File /r "${STAGING_ROOT}\\application-payload\\*.*"\n');
+    const result = validateNsisSourcePaths({ stagingRoot: fixture.staging, scriptPath: fixture.script });
+    assert.equal(result.status, 'PASS');
+    assert.equal(result.sources[0].wildcard, true);
+  } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
 test('Windows final installer rejects command shims instead of weakening compiler custody', () => {

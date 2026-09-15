@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const {
+  MAX_NETWORK_ISOLATION_FAILSAFE_WATCHDOG_MS,
   WindowsIsolationWatchdogController,
   createWindowsWatchdogLauncher,
   withWindowsNetworkIsolation,
@@ -233,4 +234,27 @@ test('restore failure overrides product failure and preserves both causes', asyn
       && error.details.operationError.message === 'product failed'
       && error.cause.message === 'product failed'
   );
+});
+
+
+test('controller preserves the formal Product fail-safe horizon instead of clamping it to ten minutes', async () => {
+  const value = fixture();
+  try {
+    let observedRequest = null;
+    const original = value.controller.launch;
+    value.controller.launch = async (input) => {
+      observedRequest = input.request;
+      return original(input);
+    };
+    const started = Date.now();
+    const handle = await value.controller.acquire({
+      executionNonce: crypto.randomUUID(),
+      watchdogMs: MAX_NETWORK_ISOLATION_FAILSAFE_WATCHDOG_MS
+    });
+    const deadline = Date.parse(observedRequest.restoreDeadlineUtc);
+    assert.ok(deadline - started >= MAX_NETWORK_ISOLATION_FAILSAFE_WATCHDOG_MS - 2_000);
+    await value.controller.release(handle);
+  } finally {
+    fs.rmSync(value.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+  }
 });

@@ -24,6 +24,13 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$NodeRoot,
 
+  [Parameter(Mandatory = $true)]
+  [string]$MakensisPath,
+
+  [Parameter(Mandatory = $true)]
+  [ValidatePattern('^[0-9a-fA-F]{64}$')]
+  [string]$ExpectedMakensisSha256,
+
   [ValidateSet('STRICT', 'DIAGNOSTIC')]
   [string]$VerificationMode = 'STRICT',
 
@@ -54,6 +61,10 @@ $BundleSha256 = ''
 $nodeVersion = ''
 $npmVersion = ''
 $gitVersion = ''
+$makensisResolvedPath = ''
+$makensisSha256 = ''
+$nsisCompilerPreflightStatus = 'NOT_EXECUTED'
+$nsisCompilerPreflightOutputPe = $false
 $head = ''
 $tree = ''
 $branch = ''
@@ -185,6 +196,67 @@ function Invoke-LoggedNode([string[]]$Arguments, [string]$Name, [string]$Working
   Write-LiveStatus $Name ($(if ($exitCode -eq 0) { 'PASS' } else { 'FAIL' })) "$Name finished with exit code $exitCode" @{ exitCode = $exitCode }
   if ($exitCode -ne 0) { throw "$Name failed with exit code $exitCode. See $stdout and $stderr" }
   return $exitCode
+}
+
+function Invoke-NsisCompilerPreflight {
+  $started = [DateTime]::UtcNow
+  $name = 'nsis-compiler-preflight'
+  $probeRoot = Join-Path $EvidenceRoot 'nsis-compiler-preflight'
+  $stagingRoot = Join-Path $probeRoot 'staging'
+  $payloadRoot = Join-Path $stagingRoot 'application-payload'
+  $iconSource = Join-Path $SourceRoot 'assets\branding\yance\generated\Yance.ico'
+  $iconDest = Join-Path $payloadRoot 'resources\app\assets\branding\yance\generated\Yance.ico'
+  $sentinel = Join-Path $payloadRoot 'payload-sentinel.txt'
+  $outputFile = Join-Path $probeRoot 'Yance-NSIS-Compiler-Preflight.exe'
+  Add-TimelineEvent $name 'STARTED' @{ makensisPath = $makensisResolvedPath; makensisSha256 = $makensisSha256 }
+  Write-LiveStatus $name 'RUNNING' 'Running real makensis compiler preflight' @{ makensisPath = $makensisResolvedPath; makensisSha256 = $makensisSha256 }
+  try {
+    if ($VerificationMode -ne 'STRICT') {
+      Add-StepResult $name 'SKIPPED' $started @{ reason = 'STRICT_ONLY' }
+      return
+    }
+    if (-not (Test-Path -LiteralPath $makensisResolvedPath -PathType Leaf)) { throw "makensis.exe missing: $makensisResolvedPath" }
+    if ([IO.Path]::GetExtension($makensisResolvedPath).ToLowerInvariant() -ne '.exe') { throw 'MakensisPath must point to a native .exe' }
+    if ($makensisSha256 -ne $ExpectedMakensisSha256.ToLowerInvariant()) { throw "makensis.exe SHA256 mismatch: expected=$($ExpectedMakensisSha256.ToLowerInvariant()) actual=$makensisSha256" }
+    Remove-Item -LiteralPath $probeRoot -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Path (Split-Path -Parent $iconDest) -Force | Out-Null
+    Set-Content -LiteralPath $sentinel -Value 'nsis compiler preflight sentinel' -Encoding ascii
+    Copy-Item -LiteralPath $iconSource -Destination $iconDest -Force
+    $script = @"
+const wp7 = require('./tools/wp7/lib');
+const wp1 = require('./tools/wp1/lib');
+const releaseSource = wp1.readReleaseSource();
+const result = wp7.runNsisCompiler({
+  stagingRoot: process.argv[1],
+  outputFile: process.argv[2],
+  productVersion: releaseSource.productVersion,
+  compilerPath: process.argv[3],
+  scriptPath: process.argv[4],
+  hostPlatform: 'win32'
+});
+process.stdout.write(JSON.stringify({ status: result.status, outputFile: result.outputFile, sha256: result.sha256, estimatedSizeBytes: result.estimatedSizeBytes }) + '\n');
+"@
+    $stdout = Join-Path $LogsRoot "$name.stdout.log"
+    $stderr = Join-Path $LogsRoot "$name.stderr.log"
+    Push-Location $SourceRoot
+    try {
+      & $NodeExe -e $script $stagingRoot $outputFile $makensisResolvedPath (Join-Path $SourceRoot 'installer\wp7\YanceFinalInstaller.nsi') 1> $stdout 2> $stderr
+      $exitCode = $LASTEXITCODE
+    }
+    finally { Pop-Location }
+    if ($exitCode -ne 0) { throw "$name failed with exit code $exitCode. See $stdout and $stderr" }
+    if (-not (Test-Path -LiteralPath $outputFile -PathType Leaf)) { throw "$name did not create a probe installer" }
+    $bytes = [System.IO.File]::ReadAllBytes($outputFile)
+    if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4d -or $bytes[1] -ne 0x5a) { throw "$name output is not a PE installer" }
+    $script:nsisCompilerPreflightStatus = 'PASS'
+    $script:nsisCompilerPreflightOutputPe = $true
+    Add-StepResult $name 'PASS' $started @{ makensisPath = $makensisResolvedPath; makensisSha256 = $makensisSha256; compile = 'PASS'; outputPeVerification = 'PASS'; stdout = $stdout; stderr = $stderr }
+    Add-TimelineEvent $name 'FINISHED' @{ compile = 'PASS'; outputPeVerification = 'PASS' }
+    Write-LiveStatus $name 'PASS' 'Real makensis compiler preflight passed' @{ makensisPath = $makensisResolvedPath; makensisSha256 = $makensisSha256 }
+  }
+  finally {
+    Remove-Item -LiteralPath $outputFile -Force -ErrorAction SilentlyContinue
+  }
 }
 
 function Normalize-WindowsPathForLexicalComparison([string]$PathValue) {
@@ -364,8 +436,13 @@ try {
   Assert-File $BundlePath 'Git Bundle'
   Assert-File $NodeExe 'Node 22.16.0 executable'
   Assert-File $NpmCli 'npm CLI'
+  Assert-File $MakensisPath 'makensis.exe'
   $BundleSha256 = Get-Sha256 $BundlePath
   if ($BundleSha256 -ne $ExpectedBundleSha256.ToLowerInvariant()) { throw 'Git Bundle SHA-256 mismatch' }
+  $makensisResolvedPath = (Resolve-Path -LiteralPath $MakensisPath).Path
+  if ([IO.Path]::GetExtension($makensisResolvedPath).ToLowerInvariant() -ne '.exe') { throw 'MakensisPath must point to a native .exe' }
+  $makensisSha256 = Get-Sha256 $makensisResolvedPath
+  if ($makensisSha256 -ne $ExpectedMakensisSha256.ToLowerInvariant()) { throw "makensis.exe SHA256 mismatch: expected=$($ExpectedMakensisSha256.ToLowerInvariant()) actual=$makensisSha256" }
 
   $env:GIT_CONFIG_COUNT = '4'
   $env:GIT_CONFIG_KEY_0 = 'core.autocrlf'
@@ -459,6 +536,9 @@ try {
     throw
   }
 
+  $CurrentPhase = 'nsis-compiler-preflight'
+  Invoke-NsisCompilerPreflight
+
   $statusAfter = (& git -C $SourceRoot status --porcelain=v1 --untracked-files=all) -join "`n"
   if ($LASTEXITCODE -ne 0) { throw 'git status after verification failed' }
   if ($statusAfter) { throw "Repository is dirty after verification: $statusAfter" }
@@ -531,6 +611,10 @@ finally {
     npm = $npmVersion
     npmCli = $NpmCli
     git = $gitVersion
+    makensisPath = $makensisResolvedPath
+    makensisSha256 = $makensisSha256
+    nsisCompilerPreflightStatus = $nsisCompilerPreflightStatus
+    nsisCompilerPreflightOutputPe = $nsisCompilerPreflightOutputPe
     powershell = $PSVersionTable.PSVersion.ToString()
     sourceRoot = $SourceRoot
     npmCache = $CacheRoot

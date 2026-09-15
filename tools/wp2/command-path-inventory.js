@@ -120,8 +120,6 @@ const MAIN_IPC = Object.freeze({
 });
 
 const DESKTOP_BACKEND_FORWARDING_IPC = Object.freeze({
-  'desktop:matrix-local-identity-status': ['/api/desktop/matrix-local-identity', 'backend/services/endUserMatrixIdentityService.js', false],
-  'desktop:matrix-local-identity-create': ['/api/desktop/matrix-local-identity', 'backend/services/endUserMatrixIdentityService.js', true],
   'desktop:learning-workspace-snapshot': ['/api/r32/workspace/learning/snapshot', 'backend/routes/workspace.js', false],
   'desktop:learning-coach-invoke': ['/api/r32/workspace/learning/coach/actions', 'backend/routes/workspace.js', true],
   'desktop:letta-get-state': ['/api/r32/models/letta/state', 'backend/routes/models.js', false],
@@ -180,43 +178,23 @@ const PARLANT_DAILY_CHAT_GOAL_IPC = Object.freeze({
 });
 
 const FIXED_PRODUCT_SYSTEM_STORE = Object.freeze({
-  [CHANNELS.matrixLocalIdentityStatus]: {
-    backendRoute: '/api/desktop/matrix-local-identity',
-    backendExecutionModule: 'backend/services/endUserMatrixIdentityService.js',
-    producesBusinessSideEffect: false
-  },
-  [CHANNELS.matrixLocalIdentityCreate]: {
-    backendRoute: '/api/desktop/matrix-local-identity',
-    backendExecutionModule: 'backend/services/endUserMatrixIdentityService.js',
-    producesBusinessSideEffect: true
-  },
   [CHANNELS.personalAccessStatus]: {
     backendRoute: '/api/r32/personal-access/status',
     backendExecutionModule: 'backend/routes/personalAccess.js',
     producesBusinessSideEffect: false
   },
-  [CHANNELS.personalAccessSubmitRequest]: {
-    backendRoute: '/api/r32/personal-access/submit-request',
+  [CHANNELS.personalAccessActivate]: {
+    backendRoute: '/api/r32/personal-access/activate',
     backendExecutionModule: 'backend/routes/personalAccess.js',
     producesBusinessSideEffect: true
   },
-  [CHANNELS.personalAccessRefreshRequest]: {
-    backendRoute: '/api/r32/personal-access/refresh-request',
+  [CHANNELS.personalAccessLogin]: {
+    backendRoute: '/api/r32/personal-access/login',
     backendExecutionModule: 'backend/routes/personalAccess.js',
     producesBusinessSideEffect: true
   },
-  [CHANNELS.personalAccessOwnerRequests]: {
-    backendRoute: '/api/r32/personal-access/owner/requests',
-    backendExecutionModule: 'backend/routes/personalAccess.js',
-    producesBusinessSideEffect: false
-  },
-  [CHANNELS.personalAccessOwnerRequestMutation]: {
-    backendRoute: '/api/r32/personal-access/owner/requests/:requestId/:action',
-    backendExecutionModule: 'backend/routes/personalAccess.js',
-    producesBusinessSideEffect: true
-  },
-  [CHANNELS.personalAccessOwnerGrantMutation]: {
-    backendRoute: '/api/r32/personal-access/owner/grants/:grantId/:action',
+  [CHANNELS.personalAccessLogout]: {
+    backendRoute: '/api/r32/personal-access/logout',
     backendExecutionModule: 'backend/routes/personalAccess.js',
     producesBusinessSideEffect: true
   },

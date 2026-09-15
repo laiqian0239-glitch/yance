@@ -92,7 +92,7 @@ function measurementFor(probeId) {
       electron: identityConsumer('electron', 'C:/Yance/evidence/release-identity-observations/electron-release-identity.json'),
       backend: identityConsumer('backend', '/api/ready'),
       installer: identityConsumer('installer', 'C:/Yance/resources/installer-release-identity.json'),
-      diagnostics: identityConsumer('diagnostics', '/api/r32/system/release-identity')
+      diagnostics: identityConsumer('diagnostics', '/api/desktop/release-identity')
     },
     maximumConcurrentAppRuntimeOwners: 1,
     ownerSamples: [ownerSample(t0, [101])],
