@@ -41,6 +41,9 @@ SAME_BOUNDARY_LATE_RED_AUDIT=mandatory
 PROMOTION_UNKNOWN_BLOCKERS_ZERO=mandatory
 MANDATORY_PRE_ACTION_COMPLIANCE_CHECK=mandatory
 NO_PROGRESS_WORK_CYCLE=forbidden
+CI_LOG_CONNECTOR_STALL=delegate_to_executor_immediately
+SAME_LOG_ENDPOINT_RETRY=forbidden
+USER_MANUAL_LOG_EXTRACTION=forbidden_when_executor_available
 ```
 
 Before executing any action, answer all of the following:
@@ -55,6 +58,17 @@ Before executing any action, answer all of the following:
 8. Is any requested local command deterministic and pre-reviewed against its exact inputs, or is it merely discovering the next assumption? If it is exploratory, do not send it to the user.
 
 If an action does not directly advance the current production causal batch, close a real authorization boundary, or produce a required promotion proof, do not do it.
+
+### CI/job log acquisition fallback — no connector stall (non-waivable execution invariant)
+
+When exact CI/workflow/job log evidence is required to consume a RED, evidence acquisition itself must take the shortest available authoritative path.
+
+- If the current GitHub connector/API call cannot return the required original job log body or annotation, or returns it empty, opaque, materially truncated, or otherwise unusable, do not repeat the same endpoint merely hoping for a different result.
+- Immediately hand off **log acquisition only** to the repository-authorized executor/runner/tooling that can obtain the original GitHub Actions run/job/step log and annotations. The executor must return the raw evidence together with the exact run ID, job ID, failing step, and source identity needed by the Controller.
+- This handoff is an evidence-transport fallback, not a delegation of root-cause analysis, source review, mutation design, or Controller ownership. The Controller remains responsible for consuming the evidence, locking the current root cause, and continuing the same causal batch.
+- Do not ask the owner/user to manually open Actions, copy logs, run source-discovery commands, or perform log-extraction steps when an authorized executor can obtain the same evidence.
+- Do not perform broad recovery, capability census, equivalent CI reruns, or unrelated status polling while waiting for a log transport fallback. Continue only from the returned exact evidence.
+- Repeated same-endpoint log calls after the transport failure is known, or leaving a work cycle stalled because the Controller-facing connector cannot expose a log that an authorized executor can retrieve, is a **Controller execution failure**.
 
 ### Promotion admission closure — no serial blocker discovery (non-waivable execution invariant)
 
@@ -354,4 +368,4 @@ A work-package handoff should record exact SHAs, run/job IDs, path/digest facts,
 
 ## Local repository safety
 
-The usual local checkout is `C:\GitHub\yance-pr299-product-experience`. Connector-first execution is preferred specifically to avoid branch switches or commands that can overwrite unrelated local staged changes. Never discard, reset, clean, stash, or rewrite unrelated local work unless the owner explicitly directs it.
+The usual local checkout is `C:\\GitHub\\yance-pr299-product-experience`. Connector-first execution is preferred specifically to avoid branch switches or commands that can overwrite unrelated local staged changes. Never discard, reset, clean, stash, or rewrite unrelated local work unless the owner explicitly directs it.
