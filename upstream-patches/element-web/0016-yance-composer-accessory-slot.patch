@@ -7,19 +7,19 @@ index e9debaf..c7ee031 100644
  import PlatformPeg from "../../../PlatformPeg";
  import { useSettingValue } from "../../../hooks/useSettings";
 +import { ModuleApi } from "../../../modules/Api";
-
+ 
  // The prefix used when persisting editor drafts to localstorage.
  export const WYSIWYG_EDITOR_STATE_STORAGE_PREFIX = "mx_wysiwyg_state_";
-@@ -707,6 +708,9 @@ export class MessageComposer extends React.Component<IProps, IState> {
+@@ -702,6 +703,9 @@ export class MessageComposer extends React.Component<IProps, IState> {
+                         replyToEvent={this.props.replyToEvent}
+                         permalinkCreator={this.props.permalinkCreator}
+                     />
++                    {ModuleApi.instance.customComponents.renderComposerAccessory({
++                        roomId: this.props.room.roomId,
++                    })}
+                     <div className="mx_MessageComposer_row">
                          {leftIcon}
                          {composer}
-                         <div className="mx_MessageComposer_actions">
-+                            {ModuleApi.instance.customComponents.renderComposerAccessory({
-+                                roomId: this.props.room.roomId,
-+                            })}
-                             {controls}
-                             {canSendMessages && (
-                                 <MessageComposerButtons
 diff --git a/apps/web/src/modules/customComponentApi.ts b/apps/web/src/modules/customComponentApi.ts
 index 7e8d52d..1062d45 100644
 --- a/apps/web/src/modules/customComponentApi.ts
@@ -32,19 +32,19 @@ index 7e8d52d..1062d45 100644
 +    CustomComposerAccessoryComponentProps,
  } from "@element-hq/element-web-module-api";
  import type React from "react";
-
+ 
 @@ -80,6 +82,7 @@ export class CustomComponentsApi implements ICustomComponentsApi {
      private readonly registeredMessageRenderers: EventRenderer[] = [];
      private readonly registeredComposerPreviewRenderers: ComposerPreviewRenderer[] = [];
      private _globalRightPanelRenderer?: CustomGlobalRightPanelRenderFunction;
 +    private _composerAccessoryRenderer?: CustomComposerAccessoryRenderFunction;
-
+ 
      public get globalRightPanelRenderer(): CustomGlobalRightPanelRenderFunction | undefined {
          return this._globalRightPanelRenderer;
 @@ -89,6 +92,10 @@ export class CustomComponentsApi implements ICustomComponentsApi {
          this._globalRightPanelRenderer = renderer;
      }
-
+ 
 +    public registerComposerAccessory(renderer: CustomComposerAccessoryRenderFunction): void {
 +        this._composerAccessoryRenderer = renderer;
 +    }
@@ -88,7 +88,7 @@ index 40d133b..9f27311 100644
 @@ -162,6 +163,14 @@ export interface CustomComponentsApi {
      registerRoomPreviewBar(renderer: CustomRoomPreviewBarRenderFunction): void;
  }
-
+ 
 +// @alpha
 +export type CustomComposerAccessoryComponentProps = {
 +    roomId: string;
@@ -107,7 +107,7 @@ index 6b2c96f..adada39 100644
 @@ -190,6 +190,21 @@ export type CustomComposerPreviewComponentProps = {
   */
  export type CustomComposerPreviewRenderFunction = ExtendablePropsRenderFunction<CustomComposerPreviewComponentProps>;
-
+ 
 +/**
 + * Public props for a module-owned composer accessory. Only the stable room
 + * identity is exposed: no composer text, draft, send or timeline state.
@@ -129,7 +129,7 @@ index 6b2c96f..adada39 100644
 @@ -207,6 +222,12 @@ export interface CustomComponentsApi {
      /** Register a renderer for the persistent global right-panel workspace. */
      registerGlobalRightPanel(renderer: CustomGlobalRightPanelRenderFunction): void;
-
+ 
 +    /**
 +     * Register a module-owned composer accessory. The accessory receives the
 +     * room identity only and is rendered by Element next to the real composer.

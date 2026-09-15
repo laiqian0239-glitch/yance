@@ -50,6 +50,29 @@ test('Action Dock is mounted around the existing Element composer rather than re
   assert.doesNotMatch(index, /createMessageComposer|replaceComposer|new\s+Composer/u);
 });
 
+test('Product composer accessory is a bounded sibling before the untouched Element composer row', () => {
+  const patch = readOrEmpty('upstream-patches/element-web/0016-yance-composer-accessory-slot.patch');
+  const css = readOrEmpty('integration/element-module/src/product-experience/ProductExperienceShell.css');
+  const messageComposerPatch = patch.split('diff --git a/apps/web/src/modules/customComponentApi.ts')[0];
+  const accessoryOffset = messageComposerPatch.indexOf('renderComposerAccessory({');
+  const rowOffset = messageComposerPatch.indexOf('<div className="mx_MessageComposer_row">');
+  const actionsOffset = messageComposerPatch.indexOf('<div className="mx_MessageComposer_actions">');
+
+  assert.ok(accessoryOffset >= 0, '0016 must render the existing Product accessory');
+  assert.ok(rowOffset > accessoryOffset, 'Product accessory must be a sibling before the native Element composer row');
+  assert.ok(actionsOffset > rowOffset, 'Element native actions must remain inside the native composer row');
+  assert.equal(
+    messageComposerPatch.slice(actionsOffset).includes('renderComposerAccessory({'),
+    false,
+    'mx_MessageComposer_actions must not own the Product accessory',
+  );
+
+  assert.match(css, /\.yance-action-dock\s*\{[\s\S]*?flex-wrap:\s*wrap;[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/u);
+  assert.match(css, /\.yance-conversation-mode\s*\{[\s\S]*?flex-wrap:\s*wrap;/u);
+  assert.match(css, /\.yance-reply-brain\s*\{[\s\S]*?flex:\s*1\s+1\s+100%;[\s\S]*?max-width:\s*100%;/u);
+  assert.doesNotMatch(css, /\.mx_[A-Za-z0-9_-]*/u, 'Product CSS must not target private Element composer geometry');
+});
+
 test('Overlay lifecycle preserves focus without reading private Element timeline or composer state', () => {
   const session = readOrEmpty('integration/element-module/src/product-experience/experienceSession.ts');
   const source = allProductSource();
@@ -93,7 +116,7 @@ test('Product relationship tools bind the active Element room bridge state uniqu
   for (const token of ['m.bridge', 'uk.half-shot.bridge', 'conversations', 'routeScope', 'platformContactIdentity', 'sourceAccountId', 'conversationId']) {
     assert.match(overlay, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'), `overlay route composition must bind ${token}`);
   }
-  assert.match(overlay, /storeSnapshot\s*\(\{\s*domains:\s*\["conversations"\]\s*\}\)/u, 'Product route composition must read the existing Store conversations domain');
+  assert.match(overlay, /storeSnapshot[\s\S]*domains:\s*\[["']conversations["']\]/u, 'Product route composition must read the existing Store conversations domain');
   assert.match(overlay, /matches\.length\s*!==\s*1/u, 'zero or ambiguous Store route matches must fail closed');
   assert.doesNotMatch(overlay, /selectedRelationshipId[\s\S]{0,160}(?:activeMatrixRoomId|roomId|resolveRelationshipToolRoute)/u, 'selected relationship must never substitute for the active Matrix room');
   assert.doesNotMatch(session, /\b(?:platform|accountId|chatJid|sessionKey|bridgeState)\s*:/u, 'resolved route identity must not become a second experienceSession authority');
