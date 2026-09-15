@@ -56,7 +56,6 @@ function fetchAuthority({ subject = '@tester:yance.local', externalId = 'tester'
       events.push('status');
       return new Response(JSON.stringify({
         ok: true,
-        valid: worker.valid !== false,
         enabled: worker.enabled !== false,
         keyId: worker.keyId || 'key_123',
         expires: worker.expires ?? null,
@@ -258,7 +257,7 @@ test('stored receipt authority failure never falls back to a consumptive invitat
   assert.deepEqual(store.values.get('personal-access.invitation-key'), { keyId: 'key_123' });
 });
 
-test('terminal stored receipt is cleared once and a fresh invitation is only eligible on the next explicit login', async () => {
+test('missing stored Unkey key is terminal, clears once, and a fresh invitation is only eligible on the next explicit login', async () => {
   const { createPersonalAccessService } = loadService();
   const calls = [];
   const store = credentialStore({ 'personal-access.invitation-key': { keyId: 'key_stale' } });
@@ -271,14 +270,10 @@ test('terminal stored receipt is cleared once and a fresh invitation is only eli
     fetchImpl: async (url, init = {}) => {
       calls.push(String(url));
       if (String(url).endsWith('/status')) {
-        return new Response(JSON.stringify({
-          ok: true,
-          valid: false,
-          enabled: true,
-          keyId: 'key_stale',
-          expires: null,
-          identity: { externalId: 'tester' }
-        }), { status: 200, headers: { 'content-type': 'application/json' } });
+        return new Response(JSON.stringify({ ok: false, reasonCode: 'UNKEY_AUTHORITY_REJECTED' }), {
+          status: 404,
+          headers: { 'content-type': 'application/json' }
+        });
       }
       if (String(url).endsWith('/verify')) {
         return new Response(JSON.stringify({
