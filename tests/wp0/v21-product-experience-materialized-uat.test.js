@@ -199,7 +199,7 @@ test('materialized candidate creator seals every file and verification fails clo
   });
 });
 
-test('Windows UAT runner is verify-only and starts an image-only Matrix compose with no user-machine build or package resolution', () => {
+test('Windows UAT runner delegates Matrix host-port allocation to Compose and remains image-only', () => {
   const runner = read(RUNNER);
   const compose = read(COMPOSE);
 
@@ -220,6 +220,24 @@ test('Windows UAT runner is verify-only and starts an image-only Matrix compose 
   assert.doesNotMatch(runner, /^\s*(?:&\s*)?docker(?:\.exe)?\s+build\b/imu);
   assert.doesNotMatch(runner, /^\s*(?:&\s*)?docker(?:\.exe)?\s+compose[^\n]*\sbuild(?:\s|$)/imu);
   assert.doesNotMatch(runner, /Invoke-WebRequest|Start-BitsTransfer|git\s+clone/iu);
+  assert.doesNotMatch(runner, /Get-NetTCPConnection|Test-NetConnection|TcpListener|TcpClient/iu, 'runner must not create a second port-allocation authority');
+
+  assert.match(runner, /\$env:YANCE_MATRIX_SYNAPSE_PORT_BINDING\s*=\s*'127\.0\.0\.1::8008'/u);
+  assert.match(runner, /\$env:YANCE_MATRIX_ELEMENT_PORT_BINDING\s*=\s*'127\.0\.0\.1::80'/u);
+  assert.match(runner, /function Get-ComposePublishedPort/u);
+  assert.match(runner, /docker\.exe compose --project-name \$ProjectName --project-directory \$ProjectDirectory -f \$ComposeFile port \$Service \$ContainerPort/u);
+  assert.match(runner, /Get-ComposePublishedPort[^\n]*-Service 'synapse' -ContainerPort 8008/u);
+  assert.match(runner, /Get-ComposePublishedPort[^\n]*-Service 'element' -ContainerPort 80/u);
+  assert.match(runner, /\$synapseUrl = "http:\/\/127\.0\.0\.1:\$synapseHostPort"/u);
+  assert.match(runner, /\$sealedElementUrl = "http:\/\/127\.0\.0\.1:\$elementHostPort"/u);
+  assert.match(runner, /\$sealedElementHealthUrl = "\$sealedElementUrl\/config\.json"/u);
+  assert.match(runner, /\$env:YANCE_MATRIX_BASE_URL = \$synapseUrl/u);
+  assert.match(runner, /\$env:YANCE_ELEMENT_URL = \$sealedElementUrl/u);
+  assert.match(runner, /\$env:YANCE_ELEMENT_HEALTH_URL = \$sealedElementHealthUrl/u);
+  assert.doesNotMatch(runner, /\$SealedElementUrl\s*=\s*'http:\/\/127\.0\.0\.1:8080'/u);
+  assert.doesNotMatch(runner, /\$SealedElementHealthUrl\s*=\s*'http:\/\/127\.0\.0\.1:8080\/config\.json'/u);
+  assert.doesNotMatch(runner, /Invoke-RestMethod[^\n]*127\.0\.0\.1:8008/u);
+  assert.doesNotMatch(runner, /docker\.exe compose --project-directory \$matrix\.root -f \$composePath down --volumes --remove-orphans/u, 'runner must never clean an unscoped/default Compose project');
 
   for (const service of ['synapse', 'element', 'mautrix-whatsapp']) {
     assert.match(compose, new RegExp(`^\\s{2}${service}:\\s*$`, 'mu'));
@@ -228,8 +246,8 @@ test('Windows UAT runner is verify-only and starts an image-only Matrix compose 
   assert.doesNotMatch(compose, /^\s+build:\s*/gmu);
   assert.doesNotMatch(compose, /^\s+context:\s*/gmu);
   assert.match(compose, /YANCE_UAT_CANDIDATE_SHA/u);
-  assert.match(compose, /\$\{YANCE_MATRIX_SYNAPSE_PORT_BINDING:-127\.0\.0\.1:8008:8008\}/u, 'UAT must keep the stable Synapse host port by default');
-  assert.match(compose, /\$\{YANCE_MATRIX_ELEMENT_PORT_BINDING:-127\.0\.0\.1:8080:80\}/u, 'UAT must keep the stable Element host port by default');
+  assert.match(compose, /\$\{YANCE_MATRIX_SYNAPSE_PORT_BINDING:-127\.0\.0\.1:8008:8008\}/u, 'compose may retain a fallback Synapse port; the runner must override it dynamically');
+  assert.match(compose, /\$\{YANCE_MATRIX_ELEMENT_PORT_BINDING:-127\.0\.0\.1:8080:80\}/u, 'compose may retain a fallback Element port; the runner must override it dynamically');
   assert.match(
     compose,
     /^x-mautrix-meta-service:\s*&mautrix-meta-service\s*\{\s*image:\s*"yance-product-uat-mautrix-meta:\$\{YANCE_UAT_CANDIDATE_SHA\}"\s*\}\s*$/mu,
@@ -553,22 +571,27 @@ test('materialized UAT GREEN is receipt-bound and fails if packaged Yance exits 
   assert.ok(receiptIndex >= 0 && greenIndex > receiptIndex, 'GREEN evidence must be emitted only after receipt validation');
 });
 
-test('materialized UAT binds packaged desktop launch to sealed Element 8080 authority', () => {
+test('materialized UAT binds packaged desktop launch to Compose-discovered Matrix endpoints', () => {
   const runner = read(RUNNER);
   const startProcessIndex = runner.indexOf('$process = Start-Process -FilePath $yanceExe.FullName');
-  const elementUrlIndex = runner.indexOf("$env:YANCE_ELEMENT_URL = $SealedElementUrl");
-  const elementHealthIndex = runner.indexOf("$env:YANCE_ELEMENT_HEALTH_URL = $SealedElementHealthUrl");
-  const preflightConfigIndex = runner.indexOf('$sealedElementConfig = Invoke-RestMethod -Method Get -Uri $SealedElementHealthUrl');
+  const matrixBaseIndex = runner.indexOf('$env:YANCE_MATRIX_BASE_URL = $synapseUrl');
+  const elementUrlIndex = runner.indexOf('$env:YANCE_ELEMENT_URL = $sealedElementUrl');
+  const elementHealthIndex = runner.indexOf('$env:YANCE_ELEMENT_HEALTH_URL = $sealedElementHealthUrl');
+  const preflightConfigIndex = runner.indexOf('$sealedElementConfig = Invoke-RestMethod -Method Get -Uri $sealedElementHealthUrl');
   const modulePreflightIndex = runner.indexOf("@($sealedElementConfig.modules) -contains '/modules/yance/lib/index.js'");
 
-  assert.match(runner, /\$SealedElementUrl\s*=\s*'http:\/\/127\.0\.0\.1:8080'/u);
-  assert.match(runner, /\$SealedElementHealthUrl\s*=\s*'http:\/\/127\.0\.0\.1:8080\/config\.json'/u);
-  assert.ok(preflightConfigIndex >= 0 && preflightConfigIndex < startProcessIndex, 'sealed Element config must be read again before desktop launch');
+  assert.match(runner, /\$synapseHostPort = Get-ComposePublishedPort[^\n]*'synapse'[^\n]*8008/u);
+  assert.match(runner, /\$elementHostPort = Get-ComposePublishedPort[^\n]*'element'[^\n]*80/u);
+  assert.match(runner, /\$synapseUrl\s*=\s*"http:\/\/127\.0\.0\.1:\$synapseHostPort"/u);
+  assert.match(runner, /\$sealedElementUrl\s*=\s*"http:\/\/127\.0\.0\.1:\$elementHostPort"/u);
+  assert.match(runner, /\$sealedElementHealthUrl\s*=\s*"\$sealedElementUrl\/config\.json"/u);
+  assert.ok(preflightConfigIndex >= 0 && preflightConfigIndex < startProcessIndex, 'Compose-discovered Element config must be read again before desktop launch');
   assert.ok(modulePreflightIndex >= 0 && modulePreflightIndex < startProcessIndex, 'Yance module mount must be fail-closed before desktop launch');
-  assert.ok(elementUrlIndex >= 0 && elementUrlIndex < startProcessIndex, 'YANCE_ELEMENT_URL must be bound before Start-Process');
-  assert.ok(elementHealthIndex >= 0 && elementHealthIndex < startProcessIndex, 'YANCE_ELEMENT_HEALTH_URL must be bound before Start-Process');
-  assert.doesNotMatch(runner, /\$env:YANCE_ELEMENT_URL\s*=\s*['"]http:\/\/127\.0\.0\.1:18080/u);
-  assert.doesNotMatch(runner, /\$env:YANCE_ELEMENT_HEALTH_URL\s*=\s*['"]http:\/\/127\.0\.0\.1:18080\/config\.json/u);
+  assert.ok(matrixBaseIndex >= 0 && matrixBaseIndex < startProcessIndex, 'YANCE_MATRIX_BASE_URL must bind the exact discovered Synapse endpoint before Start-Process');
+  assert.ok(elementUrlIndex >= 0 && elementUrlIndex < startProcessIndex, 'YANCE_ELEMENT_URL must bind the exact discovered Element endpoint before Start-Process');
+  assert.ok(elementHealthIndex >= 0 && elementHealthIndex < startProcessIndex, 'YANCE_ELEMENT_HEALTH_URL must bind the exact discovered Element health endpoint before Start-Process');
+  assert.doesNotMatch(runner, /\$env:YANCE_ELEMENT_URL\s*=\s*['"]http:\/\/127\.0\.0\.1:(?:8080|18080)/u);
+  assert.doesNotMatch(runner, /\$env:YANCE_ELEMENT_HEALTH_URL\s*=\s*['"]http:\/\/127\.0\.0\.1:(?:8080|18080)\/config\.json/u);
 });
 
 test('Product Final preserves packaged startup diagnostics after a failing receipt-bound launch', () => {
@@ -770,7 +793,8 @@ test('Matrix runtime state stays writable, registers WhatsApp, and isolates ever
 
   assert.match(runner, /\$matrixProjectName = "yance-uat-/u);
   assert.match(runner, /--project-name \$matrixProjectName/u);
-  assert.match(runner, /down --volumes --remove-orphans/u);
+  assert.match(runner, /docker\.exe compose --project-name \$matrixProjectName[^\n]*down --volumes --remove-orphans/u);
+  assert.doesNotMatch(runner, /docker\.exe compose --project-directory \$matrix\.root -f \$composePath down --volumes --remove-orphans/u);
   for (const service of ['synapse-data-init', 'mautrix-meta-registration', 'mautrix-whatsapp-registration']) {
     assert.match(runner, new RegExp(service, 'u'));
   }
@@ -952,9 +976,10 @@ test('backendEnvironment forwards the five Matrix backend authority env keys bef
   assert.doesNotMatch(body, /readFileSync\([^)]*secret/u, 'backendEnvironment must not inline secret file contents into the child env');
   assert.doesNotMatch(body, /desktopLog\([^)]*(?:env|secret|YANCE_MATRIX)/u, 'backendEnvironment must not log assembled env or Matrix authority values');
 
-  // Windows materialized-UAT runner establishes the two secret-file env keys the backend requires with no default.
+  // Windows materialized-UAT runner establishes the authority env required by the packaged backend.
   assert.match(runner, /\$env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE\s*=/u);
   assert.match(runner, /\$env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE\s*=/u);
+  assert.match(runner, /\$env:YANCE_MATRIX_BASE_URL\s*=\s*\$synapseUrl/u);
   // The child env seam (fork) consumes backendEnvironment() output.
   assert.match(main, /env:\s*await backendEnvironment\(launch, startupTimeoutMs\)/u);
 });
