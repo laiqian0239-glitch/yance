@@ -21,46 +21,57 @@ function loadGuard() {
   return require(GUARD_PATH);
 }
 
-function credentialStore(initial = {}) {
+function credentialStore(initial = {}, events = []) {
   const values = new Map(Object.entries(initial));
   return {
     values,
     get(ref) { return values.get(ref) || null; },
-    async persist(ref, value) { values.set(ref, value); },
-    async remove(ref) { values.delete(ref); }
+    async persist(ref, value) { events.push(`persist:${ref}`); values.set(ref, value); },
+    async remove(ref) { events.push(`remove:${ref}`); values.delete(ref); }
   };
 }
 
-function fetchAuthority({ subject = '@tester:yance.local', externalId = 'tester', worker = {} } = {}) {
+function fetchAuthority({ subject = '@tester:yance.local', externalId = 'tester', worker = {}, matrixLoginFailures = 0, events = [] } = {}) {
   const calls = [];
+  let matrixLoginAttempts = 0;
   const fetchImpl = async (url, init = {}) => {
     calls.push({ url, init });
     if (String(url).includes('/_matrix/federation/v1/openid/userinfo')) {
+      events.push('matrix-openid');
       return new Response(JSON.stringify({ sub: subject }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
     if (String(url).endsWith('/verify')) {
+      events.push('verify');
       return new Response(JSON.stringify({
         ok: true,
         valid: worker.valid !== false,
         enabled: worker.enabled !== false,
         keyId: worker.keyId || 'key_123',
-        expires: worker.expires ?? null,
+        expires: worker.expires ?? 0,
         identity: { externalId: worker.externalId || externalId },
         requestId: 'worker-req-1'
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
     if (String(url).endsWith('/status')) {
+      events.push('status');
       return new Response(JSON.stringify({
         ok: true,
-        valid: true,
         enabled: worker.enabled !== false,
         keyId: worker.keyId || 'key_123',
-        expires: worker.expires ?? null,
+        expires: worker.expires ?? 0,
         identity: { externalId: worker.externalId || externalId },
         requestId: 'worker-status-1'
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
     if (String(url).endsWith('/_matrix/client/v3/login')) {
+      events.push('matrix-login');
+      matrixLoginAttempts += 1;
+      if (matrixLoginAttempts <= matrixLoginFailures) {
+        return new Response(JSON.stringify({ ok: false, reasonCode: 'MATRIX_JWT_LOGIN_UNAVAILABLE' }), {
+          status: 503,
+          headers: { 'content-type': 'application/json' }
+        });
+      }
       const payload = JSON.parse(init.body || '{}');
       assert.equal(payload.type, 'org.matrix.login.jwt');
       const decoded = jwt.verify(payload.token, 'matrix-registration-secret', {
@@ -96,10 +107,11 @@ test('OWNER marker grants local Product access without sending a secret to Worke
   assert.equal(authority.calls.length, 0);
 });
 
-test('TESTER stores only the non-secret keyId receipt after Matrix subject and Unkey identity match', async () => {
+test('post-login activation verifies the already-persisted keyId exactly once after Matrix subject proof', async () => {
   const { createPersonalAccessService } = loadService();
-  const store = credentialStore();
-  const authority = fetchAuthority();
+  const events = [];
+  const store = credentialStore({ 'personal-access.invitation-key': { keyId: 'key_123' } }, events);
+  const authority = fetchAuthority({ events });
   const service = createPersonalAccessService({
     credentialStore: store,
     authorityUrl: 'https://access.example',
@@ -120,17 +132,18 @@ test('TESTER stores only the non-secret keyId receipt after Matrix subject and U
 
   assert.equal(result.usable, true);
   assert.equal(result.reasonCode, 'ENTITLEMENT_VALID');
+  assert.equal(Object.prototype.hasOwnProperty.call(result, 'expires'), false, 'Unkey expires=0 is the mature no-expiry sentinel');
   assert.deepEqual(store.values.get('personal-access.invitation-key'), { keyId: 'key_123' });
-  assert.equal(JSON.stringify(store.values.get('personal-access.invitation-key')).includes('invite_live'), false);
-  assert.equal(store.values.has('personal-access.installation'), false);
-  assert.equal(authority.calls.length, 3);
+  assert.deepEqual(events, ['matrix-openid', 'status']);
+  assert.equal(authority.calls.length, 2);
   assert.deepEqual(JSON.parse(authority.calls[1].init.body), { keyId: 'key_123' });
 });
 
-test('TESTER invitation login uses Synapse JWT and keeps invitation/access tokens transient', async () => {
+test('first TESTER invitation persists only keyId before Matrix handoff and keeps bearer tokens transient', async () => {
   const { createPersonalAccessService } = loadService();
-  const store = credentialStore();
-  const authority = fetchAuthority();
+  const events = [];
+  const store = credentialStore({}, events);
+  const authority = fetchAuthority({ events });
   const service = createPersonalAccessService({
     credentialStore: store,
     authorityUrl: 'https://access.example',
@@ -148,7 +161,14 @@ test('TESTER invitation login uses Synapse JWT and keeps invitation/access token
   assert.equal(result.accountAuth.deviceId, 'DEVICE123');
   assert.equal(result.accountAuth.accessToken, 'matrix-access-token');
   assert.equal(result.subject, '@tester:yance.local');
-  assert.equal(store.values.has('personal-access.invitation-key'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(result, 'expires'), false, 'Unkey expires=0 is the mature no-expiry sentinel');
+  assert.deepEqual(store.values.get('personal-access.invitation-key'), { keyId: 'key_123' });
+  assert.equal(JSON.stringify(store.values.get('personal-access.invitation-key')).includes('invite_live'), false);
+  assert.equal(JSON.stringify(store.values.get('personal-access.invitation-key')).includes('matrix-access-token'), false);
+  assert.ok(events.indexOf('verify') >= 0);
+  assert.ok(events.indexOf('persist:personal-access.invitation-key') > events.indexOf('verify'));
+  assert.ok(events.indexOf('matrix-login') > events.indexOf('persist:personal-access.invitation-key'));
+  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/verify')).length, 1);
 
   const legacyMxidAuthority = fetchAuthority({ worker: { externalId: '@tester:yance.local' } });
   const legacyMxid = createPersonalAccessService({
@@ -160,13 +180,138 @@ test('TESTER invitation login uses Synapse JWT and keeps invitation/access token
     fetchImpl: legacyMxidAuthority.fetchImpl
   });
   assert.equal((await legacyMxid.login({ invitationKey: 'invite_live' })).reasonCode, 'MATRIX_INVITATION_EXTERNAL_ID_INVALID');
-  assert.equal(authority.calls.length, 2);
-  assert.equal(authority.calls[0].url, 'https://access.example/verify');
-  assert.deepEqual(JSON.parse(authority.calls[0].init.body), { key: 'invite_live' });
-  assert.match(authority.calls[1].url, /\/_matrix\/client\/v3\/login$/u);
 });
 
-test('returning TESTER uses stored keyId with getKey and rejects legacy raw invitation receipt', async () => {
+test('same device no-invitation re-entry uses non-consumptive status and never verifies the raw invitation twice', async () => {
+  const { createPersonalAccessService } = loadService();
+  const store = credentialStore();
+  const authority = fetchAuthority();
+  const service = createPersonalAccessService({
+    credentialStore: store,
+    authorityUrl: 'https://access.example',
+    matrixBaseUrl: 'http://127.0.0.1:8008',
+    matrixServerName: 'yance.local',
+    matrixJwtSecret: 'matrix-registration-secret',
+    fetchImpl: authority.fetchImpl
+  });
+
+  const first = await service.login({ invitationKey: 'invite_live' });
+  const resumed = await service.login({});
+  assert.equal(first.usable, true);
+  assert.equal(resumed.usable, true);
+  assert.equal(resumed.accountAuth.userId, '@tester:yance.local');
+  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/verify')).length, 1);
+  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/status')).length, 1);
+  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/_matrix/client/v3/login')).length, 2);
+});
+
+test('downstream Matrix failure leaves the keyId receipt durable so retry resumes without another consumptive verify', async () => {
+  const { createPersonalAccessService } = loadService();
+  const store = credentialStore();
+  const authority = fetchAuthority({ matrixLoginFailures: 1 });
+  const service = createPersonalAccessService({
+    credentialStore: store,
+    authorityUrl: 'https://access.example',
+    matrixBaseUrl: 'http://127.0.0.1:8008',
+    matrixServerName: 'yance.local',
+    matrixJwtSecret: 'matrix-registration-secret',
+    fetchImpl: authority.fetchImpl
+  });
+
+  await assert.rejects(
+    service.login({ invitationKey: 'invite_live' }),
+    error => error?.reasonCode === 'MATRIX_JWT_LOGIN_UNAVAILABLE'
+  );
+  assert.deepEqual(store.values.get('personal-access.invitation-key'), { keyId: 'key_123' });
+
+  const resumed = await service.login({ invitationKey: 'invite_live' });
+  assert.equal(resumed.usable, true);
+  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/verify')).length, 1);
+  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/status')).length, 1);
+});
+
+test('stored receipt authority failure never falls back to a consumptive invitation retry', async () => {
+  const { createPersonalAccessService } = loadService();
+  const calls = [];
+  const store = credentialStore({ 'personal-access.invitation-key': { keyId: 'key_123' } });
+  const service = createPersonalAccessService({
+    credentialStore: store,
+    authorityUrl: 'https://access.example',
+    matrixBaseUrl: 'http://127.0.0.1:8008',
+    matrixServerName: 'yance.local',
+    matrixJwtSecret: 'matrix-registration-secret',
+    fetchImpl: async (url) => {
+      calls.push(String(url));
+      if (String(url).endsWith('/status')) {
+        return new Response(JSON.stringify({ ok: false, reasonCode: 'UNKEY_AUTHORITY_UNAVAILABLE' }), {
+          status: 503,
+          headers: { 'content-type': 'application/json' }
+        });
+      }
+      throw new Error('consumptive fallback must not execute');
+    }
+  });
+
+  const result = await service.login({ invitationKey: 'invite_live' });
+  assert.equal(result.usable, false);
+  assert.equal(result.reasonCode, 'UNKEY_AUTHORITY_UNAVAILABLE');
+  assert.deepEqual(calls, ['https://access.example/status']);
+  assert.deepEqual(store.values.get('personal-access.invitation-key'), { keyId: 'key_123' });
+});
+
+test('missing stored Unkey key is terminal, clears once, and a fresh invitation is only eligible on the next explicit login', async () => {
+  const { createPersonalAccessService } = loadService();
+  const calls = [];
+  const store = credentialStore({ 'personal-access.invitation-key': { keyId: 'key_stale' } });
+  const service = createPersonalAccessService({
+    credentialStore: store,
+    authorityUrl: 'https://access.example',
+    matrixBaseUrl: 'http://127.0.0.1:8008',
+    matrixServerName: 'yance.local',
+    matrixJwtSecret: 'matrix-registration-secret',
+    fetchImpl: async (url, init = {}) => {
+      calls.push(String(url));
+      if (String(url).endsWith('/status')) {
+        return new Response(JSON.stringify({ ok: false, reasonCode: 'UNKEY_AUTHORITY_REJECTED' }), {
+          status: 404,
+          headers: { 'content-type': 'application/json' }
+        });
+      }
+      if (String(url).endsWith('/verify')) {
+        return new Response(JSON.stringify({
+          ok: true,
+          valid: true,
+          enabled: true,
+          keyId: 'key_new',
+          expires: 0,
+          identity: { externalId: 'tester' }
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (String(url).endsWith('/_matrix/client/v3/login')) {
+        const payload = JSON.parse(init.body || '{}');
+        jwt.verify(payload.token, 'matrix-registration-secret', {
+          algorithms: ['HS256'], issuer: 'yance-personal-access', audience: 'yance.local'
+        });
+        return new Response(JSON.stringify({
+          user_id: '@tester:yance.local', access_token: 'matrix-access-token', device_id: 'DEVICE123'
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return new Response('{}', { status: 404 });
+    }
+  });
+
+  const stale = await service.login({ invitationKey: 'invite_live' });
+  assert.equal(stale.reasonCode, 'UNKEY_ENTITLEMENT_INVALID');
+  assert.equal(store.values.has('personal-access.invitation-key'), false);
+  assert.deepEqual(calls, ['https://access.example/status']);
+
+  const fresh = await service.login({ invitationKey: 'invite_live' });
+  assert.equal(fresh.usable, true);
+  assert.deepEqual(store.values.get('personal-access.invitation-key'), { keyId: 'key_new' });
+  assert.equal(calls.filter(url => url.endsWith('/verify')).length, 1);
+});
+
+test('returning TESTER status uses stored keyId with getKey and rejects legacy raw invitation receipt', async () => {
   const { createPersonalAccessService } = loadService();
   const store = credentialStore({ 'personal-access.invitation-key': { keyId: 'key_123' } });
   const authority = fetchAuthority();
@@ -202,7 +347,7 @@ test('TESTER fails closed when Matrix subject and Unkey identity differ', async 
   const { createPersonalAccessService } = loadService();
   const authority = fetchAuthority({ worker: { externalId: 'other' } });
   const service = createPersonalAccessService({
-    credentialStore: credentialStore(),
+    credentialStore: credentialStore({ 'personal-access.invitation-key': { keyId: 'key_123' } }),
     authorityUrl: 'https://access.example',
     matrixServerName: 'yance.local',
     fetchImpl: authority.fetchImpl
@@ -221,10 +366,10 @@ test('TESTER fails closed when Matrix subject and Unkey identity differ', async 
   assert.equal(result.reasonCode, 'MATRIX_SUBJECT_MISMATCH');
 });
 
-test('TESTER fails closed on disabled or expired getKey and logout clears receipt', async () => {
+test('TESTER fails closed on disabled or expired getKey and session logout preserves durable device receipt', async () => {
   const { createPersonalAccessService } = loadService();
   const disabled = createPersonalAccessService({
-    credentialStore: credentialStore(),
+    credentialStore: credentialStore({ 'personal-access.invitation-key': { keyId: 'key_123' } }),
     authorityUrl: 'https://access.example',
     matrixServerName: 'yance.local',
     fetchImpl: fetchAuthority({ worker: { enabled: false } }).fetchImpl
@@ -241,7 +386,7 @@ test('TESTER fails closed on disabled or expired getKey and logout clears receip
   assert.equal((await disabled.activate(input)).reasonCode, 'UNKEY_ENTITLEMENT_DISABLED');
 
   const expired = createPersonalAccessService({
-    credentialStore: credentialStore(),
+    credentialStore: credentialStore({ 'personal-access.invitation-key': { keyId: 'key_123' } }),
     authorityUrl: 'https://access.example',
     matrixServerName: 'yance.local',
     fetchImpl: fetchAuthority({ worker: { expires: 1577836800000 } }).fetchImpl
@@ -249,7 +394,7 @@ test('TESTER fails closed on disabled or expired getKey and logout clears receip
   assert.equal((await expired.activate(input)).reasonCode, 'UNKEY_ENTITLEMENT_EXPIRED');
 
   const malformedExpiry = createPersonalAccessService({
-    credentialStore: credentialStore(),
+    credentialStore: credentialStore({ 'personal-access.invitation-key': { keyId: 'key_123' } }),
     authorityUrl: 'https://access.example',
     matrixServerName: 'yance.local',
     fetchImpl: fetchAuthority({ worker: { expires: 'not-a-millisecond-timestamp' } }).fetchImpl
@@ -258,8 +403,9 @@ test('TESTER fails closed on disabled or expired getKey and logout clears receip
 
   const store = credentialStore({ 'personal-access.invitation-key': { keyId: 'key_123' } });
   const service = createPersonalAccessService({ credentialStore: store, authorityUrl: 'https://access.example' });
-  assert.equal((await service.logout()).reasonCode, 'INVITATION_REQUIRED');
-  assert.equal(store.values.has('personal-access.invitation-key'), false);
+  const logout = await service.logout();
+  assert.equal(logout.reasonCode, 'DEVICE_ENTITLEMENT_PRESERVED');
+  assert.deepEqual(store.values.get('personal-access.invitation-key'), { keyId: 'key_123' });
 });
 
 test('minimal request surface is exact and every other product API is entitlement protected', () => {
