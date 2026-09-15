@@ -40,7 +40,7 @@ function accessMessage(status: PersonalAccessStatus | null): string {
   if (status.role === "OWNER") return "OWNER 永久可用；Product 已开放。";
   if (status.usable) return "当前设备授权有效；Product 已开放。";
   switch (status.reasonCode) {
-    case "INVITATION_REQUIRED": return "当前设备尚未授权，请从登录入口输入邀请码。";
+    case "INVITATION_REQUIRED": return "当前设备尚未授权，将返回登录入口。";
     case "INVITATION_KEY_REQUIRED":
     case "INVITATION_KEY_ID_REQUIRED": return "设备授权收据暂不可用。";
     case "MATRIX_OPENID_REQUIRED":
