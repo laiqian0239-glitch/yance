@@ -86,6 +86,7 @@ type ProductDesktop = DesktopActivationBridge & {
   prepareOutboundMessage?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   storeConfirmSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   listPlatformAccounts?: () => Promise<Record<string, unknown>>;
+  logoutPersonalAccess?: () => Promise<Record<string, unknown>>;
   onOpenConversation?: (callback: (payload: Record<string, unknown>) => void | Promise<void>) => (() => void) | void;
   onOpenView?: (callback: (payload: Record<string, unknown>) => void | Promise<void>) => (() => void) | void;
 };
@@ -106,6 +107,14 @@ type MatrixOpenIdToken = {
 };
 type YanceOpenIdClientApi = YanceClientApi & {
   getOpenIdToken?: () => Promise<MatrixOpenIdToken>;
+};
+type YanceAccountAuthApi = {
+  overwriteAccountAuth?: (accountAuth: {
+    userId: string;
+    deviceId: string;
+    accessToken: string;
+    homeserverUrl: string;
+  }) => Promise<void> | void;
 };
 type YanceComposerApi = {
   registerOutgoingMessagePrepare?: (
@@ -317,8 +326,9 @@ class YanceElementModule implements Module {
         this.api.appearance.setTheme(theme),
     };
 
+    const accountAuthApi = this.api as unknown as YanceAccountAuthApi;
     this.api.customComponents.registerLoginComponent(
-      (props, originalComponent) => <YanceLogin>{originalComponent(props)}</YanceLogin>,
+      () => <YanceLogin accountAuthApi={accountAuthApi} />,
     );
     messageComponentsApi.registerPostLoginSecurityComponent?.(
       ({ content }) => <YancePostLoginSecurity>{content}</YancePostLoginSecurity>,
@@ -338,7 +348,10 @@ class YanceElementModule implements Module {
           : undefined}
         openUserSettings={(destination) => navigationApi.openUserSettings?.(destination)}
         requestLogout={() => {
-          void clearProductConversation().then(() => navigationApi.requestLogout?.());
+          window.yancePersonalAccessHandoff = null;
+          void clearProductConversation()
+            .then(() => desktop.logoutPersonalAccess?.())
+            .then(() => navigationApi.requestLogout?.());
         }}
       />
     ));

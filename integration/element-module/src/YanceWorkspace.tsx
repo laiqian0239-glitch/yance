@@ -53,7 +53,7 @@ export function YanceWorkspace({
   requestLogout,
 }: YanceWorkspaceProps): React.JSX.Element {
   return (
-    <PersonalAccessSurface getMatrixOpenIdToken={getMatrixOpenIdToken}>
+    <PersonalAccessSurface getMatrixOpenIdToken={getMatrixOpenIdToken} requestLogout={requestLogout}>
       <ProductExperienceShell
         appearanceHost={appearanceHost}
         navigateSearchResult={navigateSearchResult}

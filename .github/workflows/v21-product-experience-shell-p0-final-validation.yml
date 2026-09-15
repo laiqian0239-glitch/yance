@@ -52,7 +52,9 @@ jobs:
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2' ||
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260911-matrix-runtime' ||
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6' ||
-        github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260914-invite-only-product-login-p0'
+        github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260914-invite-only-product-login-p0' ||
+        github.event.pull_request.head.ref == 'fix/v21-invite-only-product-login-ci-red-closure-p0-successor-v2' ||
+        github.event.pull_request.head.ref == 'fix/v21-invite-only-product-login-ci-red-closure-p0'
       )
     runs-on: windows-latest
     env:
@@ -148,6 +150,7 @@ jobs:
           Write-Host "GREEN: Task 9 reproducibility bound to $env:CANDIDATE_BRANCH / $env:CANDIDATE_SHA / $candidateTree"
 
   materialized-desktop-uat:
+    needs: materialized-matrix-uat
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
       (
@@ -189,7 +192,9 @@ jobs:
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2' ||
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260911-matrix-runtime' ||
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6' ||
-        github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260914-invite-only-product-login-p0'
+        github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260914-invite-only-product-login-p0' ||
+        github.event.pull_request.head.ref == 'fix/v21-invite-only-product-login-ci-red-closure-p0-successor-v2' ||
+        github.event.pull_request.head.ref == 'fix/v21-invite-only-product-login-ci-red-closure-p0'
       )
     runs-on: windows-latest
     timeout-minutes: 120
@@ -232,6 +237,28 @@ jobs:
           $tree = (git rev-parse 'HEAD^{tree}').Trim()
           if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'desktop materialization source must start clean' }
           "tree=$tree" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Download exact GREEN materialized Matrix UAT
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Product-Experience-Materialized-Matrix-UAT-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}\product-experience-materialized-matrix-uat
+
+      - name: Verify transported Matrix candidate identity
+        id: matrix_runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:RUNNER_TEMP 'product-experience-materialized-matrix-uat'
+          node tools/product-experience/create-materialized-uat-candidate.js verify `
+            --root $root `
+            --bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY `
+            --candidate-branch $env:CANDIDATE_BRANCH `
+            --candidate-commit $env:CANDIDATE_SHA `
+            --candidate-tree '${{ steps.identity.outputs.tree }}'
+          if ($LASTEXITCODE -ne 0) { throw 'transported Matrix candidate verification failed' }
+          if ((git status --porcelain=v1 --untracked-files=all).Length -ne 0) { throw 'Matrix artifact verification must leave Product source clean' }
+          "root=$((Resolve-Path $root).Path)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Materialize and verify official Windows Electron Release asset
         id: electron
@@ -463,6 +490,10 @@ jobs:
             --trusted-node-executable '${{ steps.packaged_node.outputs.node_exe }}' `
             --parlant-runtime '${{ steps.parlant.outputs.root }}' `
             --learning-runtime '${{ steps.learning.outputs.root }}' `
+            --matrix-runtime-source '${{ steps.matrix_runtime.outputs.root }}' `
+            --matrix-runtime-candidate-branch $env:CANDIDATE_BRANCH `
+            --matrix-runtime-candidate-commit $env:CANDIDATE_SHA `
+            --matrix-runtime-candidate-tree '${{ steps.identity.outputs.tree }}' `
             --rcedit-path '${{ steps.rcedit.outputs.path }}' `
             --archive-tool-node-modules '${{ steps.archive_oss.outputs.node_modules }}' `
             --output-dir $wp7 `
@@ -746,7 +777,9 @@ jobs:
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260830-existing-data-startup-recovery-v2' ||
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260911-matrix-runtime' ||
         github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260912-final-builder-rc-internal-closure-v6' ||
-        github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260914-invite-only-product-login-p0'
+        github.event.pull_request.head.ref == 'rebuild/windows-release-closure-20260914-invite-only-product-login-p0' ||
+        github.event.pull_request.head.ref == 'fix/v21-invite-only-product-login-ci-red-closure-p0-successor-v2' ||
+        github.event.pull_request.head.ref == 'fix/v21-invite-only-product-login-ci-red-closure-p0'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 120

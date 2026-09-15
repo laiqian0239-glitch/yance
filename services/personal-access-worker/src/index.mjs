@@ -1,4 +1,5 @@
 const UNKEY_VERIFY_URL = 'https://api.unkey.com/v2/keys.verifyKey';
+const UNKEY_GET_KEY_URL = 'https://api.unkey.com/v2/keys.getKey';
 
 function clean(value) {
   return String(value == null ? '' : value).trim();
@@ -39,15 +40,21 @@ function projectionFromUnkey(payload) {
     code: clean(data.code || root.code),
     keyId: clean(data.keyId || data.id),
     enabled: data.enabled !== false,
-    expires: clean(data.expires || data.expiresAt),
+    expires: data.expires ?? data.expiresAt ?? null,
+    credits: Number.isFinite(Number(data.credits))
+      ? Number(data.credits)
+      : data.credits && typeof data.credits === 'object' && !Array.isArray(data.credits)
+        ? Object.freeze({ remaining: Number(data.credits.remaining) })
+        : null,
     identity: identity ? Object.freeze({ externalId: clean(identity.externalId) }) : null,
     requestId: clean(meta.requestId)
   });
 }
 
-function createPersonalAccessWorker({ rootKey, fetchImpl = fetch, unkeyVerifyUrl = UNKEY_VERIFY_URL } = {}) {
+function createPersonalAccessWorker({ rootKey, fetchImpl = fetch, unkeyVerifyUrl = UNKEY_VERIFY_URL, unkeyGetKeyUrl = UNKEY_GET_KEY_URL } = {}) {
   const secret = clean(rootKey);
   const verifyUrl = clean(unkeyVerifyUrl) || UNKEY_VERIFY_URL;
+  const getKeyUrl = clean(unkeyGetKeyUrl) || UNKEY_GET_KEY_URL;
   if (!secret) throw new TypeError('UNKEY_ROOT_KEY is required');
   if (typeof fetchImpl !== 'function') throw new TypeError('fetchImpl is required');
 
@@ -56,21 +63,24 @@ function createPersonalAccessWorker({ rootKey, fetchImpl = fetch, unkeyVerifyUrl
       const url = new URL(request.url);
       const method = request.method.toUpperCase();
       const path = url.pathname.replace(/\/+$/u, '') || '/';
-      if (method !== 'POST' || path !== '/verify') return errorJson('NOT_FOUND', 'Route not found', 404);
+      if (method !== 'POST' || !['/verify', '/status'].includes(path)) return errorJson('NOT_FOUND', 'Route not found', 404);
 
       const input = await bodyJson(request);
+      const isVerify = path === '/verify';
       const key = clean(input.key);
-      if (!key) return errorJson('INVITATION_KEY_REQUIRED', 'Invitation key is required', 400);
+      const keyId = clean(input.keyId);
+      if (isVerify && !key) return errorJson('INVITATION_KEY_REQUIRED', 'Invitation key is required', 400);
+      if (!isVerify && !keyId) return errorJson('INVITATION_KEY_ID_REQUIRED', 'Invitation key id is required', 400);
 
       let upstream;
       try {
-        upstream = await fetchImpl(verifyUrl, {
+        upstream = await fetchImpl(isVerify ? verifyUrl : getKeyUrl, {
           method: 'POST',
           headers: {
             authorization: `Bearer ${secret}`,
             'content-type': 'application/json'
           },
-          body: JSON.stringify({ key })
+          body: JSON.stringify(isVerify ? { key, credits: { cost: 1 } } : { keyId })
         });
       } catch (_) {
         return errorJson('UNKEY_AUTHORITY_UNAVAILABLE', 'Personal access authority is unavailable', 503);
@@ -94,6 +104,7 @@ function createWorkerFromEnv(env) {
 
 export {
   UNKEY_VERIFY_URL,
+  UNKEY_GET_KEY_URL,
   projectionFromUnkey,
   createPersonalAccessWorker,
   createWorkerFromEnv

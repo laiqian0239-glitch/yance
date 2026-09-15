@@ -46,9 +46,9 @@ const CHANNELS = Object.freeze({
   setMotionLevel: 'store:set-motion-level',
   setBackgroundEffect: 'store:set-background-effect',
   personalAccessStatus: 'store:personal-access-status',
+  personalAccessLogin: 'store:personal-access-login',
   personalAccessActivate: 'store:personal-access-activate',
-  matrixLocalIdentityStatus: 'desktop:matrix-local-identity-status',
-  matrixLocalIdentityCreate: 'desktop:matrix-local-identity-create',
+  personalAccessLogout: 'store:personal-access-logout',
   productDataProtectionState: 'store:product-system-data-protection-state',
   productDataProtectionMutation: 'store:product-system-data-protection-mutation',
   productModelRuntimeState: 'store:product-system-model-runtime-state',
@@ -386,17 +386,15 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
     [CHANNELS.personalAccessStatus]: (_event, input = {}) => apiRequest('/api/r32/personal-access/status', {
       method: 'POST', body: jsonBody(input)
     }),
+    [CHANNELS.personalAccessLogin]: (_event, input = {}) => apiRequest('/api/r32/personal-access/login', {
+      method: 'POST',
+      body: jsonBody({ invitationKey: clean(input.invitationKey) })
+    }),
     [CHANNELS.personalAccessActivate]: (_event, input = {}) => apiRequest('/api/r32/personal-access/activate', {
       method: 'POST', body: jsonBody(input)
     }),
-    [CHANNELS.matrixLocalIdentityStatus]: () => apiRequest('/api/desktop/matrix-local-identity'),
-    [CHANNELS.matrixLocalIdentityCreate]: (_event, input = {}) => apiRequest('/api/desktop/matrix-local-identity', {
-      method: 'POST',
-      body: jsonBody({
-        localpart: clean(input.localpart),
-        password: String(input.password == null ? '' : input.password),
-        confirmPassword: String(input.confirmPassword == null ? '' : input.confirmPassword)
-      })
+    [CHANNELS.personalAccessLogout]: () => apiRequest('/api/r32/personal-access/logout', {
+      method: 'POST', body: '{}'
     }),
     [CHANNELS.conversationAutomationMode]: (_event, input = {}) => {
       const conversationId = safeRouteSegment(input.conversationId, 'conversationId');
