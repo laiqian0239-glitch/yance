@@ -165,41 +165,6 @@ class PersonalAccessService {
     return subject;
   }
 
-  async verifyInvitationForSubject(key, subject) {
-    const invitationKey = clean(key);
-    const matrixSubject = clean(subject);
-    if (!invitationKey) return stableEntitlement({ reasonCode: 'INVITATION_REQUIRED' });
-    if (!this.authorityUrl) return stableEntitlement({ reasonCode: 'UNKEY_AUTHORITY_UNAVAILABLE' });
-    let body;
-    try {
-      body = await this.boundedFetch(`${this.authorityUrl}/verify`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ key: invitationKey })
-      }, 'UNKEY_AUTHORITY_UNAVAILABLE');
-    } catch (error) {
-      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'UNKEY_AUTHORITY_UNAVAILABLE' });
-    }
-    const identity = record(body.identity);
-    const externalId = clean(identity.externalId);
-    if (body.valid !== true) return stableEntitlement({ reasonCode: clean(body.code) || 'UNKEY_ENTITLEMENT_INVALID' });
-    if (body.enabled === false) return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_DISABLED' });
-    const expires = clean(body.expires);
-    if (expires && Number.isFinite(Date.parse(expires)) && Date.parse(expires) <= Date.now()) {
-      return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_EXPIRED', expires });
-    }
-    if (!externalId || externalId !== matrixSubject) return stableEntitlement({ reasonCode: 'MATRIX_SUBJECT_MISMATCH', subject: matrixSubject, keyId: clean(body.keyId) });
-    return stableEntitlement({
-      role: 'TESTER',
-      usable: true,
-      reasonCode: 'ENTITLEMENT_VALID',
-      subject: matrixSubject,
-      keyId: clean(body.keyId),
-      expires,
-      workerRequestId: clean(body.requestId)
-    });
-  }
-
   async verifyInvitationForLogin(key) {
     const invitationKey = clean(key);
     if (!invitationKey) return stableEntitlement({ reasonCode: 'INVITATION_KEY_REQUIRED' });
