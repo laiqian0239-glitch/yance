@@ -36,17 +36,22 @@ test('retired local Matrix identity IPC is absent from preload, bridge, manifest
   }
 });
 
-test('YanceLogin uses invitation JWT login and Element account-auth overwrite without local identity UI', () => {
+test('YanceLogin uses invitation JWT login and Element login-completion seam without local identity UI', () => {
   const login = read('integration/element-module/src/YanceLogin.tsx');
   const loginOnly = login.slice(0, login.indexOf('export function YancePostLoginSecurity'));
   const index = read('integration/element-module/src/index.tsx');
   const styles = read('integration/element-module/src/YanceLogin.css');
   assert.match(login, /loginPersonalAccess/u);
-  assert.match(login, /overwriteAccountAuth/u);
+  assert.match(login, /onLoggedIn\(result\.accountAuth\)/u);
   assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
-  assert.match(login, /data-yance-invitation-login="jwt-overwrite-account-auth"/u);
+  assert.match(login, /data-yance-invitation-login="jwt-element-on-logged-in"/u);
   assert.match(login, /邀请码/u);
-  assert.match(index, /<YanceLogin accountAuthApi=\{accountAuthApi\}/u);
+  assert.match(index, /<YanceLogin onLoggedIn=\{props\.onLoggedIn\}/u);
+  assert.doesNotMatch(index, /overwriteAccountAuth|accountAuthApi/u);
+  assert.doesNotMatch(loginOnly, /overwriteAccountAuth\s*\(/u);
+  assert.match(loginOnly, /submissionInFlightRef/u);
+  assert.match(loginOnly, /handoffCommittedRef/u);
+  assert.match(loginOnly, /if \(!handoffAccepted\)\s*\{[\s\S]*?submissionInFlightRef\.current = false[\s\S]*?setSubmitting\(false\)/u);
   assert.doesNotMatch(login, /data-yance-local-matrix-identity="first-use"/u);
   assert.doesNotMatch(login, /getMatrixLocalIdentity/u);
   assert.doesNotMatch(login, /createMatrixLocalIdentity/u);

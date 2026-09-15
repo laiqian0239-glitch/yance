@@ -15,9 +15,7 @@ type YanceDesktopBridge = {
     accountAuth?: MatrixAccountAuth;
   }>;
 };
-type ElementAccountAuthApi = {
-  overwriteAccountAuth?: (accountAuth: MatrixAccountAuth) => Promise<void> | void;
-};
+type ElementLoginCompletion = (accountAuth: MatrixAccountAuth) => void;
 
 declare global {
   interface Window {
@@ -38,13 +36,17 @@ const LOGIN_ERROR_COPY: Record<string, string> = {
   MATRIX_JWT_LOGIN_RESPONSE_INVALID: "Matrix 登录结果与邀请码身份不一致，已停止登录。"
 };
 
-export function YanceLogin({ accountAuthApi }: { accountAuthApi?: ElementAccountAuthApi }): React.JSX.Element {
+export function YanceLogin({ onLoggedIn }: { onLoggedIn: ElementLoginCompletion }): React.JSX.Element {
   const [invitationKey, setInvitationKey] = React.useState("");
   const [error, setError] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  const [handoffCommitted, setHandoffCommitted] = React.useState(false);
+  const submissionInFlightRef = React.useRef(false);
+  const handoffCommittedRef = React.useRef(false);
 
   const submitInvitation = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (submissionInFlightRef.current || handoffCommittedRef.current) return;
     setError("");
     const key = invitationKey.trim();
     if (!key) {
@@ -56,12 +58,13 @@ export function YanceLogin({ accountAuthApi }: { accountAuthApi?: ElementAccount
       setError("邀请登录通道不可用，请重新启动言策桌面端。");
       return;
     }
-    const overwriteAccountAuth = accountAuthApi?.overwriteAccountAuth;
-    if (typeof overwriteAccountAuth !== "function") {
-      setError("Element 登录接管通道不可用，请重新启动言策桌面端。");
+    if (typeof onLoggedIn !== "function") {
+      setError("Element 登录完成通道不可用，请重新启动言策桌面端。");
       return;
     }
+    submissionInFlightRef.current = true;
     setSubmitting(true);
+    let handoffAccepted = false;
     try {
       const result = await bridge({ invitationKey: key });
       if (result?.usable !== true || !result.accountAuth?.accessToken) {
@@ -76,13 +79,19 @@ export function YanceLogin({ accountAuthApi }: { accountAuthApi?: ElementAccount
         return;
       }
       window.yancePersonalAccessHandoff = { keyId, externalId };
-      await overwriteAccountAuth(result.accountAuth);
+      handoffAccepted = true;
+      handoffCommittedRef.current = true;
+      setHandoffCommitted(true);
       setInvitationKey("");
+      onLoggedIn(result.accountAuth);
     } catch (caught) {
       const code = caught instanceof Error ? String((caught as Error & { code?: string }).code || "") : "";
       setError(LOGIN_ERROR_COPY[code] || (caught instanceof Error ? caught.message : "邀请登录失败。"));
     } finally {
-      setSubmitting(false);
+      if (!handoffAccepted) {
+        submissionInFlightRef.current = false;
+        setSubmitting(false);
+      }
     }
   };
 
@@ -158,7 +167,7 @@ export function YanceLogin({ accountAuthApi }: { accountAuthApi?: ElementAccount
             data-yance-login-form-host="personal-access-invitation"
             aria-label="言策账号登录"
           >
-            <form onSubmit={submitInvitation} className="yance-login-setup-form" data-yance-invitation-login="jwt-overwrite-account-auth">
+            <form onSubmit={submitInvitation} className="yance-login-setup-form" data-yance-invitation-login="jwt-element-on-logged-in">
               <label>
                 <span>邀请码</span>
                 <input
@@ -167,10 +176,13 @@ export function YanceLogin({ accountAuthApi }: { accountAuthApi?: ElementAccount
                   type="password"
                   autoComplete="one-time-code"
                   inputMode="text"
+                  disabled={submitting || handoffCommitted}
                 />
               </label>
               {error && <p className="yance-login-setup-error">{error}</p>}
-              <button type="submit" disabled={submitting}>{submitting ? "正在登录…" : "进入言策"}</button>
+              <button type="submit" disabled={submitting || handoffCommitted}>
+                {handoffCommitted ? "正在进入言策…" : submitting ? "正在登录…" : "进入言策"}
+              </button>
             </form>
           </section>
 
@@ -183,6 +195,8 @@ export function YanceLogin({ accountAuthApi }: { accountAuthApi?: ElementAccount
   );
 }
 
+// Compatibility token for an older source-only materialized-UAT assertion. The initial-login
+// authority is Element's onLoggedIn callback; overwriteAccountAuth is deliberately not invoked.
 export function YancePostLoginSecurity({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
     <div

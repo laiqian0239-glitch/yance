@@ -91,6 +91,7 @@ test('Element Product uses upstream Matrix OpenID seam and invitation activation
   const surface = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
   const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
   const index = read('integration/element-module/src/index.tsx');
+  const login = read('integration/element-module/src/YanceLogin.tsx');
   const preload = read('electron/preload.js');
   const bridge = read('electron/r32StoreBridge.js');
   const manifest = read('electron/m2/ipcManifest.json');
@@ -99,8 +100,10 @@ test('Element Product uses upstream Matrix OpenID seam and invitation activation
   assert.doesNotMatch(surface, /邀请码/);
   assert.match(surface, /activatePersonalAccess/);
   assert.match(surface, /ELEMENT_MATRIX_OPENID_SEAM_MISSING/);
-  assert.match(index, /overwriteAccountAuth/);
-  assert.match(index, /<YanceLogin accountAuthApi=\{accountAuthApi\}/);
+  assert.match(index, /\(props\)\s*=>\s*<YanceLogin onLoggedIn=\{props\.onLoggedIn\}/u);
+  assert.match(login, /onLoggedIn\(result\.accountAuth\)/u);
+  assert.doesNotMatch(index, /overwriteAccountAuth|accountAuthApi/u);
+  assert.doesNotMatch(login, /overwriteAccountAuth\s*\(result\.accountAuth\)/u);
   assert.match(preload, /\bgetPersonalAccessStatus\s*:/);
   assert.match(preload, /\bloginPersonalAccess\s*:/);
   assert.match(preload, /\bactivatePersonalAccess\s*:/);

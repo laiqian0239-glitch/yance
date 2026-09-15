@@ -108,14 +108,6 @@ type MatrixOpenIdToken = {
 type YanceOpenIdClientApi = YanceClientApi & {
   getOpenIdToken?: () => Promise<MatrixOpenIdToken>;
 };
-type YanceAccountAuthApi = {
-  overwriteAccountAuth?: (accountAuth: {
-    userId: string;
-    deviceId: string;
-    accessToken: string;
-    homeserverUrl: string;
-  }) => Promise<void> | void;
-};
 type YanceComposerApi = {
   registerOutgoingMessagePrepare?: (
     handler: (input: { roomId: string; text: string }) => Promise<{ text: string; transformed?: boolean }>,
@@ -326,9 +318,8 @@ class YanceElementModule implements Module {
         this.api.appearance.setTheme(theme),
     };
 
-    const accountAuthApi = this.api as unknown as YanceAccountAuthApi;
     this.api.customComponents.registerLoginComponent(
-      () => <YanceLogin accountAuthApi={accountAuthApi} />,
+      (props) => <YanceLogin onLoggedIn={props.onLoggedIn} />,
     );
     messageComponentsApi.registerPostLoginSecurityComponent?.(
       ({ content }) => <YancePostLoginSecurity>{content}</YancePostLoginSecurity>,
