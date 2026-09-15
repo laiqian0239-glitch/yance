@@ -371,8 +371,11 @@ test('fresh TESTER permission UI remains reachable while Product children stay b
   assert.match(workspaceSource, /<PersonalAccessSurface\b[^>]*>[\s\S]*<ProductExperienceShell/u,
     'personal-access surface must remain outside ProductExperienceShell');
   assert.match(accessSource, /case "INVITATION_REQUIRED"/u);
-  assert.match(accessSource, /if \(!usable\) return/u,
-    'unregistered TESTER must see the permission surface without mounting Product children');
+  assert.match(
+    accessSource,
+    /if \(usable\) return <>\{children\}<\/>;\s*return <div className="yance-product-shell">\{accessPanel\}<\/div>;/u,
+    'usable TESTER must mount Product children directly while an unregistered TESTER receives only the permission surface'
+  );
   assert.match(guardSource, /path\.startsWith\('\/api\/desktop\/'\)/u,
     'DesktopHost local-control endpoints must remain outside human product entitlement');
   assert.match(guardSource, /path\.startsWith\('\/api\/'\)/u,

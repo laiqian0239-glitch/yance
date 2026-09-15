@@ -57,6 +57,7 @@ test('WP3 preserve: Personal Access backend remains the sole entitlement authori
 
   for (const route of [
     '/status',
+    '/login',
     '/activate',
   ]) {
     assert.match(routes, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
@@ -81,12 +82,16 @@ test('WP3-A RED: current Element Product must expose Personal Access status and 
   const apis = manifestApis();
   const requiredApis = [
     'getPersonalAccessStatus',
+    'loginPersonalAccess',
     'activatePersonalAccess',
+    'logoutPersonalAccess',
   ];
 
   assert.match(productSources, /personal[ -]?access|PersonalAccess/iu, 'the active Element Product must own the Personal Access user surface');
-  assert.match(productSources, /邀请码/u, 'a TESTER must have a reachable invitation key action in the active Product');
-  assert.match(productSources, /刷新/u, 'a TESTER must have a reachable status refresh action in the active Product');
+  assert.match(read('integration/element-module/src/YanceLogin.tsx'), /邀请码/u, 'a TESTER must have a reachable invitation key action in the pre-auth Product login');
+  assert.doesNotMatch(productSources, /邀请码/u, 'post-login Product must not request the raw invitation bearer again');
+  assert.match(productSources, /刷新/u, 'a blocked TESTER must have a reachable status refresh action');
+  assert.match(productSources, /if \(usable\) return <>\{children\}<\/>/u, 'usable entitlement must render Product directly without a persistent access panel');
   assert.match(productSources, /getMatrixOpenIdToken/u, 'Element must provide the Matrix OpenID proof seam');
 
   for (const api of requiredApis) {
@@ -95,7 +100,9 @@ test('WP3-A RED: current Element Product must expose Personal Access status and 
   }
 
   assert.match(bridge, /\/api\/r32\/personal-access\/status/u);
+  assert.match(bridge, /\/api\/r32\/personal-access\/login/u);
   assert.match(bridge, /\/api\/r32\/personal-access\/activate/u);
+  assert.match(bridge, /\/api\/r32\/personal-access\/logout/u);
 });
 
 test('WP3-A RED: active Personal Access regression must not pin the retired legacy System Center as Product UI authority', () => {
