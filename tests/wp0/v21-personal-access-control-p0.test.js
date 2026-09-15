@@ -50,16 +50,25 @@ test('server preserves local caller authentication before invitation entitlement
   assert.match(source, /createPersonalAccessRouter/);
 });
 
-test('backend keeps OWNER marker local and stores only opaque invitation key for TESTER', () => {
+test('backend keeps OWNER marker local and stores only non-secret Unkey keyId receipt for TESTER', () => {
   const source = read('backend/services/personalAccessService.js');
   assert.match(source, /personal-access\.owner-admin/);
   assert.match(source, /personal-access\.invitation-key/);
+  assert.match(source, /require\(['"]jsonwebtoken['"]\)/);
+  assert.match(source, /jwt\.sign/);
+  assert.match(source, /org\.matrix\.login\.jwt/);
+  assert.match(source, /_matrix\/client\/v3\/login/);
   assert.match(source, /matrixSubject/);
   assert.match(source, /_matrix\/federation\/v1\/openid\/userinfo/);
   assert.match(source, /MATRIX_SUBJECT_MISMATCH/);
   assert.match(source, /ENTITLEMENT_VALID/);
-  assert.doesNotMatch(source, /owner.*secret.*remote|authorization:\s*`Bearer/is);
+  assert.match(source, /persistEntitlementKeyId/);
+  assert.match(source, /verifyKeyIdForSubject/);
+  assert.doesNotMatch(source, /authorization:\s*`Bearer/is);
   assert.doesNotMatch(source, /installationId|grantState|requestState/);
+  assert.doesNotMatch(source, /persistInvitation|storedInvitation/u);
+  assert.match(source, /Invitation identity must be one canonical Matrix localpart/u);
+  assert.match(source, /UNKEY_ENTITLEMENT_EXPIRY_INVALID/u);
 });
 
 test('Worker and wrangler are stateless Unkey projection authority', () => {
@@ -69,8 +78,9 @@ test('Worker and wrangler are stateless Unkey projection authority', () => {
   assert.match(worker, /export\s+default\s*\{\s*async\s+fetch\(request,\s*env\)/u);
   assert.match(worker, /UNKEY_ROOT_KEY/);
   assert.match(worker, /api\.unkey\.com\/v2\/keys\.verifyKey/u);
-  assert.match(worker, /path !== '\/verify'/u);
-  assert.doesNotMatch(worker, /module\.exports|prepare\(|SELECT|INSERT|UPDATE|DELETE/u);
+  assert.match(worker, /api\.unkey\.com\/v2\/keys\.getKey/u);
+  assert.match(worker, /credits:\s*\{\s*cost:\s*1\s*\}/u);
+  assert.doesNotMatch(worker, /module\.exports|prepare\(|SELECT|INSERT|UPDATE|DELETE|keys\.createKey|keys\.updateKey|keys\.deleteKey/u);
   assert.match(wrangler, /main\s*=\s*"src\/index\.mjs"/u);
   assert.match(wrangler, /workers_dev\s*=\s*true/u);
   assert.match(wrangler, /UNKEY_ROOT_KEY/u);
@@ -86,15 +96,26 @@ test('Element Product uses upstream Matrix OpenID seam and invitation activation
   const manifest = read('electron/m2/ipcManifest.json');
   assert.match(workspace, /getMatrixOpenIdToken/);
   assert.match(index, /getOpenIdToken\.bind\(clientApi\)/);
-  assert.match(surface, /邀请码/);
+  assert.doesNotMatch(surface, /邀请码/);
   assert.match(surface, /activatePersonalAccess/);
   assert.match(surface, /ELEMENT_MATRIX_OPENID_SEAM_MISSING/);
+  assert.match(index, /overwriteAccountAuth/);
+  assert.match(index, /<YanceLogin accountAuthApi=\{accountAuthApi\}/);
   assert.match(preload, /\bgetPersonalAccessStatus\s*:/);
+  assert.match(preload, /\bloginPersonalAccess\s*:/);
   assert.match(preload, /\bactivatePersonalAccess\s*:/);
+  assert.match(preload, /\blogoutPersonalAccess\s*:/);
   assert.match(preload, /PERSONAL_ACCESS_OWNER_REF_PROTECTED/);
   assert.match(bridge, /\/api\/r32\/personal-access\/status/);
+  assert.match(bridge, /\/api\/r32\/personal-access\/login/);
   assert.match(bridge, /\/api\/r32\/personal-access\/activate/);
+  assert.match(bridge, /\/api\/r32\/personal-access\/logout/);
+  assert.match(manifest, /store:personal-access-login/);
   assert.match(manifest, /store:personal-access-activate/);
+  assert.match(manifest, /store:personal-access-logout/);
+  assert.doesNotMatch(preload, /getMatrixLocalIdentity|createMatrixLocalIdentity/u);
+  assert.doesNotMatch(bridge, /matrixLocalIdentity|matrix-local-identity/u);
+  assert.doesNotMatch(manifest, /desktop:matrix-local-identity/u);
   for (const retired of ['submitPersonalAccessRequest', 'refreshPersonalAccessRequest', 'listPersonalAccessOwnerRequests', 'mutatePersonalAccessOwnerRequest', 'mutatePersonalAccessOwnerGrant']) {
     assert.doesNotMatch(`${surface}\n${preload}\n${bridge}\n${manifest}`, new RegExp(retired, 'u'));
   }

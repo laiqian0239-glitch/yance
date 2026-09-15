@@ -55,6 +55,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260911-matrix-runtime'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260912-final-builder-rc-internal-closure-v6'/u);
   assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260914-invite-only-product-login-p0'/u);
+  assert.match(source, /github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-invite-only-product-login-ci-red-closure-p0'/u);
   const allowedBranches = new Set([...source.matchAll(/github\.event\.pull_request\.head\.ref\s*==\s*'([^']+)'/gu)].map((match) => match[1]));
   assert.deepEqual([...allowedBranches].sort(), [
     'product/v21-product-experience-bilingual-search-translation-task-ux-p0',
@@ -69,6 +70,7 @@ test('Product Experience final validation is an exact-head same-repository pull-
     'fix/v21-final-rc-auth-entry-runner-utc-p0-successor-v2',
     'fix/v21-final-rc-materialized-matrix-uat-runtime-closure-p0',
     'fix/v21-final-rc-materialized-matrix-runtime-state-p0',
+    'fix/v21-invite-only-product-login-ci-red-closure-p0',
     'fix/v21-product-experience-windows-uat-startup-p0',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-1-v2',
     'fix/v21-product-experience-windows-uat-startup-p0-amendment-2',
@@ -161,6 +163,11 @@ test('Product Experience final validation is an exact-head same-repository pull-
     (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'rebuild\/windows-release-closure-20260914-invite-only-product-login-p0'/gu) || []).length,
     3,
     'invite-only Product login successor must be admitted by exactly the three existing Product Final job guards'
+  );
+  assert.equal(
+    (source.match(/github\.event\.pull_request\.head\.ref\s*==\s*'fix\/v21-invite-only-product-login-ci-red-closure-p0'/gu) || []).length,
+    3,
+    'invite-only Product login CI RED closure must be admitted by exactly the three existing Product Final job guards'
   );
   assert.doesNotMatch(source, /github\.event\.pull_request\.head\.ref[\s\S]{0,80}(?:startsWith|contains|matches)/u);
   assert.match(source, /runs-on:\s*windows-latest/u);
@@ -264,7 +271,7 @@ test('trusted Linux CI delegates CRLF apply semantics to Matrix bootstrap, then 
   const composeCopyIndex = source.indexOf('cp tools/product-experience/materialized-matrix-compose.yml "$bundle/materialized-matrix-compose.yml"');
   const composeParseIndex = source.indexOf('docker compose -f "$bundle/materialized-matrix-compose.yml" config');
   const sealIndex = source.indexOf('create-materialized-uat-candidate.js seal', composeParseIndex);
-  const uploadIndex = source.indexOf('Product-Experience-Materialized-Matrix-UAT-');
+  const uploadIndex = source.indexOf('Product-Experience-Materialized-Matrix-UAT-', sealIndex);
   const cleanIndex = source.indexOf('git status --porcelain=v1 --untracked-files=all', afterIndex);
 
   assert.ok(beforeIndex >= 0 && beforeIndex < bootstrapIndex);
@@ -311,7 +318,11 @@ test('Product final validation keeps exactly two materialized UAT artifacts plus
   assert.ok(diagnosticNames.length === 0 || diagnosticNames.length === 1, 'only one authorized packaged-startup diagnostic artifact may exist');
   assert.equal(pinnedUploadCount, 3 + diagnosticNames.length, 'pinned uploads must be two materialized UAT artifacts, one startup capsule, and at most one diagnostic artifact');
   assert.equal((source.match(/name: Product-Experience-Materialized-Desktop-UAT-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || []).length, 1);
-  assert.equal((source.match(/name: Product-Experience-Materialized-Matrix-UAT-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || []).length, 1);
+  const matrixUploadStart = source.indexOf('- name: Upload materialized Matrix UAT');
+  const matrixUploadEnd = source.indexOf('\n      - name:', matrixUploadStart + 1);
+  assert.ok(matrixUploadStart >= 0, 'materialized Matrix upload step must exist');
+  const matrixUploadStep = source.slice(matrixUploadStart, matrixUploadEnd === -1 ? source.length : matrixUploadEnd);
+  assert.equal((matrixUploadStep.match(/name: Product-Experience-Materialized-Matrix-UAT-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/gu) || []).length, 1);
 
   const capsuleStepStart = source.indexOf('- name: Upload same-build startup capsule');
   const capsuleStepEnd = source.indexOf('\n      - name:', capsuleStepStart + 1);
@@ -480,6 +491,38 @@ test('Element lock replay successor-v5 is admitted by exactly the three existing
     source,
     /head\.ref[\s\S]{0,80}(?:startsWith|contains|matches).*element-lock-replay-incremental/iu
   );
+});
+
+test('Product Final transports the one sealed Matrix candidate into WP7 through the pinned mature artifact seam', () => {
+  const source = readWorkflow();
+  const desktopStart = source.indexOf('  materialized-desktop-uat:');
+  const matrixStart = source.indexOf('  materialized-matrix-uat:');
+  assert.ok(desktopStart >= 0 && matrixStart > desktopStart, 'desktop and Matrix Product Final jobs must both exist');
+  const desktop = source.slice(desktopStart, matrixStart);
+  assert.match(desktop, /materialized-desktop-uat:\s*\n\s*needs:\s*materialized-matrix-uat/u);
+  const pinnedDownload = 'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093';
+  assert.equal(desktop.split(pinnedDownload).length - 1, 1, 'desktop must use exactly one pinned official Matrix artifact download');
+  assert.match(desktop, /name: Product-Experience-Materialized-Matrix-UAT-\$\{\{ github\.event\.pull_request\.head\.sha \}\}/u);
+  const downloadIndex = desktop.indexOf('- name: Download exact GREEN materialized Matrix UAT');
+  const verifyIndex = desktop.indexOf('- name: Verify transported Matrix candidate identity');
+  const builderIndex = desktop.indexOf('- name: Build existing WP7 PRE_REVIEW_ONLY trusted desktop and seal Product bundle');
+  assert.ok(downloadIndex >= 0 && verifyIndex > downloadIndex && builderIndex > verifyIndex, 'Matrix download, mature verification, and WP7 consumption must preserve order');
+  const downloadSpan = desktop.slice(downloadIndex, verifyIndex);
+  assert.doesNotMatch(downloadSpan, /\b(?:gh|curl(?:\.exe)?|Invoke-WebRequest)\b/iu, 'Matrix transport must remain on the pinned official action');
+  const verifyEnd = desktop.indexOf('\n      - name:', verifyIndex + 1);
+  const verifyStep = desktop.slice(verifyIndex, verifyEnd === -1 ? desktop.length : verifyEnd);
+  assert.match(verifyStep, /create-materialized-uat-candidate\.js verify/u);
+  assert.match(verifyStep, /--bundle-class PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY/u);
+  assert.match(verifyStep, /--candidate-branch \$env:CANDIDATE_BRANCH/u);
+  assert.match(verifyStep, /--candidate-commit \$env:CANDIDATE_SHA/u);
+  assert.match(verifyStep, /--candidate-tree '\$\{\{ steps\.identity\.outputs\.tree \}\}'/u);
+  const builderEnd = desktop.indexOf('\n      - name:', builderIndex + 1);
+  const builderStep = desktop.slice(builderIndex, builderEnd === -1 ? desktop.length : builderEnd);
+  assert.match(builderStep, /--matrix-runtime-source '\$\{\{ steps\.matrix_runtime\.outputs\.root \}\}'/u);
+  assert.match(builderStep, /--matrix-runtime-candidate-branch \$env:CANDIDATE_BRANCH/u);
+  assert.match(builderStep, /--matrix-runtime-candidate-commit \$env:CANDIDATE_SHA/u);
+  assert.match(builderStep, /--matrix-runtime-candidate-tree '\$\{\{ steps\.identity\.outputs\.tree \}\}'/u);
+  assert.doesNotMatch(desktop.slice(0, builderIndex), /docker\s+(?:build|save)\b/u, 'desktop must consume the sealed Matrix artifact instead of rebuilding Matrix');
 });
 
 test('Element lock replay successor-v6 is admitted by exactly the three existing Product Final job guards', () => {

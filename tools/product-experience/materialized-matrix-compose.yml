@@ -12,6 +12,10 @@ services:
         cp /bootstrap/matrix-registration-shared-secret /projected/matrix/yance_matrix_registration_shared_secret
         chown 991:991 /projected/matrix/yance_matrix_registration_shared_secret
         chmod 0400 /projected/matrix/yance_matrix_registration_shared_secret
+        jwt_secret="$(cat /bootstrap/matrix-registration-shared-secret)"
+        python -c 'import sys; secret = sys.argv[1]; print("jwt_config:"); print("  enabled: true"); print("  secret: " + repr(secret)); print("  algorithm: HS256"); print("  issuer: yance-personal-access"); print("  audiences:"); print("    - yance.local")' "$$jwt_secret" > /projected/matrix/yance_jwt_config.yaml
+        chown 991:991 /projected/matrix/yance_jwt_config.yaml
+        chmod 0400 /projected/matrix/yance_jwt_config.yaml
         cp /bootstrap/mautrix-meta-provisioning-secret /projected/meta/yance_mautrix_meta_provisioning_secret
         chown 1337:1337 /projected/meta/yance_mautrix_meta_provisioning_secret
         chmod 0400 /projected/meta/yance_mautrix_meta_provisioning_secret
@@ -125,7 +129,7 @@ services:
   synapse:
     <<: *synapse-service
     image: "yance-product-uat-synapse:${YANCE_UAT_CANDIDATE_SHA}"
-    command: ["run"]
+    command: ["run", "--config-path", "/data/homeserver.yaml", "--config-path", "/run/secrets/yance_jwt_config.yaml"]
     volumes:
       - ./matrix-config/synapse/homeserver.yaml:/data/homeserver.yaml:ro
       - synapse-data:/data

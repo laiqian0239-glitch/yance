@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('node:fs');
+const jwt = require('jsonwebtoken');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
 const { matrixBaseUrl, matrixServerName } = require('./synapseSharedSecretRegistration');
 
@@ -42,10 +44,32 @@ function stableEntitlement(fields = {}) {
     usable: fields.usable === true,
     reasonCode: fields.reasonCode || 'PERSONAL_ACCESS_REQUIRED',
     ...(fields.subject ? { subject: fields.subject } : {}),
+    ...(fields.localpart ? { localpart: fields.localpart } : {}),
     ...(fields.keyId ? { keyId: fields.keyId } : {}),
     ...(fields.expires ? { expires: fields.expires } : {}),
     ...(fields.workerRequestId ? { workerRequestId: fields.workerRequestId } : {})
   });
+}
+
+function matrixUserFromExternalId(value, expectedServerName) {
+  const externalId = clean(value);
+  const serverName = clean(expectedServerName);
+  if (!serverName) {
+    throw fail('MATRIX_INVITATION_EXTERNAL_ID_INVALID', 'Configured Matrix server name is unavailable', 403);
+  }
+  if (!/^[a-z0-9][a-z0-9._=-]{2,63}$/u.test(externalId) || externalId !== externalId.toLowerCase()) {
+    throw fail('MATRIX_INVITATION_EXTERNAL_ID_INVALID', 'Invitation identity must be one canonical Matrix localpart', 403);
+  }
+  return Object.freeze({ userId: `@${externalId}:${serverName}`, localpart: externalId });
+}
+
+function unkeyExpiryMs(value) {
+  if (value == null || value === '') return null;
+  const numeric = Number(value);
+  if (!Number.isSafeInteger(numeric) || numeric <= 0) {
+    throw fail('UNKEY_ENTITLEMENT_EXPIRY_INVALID', 'Unkey expiry must be a Unix timestamp in milliseconds', 403);
+  }
+  return numeric;
 }
 
 class PersonalAccessService {
@@ -59,6 +83,8 @@ class PersonalAccessService {
     this.authorityUrl = normalizeAuthorityUrl(options.authorityUrl ?? process.env.YANCE_PERSONAL_ACCESS_AUTHORITY_URL);
     this.matrixBaseUrl = matrixBaseUrl(options);
     this.matrixServerName = matrixServerName(options);
+    this.matrixJwtSecret = clean(options.matrixJwtSecret);
+    this.matrixRegistrationSharedSecretFile = clean(options.matrixRegistrationSharedSecretFile || process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE);
     this.requestTimeoutMs = Math.max(1000, Number(options.requestTimeoutMs || 5000));
   }
 
@@ -70,17 +96,25 @@ class PersonalAccessService {
     return Boolean(this.resolveCredentialStore()?.get?.(OWNER_CREDENTIAL_REF));
   }
 
-  storedInvitation() {
+  storedEntitlementKeyId() {
     const stored = record(this.resolveCredentialStore()?.get?.(INVITATION_CREDENTIAL_REF));
-    return clean(stored.key);
+    return clean(stored.keyId);
   }
 
-  async persistInvitation(key) {
-    const cleanKey = clean(key);
-    if (!cleanKey) throw fail('INVITATION_KEY_REQUIRED', 'Invitation key is required', 400);
+  async persistEntitlementKeyId(keyId) {
+    const cleanKeyId = clean(keyId);
+    if (!cleanKeyId) throw fail('INVITATION_KEY_ID_REQUIRED', 'Invitation key id is required', 400);
     const store = this.resolveCredentialStore();
     if (!store || typeof store.persist !== 'function') throw fail('CREDENTIAL_STORE_UNAVAILABLE', 'Credential store is unavailable', 503);
-    await store.persist(INVITATION_CREDENTIAL_REF, { key: cleanKey }, { actor: 'backend-core' });
+    await store.persist(INVITATION_CREDENTIAL_REF, { keyId: cleanKeyId }, { actor: 'backend-core' });
+  }
+
+  async clearEntitlementReceipt() {
+    const store = this.resolveCredentialStore();
+    if (!store) throw fail('CREDENTIAL_STORE_UNAVAILABLE', 'Credential store is unavailable', 503);
+    if (typeof store.remove === 'function') await store.remove(INVITATION_CREDENTIAL_REF, { actor: 'backend-core' });
+    else if (typeof store.persist === 'function') await store.persist(INVITATION_CREDENTIAL_REF, {}, { actor: 'backend-core' });
+    else throw fail('CREDENTIAL_STORE_UNAVAILABLE', 'Credential store is unavailable', 503);
   }
 
   async boundedFetch(url, options = {}, code = 'REMOTE_AUTHORITY_UNAVAILABLE') {
@@ -157,33 +191,181 @@ class PersonalAccessService {
     });
   }
 
+  async verifyInvitationForLogin(key) {
+    const invitationKey = clean(key);
+    if (!invitationKey) return stableEntitlement({ reasonCode: 'INVITATION_KEY_REQUIRED' });
+    if (!this.authorityUrl) return stableEntitlement({ reasonCode: 'UNKEY_AUTHORITY_UNAVAILABLE' });
+    let body;
+    try {
+      body = await this.boundedFetch(`${this.authorityUrl}/verify`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ key: invitationKey })
+      }, 'UNKEY_AUTHORITY_UNAVAILABLE');
+    } catch (error) {
+      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'UNKEY_AUTHORITY_UNAVAILABLE' });
+    }
+    if (body.valid !== true) return stableEntitlement({ reasonCode: clean(body.code) || 'UNKEY_ENTITLEMENT_INVALID' });
+    if (body.enabled === false) return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_DISABLED' });
+    let expires;
+    try {
+      expires = unkeyExpiryMs(body.expires);
+    } catch (error) {
+      return stableEntitlement({ reasonCode: error?.reasonCode || 'UNKEY_ENTITLEMENT_EXPIRY_INVALID' });
+    }
+    if (expires !== null && expires <= Date.now()) {
+      return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_EXPIRED', expires });
+    }
+    const keyId = clean(body.keyId);
+    if (!keyId) return stableEntitlement({ reasonCode: 'UNKEY_KEY_ID_MISSING' });
+    let matrixUser;
+    try {
+      matrixUser = matrixUserFromExternalId(record(body.identity).externalId, this.matrixServerName);
+    } catch (error) {
+      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'MATRIX_INVITATION_EXTERNAL_ID_INVALID' });
+    }
+    return stableEntitlement({
+      role: 'TESTER',
+      usable: true,
+      reasonCode: 'ENTITLEMENT_VALID',
+      subject: matrixUser.userId,
+      localpart: matrixUser.localpart,
+      keyId,
+      expires,
+      workerRequestId: clean(body.requestId)
+    });
+  }
+
+  async verifyKeyIdForSubject(keyId, subject) {
+    const cleanKeyId = clean(keyId);
+    const matrixSubject = clean(subject);
+    if (!cleanKeyId) return stableEntitlement({ reasonCode: 'INVITATION_REQUIRED' });
+    if (!this.authorityUrl) return stableEntitlement({ reasonCode: 'UNKEY_AUTHORITY_UNAVAILABLE' });
+    let body;
+    try {
+      body = await this.boundedFetch(`${this.authorityUrl}/status`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ keyId: cleanKeyId })
+      }, 'UNKEY_AUTHORITY_UNAVAILABLE');
+    } catch (error) {
+      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'UNKEY_AUTHORITY_UNAVAILABLE' });
+    }
+    if (body.enabled === false) return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_DISABLED', keyId: cleanKeyId });
+    let expires;
+    try {
+      expires = unkeyExpiryMs(body.expires);
+    } catch (error) {
+      return stableEntitlement({ reasonCode: error?.reasonCode || 'UNKEY_ENTITLEMENT_EXPIRY_INVALID', keyId: cleanKeyId });
+    }
+    if (expires !== null && expires <= Date.now()) {
+      return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_EXPIRED', keyId: cleanKeyId, expires });
+    }
+    let matrixUser;
+    try {
+      matrixUser = matrixUserFromExternalId(record(body.identity).externalId, this.matrixServerName);
+    } catch (error) {
+      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'MATRIX_INVITATION_EXTERNAL_ID_INVALID', keyId: cleanKeyId });
+    }
+    if (matrixUser.userId !== matrixSubject) {
+      return stableEntitlement({ reasonCode: 'MATRIX_SUBJECT_MISMATCH', subject: matrixSubject, keyId: cleanKeyId });
+    }
+    return stableEntitlement({
+      role: 'TESTER',
+      usable: true,
+      reasonCode: 'ENTITLEMENT_VALID',
+      subject: matrixSubject,
+      keyId: cleanKeyId,
+      expires,
+      workerRequestId: clean(body.requestId)
+    });
+  }
+
+  readMatrixJwtSecret() {
+    if (this.matrixJwtSecret) return this.matrixJwtSecret;
+    if (!this.matrixRegistrationSharedSecretFile) throw fail('MATRIX_JWT_SECRET_UNAVAILABLE', 'Matrix JWT secret authority is unavailable', 503);
+    let secret;
+    try {
+      secret = fs.readFileSync(this.matrixRegistrationSharedSecretFile, 'utf8').trim();
+    } catch (_) {
+      throw fail('MATRIX_JWT_SECRET_UNAVAILABLE', 'Matrix JWT secret authority is unavailable', 503);
+    }
+    if (!secret) throw fail('MATRIX_JWT_SECRET_UNAVAILABLE', 'Matrix JWT secret authority is unavailable', 503);
+    return secret;
+  }
+
+  async login(input = {}) {
+    const entitlement = await this.verifyInvitationForLogin(input.invitationKey);
+    if (entitlement.usable !== true) return entitlement;
+    const token = jwt.sign(
+      { sub: entitlement.localpart },
+      this.readMatrixJwtSecret(),
+      {
+        algorithm: 'HS256',
+        expiresIn: '2m',
+        issuer: 'yance-personal-access',
+        audience: this.matrixServerName
+      }
+    );
+    const login = await this.boundedFetch(`${this.matrixBaseUrl.replace(/\/+$/u, '')}/_matrix/client/v3/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'org.matrix.login.jwt', token })
+    }, 'MATRIX_JWT_LOGIN_UNAVAILABLE');
+    const userId = clean(login.user_id || login.userId);
+    const accessToken = clean(login.access_token || login.accessToken);
+    const deviceId = clean(login.device_id || login.deviceId);
+    if (userId !== entitlement.subject || !accessToken || !deviceId) {
+      throw fail('MATRIX_JWT_LOGIN_RESPONSE_INVALID', 'Matrix JWT login response did not match the invitation identity', 502);
+    }
+    return Object.freeze({
+      ok: true,
+      usable: true,
+      reasonCode: 'ENTITLEMENT_VALID',
+      accountAuth: {
+        userId,
+        deviceId,
+        accessToken,
+        homeserverUrl: this.matrixBaseUrl
+      },
+      subject: entitlement.subject,
+      keyId: entitlement.keyId,
+      expires: entitlement.expires
+    });
+  }
+
   async status(input = {}) {
     if (this.ownerMarkerPresent()) return stableEntitlement({ role: 'OWNER', usable: true, reasonCode: 'OWNER_PERMANENT_ACCESS' });
-    const key = this.storedInvitation();
-    if (!key) return stableEntitlement({ reasonCode: 'INVITATION_REQUIRED' });
+    const keyId = this.storedEntitlementKeyId();
+    if (!keyId) return stableEntitlement({ reasonCode: 'INVITATION_REQUIRED' });
     let subject;
     try {
       subject = await this.matrixSubject(input.matrixOpenId);
     } catch (error) {
       return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'MATRIX_OPENID_REQUIRED' });
     }
-    return this.verifyInvitationForSubject(key, subject);
+    return this.verifyKeyIdForSubject(keyId, subject);
   }
 
   async activate(input = {}) {
     if (this.ownerMarkerPresent()) return this.status(input);
-    const invitationKey = clean(input.invitationKey);
-    if (!invitationKey) return stableEntitlement({ reasonCode: 'INVITATION_KEY_REQUIRED' });
+    const keyId = clean(input.keyId);
+    if (!keyId) return stableEntitlement({ reasonCode: 'INVITATION_KEY_ID_REQUIRED' });
     let subject;
     try {
       subject = await this.matrixSubject(input.matrixOpenId);
     } catch (error) {
       return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'MATRIX_OPENID_REQUIRED' });
     }
-    const entitlement = await this.verifyInvitationForSubject(invitationKey, subject);
+    const entitlement = await this.verifyKeyIdForSubject(keyId, subject);
     if (entitlement.usable !== true) return entitlement;
-    await this.persistInvitation(invitationKey);
-    return this.verifyInvitationForSubject(invitationKey, subject);
+    await this.persistEntitlementKeyId(keyId);
+    return this.verifyKeyIdForSubject(keyId, subject);
+  }
+
+  async logout() {
+    await this.clearEntitlementReceipt();
+    return Object.freeze({ ok: true, usable: false, reasonCode: 'INVITATION_REQUIRED' });
   }
 
   async authorizeProductRequest(input = {}) {
