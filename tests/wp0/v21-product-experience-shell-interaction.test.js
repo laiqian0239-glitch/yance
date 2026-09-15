@@ -116,7 +116,7 @@ test('Product relationship tools bind the active Element room bridge state uniqu
   for (const token of ['m.bridge', 'uk.half-shot.bridge', 'conversations', 'routeScope', 'platformContactIdentity', 'sourceAccountId', 'conversationId']) {
     assert.match(overlay, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'), `overlay route composition must bind ${token}`);
   }
-  assert.match(overlay, /storeSnapshot[\s\S]*domains:\s*\[["']conversations["']\]/u, 'Product route composition must read the existing Store conversations domain');
+  assert.match(overlay, /storeSnapshot\s*\(\{\s*domains:\s*\["conversations"\]\s*\}\)/u, 'Product route composition must read the existing Store conversations domain');
   assert.match(overlay, /matches\.length\s*!==\s*1/u, 'zero or ambiguous Store route matches must fail closed');
   assert.doesNotMatch(overlay, /selectedRelationshipId[\s\S]{0,160}(?:activeMatrixRoomId|roomId|resolveRelationshipToolRoute)/u, 'selected relationship must never substitute for the active Matrix room');
   assert.doesNotMatch(session, /\b(?:platform|accountId|chatJid|sessionKey|bridgeState)\s*:/u, 'resolved route identity must not become a second experienceSession authority');
