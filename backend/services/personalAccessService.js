@@ -256,9 +256,12 @@ class PersonalAccessService {
         body: JSON.stringify({ keyId: cleanKeyId })
       }, 'UNKEY_AUTHORITY_UNAVAILABLE');
     } catch (error) {
-      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'UNKEY_AUTHORITY_UNAVAILABLE', keyId: cleanKeyId });
+      const reasonCode = error?.reasonCode || error?.code || 'UNKEY_AUTHORITY_UNAVAILABLE';
+      if (reasonCode === 'UNKEY_AUTHORITY_REJECTED' && Number(error?.status) === 404) {
+        return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_INVALID', keyId: cleanKeyId });
+      }
+      return stableEntitlement({ reasonCode, keyId: cleanKeyId });
     }
-    if (body.valid !== true) return stableEntitlement({ reasonCode: clean(body.code) || 'UNKEY_ENTITLEMENT_INVALID', keyId: cleanKeyId });
     if (body.enabled === false) return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_DISABLED', keyId: cleanKeyId });
     let expires;
     try {
@@ -270,7 +273,7 @@ class PersonalAccessService {
       return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_EXPIRED', keyId: cleanKeyId, expires });
     }
     const returnedKeyId = clean(body.keyId);
-    if (returnedKeyId && returnedKeyId !== cleanKeyId) {
+    if (returnedKeyId !== cleanKeyId) {
       return stableEntitlement({ reasonCode: 'UNKEY_KEY_ID_MISMATCH', keyId: cleanKeyId });
     }
     let matrixUser;
