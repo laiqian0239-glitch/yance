@@ -283,7 +283,11 @@ function createBuilderResult(options) {
     }) : undefined
   });
 
-  const productExecutablePath = path.resolve(built.payloadRoot, ...String(built.productExecutable).split('/'));
+  const productExecutableRelativePath = built.runtime?.productExecutable;
+  if (!productExecutableRelativePath) {
+    throw new Error('materialized runtime product executable identity is missing');
+  }
+  const productExecutablePath = path.resolve(built.payloadRoot, ...productExecutableRelativePath.split('/'));
   const productExecutableBranding = peResourceEditor.assertBranding({
     exePath: productExecutablePath,
     iconPath: approvedIconPath,

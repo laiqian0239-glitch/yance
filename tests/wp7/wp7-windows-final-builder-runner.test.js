@@ -201,6 +201,9 @@ test('release workflow downloads and verifies the same-source sealed Matrix runt
 test('formal Builder fails closed on actual final EXE and installer PE icon readback', () => {
   const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
   assert.match(builder, /require\('\.\/pe-resource-editor'\)/u);
+  assert.match(builder, /const productExecutableRelativePath = built\.runtime\?\.productExecutable;/u);
+  assert.match(builder, /materialized runtime product executable identity is missing/u);
+  assert.match(builder, /path\.resolve\(built\.payloadRoot, \.\.\.productExecutableRelativePath\.split\('\/'\)\)/u);
   assert.match(builder, /peResourceEditor\.assertBranding\(\{/u);
   assert.match(builder, /peResourceEditor\.extractIconImageSet\(/u);
   assert.match(builder, /peResourceEditor\.extractIconImageSetFromIcoFile\(/u);
@@ -209,6 +212,8 @@ test('formal Builder fails closed on actual final EXE and installer PE icon read
   assert.match(builder, /productExecutableIconGroupSha256:\s*productExecutableBranding\.groupIconSha256/u);
   assert.match(builder, /installerIconStatus:\s*installerIconIdentity\.status/u);
   assert.match(builder, /installerIconGroupSha256:\s*installerIconIdentity\.groupIconSha256/u);
+  assert.doesNotMatch(builder, /built\.productExecutable/u);
+  assert.doesNotMatch(builder, /path\.resolve\(built\.payloadRoot,[^)]*Yance\.exe/u);
   assert.doesNotMatch(builder, /allowedElectronExePath/u, 'Electron code-image equivalence remains owned by packaged-product-trust, not a duplicate runner check');
   assert.doesNotMatch(builder, /frontend['"],\s*'assets['"],\s*'icon\.ico/u);
 });
