@@ -86,7 +86,6 @@ type ProductDesktop = DesktopActivationBridge & {
   prepareOutboundMessage?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   storeConfirmSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   listPlatformAccounts?: () => Promise<Record<string, unknown>>;
-  logoutPersonalAccess?: () => Promise<Record<string, unknown>>;
   onOpenConversation?: (callback: (payload: Record<string, unknown>) => void | Promise<void>) => (() => void) | void;
   onOpenView?: (callback: (payload: Record<string, unknown>) => void | Promise<void>) => (() => void) | void;
 };
@@ -341,7 +340,6 @@ class YanceElementModule implements Module {
         requestLogout={() => {
           window.yancePersonalAccessHandoff = null;
           void clearProductConversation()
-            .then(() => desktop.logoutPersonalAccess?.())
             .then(() => navigationApi.requestLogout?.());
         }}
       />
