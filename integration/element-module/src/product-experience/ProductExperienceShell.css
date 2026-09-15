@@ -544,9 +544,59 @@
 }
 
 .yance-action-dock {
+  box-sizing: border-box;
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--yance-space-2);
   width: 100%;
-  padding: 4px 0;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--yance-space-2) var(--yance-space-3);
+}
+
+.yance-action-dock > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.yance-conversation-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--yance-space-1);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.yance-action-dock > [role="status"] {
+  flex: 1 1 100%;
+  overflow-wrap: anywhere;
+}
+
+.yance-reply-brain {
+  box-sizing: border-box;
+  display: grid;
+  flex: 1 1 100%;
+  gap: var(--yance-space-2);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.yance-reply-brain__review,
+.yance-reply-brain__candidate {
+  box-sizing: border-box;
+  display: grid;
+  gap: var(--yance-space-2);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.yance-reply-brain__review textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
 }
 
 .yance-action-trigger {
