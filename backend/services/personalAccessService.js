@@ -7,6 +7,14 @@ const { matrixBaseUrl, matrixServerName } = require('./synapseSharedSecretRegist
 
 const OWNER_CREDENTIAL_REF = 'personal-access.owner-admin';
 const INVITATION_CREDENTIAL_REF = 'personal-access.invitation-key';
+const TERMINAL_STORED_RECEIPT_REASONS = new Set([
+  'UNKEY_ENTITLEMENT_INVALID',
+  'UNKEY_ENTITLEMENT_DISABLED',
+  'UNKEY_ENTITLEMENT_EXPIRED',
+  'UNKEY_ENTITLEMENT_EXPIRY_INVALID',
+  'MATRIX_INVITATION_EXTERNAL_ID_INVALID',
+  'UNKEY_KEY_ID_MISMATCH'
+]);
 
 function clean(value) {
   return String(value == null ? '' : value).trim();
@@ -236,11 +244,10 @@ class PersonalAccessService {
     });
   }
 
-  async verifyKeyIdForSubject(keyId, subject) {
+  async verifyStoredKeyIdForLogin(keyId) {
     const cleanKeyId = clean(keyId);
-    const matrixSubject = clean(subject);
     if (!cleanKeyId) return stableEntitlement({ reasonCode: 'INVITATION_REQUIRED' });
-    if (!this.authorityUrl) return stableEntitlement({ reasonCode: 'UNKEY_AUTHORITY_UNAVAILABLE' });
+    if (!this.authorityUrl) return stableEntitlement({ reasonCode: 'UNKEY_AUTHORITY_UNAVAILABLE', keyId: cleanKeyId });
     let body;
     try {
       body = await this.boundedFetch(`${this.authorityUrl}/status`, {
@@ -249,8 +256,9 @@ class PersonalAccessService {
         body: JSON.stringify({ keyId: cleanKeyId })
       }, 'UNKEY_AUTHORITY_UNAVAILABLE');
     } catch (error) {
-      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'UNKEY_AUTHORITY_UNAVAILABLE' });
+      return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'UNKEY_AUTHORITY_UNAVAILABLE', keyId: cleanKeyId });
     }
+    if (body.valid !== true) return stableEntitlement({ reasonCode: clean(body.code) || 'UNKEY_ENTITLEMENT_INVALID', keyId: cleanKeyId });
     if (body.enabled === false) return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_DISABLED', keyId: cleanKeyId });
     let expires;
     try {
@@ -261,23 +269,44 @@ class PersonalAccessService {
     if (expires !== null && expires <= Date.now()) {
       return stableEntitlement({ reasonCode: 'UNKEY_ENTITLEMENT_EXPIRED', keyId: cleanKeyId, expires });
     }
+    const returnedKeyId = clean(body.keyId);
+    if (returnedKeyId && returnedKeyId !== cleanKeyId) {
+      return stableEntitlement({ reasonCode: 'UNKEY_KEY_ID_MISMATCH', keyId: cleanKeyId });
+    }
     let matrixUser;
     try {
       matrixUser = matrixUserFromExternalId(record(body.identity).externalId, this.matrixServerName);
     } catch (error) {
       return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'MATRIX_INVITATION_EXTERNAL_ID_INVALID', keyId: cleanKeyId });
     }
-    if (matrixUser.userId !== matrixSubject) {
-      return stableEntitlement({ reasonCode: 'MATRIX_SUBJECT_MISMATCH', subject: matrixSubject, keyId: cleanKeyId });
-    }
     return stableEntitlement({
       role: 'TESTER',
       usable: true,
       reasonCode: 'ENTITLEMENT_VALID',
-      subject: matrixSubject,
+      subject: matrixUser.userId,
+      localpart: matrixUser.localpart,
       keyId: cleanKeyId,
       expires,
       workerRequestId: clean(body.requestId)
+    });
+  }
+
+  async verifyKeyIdForSubject(keyId, subject) {
+    const matrixSubject = clean(subject);
+    const entitlement = await this.verifyStoredKeyIdForLogin(keyId);
+    if (entitlement.usable !== true) return entitlement;
+    if (entitlement.subject !== matrixSubject) {
+      return stableEntitlement({ reasonCode: 'MATRIX_SUBJECT_MISMATCH', subject: matrixSubject, keyId: entitlement.keyId });
+    }
+    return stableEntitlement({
+      role: entitlement.role,
+      usable: true,
+      reasonCode: 'ENTITLEMENT_VALID',
+      subject: matrixSubject,
+      localpart: entitlement.localpart,
+      keyId: entitlement.keyId,
+      expires: entitlement.expires,
+      workerRequestId: entitlement.workerRequestId
     });
   }
 
@@ -294,9 +323,7 @@ class PersonalAccessService {
     return secret;
   }
 
-  async login(input = {}) {
-    const entitlement = await this.verifyInvitationForLogin(input.invitationKey);
-    if (entitlement.usable !== true) return entitlement;
+  async matrixLoginForEntitlement(entitlement) {
     const token = jwt.sign(
       { sub: entitlement.localpart },
       this.readMatrixJwtSecret(),
@@ -334,6 +361,23 @@ class PersonalAccessService {
     });
   }
 
+  async login(input = {}) {
+    const storedKeyId = this.storedEntitlementKeyId();
+    if (storedKeyId) {
+      const resumed = await this.verifyStoredKeyIdForLogin(storedKeyId);
+      if (resumed.usable === true) return this.matrixLoginForEntitlement(resumed);
+      if (TERMINAL_STORED_RECEIPT_REASONS.has(resumed.reasonCode)) {
+        await this.clearEntitlementReceipt();
+      }
+      return resumed;
+    }
+
+    const entitlement = await this.verifyInvitationForLogin(input.invitationKey);
+    if (entitlement.usable !== true) return entitlement;
+    await this.persistEntitlementKeyId(entitlement.keyId);
+    return this.matrixLoginForEntitlement(entitlement);
+  }
+
   async status(input = {}) {
     if (this.ownerMarkerPresent()) return stableEntitlement({ role: 'OWNER', usable: true, reasonCode: 'OWNER_PERMANENT_ACCESS' });
     const keyId = this.storedEntitlementKeyId();
@@ -357,15 +401,17 @@ class PersonalAccessService {
     } catch (error) {
       return stableEntitlement({ reasonCode: error?.reasonCode || error?.code || 'MATRIX_OPENID_REQUIRED' });
     }
-    const entitlement = await this.verifyKeyIdForSubject(keyId, subject);
-    if (entitlement.usable !== true) return entitlement;
-    await this.persistEntitlementKeyId(keyId);
     return this.verifyKeyIdForSubject(keyId, subject);
   }
 
   async logout() {
-    await this.clearEntitlementReceipt();
-    return Object.freeze({ ok: true, usable: false, reasonCode: 'INVITATION_REQUIRED' });
+    const keyId = this.storedEntitlementKeyId();
+    return Object.freeze({
+      ok: true,
+      usable: false,
+      reasonCode: keyId ? 'DEVICE_ENTITLEMENT_PRESERVED' : 'INVITATION_REQUIRED',
+      ...(keyId ? { keyId } : {})
+    });
   }
 
   async authorizeProductRequest(input = {}) {
