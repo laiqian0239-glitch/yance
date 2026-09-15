@@ -47,7 +47,7 @@ function fetchAuthority({ subject = '@tester:yance.local', externalId = 'tester'
         valid: worker.valid !== false,
         enabled: worker.enabled !== false,
         keyId: worker.keyId || 'key_123',
-        expires: worker.expires ?? null,
+        expires: worker.expires ?? 0,
         identity: { externalId: worker.externalId || externalId },
         requestId: 'worker-req-1'
       }), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -58,7 +58,7 @@ function fetchAuthority({ subject = '@tester:yance.local', externalId = 'tester'
         ok: true,
         enabled: worker.enabled !== false,
         keyId: worker.keyId || 'key_123',
-        expires: worker.expires ?? null,
+        expires: worker.expires ?? 0,
         identity: { externalId: worker.externalId || externalId },
         requestId: 'worker-status-1'
       }), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -132,6 +132,7 @@ test('post-login activation verifies the already-persisted keyId exactly once af
 
   assert.equal(result.usable, true);
   assert.equal(result.reasonCode, 'ENTITLEMENT_VALID');
+  assert.equal(Object.prototype.hasOwnProperty.call(result, 'expires'), false, 'Unkey expires=0 is the mature no-expiry sentinel');
   assert.deepEqual(store.values.get('personal-access.invitation-key'), { keyId: 'key_123' });
   assert.deepEqual(events, ['matrix-openid', 'status']);
   assert.equal(authority.calls.length, 2);
@@ -160,6 +161,7 @@ test('first TESTER invitation persists only keyId before Matrix handoff and keep
   assert.equal(result.accountAuth.deviceId, 'DEVICE123');
   assert.equal(result.accountAuth.accessToken, 'matrix-access-token');
   assert.equal(result.subject, '@tester:yance.local');
+  assert.equal(Object.prototype.hasOwnProperty.call(result, 'expires'), false, 'Unkey expires=0 is the mature no-expiry sentinel');
   assert.deepEqual(store.values.get('personal-access.invitation-key'), { keyId: 'key_123' });
   assert.equal(JSON.stringify(store.values.get('personal-access.invitation-key')).includes('invite_live'), false);
   assert.equal(JSON.stringify(store.values.get('personal-access.invitation-key')).includes('matrix-access-token'), false);
@@ -281,7 +283,7 @@ test('missing stored Unkey key is terminal, clears once, and a fresh invitation 
           valid: true,
           enabled: true,
           keyId: 'key_new',
-          expires: null,
+          expires: 0,
           identity: { externalId: 'tester' }
         }), { status: 200, headers: { 'content-type': 'application/json' } });
       }
