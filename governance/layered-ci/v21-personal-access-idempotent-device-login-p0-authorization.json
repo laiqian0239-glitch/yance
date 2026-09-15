@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PERSONAL-ACCESS-IDEMPOTENT-DEVICE-LOGIN-P0",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Controller State V5.508 froze PR #1258 unmerged after exact-head Stage failed only the implementation-branch policy contract. The predecessor declared the correct nine-path set and digest but not in canonical repository sort order. This successor reissues the identical Product root, mature authority topology and implementation scope from unchanged trusted main, changing only the authorization declaration order required by the repository policy. Unkey remains the entitlement authority, Element/Matrix remains the session/crypto authority, and the existing keyId-only PersonalAccessService receipt remains the sole local entitlement projection.",
+  "base": {
+    "branch": "main",
+    "commit": "23d64668b483e97eaeb0803d663b65ec1d951f18",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "23d64668b483e97eaeb0803d663b65ec1d951f18",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false
+  },
+  "predecessorEvidence": {
+    "pullRequest": 1258,
+    "frozenHead": "f21f2af7caae7dcc75c5f552f111aaae739ecb17",
+    "stageRun": "34987090128",
+    "failedJob": "104441965568",
+    "failedStep": "Run implementation branch policy contract",
+    "classification": "GOVERNANCE_AUTHORIZATION / IMPLEMENTATION_PATHS_NOT_CANONICALLY_SORTED",
+    "predecessorMerged": false,
+    "supersedesEdgeIntentionallyAbsent": true,
+    "reason": "The predecessor authorization was never introduced to trusted main and therefore is not an effective authority to supersede."
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-personal-access-idempotent-device-login-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-personal-access-idempotent-device-login-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "c54be0330a16268015febc8b77f55c39d1e2b37fcefe8be848e1e984d5760c86",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-personal-access-idempotent-device-login-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/services/personalAccessService.js",
+      "backend/tests/personalAccessControlP0.test.js",
+      "integration/element-module/src/YanceLogin.tsx",
+      "integration/element-module/src/index.tsx",
+      "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp0/v21-personal-access-control-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-ui-authority-consistency-wp3.test.js"
+    ],
+    "approvedChangedFileCount": 9,
+    "approvedChangedFileSetSha256": "36190863e9ab5500e0b637c4d9a2ea7ba9042e90f5ec05e4d2afa64f4306d5f3",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false,
+    "rawInvitationPersistenceAllowed": false,
+    "matrixAccessTokenPersistenceByYanceAllowed": false,
+    "startupLatencyMutationAllowed": false
+  },
+  "failureFirstEvidence": {
+    "source": "CONSUMED_REAL_WINDOWS_INVITE_LOGIN_AND_UNKEY_REQUEST_EVIDENCE",
+    "observedFailure": "One real Windows invitation login produced two Unkey verification requests after the user re-entered the same key because the first handoff appeared stalled; the first verification was valid and consumed the available credit, while the second was rejected as usage-limit exceeded on the same computer.",
+    "classification": "PRODUCT_RED_PERSONAL_ACCESS_SAME_DEVICE_REENTRY_NOT_IDEMPOTENT",
+    "rerunBeforeSourceClosureForbidden": true,
+    "windowsOperatorActionForbiddenUntilNewAuthorizedCandidate": true
+  },
+  "rootCause": {
+    "locked": true,
+    "id": "PERSONAL_ACCESS / CONSUMPTIVE_INVITE_VERIFY_NOT_COMMITTED_AS_IDEMPOTENT_DEVICE_ENTITLEMENT",
+    "evidence": [
+      "Unkey Worker /verify uses keys.verifyKey with credits.cost=1 for every raw invitation verification.",
+      "Unkey Worker /status uses keys.getKey and is the non-consumptive existing entitlement status seam.",
+      "PersonalAccessService.login always verifies the raw invitation before Matrix JWT login.",
+      "The durable keyId-only receipt is currently persisted later in activate after the Element handoff, leaving a retry gap after credit consumption.",
+      "activate currently performs Matrix OpenID subject proof, verifies keyId status, persists keyId, then redundantly verifies keyId status a second time.",
+      "Product logout calls logoutPersonalAccess and backend logout clears the device receipt before Element session logout.",
+      "YanceLogin already prevents concurrent duplicate submits but cannot make a later same-device retry non-consumptive because the backend receipt has not yet been committed."
+    ]
+  },
+  "matureAuthorityPreservation": {
+    "entitlementOwner": "Unkey verify/getKey",
+    "matrixSessionOwner": "Element/Matrix via CustomLoginComponentProps.onLoggedIn and native session restore/logout",
+    "localReceiptOwner": "existing PersonalAccessService credential receipt",
+    "secondOwnerAdded": false,
+    "adapterState": "existing keyId-only device entitlement receipt plus thin Product projection",
+    "rawInvitationPersisted": false,
+    "matrixAccessTokenPersistedByYance": false,
+    "customMatrixAuthTransportAdded": false,
+    "mirrorEntitlementDatabaseAdded": false,
+    "retryOwner": "existing Unkey /status plus Element session seam"
+  },
+  "requiredRepair": [
+    "When a stored keyId receipt exists, use Unkey /status/getKey before any consumptive raw invitation verify; same-device re-entry after a successful first verify must not consume a second credit.",
+    "After a first successful consumptive invitation verify, persist only the existing keyId receipt before the downstream Matrix JWT handoff so a downstream failure can resume through /status.",
+    "If a stored receipt is terminally invalid, disabled or expired, fail closed and allow a fresh invitation only after the invalid receipt is cleared by the existing receipt owner; authority-unavailable must never fall back to a consumptive retry.",
+    "Preserve Element onLoggedIn as the sole Matrix login/session authority and preserve native Element session restore/logout semantics.",
+    "Session logout must not erase the durable device entitlement receipt; already-authorized devices must be able to re-enter without retyping the invitation through the existing loginPersonalAccess seam.",
+    "Keep the existing post-login Matrix OpenID subject-binding check but remove the redundant second Unkey /status call from activate; return the entitlement already verified immediately before persistence.",
+    "Keep the current renderer in-flight guard and truthful progress states; no retry loop, cache, idempotency database, second credential store or raw-key persistence may be introduced."
+  ],
+  "localAcceptance": [
+    "same-device retry after first successful consumptive verify performs zero additional /verify calls",
+    "stored keyId resume uses /status/getKey then the existing Matrix JWT login seam",
+    "first successful invitation persists only keyId before downstream Matrix handoff",
+    "explicit Product/Element session logout preserves device entitlement receipt",
+    "login surface provides a no-invitation resume action for an already-authorized device",
+    "activate performs at most one keyId status verification after Matrix subject proof",
+    "in-flight login remains single-submit with truthful progress",
+    "Element AccountAuth/session/crypto ownership remains unchanged",
+    "focused backend and WP0 tests GREEN",
+    "Element module type/build GREEN",
+    "git diff --check GREEN",
+    "implementation diff contains only the exact nine authorized paths"
+  ],
+  "outOfRoot": {
+    "windowStartupLatency": {
+      "classification": "WINDOW_STARTUP / STARTUP_CRITICAL_PATH_OVERSCOPED",
+      "reason": "Cold startup independently awaits Matrix runtime, eager Letta start and backend launch before Product window creation; Matrix phase waits bridge readiness. Different lifecycle owners; forbidden in this access head.",
+      "mustRemainUnchanged": true
+    }
+  },
+  "ossFit": {
+    "decision": "REUSE_UNKEY_ELEMENT_AND_EXISTING_PERSONAL_ACCESS_RECEIPT_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "Unkey keys.verifyKey / keys.getKey",
+        "source": "existing services/personal-access-worker authority",
+        "license": "repository-existing Unkey integration",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "verify remains the consumptive invitation authority and getKey remains the non-consumptive durable status authority; no Yance key-validity mirror is needed."
+      },
+      {
+        "name": "Element/Matrix login and session restore",
+        "source": "pinned Element Web v1.12.25 and current onLoggedIn public seam",
+        "license": "AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Commercial",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "Element already owns Matrix AccountAuth, session persistence, crypto and logout; Product must only hand it verified accountAuth."
+      },
+      {
+        "name": "Existing PersonalAccessService keyId receipt",
+        "source": "backend/services/personalAccessService.js",
+        "license": "repository code",
+        "adoptionMode": "thin-yance-adapter",
+        "fit": "FIT",
+        "reason": "The existing keyId-only receipt is exactly the narrow Product entitlement projection needed for same-device idempotency; no additional state authority is required."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not persist the raw invitation key.",
+      "Do not persist Matrix access tokens outside Element.",
+      "Do not add an idempotency database, cache or second entitlement store.",
+      "Do not add a second Matrix login, session or retry lifecycle.",
+      "Do not mutate Unkey credit semantics or increase key credits as the fix.",
+      "Do not touch startup, Letta or Compose lifecycle in this access branch."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "localClosure": [
+      "node --test backend/tests/personalAccessControlP0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-control-p0.test.js tests/wp0/v21-end-user-matrix-identity-p0.test.js tests/wp0/v21-product-brand-runtime-authority-p0.test.js tests/wp0/v21-product-ui-authority-consistency-wp3.test.js",
+      "Element module type/build through the repository-existing mature build seam",
+      "git diff --check",
+      "Exact nine-path implementation diff boundary."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "No RC or Windows UAT until ordinary implementation merge and all remaining blockers are locally closed."
+    ],
+    "windowsFinalProof": [
+      "first invitation login succeeds with one consumptive verify",
+      "same-device retry or re-entry does not consume a second Unkey credit",
+      "normal restart restores the Element session without invitation re-entry",
+      "explicit Element logout allows no-invitation device-entitlement resume",
+      "login progress remains visible and end-to-end timing is recorded"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "promotionUnknownBlockersZeroAsserted": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "controller": {
+    "issue": 1051,
+    "state": "V5.508",
+    "commentId": 5682887239
+  }
+}
