@@ -66,11 +66,15 @@ test('WP3 preserve: Personal Access backend remains the sole entitlement authori
   assert.match(service, /INVITATION_REQUIRED/u);
   assert.match(service, /MATRIX_SUBJECT_MISMATCH/u);
   assert.match(service, /ENTITLEMENT_VALID/u);
+  assert.match(service, /verifyStoredKeyIdForLogin/u);
+  assert.match(service, /DEVICE_ENTITLEMENT_PRESERVED/u);
   assert.doesNotMatch(`${routes}\n${service}`, /submitRequest|refreshRequest|listOwnerRequests|mutateOwnerRequest|mutateOwnerGrant/u);
 });
 
-test('WP3-A RED: current Element Product must expose Personal Access status and activation through the existing desktop bridge', () => {
+test('WP3-A RED: current Element Product must expose idempotent Personal Access through the existing desktop bridge', () => {
   const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
+  const index = read('integration/element-module/src/index.tsx');
+  const login = read('integration/element-module/src/YanceLogin.tsx');
   const productSources = [
     workspace,
     fs.existsSync(path.join(ROOT, 'integration/element-module/src/product-experience/PersonalAccessSurface.tsx'))
@@ -88,11 +92,15 @@ test('WP3-A RED: current Element Product must expose Personal Access status and 
   ];
 
   assert.match(productSources, /personal[ -]?access|PersonalAccess/iu, 'the active Element Product must own the Personal Access user surface');
-  assert.match(read('integration/element-module/src/YanceLogin.tsx'), /邀请码/u, 'a TESTER must have a reachable invitation key action in the pre-auth Product login');
+  assert.match(login, /邀请码/u, 'a first-use TESTER must have a reachable invitation key action in the pre-auth Product login');
+  assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u, 'an already-authorized device must have a no-invitation resume action');
+  assert.match(login, /已授权设备登录/u);
   assert.doesNotMatch(productSources, /邀请码/u, 'post-login Product must not request the raw invitation bearer again');
+  assert.match(productSources, /设备权限收据/u, 'post-login Product must describe the durable keyId projection rather than a raw bearer');
   assert.match(productSources, /刷新/u, 'a blocked TESTER must have a reachable status refresh action');
   assert.match(productSources, /if \(usable\) return <>\{children\}<\/>/u, 'usable entitlement must render Product directly without a persistent access panel');
   assert.match(productSources, /getMatrixOpenIdToken/u, 'Element must provide the Matrix OpenID proof seam');
+  assert.doesNotMatch(index, /desktop\.logoutPersonalAccess/u, 'native Element session logout must not clear durable device entitlement');
 
   for (const api of requiredApis) {
     assert.match(preload, new RegExp(`\\b${api}\\s*:`, 'u'), `${api} must be exposed by the real desktop preload`);
