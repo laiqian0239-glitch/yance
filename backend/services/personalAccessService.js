@@ -326,7 +326,7 @@ class PersonalAccessService {
       },
       subject: entitlement.subject,
       keyId: entitlement.keyId,
-      expires: entitlement.expires
+      ...(entitlement.expires ? { expires: entitlement.expires } : {})
     });
   }
 
