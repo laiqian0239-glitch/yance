@@ -74,7 +74,8 @@ function matrixUserFromExternalId(value, expectedServerName) {
 function unkeyExpiryMs(value) {
   if (value == null || value === '') return null;
   const numeric = Number(value);
-  if (!Number.isSafeInteger(numeric) || numeric <= 0) {
+  if (numeric === 0) return null;
+  if (!Number.isSafeInteger(numeric) || numeric < 0) {
     throw fail('UNKEY_ENTITLEMENT_EXPIRY_INVALID', 'Unkey expiry must be a Unix timestamp in milliseconds', 403);
   }
   return numeric;
