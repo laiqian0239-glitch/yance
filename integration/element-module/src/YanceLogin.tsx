@@ -7,7 +7,7 @@ type MatrixAccountAuth = {
   homeserverUrl: string;
 };
 type YanceDesktopBridge = {
-  loginPersonalAccess?: (input: { invitationKey: string }) => Promise<{
+  loginPersonalAccess?: (input?: { invitationKey?: string }) => Promise<{
     usable?: boolean;
     reasonCode?: string;
     keyId?: string;
@@ -16,6 +16,7 @@ type YanceDesktopBridge = {
   }>;
 };
 type ElementLoginCompletion = (accountAuth: MatrixAccountAuth) => void;
+type PersonalAccessLoginMode = "invitation" | "resume";
 
 declare global {
   interface Window {
@@ -25,31 +26,35 @@ declare global {
 }
 
 const LOGIN_ERROR_COPY: Record<string, string> = {
+  INVITATION_REQUIRED: "此设备尚未获得使用权限，请输入邀请码。",
   INVITATION_KEY_REQUIRED: "请输入邀请码。",
-  UNKEY_AUTHORITY_UNAVAILABLE: "邀请码验证服务暂不可用，请稍后重试。",
-  UNKEY_ENTITLEMENT_INVALID: "邀请码无效。",
-  UNKEY_ENTITLEMENT_DISABLED: "邀请码已停用。",
-  UNKEY_ENTITLEMENT_EXPIRED: "邀请码已过期。",
+  UNKEY_AUTHORITY_UNAVAILABLE: "权限验证服务暂不可用，请稍后重试。",
+  UNKEY_AUTHORITY_REJECTED: "权限验证服务暂不可用，请稍后重试。",
+  UNKEY_ENTITLEMENT_INVALID: "当前设备授权已失效；请重新输入邀请码。",
+  UNKEY_ENTITLEMENT_DISABLED: "当前设备授权已停用；请重新输入邀请码。",
+  UNKEY_ENTITLEMENT_EXPIRED: "当前设备授权已过期；请重新输入邀请码。",
+  UNKEY_ENTITLEMENT_EXPIRY_INVALID: "当前设备授权状态异常；请重新输入邀请码。",
+  UNKEY_KEY_ID_MISMATCH: "当前设备授权收据不匹配；请重新输入邀请码。",
   MATRIX_INVITATION_EXTERNAL_ID_INVALID: "邀请码绑定的 Matrix 身份不属于当前言策服务。",
   MATRIX_JWT_SECRET_UNAVAILABLE: "本机 Matrix 登录密钥不可用，请重启言策桌面端。",
   MATRIX_JWT_LOGIN_UNAVAILABLE: "Matrix 登录服务暂不可用，请稍后重试。",
-  MATRIX_JWT_LOGIN_RESPONSE_INVALID: "Matrix 登录结果与邀请码身份不一致，已停止登录。"
+  MATRIX_JWT_LOGIN_RESPONSE_INVALID: "Matrix 登录结果与设备授权身份不一致，已停止登录。"
 };
 
 export function YanceLogin({ onLoggedIn }: { onLoggedIn: ElementLoginCompletion }): React.JSX.Element {
   const [invitationKey, setInvitationKey] = React.useState("");
   const [error, setError] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  const [loginMode, setLoginMode] = React.useState<PersonalAccessLoginMode | null>(null);
   const [handoffCommitted, setHandoffCommitted] = React.useState(false);
   const submissionInFlightRef = React.useRef(false);
   const handoffCommittedRef = React.useRef(false);
 
-  const submitInvitation = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const completeLogin = async (mode: PersonalAccessLoginMode, rawInvitationKey = ""): Promise<void> => {
     if (submissionInFlightRef.current || handoffCommittedRef.current) return;
     setError("");
-    const key = invitationKey.trim();
-    if (!key) {
+    const key = rawInvitationKey.trim();
+    if (mode === "invitation" && !key) {
       setError(LOGIN_ERROR_COPY.INVITATION_KEY_REQUIRED);
       return;
     }
@@ -64,18 +69,19 @@ export function YanceLogin({ onLoggedIn }: { onLoggedIn: ElementLoginCompletion 
     }
     submissionInFlightRef.current = true;
     setSubmitting(true);
+    setLoginMode(mode);
     let handoffAccepted = false;
     try {
-      const result = await bridge({ invitationKey: key });
+      const result = await bridge(mode === "invitation" ? { invitationKey: key } : {});
       if (result?.usable !== true || !result.accountAuth?.accessToken) {
         const reasonCode = String(result?.reasonCode || "UNKEY_ENTITLEMENT_INVALID");
-        setError(LOGIN_ERROR_COPY[reasonCode] || "邀请码未通过验证。");
+        setError(LOGIN_ERROR_COPY[reasonCode] || "设备授权未通过验证。");
         return;
       }
       const keyId = String(result.keyId || "").trim();
       const externalId = String(result.subject || result.accountAuth.userId || "").trim();
       if (!keyId || externalId !== result.accountAuth.userId) {
-        setError("邀请码登录结果缺少权限收据，已停止登录。");
+        setError("登录结果缺少设备权限收据，已停止登录。");
         return;
       }
       window.yancePersonalAccessHandoff = { keyId, externalId };
@@ -86,13 +92,19 @@ export function YanceLogin({ onLoggedIn }: { onLoggedIn: ElementLoginCompletion 
       onLoggedIn(result.accountAuth);
     } catch (caught) {
       const code = caught instanceof Error ? String((caught as Error & { code?: string }).code || "") : "";
-      setError(LOGIN_ERROR_COPY[code] || (caught instanceof Error ? caught.message : "邀请登录失败。"));
+      setError(LOGIN_ERROR_COPY[code] || (caught instanceof Error ? caught.message : "登录失败。"));
     } finally {
       if (!handoffAccepted) {
         submissionInFlightRef.current = false;
         setSubmitting(false);
+        setLoginMode(null);
       }
     }
+  };
+
+  const submitInvitation = (event: React.FormEvent): void => {
+    event.preventDefault();
+    void completeLogin("invitation", invitationKey);
   };
 
   return (
@@ -159,7 +171,7 @@ export function YanceLogin({ onLoggedIn }: { onLoggedIn: ElementLoginCompletion 
           <header className="yance-login-auth-copy">
             <span className="yance-login-auth-eyebrow">YANCE ACCOUNT</span>
             <h2>欢迎回来</h2>
-            <p>登录言策，继续你的关系工作台。</p>
+            <p>已授权设备可直接进入；首次使用请输入邀请码。</p>
           </header>
 
           <section
@@ -181,7 +193,23 @@ export function YanceLogin({ onLoggedIn }: { onLoggedIn: ElementLoginCompletion 
               </label>
               {error && <p className="yance-login-setup-error">{error}</p>}
               <button type="submit" disabled={submitting || handoffCommitted}>
-                {handoffCommitted ? "正在进入言策…" : submitting ? "正在登录…" : "进入言策"}
+                {handoffCommitted
+                  ? "正在进入言策…"
+                  : submitting && loginMode === "invitation"
+                    ? "正在验证邀请码…"
+                    : "使用邀请码进入"}
+              </button>
+              <button
+                type="button"
+                data-yance-device-resume="unkey-status-element-on-logged-in"
+                onClick={() => void completeLogin("resume")}
+                disabled={submitting || handoffCommitted}
+              >
+                {handoffCommitted
+                  ? "正在进入言策…"
+                  : submitting && loginMode === "resume"
+                    ? "正在确认本机授权…"
+                    : "已授权设备登录"}
               </button>
             </form>
           </section>
