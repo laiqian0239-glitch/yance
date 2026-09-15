@@ -99,6 +99,20 @@ test('activate verifies the stored entitlement once and logout never erases devi
   assert.doesNotMatch(logout, /clearEntitlementReceipt/u, 'Element session logout must not clear durable device entitlement');
 });
 
+test('post-login handoff serializes entitlement verification instead of racing normal refresh', () => {
+  const surface = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
+  assert.match(
+    surface,
+    /useEffect\(\(\) => \{\s*if \(window\.yancePersonalAccessHandoff\?\.keyId\) return;\s*void refresh\(\);\s*\}, \[refresh\]\);/u,
+    'normal status refresh must stand down while the exact login handoff owns the initial post-login verification'
+  );
+  assert.match(
+    surface,
+    /if \(status\?\.usable !== true && window\.yancePersonalAccessHandoff\?\.keyId\) void activateHandoff\(\);/u,
+    'handoff activation must remain the sole initial post-login entitlement verification path when a handoff exists'
+  );
+});
+
 test('Worker and wrangler are stateless Unkey projection authority', () => {
   const worker = read('services/personal-access-worker/src/index.mjs');
   const wrangler = read('services/personal-access-worker/wrangler.toml');

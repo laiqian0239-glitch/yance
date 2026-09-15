@@ -111,6 +111,7 @@ export function PersonalAccessSurface({
   }, [api, applyStatus, readMatrixProof]);
 
   useEffect(() => {
+    if (window.yancePersonalAccessHandoff?.keyId) return;
     void refresh();
   }, [refresh]);
 
