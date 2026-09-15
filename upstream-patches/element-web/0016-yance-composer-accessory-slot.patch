@@ -10,7 +10,7 @@ index e9debaf..c7ee031 100644
 
  // The prefix used when persisting editor drafts to localstorage.
  export const WYSIWYG_EDITOR_STATE_STORAGE_PREFIX = "mx_wysiwyg_state_";
-@@ -702,6 +703,9 @@ export class MessageComposer extends React.Component<IProps, IState> {
+@@ -703,7 +704,10 @@ export class MessageComposer extends React.Component<IProps, IState> {
                          replyToEvent={this.props.replyToEvent}
                          permalinkCreator={this.props.permalinkCreator}
                      />
@@ -20,6 +20,7 @@ index e9debaf..c7ee031 100644
                      <div className="mx_MessageComposer_row">
                          {leftIcon}
                          {composer}
+                         <div className="mx_MessageComposer_actions">
 diff --git a/apps/web/src/modules/customComponentApi.ts b/apps/web/src/modules/customComponentApi.ts
 index 7e8d52d..1062d45 100644
 --- a/apps/web/src/modules/customComponentApi.ts
