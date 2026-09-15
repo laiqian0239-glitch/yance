@@ -45,14 +45,14 @@ test('brand preview assets remain available but are not the normal Product works
   assert.match(workspace, /ProductExperienceShell/u);
 });
 
-test('Yance login owns invite-only visual authority while preserving Element account-auth authority', () => {
+test('Yance login owns invite-only visual authority while preserving Element login-completion authority', () => {
   const moduleIndex = read('integration/element-module/src/index.tsx');
   const login = read('integration/element-module/src/YanceLogin.tsx');
   const styles = read('integration/element-module/src/YanceLogin.css');
 
   assert.match(login, /data-yance-login-authority="v2"/u);
   assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
-  assert.match(login, /data-yance-invitation-login="jwt-overwrite-account-auth"/u);
+  assert.match(login, /data-yance-invitation-login="jwt-element-on-logged-in"/u);
   assert.match(login, /欢迎回来/u);
   assert.match(login, /让每一次沟通/u);
   assert.match(login, /yance-login-card/u);
@@ -66,14 +66,27 @@ test('Yance login owns invite-only visual authority while preserving Element acc
 
   assert.match(
     moduleIndex,
-    /registerLoginComponent\s*\([\s\S]*?<YanceLogin accountAuthApi=\{accountAuthApi\}/u
+    /registerLoginComponent\s*\([\s\S]*?\(props\)\s*=>\s*<YanceLogin onLoggedIn=\{props\.onLoggedIn\}/u
   );
 
-  // Matrix session installation remains on Element's reviewed AccountAuth implementation.
-  assert.match(login, /overwriteAccountAuth/u);
+  // Initial login must enter through Element's CustomLoginComponentProps.onLoggedIn public seam.
+  assert.match(login, /onLoggedIn\(result\.accountAuth\)/u);
+  assert.doesNotMatch(login, /await\s+overwriteAccountAuth\s*\(|overwriteAccountAuth\s*\(result\.accountAuth\)/u);
+  assert.doesNotMatch(moduleIndex, /YanceAccountAuthApi|accountAuthApi/u);
+  assert.doesNotMatch(moduleIndex, /overwriteAccountAuth/u);
   assert.doesNotMatch(login, /fetch\s*\(/u);
   assert.doesNotMatch(login, /_matrix\/client/u);
   assert.doesNotMatch(login, /m\.login\.password/u);
+});
+
+test('successful one-time invitation handoff cannot reopen a second submission window', () => {
+  const login = read('integration/element-module/src/YanceLogin.tsx');
+  assert.match(login, /handoffCommitted/u);
+  assert.match(login, /if \(submitting \|\| handoffCommitted\) return/u);
+  assert.match(login, /handoffAccepted = true/u);
+  assert.match(login, /if \(!handoffAccepted\) setSubmitting\(false\)/u);
+  assert.match(login, /disabled=\{submitting \|\| handoffCommitted\}/u);
+  assert.match(login, /正在进入言策/u);
 });
 
 test('Yance login does not expose local Matrix account creation or raw Element password controls', () => {
@@ -83,7 +96,7 @@ test('Yance login does not expose local Matrix account creation or raw Element p
 
   assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
   assert.match(login, /loginPersonalAccess/u);
-  assert.match(login, /overwriteAccountAuth/u);
+  assert.match(login, /onLoggedIn/u);
   assert.doesNotMatch(login, /data-yance-local-matrix-identity="first-use"/u);
   assert.doesNotMatch(login, /getMatrixLocalIdentity/u);
   assert.doesNotMatch(login, /createMatrixLocalIdentity/u);
@@ -124,8 +137,9 @@ test('Element auth surface routes anonymous startup to the registered Yance V2 l
   const moduleIndex = read('integration/element-module/src/index.tsx');
   const login = read('integration/element-module/src/YanceLogin.tsx');
   assert.match(moduleIndex, /registerLoginComponent\s*\(/u);
-  assert.match(moduleIndex, /overwriteAccountAuth/u);
-  // Authentication authority stays on Element's reviewed AccountAuth implementation.
+  assert.match(moduleIndex, /props\.onLoggedIn/u);
+  assert.doesNotMatch(moduleIndex, /overwriteAccountAuth/u);
+  // Authentication completion authority stays on Element's reviewed custom-login callback.
   assert.doesNotMatch(login, /fetch\s*\(/u);
   assert.doesNotMatch(login, /_matrix\/client/u);
   assert.doesNotMatch(login, /m\.login\.password/u);
