@@ -2,7 +2,7 @@
     "schemaVersion":  1,
     "documentType":  "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
     "repository":  "laiqian0239-glitch/yance",
-    "workPackage":  "V21-PRODUCT-INTERACTION-PERFORMANCE-MATRIX-IMAGE-MATERIALIZATION-P0",
+    "workPackage":  "V21-MATRIX-IMAGE-MATERIALIZATION-PERF-P0",
     "proposalRevision":  1,
     "status":  "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
     "reason":  "Final materialized Windows artifact audit is GREEN. Exact installed RC performance admission proved 52.084s of cold-start critical path is redundant sealed Matrix image materialization before Compose phase1 while the exact candidate-tag images are already present in Docker Engine. This authorization closes that single performance root through Docker Compose and Docker public seams without adding a second lifecycle or state owner.",
