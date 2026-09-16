@@ -115,15 +115,22 @@
         "source": "existing Windows RC workflow",
         "adoptionMode": "official-action",
         "fit": "FIT",
-        "reason": "It is already the repository's release evidence transport authority; the repair only wires the already-generated strict-round tree into this public seam."
+        "reason": "It is already the repository's release evidence transport authority; the repair only wires the already-generated strict-round tree into this public seam.",
+        "license": "GitHub Actions / repository-existing action dependency"
       },
       {
         "name": "npm ci",
         "source": "Node/npm Builder-host toolchain",
         "adoptionMode": "official-package-manager",
         "fit": "FIT",
-        "reason": "npm remains the sole dependency resolution/materialization authority; no Yance retry/cache/fallback implementation is added."
+        "reason": "npm remains the sole dependency resolution/materialization authority; no Yance retry/cache/fallback implementation is added.",
+        "license": "npm / Node.js ecosystem license as packaged by reviewed Node toolchain"
       }
+    ],
+    "retireOrAvoid": [
+      "Do not add a Yance artifact uploader, evidence database or parallel release-evidence transport.",
+      "Do not add npm retry, fallback, timeout ownership or custom dependency materialization around npm ci.",
+      "Do not modify RUN_WINDOWS_VERIFY_ROUND evidence generation ownership; persist its existing output through the existing GitHub artifact seam only."
     ]
   },
   "localAcceptance": [
