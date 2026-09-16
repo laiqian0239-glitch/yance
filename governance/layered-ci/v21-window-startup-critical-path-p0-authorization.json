@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WINDOW-STARTUP-CRITICAL-PATH-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Close the frozen desktop-shortcut cold-start root by removing non-first-frame runtime readiness from the visible-frame critical path while preserving Docker Compose, Letta, BackendProcessHost, Element and Electron activation ownership. Current packaged source serially awaits full Matrix bridge readiness, Letta readiness and backend launch before Product window creation; activation then waits backend before a cold window can be presented. The existing renderer recovery surface already supports a visible-recovering state and the activation runtime challenge remains the final readiness authority. No timeout tuning, retry, fallback, dependency, parallel lifecycle, second state owner or fake readiness is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "4b7f8ceb64914bccaba490f04195a6fccd109501",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-window-startup-critical-path-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-window-startup-critical-path-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "3aded3230514a7b5f06d82fbd885e80780a10ecf716e6f939a33c4b0cafe70d6",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-window-startup-critical-path-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "electron/main.js",
+      "electron/mainWindowActivationController.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js",
+      "tests/wp0/v21-letta-workspace-contract.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "9f2eba876ef93424566c1db1b51af2618d6ccbac75b5ef017cf826721d62cb8d",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "evidence": {
+    "controllerStateSource": "V5.506+V5.507 frozen startup evidence; V5.515 successor RC handoff",
+    "controllerCommentIds": [
+      5682537470,
+      5682756998,
+      5690983176
+    ],
+    "finalRcRunId": 35047052774,
+    "finalRcConclusion": "success",
+    "finalRcSourceCommit": "4b7f8ceb64914bccaba490f04195a6fccd109501",
+    "finalRcSourceTree": "a29590aee15ce66c0b948e6c24c0cdd9835e8a38",
+    "realWindowsUserEvidence": "Installed desktop shortcut cold launch feels materially slow.",
+    "equivalentRcRerunForbidden": true
+  },
+  "rootCause": {
+    "locked": true,
+    "id": "WINDOW_STARTUP / STARTUP_CRITICAL_PATH_OVERSCOPED",
+    "evidence": [
+      "Final packaged electron/main.js serially awaits ensureMatrixRuntime(), ensureLettaAgentRuntime().start(), and launchBackend() before createWindow()/initial activation.",
+      "Matrix phase 1 waits Synapse plus mautrix-meta plus mautrix-whatsapp; phase 2 waits Element plus Synapse plus both bridges before endpoints are projected.",
+      "Letta mature runtime owns its own 45s startup bound but renderer activation readiness does not require Letta readiness.",
+      "Backend /api/ready proves Yance backend authority/write-host/ledger/identity/durable-recovery readiness and does not prove or require Letta/mautrix bridge readiness.",
+      "Element activation probe requires backendReady plus workspaceReady; existing main-window recovery flow already presents renderer-ready state before final runtime validation, so no new splash/readiness authority is needed."
+    ]
+  },
+  "requiredRepair": [
+    "Keep Docker Compose as sole Matrix service lifecycle/readiness owner; narrow blocking Compose waits to first-frame-critical Synapse/Element, and move mautrix bridge health wait to the existing Compose public seam outside visible-frame critical path with no retry/fallback.",
+    "Keep Letta runtime start/stop ownership unchanged; start the same mature Letta runtime outside visible-frame critical path and preserve its projected ready/reasonCode state.",
+    "Reorder existing main-window activation so a cold renderer-ready window can be presented through the existing visible-recovering surface before backend/session/runtime validation completes; activation dispatch remains blocked until the existing backend/session/workspace challenge is GREEN.",
+    "Start backend through the existing BackendProcessHost/coordinator authority before activation; do not create a second backend lifecycle, deadline or readiness protocol."
+  ],
+  "authorityPreservation": {
+    "matrixLifecycleOwner": "Docker Compose via existing dockerExec/compose public seam",
+    "lettaLifecycleOwner": "electron/lettaAgentRuntime.js official Letta Code + LettaAgentClient start/stop",
+    "backendLifecycleOwner": "DesktopHost/BackendProcessHost + DesktopCredentialApplicationCoordinator",
+    "windowActivationOwner": "electron/mainWindowActivationController.js",
+    "runtimeReadinessOwner": "electron/mainWindowRuntimeReadiness.js + Element activation-probe responder",
+    "secondOwnerAdded": false,
+    "mirrorStateAdded": false,
+    "parallelLifecycleAdded": false,
+    "customRetryOrFallbackAdded": false,
+    "timeoutChangeAllowed": false,
+    "thinProjectionOnly": true
+  },
+  "closureMatrix": {
+    "unknownBlockersMustEqual": 0,
+    "rows": [
+      {
+        "boundary": "Final packaged app bootstrap sequence",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Remove full Matrix bridge and Letta readiness from the pre-window serial chain while retaining their mature owners."
+      },
+      {
+        "boundary": "Matrix core readiness",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Synapse and Element remain blocking because Product Element shell and backend Matrix endpoint projection require them."
+      },
+      {
+        "boundary": "mautrix bridge readiness",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Bridge start remains Compose-owned but its health completion is deferred from first visible frame; no custom supervisor/retry."
+      },
+      {
+        "boundary": "Letta readiness",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Same Letta start owner runs outside visible-frame critical path; no second Letta lifecycle."
+      },
+      {
+        "boundary": "Backend readiness",
+        "classification": "PRESERVE",
+        "closure": "BackendProcessHost and /api/ready remain authoritative; no timeout or readiness weakening."
+      },
+      {
+        "boundary": "Cold BrowserWindow presentation",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Use existing renderer-ready/visible-recovering activation seam before backend/runtime validation completes."
+      },
+      {
+        "boundary": "Per-activation runtime challenge",
+        "classification": "PRESERVE",
+        "closure": "Keep backendReady/sessionReady/rendererReady/workspaceReady challenge and activation dispatch ordering unchanged."
+      },
+      {
+        "boundary": "Installer/shortcut/package identity",
+        "classification": "PRESERVE",
+        "closure": "Final RC materialized output already GREEN; no installer/NSIS/rcedit/source identity mutation."
+      }
+    ]
+  },
+  "negativeProofs": [
+    "No timeout inflation or reduction.",
+    "No new splash, readiness protocol, process supervisor, Compose wrapper, Letta wrapper, retry loop, fallback or mirror runtime state.",
+    "No activation dispatch before existing backend/session/renderer/workspace runtime challenge is GREEN.",
+    "No Matrix login/account/room state required merely to present the recovery-capable Product shell.",
+    "No Product source beyond the exact five authorized implementation/test paths."
+  ],
+  "localAcceptance": [
+    "Exact implementation branch starts only from ordinary authorization merge.",
+    "Implementation diff contains exactly the five authorized paths.",
+    "Focused main-window activation tests prove cold renderer-ready presentation can occur while backend owner is still starting, but activation dispatch still waits for backend/runtime validation.",
+    "Letta WP0 contract proves Electron still explicitly owns one official start/stop seam and its startup is not awaited on visible-frame critical path.",
+    "Materialized-UAT source regression proves Matrix blocking health waits contain Synapse/Element only and mautrix bridge health is deferred through the same Compose public seam with no retry/fallback.",
+    "Existing runtime challenge and visible-recovering regression remain GREEN.",
+    "npm run test:wp0 affected startup tests GREEN; focused desktop activation tests GREEN; node tools/wp7/source-closure.js GREEN; git diff --check GREEN."
+  ],
+  "requiredValidation": {
+    "localClosure": [
+      "node --test tests/desktop-fixes/main-window-activation-controller.test.js",
+      "node --test tests/wp0/v21-letta-workspace-contract.test.js",
+      "node --test tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "node --test tests/uat/f25WindowsUatRepairBatch8.test.js",
+      "node tools/wp7/source-closure.js",
+      "git diff --check",
+      "Exact five-path implementation boundary"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "Product/Windows gates when routed"
+    ],
+    "successorPromotion": [
+      "ordinary implementation merge",
+      "same-tree Matrix materialization",
+      "one successor Windows RC",
+      "one Full Windows UAT only after RC GREEN"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "productionUseAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
