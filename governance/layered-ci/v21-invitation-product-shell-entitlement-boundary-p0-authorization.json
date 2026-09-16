@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-INVITATION-PRODUCT-SHELL-ENTITLEMENT-BOUNDARY-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "V5.519 locks the end-to-end release blocker INVITATION_TO_PRODUCT / HUMAN_ENTITLEMENT_GUARD_CROSSES_DESKTOP_RUNTIME_AND_REQUIRES_MISSING_MATRIX_OPENID_PER_REQUEST. Real local runtime evidence records MATRIX_OPENID_TOKEN_REQUIRED and WAITING_FOR_PRODUCT_ENTITLEMENT after the backend is already ready. Exact current source proves invitation login correctly hands accountAuth to Element onLoggedIn, Element already owns CompleteSecurity/E2E and maps HomePage to the Yance location, but two same-root authorization defects prevent a usable Product shell: DesktopHost steady-state Runtime API v2 is mounted behind the human Personal Access guard, and PersonalAccessService.authorizeProductRequest delegates to status(input) even though the guard supplies only method/path, so ordinary TESTER Product requests can never carry the Matrix OpenID required by status(). The predecessor workaround added WAITING_FOR_PRODUCT_ENTITLEMENT plus timer/backoff state inside RuntimeProjectionCoordinator; under current Mature Authority Preservation that is Shadow Authority and must be retired, not tuned. This authorization preserves Element/Matrix session and OpenID ownership, Unkey/keyId entitlement ownership, existing local API-session security, and the existing Product guard while removing the cross-owner boundary and proving one stored-key login-to-real-Product Golden Journey without consuming another invitation.",
+  "base": {
+    "branch": "main",
+    "commit": "9ebc80f8f18cc0f039788d35c53ef184593e845b",
+    "tree": "0d04aac4263bceb1c46478224b1f80cc1aea1726",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "requiredFirstParent": "9ebc80f8f18cc0f039788d35c53ef184593e845b",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-invitation-product-shell-entitlement-boundary-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-invitation-product-shell-entitlement-boundary-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "9fd50c1634cb94a38c873f372b64826e8d351031f9cab4dc7be80e2cb7404d2a",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-invitation-product-shell-entitlement-boundary-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "backend/services/personalAccessService.js",
+      "backend/tests/personalAccessControlP0.test.js",
+      "electron/desktopHost/RuntimeProjectionCoordinator.js",
+      "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
+      "tests/wp0/v21-personal-access-control-p0.test.js",
+      "tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "approvedChangedFileCount": 8,
+    "approvedChangedFileSetSha256": "65384b711da0d509c932ac641457b2f69a96fe344bcff69a13faf92435256c8d",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "evidence": {
+    "controllerState": "V5.519",
+    "controllerCommentId": 5702832553,
+    "currentMain": "9ebc80f8f18cc0f039788d35c53ef184593e845b",
+    "currentTree": "0d04aac4263bceb1c46478224b1f80cc1aea1726",
+    "predecessorProductPullRequest": 1275,
+    "predecessorProductExactHead": "4a0f2fdfe1c972f814b5083a0a2f127781dfc97d",
+    "predecessorOrdinaryMerge": "9ebc80f8f18cc0f039788d35c53ef184593e845b",
+    "sameTreeMaterializationRun": 35133935768,
+    "sameTreeMaterializationConclusion": "success_non_promotable_due_to_open_product_golden_journey",
+    "runtimeEvidence": [
+      "perf-interaction-v2-data/logs/desktop.jsonl records reasonCode MATRIX_OPENID_TOKEN_REQUIRED after backend ready",
+      "RuntimeProjectionCoordinator state becomes WAITING_FOR_PRODUCT_ENTITLEMENT",
+      "The local Personal Access receipt already contains a persisted non-secret keyId; another raw invitation is neither required nor authorized"
+    ],
+    "sourceEvidence": [
+      "YanceLogin stores only keyId/externalId handoff then calls Element CustomLoginComponentProps.onLoggedIn(result.accountAuth)",
+      "upstream patch 0018 keeps CompleteSecurity/E2eSetup lifecycle in Element and only projects its presentation",
+      "upstream patch 0017 maps Element PageTypes.HomePage through the registered Yance location renderer",
+      "upstream patch 0019 exposes MatrixClientPeg.safeGet().getOpenIdToken through Element module API",
+      "PersonalAccessSurface gates ProductExperienceShell on activatePersonalAccess(keyId, matrixOpenId)",
+      "personalAccessGuard invokes authorizeProductRequest with method/path only",
+      "authorizeProductRequest delegates to status(input), and status requires matrixOpenId for TESTER",
+      "ApiV2RuntimeClient bootstrap uses /api/desktop/runtime-projection-snapshot but steady-state snapshot/events/commands use /api/app/v2 behind the human entitlement guard",
+      "RuntimeProjectionCoordinator contains explicit WAITING_FOR_PRODUCT_ENTITLEMENT, entitlementPollBackoffMs and timer retry state"
+    ]
+  },
+  "rootCause": {
+    "locked": true,
+    "id": "INVITATION_TO_PRODUCT / HUMAN_ENTITLEMENT_GUARD_CROSSES_DESKTOP_RUNTIME_AND_REQUIRES_MISSING_MATRIX_OPENID_PER_REQUEST",
+    "evidence": [
+      "The invitation-to-Matrix handoff can succeed without proving that ProductExperienceShell and its Product APIs become usable.",
+      "A normal TESTER Product API request is checked by authorizeProductRequest({method,path}); because authorizeProductRequest calls status(input), Matrix OpenID is absent and MATRIX_OPENID_TOKEN_REQUIRED is deterministic.",
+      "DesktopHost Runtime API v2 steady-state calls are local-control lifecycle traffic but are intercepted by the same human entitlement guard, producing the same reason code before a user Matrix OpenID exists.",
+      "The existing entitlement wait/backoff in RuntimeProjectionCoordinator is therefore a compensating second lifecycle/retry owner for a boundary error rather than mature Product authority.",
+      "Existing WP0 checks prove source seams and component presence but do not prove the real stored-key Element login -> security -> Yance Home -> entitlement activation -> Product API Golden Journey."
+    ]
+  },
+  "causalBatch": {
+    "oneRoot": true,
+    "scope": [
+      "Keep the existing invitation -> backend JWT -> Element onLoggedIn Matrix session handoff unchanged as the only Matrix login/session authority.",
+      "Keep Element CompleteSecurity/E2E and HomePage/location routing ownership unchanged; no post-login hard redirect or second router.",
+      "Place DesktopHost Runtime API v2 local-control routes on the already-existing loopback + API-session security boundary instead of making human Personal Access a second runtime lifecycle owner; do not duplicate Runtime API v2 into another protocol or state store.",
+      "Keep createPersonalAccessGuard as the Product API gate, but make TESTER Product request authorization consume the existing durable keyId/Unkey status authority after the Element-owned identity activation instead of requiring a new Matrix OpenID token on every ordinary Product request.",
+      "Do not persist Matrix access/OpenID tokens and do not create a Yance entitlement session mirror; Element OpenID remains the identity proof used by the post-login activate seam.",
+      "Delete RuntimeProjectionCoordinator WAITING_FOR_PRODUCT_ENTITLEMENT, entitlementPollBackoffMs, blocked-until state and associated custom retry handling once Runtime API v2 no longer crosses the human gate.",
+      "Make PersonalAccessSurface automatic handoff activation single-shot; a failure remains visible and fail-closed and may be explicitly retried by the user, not by an effect-loop retry owner.",
+      "Add behavior-level tests and one production-equivalent stored-key Golden Journey that proves ProductExperienceShell plus a representative Product API are actually usable without consuming another invitation."
+    ],
+    "mustNotExpandTo": [
+      "alternate Matrix login/session implementation, Matrix access-token persistence, Matrix OpenID cache, or second crypto/session owner",
+      "new entitlement database/session/cache, mirror identity, fallback grant, optimistic access or hidden retry loop",
+      "custom Runtime API v2 protocol, duplicate /api/desktop snapshot/events/commands family, second lifecycle coordinator, timeout increase or retry supervisor",
+      "ad-hoc post-login navigation that bypasses Element CompleteSecurity/E2E or replaces Element HomePage routing",
+      "Docker Compose, Synapse JWT validation, Element timeline/composer/send/recovery, packaging, installer, dependency, package or lockfile changes",
+      "new invitation consumption or Unkey credit mutation"
+    ]
+  },
+  "authorityPreservation": {
+    "matrixLoginSessionCryptoOpenIdOwner": "Element + Synapse through existing module public seams and Synapse JWT login",
+    "deviceEntitlementOwner": "existing PersonalAccessService + Unkey verify/status + persisted non-secret keyId receipt",
+    "productApiGateOwner": "existing createPersonalAccessGuard consuming PersonalAccessService decisions",
+    "desktopRuntimeLifecycleOwner": "existing DesktopHost + RuntimeProjectionCoordinator + Runtime API v2 under existing local API-session security",
+    "productNavigationOwner": "Element NavigationApi/HomePage with existing Yance location renderer",
+    "secondMatrixOwnerAdded": false,
+    "secondEntitlementOwnerAdded": false,
+    "parallelLifecycleAdded": false,
+    "customRetryOrFallbackAdded": false,
+    "persistentTokenCacheAdded": false,
+    "shadowEntitlementPollingRetired": true,
+    "thinProjectionOnly": true
+  },
+  "closureMatrix": {
+    "unknownBlockersMustEqual": 0,
+    "rows": [
+      {
+        "boundary": "Invitation verification and Matrix login",
+        "classification": "PRESERVE_MATURE_OWNER",
+        "closure": "Unkey invitation verification and backend JWT handoff continue to produce accountAuth once; Element onLoggedIn remains the session owner."
+      },
+      {
+        "boundary": "Element post-login security and Product home routing",
+        "classification": "PRESERVE_MATURE_OWNER",
+        "closure": "CompleteSecurity/E2E remain Element-owned and PageTypes.HomePage continues to resolve through the existing Yance location renderer."
+      },
+      {
+        "boundary": "Post-login Matrix identity proof",
+        "classification": "PRESERVE_MATURE_OWNER",
+        "closure": "PersonalAccessSurface uses the existing Element getOpenIdToken seam exactly for activation; no Matrix token is persisted or mirrored."
+      },
+      {
+        "boundary": "TESTER Product API authorization",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Ordinary Product requests use the persisted keyId + Unkey status authority and no longer fail solely because a per-request Matrix OpenID token is absent; invalid/disabled/expired/mismatched durable entitlement remains fail-closed."
+      },
+      {
+        "boundary": "DesktopHost Runtime API v2",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Snapshot/events/commands remain protected by existing local API-session security and are no longer intercepted by the human Product entitlement gate."
+      },
+      {
+        "boundary": "RuntimeProjectionCoordinator entitlement wait",
+        "classification": "RETIRE_SHADOW_AUTHORITY",
+        "closure": "WAITING_FOR_PRODUCT_ENTITLEMENT and entitlement polling/backoff state are removed; no replacement retry owner is introduced."
+      },
+      {
+        "boundary": "PersonalAccessSurface handoff activation",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "At most one automatic activation attempt consumes a login handoff; failure stays visible/fail-closed and cannot self-loop."
+      },
+      {
+        "boundary": "Real Product Golden Journey",
+        "classification": "LOCAL_CLOSURE_REQUIRED",
+        "closure": "Existing stored keyId /status resume -> Matrix login -> Element security -> Yance Home -> one activation -> ProductExperienceShell -> representative Product API success, with no new invitation."
+      }
+    ]
+  },
+  "negativeProofs": [
+    "No Matrix access/OpenID token persistence and no second Matrix session/crypto authority.",
+    "No new entitlement session/cache/database/receipt beyond the existing persisted keyId authority.",
+    "No alternate router or post-login hard redirect bypassing Element security lifecycle.",
+    "No Runtime API v2 duplication, second coordinator, timeout increase, polling library, retry supervisor or fallback route.",
+    "No Docker Compose/Synapse/Element timeline/composer/send/recovery change.",
+    "No package manifest, lockfile, dependency, workflow, installer or packaging mutation.",
+    "No new invitation or raw invitation replay."
+  ],
+  "localAcceptance": [
+    "Authorization ordinary-merges from exact fresh main 9ebc80f8f18cc0f039788d35c53ef184593e845b before any implementation mutation.",
+    "Implementation starts from that authorization merge and changes only the eight authorized paths.",
+    "Backend focused tests prove a valid post-login TESTER/device entitlement authorizes subsequent Product API requests without requiring a per-request Matrix OpenID and invalid/disabled/expired entitlement remains denied.",
+    "Runtime API v2 behavior tests prove DesktopHost snapshot/events/commands do not traverse human Personal Access while existing API-session security remains mandatory.",
+    "RuntimeProjectionCoordinator source/tests prove no WAITING_FOR_PRODUCT_ENTITLEMENT, entitlementPollBackoffMs or equivalent shadow retry state remains.",
+    "PersonalAccessSurface tests prove one automatic handoff activation attempt only, Element getOpenIdToken remains the identity seam, and Product children render only on usable entitlement.",
+    "Element PageTypes.HomePage -> Yance location and Element CompleteSecurity/E2E ownership remain unchanged.",
+    "Production-equivalent stored-key journey reaches real ProductExperienceShell and a representative Product API without another invitation or raw secret output.",
+    "Affected WP0 + backend focused tests, syntax, WP7 source closure when routed, and git diff --check are GREEN.",
+    "unknownBlockers=0 is asserted only after the behavior-level Golden Journey passes against exact implementation bytes."
+  ],
+  "requiredValidation": {
+    "localClosure": [
+      "node --test --test-concurrency=1 backend/tests/personalAccessControlP0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-control-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "npm run test:wp0",
+      "node tools/wp7/source-closure.js when required by exact route",
+      "git diff --check",
+      "production-equivalent stored-key login-to-real-Product-shell plus representative Product API proof without new invitation"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2/WP-A when routed",
+      "Product/Windows gates when routed"
+    ],
+    "successorPromotion": [
+      "ordinary implementation merge",
+      "same-tree materialization",
+      "one successor Windows RC",
+      "final materialized Windows artifact audit",
+      "one Full Windows UAT",
+      "Release only after the complete invitation/login/security/Product Golden Journey is GREEN"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_ELEMENT_MATRIX_UNKEY_LOCAL_API_SESSION_AND_RUNTIME_API_V2_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Element module login/navigation/OpenID seams",
+        "source": "existing pinned Element module API patches 0017/0018/0019",
+        "license": "AGPL-3.0 upstream Element",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Element remains the login/session/security/navigation/OpenID owner; the repair consumes these public seams and adds no second auth/router."
+      },
+      {
+        "name": "Synapse Matrix session authority",
+        "source": "existing sealed Synapse runtime",
+        "license": "AGPL-3.0 upstream Synapse",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Synapse remains JWT validation and Matrix session authority; no Yance verifier/session state is added."
+      },
+      {
+        "name": "Unkey device entitlement authority",
+        "source": "existing PersonalAccessService verify/status projection",
+        "license": "existing external service/public API seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Existing persisted keyId plus Unkey status is the durable device-entitlement owner; no duplicate entitlement database or cache is needed."
+      },
+      {
+        "name": "R32 local API session security and Runtime API v2",
+        "source": "backend/middleware/r32LocalApiSecurity.js + electron/desktopHost/ApiV2RuntimeClient.js + existing /api/app/v2 router",
+        "license": "repository-existing seams",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The existing loopback/API-session boundary already owns DesktopHost local-control authentication; Runtime API v2 should remain on that mature boundary rather than human entitlement."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire WAITING_FOR_PRODUCT_ENTITLEMENT / entitlementPollBackoffMs shadow retry ownership from RuntimeProjectionCoordinator.",
+      "Do not add an entitlement session/cache/database, persisted Matrix/OpenID token, second login flow or post-login router.",
+      "Do not duplicate Runtime API v2 under a second route family or state machine.",
+      "Do not use timeout/retry/fallback to mask authorization-boundary errors."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "productionUseAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  }
+}
