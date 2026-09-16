@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-PRODUCT-INTERACTION-PERFORMANCE-P0-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization for the same Product interaction performance closure. The predecessor Matrix image-materialization implementation has zero commits and is preserved as local uncommitted evidence; its production-equivalent cold-start proof is GREEN. Continuing the same local performance boundary exposed an additional real RED: close-to-tray followed by same-userData second-instance activation leaves the existing live BrowserWindow hidden for about 8.46s because mainWindowActivationController waits on a stale renderer-readiness mirror until DESKTOP_RENDERER_READY_TIMEOUT. This successor supersedes the predecessor authority and expands scope only to the existing activation owner plus its existing regression test; no timeout, retry, runtime/session authority, or parallel lifecycle is added.",
+  "base": {
+    "branch": "main",
+    "commit": "9ef26fc150c63a998c6ae7f425e116c79435c68d",
+    "tree": "df9cfc4570a42685d91abb655b2958efa4fabfe1",
+    "productSourcePredecessor": "a88f99ea1f25bbb191dac05b87a8e71fe9d0338d",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "requiredFirstParent": "9ef26fc150c63a998c6ae7f425e116c79435c68d",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-product-interaction-performance-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-product-interaction-performance-p0-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "61ae8b304be01b0ebaf77d2ccb82125253269b41ca0df96358bd3cff580b2cf7",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-product-interaction-performance-p0-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "electron/main.js",
+      "electron/mainWindowActivationController.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "approvedChangedFileSetSha256": "e3f03eddddd83bdc98f452e5fc9a5c992dda7ef3234680b930c0e6a020b061b9",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "evidence": {
+    "controllerState": "V5.516",
+    "controllerCommentId": 5692816612,
+    "finalRcRunId": 35059460960,
+    "finalRcConclusion": "success",
+    "finalRcSourceCommit": "a88f99ea1f25bbb191dac05b87a8e71fe9d0338d",
+    "finalRcSourceTree": "8834da12d860be5717008800102f5f9acb2c7063",
+    "finalArtifactAudit": "GREEN",
+    "windowsMainPid": 36504,
+    "coldStartTimelineMs": {
+      "matrixImagesLoading": 912,
+      "matrixPhase1Up": 52996,
+      "matrixImageLoadInterval": 52084,
+      "matrixRuntimeReady": 70346,
+      "mainWindowActivated": 74663
+    },
+    "sealedMatrixImagesTar": {
+      "size": 970234368,
+      "sha256": "38cdde1d02b8c1714ab8c82486162e82de772b9e710c781426e71c1344866d62"
+    },
+    "maturePublicSeamProof": [
+      "docker compose ... config --images returned the complete required image topology",
+      "docker image inspect proved all four exact candidate-tag refs already materialized in Docker Engine"
+    ],
+    "equivalentRcRerunForbidden": true,
+    "predecessorAuthorizationPath": "governance/layered-ci/v21-product-interaction-performance-matrix-image-materialization-p0-authorization.json",
+    "predecessorAuthorizationMerge": "9ef26fc150c63a998c6ae7f425e116c79435c68d",
+    "predecessorImplementationBranch": "fix/v21-product-interaction-performance-matrix-image-materialization-p0",
+    "predecessorImplementationCommitCount": 0,
+    "predecessorImplementationWorktreeHead": "9ef26fc150c63a998c6ae7f425e116c79435c68d",
+    "predecessorLocalDiffPaths": [
+      "electron/main.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "matrixColdStartLocalProof": {
+      "wp0": "132/132 GREEN",
+      "acv2": "8/8 GREEN",
+      "matrixImagesLoadingCount": 0,
+      "matrixImagesSkipToPhase1Ms": 0,
+      "matrixRuntimeReadyMs": 20876,
+      "firstEventToWindowMs": 34336
+    },
+    "trayRestoreRed": {
+      "sameUserDataSecondInstanceWindowRestoreMs": 8462,
+      "reasonCode": "DESKTOP_RENDERER_READY_TIMEOUT",
+      "staleReadinessChangedAt": "2026-09-16T08:59:27.534Z",
+      "classification": "PRODUCT_RED"
+    },
+    "windowDragProof": {
+      "deltaX": 105,
+      "deltaY": 61,
+      "result": "GREEN"
+    }
+  },
+  "rootCause": {
+    "locked": true,
+    "id": "PRODUCT_INTERACTION_PERFORMANCE / STALE_RENDERER_READINESS_MIRROR_BLOCKS_TRAY_SECOND_INSTANCE_RESTORE",
+    "evidence": [
+      "The same-userData second-instance path restored a hidden tray window only after about 8.46s.",
+      "The activation log reached DESKTOP_RENDERER_READY_TIMEOUT before presentation; the readiness changedAt timestamp belonged to the earlier initial Element load rather than a new second-instance navigation.",
+      "second-instance does not call reload; mainWindowActivationController is a stable singleton and owns activation/reload/recreate decisions.",
+      "The existing live BrowserWindow is therefore user-visible late because a stale readiness mirror is used as a presentation gate, not because Electron drawing is slow.",
+      "The predecessor Matrix image replay blocker is locally closed and must be carried forward unchanged into the same unmerged performance batch."
+    ]
+  },
+  "causalBatch": {
+    "oneRoot": true,
+    "scope": [
+      "Carry forward the already locally GREEN Docker Compose config --images plus Docker image inspect Matrix materialization fix without semantic expansion.",
+      "Keep Docker Compose as Matrix topology/lifecycle/readiness owner and Docker Engine as image-store owner.",
+      "For an existing non-destroyed live BrowserWindow, restore user-visible presentation without waiting for stale renderer-readiness mirror timeout.",
+      "Keep backend readiness and fresh runtime/session readiness validation on the existing mainWindowActivationController/mainWindowRuntimeReadiness seams before activation dispatch.",
+      "Preserve the existing reload/recreate recovery path for actual renderer/runtime failure."
+    ],
+    "mustNotExpandTo": [
+      "Renderer-ready timeout tuning or retry multiplication",
+      "A second window/readiness/session state owner",
+      "Element/Matrix login, crypto, timeline, composer, send or recovery",
+      "Docker Compose lifecycle semantics",
+      "Backend/Letta lifecycle ownership",
+      "Installer/NSIS/resource identity",
+      "Generic UI performance framework or new dependency"
+    ]
+  },
+  "authorityPreservation": {
+    "imageMaterializationOwner": "Docker Engine image store via official Docker CLI",
+    "matrixTopologyLifecycleReadinessOwner": "Docker Compose via existing dockerExec/compose public seam",
+    "nativeWindowOwner": "Electron BrowserWindow/webContents",
+    "windowActivationOwner": "electron/mainWindowActivationController.js",
+    "runtimeReadinessOwner": "mainWindowRuntimeReadiness plus existing Element activation probe",
+    "elementMatrixSessionTimelineComposerSendRecoveryOwner": "Element/Matrix",
+    "backendLifecycleOwner": "DesktopHost/BackendProcessHost + coordinator",
+    "secondOwnerAdded": false,
+    "mirrorStateAdded": false,
+    "parallelLifecycleAdded": false,
+    "customRetryOrFallbackAdded": false,
+    "persistentCacheAdded": false,
+    "thinProjectionOnly": true
+  },
+  "closureMatrix": {
+    "unknownBlockersMustEqual": 0,
+    "rows": [
+      {
+        "boundary": "Required Matrix image materialization",
+        "classification": "CARRY_FORWARD_LOCAL_GREEN",
+        "closure": "Compose config --images plus Docker image inspect skips only already-present exact candidate-tag refs; sealed docker load remains missing-image fallback."
+      },
+      {
+        "boundary": "Existing live hidden BrowserWindow presentation",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Use the existing activation owner so user-visible restore is not gated by stale renderer-readiness mirror timeout."
+      },
+      {
+        "boundary": "Backend/runtime/session readiness",
+        "classification": "PRESERVE_MATURE_OWNER",
+        "closure": "Existing waitForBackendReady and validateRuntimeReady remain authoritative before activation dispatch."
+      },
+      {
+        "boundary": "Actual renderer failure recovery",
+        "classification": "PRESERVE_MATURE_OWNER",
+        "closure": "Existing single reload then recreate recovery semantics remain fail-closed; no timeout increase or extra retry."
+      },
+      {
+        "boundary": "Element/Matrix messaging authority",
+        "classification": "PRESERVE",
+        "closure": "No change."
+      }
+    ]
+  },
+  "negativeProofs": [
+    "No cache file, registry receipt, database, mirror state or second Docker image authority.",
+    "No custom YAML parser, Docker API reimplementation, image supervisor or timeout change.",
+    "No second BrowserWindow activation controller, readiness store, session owner, retry loop or fallback lifecycle.",
+    "No Element/Matrix login, account, crypto, timeline, composer, send or recovery change.",
+    "No workflow, routing, package manifest, lockfile, installer, dependency or generic performance framework change."
+  ],
+  "localAcceptance": [
+    "Successor authorization ordinary-merges from exact fresh main and supersedes the predecessor authorization/implementation branch.",
+    "Implementation starts from the successor authorization merge and changes exactly the four authorized paths.",
+    "Existing Matrix materialization regression remains GREEN and production-equivalent cold start retains matrixImagesLoadingCount=0 with skip-to-phase1 approximately 0ms when exact images already exist.",
+    "Focused activation regression proves an existing live hidden window is presented before any stale renderer-readiness wait while backend/runtime validation still gates activation dispatch.",
+    "Renderer failure regression retains one reload then recreate semantics; no timeout value changes.",
+    "node --check electron/main.js and electron/mainWindowActivationController.js",
+    "node --test tests/desktop-fixes/main-window-activation-controller.test.js",
+    "node --test tests/wp0/v21-product-experience-materialized-uat.test.js",
+    "npm run verify:wp0",
+    "node tools/wp7/source-closure.js",
+    "git diff --check",
+    "Production-equivalent Windows same-userData close-to-tray then second-instance proof restores the existing window without the previous ~8.46s presentation delay."
+  ],
+  "requiredValidation": {
+    "localClosure": [
+      "node --check electron/main.js",
+      "node --check electron/mainWindowActivationController.js",
+      "node --test tests/desktop-fixes/main-window-activation-controller.test.js",
+      "node --test tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "npm run verify:wp0",
+      "node tools/wp7/source-closure.js",
+      "git diff --check",
+      "production-equivalent Windows cold-start image-materialization proof",
+      "production-equivalent Windows close-to-tray same-userData second-instance presentation-latency proof"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "Product/Windows gates when routed"
+    ],
+    "successorPromotion": [
+      "ordinary implementation merge",
+      "same-tree materialization",
+      "one successor Windows RC because production source changed",
+      "successor final artifact audit",
+      "remaining interaction-performance admission",
+      "one Full Windows UAT"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "productionUseAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "ossFit": {
+    "decision": "REUSE_DOCKER_AND_ELECTRON_EXISTING_PUBLIC_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Docker Compose",
+        "source": "docker/compose via existing dockerExec/compose public seam",
+        "license": "Apache-2.0",
+        "adoptionMode": "official-cli-existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Compose remains the authoritative Matrix topology/lifecycle/readiness owner and config --images supplies resolved refs."
+      },
+      {
+        "name": "Docker Engine CLI",
+        "source": "docker image inspect and existing docker load",
+        "license": "Apache-2.0 ecosystem",
+        "adoptionMode": "official-cli-existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Docker Engine remains the image-store authority; inspect is stateless evidence and load is the existing sealed materialization write path."
+      },
+      {
+        "name": "Electron BrowserWindow/webContents plus existing Yance activation controller",
+        "source": "Electron public BrowserWindow/webContents semantics through electron/mainWindowActivationController.js",
+        "license": "MIT / repository-existing seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Electron owns native window liveness/visibility and the existing activation controller already owns presentation, reload and recreate decisions; repair that owner rather than add another window lifecycle."
+      }
+    ],
+    "retireOrAvoid": [
+      "No second image cache authority or receipt.",
+      "No second window activation/readiness state machine.",
+      "No timeout increase, retry supervisor or custom Electron lifecycle.",
+      "No Element/Matrix session or messaging authority duplication."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-product-interaction-performance-matrix-image-materialization-p0-authorization.json",
+    "implementationBranch": "fix/v21-product-interaction-performance-matrix-image-materialization-p0",
+    "reason": "The predecessor authorization merged normally but its implementation branch has zero commits. Local-first closure proved the Matrix fix GREEN, then exposed a second blocker in the same Product interaction-performance boundary that requires the existing mainWindowActivationController owner and its regression test. Supersede rather than mutate the predecessor authority so only one delegated authority remains effective."
+  }
+}
