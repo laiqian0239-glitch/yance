@@ -116,6 +116,19 @@ test('production release workflow requires the sealed platform auth source befor
   assert.doesNotMatch(builderStep, /platformAuthConfigured=false/u);
 });
 
+test('production release workflow preserves strict-round evidence before Final Builder', () => {
+  const roundStart = workflow.indexOf('- name: Run two independent strict Windows packaging rounds');
+  const roundUploadStart = workflow.indexOf('- name: Upload strict Windows packaging round evidence');
+  const preacceptanceStart = workflow.indexOf('- name: Create exact machine-bound final packaging preacceptance');
+  assert.ok(roundStart > 0 && roundUploadStart > roundStart && preacceptanceStart > roundUploadStart);
+
+  const uploadStep = workflow.slice(roundUploadStart, preacceptanceStart);
+  assert.match(uploadStep, /if:\s*\$\{\{\s*always\(\) && steps\.windows_rounds\.outcome != 'skipped'\s*\}\}/u);
+  assert.match(uploadStep, /uses: actions\/upload-artifact@v4/u);
+  assert.match(uploadStep, /name: yance-windows-strict-round-evidence/u);
+  assert.match(uploadStep, /path: \$\{\{ runner\.temp \}\}\\yance-release-validation\\\*\*/u);
+  assert.match(uploadStep, /if-no-files-found: error/u);
+});
 test('production release workflow preserves Final Builder evidence after failure', () => {
   const builderStart = workflow.indexOf('- name: Build unsigned release before metadata sealing');
   const uploadStart = workflow.indexOf('- name: Upload unsigned release evidence');

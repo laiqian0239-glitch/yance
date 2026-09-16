@@ -232,6 +232,15 @@ jobs:
           "round2_result=$round2" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "round2_sha256=$round2Sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
+      - name: Upload strict Windows packaging round evidence
+        if: ${{ always() && steps.windows_rounds.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: yance-windows-strict-round-evidence
+          path: ${{ runner.temp }}\yance-release-validation\**
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Create exact machine-bound final packaging preacceptance
         id: preacceptance
         shell: pwsh
