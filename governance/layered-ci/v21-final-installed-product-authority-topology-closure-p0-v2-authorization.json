@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-INSTALLED-PRODUCT-AUTHORITY-TOPOLOGY-CLOSURE-P0-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Fresh successor authorization for Controller State V5.358 FINAL_INSTALLED_PRODUCT_AUTHORITY_TOPOLOGY_CLOSURE_FAILURE after local closure exposed three admission defects outside the frozen A+B+C+D Product bytes: the merged V1 authorization omitted mandatory OSS-first evidence, its fix/v21 implementation branch is not accepted by the existing WP7 release-closure branch authority, and WP7 source-package verification proved git archive drops two tracked RUN_WHATSAPP_REAL_UAT_SAFE entrypoints because .gitattributes marks them export-ignore. V2 preserves the already-reviewed A+B+C+D Product changes, uses the existing mature WP7 rebuild-branch seam instead of changing branch policy, and adds only the same-boundary .gitattributes source-materialization correction so the final source ZIP is complete. No second lifecycle, auth, Matrix, branding, packaging, downloader, source-bundle or branch-policy authority is introduced.",
+  "base": {
+    "branch": "main",
+    "commit": "86833e0fca3e7c44732f14fb06de508be9a9896c",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-final-installed-product-authority-topology-closure-p0-authorization.json",
+    "implementationBranch": "fix/v21-final-installed-product-authority-topology-closure-p0",
+    "reason": "V1 ordinary-merged but is not sufficient implementation authority because current WP0 requires ossFit evidence and WP7 source closure rejects its implementation branch; the uncommitted V1 Product diff is frozen donor evidence only and must be replayed after this V2 authorization ordinary-merges."
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-installed-product-authority-topology-closure-p0-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-installed-product-authority-topology-closure-p0-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "440ff43997dcdcc0b5d8168cd94c57787c8203deb8f1c6b684cd56ea1b482e60",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "rebuild/windows-release-closure-20260913-final-installed-product-authority-topology-closure-p0-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".gitattributes",
+      ".github/workflows/windows-production-release.yml",
+      "installer/wp7/YanceFinalInstaller.nsi",
+      "integration/element-module/src/YanceLogin.tsx",
+      "tests/desktop-fixes/installer-finish-launch.test.js",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp7/windows-production-release-workflow.test.js",
+      "tests/wp7/wp7-windows-final-builder-runner.test.js",
+      "tools/wp7/run-windows-final-builder.js"
+    ],
+    "approvedChangedFileCount": 9,
+    "approvedChangedFileSetSha256": "819e2cbc272d5702774a3a764d4c21e2f6121192f3166ebe3bdc4aa954105084",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/windows-production-release.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "2a162e5672592872e57a61fbae0f7f71d208e71878d41e372a2de16db9838c1a"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "FINAL_INSTALLED_PRODUCT_AUTHORITY_TOPOLOGY_CLOSURE_FAILURE",
+    "controllerState": "V5.358",
+    "controllerCommentId": 5647715100,
+    "frozenRcRunId": 34703774006,
+    "frozenUatSourceCommit": "f02226ed068cb7e21e70ccbf7a736fee37c5cf8f",
+    "requiredClosure": [
+      "A: remove NSIS post-install runtime-readiness poll/deadline ownership; Electron plus packaged runtime retain readiness lifecycle authority.",
+      "B: formal Windows release workflow must verify and require the existing release-managed platform-auth config and SHA-256 seal through the existing Final Builder public seam.",
+      "C: Yance login guidance projects the existing localpart only; Element/Matrix retain homeserver/login/session/recovery authority and children remains the auth owner.",
+      "D: Final Builder default EXE icon uses assets/branding/yance/generated/Yance.ico while explicit iconPath remains the narrow override seam.",
+      "E: remove only the RUN_WHATSAPP_REAL_UAT_SAFE export-ignore exclusion that makes git archive incomplete; Git remains source-bundle authority and the existing WP7 verifier remains unchanged.",
+      "Use the existing WP7 rebuild/windows-release-closure date-qualified implementation branch seam; do not modify shared implementation branch policy.",
+      "Do not rerun the frozen RC/UAT. Complete local closure and exact materialization proof before one successor Exact Head."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_MATURE_RUNTIME_LOGIN_PACKAGING_BRANDING_AND_GIT_ARCHIVE_AUTHORITIES",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Element plus Matrix login/session/homeserver authority",
+        "source": "pinned Element/Matrix source module already integrated by Yance",
+        "license": "upstream/repository-existing",
+        "adoptionMode": "source-module",
+        "fit": "FIT",
+        "reason": "The existing upstream login/session stack already owns the capability; Yance only needs a thin localpart projection and must not add a second login/session implementation."
+      },
+      {
+        "name": "Electron plus packaged runtime readiness lifecycle",
+        "source": "existing Electron desktop host and packaged Matrix/runtime lifecycle",
+        "license": "upstream/repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Installed runtime readiness already belongs to the desktop/runtime lifecycle; removing the NSIS poll restores a single owner instead of creating another supervisor."
+      },
+      {
+        "name": "NSIS installer mechanics",
+        "source": "NSIS plus existing installer/wp7/YanceFinalInstaller.nsi",
+        "license": "mature-upstream/repository-existing",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "NSIS remains the installer mechanics authority and only needs to launch the installed executable and surface process-creation failure."
+      },
+      {
+        "name": "Existing Final Builder releasePlatformAuth seal",
+        "source": "tools/wp7 Final Builder plus backend/services/releasePlatformAuth and release/facebook-production-resources",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The repository already has one release-managed platform-auth materialization seam; the workflow only needs to consume and require it."
+      },
+      {
+        "name": "Canonical Yance branding authority",
+        "source": "assets/branding/yance plus existing Electron/NSIS/rcedit consumers",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "One canonical asset tree already exists; the Builder default must point to it rather than frontend/assets/icon.ico."
+      },
+      {
+        "name": "Git archive source-bundle authority plus existing WP7 source ZIP verifier",
+        "source": "Git CLI, .gitattributes, tests/wp7/pre-review-candidate-package.test.js and tools/wp7 verifier",
+        "license": "Git/upstream plus repository-existing",
+        "adoptionMode": "official-sdk-cli-native-prebuild-runtime",
+        "fit": "FIT",
+        "reason": "Git already owns archive materialization and WP7 already verifies exact tracked content; removing the conflicting export-ignore rule is narrower and safer than building a second source packager or weakening verification."
+      },
+      {
+        "name": "Existing WP7 date-qualified rebuild branch authority",
+        "source": "shared/release/implementationBranchPolicyLegacy.js",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "WP7 source closure already accepts rebuild/windows-release-closure-YYYYMMDD[-suffix] branches, so V2 uses that mature seam instead of modifying branch policy."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not restore or enlarge NSIS runtime-readiness polling, timeout ownership, retry or supervision.",
+      "Do not add a second Matrix login/session/token/recovery authority or custom homeserver autodiscovery.",
+      "Do not add a second platform-auth config/materializer or runtime fallback.",
+      "Do not add shortcut-specific, installer-specific or Builder-specific brand asset authority outside assets/branding/yance.",
+      "Do not modify shared implementation branch policy for this closure; consume the existing WP7 rebuild branch seam.",
+      "Do not weaken the WP7 source ZIP verifier or create a second source archive helper; remove only the conflicting export-ignore rule for required tracked entrypoints."
+    ]
+  },
+  "authorityPreservation": {
+    "A": "Electron plus packaged runtime remains readiness lifecycle owner; NSIS stops after successful process creation.",
+    "B": "Existing releasePlatformAuth plus Final Builder remains platform-auth materialization owner.",
+    "C": "Element/Matrix remains login, homeserver, session and recovery owner; Yance projects localpart only.",
+    "D": "assets/branding/yance remains canonical brand owner; Electron/NSIS/rcedit remain native consumers.",
+    "E": "Git archive remains source bundle owner and existing WP7 verifier remains acceptance owner; no Yance source packager is added.",
+    "secondOwnerAllowed": false,
+    "mirrorStateAllowed": false,
+    "parallelLifecycleAllowed": false,
+    "customFallbackAllowed": false
+  },
+  "localAcceptance": [
+    "Implementation starts only from this authorization ordinary merge on exact branch rebuild/windows-release-closure-20260913-final-installed-product-authority-topology-closure-p0-v2.",
+    "Changed paths are exactly the nine authorized paths and no others.",
+    "The previously reviewed eight-file A+B+C+D diff is replayed without semantic expansion except where required to bind the new exact base.",
+    ".gitattributes no longer export-ignores RUN_WHATSAPP_REAL_UAT_SAFE.ps1 or RUN_WHATSAPP_REAL_UAT_SAFE.cmd and the existing pre-review candidate source ZIP test becomes GREEN without verifier changes.",
+    "Focused A+B+C+D tests, branding verification, source regressions where host-capable, verify:wp0, WP7 source closure and local packaging/materialization all close locally; host symlink EPERM is classified separately and must not be hidden.",
+    "Final-context-only tests remain explicitly REQUIRED_NATIVE_WINDOWS_PROOF and are not forged locally.",
+    "Mature owner audit proves NEW_SECOND_OWNER=NO, NEW_FALLBACK=NO, NEW_PARALLEL_LIFECYCLE=NO.",
+    "unknownBlockers=0 before Exact Head."
+  ],
+  "closureAdmission": {
+    "unknownBlockers": "PENDING_V2_REPLAY_AND_LOCAL_CLOSURE",
+    "exactHeadForbiddenUntilLocalClosure": true,
+    "ciRole": "VALIDATOR_NOT_DEBUGGER",
+    "uatRole": "FINAL_PROOF_NOT_DEBUGGER"
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}

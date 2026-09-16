@@ -22,6 +22,8 @@ function createFromReviewedProduct(options = {}) {
   const trust = verifyTrustedProductExecutable({
     repoRoot,
     electronArchivePath: options.electronArchivePath,
+    electronNpmPackageRoot: options.electronNpmPackageRoot,
+    electronDist: options.electronDist,
     productExecutablePath: options.productExecutablePath,
     payloadRoot: options.payloadRoot,
     platform: options.platform || process.platform,
@@ -64,6 +66,8 @@ if (require.main === module) {
     const result = createFromReviewedProduct({
       repoRoot: arg('--repo-root') || undefined,
       electronArchivePath: arg('--electron-archive'),
+      electronNpmPackageRoot: arg('--electron-npm-package-root') || process.env.WP7_ELECTRON_NPM_PACKAGE_ROOT || undefined,
+      electronDist: arg('--electron-dist') || process.env.WP7_ELECTRON_DISTRIBUTION_ROOT || undefined,
       productExecutablePath: arg('--product-executable'),
       payloadRoot: arg('--payload-root'),
       resourcesRoot: arg('--resources-root') || undefined,

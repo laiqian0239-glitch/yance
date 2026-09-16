@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseArgs, assertExternalOutput, canonicalTimestamp } = require('../../tools/wp7/run-windows-final-builder');
+const { parseArgs, assertExternalOutput, canonicalTimestamp, stderrFailureDocument } = require('../../tools/wp7/run-windows-final-builder');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 
@@ -21,6 +21,7 @@ test('formal Builder CLI requires all identity and external artifact arguments',
     '--electron-dist', 'D:\\electron',
     '--electron-archive', 'D:\\electron.zip',
     '--compiler-path', 'C:\\NSIS\\makensis.exe',
+    '--expected-compiler-sha256', 'f'.repeat(64),
     '--rcedit-path', 'D:\\rcedit\\rcedit.exe',
     '--trusted-node-executable', 'D:\\trusted-node-22.23.1\\node.exe',
     '--expected-branch', 'rebuild/windows-release-closure-test',
@@ -33,6 +34,7 @@ test('formal Builder CLI requires all identity and external artifact arguments',
     '--build-timestamp-utc', '2026-07-12T16:00:00.000Z'
   ]);
   assert.equal(parsed['compiler-path'], 'C:\\NSIS\\makensis.exe');
+  assert.equal(parsed['expected-compiler-sha256'], 'f'.repeat(64));
   assert.equal(parsed['rcedit-path'], 'D:\\rcedit\\rcedit.exe');
   assert.equal(parsed['trusted-node-executable'], 'D:\\trusted-node-22.23.1\\node.exe');
 });
@@ -66,10 +68,13 @@ test('PowerShell Builder wrapper contains the formal isolation and split runtime
     'NodeRoot',
     'TrustedNodeExecutable',
     'RceditPath',
+    'ExpectedMakensisSha256',
+    '--expected-compiler-sha256',
     '--rcedit-path',
     '--trusted-node-executable',
     'v22.23.1',
     'YANCE_NPM_CLI_JS',
+    'YANCE_NODE_EXE',
     'ELECTRON_SKIP_BINARY_DOWNLOAD',
     'Expand-ValidatedElectronArchive',
     'electron-offline-bootstrap.json',
@@ -94,7 +99,9 @@ test('PowerShell Builder bootstraps Electron from the reviewed archive without n
   const skip = script.indexOf("$env:ELECTRON_SKIP_BINARY_DOWNLOAD = '1'");
   const npmCi = script.indexOf('& $NodeExe $NpmCli ci --no-audit --no-fund');
   const extract = script.indexOf('Expand-ValidatedElectronArchive $ElectronArchive');
+  const trustedProductionNode = script.indexOf('$env:YANCE_NODE_EXE = $TrustedNodeExecutable', extract);
   assert.ok(skip >= 0 && npmCi > skip && extract > npmCi, 'Electron download must be disabled before npm ci and the reviewed archive extracted afterwards');
+  assert.ok(trustedProductionNode > extract, 'Final Builder production npm install must use the trusted packaged Node runtime after root bootstrap');
   assert.match(script, /Electron archive path escapes destination/);
   assert.match(script, /Electron archive contains a duplicate path/);
   assert.match(script, /Electron archive contains a dot path segment/);
@@ -133,6 +140,40 @@ test('PowerShell Builder exposes child logs when Final Builder fails', () => {
   assert.match(failureBlock, /Get-Content -LiteralPath \$stdout/u);
 });
 
+test('formal Builder failure output preserves structured npm install diagnostics in stderr', () => {
+  const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
+  assert.match(builder, /JSON\.stringify\(stderrFailureDocument\(error\), null, 2\)/u);
+  assert.match(builder, /firstInstallDiagnostic/u);
+  assert.match(builder, /stdoutTail/u);
+  assert.match(builder, /stderrTail/u);
+  assert.match(builder, /writeBuilderFailure\(safeOutputRoot\(process\.argv\.slice\(2\)\), error\)/u);
+
+  const document = stderrFailureDocument({
+    reasonCode: 'WP7_PRODUCTION_DEPENDENCY_INSTALL_FAILED',
+    message: 'production dependency installation failed',
+    details: {
+      failureKind: 'EXIT_CODE',
+      status: 1,
+      stderr: 'npm warn EBADENGINE Unsupported engine\nnpm error code EBADENGINE\nnpm error notsup Required: {"node":">=22.19.0"}\n',
+      stdout: 'installing\n',
+      targetPlatform: 'win32',
+      targetArch: 'x64'
+    }
+  });
+  assert.equal(document.reasonCode, 'WP7_PRODUCTION_DEPENDENCY_INSTALL_FAILED');
+  assert.equal(document.status, 1);
+  assert.equal(document.targetPlatform, 'win32');
+  assert.match(document.firstInstallDiagnostic, /npm warn EBADENGINE Unsupported engine/u);
+  assert.match(document.stderrTail, /npm error code EBADENGINE/u);
+});
+
+test('formal Builder defaults to the canonical generated Yance icon authority', () => {
+  const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
+  assert.match(builder, /path\.join\(repoRoot, 'assets', 'branding', 'yance', 'generated', 'Yance\.ico'\)/u);
+  assert.doesNotMatch(builder, /path\.join\(repoRoot, 'frontend', 'assets', 'icon\.ico'\)/u);
+  assert.match(builder, /iconPath:\s*approvedIconPath/u);
+});
+
 test('release workflow downloads and verifies the same-source sealed Matrix runtime before Final Builder', () => {
   const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'windows-production-release.yml'), 'utf8');
   const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
@@ -155,4 +196,24 @@ test('release workflow downloads and verifies the same-source sealed Matrix runt
   assert.match(builder, /matrixRuntimeIdentity:\s*options\.matrixRuntimeIdentity/u);
   assert.match(builder, /matrixRuntimeRelativeRoot/u);
   assert.match(builder, /matrixRuntimeImagesTarSha256/u);
+});
+
+test('formal Builder fails closed on actual final EXE and installer PE icon readback', () => {
+  const builder = fs.readFileSync(path.join(ROOT, 'tools', 'wp7', 'run-windows-final-builder.js'), 'utf8');
+  assert.match(builder, /require\('\.\/pe-resource-editor'\)/u);
+  assert.match(builder, /const productExecutableRelativePath = built\.runtime\?\.productExecutable;/u);
+  assert.match(builder, /materialized runtime product executable identity is missing/u);
+  assert.match(builder, /path\.resolve\(built\.payloadRoot, \.\.\.productExecutableRelativePath\.split\('\/'\)\)/u);
+  assert.match(builder, /peResourceEditor\.assertBranding\(\{/u);
+  assert.match(builder, /peResourceEditor\.extractIconImageSet\(/u);
+  assert.match(builder, /peResourceEditor\.extractIconImageSetFromIcoFile\(/u);
+  assert.match(builder, /verifyEmbeddedIconSet\(built\.outputFile, approvedIconPath, 'final NSIS installer'\)/u);
+  assert.match(builder, /productExecutableBrandingStatus:\s*productExecutableBranding\.status/u);
+  assert.match(builder, /productExecutableIconGroupSha256:\s*productExecutableBranding\.groupIconSha256/u);
+  assert.match(builder, /installerIconStatus:\s*installerIconIdentity\.status/u);
+  assert.match(builder, /installerIconGroupSha256:\s*installerIconIdentity\.groupIconSha256/u);
+  assert.doesNotMatch(builder, /built\.productExecutable/u);
+  assert.doesNotMatch(builder, /path\.resolve\(built\.payloadRoot,[^)]*Yance\.exe/u);
+  assert.doesNotMatch(builder, /allowedElectronExePath/u, 'Electron code-image equivalence remains owned by packaged-product-trust, not a duplicate runner check');
+  assert.doesNotMatch(builder, /frontend['"],\s*'assets['"],\s*'icon\.ico/u);
 });

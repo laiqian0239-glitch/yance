@@ -51,32 +51,30 @@ test('WP3 preserve: Product accounts UI projects the existing r32 accounts autho
   assert.doesNotMatch(bridge, /\/api\/accounts/u);
 });
 
-test('WP3 preserve: Personal Access backend remains the sole entitlement authority and full owner mutation lifecycle', () => {
+test('WP3 preserve: Personal Access backend remains the sole entitlement authority without local lifecycle mirrors', () => {
   const routes = read('backend/routes/personalAccess.js');
   const service = read('backend/services/personalAccessService.js');
 
   for (const route of [
     '/status',
-    '/submit-request',
-    '/refresh-request',
-    '/owner/requests',
-    '/owner/requests/:requestId/:action',
-    '/owner/grants/:grantId/:action',
+    '/login',
+    '/activate',
   ]) {
-    assert.match(routes, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&').replace(':requestId', '[^/]+').replace(':grantId', '[^/]+').replace(':action', '[^/]+'), 'u'));
+    assert.match(routes, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
   }
-  assert.match(service, /ownerCredentialPresent/u);
-  assert.match(service, /REQUEST_PENDING/u);
-  assert.match(service, /GRANT_SUSPENDED/u);
-  assert.match(service, /GRANT_REVOKED/u);
-  assert.match(service, /INSTALLATION_MISMATCH/u);
-  assert.match(service, /listOwnerRequests/u);
-  assert.match(service, /mutateOwnerRequest/u);
-  assert.match(service, /mutateOwnerGrant/u);
+  assert.match(service, /OWNER_PERMANENT_ACCESS/u);
+  assert.match(service, /INVITATION_REQUIRED/u);
+  assert.match(service, /MATRIX_SUBJECT_MISMATCH/u);
+  assert.match(service, /ENTITLEMENT_VALID/u);
+  assert.match(service, /verifyStoredKeyIdForLogin/u);
+  assert.match(service, /DEVICE_ENTITLEMENT_PRESERVED/u);
+  assert.doesNotMatch(`${routes}\n${service}`, /submitRequest|refreshRequest|listOwnerRequests|mutateOwnerRequest|mutateOwnerGrant/u);
 });
 
-test('WP3-A RED: current Element Product must expose Personal Access status, request and OWNER management through the existing desktop bridge', () => {
+test('WP3-A RED: current Element Product must expose idempotent Personal Access through the existing desktop bridge', () => {
   const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
+  const index = read('integration/element-module/src/index.tsx');
+  const login = read('integration/element-module/src/YanceLogin.tsx');
   const productSources = [
     workspace,
     fs.existsSync(path.join(ROOT, 'integration/element-module/src/product-experience/PersonalAccessSurface.tsx'))
@@ -88,20 +86,21 @@ test('WP3-A RED: current Element Product must expose Personal Access status, req
   const apis = manifestApis();
   const requiredApis = [
     'getPersonalAccessStatus',
-    'submitPersonalAccessRequest',
-    'refreshPersonalAccessRequest',
-    'listPersonalAccessOwnerRequests',
-    'mutatePersonalAccessOwnerRequest',
-    'mutatePersonalAccessOwnerGrant',
+    'loginPersonalAccess',
+    'activatePersonalAccess',
+    'logoutPersonalAccess',
   ];
 
   assert.match(productSources, /personal[ -]?access|PersonalAccess/iu, 'the active Element Product must own the Personal Access user surface');
-  assert.match(productSources, /申请使用权限/u, 'a TESTER must have a reachable request action in the active Product');
-  assert.match(productSources, /刷新/u, 'a TESTER must have a reachable status refresh action in the active Product');
-  assert.match(productSources, /批准/u, 'OWNER must have a reachable approve action in the active Product');
-  assert.match(productSources, /拒绝/u, 'OWNER must have a reachable reject action in the active Product');
-  assert.match(productSources, /暂停/u, 'OWNER must have a reachable suspend action in the active Product');
-  assert.match(productSources, /撤销/u, 'OWNER must have a reachable revoke action in the active Product');
+  assert.match(login, /邀请码/u, 'a first-use TESTER must have a reachable invitation key action in the pre-auth Product login');
+  assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u, 'an already-authorized device must have a no-invitation resume action');
+  assert.match(login, /已授权设备登录/u);
+  assert.doesNotMatch(productSources, /邀请码/u, 'post-login Product must not request the raw invitation bearer again');
+  assert.match(productSources, /设备权限收据/u, 'post-login Product must describe the durable keyId projection rather than a raw bearer');
+  assert.match(productSources, /刷新/u, 'a blocked TESTER must have a reachable status refresh action');
+  assert.match(productSources, /if \(usable\) return <>\{children\}<\/>/u, 'usable entitlement must render Product directly without a persistent access panel');
+  assert.match(productSources, /getMatrixOpenIdToken/u, 'Element must provide the Matrix OpenID proof seam');
+  assert.doesNotMatch(index, /desktop\.logoutPersonalAccess/u, 'native Element session logout must not clear durable device entitlement');
 
   for (const api of requiredApis) {
     assert.match(preload, new RegExp(`\\b${api}\\s*:`, 'u'), `${api} must be exposed by the real desktop preload`);
@@ -109,10 +108,9 @@ test('WP3-A RED: current Element Product must expose Personal Access status, req
   }
 
   assert.match(bridge, /\/api\/r32\/personal-access\/status/u);
-  assert.match(bridge, /\/api\/r32\/personal-access\/submit-request/u);
-  assert.match(bridge, /\/api\/r32\/personal-access\/refresh-request/u);
-  assert.match(bridge, /\/api\/r32\/personal-access\/owner\/requests/u);
-  assert.match(bridge, /\/api\/r32\/personal-access\/owner\/grants/u);
+  assert.match(bridge, /\/api\/r32\/personal-access\/login/u);
+  assert.match(bridge, /\/api\/r32\/personal-access\/activate/u);
+  assert.match(bridge, /\/api\/r32\/personal-access\/logout/u);
 });
 
 test('WP3-A RED: active Personal Access regression must not pin the retired legacy System Center as Product UI authority', () => {

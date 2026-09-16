@@ -46,13 +46,9 @@ const CHANNELS = Object.freeze({
   setMotionLevel: 'store:set-motion-level',
   setBackgroundEffect: 'store:set-background-effect',
   personalAccessStatus: 'store:personal-access-status',
-  personalAccessSubmitRequest: 'store:personal-access-submit-request',
-  personalAccessRefreshRequest: 'store:personal-access-refresh-request',
-  personalAccessOwnerRequests: 'store:personal-access-owner-requests',
-  personalAccessOwnerRequestMutation: 'store:personal-access-owner-request-mutation',
-  personalAccessOwnerGrantMutation: 'store:personal-access-owner-grant-mutation',
-  matrixLocalIdentityStatus: 'desktop:matrix-local-identity-status',
-  matrixLocalIdentityCreate: 'desktop:matrix-local-identity-create',
+  personalAccessLogin: 'store:personal-access-login',
+  personalAccessActivate: 'store:personal-access-activate',
+  personalAccessLogout: 'store:personal-access-logout',
   productDataProtectionState: 'store:product-system-data-protection-state',
   productDataProtectionMutation: 'store:product-system-data-protection-mutation',
   productModelRuntimeState: 'store:product-system-model-runtime-state',
@@ -387,36 +383,18 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
     [CHANNELS.setBackgroundEffect]: (_event, input = {}) => apiRequest('/api/r32/store/ui/background-effect', {
       method: 'PUT', body: jsonBody(input)
     }),
-    [CHANNELS.personalAccessStatus]: () => apiRequest('/api/r32/personal-access/status'),
-    [CHANNELS.personalAccessSubmitRequest]: (_event, input = {}) => apiRequest('/api/r32/personal-access/submit-request', {
+    [CHANNELS.personalAccessStatus]: (_event, input = {}) => apiRequest('/api/r32/personal-access/status', {
       method: 'POST', body: jsonBody(input)
     }),
-    [CHANNELS.personalAccessRefreshRequest]: () => apiRequest('/api/r32/personal-access/refresh-request', {
-      method: 'POST', body: '{}'
-    }),
-    [CHANNELS.personalAccessOwnerRequests]: () => apiRequest('/api/r32/personal-access/owner/requests'),
-    [CHANNELS.personalAccessOwnerRequestMutation]: (_event, input = {}) => {
-      const requestId = requiredIdentifier(input.requestId, 'requestId');
-      const action = requiredAction(input.action, ['assign', 'approve', 'reject']);
-      return apiRequest(`/api/r32/personal-access/owner/requests/${encodeURIComponent(requestId)}/${encodeURIComponent(action)}`, {
-        method: 'POST', body: jsonBody({})
-      });
-    },
-    [CHANNELS.personalAccessOwnerGrantMutation]: (_event, input = {}) => {
-      const grantId = requiredIdentifier(input.grantId, 'grantId');
-      const action = requiredAction(input.action, ['suspend', 'revoke']);
-      return apiRequest(`/api/r32/personal-access/owner/grants/${encodeURIComponent(grantId)}/${encodeURIComponent(action)}`, {
-        method: 'POST', body: jsonBody({})
-      });
-    },
-    [CHANNELS.matrixLocalIdentityStatus]: () => apiRequest('/api/desktop/matrix-local-identity'),
-    [CHANNELS.matrixLocalIdentityCreate]: (_event, input = {}) => apiRequest('/api/desktop/matrix-local-identity', {
+    [CHANNELS.personalAccessLogin]: (_event, input = {}) => apiRequest('/api/r32/personal-access/login', {
       method: 'POST',
-      body: jsonBody({
-        localpart: clean(input.localpart),
-        password: String(input.password == null ? '' : input.password),
-        confirmPassword: String(input.confirmPassword == null ? '' : input.confirmPassword)
-      })
+      body: jsonBody({ invitationKey: clean(input.invitationKey) })
+    }),
+    [CHANNELS.personalAccessActivate]: (_event, input = {}) => apiRequest('/api/r32/personal-access/activate', {
+      method: 'POST', body: jsonBody(input)
+    }),
+    [CHANNELS.personalAccessLogout]: () => apiRequest('/api/r32/personal-access/logout', {
+      method: 'POST', body: '{}'
     }),
     [CHANNELS.conversationAutomationMode]: (_event, input = {}) => {
       const conversationId = safeRouteSegment(input.conversationId, 'conversationId');

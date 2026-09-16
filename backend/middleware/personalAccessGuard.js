@@ -1,9 +1,10 @@
 'use strict';
 
 const MINIMAL_PATHS = new Set([
-  'GET /api/r32/personal-access/status',
-  'POST /api/r32/personal-access/submit-request',
-  'POST /api/r32/personal-access/refresh-request'
+  'POST /api/r32/personal-access/status',
+  'POST /api/r32/personal-access/login',
+  'POST /api/r32/personal-access/activate',
+  'POST /api/r32/personal-access/logout'
 ]);
 
 function normalizePath(reqOrPath) {
@@ -39,16 +40,14 @@ function createPersonalAccessGuard({ personalAccessService } = {}) {
         error: 'PERSONAL_ACCESS_REQUIRED',
         code: 'PERSONAL_ACCESS_REQUIRED',
         reasonCode: entitlement?.reasonCode || 'PERSONAL_ACCESS_REQUIRED',
-        role: entitlement?.role || 'TESTER',
-        requestState: entitlement?.requestState || entitlement?.remoteState?.requestState || null,
-        grantState: entitlement?.grantState || entitlement?.remoteState?.grantState || null
+        role: entitlement?.role || 'TESTER'
       });
     } catch (error) {
       return res.status(403).json({
         ok: false,
         error: 'PERSONAL_ACCESS_REQUIRED',
         code: 'PERSONAL_ACCESS_REQUIRED',
-        reasonCode: error?.reasonCode || error?.code || 'REMOTE_AUTHORITY_UNAVAILABLE',
+        reasonCode: error?.reasonCode || error?.code || 'UNKEY_AUTHORITY_UNAVAILABLE',
         role: 'TESTER'
       });
     }

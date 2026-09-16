@@ -28,7 +28,12 @@ const { generateFinalEvidenceSet } = require('./final-evidence');
 const { runWindowsFinalHarness, WINDOWS_VALIDATION_TOKEN, validateProbeEvidenceClassification } = require('./windows-final-harness');
 const { verifyReviewBundle, REQUIRED_TAG } = require('./verify-review-bundle');
 const { bindProbeIdentity, executeInstalledRuntimeProbe, readInstalledRuntimeProbeRequest, validateMeasurements } = require('../../electron/wp7InstalledRuntimeProbe');
-const { FORMAL_PROBE_IDS, assertFormalProbeIdSet } = require('../../shared/wp7/formalProbeIds');
+const {
+  ENTITLED_PRODUCT_PROBE_IDS,
+  FORMAL_PROBE_IDS,
+  PRE_ENTITLEMENT_PROBE_IDS,
+  assertFormalProbeIdSet
+} = require('../../shared/wp7/formalProbeIds');
 const { measurementFor } = require('../../tests/wp7/installed-runtime-probe-fixtures');
 const { assertIndependentObservations, createIdentityObservation, validateObservation } = require('../../shared/release/identityObservation');
 const { assertPreReviewProductClassification, validatePackagedPayload, validatePackagedProbeResult } = require('./run-packaged-electron-probe-integration');
@@ -257,7 +262,7 @@ function identityObservations(options = {}) {
     electron: ['electron-main', 'electron-runtime-observation', '/observations/electron.json', 'electron/main.js', 101],
     backend: ['backend-ready-endpoint', 'http-endpoint', 'http://127.0.0.1/api/ready', 'backend/server.js', 202],
     installer: ['nsis-embedded-identity', 'installer-embedded-document', '/resources/installer-release-identity.json', 'installer/YanceFinalInstaller.nsi', 0],
-    diagnostics: ['backend-diagnostics-endpoint', 'http-endpoint', 'http://127.0.0.1/api/r32/system/release-identity', 'backend/services/systemCenterService.js', 303]
+    diagnostics: ['backend-diagnostics-endpoint', 'http-endpoint', 'http://127.0.0.1/api/desktop/release-identity', 'backend/routes/system.js', 303]
   };
   return Object.fromEntries(Object.entries(profiles).map(([consumer, row]) => {
     const observedDocument = options.sharedDocument || { consumer, identity, nonce: consumer };
@@ -680,11 +685,21 @@ const checks = [
     }
   },
   {
-    id: 'CR-M45', class: 'MUTATION', target: 'packaged integration only runs first-start', expectedReasonCode: 'WP7_PACKAGED_PROBE_INTEGRATION_SCOPE_INCOMPLETE',
+    id: 'CR-M45', class: 'MUTATION', target: 'pre-review packaged integration scope narrows below canonical pre-entitlement probes', expectedReasonCode: 'WP7_PACKAGED_PROBE_INTEGRATION_SCOPE_INCOMPLETE',
     run() {
       const source = fs.readFileSync(path.join(REPO_ROOT, 'tools', 'wp7', 'run-packaged-electron-probe-integration.js'), 'utf8');
-      if (!source.includes('const probeIds = requestedProbeId ? [requestedProbeId] : FORMAL_PROBE_IDS') || !source.includes('for (const probeId of probeIds)')) throw Object.assign(new Error('runner does not execute all formal probes'), { reasonCode: this.expectedReasonCode });
-      return { status: 'KILLED', observedReasonCode: 'ALL_NINE_PROBES_LOOP_PRESENT' };
+      if (!source.includes('const probeIds = requestedProbeId ? [requestedProbeId] : PRE_ENTITLEMENT_PROBE_IDS')
+          || !source.includes('for (const probeId of probeIds)')
+          || !source.includes("ENTITLED_PRODUCT_PROBE_IDS.includes(requestedProbeId)")
+          || !source.includes('WP7_PRE_REVIEW_PRODUCT_ENTITLEMENT_REQUIRED')) {
+        throw Object.assign(new Error('runner does not preserve the canonical pre-entitlement scope and entitled Product boundary'), { reasonCode: this.expectedReasonCode });
+      }
+      return {
+        status: 'KILLED',
+        observedReasonCode: 'PRE_ENTITLEMENT_SIX_LOOP_AND_ENTITLED_BOUNDARY_PRESENT',
+        preEntitlementProbeCount: PRE_ENTITLEMENT_PROBE_IDS.length,
+        entitledProductProbeCount: ENTITLED_PRODUCT_PROBE_IDS.length
+      };
     }
   },
   {

@@ -54,6 +54,15 @@ function createMainWindowActivationController(options = {}) {
       && !window.webContents?.isDestroyed?.();
   }
 
+  function canProbeHiddenLoadedExistingWindow(window) {
+    return currentWindowMatches(window)
+      && typeof window?.isVisible === 'function'
+      && window.isVisible() === false
+      && typeof window.webContents?.isLoading === 'function'
+      && window.webContents.isLoading() === false
+      && !window.webContents?.isDestroyed?.();
+  }
+
   function notifyWaiters() {
     for (const waiter of [...waiters]) waiter();
   }
@@ -119,58 +128,65 @@ function createMainWindowActivationController(options = {}) {
       reportRecovery(window, 'visible-recovering', { phase });
       return true;
     };
-
-    await waitForBackendReady({ reason });
-    if (!getBackendReady()) throw timeoutError('DESKTOP_BACKEND_NOT_READY', 'Backend is not ready for main-window activation', { reason });
+    const runAttempt = async (window, phase, presentPhase, options = {}) => {
+      let stage = 'renderer';
+      try {
+        const liveHiddenWindow = options.allowHiddenLoadedWindowProbe === true && canProbeHiddenLoadedExistingWindow(window);
+        if (!liveHiddenWindow) await waitForRendererReady(window);
+        present(window, presentPhase);
+        stage = 'backend';
+        await waitForBackendReady({ reason });
+        if (!getBackendReady()) throw timeoutError('DESKTOP_BACKEND_NOT_READY', 'Backend is not ready for main-window activation', { reason });
+        stage = 'runtime';
+        reportRecovery(window, 'validating-runtime', { phase });
+        const result = await validateRuntimeReady(window, request);
+        reportRecovery(window, 'ready', { phase, result });
+        return { ok: true, window };
+      } catch (error) {
+        return { ok: false, error, stage };
+      }
+    };
 
     let window = getWindow();
-    if (!window || window.isDestroyed?.() || window.webContents?.isDestroyed?.()) {
+    const reusedExistingWindow = Boolean(window && !window.isDestroyed?.() && !window.webContents?.isDestroyed?.());
+    if (!reusedExistingWindow) {
       window = createWindow({ reason });
       reset(window, 'created-for-activation');
     } else if (readiness.window !== window) {
       reset(window, 'existing-window-bound');
     }
 
-    try {
-      await waitForRendererReady(window);
-      present(window, 'renderer-ready');
-      reportRecovery(window, 'validating-runtime', { phase: 'initial' });
-      const result = await validateRuntimeReady(window, request);
-      reportRecovery(window, 'ready', { phase: 'initial', result });
-      return window;
-    } catch (firstError) {
-      reportRecovery(window, 'recovering-reload', { reasonCode: firstError.reasonCode || '', message: firstError.message });
-      log('warn', 'desktop-activation-readiness-failed', { reason, stage: 'reload', reasonCode: firstError.reasonCode || '', error: firstError.message, readiness: snapshot() });
+    const firstAttempt = await runAttempt(window, 'initial', 'renderer-ready', {
+      allowHiddenLoadedWindowProbe: reusedExistingWindow
+    });
+    if (firstAttempt.ok) return window;
+    if (firstAttempt.stage === 'backend') {
+      reportRecovery(window, 'failed', { reasonCode: firstAttempt.error.reasonCode || '', message: firstAttempt.error.message });
+      throw firstAttempt.error;
     }
+    const firstError = firstAttempt.error;
+    reportRecovery(window, 'recovering-reload', { reasonCode: firstError.reasonCode || '', message: firstError.message });
+    log('warn', 'desktop-activation-readiness-failed', { reason, stage: 'reload', reasonCode: firstError.reasonCode || '', error: firstError.message, readiness: snapshot() });
 
     reset(window, 'activation-reload');
     reloadWindow(window);
-    try {
-      await waitForRendererReady(window);
-      present(window, 'renderer-reloaded');
-      reportRecovery(window, 'validating-runtime', { phase: 'reload' });
-      const result = await validateRuntimeReady(window, request);
-      reportRecovery(window, 'ready', { phase: 'reload', result });
-      return window;
-    } catch (secondError) {
-      reportRecovery(window, 'recovering-recreate', { reasonCode: secondError.reasonCode || '', message: secondError.message });
-      log('error', 'desktop-activation-readiness-reload-failed', { reason, stage: 'recreate', reasonCode: secondError.reasonCode || '', error: secondError.message, readiness: snapshot() });
+    const secondAttempt = await runAttempt(window, 'reload', 'renderer-reloaded');
+    if (secondAttempt.ok) return window;
+    if (secondAttempt.stage === 'backend') {
+      reportRecovery(window, 'failed', { reasonCode: secondAttempt.error.reasonCode || '', message: secondAttempt.error.message });
+      throw secondAttempt.error;
     }
+    const secondError = secondAttempt.error;
+    reportRecovery(window, 'recovering-recreate', { reasonCode: secondError.reasonCode || '', message: secondError.message });
+    log('error', 'desktop-activation-readiness-reload-failed', { reason, stage: 'recreate', reasonCode: secondError.reasonCode || '', error: secondError.message, readiness: snapshot() });
 
     try { destroyWindow(window); } catch (_) {}
     window = createWindow({ reason: `${reason}:recreate` });
     reset(window, 'activation-recreate');
-    await waitForRendererReady(window);
-    present(window, 'renderer-recreated');
-    reportRecovery(window, 'validating-runtime', { phase: 'recreate' });
-    try {
-      const result = await validateRuntimeReady(window, request);
-      reportRecovery(window, 'ready', { phase: 'recreate', result });
-      return window;
-    } catch (error) {
-      reportRecovery(window, 'failed', { reasonCode: error.reasonCode || '', message: error.message });
-      throw error;
-    }
+    const finalAttempt = await runAttempt(window, 'recreate', 'renderer-recreated');
+    if (finalAttempt.ok) return window;
+    reportRecovery(window, 'failed', { reasonCode: finalAttempt.error.reasonCode || '', message: finalAttempt.error.message });
+    throw finalAttempt.error;
   }
 
   function mergeRequest(reason, payload) {

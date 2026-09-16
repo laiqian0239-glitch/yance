@@ -20,45 +20,52 @@ test('end-user Matrix identity uses one shared Synapse registration helper and n
   assert.equal((adapter.match(/createHmac\(/g) || []).length, 0, 'Facebook adapter must not retain a duplicate Synapse HMAC parser');
 });
 
-test('local identity desktop endpoints stay inside local-control boundary before Personal Access guard', () => {
+test('retired local Matrix identity endpoints are absent from the Product production server', () => {
   const server = read('backend/server.js');
-  const localSecurity = server.indexOf('app.use(createR32LocalApiSecurity({');
-  const getIdentity = server.indexOf("app.get('/api/desktop/matrix-local-identity'");
-  const postIdentity = server.indexOf("app.post('/api/desktop/matrix-local-identity'");
-  const personalGuard = server.indexOf('app.use(createPersonalAccessGuard({ personalAccessService }))');
-  const apiV2 = server.indexOf("app.use('/api/app/v2'");
-  assert.ok(localSecurity >= 0 && localSecurity < getIdentity);
-  assert.ok(getIdentity >= 0 && postIdentity > getIdentity && postIdentity < personalGuard);
-  assert.ok(apiV2 > personalGuard);
-  assert.doesNotMatch(server, /app\.(?:get|post)\('\/api\/app\/v2\/matrix-local-identity/u);
+  assert.doesNotMatch(server, /endUserMatrixIdentityService/u);
+  assert.doesNotMatch(server, /\/api\/desktop\/matrix-local-identity/u);
 });
 
-test('Electron bridge exposes only local identity status/create forwarding and command inventory owns the exact backend path', () => {
+test('retired local Matrix identity IPC is absent from preload, bridge, manifest, and command inventory', () => {
   const bridge = read('electron/r32StoreBridge.js');
   const preload = read('electron/preload.js');
   const inventory = read('tools/wp2/command-path-inventory.js');
-  const manifest = json('electron/m2/ipcManifest.json');
-  const channels = new Set(manifest.handlers.map(row => row.channel));
-  assert.ok(channels.has('desktop:matrix-local-identity-status'));
-  assert.ok(channels.has('desktop:matrix-local-identity-create'));
-  assert.match(bridge, /matrixLocalIdentityStatus:\s*'desktop:matrix-local-identity-status'/u);
-  assert.match(bridge, /apiRequest\('\/api\/desktop\/matrix-local-identity'\)/u);
-  assert.match(preload, /getMatrixLocalIdentity:\s*\(\)\s*=>\s*invokeStore\('desktop:matrix-local-identity-status'\)/u);
-  assert.match(preload, /createMatrixLocalIdentity:\s*input\s*=>\s*invokeStore\('desktop:matrix-local-identity-create'/u);
-  assert.match(inventory, /\[CHANNELS\.matrixLocalIdentityStatus\][\s\S]*?\/api\/desktop\/matrix-local-identity/u);
-  assert.match(inventory, /\[CHANNELS\.matrixLocalIdentityCreate\][\s\S]*?backend\/services\/endUserMatrixIdentityService\.js/u);
+  const manifest = read('electron/m2/ipcManifest.json');
+  for (const source of [bridge, preload, inventory, manifest]) {
+    assert.doesNotMatch(source, /matrixLocalIdentity|matrix-local-identity|desktop:matrix-local-identity/u);
+  }
 });
 
-test('YanceLogin adds first-use setup while preserving Element login/session authority', () => {
+test('YanceLogin uses invitation or durable-device resume while Element remains the sole login-completion authority', () => {
   const login = read('integration/element-module/src/YanceLogin.tsx');
+  const loginOnly = login.slice(0, login.indexOf('export function YancePostLoginSecurity'));
+  const index = read('integration/element-module/src/index.tsx');
   const styles = read('integration/element-module/src/YanceLogin.css');
-  assert.match(login, /data-yance-local-matrix-identity="first-use"/u);
-  assert.match(login, /getMatrixLocalIdentity/u);
-  assert.match(login, /createMatrixLocalIdentity/u);
-  assert.match(login, new RegExp('@\\$\\{trimmedLocalpart\\}:yance\\.local', 'u'));
-  assert.match(login, /data-yance-login-form-host="element-auth"[\s\S]*?\{children\}/u);
+  assert.match(login, /loginPersonalAccess/u);
+  assert.match(login, /onLoggedIn\(result\.accountAuth\)/u);
+  assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
+  assert.match(login, /data-yance-invitation-login="jwt-element-on-logged-in"/u);
+  assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u);
+  assert.match(login, /已授权设备登录/u);
+  assert.match(login, /mode === "invitation" \? \{ invitationKey: key \} : \{\}/u);
+  assert.match(login, /邀请码/u);
+  assert.match(index, /<YanceLogin onLoggedIn=\{props\.onLoggedIn\}/u);
+  assert.doesNotMatch(index, /overwriteAccountAuth|accountAuthApi/u);
+  assert.doesNotMatch(index, /desktop\.logoutPersonalAccess/u, 'Element session logout must not clear the independent durable device entitlement');
+  assert.doesNotMatch(loginOnly, /overwriteAccountAuth\s*\(/u);
+  assert.match(loginOnly, /submissionInFlightRef/u);
+  assert.match(loginOnly, /handoffCommittedRef/u);
+  assert.match(loginOnly, /if \(!handoffAccepted\)\s*\{[\s\S]*?submissionInFlightRef\.current = false[\s\S]*?setSubmitting\(false\)/u);
+  assert.doesNotMatch(login, /data-yance-local-matrix-identity="first-use"/u);
+  assert.doesNotMatch(login, /getMatrixLocalIdentity/u);
+  assert.doesNotMatch(login, /createMatrixLocalIdentity/u);
+  assert.doesNotMatch(login, /登录用户名/u);
+  assert.doesNotMatch(loginOnly, /children/u);
+  assert.doesNotMatch(login, /用户名/u);
+  assert.doesNotMatch(login, /@\$\\?\{trimmedLocalpart\}:yance\.local/u);
+  assert.doesNotMatch(login, /账号 ID 和你刚刚设置的密码登录/u);
   assert.match(styles, /\.yance-login-local-identity\s*\{/u);
-  for (const forbidden of ['_matrix/client', 'm.login.password', 'accessToken', 'localStorage.setItem', 'fetch(']) {
+  for (const forbidden of ['_matrix/client', 'm.login.password', 'localStorage.setItem', 'fetch(']) {
     assert.equal(login.includes(forbidden), false, `renderer must not implement Matrix session authority: ${forbidden}`);
   }
 });

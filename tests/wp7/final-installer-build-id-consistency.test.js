@@ -30,7 +30,8 @@ test('final-installer-build-id-consistency.test', () => {
     installProductionDependencies: false,
     productionNodeModulesSource: productionDependencyFixture(repo),
     electronDist: createFakeElectronDist(root),
-    trustedNodeExecutable: createFakeTrustedNodeRuntime(root),
+    trustedNodeExecutable: createFakeTrustedNodeRuntime(root, process.version.replace(/^v/, '')),
+    trustedNodeRequiredVersion: process.version.replace(/^v/, ''),
     electronOfficialRecords: fakeElectronOfficialRecords(),
     compilerPath: createFakeNsisCompiler(root),
     ...createReviewFixtureBrandingOptions(createFakeRceditRunner())

@@ -225,7 +225,7 @@ function verifyDelivery(packRoot) {
     deliveryStatus: 'CANDIDATE_PENDING_INDEPENDENT_REVIEW',
     artifactClass: 'WP7_PRE_REVIEW_ONLY',
     evidenceClass: 'PRE_REVIEW_PACKAGED_INTEGRATION',
-    trustedProductProbeExecutions: 'PASS_9_OF_9',
+    trustedProductProbeExecutions: 'PASS_PRE_ENTITLEMENT_6_DEFER_ENTITLED_3',
     independentReviewStatus: 'PENDING',
     preAcceptanceIssued: false,
     finalPackagingAuthorized: false,

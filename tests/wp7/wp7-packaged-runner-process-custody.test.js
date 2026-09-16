@@ -5,8 +5,19 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawnProduct } = require('../../tools/wp7/run-packaged-electron-probe-integration');
+const { formalProbeFailsafeWatchdogMs, spawnProduct } = require('../../tools/wp7/run-packaged-electron-probe-integration');
 const { processTreeSpawnOptions, terminateProcessTree } = require('../../tools/wp7/process-tree-custody');
+
+
+test('formal packaged probe normalizes caller deadlines to a non-preemptive fail-safe watchdog', () => {
+  assert.equal(formalProbeFailsafeWatchdogMs(0), 3_600_000);
+  assert.equal(formalProbeFailsafeWatchdogMs(180_000), 3_600_000);
+  assert.equal(formalProbeFailsafeWatchdogMs(4_000_000), 4_000_000);
+  assert.throws(
+    () => formalProbeFailsafeWatchdogMs(Number.NaN),
+    (error) => error?.reasonCode === 'WP7_PACKAGED_PROBE_FAILSAFE_WATCHDOG_INVALID'
+  );
+});
 
 test('trusted packaged runner uses process-group custody on POSIX and taskkill tree custody on Windows', () => {
   assert.deepEqual(processTreeSpawnOptions('linux'), { detached: true });

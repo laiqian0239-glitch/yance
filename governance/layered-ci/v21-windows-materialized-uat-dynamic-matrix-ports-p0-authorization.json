@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WINDOWS-MATERIALIZED-UAT-DYNAMIC-MATRIX-PORTS-P0",
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Controller V5.499 locked the current concrete Windows RED as a materialized-UAT harness defect, not a Product Matrix lifecycle defect: the image-only Windows UAT runner launches a unique Compose project but leaves the compose fallback publications fixed at 127.0.0.1:8008 and 127.0.0.1:8080, and its readiness URLs are hard-coded to those ports. Real Windows evidence failed with Bind for 127.0.0.1:8080 failed: port is already allocated. Exact live production Electron already preserves Docker Compose as the mature port/lifecycle owner by requesting dynamic loopback publications and discovering actual ports through docker compose port. Authorize only the two-path harness/test closure that reuses that existing mature seam for both Synapse and Element. No Electron Product runtime, Matrix compose, secret lifecycle, dependency, workflow, timeout, RC or UAT retry mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "d1a11be2fac71cd7c239fffae4e7e7542bf983c7",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "requiredFirstParent": "d1a11be2fac71cd7c239fffae4e7e7542bf983c7",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD",
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact normalized repository-relative paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-windows-materialized-uat-dynamic-matrix-ports-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-windows-materialized-uat-dynamic-matrix-ports-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "6560933b132d4a39a7764900a979e7eff45c7cb80b6debaf46075ee245bfbbbf",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-windows-materialized-uat-dynamic-matrix-ports-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "tools/product-experience/RUN_PRODUCT_EXPERIENCE_MATERIALIZED_UAT.ps1"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "5f4dcfc81e749fa6758211683dfbc9a9cb9448a14c1ae8a8bf4865e9b6dd1f65",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "databaseMigrationAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "releaseCandidateModificationAllowed": false,
+    "productRuntimeModificationAllowed": false,
+    "matrixComposeModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureFirstEvidence": {
+    "source": "EXISTING_WINDOWS_MATERIALIZED_UAT_RED",
+    "observedAgainstLiveMain": "d1a11be2fac71cd7c239fffae4e7e7542bf983c7",
+    "conclusion": "failure",
+    "failureReason": "Bind for 127.0.0.1:8080 failed: port is already allocated",
+    "classification": "HARNESS_RED_FIXED_HOST_PORT_ASSUMPTION",
+    "rerunBeforeSourceClosureForbidden": true,
+    "windowsOperatorActionForbiddenUntilNewAuthorizedCandidate": true
+  },
+  "causalBatch": {
+    "matureOwner": "Docker Compose",
+    "requiredBehavior": [
+      "Set the existing YANCE_MATRIX_SYNAPSE_PORT_BINDING and YANCE_MATRIX_ELEMENT_PORT_BINDING Compose parameters to dynamic loopback publications for the unique Windows materialized-UAT project.",
+      "After Compose start, discover the actual Synapse and Element host ports through docker compose port.",
+      "Derive Synapse readiness, Element readiness and packaged external Element location from the discovered ports.",
+      "Preserve image-only --no-build execution, exact candidate manifests, unique project identity, ephemeral host secret files, secret projection named-volume ownership and exact-project cleanup."
+    ],
+    "forbiddenBehavior": [
+      "No custom free-port scanner or socket reservation authority.",
+      "No retry loop or timeout widening used to mask port collision.",
+      "No electron/main.js, materialized Matrix compose, source Matrix compose or secret lifecycle mutation.",
+      "No fixed 8008 or 8080 runner URL may remain a runtime authority."
+    ]
+  },
+  "closureMatrix": {
+    "unknownBlockers": 0,
+    "provenGap": [
+      "The formal Windows materialized-UAT runner hard-codes Element URL/health to 127.0.0.1:8080 and polls Synapse at 127.0.0.1:8008.",
+      "The same runner creates a unique Compose project but does not override the compose fallback fixed host-port publications before docker compose up.",
+      "The focused materialized-UAT regression positively asserts stable fallback host ports 8008 and 8080 instead of asserting dynamic runner projection.",
+      "Production Electron already uses dynamic loopback publications and docker compose port discovery, proving the mature repository seam exists and no Product runtime redesign is required."
+    ],
+    "repair": [
+      "Reuse Compose dynamic publication and docker compose port discovery in the formal Windows materialized-UAT runner for both Synapse and Element.",
+      "Flip the focused regression from fixed runner-port authority to dynamic runner projection while retaining compose fallback compatibility."
+    ],
+    "negativeProof": [
+      "Do not mutate electron/main.js for this harness RED.",
+      "Do not mutate materialized-matrix-compose.yml or services/matrix/docker-compose.yml because they already expose the required parameter seams.",
+      "Do not change secret files, secret projection init service, named secret volumes, dependencies, workflows, validators or timeouts.",
+      "Do not ask the Windows operator to retry before the authorized source-equivalent harness closure is merged."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_DOCKER_COMPOSE_DYNAMIC_PUBLICATION_AND_PORT_DISCOVERY_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "Existing production Electron Docker Compose dynamic-port seam",
+        "source": "electron/main.js ensureMatrixRuntime() dynamic YANCE_MATRIX_*_PORT_BINDING plus docker compose port discovery",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Production already delegates host-port allocation to Docker Compose and resolves the chosen ports through the Compose public CLI; the UAT runner can project the same seam without creating a second port or lifecycle owner."
+      },
+      {
+        "name": "Existing parameterized materialized Matrix Compose publication seam",
+        "source": "tools/product-experience/materialized-matrix-compose.yml YANCE_MATRIX_SYNAPSE_PORT_BINDING and YANCE_MATRIX_ELEMENT_PORT_BINDING",
+        "license": "repository-existing",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The sealed image-only Compose already exposes exact environment parameters for host publication, so no Compose schema or Matrix runtime mutation is needed."
+      }
+    ],
+    "retireOrAvoid": [
+      "Retire the UAT runner's fixed 8008/8080 runtime-address assumption.",
+      "Do not add a custom free-port finder, socket reservation server, proxy, parallel Compose wrapper or alternate Matrix lifecycle.",
+      "Do not reinterpret the observed port collision as a Matrix secret or Product runtime failure."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "requiredValidation": {
+    "focusedAfterProduction": [
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "git diff --check",
+      "Static proof that the runner sets dynamic loopback bindings, invokes docker compose port for Synapse and Element, and derives all readiness/external Element URLs from discovered ports."
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "No RC or Windows UAT until the implementation is ordinarily merged and remaining Product blockers are closed."
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  }
+}

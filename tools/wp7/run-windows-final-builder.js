@@ -5,7 +5,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { signAuthenticode } = require('./windows-authenticode');
+const { spawnFailureDetails } = require('./host-command-runner');
 const { validateRoundPair } = require('../release-closure/windows-round-binding');
+const peResourceEditor = require('./pe-resource-editor');
 const {
   FINAL_PACKAGING_TOKEN,
   REPO_ROOT,
@@ -27,6 +29,7 @@ const REQUIRED_OPTIONS = Object.freeze([
   'electron-dist',
   'electron-archive',
   'compiler-path',
+  'expected-compiler-sha256',
   'rcedit-path',
   'trusted-node-executable',
   'expected-branch',
@@ -76,6 +79,64 @@ function assertFile(filePath, label) {
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) throw new Error(`${label} is missing: ${filePath}`);
 }
 
+function safeOutputRoot(argv) {
+  const index = argv.indexOf('--output-root');
+  if (index < 0 || !argv[index + 1] || argv[index + 1].startsWith('--')) return null;
+  return path.resolve(argv[index + 1]);
+}
+
+function failureKind(error) {
+  if (error?.details?.failureKind) return error.details.failureKind;
+  if (error?.code) return spawnFailureDetails({ error }).failureKind;
+  return 'EXIT_CODE';
+}
+
+function writeBuilderFailure(outputRoot, error) {
+  if (!outputRoot) return;
+  fs.mkdirSync(outputRoot, { recursive: true });
+  const document = {
+    schemaVersion: 1,
+    documentType: 'YANCE_WINDOWS_FINAL_BUILDER_FAILURE',
+    status: 'FAIL',
+    reasonCode: error?.reasonCode || 'YANCE_WINDOWS_FINAL_BUILDER_FAILED',
+    failureKind: failureKind(error),
+    message: error?.message || String(error),
+    stack: error?.stack || '',
+    details: error?.details || {},
+    generatedAtUtc: new Date().toISOString()
+  };
+  fs.writeFileSync(path.join(outputRoot, 'builder-failure.json'), canonicalJsonBuffer(document));
+}
+
+function textTail(value, limit = 8000) {
+  const text = String(value || '');
+  return text.length > limit ? text.slice(-limit) : text;
+}
+
+function firstInstallDiagnostic(details = {}) {
+  const text = [details.stderr, details.stdout, details.errorMessage].map((value) => String(value || '')).join('\n');
+  const line = text.split(/\r?\n/).find((entry) => /\b(?:npm\s+(?:ERR!|error|warn)\s+EBADENGINE|npm\s+(?:ERR!|error)|ERR!|error:|fatal:)\b/i.test(entry));
+  return line ? line.trim().slice(0, 2000) : null;
+}
+
+function stderrFailureDocument(error) {
+  const details = error?.details || {};
+  return {
+    reasonCode: error?.reasonCode || null,
+    message: error?.message || null,
+    failureKind: failureKind(error),
+    status: Number.isInteger(details.status) ? details.status : null,
+    signal: typeof details.signal === 'string' ? details.signal : null,
+    errorCode: typeof details.errorCode === 'string' ? details.errorCode : null,
+    errorMessage: typeof details.errorMessage === 'string' ? details.errorMessage : null,
+    firstInstallDiagnostic: firstInstallDiagnostic(details),
+    stdoutTail: textTail(details.stdout),
+    stderrTail: textTail(details.stderr),
+    targetPlatform: details.targetPlatform || null,
+    targetArch: details.targetArch || null
+  };
+}
+
 function assertDirectory(directory, label) {
   if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) throw new Error(`${label} is missing: ${directory}`);
 }
@@ -84,6 +145,30 @@ function canonicalTimestamp(value) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.valueOf()) || parsed.toISOString() !== value) throw new Error('build timestamp must be a canonical UTC ISO timestamp');
   return value;
+}
+
+function iconSetDigest(values) {
+  return crypto.createHash('sha256').update(Buffer.from(values.join(''), 'utf8')).digest('hex');
+}
+
+function verifyEmbeddedIconSet(executablePath, approvedIconPath, label) {
+  assertFile(executablePath, label);
+  assertFile(approvedIconPath, 'approved Yance icon');
+  const pe = peResourceEditor.readPe(fs.readFileSync(executablePath));
+  const embedded = peResourceEditor.extractIconImageSet(pe);
+  if (!embedded || embedded.length === 0) throw new Error(`${label} does not contain embedded RT_ICON images`);
+  const approved = peResourceEditor.extractIconImageSetFromIcoFile(approvedIconPath);
+  const embeddedUnique = [...new Set(embedded)].sort();
+  const approvedUnique = [...new Set(approved)].sort();
+  const same = embeddedUnique.length === approvedUnique.length && embeddedUnique.every((hash, index) => hash === approvedUnique[index]);
+  if (!same) throw new Error(`${label} embedded RT_ICON images do not match the approved Yance icon`);
+  return Object.freeze({
+    status: 'PASS',
+    imageCount: embedded.length,
+    uniqueImageCount: embeddedUnique.length,
+    groupIconSha256: iconSetDigest(embeddedUnique),
+    approvedIconSha256: sha256File(approvedIconPath)
+  });
 }
 
 function createBuilderResult(options) {
@@ -96,6 +181,7 @@ function createBuilderResult(options) {
   assertGitObject(options.expectedCommit, 'expected commit');
   assertGitObject(options.expectedTree, 'expected tree');
   assertSha256(options.preacceptanceSha256, 'preacceptance SHA256');
+  assertSha256(options.expectedCompilerSha256, 'expected compiler SHA256');
   const buildTimestampUtc = canonicalTimestamp(options.buildTimestampUtc);
 
   const preacceptanceRecordPath = path.resolve(options.preacceptanceRecordPath);
@@ -103,6 +189,9 @@ function createBuilderResult(options) {
   const electronArchivePath = path.resolve(options.electronArchivePath);
   const compilerPath = path.resolve(options.compilerPath);
   const trustedNodeExecutable = path.resolve(options.trustedNodeExecutable);
+  const approvedIconPath = options.iconPath
+    ? path.resolve(options.iconPath)
+    : path.join(repoRoot, 'assets', 'branding', 'yance', 'generated', 'Yance.ico');
   const requirePlatformAuth = options.requirePlatformAuth === true;
   const platformAuthConfigPath = options.platformAuthConfigPath ? path.resolve(options.platformAuthConfigPath) : null;
   const platformAuthHashPath = options.platformAuthHashPath ? path.resolve(options.platformAuthHashPath) : null;
@@ -115,7 +204,10 @@ function createBuilderResult(options) {
   assertFile(electronArchivePath, 'official Electron archive');
   assertFile(compilerPath, 'NSIS compiler');
   assertFile(trustedNodeExecutable, 'trusted Node runtime executable');
+  assertFile(approvedIconPath, 'approved Yance icon');
   if (path.extname(compilerPath).toLowerCase() !== '.exe') throw new Error('formal NSIS compiler must be a native .exe');
+  const compilerSha256 = sha256File(compilerPath);
+  if (compilerSha256 !== options.expectedCompilerSha256) throw new Error(`NSIS compiler SHA256 mismatch: expected=${options.expectedCompilerSha256} actual=${compilerSha256}`);
   if (requirePlatformAuth) {
     assertFile(platformAuthConfigPath, 'sealed platform auth configuration');
     assertFile(platformAuthHashPath, 'platform auth detached SHA-256');
@@ -174,7 +266,7 @@ function createBuilderResult(options) {
     electronArchivePath,
     compilerPath,
     rceditPath: options.rceditPath ? path.resolve(options.rceditPath) : undefined,
-    iconPath: options.iconPath ? path.resolve(options.iconPath) : path.join(repoRoot, 'frontend', 'assets', 'icon.ico'),
+    iconPath: approvedIconPath,
     trustedNodeExecutable: path.resolve(options.trustedNodeExecutable),
     matrixRuntimeSource: options.matrixRuntimeSource,
     matrixRuntimeIdentity: options.matrixRuntimeIdentity,
@@ -190,6 +282,19 @@ function createBuilderResult(options) {
       password: process.env.YANCE_WINDOWS_CERTIFICATE_PASSWORD
     }) : undefined
   });
+
+  const productExecutableRelativePath = built.runtime?.productExecutable;
+  if (!productExecutableRelativePath) {
+    throw new Error('materialized runtime product executable identity is missing');
+  }
+  const productExecutablePath = path.resolve(built.payloadRoot, ...productExecutableRelativePath.split('/'));
+  const productExecutableBranding = peResourceEditor.assertBranding({
+    exePath: productExecutablePath,
+    iconPath: approvedIconPath,
+    releaseSource: built.releaseSource
+  });
+  if (productExecutableBranding.status !== 'PASS') throw new Error('materialized Yance.exe branding readback did not PASS');
+  const installerIconIdentity = verifyEmbeddedIconSet(built.outputFile, approvedIconPath, 'final NSIS installer');
 
   const after = gitIdentity(repoRoot);
   assertActivationBinding(repoRoot, {
@@ -213,17 +318,14 @@ function createBuilderResult(options) {
     installerFile: built.outputFile,
     installerSizeBytes: fs.statSync(built.outputFile).size,
     installerSha256: built.installerSha256,
-    latestYmlFile: built.latestYmlPath,
-    latestYmlSha256: built.latestYmlSha256,
-    blockmapFile: built.blockmapPath,
-    blockmapSha256: built.blockmapSha256,
     releaseEvidenceFile: built.evidencePath,
     releaseEvidenceSha256: sha256File(built.evidencePath),
     buildSessionSealFile: path.join(outputRoot, 'build-session-seal.json'),
     buildSessionSealSha256: sha256File(path.join(outputRoot, 'build-session-seal.json')),
     electronArchiveSha256: sha256File(electronArchivePath),
     trustedNodeExecutableSha256: sha256File(trustedNodeExecutable),
-    compilerSha256: sha256File(compilerPath),
+    compilerSha256,
+    expectedCompilerSha256: options.expectedCompilerSha256,
     preacceptanceRecordSha256: options.preacceptanceSha256,
     windowsRound1ResultSha256: windowsRoundBinding?.round1.sha256 || null,
     windowsRound2ResultSha256: windowsRoundBinding?.round2.sha256 || null,
@@ -232,6 +334,12 @@ function createBuilderResult(options) {
     publicProductName: built.releaseSource.publicProductName,
     publicVersion: built.releaseSource.publicVersion,
     productVersion: built.releaseSource.productVersion,
+    productExecutableBrandingStatus: productExecutableBranding.status,
+    productExecutableIconGroupSha256: productExecutableBranding.groupIconSha256,
+    productExecutableIconSourceSha256: sha256File(approvedIconPath),
+    installerIconStatus: installerIconIdentity.status,
+    installerIconGroupSha256: installerIconIdentity.groupIconSha256,
+    installerIconSourceSha256: installerIconIdentity.approvedIconSha256,
     authenticodeStatus: built.authenticode?.signatureStatus || 'Unsigned',
     authenticodeSignerThumbprint: built.authenticode?.signerThumbprint || null,
     platformAuthConfigured: built.platformAuth?.configured === true,
@@ -259,6 +367,7 @@ function main(argv = process.argv.slice(2)) {
     electronDist: args['electron-dist'],
     electronArchivePath: args['electron-archive'],
     compilerPath: args['compiler-path'],
+    expectedCompilerSha256: args['expected-compiler-sha256'],
     trustedNodeExecutable: args['trusted-node-executable'],
     rceditPath: args['rcedit-path'],
     iconPath: args['icon-path'],
@@ -287,6 +396,10 @@ if (require.main === module) {
   try { main(); }
   catch (error) {
     process.stderr.write(`${error.stack || error.message}\n`);
+    if (error?.reasonCode || error?.details) {
+      process.stderr.write(`${JSON.stringify(stderrFailureDocument(error), null, 2)}\n`);
+    }
+    writeBuilderFailure(safeOutputRoot(process.argv.slice(2)), error);
     process.exitCode = 1;
   }
 }
@@ -296,5 +409,7 @@ module.exports = {
   assertExternalOutput,
   canonicalTimestamp,
   createBuilderResult,
-  parseArgs
+  stderrFailureDocument,
+  parseArgs,
+  verifyEmbeddedIconSet
 };

@@ -17,8 +17,6 @@ Set-StrictMode -Version 2.0
 $ManifestFileName = 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json'
 $DesktopClass = 'PRODUCT_EXPERIENCE_MATERIALIZED_DESKTOP_UAT_ONLY'
 $MatrixClass = 'PRODUCT_EXPERIENCE_MATERIALIZED_MATRIX_UAT_ONLY'
-$SealedElementUrl = 'http://127.0.0.1:8080'
-$SealedElementHealthUrl = 'http://127.0.0.1:8080/config.json'
 
 function Resolve-RealDirectory {
   param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)][string]$Label)
@@ -116,6 +114,25 @@ function New-EphemeralSecretFile {
   [IO.File]::WriteAllText($Path, $value, [Text.UTF8Encoding]::new($false))
 }
 
+function Get-ComposePublishedPort {
+  param(
+    [Parameter(Mandatory = $true)][string]$ProjectName,
+    [Parameter(Mandatory = $true)][string]$ProjectDirectory,
+    [Parameter(Mandatory = $true)][string]$ComposeFile,
+    [Parameter(Mandatory = $true)][string]$Service,
+    [Parameter(Mandatory = $true)][int]$ContainerPort
+  )
+  $lines = @(& docker.exe compose --project-name $ProjectName --project-directory $ProjectDirectory -f $ComposeFile port $Service $ContainerPort)
+  if ($LASTEXITCODE -ne 0) { throw "docker compose port failed for $Service`:$ContainerPort with exit code $LASTEXITCODE" }
+  $published = @($lines | ForEach-Object { ([string]$_).Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+  if ($published.Count -ne 1 -or $published[0] -notmatch ':(\d+)\s*$') {
+    throw "could not resolve one published port for $Service`:$ContainerPort from docker compose port: $($published -join ', ')"
+  }
+  $hostPort = [int]$Matches[1]
+  if ($hostPort -lt 1 -or $hostPort -gt 65535) { throw "published port for $Service`:$ContainerPort is out of range: $hostPort" }
+  return $hostPort
+}
+
 $desktop = Verify-Bundle -Root $DesktopBundleRoot -ExpectedClass $DesktopClass
 $matrix = Verify-Bundle -Root $MatrixBundleRoot -ExpectedClass $MatrixClass
 
@@ -147,6 +164,8 @@ New-EphemeralSecretFile -Path $matrixRegistrationSecretPath
 New-EphemeralSecretFile -Path $mautrixMetaProvisioningSecretPath
 $env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE = $matrixRegistrationSecretPath
 $env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE = $mautrixMetaProvisioningSecretPath
+$env:YANCE_MATRIX_SYNAPSE_PORT_BINDING = '127.0.0.1::8008'
+$env:YANCE_MATRIX_ELEMENT_PORT_BINDING = '127.0.0.1::80'
 $matrixProjectName = "yance-uat-$(([string]$desktop.manifest.candidateCommit).Substring(0, 12))-$([Guid]::NewGuid().ToString('N').Substring(0, 12))"
 
 try {
@@ -154,11 +173,14 @@ try {
   & docker.exe load --input $matrixArchive.FullName
   if ($LASTEXITCODE -ne 0) { throw "docker load failed with exit code $LASTEXITCODE" }
 
-  & docker.exe compose --project-directory $matrix.root -f $composePath down --volumes --remove-orphans
-  if ($LASTEXITCODE -ne 0) { throw "legacy Matrix compose cleanup failed with exit code $LASTEXITCODE" }
-
   & docker.exe compose --project-name $matrixProjectName --project-directory $matrix.root -f $composePath up -d --no-build
   if ($LASTEXITCODE -ne 0) { throw "docker compose up --no-build failed with exit code $LASTEXITCODE" }
+
+  $synapseHostPort = Get-ComposePublishedPort -ProjectName $matrixProjectName -ProjectDirectory $matrix.root -ComposeFile $composePath -Service 'synapse' -ContainerPort 8008
+  $elementHostPort = Get-ComposePublishedPort -ProjectName $matrixProjectName -ProjectDirectory $matrix.root -ComposeFile $composePath -Service 'element' -ContainerPort 80
+  $synapseUrl = "http://127.0.0.1:$synapseHostPort"
+  $sealedElementUrl = "http://127.0.0.1:$elementHostPort"
+  $sealedElementHealthUrl = "$sealedElementUrl/config.json"
 
   $completedInitServices = @(& docker.exe compose --project-name $matrixProjectName --project-directory $matrix.root -f $composePath ps --all --status exited --services)
   if ($LASTEXITCODE -ne 0) { throw "docker compose init-service status probe failed with exit code $LASTEXITCODE" }
@@ -180,8 +202,8 @@ try {
     }
     if ($allRunning) {
       try {
-        $synapseVersions = Invoke-RestMethod -Method Get -Uri 'http://127.0.0.1:8008/_matrix/client/versions' -TimeoutSec 3
-        $elementConfig = Invoke-RestMethod -Method Get -Uri $SealedElementHealthUrl -TimeoutSec 3
+        $synapseVersions = Invoke-RestMethod -Method Get -Uri "$synapseUrl/_matrix/client/versions" -TimeoutSec 3
+        $elementConfig = Invoke-RestMethod -Method Get -Uri $sealedElementHealthUrl -TimeoutSec 3
         if (@($synapseVersions.versions).Count -gt 0 -and $null -ne $elementConfig) {
           $matrixReady = $true
           break
@@ -230,13 +252,14 @@ try {
   }
   $env:YANCE_DATA_DIR = (Resolve-RealDirectory $UatDataRoot 'isolated Yance UAT data root')
   $env:YANCE_WP2_PRODUCTION_RUNTIME_PROBE = '1'
-  $sealedElementConfig = Invoke-RestMethod -Method Get -Uri $SealedElementHealthUrl -TimeoutSec 5
-  if ($null -eq $sealedElementConfig) { throw "sealed Element config is unavailable before packaged launch: $SealedElementHealthUrl" }
+  $sealedElementConfig = Invoke-RestMethod -Method Get -Uri $sealedElementHealthUrl -TimeoutSec 5
+  if ($null -eq $sealedElementConfig) { throw "sealed Element config is unavailable before packaged launch: $sealedElementHealthUrl" }
   if (-not (@($sealedElementConfig.modules) -contains '/modules/yance/lib/index.js')) {
     throw "sealed Element config must mount the Yance V2 module before packaged launch: modules=$($sealedElementConfig.modules | ConvertTo-Json -Compress)"
   }
-  $env:YANCE_ELEMENT_URL = $SealedElementUrl
-  $env:YANCE_ELEMENT_HEALTH_URL = $SealedElementHealthUrl
+  $env:YANCE_MATRIX_BASE_URL = $synapseUrl
+  $env:YANCE_ELEMENT_URL = $sealedElementUrl
+  $env:YANCE_ELEMENT_HEALTH_URL = $sealedElementHealthUrl
 
   $receiptPath = Join-Path $env:YANCE_DATA_DIR 'logs\post-install-launch.json'
   $receiptPassPath = Join-Path $env:YANCE_DATA_DIR 'logs\post-install-launch.pass'
@@ -299,6 +322,10 @@ try {
     matrixArchive = $matrixArchive.FullName
     composeFile = $composePath
     composeProject = $matrixProjectName
+    matrixEndpoints = [ordered]@{
+      synapse = $synapseUrl
+      element = $sealedElementUrl
+    }
     desktopArchive = $desktopArchive.FullName
     yanceExecutable = $yanceExe.FullName
     yanceDataDir = $env:YANCE_DATA_DIR
@@ -324,5 +351,8 @@ try {
   } catch {}
   Remove-Item Env:YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE -ErrorAction SilentlyContinue
   Remove-Item Env:YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE -ErrorAction SilentlyContinue
+  Remove-Item Env:YANCE_MATRIX_SYNAPSE_PORT_BINDING -ErrorAction SilentlyContinue
+  Remove-Item Env:YANCE_MATRIX_ELEMENT_PORT_BINDING -ErrorAction SilentlyContinue
+  Remove-Item Env:YANCE_MATRIX_BASE_URL -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $secretRoot -Recurse -Force -ErrorAction SilentlyContinue
 }

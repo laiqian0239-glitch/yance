@@ -98,7 +98,7 @@ const { CredentialVault } = require('./credentialVault');
 const { recoverCredentialVaults } = require('./credentialVaultRecovery');
 const { R32DesktopSettings } = require('./r32DesktopSettings');
 const { initialsAvatarDataUrl, normalizeNotificationPresentation } = require('./notificationPresentation');
-const { installR32StoreBridge } = require('./r32StoreBridge');
+const { installR32StoreBridge, serializeBridgeError } = require('./r32StoreBridge');
 const { createBackendStartupSupervisor } = require('./backendStartupSupervisor');
 const { UpdateManager } = require('./updateManager');
 earlyBootImportStage = 'desktop-host-import';
@@ -203,6 +203,37 @@ function ipcGuardHandle(channel, fn) {
     assertPrivilegedIpcEvent(event, channel);
     return fn(event, ...args);
   }));
+}
+
+function storeBridgeIpcMain() {
+  return {
+    handle(channel, handler) {
+      if (!m2IpcIndex.byChannel.has(channel)) {
+        ipcMain.handle(channel, handler);
+        return;
+      }
+      const guarded = m2Guard(channel, async (event, payload) => {
+        assertPrivilegedIpcEvent(event, channel);
+        return { __yanceM2StoreBridgeAccepted: true, value: await handler(event, payload) };
+      });
+      ipcMain.handle(channel, async (event, payload) => {
+        const result = await guarded(event, payload);
+        if (result?.__yanceM2StoreBridgeAccepted === true) return result.value;
+        const detail = result?.error || {};
+        const reasonCode = String(detail.reasonCode || 'DESKTOP_IPC_CONTRACT_VIOLATION');
+        const message = reasonCode === 'DESKTOP_BACKEND_NOT_READY'
+          ? '言策正在完成启动，请稍后再试。'
+          : String(detail.message || reasonCode || 'Desktop IPC denied');
+        const error = new Error(message);
+        error.code = reasonCode;
+        error.reasonCode = reasonCode;
+        return serializeBridgeError(error);
+      });
+    },
+    removeHandler: channel => ipcMain.removeHandler(channel),
+    on: (channel, listener) => ipcMain.on(channel, listener),
+    removeListener: (channel, listener) => ipcMain.removeListener(channel, listener)
+  };
 }
 
 // 调试/诊断通道：暴露 M2 规范状态快照，经 ipcGuard 守卫（自包含 inline manifest，不依赖外部契约文件）。
@@ -1384,8 +1415,7 @@ function wp7RunSafeModeScenario(sources) {
       legacyRoot: wp7LegacyRoot,
       desktopSettingsPath: settingsStore?.filePath || path.join(DATA_ROOT, 'desktop-settings.json'),
       rendererStorageSession: ensureWp7RendererStorageSession(),
-      projectionSnapshot: () => runtimeProjectionCoordinator?.snapshot?.() || {},
-      pollOnce: () => runtimeProjectionCoordinator.pollOnce()
+      runtimeSnapshot: () => runtimeApiV2Client.getBootstrapSnapshot({ requireTrusted: true, expectedBuildId: releaseIdentity().buildId })
     });
   }
   return wp7SafeModeScenarioRunner(sources);
@@ -1445,7 +1475,7 @@ async function runWp7InstalledRuntimeProbe() {
     getBackendReady: () => wp7ProbeBackendReadyDocument(),
     readElectronIdentity: (resourcesPath) => getElectronReleaseIdentity({ resourcesPath, expectedBuildId: identity.buildId, reload: true }),
     readInstallerIdentityReceipt,
-    getDiagnosticsIdentity: () => apiRequest('/api/r32/system/release-identity'),
+    getDiagnosticsIdentity: () => apiRequest('/api/desktop/release-identity'),
     identityObservationRoot: () => path.join(path.resolve(process.env.WP7_PROBE_ROOT), 'release-identity-observations'),
     ownerSnapshot: () => trustedBackendProjection(),
     knownOwnerPids: () => [...wp7KnownOwnerPids],
@@ -1472,7 +1502,7 @@ async function runWp7InstalledRuntimeProbe() {
   });
   const operations = createInstalledRuntimeProbeOperations({
     ...adapter,
-    runtimeSnapshot: () => runtimeApiV2Client.getSnapshot({ requireTrusted: true, expectedBuildId: identity.buildId }),
+    runtimeSnapshot: () => runtimeApiV2Client.getBootstrapSnapshot({ requireTrusted: true, expectedBuildId: identity.buildId }),
     projectionSnapshot: () => runtimeProjectionCoordinator.snapshot(),
     stopBackend: (options) => stopBackend(options),
     dataRoot: DATA_ROOT,
@@ -2982,8 +3012,9 @@ function startBackendProcessForCoordinator(options = {}) {
  *
  * Uses ONLY official Docker Desktop / Docker Engine / Docker Compose CLI.
  * No custom container runtime, port allocator, process supervisor, readiness
- * polling loop, or state machine. Readiness is delegated entirely to Compose
- * healthcheck + `up --wait`. Dynamic port discovery uses official
+ * polling loop, or state machine. Dependency/start completion and final
+ * running/healthy readiness remain delegated entirely to Compose public seams.
+ * Dynamic port discovery uses official
  * `docker compose port`. Runtime config projection is the narrowest transform
  * from sealed bundle config to host-reachable endpoints.
  */
@@ -2991,6 +3022,9 @@ const crypto = require('crypto');
 const MATRIX_COMPOSE_PROJECT = 'yance-runtime';
 const MATRIX_MANIFEST_FILE = 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json';
 const MATRIX_COMPOSE_FILE = 'materialized-matrix-compose.yml';
+const MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS = 300;
+const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION = Object.freeze([5, 5, 1]);
+const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT = '5.5.1';
 
 // Tracks ephemeral artifacts created for this launch so quit can clean them.
 let matrixRuntimeEphemeral = null;
@@ -2999,7 +3033,7 @@ function dockerExec(args, options = {}) {
   return new Promise((resolve, reject) => {
     execFile('docker', args, {
       maxBuffer: options.maxBuffer || 10 * 1024 * 1024,
-      timeout: options.timeoutMs || 300000,
+      timeout: options.timeoutMs === undefined ? 300000 : options.timeoutMs,
       cwd: options.cwd,
       env: { ...process.env, ...(options.env || {}) }
     }, (error, stdout, stderr) => {
@@ -3021,6 +3055,37 @@ function matrixComposeBaseArgs(projectDir, composeFiles) {
   for (const file of composeFiles) args.push('-f', file);
   return args;
 }
+
+async function matrixImagesAlreadyMaterialized(projectDir, composeFiles, composeEnv, candidateCommit) {
+  const composeArgs = matrixComposeBaseArgs(projectDir, composeFiles);
+  const resolved = await dockerExec([...composeArgs, 'config', '--images'], {
+    timeoutMs: 15000,
+    cwd: projectDir,
+    env: composeEnv
+  });
+  const imageRefs = [...new Set(resolved.stdout.split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort();
+  if (imageRefs.length === 0) {
+    const error = new Error('Docker Compose did not resolve any Matrix runtime image references.');
+    error.reasonCode = 'MATRIX_RUNTIME_IMAGE_IDENTITY_INVALID';
+    throw error;
+  }
+  const candidateTag = `:${candidateCommit}`;
+  if (imageRefs.some(ref => !ref.endsWith(candidateTag))) {
+    const error = new Error('Docker Compose resolved a Matrix runtime image outside the sealed candidate identity.');
+    error.reasonCode = 'MATRIX_RUNTIME_IMAGE_IDENTITY_INVALID';
+    error.details = { candidateCommit, imageRefs };
+    throw error;
+  }
+  try {
+    await dockerExec(['image', 'inspect', ...imageRefs], { timeoutMs: 15000 });
+    return { allPresent: true, imageRefs };
+  } catch (error) {
+    const detail = `${error?.stderr || ''}\n${error?.message || ''}`;
+    if (/No such image:/u.test(detail)) return { allPresent: false, imageRefs };
+    throw error;
+  }
+}
+
 
 // One-shot Docker Desktop availability check. The official `docker desktop
 // start` command itself owns engine bring-up; we do not run a polling loop.
@@ -3049,6 +3114,41 @@ function composePort(result) {
   return parseInt(match[1], 10);
 }
 
+function parseDockerComposeVersion(value) {
+  const match = String(value || '').trim().match(/^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/u);
+  if (!match) {
+    const error = new Error(`Docker Compose version is not a stable semantic version: ${String(value || '').trim() || '(empty)'}`);
+    error.reasonCode = 'MATRIX_RUNTIME_COMPOSE_VERSION_INVALID';
+    throw error;
+  }
+  return match.slice(1, 4).map(part => Number(part));
+}
+
+function composeVersionAtLeast(actual, minimum) {
+  for (let index = 0; index < minimum.length; index += 1) {
+    if (actual[index] > minimum[index]) return true;
+    if (actual[index] < minimum[index]) return false;
+  }
+  return true;
+}
+
+async function ensureDockerComposeWaitAuthorityAvailable() {
+  const result = await dockerExec(['compose', 'version', '--short'], { timeoutMs: 15000 });
+  const actual = parseDockerComposeVersion(result.stdout);
+  if (!composeVersionAtLeast(actual, MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION)) {
+    const error = new Error(
+      `Docker Compose ${MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT} or newer is required for bounded mature Matrix readiness.`
+    );
+    error.reasonCode = 'MATRIX_RUNTIME_COMPOSE_WAIT_AUTHORITY_REQUIRED';
+    error.details = {
+      actualVersion: actual.join('.'),
+      minimumVersion: MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT
+    };
+    throw error;
+  }
+  return { version: actual.join('.') };
+}
+
 /**
  * Project the two runtime secrets consumed by BOTH Compose and the backend.
  * Reuses the existing secret-file authority (env vars point at files). If the
@@ -3061,11 +3161,19 @@ function matrixRuntimeStateRoot() {
 }
 
 function projectMatrixRuntimeSecrets(runtimeStateRoot) {
-  const existing = process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE
-    && process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE;
-  if (existing) {
-    for (const name of ['YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE', 'YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE']) {
-      if (!fs.existsSync(process.env[name])) {
+  const registrationEnv = process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE;
+  const provisioningEnv = process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE;
+  if (Boolean(registrationEnv) !== Boolean(provisioningEnv)) {
+    const error = new Error('Configured Matrix secret authority is incomplete');
+    error.reasonCode = 'MATRIX_RUNTIME_SECRET_UNAVAILABLE';
+    throw error;
+  }
+  if (registrationEnv && provisioningEnv) {
+    for (const [name, target] of [
+      ['YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE', registrationEnv],
+      ['YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE', provisioningEnv]
+    ]) {
+      if (!fs.existsSync(target)) {
         const error = new Error(`Configured Matrix secret file is missing: ${name}`);
         error.reasonCode = 'MATRIX_RUNTIME_SECRET_UNAVAILABLE';
         throw error;
@@ -3073,12 +3181,32 @@ function projectMatrixRuntimeSecrets(runtimeStateRoot) {
     }
     return { ephemeral: false };
   }
+
   const secretDir = path.join(runtimeStateRoot, 'runtime-secrets');
   fs.mkdirSync(secretDir, { recursive: true, mode: 0o700 });
   const registrationFile = path.join(secretDir, 'matrix-registration-secret');
   const provisioningFile = path.join(secretDir, 'mautrix-meta-provisioning-secret');
-  for (const target of [registrationFile, provisioningFile]) {
-    fs.writeFileSync(target, crypto.randomBytes(32).toString('base64'), { mode: 0o600 });
+  const targets = [registrationFile, provisioningFile];
+  const existing = targets.map(target => fs.existsSync(target));
+  if (existing.some(Boolean) && !existing.every(Boolean)) {
+    const error = new Error('Internal Matrix secret authority is incomplete');
+    error.reasonCode = 'MATRIX_RUNTIME_SECRET_STATE_INVALID';
+    throw error;
+  }
+  if (existing.every(Boolean)) {
+    for (const target of targets) {
+      const value = fs.readFileSync(target, 'utf8').trim();
+      const decoded = Buffer.from(value, 'base64');
+      if (value.length !== 44 || decoded.length !== 32 || decoded.toString('base64') !== value) {
+        const error = new Error('Internal Matrix secret authority is malformed');
+        error.reasonCode = 'MATRIX_RUNTIME_SECRET_STATE_INVALID';
+        throw error;
+      }
+    }
+  } else {
+    for (const target of targets) {
+      fs.writeFileSync(target, crypto.randomBytes(32).toString('base64'), { mode: 0o600, flag: 'wx' });
+    }
   }
   process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE = registrationFile;
   process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE = provisioningFile;
@@ -3135,7 +3263,8 @@ async function stopMatrixCompose(projectDir, composeFiles) {
  * Two-phase startup resolves the dynamic-port / Element-config dependency:
  *   Phase 1 brings up Synapse+bridges and discovers the real Synapse host port.
  *   Phase 2 projects host-reachable configs and brings up Element via override.
- * Compose healthcheck + `up --wait` is the sole readiness authority.
+ * Each phase keeps dependency/start completion and final health waits inside
+ * Docker Compose; Yance only sequences the two mature public seams.
  */
 async function ensureMatrixRuntime() {
   if (process.env.YANCE_MATRIX_RUNTIME_DISABLED === '1') {
@@ -3203,38 +3332,61 @@ async function ensureMatrixRuntime() {
     // 1. Docker Desktop availability (official CLI owns engine bring-up).
     await ensureDockerDesktopAvailable();
 
-    // 2. Shared secret projection for Compose + backend (same authority).
+    // 2. Compose itself owns Matrix readiness and its bounded wait outcome.
+    // v5.5.1 fixes dependency wait timeout propagation; fail closed on older owners.
+    const composeWaitAuthority = await ensureDockerComposeWaitAuthorityAvailable();
+
+    // 3. Shared secret projection for Compose + backend (same authority).
     fs.mkdirSync(runtimeStateRoot, { recursive: true, mode: 0o700 });
     const secretProjection = projectMatrixRuntimeSecrets(runtimeStateRoot);
 
-    // 3. Load sealed images (official: docker load).
-    desktopLog('info', 'matrix-images-loading', { candidateCommit });
-    await dockerExec(['load', '-i', imagesTarPath], { timeoutMs: 300000 });
-
-    // 4. Phase 1: Synapse + bridges; Compose healthcheck/--wait owns readiness.
+    // 4. Docker Compose resolves the exact image topology; Docker Engine owns image-store state.
+    // Skip the sealed load only when the engine positively proves every exact candidate ref is already present.
     const baseArgs = matrixComposeBaseArgs(runtimeDir, [composeFile]);
+    const imageMaterialization = await matrixImagesAlreadyMaterialized(
+      runtimeDir, [composeFile], composeEnv, candidateCommit
+    );
+    if (imageMaterialization.allPresent) {
+      desktopLog('info', 'matrix-images-already-materialized', {
+        candidateCommit,
+        imageCount: imageMaterialization.imageRefs.length
+      });
+    } else {
+      desktopLog('info', 'matrix-images-loading', { candidateCommit });
+      await dockerExec(['load', '-i', imagesTarPath], { timeoutMs: 300000 });
+    }
+
+    // 5. Phase 1: Compose owns dependency/start completion. Do not wait for Synapse health here:
+    // Element only requires service_started, and the visible Product surface can begin while
+    // the same Compose owner continues the bounded Synapse health gate below.
     desktopLog('info', 'matrix-runtime-phase1-up', { project: MATRIX_COMPOSE_PROJECT });
     await dockerExec([
-      ...baseArgs, 'up', '-d', '--no-build', '--wait',
+      ...baseArgs, 'up', '-d', '--no-build',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
       'synapse', 'mautrix-meta', 'mautrix-whatsapp'
-    ], { timeoutMs: 300000, cwd: runtimeDir, env: composeEnv });
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
-    // 5. Discover the real dynamic Synapse host port (official: compose port).
+    // 6. Discover the real dynamic Synapse host port (official: compose port).
     const synapsePortResult = await dockerExec([...baseArgs, 'port', 'synapse', '8008'], { timeoutMs: 15000 });
     const synapseHostPort = composePort(synapsePortResult);
 
-    // 6. Project host-reachable Element config + Compose override.
+    // 7. Project host-reachable Element config + Compose override from that official port.
     const projection = projectMatrixRuntimeConfigs(runtimeStateRoot, sealedConfigDir, synapseHostPort);
     const allComposeFiles = [composeFile, projection.overridePath];
     const allArgs = matrixComposeBaseArgs(runtimeDir, allComposeFiles);
 
-    // 7. Phase 2: bring up Element with the projected config.
+    // 8. Start the full Compose project so Element can surface immediately after Synapse
+    // service_started. This is a start pass only; readiness authority stays with Compose below.
     desktopLog('info', 'matrix-runtime-phase2-up', { synapseHostPort });
     await dockerExec([
-      ...allArgs, 'up', '-d', '--no-build', '--wait', '--remove-orphans'
-    ], { timeoutMs: 300000, cwd: runtimeDir, env: composeEnv });
+      ...allArgs, 'up', '-d', '--no-build',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
+      '--remove-orphans'
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
-    // 8. Discover Element + mautrix-meta dynamic host ports.
+    // 9. Discover Element + mautrix-meta dynamic host ports and publish the real Product URL.
+    // Existing waitForElementShellReady follows getElementHealthUrl dynamically, so the already
+    // created BrowserWindow can load the real Element login surface without inventing a proxy.
     const elementPortResult = await dockerExec([...allArgs, 'port', 'element', '80'], { timeoutMs: 15000 });
     const elementHostPort = composePort(elementPortResult);
     const metaPortResult = await dockerExec([...allArgs, 'port', 'mautrix-meta', '29319'], { timeoutMs: 15000 });
@@ -3242,24 +3394,49 @@ async function ensureMatrixRuntime() {
     const mautrixProvisioningUrl = `http://127.0.0.1:${metaHostPort}/_matrix/provision`;
     process.env.YANCE_MAUTRIX_META_PROVISIONING_URL = mautrixProvisioningUrl;
 
-    // 9. Project host-reachable endpoints for the backend / renderer.
     const synapseUrl = `http://127.0.0.1:${synapseHostPort}`;
     const elementUrl = `http://127.0.0.1:${elementHostPort}`;
     process.env.YANCE_MATRIX_BASE_URL = synapseUrl;
     process.env.YANCE_ELEMENT_URL = elementUrl;
     process.env.YANCE_ELEMENT_HEALTH_URL = `${elementUrl}/config.json`;
     process.env.YANCE_PRODUCT_LOCATION_URL = `${elementUrl}/#/yance`;
-
     const endpoints = {
       synapse: { hostPort: synapseHostPort, url: synapseUrl },
       element: { hostPort: elementHostPort, url: elementUrl },
       mautrixMeta: { url: mautrixProvisioningUrl }
     };
     matrixRuntimeEphemeral = { runtimeDir, allComposeFiles, secretProjection, projection };
-    matrixRuntimeStarted = true;
     updateMatrixRuntimeEndpoints(endpoints);
-    desktopLog('info', 'matrix-runtime-ready', { synapseHostPort, elementHostPort });
-    return { started: true, endpoints, candidateCommit };
+    desktopLog('info', 'matrix-element-surface-published', { synapseHostPort, elementHostPort });
+
+    // 10. Compose remains the sole Synapse readiness owner. Backend launch stays downstream of
+    // ensureMatrixRuntime(), so Personal Access cannot become authoritative before this completes.
+    desktopLog('info', 'matrix-runtime-synapse-health-wait', { synapseHostPort });
+    await dockerExec([
+      ...allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
+      'synapse'
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
+
+    matrixRuntimeStarted = true;
+    desktopLog('info', 'matrix-runtime-ready', {
+      synapseHostPort,
+      elementHostPort,
+      composeVersion: composeWaitAuthority.version
+    });
+    void dockerExec([
+      ...allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
+      'mautrix-meta', 'mautrix-whatsapp'
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv }).then(() => {
+      desktopLog('info', 'matrix-bridge-readiness-complete', { composeVersion: composeWaitAuthority.version });
+    }).catch(error => {
+      desktopLog('warn', 'matrix-bridge-readiness-failed', {
+        reasonCode: error.reasonCode || error.code || 'MATRIX_BRIDGE_READINESS_FAILED',
+        message: error.message
+      });
+    });
+    return { started: true, endpoints, candidateCommit, composeVersion: composeWaitAuthority.version };
   } catch (error) {
     desktopLog('error', 'matrix-runtime-start-failed', {
       reasonCode: error.reasonCode || 'MATRIX_RUNTIME_START_FAILED',
@@ -3425,8 +3602,9 @@ async function waitForElementShellReady(options = {}) {
   const pollIntervalMs = Math.max(100, Number(options.pollIntervalMs || 400));
   const deadline = Date.now() + timeoutMs;
   let lastError = null;
-  const healthUrl = getElementHealthUrl();
+  let healthUrl = getElementHealthUrl();
   while (Date.now() < deadline && !quitting && !relaunchPending) {
+    healthUrl = getElementHealthUrl();
     try {
       const response = await fetch(healthUrl, {
         method: 'GET',
@@ -3456,10 +3634,10 @@ function createWindow() {
 
   const settings = settingsStore.read();
   const createdWindow = new BrowserWindow({
-    width: 1520,
-    height: 940,
-    minWidth: 1180,
-    minHeight: 720,
+    width: 860,
+    height: 580,
+    minWidth: 760,
+    minHeight: 520,
     show: false,
     backgroundColor: '#2A0F4A',
     title: STATIC_RELEASE_SOURCE.publicProductName,
@@ -3479,6 +3657,7 @@ function createWindow() {
     }
   });
   mainWindow = createdWindow;
+  createdWindow.center();
 
   createdWindow.on('close', event => {
     if (quitting) return;
@@ -3869,7 +4048,7 @@ async function deleteCredentialFromDesktop(ref, options = {}) {
 }
 
 function registerIpc() {
-  installR32StoreBridge({ ipcMain, apiRequest });
+  installR32StoreBridge({ ipcMain: storeBridgeIpcMain(), apiRequest });
   registerM2DebugIpc();
   ipcGuardHandle('desktop:get-state', () => desktopState());
   ipcGuardHandle('desktop:letta-get-state', async () => projectLettaRendererState(ensureLettaAgentRuntime().snapshot()));
@@ -4382,10 +4561,30 @@ if (!app.requestSingleInstanceLock()) {
     createTray();
     createSoundWindow();
     try {
+      let initialActivation = null;
+      if (!DESKTOP_SMOKE && !MEMORY_SOAK && !wp7ProbeRequested()) {
+        scheduleTrayRefresh();
+        createWindow();
+        const settings = settingsStore.read();
+        const hidden = process.argv.includes('--hidden');
+        if (INITIAL_DESKTOP_LAUNCH_INTENT.forceVisible || (!settings.startMinimized && !hidden)) {
+          const activationReason = INITIAL_DESKTOP_LAUNCH_INTENT.postInstall ? 'post-install' : INITIAL_DESKTOP_LAUNCH_INTENT.deepLink ? 'deep-link-initial' : 'initial-launch';
+          initialActivation = activateMainWindow(activationReason, INITIAL_DESKTOP_LAUNCH_INTENT.payload);
+          initialActivation.catch(error => logMainWindowActivationFailure(activationReason, error));
+        }
+      }
       await ensureMatrixRuntime();
-      await ensureLettaAgentRuntime().start();
-      await launchBackend();
+      const lettaStartup = ensureLettaAgentRuntime().start();
+      lettaStartup.catch(error => {
+        desktopLog('warn', 'letta-runtime-start-failed', {
+          reasonCode: error.reasonCode || error.code || 'LETTA_RUNTIME_START_FAILED',
+          message: error.message
+        });
+      });
+      const backendStartup = launchBackend();
+      backendStartup.catch(() => {});
       if (wp7ProbeRequested()) {
+        await Promise.all([lettaStartup, backendStartup]);
         const probeResult = await runWp7InstalledRuntimeProbe();
         desktopLog('info', 'wp7-installed-runtime-probe-complete', {
           probeId: probeResult?.probeId || String(process.env.WP7_PROBE_ID || ''),
@@ -4394,15 +4593,13 @@ if (!app.requestSingleInstanceLock()) {
         await completeWp7ProbeAndExit(0);
         return;
       }
-      scheduleTrayRefresh();
-      createWindow();
-      if (!DESKTOP_SMOKE && !MEMORY_SOAK) {
-        const settings = settingsStore.read();
-        const hidden = process.argv.includes('--hidden');
-        if (INITIAL_DESKTOP_LAUNCH_INTENT.forceVisible || (!settings.startMinimized && !hidden)) {
-          await activateMainWindow(INITIAL_DESKTOP_LAUNCH_INTENT.postInstall ? 'post-install' : INITIAL_DESKTOP_LAUNCH_INTENT.deepLink ? 'deep-link-initial' : 'initial-launch', INITIAL_DESKTOP_LAUNCH_INTENT.payload);
-        }
+      if (DESKTOP_SMOKE || MEMORY_SOAK) {
+        scheduleTrayRefresh();
+        createWindow();
       }
+      if (initialActivation) await initialActivation;
+      await backendStartup;
+      if (DESKTOP_SMOKE || MEMORY_SOAK) await lettaStartup;
       refreshNotificationSettings();
       if (soundSettingsSyncTimer) clearInterval(soundSettingsSyncTimer);
       soundSettingsSyncTimer = setInterval(refreshNotificationSettings, 20000);

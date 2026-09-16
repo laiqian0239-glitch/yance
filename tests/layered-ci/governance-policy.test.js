@@ -297,10 +297,11 @@ test('Product reconciliation bootstrap identities use exact L2 while adjacent Pr
     'integration/element-module/src/product-experience/ProductConversationProjection.tsx',
     'upstream-patches/element-web/0015-yance-module-location-navigation.patch',
     'upstream-patches/element-web/0016-yance-composer-accessory-slot.patch',
-    'upstream-patches/element-web/0018-yance-post-login-security-shell.patch'
+    'upstream-patches/element-web/0018-yance-post-login-security-shell.patch',
+    'upstream-patches/element-web/0019-yance-module-openid-token.patch'
   ];
 
-  assert.equal(new Set(targetPaths).size, 5);
+  assert.equal(new Set(targetPaths).size, 6);
   for (const file of targetPaths) {
     const result = classifyChangedFiles(risk, [file]);
     assert.equal(result.pass, true, `${file}: ${JSON.stringify(result)}`);
@@ -390,6 +391,7 @@ test('adaptive local LLM risk identities use exact L2 without broad-prefix expan
     'upstream-patches/element-web/0016-yance-composer-accessory-slot.patch',
     'upstream-patches/element-web/0017-yance-product-conversation-control.patch',
     'upstream-patches/element-web/0018-yance-post-login-security-shell.patch',
+    'upstream-patches/element-web/0019-yance-module-openid-token.patch',
     'vendor/electron/electron-v39.8.5-win32-x64.zip',
     'vendor/npm/_at_electron-internal__extract-zip-1.0.3.tgz',
     'vendor/npm/_at_electron__get-5.0.0.tgz',

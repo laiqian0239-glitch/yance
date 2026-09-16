@@ -1,0 +1,331 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WINDOW-FIRST-FRAME-LIFECYCLE-P0-SUCCESSOR-V4",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization after local production-equivalent timing proved the compact first frame is sub-second but the real Element login surface still waits about 23 seconds because Yance waits for Synapse health before Phase 2 starts Element. A clean official Docker Compose probe proved Synapse service_started at 2.382s, Element config-ready at 3.578s, and Synapse health at 12.798s. Preserve mature authority by keeping Docker Compose as the sole Matrix/Element lifecycle and health owner, projecting the same sealed Element config only after Compose exposes the real Synapse port, starting Element through Compose before the Synapse health wait, and keeping backend/login submission gated on the existing full Matrix readiness path. Keep the user-approved compact 860x580 window size unchanged; add no shadow auth, queue, retry loop, port allocator, proxy, or readiness mirror.",
+  "base": {
+    "branch": "main",
+    "commit": "d57570df32476e046f0becc48f89ef4500feeacc",
+    "tree": "89fff68b9d0e38a782e8a9a80529799970f1ee81",
+    "productSourcePredecessor": "068533f323e36d8d70ceab724f46cfc6a04ab155",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "requiredFirstParent": "d57570df32476e046f0becc48f89ef4500feeacc",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-window-first-frame-lifecycle-p0-successor-v4-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-window-first-frame-lifecycle-p0-successor-v4-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "f90ebabd94ecc5bb06b79117f1037b9448efc87b143db121d8df6133e184a800",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-window-first-frame-lifecycle-p0-successor-v4",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-model-brain-p0-windows.yml",
+      "electron/main.js",
+      "electron/mainWindowActivationController.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "85561f77ea771cf24eeded5fde7052d8e7f8d5fbd28a236b36274b966b28ef20",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-model-brain-p0-windows.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "9f33f7160c3495119793d7342637bba27423f56b11e534c09be4180417746c7f"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "evidence": {
+    "controllerState": "V5.517",
+    "controllerCommentId": 5697373164,
+    "currentMain": "d57570df32476e046f0becc48f89ef4500feeacc",
+    "matrixSuccessorImplementationPullRequest": 1271,
+    "matrixSuccessorExactHead": "068533f323e36d8d70ceab724f46cfc6a04ab155",
+    "modelBrainAcquisitionAuthorizationPullRequest": 1272,
+    "modelBrainAcquisitionAuthorizationMerge": "0ad02614534ea0c208285b9fe1c85fcdc2ac80c0",
+    "installedReproduction": {
+      "buildSourceCommit": "a88f99ea1f25bbb191dac05b87a8e71fe9d0338d",
+      "browserWindow": "1520x940 min 1180x720",
+      "desktopLogFacts": [
+        "matrix-images-loading -> phase1-up about 50 seconds on the installed candidate",
+        "tray activation reported DESKTOP_RENDERER_READY_TIMEOUT while startup was still incomplete",
+        "backend startup failed SERVER_LISTEN_FAILED after launch"
+      ],
+      "serverLogFacts": [
+        "server-listen-failed EADDRINUSE at 2026-09-16T15:06:10.169Z",
+        "server-listen-failed EADDRINUSE at 2026-09-16T15:07:53.793Z"
+      ],
+      "portOwner": "controller test overlay backend PID 26788 from C:/YanceController/matrix-secret-successor-overlay occupied 127.0.0.1:27632",
+      "cleanup": "controller overlay process tree removed; 27632 no longer has a LISTENING owner"
+    },
+    "predecessorLocalGreens": [
+      "Matrix WP0 materialized UAT 28/28 PASS",
+      "activation controller 11/11 PASS",
+      "surviving-Synapse secret identity preserved",
+      "stored-key Personal Access login returned ENTITLEMENT_VALID and Matrix /login HTTP 200"
+    ],
+    "governanceValidatorGreen": "PR #1272 exact head f443dc520e86fce2449e8c7ba5bc301cd46d593e all checks GREEN before ordinary merge",
+    "predecessorWindowAuthorizationPullRequest": 1273,
+    "predecessorWindowAuthorizationMerge": "d57570df32476e046f0becc48f89ef4500feeacc",
+    "coldStartTimingProof": {
+      "firstWindowMs": 776,
+      "existingLoginDomMsApprox": 23000,
+      "composeSynapseServiceStartedMs": 2382,
+      "composeElementHttpReadyMs": 3578,
+      "composeSynapseHealthyMs": 12798,
+      "trayRestoreMs": 260,
+      "secondInstanceActivationLatencyMs": 38
+    }
+  },
+  "rootCause": {
+    "locked": true,
+    "id": "MATRIX_ELEMENT_STARTUP_CRITICAL_PATH / PRE_HEALTH_ELEMENT_SURFACE_BLOCKED_BY_YANCE_SEQUENCE",
+    "evidence": [
+      "The shipped candidate creates the main BrowserWindow at 1520x940 with min 1180x720, directly causing the oversized login surface.",
+      "electron/main.js awaits ensureMatrixRuntime() before createWindow(), so the Element-owned login surface cannot become visible until the full Matrix startup critical path has completed.",
+      "Electron requestSingleInstanceLock is correctly scoped to one userData domain; the controller overlay intentionally used a distinct --user-data-dir, so it was a separate valid Electron instance.",
+      "The controller overlay nevertheless reused the production default backend port 27632. The installed backend then failed with EADDRINUSE; renderer/tray timeouts were downstream symptoms, not the first root.",
+      "The existing YANCE_PORT environment seam already provides backend endpoint isolation; a new allocator or cross-profile global lock would duplicate authority and is forbidden.",
+      "PR #1271 already contains the hidden-loaded-window activation recovery needed for close-to-tray/second-instance activation; it remains part of the successor carry-forward.",
+      "The compact BrowserWindow is visible in 776ms, so Electron first-frame creation is no longer the cold-start bottleneck.",
+      "The real Element login DOM begins only after Matrix runtime endpoints are published, about 23 seconds after process start in the production-equivalent cold run.",
+      "A clean official Compose-only timing probe started Synapse at 2.382s, made Element HTTP ready at 3.578s, and reported Synapse healthy at 12.798s.",
+      "Element depends on Synapse service_started rather than service_healthy; current Yance sequencing unnecessarily waits for Synapse health before starting Element."
+    ]
+  },
+  "causalBatch": {
+    "oneRoot": true,
+    "scope": [
+      "Carry PR #1271 four product paths forward as the predecessor basis, retaining its Matrix secret preservation, image-materialization skip, and hidden-loaded-window activation recovery.",
+      "Carry the authorized Model Brain workflow transport repair from #1272 using mature curl.exe only.",
+      "In electron/main.js, replace the oversized initial BrowserWindow projection with a compact approximately quarter-desktop login window target (860x580, with a compact safe minimum) while keeping standard resizability and native window controls.",
+      "Reorder only the Electron first-frame sequencing so the main window/activation attempt is created before the long Matrix/backend critical path, while Element remains the login/session UI owner and backend launch still waits for Matrix endpoint materialization.",
+      "Do not make the early window a second auth implementation: no local HTML login clone, no new Matrix login/session state, no credential mirror.",
+      "Treat the observed 27632 conflict as controller/harness contamination: future non-default userData overlays must use the existing explicit YANCE_PORT seam and must not reuse the production default; no production port allocator or global cross-profile singleton is added.",
+      "Within electron/main.js ensureMatrixRuntime, after the existing official Compose synapse start command returns and compose port exposes the real dynamic host port, immediately project the sealed Element config and start Element through official Docker Compose before waiting for Synapse health.",
+      "Keep Synapse health readiness owned by Docker Compose and keep backend launch behind the existing full Matrix runtime readiness; early Element presentation must not make invitation submission authoritative before mature Matrix/backend readiness.",
+      "Freeze the user-approved compact window target at 860x580; do not enlarge the startup login window as a workaround for layout or timing."
+    ],
+    "mustNotExpandTo": [
+      "backend/server.js or backend lifecycle authority",
+      "Docker Compose service ownership, custom container supervisor, custom health state, or Matrix/session authority",
+      "Element login/session implementation or a duplicate Electron login page",
+      "custom port allocator, dynamic port registry, global mutex across intentionally separate userData domains, port retry loop, or fallback listener",
+      "timeout increases, renderer timeout masking, same-head CI rerun, package/lockfile/dependency changes",
+      "additional production/test/workflow paths beyond the exact five authorized paths",
+      "queued invitation submission, optimistic login state, custom readiness mirror, synthetic health authority, reverse proxy, or local Matrix endpoint surrogate",
+      "changing the compact 860x580 startup window larger without new user authorization"
+    ]
+  },
+  "authorityPreservation": {
+    "electronNativeWindowOwner": "Electron BrowserWindow and app.requestSingleInstanceLock remain the only native window/same-userData instance owners",
+    "matrixLifecycleOwner": "Docker Compose public CLI remains the sole Matrix/Element start/dependency/health/materialization owner; Yance only sequences service_started -> Element projection/start -> existing Compose health wait.",
+    "matrixSessionOwner": "Synapse and Element/Matrix retain JWT/session/login/crypto/timeline/composer/send/recovery authority; no login is queued or accepted before their mature runtime is ready.",
+    "backendEndpointOwner": "existing YANCE_PORT startup contract remains the endpoint configuration seam; production default stays unchanged",
+    "modelBrainTransportOwner": "curl.exe public CLI built-in redirect/retry semantics with existing exact URL/SHA pins",
+    "secondOwnerAdded": false,
+    "customPortAllocatorAdded": false,
+    "customRetryLoopAdded": false,
+    "shadowLoginAdded": false,
+    "parallelLifecycleAdded": false
+  },
+  "closureMatrix": {
+    "unknownBlockersMustEqual": 0,
+    "rows": [
+      {
+        "boundary": "Compact login first frame",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Electron BrowserWindow initial presentation is approximately quarter-desktop instead of 1520x940, with no login clone."
+      },
+      {
+        "boundary": "Startup critical path",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Window creation/activation begins before Matrix/backend completion; backend launch remains after mature Matrix endpoint materialization."
+      },
+      {
+        "boundary": "Close-to-tray / second-instance activation",
+        "classification": "CARRY_FORWARD_LOCAL_GREEN",
+        "closure": "Retain PR #1271 hidden-loaded existing-window probe and exact activation regression."
+      },
+      {
+        "boundary": "Backend port collision",
+        "classification": "HARNESS_CONTAMINATION_CLOSED",
+        "closure": "Controller overlay occupying 27632 was removed; future isolated overlays use existing YANCE_PORT rather than adding product port authority."
+      },
+      {
+        "boundary": "Matrix secret/session root",
+        "classification": "CARRY_FORWARD_LOCAL_GREEN",
+        "closure": "Retain PR #1271 exact secret preservation semantics and stored-key login proof."
+      },
+      {
+        "boundary": "Model Brain acquisition",
+        "classification": "CARRY_FORWARD_AUTHORIZED_REPAIR",
+        "closure": "Use mature curl transport under the already approved workflow path with exact pins unchanged."
+      },
+      {
+        "boundary": "Cold-start Element login surface",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Element starts through the same Docker Compose project immediately after Synapse service_started/port discovery instead of waiting for Synapse health; Compose health and backend readiness remain authoritative."
+      }
+    ]
+  },
+  "negativeProofs": [
+    "No second Matrix login/session implementation.",
+    "No custom port allocator, port registry, cross-profile global mutex, listener retry, or fallback backend.",
+    "No Docker Compose lifecycle or health ownership replacement.",
+    "No timeout increase or CSS/DOM masking of startup failures.",
+    "No backend source, Element source, package, lockfile, dependency, CI routing, or gate weakening.",
+    "No same-head rerun of frozen #1271.",
+    "No queued or mirrored invitation/login state while Synapse is still becoming healthy.",
+    "No custom service-health poller replaces Docker Compose --wait.",
+    "No Element reverse proxy or alternate Matrix endpoint is introduced."
+  ],
+  "localAcceptance": [
+    "Authorization ordinary-merges from exact fresh main d57570df32476e046f0becc48f89ef4500feeacc.",
+    "Implementation starts from that merge and carries the exact v3 five-path product/workflow diff forward before adding only the authorized Compose sequencing delta in electron/main.js and its existing WP0 regression file.",
+    "Initial BrowserWindow remains 860x580 with the existing compact minimum; no enlargement is introduced.",
+    "Source ordering proves createWindow/activation begins before ensureMatrixRuntime(), and inside ensureMatrixRuntime official Compose synapse service_started/port discovery precedes Element projection/start, while Synapse health and backend launch remain downstream gates.",
+    "No local Electron-auth clone, login queue, custom health mirror, proxy, custom port allocator, fallback runtime, or timeout increase exists.",
+    "Activation regression, materialized UAT contract, Model Brain source contract, node --check, and git diff --check are GREEN.",
+    "Clean official Compose timing proof shows Element HTTP ready materially before Synapse health (reference: 3.578s vs 12.798s on owner machine).",
+    "Production-equivalent isolated overlay uses explicit non-production YANCE_PORT, shows the real Element login DOM substantially earlier than the prior ~23s cold result, preserves no-invitation-consumption, and still proves close-to-tray/second-instance restore without EADDRINUSE or DESKTOP_RENDERER_READY_TIMEOUT."
+  ],
+  "requiredValidation": {
+    "localClosure": [
+      "carry-forward/delta audit against #1271 exact head and #1272 authorized workflow intent",
+      "node --test tests/desktop-fixes/main-window-activation-controller.test.js",
+      "node --test tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "node --test tests/wp0/v21-model-brain-p0.test.js",
+      "node --check electron/main.js",
+      "node --check electron/mainWindowActivationController.js",
+      "git diff --check",
+      "production-equivalent isolated overlay with explicit non-production YANCE_PORT: compact first frame and close-to-tray activation proof without invitation consumption",
+      "official Compose clean-project sequencing proof: Synapse service_started -> dynamic port -> projected Element config -> Element HTTP ready before Synapse health",
+      "production-equivalent cold overlay timing: real Element login DOM appears materially earlier than the prior ~23s result while backend remains gated on full Matrix readiness"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2/WP-A when routed",
+      "V21 Model Brain P0 Windows sealed-model-brain-runtime"
+    ],
+    "successorPromotion": [
+      "ordinary implementation merge after one exact-head GREEN validator event",
+      "same-tree materialization",
+      "one successor Windows RC",
+      "final artifact/window identity audit",
+      "one Full Windows UAT",
+      "Release"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "productionUseAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "ossFit": {
+    "decision": "REUSE_DOCKER_COMPOSE_SERVICE_STARTED_AND_HEALTH_PUBLIC_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "reviewedCandidates": [
+      {
+        "name": "Electron",
+        "source": "existing BrowserWindow and app.requestSingleInstanceLock",
+        "license": "MIT",
+        "adoptionMode": "public-api",
+        "fit": "FIT",
+        "reason": "Native window sizing, visibility and same-userData activation remain owned by Electron."
+      },
+      {
+        "name": "Docker Compose",
+        "source": "existing matrix runtime lifecycle",
+        "license": "Apache-2.0",
+        "adoptionMode": "public-cli",
+        "fit": "FIT",
+        "reason": "Matrix/Element startup and materialization remain on the selected mature owner."
+      },
+      {
+        "name": "existing YANCE_PORT startup contract",
+        "source": "electron/main.js + BackendProcessHost startup protocol",
+        "license": "repository seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already provides explicit endpoint isolation for controller overlays without a new allocator."
+      },
+      {
+        "name": "curl",
+        "source": "Windows/GitHub runner public CLI",
+        "license": "curl license",
+        "adoptionMode": "public-cli",
+        "fit": "FIT",
+        "reason": "Carry the previously authorized transport repair unchanged."
+      }
+    ],
+    "retireOrAvoid": [
+      "Oversized 1520x940 login first-frame default.",
+      "Blocking BrowserWindow creation behind the full Matrix readiness path.",
+      "Controller overlays reusing production backend port 27632.",
+      "Any duplicate login renderer, custom port allocator, retry loop, mirror, or fallback authority.",
+      "Waiting for Synapse service_healthy before starting the static Element login surface when Compose already exposes service_started and the dynamic port.",
+      "Any Yance-owned substitute for Compose dependency or health authority."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-window-first-frame-lifecycle-p0-successor-v3-authorization.json",
+    "implementationBranch": "fix/v21-window-first-frame-lifecycle-p0-successor-v3",
+    "reason": "PR #1273 authorization merged and its implementation was locally exercised but not committed, pushed, or promoted. Production-equivalent cold timing then proved a remaining same-root startup critical-path blocker: Yance waits for Synapse health before starting Element even though the mature Compose topology only requires service_started. Supersede v3 so the exact five-path carry-forward plus this narrower Compose sequencing correction land once in one implementation head."
+  }
+}

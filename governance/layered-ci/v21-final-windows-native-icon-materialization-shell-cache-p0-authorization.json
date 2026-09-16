@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-WINDOWS-NATIVE-ICON-MATERIALIZATION-SHELL-CACHE-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization for Controller State V5.363 after the sole successor Full Windows UAT froze on FIRST RED: the desktop shortcut still displayed the retired teal frontend icon. Evidence audit proves one native identity boundary with two same-root defects: formal Final Builder does not consume the existing assertBranding() PE readback verifier on the actual final Yance.exe, and NSIS replaces the same installed executable/shortcut paths without notifying the mature Windows Shell cache authority through SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, ...). This authorization preserves canonical assets/branding/yance as the only brand SSOT, pinned rcedit/NSIS as native materialization mechanics, and Windows Shell as cache/display authority. No shortcut-specific icon authority, cache helper, fallback, mirror state, new dependency, or second lifecycle is introduced.",
+  "base": {
+    "branch": "main",
+    "commit": "288df7b368c5184d725500c7f6eed26cafd7b50e",
+    "tree": "6dfc1b788728f0da06fd103cae3db7dbc36cef66",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "controller": {
+    "state": "V5.363",
+    "commentId": 5650430989,
+    "frozenRcRunId": 34721401586,
+    "frozenArtifactId": 10307390242,
+    "frozenArtifactDigest": "sha256:c2e1526125d24e0a11f111e16a587544f89beac4382e3c646b506ba1cdb73b61",
+    "frozenInstallerSha256": "87a4e05e4458262c4e760b75d26d766ec6681896a26cf2891e30dd0674bdfd0c",
+    "uatStatus": "FROZEN_FIRST_RED"
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-windows-native-icon-materialization-shell-cache-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-windows-native-icon-materialization-shell-cache-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "rebuild/windows-release-closure-20260913-final-windows-native-icon-materialization-shell-cache-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      "installer/wp7/YanceFinalInstaller.nsi",
+      "tools/wp7/run-windows-final-builder.js",
+      "tests/wp7/wp7-installer-branding-ux.test.js",
+      "tests/wp7/wp7-windows-final-builder-runner.test.js"
+    ],
+    "approvedChangedFileCount": 4,
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": true,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "databaseMigrationAllowed": false,
+    "newGeneralPurposeYanceInfrastructureAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "causalBatch": {
+    "rootCause": "FINAL_WINDOWS_NATIVE_ICON_MATERIALIZATION_AND_SHELL_CACHE_INVALIDATION_CLOSURE_FAILURE",
+    "requiredClosure": [
+      "Formal Final Builder must consume existing tools/wp7/pe-resource-editor.js assertBranding() on the actual materialized Yance.exe before PASS/seal, including embedded RT_ICON equality to canonical assets/branding/yance/generated/Yance.ico and existing VERSIONINFO/code-image checks.",
+      "Formal Final Builder must also read back the final NSIS installer RT_ICON through existing PE icon extraction functions and prove it equals the same canonical ICO before PASS/seal.",
+      "NSIS must preserve shortcut target/DisplayIcon authority on installed Yance.exe and, after transactional promotion plus shortcut/registry creation, notify the mature Windows Shell of changed same-path items using SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, ...).",
+      "Notify installed Yance.exe, desktop shortcut and Start Menu product shortcut only; do not use SHCNE_ASSOCCHANGED, broad cache demolition, shortcut-specific icon files, custom icon cache state or helper-owned lifecycle.",
+      "Existing tests must fail if final PE readback is omitted, if retired frontend/assets/icon.* re-enters the production path, or if the NSIS shell-update notification is removed.",
+      "Before Exact Head, local/materialized proof must cover final Yance.exe RT_ICON, installer RT_ICON, desktop/Start Menu shortcut authority, Apps & Features DisplayIcon, Tray/BrowserWindow canonical alias, and no retired icon authority in the production chain."
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_CANONICAL_BRAND_RCEDIT_NSIS_PE_VERIFIER_AND_WINDOWS_SHELL_AUTHORITIES",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-and-platform-public-seams",
+    "reviewedCandidates": [
+      {
+        "name": "Existing WP7 PE branding verifier",
+        "source": "tools/wp7/pe-resource-editor.js::assertBranding/extractIconImageSet",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "It already reads actual PE resources, compares embedded RT_ICON content with the approved ICO, validates VERSIONINFO and preserves Electron code-image trust. The correct fix is to consume it in Final Builder, not create a second PE parser."
+      },
+      {
+        "name": "Windows Shell change-notification authority",
+        "source": "Shell32 SHChangeNotify / SHCNE_UPDATEITEM / SHCNF_PATH",
+        "adoptionMode": "official-platform-api",
+        "fit": "FIT",
+        "reason": "Windows Shell owns item/icon caching. The narrow public seam for an existing item whose cached data changed is SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, fullpath, NULL)."
+      },
+      {
+        "name": "NSIS installer mechanics",
+        "source": "installer/wp7/YanceFinalInstaller.nsi",
+        "adoptionMode": "mature-upstream-installer-seam",
+        "fit": "FIT",
+        "reason": "NSIS remains responsible only for transactional install, registry/shortcut creation and platform notification after those writes."
+      },
+      {
+        "name": "Canonical Yance branding authority",
+        "source": "assets/branding/yance",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The canonical generated ICO and runtime alias are byte-identical and remain the sole icon source for EXE, installer, Tray and BrowserWindow."
+      }
+    ],
+    "retireOrAvoid": [
+      "Do not reintroduce frontend/assets/icon.ico or frontend/assets/icon.png into any production materialization path.",
+      "Do not add shortcut-specific icon files or a third brand asset authority.",
+      "Do not implement a custom Windows icon cache, cache state file, retry loop, Explorer restart, ie4uinit helper, or broad icon-cache deletion.",
+      "Do not use SHCNE_ASSOCCHANGED for this item update; consume the narrow SHCNE_UPDATEITEM seam.",
+      "Do not create a second PE parser/verifier; consume existing assertBranding/extractIconImageSet tooling."
+    ]
+  },
+  "authorityPreservation": {
+    "brandOwner": "assets/branding/yance",
+    "peMaterializationOwner": "pinned rcedit plus existing WP7 Final Builder",
+    "installerMechanicsOwner": "NSIS",
+    "shellCacheDisplayOwner": "Windows Shell",
+    "newSecondOwner": false,
+    "mirrorState": false,
+    "parallelLifecycle": false,
+    "customFallback": false,
+    "statefulAdapter": false
+  },
+  "localAcceptance": [
+    "Changed paths are exactly the four implementation paths and no others.",
+    "Final Builder cannot return PASS unless actual materialized Yance.exe embedded RT_ICON matches canonical generated Yance.ico through existing assertBranding().",
+    "Final Builder cannot return PASS unless actual materialized installer embedded RT_ICON image set matches the same canonical generated Yance.ico through existing PE extraction tooling.",
+    "NSIS keeps desktop/Start Menu shortcuts and Apps & Features DisplayIcon bound to installed Yance.exe and emits narrow SHCNE_UPDATEITEM notifications for the installed executable and recreated product shortcuts after transactional commit.",
+    "No production-code reference to frontend/assets/icon.* exists.",
+    "Existing canonical alias verification remains GREEN and no second brand authority is added.",
+    "Focused WP7 branding/final-builder tests, source regressions, verify:wp0 and WP7 source closure are GREEN before Exact Head.",
+    "Final materialized Windows proof reads the actual PE resources before promotion.",
+    "unknownBlockers=0 before Exact Head."
+  ],
+  "closureAdmission": {
+    "unknownBlockers": "PENDING_IMPLEMENTATION_AND_LOCAL_CLOSURE",
+    "exactHeadForbiddenUntilLocalClosure": true,
+    "ciRole": "VALIDATOR_NOT_DEBUGGER",
+    "uatRole": "FINAL_PROOF_NOT_DEBUGGER"
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "productionUseAuthorized": false,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "forcePushAllowed": false,
+    "rebaseAllowed": false,
+    "amendAllowed": false,
+    "squashAllowed": false,
+    "gateWeakeningAllowed": false
+  },
+  "mergePolicy": {
+    "ordinaryMergeOnly": true,
+    "mergeMethod": "merge",
+    "squashForbidden": true,
+    "rebaseForbidden": true,
+    "forcePushForbidden": true,
+    "amendPublishedHistoryForbidden": true,
+    "exactReviewedHeadRequired": true,
+    "freshMainCheckImmediatelyBeforeMergeRequired": true
+  }
+}

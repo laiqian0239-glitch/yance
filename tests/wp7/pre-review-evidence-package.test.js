@@ -6,10 +6,14 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { FORMAL_PROBE_IDS } = require('../../shared/wp7/formalProbeIds');
+const {
+  ENTITLED_PRODUCT_PROBE_IDS,
+  FORMAL_PROBE_IDS,
+  PRE_ENTITLEMENT_PROBE_IDS
+} = require('../../shared/wp7/formalProbeIds');
 const { measurementFor } = require('./installed-runtime-probe-fixtures');
 const { createPreReviewSealedArtifact, SEALED_ARTIFACT_TYPE } = require('../../tools/wp7/pre-review-sealed-artifact');
-const { validateNineProbeRawEvidence } = require('../../tools/wp7/pre-review-evidence-package');
+const { validatePreEntitlementProbeRawEvidence } = require('../../tools/wp7/pre-review-evidence-package');
 
 function hash(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 function writeJson(filePath, document) {
@@ -32,8 +36,8 @@ function createFixture() {
   const seal = createPreReviewSealedArtifact(sealPath, identity);
   const rows = [];
   const now = '2026-07-06T10:01:00.000Z';
-  for (let index = 0; index < FORMAL_PROBE_IDS.length; index += 1) {
-    const probeId = FORMAL_PROBE_IDS[index];
+  for (let index = 0; index < PRE_ENTITLEMENT_PROBE_IDS.length; index += 1) {
+    const probeId = PRE_ENTITLEMENT_PROBE_IDS[index];
     const probeRoot = path.join(root, 'runs', probeId);
     const nonce = `123e4567-e89b-42d3-a456-${String(index).padStart(12, '0')}`;
     const pid = 1000 + index;
@@ -85,7 +89,7 @@ function createFixture() {
     });
   }
   const aggregate = {
-    schemaVersion: 2, documentType: 'WP7_PACKAGED_YANCE_NINE_PROBE_INTEGRATION_RESULT', status: 'PASS', generatedAtUtc: now,
+    schemaVersion: 3, documentType: 'WP7_PACKAGED_YANCE_PRE_ENTITLEMENT_PROBE_INTEGRATION_RESULT', status: 'PASS', generatedAtUtc: now,
     executionClass: 'PRE_REVIEW_PACKAGED_INTEGRATION', formalWindowsEvidenceEligible: false, actualPlatform: 'linux', actualArch: 'x64',
     electronVersion: '39.8.5', electronReleaseArchiveFileName: 'electron-v39.8.5-linux-x64.zip', electronReleaseArchiveSha256: h,
     productExecutableFileName: 'Yance', productExecutableSha256: h, packagedPayloadClass: 'TRUSTED_PRODUCT_ARCHIVE_PAYLOAD',
@@ -98,20 +102,26 @@ function createFixture() {
     buildSessionId: identity.buildSessionId, preReviewSealedArtifactFileName: path.basename(sealPath), preReviewSealedArtifactSha256: seal.sha256,
     preReviewSealedArtifactType: SEALED_ARTIFACT_TYPE, artifactClass: 'WP7_PRE_REVIEW_ONLY', finalReleaseEvidence: false,
     buildId: identity.buildId, sourceCommit: identity.sourceCommit, sourceTree: identity.sourceTree,
-    formalProbeScopePath: 'governance/wp7/trusted-product-probe-scope.json', networkIsolationSourceSha256: h, networkIsolationLibrarySha256: h,
-    requiredProbeIds: [...FORMAL_PROBE_IDS], executedProbeCount: FORMAL_PROBE_IDS.length, probeResults: rows
+    formalProbeScopePath: 'governance/wp7/formal-trusted-product-probe-scope.json',
+    formalProbeIds: [...FORMAL_PROBE_IDS], preEntitlementProbeIds: [...PRE_ENTITLEMENT_PROBE_IDS],
+    entitledProductProbeIds: [...ENTITLED_PRODUCT_PROBE_IDS],
+    entitledProductProbeStatus: 'DEFERRED_REQUIRES_REAL_PERSONAL_ACCESS_PRODUCT_ENTITLEMENT',
+    preReviewScopeComplete: true,
+    networkIsolationSourceSha256: h, networkIsolationLibrarySha256: h,
+    requiredProbeIds: [...PRE_ENTITLEMENT_PROBE_IDS], executedProbeCount: PRE_ENTITLEMENT_PROBE_IDS.length, probeResults: rows
   };
-  const aggregatePath = path.join(root, 'nine-fresh-final-result.json');
+  const aggregatePath = path.join(root, 'pre-entitlement-probe-result.json');
   writeJson(aggregatePath, aggregate);
   return { root, sealPath, aggregatePath, aggregate };
 }
 
-test('complete nine-probe raw evidence validates every result, log, custody, context and offline proof', () => {
+test('complete pre-entitlement raw evidence validates all six results, logs, custody, context and offline proof while preserving the three entitled probes', () => {
   const fixture = createFixture();
   try {
-    const result = validateNineProbeRawEvidence({ evidenceRoot: fixture.root, aggregateRelativePath: 'nine-fresh-final-result.json', sealedArtifactPath: fixture.sealPath });
-    assert.equal(result.aggregate.executedProbeCount, 9);
-    assert.equal(result.artifactRecords.length, 47);
+    const result = validatePreEntitlementProbeRawEvidence({ evidenceRoot: fixture.root, aggregateRelativePath: 'pre-entitlement-probe-result.json', sealedArtifactPath: fixture.sealPath });
+    assert.equal(result.aggregate.executedProbeCount, 6);
+    assert.deepEqual(result.aggregate.entitledProductProbeIds, [...ENTITLED_PRODUCT_PROBE_IDS]);
+    assert.equal(result.artifactRecords.length, 32);
   } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
@@ -119,7 +129,7 @@ test('missing raw stdout evidence is rejected', () => {
   const fixture = createFixture();
   try {
     fs.rmSync(path.join(fixture.root, fixture.aggregate.probeResults[0].stdoutPath));
-    assert.throws(() => validateNineProbeRawEvidence({ evidenceRoot: fixture.root, aggregateRelativePath: 'nine-fresh-final-result.json', sealedArtifactPath: fixture.sealPath }), (error) => error?.reasonCode === 'WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING');
+    assert.throws(() => validatePreEntitlementProbeRawEvidence({ evidenceRoot: fixture.root, aggregateRelativePath: 'pre-entitlement-probe-result.json', sealedArtifactPath: fixture.sealPath }), (error) => error?.reasonCode === 'WP7_TRUSTED_PRODUCT_RAW_PROBE_EVIDENCE_MISSING');
   } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
 
@@ -128,6 +138,6 @@ test('temporary absolute path references in the aggregate are rejected', () => {
   try {
     fixture.aggregate.probeResults[0].stdoutPath = '/tmp/runtime-oai/stdout.log';
     writeJson(fixture.aggregatePath, fixture.aggregate);
-    assert.throws(() => validateNineProbeRawEvidence({ evidenceRoot: fixture.root, aggregateRelativePath: 'nine-fresh-final-result.json', sealedArtifactPath: fixture.sealPath }), (error) => error?.reasonCode === 'WP7_PRE_REVIEW_EVIDENCE_PATH_INVALID');
+    assert.throws(() => validatePreEntitlementProbeRawEvidence({ evidenceRoot: fixture.root, aggregateRelativePath: 'pre-entitlement-probe-result.json', sealedArtifactPath: fixture.sealPath }), (error) => error?.reasonCode === 'WP7_PRE_REVIEW_EVIDENCE_PATH_INVALID');
   } finally { fs.rmSync(fixture.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); }
 });
