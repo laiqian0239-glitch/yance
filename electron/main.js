@@ -4563,6 +4563,7 @@ if (!app.requestSingleInstanceLock()) {
     try {
       let initialActivation = null;
       if (!DESKTOP_SMOKE && !MEMORY_SOAK && !wp7ProbeRequested()) {
+        scheduleTrayRefresh();
         createWindow();
         const settings = settingsStore.read();
         const hidden = process.argv.includes('--hidden');
@@ -4592,8 +4593,10 @@ if (!app.requestSingleInstanceLock()) {
         await completeWp7ProbeAndExit(0);
         return;
       }
-      scheduleTrayRefresh();
-      if (DESKTOP_SMOKE || MEMORY_SOAK) createWindow();
+      if (DESKTOP_SMOKE || MEMORY_SOAK) {
+        scheduleTrayRefresh();
+        createWindow();
+      }
       if (initialActivation) await initialActivation;
       await backendStartup;
       if (DESKTOP_SMOKE || MEMORY_SOAK) await lettaStartup;
