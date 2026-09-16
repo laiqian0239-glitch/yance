@@ -44,6 +44,14 @@ NO_PROGRESS_WORK_CYCLE=forbidden
 CI_LOG_CONNECTOR_STALL=delegate_to_executor_immediately
 SAME_LOG_ENDPOINT_RETRY=forbidden
 USER_MANUAL_LOG_EXTRACTION=forbidden_when_executor_available
+CONTINUOUS_LOCAL_EXECUTION=mandatory
+CHAT_SESSION_IS_NOT_EXECUTION_AUTHORITY=true
+LOCAL_EXECUTION_CHECKPOINT=projection_only
+LONG_RUNNING_TASK_HANDOFF=pid_log_input_identity
+INTERRUPTION_RERUN=forbidden
+OWNER_ABSENT_EXECUTION=default_when_authorized
+USER_CONTINUE_PROMPT=forbidden_when_executor_can_continue
+REMOTE_PROMOTION_ROUNDTRIP=after_local_closure_only
 ```
 
 Before executing any action, answer all of the following:
@@ -59,6 +67,19 @@ Before executing any action, answer all of the following:
 
 If an action does not directly advance the current production causal batch, close a real authorization boundary, or produce a required promotion proof, do not do it.
 
+### Crash-safe continuous execution / owner-absent default (non-waivable execution invariant)
+
+A chat turn, tool call, browser tab, model session, or executor transport lifetime is not the Product execution lifetime. Release work must remain recoverable and continue without requiring the owner to type a manual continuation prompt after ordinary session/tool interruption.
+
+- The latest valid Controller State in GitHub Issue #1051 remains the dynamic Controller authority. Merged repository policy and exact effective authorization remain the execution constraints. Git/worktree bytes remain the production mutation fact source. A local checkpoint must never override any of them.
+- A repo-external local execution checkpoint is permitted only as a **non-authoritative projection** for continuity. It may record exact Controller version/comment, main/head/branch, current root cause, causal batch, allowed paths, PID/start time, exact command/input identity, log/evidence paths, last completed action, known RED/GREEN evidence, and next already-authorized action. It may not invent a root cause, expand scope, grant merge/release authority, or become a second state owner.
+- Long-running deterministic work must be launched so its real process can outlive a chat/tool transport call. Persist PID, process start identity, exact inputs, and logs before relying on the result. A transport timeout or chat interruption is not Product RED and does not authorize a rerun.
+- On re-entry, inspect the same PID/process identity, logs, worktree, and checkpoint before starting any equivalent command. If the original task is still running, continue observing it. If it finished, consume that result. Blind same-purpose rerun after interruption is forbidden.
+- An authorized local runner may automatically advance through a pre-reviewed deterministic action chain (focused tests, source closure, build, Docker/Compose operations through their mature public seams, Electron/native proof, evidence capture, and other already-authorized validation) as soon as each prerequisite becomes GREEN. It must not wait for a user message such as `continue` when no owner-only decision is required.
+- The local runner is an execution orchestrator only. It must not become a second Controller, package manager, Docker/Compose owner, Matrix/Element owner, Electron lifecycle owner, retry authority, state machine for Product behavior, or general-purpose shadow framework.
+- FIRST RED still freezes mutation when the RED changes or invalidates the current causal understanding. The runner must preserve all already-produced evidence and stop before any new speculative mutation, scope expansion, new root-cause choice, authorization change, merge/release decision, or destructive action that requires Controller/owner judgment.
+- Remote CI, RC, artifact upload/download, and other expensive promotion round-trips occur only after the locally discoverable affected boundary reaches Local Closure and promotion admission. Do not use remote artifact generation as an iterative debugger when the same evidence can be obtained from exact local source/runtime/materialized-equivalent proof.
+- Owner participation is exception-driven. Ask the owner only for an actual owner-only authorization, external credential/permission unavailable to the executor, irreducible human visual/product judgment, or final release boundary that explicitly requires owner approval. Routine continuation, log reading, deterministic testing, process observation, and already-authorized local progression must not require owner input.
 ### CI/job log acquisition fallback — no connector stall (non-waivable execution invariant)
 
 When exact CI/workflow/job log evidence is required to consume a RED, evidence acquisition itself must take the shortest available authoritative path.
