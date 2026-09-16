@@ -1,0 +1,288 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-MODEL-BRAIN-SEALED-TOOL-ACQUISITION-P0-SUCCESSOR",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization after PR #1271 exact-head CI exposed one infrastructure acquisition blocker outside the Matrix product diff: the pinned Model Brain Windows gate passed checkout and all LiteLLM identity locks, then GitHub Release returned its own Server Error response while the workflow used a single-shot Invoke-WebRequest to fetch the pinned uv 0.12.3 archive. The immediately preceding authorization head ran the same sealed-model-brain-runtime job and completed acquisition, build, offline gates, and upload successfully. Preserve the already locally closed Matrix four-path product head exactly and repair only the existing Model Brain workflow acquisition seam by delegating redirects and bounded transient HTTP retry to mature curl.exe while retaining the exact pinned URLs and SHA-256 identities. No custom retry loop, cache, mirror, fallback URL, package change, model authority change, or validation weakening is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "2dba3d0bd8cfd4b56b02f4f21013954e646ebfa2",
+    "tree": "fa6f4a7588afb407940e62d1efe3bd18d50d2660",
+    "productSourcePredecessor": "068533f323e36d8d70ceab724f46cfc6a04ab155",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "requiredFirstParent": "2dba3d0bd8cfd4b56b02f4f21013954e646ebfa2",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-model-brain-sealed-tool-acquisition-p0-successor-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-model-brain-sealed-tool-acquisition-p0-successor-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "74c3c1d96cae5fd9dec4759bfe67542b408d2a235bc32ff311fc5803b32cc474",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-model-brain-sealed-tool-acquisition-p0-successor",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-model-brain-p0-windows.yml",
+      "electron/main.js",
+      "electron/mainWindowActivationController.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "85561f77ea771cf24eeded5fde7052d8e7f8d5fbd28a236b36274b966b28ef20",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-model-brain-p0-windows.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "9f33f7160c3495119793d7342637bba27423f56b11e534c09be4180417746c7f"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "evidence": {
+    "controllerState": "V5.517",
+    "controllerCommentId": 5697373164,
+    "currentMain": "2dba3d0bd8cfd4b56b02f4f21013954e646ebfa2",
+    "matrixSuccessorAuthorizationPullRequest": 1270,
+    "matrixSuccessorAuthorizationMerge": "2dba3d0bd8cfd4b56b02f4f21013954e646ebfa2",
+    "matrixSuccessorImplementationPullRequest": 1271,
+    "matrixSuccessorExactHead": "068533f323e36d8d70ceab724f46cfc6a04ab155",
+    "matrixSuccessorExactChangedPaths": [
+      "electron/main.js",
+      "electron/mainWindowActivationController.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "matrixLocalClosure": [
+      "WP0 materialized UAT contract 28/28 PASS",
+      "activation controller 11/11 PASS",
+      "node --check on both production JS files PASS",
+      "git diff --check PASS",
+      "production-equivalent surviving-Synapse relaunch preserved bootstrap secret identity",
+      "stored-key Personal Access login without invitation returned ENTITLEMENT_VALID and Matrix credentials",
+      "Synapse /login returned HTTP 200 after surviving-Synapse relaunch"
+    ],
+    "firstRed": {
+      "pullRequest": 1271,
+      "exactHead": "068533f323e36d8d70ceab724f46cfc6a04ab155",
+      "workflow": "V21 Model Brain P0 Windows",
+      "runId": 35103748055,
+      "jobId": 104819482941,
+      "job": "sealed-model-brain-runtime",
+      "failingStep": "Acquire sealed CPython and uv build tools",
+      "failure": "Invoke-WebRequest to the pinned uv 0.12.3 GitHub Release asset received GitHub Server Error content before SHA verification or runtime build began",
+      "passedBeforeFailure": [
+        "checkout",
+        "pinned LiteLLM commit",
+        "pinned LiteLLM tree",
+        "pinned core tree",
+        "license blob",
+        "uv.lock blob",
+        "pinned CPython asset download"
+      ]
+    },
+    "comparisonGreen": {
+      "pullRequest": 1270,
+      "jobId": 104808327584,
+      "sameJob": "sealed-model-brain-runtime",
+      "result": "Acquire sealed CPython and uv build tools, Build sealed SDK runtime, offline policy gate, and upload all SUCCESS"
+    }
+  },
+  "rootCause": {
+    "locked": true,
+    "id": "MODEL_BRAIN_SEALED_TOOL_ACQUISITION / SINGLE_SHOT_GITHUB_RELEASE_DOWNLOAD",
+    "evidence": [
+      "PR #1271 exact-head product and governance gates were GREEN except sealed-model-brain-runtime.",
+      "The failure occurred before Model Brain build/test execution: pinned LiteLLM identity checks passed, then a single-shot Invoke-WebRequest for the pinned uv release asset received GitHub Server Error content.",
+      "The same job on immediately preceding PR #1270 successfully downloaded the same pinned assets and completed build/offline gates/upload, excluding the four-path Matrix product diff as a deterministic cause.",
+      "The workflow already pins exact asset URLs and SHA-256 values; content authority is sound, but transport uses no mature transient-retry seam.",
+      "The narrow repair is transport reliability only: use curl.exe redirect/fail/bounded transient retry and preserve the same URL and SHA-256 verification."
+    ]
+  },
+  "causalBatch": {
+    "oneRoot": true,
+    "scope": [
+      "Carry forward PR #1271 exact four-path Matrix product diff byte-for-byte with no semantic changes.",
+      "In .github/workflows/v21-model-brain-p0-windows.yml, replace both single-shot Invoke-WebRequest release-asset downloads in the one Acquire sealed CPython and uv build tools step with mature curl.exe public CLI transport using fail-on-HTTP-error, redirects, and bounded built-in retry.",
+      "Keep the existing exact CPython and uv URLs and SHA-256 values unchanged; SHA verification remains authoritative after transport.",
+      "Use the same mature transport rule for both assets because they share one acquisition owner and one failure boundary."
+    ],
+    "mustNotExpandTo": [
+      "custom PowerShell retry loops, custom downloader, cache, mirror, alternate URL, fallback asset, or persisted acquisition state",
+      "LiteLLM routing/scoring/retry/fallback/runtime authority changes",
+      "package manifests, lockfiles, dependencies, other workflows, CI routing, or gate weakening",
+      "changes to the four already locally closed Matrix product paths beyond byte-identical carry-forward",
+      "same-head workflow rerun or bypass of the frozen #1271 RED"
+    ]
+  },
+  "authorityPreservation": {
+    "workflowExecutionOwner": "GitHub Actions",
+    "httpTransportRetryRedirectOwner": "curl.exe public CLI built-in retry/redirect semantics",
+    "assetIdentityOwner": "existing exact URL plus SHA-256 pins in v21-model-brain-p0-windows.yml",
+    "modelRoutingRuntimeOwner": "LiteLLM pinned upstream remains unchanged",
+    "matrixOwners": "Electron thin bootstrap projection + Docker Compose lifecycle/materialization + Synapse JWT/session + Element/Matrix session/timeline/composer/send/recovery remain unchanged from the locally closed predecessor",
+    "secondOwnerAdded": false,
+    "customRetryLoopAdded": false,
+    "cacheOrMirrorAdded": false,
+    "fallbackUrlAdded": false,
+    "validationWeakeningAdded": false
+  },
+  "closureMatrix": {
+    "unknownBlockersMustEqual": 0,
+    "rows": [
+      {
+        "boundary": "Pinned GitHub Release transport",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "curl.exe owns redirect/error handling and bounded transient retries for both pinned assets."
+      },
+      {
+        "boundary": "Asset identity",
+        "classification": "PRESERVE",
+        "closure": "Exact CPython/uv URLs and SHA-256 values remain unchanged; hash mismatch still fails closed."
+      },
+      {
+        "boundary": "Model Brain sealed runtime build/offline gates",
+        "classification": "PRESERVE_MATURE_OWNER",
+        "closure": "No build, LiteLLM, Router, offline-gate, or upload semantics change."
+      },
+      {
+        "boundary": "Matrix product causal batch",
+        "classification": "CARRY_FORWARD_LOCAL_GREEN",
+        "closure": "Carry PR #1271 four product paths byte-for-byte; do not reopen or mutate their closed semantics."
+      },
+      {
+        "boundary": "CI run policy",
+        "classification": "PRESERVE",
+        "closure": "Freeze consumed #1271 RED; create one new Exact Head under this successor and one validator event only."
+      }
+    ]
+  },
+  "negativeProofs": [
+    "No same-head rerun of PR #1271.",
+    "No custom retry loop/helper/cache/mirror/fallback URL.",
+    "No changes to URL pins, SHA-256 pins, LiteLLM pin, Model Brain routing, package/lockfile, CI routing, or gate strictness.",
+    "No changes to the four predecessor Matrix files other than byte-identical carry-forward."
+  ],
+  "localAcceptance": [
+    "Successor authorization ordinary-merges from exact fresh main 2dba3d0bd8cfd4b56b02f4f21013954e646ebfa2.",
+    "Implementation starts from that authorization merge and first carries PR #1271 exact four-path product bytes unchanged.",
+    "Workflow delta is confined to the two release-asset download commands in the existing Acquire sealed CPython and uv build tools step.",
+    "Both downloads use curl.exe mature CLI with --fail, --location, bounded --retry, --retry-delay, and --retry-max-time; no shell retry loop or fallback source exists.",
+    "Pinned CPython and uv URLs and SHA-256 values are unchanged.",
+    "curl.exe --version is available on the local Windows proof host; a local fail-closed command-shape proof confirms nonzero exit is propagated.",
+    "Existing Model Brain source contract tests remain GREEN.",
+    "Matrix WP0 28/28 and activation 11/11 frozen local greens remain valid because their carried files are byte-identical.",
+    "git diff --check GREEN and exact changed path set equals the authorized five paths."
+  ],
+  "requiredValidation": {
+    "localClosure": [
+      "byte-identity proof for all four carried Matrix paths against PR #1271 exact head",
+      "static workflow delta proof: only mature curl transport commands changed; URLs/hashes unchanged",
+      "curl.exe version/command-shape fail-closed proof without inventing a downloader",
+      "node --test tests/wp0/v21-model-brain-p0.test.js",
+      "git diff --check"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2/WP-A when routed",
+      "V21 Model Brain P0 Windows sealed-model-brain-runtime"
+    ],
+    "successorPromotion": [
+      "ordinary implementation merge after one exact-head GREEN validator event",
+      "same-tree materialization",
+      "one successor Windows RC because production source remains changed from main",
+      "successor final artifact audit",
+      "remaining promotion admission",
+      "one Full Windows UAT"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "productionUseAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "ossFit": {
+    "decision": "USE_MATURE_CURL_HTTP_TRANSPORT_WITH_EXISTING_HASH_PINS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "platform-public-cli-existing-workflow-seam",
+    "reviewedCandidates": [
+      {
+        "name": "curl",
+        "source": "curl.exe available on Windows runner/platform",
+        "license": "curl license",
+        "adoptionMode": "public-cli",
+        "fit": "FIT",
+        "reason": "Built-in redirects, fail-on-HTTP-error and bounded retry preserve transport ownership without a Yance retry state machine."
+      },
+      {
+        "name": "GitHub Actions",
+        "source": "existing workflow execution owner",
+        "license": "platform service",
+        "adoptionMode": "existing-workflow-seam",
+        "fit": "FIT",
+        "reason": "Workflow remains the execution owner; only its transport command changes."
+      }
+    ],
+    "retireOrAvoid": [
+      "Single-shot Invoke-WebRequest for the two GitHub Release assets in this sealed acquisition step.",
+      "No custom downloader/retry loop/cache/mirror/fallback."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-matrix-runtime-secret-materialization-p0-successor-authorization.json",
+    "implementationBranch": "fix/v21-matrix-runtime-secret-materialization-p0-successor",
+    "implementationPullRequest": 1271,
+    "frozenExactHead": "068533f323e36d8d70ceab724f46cfc6a04ab155",
+    "reason": "PR #1271 exact head is locally closed for its Matrix product root but its one allowed validator event was consumed by an external GitHub Release acquisition RED. Exact-head GREEN is mandatory and same-head rerun is forbidden, while the predecessor authorization disallows workflow mutation. Supersede rather than mutate or rerun so the frozen product bytes carry forward once and the newly proven CI transport root is repaired under explicit narrow authority."
+  }
+}
