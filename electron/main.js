@@ -3025,6 +3025,37 @@ function matrixComposeBaseArgs(projectDir, composeFiles) {
   return args;
 }
 
+async function matrixImagesAlreadyMaterialized(projectDir, composeFiles, composeEnv, candidateCommit) {
+  const composeArgs = matrixComposeBaseArgs(projectDir, composeFiles);
+  const resolved = await dockerExec([...composeArgs, 'config', '--images'], {
+    timeoutMs: 15000,
+    cwd: projectDir,
+    env: composeEnv
+  });
+  const imageRefs = [...new Set(resolved.stdout.split(/\r?\n/u).map(value => value.trim()).filter(Boolean))].sort();
+  if (imageRefs.length === 0) {
+    const error = new Error('Docker Compose did not resolve any Matrix runtime image references.');
+    error.reasonCode = 'MATRIX_RUNTIME_IMAGE_IDENTITY_INVALID';
+    throw error;
+  }
+  const candidateTag = `:${candidateCommit}`;
+  if (imageRefs.some(ref => !ref.endsWith(candidateTag))) {
+    const error = new Error('Docker Compose resolved a Matrix runtime image outside the sealed candidate identity.');
+    error.reasonCode = 'MATRIX_RUNTIME_IMAGE_IDENTITY_INVALID';
+    error.details = { candidateCommit, imageRefs };
+    throw error;
+  }
+  try {
+    await dockerExec(['image', 'inspect', ...imageRefs], { timeoutMs: 15000 });
+    return { allPresent: true, imageRefs };
+  } catch (error) {
+    const detail = `${error?.stderr || ''}\n${error?.message || ''}`;
+    if (/No such image:/u.test(detail)) return { allPresent: false, imageRefs };
+    throw error;
+  }
+}
+
+
 // One-shot Docker Desktop availability check. The official `docker desktop
 // start` command itself owns engine bring-up; we do not run a polling loop.
 async function ensureDockerDesktopAvailable() {
@@ -3099,11 +3130,19 @@ function matrixRuntimeStateRoot() {
 }
 
 function projectMatrixRuntimeSecrets(runtimeStateRoot) {
-  const existing = process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE
-    && process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE;
-  if (existing) {
-    for (const name of ['YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE', 'YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE']) {
-      if (!fs.existsSync(process.env[name])) {
+  const registrationEnv = process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE;
+  const provisioningEnv = process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE;
+  if (Boolean(registrationEnv) !== Boolean(provisioningEnv)) {
+    const error = new Error('Configured Matrix secret authority is incomplete');
+    error.reasonCode = 'MATRIX_RUNTIME_SECRET_UNAVAILABLE';
+    throw error;
+  }
+  if (registrationEnv && provisioningEnv) {
+    for (const [name, target] of [
+      ['YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE', registrationEnv],
+      ['YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE', provisioningEnv]
+    ]) {
+      if (!fs.existsSync(target)) {
         const error = new Error(`Configured Matrix secret file is missing: ${name}`);
         error.reasonCode = 'MATRIX_RUNTIME_SECRET_UNAVAILABLE';
         throw error;
@@ -3111,12 +3150,32 @@ function projectMatrixRuntimeSecrets(runtimeStateRoot) {
     }
     return { ephemeral: false };
   }
+
   const secretDir = path.join(runtimeStateRoot, 'runtime-secrets');
   fs.mkdirSync(secretDir, { recursive: true, mode: 0o700 });
   const registrationFile = path.join(secretDir, 'matrix-registration-secret');
   const provisioningFile = path.join(secretDir, 'mautrix-meta-provisioning-secret');
-  for (const target of [registrationFile, provisioningFile]) {
-    fs.writeFileSync(target, crypto.randomBytes(32).toString('base64'), { mode: 0o600 });
+  const targets = [registrationFile, provisioningFile];
+  const existing = targets.map(target => fs.existsSync(target));
+  if (existing.some(Boolean) && !existing.every(Boolean)) {
+    const error = new Error('Internal Matrix secret authority is incomplete');
+    error.reasonCode = 'MATRIX_RUNTIME_SECRET_STATE_INVALID';
+    throw error;
+  }
+  if (existing.every(Boolean)) {
+    for (const target of targets) {
+      const value = fs.readFileSync(target, 'utf8').trim();
+      const decoded = Buffer.from(value, 'base64');
+      if (value.length !== 44 || decoded.length !== 32 || decoded.toString('base64') !== value) {
+        const error = new Error('Internal Matrix secret authority is malformed');
+        error.reasonCode = 'MATRIX_RUNTIME_SECRET_STATE_INVALID';
+        throw error;
+      }
+    }
+  } else {
+    for (const target of targets) {
+      fs.writeFileSync(target, crypto.randomBytes(32).toString('base64'), { mode: 0o600, flag: 'wx' });
+    }
   }
   process.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE = registrationFile;
   process.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE = provisioningFile;
@@ -3250,9 +3309,21 @@ async function ensureMatrixRuntime() {
     fs.mkdirSync(runtimeStateRoot, { recursive: true, mode: 0o700 });
     const secretProjection = projectMatrixRuntimeSecrets(runtimeStateRoot);
 
-    // 4. Load sealed images (official: docker load).
-    desktopLog('info', 'matrix-images-loading', { candidateCommit });
-    await dockerExec(['load', '-i', imagesTarPath], { timeoutMs: 300000 });
+    // 4. Docker Compose resolves the exact image topology; Docker Engine owns image-store state.
+    // Skip the sealed load only when the engine positively proves every exact candidate ref is already present.
+    const baseArgs = matrixComposeBaseArgs(runtimeDir, [composeFile]);
+    const imageMaterialization = await matrixImagesAlreadyMaterialized(
+      runtimeDir, [composeFile], composeEnv, candidateCommit
+    );
+    if (imageMaterialization.allPresent) {
+      desktopLog('info', 'matrix-images-already-materialized', {
+        candidateCommit,
+        imageCount: imageMaterialization.imageRefs.length
+      });
+    } else {
+      desktopLog('info', 'matrix-images-loading', { candidateCommit });
+      await dockerExec(['load', '-i', imagesTarPath], { timeoutMs: 300000 });
+    }
 
     // 5. Phase 1: Compose owns dependency/start completion and service health.
     // The start pass keeps the real service_completed_successfully DAG and
@@ -3260,7 +3331,6 @@ async function ensureMatrixRuntime() {
     // intentionally limited to first-frame-critical Synapse; bridge health
     // continues under the same Compose/Docker health authority without gating
     // the visible Product recovery surface.
-    const baseArgs = matrixComposeBaseArgs(runtimeDir, [composeFile]);
     desktopLog('info', 'matrix-runtime-phase1-up', { project: MATRIX_COMPOSE_PROJECT });
     await dockerExec([
       ...baseArgs, 'up', '-d', '--no-build',

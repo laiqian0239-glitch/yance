@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '../..');
 const WORKFLOW = '.github/workflows/v21-product-experience-shell-p0-final-validation.yml';
@@ -39,6 +40,50 @@ function withTemporaryDirectory(fn) {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 }
+
+function loadProjectMatrixRuntimeSecrets() {
+  const main = read('electron/main.js');
+  const start = main.indexOf('function projectMatrixRuntimeSecrets(runtimeStateRoot) {');
+  const end = main.indexOf('function projectMatrixRuntimeConfigs', start);
+  assert.ok(start >= 0 && end > start, 'Matrix runtime secret projection function must be extractable');
+  const context = vm.createContext({ fs, path, crypto, Buffer, process: { env: {} }, Error });
+  vm.runInContext(`${main.slice(start, end)}; this.projectMatrixRuntimeSecrets = projectMatrixRuntimeSecrets;`, context);
+  return { project: context.projectMatrixRuntimeSecrets, env: context.process.env };
+}
+
+test('Matrix runtime secret projection preserves one bootstrap authority across unclean restart', () => {
+  withTemporaryDirectory(root => {
+    const first = loadProjectMatrixRuntimeSecrets();
+    const created = first.project(root);
+    const registration = first.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE;
+    const provisioning = first.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE;
+    const registrationBytes = fs.readFileSync(registration);
+    const provisioningBytes = fs.readFileSync(provisioning);
+    assert.equal(created.ephemeral, true);
+    assert.equal(Buffer.from(registrationBytes.toString('utf8').trim(), 'base64').length, 32);
+    assert.equal(Buffer.from(provisioningBytes.toString('utf8').trim(), 'base64').length, 32);
+
+    const second = loadProjectMatrixRuntimeSecrets();
+    const reused = second.project(root);
+    assert.equal(reused.ephemeral, true);
+    assert.deepEqual(fs.readFileSync(registration), registrationBytes, 'unclean restart must reuse the existing registration signer authority');
+    assert.deepEqual(fs.readFileSync(provisioning), provisioningBytes, 'unclean restart must reuse the existing provisioning authority');
+
+    fs.rmSync(provisioning);
+    const partial = loadProjectMatrixRuntimeSecrets();
+    assert.throws(() => partial.project(root), error => error?.reasonCode === 'MATRIX_RUNTIME_SECRET_STATE_INVALID');
+    assert.deepEqual(fs.readFileSync(registration), registrationBytes, 'partial state must fail closed without rotating the surviving secret');
+  });
+
+  withTemporaryDirectory(root => {
+    const secretDir = path.join(root, 'runtime-secrets');
+    fs.mkdirSync(secretDir, { recursive: true });
+    fs.writeFileSync(path.join(secretDir, 'matrix-registration-secret'), 'not-base64');
+    fs.writeFileSync(path.join(secretDir, 'mautrix-meta-provisioning-secret'), 'also-not-base64');
+    const malformed = loadProjectMatrixRuntimeSecrets();
+    assert.throws(() => malformed.project(root), error => error?.reasonCode === 'MATRIX_RUNTIME_SECRET_STATE_INVALID');
+  });
+});
 
 test('Product Final Validation retires the Product-specific Round12/13 source-UAT handoff', () => {
   const source = read(WORKFLOW);
@@ -707,6 +752,17 @@ test('production Matrix runtime keeps sealed resources read-only and projects dy
   const main = read('electron/main.js');
   const compose = read(COMPOSE);
 
+  const materializationStart = main.indexOf('async function matrixImagesAlreadyMaterialized');
+  const materializationEnd = main.indexOf('// One-shot Docker Desktop availability check.', materializationStart);
+  assert.ok(materializationStart >= 0 && materializationEnd > materializationStart, 'Matrix image materialization helper must remain a narrow standalone projection');
+  const matrixMaterializationHelper = main.slice(materializationStart, materializationEnd + 2);
+  assert.match(matrixMaterializationHelper, /config', '--images'/u, 'Compose must remain the image-topology authority');
+  assert.match(matrixMaterializationHelper, /const candidateTag = `:\$\{candidateCommit\}`/u, 'materialization admission must bind every image ref to the sealed candidate');
+  assert.match(matrixMaterializationHelper, /dockerExec\(\['image', 'inspect', \.\.\.imageRefs\], \{ timeoutMs: 15000 \}\)/u, 'Docker Engine must remain the image-store authority');
+  assert.match(matrixMaterializationHelper, /No such image:/u, 'only Docker-confirmed missing images may require sealed materialization');
+  assert.match(matrixMaterializationHelper, /throw error;/u, 'non-missing Docker inspect failures must fail closed');
+  assert.doesNotMatch(matrixMaterializationHelper, /writeFileSync|appendFileSync|cache|receipt/iu, 'image admission must stay stateless with no Yance mirror state');
+  assert.match(main, /if \(imageMaterialization\.allPresent\)[\s\S]*?matrix-images-already-materialized[\s\S]*?else \{[\s\S]*?matrix-images-loading[\s\S]*?dockerExec\(\['load', '-i', imagesTarPath\]/u, 'docker load must remain only the missing-image materialization path');
   assert.match(main, /function matrixRuntimeStateRoot\(\)[\s\S]*?DATA_ROOT[\s\S]*?matrix-runtime/u);
   assert.match(main, /projectMatrixRuntimeSecrets\(runtimeStateRoot\)/u);
   assert.match(main, /YANCE_MATRIX_SYNAPSE_PORT_BINDING:\s*'127\.0\.0\.1::8008'/u);
