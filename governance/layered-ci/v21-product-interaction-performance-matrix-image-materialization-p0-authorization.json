@@ -228,7 +228,7 @@
                    "decision":  "REUSE_DOCKER_COMPOSE_AND_DOCKER_ENGINE_PUBLIC_SEAMS",
                    "matureOssAvailable":  true,
                    "newGeneralPurposeInfrastructure":  false,
-                   "selectedAdoptionMode":  "official-cli-existing-repository-seam",
+                   "selectedAdoptionMode":  "existing-repository-seam",
                    "reviewedCandidates":  [
                                               {
                                                   "name":  "Docker Compose",
