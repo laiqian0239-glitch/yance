@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-FINAL-RC-STRICT-ROUND-EVIDENCE-P0",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Final RC 35035157487 froze at Round1 npm-ci exit -4058 after all current source release gates passed. Production-equivalent local proofs on the exact merged source, Node 22.16.0/npm 10.9.2, long source path, Windows PowerShell 5.1 and the runner sanitized PATH all completed npm ci GREEN. The deterministic repository defect is that strict-round stdout/stderr/STEP_RESULTS/ROUND_RESULT remain only on the ephemeral runner when Final Builder is skipped. This authorization restores auditability through the existing actions/upload-artifact public seam only; npm remains dependency authority and no retry, timeout, fallback, dependency, Node, lockfile or packaging-owner mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "5b32485e35fe7e7a97a96ce38ab043617a4f3521",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-final-rc-strict-round-evidence-p0-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-final-rc-strict-round-evidence-p0-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "cd494d80d49eb800e47c76fa96467ad7d63856b77e708ec4fd166086b41b6381",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "rebuild/windows-release-closure-20260916-final-rc-strict-round-evidence-p0",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/windows-production-release.yml",
+      "tests/wp7/windows-production-release-workflow.test.js"
+    ],
+    "approvedChangedFileCount": 2,
+    "approvedChangedFileSetSha256": "d90fecf1038f04be206ec00cb70469a4a4fde1cfdd4b1af754b07c5ff1e3d42e",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "runnerModificationAllowed": false,
+    "workflowModificationAllowed": true,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "failureFirstEvidence": {
+    "controllerState": "V5.513",
+    "controllerCommentId": 5689925768,
+    "frozenRcRunId": 35035157487,
+    "frozenRcJobId": 104602520846,
+    "firstRedStep": "Run two independent strict Windows packaging rounds",
+    "firstRedPhase": "Round1 npm-ci",
+    "observedExitCode": -4058,
+    "sourceGatesBeforeFailure": "GREEN",
+    "equivalentRerunForbidden": true
+  },
+  "rootCause": {
+    "locked": true,
+    "id": "FINAL_RC / STRICT_ROUND_EARLY_FAILURE_EVIDENCE_NOT_PRESERVED",
+    "underlyingIncident": "STRICT_WINDOWS_PACKAGING / NPM_CI_ENOENT_-4058_NONREPRODUCIBLE_ON_PRODUCTION_EQUIVALENT_LOCAL_PROOF",
+    "evidence": [
+      "Round1 generated validation logs and result records under runner.temp/yance-release-validation before failing.",
+      "The existing final evidence upload is conditioned on steps.final_builder.outcome != skipped, so a pre-Final-Builder strict-round RED uploads none of those records.",
+      "Exact-source fresh bundle npm ci is GREEN locally with Node 22.16.0/npm 10.9.2, a source path length of 56, Windows PowerShell 5.1, fresh cache/temp and the runner sanitized PATH algorithm.",
+      "The observed -4058 target cannot be attributed to Product source because the runner-local stderr was not persisted."
+    ]
+  },
+  "requiredRepair": [
+    "Use the existing GitHub actions/upload-artifact@v4 seam to upload runner.temp/yance-release-validation after windows_rounds whenever that step was not skipped, including failure.",
+    "Keep the existing Final Builder evidence upload semantics unchanged.",
+    "Do not add npm retry, fallback, custom cache authority, timeout increase, dependency change, Node/npm change, lockfile change or RUN_WINDOWS_VERIFY_ROUND mutation."
+  ],
+  "authorityPreservation": {
+    "dependencyOwner": "npm",
+    "evidenceGenerationOwner": "tools/release-closure/RUN_WINDOWS_VERIFY_ROUND.ps1",
+    "artifactPersistenceOwner": "GitHub actions/upload-artifact@v4",
+    "releaseOrchestrationOwner": ".github/workflows/windows-production-release.yml",
+    "secondOwnerAdded": false,
+    "mirrorStateAdded": false,
+    "parallelLifecycleAdded": false,
+    "customRetryOrFallbackAdded": false,
+    "thinProjectionOnly": true
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_GITHUB_ACTIONS_ARTIFACT_AND_NPM_AUTHORITIES",
+    "matureOssAvailable": true,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "newGeneralPurposeInfrastructure": false,
+    "reviewedCandidates": [
+      {
+        "name": "actions/upload-artifact@v4",
+        "source": "existing Windows RC workflow",
+        "adoptionMode": "official-action",
+        "fit": "FIT",
+        "reason": "It is already the repository's release evidence transport authority; the repair only wires the already-generated strict-round tree into this public seam."
+      },
+      {
+        "name": "npm ci",
+        "source": "Node/npm Builder-host toolchain",
+        "adoptionMode": "official-package-manager",
+        "fit": "FIT",
+        "reason": "npm remains the sole dependency resolution/materialization authority; no Yance retry/cache/fallback implementation is added."
+      }
+    ]
+  },
+  "localAcceptance": [
+    "Implementation starts only from the authorization ordinary merge commit on the exact rebuild branch.",
+    "Implementation diff contains exactly the two authorized paths.",
+    "Workflow has one separate strict-round evidence upload after windows_rounds and before later promotion steps.",
+    "The strict-round upload uses always() when steps.windows_rounds.outcome != 'skipped', actions/upload-artifact@v4, runner.temp/yance-release-validation/** and if-no-files-found: error.",
+    "Existing Final Builder evidence upload semantics remain unchanged.",
+    "Focused windows-production-release workflow test GREEN.",
+    "WP7 source closure GREEN.",
+    "git diff --check GREEN."
+  ],
+  "requiredValidation": {
+    "localClosure": [
+      "node --test tests/wp7/windows-production-release-workflow.test.js",
+      "node tools/wp7/source-closure.js",
+      "git diff --check",
+      "Exact two-path implementation boundary"
+    ],
+    "exactHeadCi": ["Stage", "Layered CI when routed", "WP7/release gates when routed"],
+    "successorPromotion": ["ordinary implementation merge", "same-tree Matrix materialization", "one successor Windows RC"]
+  },
+  "frozenSeparateRoot": {
+    "id": "WINDOW_STARTUP / STARTUP_CRITICAL_PATH_OVERSCOPED",
+    "mustRemainUnchanged": true,
+    "mustCloseBeforeFullWindowsUat": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false
+  }
+}
