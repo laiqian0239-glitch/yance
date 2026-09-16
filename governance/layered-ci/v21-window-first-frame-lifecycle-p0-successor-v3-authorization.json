@@ -1,0 +1,300 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-WINDOW-FIRST-FRAME-LIFECYCLE-P0-SUCCESSOR-V3",
+  "proposalRevision": 1,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization after the user reproduced the already-merged Windows startup candidate with three same-boundary failures: the packaged login BrowserWindow is hard-coded to 1520x940 with a 1180x720 minimum; first-frame creation is sequenced after the full Matrix/Element Compose readiness path, so an old candidate spends about a minute before backend launch; and a controller-owned test overlay using a different Electron userData domain remained alive on the owner machine while sharing the default backend port 27632, causing the installed build to fail with EADDRINUSE and then surface renderer activation timeout symptoms from the tray. Preserve mature owners: Electron owns native window and same-userData single-instance activation, Docker Compose owns Matrix/Element lifecycle and materialization, backend consumes the existing YANCE_PORT seam, and Element/Matrix retain login/session authority. Carry the already locally closed Matrix and activation fixes plus the Model Brain curl transport repair, then narrow only the Electron first-frame presentation/ordering so a compact login window is the first visible product surface while mature runtime owners continue starting behind it. Do not add a second login implementation, custom port allocator, retry loop, fallback runtime, or parallel lifecycle.",
+  "base": {
+    "branch": "main",
+    "commit": "0ad02614534ea0c208285b9fe1c85fcdc2ac80c0",
+    "tree": "8f561cf731b822d0bb7d01f02f66440f8f926227",
+    "productSourcePredecessor": "068533f323e36d8d70ceab724f46cfc6a04ab155",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "requiredFirstParent": "0ad02614534ea0c208285b9fe1c85fcdc2ac80c0",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-window-first-frame-lifecycle-p0-successor-v3-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-window-first-frame-lifecycle-p0-successor-v3-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "80124faeb92a230b5e806b135b49ecc5c703b2c697f0dc7f9de5241dec5efc6c",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-window-first-frame-lifecycle-p0-successor-v3",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "allowedChangedPaths": [
+      ".github/workflows/v21-model-brain-p0-windows.yml",
+      "electron/main.js",
+      "electron/mainWindowActivationController.js",
+      "tests/desktop-fixes/main-window-activation-controller.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "approvedChangedFileCount": 5,
+    "approvedChangedFileSetSha256": "85561f77ea771cf24eeded5fde7052d8e7f8d5fbd28a236b36274b966b28ef20",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "workflowModificationAllowed": true,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/v21-model-brain-p0-windows.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "9f33f7160c3495119793d7342637bba27423f56b11e534c09be4180417746c7f"
+    },
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "evidence": {
+    "controllerState": "V5.517",
+    "controllerCommentId": 5697373164,
+    "currentMain": "0ad02614534ea0c208285b9fe1c85fcdc2ac80c0",
+    "matrixSuccessorImplementationPullRequest": 1271,
+    "matrixSuccessorExactHead": "068533f323e36d8d70ceab724f46cfc6a04ab155",
+    "modelBrainAcquisitionAuthorizationPullRequest": 1272,
+    "modelBrainAcquisitionAuthorizationMerge": "0ad02614534ea0c208285b9fe1c85fcdc2ac80c0",
+    "installedReproduction": {
+      "buildSourceCommit": "a88f99ea1f25bbb191dac05b87a8e71fe9d0338d",
+      "browserWindow": "1520x940 min 1180x720",
+      "desktopLogFacts": [
+        "matrix-images-loading -> phase1-up about 50 seconds on the installed candidate",
+        "tray activation reported DESKTOP_RENDERER_READY_TIMEOUT while startup was still incomplete",
+        "backend startup failed SERVER_LISTEN_FAILED after launch"
+      ],
+      "serverLogFacts": [
+        "server-listen-failed EADDRINUSE at 2026-09-16T15:06:10.169Z",
+        "server-listen-failed EADDRINUSE at 2026-09-16T15:07:53.793Z"
+      ],
+      "portOwner": "controller test overlay backend PID 26788 from C:/YanceController/matrix-secret-successor-overlay occupied 127.0.0.1:27632",
+      "cleanup": "controller overlay process tree removed; 27632 no longer has a LISTENING owner"
+    },
+    "predecessorLocalGreens": [
+      "Matrix WP0 materialized UAT 28/28 PASS",
+      "activation controller 11/11 PASS",
+      "surviving-Synapse secret identity preserved",
+      "stored-key Personal Access login returned ENTITLEMENT_VALID and Matrix /login HTTP 200"
+    ],
+    "governanceValidatorGreen": "PR #1272 exact head f443dc520e86fce2449e8c7ba5bc301cd46d593e all checks GREEN before ordinary merge"
+  },
+  "rootCause": {
+    "locked": true,
+    "id": "WINDOW_FIRST_FRAME_LIFECYCLE / STARTUP_CRITICAL_PATH_AND_HARNESS_PORT_DOMAIN_COLLISION",
+    "evidence": [
+      "The shipped candidate creates the main BrowserWindow at 1520x940 with min 1180x720, directly causing the oversized login surface.",
+      "electron/main.js awaits ensureMatrixRuntime() before createWindow(), so the Element-owned login surface cannot become visible until the full Matrix startup critical path has completed.",
+      "Electron requestSingleInstanceLock is correctly scoped to one userData domain; the controller overlay intentionally used a distinct --user-data-dir, so it was a separate valid Electron instance.",
+      "The controller overlay nevertheless reused the production default backend port 27632. The installed backend then failed with EADDRINUSE; renderer/tray timeouts were downstream symptoms, not the first root.",
+      "The existing YANCE_PORT environment seam already provides backend endpoint isolation; a new allocator or cross-profile global lock would duplicate authority and is forbidden.",
+      "PR #1271 already contains the hidden-loaded-window activation recovery needed for close-to-tray/second-instance activation; it remains part of the successor carry-forward."
+    ]
+  },
+  "causalBatch": {
+    "oneRoot": true,
+    "scope": [
+      "Carry PR #1271 four product paths forward as the predecessor basis, retaining its Matrix secret preservation, image-materialization skip, and hidden-loaded-window activation recovery.",
+      "Carry the authorized Model Brain workflow transport repair from #1272 using mature curl.exe only.",
+      "In electron/main.js, replace the oversized initial BrowserWindow projection with a compact approximately quarter-desktop login window target (860x580, with a compact safe minimum) while keeping standard resizability and native window controls.",
+      "Reorder only the Electron first-frame sequencing so the main window/activation attempt is created before the long Matrix/backend critical path, while Element remains the login/session UI owner and backend launch still waits for Matrix endpoint materialization.",
+      "Do not make the early window a second auth implementation: no local HTML login clone, no new Matrix login/session state, no credential mirror.",
+      "Treat the observed 27632 conflict as controller/harness contamination: future non-default userData overlays must use the existing explicit YANCE_PORT seam and must not reuse the production default; no production port allocator or global cross-profile singleton is added."
+    ],
+    "mustNotExpandTo": [
+      "backend/server.js or backend lifecycle authority",
+      "Docker Compose service ownership, custom container supervisor, custom health state, or Matrix/session authority",
+      "Element login/session implementation or a duplicate Electron login page",
+      "custom port allocator, dynamic port registry, global mutex across intentionally separate userData domains, port retry loop, or fallback listener",
+      "timeout increases, renderer timeout masking, same-head CI rerun, package/lockfile/dependency changes",
+      "additional production/test/workflow paths beyond the exact five authorized paths"
+    ]
+  },
+  "authorityPreservation": {
+    "electronNativeWindowOwner": "Electron BrowserWindow and app.requestSingleInstanceLock remain the only native window/same-userData instance owners",
+    "matrixLifecycleOwner": "Docker Compose public CLI remains the Matrix/Element lifecycle and materialization owner",
+    "matrixSessionOwner": "Synapse and Element/Matrix retain JWT/session/login/crypto/timeline/composer/send/recovery authority",
+    "backendEndpointOwner": "existing YANCE_PORT startup contract remains the endpoint configuration seam; production default stays unchanged",
+    "modelBrainTransportOwner": "curl.exe public CLI built-in redirect/retry semantics with existing exact URL/SHA pins",
+    "secondOwnerAdded": false,
+    "customPortAllocatorAdded": false,
+    "customRetryLoopAdded": false,
+    "shadowLoginAdded": false,
+    "parallelLifecycleAdded": false
+  },
+  "closureMatrix": {
+    "unknownBlockersMustEqual": 0,
+    "rows": [
+      {
+        "boundary": "Compact login first frame",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Electron BrowserWindow initial presentation is approximately quarter-desktop instead of 1520x940, with no login clone."
+      },
+      {
+        "boundary": "Startup critical path",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "Window creation/activation begins before Matrix/backend completion; backend launch remains after mature Matrix endpoint materialization."
+      },
+      {
+        "boundary": "Close-to-tray / second-instance activation",
+        "classification": "CARRY_FORWARD_LOCAL_GREEN",
+        "closure": "Retain PR #1271 hidden-loaded existing-window probe and exact activation regression."
+      },
+      {
+        "boundary": "Backend port collision",
+        "classification": "HARNESS_CONTAMINATION_CLOSED",
+        "closure": "Controller overlay occupying 27632 was removed; future isolated overlays use existing YANCE_PORT rather than adding product port authority."
+      },
+      {
+        "boundary": "Matrix secret/session root",
+        "classification": "CARRY_FORWARD_LOCAL_GREEN",
+        "closure": "Retain PR #1271 exact secret preservation semantics and stored-key login proof."
+      },
+      {
+        "boundary": "Model Brain acquisition",
+        "classification": "CARRY_FORWARD_AUTHORIZED_REPAIR",
+        "closure": "Use mature curl transport under the already approved workflow path with exact pins unchanged."
+      }
+    ]
+  },
+  "negativeProofs": [
+    "No second Matrix login/session implementation.",
+    "No custom port allocator, port registry, cross-profile global mutex, listener retry, or fallback backend.",
+    "No Docker Compose lifecycle or health ownership replacement.",
+    "No timeout increase or CSS/DOM masking of startup failures.",
+    "No backend source, Element source, package, lockfile, dependency, CI routing, or gate weakening.",
+    "No same-head rerun of frozen #1271."
+  ],
+  "localAcceptance": [
+    "Authorization ordinary-merges from exact fresh main 0ad02614534ea0c208285b9fe1c85fcdc2ac80c0.",
+    "Implementation starts from that merge, carries the #1271 four-path predecessor diff plus the #1272 mature curl workflow repair, then adds only the authorized first-frame/window changes.",
+    "Initial BrowserWindow target is 860x580 with a compact safe minimum and no default maximize.",
+    "Source ordering proves createWindow/activation begins before await ensureMatrixRuntime(), while launchBackend remains after Matrix endpoint materialization.",
+    "No local Electron-auth clone exists; load remains the existing Element-owned Product location.",
+    "Existing requestSingleInstanceLock remains unchanged as same-userData instance authority.",
+    "The controller test overlay that occupied 27632 is absent and 27632 has no LISTENING owner before production-equivalent proof; any new isolated overlay uses explicit YANCE_PORT not 27632.",
+    "Activation regression, materialized UAT contract, Model Brain source contract, node --check, and git diff --check are GREEN.",
+    "Production-equivalent source overlay proves compact first frame, close-to-tray -> second-instance/tray restore without DESKTOP_RENDERER_READY_TIMEOUT, no EADDRINUSE, and no invitation consumption."
+  ],
+  "requiredValidation": {
+    "localClosure": [
+      "carry-forward/delta audit against #1271 exact head and #1272 authorized workflow intent",
+      "node --test tests/desktop-fixes/main-window-activation-controller.test.js",
+      "node --test tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "node --test tests/wp0/v21-model-brain-p0.test.js",
+      "node --check electron/main.js",
+      "node --check electron/mainWindowActivationController.js",
+      "git diff --check",
+      "production-equivalent isolated overlay with explicit non-production YANCE_PORT: compact first frame and close-to-tray activation proof without invitation consumption"
+    ],
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "ACV2/WP-A when routed",
+      "V21 Model Brain P0 Windows sealed-model-brain-runtime"
+    ],
+    "successorPromotion": [
+      "ordinary implementation merge after one exact-head GREEN validator event",
+      "same-tree materialization",
+      "one successor Windows RC",
+      "final artifact/window identity audit",
+      "one Full Windows UAT",
+      "Release"
+    ]
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "productionUseAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "ossFit": {
+    "decision": "REUSE_ELECTRON_COMPOSE_AND_EXISTING_BACKEND_PORT_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
+    "reviewedCandidates": [
+      {
+        "name": "Electron",
+        "source": "existing BrowserWindow and app.requestSingleInstanceLock",
+        "license": "MIT",
+        "adoptionMode": "public-api",
+        "fit": "FIT",
+        "reason": "Native window sizing, visibility and same-userData activation remain owned by Electron."
+      },
+      {
+        "name": "Docker Compose",
+        "source": "existing matrix runtime lifecycle",
+        "license": "Apache-2.0",
+        "adoptionMode": "public-cli",
+        "fit": "FIT",
+        "reason": "Matrix/Element startup and materialization remain on the selected mature owner."
+      },
+      {
+        "name": "existing YANCE_PORT startup contract",
+        "source": "electron/main.js + BackendProcessHost startup protocol",
+        "license": "repository seam",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Already provides explicit endpoint isolation for controller overlays without a new allocator."
+      },
+      {
+        "name": "curl",
+        "source": "Windows/GitHub runner public CLI",
+        "license": "curl license",
+        "adoptionMode": "public-cli",
+        "fit": "FIT",
+        "reason": "Carry the previously authorized transport repair unchanged."
+      }
+    ],
+    "retireOrAvoid": [
+      "Oversized 1520x940 login first-frame default.",
+      "Blocking BrowserWindow creation behind the full Matrix readiness path.",
+      "Controller overlays reusing production backend port 27632.",
+      "Any duplicate login renderer, custom port allocator, retry loop, mirror, or fallback authority."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-model-brain-sealed-tool-acquisition-p0-successor-authorization.json",
+    "implementationBranch": "fix/v21-model-brain-sealed-tool-acquisition-p0-successor",
+    "reason": "PR #1272 authorization merged before its implementation began. New owner-machine evidence then exposed a same-boundary Windows first-frame/lifecycle blocker that must be closed locally before any implementation CI. Supersede the not-yet-consumed implementation branch so the frozen #1271 product work and the already authorized curl repair are carried once into one broader but still exact five-path implementation, avoiding serial product heads and repeated CI."
+  }
+}
