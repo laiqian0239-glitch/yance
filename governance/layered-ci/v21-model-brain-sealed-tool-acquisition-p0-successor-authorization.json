@@ -253,7 +253,7 @@
     "decision": "USE_MATURE_CURL_HTTP_TRANSPORT_WITH_EXISTING_HASH_PINS",
     "matureOssAvailable": true,
     "newGeneralPurposeInfrastructure": false,
-    "selectedAdoptionMode": "platform-public-cli-existing-workflow-seam",
+    "selectedAdoptionMode": "official-sdk-cli-native-prebuild-runtime",
     "reviewedCandidates": [
       {
         "name": "curl",
@@ -281,8 +281,6 @@
   "supersedes": {
     "authorizationPath": "governance/layered-ci/v21-matrix-runtime-secret-materialization-p0-successor-authorization.json",
     "implementationBranch": "fix/v21-matrix-runtime-secret-materialization-p0-successor",
-    "implementationPullRequest": 1271,
-    "frozenExactHead": "068533f323e36d8d70ceab724f46cfc6a04ab155",
     "reason": "PR #1271 exact head is locally closed for its Matrix product root but its one allowed validator event was consumed by an external GitHub Release acquisition RED. Exact-head GREEN is mandatory and same-head rerun is forbidden, while the predecessor authorization disallows workflow mutation. Supersede rather than mutate or rerun so the frozen product bytes carry forward once and the newly proven CI transport root is repaired under explicit narrow authority."
   }
 }
