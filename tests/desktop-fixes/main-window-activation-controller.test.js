@@ -79,6 +79,35 @@ test('activation waits for backend and all renderer readiness phases', async () 
   assert.equal(h.activations[0].reason, 'tray-click');
 });
 
+test('renderer-ready Product window is visible while the existing backend lifecycle authority is still starting', async () => {
+  let releaseBackend;
+  const backendGate = new Promise(resolve => { releaseBackend = resolve; });
+  const h = harness({ backendReady: false, waitForBackendReady: async () => backendGate });
+  markReady(h);
+  const activation = h.controller.activate('initial-launch');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.getWindow().shown, 1, 'renderer-ready Product recovery surface must not wait for backend startup');
+  assert.equal(h.backendWaits.length, 1, 'backend readiness must still be delegated to the existing lifecycle authority');
+  assert.equal(h.runtimeValidations.length, 0, 'runtime validation remains gated on backend readiness');
+  assert.equal(h.activations.length, 0, 'activation dispatch remains gated on backend and runtime readiness');
+  releaseBackend();
+  await activation;
+  assert.equal(h.runtimeValidations.length, 1);
+  assert.equal(h.activations.length, 1);
+});
+
+test('backend startup failure stays terminal and does not misclassify the visible recovery surface as a renderer failure', async () => {
+  const failure = Object.assign(new Error('backend owner failed'), { reasonCode: 'BACKEND_OWNER_FAILED' });
+  const h = harness({ backendReady: false, waitForBackendReady: async () => { throw failure; } });
+  markReady(h);
+  await assert.rejects(h.controller.activate('initial-launch'), error => error === failure);
+  assert.equal(h.getWindow().shown, 1);
+  assert.equal(h.getWindow().reloads, 0, 'backend failure must not trigger renderer reload recovery');
+  assert.equal(h.getWindow().destroyed, false, 'backend failure must not recreate or destroy the renderer-ready Product window');
+  assert.equal(h.runtimeValidations.length, 0);
+  assert.equal(h.activations.length, 0);
+});
+
 test('activation does not impose a second fixed deadline ahead of the backend lifecycle authority', async () => {
   const h = harness({
     backendReady: false,
