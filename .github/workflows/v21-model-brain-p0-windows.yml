@@ -29,8 +29,10 @@ jobs:
           $pythonSha256 = '10b7a95b928e551fc78cac665999e1ae1f08fb738b255adb0a8d3b9c2824a9c0'
           $uvUrl = 'https://github.com/astral-sh/uv/releases/download/0.12.3/uv-x86_64-pc-windows-msvc.zip'
           $uvSha256 = 'b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e'
-          Invoke-WebRequest -Uri $pythonUrl -OutFile python.tar.gz
-          Invoke-WebRequest -Uri $uvUrl -OutFile uv.zip
+          & curl.exe --fail --location --retry 4 --retry-delay 2 --retry-max-time 60 --output python.tar.gz $pythonUrl
+          if ($LASTEXITCODE -ne 0) { throw 'CPython asset download failed' }
+          & curl.exe --fail --location --retry 4 --retry-delay 2 --retry-max-time 60 --output uv.zip $uvUrl
+          if ($LASTEXITCODE -ne 0) { throw 'uv asset download failed' }
           if ((Get-FileHash python.tar.gz -Algorithm SHA256).Hash.ToLowerInvariant() -ne $pythonSha256) { throw 'CPython asset SHA-256 mismatch' }
           if ((Get-FileHash uv.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $uvSha256) { throw 'uv asset SHA-256 mismatch' }
           Expand-Archive uv.zip -DestinationPath uv-bin
