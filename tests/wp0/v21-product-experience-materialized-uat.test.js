@@ -734,28 +734,33 @@ test('production Matrix runtime keeps sealed resources read-only and projects dy
   );
   assert.equal(
     (main.match(/'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\)/gu) || []).length,
-    4,
-    'both production phases must keep bounded Compose ownership across dependency/start and health passes'
+    5,
+    'Compose must own both blocking core readiness and the deferred bridge readiness wait'
   );
   assert.equal(
     (main.match(/\{ timeoutMs: 0, cwd: runtimeDir, env: composeEnv \}/gu) || []).length,
-    4,
+    5,
     'Node must not impose a competing lifecycle timeout around any Compose readiness pass'
   );
   assert.equal(
     (main.match(/'--no-deps', '--no-recreate', '--wait'/gu) || []).length,
-    2,
-    'each final health pass must use the reduced Compose model without recreating already-started services'
+    3,
+    'core and deferred bridge health waits must use the same reduced Compose model without recreation'
   );
   assert.match(
     main,
-    /\.\.\.baseArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse', 'mautrix-meta', 'mautrix-whatsapp'[\s\S]{0,180}\.\.\.baseArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse', 'mautrix-meta', 'mautrix-whatsapp'/u,
-    'phase 1 must preserve the real dependency DAG only in the bounded start pass, then wait on long-lived services only'
+    /\.\.\.baseArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse', 'mautrix-meta', 'mautrix-whatsapp'[\s\S]{0,180}\.\.\.baseArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse'/u,
+    'phase 1 must start the existing bridge graph but block first-frame readiness only on Synapse'
   );
   assert.match(
     main,
-    /\.\.\.allArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'--remove-orphans'[\s\S]{0,220}\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'element', 'synapse', 'mautrix-meta', 'mautrix-whatsapp'/u,
-    'phase 2 must keep full-project orphan cleanup in start pass and exclude it from the reduced-model health pass'
+    /\.\.\.allArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'--remove-orphans'[\s\S]{0,220}\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'element', 'synapse'/u,
+    'phase 2 must block first-frame readiness only on Element and Synapse through Compose'
+  );
+  assert.match(
+    main,
+    /matrix-runtime-ready[\s\S]{0,700}\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',[\s\S]{0,180}'mautrix-meta', 'mautrix-whatsapp'/u,
+    'bridge health completion must be deferred until after core Matrix readiness and remain on the same Compose public seam'
   );
   assert.doesNotMatch(
     main,

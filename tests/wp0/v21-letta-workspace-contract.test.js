@@ -56,6 +56,14 @@ test('Letta lifecycle stays main-process-owned and is not exposed as renderer pr
   const stopEnd = runtime.indexOf('async function start()', stopStart);
   assert.match(main, /createLettaAgentRuntime/u);
   assert.match(main, /ensureLettaAgentRuntime\(\)\.start\(\)/u, 'Electron main must explicitly start the Letta runtime it owns');
+  assert.equal((main.match(/ensureLettaAgentRuntime\(\)\.start\(\)/gu) || []).length, 1, 'Electron main must keep one Letta startup owner');
+  assert.doesNotMatch(main, /await\s+ensureLettaAgentRuntime\(\)\.start\(\)/u, 'Letta readiness must not block the first visible Product frame');
+  const bootstrap = main.slice(main.indexOf('app.whenReady().then(async () =>'));
+  const lettaStartIndex = bootstrap.indexOf('const lettaStartup = ensureLettaAgentRuntime().start();');
+  const backendStartIndex = bootstrap.indexOf('const backendStartup = launchBackend();');
+  const createWindowIndex = bootstrap.indexOf('createWindow();', backendStartIndex);
+  const backendJoinIndex = bootstrap.indexOf('await backendStartup;', createWindowIndex);
+  assert.ok(lettaStartIndex >= 0 && backendStartIndex > lettaStartIndex && createWindowIndex > backendStartIndex && backendJoinIndex > createWindowIndex, 'normal startup must start existing Letta/backend owners before window creation but join backend only after the visible-frame path');
   assert.match(main, /lettaAgentRuntime\.stop\(\)/u, 'Electron main must stop the Letta runtime it owns');
   assert.doesNotMatch(preload, /startLetta|stopLetta|restartLetta|killLetta/u);
   assert.doesNotMatch(main, /process\.kill\([^\n]*(?:letta|LETTA)/u, 'Electron main must not address the Letta child through an arbitrary PID');

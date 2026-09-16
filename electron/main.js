@@ -3254,11 +3254,12 @@ async function ensureMatrixRuntime() {
     desktopLog('info', 'matrix-images-loading', { candidateCommit });
     await dockerExec(['load', '-i', imagesTarPath], { timeoutMs: 300000 });
 
-    // 5. Phase 1: Compose owns both bounded dependency/start completion and
-    // final health readiness. The first public-seam call keeps the real
-    // service_completed_successfully DAG but avoids the aggregate --wait path
-    // that is frozen RED for this graph. The second call narrows the model to
-    // long-lived services only and forbids recreation while Compose waits.
+    // 5. Phase 1: Compose owns dependency/start completion and service health.
+    // The start pass keeps the real service_completed_successfully DAG and
+    // starts bridge lifecycle under Compose. The blocking health pass is
+    // intentionally limited to first-frame-critical Synapse; bridge health
+    // continues under the same Compose/Docker health authority without gating
+    // the visible Product recovery surface.
     const baseArgs = matrixComposeBaseArgs(runtimeDir, [composeFile]);
     desktopLog('info', 'matrix-runtime-phase1-up', { project: MATRIX_COMPOSE_PROJECT });
     await dockerExec([
@@ -3269,7 +3270,7 @@ async function ensureMatrixRuntime() {
     await dockerExec([
       ...baseArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
       '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
-      'synapse', 'mautrix-meta', 'mautrix-whatsapp'
+      'synapse'
     ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
     // 6. Discover the real dynamic Synapse host port (official: compose port).
@@ -3281,10 +3282,11 @@ async function ensureMatrixRuntime() {
     const allComposeFiles = [composeFile, projection.overridePath];
     const allArgs = matrixComposeBaseArgs(runtimeDir, allComposeFiles);
 
-    // 8. Phase 2: keep the same mature two-pass contract. The full-project
-    // start pass retains orphan cleanup and the projected Element override;
-    // the reduced-model health pass intentionally omits --remove-orphans so
-    // omitted one-shot services can never be reclassified as cleanup targets.
+    // 8. Phase 2 keeps the same mature two-pass contract. The full-project
+    // start pass retains orphan cleanup, the projected Element override, and
+    // bridge lifecycle. The blocking reduced-model health pass waits only for
+    // first-frame-critical Element + Synapse; bridge readiness remains owned
+    // by Compose/Docker health after the Product surface becomes visible.
     desktopLog('info', 'matrix-runtime-phase2-up', { synapseHostPort });
     await dockerExec([
       ...allArgs, 'up', '-d', '--no-build',
@@ -3294,7 +3296,7 @@ async function ensureMatrixRuntime() {
     await dockerExec([
       ...allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
       '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
-      'element', 'synapse', 'mautrix-meta', 'mautrix-whatsapp'
+      'element', 'synapse'
     ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
     // 9. Discover Element + mautrix-meta dynamic host ports.
@@ -3325,6 +3327,18 @@ async function ensureMatrixRuntime() {
       synapseHostPort,
       elementHostPort,
       composeVersion: composeWaitAuthority.version
+    });
+    void dockerExec([
+      ...allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',
+      '--wait-timeout', String(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS),
+      'mautrix-meta', 'mautrix-whatsapp'
+    ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv }).then(() => {
+      desktopLog('info', 'matrix-bridge-readiness-complete', { composeVersion: composeWaitAuthority.version });
+    }).catch(error => {
+      desktopLog('warn', 'matrix-bridge-readiness-failed', {
+        reasonCode: error.reasonCode || error.code || 'MATRIX_BRIDGE_READINESS_FAILED',
+        message: error.message
+      });
     });
     return { started: true, endpoints, candidateCommit, composeVersion: composeWaitAuthority.version };
   } catch (error) {
@@ -4450,9 +4464,17 @@ if (!app.requestSingleInstanceLock()) {
     createSoundWindow();
     try {
       await ensureMatrixRuntime();
-      await ensureLettaAgentRuntime().start();
-      await launchBackend();
+      const lettaStartup = ensureLettaAgentRuntime().start();
+      lettaStartup.catch(error => {
+        desktopLog('warn', 'letta-runtime-start-failed', {
+          reasonCode: error.reasonCode || error.code || 'LETTA_RUNTIME_START_FAILED',
+          message: error.message
+        });
+      });
+      const backendStartup = launchBackend();
+      backendStartup.catch(() => {});
       if (wp7ProbeRequested()) {
+        await Promise.all([lettaStartup, backendStartup]);
         const probeResult = await runWp7InstalledRuntimeProbe();
         desktopLog('info', 'wp7-installed-runtime-probe-complete', {
           probeId: probeResult?.probeId || String(process.env.WP7_PROBE_ID || ''),
@@ -4470,6 +4492,8 @@ if (!app.requestSingleInstanceLock()) {
           await activateMainWindow(INITIAL_DESKTOP_LAUNCH_INTENT.postInstall ? 'post-install' : INITIAL_DESKTOP_LAUNCH_INTENT.deepLink ? 'deep-link-initial' : 'initial-launch', INITIAL_DESKTOP_LAUNCH_INTENT.payload);
         }
       }
+      await backendStartup;
+      if (DESKTOP_SMOKE || MEMORY_SOAK) await lettaStartup;
       refreshNotificationSettings();
       if (soundSettingsSyncTimer) clearInterval(soundSettingsSyncTimer);
       soundSettingsSyncTimer = setInterval(refreshNotificationSettings, 20000);
