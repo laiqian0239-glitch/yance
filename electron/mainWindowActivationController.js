@@ -54,6 +54,15 @@ function createMainWindowActivationController(options = {}) {
       && !window.webContents?.isDestroyed?.();
   }
 
+  function canProbeHiddenLoadedExistingWindow(window) {
+    return currentWindowMatches(window)
+      && typeof window?.isVisible === 'function'
+      && window.isVisible() === false
+      && typeof window.webContents?.isLoading === 'function'
+      && window.webContents.isLoading() === false
+      && !window.webContents?.isDestroyed?.();
+  }
+
   function notifyWaiters() {
     for (const waiter of [...waiters]) waiter();
   }
@@ -119,10 +128,11 @@ function createMainWindowActivationController(options = {}) {
       reportRecovery(window, 'visible-recovering', { phase });
       return true;
     };
-    const runAttempt = async (window, phase, presentPhase) => {
+    const runAttempt = async (window, phase, presentPhase, options = {}) => {
       let stage = 'renderer';
       try {
-        await waitForRendererReady(window);
+        const liveHiddenWindow = options.allowHiddenLoadedWindowProbe === true && canProbeHiddenLoadedExistingWindow(window);
+        if (!liveHiddenWindow) await waitForRendererReady(window);
         present(window, presentPhase);
         stage = 'backend';
         await waitForBackendReady({ reason });
@@ -138,14 +148,17 @@ function createMainWindowActivationController(options = {}) {
     };
 
     let window = getWindow();
-    if (!window || window.isDestroyed?.() || window.webContents?.isDestroyed?.()) {
+    const reusedExistingWindow = Boolean(window && !window.isDestroyed?.() && !window.webContents?.isDestroyed?.());
+    if (!reusedExistingWindow) {
       window = createWindow({ reason });
       reset(window, 'created-for-activation');
     } else if (readiness.window !== window) {
       reset(window, 'existing-window-bound');
     }
 
-    const firstAttempt = await runAttempt(window, 'initial', 'renderer-ready');
+    const firstAttempt = await runAttempt(window, 'initial', 'renderer-ready', {
+      allowHiddenLoadedWindowProbe: reusedExistingWindow
+    });
     if (firstAttempt.ok) return window;
     if (firstAttempt.stage === 'backend') {
       reportRecovery(window, 'failed', { reasonCode: firstAttempt.error.reasonCode || '', message: firstAttempt.error.message });

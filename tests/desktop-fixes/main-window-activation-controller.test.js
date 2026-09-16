@@ -9,11 +9,15 @@ function fakeWindow(id = 1) {
     destroyed: false,
     shown: 0,
     reloads: 0,
+    visible: true,
     isDestroyed() { return this.destroyed; },
+    isVisible() { return this.visible; },
     destroy() { this.destroyed = true; },
     webContents: {
       destroyed: false,
+      loading: false,
       isDestroyed() { return this.destroyed; },
+      isLoading() { return this.loading; },
       reload() {}
     }
   };
@@ -44,7 +48,7 @@ function harness(options = {}) {
       }
       return window;
     },
-    showWindow: target => { target.shown += 1; },
+    showWindow: target => { target.shown += 1; target.visible = true; },
     sendActivation: (_target, request) => activations.push(request),
     reloadWindow: target => {
       target.reloads += 1;
@@ -137,6 +141,23 @@ test('rapid activation requests are coalesced without creating a second window',
   assert.equal(h.activations.at(-1).reason, 'second-instance');
 });
 
+test('hidden loaded existing window does not wait on a stale renderer-readiness mirror before fresh runtime validation', async () => {
+  const window = fakeWindow();
+  window.visible = false;
+  window.webContents.loading = false;
+  const h = harness({ window, timeoutMs: 100 });
+  h.controller.reset(window, 'stale-did-start-loading');
+
+  const activation = h.controller.activate('second-instance');
+  activation.catch(() => {});
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.equal(window.shown, 1, 'hidden loaded BrowserWindow must acknowledge restore without waiting for stale mirror timeout');
+  assert.equal(window.reloads, 0, 'fresh runtime validation must run before any reload recovery');
+  assert.equal(h.runtimeValidations.length, 1, 'existing runtime readiness authority must validate the live renderer');
+  await activation;
+  assert.equal(h.activations.length, 1);
+});
 test('renderer timeout reloads once and then recreates the window', async () => {
   const h = harness({
     timeoutMs: 20,

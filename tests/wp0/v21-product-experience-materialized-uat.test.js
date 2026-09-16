@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '../..');
 const WORKFLOW = '.github/workflows/v21-product-experience-shell-p0-final-validation.yml';
@@ -39,6 +40,50 @@ function withTemporaryDirectory(fn) {
     fs.rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
   }
 }
+
+function loadProjectMatrixRuntimeSecrets() {
+  const main = read('electron/main.js');
+  const start = main.indexOf('function projectMatrixRuntimeSecrets(runtimeStateRoot) {');
+  const end = main.indexOf('function projectMatrixRuntimeConfigs', start);
+  assert.ok(start >= 0 && end > start, 'Matrix runtime secret projection function must be extractable');
+  const context = vm.createContext({ fs, path, crypto, Buffer, process: { env: {} }, Error });
+  vm.runInContext(`${main.slice(start, end)}; this.projectMatrixRuntimeSecrets = projectMatrixRuntimeSecrets;`, context);
+  return { project: context.projectMatrixRuntimeSecrets, env: context.process.env };
+}
+
+test('Matrix runtime secret projection preserves one bootstrap authority across unclean restart', () => {
+  withTemporaryDirectory(root => {
+    const first = loadProjectMatrixRuntimeSecrets();
+    const created = first.project(root);
+    const registration = first.env.YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE;
+    const provisioning = first.env.YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE;
+    const registrationBytes = fs.readFileSync(registration);
+    const provisioningBytes = fs.readFileSync(provisioning);
+    assert.equal(created.ephemeral, true);
+    assert.equal(Buffer.from(registrationBytes.toString('utf8').trim(), 'base64').length, 32);
+    assert.equal(Buffer.from(provisioningBytes.toString('utf8').trim(), 'base64').length, 32);
+
+    const second = loadProjectMatrixRuntimeSecrets();
+    const reused = second.project(root);
+    assert.equal(reused.ephemeral, true);
+    assert.deepEqual(fs.readFileSync(registration), registrationBytes, 'unclean restart must reuse the existing registration signer authority');
+    assert.deepEqual(fs.readFileSync(provisioning), provisioningBytes, 'unclean restart must reuse the existing provisioning authority');
+
+    fs.rmSync(provisioning);
+    const partial = loadProjectMatrixRuntimeSecrets();
+    assert.throws(() => partial.project(root), error => error?.reasonCode === 'MATRIX_RUNTIME_SECRET_STATE_INVALID');
+    assert.deepEqual(fs.readFileSync(registration), registrationBytes, 'partial state must fail closed without rotating the surviving secret');
+  });
+
+  withTemporaryDirectory(root => {
+    const secretDir = path.join(root, 'runtime-secrets');
+    fs.mkdirSync(secretDir, { recursive: true });
+    fs.writeFileSync(path.join(secretDir, 'matrix-registration-secret'), 'not-base64');
+    fs.writeFileSync(path.join(secretDir, 'mautrix-meta-provisioning-secret'), 'also-not-base64');
+    const malformed = loadProjectMatrixRuntimeSecrets();
+    assert.throws(() => malformed.project(root), error => error?.reasonCode === 'MATRIX_RUNTIME_SECRET_STATE_INVALID');
+  });
+});
 
 test('Product Final Validation retires the Product-specific Round12/13 source-UAT handoff', () => {
   const source = read(WORKFLOW);
@@ -707,6 +752,17 @@ test('production Matrix runtime keeps sealed resources read-only and projects dy
   const main = read('electron/main.js');
   const compose = read(COMPOSE);
 
+  const materializationStart = main.indexOf('async function matrixImagesAlreadyMaterialized');
+  const materializationEnd = main.indexOf('// One-shot Docker Desktop availability check.', materializationStart);
+  assert.ok(materializationStart >= 0 && materializationEnd > materializationStart, 'Matrix image materialization helper must remain a narrow standalone projection');
+  const matrixMaterializationHelper = main.slice(materializationStart, materializationEnd + 2);
+  assert.match(matrixMaterializationHelper, /config', '--images'/u, 'Compose must remain the image-topology authority');
+  assert.match(matrixMaterializationHelper, /const candidateTag = `:\$\{candidateCommit\}`/u, 'materialization admission must bind every image ref to the sealed candidate');
+  assert.match(matrixMaterializationHelper, /dockerExec\(\['image', 'inspect', \.\.\.imageRefs\], \{ timeoutMs: 15000 \}\)/u, 'Docker Engine must remain the image-store authority');
+  assert.match(matrixMaterializationHelper, /No such image:/u, 'only Docker-confirmed missing images may require sealed materialization');
+  assert.match(matrixMaterializationHelper, /throw error;/u, 'non-missing Docker inspect failures must fail closed');
+  assert.doesNotMatch(matrixMaterializationHelper, /writeFileSync|appendFileSync|cache|receipt/iu, 'image admission must stay stateless with no Yance mirror state');
+  assert.match(main, /if \(imageMaterialization\.allPresent\)[\s\S]*?matrix-images-already-materialized[\s\S]*?else \{[\s\S]*?matrix-images-loading[\s\S]*?dockerExec\(\['load', '-i', imagesTarPath\]/u, 'docker load must remain only the missing-image materialization path');
   assert.match(main, /function matrixRuntimeStateRoot\(\)[\s\S]*?DATA_ROOT[\s\S]*?matrix-runtime/u);
   assert.match(main, /projectMatrixRuntimeSecrets\(runtimeStateRoot\)/u);
   assert.match(main, /YANCE_MATRIX_SYNAPSE_PORT_BINDING:\s*'127\.0\.0\.1::8008'/u);
@@ -734,28 +790,28 @@ test('production Matrix runtime keeps sealed resources read-only and projects dy
   );
   assert.equal(
     (main.match(/'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\)/gu) || []).length,
-    5,
-    'Compose must own both blocking core readiness and the deferred bridge readiness wait'
+    4,
+    'Compose start passes plus the Synapse and deferred bridge readiness waits must stay on the mature Compose seam'
   );
   assert.equal(
     (main.match(/\{ timeoutMs: 0, cwd: runtimeDir, env: composeEnv \}/gu) || []).length,
-    5,
-    'Node must not impose a competing lifecycle timeout around any Compose readiness pass'
+    4,
+    'Node must not impose a competing lifecycle timeout around Compose start/readiness passes'
   );
   assert.equal(
     (main.match(/'--no-deps', '--no-recreate', '--wait'/gu) || []).length,
-    3,
-    'core and deferred bridge health waits must use the same reduced Compose model without recreation'
+    2,
+    'Synapse and deferred bridge health waits must use the same reduced Compose model without recreation'
   );
   assert.match(
     main,
-    /\.\.\.baseArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse', 'mautrix-meta', 'mautrix-whatsapp'[\s\S]{0,180}\.\.\.baseArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse'/u,
-    'phase 1 must start the existing bridge graph but block first-frame readiness only on Synapse'
+    /\.\.\.baseArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'synapse', 'mautrix-meta', 'mautrix-whatsapp'[\s\S]{0,500}const synapsePortResult = await dockerExec/u,
+    'phase 1 must expose the Compose-owned Synapse port before any blocking health wait'
   );
   assert.match(
     main,
-    /\.\.\.allArgs, 'up', '-d', '--no-build',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'--remove-orphans'[\s\S]{0,220}\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',\s*'--wait-timeout', String\(MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS\),\s*'element', 'synapse'/u,
-    'phase 2 must block first-frame readiness only on Element and Synapse through Compose'
+    /matrix-runtime-phase2-up[\s\S]*matrix-element-surface-published[\s\S]*matrix-runtime-synapse-health-wait[\s\S]*\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',[\s\S]{0,180}'synapse'/u,
+    'Element surface must publish before the same Compose owner completes the Synapse health gate'
   );
   assert.match(
     main,
@@ -987,4 +1043,71 @@ test('backendEnvironment forwards the five Matrix backend authority env keys bef
   assert.match(runner, /\$env:YANCE_MATRIX_BASE_URL\s*=\s*\$synapseUrl/u);
   // The child env seam (fork) consumes backendEnvironment() output.
   assert.match(main, /env:\s*await backendEnvironment\(launch, startupTimeoutMs\)/u);
+});
+
+
+test('desktop first frame stays compact and begins before Matrix/backend materialization without shadow auth', () => {
+  const main = read('electron/main.js');
+  assert.match(main, /width:\s*860[\s\S]*height:\s*580[\s\S]*minWidth:\s*760[\s\S]*minHeight:\s*520/u);
+  assert.match(main, /mainWindow = createdWindow;\s*createdWindow\.center\(\);/u);
+  assert.match(main, /let healthUrl = getElementHealthUrl\(\);[\s\S]*while \(Date\.now\(\) < deadline[\s\S]*healthUrl = getElementHealthUrl\(\);/u);
+  const startup = main.indexOf('registerIpc();');
+  const create = main.indexOf('createWindow();', startup);
+  const activate = main.indexOf('initialActivation = activateMainWindow', create);
+  const matrix = main.indexOf('await ensureMatrixRuntime();', startup);
+  const backend = main.indexOf('const backendStartup = launchBackend();', matrix);
+  assert.ok(startup >= 0 && create > startup && activate > create && matrix > activate && backend > matrix, 'native first frame/activation must start before mature Matrix materialization; backend must remain after Matrix endpoints');
+  const createBlock = main.slice(main.indexOf('function createWindow()'), main.indexOf('async function runDesktopSmoke'));
+  assert.match(createBlock, /loadElementShell\(createdWindow\)/u, 'Element remains the Product/login UI owner');
+  assert.doesNotMatch(createBlock, /loadFile\([^)]*(?:login|auth)|data:text\/html/iu, 'Electron must not add a shadow login implementation');
+});
+
+test('Model Brain acquisition uses mature curl retry transport while preserving exact pinned identity checks', () => {
+  const workflow = read('.github/workflows/v21-model-brain-p0-windows.yml');
+  assert.doesNotMatch(workflow, /Invoke-WebRequest/u);
+  assert.equal((workflow.match(/curl\.exe --fail --location --retry 4 --retry-delay 2 --retry-max-time 60 --output/g) || []).length, 2);
+  assert.match(workflow, /10b7a95b928e551fc78cac665999e1ae1f08fb738b255adb0a8d3b9c2824a9c0/u);
+  assert.match(workflow, /b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e/u);
+  assert.doesNotMatch(workflow, /while\s*\(|for\s*\([^)]*(?:curl|download)|fallback|mirror/iu);
+});
+
+
+test('declared Store Bridge IPC reuses M2 backend-readiness authority without shadow login state', () => {
+  const main = read('electron/main.js');
+  const manifest = JSON.parse(read('electron/m2/ipcManifest.json'));
+  const personalAccessChannels = [
+    'store:personal-access-status',
+    'store:personal-access-login',
+    'store:personal-access-activate',
+    'store:personal-access-logout'
+  ];
+  for (const channel of personalAccessChannels) {
+    const contract = manifest.handlers.find((handler) => handler.channel === channel);
+    assert.ok(contract, `${channel} must remain declared in the mature M2 manifest`);
+    assert.equal(contract.requiresBackendReady, true, `${channel} must remain backend-ready gated`);
+    assert.equal(contract.reasonCodeOnFailure, 'DESKTOP_BACKEND_NOT_READY');
+  }
+  assert.match(main, /installR32StoreBridge\(\{\s*ipcMain:\s*storeBridgeIpcMain\(\),\s*apiRequest\s*\}\)/u);
+  assert.match(main, /m2IpcIndex\.byChannel\.has\(channel\)[\s\S]*m2Guard\(channel,[\s\S]*serializeBridgeError/u);
+  assert.doesNotMatch(main, /queuedInvitation|pendingInvitation|optimisticLogin/iu);
+});
+
+
+test('Element surface publishes after Compose service_started and before Compose-owned Synapse health gate', () => {
+  const main = read('electron/main.js');
+  const phase1 = main.indexOf("'matrix-runtime-phase1-up'");
+  const synapsePort = main.indexOf("'port', 'synapse', '8008'", phase1);
+  const projection = main.indexOf('projectMatrixRuntimeConfigs(', synapsePort);
+  const phase2 = main.indexOf("'matrix-runtime-phase2-up'", projection);
+  const publish = main.indexOf("'matrix-element-surface-published'", phase2);
+  const synapseHealth = main.indexOf("'matrix-runtime-synapse-health-wait'", publish);
+  const ready = main.indexOf("'matrix-runtime-ready'", synapseHealth);
+  assert.ok(phase1 >= 0 && synapsePort > phase1 && projection > synapsePort && phase2 > projection && publish > phase2 && synapseHealth > publish && ready > synapseHealth, 'Compose service_started -> port -> Element projection/start -> endpoint publish -> Synapse health -> runtime ready ordering must be explicit');
+  const earlyElementBlock = main.slice(phase2, publish);
+  assert.doesNotMatch(earlyElementBlock, /'--wait',/u, 'Element start must not wait for Synapse health');
+  const healthBlock = main.slice(synapseHealth, ready);
+  assert.match(healthBlock, /'--wait',[\s\S]*'synapse'/u, 'Synapse readiness must remain owned by Docker Compose --wait');
+  const startup = main.indexOf('await ensureMatrixRuntime();');
+  const backend = main.indexOf('const backendStartup = launchBackend();', startup);
+  assert.ok(startup >= 0 && backend > startup, 'backend launch must remain downstream of full Matrix runtime readiness');
 });
