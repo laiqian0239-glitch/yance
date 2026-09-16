@@ -57,7 +57,14 @@
     "timeoutModificationAllowed": false,
     "gateOrScannerWeakeningAllowed": false,
     "forcePushAllowed": false,
-    "historyRewriteAllowed": false
+    "historyRewriteAllowed": false,
+    "workflowModificationPolicy": {
+      "allowedWorkflowPaths": [
+        ".github/workflows/windows-production-release.yml"
+      ],
+      "approvedWorkflowPathCount": 1,
+      "approvedWorkflowPathSetSha256": "2a162e5672592872e57a61fbae0f7f71d208e71878d41e372a2de16db9838c1a"
+    }
   },
   "failureFirstEvidence": {
     "controllerState": "V5.513",
@@ -136,8 +143,16 @@
       "git diff --check",
       "Exact two-path implementation boundary"
     ],
-    "exactHeadCi": ["Stage", "Layered CI when routed", "WP7/release gates when routed"],
-    "successorPromotion": ["ordinary implementation merge", "same-tree Matrix materialization", "one successor Windows RC"]
+    "exactHeadCi": [
+      "Stage",
+      "Layered CI when routed",
+      "WP7/release gates when routed"
+    ],
+    "successorPromotion": [
+      "ordinary implementation merge",
+      "same-tree Matrix materialization",
+      "one successor Windows RC"
+    ]
   },
   "frozenSeparateRoot": {
     "id": "WINDOW_STARTUP / STARTUP_CRITICAL_PATH_OVERSCOPED",
@@ -158,6 +173,9 @@
     "exactPathScopeOnly": true,
     "independentBranchAndPullRequestRequired": true,
     "formalReleaseAuthorized": false,
-    "publishAuthorized": false
+    "publishAuthorized": false,
+    "productionUseAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
   }
 }
