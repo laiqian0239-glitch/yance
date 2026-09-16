@@ -1,0 +1,258 @@
+{
+    "schemaVersion":  1,
+    "documentType":  "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+    "repository":  "laiqian0239-glitch/yance",
+    "workPackage":  "V21-MATRIX-IMAGE-MATERIALIZATION-PERF-P0",
+    "proposalRevision":  1,
+    "status":  "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+    "reason":  "Final materialized Windows artifact audit is GREEN. Exact installed RC performance admission proved 52.084s of cold-start critical path is redundant sealed Matrix image materialization before Compose phase1 while the exact candidate-tag images are already present in Docker Engine. This authorization closes that single performance root through Docker Compose and Docker public seams without adding a second lifecycle or state owner.",
+    "base":  {
+                 "branch":  "main",
+                 "commit":  "62c4f08f009eb15ce2f298efc33b9aa492624123",
+                 "tree":  "f010e1f0ce63a8fd01701114e4a0e3d8c3e119c3",
+                 "productSourcePredecessor":  "a88f99ea1f25bbb191dac05b87a8e71fe9d0338d",
+                 "requiredFreshAtAuthorizationMerge":  true
+             },
+    "effectiveness":  {
+                          "effectiveBeforeMerge":  false,
+                          "requiresOrdinaryTwoParentMainMerge":  true,
+                          "implementationMayStartOnlyFromAuthorizationMergeCommit":  true,
+                          "authorizationProposalTransportIsNotImplementationAuthority":  true,
+                          "explicitOwnerAuthorizationRequiredForMerge":  false,
+                          "invalidIfTrustedMainMovesBeforeAuthorizationMerge":  true
+                      },
+    "digestCanonicalization":  {
+                                   "algorithm":  "SHA-256",
+                                   "encoding":  "UTF-8",
+                                   "pathNormalization":  "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+                                   "separator":  "LF (\\n)",
+                                   "trailingNewline":  true
+                               },
+    "authorizationBranch":  {
+                                "name":  "governance/v21-product-interaction-performance-matrix-image-materialization-p0-authorization",
+                                "allowedChangedPaths":  [
+                                                            "governance/layered-ci/v21-product-interaction-performance-matrix-image-materialization-p0-authorization.json"
+                                                        ],
+                                "approvedChangedFileCount":  1,
+                                "approvedChangedFileSetSha256":  "0d643f88843fe986ab942448a4362de0c96cd59676ffeb7cfa50d8ab7ad91565",
+                                "mustRemainSingleFile":  true,
+                                "mustRemainCleanFromTrustedMain":  true
+                            },
+    "implementation":  {
+                           "branch":  "fix/v21-product-interaction-performance-matrix-image-materialization-p0",
+                           "requiredParent":  "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+                           "allowedChangedPaths":  [
+                                                       "electron/main.js",
+                                                       "tests/wp0/v21-product-experience-materialized-uat.test.js"
+                                                   ],
+                           "approvedChangedFileCount":  2,
+                           "approvedChangedFileSetSha256":  "49f98bcd75845860961b46f04516da57d73b6010a0184b155875ae13bfa3bfc1",
+                           "productionScopeAuthorized":  true,
+                           "productionCodeChanged":  true,
+                           "testModificationAllowed":  true,
+                           "workflowModificationAllowed":  false,
+                           "routingPolicyModificationAllowed":  false,
+                           "newDependencyAllowed":  false,
+                           "packageManifestModificationAllowed":  false,
+                           "lockfileModificationAllowed":  false,
+                           "timeoutModificationAllowed":  false,
+                           "gateOrScannerWeakeningAllowed":  false,
+                           "forcePushAllowed":  false,
+                           "historyRewriteAllowed":  false
+                       },
+    "evidence":  {
+                     "controllerState":  "V5.516",
+                     "controllerCommentId":  5692816612,
+                     "finalRcRunId":  35059460960,
+                     "finalRcConclusion":  "success",
+                     "finalRcSourceCommit":  "a88f99ea1f25bbb191dac05b87a8e71fe9d0338d",
+                     "finalRcSourceTree":  "8834da12d860be5717008800102f5f9acb2c7063",
+                     "finalArtifactAudit":  "GREEN",
+                     "windowsMainPid":  36504,
+                     "coldStartTimelineMs":  {
+                                                 "matrixImagesLoading":  912,
+                                                 "matrixPhase1Up":  52996,
+                                                 "matrixImageLoadInterval":  52084,
+                                                 "matrixRuntimeReady":  70346,
+                                                 "mainWindowActivated":  74663
+                                             },
+                     "sealedMatrixImagesTar":  {
+                                                   "size":  970234368,
+                                                   "sha256":  "38cdde1d02b8c1714ab8c82486162e82de772b9e710c781426e71c1344866d62"
+                                               },
+                     "maturePublicSeamProof":  [
+                                                   "docker compose ... config --images returned the complete required image topology",
+                                                   "docker image inspect proved all four exact candidate-tag refs already materialized in Docker Engine"
+                                               ],
+                     "equivalentRcRerunForbidden":  true
+                 },
+    "rootCause":  {
+                      "locked":  true,
+                      "id":  "PRODUCT_INTERACTION_PERFORMANCE / MATRIX_SEALED_IMAGE_MATERIALIZATION_REPLAY_ON_EVERY_COLD_START",
+                      "evidence":  [
+                                       "Exact installed RC spent 52.084s between matrix-images-loading and matrix-runtime-phase1-up.",
+                                       "Final packaged electron/main.js unconditionally executes docker load -i matrix-images.tar on every packaged launch before Compose phase1.",
+                                       "The sealed matrix-images.tar is 970,234,368 bytes and is already materialized as the exact candidate-tag images in Docker Engine.",
+                                       "Docker Compose config --images is the mature topology seam and Docker image inspect is the mature image-presence seam.",
+                                       "Compose remains lifecycle/readiness owner; no Matrix session/composer/send/recovery authority changes are required."
+                                   ]
+                  },
+    "causalBatch":  {
+                        "oneRoot":  true,
+                        "scope":  [
+                                      "Resolve required Matrix image refs through Docker Compose config --images.",
+                                      "Require every resolved ref to be bound to the exact sealed candidate commit tag; fail closed otherwise.",
+                                      "Use Docker image inspect only as stateless presence evidence.",
+                                      "Skip docker load only when every exact required ref is already present.",
+                                      "Preserve the existing docker load -i matrix-images.tar path unchanged when any required image is absent."
+                                  ],
+                        "mustNotExpandTo":  [
+                                                "Matrix/Element login, session, crypto, timeline, composer, send or recovery",
+                                                "Docker Compose up/wait lifecycle semantics",
+                                                "Backend/Letta/window activation ownership",
+                                                "Timeout tuning",
+                                                "Installer/NSIS/resource identity",
+                                                "Generic UI performance refactors"
+                                            ]
+                    },
+    "authorityPreservation":  {
+                                  "imageMaterializationOwner":  "Docker Engine image store via official Docker CLI",
+                                  "matrixTopologyLifecycleReadinessOwner":  "Docker Compose via existing dockerExec/compose public seam",
+                                  "elementMatrixSessionTimelineComposerSendRecoveryOwner":  "Element/Matrix",
+                                  "backendLifecycleOwner":  "DesktopHost/BackendProcessHost + coordinator",
+                                  "windowReadinessOwner":  "mainWindowActivationController + mainWindowRuntimeReadiness",
+                                  "secondOwnerAdded":  false,
+                                  "mirrorStateAdded":  false,
+                                  "parallelLifecycleAdded":  false,
+                                  "customRetryOrFallbackAdded":  false,
+                                  "persistentCacheAdded":  false,
+                                  "thinProjectionOnly":  true
+                              },
+    "closureMatrix":  {
+                          "unknownBlockersMustEqual":  0,
+                          "rows":  [
+                                       {
+                                           "boundary":  "Sealed matrix-images.tar",
+                                           "classification":  "PRESERVE",
+                                           "closure":  "Archive remains mandatory sealed fallback source and final artifact input."
+                                       },
+                                       {
+                                           "boundary":  "Required Matrix image ref discovery",
+                                           "classification":  "ROOT_IMPLEMENTATION",
+                                           "closure":  "Use Docker Compose config --images; no YAML shadow parser or hardcoded topology."
+                                       },
+                                       {
+                                           "boundary":  "Docker image presence",
+                                           "classification":  "ROOT_IMPLEMENTATION",
+                                           "closure":  "Use stateless docker image inspect for exact candidate-tag refs; no receipt/cache/mirror state."
+                                       },
+                                       {
+                                           "boundary":  "Image materialization",
+                                           "classification":  "ROOT_IMPLEMENTATION",
+                                           "closure":  "Skip redundant docker load only when all exact refs are already present; otherwise preserve existing sealed load path."
+                                       },
+                                       {
+                                           "boundary":  "Compose lifecycle/readiness",
+                                           "classification":  "PRESERVE",
+                                           "closure":  "Compose up/wait/start/stop semantics unchanged."
+                                       },
+                                       {
+                                           "boundary":  "Backend/Letta/window activation",
+                                           "classification":  "PRESERVE",
+                                           "closure":  "No change."
+                                       }
+                                   ]
+                      },
+    "negativeProofs":  [
+                           "No cache file, registry receipt, database, mirror state or second image authority.",
+                           "No custom YAML parser, hardcoded parallel service topology, Docker API reimplementation, image pull supervisor, retry loop or fallback lifecycle.",
+                           "No timeout changes.",
+                           "No Element/Matrix account, login, session, crypto, timeline, composer or send changes.",
+                           "No workflow, routing, package manifest, lockfile, installer or dependency changes."
+                       ],
+    "localAcceptance":  [
+                            "Implementation branch starts only from ordinary authorization merge.",
+                            "Implementation diff is limited to electron/main.js and tests/wp0/v21-product-experience-materialized-uat.test.js.",
+                            "Regression proves Compose config --images is the topology seam, every required ref is exact-candidate-tagged, Docker inspect is stateless, and sealed docker load remains the missing-image materialization path.",
+                            "Existing Compose phase/readiness assertions remain GREEN.",
+                            "node --check electron/main.js",
+                            "node --test tests/wp0/v21-product-experience-materialized-uat.test.js",
+                            "npm run verify:wp0",
+                            "node tools/wp7/source-closure.js",
+                            "git diff --check",
+                            "Production-equivalent Windows local proof shows pre-existing exact images no longer incur the previous 52.084s docker-load interval."
+                        ],
+    "requiredValidation":  {
+                               "localClosure":  [
+                                                    "node --check electron/main.js",
+                                                    "node --test tests/wp0/v21-product-experience-materialized-uat.test.js",
+                                                    "npm run verify:wp0",
+                                                    "node tools/wp7/source-closure.js",
+                                                    "git diff --check",
+                                                    "production-equivalent Windows cold-start image-materialization proof"
+                                                ],
+                               "exactHeadCi":  [
+                                                   "Stage",
+                                                   "Layered CI when routed",
+                                                   "Product/Windows gates when routed"
+                                               ],
+                               "successorPromotion":  [
+                                                          "ordinary implementation merge",
+                                                          "same-tree materialization",
+                                                          "one successor Windows RC because production source changed",
+                                                          "successor final artifact audit",
+                                                          "remaining interaction-performance admission",
+                                                          "one Full Windows UAT"
+                                                      ]
+                           },
+    "mergePolicy":  {
+                        "authorizationMerge":  "ORDINARY_TWO_PARENT_MERGE_ONLY",
+                        "implementationMerge":  "ORDINARY_TWO_PARENT_MERGE_ONLY",
+                        "forcePushAllowed":  false,
+                        "squashMergeAllowed":  false,
+                        "rebaseMergeAllowed":  false,
+                        "exactHeadGreenRequired":  true,
+                        "freshMainAntiDriftRequired":  true
+                    },
+    "governance":  {
+                       "authorizationPredatesImplementation":  true,
+                       "exactPathScopeOnly":  true,
+                       "independentBranchAndPullRequestRequired":  true,
+                       "formalReleaseAuthorized":  false,
+                       "publishAuthorized":  false,
+                       "productionUseAuthorized":  false,
+                       "readyForPromotionAuthorized":  false,
+                       "automaticNextWorkPackageAuthorizationAuthorized":  false
+                   },
+    "ossFit":  {
+                   "decision":  "REUSE_DOCKER_COMPOSE_AND_DOCKER_ENGINE_PUBLIC_SEAMS",
+                   "matureOssAvailable":  true,
+                   "newGeneralPurposeInfrastructure":  false,
+                   "selectedAdoptionMode":  "existing-repository-seam",
+                   "reviewedCandidates":  [
+                                              {
+                                                  "name":  "Docker Compose",
+                                                  "source":  "docker/compose via existing dockerExec/compose public seam",
+                                                  "license":  "Apache-2.0",
+                                                  "adoptionMode":  "official-cli-existing-repository-seam",
+                                                  "fit":  "FIT",
+                                                  "reason":  "Compose already owns Matrix topology/lifecycle/readiness and exposes config --images for authoritative resolved image refs."
+                                              },
+                                              {
+                                                  "name":  "Docker Engine CLI",
+                                                  "source":  "docker image inspect and existing docker load",
+                                                  "license":  "Apache-2.0 ecosystem",
+                                                  "adoptionMode":  "official-cli-existing-repository-seam",
+                                                  "fit":  "FIT",
+                                                  "reason":  "Docker Engine already owns the image store; inspect provides stateless presence proof and load remains the existing sealed materialization write path."
+                                              }
+                                          ],
+                   "retireOrAvoid":  [
+                                         "No second image cache authority or persistent receipt.",
+                                         "No hand-parsed Compose YAML topology.",
+                                         "No custom Docker API or supervisor.",
+                                         "No timeout or lifecycle ownership change."
+                                     ],
+                   "thinYanceAdapterOnly":  true
+               }
+}
