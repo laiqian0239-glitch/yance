@@ -562,9 +562,9 @@ if (process.env.YANCE_WP4_CREDENTIAL_CUSTODY_PROBE === '1') {
 const personalAccessService = createPersonalAccessService({
   credentialStoreProvider: () => getSecurityGuard().credentials
 });
+app.use('/api/app/v2', createApiV2Router({ runtimeProvider: () => APP_RUNTIME }));
 app.use('/api/r32/personal-access', createPersonalAccessRouter({ personalAccessService }));
 app.use(createPersonalAccessGuard({ personalAccessService }));
-app.use('/api/app/v2', createApiV2Router({ runtimeProvider: () => APP_RUNTIME }));
 app.use('/api/v2/persona', createPersonaBrainRouter({ initializeOwnerBaseline: true }));
 app.use('/api/core', coreRouter);
 app.use(createR32ConversationRouter());

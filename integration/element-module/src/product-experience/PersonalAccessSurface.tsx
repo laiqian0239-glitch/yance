@@ -74,6 +74,7 @@ export function PersonalAccessSurface({
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState("正在读取个人使用权限");
   const logoutRequested = useRef(false);
+  const automaticHandoffAttempted = useRef(false);
 
   const applyStatus = useCallback((next: PersonalAccessStatus): void => {
     setStatus(next);
@@ -140,7 +141,9 @@ export function PersonalAccessSurface({
   }, [api, applyStatus, busy, readMatrixProof]);
 
   useEffect(() => {
-    if (status?.usable !== true && window.yancePersonalAccessHandoff?.keyId) void activateHandoff();
+    if (status?.usable === true || !window.yancePersonalAccessHandoff?.keyId || automaticHandoffAttempted.current) return;
+    automaticHandoffAttempted.current = true;
+    void activateHandoff();
   }, [activateHandoff, status?.usable]);
 
   useEffect(() => {
