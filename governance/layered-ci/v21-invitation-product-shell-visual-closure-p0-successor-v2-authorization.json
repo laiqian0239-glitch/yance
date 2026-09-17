@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "documentType": "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+  "repository": "laiqian0239-glitch/yance",
+  "workPackage": "V21-INVITATION-PRODUCT-SHELL-VISUAL-CLOSURE-P0-SUCCESSOR-V2",
+  "proposalRevision": 2,
+  "status": "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+  "reason": "Successor authorization after V5.522 consumed all already-captured Windows login evidence and locked one same-boundary visual root: the compact Yance login/security shell uses viewport-wide typography/padding inside a narrow left grid column, has no desktop height-responsive compaction, and then clips the fixed branding column with overflow:hidden. This visibly over-wraps the Product headline and clips lower brand copy/capabilities at the approved compact window while the right auth column remains reachable. Carry the frozen entitlement implementation head forward unchanged, preserve Electron native-window authority and Element Matrix auth/security authority, and authorize only Yance-owned presentation CSS plus exact regression contracts needed to close 860x580 and 100/125/150% production-equivalent visual proof. No window enlargement, auth/session fork, Element security hiding, timeout, retry, dependency, packaging, or workflow mutation is authorized.",
+  "base": {
+    "branch": "main",
+    "commit": "717d4bae636919d0c4ad248847d5a98474259769",
+    "tree": "4e970048f25d067404b11084579b74c7997ce93b",
+    "requiredFreshAtAuthorizationMerge": true
+  },
+  "effectiveness": {
+    "effectiveBeforeMerge": false,
+    "requiresOrdinaryTwoParentMainMerge": true,
+    "implementationMayStartOnlyFromAuthorizationMergeCommit": true,
+    "authorizationProposalTransportIsNotImplementationAuthority": true,
+    "explicitOwnerAuthorizationRequiredForMerge": false,
+    "invalidIfTrustedMainMovesBeforeAuthorizationMerge": true,
+    "requiredFirstParent": "717d4bae636919d0c4ad248847d5a98474259769",
+    "requiredSecondParent": "AUTHORIZATION_EXACT_HEAD"
+  },
+  "digestCanonicalization": {
+    "algorithm": "SHA-256",
+    "encoding": "UTF-8",
+    "pathNormalization": "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+    "separator": "LF (\\n)",
+    "trailingNewline": true
+  },
+  "authorizationBranch": {
+    "name": "governance/v21-invitation-product-shell-visual-closure-p0-successor-v2-authorization",
+    "allowedChangedPaths": [
+      "governance/layered-ci/v21-invitation-product-shell-visual-closure-p0-successor-v2-authorization.json"
+    ],
+    "approvedChangedFileCount": 1,
+    "approvedChangedFileSetSha256": "cadbd0a84160e7f816f9dbbd8a7755c0e90cf1a01dca0e6fef2390f1a7551e5a",
+    "mustRemainSingleFile": true,
+    "mustRemainCleanFromTrustedMain": true
+  },
+  "implementation": {
+    "branch": "fix/v21-invitation-product-shell-visual-closure-p0-successor-v2",
+    "requiredParent": "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+    "forwardContinuation": {
+      "required": true,
+      "frozenPredecessorHead": "84fb8332bbfb7422eb1328ec0d60bfe8af193dda"
+    },
+    "allowedChangedPaths": [
+      "backend/server.js",
+      "backend/services/personalAccessService.js",
+      "backend/tests/personalAccessControlP0.test.js",
+      "electron/desktopHost/RuntimeProjectionCoordinator.js",
+      "integration/element-module/src/YanceLogin.css",
+      "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
+      "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "tests/wp0/v21-personal-access-control-p0.test.js",
+      "tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+      "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "tests/wp0/v21-product-experience-materialized-uat.test.js"
+    ],
+    "approvedChangedFileCount": 11,
+    "approvedChangedFileSetSha256": "c4e8cdced7acf15c4e3a9bb5113fe7475147a76a62ca031388ef89eb6fe30af0",
+    "productionScopeAuthorized": true,
+    "productionCodeChanged": true,
+    "testModificationAllowed": true,
+    "workflowModificationAllowed": false,
+    "routingPolicyModificationAllowed": false,
+    "newDependencyAllowed": false,
+    "packageManifestModificationAllowed": false,
+    "lockfileModificationAllowed": false,
+    "timeoutModificationAllowed": false,
+    "gateOrScannerWeakeningAllowed": false,
+    "forcePushAllowed": false,
+    "historyRewriteAllowed": false
+  },
+  "evidence": {
+    "controllerState": "V5.522",
+    "controllerCommentId": 5706960756,
+    "currentMain": "717d4bae636919d0c4ad248847d5a98474259769",
+    "currentTree": "4e970048f25d067404b11084579b74c7997ce93b",
+    "predecessorAuthorizationMerge": "717d4bae636919d0c4ad248847d5a98474259769",
+    "frozenPredecessorImplementationHead": "84fb8332bbfb7422eb1328ec0d60bfe8af193dda",
+    "consumedWindowsVisualEvidence": [
+      {
+        "path": "C:/YanceController/window-first-frame-v3-login-proof.png",
+        "viewport": "844x541 captured content",
+        "facts": [
+          "headline expands to four visual lines",
+          "lower relationship-workbench sentence reaches the bottom edge",
+          "capability pills are not visible inside the captured branding column"
+        ]
+      },
+      {
+        "path": "C:/YanceController/window-first-frame-v3-login-900x620.png",
+        "viewport": "884x581 captured content",
+        "facts": [
+          "headline over-wraps into three lines in the narrow left column",
+          "branding content is vertically compressed near the lower edge"
+        ]
+      },
+      {
+        "path": "C:/YanceController/perf-runtime-window-front.png",
+        "viewport": "1180x940 full native window",
+        "facts": [
+          "same source is materially healthier with a taller/wider viewport",
+          "confirms geometry sensitivity instead of missing Product content"
+        ]
+      },
+      {
+        "path": "C:/YanceController/perf-runtime-window.png",
+        "viewport": "1180x940 partially obscured",
+        "facts": [
+          "not suitable as acceptance evidence but consistent with the same geometry-sensitive source"
+        ]
+      }
+    ],
+    "sourceEvidence": [
+      ".yance-login-shell fixes the desktop grid to 100vh and hides shell overflow",
+      ".yance-login-brand and .yance-login-brand-inner both retain viewport-height assumptions while the brand column hides overflow",
+      ".yance-login-brand-inner padding uses full-viewport vw and headline size uses full-viewport vw although text is constrained to a 40-46vw column",
+      "desktop media rules are width-keyed only; no wide-but-short height compaction exists",
+      "the <=760px stacked branch is the only branch that releases clipping/scroll topology",
+      "YancePostLoginSecurity reuses the exact same brand shell, so the same geometry defect crosses login and post-login security presentation",
+      "Electron compact 860x580 startup window is already approved and must not be enlarged as a layout workaround",
+      "right .yance-login-auth already owns vertical scrolling and must remain the only desktop auth scroll root"
+    ]
+  },
+  "rootCause": {
+    "locked": true,
+    "id": "COMPACT_AUTH_VISUAL_GEOMETRY / VIEWPORT_SCALED_BRAND_TYPOGRAPHY_WITH_FIXED_HIDDEN_HEIGHT",
+    "evidence": [
+      "At the approved compact native window the actual content viewport is roughly 844x541; the left column is only about 338 CSS px before padding.",
+      "Brand padding and headline sizing are calculated from the full viewport rather than the actual constrained brand column, causing forced extra wrapping that increases intrinsic height.",
+      "The branding column then keeps min-height:100vh and overflow:hidden with no desktop max-height/short-height compaction path, so lower copy/capabilities can be clipped instead of remaining visibly composed.",
+      "The 1180x940 capture using the same Product source is materially healthier, proving the failure is geometry-sensitive rather than missing markup or failed font materialization.",
+      "The same Yance shell wraps Element-owned post-login security, so fixing only the initial invitation card would leave the same presentation root open."
+    ]
+  },
+  "causalBatch": {
+    "oneRoot": true,
+    "scope": [
+      "Carry the frozen 84fb8332 entitlement implementation forward byte-for-byte as the functional basis; do not reopen its already-proven Product API/session boundary.",
+      "Keep the approved Electron 860x580 compact native window unchanged; Electron remains the native window/drag/caption owner.",
+      "In YanceLogin.css only, make Product-owned branding typography/padding respond to the constrained desktop column and short viewport so the explicit two-part headline, body copy, lockup, and capability chips remain composed without hidden vertical clipping.",
+      "Preserve the existing right-column auth scroll authority; do not make the whole desktop shell or left branding column a competing scroll owner.",
+      "Apply the same Product presentation correction to the reused post-login security shell without targeting or hiding Element CompleteSecurity/E2eSetup lifecycle content.",
+      "Add exact regression contracts for compact wide-short geometry and post-login reuse, then prove production-equivalent rendering at 100%, 125%, and 150% scaling equivalents before promotion."
+    ],
+    "mustNotExpandTo": [
+      "electron/main.js window enlargement, minimum-size increase, custom frame, drag region rewrite, or native window lifecycle changes",
+      "Element login/session/crypto/recovery controls, CompleteSecurity lifecycle, Matrix protocol, or DOM hiding of mature security errors",
+      "new CSS document/html/body scroll ownership, second auth scroll root, JavaScript resize observer, custom layout state, polling, retry, timeout, or fallback",
+      "YanceLogin.tsx content/protocol changes unless a fresh separately-authorized source root proves CSS cannot close the visual boundary",
+      "dependencies, package/lockfile, workflow, Docker Compose, Synapse, installer, packaging, icons, or unrelated Product shell navigation"
+    ]
+  },
+  "authorityPreservation": {
+    "productPresentationOwner": "Yance owns Product identity, copy, branding layout and the thin presentation shell in YanceLogin.css.",
+    "electronNativeWindowOwner": "Electron BrowserWindow retains native window sizing, caption, drag, titlebar and platform integration authority; the approved 860x580 compact target is preserved.",
+    "matrixLoginSessionCryptoOwner": "Element + Matrix retain login completion, session, CompleteSecurity/E2E, crypto, recovery, logout and security lifecycle authority.",
+    "authScrollOwner": "Existing .yance-login-auth remains the single desktop vertical scroll authority for authentication/security content; Yance brand remains a non-scrolling presentation panel.",
+    "secondMatrixOwnerAdded": false,
+    "secondWindowOwnerAdded": false,
+    "parallelLifecycleAdded": false,
+    "stateMirrorAdded": false,
+    "customRetryOrFallbackAdded": false,
+    "thinProjectionOnly": true
+  },
+  "closureMatrix": {
+    "unknownBlockersMustEqual": 0,
+    "rows": [
+      {
+        "boundary": "Frozen entitlement functional batch",
+        "classification": "FORWARD_CONTINUATION_GREEN",
+        "closure": "Carry exact head 84fb8332bbfb7422eb1328ec0d60bfe8af193dda through the required two-parent continuation; do not rewrite or re-debug the proven entitlement root."
+      },
+      {
+        "boundary": "Compact native BrowserWindow",
+        "classification": "PRESERVE_MATURE_OWNER",
+        "closure": "Keep Electron 860x580 target/minimum/native controls unchanged; no window enlargement workaround."
+      },
+      {
+        "boundary": "Initial Yance login brand composition",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "At compact wide-short geometry the lockup, intended two-part headline, body copy and capability pills remain fully visible and visually composed without hidden vertical clipping."
+      },
+      {
+        "boundary": "Authentication card reachability",
+        "classification": "PRESERVE_MATURE_OWNER",
+        "closure": "Existing right auth column remains the only desktop vertical scroll root and all invitation/device-resume controls remain reachable."
+      },
+      {
+        "boundary": "Post-login security presentation",
+        "classification": "ROOT_IMPLEMENTATION",
+        "closure": "The same Yance shell remains visually complete while Element-owned CompleteSecurity/E2e content is mounted unchanged and remains reachable."
+      },
+      {
+        "boundary": "Windows CJK rendering and scale",
+        "classification": "LOCAL_CLOSURE_REQUIRED",
+        "closure": "Production-equivalent screenshots at 100/125/150% scale factors show no truncation, overlap, font ghosting, lost controls or bottom clipping at the compact target."
+      },
+      {
+        "boundary": "Materialized Element module",
+        "classification": "LOCAL_CLOSURE_REQUIRED",
+        "closure": "Built/adopted YanceLogin CSS bytes contain the exact visual correction and final runtime screenshots are taken from those materialized bytes, not source-only HTML."
+      }
+    ]
+  },
+  "negativeProofs": [
+    "No Electron BrowserWindow size/minimum enlargement or custom native frame/drag owner.",
+    "No second login/session/crypto/security lifecycle; Element controls and callbacks remain mounted unchanged.",
+    "No html/body document scroll takeover, no second auth scroll root, and no JavaScript layout state/ResizeObserver authority.",
+    "No CSS/DOM rule that hides Element errors, CompleteSecurity controls, logout, reset/recovery, or skip flows.",
+    "No dependency, package/lockfile, workflow, Docker Compose, Synapse, backend lifecycle, installer, packaging, icon or release-config mutation.",
+    "No timeout increase, retry loop, polling, fallback page, or mirrored visual state."
+  ],
+  "localAcceptance": [
+    "Authorization ordinary-merges from exact fresh main 717d4bae636919d0c4ad248847d5a98474259769 before any visual production mutation.",
+    "Successor implementation starts with one ordinary two-parent forward-continuation merge: first parent = authorization merge; second parent = frozen predecessor head 84fb8332bbfb7422eb1328ec0d60bfe8af193dda.",
+    "Relative to the frozen predecessor, new visual mutation is limited to YanceLogin.css and the exact visual regression contracts already present in the 11-path union.",
+    "Source proof keeps Electron 860x580 unchanged, keeps .yance-login-auth as the single desktop auth scroll owner, and adds no html/body ownership or JS layout lifecycle.",
+    "Focused viewport/brand/security regression tests pass; Element module build/typecheck pass; git diff --check passes.",
+    "Materialized Element module CSS is inspected and matches source authority.",
+    "Production-equivalent real Yance renders initial login and Element post-login security at compact geometry with no clipped brand copy/capabilities, no unintended headline over-wrap, and all right-side controls reachable.",
+    "The same materialized run captures 100%, 125% and 150% scale-factor proofs with no text truncation, overlap, font ghosting or lost controls.",
+    "One stored-key login -> Element security -> official skip/later path -> real Product shell -> representative guarded Product API remains GREEN after the visual correction without consuming a new invitation.",
+    "unknownBlockers=0 may be asserted only after all visual screenshots and the final materialized functional Golden are consumed together."
+  ],
+  "requiredValidation": {
+    "localClosure": [
+      "node --test --test-concurrency=1 tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+      "node --test --test-concurrency=1 backend/tests/personalAccessControlP0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-control-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+      "node --test --test-concurrency=1 tests/wp0/v21-product-experience-materialized-uat.test.js",
+      "Element module typecheck + production build",
+      "git diff --check",
+      "materialized compact login + post-login security screenshots at 100/125/150 scale factors",
+      "single stored-key real Product-shell Golden Journey after visual bytes are materialized"
+    ],
+    "exactHeadCi": [
+      "Stage / Layered CI only after local visual closure and unknownBlockers=0",
+      "ACV2/WP-A only when routed",
+      "Product/Windows validators only when routed"
+    ],
+    "successorPromotion": [
+      "ordinary implementation merge",
+      "same-tree materialization",
+      "one successor Windows RC",
+      "final materialized Windows artifact audit",
+      "one Full Windows UAT",
+      "Release only after visual and functional Golden Journey are GREEN"
+    ]
+  },
+  "ossFit": {
+    "decision": "REUSE_EXISTING_CSS_ELEMENT_PRESENTATION_AND_ELECTRON_WINDOW_PUBLIC_SEAMS",
+    "matureOssAvailable": true,
+    "newGeneralPurposeInfrastructure": false,
+    "selectedAdoptionMode": "existing-repository-seam",
+    "reviewedCandidates": [
+      {
+        "name": "CSS responsive media/query primitives",
+        "source": "existing YanceLogin.css / Chromium CSS engine",
+        "license": "platform standard",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "The defect is Product-owned presentation geometry; standard CSS can respond to constrained column/height without adding runtime state or another layout owner."
+      },
+      {
+        "name": "Element Custom Login / Post Login Security component seams",
+        "source": "existing pinned Element module seams and patch 0018",
+        "license": "AGPL-3.0 upstream Element",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Element continues to construct and own login/security lifecycle content; Yance only presents it."
+      },
+      {
+        "name": "Electron BrowserWindow",
+        "source": "existing electron/main.js compact 860x580 native window",
+        "license": "MIT upstream Electron",
+        "adoptionMode": "existing-repository-seam",
+        "fit": "FIT",
+        "reason": "Native window size, caption and drag authority remain unchanged; CSS adapts to the approved window instead of replacing platform authority."
+      }
+    ],
+    "retireOrAvoid": [
+      "Viewport-wide typography/padding that ignores the constrained left brand column at compact geometry.",
+      "Width-only responsive logic that leaves wide-but-short desktop branding clipped behind overflow:hidden.",
+      "Window enlargement, custom resize state, second scroll owner, DOM hiding or any auth/security lifecycle replacement."
+    ],
+    "thinYanceAdapterOnly": true
+  },
+  "mergePolicy": {
+    "authorizationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "implementationMerge": "ORDINARY_TWO_PARENT_MERGE_ONLY",
+    "forcePushAllowed": false,
+    "squashMergeAllowed": false,
+    "rebaseMergeAllowed": false,
+    "exactHeadGreenRequired": true,
+    "freshMainAntiDriftRequired": true
+  },
+  "governance": {
+    "authorizationPredatesImplementation": true,
+    "exactPathScopeOnly": true,
+    "independentBranchAndPullRequestRequired": true,
+    "formalReleaseAuthorized": false,
+    "publishAuthorized": false,
+    "productionUseAuthorized": false,
+    "readyForPromotionAuthorized": false,
+    "automaticNextWorkPackageAuthorizationAuthorized": false
+  },
+  "supersedes": {
+    "authorizationPath": "governance/layered-ci/v21-invitation-product-shell-entitlement-boundary-p0-authorization.json",
+    "implementationBranch": "fix/v21-invitation-product-shell-entitlement-boundary-p0",
+    "reason": "The predecessor entitlement batch reached a committed local functional head but promotion was frozen when already-visible login-window clipping was correctly reclassified as a Release blocker. This forward successor preserves that frozen head and adds only the same Product-shell visual boundary required for complete local closure."
+  }
+}
