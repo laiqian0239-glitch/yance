@@ -1,0 +1,371 @@
+{
+    "schemaVersion":  1,
+    "documentType":  "YANCE_DELEGATED_GOVERNANCE_BRANCH_AUTHORIZATION",
+    "repository":  "laiqian0239-glitch/yance",
+    "workPackage":  "V21-PRODUCT-FINAL-EXPERIENCE-CLOSURE-P0-SUCCESSOR-V6",
+    "proposalRevision":  6,
+    "status":  "AUTHORIZED_AFTER_TRUSTED_MAIN_MERGE",
+    "reason":  "Frozen PR #1281 proved the successor-v5 proposal transport/topology is accepted by the base-owned implementation branch policy but fails only OSS-first development admission because its already-reviewed Product Final OSS candidates use a stale evidence shape. Preserve the exact Product Final 34-path causal batch, mature owner selection, and corrected delegated-governance topology; add only the repository-required auditable OSS-fit candidate fields. No Product, policy, routing, workflow, dependency, timeout, gate, RC or UAT mutation is authorized by this proposal.",
+    "base":  {
+                 "branch":  "main",
+                 "commit":  "4d73dd0f0db5991a10f2f1fa4ac9c206e3629334",
+                 "tree":  "d9904dee42a84a693cc32b1538ea84b70560089e",
+                 "requiredFreshAtAuthorizationMerge":  true
+             },
+    "effectiveness":  {
+                          "effectiveBeforeMerge":  false,
+                          "requiresOrdinaryTwoParentMainMerge":  true,
+                          "implementationMayStartOnlyFromAuthorizationMergeCommit":  true,
+                          "authorizationProposalTransportIsNotImplementationAuthority":  true,
+                          "explicitOwnerAuthorizationRequiredForMerge":  false,
+                          "invalidIfTrustedMainMovesBeforeAuthorizationMerge":  true,
+                          "requiredFirstParent":  "4d73dd0f0db5991a10f2f1fa4ac9c206e3629334",
+                          "requiredSecondParent":  "AUTHORIZATION_EXACT_HEAD"
+                      },
+    "digestCanonicalization":  {
+                                   "algorithm":  "SHA-256",
+                                   "encoding":  "UTF-8",
+                                   "pathNormalization":  "Require exact repository-relative normalized paths, remove duplicates, then sort with JavaScript default Array.prototype.sort().",
+                                   "separator":  "LF (\\n)",
+                                   "trailingNewline":  true
+                               },
+    "authorizationBranch":  {
+                                "name":  "governance/v21-product-final-experience-closure-p0-successor-v6-authorization",
+                                "allowedChangedPaths":  [
+                                                            "governance/layered-ci/v21-product-final-experience-closure-p0-successor-v6-authorization.json"
+                                                        ],
+                                "approvedChangedFileCount":  1,
+                                "approvedChangedFileSetSha256":  "80fc2f349aa63719c9eee03d40a733178773d5c34ab380e9faa90d2f85383dd4",
+                                "mustRemainSingleFile":  true,
+                                "mustRemainCleanFromTrustedMain":  true
+                            },
+    "implementation":  {
+                           "branch":  "fix/v21-product-final-experience-closure-p0-successor-v6",
+                           "requiredParent":  "AUTHORIZATION_ORDINARY_MERGE_COMMIT",
+                           "forwardContinuation":  {
+                                                       "required":  true,
+                                                       "frozenPredecessorHead":  "c2398b713e602db792360e222a330eb509a01d26"
+                                                   },
+                           "allowedChangedPaths":  [
+                                                       "backend/server.js",
+                                                       "backend/services/personalAccessService.js",
+                                                       "backend/tests/personalAccessControlP0.test.js",
+                                                       "electron/desktopHost/RuntimeProjectionCoordinator.js",
+                                                       "electron/main.js",
+                                                       "integration/element-module/src/YanceLogin.css",
+                                                       "integration/element-module/src/YanceLogin.tsx",
+                                                       "integration/element-module/src/index.tsx",
+                                                       "integration/element-module/src/product-experience/PeopleSurface.tsx",
+                                                       "integration/element-module/src/product-experience/PersonalAccessSurface.tsx",
+                                                       "integration/element-module/src/product-experience/PlatformAccountsSurface.tsx",
+                                                       "integration/element-module/src/product-experience/ProductComposerAccessory.tsx",
+                                                       "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+                                                       "integration/element-module/src/product-experience/ProductExperienceShell.css",
+                                                       "integration/element-module/src/product-experience/ProductExperienceShell.tsx",
+                                                       "integration/element-module/src/product-experience/ProductSystemSettingsSurface.tsx",
+                                                       "integration/element-module/src/product-experience/RelationshipAssistant.tsx",
+                                                       "integration/element-module/src/product-experience/RelationshipWorld.tsx",
+                                                       "tests/desktop-fixes/conversation-center-titlebar.test.js",
+                                                       "tests/wp0/v21-element-workspace-contract.test.js",
+                                                       "tests/wp0/v21-end-user-matrix-identity-p0.test.js",
+                                                       "tests/wp0/v21-learning-growth-brain-ui.test.js",
+                                                       "tests/wp0/v21-personal-access-control-p0.test.js",
+                                                       "tests/wp0/v21-personal-access-desktop-bootstrap-projection-p0.test.js",
+                                                       "tests/wp0/v21-product-ai-companion-private-quest-p0.test.js",
+                                                       "tests/wp0/v21-product-brand-runtime-authority-p0.test.js",
+                                                       "tests/wp0/v21-product-experience-materialized-uat.test.js",
+                                                       "tests/wp0/v21-product-experience-shell-accessibility.test.js",
+                                                       "tests/wp0/v21-product-experience-shell-interaction.test.js",
+                                                       "tests/wp0/v21-product-final-experience-admission-p0.test.js",
+                                                       "tests/wp0/v21-product-final-living-relationship-os-successor-v11.test.js",
+                                                       "upstream-patches/element-web/0016-yance-composer-accessory-slot.patch",
+                                                       "upstream-patches/element-web/0017-yance-product-conversation-control.patch",
+                                                       "upstream-patches/element-web/0018-yance-post-login-security-shell.patch"
+                                                   ],
+                           "approvedChangedFileCount":  34,
+                           "approvedChangedFileSetSha256":  "da1ec1c546cbf74992c773b14e39da40b1481d6efc1d90d1065ea52b25d0a1f2",
+                           "productionScopeAuthorized":  true,
+                           "productionCodeChanged":  true,
+                           "testModificationAllowed":  true,
+                           "workflowModificationAllowed":  false,
+                           "routingPolicyModificationAllowed":  false,
+                           "newDependencyAllowed":  false,
+                           "packageManifestModificationAllowed":  false,
+                           "lockfileModificationAllowed":  false,
+                           "timeoutModificationAllowed":  false,
+                           "gateOrScannerWeakeningAllowed":  false,
+                           "forcePushAllowed":  false,
+                           "historyRewriteAllowed":  false
+                       },
+    "evidence":  {
+                     "controllerState":  "V5.531",
+                     "controllerCommentId":  5708526003,
+                     "currentMain":  "4d73dd0f0db5991a10f2f1fa4ac9c206e3629334",
+                     "currentTree":  "d9904dee42a84a693cc32b1538ea84b70560089e",
+                     "audit":  "C:/YanceController/product-final-experience-audit-v2-20260917.md",
+                     "uiSurfaceAudit":  "C:/YanceController/product-final-ui-surface-audit-20260917.json",
+                     "frozenPredecessorImplementationHead":  "c2398b713e602db792360e222a330eb509a01d26",
+                     "frozenEntitlementHead":  "84fb8332bbfb7422eb1328ec0d60bfe8af193dda",
+                     "confirmedFacts":  [
+                                            "PeopleSurface renders an unstyled yance-people-filter seen as generic grey controls in the real Product screenshot.",
+                                            "RelationshipWorld exposes workbench/admin controls directly in the primary relationship page and lacks dedicated styling for its root/conversation classes.",
+                                            "ProductExperienceShell leaves root-level Experience Settings with account/system/Learning/advanced support in normal Product flow.",
+                                            "ProductSystemSettingsSurface and PlatformAccountsSurface have major final-UI classes without Product CSS contracts.",
+                                            "ProductConversationProjection has multiple final message/composer classes without Product CSS rules.",
+                                            "Element productConversationMode and post-login-security public seams already exist; they must be preserved rather than replaced.",
+                                            "Known compact login/security, toast overlap, CJK LCD fringe, titlebar/caption/drag, composer geometry and 100/125/150 scaling remain in the same Product Final admission boundary."
+                                        ],
+                     "controllerCarryPatch":  "C:/YanceController/visual-successor-v2-uncommitted-diff-20260917.patch",
+                     "controllerCarryPatchSha256":  "D8A0A8CE00653D54804A89FC2D019F40105D37A7B9E7F7E6F8A5C2CD70C18704"
+                 },
+    "rootCause":  {
+                      "locked":  true,
+                      "id":  "PRODUCT_FINAL_EXPERIENCE_ADMISSION_INCOMPLETE / PRODUCT_PRIMARY_OWNERSHIP_AND_COMPOSITION_NOT_CLOSED",
+                      "evidence":  [
+                                       "Repository-approved Living Relationship OS requires People-first, relationship-centered, premium-calm composition with conversation centrality and hidden contextual AI.",
+                                       "Current source and runtime evidence expose mixed primary navigation, admin/workbench hierarchy in normal flow, unstyled/default controls, security/toast/window/composer visual conflicts, and acceptance tests that preserve part of the wrong composition."
+                                   ]
+                  },
+    "causalBatch":  {
+                        "oneRoot":  true,
+                        "scope":  [
+                                      "Carry the frozen entitlement implementation and already-authorized compact-login visual bytes forward without reopening their proven functional root.",
+                                      "Make People Home visually Product-primary and style list/filter/universe/empty/populated states through the existing Yance design tokens.",
+                                      "Turn Relationship World into a focused person/conversation space; move daily goal/review, persona/data correction/merge/export and other advanced controls behind one explicit secondary relationship-details disclosure without deleting their mature authorities.",
+                                      "Move platform accounts, system settings, Learning/admin and advanced model/runtime support out of root document flow into one coherent secondary Settings destination using existing Base UI primitives.",
+                                      "Keep AI companion hidden by default and relationship-native.",
+                                      "Keep real Element RoomView/timeline/composer/send as the only physical conversation authority; keep generic Element primary navigation absent in Product home/conversation mode and preserve a clear Yance return affordance.",
+                                      "Polish the existing composer accessory and translation/reply projections without replacing Element composer state, send, retry or recovery.",
+                                      "Preserve Element post-login security lifecycle and verification toast authority while projecting security/toast geometry into non-obstructive Yance presentation.",
+                                      "Keep Electron as native caption/drag/window owner; fix Windows text rasterization and titlebar continuity only through existing Electron public seams.",
+                                      "Close compact/100/125/150 scaling, accessibility, loading/empty/offline/degraded, overlay and final materialization in one Local Closure before Exact Head."
+                                  ],
+                        "mustNotExpandTo":  [
+                                                "new messaging/session/crypto/composer/send implementation",
+                                                "new Product framework, animation engine, overlay framework or state store",
+                                                "new dependency/package/lockfile/workflow/routing policy",
+                                                "backend domain/runtime redesign beyond frozen entitlement carry",
+                                                "Element private store/DOM mutation or hidden security errors",
+                                                "custom Windows frame or second native window owner",
+                                                "timeout/retry/polling fallback added only to make tests pass"
+                                            ]
+                    },
+    "authorityPreservation":  {
+                                  "productPresentationOwner":  "Yance owns final information architecture, People/Relationship World, brand, navigation and thin presentation.",
+                                  "matrixOwner":  "Element/Matrix retain login/session/crypto/security, RoomView/timeline/composer, physical send, retry and recovery.",
+                                  "nativeOwner":  "Electron/Windows retain BrowserWindow, native caption/drag/tray and Chromium rendering authority.",
+                                  "primitiveOwner":  "Base UI remains the headless accessible primitive owner; Motion and Rive retain their bounded roles.",
+                                  "secondMatrixOwnerAdded":  false,
+                                  "secondComposerOwnerAdded":  false,
+                                  "secondNavigationRuntimeAdded":  false,
+                                  "parallelLifecycleAdded":  false,
+                                  "stateMirrorAdded":  false,
+                                  "customRetryOrFallbackAdded":  false,
+                                  "thinProjectionOnly":  true
+                              },
+    "closureMatrix":  {
+                          "unknownBlockersMustEqual":  0,
+                          "rows":  [
+                                       {
+                                           "boundary":  "A installer/exe/icon/title/first frame",
+                                           "closure":  "Reuse frozen product identity evidence, then verify final materialized artifact and real first frame."
+                                       },
+                                       {
+                                           "boundary":  "B login",
+                                           "closure":  "Normal+compact invitation/stored-device/error/scroll geometry GREEN at 100/125/150."
+                                       },
+                                       {
+                                           "boundary":  "C security/recovery",
+                                           "closure":  "Element-owned security content remains complete/reachable inside Yance presentation; toast non-overlap."
+                                       },
+                                       {
+                                           "boundary":  "D People Home",
+                                           "closure":  "One Yance primary hierarchy; styled list/filter/universe; populated+empty full-window GREEN."
+                                       },
+                                       {
+                                           "boundary":  "E Relationship World",
+                                           "closure":  "Person continuity and conversation centrality; advanced workbench controls progressively disclosed."
+                                       },
+                                       {
+                                           "boundary":  "F real conversation",
+                                           "closure":  "No generic competing Element primary nav; real RoomView/timeline remains direct and current-person return is clear."
+                                       },
+                                       {
+                                           "boundary":  "G composer",
+                                           "closure":  "Real Element focus/multiline/send/attach/reply/failure/offline geometry GREEN; Yance accessory does not collapse composer."
+                                       },
+                                       {
+                                           "boundary":  "H search/translation",
+                                           "closure":  "Contextual secondary presentation with styled Product projections."
+                                       },
+                                       {
+                                           "boundary":  "I platform accounts",
+                                           "closure":  "Coherent secondary settings UX with no engineering-flow leakage in normal path."
+                                       },
+                                       {
+                                           "boundary":  "J media/voice/live",
+                                           "closure":  "Existing mature overlays preserve current person/conversation and pass full-window proof."
+                                       },
+                                       {
+                                           "boundary":  "K AI companion",
+                                           "closure":  "Hidden by default; relationship-native; no provider/runtime telemetry in normal flow."
+                                       },
+                                       {
+                                           "boundary":  "L settings",
+                                           "closure":  "One secondary settings destination contains account/security/sessions/notifications/update/recovery/admin controls with progressive disclosure."
+                                       },
+                                       {
+                                           "boundary":  "M states",
+                                           "closure":  "Loading/empty/offline/degraded/safe-mode concise, actionable and non-dominant."
+                                       },
+                                       {
+                                           "boundary":  "N overlays",
+                                           "closure":  "Toast/dialog/popover/menu z-order/focus/dismissal non-obstructive."
+                                       },
+                                       {
+                                           "boundary":  "O Windows chrome",
+                                           "closure":  "Native drag/caption/min/max/restore/tray continuity GREEN."
+                                       },
+                                       {
+                                           "boundary":  "P geometry/scaling",
+                                           "closure":  "Supported compact and normal windows at 100/125/150 GREEN."
+                                       },
+                                       {
+                                           "boundary":  "Q accessibility",
+                                           "closure":  "Keyboard/focus/screen reader/reduced motion/sound-off/contrast/no-hover-only controls GREEN."
+                                       },
+                                       {
+                                           "boundary":  "R visual system",
+                                           "closure":  "Typography/iconography/spacing/density/depth/radius/color/motion/state are coherent and no default browser controls leak unintentionally."
+                                       },
+                                       {
+                                           "boundary":  "S performance",
+                                           "closure":  "Typing/scroll/interaction remain responsive and animation non-obstructive."
+                                       },
+                                       {
+                                           "boundary":  "T materialization",
+                                           "closure":  "Final packaged/runtime consumer bytes match source authority including Element patches and Yance module CSS/JS."
+                                       }
+                                   ]
+                      },
+    "negativeProofs":  [
+                           "No second Matrix login/session/crypto/security lifecycle.",
+                           "No second timeline/composer/physical-send/retry authority.",
+                           "No generic Element sidebar as persistent Product primary navigation.",
+                           "No root-level admin/runtime workbench in the ordinary People-first path.",
+                           "No hidden mature Element security error or verification state.",
+                           "No custom Electron frame/window manager, no window enlargement as layout workaround.",
+                           "No new dependency/framework/store/IPC family/package/lockfile/workflow/routing-policy change.",
+                           "No timeout/retry/polling workaround and no CI/UAT debugger loop."
+                       ],
+    "localAcceptance":  [
+                            "Authorization ordinary-merges from exact fresh main before any new Product mutation.",
+                            "Implementation starts from the authorization merge and carries frozen predecessor c2398b71 plus the exact preserved visual patch bytes.",
+                            "Focused source tests first prove new Product Final admission and retire executable contracts that preserve inline admin/workbench UI.",
+                            "ProductExperienceShell presents a premium People-first home with root admin/settings removed from ordinary flow.",
+                            "RelationshipWorld makes person identity and real conversation primary; advanced data/persona/review controls are secondary and collapsed by default.",
+                            "Settings/account/platform connections are reachable in one coherent secondary destination and remain keyboard/focus accessible.",
+                            "Element productConversationMode direct RoomView, post-login security seam and composer authority remain intact.",
+                            "Real Element composer geometry/focus/multiline/send/attachment/reply/failure/offline is GREEN with Yance accessory mounted.",
+                            "Windows titlebar/drag/caption/min/max/restore/tray and CJK rendering are proven on real Windows.",
+                            "Full-window production-equivalent screenshots cover login normal+compact, security top+end, People populated+empty, Relationship World, real conversation+composer, settings/account, one media/voice/live overlay, offline/degraded, and 100/125/150 scaling.",
+                            "Materialized Element/Yance bytes and final packaged artifact are inspected against source authority.",
+                            "One stored-key Product-shell Golden remains GREEN after visual/composition closure.",
+                            "unknownBlockers=0 only after A-T evidence is consumed together."
+                        ],
+    "requiredValidation":  {
+                               "localClosure":  [
+                                                    "new v21-product-final-experience-admission-p0 focused contract",
+                                                    "affected WP0 Product shell / relationship / accessibility / materialized tests",
+                                                    "backend entitlement focused tests from frozen carry",
+                                                    "Element module typecheck + production build",
+                                                    "git diff --check",
+                                                    "materialized Element patch/module byte inspection",
+                                                    "real Windows full-window A-T screenshot/interaction matrix at 100/125/150",
+                                                    "single stored-key Product-shell Golden after final materialization"
+                                                ],
+                               "exactHeadCi":  [
+                                                   "Stage/Layered CI only after Local Closure and unknownBlockers=0",
+                                                   "ACV2/WP-A/Product/Windows validators only when routed"
+                                               ],
+                               "successorPromotion":  [
+                                                          "ordinary implementation merge",
+                                                          "same-tree materialization",
+                                                          "one successor Windows RC",
+                                                          "final materialized Windows artifact audit",
+                                                          "one Full Windows UAT",
+                                                          "Release only after A-T and Golden Journey GREEN"
+                                                      ]
+                           },
+    "ossFit":  {
+                   "decision":  "REUSE_EXISTING_YANCE_COMPOSITION_PLUS_ELEMENT_PUBLIC_SEAMS_PLUS_ELECTRON_NATIVE_SEAMS",
+                   "matureOssAvailable":  true,
+                   "newGeneralPurposeInfrastructure":  false,
+                   "selectedAdoptionMode":  "existing-repository-seam",
+                   "reviewedCandidates":  [
+                                              {
+                                                  "name":  "Base UI",
+                                                  "source":  "repository-adopted Base UI accessible primitives already consumed by Yance Product settings/dialog/popover seams on trusted main",
+                                                  "license":  "repository-adopted upstream license",
+                                                  "adoptionMode":  "existing-repository-seam",
+                                                  "fit":  "FIT",
+                                                  "reason":  "Base UI already owns the accessible headless primitive behavior needed for secondary settings, dialogs and popovers; Yance should compose these primitives rather than create a second overlay or primitive framework."
+                                              },
+                                              {
+                                                  "name":  "Element module public seams",
+                                                  "source":  "element-hq/element-web v1.12.25 @ a2a996ae50d802878bf48e4bbf3730004bdcc55c plus existing Yance productConversationMode, post-login-security and composer-accessory public seams",
+                                                  "license":  "AGPL-3.0-only",
+                                                  "adoptionMode":  "source-module",
+                                                  "fit":  "FIT",
+                                                  "reason":  "Element remains the sole login/session/crypto/security/RoomView/timeline/composer/send/retry/recovery authority; Product Final only projects Yance relationship context and presentation through the existing public seams."
+                                              },
+                                              {
+                                                  "name":  "Electron BrowserWindow/app.commandLine",
+                                                  "source":  "Electron BrowserWindow and app.commandLine public APIs consumed by electron/main.js on trusted main",
+                                                  "license":  "MIT",
+                                                  "adoptionMode":  "official-sdk-cli-native-prebuild-runtime",
+                                                  "fit":  "FIT",
+                                                  "reason":  "Electron already owns BrowserWindow, native caption/drag behavior and Chromium rendering switches; Yance must use those public APIs rather than introduce a custom Windows frame or second native-window owner."
+                                              },
+                                              {
+                                                  "name":  "Motion + Rive",
+                                                  "source":  "repository-adopted Motion and Rive presentation seams already bounded by Product presentation on trusted main",
+                                                  "license":  "existing reviewed upstream licenses",
+                                                  "adoptionMode":  "existing-repository-seam",
+                                                  "fit":  "FIT",
+                                                  "reason":  "The adopted motion and stateful-visual seams already cover bounded Product animation needs; reuse them without adding another animation engine, runtime or state owner."
+                                              }
+                                          ],
+                   "retireOrAvoid":  [
+                                         "persistent generic Element Product-primary navigation",
+                                         "root-level admin/settings/learning/runtime workbench",
+                                         "unstyled native/default Product controls",
+                                         "parallel Yance session/security/composer/send implementations"
+                                     ],
+                   "thinYanceAdapterOnly":  true
+               },
+    "mergePolicy":  {
+                        "authorizationMerge":  "ORDINARY_TWO_PARENT_MERGE_ONLY",
+                        "implementationMerge":  "ORDINARY_TWO_PARENT_MERGE_ONLY",
+                        "forcePushAllowed":  false,
+                        "squashMergeAllowed":  false,
+                        "rebaseMergeAllowed":  false,
+                        "exactHeadGreenRequired":  true,
+                        "freshMainAntiDriftRequired":  true
+                    },
+    "governance":  {
+                       "authorizationPredatesImplementation":  true,
+                       "exactPathScopeOnly":  true,
+                       "independentBranchAndPullRequestRequired":  true,
+                       "formalReleaseAuthorized":  false,
+                       "publishAuthorized":  false,
+                       "productionUseAuthorized":  false,
+                       "readyForPromotionAuthorized":  false,
+                       "automaticNextWorkPackageAuthorizationAuthorized":  false
+                   },
+    "supersedes":  {
+                       "authorizationPath":  "governance/layered-ci/v21-invitation-product-shell-visual-closure-p0-successor-v2-authorization.json",
+                       "implementationBranch":  "fix/v21-invitation-product-shell-visual-closure-p0-successor-v2",
+                       "reason":  "Supersede the effective successor-v2 visual authority only to widen the same locked Product Final experience causal boundary while forward-continuing from its frozen implementation head c2398b71; successor-v3 and successor-v4 proposals never became implementation authority."
+                   }
+}
