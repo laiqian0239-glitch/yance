@@ -1111,3 +1111,20 @@ test('Element surface publishes after Compose service_started and before Compose
   const backend = main.indexOf('const backendStartup = launchBackend();', startup);
   assert.ok(startup >= 0 && backend > startup, 'backend launch must remain downstream of full Matrix runtime readiness');
 });
+
+
+test('invitation-to-Product boundary preserves mature owners and removes shadow entitlement polling', () => {
+  const server = fs.readFileSync(path.join(ROOT, 'backend/server.js'), 'utf8');
+  const service = fs.readFileSync(path.join(ROOT, 'backend/services/personalAccessService.js'), 'utf8');
+  const coordinator = fs.readFileSync(path.join(ROOT, 'electron/desktopHost/RuntimeProjectionCoordinator.js'), 'utf8');
+  const surface = fs.readFileSync(path.join(ROOT, 'integration/element-module/src/product-experience/PersonalAccessSurface.tsx'), 'utf8');
+  const localSecurity = server.indexOf('app.use(createR32LocalApiSecurity({');
+  const runtimeApi = server.indexOf("app.use('/api/app/v2'");
+  const personalGuard = server.indexOf('app.use(createPersonalAccessGuard({ personalAccessService }))');
+  assert.ok(localSecurity >= 0 && localSecurity < runtimeApi && runtimeApi < personalGuard);
+  const authorize = service.slice(service.indexOf('async authorizeProductRequest'), service.indexOf('\n}', service.indexOf('async authorizeProductRequest')));
+  assert.match(authorize, /verifyStoredKeyIdForLogin\(keyId\)/u);
+  assert.doesNotMatch(authorize, /matrixOpenId|matrixSubject|this\.status\(/u);
+  assert.doesNotMatch(coordinator, /WAITING_FOR_PRODUCT_ENTITLEMENT|entitlementPollBackoffMs|entitlementPollBlockedUntilMs/u);
+  assert.match(surface, /automaticHandoffAttempted\.current = true/u);
+});

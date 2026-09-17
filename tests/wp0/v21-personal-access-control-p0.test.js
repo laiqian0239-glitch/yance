@@ -99,18 +99,20 @@ test('activate verifies the stored entitlement once and logout never erases devi
   assert.doesNotMatch(logout, /clearEntitlementReceipt/u, 'Element session logout must not clear durable device entitlement');
 });
 
-test('post-login handoff serializes entitlement verification instead of racing normal refresh', () => {
+test('Product requests authorize from durable keyId status without per-request Matrix OpenID', () => {
+  const source = read('backend/services/personalAccessService.js');
+  const block = source.slice(source.indexOf('async authorizeProductRequest'), source.indexOf('\n}', source.indexOf('async authorizeProductRequest')));
+  assert.match(block, /storedEntitlementKeyId\(\)/u);
+  assert.match(block, /verifyStoredKeyIdForLogin\(keyId\)/u);
+  assert.doesNotMatch(block, /matrixSubject|matrixOpenId|this\.status\(/u);
+});
+
+test('post-login handoff performs at most one automatic activation and leaves explicit retry on the existing button', () => {
   const surface = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
-  assert.match(
-    surface,
-    /useEffect\(\(\) => \{\s*if \(window\.yancePersonalAccessHandoff\?\.keyId\) return;\s*void refresh\(\);\s*\}, \[refresh\]\);/u,
-    'normal status refresh must stand down while the exact login handoff owns the initial post-login verification'
-  );
-  assert.match(
-    surface,
-    /if \(status\?\.usable !== true && window\.yancePersonalAccessHandoff\?\.keyId\) void activateHandoff\(\);/u,
-    'handoff activation must remain the sole initial post-login entitlement verification path when a handoff exists'
-  );
+  assert.match(surface, /automaticHandoffAttempted = useRef\(false\)/u);
+  assert.match(surface, /automaticHandoffAttempted\.current\) return;[\s\S]*automaticHandoffAttempted\.current = true;[\s\S]*void activateHandoff\(\)/u);
+  assert.match(surface, /onClick=\{\(\) => void activateHandoff\(\)\}/u, 'explicit user retry must remain available');
+  assert.doesNotMatch(surface, /if \(status\?\.usable !== true && window\.yancePersonalAccessHandoff\?\.keyId\) void activateHandoff\(\)/u);
 });
 
 test('Worker and wrangler are stateless Unkey projection authority', () => {
