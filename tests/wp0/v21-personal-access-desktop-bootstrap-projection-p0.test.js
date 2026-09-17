@@ -73,8 +73,8 @@ test('Desktop bootstrap runtime projection is local-session protected before hum
     'bootstrap projection must remain behind the existing loopback/API-session local security boundary');
   assert.ok(personalGuardIndex > bootstrapIndex,
     'bootstrap projection must be reachable before human personal-access entitlement is available');
-  assert.ok(productApiIndex > personalGuardIndex,
-    '/api/app/v2 must remain behind the human personal-access guard');
+  assert.ok(productApiIndex > bootstrapIndex && productApiIndex < personalGuardIndex,
+    '/api/app/v2 must stay on the existing local API-session boundary and outside the human personal-access guard');
 
   const bootstrapBlock = source.slice(bootstrapIndex, personalGuardIndex);
   assert.match(bootstrapBlock, /APP_RUNTIME\.snapshot\(\)/u,
@@ -188,84 +188,41 @@ test('steady-state reconciliation remains entirely on entitled Runtime API v2', 
   assert.match(clientSource, /\/api\/app\/v2\/commands/u);
 });
 
-test('pre-entitlement event polling has an explicit bounded entitlement-wait state', () => {
+test('RuntimeProjectionCoordinator contains no human-entitlement wait or retry owner', () => {
   const source = read('electron/desktopHost/RuntimeProjectionCoordinator.js');
-  assert.match(source, /entitlementPollBackoffMs/u,
-    'coordinator must define a bounded retry interval for human-entitlement denial');
-  assert.match(source, /WAITING_FOR_PRODUCT_ENTITLEMENT/u,
-    'human entitlement denial must have a distinct non-owner-failure state');
-  assert.match(source, /INVITATION_REQUIRED/u);
-  assert.match(source, /UNKEY_ENTITLEMENT_DISABLED/u,
-    'terminal/non-usable entitlement states must use the same bounded entitlement wait classification');
+  assert.doesNotMatch(source, /WAITING_FOR_PRODUCT_ENTITLEMENT/u);
+  assert.doesNotMatch(source, /entitlementPollBackoffMs|entitlementPollBlockedUntilMs|PRODUCT_ENTITLEMENT_WAIT_REASON_CODES/u);
+  assert.doesNotMatch(source, /_isProductEntitlementWait/u);
+  assert.match(source, /this\.pollTimer = setInterval\(tick, this\.pollIntervalMs\)/u,
+    'normal Runtime API v2 polling remains owned by the existing coordinator');
 });
 
-test('pre-entitlement polling retains owner baseline, suppresses retry storms, and recovers after entitlement', async () => {
+test('ordinary Runtime API failure stays on the existing fail-closed coordinator path without entitlement retry state', async () => {
   const backend = backendState();
   const snapshot = runtimeSnapshot();
-  let eventCalls = 0;
   let failureCallbacks = 0;
-  let entitled = false;
-  let nowMs = 0;
   const client = {
     currentBinding() { return activeBinding(); },
     async getBootstrapSnapshot() { return snapshot; },
     async getSnapshot() { return snapshot; },
-    async getEvents() {
-      eventCalls += 1;
-      if (!entitled) {
-        const error = new Error('Product entitlement is not available yet');
-        error.reasonCode = 'INVITATION_REQUIRED';
-        throw error;
-      }
-      return {
-        contractVersion: 2,
-        buildId: 'wp6-test-build',
-        fromSequenceExclusive: snapshot.lastEventSequence,
-        lastAvailableSequence: snapshot.lastEventSequence,
-        events: []
-      };
-    },
+    async getEvents() { const error = new Error('unexpected runtime failure'); error.reasonCode = 'RUNTIME_API_FAILURE'; throw error; },
     abortAll() {}
   };
   const coordinator = new RuntimeProjectionCoordinator({
-    client,
-    backendSnapshot: () => ({ ...backend }),
-    expectedBuildId: 'wp6-test-build',
-    pollIntervalMs: 50,
-    entitlementPollBackoffMs: 1000,
-    now: () => nowMs,
-    clock: () => '2026-08-23T00:00:00.000Z',
-    onFailure: () => { failureCallbacks += 1; }
+    client, backendSnapshot: () => ({ ...backend }), expectedBuildId: 'wp6-test-build', pollIntervalMs: 50,
+    clock: () => '2026-09-17T00:00:00.000Z', onFailure: () => { failureCallbacks += 1; }
   });
-
   const candidate = await coordinator.validateCandidateProjection({ ready: { backend: { backendPid: 4201 } } });
   backend.ownerTrusted = true;
   await coordinator.bindTrustedOwnerBaseline(candidate);
   coordinator.startPolling();
-  await delay(230);
-
-  let projection = coordinator.snapshot();
-  const deniedCalls = eventCalls;
-  assert.equal(projection.trustedOwnerBound, true,
-    'human entitlement denial must never discard the trusted backend owner baseline');
-  assert.equal(projection.state, 'WAITING_FOR_PRODUCT_ENTITLEMENT',
-    'projection must distinguish product-entitlement wait from API-session or owner failure');
-  assert.equal(projection.lastFailure?.reasonCode, 'INVITATION_REQUIRED');
-  assert.ok(deniedCalls <= 1,
-    `pre-entitlement polling must back off instead of hammering /api/app/v2/events; calls=${deniedCalls}`);
-  assert.ok(failureCallbacks <= 1,
-    `pre-entitlement denial must not create repeated failure-log callbacks; callbacks=${failureCallbacks}`);
-
-  entitled = true;
-  nowMs = 2000;
-  await delay(100);
+  await delay(130);
   coordinator.stopPolling();
-
-  projection = coordinator.snapshot();
-  assert.ok(eventCalls > deniedCalls, 'polling must retry after the bounded entitlement backoff expires');
+  const projection = coordinator.snapshot();
+  assert.equal(projection.trustedOwnerBound, true);
   assert.equal(projection.state, 'POLLING_PERSISTED_EVENTS');
-  assert.equal(projection.lastFailure, null,
-    'successful entitled reconciliation must clear the previous entitlement-wait failure');
+  assert.equal(projection.lastFailure?.reasonCode, 'RUNTIME_API_FAILURE');
+  assert.ok(failureCallbacks >= 1);
 });
 
 test('formal pre-review probes consume bootstrap authority while entitled Product operations retain Runtime API v2', () => {

@@ -383,8 +383,11 @@ class PersonalAccessService {
     });
   }
 
-  async authorizeProductRequest(input = {}) {
-    return this.status(input);
+  async authorizeProductRequest() {
+    if (this.ownerMarkerPresent()) return stableEntitlement({ role: 'OWNER', usable: true, reasonCode: 'OWNER_PERMANENT_ACCESS' });
+    const keyId = this.storedEntitlementKeyId();
+    if (!keyId) return stableEntitlement({ reasonCode: 'INVITATION_REQUIRED' });
+    return this.verifyStoredKeyIdForLogin(keyId);
   }
 }
 
