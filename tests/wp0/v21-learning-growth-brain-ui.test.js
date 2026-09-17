@@ -20,12 +20,12 @@ test('Learning remains user-reachable through Product secondary settings without
   const shell = fs.readFileSync(shellPath, 'utf8');
   assert.match(shell, /import\s+\{\s*LearningWorkspace\s*\}\s+from\s+["']\.\.\/LearningWorkspace["']/u);
   assert.match(shell, /\[learningAdminVisible,\s*setLearningAdminVisible\]\s*=\s*useState\(false\)/u);
-  assert.match(shell, /<summary>体验设置<\/summary>/u);
-  assert.match(shell, />学习控制<\/button>/u);
+  assert.match(shell, /\[settingsVisible,\s*setSettingsVisible\]\s*=\s*useState\(false\)/u);
+  assert.match(shell, /aria-controls="yance-secondary-settings"/u);
+  assert.match(shell, /id="yance-secondary-settings"[\s\S]*学习控制/u);
   assert.match(shell, /setLearningAdminVisible\(true\)/u);
   assert.match(shell, /learningAdminVisible\s*\?\s*<LearningWorkspace\s*\/>\s*:\s*null/u);
-  assert.match(shell, /onToggle=\{[\s\S]*currentTarget\.open[\s\S]*setLearningAdminVisible\(false\)/u);
-  assert.doesNotMatch(shell, /<\/AnimatePresence>\s*<LearningWorkspace\s*\/>\s*<details/u);
+  assert.doesNotMatch(shell, /className="yance-experience-settings"/u);
 
   const workspacePath = path.join(ROOT, 'integration/element-module/src/LearningWorkspace.tsx');
   assert.equal(fs.existsSync(workspacePath), true, 'LearningWorkspace.tsx must exist');

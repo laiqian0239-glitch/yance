@@ -30,6 +30,7 @@ const LOGIN_ERROR_COPY: Record<string, string> = {
   INVITATION_KEY_REQUIRED: "请输入邀请码。",
   UNKEY_AUTHORITY_UNAVAILABLE: "权限验证服务暂不可用，请稍后重试。",
   UNKEY_AUTHORITY_REJECTED: "权限验证服务暂不可用，请稍后重试。",
+  USAGE_EXCEEDED: "该邀请码已被使用，且此设备尚无可恢复授权；请使用新的邀请码。",
   UNKEY_ENTITLEMENT_INVALID: "当前设备授权已失效；请重新输入邀请码。",
   UNKEY_ENTITLEMENT_DISABLED: "当前设备授权已停用；请重新输入邀请码。",
   UNKEY_ENTITLEMENT_EXPIRED: "当前设备授权已过期；请重新输入邀请码。",

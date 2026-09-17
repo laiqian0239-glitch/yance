@@ -131,6 +131,8 @@ export function PeopleSurface({
           <strong>暂无关系</strong>
           <span>已有联系人和会话会在这里形成你的关系空间。</span>
         </div>
+      ) : !visibleRelationships.length && filter !== "all" ? (
+        <div className="yance-empty" role="status"><strong>当前筛选下暂无关系</strong><span>切换筛选即可查看其他已连接关系。</span></div>
       ) : viewMode === "list" ? (
         <div className="yance-people-list" role="list" aria-label="关系列表">
           {visibleRelationships.map((relationship) => {

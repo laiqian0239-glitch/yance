@@ -375,13 +375,14 @@ function projectRuntimeSafety(
     return { state: "safe-mode", title: "安全模式已启用", detail: "部分操作受限；退出前会由现有 RecoveryManager 签发一次性授权。" };
   }
   const lifecycleState = String(runtime.lifecycleState || "");
+  const lifecycleReady = !lifecycleState || lifecycleState === "running" || lifecycleState === "local_ready";
   const reasonCode = String(health.reasonCode || "");
   if (
     projectionUnavailable
     || health.fatal === true
     || health.recoverable === true
     || runtime.localReady === false
-    || Boolean(lifecycleState && lifecycleState !== "running")
+    || !lifecycleReady
   ) {
     return {
       state: "degraded",
@@ -415,6 +416,7 @@ export function ProductExperienceShell({
   const [appearance, setAppearance] = useState<ProductAppearanceProjection>(EMPTY_APPEARANCE);
   const [appearanceStatus, setAppearanceStatus] = useState("正在同步外观设置");
   const [assistantVisible, setAssistantVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const [learningAdminVisible, setLearningAdminVisible] = useState(false);
   const [modelSupportVisible, setModelSupportVisible] = useState(false);
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
@@ -727,14 +729,33 @@ export function ProductExperienceShell({
         </div>
       ) : null}
 
+      <header className="yance-product-nav" aria-label="言策主导航">
+        <div className="yance-product-nav__identity">
+          <span className="yance-eyebrow">言策</span>
+          <strong>{selectedRelationship ? selectedRelationship.name : "关系"}</strong>
+        </div>
+        <nav className="yance-product-nav__actions" aria-label="主要目的地">
+          <button type="button" aria-current={!settingsVisible ? "page" : undefined} onClick={() => {
+            setSettingsVisible(false); setLearningAdminVisible(false); setModelSupportVisible(false);
+            if (selectedRelationship) returnToPeople();
+          }}>关系</button>
+          <button type="button" aria-current={settingsVisible ? "page" : undefined}
+            aria-expanded={settingsVisible} aria-controls="yance-secondary-settings"
+            onClick={() => { setSettingsVisible((value) => !value); setLearningAdminVisible(false); setModelSupportVisible(false); setAssistantVisible(false); }}>设置</button>
+        </nav>
+      </header>
+
+      {!settingsVisible ? (
       <BilingualSearchPanel
         relationships={relationships}
         reducedMotion={preferences.reducedMotion}
         onSelectRelationship={chooseRelationship}
         onNavigateRelationship={navigateSearchResult}
       />
+      ) : null}
 
-      <AnimatePresence mode="wait" initial={false}>
+      {!settingsVisible ? (
+        <AnimatePresence mode="wait" initial={false}>
         {!selectedRelationship ? (
           <motion.div
             key="people"
@@ -805,15 +826,17 @@ export function ProductExperienceShell({
             </AnimatePresence>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>
+      ) : null}
 
-      <details
-        className="yance-experience-settings"
-        onToggle={(event) => {
-          if (!event.currentTarget.open) setLearningAdminVisible(false);
-        }}
-      >
-        <summary>体验设置</summary>
+      {settingsVisible ? (
+        <section id="yance-secondary-settings" className="yance-secondary-settings" aria-label="设置">
+          <header className="yance-secondary-settings__header">
+            <div><span className="yance-eyebrow">次级目的地</span><h2>设置</h2><p>账号、外观、安全与高级支持集中在这里，不打断关系主场景。</p></div>
+            <button type="button" onClick={() => { setSettingsVisible(false); setLearningAdminVisible(false); setModelSupportVisible(false); }}>返回关系</button>
+          </header>
+          <section className="yance-settings-section" aria-labelledby="yance-appearance-settings-title">
+            <header><div><span className="yance-eyebrow">外观与体验</span><h3 id="yance-appearance-settings-title">界面偏好</h3></div></header>
         <div className="yance-settings-grid">
           <label>
             <span>全局字号 <output>{appearance.fontScale}%</output></span>
@@ -873,8 +896,12 @@ export function ProductExperienceShell({
         </div>
         <p className="yance-appearance-status" role="status" aria-live="polite">{appearanceStatus}</p>
         {preferences.reducedMotion ? <p className="yance-reduced-motion-note">已启用减少动效；状态变化仍会清晰显示，但不会进行空间移动。</p> : null}
+          </section>
 
-        <PlatformAccountsSurface />
+        <details className="yance-settings-disclosure">
+          <summary>平台账号</summary>
+          <PlatformAccountsSurface />
+        </details>
         <ProductSystemSettingsSurface openUserSettings={openUserSettings} requestLogout={requestLogout} />
 
         <section className="yance-learning-disclosure" aria-label="学习与成长">
@@ -900,7 +927,8 @@ export function ProductExperienceShell({
           </details>
         )}
 
-      </details>
+        </section>
+      ) : null}
 
       <RelationshipOverlayHost readRoomStateEvents={readRoomStateEvents} />
     </main>

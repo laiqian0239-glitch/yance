@@ -148,6 +148,7 @@ test('Element Product uses upstream Matrix OpenID seam and invitation/device-res
   assert.match(login, /onLoggedIn\(result\.accountAuth\)/u);
   assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u);
   assert.match(login, /已授权设备登录/u);
+  assert.match(login, /USAGE_EXCEEDED:\s*"该邀请码已被使用，且此设备尚无可恢复授权；请使用新的邀请码。"/u);
   assert.doesNotMatch(index, /overwriteAccountAuth|accountAuthApi/u);
   assert.doesNotMatch(login, /overwriteAccountAuth\s*\(result\.accountAuth\)/u);
   assert.match(preload, /\bgetPersonalAccessStatus\s*:/);

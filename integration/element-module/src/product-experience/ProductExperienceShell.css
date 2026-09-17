@@ -1368,6 +1368,243 @@
   padding-bottom: 0;
 }
 
+
+/* Product Final composition: Yance owns only Product presentation and navigation. */
+.yance-product-security-toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  left: auto;
+  z-index: 1300;
+  max-width: min(420px, calc(100vw - 40px));
+}
+
+.yance-product-security-toast {
+  max-width: min(420px, calc(100vw - 40px));
+  border-color: color-mix(in srgb, var(--accent-primary) 42%, var(--border-default));
+  border-radius: var(--yance-radius-md);
+  background: color-mix(in srgb, var(--surface-card-raised) 96%, var(--accent-primary) 4%);
+  box-shadow: var(--yance-elevation-soft);
+}
+
+.yance-product-security-dialog {
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 32px));
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 34%, var(--border-default));
+  border-radius: var(--yance-radius-lg);
+  background: var(--surface-card-raised);
+  box-shadow: var(--yance-elevation-overlay);
+}
+
+.yance-product-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--yance-space-3);
+  margin-bottom: var(--yance-space-4);
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border-default) 82%, transparent);
+  border-radius: var(--yance-radius-lg);
+  background: color-mix(in srgb, var(--surface-panel) 94%, transparent);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+.yance-product-nav__identity { display: grid; min-width: 0; gap: 1px; }
+.yance-product-nav__identity strong { overflow-wrap: anywhere; font-size: 1.05em; }
+.yance-product-nav__actions { display: flex; gap: var(--yance-space-1); }
+.yance-product-nav__actions button,
+.yance-secondary-settings__header button {
+  min-height: var(--control-min-height);
+  padding: 6px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-pill);
+  color: var(--text-primary);
+  background: var(--surface-control);
+  font: inherit;
+  cursor: pointer;
+}
+
+.yance-product-nav__actions button[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--accent-primary) 48%, var(--border-default));
+  background: color-mix(in srgb, var(--accent-primary) 12%, var(--surface-control));
+  font-weight: 700;
+}
+.yance-secondary-settings {
+  display: grid;
+  gap: var(--yance-space-4);
+  width: min(100%, 980px);
+  margin: 0 auto;
+}
+.yance-secondary-settings__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--yance-space-4);
+  padding: var(--yance-space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-lg);
+  background: var(--surface-card-raised);
+  box-shadow: var(--yance-elevation-soft);
+}
+.yance-secondary-settings__header h2,
+.yance-secondary-settings__header p { margin: 2px 0 0; }
+.yance-secondary-settings__header p { color: var(--text-secondary); line-height: var(--leading-body); }
+.yance-settings-section,
+.yance-settings-disclosure {
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-md);
+  background: var(--surface-card);
+}
+.yance-settings-section { padding: var(--yance-space-4); }
+
+.yance-settings-disclosure { overflow: clip; }
+.yance-settings-disclosure > summary,
+.yance-relationship-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--yance-space-3);
+  min-height: 46px;
+  padding: 10px 14px;
+  list-style: none;
+  color: var(--text-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+.yance-settings-disclosure > summary::-webkit-details-marker,
+.yance-relationship-details > summary::-webkit-details-marker { display: none; }
+.yance-settings-disclosure > summary::after,
+.yance-relationship-details > summary::after { content: "+"; color: var(--text-secondary); font-weight: 500; }
+.yance-settings-disclosure[open] > summary::after,
+.yance-relationship-details[open] > summary::after { content: "−"; }
+.yance-settings-disclosure > :not(summary) { margin-inline: var(--yance-space-4); }
+.yance-settings-disclosure > :last-child { margin-bottom: var(--yance-space-4); }
+.yance-product-system-settings { display: grid; gap: var(--yance-space-3); }
+.yance-product-system-settings > header { display: flex; align-items: center; justify-content: space-between; gap: var(--yance-space-3); }
+.yance-product-system-settings > header h3,
+.yance-product-system-settings > header p { margin: 0; }
+.yance-product-system-settings button,
+.yance-product-system-settings select,
+.yance-product-system-settings input,
+.yance-product-system-settings textarea {
+  max-width: 100%;
+  min-height: var(--control-min-height);
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-sm);
+  color: var(--text-primary);
+  background: var(--surface-control);
+  font: inherit;
+}
+
+.yance-product-system-settings button { padding: 6px 10px; cursor: pointer; }
+.yance-product-system-settings input,
+.yance-product-system-settings select,
+.yance-product-system-settings textarea { box-sizing: border-box; padding: 6px 9px; }
+.yance-product-system-settings input[type="checkbox"],
+.yance-product-system-settings input[type="range"] { accent-color: var(--accent-primary); }
+.yance-product-system-settings input[type="checkbox"] { min-height: auto; }
+.yance-product-system-settings button:disabled { cursor: default; opacity: 0.55; }
+
+.yance-relationship-world { display: grid; gap: var(--yance-space-4); width: min(100%, 980px); margin: 0 auto; }
+.yance-world-presence,
+.yance-relationship-primary,
+.yance-relationship-moments,
+.yance-relationship-details {
+  margin-top: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-lg);
+  background: var(--surface-card-raised);
+}
+.yance-relationship-primary,
+.yance-relationship-moments { display: grid; gap: var(--yance-space-3); padding: var(--yance-space-4); }
+.yance-relationship-primary > header,
+.yance-relationship-moments > header,
+.yance-relationship-detail-card > header { display: flex; align-items: baseline; justify-content: space-between; gap: var(--yance-space-3); }
+.yance-relationship-conversation-list { display: grid; gap: var(--yance-space-2); }
+.yance-relationship-conversation-list button,
+.yance-relationship-moments button,
+.yance-relationship-detail-card button {
+  min-height: var(--control-min-height);
+  padding: 8px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-sm);
+  color: var(--text-primary);
+  background: var(--surface-control);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.yance-relationship-conversation-list button { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--yance-space-2); }
+.yance-relationship-conversation-list button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--accent-primary) 48%, var(--border-default));
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-control));
+}
+.yance-relationship-conversation-list button span { color: var(--text-secondary); }
+.yance-relationship-details { overflow: clip; background: var(--surface-panel); }
+.yance-relationship-details > summary small { color: var(--text-secondary); font-weight: 500; }
+.yance-relationship-details__body { display: grid; gap: var(--yance-space-3); padding: 0 var(--yance-space-4) var(--yance-space-4); }
+.yance-relationship-detail-card {
+  display: grid;
+  gap: var(--yance-space-3);
+  padding: var(--yance-space-3);
+  border: 1px solid color-mix(in srgb, var(--border-default) 76%, transparent);
+  border-radius: var(--yance-radius-md);
+  background: var(--surface-card);
+}
+.yance-relationship-detail-card textarea,
+.yance-relationship-detail-card select,
+.yance-relationship-detail-card input:not([type="file"]) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--control-min-height);
+  padding: 7px 9px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-sm);
+  color: var(--text-primary);
+  background: var(--surface-control);
+  font: inherit;
+}
+.yance-relationship-detail-card textarea { min-height: 92px; resize: vertical; }
+.yance-relationship-detail-card label { display: grid; gap: 6px; color: var(--text-secondary); }
+.yance-relationship-detail-card > div { display: flex; flex-wrap: wrap; gap: var(--yance-space-2); }
+.yance-relationship-detail-card ul { margin: 0; padding-inline-start: var(--yance-space-5); }
+
+.yance-people-filter { display: flex; flex-wrap: wrap; gap: var(--yance-space-1); margin-bottom: var(--yance-space-3); }
+.yance-people-filter button {
+  min-height: 32px;
+  padding: 5px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-pill);
+  color: var(--text-secondary);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.yance-people-filter button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-card-raised); font-weight: 700; }
+.yance-product-shell input[type="file"] { max-width: 100%; color: var(--text-secondary); font: inherit; }
+.yance-product-shell input[type="file"]::file-selector-button {
+  margin-inline-end: var(--yance-space-2);
+  padding: 6px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-sm);
+  color: var(--text-primary);
+  background: var(--surface-control);
+  font: inherit;
+  cursor: pointer;
+}
+@media (max-width: 620px) {
+  .yance-product-nav,
+  .yance-secondary-settings__header { align-items: stretch; flex-direction: column; }
+  .yance-product-nav__actions { width: 100%; }
+  .yance-product-nav__actions button { flex: 1 1 0; }
+  .yance-secondary-settings,
+  .yance-relationship-world { width: 100%; }
+  .yance-relationship-conversation-list button { grid-template-columns: 1fr; }
+  .yance-relationship-details > summary { align-items: flex-start; flex-direction: column; }
+}
+
 @media (max-width: 900px) {
   .yance-relationship-universe {
     grid-template-columns: 1fr;

@@ -161,11 +161,11 @@ export function RelationshipWorld({
 
     <div className="yance-world-presence">
       <RiveRelationshipCompanion state={aiState} reducedMotion={reducedMotion} />
-      <div className="yance-world-copy"><strong>真实对话保持原样</strong>
-        <span>言策在关系周围组织上下文、重要时刻和工具，同时保留真实消息时间线、输入框和发送链路。</span></div>
+      <div className="yance-world-copy"><strong>继续真实对话</strong>
+        <span>消息会保持在原有会话中，言策只把与你们有关的上下文、重要时刻和工具整理在这里。</span></div>
     </div>
 
-    <section className="yance-relationship-conversations" aria-label="关系中的对话">
+    <section className="yance-relationship-conversations yance-relationship-primary" data-yance-primary-conversation aria-label="关系中的对话">
       <header><span className="yance-eyebrow">对话</span><strong>选择要继续的对话</strong></header>
       {relationship.conversations.length ? <div className="yance-relationship-conversation-list">
         {relationship.conversations.map((conversation) => <button key={conversation.id} type="button"
@@ -175,7 +175,15 @@ export function RelationshipWorld({
       </div> : <p role="status">当前人物还没有可继续的对话。</p>}
     </section>
 
-    <section aria-label="今天想聊什么">
+    <section className="yance-relationship-moments" aria-label="共同时刻">
+      <header><span className="yance-eyebrow">共同时刻</span><strong>照片与视频</strong></header>
+      <button type="button" onClick={() => { captureExperienceFocus(); requestRelationshipOverlay("photo"); }}>打开照片与视频</button>
+    </section>
+
+    <details className="yance-relationship-details">
+      <summary><span>关系详情</span><small>目标、回顾、人物设定与数据管理</small></summary>
+      <div className="yance-relationship-details__body">
+    <section className="yance-relationship-detail-card" aria-label="今天想聊什么">
       <header><span className="yance-eyebrow">今天想聊什么</span><strong>{localDate}</strong></header>
       <textarea value={goalText} onChange={(e) => setGoalText(e.target.value)} placeholder="写下今天想聊的方向" maxLength={4000} />
       <div>
@@ -186,7 +194,7 @@ export function RelationshipWorld({
       </div>{goalStatus ? <p role="status">{goalStatus}</p> : null}
     </section>
 
-    <section aria-label="今日回顾">
+    <section className="yance-relationship-detail-card" aria-label="今日回顾">
       <header><span className="yance-eyebrow">今日回顾</span><strong>{timeZone || "时区不可用"}</strong></header>
       {reviewStatus ? <p role="status">{reviewStatus}</p> : null}
       {review ? <>{review.coverageComplete !== true ? <p role="status">当天消息未能完整扫描，本次回顾不完整</p> : null}
@@ -196,12 +204,7 @@ export function RelationshipWorld({
             : <p>暂无已确认内容</p>}</div>)}</> : null}
     </section>
 
-    <section aria-label="共同时刻">
-      <header><span className="yance-eyebrow">共同时刻</span><strong>照片与视频</strong></header>
-      <button type="button" onClick={() => { captureExperienceFocus(); requestRelationshipOverlay("photo"); }}>打开照片与视频</button>
-    </section>
-
-    <section aria-label="人物设定">
+    <section className="yance-relationship-detail-card" aria-label="人物设定">
       <header><span className="yance-eyebrow">人物设定</span><strong>{effectivePersona?.profileName || "尚未绑定"}</strong></header>
       <label><span>人物设定</span><select value={selectedProfileId} onChange={(e) => setSelectedProfileId(e.target.value)}>
         <option value="">请选择</option>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
@@ -228,7 +231,7 @@ export function RelationshipWorld({
       {personaStatus ? <p role="status">{personaStatus}</p> : null}
     </section>
 
-    <details><summary>关系数据</summary>
+    <section className="yance-relationship-detail-card yance-relationship-data" aria-label="关系数据"><header><span className="yance-eyebrow">关系数据</span><strong>管理与修正</strong></header>
       <label><span>当前对话</span><select value={selectedConversationId} onChange={(e) => setSelectedConversationId(e.target.value)}>
         <option value="">请选择</option>{relationship.conversations.map((conversation) =>
           <option key={conversation.id} value={conversation.id}>{conversation.title || "对话"}</option>)}</select></label>
@@ -298,6 +301,9 @@ export function RelationshipWorld({
         .then(async () => { setMergeJournalId(""); setDataStatus("刚才的合并已撤销"); await refresh(); })
         .catch(() => setDataStatus("撤销失败"))}>撤销刚才的合并</button> : null}
       {dataStatus ? <p role="status">{dataStatus}</p> : null}
+    </section>
+
+      </div>
     </details>
 
     <section className="yance-relationship-intelligence" data-state={intelligence?.state || "unavailable"}

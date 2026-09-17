@@ -27,8 +27,8 @@ index 51f23ec..e84c9df 100644
 -        if (resizerViewModel && !moduleRenderer) {
 +
 +        const productPrimaryHome =
-+            this.props.page_type === PageTypes.HomePage
-+            && !!moduleRenderer;
++            !!moduleRenderer
++            && (this.props.page_type === PageTypes.HomePage || this.props.page_type === "yance");
 +
 +        const productConversationMode =
 +            this.props.page_type === PageTypes.RoomView

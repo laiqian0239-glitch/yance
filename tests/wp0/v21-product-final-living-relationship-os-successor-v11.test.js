@@ -344,7 +344,7 @@ test("V20 Product primary navigation and relationship rebinding stay on mature E
   const patch = read("upstream-patches/element-web/0017-yance-product-conversation-control.patch");
 
   assert.match(patch, /this\.props\.page_type === PageTypes\.HomePage \? "yance" : this\.props\.page_type/u);
-  assert.match(patch, /const productPrimaryHome[\s\S]{0,180}PageTypes\.HomePage[\s\S]{0,180}!!moduleRenderer/u);
+  assert.match(patch, /const productPrimaryHome[\s\S]{0,180}!!moduleRenderer[\s\S]{0,180}PageTypes\.HomePage \|\| this\.props\.page_type === "yance"/u);
   assert.match(patch, /if \(productPrimaryHome \|\| productConversationMode\) \{\s*\+\s*\/\/ Keep Yance Home Product-primary and real Element RoomView direct\.\s*\+\s*\/\/ Generic Element navigation must not become a competing primary owner\.\s*\+\s*content = roomView;\s*\+\s*\} else if \(resizerViewModel && !moduleRenderer\) \{/u);
   assert.match(patch, /public navigateToLocation\(path: string\): void \{[\s\S]{0,240}dispatcher\.dispatch\(\{ action: Action\.ViewHomePage, page: path \}\);/u);
   assert.match(patch, /getCurrentRoomId\(\): string \| null[\s\S]{0,180}roomViewStore\.getRoomId/u);
@@ -363,9 +363,10 @@ test("V20 Product primary navigation and relationship rebinding stay on mature E
   assert.match(index, /if \(!sessionKey \|\| typeof clientApi\.getRooms !== "function"\) \{\s*return false;\s*\}/u);
   assert.match(index, /if \(resolution\.status !== "resolved"\) \{\s*return false;\s*\}/u);
   assert.doesNotMatch(index, /if \(resolution\.status !== "resolved"\) \{[\s\S]{0,180}clearProductConversationBinding/u);
-  assert.match(shell, /setLearningAdminVisible\(true\)/u);
+  assert.match(shell, /const \[settingsVisible, setSettingsVisible\] = useState\(false\)/u);
+  assert.match(shell, /id="yance-secondary-settings"/u);
   assert.match(shell, /learningAdminVisible \? <LearningWorkspace \/> : null/u);
-  assert.match(shell, /currentTarget\.open[\s\S]{0,120}setLearningAdminVisible\(false\)/u);
+  assert.doesNotMatch(shell, /className="yance-experience-settings"/u);
 });
 
 test("V20 Root D projects existing runtime safety authority and fails closed on safe-mode exit", () => {
@@ -409,7 +410,8 @@ test("V20 Root D projects existing runtime safety authority and fails closed on 
   assert.match(shell, /if \(!browserOnline\)/u);
   assert.match(shell, /backendReady === false/u);
   assert.match(shell, /runtime\.localReady === false/u);
-  assert.match(shell, /lifecycleState !== "running"/u);
+  assert.match(shell, /lifecycleState === "running" \|\| lifecycleState === "local_ready"/u);
+  assert.match(shell, /\|\| !lifecycleReady/u);
   assert.match(shell, /return null;/u);
 
   const settings = read(

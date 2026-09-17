@@ -227,6 +227,11 @@ test('Yance owns post-login security presentation while Element keeps crypto and
   assert.match(login, /并不意味着你必须有另一台实体设备/u);
   assert.match(styles, /YANCE_POST_LOGIN_SECURITY_PROJECTION_V1/u);
   assert.match(styles, /\.yance-post-login-security-card\s*\{/u);
+  assert.match(
+    styles,
+    /\.yance-post-login-security-card \.mx_SetupEncryptionBody\s*\{[^}]*width:\s*100%[^}]*max-width:\s*100%[^}]*min-width:\s*0/u,
+    'Element mature security content must project fluidly inside the Yance card without changing its lifecycle'
+  );
   assert.doesNotMatch(styles, /yance-post-login-security[^\n{]*mx_AuthPage|:has\([^)]*mx_CompleteSecurity|:has\([^)]*mx_AuthPage/iu);
 
   assert.match(patch, /SetupEncryptionStore/u);
@@ -234,4 +239,17 @@ test('Yance owns post-login security presentation while Element keeps crypto and
   assert.match(patch, /InitialCryptoSetupDialog/u);
   assert.match(patch, /originalComponent/u);
   assert.doesNotMatch(login, /fetch\s*\(|_matrix\/client|m\.login\.password/u);
+});
+
+test('short-height Product compaction stays presentation-only while Element security content remains mature authority', () => {
+  const styles = read('integration/element-module/src/YanceLogin.css');
+  const login = read('integration/element-module/src/YanceLogin.tsx');
+  assert.match(styles, /YANCE_COMPACT_AUTH_VISUAL_GEOMETRY_V1/u);
+
+  const compact = styles.slice(styles.indexOf('/* YANCE_COMPACT_AUTH_VISUAL_GEOMETRY_V1'));
+  assert.match(compact, /\.yance-post-login-security-card\s*\{[^}]*padding:\s*18px/u);
+  assert.doesNotMatch(compact, /mx_CompleteSecurity|mx_AuthPage|SetupEncryption/u,
+    'short-height projection rules must not target or replace Element-owned security controls');
+  assert.match(login, /data-yance-post-login-security-content="element"/u);
+  assert.match(login, /Matrix \/ Element/u);
 });

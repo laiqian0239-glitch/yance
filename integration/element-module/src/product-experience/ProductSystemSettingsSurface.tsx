@@ -304,14 +304,14 @@ export function ProductSystemSettingsSurface({
       <button type="button" disabled={busy} onClick={() => void refresh()}>刷新</button></header>
     <p role="status" aria-live="polite">{status}</p>
 
-    <section aria-label="账户与安全"><h4>账户与安全</h4>
+    <details className="yance-settings-disclosure"><summary>账户与安全</summary>
       <button type="button" onClick={() => openUserSettings?.("account")}>个人资料</button>
       <button type="button" onClick={() => openUserSettings?.("security")}>安全</button>
       <button type="button" onClick={() => openUserSettings?.("sessions")}>已登录设备</button>
       <button type="button" onClick={() => { if (window.confirm("确认退出言策登录？")) requestLogout?.(); }}>退出登录</button>
-    </section>
+    </details>
 
-    <section aria-label="运行安全与恢复"><h4>运行安全与恢复</h4>
+    <details className="yance-settings-disclosure"><summary>运行安全与恢复</summary>
       <p>运行模式：{runtimeOperatingMode} · 生命周期：{runtimeLifecycleState} · 本地就绪：{runtimeLocalReady ? "是" : "否"}</p>
       <button type="button" disabled={busy || !api?.restartBackend}
         onClick={() => void runAndRefresh(api?.restartBackend ? () => api.restartBackend!() : undefined, "后台服务重启失败")}>重启后台服务</button>
@@ -321,18 +321,18 @@ export function ProductSystemSettingsSurface({
         onClick={() => void enterSafeMode()}>进入安全模式</button>
       <button type="button" disabled={busy || runtimeOperatingMode !== "safeMode" || !api?.prepareProductSafeModeExit || !api?.setOperatingMode}
         onClick={() => void exitSafeMode()}>退出安全模式</button>
-    </section>
+    </details>
 
-    <section aria-label="桌面行为"><h4>桌面行为</h4>
+    <details className="yance-settings-disclosure"><summary>桌面行为</summary>
       {DESKTOP_TOGGLES.map(([key, label]) => <label key={key}><input type="checkbox" checked={settings[key] === true}
         disabled={busy} onChange={(e) => void saveDesktop({ [key]: e.target.checked })} />{label}</label>)}
       <label><span>声音模式</span><select value={text(settings.productSoundMode) || "Essential only"} disabled={busy}
         onChange={(e) => void saveDesktop({ productSoundMode: e.target.value })}>
         <option value="Off">关闭</option><option value="Essential only">仅必要提示</option><option value="Immersive">沉浸</option>
       </select></label>
-    </section>
+    </details>
 
-    <section aria-label="外观主题"><h4>外观主题</h4><p>可用主题：{themeRows.length}</p>
+    <details className="yance-settings-disclosure"><summary>外观主题</summary><p>可用主题：{themeRows.length}</p>
       <label><span>主题</span><select value={selectedThemeId} disabled={busy || !themeRows.length}
         onChange={(e) => void runAndRefresh(api?.storePreviewTheme ? () => api!.storePreviewTheme!({ themeId: e.target.value }) : undefined, "主题预览失败")}>
         {themeRows.map((theme) => <option key={text(theme.id)} value={text(theme.id)}>{text(theme.name) || text(theme.id)}</option>)}
@@ -388,9 +388,9 @@ export function ProductSystemSettingsSurface({
       <label><span>背景效果</span><select value={text(ui.backgroundEffect) || "ambient"}
         onChange={(e) => void runAndRefresh(api?.storeSetBackgroundEffect ? () => api!.storeSetBackgroundEffect!({ backgroundEffect: e.target.value }) : undefined, "背景效果设置失败")}>
         {BACKGROUND_EFFECTS.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-    </section>
+    </details>
 
-    <section aria-label="通知与声音"><h4>通知与声音</h4>
+    <details className="yance-settings-disclosure"><summary>通知与声音</summary>
       <label><input type="checkbox" checked={notifications.enabled !== false}
         onChange={(e) => void saveNotifications({ enabled: e.target.checked })} />启用通知</label>
       <label><input type="checkbox" checked={notifications.soundEnabled !== false}
@@ -454,9 +454,9 @@ export function ProductSystemSettingsSurface({
             onClick={() => void runAndRefresh(api?.deleteNotificationSound ? () => api!.deleteNotificationSound!({ id: patternId }) : undefined, "删除自定义声音失败")}>删除 {label}</button>
         </div>;
       })}
-    </section>
+    </details>
 
-    <section aria-label="数据保护"><h4>数据保护</h4>
+    <details className="yance-settings-disclosure"><summary>数据保护</summary>
       <p>已有备份：{backups.length} · 可迁移备份：{portableBackups.length} · 保留策略：{jsonSummary(retention)}</p>
 
       <section aria-label="普通备份与恢复">
@@ -517,8 +517,8 @@ export function ProductSystemSettingsSurface({
         <ul>{restoreHistory.slice(0, 8).map((row, index) =>
           <li key={`${itemName(row)}-${index}`}>{itemName(row)} · {jsonSummary(row)}</li>)}</ul>
       </section>
-    </section>
-    <section aria-label="关于言策"><h4>关于言策</h4><p>版本：{currentVersion}</p>
+    </details>
+    <details className="yance-settings-disclosure"><summary>关于言策</summary><p>版本：{currentVersion}</p>
       <p>更新状态：{text(update.phase || update.status) || "已就绪"}</p>
       <button type="button" disabled={busy} onClick={() => void runAndRefresh(api?.checkForUpdates ? () => api!.checkForUpdates!() : undefined, "检查更新失败")}>检查更新</button>
       <button type="button" disabled={busy || text(update.phase) !== "available"}
@@ -526,6 +526,6 @@ export function ProductSystemSettingsSurface({
       <button type="button" disabled={busy || text(update.phase) !== "ready"}
         onClick={() => void runAndRefresh(api?.installUpdate ? () => api!.installUpdate!() : undefined, "安装更新失败")}>安装更新</button>
       <p>帮助与许可信息随言策版本提供。</p>
-    </section>
+    </details>
   </section>;
 }

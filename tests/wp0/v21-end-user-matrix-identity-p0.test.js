@@ -177,6 +177,27 @@ test('YanceLogin CSS owns the authentication panel vertical scroll authority so 
   );
 });
 
+test('compact desktop login height breakpoints keep Yance brand text legible without adding a second scroll owner', () => {
+  const styles = read('integration/element-module/src/YanceLogin.css');
+  assert.match(styles, /YANCE_COMPACT_AUTH_VISUAL_GEOMETRY_V1/u);
+
+  assert.match(
+    styles,
+    /@media\s*\(min-width:\s*761px\)\s*and\s*\(max-height:\s*680px\)[\s\S]*?\.yance-login-brand-copy h1\s*\{[^}]*font-size:\s*clamp\(36px,\s*4vw,\s*42px\)/u,
+    'wide-but-short desktop login must compact the Yance headline before hidden brand overflow can clip it'
+  );
+  assert.match(
+    styles,
+    /@media\s*\(min-width:\s*761px\)\s*and\s*\(max-height:\s*560px\)[\s\S]*?\.yance-login-capabilities\s*\{[^}]*gap:\s*6px[\s\S]*?\.yance-login-capabilities span\s*\{[^}]*font-size:\s*10px/u,
+    'very short desktop login must retain compact capability chips inside the approved Product brand boundary'
+  );
+  const compact = styles.slice(styles.indexOf('/* YANCE_COMPACT_AUTH_VISUAL_GEOMETRY_V1'));
+  assert.doesNotMatch(compact, /\.yance-login-brand\s*\{[^}]*overflow(?:-y)?:\s*(?:auto|scroll)/u);
+  assert.doesNotMatch(compact, /(^|\n)\s*(?:html|body)\s*\{/u);
+  assert.doesNotMatch(compact, /\.yance-login-auth\s*\{[^}]*overflow-y:\s*(?:auto|scroll)/u,
+    'compact rules must reuse the existing auth-column scroll owner rather than declaring a second lifecycle');
+});
+
 test('local identity provisioning records durable intent before the remote call and classifies every outcome', () => {
   const service = read('backend/services/endUserMatrixIdentityService.js');
   const adapter = read('backend/services/facebookPersonalMessengerMautrixAdapter.js');
