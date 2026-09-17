@@ -325,7 +325,7 @@ test('trusted Linux Matrix bootstrap keeps checkout native and scopes Git CRLF s
   assert.ok(cleanIndex > compareIndex, 'root git-clean proof must follow the ambient config restoration proof');
   assert.match(source, /ambient_core_autocrlf_before="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
   assert.match(source, /ambient_core_autocrlf_after="\$\(git config --show-origin --get-all core\.autocrlf \|\| true\)"/u);
-  assert.match(source, /test "\$ambient_core_autocrlf_after" = "\$ambient_core_autocrlf_before"/u);
+  assert.match(source, /test "\$ambient_core_autocrlf_after" = "$ambient_core_autocrlf_before"/u);
   assert.doesNotMatch(source, /GIT_CONFIG_COUNT=1|GIT_CONFIG_KEY_0=core\.autocrlf|GIT_CONFIG_VALUE_0=true/u);
   assert.match(bootstrap, /const isStrictGitApply = command === 'git' && args\[0\] === 'apply'/u);
   assert.match(bootstrap, /env\.GIT_CONFIG_COUNT\s*=\s*['"]1['"]/u);
