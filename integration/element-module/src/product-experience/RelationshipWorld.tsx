@@ -45,12 +45,12 @@ function browserTimeZone(): string {
 function evidenceSourceLabel(event: RelationshipIntelligenceEvent): string {
   if (event.source === "graphiti") return event.kind === "fact" && /用户确认/u.test(event.sourceLabel) ? "用户确认" : "关系线索";
   if (event.source === "user_annotation") return "用户标注";
-  return event.sourceLabel || "关系证据";
+  return event.sourceLabel || "关系记录";
 }
 function timelineAuthorityLabel(value: string): string {
   if (value === "graphiti_temporal_inference") return "关系线索";
   if (value === "user_annotation") return "用户标注";
-  return "暂无关系证据";
+  return "暂无关系记录";
 }
 
 export function RelationshipWorld({
@@ -175,9 +175,19 @@ export function RelationshipWorld({
       </div> : <p role="status">当前人物还没有可继续的对话。</p>}
     </section>
 
-    <section className="yance-relationship-moments" aria-label="共同时刻">
-      <header><span className="yance-eyebrow">共同时刻</span><strong>照片与视频</strong></header>
-      <button type="button" onClick={() => { captureExperienceFocus(); requestRelationshipOverlay("photo"); }}>打开照片与视频</button>
+    <section className="yance-relationship-moments" aria-label="共同时刻与陪伴工具">
+      <header><span className="yance-eyebrow">共同时刻与陪伴</span><strong>照片 · 语音 · 实时陪伴</strong></header>
+      <div className="yance-relationship-companion-actions">
+        <button type="button" onClick={() => { captureExperienceFocus(); requestRelationshipOverlay("photo"); }}>
+          <span aria-hidden="true">▧</span><strong>照片与视频</strong><small>共同回忆与媒体</small>
+        </button>
+        <button type="button" onClick={() => { captureExperienceFocus(); requestRelationshipOverlay("voice"); }}>
+          <span aria-hidden="true">◉</span><strong>语音</strong><small>当前关系的语音空间</small>
+        </button>
+        <button type="button" onClick={() => { captureExperienceFocus(); requestRelationshipOverlay("live"); }}>
+          <span aria-hidden="true">✦</span><strong>实时陪伴</strong><small>当前关系的 Live 空间</small>
+        </button>
+      </div>
     </section>
 
     <details className="yance-relationship-details">
@@ -219,7 +229,7 @@ export function RelationshipWorld({
         }}>绑定到当前对话</button>
       </div>
       {versions.length ? <p>已有 {versions.length} 个版本</p> : null}
-      <label><span>预览 Character Card</span><input type="file" accept=".png,.json,image/png,application/json"
+      <label><span>预览人物设定文件</span><input type="file" accept=".png,.json,image/png,application/json"
         onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ""; if (!file) return;
           void file.arrayBuffer().then((bytes) => previewPersonaCharacterCard(new Uint8Array(bytes)))
             .then(setCardPreview).catch(() => setPersonaStatus("预览失败")); }} /></label>
@@ -258,7 +268,7 @@ export function RelationshipWorld({
           .catch(() => setDataStatus("当前没有可拒绝的待审核人物画像"))}>拒绝待审核人物画像</button>
       </div>
       {dataTargets.length ? <div>
-        <label><span>关系证据</span><select value={selectedDataTargetId} onChange={(e) => setSelectedDataTargetId(e.target.value)}>
+        <label><span>关系记录</span><select value={selectedDataTargetId} onChange={(e) => setSelectedDataTargetId(e.target.value)}>
           {dataTargets.map((target) => <option key={`${target.kind}:${target.id}`} value={target.id}>{target.label}</option>)}
         </select></label>
         <label><span>修正说明</span><input value={correctionText} maxLength={500}
@@ -287,7 +297,7 @@ export function RelationshipWorld({
             .then(async () => { setDataStatus("已取消关键节点"); await refresh(); })
             .catch(() => setDataStatus("取消关键节点失败"));
         }}>取消关键节点</button>
-      </div> : <p>当前没有可修正或标记的关系证据。</p>}
+      </div> : <p>当前没有可修正或标记的关系记录。</p>}
       {mergeTargets.length ? <><label><span>合并另一个联系人</span><select value={mergeTargetId} onChange={(e) => setMergeTargetId(e.target.value)}>
         <option value="">请选择联系人</option>{mergeTargets.map((target) => <option key={target.id} value={target.id}>{target.name}</option>)}</select></label>
         <button type="button" disabled={!mergeTargetId} onClick={() => {
@@ -307,27 +317,27 @@ export function RelationshipWorld({
     </details>
 
     <section className="yance-relationship-intelligence" data-state={intelligence?.state || "unavailable"}
-      data-authority="RelationshipProjectionAuthority" aria-label="关系智能">
-      <header className="yance-relationship-intelligence__header"><div><span className="yance-eyebrow">关系智能</span>
-        <strong>{intelligence?.analysisStatusLabel || "暂无已确认的关系智能"}</strong></div>
-        <span className="yance-relationship-intelligence__authority">可信关系投影</span></header>
+      data-authority="RelationshipProjectionAuthority" aria-label="关系洞察">
+      <header className="yance-relationship-intelligence__header"><div><span className="yance-eyebrow">关系洞察</span>
+        <strong>{intelligence?.analysisStatusLabel || "暂无已确认的关系洞察"}</strong></div>
+        <span className="yance-relationship-intelligence__authority">基于真实互动</span></header>
       {intelligence ? <><div className="yance-relationship-intelligence__provenance">
-        <div><span>AI 分析</span><strong>{hasAiAnalysis ? intelligence.state === "stale" ? "AI 推断待更新" : "AI 推断已就绪" : "AI 推断待执行"}</strong></div>
-        <div><span>证据来源</span><strong>{timelineAuthorityLabel(intelligence.timelineAuthority)}</strong></div></div>
+        <div><span>分析状态</span><strong>{hasAiAnalysis ? intelligence.state === "stale" ? "需要更新" : "已形成" : "等待分析"}</strong></div>
+        <div><span>信息来源</span><strong>{timelineAuthorityLabel(intelligence.timelineAuthority)}</strong></div></div>
         {hasAiAnalysis && (intelligence.stage || intelligence.summary || intelligence.next)
           ? <dl className="yance-relationship-intelligence__analysis">
             {intelligence.stage ? <div><dt>阶段</dt><dd>{intelligence.stage}</dd></div> : null}
             {intelligence.summary ? <div><dt>关系摘要</dt><dd>{intelligence.summary}</dd></div> : null}
             {intelligence.next ? <div><dt>下一步</dt><dd>{intelligence.next}</dd></div> : null}</dl>
           : <p className="yance-relationship-intelligence__pending">关系洞察仍在等待可信分析。</p>}
-        {events.length ? <ol className="yance-relationship-intelligence__events" aria-label="关系证据时间线">
+        {events.length ? <ol className="yance-relationship-intelligence__events" aria-label="关系记录时间线">
           {events.map((event, index) => <li key={`${event.at}-${event.title}-${index}`}>
             <div className="yance-relationship-intelligence__event-head"><strong>{event.title}</strong>
               <span data-source={event.source}>{evidenceSourceLabel(event)}</span></div>
             {event.detail && event.detail !== event.title ? <p>{event.detail}</p> : null}
             {event.at && Number.isFinite(Date.parse(event.at)) ? <time dateTime={event.at}>{new Date(event.at).toLocaleDateString()}</time> : null}
-          </li>)}</ol> : <p className="yance-relationship-intelligence__pending">尚无已确认的关系证据。</p>}</>
-        : <p className="yance-relationship-intelligence__pending">暂无已确认的关系智能。</p>}
+          </li>)}</ol> : <p className="yance-relationship-intelligence__pending">尚无已确认的关系记录。</p>}</>
+        : <p className="yance-relationship-intelligence__pending">暂无已确认的关系洞察。</p>}
     </section>
 
     <div className="yance-world-meta" aria-label="关系上下文">

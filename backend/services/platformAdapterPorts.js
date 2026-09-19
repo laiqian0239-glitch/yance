@@ -422,7 +422,6 @@ function createAccountManagerAuthHandler(managerProvider = defaultAccountManager
         case 'telegram.cancel': return { account: await manager.cancelTelegramLogin(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
         case 'facebook.oauth.start': return { flow: await manager.beginFacebookOAuth(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
         case 'facebook.oauth.status': return { flow: await manager.pollFacebookOAuth(accountId, input.flowId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
-        case 'facebook.oauth.selectPage': return manager.selectFacebookPage(accountId, input.flowId, input.pageId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext });
         case 'facebook.oauth.cancel': return { flow: await manager.cancelFacebookOAuth(accountId, input.flowId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
         default: throw error('PLATFORM_AUTH_OPERATION_UNSUPPORTED', `AuthPort 不支持操作：${operation || 'unknown'}`, 404);
       }

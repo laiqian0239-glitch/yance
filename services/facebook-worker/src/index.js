@@ -80,24 +80,32 @@ async function persistedMediaResponse(request, env, config, eventId, index, pers
 }
 async function d1SchemaStatus(env) {
   try {
-    const columns = await all(env.DB, `PRAGMA table_info(facebook_accounts)`);
-    const names = columns.map(row => clean(row.name)).filter(Boolean);
-    const pagePictureColumn = names.includes('page_picture_url');
-    const permissionAuthorityColumns = ['granted_scopes','missing_permissions','history_sync_available','history_sync_reason','last_permission_check_at','permission_source'].every(name => names.includes(name));
+    const [accountColumns, oauthColumns] = await Promise.all([
+      all(env.DB, `PRAGMA table_info(facebook_accounts)`),
+      all(env.DB, `PRAGMA table_info(facebook_oauth_states)`)
+    ]);
+    const accountNames = accountColumns.map(row => clean(row.name)).filter(Boolean);
+    const oauthNames = oauthColumns.map(row => clean(row.name)).filter(Boolean);
+    const pagePictureColumn = accountNames.includes('page_picture_url');
+    const permissionAuthorityColumns = ['granted_scopes','missing_permissions','history_sync_available','history_sync_reason','last_permission_check_at','permission_source'].every(name => accountNames.includes(name));
+    const personalIdentityOauthColumns = ['flow_mode','identity_json'].every(name => oauthNames.includes(name));
     return {
-      version: permissionAuthorityColumns ? 6 : (pagePictureColumn ? 5 : 4),
-      latestRequiredMigration: '0006_permission_authority.sql',
-      ready: pagePictureColumn && permissionAuthorityColumns,
+      version: personalIdentityOauthColumns ? 7 : (permissionAuthorityColumns ? 6 : (pagePictureColumn ? 5 : 4)),
+      latestRequiredMigration: '0007_personal_identity_oauth.sql',
+      ready: pagePictureColumn && permissionAuthorityColumns && personalIdentityOauthColumns,
       pagePictureColumn,
       permissionAuthorityColumns,
+      personalIdentityOauthColumns,
       checkedAt: new Date().toISOString()
     };
   } catch (error) {
     return {
       version: 0,
-      latestRequiredMigration: '0006_permission_authority.sql',
+      latestRequiredMigration: '0007_personal_identity_oauth.sql',
       ready: false,
       pagePictureColumn: false,
+      permissionAuthorityColumns: false,
+      personalIdentityOauthColumns: false,
       reasonCode: 'FACEBOOK_D1_SCHEMA_PROBE_FAILED',
       checkedAt: new Date().toISOString()
     };

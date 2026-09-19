@@ -1,41 +1,237 @@
 .yance-learning-workspace {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
-  color: var(--text-primary, inherit);
-  background: var(--surface-panel, transparent);
+  color: var(--yance-theme-text, var(--text-primary, inherit));
   font-size: inherit;
   line-height: var(--leading-body, 1.58);
 }
-.yance-learning-workspace > header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
-.yance-learning-workspace > header > div { display: grid; gap: 3px; }
-.yance-learning-workspace > header strong,
-.yance-learning-workspace h3 { color: var(--text-primary, inherit); font-size: inherit; }
+
+.yance-learning-workspace > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border, currentcolor) 68%, transparent);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 92% 0, color-mix(in srgb, var(--yance-theme-accent, currentcolor) 10%, transparent), transparent 36%),
+    color-mix(in srgb, var(--yance-theme-card-raised, var(--surface-card, transparent)) 90%, transparent);
+}
+
+.yance-learning-workspace > header > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.yance-learning-workspace > header strong {
+  color: var(--yance-theme-text, var(--text-primary, inherit));
+  font-size: 1rem;
+  letter-spacing: -.015em;
+}
+
 .yance-learning-workspace > header span,
 .learning-status,
 .learning-grid dt,
-.yance-learning-workspace p { color: var(--text-secondary, inherit); font-size: inherit; }
-.yance-learning-workspace > nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.yance-learning-workspace p {
+  color: var(--yance-theme-text-muted, var(--text-secondary, inherit));
+}
+
+.yance-learning-workspace > header > div > span {
+  font-size: .74rem;
+  line-height: 1.5;
+}
+
+.learning-status {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border, currentcolor) 62%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--yance-theme-control, transparent) 58%, transparent);
+  font-size: .68rem;
+  white-space: nowrap;
+}
+
+.yance-learning-workspace > nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border, currentcolor) 66%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--yance-theme-control, transparent) 38%, transparent);
+}
+
 .yance-learning-workspace button,
 .yance-learning-workspace input,
 .yance-learning-workspace textarea {
-  border: 1px solid var(--border-default, currentcolor);
-  color: var(--text-primary, inherit);
-  background: var(--surface-control, transparent);
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border, currentcolor) 76%, transparent);
+  color: var(--yance-theme-text, var(--text-primary, inherit));
+  background: color-mix(in srgb, var(--yance-theme-control, var(--surface-control, transparent)) 78%, transparent);
   font: inherit;
 }
-.yance-learning-workspace button:hover:not(:disabled) { border-color: var(--border-active, currentcolor); background: var(--surface-control-hover, var(--surface-control, transparent)); }
-.yance-learning-workspace :focus-visible { outline: none; box-shadow: var(--focus-ring, 0 0 0 2px currentcolor); }
-.yance-learning-workspace > nav button[aria-pressed="true"] { border-color: var(--border-active, currentcolor); color: var(--accent-primary, inherit); font-weight: 700; }
-.yance-learning-workspace > section { display: grid; gap: 12px; }
-.learning-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 0; }
-.learning-grid > div { border: 1px solid var(--border-default, currentcolor); border-radius: 8px; padding: 8px; background: var(--surface-card, transparent); }
-.learning-grid dt { font-size: inherit; }
-.learning-grid dd { margin: 4px 0 0; color: var(--text-primary, inherit); }
-.learning-coach { display: grid; gap: 10px; }
-.learning-coach label { display: grid; gap: 5px; color: var(--text-secondary, inherit); font-size: inherit; }
-.learning-coach input, .learning-coach textarea { width: 100%; box-sizing: border-box; }
-.learning-toggle { display: flex; gap: 8px; align-items: flex-start; color: var(--text-primary, inherit); font-size: inherit; }
+
+.yance-learning-workspace button {
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: .72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.yance-learning-workspace button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 48%, var(--yance-theme-border, currentcolor));
+  background: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 12%, var(--yance-theme-control, transparent));
+}
+
+.yance-learning-workspace button:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+}
+
+.yance-learning-workspace :focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yance-theme-accent, currentcolor) 14%, transparent);
+}
+
+.yance-learning-workspace > nav button {
+  min-height: 34px;
+  border-color: transparent;
+  color: var(--yance-theme-text-muted, var(--text-secondary, inherit));
+  background: transparent;
+}
+
+.yance-learning-workspace > nav button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 46%, var(--yance-theme-border, currentcolor));
+  color: var(--yance-theme-text, var(--text-primary, inherit));
+  background: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 14%, var(--yance-theme-card-raised, transparent));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--yance-theme-shadow-source, currentcolor) 8%, transparent);
+}
+
+.yance-learning-workspace > section {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border, currentcolor) 66%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised, var(--surface-card, transparent)) 88%, transparent);
+}
+
+.yance-learning-workspace h3 {
+  margin: 0;
+  color: var(--yance-theme-text, var(--text-primary, inherit));
+  font-size: .92rem;
+}
+
+.learning-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.learning-grid > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border, currentcolor) 66%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--yance-theme-card-raised, transparent) 88%, transparent),
+      color-mix(in srgb, var(--yance-theme-control, transparent) 46%, transparent));
+}
+
+.learning-grid dt {
+  font-size: .68rem;
+}
+
+.learning-grid dd {
+  margin: 5px 0 0;
+  color: var(--yance-theme-text, var(--text-primary, inherit));
+  font-size: .76rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.learning-coach {
+  display: grid;
+  gap: 12px;
+}
+
+.learning-coach label {
+  display: grid;
+  gap: 6px;
+  color: var(--yance-theme-text-muted, var(--text-secondary, inherit));
+  font-size: .7rem;
+}
+
+.learning-coach input,
+.learning-coach textarea {
+  width: 100%;
+  padding: 10px 11px;
+  border-radius: 11px;
+  resize: vertical;
+}
+
+.learning-coach > button {
+  justify-self: start;
+  min-width: 148px;
+  border-color: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 56%, var(--yance-theme-border, currentcolor));
+  background: color-mix(in srgb, var(--yance-theme-accent, currentcolor) 18%, var(--yance-theme-control, transparent));
+}
+
+.learning-coach > [role="status"],
+.learning-privacy {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border, currentcolor) 64%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--yance-theme-control, transparent) 46%, transparent);
+}
+
+.learning-coach > [role="status"] p,
+.learning-privacy p {
+  margin: 0;
+  font-size: .72rem;
+  line-height: 1.55;
+}
+
+.learning-privacy strong {
+  color: var(--yance-theme-text, var(--text-primary, inherit));
+  font-size: .82rem;
+}
+
 .yance-learning-workspace [data-slot="approval-card"],
 .yance-learning-workspace [data-slot="question-flow"],
-.yance-learning-workspace [data-slot="progress-tracker"] { max-width: 100%; min-width: 0; color: var(--text-primary, inherit); }
+.yance-learning-workspace [data-slot="progress-tracker"] {
+  max-width: 100%;
+  min-width: 0;
+  color: var(--yance-theme-text, var(--text-primary, inherit));
+}
+
+@media (max-width: 1120px), (max-height: 680px) {
+  .yance-learning-workspace > header {
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .learning-status {
+    white-space: normal;
+  }
+
+  .learning-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .learning-grid {
+    grid-template-columns: 1fr;
+  }
+}

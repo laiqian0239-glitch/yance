@@ -38,7 +38,7 @@
     },
     {
       "file": "integration/element-module/src/YanceLogin.css",
-      "count": 102
+      "count": 103
     },
     {
       "file": "frontend/r32-theme-authority.css",
@@ -47,6 +47,10 @@
     {
       "file": "frontend/r32-theme-motion.js",
       "count": 9
+    },
+    {
+      "file": "integration/element-module/src/product-experience/ProductExperienceShell.css",
+      "count": 7
     },
     {
       "file": "integration/element-module/src/BrandPreviewSurface.css",
@@ -61,5 +65,7 @@
       "count": 3
     }
   ],
-  "failures": []
+  "failures": [
+    "integration/element-module/src/product-experience/ProductExperienceShell.css: unclassified fixed-color source (7)"
+  ]
 }

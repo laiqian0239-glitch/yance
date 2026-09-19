@@ -6,7 +6,7 @@ import { PeopleSurface, type PeopleHomeView } from "./PeopleSurface";
 import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
 import { RelationshipWorld } from "./RelationshipWorld";
-import { ProductSystemSettingsSurface } from "./ProductSystemSettingsSurface";
+import { ProductSystemSettingsSurface, type ProductSettingsCategory } from "./ProductSystemSettingsSurface";
 import { PlatformAccountsSurface } from "./PlatformAccountsSurface";
 
 import {
@@ -17,6 +17,7 @@ import {
   type ProductAppearanceProjection,
 } from "./experienceProjection";
 import { useExperiencePreferences } from "./experiencePreferences";
+import { playExperienceSound } from "./experienceSound";
 import {
   clearSelectedRelationship,
   selectRelationship,
@@ -58,6 +59,15 @@ type ProductExperienceShellProps = {
     conversation: GroupConversationProjection,
   ) => Promise<boolean>;
   navigateProductHome?: () => Promise<void> | void;
+  navigateRelationshipHome?: () => Promise<void> | void;
+  renderRoomView?: (roomId: string, props?: {
+    hideHeader?: boolean;
+    hideComposer?: boolean;
+    hideRightPanel?: boolean;
+    hidePinnedMessageBanner?: boolean;
+    hideWidgets?: boolean;
+    enableReadReceiptsAndMarkersOnActivity?: boolean;
+  }) => React.ReactNode;
   readRoomStateEvents?: ReadRoomStateEvents;
   openUserSettings?: (destination:"account"|"security"|"sessions")=>void;
   requestLogout?: ()=>void;
@@ -86,6 +96,7 @@ type ProductModelRuntimeRecord = Record<string, unknown>;
 type ProductModelRuntimeDesktopApi = {
   getProductModelRuntimeState: () => Promise<unknown>;
   mutateProductModelRuntime: (input: Record<string, unknown>) => Promise<unknown>;
+  saveCredential?: (ref: string, value: Record<string, unknown>, requestId?: string) => Promise<unknown>;
 };
 
 function modelRuntimeRecord(value: unknown): ProductModelRuntimeRecord {
@@ -142,27 +153,31 @@ function productModelRuntimeApi(): ProductModelRuntimeDesktopApi | null {
 function ProductModelRuntimeSupportSurface(): React.JSX.Element {
   const api = useMemo(() => productModelRuntimeApi(), []);
   const [modelRuntime, setModelRuntime] = useState<ProductModelRuntimeRecord>({});
-  const [feedback, setFeedback] = useState("正在读取高级系统支持状态");
+  const [feedback, setFeedback] = useState("正在读取模型中心状态");
   const [busy, setBusy] = useState(false);
-  const [runtimeTargetName, setRuntimeTargetName] = useState("");
-  const [localAssetPath, setLocalAssetPath] = useState("");
-  const [expectedSha256, setExpectedSha256] = useState("");
-  const [requiredBytes, setRequiredBytes] = useState("");
-  const [ollamaModel, setOllamaModel] = useState("");
-  const [ollamaEndpoint, setOllamaEndpoint] = useState("http://127.0.0.1:11434");
+  const [tab, setTab] = useState<"cloud" | "local" | "activity">("cloud");
+  const [openRouterKey, setOpenRouterKey] = useState("");
+  const [compatibleEndpoint, setCompatibleEndpoint] = useState("https://api.openai.com/v1");
+  const [compatibleKey, setCompatibleKey] = useState("");
+  const [compatibleCredentialRef, setCompatibleCredentialRef] = useState("");
+  const [compatibleModels, setCompatibleModels] = useState<readonly string[]>([]);
+  const [compatibleSelected, setCompatibleSelected] = useState("");
   const [ollamaRequestId, setOllamaRequestId] = useState("");
+  const [pendingDeleteModelId, setPendingDeleteModelId] = useState("");
+  const ollamaEndpoint = "http://127.0.0.1:11434";
+  const recommendedOllamaModel = "qwen3:8b";
 
   const refreshModelRuntime = useCallback(async (): Promise<void> => {
     if (!api) {
-      setFeedback("高级系统支持桥接暂不可用；不会创建本地替代状态。");
+      setFeedback("模型服务暂不可用，请稍后重试。");
       return;
     }
     setBusy(true);
     try {
       setModelRuntime(modelRuntimeRecord(await api.getProductModelRuntimeState()));
-      setFeedback("高级系统支持状态已从现有权威刷新");
+      setFeedback("模型状态已刷新");
     } catch {
-      setFeedback("高级系统支持状态读取失败；保留现有权威，不启用静默降级。");
+      setFeedback("模型状态读取失败，请稍后重试。");
     } finally {
       setBusy(false);
     }
@@ -180,155 +195,373 @@ function ProductModelRuntimeSupportSurface(): React.JSX.Element {
     setBusy(true);
     try {
       const result = await api.mutateProductModelRuntime(input);
+      const resultRecord = modelRuntimeRecord(result);
+      if (resultRecord.ok === false) {
+        throw new Error(modelRuntimeText(resultRecord.message || resultRecord.reasonCode || resultRecord.code, "模型操作失败"));
+      }
       setFeedback(successMessage);
       setModelRuntime(modelRuntimeRecord(await api.getProductModelRuntimeState()));
       return result;
-    } catch {
-      setFeedback("模型运行态操作失败；正式回复仍由 LiteLLM Model Brain 处理，不做本地静默回退。");
+    } catch (error) {
+      setFeedback(error instanceof Error && error.message
+        ? error.message
+        : "模型操作失败，当前对话设置保持不变。");
       return null;
     } finally {
       setBusy(false);
     }
   }, [api, busy]);
 
+  // Mature authority: backend Model Brain / LiteLLM remains the sole physical provider/model/retry/fallback owner.
   const brainState = modelRuntimeRecord(modelRuntime.modelBrain);
   const brain = modelRuntimeRecord(brainState.modelBrain);
   const brainRuntime = modelRuntimeRecord(brainState.runtime);
-  const catalog = modelRuntimeRecord(modelRuntime.catalog);
+  const modelStatus = modelRuntimeRecord(modelRuntime.modelStatus);
   const hardwareRoot = modelRuntimeRecord(modelRuntime.hardware);
   const hardware = modelRuntimeRecord(hardwareRoot.hardware);
   const adaptiveLocal = modelRuntimeRecord(modelRuntime.adaptiveLocal);
-  const catalogRows = modelRuntimeRows(catalog.models);
-  const materializations = modelRuntimeRows(adaptiveLocal.materializations);
+  const modelRows = modelRuntimeRows(modelStatus.models);
+  const localModels = modelRows.filter((row) => modelRuntimeText(row.provider).toLowerCase() === "ollama");
+  const cloudModels = modelRows.filter((row) => modelRuntimeText(row.provider).toLowerCase() !== "ollama");
+  const openRouter = modelRuntimeRecord(modelStatus.openRouter);
   const pulls = modelRuntimeRows(adaptiveLocal.pulls);
+  const activePull = pulls.find((row) => !["completed", "cancelled", "failed"].includes(modelRuntimeText(row.status).toLowerCase())) || null;
   const brainHealth = modelRuntimeText(
     brain.health || brain.state || brainRuntime.health || brainRuntime.state || brainState.status,
     brainState.ok === false ? "不可用" : "状态已读取",
   );
-  const brainAuthority = modelRuntimeText(brain.authority || brain.litellm || brainRuntime.authority, "LiteLLM");
+  const routeEvidence = modelRuntimeRecord(brainRuntime.lastEvidence || brain.lastEvidence);
+  const selectedModel = modelRuntimeText(routeEvidence.selectedModel);
+  const selectedProvider = modelRuntimeText(routeEvidence.provider);
+  const logicalModel = modelRuntimeText(routeEvidence.logicalModel);
+  const costUsd = modelRuntimeNumber(routeEvidence.costUsd);
+  const retryCount = modelRuntimeNumber(routeEvidence.retryCount);
+  const fallbackCount = modelRuntimeNumber(routeEvidence.fallbackCount);
+  const openRouterConnected = ["ready", "catalog-ready", "connected"].includes(
+    modelRuntimeText(openRouter.connectionState || openRouter.status).toLowerCase(),
+  ) || openRouter.credentialConfigured === true;
+  const verifiedModels = modelRows.filter((row) =>
+    ["verified", "qualified"].includes(modelRuntimeText(row.qualification || row.qualificationStatus).toLowerCase()),
+  );
 
-  const planAdaptiveLocal = async (): Promise<void> => {
-    const candidates = modelRuntimePlannerCandidates(catalog);
-    if (!candidates.length) {
-      setFeedback("当前自适应本地模型目录没有可规划候选。");
-      return;
-    }
-    const result = modelRuntimeRecord(await mutateModelRuntime(
-      { action: "plan-adaptive-local", candidates },
-      "自适应本地规划已完成；结果来自现有 planner authority。",
-    ));
-    const best = modelRuntimeRecord(result.best);
-    if (Object.keys(best).length) {
-      setFeedback(`规划结果：${modelRuntimeText(best.modelId, "模型")} / ${modelRuntimeText(best.runtimeId, "运行时")} · ${modelRuntimeText(best.capabilityClass, "未知能力级别")}`);
-    }
+  const scanLocalModels = async (): Promise<void> => {
+    await mutateModelRuntime(
+      { action: "scan-local-models" },
+      "本地 AI 已扫描完成。",
+    );
   };
 
-  const pullOllama = async (): Promise<void> => {
-    if (!ollamaModel.trim()) {
-      setFeedback("请输入要下载的 Ollama 模型名称。");
-      return;
-    }
-    const requestId = ollamaRequestId.trim() || globalThis.crypto?.randomUUID?.() || `product-${Date.now()}`;
+  const pullRecommendedOllama = async (): Promise<void> => {
+    const requestId = globalThis.crypto?.randomUUID?.() || `product-${Date.now()}`;
     setOllamaRequestId(requestId);
     await mutateModelRuntime(
       {
         action: "pull-ollama-model",
-        model: ollamaModel.trim(),
-        endpoint: ollamaEndpoint.trim(),
+        model: recommendedOllamaModel,
+        endpoint: ollamaEndpoint,
         requestId,
       },
-      "Ollama 模型下载请求已完成；状态已刷新。",
+      `已提交 ${recommendedOllamaModel} 安装；下载状态已刷新。`,
+    );
+  };
+
+  const setLocalModelEnabled = async (model: ProductModelRuntimeRecord, enabled: boolean): Promise<void> => {
+    const modelId = modelRuntimeText(model.id);
+    if (!modelId) return;
+    setPendingDeleteModelId("");
+    await mutateModelRuntime(
+      {
+        action: "set-local-model-enabled",
+        modelId,
+        enabled,
+        reason: "product-model-center",
+      },
+      enabled ? "本地模型已重新启用。" : "本地模型已停用；如需永久删除，可再次确认删除。",
+    );
+  };
+
+  const deleteLocalModel = async (model: ProductModelRuntimeRecord): Promise<void> => {
+    const modelId = modelRuntimeText(model.id);
+    const modelName = modelRuntimeText(model.name);
+    if (!modelId || !modelName) return;
+    if (pendingDeleteModelId !== modelId) {
+      setPendingDeleteModelId(modelId);
+      setFeedback(`再次点击“永久删除”将从本机 Ollama 删除 ${modelName}；此操作不可撤销。`);
+      return;
+    }
+    await mutateModelRuntime(
+      {
+        action: "delete-local-model",
+        modelId,
+        confirmName: modelName,
+      },
+      `已永久删除本地模型 ${modelName}。`,
+    );
+    setPendingDeleteModelId("");
+  };
+
+  const configureOpenRouter = async (): Promise<void> => {
+    if (!api?.saveCredential || !openRouterKey.trim()) {
+      setFeedback("请输入 OpenRouter API Key；密钥只写入 Windows 安全存储。");
+      return;
+    }
+    setBusy(true);
+    try {
+      const credentialRef = `model:openrouter:${globalThis.crypto?.randomUUID?.() || Date.now()}`;
+      const saved = modelRuntimeRecord(await api.saveCredential(credentialRef, {
+        apiKey: openRouterKey.trim(),
+        endpoint: "https://openrouter.ai/api/v1",
+        provider: "openai-compatible",
+        service: "openrouter",
+      }));
+      if (saved.ok === false || saved.runtimeConfirmed === false) {
+        throw new Error(modelRuntimeText(saved.message || saved.reasonCode, "OpenRouter API Key 保存失败"));
+      }
+      setOpenRouterKey("");
+      const configured = modelRuntimeRecord(await api.mutateProductModelRuntime({
+        action: "configure-openrouter",
+        credentialRef,
+      }));
+      if (configured.ok === false) {
+        throw new Error(modelRuntimeText(configured.message || configured.reasonCode || configured.code, "OpenRouter 连接失败"));
+      }
+      setModelRuntime(modelRuntimeRecord(await api.getProductModelRuntimeState()));
+      setFeedback("云端 AI 已连接，可以开始使用。");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "OpenRouter 连接失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const discoverCompatibleCloud = async (): Promise<void> => {
+    if (!api?.saveCredential || !compatibleEndpoint.trim() || !compatibleKey.trim()) {
+      setFeedback("请填写 OpenAI 兼容地址与 API Key。");
+      return;
+    }
+    setBusy(true);
+    try {
+      const credentialRef = `model:openai-compatible:${globalThis.crypto?.randomUUID?.() || Date.now()}`;
+      const endpoint = compatibleEndpoint.trim();
+      const saved = modelRuntimeRecord(await api.saveCredential(credentialRef, {
+        apiKey: compatibleKey.trim(),
+        endpoint,
+        provider: "openai-compatible",
+      }));
+      if (saved.ok === false || saved.runtimeConfirmed === false) {
+        throw new Error(modelRuntimeText(saved.message || saved.reasonCode, "API Key 保存失败"));
+      }
+      setCompatibleKey("");
+      const discovered = modelRuntimeRecord(await api.mutateProductModelRuntime({
+        action: "discover-compatible-cloud",
+        endpoint,
+        credentialRef,
+      }));
+      if (discovered.ok === false) {
+        throw new Error(modelRuntimeText(discovered.message || discovered.reasonCode || discovered.code, "云端模型目录读取失败"));
+      }
+      const models = Array.isArray(discovered.models)
+        ? discovered.models.map((value) => modelRuntimeText(value)).filter(Boolean)
+        : [];
+      setCompatibleCredentialRef(credentialRef);
+      setCompatibleModels(models);
+      setCompatibleSelected(models[0] || "");
+      setFeedback(models.length ? `已找到 ${models.length} 个可用模型；请选择一个完成连接。` : "连接已验证，但服务没有返回可用模型。");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "云端模型目录读取失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const registerCompatibleCloud = async (): Promise<void> => {
+    if (!compatibleCredentialRef || !compatibleSelected) {
+      setFeedback("请先读取模型目录并选择模型。");
+      return;
+    }
+    await mutateModelRuntime(
+      {
+        action: "register-compatible-cloud",
+        endpoint: compatibleEndpoint.trim(),
+        credentialRef: compatibleCredentialRef,
+        model: compatibleSelected,
+      },
+      "云端模型已连接。日常对话会自动选择可用模型。",
     );
   };
 
   return (
-    <section aria-label="高级系统支持" data-yance-secondary-system-support>
-      <header>
-        <h4>高级系统支持</h4>
-        <p>仅在明确展开后投影现有模型运行权威；不会创建第二套路由器、运行时或静默回退。</p>
-        <button type="button" onClick={() => void refreshModelRuntime()} disabled={busy}>刷新支持状态</button>
+    <section className="yance-model-center" aria-label="模型中心" data-yance-model-center>
+      <header className="yance-model-center__header">
+        <div>
+          <span className="yance-eyebrow">AI MODELS</span>
+          <h3>模型中心</h3>
+          <p>连接云端 AI 或使用本地 AI。日常对话由言策自动选择可用模型，本地模型不会在你不知情时替代正式回复。</p>
+        </div>
+        <button type="button" onClick={() => void refreshModelRuntime()} disabled={busy}>刷新</button>
       </header>
-      <p role="status" aria-live="polite">{feedback}</p>
-      <div className="yance-settings-grid">
-        <section>
-          <h5>Model Brain</h5>
-          <p>Model Brain 运行状态：{brainHealth}</p>
-          <p>正式路由权威：{brainAuthority.includes("LiteLLM") ? brainAuthority : `LiteLLM · ${brainAuthority}`}</p>
-          <p>LiteLLM 继续负责 quick_reply / deep_reply / director；本地模型不会静默替代正式回复。</p>
-        </section>
 
-        <section>
-          <h5>自适应本地运行态</h5>
-          <p>目录：{catalogRows.length} 个模型 · 已 materialize：{materializations.length} 项 · 下载任务：{pulls.length} 项</p>
-          <p>
-            硬件：RAM 可用 {modelRuntimeBytes(hardware.memoryFreeBytes || hardware.freeMemoryBytes)}
-            {" · "}
-            GPU VRAM {modelRuntimeBytes(hardware.gpuVramBytes || hardware.vramBytes)}
-          </p>
-          <button type="button" disabled={busy || catalogRows.length === 0} onClick={() => void planAdaptiveLocal()}>
-            规划自适应本地运行时
-          </button>
-          <ul>
-            {catalogRows.slice(0, 8).map((row) => (
-              <li key={modelRuntimeText(row.id, modelRuntimeText(row.displayName, "model"))}>
-                {modelRuntimeText(row.displayName, modelRuntimeText(row.id, "模型"))}
-                {" · "}
-                {Array.isArray(row.runtimeCandidates) ? row.runtimeCandidates.map((value) => modelRuntimeText(value)).filter(Boolean).join(" / ") : "运行时待定"}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section>
-          <h5>安装 / 移除本地运行时</h5>
-          <label><span>目标名称</span><input value={runtimeTargetName} onChange={(event) => setRuntimeTargetName(event.target.value)} placeholder="例如 llama-runtime.zip" /></label>
-          <label><span>本机已验证资产路径</span><input value={localAssetPath} onChange={(event) => setLocalAssetPath(event.target.value)} placeholder="本机路径" /></label>
-          <label><span>SHA-256</span><input value={expectedSha256} onChange={(event) => setExpectedSha256(event.target.value)} placeholder="预期 SHA-256" /></label>
-          <label><span>所需字节数</span><input inputMode="numeric" value={requiredBytes} onChange={(event) => setRequiredBytes(event.target.value)} /></label>
-          <div className="yance-learning-settings-actions">
-            <button
-              type="button"
-              disabled={busy || !runtimeTargetName || !localAssetPath || !expectedSha256}
-              onClick={() => void mutateModelRuntime(
-                {
-                  action: "materialize-adaptive-runtime",
-                  consent: true,
-                  targetName: runtimeTargetName,
-                  localAssetPath,
-                  expectedSha256,
-                  requiredBytes: modelRuntimeNumber(requiredBytes),
-                },
-                "本地运行时安装 / materialize 完成；状态已刷新。",
-              )}
-            >安装本地运行时</button>
-            <button
-              type="button"
-              disabled={busy || !runtimeTargetName}
-              onClick={() => void mutateModelRuntime(
-                { action: "remove-adaptive-runtime", targetName: runtimeTargetName },
-                "本地运行时已移除；状态已刷新。",
-              )}
-            >移除本地运行时</button>
-          </div>
-        </section>
-
-        <section>
-          <h5>Ollama 模型下载</h5>
-          <label><span>模型</span><input value={ollamaModel} onChange={(event) => setOllamaModel(event.target.value)} placeholder="例如 qwen3:8b" /></label>
-          <label><span>Ollama 地址</span><input value={ollamaEndpoint} onChange={(event) => setOllamaEndpoint(event.target.value)} /></label>
-          <div className="yance-learning-settings-actions">
-            <button type="button" disabled={busy || !ollamaModel.trim()} onClick={() => void pullOllama()}>下载 Ollama 模型</button>
-            <button
-              type="button"
-              disabled={busy || !ollamaRequestId}
-              onClick={() => void mutateModelRuntime(
-                { action: "cancel-ollama-pull", requestId: ollamaRequestId },
-                "已请求取消 Ollama 下载。",
-              )}
-            >取消 Ollama 下载</button>
-          </div>
-        </section>
+      <div className="yance-model-center__summary" aria-label="模型中心概览">
+        <span data-state={brainHealth.toLowerCase()}><strong>AI 服务</strong>{brainHealth === "不可用" ? "暂不可用" : "已就绪"}</span>
+        <span><strong>云端 AI</strong>{cloudModels.length ? `${cloudModels.length} 个可用` : "未连接"}</span>
+        <span><strong>本地 AI</strong>{localModels.length ? `${localModels.length} 个已安装` : "未安装"}</span>
+        <span><strong>可用模型</strong>{verifiedModels.length || "等待验证"}</span>
       </div>
+
+      <nav className="yance-model-center__tabs" aria-label="模型中心分类">
+        <button type="button" aria-current={tab === "cloud" ? "page" : undefined} onClick={() => setTab("cloud")}>云端 AI</button>
+        <button type="button" aria-current={tab === "local" ? "page" : undefined} onClick={() => setTab("local")}>本地 AI</button>
+        <button type="button" aria-current={tab === "activity" ? "page" : undefined} onClick={() => setTab("activity")}>使用记录</button>
+      </nav>
+
+      <p className="yance-model-center__feedback" role="status" aria-live="polite">{feedback}</p>
+
+      {tab === "cloud" ? (
+        <div className="yance-model-center__grid">
+          <article className="yance-model-provider-card" data-connected={openRouterConnected || undefined}>
+            <header>
+              <div><span>推荐云端</span><h4>OpenRouter</h4></div>
+              <em>{openRouterConnected ? "已连接" : "未连接"}</em>
+            </header>
+            <p>适合直接使用多家主流云端模型。连接成功后，日常对话仍由言策自动选择可用模型。</p>
+            <details className="yance-model-advanced">
+              <summary>{openRouterConnected ? "管理连接" : "高级连接设置"}</summary>
+              <div>
+                <label><span>访问密钥</span><input type="password" autoComplete="off" value={openRouterKey} onChange={(event) => setOpenRouterKey(event.target.value)} placeholder="粘贴你的 OpenRouter Key" /></label>
+                <p>密钥只保存到 Windows 安全存储，不显示在页面或日志中。</p>
+                <button type="button" disabled={busy || !openRouterKey.trim()} onClick={() => void configureOpenRouter()}>
+                  {openRouterConnected ? "重新验证连接" : "连接云端 AI"}
+                </button>
+              </div>
+            </details>
+          </article>
+
+          <article className="yance-model-provider-card">
+            <header>
+              <div><span>兼容服务</span><h4>OpenAI 兼容 API</h4></div>
+              <em>{compatibleModels.length ? `${compatibleModels.length} 个模型` : "未连接"}</em>
+            </header>
+            <p>如果你已经有其他兼容的云端 AI 服务，可以在这里连接；普通用户不需要配置这一项。</p>
+            <details className="yance-model-advanced">
+              <summary>高级连接设置</summary>
+              <div>
+                <label><span>服务地址</span><input value={compatibleEndpoint} onChange={(event) => setCompatibleEndpoint(event.target.value)} placeholder="https://…/v1" /></label>
+                <label><span>访问密钥</span><input type="password" autoComplete="off" value={compatibleKey} onChange={(event) => setCompatibleKey(event.target.value)} /></label>
+                <button type="button" disabled={busy || !compatibleEndpoint.trim() || !compatibleKey.trim()} onClick={() => void discoverCompatibleCloud()}>检查可用模型</button>
+                {compatibleModels.length ? (
+                  <div className="yance-model-compatible-choice">
+                    <label><span>选择模型</span><select value={compatibleSelected} onChange={(event) => setCompatibleSelected(event.target.value)}>
+                      {compatibleModels.map((name) => <option key={name} value={name}>{name}</option>)}
+                    </select></label>
+                    <button type="button" disabled={busy || !compatibleSelected} onClick={() => void registerCompatibleCloud()}>连接这个模型</button>
+                  </div>
+                ) : null}
+              </div>
+            </details>
+          </article>
+        </div>
+      ) : null}
+
+      {tab === "local" ? (
+        <div className="yance-model-local">
+          <section className="yance-model-local__status">
+            <div>
+              <span className="yance-eyebrow">LOCAL AI</span>
+              <h4>{localModels.length ? `已安装 ${localModels.length} 个本地模型` : "使用本地 AI"}</h4>
+              <p>言策会自动检测本机模型服务。无需填写地址或模型名；安装完成后可以在这里启用、停用或删除。</p>
+            </div>
+            <button type="button" disabled={busy} onClick={() => void scanLocalModels()}>扫描本地 AI</button>
+          </section>
+
+          {localModels.length ? (
+            <div className="yance-model-local__cards">
+              {localModels.map((model) => {
+                const modelId = modelRuntimeText(model.id, modelRuntimeText(model.name, "ollama"));
+                const modelName = modelRuntimeText(model.name, "本地模型");
+                const disabled = model.userDisabled === true || model.enabled === false;
+                return (
+                  <article key={modelId}>
+                    <div><span>Ollama</span><h5>{modelName}</h5></div>
+                    <p>{modelRuntimeText(model.parameterSize || model.quantizationLevel || model.qualificationLabel, "已安装 · 等待可用性检查")}</p>
+                    <em>{modelRuntimeBytes(model.sizeBytes)}</em>
+                    <div className="yance-model-local__actions">
+                      <button type="button" disabled={busy} onClick={() => void setLocalModelEnabled(model, disabled)}>
+                        {disabled ? "重新启用" : "停用"}
+                      </button>
+                      {disabled ? (
+                        <button type="button" className="yance-model-local__delete" disabled={busy}
+                          onClick={() => void deleteLocalModel(model)}>
+                          {pendingDeleteModelId === modelId ? "确认永久删除" : "永久删除"}
+                        </button>
+                      ) : <span>停用后可永久删除</span>}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <article className="yance-model-recommendation">
+              <div>
+                <span className="yance-eyebrow">推荐安装</span>
+                <h4>Qwen3 8B · Ollama</h4>
+                <p>适合作为日常本地 AI。安装完成后会自动检查是否可用，不会在你不知情时替代云端 AI。</p>
+              </div>
+              <button type="button" disabled={busy || Boolean(activePull)} onClick={() => void pullRecommendedOllama()}>安装推荐模型</button>
+            </article>
+          )}
+
+          <details className="yance-model-advanced yance-model-hardware-details">
+            <summary>本机运行信息</summary>
+            <div className="yance-model-hardware">
+              <span><strong>可用内存</strong>{modelRuntimeBytes(hardware.memoryFreeBytes || hardware.freeMemoryBytes)}</span>
+              <span><strong>GPU 显存</strong>{modelRuntimeBytes(hardware.gpuVramBytes || hardware.vramBytes)}</span>
+              <span><strong>本地服务</strong>已由言策自动管理</span>
+            </div>
+          </details>
+
+          {activePull ? (
+            <div className="yance-model-download" role="status">
+              <div><strong>正在安装 {modelRuntimeText(activePull.model, recommendedOllamaModel)}</strong><span>{modelRuntimeText(activePull.status, "下载中")}</span></div>
+              <button type="button" disabled={busy || !ollamaRequestId} onClick={() => void mutateModelRuntime(
+                { action: "cancel-ollama-pull", requestId: ollamaRequestId || modelRuntimeText(activePull.requestId) },
+                "已请求取消 Ollama 下载。",
+              )}>取消</button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {tab === "activity" ? (
+        <div className="yance-model-activity">
+          <article>
+            <span className="yance-eyebrow">RECENT AI</span>
+            <h4>最近一次 AI 使用</h4>
+            {selectedModel || selectedProvider || logicalModel ? (
+              <>
+                <dl>
+                  <div><dt>使用模型</dt><dd>{selectedModel || "自动选择"}</dd></div>
+                  <div><dt>云端服务</dt><dd>{selectedProvider || "自动选择"}</dd></div>
+                  <div><dt>耗时</dt><dd>{modelRuntimeNumber(routeEvidence.latencyMs).toFixed(0)} ms</dd></div>
+                  <div><dt>费用</dt><dd>${costUsd.toFixed(6)}</dd></div>
+                </dl>
+                <details className="yance-model-advanced">
+                  <summary>运行详情</summary>
+                  <dl>
+                    <div><dt>任务类型</dt><dd>{logicalModel || "未报告"}</dd></div>
+                    <div><dt>重试次数</dt><dd>{retryCount.toFixed(0)}</dd></div>
+                    <div><dt>备用切换</dt><dd>{fallbackCount.toFixed(0)}</dd></div>
+                  </dl>
+                </details>
+              </>
+            ) : <p>还没有可展示的 AI 使用记录。完成一次真实对话后，这里会显示实际使用的模型与耗时。</p>}
+          </article>
+          <article>
+            <span className="yance-eyebrow">AUTO SELECT</span>
+            <h4>言策会自动选择合适的模型</h4>
+            <p>你只需要连接可用的云端或本地 AI。日常对话的模型选择、失败重试和备用切换会由现有模型服务自动处理。</p>
+          </article>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -368,11 +601,11 @@ function projectRuntimeSafety(
     return { state: "offline", title: "网络已离线", detail: "需要联网的关系同步与外部平台操作会暂时不可用。" };
   }
   if (backendReady === false) {
-    return { state: "backend-unready", title: "本地服务未就绪", detail: "可在体验设置的运行安全与恢复中重启后台服务。" };
+    return { state: "backend-unready", title: "本地服务暂未就绪", detail: "可在设置里的“高级恢复工具”中重启本地服务。" };
   }
   const runtime = runtimeRecord(projection.runtime);
   if (String(runtime.operatingMode || "") === "safeMode") {
-    return { state: "safe-mode", title: "安全模式已启用", detail: "部分操作受限；退出前会由现有 RecoveryManager 签发一次性授权。" };
+    return { state: "safe-mode", title: "安全模式已启用", detail: "部分功能暂时受限；恢复正常模式时会执行现有安全校验。" };
   }
   const lifecycleState = String(runtime.lifecycleState || "");
   const lifecycleReady = !lifecycleState || lifecycleState === "running" || lifecycleState === "local_ready";
@@ -388,8 +621,8 @@ function projectRuntimeSafety(
       state: "degraded",
       title: "运行状态需要处理",
       detail: reasonCode
-        ? `运行健康异常：${reasonCode}。可在体验设置中执行恢复操作。`
-        : "运行投影尚未恢复到正常就绪状态；可在体验设置中执行恢复操作。",
+        ? "部分本地功能暂时不可用；可在设置里的“高级恢复工具”中检查并恢复。"
+        : "本地服务还没有恢复到正常状态；可在设置里的“高级恢复工具”中检查并恢复。",
     };
   }
   return null;
@@ -399,12 +632,224 @@ function semanticThemeVariables(appearance: ProductAppearanceProjection): Readon
   return appearance.themes.find((theme) => theme.id === appearance.themeId)?.semanticVariables || {};
 }
 
+function YanceMark(): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 256 256" aria-hidden="true" focusable="false">
+      <rect width="256" height="256" rx="58" fill="currentColor" opacity="0.16" />
+      <path d="M67 72h122c13 0 23 10 23 23v56c0 13-10 23-23 23h-60l-41 31v-31H67c-13 0-23-10-23-23V95c0-13 10-23 23-23Z" fill="none" stroke="currentColor" strokeWidth="15" strokeLinejoin="round" />
+      <path d="m86 142 33-32 25 22 34-37" fill="none" stroke="currentColor" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+type ProductRoomViewProjectionProps = {
+  hideHeader?: boolean;
+  hideComposer?: boolean;
+  hideRightPanel?: boolean;
+  hidePinnedMessageBanner?: boolean;
+  hideWidgets?: boolean;
+  enableReadReceiptsAndMarkersOnActivity?: boolean;
+};
+
+type ProductConversationSurfaceProps = {
+  renderRoomView: (roomId: string, props?: ProductRoomViewProjectionProps) => React.ReactNode;
+  onOpenRelationshipConversation: (relationship: RelationshipProjection, conversation: ConversationRef) => Promise<boolean>;
+  onReturnToRelationship: () => Promise<void> | void;
+  onReturnHome: () => Promise<void> | void;
+};
+
+function conversationInitials(value: string): string {
+  const parts = value.trim().split(/\s+/u).filter(Boolean);
+  return (parts.length > 1 ? `${parts[0]?.[0] || ""}${parts.at(-1)?.[0] || ""}` : parts[0]?.slice(0, 2) || "Y").toUpperCase();
+}
+
+export function ProductConversationSurface({
+  renderRoomView,
+  onOpenRelationshipConversation,
+  onReturnToRelationship,
+  onReturnHome,
+}: ProductConversationSurfaceProps): React.JSX.Element {
+  const session = useExperienceSession();
+  const [relationships, setRelationships] = useState<readonly RelationshipProjection[]>([]);
+  const [projectionStatus, setProjectionStatus] = useState("正在读取关系上下文");
+
+  useEffect(() => {
+    let current = true;
+    void loadPeopleProjections()
+      .then((payload) => {
+        if (!current) return;
+        setRelationships(payload.relationships);
+        setProjectionStatus("");
+      })
+      .catch(() => {
+        if (!current) return;
+        setProjectionStatus("关系上下文暂不可用；真实对话仍保持可用");
+      });
+    return () => { current = false; };
+  }, []);
+
+  const relationship = useMemo(
+    () => relationships.find((row) => row.id === session.selectedRelationshipId) || null,
+    [relationships, session.selectedRelationshipId],
+  );
+  const conversation = useMemo(
+    () => relationship?.conversations.find((row) => row.id === session.selectedConversationId) || null,
+    [relationship, session.selectedConversationId],
+  );
+  const title = relationship?.name || conversation?.title || "真实对话";
+  const platform = conversation?.platform || session.selectedConversationPlatform || "Matrix";
+  const intelligence = relationship?.relationshipIntelligence;
+  const latestMoment = intelligence?.events.at(-1) || null;
+  const summary = intelligence?.summary || relationship?.subtitle || "真实的人，真实的对话，更温暖的互联。";
+  const immersiveStyle = relationship?.avatarUrl
+    ? ({ "--yance-conversation-bg": `url("${relationship.avatarUrl.replace(/"/gu, "%22")}")` } as React.CSSProperties)
+    : undefined;
+
+  const openRelationshipConversation = async (targetRelationship: RelationshipProjection): Promise<void> => {
+    const targetConversation = targetRelationship.conversations.find((row) => !row.archived)
+      || targetRelationship.conversations[0]
+      || null;
+    if (!targetConversation) {
+      setProjectionStatus(`${targetRelationship.name} 暂无可用真实对话`);
+      return;
+    }
+    try {
+      const opened = await onOpenRelationshipConversation(targetRelationship, targetConversation);
+      setProjectionStatus(opened ? `已进入 ${targetRelationship.name} 的真实对话` : "没有找到唯一匹配的真实对话");
+    } catch {
+      setProjectionStatus("对话解析失败；言策没有执行猜测性跳转");
+    }
+  };
+
+  if (!session.activeMatrixRoomId) {
+    return <section className="yance-product-conversation yance-product-conversation--empty" aria-label="言策对话">
+      <div className="yance-empty" role="status">
+        <strong>没有已绑定的真实对话</strong>
+        <span>言策不会猜测 Matrix 房间；请返回关系页重新选择一个已解析会话。</span>
+        <button type="button" onClick={() => void onReturnToRelationship()}>返回关系世界</button>
+      </div>
+    </section>;
+  }
+
+  return <section
+    className="yance-product-conversation yance-product-conversation--immersive"
+    aria-label={`与 ${title} 的言策对话`}
+    style={immersiveStyle}
+  >
+    <header className="yance-product-conversation__topbar">
+      <button type="button" className="yance-product-conversation__brand" onClick={() => void onReturnHome()} aria-label="返回言策首页">
+        <span className="yance-product-conversation__brand-mark" aria-hidden="true"><YanceMark /></span>
+        <span><strong>Yance 言策</strong><small>更懂你的关系世界</small></span>
+      </button>
+      <div className="yance-product-conversation__top-actions">
+        <button type="button" onClick={() => void onReturnToRelationship()}>关系世界</button>
+        <button type="button" onClick={() => void onReturnHome()}>首页</button>
+      </div>
+    </header>
+
+    <section className="yance-product-conversation__hero" aria-label="当前对话关系">
+      <div className="yance-product-conversation__hero-media" aria-hidden="true">
+        {relationship?.avatarUrl ? <img src={relationship.avatarUrl} alt="" /> : null}
+      </div>
+      <div className="yance-product-conversation__hero-scrim" aria-hidden="true" />
+      <div className="yance-product-conversation__profile">
+        <span className="yance-product-conversation__avatar" aria-hidden="true">
+          {relationship?.avatarUrl ? <img src={relationship.avatarUrl} alt="" /> : conversationInitials(title)}
+        </span>
+        <div className="yance-product-conversation__identity">
+          <span className="yance-eyebrow">Relationship Conversation</span>
+          <h2>{title}{relationship?.favorite ? <span aria-label="收藏"> ♥</span> : null}</h2>
+          <p className="yance-product-conversation__presence">{platform} · 真实会话 · 普通重启恢复</p>
+          <blockquote>{summary}</blockquote>
+        </div>
+      </div>
+
+      <div className="yance-product-conversation__hero-context">
+        {projectionStatus ? <span role="status">{projectionStatus}</span> : null}
+        {intelligence?.analysisStatusLabel ? <span>{intelligence.analysisStatusLabel}</span> : null}
+        {latestMoment ? <span>{latestMoment.title}</span> : null}
+      </div>
+    </section>
+
+    <section className="yance-product-conversation__workspace" aria-label="联系人、真实对话与关系洞察">
+      <aside className="yance-product-conversation__people" aria-label="对话联系人">
+        <header>
+          <span className="yance-eyebrow">People</span>
+          <strong>重要的人</strong>
+        </header>
+        <div className="yance-product-conversation__people-list">
+          {relationships.slice(0, 12).map((row) => {
+            const targetConversation = row.conversations.find((item) => !item.archived) || row.conversations[0] || null;
+            const active = row.id === relationship?.id;
+            return <button
+              key={row.id}
+              type="button"
+              data-active={active || undefined}
+              aria-current={active ? "true" : undefined}
+              disabled={!targetConversation}
+              onClick={() => void openRelationshipConversation(row)}
+            >
+              <span className="yance-product-conversation__people-avatar" aria-hidden="true">
+                {row.avatarUrl ? <img src={row.avatarUrl} alt="" /> : conversationInitials(row.name)}
+              </span>
+              <span className="yance-product-conversation__people-copy">
+                <strong>{row.name}</strong>
+                <small>{row.subtitle || targetConversation?.platform || "真实关系"}</small>
+              </span>
+              {row.unreadCount > 0 ? <em>{row.unreadCount}</em> : null}
+            </button>;
+          })}
+        </div>
+      </aside>
+
+      <main className="yance-product-conversation__room" aria-label="真实对话时间线与输入框">
+        <div className="yance-product-conversation__room-owner yance-sr-only">
+          <span>真实对话</span>
+          <strong>消息、发送与安全继续由现有消息系统处理</strong>
+        </div>
+        <div className="yance-product-conversation__room-view">
+          {renderRoomView(session.activeMatrixRoomId, {
+            hideHeader: true,
+            hideRightPanel: true,
+            hideWidgets: true,
+            enableReadReceiptsAndMarkersOnActivity: true,
+          })}
+        </div>
+      </main>
+
+      <aside className="yance-product-conversation__insight" aria-label="关系洞察">
+        <span className="yance-eyebrow">关系洞察</span>
+        <h3>{title}</h3>
+        <p>{summary}</p>
+        <article>
+          <span>关系状态</span>
+          <strong>{intelligence?.analysisStatusLabel || "关系洞察待形成"}</strong>
+          {intelligence?.stage ? <p>{intelligence.stage}</p> : null}
+        </article>
+        <article>
+          <span>现在值得做什么</span>
+          <strong>{intelligence?.next || "继续真实互动后，这里会逐步形成下一步建议。"}</strong>
+        </article>
+        <article>
+          <span>最近的时刻</span>
+          <strong>{latestMoment?.title || "等待下一次可信互动"}</strong>
+          {latestMoment?.detail && latestMoment.detail !== latestMoment.title ? <p>{latestMoment.detail}</p> : null}
+        </article>
+        <button type="button" onClick={() => void onReturnToRelationship()}>进入关系世界</button>
+      </aside>
+    </section>
+  </section>;
+}
+
+
 export function ProductExperienceShell({
   appearanceHost,
   navigateSearchResult,
   navigateConversation,
   navigateGroupConversation,
   navigateProductHome,
+  navigateRelationshipHome,
+  renderRoomView,
   readRoomStateEvents,
   openUserSettings,
   requestLogout,
@@ -417,8 +862,9 @@ export function ProductExperienceShell({
   const [appearanceStatus, setAppearanceStatus] = useState("正在同步外观设置");
   const [assistantVisible, setAssistantVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<ProductSettingsCategory | "learning">("security");
+  const [settingsWindow, setSettingsWindow] = useState<"accounts" | "appearance" | "models" | null>(null);
   const [learningAdminVisible, setLearningAdminVisible] = useState(false);
-  const [modelSupportVisible, setModelSupportVisible] = useState(false);
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
   const [peopleHomeView, setPeopleHomeView] = useState<PeopleHomeView>("list");
   const [focusedRelationshipId, setFocusedRelationshipId] = useState("");
@@ -624,6 +1070,10 @@ export function ProductExperienceShell({
     () => relationships.find((row) => row.id === session.selectedRelationshipId) || null,
     [relationships, session.selectedRelationshipId],
   );
+  const homeRelationship = selectedRelationship
+    || relationships.find((row) => row.id === focusedRelationshipId)
+    || relationships[0]
+    || null;
 
   const runtimeSafetyBanner = useMemo(
     () => projectRuntimeSafety(
@@ -699,6 +1149,7 @@ export function ProductExperienceShell({
   };
 
   const toggleAssistant = (): void => {
+    playExperienceSound(preferences.soundMode, "open");
     setAssistantVisible((visible) => {
       const next = !visible;
       setAiState(next ? "wake" : "idle");
@@ -714,7 +1165,9 @@ export function ProductExperienceShell({
       data-reduced-motion={preferences.reducedMotion || undefined}
       data-theme-id={appearance.themeId || undefined}
       data-font-scale={appearance.available ? appearance.fontScale : undefined}
-      aria-label="言策关系智能操作系统"
+      data-conversation-active={session.activeMatrixRoomId || undefined}
+      data-settings-active={settingsVisible || undefined}
+      aria-label="言策"
     >
       <div className="yance-shell-status yance-sr-only" role="status" aria-live="polite">{status}</div>
       {runtimeSafetyBanner ? (
@@ -729,32 +1182,105 @@ export function ProductExperienceShell({
         </div>
       ) : null}
 
+      {!session.activeMatrixRoomId ? <>
+      <nav className="yance-desktop-rail" aria-label="言策桌面功能">
+        <div className="yance-desktop-rail__brand" aria-label="Yance 言策">
+          <span aria-hidden="true"><YanceMark /></span>
+          <strong>言策</strong>
+        </div>
+        <button type="button" aria-current={!settingsVisible && !selectedRelationship && peopleHomeView === "list" ? "page" : undefined} onClick={() => {
+          playExperienceSound(preferences.soundMode, "open");
+          setSettingsVisible(false);
+          setPeopleHomeView("list");
+          setAssistantVisible(false);
+          if (selectedRelationship) returnToPeople();
+        }}><span aria-hidden="true">⌂</span><strong>首页</strong></button>
+        <button type="button" aria-current={!settingsVisible && !selectedRelationship && peopleHomeView === "universe" ? "page" : undefined} onClick={() => {
+          playExperienceSound(preferences.soundMode, "open");
+          setSettingsVisible(false);
+          setPeopleHomeView("universe");
+          setAssistantVisible(false);
+          if (selectedRelationship) returnToPeople();
+        }}><span aria-hidden="true">◉</span><strong>关系宇宙</strong></button>
+        <button type="button" aria-current={!settingsVisible && Boolean(selectedRelationship) ? "page" : undefined} disabled={!homeRelationship} onClick={() => {
+          if (!homeRelationship) return;
+          playExperienceSound(preferences.soundMode, "confirm");
+          setSettingsVisible(false);
+          chooseRelationship(homeRelationship.id);
+        }}><span aria-hidden="true">♡</span><strong>关系世界</strong></button>
+        <button type="button" disabled={!homeRelationship?.conversations.length} onClick={() => {
+          const conversation = homeRelationship?.conversations.find((row) => !row.archived) || homeRelationship?.conversations[0];
+          if (!homeRelationship || !conversation || !navigateConversation) return;
+          playExperienceSound(preferences.soundMode, "confirm");
+          void navigateConversation(homeRelationship, conversation)
+            .then((opened) => setStatus(opened ? "已进入对话" : "没有找到唯一匹配的真实对话"))
+            .catch(() => setStatus("对话解析失败；言策没有执行猜测性跳转"));
+        }}><span aria-hidden="true">◌</span><strong>对话</strong></button>
+        <button type="button" disabled={!homeRelationship} aria-pressed={assistantVisible} onClick={() => {
+          if (!homeRelationship) return;
+          playExperienceSound(preferences.soundMode, "open");
+          setSettingsVisible(false);
+          chooseRelationship(homeRelationship.id);
+          setAssistantVisible(true);
+          setAiState("wake");
+        }}><span aria-hidden="true">✦</span><strong>AI 助手</strong></button>
+        <button type="button" aria-current={settingsVisible ? "page" : undefined} onClick={() => {
+          playExperienceSound(preferences.soundMode, "open");
+          setSettingsVisible(true);
+          setLearningAdminVisible(false);
+          setSettingsWindow(null);
+          setAssistantVisible(false);
+        }}><span aria-hidden="true">⚙</span><strong>设置</strong></button>
+      </nav>
+
       <header className="yance-product-nav" aria-label="言策主导航">
         <div className="yance-product-nav__identity">
+          <span className="yance-product-nav__mark" aria-hidden="true"><YanceMark /></span>
           <span className="yance-eyebrow">言策</span>
           <strong>{selectedRelationship ? selectedRelationship.name : "关系"}</strong>
         </div>
+        {!settingsVisible ? (
+          <BilingualSearchPanel
+            relationships={relationships}
+            reducedMotion={preferences.reducedMotion}
+            onSelectRelationship={chooseRelationship}
+            onNavigateRelationship={navigateSearchResult}
+          />
+        ) : null}
         <nav className="yance-product-nav__actions" aria-label="主要目的地">
           <button type="button" aria-current={!settingsVisible ? "page" : undefined} onClick={() => {
-            setSettingsVisible(false); setLearningAdminVisible(false); setModelSupportVisible(false);
+            playExperienceSound(preferences.soundMode, "open");
+            setSettingsVisible(false); setLearningAdminVisible(false); setSettingsWindow(null);
             if (selectedRelationship) returnToPeople();
           }}>关系</button>
           <button type="button" aria-current={settingsVisible ? "page" : undefined}
             aria-expanded={settingsVisible} aria-controls="yance-secondary-settings"
-            onClick={() => { setSettingsVisible((value) => !value); setLearningAdminVisible(false); setModelSupportVisible(false); setAssistantVisible(false); }}>设置</button>
+            onClick={() => { playExperienceSound(preferences.soundMode, "open"); setSettingsVisible((value) => !value); setLearningAdminVisible(false); setSettingsWindow(null); setAssistantVisible(false); }}>设置</button>
         </nav>
       </header>
+      </> : null}
 
       {!settingsVisible ? (
-      <BilingualSearchPanel
-        relationships={relationships}
-        reducedMotion={preferences.reducedMotion}
-        onSelectRelationship={chooseRelationship}
-        onNavigateRelationship={navigateSearchResult}
-      />
-      ) : null}
-
-      {!settingsVisible ? (
+        session.activeMatrixRoomId && renderRoomView ? (
+          <motion.div
+            key="conversation"
+            className="yance-shell-scene yance-shell-scene--conversation"
+            initial={preferences.reducedMotion ? false : { opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={preferences.reducedMotion ? undefined : { opacity: 0, x: 8 }}
+            transition={{ duration: preferences.reducedMotion ? 0 : 0.16 }}
+          >
+            <ProductConversationSurface
+              renderRoomView={renderRoomView}
+              onOpenRelationshipConversation={async (targetRelationship, targetConversation) => {
+                if (!navigateConversation) return false;
+                return navigateConversation(targetRelationship, targetConversation);
+              }}
+              onReturnToRelationship={() => navigateRelationshipHome?.()}
+              onReturnHome={() => navigateProductHome?.()}
+            />
+          </motion.div>
+        ) : (
         <AnimatePresence mode="wait" initial={false}>
         {!selectedRelationship ? (
           <motion.div
@@ -768,7 +1294,7 @@ export function ProductExperienceShell({
             {loading ? (
               <div className="yance-empty" role="status" aria-live="polite">
                 <strong>正在加载关系</strong>
-                <span>正在读取已有的可信关系投影。</span>
+                <span>正在整理已有的人物、对话与关系记录。</span>
               </div>
             ) : (
               <PeopleSurface
@@ -778,11 +1304,28 @@ export function ProductExperienceShell({
                 focusedRelationshipId={focusedRelationshipId}
                 viewMode={peopleHomeView}
                 reducedMotion={preferences.reducedMotion}
+                soundMode={preferences.soundMode}
                 onViewModeChange={setPeopleHomeView}
                 onFocus={setFocusedRelationshipId}
                 onSelect={chooseRelationship}
+                onContinueConversation={(relationship, conversation) => {
+                  if (!navigateConversation) {
+                    setStatus("真实对话导航暂不可用");
+                    return;
+                  }
+                  void navigateConversation(relationship, conversation)
+                    .then((opened) => setStatus(opened ? "已进入对话" : "没有找到唯一匹配的真实对话"))
+                    .catch(() => setStatus("对话解析失败；言策没有执行猜测性跳转"));
+                }}
                 onSelectGroup={(conversation) => {
                   void openGroupConversation(conversation);
+                }}
+                onConnectAccounts={() => {
+                  playExperienceSound(preferences.soundMode, "open");
+                  setSettingsVisible(true);
+                  setSettingsWindow("accounts");
+                  setLearningAdminVisible(false);
+                  setAssistantVisible(false);
                 }}
               />
             )}
@@ -827,106 +1370,121 @@ export function ProductExperienceShell({
           </motion.div>
         )}
         </AnimatePresence>
+        )
       ) : null}
 
       {settingsVisible ? (
         <section id="yance-secondary-settings" className="yance-secondary-settings" aria-label="设置">
           <header className="yance-secondary-settings__header">
-            <div><span className="yance-eyebrow">次级目的地</span><h2>设置</h2><p>账号、外观、安全与高级支持集中在这里，不打断关系主场景。</p></div>
-            <button type="button" onClick={() => { setSettingsVisible(false); setLearningAdminVisible(false); setModelSupportVisible(false); }}>返回关系</button>
+            <div>
+              <span className="yance-eyebrow">Yance Settings</span>
+              <h2>设置</h2>
+              <p>{settingsWindow ? "独立桌面设置面板" : "安全、桌面行为、通知、数据与关于"}</p>
+            </div>
+            <div className="yance-secondary-settings__header-actions">
+              <button type="button" aria-pressed={settingsWindow === "accounts"} onClick={() => setSettingsWindow("accounts")}>账号与连接</button>
+              <button type="button" aria-pressed={settingsWindow === "appearance"} onClick={() => setSettingsWindow("appearance")}>主题与外观</button>
+              <button type="button" aria-pressed={settingsWindow === "models"} onClick={() => setSettingsWindow("models")}>模型中心</button>
+              <button type="button" onClick={() => {
+                playExperienceSound(preferences.soundMode, "confirm");
+                setSettingsWindow(null);
+                setSettingsVisible(false);
+                setLearningAdminVisible(false);
+              }}>返回关系</button>
+            </div>
           </header>
-          <section className="yance-settings-section" aria-labelledby="yance-appearance-settings-title">
-            <header><div><span className="yance-eyebrow">外观与体验</span><h3 id="yance-appearance-settings-title">界面偏好</h3></div></header>
-        <div className="yance-settings-grid">
-          <label>
-            <span>全局字号 <output>{appearance.fontScale}%</output></span>
-            <input
-              type="range"
-              min={85}
-              max={150}
-              step={1}
-              value={appearance.fontScale}
-              disabled={!appearance.available}
-              onChange={(event) => {
-                const fontScale = Number(event.target.value);
-                setAppearance((current) => ({ ...current, fontScale }));
-                queueAppearanceUpdate({ fontScale });
-              }}
-            />
-          </label>
-          <label>
-            <span>全局主题</span>
-            <select
-              value={appearance.themeId}
-              disabled={!appearance.available || appearance.themes.length === 0}
-              onChange={(event) => {
-                const themeId = event.target.value;
-                setAppearance((current) => ({ ...current, themeId }));
-                queueAppearanceUpdate({ themeId });
-              }}
-            >
-              {appearance.themes.map((theme) => (
-                <option key={theme.id} value={theme.id}>{theme.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>声音</span>
-            <select value={preferences.soundMode} onChange={(event) => preferences.setSoundMode(event.target.value as SoundMode)}>
-              <option value="Off">关闭</option>
-              <option value="Essential only">仅必要提示</option>
-              <option value="Immersive">沉浸</option>
-            </select>
-          </label>
-          <label>
-            <span>动效</span>
-            <select value={preferences.motionMode} onChange={(event) => preferences.setMotionMode(event.target.value as MotionMode)}>
-              <option value="Standard">标准</option>
-              <option value="Reduced">减少动效</option>
-            </select>
-          </label>
-          <label>
-            <span>氛围</span>
-            <select value={preferences.atmosphere} onChange={(event) => preferences.setAtmosphere(event.target.value as RelationshipAtmosphere)}>
-              <option value="Quiet">安静</option>
-              <option value="Warm">温暖</option>
-              <option value="Vivid">鲜活</option>
-            </select>
-          </label>
-        </div>
-        <p className="yance-appearance-status" role="status" aria-live="polite">{appearanceStatus}</p>
-        {preferences.reducedMotion ? <p className="yance-reduced-motion-note">已启用减少动效；状态变化仍会清晰显示，但不会进行空间移动。</p> : null}
-          </section>
 
-        <details className="yance-settings-disclosure">
-          <summary>平台账号</summary>
-          <PlatformAccountsSurface />
-        </details>
-        <ProductSystemSettingsSurface openUserSettings={openUserSettings} requestLogout={requestLogout} />
+          {settingsWindow ? (
+            <div className="yance-settings-workspace yance-settings-workspace--child">
+              <nav className="yance-settings-workspace__nav" aria-label="设置子面板">
+                <button type="button" onClick={() => setSettingsWindow(null)}>
+                  <strong>返回设置首页</strong>
+                  <span>回到分类设置</span>
+                </button>
+              </nav>
+              <div className="yance-settings-workspace__content" tabIndex={-1}>
+                <div className="yance-settings-workspace__panel">
+                  {settingsWindow === "accounts" ? (
+                    <section className="yance-settings-desktop-section" aria-label="账号与连接">
+                      <header><span className="yance-eyebrow">Accounts</span><h3>账号与连接</h3><p>只展示成熟平台 owner 的真实授权与连接状态。</p></header>
+                      <PlatformAccountsSurface />
+                    </section>
+                  ) : null}
+                  {settingsWindow === "appearance" ? (
+                    <section className="yance-settings-desktop-section" aria-label="主题与外观">
+                      <header><span className="yance-eyebrow">Appearance</span><h3>主题与外观</h3><p>主题、字体、动效与背景效果在独立面板管理。</p></header>
+                      <ProductSystemSettingsSurface category="appearance" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+                  {settingsWindow === "models" ? (
+                    <section className="yance-settings-desktop-section" aria-label="模型中心">
+                      <ProductModelRuntimeSupportSurface />
+                    </section>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="yance-settings-workspace">
+              <nav className="yance-settings-workspace__nav" aria-label="设置分类">
+                {([
+                  ["security", "安全与设备", "账号安全、设备与会话"],
+                  ["desktop", "桌面行为", "启动、托盘与桌面运行"],
+                  ["notifications", "通知与声音", "通知、隐私与声音"],
+                  ["data", "数据保护", "备份、恢复与数据保护"],
+                  ["learning", "学习与成长", "学习记录、回顾与成长建议"],
+                  ["about", "关于", "版本、更新与许可信息"],
+                ] as const).map(([id, label, hint]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-current={settingsSection === id ? "page" : undefined}
+                    onClick={() => {
+                      playExperienceSound(preferences.soundMode, "open");
+                      setSettingsSection(id);
+                      if (id !== "learning") setLearningAdminVisible(false);
+                    }}
+                  >
+                    <strong>{label}</strong>
+                    <span>{hint}</span>
+                  </button>
+                ))}
+              </nav>
 
-        <section className="yance-learning-disclosure" aria-label="学习与成长">
-          <header>
-            <div><strong>学习与成长</strong><p>仅在需要复盘学习记录与反馈时打开。</p></div>
-          </header>
-          <button type="button" aria-expanded={learningAdminVisible} disabled={learningAdminVisible} onClick={() => setLearningAdminVisible(true)}>学习控制</button>
-          {learningAdminVisible ? <LearningWorkspace /> : null}
-          {learningAdminVisible ? (
-            <button type="button" onClick={() => setLearningAdminVisible(false)}>收起学习控制</button>
-          ) : null}
-        </section>
-
-        <div className="yance-learning-settings-actions">
-          <button type="button" onClick={() => setModelSupportVisible((value) => !value)}>
-            {modelSupportVisible ? "收起高级系统支持" : "高级系统支持"}
-          </button>
-        </div>
-        {modelSupportVisible && (
-          <details open>
-            <summary>高级系统支持</summary>
-            <ProductModelRuntimeSupportSurface />
-          </details>
-        )}
-
+              <div className="yance-settings-workspace__content" tabIndex={-1}>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={settingsSection}
+                    className="yance-settings-workspace__panel"
+                    initial={preferences.reducedMotion ? false : { opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={preferences.reducedMotion ? undefined : { opacity: 0, x: -6 }}
+                    transition={{ duration: preferences.reducedMotion ? 0 : 0.15 }}
+                  >
+                    {settingsSection === "learning" ? (
+                      <section className="yance-learning-disclosure yance-settings-desktop-section" aria-label="学习与成长">
+                        <header>
+                          <div><span className="yance-eyebrow">Learning</span><h3>学习与成长</h3><p>仅在需要复盘学习记录与反馈时打开，不占据日常设置空间。</p></div>
+                        </header>
+                        <button type="button" aria-expanded={learningAdminVisible} onClick={() => setLearningAdminVisible((value) => !value)}>
+                          {learningAdminVisible ? "收起学习与成长" : "打开学习与成长"}
+                        </button>
+                        {learningAdminVisible ? <LearningWorkspace /> : null}
+                      </section>
+                    ) : (
+                      <section className="yance-settings-desktop-section" aria-label="系统设置">
+                        <ProductSystemSettingsSurface
+                          category={settingsSection}
+                          openUserSettings={openUserSettings}
+                          requestLogout={requestLogout}
+                        />
+                      </section>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
         </section>
       ) : null}
 

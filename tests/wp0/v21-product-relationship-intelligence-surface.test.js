@@ -219,7 +219,7 @@ test('review closure keeps relationship intelligence state, refresh, accessibili
   assert.match(shell, /refreshGenerationRef/u);
   assert.match(shell, /generation !== refreshGenerationRef\.current/u);
   assert.match(people, /analysisStatusLabel/u);
-  assert.match(people, /aria-label=\{`打开与 \$\{relationship\.name\} 的关系。\$\{analysisStatusLabel\}`\}/u);
+  assert.match(people, /aria-label=\{`查看 \$\{relationship\.name\} 的关系洞察。\$\{analysisStatusLabel\}`\}/u);
   assert.match(world, /Date\.parse\(event\.at\)/u);
   const intelligenceStatusRule = css.match(/\.yance-person-intelligence-status\s*\{([^}]*)\}/u)?.[1] || '';
   assert.doesNotMatch(intelligenceStatusRule, /!important/u);
@@ -237,12 +237,13 @@ test('People and Relationship World render authority status, epistemic provenanc
   assert.match(world, /summary/u);
   assert.match(world, /next/u);
   assert.match(world, /events/u);
-  assert.match(world, /Graphiti|AI 推断/u);
   assert.match(world, /用户标注/u);
-  for (const label of ['关系世界', '关系智能', 'AI 分析', '证据来源', '阶段', '关系摘要', '下一步']) {
+  for (const label of ['关系世界', '关系洞察', '分析状态', '信息来源', '阶段', '关系摘要', '下一步']) {
     assert.match(world, new RegExp(label, 'u'));
   }
-  assert.match(world, /pending|待执行|尚无真实关系数据|暂无已确认的关系智能/u);
+  assert.match(world, /等待分析|需要更新|尚无已确认的关系记录|暂无已确认的关系洞察/u);
+  assert.doesNotMatch(world, />可信关系投影<|>AI 分析<|>证据来源<|AI 推断待/u);
+  assert.match(world, /data-authority="RelationshipProjectionAuthority"/u);
   assert.match(css, /yance-relationship-intelligence/u);
 
   const ui = `${people}\n${world}`;

@@ -182,7 +182,7 @@ test('first TESTER invitation persists only keyId before Matrix handoff and keep
   assert.equal((await legacyMxid.login({ invitationKey: 'invite_live' })).reasonCode, 'MATRIX_INVITATION_EXTERNAL_ID_INVALID');
 });
 
-test('same device no-invitation re-entry uses non-consumptive status and never verifies the raw invitation twice', async () => {
+test('same device no-invitation re-entry validates Product entitlement without creating another Matrix session or device', async () => {
   const { createPersonalAccessService } = loadService();
   const store = credentialStore();
   const authority = fetchAuthority();
@@ -199,10 +199,10 @@ test('same device no-invitation re-entry uses non-consumptive status and never v
   const resumed = await service.login({});
   assert.equal(first.usable, true);
   assert.equal(resumed.usable, true);
-  assert.equal(resumed.accountAuth.userId, '@tester:yance.local');
+  assert.equal(Object.prototype.hasOwnProperty.call(resumed, 'accountAuth'), false);
   assert.equal(authority.calls.filter(call => String(call.url).endsWith('/verify')).length, 1);
   assert.equal(authority.calls.filter(call => String(call.url).endsWith('/status')).length, 1);
-  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/_matrix/client/v3/login')).length, 2);
+  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/_matrix/client/v3/login')).length, 1);
 });
 
 test('downstream Matrix failure leaves the keyId receipt durable so retry resumes without another consumptive verify', async () => {

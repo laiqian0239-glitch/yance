@@ -331,17 +331,23 @@ class PersonalAccessService {
   }
 
   async login(input = {}) {
+    const invitationKey = clean(input.invitationKey);
     const storedKeyId = this.storedEntitlementKeyId();
     if (storedKeyId) {
       const resumed = await this.verifyStoredKeyIdForLogin(storedKeyId);
-      if (resumed.usable === true) return this.matrixLoginForEntitlement(resumed);
+      if (resumed.usable === true) {
+        // A stored Product entitlement is not a Matrix session credential. Ordinary
+        // relaunch/session restore stays entirely with Element. Only an explicit
+        // invitation login may bootstrap a new Matrix session when no mature session exists.
+        return invitationKey ? this.matrixLoginForEntitlement(resumed) : resumed;
+      }
       if (TERMINAL_STORED_RECEIPT_REASONS.has(resumed.reasonCode)) {
         await this.clearEntitlementReceipt();
       }
       return resumed;
     }
 
-    const entitlement = await this.verifyInvitationForLogin(input.invitationKey);
+    const entitlement = await this.verifyInvitationForLogin(invitationKey);
     if (entitlement.usable !== true) return entitlement;
     await this.persistEntitlementKeyId(entitlement.keyId);
     return this.matrixLoginForEntitlement(entitlement);

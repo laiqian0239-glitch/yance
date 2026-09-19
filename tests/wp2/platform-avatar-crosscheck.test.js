@@ -20,7 +20,6 @@ test('shared command contract covers WhatsApp/Telegram challenge, avatar failure
     COMMANDS.ACCOUNT_TELEGRAM_QR_START,
     COMMANDS.ACCOUNT_FACEBOOK_OAUTH_START,
     COMMANDS.ACCOUNT_FACEBOOK_OAUTH_STATUS,
-    COMMANDS.ACCOUNT_FACEBOOK_OAUTH_SELECT_PAGE,
     COMMANDS.ACCOUNT_FACEBOOK_OAUTH_CANCEL
   ];
   for (const command of required) assert.equal(isKnownCommand(command), true, command);
@@ -30,12 +29,14 @@ test('Facebook commands remain wired through route and account context after sha
   for (const command of [
     'account.facebook.oauth.start',
     'account.facebook.oauth.status',
-    'account.facebook.oauth.selectPage',
     'account.facebook.oauth.cancel'
   ]) {
     assert.ok(accountContext.includes(`case '${command}'`), `context missing ${command}`);
     assert.ok(accountRoutes.includes(`'${command}'`), `route missing ${command}`);
   }
+  assert.equal(COMMANDS.ACCOUNT_FACEBOOK_OAUTH_SELECT_PAGE, undefined);
+  assert.doesNotMatch(accountContext, /account\.facebook\.oauth\.selectPage|selectFacebookPage/u);
+  assert.doesNotMatch(accountRoutes, /facebook\/oauth\/select-page|account\.facebook\.oauth\.selectPage/u);
 });
 
 test('all routed contact surfaces use the shared avatar mounting pipeline', () => {

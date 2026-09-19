@@ -61,6 +61,22 @@ test('WhatsApp QR challenge is short-lived, refreshable and explicitly cleared',
   assert.equal(challenges.read('wa-db', { includeSecret: true }), null);
 });
 
+test('challenge owner can wait for the first QR without renderer polling', async () => {
+  const pending = challenges.wait('wa-db', { includeSecret: true, timeoutMs: 1000 });
+  setTimeout(() => {
+    challenges.issue({ accountId: 'wa-db', aliases: ['wa-adapter'], dataUrl: SECRET_QR, ttlMs: 5000 });
+  }, 20);
+  const challenge = await pending;
+  assert.equal(challenge?.dataUrl, SECRET_QR);
+  assert.equal(challenge?.accountId, 'wa-db');
+  assert.equal(await challenges.wait('wa-adapter', { includeSecret: true, timeoutMs: 10 }).then(row => row?.dataUrl), SECRET_QR);
+});
+
+test('challenge owner wait expires cleanly without inventing authorization state', async () => {
+  const challenge = await challenges.wait('missing-account', { includeSecret: true, timeoutMs: 25 });
+  assert.equal(challenge, null);
+});
+
 test('generic account list exposes only QR readiness metadata, never QR bytes', async t => {
   const { AccountManager } = accountManagerModule;
   const account = { id: 'wa-db', platform: 'whatsapp', adapterAccountId: 'wa-adapter', displayName: 'WA', identityLabel: 'WA', metadata: {}, paused: false, notificationsEnabled: true };

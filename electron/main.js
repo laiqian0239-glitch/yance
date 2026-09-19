@@ -1219,6 +1219,7 @@ function stopRuntimeWithDeadline(name, operation, timeoutMs) {
 
 async function stopApplicationOwnedRuntimes(options = {}) {
   const reason = String(options.reason || 'application-shutdown');
+  const preserveMatrix = options.preserveMatrix === true;
   const runtimeStopTimeoutMs = Math.min(30000, Math.max(250, Number(options.runtimeStopTimeoutMs || 15000)));
   const backendStopTimeoutMs = Math.min(30000, Math.max(250, Number(options.backendStopTimeoutMs || runtimeStopTimeoutMs)));
 
@@ -1229,6 +1230,12 @@ async function stopApplicationOwnedRuntimes(options = {}) {
     ['graphiti', stopRuntimeWithDeadline('graphiti', () => stopGraphitiRelationshipRuntime(), runtimeStopTimeoutMs)],
     ['backend', stopRuntimeWithDeadline('backend', () => stopBackend({ forShutdown: true, reason }), backendStopTimeoutMs)],
     ['matrix', stopRuntimeWithDeadline('matrix', async () => {
+      if (preserveMatrix) {
+        // Electron relaunch releases Electron-owned runtimes while Docker Compose
+        // remains the sole Matrix lifecycle owner. A later real app quit still
+        // executes the normal Compose shutdown path below.
+        return { stopped: false, preserved: true, owner: 'docker-compose' };
+      }
       if (matrixRuntimeEphemeral) {
         await stopMatrixCompose(matrixRuntimeEphemeral.runtimeDir, matrixRuntimeEphemeral.allComposeFiles);
         // Clean ephemeral secret/config projection; never touch named volumes.
@@ -2335,7 +2342,7 @@ function relaunchApplicationFromTray() {
   return restartElectronApp({
     setRelaunchIntent: () => { relaunchPending = true; quitting = true; backendRestarting = true; stopEventSocket(); buildTrayMenu(); },
     clearRelaunchIntent: () => { relaunchPending = false; quitting = false; backendRestarting = false; buildTrayMenu(); },
-    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch-from-tray' }),
+    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch-from-tray', preserveMatrix: true }),
     authoritySnapshot: () => applicationRuntimeAuthoritySnapshot(),
     appRelaunch: () => app.relaunch(),
     appExit: code => { exitAfterBackendShutdown = true; app.exit(code); },
@@ -3014,14 +3021,16 @@ function startBackendProcessForCoordinator(options = {}) {
  * No custom container runtime, port allocator, process supervisor, readiness
  * polling loop, or state machine. Dependency/start completion and final
  * running/healthy readiness remain delegated entirely to Compose public seams.
- * Dynamic port discovery uses official
- * `docker compose port`. Runtime config projection is the narrowest transform
- * from sealed bundle config to host-reachable endpoints.
+ * Product endpoints use one deterministic loopback binding so Chromium keeps
+ * the same mature Element origin across real app restarts. Compose still owns
+ * the actual port binding; Yance stores no parallel origin/session state.
  */
 const crypto = require('crypto');
 const MATRIX_COMPOSE_PROJECT = 'yance-runtime';
 const MATRIX_MANIFEST_FILE = 'PRODUCT_EXPERIENCE_MATERIALIZED_UAT_MANIFEST.json';
 const MATRIX_COMPOSE_FILE = 'materialized-matrix-compose.yml';
+const MATRIX_SYNAPSE_HOST_PORT = 62375;
+const MATRIX_ELEMENT_HOST_PORT = 62395;
 const MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS = 300;
 const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION = Object.freeze([5, 5, 1]);
 const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT = '5.5.1';
@@ -3323,8 +3332,8 @@ async function ensureMatrixRuntime() {
   }
   const composeEnv = {
     YANCE_UAT_CANDIDATE_SHA: candidateCommit,
-    YANCE_MATRIX_SYNAPSE_PORT_BINDING: '127.0.0.1::8008',
-    YANCE_MATRIX_ELEMENT_PORT_BINDING: '127.0.0.1::80',
+    YANCE_MATRIX_SYNAPSE_PORT_BINDING: `127.0.0.1:${MATRIX_SYNAPSE_HOST_PORT}:8008`,
+    YANCE_MATRIX_ELEMENT_PORT_BINDING: `127.0.0.1:${MATRIX_ELEMENT_HOST_PORT}:80`,
     YANCE_MATRIX_MAUTRIX_META_PORT_BINDING: '127.0.0.1::29319'
   };
 
@@ -3366,9 +3375,16 @@ async function ensureMatrixRuntime() {
       'synapse', 'mautrix-meta', 'mautrix-whatsapp'
     ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
-    // 6. Discover the real dynamic Synapse host port (official: compose port).
+    // 6. Compose publishes the deterministic Product homeserver endpoint.
+    // Read it back through the official public seam and fail closed on drift.
     const synapsePortResult = await dockerExec([...baseArgs, 'port', 'synapse', '8008'], { timeoutMs: 15000 });
     const synapseHostPort = composePort(synapsePortResult);
+    if (synapseHostPort !== MATRIX_SYNAPSE_HOST_PORT) {
+      const error = new Error('Docker Compose published an unexpected Synapse Product endpoint');
+      error.reasonCode = 'MATRIX_HOMESERVER_ORIGIN_DRIFT';
+      error.details = { expected: MATRIX_SYNAPSE_HOST_PORT, actual: synapseHostPort };
+      throw error;
+    }
 
     // 7. Project host-reachable Element config + Compose override from that official port.
     const projection = projectMatrixRuntimeConfigs(runtimeStateRoot, sealedConfigDir, synapseHostPort);
@@ -3384,11 +3400,18 @@ async function ensureMatrixRuntime() {
       '--remove-orphans'
     ], { timeoutMs: 0, cwd: runtimeDir, env: composeEnv });
 
-    // 9. Discover Element + mautrix-meta dynamic host ports and publish the real Product URL.
-    // Existing waitForElementShellReady follows getElementHealthUrl dynamically, so the already
-    // created BrowserWindow can load the real Element login surface without inventing a proxy.
+    // 9. Read back Element + mautrix-meta host ports and publish the real Product URL.
+    // Element is a deterministic Compose binding so Chromium/Element own one stable
+    // origin/session across app restarts; mautrix-meta may remain dynamic because it
+    // is not a renderer storage origin.
     const elementPortResult = await dockerExec([...allArgs, 'port', 'element', '80'], { timeoutMs: 15000 });
     const elementHostPort = composePort(elementPortResult);
+    if (elementHostPort !== MATRIX_ELEMENT_HOST_PORT) {
+      const error = new Error('Docker Compose published an unexpected Element Product origin');
+      error.reasonCode = 'MATRIX_ELEMENT_ORIGIN_DRIFT';
+      error.details = { expected: MATRIX_ELEMENT_HOST_PORT, actual: elementHostPort };
+      throw error;
+    }
     const metaPortResult = await dockerExec([...allArgs, 'port', 'mautrix-meta', '29319'], { timeoutMs: 15000 });
     const metaHostPort = composePort(metaPortResult);
     const mautrixProvisioningUrl = `http://127.0.0.1:${metaHostPort}/_matrix/provision`;
@@ -4360,7 +4383,7 @@ function registerIpc() {
   ipcGuardHandle('desktop:restart-app', async () => restartElectronApp({
     setRelaunchIntent: () => { relaunchPending = true; quitting = true; backendRestarting = true; stopEventSocket(); },
     clearRelaunchIntent: () => { relaunchPending = false; quitting = false; backendRestarting = false; },
-    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch' }),
+    stop: () => stopApplicationOwnedRuntimes({ reason: 'application-relaunch', preserveMatrix: true }),
     authoritySnapshot: () => applicationRuntimeAuthoritySnapshot(),
     appRelaunch: () => app.relaunch(),
     appExit: code => { exitAfterBackendShutdown = true; app.exit(code); },

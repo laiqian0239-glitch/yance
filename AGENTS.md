@@ -52,6 +52,26 @@ INTERRUPTION_RERUN=forbidden
 OWNER_ABSENT_EXECUTION=default_when_authorized
 USER_CONTINUE_PROMPT=forbidden_when_executor_can_continue
 REMOTE_PROMOTION_ROUNDTRIP=after_local_closure_only
+MATURE_AUTHORITY_FIRST=non_waivable
+OSS_FIRST_CAPABILITY_ADMISSION=mandatory
+SELF_REINVENT_MATURE_CAPABILITY=forbidden
+SHADOW_AUTHORITY=release_blocker
+PARALLEL_LIFECYCLE=release_blocker
+MIRROR_STATE=release_blocker
+CUSTOM_FALLBACK_OVER_MATURE_OWNER=release_blocker
+UPSTREAM_PUBLIC_SEAM=narrowest_first
+FULL_CAPABILITY_MIGRATION=state_lifecycle_recovery_errors_tests_not_ui_only
+PRODUCT_ADAPTER=stateless_or_thinnest_projection
+MATURE_OWNER_RETAINS_LIFECYCLE_STATE_RETRY_RECOVERY=mandatory
+DELETE_SHADOW_BEFORE_COMPATIBILITY_LAYER=mandatory
+OSS_CORE_REFRESH_DURING_RELEASE=current_root_only
+TARGETED_MATURE_OSS_UPGRADE_DURING_REPAIR=allowed_when_same_root_same_owner_stronger_upstream
+OSS_UPGRADE_DECISION=prefer_upstream_upgrade_when_it_closes_root_and_reduces_custom_code
+CAPABILITY_GAIN_WITH_ROOT_FIX=allowed_when_from_same_mature_upgrade_and_no_scope_expansion
+UNRELATED_BROAD_OSS_REFRESH=forbidden_during_release
+UPGRADE_MUST_PRESERVE_MATURE_AUTHORITY=mandatory
+UPGRADE_REQUIRES_CHANGELOG_MIGRATION_COMPATIBILITY_LOCAL_PROOF=mandatory
+MATURE_AUTHORITY_VIOLATION=controller_execution_failure
 ```
 
 Before executing any action, answer all of the following:
@@ -137,10 +157,91 @@ A work cycle may not end merely because a status was read, a Controller comment 
 ### Mature authority first / no self-reinvention
 
 - Read the pinned upstream and repository's existing production authority before designing a replacement, helper, or workaround.
-- Reuse the mature authority as a whole where practical. Prefer the existing public seam plus the thinnest Product projection/adapter.
+- Reuse the mature authority as a whole whenever it satisfies the current Product need. This is mandatory; prefer the existing public seam plus the thinnest Product projection/adapter.
 - Do not manually emulate package-manager/workspace resolution, Element/Matrix runtime behavior, process supervision, readiness/state machines, IPC, locking, transactions, persistence, migration, retry/recovery, routing, translation, Electron native integration, or other mature infrastructure merely to make a local proof convenient.
 - If the public seam genuinely does not exist, add only the narrowest additive seam required by the current root cause, within explicit authorization.
 - A validation convenience is never sufficient justification for new production or proof infrastructure.
+
+### Mature Authority First / OSS First admission (non-waivable execution invariant)
+
+This is a repository-global admission rule, not a preference. When a mature upstream or an already-admitted repository owner provides a capability that satisfies the current Product need, Yance MUST reuse, migrate, or project that mature capability through its narrowest public seam. A bespoke Yance implementation of the same ownership, lifecycle, state machine, persistence, retry/recovery, routing, protocol, native integration, materialization, or packaging mechanic is forbidden unless an explicit merged owner authorization proves that no suitable mature seam exists.
+
+The default decision is **mature OSS/owner reuse**, not custom implementation.
+
+Before every production mutation, the Controller MUST complete the following Mature Authority Admission. Every applicable item must be YES:
+
+1. **Existing mature owner identified** — name the pinned upstream/repository subsystem that already owns the capability and read its current public seam.
+2. **No second owner** — the Yance change does not create a second owner for the same session, lifecycle, state, route, persistence, protocol, native resource, dependency materialization, packaging mechanic, or recovery flow.
+3. **Thin projection only** — any Yance adapter is stateless or the thinnest Product projection needed for People / Relationship / World / AI identity, navigation, and presentation.
+4. **Lifecycle remains upstream-owned** — startup, shutdown, reconnect, login, logout, QR/OAuth progression, retry, timeout, recovery, cleanup, migration, and resume remain with the mature owner.
+5. **State remains upstream-owned** — Yance does not mirror, fork, or independently reconcile mature owner state.
+6. **Retry/recovery remains upstream-owned** — Yance does not add a parallel retry loop, fallback state machine, watchdog, lifecycle timer, or recovery authority around a mature subsystem.
+7. **Materialization remains tool-owned** — package managers, the pinned upstream workspace build seam, Docker Compose, Electron/platform tooling, NSIS, and other mature materializers remain authoritative for their outputs.
+8. **Narrowest public seam used** — use the upstream public API/module/IPC/extension/adapter seam before private internals, duplicated protocol code, DOM scraping, filesystem shadow state, or custom transport.
+9. **Whole capability migrated, not UI copied** — when adopting OSS, preserve the applicable state machine, lifecycle, error handling, persistence, accessibility, responsive behavior, security assumptions, recovery behavior, and regression tests. Copying only visible UI while rebuilding behavior in Yance is non-compliant.
+10. **No retired/shadow authority remains reachable** — old Yance helpers, mirror stores, fallback routes, duplicate login/session/composer/timeline/model-routing paths, and parallel lifecycle code must be removed from the production chain rather than wrapped in another compatibility layer.
+11. **Current-release scope respected** — during release closure, do not perform unrelated broad core OSS replacement or wholesale framework migration. A targeted upgrade of the same mature owner is allowed and preferred when the stronger upstream version directly closes the current root cause, removes Yance custom code or shadow ownership, preserves the public seam, and can be proven locally with bounded migration risk. Capability gains delivered by that same mature upgrade are allowed when they do not create a new root, second owner, or unrelated release scope.
+12. **Final Product language remains Yance-owned** — mature infrastructure owns capability/state; user-facing Product identity, navigation, People / Relationship / World / AI experience, and the thinnest presentation projection remain Yance responsibilities.
+
+#### Targeted stronger-upstream upgrade admission
+
+When the current root cause touches a mature subsystem, the Controller MUST check whether the pinned upstream already has a newer stable version that fixes the defect or provides a materially stronger implementation of the same capability. Do not keep an older pin merely to preserve a Yance custom patch when a stronger mature upstream can delete that patch.
+
+A targeted mature OSS upgrade MAY be selected during the current repair when all applicable conditions are satisfied:
+
+- the target is the **same mature owner or a strictly better mature owner for the same admitted capability**, not an unrelated framework migration;
+- the upgrade directly closes the current root cause, removes custom/shadow code, materially reduces lifecycle/state/recovery risk, or provides a stronger public seam that makes the Product projection thinner;
+- the exact current pin and exact target version are identified;
+- upstream release notes/changelog and relevant issue/fix history are reviewed;
+- breaking changes, migrations, config changes, data compatibility, runtime requirements, security implications, license/provenance, and packaging/materialization changes are audited;
+- the mature owner remains the sole lifecycle/state/retry/recovery authority after the upgrade;
+- the target version can be pinned and reproduced by the existing package/workspace/container/materialization authority;
+- affected source, focused tests, production-equivalent local proof, and final materialized output can be validated before promotion;
+- the upgrade does not require a broad unrelated rewrite of Yance Product code.
+
+Capability gains that come from the same approved mature upgrade MAY be adopted in the same causal batch when they are compatible with Yance Product, require only a thin projection, and do not introduce a new owner, new persistence model, unrelated release root, or new user-operated setup burden. Prefer useful mature capability already delivered by the upgrade over rebuilding an equivalent Yance feature later.
+
+Do not perform a broad OSS/version census after the root is already locked. The upgrade check is bounded to the mature subsystem already implicated by the current root cause. Unrelated dependency refresh remains post-release work.
+
+If the stronger upstream version is rejected, record the concrete reason in the causal evidence: incompatible public seam, unacceptable migration risk, security/licensing issue, materialization incompatibility, or scope expansion. "We already have custom code" is not a valid rejection reason.
+
+Recognized mature ownership includes at minimum:
+
+- **Element / Matrix** — login, session, crypto, timeline, composer, send, and recovery.
+- **mautrix and admitted platform bridges** — selected platform protocol/session/login lifecycle.
+- **Chatwoot or the admitted external Page owner** — selected Facebook Page/public-inbox authorization/session lifecycle.
+- **LiteLLM / admitted model runtime** — physical provider/model selection, routing, retry/fallback, and route evidence.
+- **Ollama / admitted local model runtime** — local model runtime/download/materialization lifecycle.
+- **Electron and platform tooling** — BrowserWindow, tray, native shell, OS integration, desktop lifecycle, and native resources.
+- **Docker Compose** — selected local service/runtime lifecycle.
+- **npm/pnpm plus the pinned upstream workspace build seam** — dependency resolution and materialization.
+- **NSIS / mature packaging tooling** — installer mechanics and packaging materialization.
+- **Mature UI/component libraries already admitted by Product** — focus, keyboard, modal, dropdown, list, accessibility, responsive, and interaction primitives where they satisfy the Product need.
+
+Hard release blockers include:
+
+- Reusing mature code while reimplementing its authority in Yance.
+- Shadow Authority, Parallel Lifecycle, Mirror State, or a custom fallback around a mature owner.
+- Stateful compatibility adapters where a stateless projection is sufficient.
+- A second Matrix login/session/composer/timeline/send/crypto/retry/recovery implementation.
+- A second model router, provider selector, retry/fallback owner, or local-model lifecycle owner.
+- A second package/workspace resolver, runtime supervisor, installer mechanic, or native integration owner.
+- Copying an OSS UI while replacing its mature behavior with Yance-owned lifecycle/state.
+- Adding a compatibility layer on top of an already-wrong shadow authority instead of deleting that shadow authority.
+- Promoting when an equivalent mature upstream public seam was available but not audited.
+
+Required repair order for a blocker in a mature subsystem:
+
+    identify mature owner
+    -> inspect the narrowest public seam
+    -> delete Yance shadow/mirror/fallback ownership
+    -> project the mature owner into Yance Product
+    -> preserve upstream lifecycle/state/retry/recovery/materialization
+    -> add regression admission that forbids the shadow authority from returning
+
+A validation convenience, harness limitation, visual shortcut, schedule pressure, or desire for faster implementation is never sufficient justification for self-reinvention.
+
+Any promotion attempt with a known mature-authority violation is forbidden. A mature-authority violation that was discoverable before CI/RC/UAT but allowed through promotion is additionally classified as **CONTROLLER EXECUTION FAILURE**.
 
 ### Harness and helper containment
 

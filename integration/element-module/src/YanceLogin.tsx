@@ -16,7 +16,7 @@ type YanceDesktopBridge = {
   }>;
 };
 type ElementLoginCompletion = (accountAuth: MatrixAccountAuth) => void;
-type PersonalAccessLoginMode = "invitation" | "resume";
+type PersonalAccessLoginMode = "invitation";
 
 declare global {
   interface Window {
@@ -73,7 +73,7 @@ export function YanceLogin({ onLoggedIn }: { onLoggedIn: ElementLoginCompletion 
     setLoginMode(mode);
     let handoffAccepted = false;
     try {
-      const result = await bridge(mode === "invitation" ? { invitationKey: key } : {});
+      const result = await bridge({ invitationKey: key });
       if (result?.usable !== true || !result.accountAuth?.accessToken) {
         const reasonCode = String(result?.reasonCode || "UNKEY_ENTITLEMENT_INVALID");
         setError(LOGIN_ERROR_COPY[reasonCode] || "设备授权未通过验证。");
@@ -172,7 +172,7 @@ export function YanceLogin({ onLoggedIn }: { onLoggedIn: ElementLoginCompletion 
           <header className="yance-login-auth-copy">
             <span className="yance-login-auth-eyebrow">YANCE ACCOUNT</span>
             <h2>欢迎回来</h2>
-            <p>已授权设备可直接进入；首次使用请输入邀请码。</p>
+            <p>首次使用请输入邀请码；已授权设备的普通重启由 Element 自动恢复同一会话。</p>
           </header>
 
           <section
@@ -200,18 +200,9 @@ export function YanceLogin({ onLoggedIn }: { onLoggedIn: ElementLoginCompletion 
                     ? "正在验证邀请码…"
                     : "使用邀请码进入"}
               </button>
-              <button
-                type="button"
-                data-yance-device-resume="unkey-status-element-on-logged-in"
-                onClick={() => void completeLogin("resume")}
-                disabled={submitting || handoffCommitted}
-              >
-                {handoffCommitted
-                  ? "正在进入言策…"
-                  : submitting && loginMode === "resume"
-                    ? "正在确认本机授权…"
-                    : "已授权设备登录"}
-              </button>
+              <p className="yance-login-session-note">
+                普通重启由 Element 恢复同一 Matrix 会话与设备；这里不会用已保存的邀请码权限重新创建 Matrix 设备。
+              </p>
             </form>
           </section>
 
@@ -290,11 +281,8 @@ export function YancePostLoginSecurity({ children }: { children: React.ReactNode
         <div className="yance-login-auth-inner">
           <header className="yance-login-auth-copy">
             <span className="yance-login-auth-eyebrow">SECURE SESSION</span>
-            <h2>保护你的安全登录</h2>
-            <p>
-              这里继续使用 Matrix 的加密与身份恢复流程。页面中的“设备”指一次受保护的加密登录会话，
-              可能只是这台电脑过去的登录记录，并不意味着你必须有另一台实体设备。
-            </p>
+            <h2>验证此设备</h2>
+            <p>安全操作仍由 Element / Matrix 完成；普通重启不会创建新的 Matrix 设备。</p>
           </header>
 
           <section
@@ -306,7 +294,7 @@ export function YancePostLoginSecurity({ children }: { children: React.ReactNode
           </section>
 
           <p className="yance-login-security yance-post-login-security-note">
-            验证、恢复、重置身份、跳过或退出等操作仍由 Matrix / Element 的原安全流程处理。
+            “使用另一设备”、恢复密钥、“无法确认？”与退出均保持 Element 原生安全语义。
           </p>
         </div>
       </main>

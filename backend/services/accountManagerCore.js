@@ -343,6 +343,19 @@ class AccountManager {
     };
   }
 
+  async waitForAuthChallenge(id, waitMs = 0, options = {}) {
+    const immediate = this.getAuthChallenge(id);
+    if (immediate.challenge || Number(waitMs || 0) <= 0) return immediate;
+    const account = accountStore.get(id);
+    const personalMessenger = account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || '').toLowerCase() === 'personal-messenger';
+    if (personalMessenger) return immediate;
+    const adapterAccountId = account.platform === 'whatsapp' ? this.whatsappAuthKey(account) : account.id;
+    const timeoutMs = Math.max(0, Math.min(Number(waitMs || 0), 30_000));
+    await authChallenges.wait(account.id, { includeSecret: true, timeoutMs, signal: options.signal || null })
+      || await authChallenges.wait(adapterAccountId, { includeSecret: true, timeoutMs: 0, signal: options.signal || null });
+    return this.getAuthChallenge(id);
+  }
+
   async create(input) {
     platformAuthConfig.assertAvailable(input?.platform, 'create');
     const authorizationPending = input?.authorizationPending === true;
@@ -770,18 +783,6 @@ class AccountManager {
       return { ...result, account: connected };
     }
     return result;
-  }
-
-  async selectFacebookPage(id, flowId, pageId, options = {}) {
-    const account = accountStore.get(id);
-    if (!account || account.platform !== 'facebook') throw Object.assign(new Error('Facebook账号不存在'), { code: 'FACEBOOK_ACCOUNT_NOT_FOUND', status: 404 });
-    assertOperationActive(options.signal, 'FACEBOOK_OAUTH_SELECT_PAGE_ABORTED');
-    const selected = await withAbortSignal(facebookOAuth.selectPage(id, flowId, pageId, options), options.signal, 'FACEBOOK_OAUTH_SELECT_PAGE_ABORTED');
-    assertOperationActive(options.signal, 'FACEBOOK_OAUTH_SELECT_PAGE_ABORTED');
-    const connected = await this.connect(id, { signal: options.signal, attemptId: options.operationGeneration, operationGeneration: options.operationGeneration, physicalOperationContext: options.physicalOperationContext });
-    assertOperationActive(options.signal, 'FACEBOOK_OAUTH_SELECT_PAGE_ABORTED');
-    this.publishSummary();
-    return { account: connected, page: selected.page };
   }
 
   async cancelFacebookOAuth(id, flowId, options = {}) {

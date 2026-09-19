@@ -748,7 +748,7 @@ test('failure-first binds complete materialized Matrix runtime topology, ephemer
   assert.doesNotMatch(runner, /materialized-uat-evidence\.json[^\n]*(?:secret|shared_secret)/iu, 'plaintext secrets must never become evidence authority');
 });
 
-test('production Matrix runtime keeps sealed resources read-only and projects dynamic ports under DATA_ROOT', () => {
+test('production Matrix runtime keeps sealed resources read-only and projects one deterministic Compose-owned Product origin without Yance session state', () => {
   const main = read('electron/main.js');
   const compose = read(COMPOSE);
 
@@ -764,16 +764,25 @@ test('production Matrix runtime keeps sealed resources read-only and projects dy
   assert.doesNotMatch(matrixMaterializationHelper, /writeFileSync|appendFileSync|cache|receipt/iu, 'image admission must stay stateless with no Yance mirror state');
   assert.match(main, /if \(imageMaterialization\.allPresent\)[\s\S]*?matrix-images-already-materialized[\s\S]*?else \{[\s\S]*?matrix-images-loading[\s\S]*?dockerExec\(\['load', '-i', imagesTarPath\]/u, 'docker load must remain only the missing-image materialization path');
   assert.match(main, /function matrixRuntimeStateRoot\(\)[\s\S]*?DATA_ROOT[\s\S]*?matrix-runtime/u);
+  assert.equal(fs.existsSync(absolute('electron/matrixElementOriginAuthority.js')), false,
+    'Yance must not persist a parallel Matrix/Element origin authority');
+  assert.doesNotMatch(main, /matrix-session-origin\.json|matrixElementOriginAuthority|pinSynapseHostPort|pinElementHostPort/u);
   assert.match(main, /projectMatrixRuntimeSecrets\(runtimeStateRoot\)/u);
-  assert.match(main, /YANCE_MATRIX_SYNAPSE_PORT_BINDING:\s*'127\.0\.0\.1::8008'/u);
-  assert.match(main, /YANCE_MATRIX_ELEMENT_PORT_BINDING:\s*'127\.0\.0\.1::80'/u);
+  assert.match(main, /const MATRIX_SYNAPSE_HOST_PORT = 62375;/u);
+  assert.match(main, /const MATRIX_ELEMENT_HOST_PORT = 62395;/u);
+  assert.match(main, /YANCE_MATRIX_SYNAPSE_PORT_BINDING:[^\n]*MATRIX_SYNAPSE_HOST_PORT/u);
+  assert.match(main, /YANCE_MATRIX_ELEMENT_PORT_BINDING:[^\n]*MATRIX_ELEMENT_HOST_PORT/u);
+  assert.match(main, /Docker Compose published an unexpected Synapse Product endpoint/u);
+  assert.match(main, /Docker Compose published an unexpected Element Product origin/u);
   assert.match(main, /YANCE_MATRIX_MAUTRIX_META_PORT_BINDING:\s*'127\.0\.0\.1::29319'/u);
   assert.match(main, /const baseArgs = matrixComposeBaseArgs\(runtimeDir,\s*\[composeFile\]\)/u);
   assert.match(main, /projectMatrixRuntimeConfigs\(runtimeStateRoot,\s*sealedConfigDir,\s*synapseHostPort\)/u);
   assert.match(main, /const overridePath = path\.join\(runtimeStateRoot, 'runtime-override\.yml'\)/u);
   assert.match(main, /const allComposeFiles = \[composeFile,\s*projection\.overridePath\]/u);
-  assert.match(main, /127\.0\.0\.1::8008/u, 'production override must ask Compose for a random Synapse host port');
-  assert.match(main, /127\.0\.0\.1::80/u, 'production override must ask Compose for a random Element host port');
+  assert.match(main, /const synapsePortResult = await dockerExec\(\[\.\.\.baseArgs, 'port', 'synapse', '8008'\]/u,
+    'Electron may read back the Compose-owned deterministic homeserver endpoint');
+  assert.match(main, /const elementPortResult = await dockerExec\(\[\.\.\.allArgs, 'port', 'element', '80'\]/u,
+    'Electron may read back the Compose-owned deterministic Element origin');
   assert.match(main, /127\.0\.0\.1::29319/u, 'production override must expose mautrix-meta provisioning on a random host port');
   assert.doesNotMatch(main, /path\.join\(runtimeDir,\s*'runtime-(?:config|override|secrets)/u, 'sealed resources/matrix-runtime must not receive runtime projections');
   assert.match(main, /restoreMatrixRuntimeDynamicEnvironment/u, 'shutdown and relaunch must restore dynamic Matrix env before the new process starts');

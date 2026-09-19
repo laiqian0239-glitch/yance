@@ -22,33 +22,30 @@ test('Learning remains user-reachable through Product secondary settings without
   assert.match(shell, /\[learningAdminVisible,\s*setLearningAdminVisible\]\s*=\s*useState\(false\)/u);
   assert.match(shell, /\[settingsVisible,\s*setSettingsVisible\]\s*=\s*useState\(false\)/u);
   assert.match(shell, /aria-controls="yance-secondary-settings"/u);
-  assert.match(shell, /id="yance-secondary-settings"[\s\S]*学习控制/u);
-  assert.match(shell, /setLearningAdminVisible\(true\)/u);
+  assert.match(shell, /\["learning",\s*"学习与成长",\s*"学习记录、回顾与成长建议"\]/u);
+  assert.match(shell, /settingsSection === "learning"[\s\S]{0,1000}aria-label="学习与成长"[\s\S]{0,500}打开学习与成长/u);
+  assert.match(shell, /setLearningAdminVisible\(\(value\) => !value\)/u);
   assert.match(shell, /learningAdminVisible\s*\?\s*<LearningWorkspace\s*\/>\s*:\s*null/u);
   assert.doesNotMatch(shell, /className="yance-experience-settings"/u);
 
   const workspacePath = path.join(ROOT, 'integration/element-module/src/LearningWorkspace.tsx');
   assert.equal(fs.existsSync(workspacePath), true, 'LearningWorkspace.tsx must exist');
   const workspace = fs.readFileSync(workspacePath, 'utf8');
-  for (const label of [
-    'Overview',
-    'Daily Review',
-    'Learning Coach',
-    'Evidence',
-    'Proposals',
-    'Experiments',
-    'Rollout',
-    'Promotion',
-    'Rollback',
-    'Privacy',
-    'Consent'
-  ]) assert.match(workspace, new RegExp(label, 'u'), `${label} surface must remain available`);
+  for (const label of ['Overview', 'Daily Review', 'Learning Coach', 'Privacy']) {
+    assert.match(workspace, new RegExp(label, 'u'), `${label} Product surface must remain available`);
+  }
+  for (const internalSurface of ['Evidence', 'Proposals', 'Experiments', 'Rollout', 'Promotion', 'Rollback', 'Consent']) {
+    assert.doesNotMatch(workspace, new RegExp(`id: "${internalSurface}"`, 'u'), `internal governance surface must not be normal Product navigation: ${internalSurface}`);
+  }
   assert.match(workspace, /learningAssistantRuntime|invoke|action/iu);
 });
 
-test('Learning normal-user surface is Chinese-first and capability-oriented', () => {
+test('Learning normal-user surface is Chinese-first and hides governance implementation language', () => {
   const workspace = fs.readFileSync(path.join(ROOT, 'integration/element-module/src/LearningWorkspace.tsx'), 'utf8');
-  for (const label of ['概览', '每日回顾', '学习教练', '证据', '提案', '实验', '灰度发布', '晋级', '回滚', '隐私', '同意']) {
-    assert.match(workspace, new RegExp(label, 'u'), `Learning missing Chinese-first label: ${label}`);
+  for (const label of ['概览', '每日回顾', '学习教练', '隐私与数据', '人物理解建议', '关系互动建议', '一次经历复盘', '回复方式建议', '明日关系计划']) {
+    assert.match(workspace, new RegExp(label, 'u'), `Learning missing Product label: ${label}`);
+  }
+  for (const internalLabel of ['证据边界', '提案边界', '实验边界', '灰度发布', '晋级状态', '回滚边界', 'LearningPolicyRuntimeAdapter', '正式权威', '影子评估']) {
+    assert.doesNotMatch(workspace, new RegExp(internalLabel, 'u'), `Learning leaks internal governance language: ${internalLabel}`);
   }
 });

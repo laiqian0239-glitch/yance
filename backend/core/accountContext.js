@@ -70,7 +70,6 @@ class AccountContext {
           case 'telegram.cancel': return { account: await this.accountManager.cancelTelegramLogin(accountId, physicalOperationOptions(request)) };
           case 'facebook.oauth.start': return { flow: await this.accountManager.beginFacebookOAuth(accountId, physicalOperationOptions(request)) };
           case 'facebook.oauth.status': return { flow: await this.accountManager.pollFacebookOAuth(accountId, request.flowId, physicalOperationOptions(request)) };
-          case 'facebook.oauth.selectPage': return this.accountManager.selectFacebookPage(accountId, request.flowId, request.pageId, physicalOperationOptions(request));
           case 'facebook.oauth.cancel': return { flow: await this.accountManager.cancelFacebookOAuth(accountId, request.flowId, physicalOperationOptions(request)) };
           case 'facebook.messenger.start': return this.accountManager.startFacebookMessengerLogin(accountId, request.username, physicalOperationOptions(request));
           case 'facebook.messenger.input': return this.accountManager.submitFacebookMessengerInput(accountId, request.loginProcessId, request.stepId, request.input || {}, { ...physicalOperationOptions(request), txnId: request.txnId });
@@ -262,7 +261,6 @@ class AccountContext {
       case 'account.telegram.cancel': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'telegram.cancel'));
       case 'account.facebook.oauth.start': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.oauth.start'));
       case 'account.facebook.oauth.status': return this.executePlatformAuth(payload.id, 'facebook.oauth.status', { flowId: payload.flowId });
-      case 'account.facebook.oauth.selectPage': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.oauth.selectPage', { flowId: payload.flowId, pageId: payload.pageId }));
       case 'account.facebook.oauth.cancel': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.oauth.cancel', { flowId: payload.flowId }));
       case 'account.facebook.messenger.start': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.messenger.start', { username: payload.username }));
       case 'account.facebook.messenger.input': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.messenger.input', { loginProcessId: payload.loginProcessId, stepId: payload.stepId, txnId: payload.txnId, input: payload.input || {} }));
@@ -272,7 +270,9 @@ class AccountContext {
       case 'account.facebook.webhook.handle': return this.handleFacebookWebhook(payload);
       case 'account.bindConversation': return this.secured(command, context, async () => this.bindConversation(payload));
       case 'account.getRuntime': return this.getRuntime(payload.id);
-      case 'account.getAuthChallenge': return this.accountManager.getAuthChallenge(payload.id);
+      case 'account.getAuthChallenge': return Number(payload.waitMs || 0) > 0
+        ? this.accountManager.waitForAuthChallenge(payload.id, payload.waitMs, { signal: payload.signal || null })
+        : this.accountManager.getAuthChallenge(payload.id);
       case 'account.getCredentialState': return this.getCredentialState(payload.id);
       case 'account.avatarLoadFailure': return this.accountManager.recordAvatarLoadFailure(payload.id, payload);
       case 'message.sendText': return this.secured(command, context, async () => this.sendText(payload));

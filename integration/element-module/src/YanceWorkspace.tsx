@@ -35,6 +35,15 @@ type YanceWorkspaceProps = {
     conversation: GroupConversationProjection,
   ) => Promise<boolean>;
   navigateProductHome?: () => Promise<void> | void;
+  navigateRelationshipHome?: () => Promise<void> | void;
+  renderRoomView?: (roomId: string, props?: {
+    hideHeader?: boolean;
+    hideComposer?: boolean;
+    hideRightPanel?: boolean;
+    hidePinnedMessageBanner?: boolean;
+    hideWidgets?: boolean;
+    enableReadReceiptsAndMarkersOnActivity?: boolean;
+  }) => React.ReactNode;
   readRoomStateEvents?: ReadRoomStateEvents;
   getMatrixOpenIdToken?: () => Promise<MatrixOpenIdToken>;
   openUserSettings?: (destination:"account"|"security"|"sessions")=>void;
@@ -47,6 +56,8 @@ export function YanceWorkspace({
   navigateConversation,
   navigateGroupConversation,
   navigateProductHome,
+  navigateRelationshipHome,
+  renderRoomView,
   readRoomStateEvents,
   getMatrixOpenIdToken,
   openUserSettings,
@@ -60,6 +71,8 @@ export function YanceWorkspace({
         navigateConversation={navigateConversation}
         navigateGroupConversation={navigateGroupConversation}
         navigateProductHome={navigateProductHome}
+        navigateRelationshipHome={navigateRelationshipHome}
+        renderRoomView={renderRoomView}
         readRoomStateEvents={readRoomStateEvents}
         openUserSettings={openUserSettings}
         requestLogout={requestLogout}

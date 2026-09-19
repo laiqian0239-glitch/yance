@@ -163,9 +163,12 @@ test('public health endpoint publishes the no-legacy-scope OAuth contract', asyn
   const data = await response.json();
   assert.equal(data.ok, true);
   assert.equal(data.graphVersion, 'v25.0');
-  assert.equal(data.d1Schema.version, 6);
+  assert.equal(data.d1Schema.version, 7);
+  assert.equal(data.d1Schema.latestRequiredMigration, '0007_personal_identity_oauth.sql');
   assert.equal(data.d1Schema.ready, true);
   assert.equal(data.d1Schema.pagePictureColumn, true);
+  assert.equal(data.d1Schema.permissionAuthorityColumns, true);
+  assert.equal(data.d1Schema.personalIdentityOauthColumns, true);
   assert.equal(data.avatarProxyContract.version, 11);
   assert.equal(data.avatarProxyContract.authentication, 'desktop-device-signature');
   assert.equal(data.avatarProxyContract.pageRoute, '/api/desktop/avatar/page');

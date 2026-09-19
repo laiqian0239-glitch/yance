@@ -402,7 +402,7 @@ test('B28-P0-15 every AccountManager auth/reconcile operation receives the autho
     submitTelegramCode: (...args) => record('submitTelegramCode', args), submitTelegramPassword: (...args) => record('submitTelegramPassword', args),
     cancelTelegramLogin: (...args) => record('cancelTelegramLogin', args),
     beginFacebookOAuth: (...args) => record('beginFacebookOAuth', args), pollFacebookOAuth: (...args) => record('pollFacebookOAuth', args),
-    selectFacebookPage: (...args) => record('selectFacebookPage', args), cancelFacebookOAuth: (...args) => record('cancelFacebookOAuth', args),
+    cancelFacebookOAuth: (...args) => record('cancelFacebookOAuth', args),
     sync: (...args) => record('sync', args),
     startFacebookBusinessSuiteAvatarImport: (...args) => record('startFacebookBusinessSuiteAvatarImport', args),
     getFacebookBusinessSuiteAvatarImportStatus: (...args) => record('getFacebookBusinessSuiteAvatarImportStatus', args),
@@ -423,7 +423,6 @@ test('B28-P0-15 every AccountManager auth/reconcile operation receives the autho
   await auth.execute({ ...base, operation: 'telegram.cancel' });
   await auth.execute({ ...base, operation: 'facebook.oauth.start' });
   await auth.execute({ ...base, operation: 'facebook.oauth.status', flowId: 'flow' });
-  await auth.execute({ ...base, operation: 'facebook.oauth.selectPage', flowId: 'flow', pageId: 'page' });
   await auth.execute({ ...base, operation: 'facebook.oauth.cancel', flowId: 'flow' });
 
   const reconcile = createAccountManagerReconcileHandler(() => manager);
@@ -433,7 +432,7 @@ test('B28-P0-15 every AccountManager auth/reconcile operation receives the autho
   await reconcile({ ...base, operation: 'facebook.avatar-import.stop' });
   await reconcile({ ...base, operation: 'facebook.avatar-closure.diagnose', limit: 4 });
 
-  assert.equal(calls.length, 19);
+  assert.equal(calls.length, 18);
   for (const call of calls) {
     const options = [...call.args].reverse().find(value => value && typeof value === 'object' && !Array.isArray(value) && ('signal' in value || 'operationGeneration' in value));
     assert.ok(options, `${call.name} must receive operation options`);

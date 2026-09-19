@@ -17,6 +17,8 @@ type PersonalAccessStatus = Readonly<{
 }>;
 
 type PersonalAccessDesktopApi = {
+  getState?: () => Promise<{ backend?: { ready?: boolean } }>;
+  onBackendState?: (callback: (state: { ready?: boolean }) => void) => (() => void) | void;
   getPersonalAccessStatus: (input?: { matrixOpenId?: MatrixOpenIdToken }) => Promise<PersonalAccessStatus>;
   activatePersonalAccess: (input: { keyId: string; matrixOpenId: MatrixOpenIdToken }) => Promise<PersonalAccessStatus>;
 };
@@ -72,8 +74,10 @@ export function PersonalAccessSurface({
   const api = useMemo(() => desktopApi(), []);
   const [status, setStatus] = useState<PersonalAccessStatus | null>(null);
   const [busy, setBusy] = useState(false);
+  const [backendReady, setBackendReady] = useState(false);
   const [feedback, setFeedback] = useState("正在读取个人使用权限");
   const logoutRequested = useRef(false);
+  const automaticRefreshAttempted = useRef(false);
   const automaticHandoffAttempted = useRef(false);
 
   const applyStatus = useCallback((next: PersonalAccessStatus): void => {
@@ -85,6 +89,24 @@ export function PersonalAccessSurface({
     if (typeof getMatrixOpenIdToken !== "function") return null;
     return getMatrixOpenIdToken();
   }, [getMatrixOpenIdToken]);
+
+  useEffect(() => {
+    let active = true;
+    const applyBackendState = (state: { ready?: boolean } | undefined): void => {
+      if (active) setBackendReady(state?.ready === true);
+    };
+    const unsubscribe = api?.onBackendState?.((state) => applyBackendState(state));
+    const current = api?.getState?.();
+    if (current) {
+      void current
+        .then((state) => applyBackendState(state?.backend))
+        .catch(() => applyBackendState(undefined));
+    }
+    return () => {
+      active = false;
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [api]);
 
   const refresh = useCallback(async (): Promise<void> => {
     if (!api) {
@@ -112,9 +134,10 @@ export function PersonalAccessSurface({
   }, [api, applyStatus, readMatrixProof]);
 
   useEffect(() => {
-    if (window.yancePersonalAccessHandoff?.keyId) return;
+    if (window.yancePersonalAccessHandoff?.keyId || !backendReady || automaticRefreshAttempted.current) return;
+    automaticRefreshAttempted.current = true;
     void refresh();
-  }, [refresh]);
+  }, [backendReady, refresh]);
 
   const activateHandoff = useCallback(async (): Promise<void> => {
     if (!api || busy) return;

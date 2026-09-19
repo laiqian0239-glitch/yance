@@ -458,7 +458,6 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         'telegram-password',
         'facebook-oauth-start',
         'facebook-oauth-status',
-        'facebook-select-page',
         'facebook-oauth-cancel',
         'facebook-messenger-start',
         'facebook-messenger-input',
@@ -467,7 +466,8 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       ], 'action');
 
       if (action === 'auth-challenge') {
-        return apiRequest(`/api/r32/accounts/${id}/auth-challenge`);
+        const waitMs = Math.max(0, Math.min(Number(input.waitMs || 0), 30000));
+        return apiRequest(`/api/r32/accounts/${id}/auth-challenge${waitMs ? `?waitMs=${waitMs}` : ''}`);
       }
       if (action === 'discard-pending') {
         return apiRequest(`/api/r32/accounts/${id}/authorization/discard-pending`, {
@@ -518,15 +518,6 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       if (action === 'facebook-oauth-status') {
         const flowId = safeRouteSegment(input.flowId, 'flowId');
         return apiRequest(`/api/r32/accounts/${id}/facebook/oauth/status?flowId=${flowId}`);
-      }
-      if (action === 'facebook-select-page') {
-        return apiRequest(`/api/r32/accounts/${id}/facebook/oauth/select-page`, {
-          method: 'POST',
-          body: jsonBody({
-            flowId: requiredIdentifier(input.flowId, 'flowId'),
-            pageId: requiredIdentifier(input.pageId, 'pageId')
-          })
-        });
       }
       if (action === 'facebook-oauth-cancel') {
         return apiRequest(`/api/r32/accounts/${id}/facebook/oauth/cancel`, {
@@ -693,8 +684,9 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       return objectRecord(response.result);
     },
     [CHANNELS.productModelRuntimeState]: async () => {
-      const [modelBrain, catalog, hardware, adaptiveLocal] = await Promise.all([
+      const [modelBrain, modelStatus, catalog, hardware, adaptiveLocal] = await Promise.all([
         apiRequest('/api/r32/models/model-brain/status'),
+        apiRequest('/api/r32/models/status'),
         apiRequest('/api/r32/models/adaptive-local/catalog'),
         apiRequest('/api/r32/models/adaptive-local/hardware'),
         apiRequest('/api/r32/models/adaptive-local/status')
@@ -702,6 +694,7 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       return {
         ok: true,
         modelBrain: objectRecord(modelBrain),
+        modelStatus: objectRecord(modelStatus),
         catalog: objectRecord(catalog),
         hardware: objectRecord(hardware),
         adaptiveLocal: objectRecord(adaptiveLocal)
@@ -712,8 +705,14 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         'plan-adaptive-local',
         'materialize-adaptive-runtime',
         'remove-adaptive-runtime',
+        'set-local-model-enabled',
+        'delete-local-model',
         'pull-ollama-model',
-        'cancel-ollama-pull'
+        'cancel-ollama-pull',
+        'scan-local-models',
+        'configure-openrouter',
+        'discover-compatible-cloud',
+        'register-compatible-cloud'
       ]);
       if (action === 'plan-adaptive-local') {
         const hardware = objectRecord(input.hardware);
@@ -747,6 +746,23 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
           body: jsonBody({ targetName: clean(input.targetName), runtimeId: clean(input.runtimeId) })
         });
       }
+      if (action === 'set-local-model-enabled') {
+        const modelId = requiredIdentifier(input.modelId, 'modelId');
+        return apiRequest(`/api/r32/models/${encodeURIComponent(modelId)}/lifecycle`, {
+          method: 'PATCH',
+          body: jsonBody({
+            enabled: input.enabled === true,
+            reason: clean(input.reason) || 'product-model-center'
+          })
+        });
+      }
+      if (action === 'delete-local-model') {
+        const modelId = requiredIdentifier(input.modelId, 'modelId');
+        return apiRequest(`/api/r32/models/local/${encodeURIComponent(modelId)}`, {
+          method: 'DELETE',
+          body: jsonBody({ confirmName: requiredIdentifier(input.confirmName, 'confirmName') })
+        });
+      }
       if (action === 'pull-ollama-model') {
         return apiRequest('/api/r32/models/ollama/pull', {
           method: 'POST',
@@ -754,6 +770,37 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
             model: requiredIdentifier(input.model, 'model'),
             endpoint: clean(input.endpoint) || 'http://127.0.0.1:11434',
             requestId: clean(input.requestId)
+          })
+        });
+      }
+      if (action === 'scan-local-models') {
+        return apiRequest('/api/r32/models/scan', { method: 'POST', body: jsonBody({}) });
+      }
+      if (action === 'configure-openrouter') {
+        return apiRequest('/api/r32/models/cloud/openrouter/auto-configure', {
+          method: 'POST',
+          body: jsonBody({ credentialRef: requiredIdentifier(input.credentialRef, 'credentialRef') })
+        });
+      }
+      if (action === 'discover-compatible-cloud') {
+        return apiRequest('/api/r32/models/cloud/discover', {
+          method: 'POST',
+          body: jsonBody({
+            endpoint: requiredIdentifier(input.endpoint, 'endpoint'),
+            credentialRef: requiredIdentifier(input.credentialRef, 'credentialRef')
+          })
+        });
+      }
+      if (action === 'register-compatible-cloud') {
+        return apiRequest('/api/r32/models/cloud', {
+          method: 'POST',
+          body: jsonBody({
+            name: requiredIdentifier(input.model, 'model'),
+            endpoint: requiredIdentifier(input.endpoint, 'endpoint'),
+            credentialRef: requiredIdentifier(input.credentialRef, 'credentialRef'),
+            provider: 'openai-compatible',
+            verify: true,
+            testVision: input.testVision === true
           })
         });
       }
