@@ -93,8 +93,9 @@ test('WP3-A RED: current Element Product must expose idempotent Personal Access 
 
   assert.match(productSources, /personal[ -]?access|PersonalAccess/iu, 'the active Element Product must own the Personal Access user surface');
   assert.match(login, /邀请码/u, 'a first-use TESTER must have a reachable invitation key action in the pre-auth Product login');
-  assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u, 'an already-authorized device must have a no-invitation resume action');
-  assert.match(login, /已授权设备登录/u);
+  assert.match(login, /普通重启由 Element 自动恢复同一会话/u, 'ordinary restart must preserve the mature Element session/device owner');
+  assert.match(login, /不会用已保存的邀请码权限重新创建 Matrix 设备/u, 'Product entitlement must not become a second Matrix resume credential');
+  assert.doesNotMatch(login, /data-yance-device-resume|已授权设备登录/u, 'retired device-resume UI must stay absent');
   assert.doesNotMatch(productSources, /邀请码/u, 'post-login Product must not request the raw invitation bearer again');
   assert.match(productSources, /设备权限收据/u, 'post-login Product must describe the durable keyId projection rather than a raw bearer');
   assert.match(productSources, /刷新/u, 'a blocked TESTER must have a reachable status refresh action');

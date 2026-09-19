@@ -16,11 +16,12 @@ test('normal Product scene keeps Learning admin reachable only through explicit 
   const source = shell();
   assert.match(source, /import\s+\{\s*LearningWorkspace\s*\}\s+from\s+["']\.\.\/LearningWorkspace["']/u);
   assert.match(source, /\[learningAdminVisible,\s*setLearningAdminVisible\]\s*=\s*useState\(false\)/u);
-  assert.match(source, /学习控制/u);
-  assert.match(source, /setLearningAdminVisible\(true\)/u);
+  assert.match(source, /aria-controls="yance-secondary-settings"/u);
+  assert.match(source, /\["learning",\s*"学习与成长",\s*"学习记录、回顾与成长建议"\]/u);
+  assert.match(source, /settingsSection === "learning"[\s\S]{0,1000}aria-label="学习与成长"[\s\S]{0,500}打开学习与成长/u);
+  assert.match(source, /setLearningAdminVisible\(\(value\) => !value\)/u);
   assert.match(source, /learningAdminVisible\s*\?\s*<LearningWorkspace\s*\/>\s*:\s*null/u);
-  assert.match(source, /onToggle=\{[\s\S]*currentTarget\.open[\s\S]*setLearningAdminVisible\(false\)/u);
-  assert.doesNotMatch(source, /<\/AnimatePresence>\s*<LearningWorkspace\s*\/>\s*<details/u);
+  assert.doesNotMatch(source, /className="yance-experience-settings"/u);
 });
 
 test('selected relationship is passed into a relationship-native Private Quest', () => {

@@ -182,7 +182,7 @@ test('first TESTER invitation persists only keyId before Matrix handoff and keep
   assert.equal((await legacyMxid.login({ invitationKey: 'invite_live' })).reasonCode, 'MATRIX_INVITATION_EXTERNAL_ID_INVALID');
 });
 
-test('same device no-invitation re-entry uses non-consumptive status and never verifies the raw invitation twice', async () => {
+test('same device no-invitation re-entry validates Product entitlement without creating another Matrix session or device', async () => {
   const { createPersonalAccessService } = loadService();
   const store = credentialStore();
   const authority = fetchAuthority();
@@ -199,10 +199,10 @@ test('same device no-invitation re-entry uses non-consumptive status and never v
   const resumed = await service.login({});
   assert.equal(first.usable, true);
   assert.equal(resumed.usable, true);
-  assert.equal(resumed.accountAuth.userId, '@tester:yance.local');
+  assert.equal(Object.prototype.hasOwnProperty.call(resumed, 'accountAuth'), false);
   assert.equal(authority.calls.filter(call => String(call.url).endsWith('/verify')).length, 1);
   assert.equal(authority.calls.filter(call => String(call.url).endsWith('/status')).length, 1);
-  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/_matrix/client/v3/login')).length, 2);
+  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/_matrix/client/v3/login')).length, 1);
 });
 
 test('downstream Matrix failure leaves the keyId receipt durable so retry resumes without another consumptive verify', async () => {
@@ -406,6 +406,33 @@ test('TESTER fails closed on disabled or expired getKey and session logout prese
   const logout = await service.logout();
   assert.equal(logout.reasonCode, 'DEVICE_ENTITLEMENT_PRESERVED');
   assert.deepEqual(store.values.get('personal-access.invitation-key'), { keyId: 'key_123' });
+});
+
+test('ordinary Product authorization uses durable keyId status and never requires Matrix OpenID per request', async () => {
+  const { createPersonalAccessService } = loadService();
+  const authority = fetchAuthority();
+  const service = createPersonalAccessService({
+    credentialStore: credentialStore({ 'personal-access.invitation-key': { keyId: 'key_123' } }),
+    authorityUrl: 'https://access.example',
+    matrixBaseUrl: 'http://127.0.0.1:8008',
+    matrixServerName: 'yance.local',
+    fetchImpl: authority.fetchImpl
+  });
+  const allowed = await service.authorizeProductRequest({ method: 'GET', path: '/api/r32/messages' });
+  assert.equal(allowed.usable, true);
+  assert.equal(allowed.reasonCode, 'ENTITLEMENT_VALID');
+  assert.equal(authority.calls.filter(call => String(call.url).endsWith('/status')).length, 1);
+  assert.equal(authority.calls.filter(call => String(call.url).includes('/openid/userinfo')).length, 0);
+
+  const deniedAuthority = fetchAuthority({ worker: { enabled: false } });
+  const deniedService = createPersonalAccessService({
+    credentialStore: credentialStore({ 'personal-access.invitation-key': { keyId: 'key_123' } }),
+    authorityUrl: 'https://access.example',
+    fetchImpl: deniedAuthority.fetchImpl
+  });
+  const denied = await deniedService.authorizeProductRequest({ method: 'GET', path: '/api/r32/messages' });
+  assert.equal(denied.usable, false);
+  assert.equal(denied.reasonCode, 'UNKEY_ENTITLEMENT_DISABLED');
 });
 
 test('minimal request surface is exact and every other product API is entitlement protected', () => {

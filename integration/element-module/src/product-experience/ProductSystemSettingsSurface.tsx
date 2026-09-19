@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 type JsonRecord = Record<string, unknown>;
 type UserSettingsDestination = "account" | "security" | "sessions";
+export type ProductSettingsCategory = "security" | "desktop" | "appearance" | "notifications" | "data" | "about";
 type DesktopApi = {
   getSettings?: () => Promise<unknown>; updateSettings?: (patch: JsonRecord) => Promise<unknown>;
   storeSnapshot?: (input: { domains: string[] }) => Promise<unknown>; getThemeCatalog?: () => Promise<unknown>;
@@ -65,9 +66,11 @@ const FONT_PROFILES = [["theme","跟随主题"],["sans","无衬线"],["humanist"
 const SPACING_PROFILES = [["theme","跟随主题"],["compact","紧凑"],["comfortable","舒适"],["spacious","宽松"]] as const;
 
 export function ProductSystemSettingsSurface({
-  openUserSettings, requestLogout,
+  openUserSettings, requestLogout, category = "security",
 }: {
-  openUserSettings?: (destination: UserSettingsDestination) => void; requestLogout?: () => void;
+  openUserSettings?: (destination: UserSettingsDestination) => void;
+  requestLogout?: () => void;
+  category?: ProductSettingsCategory;
 }): React.JSX.Element {
   const api = useMemo(desktopApi, []);
   const [settings, setSettings] = useState<JsonRecord>({});
@@ -298,21 +301,31 @@ export function ProductSystemSettingsSurface({
   const runtimeLifecycleState = text(runtime.lifecycleState) || "未知";
   const runtimeLocalReady = runtime.localReady === true;
   const selectedThemeId = text(ui.previewThemeId || ui.themeId || catalog.defaultThemeId);
+  const categoryTitle = ({
+    security: "安全与设备",
+    desktop: "桌面行为",
+    appearance: "主题与外观",
+    notifications: "通知与声音",
+    data: "数据保护",
+    about: "关于言策",
+  } as const)[category];
 
-  return <section className="yance-product-system-settings" aria-label="系统设置">
-    <header><div><span className="yance-eyebrow">设置</span><h3>系统与账户</h3></div>
+  return <section className="yance-product-system-settings" aria-label={categoryTitle}>
+    <header><div><span className="yance-eyebrow">设置</span><h3>{categoryTitle}</h3></div>
       <button type="button" disabled={busy} onClick={() => void refresh()}>刷新</button></header>
     <p role="status" aria-live="polite">{status}</p>
 
-    <section aria-label="账户与安全"><h4>账户与安全</h4>
+    {category === "security" ? <>
+    <details open className="yance-settings-disclosure"><summary>账户与安全</summary>
       <button type="button" onClick={() => openUserSettings?.("account")}>个人资料</button>
       <button type="button" onClick={() => openUserSettings?.("security")}>安全</button>
       <button type="button" onClick={() => openUserSettings?.("sessions")}>已登录设备</button>
       <button type="button" onClick={() => { if (window.confirm("确认退出言策登录？")) requestLogout?.(); }}>退出登录</button>
-    </section>
+    </details>
 
-    <section aria-label="运行安全与恢复"><h4>运行安全与恢复</h4>
-      <p>运行模式：{runtimeOperatingMode} · 生命周期：{runtimeLifecycleState} · 本地就绪：{runtimeLocalReady ? "是" : "否"}</p>
+    <details className="yance-settings-disclosure"><summary>高级恢复工具</summary>
+      <p>仅在言策运行异常时使用。当前状态：{runtimeLocalReady ? "本地服务正常" : "本地服务需要检查"}。</p>
+      <p className="yance-settings-technical-detail">运行模式：{runtimeOperatingMode} · 生命周期：{runtimeLifecycleState}</p>
       <button type="button" disabled={busy || !api?.restartBackend}
         onClick={() => void runAndRefresh(api?.restartBackend ? () => api.restartBackend!() : undefined, "后台服务重启失败")}>重启后台服务</button>
       <button type="button" disabled={busy || !api?.restartApp}
@@ -321,18 +334,32 @@ export function ProductSystemSettingsSurface({
         onClick={() => void enterSafeMode()}>进入安全模式</button>
       <button type="button" disabled={busy || runtimeOperatingMode !== "safeMode" || !api?.prepareProductSafeModeExit || !api?.setOperatingMode}
         onClick={() => void exitSafeMode()}>退出安全模式</button>
-    </section>
+    </details>
+    </> : null}
 
-    <section aria-label="桌面行为"><h4>桌面行为</h4>
-      {DESKTOP_TOGGLES.map(([key, label]) => <label key={key}><input type="checkbox" checked={settings[key] === true}
-        disabled={busy} onChange={(e) => void saveDesktop({ [key]: e.target.checked })} />{label}</label>)}
-      <label><span>声音模式</span><select value={text(settings.productSoundMode) || "Essential only"} disabled={busy}
-        onChange={(e) => void saveDesktop({ productSoundMode: e.target.value })}>
-        <option value="Off">关闭</option><option value="Essential only">仅必要提示</option><option value="Immersive">沉浸</option>
-      </select></label>
-    </section>
+    {category === "desktop" ? <section className="yance-settings-panel-stack" aria-label="桌面行为">
+      <details open className="yance-settings-disclosure"><summary>启动与窗口</summary>
+        {DESKTOP_TOGGLES.slice(0, 3).map(([key, label]) => <label key={key}><input type="checkbox" checked={settings[key] === true}
+          disabled={busy} onChange={(e) => void saveDesktop({ [key]: e.target.checked })} />{label}</label>)}
+      </details>
 
-    <section aria-label="外观主题"><h4>外观主题</h4><p>可用主题：{themeRows.length}</p>
+      <details className="yance-settings-disclosure"><summary>内容播放</summary>
+        {DESKTOP_TOGGLES.slice(3, 6).map(([key, label]) => <label key={key}><input type="checkbox" checked={settings[key] === true}
+          disabled={busy} onChange={(e) => void saveDesktop({ [key]: e.target.checked })} />{label}</label>)}
+      </details>
+
+      <details className="yance-settings-disclosure"><summary>更新与声音</summary>
+        {DESKTOP_TOGGLES.slice(6).map(([key, label]) => <label key={key}><input type="checkbox" checked={settings[key] === true}
+          disabled={busy} onChange={(e) => void saveDesktop({ [key]: e.target.checked })} />{label}</label>)}
+        <label><span>声音模式</span><select value={text(settings.productSoundMode) || "Essential only"} disabled={busy}
+          onChange={(e) => void saveDesktop({ productSoundMode: e.target.value })}>
+          <option value="Off">关闭</option><option value="Essential only">仅必要提示</option><option value="Immersive">沉浸</option>
+        </select></label>
+      </details>
+    </section> : null}
+
+    {category === "appearance" ? <section className="yance-settings-panel-stack" aria-label="主题与外观">
+      <details open className="yance-settings-disclosure"><summary>主题选择</summary><p>可用主题：{themeRows.length}</p>
       <label><span>主题</span><select value={selectedThemeId} disabled={busy || !themeRows.length}
         onChange={(e) => void runAndRefresh(api?.storePreviewTheme ? () => api!.storePreviewTheme!({ themeId: e.target.value }) : undefined, "主题预览失败")}>
         {themeRows.map((theme) => <option key={text(theme.id)} value={text(theme.id)}>{text(theme.name) || text(theme.id)}</option>)}
@@ -346,7 +373,9 @@ export function ProductSystemSettingsSurface({
         void saveThemePreferences({ favoriteThemeIds: next });
       }}>{favoriteThemeIds.includes(selectedThemeId) ? "取消收藏主题" : "收藏主题"}</button>
       {recentThemeIds.length ? <p>最近使用：{recentThemeIds.length} 个主题</p> : null}
+      </details>
 
+      <details className="yance-settings-disclosure"><summary>显示与排版</summary>
       <label><span>主题模式</span><select value={text(ui.themeMode) || "manual"}
         onChange={(e) => void saveThemePreferences({ themeMode: e.target.value })}>
         <option value="manual">手动</option><option value="system">跟随系统</option><option value="schedule">按时间</option>
@@ -367,7 +396,7 @@ export function ProductSystemSettingsSurface({
       <label><span>字体</span><select value={text(typography.fontProfile) || "theme"}
         onChange={(e) => void saveThemePreferences({ typography: { ...typography, fontProfile: e.target.value } })}>
         {FONT_PROFILES.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-      <label><span>字号 {Number(typography.fontScale || 100)}%</span><input type="range" min="85" max="150"
+      <label><span>字号 {Number(typography.fontScale || 100)}%</span><input type="range" min="85" max="150" step="1"
         value={Number(typography.fontScale || 100)}
         onChange={(e) => void saveThemePreferences({ typography: { ...typography, fontScale: Number(e.target.value) } })} /></label>
       <label><span>行高</span><input type="range" min="130" max="190" value={Number(typography.lineHeight || 155)}
@@ -375,7 +404,9 @@ export function ProductSystemSettingsSurface({
       <label><span>间距</span><select value={text(typography.spacing) || "theme"}
         onChange={(e) => void saveThemePreferences({ typography: { ...typography, spacing: e.target.value } })}>
         {SPACING_PROFILES.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+      </details>
 
+      <details className="yance-settings-disclosure"><summary>视觉与动效</summary>
       {([["backgroundDepth","背景层次",0,100],["glowIntensity","光晕强度",0,100],
          ["glassOpacity","玻璃透明度",20,100],["accentSaturation","强调色饱和度",50,150]] as const).map(([key,label,min,max]) =>
         <label key={key}><span>{label}</span><input type="range" min={min} max={max}
@@ -388,9 +419,11 @@ export function ProductSystemSettingsSurface({
       <label><span>背景效果</span><select value={text(ui.backgroundEffect) || "ambient"}
         onChange={(e) => void runAndRefresh(api?.storeSetBackgroundEffect ? () => api!.storeSetBackgroundEffect!({ backgroundEffect: e.target.value }) : undefined, "背景效果设置失败")}>
         {BACKGROUND_EFFECTS.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-    </section>
+      </details>
+    </section> : null}
 
-    <section aria-label="通知与声音"><h4>通知与声音</h4>
+    {category === "notifications" ? <section className="yance-settings-panel-stack" aria-label="通知与声音">
+      <details open className="yance-settings-disclosure"><summary>通知基础</summary>
       <label><input type="checkbox" checked={notifications.enabled !== false}
         onChange={(e) => void saveNotifications({ enabled: e.target.checked })} />启用通知</label>
       <label><input type="checkbox" checked={notifications.soundEnabled !== false}
@@ -404,6 +437,9 @@ export function ProductSystemSettingsSurface({
       </select></label>
       <label><input type="checkbox" checked={record(notifications.dnd).enabled === true}
         onChange={(e) => void saveNotifications({ dnd: { ...record(notifications.dnd), enabled: e.target.checked } })} />勿扰模式</label>
+      </details>
+
+      <details className="yance-settings-disclosure"><summary>声音提示</summary>
       {soundEnableEvents.map((row) => {
         const enabledKey = text(row.enabledKey);
         const label = enabledKey === "presenceSoundEnabled"
@@ -427,7 +463,10 @@ export function ProductSystemSettingsSurface({
           {text(row.description) ? <small>{text(row.description)}</small> : null}
         </div>;
       })}
-      <label><span>添加自定义声音</span><input type="file" accept={acceptedSoundExtensions.map((ext) => `.${ext}`).join(",")}
+      </details>
+
+      <details className="yance-settings-disclosure"><summary>自定义声音</summary>
+      <label><span>添加声音</span><input type="file" accept={acceptedSoundExtensions.map((ext) => `.${ext}`).join(",")}
         onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = "";
           if (!file || !api?.createNotificationSound) return;
           const ext = file.name.toLowerCase().split(".").pop() || "";
@@ -454,13 +493,13 @@ export function ProductSystemSettingsSurface({
             onClick={() => void runAndRefresh(api?.deleteNotificationSound ? () => api!.deleteNotificationSound!({ id: patternId }) : undefined, "删除自定义声音失败")}>删除 {label}</button>
         </div>;
       })}
-    </section>
+      </details>
+    </section> : null}
 
-    <section aria-label="数据保护"><h4>数据保护</h4>
+    {category === "data" ? <section className="yance-settings-panel-stack" aria-label="数据保护">
       <p>已有备份：{backups.length} · 可迁移备份：{portableBackups.length} · 保留策略：{jsonSummary(retention)}</p>
 
-      <section aria-label="普通备份与恢复">
-        <h5>普通备份与恢复</h5>
+      <details open className="yance-settings-disclosure"><summary>普通备份与恢复</summary>
         <label><span>备份标签</span><input value={backupLabel} maxLength={120}
           onChange={(event) => setBackupLabel(event.target.value)} /></label>
         <label><span>选择备份</span><select value={backupName}
@@ -475,10 +514,9 @@ export function ProductSystemSettingsSurface({
             .then((result) => { if (result) setVerifiedBackupName(backupName); })}>验证备份</button>
         <button type="button" disabled={!backupName || verifiedBackupName !== backupName || busy}
           onClick={() => void mutateProtection({ action: "stage-restore", name: backupName }, "恢复已暂存；重启前仍可取消")}>验证后暂存恢复</button>
-      </section>
+      </details>
 
-      <section aria-label="可迁移备份">
-        <h5>可迁移备份</h5>
+      <details className="yance-settings-disclosure"><summary>可迁移备份</summary>
         <p>导入和导出由桌面文件托管；备份密码仅用于本次操作。</p>
         <label><span>备份密码</span><input type="password" autoComplete="off"
           value={portablePassphrase} onChange={(event) => setPortablePassphrase(event.target.value)}
@@ -504,10 +542,9 @@ export function ProductSystemSettingsSurface({
           onClick={() => void exportPortable()}>导出可迁移备份</button>
         <button type="button" disabled={!portableName || busy}
           onClick={() => void mutateProtection({ action: "delete-portable-backup", name: portableName }, "可迁移备份已删除")}>删除可迁移备份</button>
-      </section>
+      </details>
 
-      <section aria-label="待执行恢复">
-        <h5>待执行恢复</h5>
+      <details className="yance-settings-disclosure"><summary>待执行恢复</summary>
         <p>当前待恢复：{Object.keys(pendingRestore).length ? `${itemName(pendingRestore)} · ${jsonSummary(pendingRestore)}` : "无"}</p>
         <button type="button" disabled={!Object.keys(pendingRestore).length || busy}
           onClick={() => void mutateProtection({ action: "cancel-restore" }, "已取消待执行恢复")}>取消恢复</button>
@@ -516,9 +553,9 @@ export function ProductSystemSettingsSurface({
         <p>恢复历史：{restoreHistory.length} 条</p>
         <ul>{restoreHistory.slice(0, 8).map((row, index) =>
           <li key={`${itemName(row)}-${index}`}>{itemName(row)} · {jsonSummary(row)}</li>)}</ul>
-      </section>
-    </section>
-    <section aria-label="关于言策"><h4>关于言策</h4><p>版本：{currentVersion}</p>
+      </details>
+    </section> : null}
+    {category === "about" ? <details open className="yance-settings-disclosure"><summary>关于言策</summary><p>版本：{currentVersion}</p>
       <p>更新状态：{text(update.phase || update.status) || "已就绪"}</p>
       <button type="button" disabled={busy} onClick={() => void runAndRefresh(api?.checkForUpdates ? () => api!.checkForUpdates!() : undefined, "检查更新失败")}>检查更新</button>
       <button type="button" disabled={busy || text(update.phase) !== "available"}
@@ -526,6 +563,6 @@ export function ProductSystemSettingsSurface({
       <button type="button" disabled={busy || text(update.phase) !== "ready"}
         onClick={() => void runAndRefresh(api?.installUpdate ? () => api!.installUpdate!() : undefined, "安装更新失败")}>安装更新</button>
       <p>帮助与许可信息随言策版本提供。</p>
-    </section>
+    </details> : null}
   </section>;
 }

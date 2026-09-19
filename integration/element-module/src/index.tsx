@@ -14,6 +14,7 @@ import {
   type ProductModuleMessageEvent,
 } from "./product-experience/ProductConversationProjection";
 import {
+  RelationshipOverlayHost,
   resolveCanonicalConversationRoom,
   type CanonicalRoomResolution,
 } from "./product-experience/RelationshipOverlayHost";
@@ -248,6 +249,13 @@ class YanceElementModule implements Module {
       });
     };
 
+    const navigateRelationshipHome = async (): Promise<void> => {
+      const generation = ++conversationNavigationGeneration;
+      await clearProductConversation(generation);
+      if (generation !== conversationNavigationGeneration) return;
+      navigationApi.navigateToLocation?.("yance");
+    };
+
     const navigateProductHome = async (): Promise<void> => {
       const generation = ++conversationNavigationGeneration;
       await clearProductConversation(generation);
@@ -278,8 +286,8 @@ class YanceElementModule implements Module {
       await desktop.setActiveConversation?.(sessionKey);
       if (generation !== conversationNavigationGeneration) return false;
       bindProductConversation(relationshipId.trim(), conversation, resolution.roomId);
-      navigationApi.setProductConversationPresentation?.("relationship-room");
-      this.api.navigation.openRoom(resolution.roomId);
+      navigationApi.setProductConversationPresentation?.("default");
+      navigationApi.navigateToLocation?.("yance");
       return true;
     });
 
@@ -332,6 +340,8 @@ class YanceElementModule implements Module {
         navigateConversation={activateProductConversation}
         navigateGroupConversation={activateProductGroupConversation}
         navigateProductHome={navigateProductHome}
+        navigateRelationshipHome={navigateRelationshipHome}
+        renderRoomView={(roomId, props) => this.api.builtins.renderRoomView(roomId, props)}
         readRoomStateEvents={readRoomStateEvents}
         getMatrixOpenIdToken={typeof clientApi.getOpenIdToken === "function"
           ? clientApi.getOpenIdToken.bind(clientApi)
@@ -491,15 +501,74 @@ class YanceElementModule implements Module {
       pendingAiAssistElementSend = null;
     });
 
+    const restoreProductConversationBindingForRoom = async (
+      roomId: string,
+      isCurrent: () => boolean,
+    ): Promise<void> => {
+      const normalizedRoomId = roomId.trim();
+      if (!normalizedRoomId || !isCurrent()) return;
+
+      const current = getExperienceSessionSnapshot();
+      if (current.activeMatrixRoomId === normalizedRoomId && current.selectedConversationSessionKey) {
+        navigationApi.setProductConversationPresentation?.("default");
+        return;
+      }
+
+      const people = await loadPeopleProjections();
+      if (!isCurrent()) return;
+
+      const matches: Array<{ relationshipId: string; conversation: ConversationRef }> = [];
+      for (const relationship of people.relationships) {
+        for (const conversation of relationship.conversations) {
+          const resolution = resolveCanonicalConversationRoom(conversation, [normalizedRoomId], readRoomStateEvents);
+          if (resolution.status === "resolved" && resolution.roomId === normalizedRoomId) {
+            matches.push({ relationshipId: relationship.id.trim(), conversation });
+          }
+        }
+      }
+      for (const conversation of people.groups) {
+        const resolution = resolveCanonicalConversationRoom(conversation, [normalizedRoomId], readRoomStateEvents);
+        if (resolution.status === "resolved" && resolution.roomId === normalizedRoomId) {
+          matches.push({ relationshipId: "", conversation });
+        }
+      }
+
+      if (matches.length !== 1 || !isCurrent()) return;
+      const [{ relationshipId, conversation }] = matches;
+      await desktop.setActiveConversation?.(conversation.sessionKey.trim());
+      if (!isCurrent()) return;
+
+      const latest = getExperienceSessionSnapshot();
+      if (latest.activeMatrixRoomId && latest.activeMatrixRoomId !== normalizedRoomId) return;
+      bindProductConversation(relationshipId, conversation, normalizedRoomId);
+      navigationApi.setProductConversationPresentation?.("default");
+    };
+
+    const ProductRoomAccessory = ({ roomId }: { roomId: string }): React.JSX.Element => {
+      React.useEffect(() => {
+        let current = true;
+        void restoreProductConversationBindingForRoom(roomId, () => current).catch(() => undefined);
+        return () => {
+          current = false;
+        };
+      }, [roomId]);
+
+      return (
+        <>
+          <ProductComposerAccessory
+            roomId={roomId}
+            stageApprovedReply={stageApprovedReplyInElementComposer}
+          />
+          <RelationshipOverlayHost readRoomStateEvents={readRoomStateEvents} />
+        </>
+      );
+    };
     const accessoryApi = this.api.customComponents as Api["customComponents"] & {
       registerComposerAccessory?: (renderer: (props: { roomId: string }) => React.JSX.Element) => void;
     };
     if (typeof accessoryApi.registerComposerAccessory !== "function") throw new Error("ELEMENT_YANCE_COMPOSER_ACCESSORY_AUTHORITY_MISSING");
     accessoryApi.registerComposerAccessory((props) => (
-      <ProductComposerAccessory
-        roomId={props.roomId}
-        stageApprovedReply={stageApprovedReplyInElementComposer}
-      />
+      <ProductRoomAccessory roomId={props.roomId} />
     ));
 
     if (typeof messageComponentsApi.registerComposerPreview !== "function") throw new Error("ELEMENT_YANCE_COMPOSER_PREVIEW_AUTHORITY_MISSING");

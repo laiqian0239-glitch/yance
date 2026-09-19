@@ -200,7 +200,7 @@ export function ProductComposerPreview({
     const prepare = async (): Promise<void> => {
       if (!desktop || typeof desktop.prepareOutboundMessage !== "function" || !draft
         || !session.selectedConversationSessionKey || session.activeMatrixRoomId !== roomId) {
-        setPreview(""); return;
+        setPreview(""); setStatus(""); return;
       }
       if (session.selectedConversationAutomationMode === "AI_AUTO") {
         if (typeof desktop.setConversationAutomationMode !== "function") {

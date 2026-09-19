@@ -74,6 +74,16 @@ test("successor-v11 bilingual projection correlates by exact identity only", () 
   );
 });
 
+test("successor-v13 empty real Element composer clears stale Product send-preview state", () => {
+  const source = read(
+    "integration/element-module/src/product-experience/ProductConversationProjection.tsx",
+  );
+
+  assert.match(
+    source,
+    /!desktop[\s\S]*!draft[\s\S]*setPreview\(""\); setStatus\(""\); return;/u,
+  );
+});
 test("successor-v11 Product media hides engineering settings outside standalone mode", () => {
   const source = read(
     "integration/element-module/src/MediaWorkspace.tsx",
@@ -107,13 +117,13 @@ test("successor-v22 ordinary settings keep AI invisible while advanced model sup
   assert.match(settings, /安装更新/u);
   assert.doesNotMatch(settings, /LiteLLM|Ollama|GPU|Model Brain|API Key|SHA-?256|getProductModelRuntimeState|mutateProductModelRuntime/u);
 
-  assert.match(shell, /data-yance-secondary-system-support/u);
+  assert.match(shell, /settingsWindow === "models"[\s\S]{0,420}<ProductModelRuntimeSupportSurface \/>/u);
   assert.match(shell, /ProductModelRuntimeSupportSurface/u);
-  assert.match(shell, /modelSupportVisible/u);
+  assert.doesNotMatch(shell, /modelSupportVisible|data-yance-secondary-system-support/u);
   assert.match(shell, /getProductModelRuntimeState/u);
   assert.match(shell, /mutateProductModelRuntime/u);
-  assert.match(shell, /高级系统支持/u);
-  assert.doesNotMatch(shell, /API Key/u);
+  assert.match(shell, /模型中心/u);
+  assert.match(shell, /API Key/u);
 });
 
 test("successor-v11 composer mode presents explicit human takeover", () => {
@@ -191,6 +201,13 @@ test("V5.141 corrective batch closes canonical activation, durable projection, a
   for (const label of ["今天想聊什么","今日回顾","共同时刻","人物设定","关系数据"]) {
     assert.match(world, new RegExp(label, "u"));
   }
+  assert.match(world, /requestRelationshipOverlay\("photo"\)/u);
+  assert.match(world, /requestRelationshipOverlay\("voice"\)/u);
+  assert.match(world, /requestRelationshipOverlay\("live"\)/u);
+  assert.match(world, /照片与视频/u);
+  assert.match(world, /语音/u);
+  assert.match(world, /实时陪伴/u);
+  assert.match(world, /私人任务/u);
   assert.match(world, /当天消息未能完整扫描，本次回顾不完整/u);
   for (const token of ["reviewContactProfile","correctInference","loadRelationshipDataTargets",
     "markRelationshipKeyNode","unmarkRelationshipKeyNode","确认合并","撤销刚才的合并"]) {
@@ -205,7 +222,8 @@ test("V5.141 corrective batch closes canonical activation, durable projection, a
   }
   assert.doesNotMatch(settings, /minimizeToTray|API Key|LiteLLM|Ollama|Model Brain|getProductModelRuntimeState|mutateProductModelRuntime/u);
   const shell = read("integration/element-module/src/product-experience/ProductExperienceShell.tsx");
-  assert.match(shell, /data-yance-secondary-system-support/u);
+  assert.match(shell, /settingsWindow === "models"[\s\S]{0,420}<ProductModelRuntimeSupportSurface \/>/u);
+  assert.doesNotMatch(shell, /modelSupportVisible|data-yance-secondary-system-support/u);
   assert.match(shell, /getProductModelRuntimeState/u);
   assert.match(shell, /mutateProductModelRuntime/u);
 
@@ -344,7 +362,7 @@ test("V20 Product primary navigation and relationship rebinding stay on mature E
   const patch = read("upstream-patches/element-web/0017-yance-product-conversation-control.patch");
 
   assert.match(patch, /this\.props\.page_type === PageTypes\.HomePage \? "yance" : this\.props\.page_type/u);
-  assert.match(patch, /const productPrimaryHome[\s\S]{0,180}PageTypes\.HomePage[\s\S]{0,180}!!moduleRenderer/u);
+  assert.match(patch, /const productPrimaryHome[\s\S]{0,180}!!moduleRenderer[\s\S]{0,180}PageTypes\.HomePage \|\| this\.props\.page_type === "yance"/u);
   assert.match(patch, /if \(productPrimaryHome \|\| productConversationMode\) \{\s*\+\s*\/\/ Keep Yance Home Product-primary and real Element RoomView direct\.\s*\+\s*\/\/ Generic Element navigation must not become a competing primary owner\.\s*\+\s*content = roomView;\s*\+\s*\} else if \(resizerViewModel && !moduleRenderer\) \{/u);
   assert.match(patch, /public navigateToLocation\(path: string\): void \{[\s\S]{0,240}dispatcher\.dispatch\(\{ action: Action\.ViewHomePage, page: path \}\);/u);
   assert.match(patch, /getCurrentRoomId\(\): string \| null[\s\S]{0,180}roomViewStore\.getRoomId/u);
@@ -363,9 +381,10 @@ test("V20 Product primary navigation and relationship rebinding stay on mature E
   assert.match(index, /if \(!sessionKey \|\| typeof clientApi\.getRooms !== "function"\) \{\s*return false;\s*\}/u);
   assert.match(index, /if \(resolution\.status !== "resolved"\) \{\s*return false;\s*\}/u);
   assert.doesNotMatch(index, /if \(resolution\.status !== "resolved"\) \{[\s\S]{0,180}clearProductConversationBinding/u);
-  assert.match(shell, /setLearningAdminVisible\(true\)/u);
+  assert.match(shell, /const \[settingsVisible, setSettingsVisible\] = useState\(false\)/u);
+  assert.match(shell, /id="yance-secondary-settings"/u);
   assert.match(shell, /learningAdminVisible \? <LearningWorkspace \/> : null/u);
-  assert.match(shell, /currentTarget\.open[\s\S]{0,120}setLearningAdminVisible\(false\)/u);
+  assert.doesNotMatch(shell, /className="yance-experience-settings"/u);
 });
 
 test("V20 Root D projects existing runtime safety authority and fails closed on safe-mode exit", () => {
@@ -409,7 +428,8 @@ test("V20 Root D projects existing runtime safety authority and fails closed on 
   assert.match(shell, /if \(!browserOnline\)/u);
   assert.match(shell, /backendReady === false/u);
   assert.match(shell, /runtime\.localReady === false/u);
-  assert.match(shell, /lifecycleState !== "running"/u);
+  assert.match(shell, /lifecycleState === "running" \|\| lifecycleState === "local_ready"/u);
+  assert.match(shell, /\|\| !lifecycleReady/u);
   assert.match(shell, /return null;/u);
 
   const settings = read(

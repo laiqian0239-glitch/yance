@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "defaultThemeId": "midnight-cyan",
+  "defaultThemeId": "violet-noir",
   "lightDefaultThemeId": "jade-paper",
-  "darkDefaultThemeId": "midnight-cyan",
+  "darkDefaultThemeId": "violet-noir",
   "themes": [
     {
       "id": "midnight-cyan",

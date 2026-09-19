@@ -74,19 +74,21 @@ test('backend keeps OWNER marker local and stores only non-secret Unkey keyId re
   assert.match(source, /UNKEY_ENTITLEMENT_EXPIRY_INVALID/u);
 });
 
-test('same-device login consumes raw invitation only when no durable keyId receipt exists', () => {
+test('same-device entitlement resume never becomes a second Matrix session credential', () => {
   const source = read('backend/services/personalAccessService.js');
   const login = source.slice(source.indexOf('async login(input = {})'), source.indexOf('async status(input = {})'));
   const storedLookup = login.indexOf('this.storedEntitlementKeyId()');
   const storedStatus = login.indexOf('this.verifyStoredKeyIdForLogin(storedKeyId)');
-  const rawVerify = login.indexOf('this.verifyInvitationForLogin(input.invitationKey)');
+  const rawVerify = login.indexOf('this.verifyInvitationForLogin(invitationKey)');
   const persist = login.indexOf('this.persistEntitlementKeyId(entitlement.keyId)');
   const matrixHandoff = login.indexOf('this.matrixLoginForEntitlement(entitlement)');
   assert.ok(storedLookup >= 0 && storedStatus > storedLookup, 'stored keyId must be checked through non-consumptive status first');
-  assert.ok(rawVerify > storedStatus, 'raw invitation verify must remain behind stored receipt resume');
-  assert.ok(persist > rawVerify && matrixHandoff > persist, 'keyId receipt must be durable before Matrix login handoff');
+  assert.match(login, /return invitationKey \? this\.matrixLoginForEntitlement\(resumed\) : resumed;/u,
+    'stored Product entitlement without a new invitation must return entitlement only and leave Matrix resume to Element');
+  assert.ok(rawVerify > storedStatus, 'raw invitation verify must remain behind stored receipt evaluation');
+  assert.ok(persist > rawVerify && matrixHandoff > persist, 'new invitation receipt must be durable before the one initial Matrix login handoff');
   assert.match(login, /TERMINAL_STORED_RECEIPT_REASONS\.has\(resumed\.reasonCode\)[\s\S]*?clearEntitlementReceipt/u);
-  assert.doesNotMatch(login, /verifyInvitationForLogin\(input\.invitationKey\)[\s\S]*?verifyInvitationForLogin\(input\.invitationKey\)/u);
+  assert.equal((login.match(/verifyInvitationForLogin\(invitationKey\)/gu) || []).length, 1);
 });
 
 test('activate verifies the stored entitlement once and logout never erases device entitlement', () => {
@@ -99,18 +101,40 @@ test('activate verifies the stored entitlement once and logout never erases devi
   assert.doesNotMatch(logout, /clearEntitlementReceipt/u, 'Element session logout must not clear durable device entitlement');
 });
 
-test('post-login handoff serializes entitlement verification instead of racing normal refresh', () => {
+test('Product requests authorize from durable keyId status without per-request Matrix OpenID', () => {
+  const source = read('backend/services/personalAccessService.js');
+  const block = source.slice(source.indexOf('async authorizeProductRequest'), source.indexOf('\n}', source.indexOf('async authorizeProductRequest')));
+  assert.match(block, /storedEntitlementKeyId\(\)/u);
+  assert.match(block, /verifyStoredKeyIdForLogin\(keyId\)/u);
+  assert.doesNotMatch(block, /matrixSubject|matrixOpenId|this\.status\(/u);
+});
+
+test('initial Personal Access refresh waits for the existing desktop backend seam without adding profile shadow state or retry ownership', () => {
   const surface = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
-  assert.match(
-    surface,
-    /useEffect\(\(\) => \{\s*if \(window\.yancePersonalAccessHandoff\?\.keyId\) return;\s*void refresh\(\);\s*\}, \[refresh\]\);/u,
-    'normal status refresh must stand down while the exact login handoff owns the initial post-login verification'
-  );
-  assert.match(
-    surface,
-    /if \(status\?\.usable !== true && window\.yancePersonalAccessHandoff\?\.keyId\) void activateHandoff\(\);/u,
-    'handoff activation must remain the sole initial post-login entitlement verification path when a handoff exists'
-  );
+  const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
+  const index = read('integration/element-module/src/index.tsx');
+  assert.doesNotMatch(index, /matrixProfile=\{this\.api\.profile\}/u);
+  assert.doesNotMatch(workspace, /matrixProfile/);
+  assert.doesNotMatch(surface, /useWatchable|matrixProfile|matrixIdentity/u);
+  assert.match(surface, /getState\?: \(\) => Promise<\{ backend\?: \{ ready\?: boolean \} \}>/u);
+  assert.match(surface, /onBackendState\?: \(callback: \(state: \{ ready\?: boolean \}\) => void\)/u);
+  assert.match(surface, /const \[backendReady, setBackendReady\] = useState\(false\)/u);
+  assert.match(surface, /automaticRefreshAttempted = useRef\(false\)/u);
+  assert.match(surface, /api\?\.onBackendState\?\.\(/u);
+  assert.match(surface, /api\?\.getState\?\.\(\)/u);
+  assert.match(surface, /if \(window\.yancePersonalAccessHandoff\?\.keyId \|\| !backendReady \|\| automaticRefreshAttempted\.current\) return;/u);
+  assert.match(surface, /automaticRefreshAttempted\.current = true;[\s\S]*?void refresh\(\)/u);
+  assert.match(surface, /getMatrixOpenIdToken/u);
+  assert.doesNotMatch(surface, /setTimeout|1500|clearTimeout/u);
+  assert.equal((surface.match(/void refresh\(\)/gu) || []).length, 2, 'one backend-readiness refresh plus the explicit refresh button only');
+});
+
+test('post-login handoff performs at most one automatic activation and leaves explicit retry on the existing button', () => {
+  const surface = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
+  assert.match(surface, /automaticHandoffAttempted = useRef\(false\)/u);
+  assert.match(surface, /automaticHandoffAttempted\.current\) return;[\s\S]*automaticHandoffAttempted\.current = true;[\s\S]*void activateHandoff\(\)/u);
+  assert.match(surface, /onClick=\{\(\) => void activateHandoff\(\)\}/u, 'explicit user retry must remain available');
+  assert.doesNotMatch(surface, /if \(status\?\.usable !== true && window\.yancePersonalAccessHandoff\?\.keyId\) void activateHandoff\(\)/u);
 });
 
 test('Worker and wrangler are stateless Unkey projection authority', () => {
@@ -129,7 +153,7 @@ test('Worker and wrangler are stateless Unkey projection authority', () => {
   assert.doesNotMatch(wrangler, /d1_databases|database_id|migrations_dir/u);
 });
 
-test('Element Product uses upstream Matrix OpenID seam and invitation/device-resume projection only', () => {
+test('Element Product uses upstream Matrix OpenID seam while Product invitation never becomes a durable Matrix-resume credential', () => {
   const surface = read('integration/element-module/src/product-experience/PersonalAccessSurface.tsx');
   const workspace = read('integration/element-module/src/YanceWorkspace.tsx');
   const index = read('integration/element-module/src/index.tsx');
@@ -144,8 +168,10 @@ test('Element Product uses upstream Matrix OpenID seam and invitation/device-res
   assert.match(surface, /ELEMENT_MATRIX_OPENID_SEAM_MISSING/);
   assert.match(index, /\(props\)\s*=>\s*<YanceLogin onLoggedIn=\{props\.onLoggedIn\}/u);
   assert.match(login, /onLoggedIn\(result\.accountAuth\)/u);
-  assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u);
-  assert.match(login, /已授权设备登录/u);
+  assert.doesNotMatch(login, /data-yance-device-resume/u);
+  assert.doesNotMatch(login, /已授权设备登录/u);
+  assert.match(login, /普通重启由 Element 恢复同一 Matrix 会话与设备/u);
+  assert.match(login, /USAGE_EXCEEDED:\s*"该邀请码已被使用，且此设备尚无可恢复授权；请使用新的邀请码。"/u);
   assert.doesNotMatch(index, /overwriteAccountAuth|accountAuthApi/u);
   assert.doesNotMatch(login, /overwriteAccountAuth\s*\(result\.accountAuth\)/u);
   assert.match(preload, /\bgetPersonalAccessStatus\s*:/);

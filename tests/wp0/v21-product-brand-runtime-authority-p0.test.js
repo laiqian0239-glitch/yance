@@ -45,7 +45,7 @@ test('brand preview assets remain available but are not the normal Product works
   assert.match(workspace, /ProductExperienceShell/u);
 });
 
-test('Yance login owns invitation and durable-device visual projection while Element keeps login-completion authority', () => {
+test('Yance login owns invitation projection while Element keeps durable-session and login-completion authority', () => {
   const moduleIndex = read('integration/element-module/src/index.tsx');
   const login = read('integration/element-module/src/YanceLogin.tsx');
   const styles = read('integration/element-module/src/YanceLogin.css');
@@ -53,9 +53,10 @@ test('Yance login owns invitation and durable-device visual projection while Ele
   assert.match(login, /data-yance-login-authority="v2"/u);
   assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
   assert.match(login, /data-yance-invitation-login="jwt-element-on-logged-in"/u);
-  assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u);
-  assert.match(login, /已授权设备登录/u);
-  assert.match(login, /已授权设备可直接进入；首次使用请输入邀请码/u);
+  assert.doesNotMatch(login, /data-yance-device-resume/u);
+  assert.doesNotMatch(login, /已授权设备登录/u);
+  assert.match(login, /首次使用请输入邀请码；已授权设备的普通重启由 Element 自动恢复同一会话/u);
+  assert.match(login, /普通重启由 Element 恢复同一 Matrix 会话与设备/u);
   assert.match(login, /欢迎回来/u);
   assert.match(login, /让每一次沟通/u);
   assert.match(login, /yance-login-card/u);
@@ -83,7 +84,7 @@ test('Yance login owns invitation and durable-device visual projection while Ele
   assert.doesNotMatch(login, /m\.login\.password/u);
 });
 
-test('successful invitation or device-resume handoff cannot reopen a second submission window', () => {
+test('successful invitation handoff cannot reopen a second submission window or invent a device-resume login', () => {
   const login = read('integration/element-module/src/YanceLogin.tsx');
   assert.match(login, /submissionInFlightRef\s*=\s*React\.useRef\(false\)/u);
   assert.match(login, /handoffCommittedRef\s*=\s*React\.useRef\(false\)/u);
@@ -93,8 +94,9 @@ test('successful invitation or device-resume handoff cannot reopen a second subm
   assert.match(login, /handoffCommittedRef\.current = true/u);
   assert.match(login, /if \(!handoffAccepted\)\s*\{[\s\S]*?submissionInFlightRef\.current = false[\s\S]*?setSubmitting\(false\)/u);
   assert.match(login, /disabled=\{submitting \|\| handoffCommitted\}/u);
-  assert.match(login, /正在确认本机授权/u);
+  assert.match(login, /正在验证邀请码/u);
   assert.match(login, /正在进入言策/u);
+  assert.doesNotMatch(login, /正在确认本机授权/u);
 });
 
 test('Yance login does not expose local Matrix account creation or raw Element password controls', () => {
@@ -222,11 +224,23 @@ test('Yance owns post-login security presentation while Element keeps crypto and
   assert.match(moduleIndex, /<YancePostLoginSecurity>\{content\}<\/YancePostLoginSecurity>/u);
   assert.match(login, /data-yance-post-login-security-authority="product"/u);
   assert.match(login, /data-yance-post-login-security-content="element"/u);
-  assert.match(login, /保护你的安全登录/u);
-  assert.match(login, /“设备”指一次受保护的加密登录会话/u);
-  assert.match(login, /并不意味着你必须有另一台实体设备/u);
-  assert.match(styles, /YANCE_POST_LOGIN_SECURITY_PROJECTION_V1/u);
+  assert.match(login, /验证此设备/u);
+  assert.match(login, /普通重启不会创建新的 Matrix 设备/u);
+  assert.match(login, /“使用另一设备”、恢复密钥、“无法确认？”与退出均保持 Element 原生安全语义/u);
+  assert.match(styles, /YANCE_POST_LOGIN_SECURITY_PROJECTION_V2/u);
+  assert.match(styles, /\.yance-product-security-dialog\s*\{[^}]*max-width:\s*min\(520px/u);
+  assert.match(styles, /\.yance-product-security-dialog \.mx_EncryptionCard_buttons[\s\S]*grid-template-columns:\s*repeat\(2/u);
   assert.match(styles, /\.yance-post-login-security-card\s*\{/u);
+  assert.match(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-post-login-security-shell\s*\{[\s\S]*display:\s*grid;[\s\S]*grid-template-columns:\s*minmax\(220px, 31vw\) minmax\(0, 1fr\);[\s\S]*grid-template-rows:\s*minmax\(0, 1fr\);[\s\S]*height:\s*100vh;[\s\S]*overflow:\s*hidden;/u);
+  assert.match(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-post-login-security-shell \.yance-login-brand-inner\s*\{[\s\S]*min-height:\s*0;[\s\S]*height:\s*100%;/u);
+  assert.match(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-post-login-security\s*\{[\s\S]*height:\s*100%;[\s\S]*overflow:\s*hidden;/u);
+  assert.doesNotMatch(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-post-login-security[^}]*overflow-y:\s*auto/u);
+  assert.doesNotMatch(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-post-login-security-shell\s*\{[\s\S]*display:\s*block/u);
+  assert.match(
+    styles,
+    /\.yance-post-login-security-card \.mx_SetupEncryptionBody,[\s\S]*?\.yance-product-security-dialog \.mx_SetupEncryptionBody\s*\{[^}]*width:\s*100%[^}]*max-width:\s*100%[^}]*min-width:\s*0/u,
+    'Element mature security content must project fluidly inside the Yance card without changing its lifecycle'
+  );
   assert.doesNotMatch(styles, /yance-post-login-security[^\n{]*mx_AuthPage|:has\([^)]*mx_CompleteSecurity|:has\([^)]*mx_AuthPage/iu);
 
   assert.match(patch, /SetupEncryptionStore/u);
@@ -234,4 +248,17 @@ test('Yance owns post-login security presentation while Element keeps crypto and
   assert.match(patch, /InitialCryptoSetupDialog/u);
   assert.match(patch, /originalComponent/u);
   assert.doesNotMatch(login, /fetch\s*\(|_matrix\/client|m\.login\.password/u);
+});
+
+test('short-height Product compaction stays presentation-only while Element security content remains mature authority', () => {
+  const styles = read('integration/element-module/src/YanceLogin.css');
+  const login = read('integration/element-module/src/YanceLogin.tsx');
+  assert.match(styles, /YANCE_COMPACT_AUTH_VISUAL_GEOMETRY_V1/u);
+
+  const compact = styles.slice(styles.indexOf('/* YANCE_COMPACT_AUTH_VISUAL_GEOMETRY_V1'));
+  assert.match(compact, /\.yance-post-login-security-card\s*\{[^}]*padding:\s*18px/u);
+  assert.doesNotMatch(compact, /mx_CompleteSecurity|mx_AuthPage|SetupEncryption/u,
+    'short-height projection rules must not target or replace Element-owned security controls');
+  assert.match(login, /data-yance-post-login-security-content="element"/u);
+  assert.match(login, /Element \/ Matrix/u);
 });

@@ -36,7 +36,7 @@ test('retired local Matrix identity IPC is absent from preload, bridge, manifest
   }
 });
 
-test('YanceLogin uses invitation or durable-device resume while Element remains the sole login-completion authority', () => {
+test('YanceLogin bootstraps only explicit invitation login while durable-device resume stays with Element', () => {
   const login = read('integration/element-module/src/YanceLogin.tsx');
   const loginOnly = login.slice(0, login.indexOf('export function YancePostLoginSecurity'));
   const index = read('integration/element-module/src/index.tsx');
@@ -45,9 +45,10 @@ test('YanceLogin uses invitation or durable-device resume while Element remains 
   assert.match(login, /onLoggedIn\(result\.accountAuth\)/u);
   assert.match(login, /data-yance-login-form-host="personal-access-invitation"/u);
   assert.match(login, /data-yance-invitation-login="jwt-element-on-logged-in"/u);
-  assert.match(login, /data-yance-device-resume="unkey-status-element-on-logged-in"/u);
-  assert.match(login, /已授权设备登录/u);
-  assert.match(login, /mode === "invitation" \? \{ invitationKey: key \} : \{\}/u);
+  assert.doesNotMatch(login, /data-yance-device-resume/u);
+  assert.doesNotMatch(login, /已授权设备登录/u);
+  assert.match(login, /bridge\(\{ invitationKey: key \}\)/u);
+  assert.match(login, /普通重启由 Element 恢复同一 Matrix 会话与设备/u);
   assert.match(login, /邀请码/u);
   assert.match(index, /<YanceLogin onLoggedIn=\{props\.onLoggedIn\}/u);
   assert.doesNotMatch(index, /overwriteAccountAuth|accountAuthApi/u);
@@ -175,6 +176,27 @@ test('YanceLogin CSS owns the authentication panel vertical scroll authority so 
     /overflow:\s*auto/u,
     'desktop shell must not be given overflow: auto, which would scroll the branding panel'
   );
+});
+
+test('compact desktop login height breakpoints keep Yance brand text legible without adding a second scroll owner', () => {
+  const styles = read('integration/element-module/src/YanceLogin.css');
+  assert.match(styles, /YANCE_COMPACT_AUTH_VISUAL_GEOMETRY_V1/u);
+
+  assert.match(
+    styles,
+    /@media\s*\(min-width:\s*761px\)\s*and\s*\(max-height:\s*680px\)[\s\S]*?\.yance-login-brand-copy h1\s*\{[^}]*font-size:\s*clamp\(36px,\s*4vw,\s*42px\)/u,
+    'wide-but-short desktop login must compact the Yance headline before hidden brand overflow can clip it'
+  );
+  assert.match(
+    styles,
+    /@media\s*\(min-width:\s*761px\)\s*and\s*\(max-height:\s*560px\)[\s\S]*?\.yance-login-capabilities\s*\{[^}]*gap:\s*6px[\s\S]*?\.yance-login-capabilities span\s*\{[^}]*font-size:\s*10px/u,
+    'very short desktop login must retain compact capability chips inside the approved Product brand boundary'
+  );
+  const compact = styles.slice(styles.indexOf('/* YANCE_COMPACT_AUTH_VISUAL_GEOMETRY_V1'));
+  assert.doesNotMatch(compact, /\.yance-login-brand\s*\{[^}]*overflow(?:-y)?:\s*(?:auto|scroll)/u);
+  assert.doesNotMatch(compact, /(^|\n)\s*(?:html|body)\s*\{/u);
+  assert.doesNotMatch(compact, /\.yance-login-auth\s*\{[^}]*overflow-y:\s*(?:auto|scroll)/u,
+    'compact rules must reuse the existing auth-column scroll owner rather than declaring a second lifecycle');
 });
 
 test('local identity provisioning records durable intent before the remote call and classifies every outcome', () => {

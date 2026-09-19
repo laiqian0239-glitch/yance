@@ -27,8 +27,8 @@ index 51f23ec..e84c9df 100644
 -        if (resizerViewModel && !moduleRenderer) {
 +
 +        const productPrimaryHome =
-+            this.props.page_type === PageTypes.HomePage
-+            && !!moduleRenderer;
++            !!moduleRenderer
++            && (this.props.page_type === PageTypes.HomePage || this.props.page_type === "yance");
 +
 +        const productConversationMode =
 +            this.props.page_type === PageTypes.RoomView
@@ -949,3 +949,89 @@ diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module
      }>): void;
 +    replacePlaintextInComposer(plaintext: string, view?: ComposerApiTarget): void;
  }
+
+diff --git a/apps/web/src/components/structures/LoggedInView.tsx b/apps/web/src/components/structures/LoggedInView.tsx
+index 8118a14..1175e94 100644
+--- a/apps/web/src/components/structures/LoggedInView.tsx
++++ b/apps/web/src/components/structures/LoggedInView.tsx
+@@ -434,13 +434,16 @@ class LoggedInView extends React.Component<IProps, IState> {
+         switch (roomAction) {
+             case KeyBindingAction.ScrollUp:
+             case KeyBindingAction.ScrollDown:
+             case KeyBindingAction.JumpToFirstMessage:
+             case KeyBindingAction.JumpToLatestMessage:
+-                // pass the event down to the scroll panel
+-                this.onScrollKeyPressed(ev);
+-                handled = true;
++                // Room paging belongs to RoomView. Module views have their own native scroll owner,
++                // so leave the event uncancelled when there is no RoomView to consume it.
++                if (this._roomView.current) {
++                    this.onScrollKeyPressed(ev);
++                    handled = true;
++                }
+                 break;
+             case KeyBindingAction.SearchInRoom:
+                 dis.fire(Action.FocusMessageSearch);
+                 handled = true;
+                 break;
+diff --git a/apps/web/src/viewmodels/composer/MessageComposerUrlPreviewViewModel.test.ts b/apps/web/src/viewmodels/composer/MessageComposerUrlPreviewViewModel.test.ts
+index a93ff8d..14ba1d2 100644
+--- a/apps/web/src/viewmodels/composer/MessageComposerUrlPreviewViewModel.test.ts
++++ b/apps/web/src/viewmodels/composer/MessageComposerUrlPreviewViewModel.test.ts
+@@ -90,10 +90,11 @@ describe("MessageComposerUrlPreviewViewModel", () => {
+         const { vm, client } = getViewModel();
+         client.getUrlPreview.mockResolvedValue(BASIC_PREVIEW_OGDATA);
+         await vm.updateWithText({ content: "https://example.org", debounced: false });
+         await vm.updateWithText({ content: "https://example.org some extra words", debounced: false });
+         expect(client.getUrlPreview).toHaveBeenCalledTimes(1);
++        expect(vm.getSnapshot().content).toEqual("https://example.org some extra words");
+     });
+
+     it("should deduplicate repeated URLs", async () => {
+         const { vm, client } = getViewModel();
+         client.getUrlPreview.mockResolvedValue(BASIC_PREVIEW_OGDATA);
+diff --git a/apps/web/src/viewmodels/composer/MessageComposerUrlPreviewViewModel.ts b/apps/web/src/viewmodels/composer/MessageComposerUrlPreviewViewModel.ts
+index 78ae448..8ae6200 100644
+--- a/apps/web/src/viewmodels/composer/MessageComposerUrlPreviewViewModel.ts
++++ b/apps/web/src/viewmodels/composer/MessageComposerUrlPreviewViewModel.ts
+@@ -65,11 +65,12 @@ export class MessageComposerUrlPreviewViewModel extends BaseViewModel<
+             this.snapshot.set({ previews: [], content });
+             return;
+         }
+
+         if (this.links.symmetricDifference(newLinks).size === 0) {
+-            // Skip if the URL set hasn't changed
++            // Keep the composer content current for module consumers without re-fetching unchanged URLs.
++            this.snapshot.merge({ content });
+             return;
+         }
+
+         this.links = newLinks;
+
+diff --git a/apps/web/test/unit-tests/components/structures/LoggedInView-test.tsx b/apps/web/test/unit-tests/components/structures/LoggedInView-test.tsx
+index 7212e5f..8fa6d09 100644
+--- a/apps/web/test/unit-tests/components/structures/LoggedInView-test.tsx
++++ b/apps/web/test/unit-tests/components/structures/LoggedInView-test.tsx
+@@ -555,10 +555,22 @@ describe("<LoggedInView />", () => {
+             expect(container.querySelector(".mx_Separator")).not.toBeInTheDocument();
+             expect(container.querySelector(".mx_ResizeHandle")).not.toBeInTheDocument();
+             // ...while the space panel rail remains visible.
+             expect(container.querySelector(".mx_SpacePanel")).toBeInTheDocument();
+         });
++
++        it("allows native paging for module views when no RoomView owns scroll", () => {
++            getComponent({ page_type: modulePageType });
++
++            const pageDown = fireEvent.keyDown(document.body, {
++                key: "PageDown",
++                code: "PageDown",
++                keyCode: 34,
++            });
++
++            expect(pageDown).toBe(true);
++        });
+     });
+
+     it("should handle KeyBindingAction.ToggleRoomSidePanel", async () => {
+         getComponent({ page_type: "room_view" });
+         jest.spyOn(mockSdkContext.rightPanelStore, "togglePanel");

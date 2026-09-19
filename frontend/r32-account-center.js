@@ -435,27 +435,6 @@ function renderOverview(account) {
   </div>`;
 }
 
-function facebookFlowDiagnostics(flow) {
-  const diagnostics = flow?.diagnostics && typeof flow.diagnostics === 'object' ? flow.diagnostics : null;
-  if (!diagnostics) return '';
-  const primaryCount = Number(diagnostics.primaryCount || 0);
-  const targetIds = Array.isArray(diagnostics.debugToken?.targetIds) ? diagnostics.debugToken.targetIds : [];
-  const recoveredCount = Number(diagnostics.recoveredCount || 0);
-  const directTokenChecks = Array.isArray(diagnostics.directPageTokenChecks) ? diagnostics.directPageTokenChecks : [];
-  const directTokenAvailable = directTokenChecks.filter(row => row?.tokenAvailable === true).length;
-  const source = diagnostics.resolutionSource === 'granular_target_direct_page_token'
-    ? '已通过授权目标定向恢复 Page Token'
-    : diagnostics.resolutionSource === 'debug_user_accounts'
-      ? '已通过显式用户 accounts 恢复'
-      : diagnostics.resolutionSource === 'granular_scope_target_ids'
-        ? '已通过授权目标安全恢复'
-        : diagnostics.resolutionSource === 'me_accounts'
-          ? '由 /me/accounts 返回'
-          : '尚未解析到主页';
-  const targetText = targetIds.length ? targetIds.join(', ') : '无';
-  return `主页发现：/me/accounts ${primaryCount} 条 · target_ids ${targetText} · 定向 Token ${directTokenAvailable}/${directTokenChecks.length} · 恢复 ${recoveredCount} 条 · ${source}`;
-}
-
 function renderLogin(account) {
   const p = platformInfo(account.platform);
   const authConfig = state.data.platformAuth || {};
@@ -481,7 +460,6 @@ function renderLogin(account) {
     const available = authConfig.facebook?.available === true;
     const type = facebookAccountType(account.accountKind || account.driverId);
     const flow = state.facebookFlow?.accountId === account.id ? state.facebookFlow : null;
-    const pages = flow?.pages || [];
     if (type.accountKind === 'personal-identity') {
       auth = `${available?'<div class="ac32-hint">使用官方 Facebook Login 读取当前个人身份、名称和头像。个人身份登录不提供 Messenger 私信读取或发送能力。</div>':'<div class="ac32-hint bad">当前安装包尚未启用 Facebook 登录。</div>'}
         ${flow?`<div class="ac32-hint warn" style="margin-top:10px">身份授权状态：${htmlText(flow.status || '等待浏览器确认')}</div>`:''}
@@ -500,12 +478,8 @@ function renderLogin(account) {
         ${stepType==='display_and_wait'?`<div style="margin-top:10px"><button class="ac32-button primary" data-panel-action="facebook-messenger-wait" data-login-process-id="${htmlAttr(loginProcessId)}" data-step-id="${htmlAttr(stepId)}">我已完成上游确认</button></div>`:''}`;
       actions = `${flow?'':`<button class="ac32-button primary" data-panel-action="facebook-messenger-start">开始 Personal Messenger 登录</button>`}${flow?'<button class="ac32-button" data-panel-action="facebook-messenger-cancel">取消登录</button>':''}<button class="ac32-button" data-panel-action="diagnose">检查连接</button>`;
     } else {
-      auth = `${available?'<div class="ac32-hint">使用拥有公共主页管理权限的个人 Facebook 账号授权。授权结果必须包含 pages_read_engagement，才能同步 Meta Business Suite 的新联系人、最近会话和公共主页后台发送消息。</div>':'<div class="ac32-hint bad">当前安装包尚未启用 Facebook 登录。请安装包含 Facebook 平台服务的正式升级包。</div>'}
-        ${account.credentialReady&&account.historySyncAvailable===false?`<div class="ac32-hint bad" style="margin-top:10px"><b>当前 Facebook 绑定不完整：</b>${htmlText(account.historySyncReason||'缺少 pages_read_engagement，Business Suite 会话无法补拉')}。请点击下方授权按钮重新授权。</div>`:''}
-        ${flow?`<div class="ac32-hint warn" style="margin-top:10px">授权状态：${htmlText(flow.status || '等待浏览器确认')}</div>`:''}
-        ${flow?.diagnostics?`<div class="ac32-hint ${htmlAttr(flow.status==='error'?'bad':'warn')}" style="margin-top:10px">${htmlText(facebookFlowDiagnostics(flow))}</div>`:''}
-        ${pages.length?`<div class="ac32-page-choice" style="margin-top:10px">${pages.map(page=>{const missingBase=page.permissionReady===false;const missingHistory=page.historySyncAvailable===false;const blocked=missingBase;const detail=missingBase?`授权范围不足：${(page.missingPermissions||[]).join(', ')}`:missingHistory?`可完成绑定；缺少 pages_read_engagement 时历史对账受限`:(page.username?`@${page.username}`:page.id);return `<button class="ac32-account" data-facebook-page="${htmlAttr(page.id)}" ${blocked?'disabled':''}><span class="ac32-account-copy"><b>${htmlText(page.name)}</b><p>${htmlText(detail)}</p></span><span class="ac32-state ${htmlAttr(blocked?'error':missingHistory?'limited':'connected')}"><i></i>${htmlText(missingBase?'需要重新授权':missingHistory?'选择并以受限模式连接':'选择此主页')}</span></button>`}).join('')}</div>`:''}`;
-      actions = `<button class="ac32-button primary" data-panel-action="facebook-oauth" ${available?'':'disabled'}>${htmlText(available?'使用主页管理员个人账号授权':'Facebook 登录尚未启用')}</button>${flow?'<button class="ac32-button" data-panel-action="facebook-cancel">取消授权</button>':''}<button class="ac32-button" data-panel-action="diagnose">检查连接</button>`;
+      auth = `<div class="ac32-hint"><b>Facebook 公共主页</b>由现有 Page 连接服务管理。这里不再提供已退休的 Worker Page OAuth 或主页选择流程。</div>`;
+      actions = `<button class="ac32-button" data-panel-action="diagnose">检查连接</button>`;
     }
   }
   const notice = authNoticeMarkup(account);
@@ -652,7 +626,6 @@ function bindPanel(account) {
   document.getElementById('ac32ImportMigration')?.addEventListener('click', importLegacyAccounts);
   document.getElementById('ac32ClearMigration')?.addEventListener('click', () => { state.migrationPlan = null; renderPanel(account); });
   document.getElementById('ac32MigrationPath')?.addEventListener('input', event => { state.migrationPath = event.target.value; saveLocal(); });
-  document.querySelectorAll('[data-facebook-page]').forEach(button => button.addEventListener('click', () => selectFacebookPage(account, button.dataset.facebookPage)));
 }
 
 
@@ -1079,7 +1052,6 @@ async function pollFacebookOAuth(account, flowId) {
         toast('Facebook 个人身份登录完成。该账号只提供身份与头像，不提供 Messenger 私信。');
         return;
       }
-      if (data.flow.status === 'authorized') { toast('授权完成，请选择要连接的公共主页'); return; }
       if (['denied','error','cancelled'].includes(data.flow.status)) {
         await cancelFacebookOAuth(account, { silent:true, reason:`facebook-oauth-${data.flow.status}` });
         toast(data.flow.error || 'Facebook 授权未完成，临时授权已清理', 'error');
@@ -1099,18 +1071,8 @@ async function pollFacebookOAuth(account, flowId) {
   if (token === state.authPollToken) {
     state.authPollToken += 1;
     await cancelFacebookOAuth(account, { silent:true, reason:'facebook-oauth-timeout' });
-    toast('浏览器未返回 Facebook 授权结果。请确认授权页是否已完成；若回调失败，言策会显示 /me/accounts 与 target_ids 的安全诊断。不要反复修改 App Domains。', 'error');
+    toast('浏览器未返回 Facebook 登录结果。请确认授权页是否已完成，然后再重试。', 'error');
   }
-}
-async function selectFacebookPage(account, pageId) {
-  const flowId = state.facebookFlow?.flowId;
-  if (!flowId) return toast('授权流程已过期，请重新开始', 'warning');
-  try {
-    toast('正在保存公共主页授权…', 'warning');
-    await api(`/${encodeURIComponent(account.id)}/facebook/oauth/select-page`, { method:'POST', body:{ flowId, pageId } });
-    state.authPollToken += 1; state.facebookFlow = null;
-    await refreshAccounts(false); state.tab='login'; renderWorkbench(); toast('Facebook 公共主页已连接');
-  } catch (error) { toast(error.message, 'error'); }
 }
 async function cancelFacebookOAuth(account, options = {}) {
   const flowId = state.facebookFlow?.flowId;

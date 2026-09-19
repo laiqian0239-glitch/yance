@@ -86,6 +86,40 @@ index af3003d..6523f7b 100644
          );
      }
  }
+diff --git a/apps/web/src/toasts/SetupEncryptionToast.tsx b/apps/web/src/toasts/SetupEncryptionToast.tsx
+index 4b9b7e1..d91365f 100644
+--- a/apps/web/src/toasts/SetupEncryptionToast.tsx
++++ b/apps/web/src/toasts/SetupEncryptionToast.tsx
+@@ -352,5 +352,6 @@ export const showToast = (state: DeviceStateForToast): void => {
+     ToastStore.sharedInstance().addOrReplaceToast({
+         key: TOAST_KEY,
++        className: state === "verify_this_session" ? "yance-product-security-toast" : undefined,
+         title: getTitle(state),
+         icon: getIcon(state),
+         onCloseButtonClicked,
+diff --git a/apps/web/src/components/structures/ToastContainer.tsx b/apps/web/src/components/structures/ToastContainer.tsx
+index 01f7381..ad61e63 100644
+--- a/apps/web/src/components/structures/ToastContainer.tsx
++++ b/apps/web/src/components/structures/ToastContainer.tsx
+@@ -89,5 +89,6 @@ export default class ToastContainer extends React.Component<EmptyObject, IState>
+             containerClasses = classNames("mx_ToastContainer", {
+                 mx_ToastContainer_stacked: isStacked,
++                "yance-product-security-toast-container": className === "yance-product-security-toast",
+             });
+         }
+         return toast ? (
+diff --git a/apps/web/src/components/views/dialogs/security/SetupEncryptionDialog.tsx b/apps/web/src/components/views/dialogs/security/SetupEncryptionDialog.tsx
+index 0d23d41..86efab2 100644
+--- a/apps/web/src/components/views/dialogs/security/SetupEncryptionDialog.tsx
++++ b/apps/web/src/components/views/dialogs/security/SetupEncryptionDialog.tsx
+@@ -23,6 +23,6 @@ export default class SetupEncryptionDialog extends React.Component<IProps> {
+     public render(): React.ReactNode {
+         return (
+-            <BaseDialog onFinished={this.props.onFinished} fixedWidth={false}>
++            <BaseDialog onFinished={this.props.onFinished} fixedWidth={false} className="yance-product-security-dialog">
+                 <SetupEncryptionBody onFinished={this.props.onFinished} />
+             </BaseDialog>
+         );
 diff --git a/apps/web/src/components/structures/auth/PostLoginSecurityShell.test.tsx b/apps/web/src/components/structures/auth/PostLoginSecurityShell.test.tsx
 new file mode 100644
 index 0000000..d5dfac0

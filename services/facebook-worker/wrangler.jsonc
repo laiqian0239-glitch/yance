@@ -24,7 +24,7 @@
     {
       "binding": "DB",
       "database_name": "yance-facebook-gateway",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "9394aab2-8a7d-40fa-88b5-90455a7a0bbd",
       "migrations_dir": "migrations"
     }
   ],

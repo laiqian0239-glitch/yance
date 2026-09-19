@@ -361,7 +361,6 @@ test('M2-WA-003 AccountContext preserves persisted platform operation context th
     /this\.lifecycle\.restart\(accountId,\s*\{\s*action:\s*'reconnect',\s*\.\.\.physicalOperationOptions\(request\)\s*\}\)/u,
     /this\.accountManager\.beginFacebookOAuth\(accountId,\s*physicalOperationOptions\(request\)\)/u,
     /this\.accountManager\.pollFacebookOAuth\(accountId,\s*request\.flowId,\s*physicalOperationOptions\(request\)\)/u,
-    /this\.accountManager\.selectFacebookPage\(accountId,\s*request\.flowId,\s*request\.pageId,\s*physicalOperationOptions\(request\)\)/u,
     /this\.accountManager\.cancelFacebookOAuth\(accountId,\s*request\.flowId,\s*physicalOperationOptions\(request\)\)/u,
     /this\.accountManager\.sync\(accountId,\s*\{[\s\S]*?\.\.\.physicalOperationOptions\(request\)[\s\S]*?executionGeneration:\s*request\.operationGeneration[\s\S]*?\}\)/u
   ]) assert.match(source, pattern, `M2-WA-003:CONTEXT_PROPAGATION_REQUIRED:${pattern}`);

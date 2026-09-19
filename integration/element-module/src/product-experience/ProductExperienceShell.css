@@ -15,7 +15,10 @@
 
 .yance-product-shell {
   box-sizing: border-box;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: var(--yance-space-4);
   color: var(--text-primary);
   background:
@@ -183,6 +186,80 @@
   text-align: center;
 }
 
+.yance-empty--onboarding,
+.yance-empty--hero {
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  min-height: 168px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--yance-theme-border, var(--border-default)) 72%, transparent);
+  background:
+    radial-gradient(circle at 50% 0, color-mix(in srgb, var(--yance-theme-accent, var(--accent-primary)) 11%, transparent), transparent 48%),
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--yance-theme-card-raised, var(--surface-card-raised)) 94%, transparent),
+      color-mix(in srgb, var(--yance-theme-control, var(--surface-card)) 72%, transparent));
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--yance-theme-shadow-source, currentcolor) 8%, transparent);
+}
+
+.yance-empty--hero {
+  min-height: 340px;
+  padding: clamp(28px, 5vw, 58px);
+}
+
+.yance-empty--onboarding strong,
+.yance-empty--hero strong {
+  color: var(--yance-theme-text, var(--text-primary));
+  font-size: .9rem;
+}
+
+.yance-empty--hero > strong {
+  max-width: 460px;
+  font-size: clamp(1.05rem, 1.8vw, 1.42rem);
+  letter-spacing: -.025em;
+}
+
+.yance-empty--onboarding > span:not(.yance-eyebrow),
+.yance-empty--hero > span:not(.yance-empty__mark) {
+  max-width: 540px;
+  color: var(--yance-theme-text-muted, var(--text-secondary));
+  line-height: 1.58;
+}
+
+.yance-empty--onboarding > p {
+  max-width: 460px;
+  margin: 0;
+  color: var(--yance-theme-text-muted, var(--text-secondary));
+  line-height: 1.58;
+}
+
+.yance-empty__mark {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent, var(--accent-primary)) 44%, var(--yance-theme-border, var(--border-default)));
+  border-radius: 18px;
+  color: var(--yance-theme-highlight, var(--accent-primary));
+  background: color-mix(in srgb, var(--yance-theme-accent, var(--accent-primary)) 12%, transparent);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--yance-theme-accent, var(--accent-primary)) 12%, transparent);
+  font-size: 1.3rem;
+}
+
+.yance-empty__actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.yance-empty--onboarding .yance-button-primary,
+.yance-empty--hero .yance-button-primary,
+.yance-empty--hero .yance-button-secondary {
+  min-width: 150px;
+}
+
 .yance-platform-accounts {
   display: grid;
   gap: var(--yance-space-3);
@@ -195,6 +272,63 @@
 .yance-platform-account-list {
   display: grid;
   gap: var(--yance-space-2);
+}
+
+.yance-platform-account-zero {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--yance-space-2);
+}
+
+.yance-platform-account-zero > p {
+  grid-column: 1 / -1;
+  margin: 0 0 var(--yance-space-1);
+  color: var(--text-secondary);
+}
+
+.yance-platform-account-zero > button,
+.yance-platform-account-managed {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--yance-final-border, var(--border-default));
+  border-radius: var(--yance-radius-md);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--surface-card-raised) 92%, var(--accent-primary) 8%), var(--surface-card));
+  text-align: left;
+}
+
+.yance-platform-account-zero > button span,
+.yance-platform-account-managed span,
+.yance-platform-account-managed small {
+  color: var(--text-secondary);
+  overflow-wrap: break-word;
+}
+
+.yance-platform-account-managed {
+  align-content: start;
+}
+
+.yance-platform-account-managed small {
+  font-size: .86em;
+}
+
+.yance-model-route-evidence {
+  display: grid;
+  gap: 5px;
+  margin-top: var(--yance-space-2);
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-final-violet, var(--accent-primary)) 24%, var(--border-default));
+  border-radius: var(--yance-radius-md);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--surface-card-raised) 92%, var(--accent-primary) 8%), var(--surface-card));
+}
+
+.yance-model-route-evidence span {
+  min-width: 0;
+  color: var(--text-secondary);
+  overflow-wrap: break-word;
 }
 
 .yance-platform-account-card {
@@ -1368,6 +1502,281 @@
   padding-bottom: 0;
 }
 
+
+/* Product Final composition: Yance owns only Product presentation and navigation. */
+.yance-product-security-toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  left: auto;
+  z-index: 1300;
+  max-width: min(420px, calc(100vw - 40px));
+}
+
+.yance-product-security-toast {
+  max-width: min(420px, calc(100vw - 40px));
+  border-color: color-mix(in srgb, var(--accent-primary) 42%, var(--border-default));
+  border-radius: var(--yance-radius-md);
+  background: color-mix(in srgb, var(--surface-card-raised) 96%, var(--accent-primary) 4%);
+  box-shadow: var(--yance-elevation-soft);
+}
+
+.yance-product-security-dialog {
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 32px));
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 34%, var(--border-default));
+  border-radius: var(--yance-radius-lg);
+  background: var(--surface-card-raised);
+  box-shadow: var(--yance-elevation-overlay);
+}
+
+.yance-product-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--yance-space-3);
+  margin-bottom: var(--yance-space-4);
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border-default) 82%, transparent);
+  border-radius: var(--yance-radius-lg);
+  background: color-mix(in srgb, var(--surface-panel) 94%, transparent);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+.yance-product-nav__identity { display: grid; min-width: 0; gap: 1px; }
+.yance-product-nav__identity strong { overflow-wrap: anywhere; font-size: 1.05em; }
+.yance-product-nav__actions { display: flex; gap: var(--yance-space-1); }
+.yance-product-nav__actions button,
+.yance-secondary-settings__header button {
+  min-height: var(--control-min-height);
+  padding: 6px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-pill);
+  color: var(--text-primary);
+  background: var(--surface-control);
+  font: inherit;
+  cursor: pointer;
+}
+
+.yance-product-nav__actions button[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--accent-primary) 48%, var(--border-default));
+  background: color-mix(in srgb, var(--accent-primary) 12%, var(--surface-control));
+  font-weight: 700;
+}
+.yance-secondary-settings {
+  display: grid;
+  gap: var(--yance-space-4);
+  width: min(100%, 980px);
+  margin: 0 auto;
+}
+.yance-secondary-settings__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--yance-space-4);
+  padding: var(--yance-space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-lg);
+  background: var(--surface-card-raised);
+  box-shadow: var(--yance-elevation-soft);
+}
+.yance-secondary-settings__header h2,
+.yance-secondary-settings__header p { margin: 2px 0 0; }
+.yance-secondary-settings__header p { color: var(--text-secondary); line-height: var(--leading-body); }
+.yance-settings-section,
+.yance-settings-disclosure {
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-md);
+  background: var(--surface-card);
+}
+.yance-settings-section { padding: var(--yance-space-4); }
+
+.yance-settings-disclosure { overflow: clip; }
+.yance-settings-disclosure > summary,
+.yance-relationship-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--yance-space-3);
+  min-height: 46px;
+  padding: 10px 14px;
+  list-style: none;
+  color: var(--text-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+.yance-settings-disclosure > summary::-webkit-details-marker,
+.yance-relationship-details > summary::-webkit-details-marker { display: none; }
+.yance-settings-disclosure > summary::after,
+.yance-relationship-details > summary::after { content: "+"; color: var(--text-secondary); font-weight: 500; }
+.yance-settings-disclosure[open] > summary::after,
+.yance-relationship-details[open] > summary::after { content: "−"; }
+.yance-settings-disclosure > :not(summary) { margin-inline: var(--yance-space-4); }
+.yance-settings-disclosure > :last-child { margin-bottom: var(--yance-space-4); }
+.yance-product-system-settings { display: grid; gap: var(--yance-space-3); }
+.yance-product-system-settings > header { display: flex; align-items: center; justify-content: space-between; gap: var(--yance-space-3); }
+.yance-product-system-settings > header h3,
+.yance-product-system-settings > header p { margin: 0; }
+.yance-product-system-settings button,
+.yance-product-system-settings select,
+.yance-product-system-settings input,
+.yance-product-system-settings textarea {
+  max-width: 100%;
+  min-height: var(--control-min-height);
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-sm);
+  color: var(--text-primary);
+  background: var(--surface-control);
+  font: inherit;
+}
+
+.yance-product-system-settings button { padding: 6px 10px; cursor: pointer; }
+.yance-product-system-settings input,
+.yance-product-system-settings select,
+.yance-product-system-settings textarea { box-sizing: border-box; padding: 6px 9px; }
+.yance-product-system-settings input[type="checkbox"],
+.yance-product-system-settings input[type="range"] { accent-color: var(--accent-primary); }
+.yance-product-system-settings input[type="checkbox"] { min-height: auto; }
+.yance-product-system-settings button:disabled { cursor: default; opacity: 0.55; }
+
+.yance-relationship-world { display: grid; gap: var(--yance-space-4); width: min(100%, 980px); margin: 0 auto; }
+.yance-world-presence,
+.yance-relationship-primary,
+.yance-relationship-moments,
+.yance-relationship-details {
+  margin-top: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-lg);
+  background: var(--surface-card-raised);
+}
+.yance-relationship-primary,
+.yance-relationship-moments { display: grid; gap: var(--yance-space-3); padding: var(--yance-space-4); }
+.yance-relationship-primary > header,
+.yance-relationship-moments > header,
+.yance-relationship-detail-card > header { display: flex; align-items: baseline; justify-content: space-between; gap: var(--yance-space-3); }
+.yance-relationship-conversation-list { display: grid; gap: var(--yance-space-2); }
+.yance-relationship-conversation-list button,
+.yance-relationship-moments button,
+.yance-relationship-detail-card button {
+  min-height: var(--control-min-height);
+  padding: 8px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-sm);
+  color: var(--text-primary);
+  background: var(--surface-control);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.yance-relationship-conversation-list button { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--yance-space-2); }
+.yance-relationship-conversation-list button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--accent-primary) 48%, var(--border-default));
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-control));
+}
+.yance-relationship-conversation-list button span { color: var(--text-secondary); }
+
+.yance-relationship-companion-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--yance-space-2);
+}
+.yance-relationship-companion-actions > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+  align-items: center;
+  min-width: 0;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--surface-card-raised) 90%, var(--accent-primary) 10%), var(--surface-control));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 7%, transparent);
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.yance-relationship-companion-actions > button > span {
+  grid-row: 1 / span 2;
+  font-size: 1.1rem;
+}
+.yance-relationship-companion-actions > button > strong,
+.yance-relationship-companion-actions > button > small {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+.yance-relationship-companion-actions > button > small {
+  color: var(--text-secondary);
+  font-size: .72rem;
+}
+.yance-relationship-companion-actions > button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-primary) 42%, var(--border-default));
+  box-shadow: 0 9px 24px color-mix(in srgb, var(--accent-primary) 12%, transparent);
+}
+.yance-relationship-companion-actions > button:active:not(:disabled) {
+  transform: translateY(0) scale(.985);
+}
+.yance-relationship-details { overflow: clip; background: var(--surface-panel); }
+.yance-relationship-details > summary small { color: var(--text-secondary); font-weight: 500; }
+.yance-relationship-details__body { display: grid; gap: var(--yance-space-3); padding: 0 var(--yance-space-4) var(--yance-space-4); }
+.yance-relationship-detail-card {
+  display: grid;
+  gap: var(--yance-space-3);
+  padding: var(--yance-space-3);
+  border: 1px solid color-mix(in srgb, var(--border-default) 76%, transparent);
+  border-radius: var(--yance-radius-md);
+  background: var(--surface-card);
+}
+.yance-relationship-detail-card textarea,
+.yance-relationship-detail-card select,
+.yance-relationship-detail-card input:not([type="file"]) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--control-min-height);
+  padding: 7px 9px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-sm);
+  color: var(--text-primary);
+  background: var(--surface-control);
+  font: inherit;
+}
+.yance-relationship-detail-card textarea { min-height: 92px; resize: vertical; }
+.yance-relationship-detail-card label { display: grid; gap: 6px; color: var(--text-secondary); }
+.yance-relationship-detail-card > div { display: flex; flex-wrap: wrap; gap: var(--yance-space-2); }
+.yance-relationship-detail-card ul { margin: 0; padding-inline-start: var(--yance-space-5); }
+
+.yance-people-filter { display: flex; flex-wrap: wrap; gap: var(--yance-space-1); margin-bottom: var(--yance-space-3); }
+.yance-people-filter button {
+  min-height: 32px;
+  padding: 5px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-pill);
+  color: var(--text-secondary);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.yance-people-filter button[aria-pressed="true"] { color: var(--text-primary); background: var(--surface-card-raised); font-weight: 700; }
+.yance-product-shell input[type="file"] { max-width: 100%; color: var(--text-secondary); font: inherit; }
+.yance-product-shell input[type="file"]::file-selector-button {
+  margin-inline-end: var(--yance-space-2);
+  padding: 6px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--yance-radius-sm);
+  color: var(--text-primary);
+  background: var(--surface-control);
+  font: inherit;
+  cursor: pointer;
+}
+@media (max-width: 620px) {
+  .yance-product-nav,
+  .yance-secondary-settings__header { align-items: stretch; flex-direction: column; }
+  .yance-product-nav__actions { width: 100%; }
+  .yance-product-nav__actions button { flex: 1 1 0; }
+  .yance-secondary-settings,
+  .yance-relationship-world { width: 100%; }
+  .yance-relationship-conversation-list button { grid-template-columns: 1fr; }
+  .yance-relationship-details > summary { align-items: flex-start; flex-direction: column; }
+}
+
 @media (max-width: 900px) {
   .yance-relationship-universe {
     grid-template-columns: 1fr;
@@ -1457,6 +1866,593 @@
   }
 }
 
+/* Final UI Visual Authority V3: intimate, People-first Product projection. */
+.yance-product-shell {
+  --yance-final-night: #100b19;
+  --yance-final-nebula: #2a1838;
+  --yance-final-intimacy: #ff8bc8;
+  --yance-final-violet: #a78bfa;
+  --yance-final-life: #72f0c6;
+  --yance-final-gold: #ffd36b;
+  --yance-final-danger: #ff6a8d;
+  --yance-final-glass: color-mix(in srgb, var(--surface-card-raised) 84%, var(--yance-final-nebula) 16%);
+  --yance-final-border: color-mix(in srgb, var(--yance-final-intimacy) 24%, var(--border-default));
+  --yance-final-glow: 0 18px 52px color-mix(in srgb, var(--yance-final-intimacy) 12%, transparent);
+  background:
+    radial-gradient(circle at 82% 7%, color-mix(in srgb, var(--yance-final-intimacy) 18%, transparent), transparent 30%),
+    radial-gradient(circle at 16% 24%, color-mix(in srgb, var(--yance-final-violet) 14%, transparent), transparent 32%),
+    linear-gradient(155deg, color-mix(in srgb, var(--surface-app) 70%, var(--yance-final-night) 30%), var(--surface-app));
+}
+
+.yance-product-nav,
+.yance-product-shell .yance-bilingual-search,
+.yance-secondary-settings__header,
+.yance-settings-section,
+.yance-settings-disclosure,
+.yance-world-presence,
+.yance-relationship-primary,
+.yance-relationship-moments,
+.yance-relationship-details {
+  border-color: var(--yance-final-border);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--yance-final-glass) 94%, white 2%), color-mix(in srgb, var(--surface-panel) 92%, var(--yance-final-nebula) 8%));
+  box-shadow: var(--yance-final-glow), inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.yance-product-shell button,
+.yance-action-trigger,
+.yance-action-item,
+.yance-overlay button {
+  cursor: pointer;
+  transition:
+    transform 160ms cubic-bezier(.2,.8,.2,1),
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    opacity 160ms ease;
+}
+
+.yance-product-shell button:not(:disabled):hover,
+.yance-action-trigger:not(:disabled):hover,
+.yance-action-item:not(:disabled):hover,
+.yance-overlay button:not(:disabled):hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--yance-final-intimacy) 48%, var(--border-default));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--yance-final-intimacy) 12%, transparent),
+    0 12px 30px color-mix(in srgb, var(--yance-final-intimacy) 12%, transparent);
+}
+
+.yance-product-shell button:not(:disabled):active,
+.yance-action-trigger:not(:disabled):active,
+.yance-action-item:not(:disabled):active,
+.yance-overlay button:not(:disabled):active {
+  transform: translateY(1px) scale(.99);
+  box-shadow:
+    inset 0 2px 8px color-mix(in srgb, black 24%, transparent),
+    0 4px 14px color-mix(in srgb, var(--yance-final-intimacy) 9%, transparent);
+  transition-duration: 60ms;
+}
+
+.yance-product-nav__actions button,
+.yance-people-view-switch button,
+.yance-people-filter button,
+.yance-people-detail__enter,
+.yance-relationship-universe__enter,
+.yance-secondary-settings__header button,
+.yance-relationship-conversation-list button,
+.yance-relationship-moments button,
+.yance-product-system-settings button,
+.yance-action-trigger,
+.yance-action-item {
+  border-color: var(--yance-final-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-control) 86%, white 5%), color-mix(in srgb, var(--surface-control) 90%, var(--yance-final-nebula) 10%));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 12%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 12%, transparent),
+    0 7px 18px color-mix(in srgb, var(--yance-final-intimacy) 8%, transparent);
+}
+
+.yance-product-nav__actions button[aria-current="page"],
+.yance-people-view-switch button[aria-pressed="true"],
+.yance-people-filter button[aria-pressed="true"],
+.yance-relationship-conversation-list button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--yance-final-intimacy) 58%, var(--border-default));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--yance-final-intimacy) 22%, var(--surface-control)), color-mix(in srgb, var(--yance-final-violet) 10%, var(--surface-control)));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 14%, transparent),
+    0 8px 24px color-mix(in srgb, var(--yance-final-intimacy) 14%, transparent);
+}
+
+.yance-product-shell button[aria-busy="true"],
+.yance-action-trigger[aria-busy="true"],
+.yance-action-item[aria-busy="true"] {
+  background-size: 220% 100%;
+  background-image: linear-gradient(110deg,
+    color-mix(in srgb, var(--surface-control) 92%, transparent) 20%,
+    color-mix(in srgb, var(--yance-final-intimacy) 20%, var(--surface-control)) 45%,
+    color-mix(in srgb, var(--surface-control) 92%, transparent) 70%);
+  animation: yance-final-shimmer 1.25s linear infinite;
+}
+
+.yance-product-shell input[type="text"],
+.yance-product-shell input[type="search"],
+.yance-product-shell input[type="password"],
+.yance-product-shell textarea {
+  cursor: text;
+}
+
+.yance-product-shell input[type="range"] {
+  cursor: ew-resize;
+}
+
+.yance-people-home-grid {
+  display: grid;
+  grid-template-columns: minmax(290px, .82fr) minmax(360px, 1.18fr);
+  align-items: start;
+  gap: var(--yance-space-4);
+  min-width: 0;
+}
+
+.yance-people-home-grid > .yance-people-list {
+  max-height: min(680px, calc(100vh - 260px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 2px 5px 8px 2px;
+}
+
+.yance-person-card {
+  border-color: color-mix(in srgb, var(--yance-final-intimacy) 10%, transparent);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--surface-card-raised) 78%, transparent), color-mix(in srgb, var(--yance-final-nebula) 8%, var(--surface-card)));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
+}
+
+.yance-person-card:hover,
+.yance-person-card:focus-visible,
+.yance-person-card[data-selected] {
+  border-color: color-mix(in srgb, var(--yance-final-intimacy) 44%, var(--border-default));
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--yance-final-intimacy) 11%, var(--surface-card-raised)), color-mix(in srgb, var(--yance-final-violet) 7%, var(--surface-card)));
+}
+
+.yance-person-copy strong,
+.yance-person-copy span {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.yance-people-detail {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: var(--yance-space-4);
+  min-width: 0;
+  padding: clamp(18px, 2vw, 28px);
+  border: 1px solid var(--yance-final-border);
+  border-radius: calc(var(--yance-radius-lg) + 4px);
+  background:
+    radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--yance-final-intimacy) 16%, transparent), transparent 34%),
+    radial-gradient(circle at 12% 82%, color-mix(in srgb, var(--yance-final-violet) 12%, transparent), transparent 38%),
+    linear-gradient(145deg, color-mix(in srgb, var(--surface-card-raised) 90%, var(--yance-final-nebula) 10%), var(--surface-panel));
+  box-shadow: var(--yance-final-glow), inset 0 1px 0 color-mix(in srgb, white 9%, transparent);
+  overflow: hidden;
+}
+
+.yance-people-detail__hero {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--yance-space-4);
+}
+
+.yance-people-detail__hero > div {
+  min-width: 0;
+}
+
+.yance-people-detail__hero h3,
+.yance-people-detail__hero p {
+  margin: 2px 0 0;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.yance-people-detail__hero h3 {
+  font-size: clamp(1.35rem, 2vw, 2rem);
+  line-height: 1.12;
+}
+
+.yance-people-detail__hero p,
+.yance-people-detail__story p,
+.yance-people-detail__story span,
+.yance-people-detail__metrics span {
+  color: var(--text-secondary);
+}
+
+.yance-people-detail__avatar {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--yance-final-intimacy) 58%, var(--border-default));
+  border-radius: 50%;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--yance-final-intimacy) 22%, var(--surface-card)), color-mix(in srgb, var(--yance-final-violet) 18%, var(--surface-card)));
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--yance-final-intimacy) 6%, transparent), 0 16px 42px color-mix(in srgb, var(--yance-final-intimacy) 14%, transparent);
+  font-weight: 760;
+}
+
+.yance-people-detail__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.yance-people-detail__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--yance-space-2);
+}
+
+.yance-people-detail__metrics > div,
+.yance-people-detail__story > section {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-final-intimacy) 15%, var(--border-default));
+  border-radius: var(--yance-radius-md);
+  background: color-mix(in srgb, var(--surface-card) 88%, transparent);
+}
+
+.yance-people-detail__metrics strong,
+.yance-people-detail__story strong {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.yance-people-detail__story {
+  display: grid;
+  gap: var(--yance-space-2);
+}
+
+.yance-people-detail__story p {
+  margin: 0;
+}
+
+.yance-people-detail__enter {
+  min-height: 44px;
+  justify-self: start;
+  padding: 9px 16px;
+  border-radius: var(--yance-radius-pill);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 760;
+}
+
+.yance-people-detail__empty {
+  display: grid;
+  gap: var(--yance-space-2);
+  min-height: 220px;
+  place-content: center;
+  text-align: center;
+}
+
+@keyframes yance-final-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+.yance-relationship-universe__stage {
+  isolation: isolate;
+  border-color: var(--yance-final-border);
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--yance-final-intimacy) 18%, transparent), transparent 18%),
+    radial-gradient(circle at 18% 22%, color-mix(in srgb, var(--yance-final-violet) 14%, transparent), transparent 28%),
+    radial-gradient(circle at 82% 72%, color-mix(in srgb, var(--yance-final-life) 8%, transparent), transparent 26%),
+    linear-gradient(145deg, color-mix(in srgb, var(--surface-card-raised) 88%, var(--yance-final-night) 12%), color-mix(in srgb, var(--surface-panel) 88%, var(--yance-final-nebula) 12%));
+  box-shadow: var(--yance-final-glow), inset 0 0 90px color-mix(in srgb, var(--yance-final-violet) 9%, transparent);
+}
+
+.yance-relationship-universe__stage::before,
+.yance-relationship-universe__stage::after {
+  content: "";
+  position: absolute;
+  inset: 17%;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--yance-final-intimacy) 17%, transparent);
+  border-radius: 50%;
+}
+
+.yance-relationship-universe__stage::after {
+  inset: 31%;
+  border-color: color-mix(in srgb, var(--yance-final-violet) 22%, transparent);
+}
+
+.yance-relationship-universe__spokes,
+.yance-relationship-universe__center,
+.yance-relationship-universe__node {
+  z-index: 1;
+}
+
+.yance-relationship-universe__center {
+  border-color: color-mix(in srgb, var(--yance-final-intimacy) 62%, var(--border-default));
+  background:
+    radial-gradient(circle at 36% 30%, color-mix(in srgb, white 14%, transparent), transparent 28%),
+    linear-gradient(145deg, color-mix(in srgb, var(--yance-final-intimacy) 24%, var(--surface-card-raised)), color-mix(in srgb, var(--yance-final-violet) 18%, var(--surface-card-raised)));
+  box-shadow:
+    0 0 0 12px color-mix(in srgb, var(--yance-final-intimacy) 6%, transparent),
+    0 0 46px color-mix(in srgb, var(--yance-final-intimacy) 20%, transparent);
+}
+
+.yance-relationship-universe__node {
+  border-color: color-mix(in srgb, var(--yance-final-intimacy) 20%, var(--border-default));
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--surface-card-raised) 90%, var(--yance-final-nebula) 10%), color-mix(in srgb, var(--surface-panel) 92%, transparent));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    0 10px 28px color-mix(in srgb, var(--yance-final-intimacy) 10%, transparent);
+}
+
+.yance-relationship-universe__node:not(:disabled):hover {
+  transform: translate(-50%, calc(-50% - 1px));
+}
+
+.yance-relationship-universe__node:not(:disabled):active {
+  transform: translate(-50%, calc(-50% + 1px)) scale(.99);
+}
+
+.yance-relationship-universe__node-copy strong,
+.yance-relationship-universe__node-copy span {
+  overflow: hidden;
+  overflow-wrap: break-word;
+  white-space: normal;
+  word-break: normal;
+  text-overflow: clip;
+}
+
+.yance-relationship-universe__canvas {
+  overflow: auto;
+}
+
+.yance-relationship-universe__stage[data-dense] {
+  min-width: 720px;
+  min-height: 620px;
+}
+
+.yance-relationship-universe__stage[data-dense] .yance-relationship-universe__node {
+  min-width: 76px;
+}
+
+.yance-relationship-universe__stage[data-dense] .yance-relationship-universe__node-copy {
+  display: grid;
+  min-width: 0;
+  font-size: .68rem;
+  line-height: 1.08;
+}
+
+.yance-relationship-universe__insight {
+  border-color: var(--yance-final-border);
+  background:
+    radial-gradient(circle at 90% 8%, color-mix(in srgb, var(--yance-final-intimacy) 13%, transparent), transparent 30%),
+    linear-gradient(155deg, color-mix(in srgb, var(--surface-panel) 92%, var(--yance-final-nebula) 8%), var(--surface-card));
+  box-shadow: var(--yance-final-glow), inset 0 1px 0 color-mix(in srgb, white 7%, transparent);
+}
+
+.yance-relationship-world,
+.yance-secondary-settings {
+  width: min(100%, 1320px);
+}
+
+.yance-relationship-world {
+  grid-template-columns: minmax(300px, .72fr) minmax(0, 1.28fr);
+  align-items: start;
+}
+
+.yance-world-header {
+  grid-column: 1 / -1;
+}
+
+.yance-world-presence {
+  grid-column: 1;
+  grid-row: 2 / span 2;
+  align-content: start;
+}
+
+.yance-relationship-primary {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.yance-relationship-moments {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.yance-relationship-details {
+  grid-column: 1;
+  grid-row: 4;
+}
+
+.yance-relationship-intelligence {
+  grid-column: 2;
+  grid-row: 4;
+}
+
+.yance-world-meta {
+  grid-column: 1 / -1;
+}
+
+.yance-settings-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.yance-product-system-settings {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.yance-product-system-settings > header,
+.yance-product-system-settings > p[role="status"] {
+  grid-column: 1 / -1;
+}
+
+.yance-product-system-settings > .yance-settings-disclosure {
+  min-width: 0;
+}
+
+@media (min-width: 1500px) {
+  .yance-relationship-universe__stage {
+    min-height: 650px;
+  }
+
+  .yance-people-home-grid {
+    grid-template-columns: minmax(340px, .74fr) minmax(520px, 1.26fr);
+  }
+
+  .yance-people-home-grid > .yance-people-list {
+    max-height: min(760px, calc(100vh - 260px));
+  }
+}
+
+@media (max-width: 900px) {
+  .yance-people-home-grid,
+  .yance-relationship-world,
+  .yance-product-system-settings,
+  .yance-settings-grid,
+  .yance-platform-account-zero {
+    grid-template-columns: 1fr;
+  }
+
+  .yance-relationship-companion-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .yance-people-home-grid > .yance-people-list {
+    max-height: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+
+  .yance-people-detail {
+    position: relative;
+    top: auto;
+  }
+
+  .yance-world-header,
+  .yance-world-presence,
+  .yance-relationship-primary,
+  .yance-relationship-moments,
+  .yance-relationship-details,
+  .yance-relationship-intelligence,
+  .yance-world-meta,
+  .yance-product-system-settings > header,
+  .yance-product-system-settings > p[role="status"] {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .yance-relationship-universe__stage {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--yance-space-2);
+    min-height: 0;
+    overflow: visible;
+    padding: var(--yance-space-3);
+  }
+
+  .yance-relationship-universe__stage::before,
+  .yance-relationship-universe__stage::after,
+  .yance-relationship-universe__spokes {
+    display: none;
+  }
+
+  .yance-relationship-universe__center {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 62px;
+    height: 62px;
+    margin: 2px auto 8px;
+    transform: none;
+  }
+
+  .yance-relationship-universe__node {
+    position: relative;
+    left: auto !important;
+    top: auto !important;
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 56px !important;
+    padding: 8px 10px !important;
+    transform: none !important;
+    border-radius: var(--yance-radius-md) !important;
+    box-sizing: border-box;
+  }
+
+  .yance-relationship-universe__node:not(:disabled):hover {
+    transform: translateY(-1px) !important;
+  }
+
+  .yance-relationship-universe__node:not(:disabled):active {
+    transform: translateY(1px) scale(.995) !important;
+  }
+
+  .yance-relationship-universe__stage[data-dense] .yance-relationship-universe__node-copy {
+    display: grid;
+  }
+
+  .yance-relationship-universe__node-copy strong,
+  .yance-relationship-universe__node-copy span {
+    overflow: hidden;
+    overflow-wrap: break-word;
+    white-space: normal;
+    word-break: normal;
+    text-overflow: clip;
+  }
+
+  .yance-relationship-universe__node-avatar {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 620px) {
+  .yance-people-detail__hero {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: var(--yance-space-3);
+  }
+
+  .yance-people-detail__avatar {
+    width: 56px;
+    height: 56px;
+  }
+
+  .yance-people-detail__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .yance-people-detail {
+    padding: var(--yance-space-4);
+  }
+
+  .yance-relationship-universe__stage {
+    padding: var(--yance-space-2);
+  }
+
+  .yance-settings-grid,
+  .yance-product-system-settings {
+    gap: var(--yance-space-2);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .yance-product-shell *,
   .yance-action-popover *,
@@ -1485,4 +2481,3407 @@
 .yance-product-shell[data-reduced-motion] .yance-relationship-universe__node,
 .yance-product-shell[data-reduced-motion] .yance-relationship-universe__center {
   transition: none !important;
+}
+
+/* YANCE_PRODUCT_THEME_TOKENS_V1
+ * Product presentation consumes semantic tokens only. A future theme may override
+ * this token surface without changing Product structure, behavior, or mature owners.
+ */
+.yance-product-shell {
+  --yance-theme-app: var(--surface-app);
+  --yance-theme-panel: var(--surface-panel);
+  --yance-theme-card: var(--surface-card);
+  --yance-theme-card-raised: var(--surface-card-raised);
+  --yance-theme-control: var(--surface-control);
+  --yance-theme-control-hover: var(--surface-control-hover);
+  --yance-theme-text: var(--text-primary);
+  --yance-theme-text-muted: var(--text-secondary);
+  --yance-theme-border: var(--border-default);
+  --yance-theme-accent: var(--accent-primary);
+  --yance-theme-accent-alt: color-mix(in srgb, var(--accent-primary) 72%, var(--text-primary) 28%);
+  --yance-theme-on-accent: var(--text-primary);
+  --yance-theme-highlight: var(--text-primary);
+  --yance-theme-shadow-source: var(--surface-app);
+  --yance-theme-deep: color-mix(in srgb, var(--surface-app) 86%, var(--surface-panel) 14%);
+}
+
+/* YANCE_FINAL_DESKTOP_COMPOSITION_V4
+ * Product-owned presentation only. Mature Element/Matrix lifecycle and security authority stay unchanged.
+ */
+.yance-product-shell {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 18px clamp(18px, 2.6vw, 38px) 42px;
+  color: var(--yance-theme-text);
+  background:
+    radial-gradient(circle at 12% -8%, color-mix(in srgb, var(--yance-theme-accent) 24%, transparent) 0, transparent 34%),
+    radial-gradient(circle at 88% 4%, color-mix(in srgb, var(--yance-theme-accent-alt) 18%, transparent) 0, transparent 30%),
+    linear-gradient(180deg, color-mix(in srgb, var(--yance-theme-panel) 90%, var(--yance-theme-deep) 10%), var(--yance-theme-panel));
+}
+.yance-product-shell > * {
+  width: min(1480px, 100%);
+  margin-inline: auto;
+}
+.yance-product-nav {
+  position: sticky;
+  top: 10px;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 8px 10px 8px 18px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 78%, transparent);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--yance-theme-shadow-source) 16%, transparent);
+  backdrop-filter: blur(22px) saturate(1.18);
+}
+.yance-product-nav__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.yance-product-nav__identity::before {
+  content: "Y";
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--yance-theme-card-raised);
+  background: linear-gradient(145deg, var(--yance-theme-accent), color-mix(in srgb, var(--yance-theme-accent) 48%, var(--yance-theme-highlight) 52%));
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--yance-theme-accent) 28%, transparent);
+  font-weight: 850;
+}
+.yance-product-nav__identity .yance-eyebrow { display: none; }
+.yance-product-nav__identity strong { font-size: 1.02rem; letter-spacing: .01em; }
+.yance-product-nav__actions {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--yance-theme-control) 68%, transparent);
+}
+.yance-product-nav__actions button,
+.yance-people-view-switch button,
+.yance-people-filter button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 12px;
+  padding: 7px 14px;
+  color: var(--yance-theme-text-muted);
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .16s ease, background .16s ease, color .16s ease, box-shadow .16s ease;
+}
+.yance-product-nav__actions button:hover,
+.yance-people-view-switch button:hover,
+.yance-people-filter button:hover {
+  color: var(--yance-theme-text);
+  background: color-mix(in srgb, var(--yance-theme-control-hover) 82%, transparent);
+  transform: translateY(-1px);
+}
+.yance-product-nav__actions button:active,
+.yance-people-view-switch button:active,
+.yance-people-filter button:active { transform: translateY(0) scale(.98); }
+.yance-product-nav__actions button[aria-current="page"],
+.yance-people-view-switch button[aria-pressed="true"],
+.yance-people-filter button[aria-pressed="true"] {
+  color: var(--yance-theme-text);
+  background: color-mix(in srgb, var(--yance-theme-accent) 14%, var(--yance-theme-card-raised));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--yance-theme-accent) 28%, transparent), 0 8px 24px color-mix(in srgb, var(--yance-theme-shadow-source) 10%, transparent);
+}
+.yance-product-shell .yance-bilingual-search {
+  margin: 16px auto 20px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 76%, transparent);
+  backdrop-filter: blur(18px);
+}
+.yance-people {
+  position: relative;
+  display: grid;
+  gap: 18px;
+}
+.yance-people-heading {
+  align-items: end;
+  margin-top: 8px;
+  padding-inline: 4px;
+}
+.yance-people-heading h2 {
+  margin: 2px 0 0;
+  font-size: clamp(1.55rem, 2.2vw, 2.2rem);
+  letter-spacing: -.035em;
+}
+.yance-people-command {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(300px, .7fr);
+  gap: clamp(18px, 3vw, 42px);
+  overflow: hidden;
+  padding: clamp(24px, 4vw, 52px);
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent) 26%, var(--yance-theme-border));
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--yance-theme-accent) 28%, transparent), transparent 38%),
+    radial-gradient(circle at 78% 10%, color-mix(in srgb, var(--yance-theme-highlight) 9%, transparent), transparent 30%),
+    linear-gradient(135deg, color-mix(in srgb, var(--yance-theme-card-raised) 86%, var(--yance-theme-deep) 14%), color-mix(in srgb, var(--yance-theme-card) 92%, var(--yance-theme-accent) 8%));
+  box-shadow: 0 34px 90px color-mix(in srgb, var(--yance-theme-shadow-source) 22%, transparent);
+}
+.yance-people-command::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 360px;
+  height: 360px;
+  right: -110px;
+  bottom: -210px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent) 30%, transparent);
+  box-shadow: 0 0 0 36px color-mix(in srgb, var(--yance-theme-accent) 5%, transparent), 0 0 0 82px color-mix(in srgb, var(--yance-theme-accent) 3%, transparent);
+}
+.yance-people-command__copy { align-self: center; max-width: 760px; }
+.yance-people-command__copy h3 {
+  max-width: 15ch;
+  margin: 8px 0 14px;
+  font-size: clamp(2rem, 4.6vw, 4.8rem);
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+.yance-people-command__copy > p {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--yance-theme-text-muted);
+  font-size: clamp(.96rem, 1.25vw, 1.12rem);
+  line-height: 1.7;
+}
+.yance-people-command__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.yance-people-command__metrics span {
+  padding: 8px 11px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 68%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--yance-theme-control) 72%, transparent);
+  color: var(--yance-theme-text-muted);
+}
+.yance-people-command__metrics strong { color: var(--yance-theme-text); font-size: 1.04em; }
+.yance-people-command__focus {
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr);
+  align-content: center;
+  gap: 14px 16px;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-highlight) 14%, var(--yance-theme-border));
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 66%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--yance-theme-highlight) 8%, transparent);
+  backdrop-filter: blur(18px);
+}
+.yance-people-command__orb {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--yance-theme-highlight) 28%, var(--yance-theme-accent)), var(--yance-theme-accent));
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--yance-theme-accent) 10%, transparent), 0 18px 46px color-mix(in srgb, var(--yance-theme-accent) 28%, transparent);
+  font-weight: 850;
+}
+.yance-people-command__focus p { margin: 4px 0 0; color: var(--yance-theme-text-muted); line-height: 1.5; }
+.yance-people-command__focus > button {
+  grid-column: 1 / -1;
+  min-height: 46px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent) 40%, transparent);
+  border-radius: 15px;
+  color: var(--yance-theme-on-accent);
+  background: linear-gradient(135deg, var(--yance-theme-accent), color-mix(in srgb, var(--yance-theme-accent) 68%, var(--yance-theme-accent-alt) 32%));
+  box-shadow: 0 15px 34px color-mix(in srgb, var(--yance-theme-accent) 25%, transparent);
+  font: inherit;
+  font-weight: 780;
+  cursor: pointer;
+}
+.yance-people-view-switch,
+.yance-people-filter {
+  display: inline-flex;
+  width: fit-content;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 68%, transparent);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 70%, transparent);
+  backdrop-filter: blur(14px);
+}
+.yance-people-filter { margin-top: -8px; }
+.yance-relationship-universe {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(300px, .55fr);
+  gap: 18px;
+  align-items: stretch;
+}
+.yance-relationship-universe__canvas,
+.yance-relationship-universe__insight {
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 74%, transparent);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--yance-theme-shadow-source) 18%, transparent);
+  backdrop-filter: blur(18px);
+}
+.yance-relationship-universe__canvas {
+  position: relative;
+  overflow: hidden;
+  min-height: 560px;
+  padding: 22px;
+}
+.yance-relationship-universe__heading { position: relative; z-index: 4; }
+.yance-relationship-universe__stage {
+  position: relative;
+  min-height: 450px;
+  margin-top: -34px;
+  background: radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--yance-theme-accent) 13%, transparent), transparent 32%);
+}
+.yance-relationship-universe__stage::before,
+.yance-relationship-universe__stage::after {
+  content: "";
+  position: absolute;
+  inset: 15%;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent) 12%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.yance-relationship-universe__stage::after { inset: 27%; opacity: .7; }
+.yance-relationship-universe__center {
+  width: 76px;
+  height: 76px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-highlight) 20%, var(--yance-theme-accent));
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--yance-theme-highlight) 32%, var(--yance-theme-accent)), var(--yance-theme-accent));
+  box-shadow: 0 0 0 12px color-mix(in srgb, var(--yance-theme-accent) 8%, transparent), 0 0 70px color-mix(in srgb, var(--yance-theme-accent) 26%, transparent);
+}
+.yance-relationship-universe__node {
+  min-width: 118px;
+  min-height: 54px;
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 68%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 82%, transparent);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--yance-theme-shadow-source) 14%, transparent);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+}
+.yance-relationship-universe__node[data-focused] {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 60%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--yance-theme-accent) 10%, transparent), 0 18px 42px color-mix(in srgb, var(--yance-theme-accent) 22%, transparent);
+}
+.yance-relationship-universe__insight {
+  align-content: start;
+  padding: 24px;
+}
+.yance-relationship-universe__insight h3 {
+  margin: 6px 0 4px;
+  font-size: clamp(1.5rem, 2.2vw, 2.15rem);
+  letter-spacing: -.035em;
+}
+.yance-relationship-universe__facts { display: grid; gap: 10px; }
+.yance-relationship-universe__facts > div {
+  padding: 12px;
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--yance-theme-control) 72%, transparent);
+}
+.yance-relationship-universe__enter,
+.yance-people-detail__enter {
+  min-height: 46px;
+  border: 0;
+  border-radius: 15px;
+  color: var(--yance-theme-highlight);
+  background: linear-gradient(135deg, var(--yance-theme-accent), color-mix(in srgb, var(--yance-theme-accent) 62%, var(--yance-theme-accent-alt) 38%));
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--yance-theme-accent) 24%, transparent);
+  font: inherit;
+  font-weight: 780;
+  cursor: pointer;
+}
+.yance-people-home-grid {
+  grid-template-columns: minmax(330px, .82fr) minmax(420px, 1.35fr);
+  gap: 18px;
+}
+.yance-people-list { gap: 9px; }
+.yance-person-card {
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 70%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 72%, transparent);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--yance-theme-shadow-source) 10%, transparent);
+  backdrop-filter: blur(12px);
+}
+.yance-person-card:hover {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 34%, var(--yance-theme-border));
+  transform: translateY(-2px);
+}
+.yance-people-detail {
+  position: sticky;
+  top: 92px;
+  align-self: start;
+  padding: 28px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 70%, transparent);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 80% 0, color-mix(in srgb, var(--yance-theme-accent) 15%, transparent), transparent 35%),
+    color-mix(in srgb, var(--yance-theme-card-raised) 78%, transparent);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--yance-theme-shadow-source) 18%, transparent);
+  backdrop-filter: blur(18px);
+}
+.yance-relationship-world {
+  width: min(1380px, 100%);
+  margin-inline: auto;
+}
+.yance-world-header {
+  padding: 22px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 70%, transparent);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 74%, transparent);
+  box-shadow: 0 22px 62px color-mix(in srgb, var(--yance-theme-shadow-source) 16%, transparent);
+  backdrop-filter: blur(18px);
+}
+.yance-world-presence {
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 10% 50%, color-mix(in srgb, var(--yance-theme-accent) 18%, transparent), transparent 32%),
+    color-mix(in srgb, var(--yance-theme-card-raised) 72%, transparent);
+}
+@media (max-width: 980px) {
+  .yance-product-shell { padding: 12px 14px 32px; }
+  .yance-product-nav { top: 6px; border-radius: 18px; }
+  .yance-people-command { grid-template-columns: 1fr; padding: 28px; border-radius: 26px; }
+  .yance-people-command__copy h3 { max-width: 18ch; font-size: clamp(2.2rem, 8vw, 4rem); }
+  .yance-relationship-universe,
+  .yance-people-home-grid { grid-template-columns: 1fr; }
+  .yance-relationship-universe__canvas { min-height: 510px; }
+  .yance-relationship-universe__insight,
+  .yance-people-detail { position: static; }
+}
+@media (max-width: 620px) {
+  .yance-product-shell { padding: 8px 10px 26px; }
+  .yance-product-nav { min-height: 52px; padding: 6px 7px 6px 12px; }
+  .yance-product-nav__identity::before { width: 30px; height: 30px; border-radius: 10px; }
+  .yance-product-nav__actions button { min-height: 34px; padding-inline: 10px; }
+  .yance-people-command { padding: 22px 18px; border-radius: 22px; }
+  .yance-people-command__focus { grid-template-columns: auto 1fr; padding: 16px; }
+  .yance-people-command__metrics { gap: 7px; }
+  .yance-people-view-switch,
+  .yance-people-filter { width: 100%; overflow-x: auto; }
+  .yance-people-view-switch button,
+  .yance-people-filter button { flex: 1 0 auto; }
+  .yance-relationship-universe__canvas { min-height: 470px; padding: 16px; }
+  .yance-relationship-universe__stage { min-height: 395px; margin-top: -20px; }
+  .yance-relationship-universe__node {
+    min-width: 88px;
+    min-height: 54px;
+    padding: 5px 7px;
+    border-radius: 16px;
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+  .yance-relationship-universe__node-copy {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+    font-size: .7rem;
+    line-height: 1.15;
+    text-align: left;
+  }
+  .yance-relationship-universe__node-copy strong,
+  .yance-relationship-universe__node-copy span {
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+  .yance-relationship-universe__insight { padding: 18px; border-radius: 22px; }
+  .yance-people-detail { padding: 20px; border-radius: 22px; }
+}
+
+/* YANCE_FINAL_PEOPLE_HOME_AUTHORITY_V1
+ * Final visual authority: People Home -> Relationship Universe -> Relationship World -> Conversation.
+ * Theme colors/materials are semantic tokens; compact desktop reflows the same content into panes.
+ */
+.yance-product-shell {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  background:
+    radial-gradient(circle at 84% 8%, color-mix(in srgb, var(--yance-theme-accent-alt) 14%, transparent), transparent 32%),
+    radial-gradient(circle at 18% 92%, color-mix(in srgb, var(--yance-theme-accent) 10%, transparent), transparent 30%),
+    var(--yance-theme-app);
+}
+.yance-product-shell > * { width: min(1680px, 100%); }
+.yance-product-nav {
+  position: relative;
+  top: auto;
+  flex: 0 0 auto;
+  min-height: 50px;
+  padding: 6px 8px 6px 14px;
+  border-radius: 16px;
+}
+.yance-product-shell .yance-bilingual-search {
+  flex: 0 0 auto;
+  min-height: 44px;
+  margin: 0 auto;
+  border-radius: 14px;
+}
+.yance-shell-scene {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.yance-people-home {
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+}
+.yance-people-compact-switch {
+  display: none;
+}
+.yance-people-desktop {
+  display: grid;
+  grid-template-columns: minmax(250px, .72fr) minmax(520px, 1.85fr) minmax(270px, .78fr);
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+.yance-people-roster,
+.yance-relationship-portrait,
+.yance-next-actions {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 78%, transparent);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 78%, transparent);
+  box-shadow: 0 18px 46px color-mix(in srgb, var(--yance-theme-shadow-source) 16%, transparent);
+  backdrop-filter: blur(18px) saturate(1.12);
+}
+.yance-people-roster {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 16px 12px 12px;
+}
+.yance-people-roster__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+.yance-people-roster__header h2,
+.yance-next-actions h2 {
+  margin: 3px 0 0;
+  font-size: clamp(1.18rem, 1.6vw, 1.55rem);
+  letter-spacing: -.025em;
+}
+.yance-people-roster .yance-people-filter {
+  width: 100%;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.yance-people-roster .yance-people-filter button {
+  min-width: 0;
+  padding-inline: 6px;
+  font-size: .82rem;
+}
+.yance-people-roster .yance-people-list {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  padding: 2px;
+  margin: 0;
+  align-content: start;
+}
+.yance-people-roster .yance-person-card {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  min-height: 66px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
+}
+.yance-people-roster .yance-person-card:hover,
+.yance-people-roster .yance-person-card[data-selected] {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 42%, var(--yance-theme-border));
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--yance-theme-accent) 18%, var(--yance-theme-card-raised)),
+      color-mix(in srgb, var(--yance-theme-accent-alt) 9%, var(--yance-theme-card-raised)));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--yance-theme-accent) 12%, transparent);
+}
+.yance-person-copy { min-width: 0; display: grid; gap: 2px; }
+.yance-person-copy > span {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  color: var(--yance-theme-text-muted);
+  font-size: .76rem;
+}
+.yance-person-copy__line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--yance-theme-text) !important;
+  font-size: .92rem !important;
+}
+.yance-person-unread {
+  display: grid;
+  min-width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: var(--yance-radius-pill);
+  color: var(--yance-theme-on-accent);
+  background: var(--yance-theme-accent);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--yance-theme-accent) 26%, transparent);
+  font-size: .74rem;
+  font-weight: 800;
+}
+.yance-people-groups { border-top: 1px solid var(--yance-theme-border); padding-top: 8px; }
+.yance-people-groups summary { cursor: pointer; color: var(--yance-theme-text-muted); font-weight: 700; }
+
+.yance-relationship-portrait {
+  display: grid;
+  grid-template-rows: minmax(210px, 1.18fr) minmax(124px, .64fr) minmax(108px, .54fr);
+  gap: 10px;
+  padding: 10px;
+  overflow: hidden;
+}
+.yance-portrait-hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(190px, .82fr) minmax(0, 1.4fr);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 76%, transparent);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--yance-theme-accent) 24%, transparent), transparent 36%),
+    radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--yance-theme-accent-alt) 16%, transparent), transparent 34%),
+    color-mix(in srgb, var(--yance-theme-card-raised) 88%, var(--yance-theme-panel));
+}
+.yance-portrait-photo {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--yance-theme-highlight) 12%, transparent), transparent 34%),
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--yance-theme-accent) 34%, var(--yance-theme-card)),
+      color-mix(in srgb, var(--yance-theme-accent-alt) 22%, var(--yance-theme-card)));
+}
+.yance-portrait-photo img { width: 100%; height: 100%; object-fit: cover; }
+.yance-portrait-photo > span {
+  display: grid;
+  width: clamp(96px, 12vw, 156px);
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--yance-theme-on-accent);
+  background: linear-gradient(145deg, var(--yance-theme-accent), var(--yance-theme-accent-alt));
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--yance-theme-accent) 28%, transparent);
+  font-size: clamp(2rem, 4vw, 4rem);
+  font-weight: 850;
+}
+.yance-portrait-identity {
+  align-self: center;
+  display: grid;
+  gap: 10px;
+  padding: clamp(18px, 2.4vw, 34px);
+}
+.yance-portrait-identity h2 {
+  margin: 0;
+  font-size: clamp(1.85rem, 3.2vw, 3.25rem);
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+.yance-portrait-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.yance-portrait-chips span {
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  border-radius: var(--yance-radius-pill);
+  color: var(--yance-theme-text-muted);
+  background: color-mix(in srgb, var(--yance-theme-control) 72%, transparent);
+  font-size: .76rem;
+}
+.yance-portrait-identity blockquote {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--yance-theme-text-muted);
+  line-height: 1.55;
+}
+.yance-portrait-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.yance-button-primary,
+.yance-button-secondary,
+.yance-button-quiet {
+  min-height: 42px;
+  padding: 8px 16px;
+  border-radius: 14px;
+  font: inherit;
+  font-weight: 780;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.yance-button-primary {
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent) 58%, var(--yance-theme-border));
+  color: var(--yance-theme-on-accent);
+  background: linear-gradient(135deg, var(--yance-theme-accent), var(--yance-theme-accent-alt));
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--yance-theme-accent) 25%, transparent);
+}
+.yance-button-secondary {
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent) 38%, var(--yance-theme-border));
+  color: var(--yance-theme-text);
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 72%, transparent);
+}
+.yance-button-quiet {
+  border: 1px solid var(--yance-theme-border);
+  color: var(--yance-theme-text-muted);
+  background: transparent;
+}
+.yance-button-primary:hover:not(:disabled),
+.yance-button-secondary:hover:not(:disabled),
+.yance-button-quiet:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+}
+.yance-button-primary:active:not(:disabled),
+.yance-button-secondary:active:not(:disabled),
+.yance-button-quiet:active:not(:disabled) { transform: translateY(0) scale(.98); }
+
+.yance-portrait-dashboard {
+  display: grid;
+  grid-template-columns: .9fr 1.08fr 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+.yance-portrait-card {
+  min-width: 0;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 75%, transparent);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--yance-theme-card) 86%, transparent);
+}
+.yance-portrait-card > strong { display: block; margin-top: 8px; font-size: 1.05rem; }
+.yance-portrait-card > p { margin: 6px 0 0; color: var(--yance-theme-text-muted); font-size: .78rem; line-height: 1.45; }
+.yance-portrait-facts { display: grid; gap: 7px; margin: 8px 0 0; }
+.yance-portrait-facts div { display: flex; justify-content: space-between; gap: 8px; }
+.yance-portrait-facts dt { color: var(--yance-theme-text-muted); }
+.yance-portrait-facts dd { margin: 0; font-weight: 750; text-align: right; }
+.yance-portrait-mini-universe button {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: calc(100% - 22px);
+  border: 0;
+  color: var(--yance-theme-text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.yance-mini-orbit {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--yance-theme-accent), color-mix(in srgb, var(--yance-theme-accent-alt) 40%, transparent) 50%, transparent 54%);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--yance-theme-accent) 8%, transparent);
+}
+.yance-portrait-moments {
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 75%, transparent);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--yance-theme-card) 82%, transparent);
+}
+.yance-portrait-moments header strong { display: block; margin-top: 2px; }
+.yance-moment-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.yance-moment-strip article {
+  min-width: 0;
+  padding: 8px 9px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--yance-theme-control) 72%, transparent);
+}
+.yance-moment-strip article span { color: var(--yance-theme-text-muted); font-size: .7rem; }
+.yance-moment-strip article strong,
+.yance-moment-strip article p {
+  display: block;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.yance-moment-strip article p { margin: 3px 0 0; color: var(--yance-theme-text-muted); font-size: .72rem; }
+
+.yance-next-actions {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  gap: 10px;
+  padding: 16px 14px;
+  overflow: hidden;
+}
+.yance-next-actions > header { display: block; }
+.yance-action-recommendations {
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.yance-action-card {
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--yance-theme-control) 72%, transparent);
+}
+.yance-action-card--highlight {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 42%, var(--yance-theme-border));
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--yance-theme-accent) 15%, var(--yance-theme-card)),
+    color-mix(in srgb, var(--yance-theme-accent-alt) 8%, var(--yance-theme-card)));
+}
+.yance-action-card span { display: block; margin-bottom: 5px; color: var(--yance-theme-text-muted); font-size: .72rem; }
+.yance-action-card strong { font-size: .9rem; line-height: 1.4; }
+.yance-next-actions__primary { display: grid; gap: 8px; }
+.yance-relationship-dynamics {
+  padding: 12px;
+  border: 1px solid var(--yance-theme-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--yance-theme-card) 78%, transparent);
+}
+.yance-relationship-dynamics ul { display: grid; gap: 7px; margin: 8px 0 0; padding: 0; list-style: none; }
+.yance-relationship-dynamics li { display: flex; justify-content: space-between; gap: 8px; font-size: .78rem; }
+.yance-relationship-dynamics li span { color: var(--yance-theme-text-muted); text-align: right; }
+.yance-relationship-quote {
+  margin: 0;
+  padding: 10px 4px 0;
+  color: var(--yance-theme-text-muted);
+  font-size: .8rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.yance-people-modebar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.yance-people-modebar h2 { margin: 2px 0 0; }
+.yance-people-modebar__actions button {
+  min-height: 38px;
+  border: 1px solid var(--yance-theme-border);
+  border-radius: 12px;
+  color: var(--yance-theme-text);
+  background: var(--yance-theme-card-raised);
+  cursor: pointer;
+}
+
+@media (max-width: 1120px), (max-height: 680px) {
+  .yance-product-shell { padding: 8px; gap: 7px; }
+  .yance-product-nav { min-height: 44px; }
+  .yance-product-shell .yance-bilingual-search { min-height: 40px; }
+  .yance-people-compact-switch {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    flex: 0 0 auto;
+    margin-bottom: 6px;
+    padding: 4px;
+    border: 1px solid var(--yance-theme-border);
+    border-radius: 13px;
+    background: var(--yance-theme-card-raised);
+  }
+  .yance-people-compact-switch button {
+    min-height: 34px;
+    border: 0;
+    border-radius: 10px;
+    color: var(--yance-theme-text-muted);
+    background: transparent;
+    font: inherit;
+    font-weight: 720;
+    cursor: pointer;
+  }
+  .yance-people-compact-switch button[aria-selected="true"] {
+    color: var(--yance-theme-text);
+    background: color-mix(in srgb, var(--yance-theme-accent) 16%, var(--yance-theme-control));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--yance-theme-accent) 32%, transparent);
+  }
+  .yance-people-desktop { display: block; height: calc(100% - 48px); }
+  .yance-people-roster,
+  .yance-relationship-portrait,
+  .yance-next-actions { display: none; height: 100%; border-radius: 17px; }
+  .yance-people-roster[data-compact-active],
+  .yance-relationship-portrait[data-compact-active],
+  .yance-next-actions[data-compact-active] { display: grid; }
+  .yance-relationship-portrait[data-compact-active] {
+    grid-template-rows: minmax(152px, 1.05fr) minmax(96px, .68fr) minmax(84px, .56fr);
+    gap: 7px;
+    padding: 7px;
+  }
+  .yance-portrait-hero { grid-template-columns: minmax(130px, .65fr) minmax(0, 1.35fr); border-radius: 15px; }
+  .yance-portrait-identity { gap: 6px; padding: 12px 14px; }
+  .yance-portrait-identity h2 { font-size: clamp(1.45rem, 3vw, 2.15rem); }
+  .yance-portrait-identity blockquote {
+    max-height: min(7.5em, 22vh);
+    overflow: auto;
+    scrollbar-gutter: stable;
+    font-size: .78rem;
+  }
+  .yance-portrait-actions { gap: 5px; }
+  .yance-button-primary,
+  .yance-button-secondary,
+  .yance-button-quiet { min-height: 34px; padding: 5px 10px; border-radius: 10px; font-size: .78rem; }
+  .yance-portrait-dashboard { gap: 7px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .yance-portrait-card { padding: 9px; border-radius: 12px; font-size: .74rem; }
+  .yance-portrait-card > p { margin-top: 3px; font-size: .68rem; line-height: 1.28; }
+  .yance-portrait-facts { gap: 3px; margin-top: 4px; }
+  .yance-portrait-moments { padding: 8px 9px; border-radius: 12px; }
+  .yance-moment-strip { gap: 5px; margin-top: 5px; }
+  .yance-moment-strip article { padding: 5px 6px; }
+  .yance-next-actions[data-compact-active] { grid-template-rows: auto minmax(0, 1fr) auto auto auto; }
+  .yance-next-actions .yance-relationship-quote { padding-top: 4px; font-size: .7rem; }
+}
+
+@media (max-width: 760px) {
+  .yance-product-nav__identity strong { font-size: .9rem; }
+  .yance-product-nav__actions button { min-height: 32px; padding-inline: 8px; }
+  .yance-portrait-hero { grid-template-columns: 112px minmax(0, 1fr); }
+  .yance-portrait-chips { gap: 4px; }
+  .yance-portrait-chips span { padding: 3px 6px; font-size: .68rem; }
+  .yance-portrait-mini-universe button { grid-template-columns: 40px 1fr; }
+  .yance-mini-orbit { width: 38px; height: 38px; }
+}
+
+/* YANCE_DESKTOP_RAIL_V1 */
+.yance-product-shell {
+  position: relative;
+  padding-left: 102px;
+}
+.yance-product-shell > .yance-desktop-rail {
+  width: 82px;
+}
+.yance-desktop-rail {
+  position: absolute;
+  z-index: 95;
+  left: 10px;
+  top: 10px;
+  bottom: 12px;
+  display: grid;
+  grid-auto-rows: min-content;
+  align-content: start;
+  gap: 6px;
+  padding: 10px 7px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 76%, transparent);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--yance-theme-card-raised) 88%, transparent),
+      color-mix(in srgb, var(--yance-theme-panel) 82%, transparent));
+  box-shadow: 0 20px 54px color-mix(in srgb, var(--yance-theme-shadow-source) 18%, transparent);
+  backdrop-filter: blur(20px) saturate(1.12);
+}
+.yance-desktop-rail__brand {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  padding: 4px 2px 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--yance-theme-border) 70%, transparent);
+}
+.yance-desktop-rail__brand > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 13px;
+  color: var(--yance-theme-on-accent);
+  background: linear-gradient(145deg, var(--yance-theme-accent), var(--yance-theme-accent-alt));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--yance-theme-accent) 24%, transparent);
+  font-weight: 850;
+}
+.yance-desktop-rail__brand strong {
+  font-size: .72rem;
+}
+.yance-desktop-rail > button {
+  display: grid;
+  min-height: 54px;
+  place-items: center;
+  gap: 3px;
+  padding: 5px 3px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--yance-theme-text-muted);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  transition: transform .14s ease, color .14s ease, background .14s ease, box-shadow .14s ease;
+}
+.yance-desktop-rail > button > span {
+  font-size: 1.08rem;
+  line-height: 1;
+}
+.yance-desktop-rail > button > strong {
+  font-size: .68rem;
+  white-space: nowrap;
+}
+.yance-desktop-rail > button:hover:not(:disabled) {
+  color: var(--yance-theme-text);
+  background: color-mix(in srgb, var(--yance-theme-control-hover) 82%, transparent);
+  transform: translateY(-1px);
+}
+.yance-desktop-rail > button:active:not(:disabled) {
+  transform: translateY(0) scale(.97);
+}
+.yance-desktop-rail > button[aria-current="page"],
+.yance-desktop-rail > button[aria-pressed="true"] {
+  color: var(--yance-theme-text);
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 42%, var(--yance-theme-border));
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--yance-theme-accent) 20%, var(--yance-theme-card-raised)),
+      color-mix(in srgb, var(--yance-theme-accent-alt) 9%, var(--yance-theme-card-raised)));
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--yance-theme-accent) 14%, transparent);
+}
+.yance-desktop-rail > button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+.yance-product-nav__actions {
+  display: none;
+}
+
+@media (max-width: 1120px), (max-height: 680px) {
+  .yance-product-shell {
+    padding-left: 8px;
+    padding-bottom: 66px;
+  }
+  .yance-product-shell > .yance-desktop-rail {
+    width: auto;
+  }
+  .yance-desktop-rail {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 7px;
+    height: 52px;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+    border-radius: 15px;
+  }
+  .yance-desktop-rail__brand {
+    display: none;
+  }
+  .yance-desktop-rail > button {
+    min-height: 42px;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    gap: 5px;
+    padding: 4px 5px;
+    border-radius: 10px;
+  }
+  .yance-desktop-rail > button > span {
+    font-size: .9rem;
+  }
+  .yance-desktop-rail > button > strong {
+    font-size: .64rem;
+  }
+}
+
+/* YANCE_COMPACT_SAME_COMPOSITION_V3
+ * Compact desktop keeps the exact People Home information architecture.
+ * At 840-class widths the same People -> Portrait -> Next Step content reflows vertically
+ * and the existing Product root remains the single native vertical scroll owner.
+ */
+@media (max-width: 1120px), (max-height: 680px) {
+  .yance-people-compact-switch {
+    display: none !important;
+  }
+
+  .yance-people-desktop {
+    display: grid !important;
+    grid-template-columns:
+      minmax(168px, .72fr)
+      minmax(360px, 1.85fr)
+      minmax(168px, .78fr);
+    gap: 6px;
+    height: 100% !important;
+    min-height: 0;
+  }
+
+  .yance-people-roster,
+  .yance-relationship-portrait,
+  .yance-next-actions,
+  .yance-people-roster[data-compact-active],
+  .yance-relationship-portrait[data-compact-active],
+  .yance-next-actions[data-compact-active] {
+    display: grid !important;
+    height: 100% !important;
+    min-height: 0;
+    border-radius: 14px;
+  }
+
+  .yance-people-roster {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: 5px;
+    padding: 9px 7px 7px;
+  }
+
+  .yance-people-roster__header h2,
+  .yance-next-actions h2 {
+    font-size: 1rem;
+  }
+
+  .yance-people-roster .yance-people-filter {
+    gap: 2px;
+    padding: 2px;
+  }
+
+  .yance-people-roster .yance-people-filter button {
+    min-height: 28px;
+    padding: 3px 2px;
+    font-size: .66rem;
+  }
+
+  .yance-people-roster .yance-person-card {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    min-height: 50px;
+    padding: 5px 6px;
+    border-radius: 11px;
+  }
+
+  .yance-people-roster .yance-avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .yance-person-copy__line {
+    font-size: .76rem !important;
+  }
+
+  .yance-person-copy > span {
+    font-size: .62rem;
+  }
+
+  .yance-person-unread {
+    min-width: 20px;
+    height: 20px;
+    font-size: .62rem;
+  }
+
+  .yance-relationship-portrait {
+    grid-template-rows: minmax(132px, 1.15fr) minmax(82px, .66fr) minmax(72px, .52fr) !important;
+    gap: 5px !important;
+    padding: 5px !important;
+  }
+
+  .yance-portrait-hero {
+    grid-template-columns: minmax(110px, .7fr) minmax(0, 1.45fr) !important;
+    border-radius: 12px;
+  }
+
+  .yance-portrait-photo > span {
+    width: clamp(72px, 9vw, 104px);
+    font-size: clamp(1.45rem, 3vw, 2.4rem);
+  }
+
+  .yance-portrait-identity {
+    gap: 4px !important;
+    padding: 8px 10px !important;
+  }
+
+  .yance-portrait-identity h2 {
+    font-size: clamp(1.15rem, 2.5vw, 1.8rem) !important;
+    line-height: 1.02;
+  }
+
+  .yance-portrait-chips {
+    gap: 3px !important;
+  }
+
+  .yance-portrait-chips span {
+    padding: 2px 5px !important;
+    font-size: .6rem !important;
+  }
+
+  .yance-portrait-identity blockquote {
+    max-height: none !important;
+    overflow: visible !important;
+    font-size: .66rem !important;
+    line-height: 1.25;
+  }
+
+  .yance-portrait-actions {
+    gap: 4px !important;
+  }
+
+  .yance-button-primary,
+  .yance-button-secondary,
+  .yance-button-quiet {
+    min-height: 29px !important;
+    padding: 3px 7px !important;
+    border-radius: 8px !important;
+    font-size: .65rem !important;
+  }
+
+  .yance-portrait-dashboard {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+  }
+
+  .yance-portrait-card {
+    padding: 7px !important;
+    border-radius: 10px !important;
+    font-size: .64rem !important;
+  }
+
+  .yance-portrait-card > strong {
+    margin-top: 3px;
+    font-size: .72rem;
+  }
+
+  .yance-portrait-card > p {
+    margin-top: 2px !important;
+    font-size: .58rem !important;
+    line-height: 1.22 !important;
+  }
+
+  .yance-portrait-facts {
+    gap: 2px !important;
+    margin-top: 3px !important;
+    font-size: .59rem;
+  }
+
+  .yance-portrait-mini-universe button {
+    grid-template-columns: 32px minmax(0, 1fr) !important;
+    gap: 5px !important;
+    font-size: .62rem;
+  }
+
+  .yance-mini-orbit {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .yance-portrait-moments {
+    padding: 6px 7px !important;
+    border-radius: 10px !important;
+  }
+
+  .yance-portrait-moments header {
+    font-size: .66rem;
+  }
+
+  .yance-moment-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 3px !important;
+    margin-top: 3px !important;
+  }
+
+  .yance-moment-strip article {
+    padding: 4px !important;
+    border-radius: 7px !important;
+  }
+
+  .yance-moment-strip article span,
+  .yance-moment-strip article p {
+    font-size: .54rem !important;
+  }
+
+  .yance-moment-strip article strong {
+    font-size: .6rem;
+  }
+
+  .yance-next-actions {
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto !important;
+    gap: 5px !important;
+    padding: 9px 7px !important;
+    overflow: hidden !important;
+  }
+
+  .yance-action-recommendations {
+    gap: 4px !important;
+  }
+
+  .yance-action-card {
+    padding: 7px !important;
+    border-radius: 9px !important;
+  }
+
+  .yance-action-card span {
+    margin-bottom: 2px !important;
+    font-size: .56rem !important;
+  }
+
+  .yance-action-card strong {
+    font-size: .66rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .yance-next-actions__primary {
+    gap: 4px !important;
+  }
+
+  .yance-relationship-dynamics {
+    padding: 6px !important;
+    border-radius: 9px !important;
+    font-size: .58rem;
+  }
+
+  .yance-relationship-dynamics ul {
+    gap: 3px !important;
+    margin-top: 4px !important;
+  }
+
+  .yance-relationship-dynamics li {
+    gap: 4px !important;
+    font-size: .56rem !important;
+  }
+
+  .yance-relationship-quote {
+    padding-top: 2px !important;
+    font-size: .56rem !important;
+    line-height: 1.25 !important;
+  }
+}
+
+@media (max-width: 860px) {
+  .yance-product-shell {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  .yance-shell-scene,
+  .yance-people-home {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .yance-people-desktop {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto !important;
+    align-content: start;
+  }
+
+  .yance-people-roster,
+  .yance-relationship-portrait,
+  .yance-next-actions,
+  .yance-people-roster[data-compact-active],
+  .yance-relationship-portrait[data-compact-active],
+  .yance-next-actions[data-compact-active] {
+    display: grid !important;
+    height: auto !important;
+    min-height: 0;
+  }
+
+  .yance-people-roster {
+    grid-template-rows: auto auto auto auto;
+  }
+
+  .yance-people-roster .yance-people-list,
+  .yance-action-recommendations {
+    overflow: visible !important;
+  }
+
+  .yance-relationship-portrait {
+    grid-template-rows: auto auto auto !important;
+  }
+
+  .yance-next-actions {
+    grid-template-rows: auto auto auto auto auto !important;
+    overflow: visible !important;
+  }
+
+  .yance-product-shell .yance-bilingual-search {
+    min-height: 34px;
+  }
+
+  .yance-product-nav {
+    min-height: 38px;
+  }
+
+  .yance-desktop-rail {
+    height: 46px;
+  }
+}
+
+/* YANCE_ACCOUNT_ONBOARDING_AND_CONVERSATION_V1 */
+.yance-platform-account-catalog {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.yance-platform-account-catalog > p { grid-column: 1 / -1; margin: 0 0 4px; color: var(--yance-theme-text-muted); }
+.yance-platform-account-catalog > button {
+  display: grid;
+  gap: 4px;
+  min-height: 68px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 78%, transparent);
+  border-radius: 14px;
+  color: var(--yance-theme-text);
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 80%, transparent);
+  text-align: left;
+  cursor: pointer;
+}
+.yance-platform-account-catalog > button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 46%, var(--yance-theme-border));
+  background: color-mix(in srgb, var(--yance-theme-accent) 12%, var(--yance-theme-card-raised));
+  transform: translateY(-1px);
+}
+.yance-platform-account-catalog > button:disabled { opacity: .58; cursor: not-allowed; }
+.yance-platform-account-catalog > button span { color: var(--yance-theme-text-muted); font-size: .76rem; line-height: 1.35; }
+.yance-platform-account-continuation { display: grid; gap: 8px; margin-top: 10px; }
+.yance-platform-account-continuation details { border-top: 1px solid var(--yance-theme-border); padding-top: 8px; }
+.yance-platform-account-continuation summary { cursor: pointer; color: var(--yance-theme-text-muted); }
+.yance-platform-auth-primary {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 56%, var(--yance-theme-border)) !important;
+  color: var(--yance-theme-on-accent) !important;
+  background: linear-gradient(135deg, var(--yance-theme-accent), var(--yance-theme-accent-alt)) !important;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--yance-theme-accent) 22%, transparent);
+}
+.yance-platform-auth-qr {
+  display: grid;
+  width: min(260px, 100%);
+  gap: 7px;
+  margin: 4px 0;
+  padding: 12px;
+  border: 1px solid var(--yance-theme-border);
+  border-radius: 16px;
+  background: var(--yance-theme-card);
+}
+.yance-platform-auth-qr img { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 10px; }
+.yance-platform-auth-qr figcaption { color: var(--yance-theme-text-muted); font-size: .75rem; line-height: 1.4; }
+.yance-platform-pairing-code strong { letter-spacing: .12em; font-size: 1.2rem; }
+.yance-platform-page-choice { display: grid; gap: 6px; }
+.yance-platform-page-choice button {
+  display: flex; justify-content: space-between; gap: 10px; align-items: center;
+  padding: 9px 10px; border: 1px solid var(--yance-theme-border); border-radius: 11px;
+  color: var(--yance-theme-text); background: var(--yance-theme-control); cursor: pointer;
+}
+.yance-platform-page-choice button span { color: var(--yance-theme-text-muted); font-size: .72rem; }
+
+.yance-shell-scene--conversation { height: 100%; min-height: 0; overflow: hidden; }
+.yance-product-conversation {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 9px;
+  height: 100%;
+  min-height: 0;
+}
+.yance-product-conversation__header {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 78%, transparent);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 82%, transparent);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--yance-theme-shadow-source) 14%, transparent);
+}
+.yance-product-conversation__back {
+  width: 36px; height: 36px; border: 1px solid var(--yance-theme-border); border-radius: 11px;
+  color: var(--yance-theme-text); background: var(--yance-theme-control); cursor: pointer;
+}
+.yance-product-conversation__avatar {
+  display: grid; width: 42px; height: 42px; place-items: center; overflow: hidden;
+  border-radius: 50%; color: var(--yance-theme-on-accent);
+  background: linear-gradient(145deg, var(--yance-theme-accent), var(--yance-theme-accent-alt));
+  font-weight: 820;
+}
+.yance-product-conversation__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.yance-product-conversation__identity { min-width: 0; }
+.yance-product-conversation__identity h2 { margin: 1px 0 2px; font-size: 1.15rem; }
+.yance-product-conversation__identity p { margin: 0; color: var(--yance-theme-text-muted); font-size: .72rem; }
+.yance-product-conversation__header-actions { display: flex; gap: 6px; }
+.yance-product-conversation__header-actions button {
+  min-height: 34px; padding: 5px 10px; border: 1px solid var(--yance-theme-border); border-radius: 10px;
+  color: var(--yance-theme-text); background: var(--yance-theme-control); cursor: pointer;
+}
+.yance-product-conversation__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  gap: 9px;
+  min-height: 0;
+}
+.yance-product-conversation__room,
+.yance-product-conversation__context {
+  min-width: 0; min-height: 0; overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 78%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 84%, transparent);
+}
+.yance-product-conversation__room { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.yance-product-conversation__room-owner {
+  display: flex; justify-content: space-between; gap: 8px; align-items: center;
+  padding: 7px 11px; border-bottom: 1px solid var(--yance-theme-border);
+  color: var(--yance-theme-text-muted); font-size: .7rem;
+}
+.yance-product-conversation__room-owner strong { color: var(--yance-theme-text); font-size: .68rem; }
+.yance-product-conversation__room-view { min-height: 0; overflow: hidden; }
+.yance-product-conversation__room-view > * { height: 100%; min-height: 0; }
+.yance-product-conversation__context {
+  display: grid; align-content: start; gap: 8px; padding: 13px;
+}
+.yance-product-conversation__context h3 { margin: 0; font-size: 1.35rem; }
+.yance-product-conversation__context > p { margin: 0; color: var(--yance-theme-text-muted); }
+.yance-product-conversation__context article {
+  padding: 10px; border: 1px solid var(--yance-theme-border); border-radius: 12px;
+  background: color-mix(in srgb, var(--yance-theme-control) 72%, transparent);
+}
+.yance-product-conversation__context article span { display: block; margin-bottom: 4px; color: var(--yance-theme-text-muted); font-size: .68rem; }
+.yance-product-conversation__context article strong { display: block; font-size: .86rem; }
+.yance-product-conversation__context article p { margin: 5px 0 0; color: var(--yance-theme-text-muted); font-size: .72rem; line-height: 1.4; overflow-wrap: anywhere; }
+
+@media (max-width: 980px), (max-height: 680px) {
+  .yance-platform-account-catalog { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .yance-product-conversation__header { min-height: 52px; padding: 6px 8px; border-radius: 13px; }
+  .yance-product-conversation__avatar { width: 34px; height: 34px; }
+  .yance-product-conversation__body { grid-template-columns: minmax(0, 1fr) minmax(150px, 190px); gap: 6px; }
+  .yance-product-conversation__context { padding: 8px; gap: 5px; }
+  .yance-product-conversation__context article { padding: 6px; }
+}
+
+/* YANCE_FINAL_VISUAL_AUTHORITY_V5
+ * Visual authority: approved People Home + immersive Conversation references.
+ * Colors remain semantic theme tokens; mature Element/Matrix keeps timeline/composer/send/crypto authority.
+ */
+.yance-desktop-rail__brand > span svg,
+.yance-product-nav__mark svg,
+.yance-product-conversation__brand-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.yance-desktop-rail__brand > span {
+  padding: 7px;
+}
+.yance-product-nav__identity::before {
+  display: none;
+}
+.yance-product-nav__mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  padding: 6px;
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--yance-theme-accent) 18%, var(--yance-theme-card-raised)),
+      color-mix(in srgb, var(--yance-theme-accent-alt) 18%, var(--yance-theme-card-raised))
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--yance-theme-highlight) 10%, transparent),
+    0 10px 26px color-mix(in srgb, var(--yance-theme-accent) 20%, transparent);
+}
+
+.yance-product-shell[data-conversation-active] {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--yance-theme-app);
+}
+.yance-product-shell[data-conversation-active] > * {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+.yance-product-shell[data-conversation-active] > .yance-shell-scene--conversation {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.yance-shell-scene--conversation {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.yance-product-conversation--immersive {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-rows: 54px minmax(136px, 22vh) minmax(0, 1fr);
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--yance-theme-text);
+  background:
+    radial-gradient(circle at 74% 8%, color-mix(in srgb, var(--yance-theme-accent-alt) 18%, transparent), transparent 34%),
+    radial-gradient(circle at 20% 22%, color-mix(in srgb, var(--yance-theme-accent) 13%, transparent), transparent 30%),
+    var(--yance-theme-deep);
+}
+.yance-product-conversation__topbar {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 6px 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--yance-theme-border) 76%, transparent);
+  background: color-mix(in srgb, var(--yance-theme-app) 74%, transparent);
+  box-shadow: 0 12px 38px color-mix(in srgb, var(--yance-theme-shadow-source) 15%, transparent);
+  backdrop-filter: blur(22px) saturate(1.18);
+}
+.yance-product-conversation__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 3px 5px;
+  border: 0;
+  color: var(--yance-theme-text);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.yance-product-conversation__brand-mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 6px;
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--yance-theme-accent) 18%, var(--yance-theme-card-raised)),
+      color-mix(in srgb, var(--yance-theme-accent-alt) 18%, var(--yance-theme-card-raised))
+    );
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--yance-theme-accent) 22%, transparent);
+}
+.yance-product-conversation__brand > span:last-child {
+  display: grid;
+  gap: 1px;
+}
+.yance-product-conversation__brand strong {
+  font-size: .94rem;
+  letter-spacing: .01em;
+}
+.yance-product-conversation__brand small {
+  color: var(--yance-theme-text-muted);
+  font-size: .66rem;
+}
+.yance-product-conversation__top-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+.yance-product-conversation__top-actions button {
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 76%, transparent);
+  border-radius: 12px;
+  color: var(--yance-theme-text);
+  background: color-mix(in srgb, var(--yance-theme-control) 72%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--yance-theme-highlight) 6%, transparent);
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 720;
+  cursor: pointer;
+  transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.yance-product-conversation__top-actions button:hover,
+.yance-product-conversation__brand:hover {
+  transform: translateY(-1px);
+}
+.yance-product-conversation__top-actions button:hover {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 40%, var(--yance-theme-border));
+  background: color-mix(in srgb, var(--yance-theme-accent) 10%, var(--yance-theme-control));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--yance-theme-accent) 12%, transparent);
+}
+.yance-product-conversation__top-actions button:active,
+.yance-product-conversation__brand:active {
+  transform: translateY(0) scale(.98);
+}
+
+.yance-product-conversation__hero {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, .36fr);
+  align-items: end;
+  gap: 24px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px clamp(22px, 4vw, 56px) 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--yance-theme-deep) 94%, transparent) 0%,
+      color-mix(in srgb, var(--yance-theme-deep) 70%, transparent) 44%,
+      color-mix(in srgb, var(--yance-theme-card-raised) 30%, transparent) 100%
+    );
+}
+.yance-product-conversation__hero-media,
+.yance-product-conversation__hero-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.yance-product-conversation__hero-media {
+  z-index: -3;
+  left: 32%;
+  overflow: hidden;
+}
+.yance-product-conversation__hero-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 32%;
+  filter: saturate(.9) contrast(1.02);
+  transform: scale(1.03);
+}
+.yance-product-conversation__hero-scrim {
+  z-index: -2;
+  background:
+    linear-gradient(
+      90deg,
+      var(--yance-theme-deep) 0%,
+      color-mix(in srgb, var(--yance-theme-deep) 92%, transparent) 30%,
+      color-mix(in srgb, var(--yance-theme-deep) 40%, transparent) 70%,
+      color-mix(in srgb, var(--yance-theme-deep) 72%, transparent) 100%
+    ),
+    linear-gradient(180deg, transparent 50%, color-mix(in srgb, var(--yance-theme-deep) 72%, transparent));
+}
+.yance-product-conversation__profile {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  max-width: 720px;
+}
+.yance-product-conversation__avatar {
+  display: grid;
+  width: 78px;
+  height: 78px;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--yance-theme-highlight) 34%, var(--yance-theme-accent));
+  border-radius: 50%;
+  color: var(--yance-theme-text);
+  background:
+    radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--yance-theme-highlight) 18%, var(--yance-theme-accent)), var(--yance-theme-accent-alt));
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--yance-theme-accent) 9%, transparent),
+    0 18px 46px color-mix(in srgb, var(--yance-theme-shadow-source) 26%, transparent);
+  font-size: 1.34rem;
+  font-weight: 820;
+}
+.yance-product-conversation__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.yance-product-conversation__identity {
+  min-width: 0;
+}
+.yance-product-conversation__identity h2 {
+  margin: 2px 0 4px;
+  font-size: clamp(1.45rem, 2.6vw, 2.35rem);
+  line-height: 1;
+  letter-spacing: -.035em;
+  text-shadow: 0 8px 28px color-mix(in srgb, var(--yance-theme-shadow-source) 46%, transparent);
+}
+.yance-product-conversation__presence {
+  margin: 0;
+  color: color-mix(in srgb, var(--yance-theme-text) 78%, var(--yance-theme-text-muted));
+  font-size: .76rem;
+}
+.yance-product-conversation__identity blockquote {
+  max-width: 50ch;
+  margin: 8px 0 0;
+  color: var(--yance-theme-text-muted);
+  font-size: .78rem;
+  line-height: 1.45;
+}
+.yance-product-conversation__hero-context {
+  justify-self: end;
+  display: grid;
+  align-content: end;
+  justify-items: end;
+  gap: 6px;
+  max-width: 320px;
+}
+.yance-product-conversation__hero-context span {
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  border-radius: 999px;
+  color: var(--yance-theme-text);
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 58%, transparent);
+  backdrop-filter: blur(14px);
+  font-size: .7rem;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.yance-product-conversation__room {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--yance-theme-deep) 74%, transparent), color-mix(in srgb, var(--yance-theme-app) 90%, transparent));
+}
+.yance-product-conversation__room::before {
+  content: "";
+  position: absolute;
+  inset: -26px;
+  z-index: -2;
+  background-image:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--yance-theme-app) 68%, transparent),
+      color-mix(in srgb, var(--yance-theme-app) 82%, transparent)
+    ),
+    var(--yance-conversation-bg, none);
+  background-size: cover;
+  background-position: center;
+  filter: blur(20px) saturate(.72);
+  opacity: .42;
+  transform: scale(1.06);
+  pointer-events: none;
+}
+.yance-product-conversation__room::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 70% 30%, color-mix(in srgb, var(--yance-theme-accent-alt) 8%, transparent), transparent 35%),
+    color-mix(in srgb, var(--yance-theme-app) 36%, transparent);
+  pointer-events: none;
+}
+.yance-product-conversation__room-view {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.yance-product-conversation__room-view > * {
+  height: 100%;
+  min-height: 0;
+}
+
+.yance-product-conversation__workspace {
+  display: grid;
+  grid-template-columns: minmax(188px, 236px) minmax(0, 1fr) minmax(224px, 286px);
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px 10px 10px;
+}
+
+.yance-product-conversation__people,
+.yance-product-conversation__insight {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 78%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 78%, transparent);
+  box-shadow: 0 16px 38px color-mix(in srgb, var(--yance-theme-shadow-source) 14%, transparent);
+  backdrop-filter: blur(18px) saturate(1.12);
+}
+
+.yance-product-conversation__people {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: 11px 8px 8px;
+}
+
+.yance-product-conversation__people > header {
+  display: grid;
+  gap: 2px;
+  padding: 0 4px 8px;
+}
+
+.yance-product-conversation__people-list {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.yance-product-conversation__people-list > button {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 6px 7px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  color: var(--yance-theme-text);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
+}
+
+.yance-product-conversation__people-list > button:hover:not(:disabled),
+.yance-product-conversation__people-list > button[data-active] {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 38%, var(--yance-theme-border));
+  background: color-mix(in srgb, var(--yance-theme-accent) 11%, var(--yance-theme-control));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--yance-theme-accent) 11%, transparent);
+}
+
+.yance-product-conversation__people-list > button:active:not(:disabled) {
+  transform: scale(.985);
+}
+
+.yance-product-conversation__people-list > button:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+}
+
+.yance-product-conversation__people-avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: var(--yance-theme-on-accent);
+  background: linear-gradient(145deg, var(--yance-theme-accent), var(--yance-theme-accent-alt));
+  font-size: .68rem;
+  font-weight: 820;
+}
+
+.yance-product-conversation__people-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.yance-product-conversation__people-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.yance-product-conversation__people-copy strong,
+.yance-product-conversation__people-copy small {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.yance-product-conversation__people-copy strong {
+  font-size: .78rem;
+}
+
+.yance-product-conversation__people-copy small {
+  color: var(--yance-theme-text-muted);
+  font-size: .64rem;
+  line-height: 1.25;
+}
+
+.yance-product-conversation__people-list em {
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--yance-theme-on-accent);
+  background: var(--yance-theme-accent);
+  font-size: .6rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.yance-product-conversation__workspace > .yance-product-conversation__room {
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  border-radius: 18px;
+}
+
+.yance-product-conversation__insight {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow: auto;
+  padding: 13px;
+  scrollbar-width: thin;
+}
+
+.yance-product-conversation__insight h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.yance-product-conversation__insight > p {
+  margin: 0 0 2px;
+  color: var(--yance-theme-text-muted);
+  font-size: .74rem;
+  line-height: 1.45;
+}
+
+.yance-product-conversation__insight article {
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--yance-theme-control) 72%, transparent);
+}
+
+.yance-product-conversation__insight article > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--yance-theme-text-muted);
+  font-size: .64rem;
+}
+
+.yance-product-conversation__insight article > strong {
+  display: block;
+  font-size: .82rem;
+  line-height: 1.35;
+}
+
+.yance-product-conversation__insight article > p {
+  margin: 5px 0 0;
+  color: var(--yance-theme-text-muted);
+  font-size: .68rem;
+  line-height: 1.4;
+}
+
+.yance-product-conversation__insight > button {
+  min-height: 36px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent) 42%, var(--yance-theme-border));
+  border-radius: 12px;
+  color: var(--yance-theme-text);
+  background: color-mix(in srgb, var(--yance-theme-accent) 12%, var(--yance-theme-control));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--yance-theme-highlight) 7%, transparent);
+  font: inherit;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.yance-product-conversation__insight > button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--yance-theme-accent) 12%, transparent);
+}
+
+/* Mature Element RoomView is rendered only through builtins.renderRoomView.
+ * Product presentation does not target Element private selectors.
+ */
+@media (max-width: 980px), (max-height: 680px) {
+  .yance-product-conversation--immersive { grid-template-rows: 46px minmax(104px, 19vh) minmax(0, 1fr); }
+  .yance-product-conversation__topbar { padding: 4px 10px; }
+  .yance-product-conversation__brand-mark { width: 30px; height: 30px; padding: 6px; border-radius: 10px; }
+  .yance-product-conversation__brand small { display: none; }
+  .yance-product-conversation__top-actions button { min-height: 30px; padding: 4px 8px; font-size: .68rem; }
+  .yance-product-conversation__hero { grid-template-columns: minmax(0, 1fr) minmax(128px, .28fr); gap: 10px; padding: 8px 14px 9px; }
+  .yance-product-conversation__profile { grid-template-columns: 56px minmax(0, 1fr); gap: 10px; }
+  .yance-product-conversation__avatar { width: 56px; height: 56px; font-size: 1rem; }
+  .yance-product-conversation__identity h2 { font-size: clamp(1.1rem, 3vw, 1.5rem); }
+  .yance-product-conversation__identity blockquote { margin-top: 4px; font-size: .64rem; line-height: 1.25; }
+  .yance-product-conversation__presence { font-size: .62rem; }
+  .yance-product-conversation__hero-context { gap: 3px; }
+  .yance-product-conversation__hero-context span { padding: 3px 6px; font-size: .58rem; white-space: normal; overflow-wrap: anywhere; }
+  .yance-product-conversation__workspace {
+    grid-template-columns: minmax(142px, 168px) minmax(0, 1fr) minmax(160px, 190px);
+    gap: 5px;
+    padding: 5px 6px 7px;
+  }
+  .yance-product-conversation__people { padding: 7px 5px 5px; }
+  .yance-product-conversation__people-list > button {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    min-height: 44px;
+    gap: 5px;
+    padding: 4px 5px;
+  }
+  .yance-product-conversation__people-avatar { width: 30px; height: 30px; }
+  .yance-product-conversation__people-copy strong { font-size: .68rem; }
+  .yance-product-conversation__people-copy small { font-size: .56rem; }
+  .yance-product-conversation__insight { gap: 5px; padding: 8px; }
+  .yance-product-conversation__insight h3 { font-size: .92rem; }
+  .yance-product-conversation__insight > p,
+  .yance-product-conversation__insight article > p { font-size: .58rem; }
+  .yance-product-conversation__insight article { padding: 6px; }
+  .yance-product-conversation__insight article > strong { font-size: .68rem; }
+}
+
+@media (max-width: 860px) {
+  .yance-product-shell[data-conversation-active] {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  .yance-product-shell[data-conversation-active] > .yance-shell-scene--conversation,
+  .yance-shell-scene--conversation {
+    flex: 0 0 auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  .yance-product-conversation--immersive {
+    grid-template-rows: 46px auto auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  .yance-product-conversation__hero {
+    min-height: 112px;
+  }
+
+  .yance-product-conversation__workspace {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    overflow: visible;
+    padding: 6px 7px 10px;
+  }
+
+  .yance-product-conversation__people,
+  .yance-product-conversation__insight {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .yance-product-conversation__people {
+    grid-template-rows: auto auto;
+  }
+
+  .yance-product-conversation__people-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .yance-product-conversation__workspace > .yance-product-conversation__room {
+    height: 520px;
+    min-height: 520px;
+  }
+}
+
+/* YANCE_DESKTOP_COMMAND_SEARCH_V2 */
+.yance-product-nav {
+  overflow: visible;
+}
+.yance-product-nav > .yance-bilingual-search {
+  position: relative;
+  flex: 1 1 560px;
+  width: min(660px, 56vw);
+  max-width: 660px;
+  min-width: 240px;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.yance-product-nav > .yance-bilingual-search .yance-bilingual-search__topline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.yance-bilingual-search__command-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px 0 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 78%, transparent);
+  border-radius: 14px;
+  color: var(--yance-theme-text-muted);
+  background: color-mix(in srgb, var(--yance-theme-control) 72%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--yance-theme-highlight) 6%, transparent),
+    0 8px 24px color-mix(in srgb, var(--yance-theme-shadow-source) 10%, transparent);
+  cursor: text;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.yance-bilingual-search__command-field:focus-within {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 46%, var(--yance-theme-border));
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 76%, transparent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--yance-theme-accent) 10%, transparent),
+    0 12px 30px color-mix(in srgb, var(--yance-theme-shadow-source) 14%, transparent);
+}
+.yance-bilingual-search__command-field > span {
+  font-size: 1rem;
+}
+.yance-bilingual-search__command-field input {
+  min-width: 0;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--yance-theme-text);
+  background: transparent;
+  font: inherit;
+  font-size: .82rem;
+}
+.yance-bilingual-search__command-field input::placeholder {
+  color: var(--yance-theme-text-muted);
+}
+.yance-bilingual-search__command-field input::-webkit-search-cancel-button {
+  display: none;
+}
+.yance-bilingual-search__command-field kbd {
+  padding: 3px 6px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  border-radius: 7px;
+  color: var(--yance-theme-text-muted);
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 62%, transparent);
+  font: inherit;
+  font-size: .62rem;
+}
+.yance-product-nav > .yance-bilingual-search .yance-bilingual-search__quiet-action {
+  min-height: 34px;
+  padding: 5px 9px;
+  border: 1px solid var(--yance-theme-border);
+  border-radius: 10px;
+  color: var(--yance-theme-text-muted);
+  background: var(--yance-theme-control);
+  cursor: pointer;
+}
+.yance-product-nav > .yance-bilingual-search .yance-bilingual-search__panel {
+  position: absolute;
+  z-index: 140;
+  top: calc(100% + 9px);
+  left: 50%;
+  width: min(760px, calc(100vw - 180px));
+  max-height: min(68vh, 640px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 82%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 94%, transparent);
+  box-shadow: 0 28px 80px color-mix(in srgb, var(--yance-theme-shadow-source) 34%, transparent);
+  backdrop-filter: blur(28px) saturate(1.18);
+  transform: translateX(-50%);
+}
+@media (max-width: 1120px), (max-height: 680px) {
+  .yance-product-nav > .yance-bilingual-search {
+    width: min(520px, 58vw);
+    min-width: 180px;
+  }
+  .yance-bilingual-search__command-field {
+    min-height: 32px;
+    border-radius: 11px;
+  }
+  .yance-bilingual-search__command-field input {
+    height: 29px;
+    font-size: .72rem;
+  }
+  .yance-bilingual-search__command-field kbd {
+    display: none;
+  }
+  .yance-product-nav > .yance-bilingual-search .yance-bilingual-search__panel {
+    width: min(680px, calc(100vw - 32px));
+  }
+}
+
+/* YANCE_FINAL_DESKTOP_SETTINGS_AUTHORITY_V1
+ * Desktop Product settings keep a stable left rail and one native settings-content scroll owner.
+ * Capability owners remain unchanged; this block owns presentation, pointer feedback and layout only.
+ */
+.yance-product-shell[data-settings-active] {
+  overflow: hidden !important;
+}
+
+.yance-secondary-settings {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  flex: 1 1 auto;
+  width: min(100%, 1360px);
+  min-height: 0;
+  overflow: hidden;
+  gap: 14px;
+}
+
+.yance-secondary-settings__header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 74%, transparent);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 86% 0, color-mix(in srgb, var(--yance-theme-accent) 12%, transparent), transparent 34%),
+    color-mix(in srgb, var(--yance-theme-card-raised) 82%, transparent);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--yance-theme-shadow-source) 14%, transparent);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+.yance-secondary-settings__header > div {
+  min-width: 0;
+}
+
+.yance-secondary-settings__header h2,
+.yance-secondary-settings__header p {
+  margin: 0;
+}
+
+.yance-secondary-settings__header h2 {
+  margin-top: 2px;
+  font-size: 1.6rem;
+  letter-spacing: -.035em;
+}
+
+.yance-secondary-settings__header p {
+  margin-top: 5px;
+  color: var(--yance-theme-text-muted);
+  font-size: .78rem;
+}
+
+.yance-secondary-settings__header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 7px;
+  width: 100%;
+  max-width: 100%;
+  padding-right: min(210px, 16vw);
+}
+
+.yance-secondary-settings__header-actions button {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 74%, transparent);
+  border-radius: 11px;
+  color: var(--yance-theme-text-muted);
+  background: color-mix(in srgb, var(--yance-theme-control) 58%, transparent);
+  font: inherit;
+  font-size: .74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .14s ease, border-color .14s ease, background .14s ease, color .14s ease;
+}
+
+.yance-secondary-settings__header-actions button:hover,
+.yance-secondary-settings__header-actions button[aria-pressed="true"] {
+  color: var(--yance-theme-text);
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 48%, var(--yance-theme-border));
+  background: color-mix(in srgb, var(--yance-theme-accent) 14%, var(--yance-theme-card-raised));
+}
+
+.yance-secondary-settings__header-actions button:active {
+  transform: scale(.98);
+}
+
+.yance-settings-workspace {
+  display: grid;
+  grid-template-columns: 218px minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+  gap: 14px;
+}
+
+.yance-settings-workspace__nav {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 76%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--yance-theme-card-raised) 76%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--yance-theme-highlight) 6%, transparent);
+}
+
+.yance-settings-workspace__nav button {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  min-height: 60px;
+  padding: 10px 11px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  color: var(--yance-theme-text-muted);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform .15s cubic-bezier(.2,.8,.2,1),
+    color .15s ease,
+    border-color .15s ease,
+    background .15s ease,
+    box-shadow .15s ease;
+}
+
+.yance-settings-workspace__nav button strong {
+  color: inherit;
+  font-size: .83rem;
+}
+
+.yance-settings-workspace__nav button span {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: normal;
+  font-size: .67rem;
+  line-height: 1.35;
+}
+
+.yance-settings-workspace__nav button:hover:not(:disabled) {
+  color: var(--yance-theme-text);
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 26%, var(--yance-theme-border));
+  background: color-mix(in srgb, var(--yance-theme-control-hover) 82%, transparent);
+  transform: translateX(2px);
+}
+
+.yance-settings-workspace__nav button:active:not(:disabled) {
+  transform: translateX(1px) scale(.985);
+}
+
+.yance-settings-workspace__nav button[aria-current="page"] {
+  color: var(--yance-theme-text);
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 48%, var(--yance-theme-border));
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--yance-theme-accent) 18%, var(--yance-theme-card-raised)),
+      color-mix(in srgb, var(--yance-theme-accent-alt) 8%, var(--yance-theme-card-raised)));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--yance-theme-highlight) 7%, transparent),
+    0 10px 26px color-mix(in srgb, var(--yance-theme-accent) 12%, transparent);
+}
+
+.yance-settings-workspace__content {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: auto;
+  scrollbar-color:
+    color-mix(in srgb, var(--yance-theme-accent) 46%, var(--yance-theme-border))
+    color-mix(in srgb, var(--yance-theme-card) 84%, transparent);
+  padding: 0 8px 12px 0;
+}
+
+.yance-settings-workspace__content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.yance-settings-workspace__content::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--yance-theme-card) 84%, transparent);
+}
+
+.yance-settings-workspace__content::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--yance-theme-accent) 48%, var(--yance-theme-border));
+  background-clip: padding-box;
+}
+
+.yance-settings-workspace__panel {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  gap: 12px;
+}
+
+.yance-settings-section,
+.yance-settings-desktop-section {
+  min-width: 0;
+  padding: clamp(16px, 2vw, 24px);
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 74%, transparent);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 92% 0, color-mix(in srgb, var(--yance-theme-accent) 9%, transparent), transparent 28%),
+    color-mix(in srgb, var(--yance-theme-card-raised) 78%, transparent);
+  box-shadow: 0 18px 50px color-mix(in srgb, var(--yance-theme-shadow-source) 13%, transparent);
+}
+
+.yance-settings-desktop-section > header h3,
+.yance-settings-desktop-section > header p,
+.yance-settings-section > header h3,
+.yance-settings-section > header p {
+  margin: 0;
+}
+
+.yance-settings-desktop-section > header h3,
+.yance-settings-section > header h3 {
+  margin-top: 3px;
+  font-size: 1.28rem;
+}
+
+.yance-settings-desktop-section > header p,
+.yance-settings-section > header p {
+  margin-top: 5px;
+  color: var(--yance-theme-text-muted);
+  font-size: .76rem;
+  line-height: 1.45;
+}
+
+.yance-settings-workspace .yance-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.yance-settings-workspace .yance-product-system-settings {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.yance-settings-workspace .yance-settings-disclosure {
+  min-width: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--yance-theme-control) 46%, transparent);
+}
+
+.yance-settings-workspace .yance-settings-disclosure > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.yance-settings-panel-stack {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 10px;
+  min-width: 0;
+}
+
+.yance-settings-panel-stack > p {
+  margin: 0;
+  color: var(--yance-theme-text-muted);
+  font-size: .72rem;
+  line-height: 1.5;
+}
+
+.yance-settings-panel-stack > .yance-settings-disclosure {
+  width: 100%;
+}
+
+.yance-settings-technical-detail {
+  color: var(--yance-theme-text-muted);
+  font-size: .68rem;
+  opacity: .78;
+}
+
+.yance-settings-workspace__content .yance-settings-disclosure > label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-top: 9px;
+  margin-bottom: 9px;
+  color: var(--yance-theme-text);
+  font-size: .74rem;
+}
+
+.yance-settings-workspace__content .yance-settings-disclosure > label > span {
+  flex: 0 0 min(168px, 34%);
+  min-width: 110px;
+  color: var(--yance-theme-text-muted);
+}
+
+.yance-settings-workspace__content .yance-settings-disclosure > label > select,
+.yance-settings-workspace__content .yance-settings-disclosure > label > input:not([type="checkbox"]):not([type="file"]) {
+  flex: 1 1 240px;
+  max-width: 520px;
+}
+
+.yance-settings-workspace__content .yance-settings-disclosure > button {
+  margin-top: 8px;
+  margin-right: 6px;
+}
+
+.yance-product-system-settings__sound-event {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px 10px;
+  margin: 10px var(--yance-space-4);
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 58%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--yance-theme-control) 38%, transparent);
+}
+
+.yance-product-system-settings__sound-event > label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.yance-product-system-settings__sound-event > small {
+  grid-column: 1 / -1;
+  color: var(--yance-theme-text-muted);
+  font-size: .66rem;
+  line-height: 1.45;
+}
+
+.yance-settings-panel-stack ul {
+  margin: 8px var(--yance-space-4) var(--yance-space-4);
+  padding-left: 18px;
+  color: var(--yance-theme-text-muted);
+  font-size: .7rem;
+}
+
+.yance-settings-workspace button:not(:disabled),
+.yance-settings-workspace summary,
+.yance-settings-workspace select,
+.yance-settings-workspace input[type="range"] {
+  cursor: pointer;
+}
+
+.yance-settings-workspace button:not(:disabled) {
+  transition:
+    transform .14s cubic-bezier(.2,.8,.2,1),
+    border-color .14s ease,
+    background .14s ease,
+    color .14s ease,
+    box-shadow .14s ease,
+    filter .14s ease;
+}
+
+.yance-settings-workspace button:not(:disabled):hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.yance-settings-workspace button:not(:disabled):active {
+  transform: translateY(0) scale(.985);
+}
+
+.yance-settings-workspace button:focus-visible,
+.yance-settings-workspace summary:focus-visible,
+.yance-settings-workspace select:focus-visible,
+.yance-settings-workspace input:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--yance-theme-accent) 72%, transparent);
+  outline-offset: 2px;
+}
+
+.yance-settings-workspace--child {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.yance-settings-workspace--child > .yance-settings-workspace__nav {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.yance-settings-workspace--child > .yance-settings-workspace__nav button {
+  min-height: 34px;
+  padding: 7px 10px;
+  border-color: color-mix(in srgb, var(--yance-theme-border) 68%, transparent);
+  background: color-mix(in srgb, var(--yance-theme-control) 54%, transparent);
+}
+
+.yance-settings-workspace--child > .yance-settings-workspace__nav button span {
+  display: none;
+}
+
+.yance-settings-workspace__content button {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 74%, transparent);
+  border-radius: 10px;
+  color: var(--yance-theme-text);
+  background: color-mix(in srgb, var(--yance-theme-control) 72%, transparent);
+  font: inherit;
+  font-size: .74rem;
+  font-weight: 700;
+}
+
+.yance-settings-workspace__content button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 44%, var(--yance-theme-border));
+  background: color-mix(in srgb, var(--yance-theme-accent) 12%, var(--yance-theme-control));
+}
+
+.yance-settings-workspace__content button:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+}
+
+.yance-settings-workspace__content input,
+.yance-settings-workspace__content select {
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 78%, transparent);
+  border-radius: 10px;
+  color: var(--yance-theme-text);
+  background: color-mix(in srgb, var(--yance-theme-control) 76%, transparent);
+  font: inherit;
+  outline: none;
+}
+
+.yance-settings-workspace__content input:focus,
+.yance-settings-workspace__content select:focus {
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 64%, var(--yance-theme-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yance-theme-accent) 12%, transparent);
+}
+
+.yance-settings-workspace .yance-platform-account-catalog {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.yance-settings-workspace .yance-platform-account-card,
+.yance-settings-workspace .yance-platform-account-continuation,
+.yance-settings-workspace .yance-platform-account-continuation > *,
+.yance-settings-workspace .yance-platform-authority-note {
+  min-width: 0;
+}
+
+.yance-settings-workspace .yance-platform-account-continuation p,
+.yance-settings-workspace .yance-platform-account-continuation span,
+.yance-settings-workspace .yance-platform-account-continuation strong,
+.yance-settings-workspace .yance-platform-authority-note {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.yance-platform-authority-note {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent) 22%, var(--yance-theme-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--yance-theme-accent) 7%, var(--yance-theme-control));
+}
+
+.yance-platform-authority-note > span {
+  color: var(--yance-theme-text-muted);
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.yance-platform-account-continuation > button {
+  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.yance-settings-desktop-section .yance-platform-accounts {
+  gap: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.yance-settings-desktop-section .yance-platform-accounts > .yance-section-heading {
+  display: none;
+}
+
+.yance-settings-desktop-section .yance-platform-accounts > p[role="status"] {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 64%, transparent);
+  border-radius: 12px;
+  color: var(--yance-theme-text-muted);
+  background: color-mix(in srgb, var(--yance-theme-control) 42%, transparent);
+  font-size: .72rem;
+}
+
+.yance-settings-desktop-section .yance-platform-account-catalog {
+  margin: 0;
+}
+
+.yance-settings-desktop-section .yance-platform-account-catalog > p {
+  margin-bottom: 2px;
+  font-size: .76rem;
+  line-height: 1.5;
+}
+
+.yance-settings-desktop-section .yance-platform-account-catalog > button {
+  min-height: 96px;
+  padding: 14px;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 90% 0, color-mix(in srgb, var(--yance-theme-accent) 10%, transparent), transparent 42%),
+    color-mix(in srgb, var(--yance-theme-card-raised) 88%, transparent);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--yance-theme-shadow-source) 8%, transparent);
+}
+
+.yance-settings-desktop-section .yance-platform-account-catalog > button strong {
+  font-size: .88rem;
+  letter-spacing: -.01em;
+}
+
+.yance-settings-desktop-section .yance-platform-account-list {
+  gap: 12px;
+}
+
+.yance-settings-desktop-section .yance-platform-account-card {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding: 15px;
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--yance-theme-card-raised) 92%, transparent),
+      color-mix(in srgb, var(--yance-theme-control) 46%, transparent));
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--yance-theme-shadow-source) 9%, transparent);
+}
+
+.yance-settings-desktop-section .yance-platform-account-card > div:first-child {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+  min-width: 0;
+}
+
+.yance-settings-desktop-section .yance-platform-account-card > div:first-child > strong {
+  font-size: .9rem;
+}
+
+.yance-settings-desktop-section .yance-platform-account-card > div:first-child > span {
+  flex: 1 1 240px;
+  min-width: 0;
+  font-size: .72rem;
+}
+
+.yance-settings-desktop-section .yance-platform-account-card em {
+  grid-row: auto;
+  grid-column: auto;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-accent) 34%, var(--yance-theme-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--yance-theme-accent) 9%, transparent);
+  font-size: .66rem;
+}
+
+.yance-settings-desktop-section .yance-platform-account-continuation {
+  gap: 10px;
+  margin-top: 0;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--yance-theme-border) 58%, transparent);
+}
+
+.yance-settings-desktop-section .yance-platform-account-continuation > p {
+  margin: 0;
+  color: var(--yance-theme-text-muted);
+  font-size: .73rem;
+  line-height: 1.5;
+}
+
+.yance-settings-desktop-section .yance-platform-account-continuation > label,
+.yance-settings-desktop-section .yance-platform-account-continuation details label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--yance-theme-text-muted);
+  font-size: .7rem;
+}
+
+.yance-settings-desktop-section .yance-platform-account-continuation details {
+  display: grid;
+  gap: 10px;
+  padding: 10px 0 0;
+}
+
+.yance-settings-desktop-section .yance-platform-account-continuation details[open] summary {
+  margin-bottom: 8px;
+}
+
+.yance-settings-desktop-section .yance-platform-account-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.yance-settings-desktop-section .yance-platform-auth-primary {
+  min-width: 168px;
+}
+
+.yance-settings-advanced > button,
+.yance-learning-disclosure > button {
+  justify-self: start;
+}
+
+.yance-learning-disclosure > button {
+  min-width: 168px;
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 52%, var(--yance-theme-border)) !important;
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--yance-theme-accent) 18%, var(--yance-theme-control)),
+      color-mix(in srgb, var(--yance-theme-accent-alt) 10%, var(--yance-theme-control))) !important;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--yance-theme-accent) 10%, transparent);
+}
+
+/* Model Center is a Product projection over the existing Model Brain / local runtime authorities. */
+.yance-model-center {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.yance-model-center__header,
+.yance-model-local__status,
+.yance-model-recommendation,
+.yance-model-download {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+}
+
+.yance-model-center__header > div,
+.yance-model-local__status > div,
+.yance-model-recommendation > div,
+.yance-model-download > div {
+  min-width: 0;
+}
+
+.yance-model-center__header h3,
+.yance-model-center__header p,
+.yance-model-local__status h4,
+.yance-model-local__status p,
+.yance-model-recommendation h4,
+.yance-model-recommendation p,
+.yance-model-provider-card h4,
+.yance-model-provider-card p,
+.yance-model-activity h4,
+.yance-model-activity p {
+  margin: 0;
+}
+
+.yance-model-center__header h3 {
+  margin-top: 3px;
+  font-size: 1.32rem;
+  letter-spacing: -.025em;
+}
+
+.yance-model-center__header p,
+.yance-model-local__status p,
+.yance-model-recommendation p,
+.yance-model-provider-card p,
+.yance-model-activity p {
+  margin-top: 5px;
+  color: var(--yance-theme-text-muted);
+  font-size: .75rem;
+  line-height: 1.5;
+}
+
+.yance-model-center__summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yance-model-center__summary > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 74%, transparent);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--yance-theme-control) 56%, transparent);
+  color: var(--yance-theme-text-muted);
+  font-size: .72rem;
+  overflow-wrap: anywhere;
+}
+
+.yance-model-center__summary > span strong {
+  color: var(--yance-theme-text);
+  font-size: .72rem;
+  letter-spacing: .01em;
+}
+
+.yance-model-center__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 70%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--yance-theme-control) 42%, transparent);
+}
+
+.yance-model-center__tabs button {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--yance-theme-text-muted);
+  background: transparent;
+}
+
+.yance-model-center__tabs button[aria-current="page"] {
+  color: var(--yance-theme-text);
+  border-color: color-mix(in srgb, var(--yance-theme-accent) 44%, var(--yance-theme-border));
+  background: color-mix(in srgb, var(--yance-theme-accent) 14%, var(--yance-theme-card-raised));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--yance-theme-accent) 10%, transparent);
+}
+
+.yance-model-center__grid,
+.yance-model-activity {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.yance-model-provider-card,
+.yance-model-local__cards > article,
+.yance-model-recommendation,
+.yance-model-local__status,
+.yance-model-activity > article,
+.yance-model-download {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 72%, transparent);
+  border-radius: 16px;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--yance-theme-card-raised) 88%, transparent),
+      color-mix(in srgb, var(--yance-theme-control) 48%, transparent));
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--yance-theme-shadow-source) 9%, transparent);
+}
+
+.yance-model-provider-card {
+  display: grid;
+  align-content: start;
+  gap: 11px;
+}
+
+.yance-model-provider-card > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.yance-model-provider-card > header > div {
+  min-width: 0;
+}
+
+.yance-model-provider-card > header span,
+.yance-model-local__cards article > div > span,
+.yance-model-provider-card > header em,
+.yance-model-local__cards article > em {
+  color: var(--yance-theme-text-muted);
+  font-size: .68rem;
+  font-style: normal;
+}
+
+.yance-model-provider-card label,
+.yance-model-compatible-choice label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--yance-theme-text-muted);
+  font-size: .7rem;
+}
+
+.yance-model-provider-card input,
+.yance-model-provider-card select,
+.yance-model-compatible-choice select {
+  width: 100%;
+  min-width: 0;
+}
+
+.yance-model-compatible-choice {
+  display: grid;
+  gap: 9px;
+}
+
+.yance-model-advanced {
+  display: grid;
+  gap: 9px;
+  margin-top: 2px;
+  border-top: 1px solid color-mix(in srgb, var(--yance-theme-border) 58%, transparent);
+  padding-top: 10px;
+}
+
+.yance-model-advanced > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  color: var(--yance-theme-text-muted);
+  font-size: .7rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.yance-model-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.yance-model-advanced > summary::before {
+  content: "›";
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 68%, transparent);
+  border-radius: 999px;
+  transition: transform .15s ease;
+}
+
+.yance-model-advanced[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.yance-model-advanced > div {
+  display: grid;
+  gap: 9px;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 62%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--yance-theme-control) 42%, transparent);
+}
+
+.yance-model-advanced > div > p {
+  margin: 0;
+  color: var(--yance-theme-text-muted);
+  font-size: .68rem;
+  line-height: 1.5;
+}
+
+.yance-model-hardware-details {
+  margin-top: 0;
+}
+
+.yance-model-hardware-details > div {
+  padding: 8px;
+}
+
+.yance-model-local {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.yance-model-local__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.yance-model-local__cards > article {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+}
+
+.yance-model-local__cards h5,
+.yance-model-local__cards p {
+  margin: 0;
+}
+
+.yance-model-local__cards h5 {
+  margin-top: 2px;
+  font-size: .92rem;
+}
+
+.yance-model-local__cards p {
+  color: var(--yance-theme-text-muted);
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.yance-model-local__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.yance-model-local__actions > span {
+  color: var(--yance-theme-text-muted);
+  font-size: .66rem;
+}
+
+.yance-model-local__delete {
+  border-color: color-mix(in srgb, var(--yance-theme-accent-alt) 38%, var(--yance-theme-border)) !important;
+  background: color-mix(in srgb, var(--yance-theme-accent-alt) 9%, var(--yance-theme-control)) !important;
+}
+
+.yance-model-hardware {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.yance-model-hardware > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--yance-theme-border) 66%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--yance-theme-control) 42%, transparent);
+  color: var(--yance-theme-text-muted);
+  font-size: .68rem;
+  overflow-wrap: anywhere;
+}
+
+.yance-model-hardware > span strong {
+  color: var(--yance-theme-text);
+}
+
+.yance-model-download {
+  position: relative;
+}
+
+.yance-model-activity dl {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+}
+
+.yance-model-activity dl > div {
+  display: grid;
+  grid-template-columns: minmax(84px, .5fr) minmax(0, 1fr);
+  gap: 10px;
+  padding-top: 7px;
+  border-top: 1px solid color-mix(in srgb, var(--yance-theme-border) 56%, transparent);
+}
+
+.yance-model-activity dt {
+  color: var(--yance-theme-text-muted);
+  font-size: .68rem;
+}
+
+.yance-model-activity dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--yance-theme-text);
+  font-size: .72rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1120px), (max-height: 680px) {
+  .yance-product-shell {
+    padding-left: 68px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .yance-product-shell > .yance-desktop-rail {
+    width: 54px !important;
+  }
+
+  .yance-desktop-rail {
+    position: absolute !important;
+    left: 6px !important;
+    right: auto !important;
+    top: 6px !important;
+    bottom: 6px !important;
+    width: 54px !important;
+    height: auto !important;
+    grid-template-columns: 1fr !important;
+    grid-auto-rows: min-content !important;
+    align-content: start !important;
+    gap: 4px !important;
+    padding: 6px 4px !important;
+    border-radius: 16px !important;
+  }
+
+  .yance-desktop-rail__brand {
+    display: grid !important;
+    margin: 0 0 3px !important;
+    padding: 3px 0 7px !important;
+  }
+
+  .yance-desktop-rail__brand > span {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 10px !important;
+  }
+
+  .yance-desktop-rail__brand > strong {
+    display: none !important;
+  }
+
+  .yance-desktop-rail > button {
+    min-height: 46px !important;
+    grid-template-columns: 1fr !important;
+    justify-content: stretch !important;
+    gap: 2px !important;
+    padding: 4px 2px !important;
+    border-radius: 10px !important;
+  }
+
+  .yance-desktop-rail > button > span {
+    font-size: .88rem !important;
+  }
+
+  .yance-desktop-rail > button > strong {
+    font-size: .56rem !important;
+    white-space: nowrap !important;
+  }
+
+  .yance-secondary-settings {
+    gap: 8px;
+  }
+
+  .yance-secondary-settings__header {
+    min-height: 62px;
+    padding: 10px 12px;
+    border-radius: 15px;
+  }
+
+  .yance-secondary-settings__header h2 {
+    font-size: 1.18rem;
+  }
+
+  .yance-secondary-settings__header p {
+    font-size: .66rem;
+  }
+
+  .yance-settings-workspace {
+    grid-template-columns: 154px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .yance-settings-workspace--child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .yance-secondary-settings__header {
+    align-items: flex-start;
+  }
+
+  .yance-secondary-settings__header-actions {
+    max-width: 100%;
+    padding-right: 0;
+  }
+
+  .yance-settings-workspace__nav {
+    padding: 5px;
+    gap: 4px;
+    border-radius: 13px;
+  }
+
+  .yance-settings-workspace__nav button {
+    min-height: 48px;
+    padding: 7px 8px;
+    border-radius: 10px;
+  }
+
+  .yance-settings-workspace__nav button strong {
+    font-size: .71rem;
+  }
+
+  .yance-settings-workspace__nav button span {
+    font-size: .57rem;
+    line-height: 1.25;
+  }
+
+  .yance-settings-workspace__content {
+    padding-right: 6px;
+  }
+
+  .yance-settings-section,
+  .yance-settings-desktop-section {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .yance-settings-workspace .yance-settings-grid,
+  .yance-settings-workspace .yance-product-system-settings,
+  .yance-settings-workspace .yance-platform-account-catalog {
+    grid-template-columns: 1fr;
+  }
+
+  .yance-model-center__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .yance-model-center__grid,
+  .yance-model-activity,
+  .yance-model-hardware {
+    grid-template-columns: 1fr;
+  }
+
+  .yance-model-center__header,
+  .yance-model-local__status,
+  .yance-model-recommendation,
+  .yance-model-download {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .yance-model-center__header > button,
+  .yance-model-local__status > button,
+  .yance-model-recommendation > button,
+  .yance-model-download > button {
+    align-self: start;
+  }
+
+  .yance-platform-account-continuation > button {
+    min-width: 0;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yance-settings-workspace__nav button,
+  .yance-settings-workspace button {
+    transition-duration: 0.001ms !important;
+  }
 }

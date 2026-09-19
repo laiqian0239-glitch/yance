@@ -79,6 +79,29 @@ test('legacy Worker OAuth fails closed for Page accounts before any Worker contr
   assert.ok(worker > guard, 'Page OAuth ownership guard must fail closed before the legacy Worker OAuth contract call');
 });
 
+test('retired Worker Page select-page seam is absent across the production chain', () => {
+  const oauth = readText('backend/services/facebookOAuthService.js');
+  const manager = readText('backend/services/accountManagerCore.js');
+  const context = readText('backend/core/accountContext.js');
+  const routes = readText('backend/routes/accounts.js');
+  const bridge = readText('electron/r32StoreBridge.js');
+  const commands = readText('shared/core/contracts.js');
+  const client = readText('frontend/js/core-client.js');
+  const legacyAccountUi = readText('frontend/r32-account-center.js');
+  for (const [label, source] of [
+    ['oauth', oauth],
+    ['manager', manager],
+    ['context', context],
+    ['routes', routes],
+    ['bridge', bridge],
+    ['commands', commands],
+    ['client', client],
+    ['legacyAccountUi', legacyAccountUi],
+  ]) {
+    assert.doesNotMatch(source, /selectFacebookPage|facebook\.oauth\.selectPage|facebook\/oauth\/select-page|facebook-select-page|data-facebook-page/u, `retired Page select seam remains in ${label}`);
+  }
+});
+
 test('Facebook account webhook production route is the Chatwoot signed raw-body boundary instead of the retired Cloudflare Page webhook', () => {
   const source = readText('backend/routes/accounts.js');
   assert.match(source, /facebookChatwootMatrixBridge/u);
@@ -140,12 +163,14 @@ test('KF-P0-12 release preflight binds the exact Worker OAuth, avatar and D1 per
   assert.match(oauth, /IDENTITY_WORKER_OAUTH_CONTRACT_VERSION\s*=\s*6/u);
   assert.match(preflight, /EXPECTED_WORKER_AVATAR_CONTRACT\s*=\s*11/u);
   assert.match(preflight, /EXPECTED_WORKER_EVIDENCE_CONTRACT\s*=\s*6/u);
-  assert.match(workerIndex, /latestRequiredMigration:\s*'0006_permission_authority\.sql'/u);
+  assert.match(workerIndex, /latestRequiredMigration:\s*'0007_personal_identity_oauth\.sql'/u);
   assert.match(workerIndex, /permissionAuthorityColumns/u);
-  assert.match(preflight, /EXPECTED_D1_SCHEMA_VERSION\s*=\s*6/u);
+  assert.match(workerIndex, /personalIdentityOauthColumns/u);
+  assert.match(preflight, /EXPECTED_D1_SCHEMA_VERSION\s*=\s*7/u);
   assert.match(preflight, /d1Version\s*===\s*EXPECTED_D1_SCHEMA_VERSION/u);
-  assert.match(preflight, /latestRequiredMigration\s*===\s*'0006_permission_authority\.sql'/u);
+  assert.match(preflight, /latestRequiredMigration\s*===\s*'0007_personal_identity_oauth\.sql'/u);
   assert.match(preflight, /permissionAuthorityColumns\s*===\s*true/u);
+  assert.match(preflight, /personalIdentityOauthColumns\s*===\s*true/u);
 });
 
 test('KF-P0-12 Desktop rejects unknown Worker error codes outside the FACEBOOK_* family', () => {

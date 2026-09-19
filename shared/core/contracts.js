@@ -46,7 +46,6 @@ const COMMANDS = Object.freeze({
   ACCOUNT_TELEGRAM_CANCEL: 'account.telegram.cancel',
   ACCOUNT_FACEBOOK_OAUTH_START: 'account.facebook.oauth.start',
   ACCOUNT_FACEBOOK_OAUTH_STATUS: 'account.facebook.oauth.status',
-  ACCOUNT_FACEBOOK_OAUTH_SELECT_PAGE: 'account.facebook.oauth.selectPage',
   ACCOUNT_FACEBOOK_OAUTH_CANCEL: 'account.facebook.oauth.cancel',
   ACCOUNT_FACEBOOK_MESSENGER_START: 'account.facebook.messenger.start',
   ACCOUNT_FACEBOOK_MESSENGER_INPUT: 'account.facebook.messenger.input',

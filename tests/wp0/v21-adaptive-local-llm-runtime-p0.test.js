@@ -99,18 +99,28 @@ test('active Element Product surfaces adaptive runtime state and user-controlled
 
   assert.match(shell, /ProductSystemSettingsSurface/u);
   assert.match(shell, /ProductModelRuntimeSupportSurface/u);
-  assert.match(shell, /modelSupportVisible\s*&&\s*\([\s\S]{0,240}<details open>[\s\S]{0,240}<ProductModelRuntimeSupportSurface \/>/u);
-  for (const token of ['自适应本地', '本地模型', '安装', '取消', '移除', '下载']) {
+  assert.match(shell, /settingsWindow === "models"[\s\S]{0,420}<ProductModelRuntimeSupportSurface \/>/u);
+  assert.doesNotMatch(shell, /modelSupportVisible|setModelSupportVisible/u);
+  for (const token of ['本地 AI', '安装推荐模型', '扫描本地 AI', '下载', '取消', '停用', '永久删除']) {
     assert.match(shell, new RegExp(token, 'u'), `missing active Product support token ${token}`);
   }
   assert.doesNotMatch(surface, /LiteLLM|Ollama|GPU|VRAM|Model Brain|requestId|endpoint|SHA-?256/iu);
+  assert.doesNotMatch(shell, /localAssetPath|expectedSha256|完整路径|SHA-?256/iu,
+    'normal Product Model Center must not restore the engineering-only local artifact form');
   for (const action of [
-    'plan-adaptive-local',
-    'materialize-adaptive-runtime',
-    'remove-adaptive-runtime',
+    'set-local-model-enabled',
+    'delete-local-model',
     'pull-ollama-model',
     'cancel-ollama-pull'
   ]) assert.match(shell + bridge, new RegExp(action, 'u'));
+  for (const advancedAction of [
+    'plan-adaptive-local',
+    'materialize-adaptive-runtime',
+    'remove-adaptive-runtime'
+  ]) {
+    assert.match(bridge, new RegExp(advancedAction, 'u'), `mature adaptive bridge seam missing: ${advancedAction}`);
+    assert.doesNotMatch(shell, new RegExp(advancedAction, 'u'), `normal Product must not expose engineering action: ${advancedAction}`);
+  }
   for (const channel of [
     'store:product-system-model-runtime-state',
     'store:product-system-model-runtime-mutation'
