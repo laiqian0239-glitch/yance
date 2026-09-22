@@ -54,10 +54,10 @@
 - [x] Verify Telegram/WhatsApp account-state evidence from SQLite without modifying data.
 ### Task 4: Commit, push, and register handoff
 
-- [ ] Commit the checkpoint with an explicit WIP/handoff message.
+- [x] Commit the checkpoint with an explicit WIP/handoff message.
 - [ ] Push only `checkpoint/yance-v21-closure-20260922` to `origin`.
-- [ ] Add a non-Controller checkpoint comment to GitHub issue #1051 with branch, commit, fresh RED/GREEN counts, ledger path and human-acceptance rule.
-- [ ] Verify remote branch/commit exists.
+- [x] Add a non-Controller checkpoint comment to GitHub issue #1051 with branch, commit, fresh RED/GREEN counts, ledger path and human-acceptance rule.
+- [x] Verify remote branch/commit exists.
 
 ## Completion contract
 
