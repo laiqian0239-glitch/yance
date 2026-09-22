@@ -6,6 +6,9 @@
 ## 远端 checkpoint
 
 - Branch: `checkpoint/yance-v21-closure-20260922`
+- Current remote tip at handoff: `47e5878ddaa9283da36fd4475bf7f4d709d8a983`
+- Core WIP checkpoint commit: `53e0af1a06e745e7ebc1335e73807956215b2aee`
+- GitHub #1051 checkpoint comment: `5772257657`
 - Base: `1d6288d3e36e72894ae3a11e959bcc33bbf91554`
 - Ledger: `docs/YANCE_V21_CLOSURE_LEDGER_2026-09-22_ZH.md`
 - Conversation authority: `docs/FINAL_CONVERSATION_PRODUCT_AUTHORITY_ZH.md`
