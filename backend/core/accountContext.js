@@ -256,6 +256,7 @@ class AccountContext {
       case 'account.provisioning.login.input': return this.secured(command, context, async () => this.accountManager.submitProvisioningLoginInput(payload.id, payload.loginProcessId, payload.stepId, payload.input || {}, interactiveAuthOptions(payload)));
       case 'account.provisioning.login.wait': return this.secured(command, context, async () => this.accountManager.waitProvisioningLogin(payload.id, payload.loginProcessId, payload.stepId, interactiveAuthOptions(payload)));
       case 'account.provisioning.login.cancel': return this.secured(command, context, async () => this.accountManager.cancelProvisioningLogin(payload.id, payload.loginProcessId, interactiveAuthOptions(payload)));
+      case 'account.provisioning.directChat.ensure': return this.secured(command, context, async () => this.accountManager.ensureProvisioningDirectChat(payload.id, payload.identifier, interactiveAuthOptions(payload)));
       case 'account.facebook.page.inboxes': return this.accountManager.listFacebookPageInboxes(payload.id, { signal: payload.signal || null });
       case 'account.facebook.page.attach': return this.secured(command, context, async () => this.accountManager.attachFacebookPageInbox(payload.id, payload, { signal: payload.signal || null }));
       case 'account.facebook.oauth.start': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.oauth.start'));

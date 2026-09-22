@@ -16,8 +16,8 @@
 当前统计：17 个主产品/运行时问题 + 5 个工程风险。
 
 - 已达到问题级数据/运行证据闭环：1 项（P02）
-- 代码级已修但仍缺真实 E2E：4 项
-- 正在实施：5 项
+- 代码级已修但仍缺真实 E2E：5 项
+- 正在实施：4 项
 - 仍开放：7 项
 - 6 个根因簇整体闭环：0 / 6
 
@@ -37,7 +37,7 @@
 | P03 | Telegram 联系人栏重复 | projection canonicalization 已改，待 UI 验收 | reload 后不重复、不丢联系人 |
 | P04 | WhatsApp pairing code 不显示 | 代码已读 `code`，待真实登录验收 | 手机侧真实 pairing code 可见 |
 | P05 | exact peer → Mautrix direct-chat portal authority | 正在实施 | 官方 create_dm 精确返回唯一 portal |
-| P06 | direct-chat command / IPC / preload / renderer wiring | **当前主 RED** | wiring 专项 0 fail；真实导航可调用 |
+| P06 | direct-chat command / IPC / preload / renderer wiring | **CODE-GREEN** | focused 10/10 + fresh typecheck/build；待同一 frozen runtime DATA/HUMAN 验证 |
 | P07 | Telegram portal 存在但多数仍为 invite | 未闭环 | 严格 route 验证后 Element join 成功 |
 | P08 | 已连接账号被误报“账号尚未就绪” | 未闭环 | account / portal / membership / room readiness 分层 |
 | P09 | Marc Rotte 无法稳定打开唯一真实 RoomView | 被 P05–P08 阻塞 | 点击 Marc 稳定进入唯一真实房间 |
@@ -52,7 +52,7 @@
 ## 根因簇
 
 - R1 账号身份 canonicalization / 防串台：部分修复；N2 receiver 缺失 fail-open 已修，N1 保留为跨账号 E2E 防回归项。
-- R2 Conversation route / Matrix portal 生命周期：当前第一阻塞；目标链为 canonical account → exact login_id → exact peer → official portal → join → m.bridge → RoomView。
+- R2 Conversation route / Matrix portal 生命周期：P06 wiring 已 **CODE-GREEN**；目标链为 canonical account → exact login_id → exact peer → official portal → join → m.bridge → RoomView，仍待同一 frozen runtime DATA/HUMAN 验证。
 - R3 WhatsApp provisioning：当前 active driver 已是 mautrix-whatsapp；剩余是 QR/pairing、timeout/cancel/restart、手机确认。
 - R4 Facebook Page / Chatwoot：picker 已在活工作区；仍缺真实 Chatwoot 配置、Page attach 与 webhook readiness。
 - R5 Conversation Workspace：RoomView remount 已有代码证据；Reply Brain durable learning、Model Brain authority 与最终视觉验收仍开放。
@@ -73,3 +73,14 @@
 - Product final admission：17 tests，14 pass / 3 fail；不得声称 broad suite GREEN。
 - SQLite：Telegram canonical account `te-b4ff...` active；synthetic `te-mautrix...` merged；两者真实 login ID 均为 `8638095739`。
 - SQLite：当前 active WhatsApp driver 为 `whatsapp-personal-mautrix-whatsapp`；旧 Baileys 仅保留 retiredDriverId。
+
+## 2026-09-22 R2 CODE-GREEN fresh evidence
+
+- `tests/wp0/v21-mautrix-direct-chat-command-wiring-local.test.js`：2 / 2 GREEN；两个 checkpoint RED 均已关闭。
+- direct-chat / routing focused suite（checkpoint 原 10-test 集）：**10 / 10 GREEN**。
+- Element Yance module：`lint:types --skip-nx-cache` GREEN；`build --skip-nx-cache` GREEN。
+- source 与 frozen Element `modules/yance/src/index.tsx` materialized SHA-256 一致：`64D6D52D5745062CF6554A176ED6FE55CA488E4AD046830271D2DBE13BC21F58`。
+- RoomView remount regression：**1 / 1 GREEN**。
+- Product final admission：仍为 **17 tests / 14 pass / 3 fail**；三个既有 admission RED 未被本轮 wiring 变更冒充为 GREEN。
+- `git diff --check` GREEN。
+- 当前状态仅为 **CODE-GREEN**；尚未声明 DATA-GREEN / HUMAN-ACCEPTED / CLOSED。

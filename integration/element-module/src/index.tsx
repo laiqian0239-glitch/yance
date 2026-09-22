@@ -89,6 +89,7 @@ type ProductDesktop = DesktopActivationBridge & {
   prepareOutboundMessage?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   storeConfirmSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   listPlatformAccounts?: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
+  runPlatformAccountCommand?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   getPersonalAccessStatus?: (input?: { matrixOpenId?: MatrixOpenIdToken }) => Promise<Record<string, unknown>>;
   onOpenConversation?: (callback: (payload: Record<string, unknown>) => void | Promise<void>) => (() => void) | void;
   onOpenView?: (callback: (payload: Record<string, unknown>) => void | Promise<void>) => (() => void) | void;
@@ -445,19 +446,46 @@ class YanceElementModule implements Module {
       const candidateRoomIds = explicitMatrixRoomId
         ? [explicitMatrixRoomId]
         : clientApi.getRooms!().map((room) => String(room.id || "").trim()).filter(Boolean);
-      if (explicitMatrixRoomId && !clientApi.getRoom(explicitMatrixRoomId)) return false;
       const accountRows = await loadPlatformAccountRows();
       const bridgeReceiverAliases = bridgeReceiverAliasesForAccount(
         conversation.platform,
         conversation.accountId,
         accountRows,
       );
-      const resolution: CanonicalRoomResolution = resolveCanonicalConversationRoom(
+      let resolution: CanonicalRoomResolution = resolveCanonicalConversationRoom(
         conversation,
         candidateRoomIds,
         readRoomStateEvents,
         bridgeReceiverAliases,
       );
+      if (resolution.status !== "resolved") {
+        const accountRow = accountRows.find((row) => text(row.id) === text(conversation.accountId));
+        const authority = text(accountRow?.authority).toLowerCase();
+        const identifier = text(conversation.chatJid);
+        const matrixUserId = await resolveMatrixUserId();
+        if (conversation.conversationKind === "group"
+          || !authority.startsWith("mautrix-")
+          || !identifier
+          || !matrixUserId
+          || typeof desktop.runPlatformAccountCommand !== "function") return false;
+        const ensured = record(await desktop.runPlatformAccountCommand({
+          id: conversation.accountId,
+          action: "provisioning-direct-chat-ensure",
+          identifier,
+          matrixUserId,
+        }));
+        const ensuredRoomId = text(ensured.roomId);
+        if (!ensuredRoomId) return false;
+        await navigationApi.openRoom(ensuredRoomId, { autoJoin: true });
+        await clientApi.ensureRoomJoined?.(ensuredRoomId);
+        if (generation !== conversationNavigationGeneration) return false;
+        resolution = resolveCanonicalConversationRoom(
+          conversation,
+          [ensuredRoomId],
+          readRoomStateEvents,
+          bridgeReceiverAliases,
+        );
+      }
       if (resolution.status !== "resolved") return false;
       const resolvedRoomId = resolution.roomId;
 

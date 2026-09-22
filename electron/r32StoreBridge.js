@@ -471,6 +471,7 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         'provisioning-login-input',
         'provisioning-login-wait',
         'provisioning-login-cancel',
+        'provisioning-direct-chat-ensure',
         'facebook-page-inboxes',
         'facebook-page-attach',
         'facebook-oauth-start',
@@ -529,6 +530,15 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
           method: 'POST',
           body: jsonBody({
             loginProcessId: clean(input.loginProcessId),
+            matrixUserId: clean(input.matrixUserId)
+          })
+        });
+      }
+      if (action === 'provisioning-direct-chat-ensure') {
+        return apiRequest(`/api/r32/accounts/${id}/provisioning/direct-chat/ensure`, {
+          method: 'POST',
+          body: jsonBody({
+            identifier: requiredIdentifier(input.identifier, 'identifier'),
             matrixUserId: clean(input.matrixUserId)
           })
         });
