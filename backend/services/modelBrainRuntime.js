@@ -22,6 +22,11 @@ function runtimeExecutable() {
   return candidates.find(item => fs.existsSync(item)) || '';
 }
 function workerPath() { return path.join(runtimeRoot(), 'yance_litellm_worker.py'); }
+function runtimeArguments(worker) {
+  // Python isolated mode (-I) ignores PYTHON* environment variables. Force UTF-8
+  // on the command line so Windows stdio pipes remain UTF-8 without weakening isolation.
+  return ['-I', '-X', 'utf8', worker];
+}
 const SAFE_CHILD_ENV_KEYS = Object.freeze([
   'SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'TMPDIR', 'ComSpec', 'PATHEXT',
   'NUMBER_OF_PROCESSORS', 'PROCESSOR_ARCHITECTURE', 'PROCESSOR_IDENTIFIER',
@@ -90,7 +95,7 @@ class ModelBrainRuntime {
       this.lastError = error;
       throw error;
     }
-    const child = this.spawn(executable, ['-I', worker], {
+    const child = this.spawn(executable, runtimeArguments(worker), {
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: runtimeEnvironment(executable)
@@ -176,5 +181,6 @@ module.exports.ModelBrainRuntime = ModelBrainRuntime;
 module.exports.safeEvidence = safeEvidence;
 module.exports.runtimeExecutable = runtimeExecutable;
 module.exports.workerPath = workerPath;
+module.exports.runtimeArguments = runtimeArguments;
 module.exports.runtimeEnvironment = runtimeEnvironment;
 module.exports.NDJSON = NDJSON;

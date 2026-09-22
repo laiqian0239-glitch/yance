@@ -1154,7 +1154,6 @@ class WhatsAppAdapter {
     const persistedAccountId = reference && typeof reference === 'object'
       ? String(reference.id || '').trim()
       : String(this.accountByAdapterId(accountId)?.id || accountId || '').trim();
-    requirePersistedWhatsAppOperation(options.physicalOperationContext, { accountId: persistedAccountId, operation: 'start' });
     if (reference && typeof reference === 'object') {
       accountLifecycle.assertEligible(reference, { manual: options.manual === true });
       const canonicalAccountId = canonicalIdentity.resolveCanonicalAccountId(reference.id);
@@ -1427,6 +1426,46 @@ class WhatsAppAdapter {
         clearStartupWatchdog(row);
         const statusCode = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.statusCode || 0;
         const loggedOut = statusCode === baileys.DisconnectReason.loggedOut;
+        const restartRequired = statusCode === baileys.DisconnectReason.restartRequired;
+        if (restartRequired) {
+          // Baileys owns the pairing/session lifecycle. A 515 close is its
+          // required socket hand-off after credentials are saved.
+          row.state = 'connecting';
+          row.lastError = '';
+          row.qr = '';
+          row.qrDataUrl = '';
+          row.sessionFence.invalidate('WHATSAPP_BAILEYS_RESTART_REQUIRED');
+          row.socket = null;
+          this.accounts.delete(accountId);
+          eventBus.publish('whatsapp:state', {
+            accountId,
+            databaseAccountId,
+            state: 'connecting',
+            code: 'WHATSAPP_BAILEYS_RESTART_REQUIRED',
+            reasonCode: 'WHATSAPP_BAILEYS_RESTART_REQUIRED',
+            attemptId: String(options.attemptId || '')
+          });
+          logger.info('whatsapp', 'baileys-restart-required', { accountId, databaseAccountId, statusCode });
+          setImmediate(() => {
+            void this.start(databaseAccountId, { manual: true }).catch(error => {
+              logger.error('whatsapp', 'baileys-required-restart-failed', {
+                accountId: databaseAccountId,
+                reasonCode: error.code || 'WHATSAPP_BAILEYS_RESTART_FAILED',
+                error: error.message
+              });
+              eventBus.publish('whatsapp:state', {
+                accountId,
+                databaseAccountId,
+                state: 'offline',
+                error: error.message,
+                lastError: error.message,
+                code: error.code || 'WHATSAPP_BAILEYS_RESTART_FAILED',
+                reasonCode: error.code || 'WHATSAPP_BAILEYS_RESTART_FAILED'
+              });
+            });
+          });
+          return;
+        }
         const closeError = lastDisconnect?.error?.message || `连接关闭（${statusCode || 'unknown'}）`;
         await this.recordConnectionFailure(accountId, closeError, loggedOut).catch(error => logger.error('whatsapp', 'account-connection-failure-update-failed', { accountId, error: error.message }));
         socketGuard.assertCurrent({ accountId: databaseAccountId, eventName: 'connection.update', phase: 'close-recorded' });

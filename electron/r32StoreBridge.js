@@ -4,6 +4,8 @@ const CHANNELS = Object.freeze({
   snapshot: 'store:get-snapshot',
   socialContext: 'store:get-social-context',
   searchWorkspace: 'store:search-workspace',
+  matrixDirectProjection: 'store:matrix-direct-projection',
+  translateChinese: 'store:translate-chinese',
   createTranslationJob: 'store:create-translation-job',
   getTranslationJob: 'store:get-translation-job',
   cancelTranslationJob: 'store:cancel-translation-job',
@@ -194,7 +196,7 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       const [snapshot, conversationSnapshot, bootstrap] = await Promise.all([
         apiRequest(snapshotPath),
         apiRequest('/api/r32/store/snapshot?domains=conversations').catch(() => null),
-        apiRequest('/api/workspace/bootstrap?conversationLimit=2000&messageLimit=1').catch(() => null)
+        apiRequest('/api/r32/workspace/bootstrap?conversationLimit=2000&messageLimit=1').catch(() => null)
       ]);
       return {
         ...objectRecord(snapshot),
@@ -219,6 +221,19 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       const limit = Math.max(1, Math.min(200, Number.isFinite(numericLimit) ? numericLimit : 80));
       const query = new URLSearchParams({ q: queryText, limit: String(limit) });
       return apiRequest(`/api/r32/store/search?${query}`);
+    },
+    [CHANNELS.translateChinese]: (_event, input = {}) => {
+      const sourceText = clean(input.text);
+      return apiRequest('/api/r32/store/translations/chinese', {
+        method: 'POST',
+        body: jsonBody({
+          text: sourceText,
+          ...(clean(input.sourceLanguage) ? { sourceLanguage: clean(input.sourceLanguage) } : {}),
+          ...(clean(input.dedupeKey) ? { dedupeKey: clean(input.dedupeKey) } : {}),
+          ...(clean(input.fingerprint) ? { fingerprint: clean(input.fingerprint) } : {}),
+          ...(input.timeoutMs == null ? {} : { timeoutMs: input.timeoutMs })
+        })
+      });
     },
     [CHANNELS.createTranslationJob]: (_event, input = {}) => {
       const messageId = requiredIdentifier(input.messageId, 'messageId');
@@ -249,7 +264,7 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       const contactId = safeRouteSegment(input.contactId, 'contactId');
       const localDate = requiredIdentifier(input.localDate, 'localDate');
       const timeZone = requiredIdentifier(input.timeZone, 'timeZone');
-      return apiRequest(`/api/workspace/contacts/${contactId}/daily-review?localDate=${encodeURIComponent(localDate)}&timeZone=${encodeURIComponent(timeZone)}`);
+      return apiRequest(`/api/r32/workspace/contacts/${contactId}/daily-review?localDate=${encodeURIComponent(localDate)}&timeZone=${encodeURIComponent(timeZone)}`);
     },
     [CHANNELS.platformAccountLogout]: (_event, input = {}) => apiRequest(
       `/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/logout`,
@@ -311,7 +326,7 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       const chatJid = requiredIdentifier(input.chatJid, 'chatJid');
       const messageIds = [...new Set((Array.isArray(input.messageIds) ? input.messageIds : []).map(clean).filter(Boolean))];
       if (!messageIds.length || messageIds.length > 16) throw Object.assign(new Error('messageIds must contain 1..16 values'), { code:'MESSAGE_PROJECTION_IDS_INVALID' });
-      return apiRequest(`/api/workspace/conversations/${sessionKey}/message-projection`, { method:'POST', body:jsonBody({ accountId, chatJid, messageIds }) });
+      return apiRequest(`/api/r32/workspace/conversations/${sessionKey}/message-projection`, { method:'POST', body:jsonBody({ accountId, chatJid, messageIds }) });
     },
     [CHANNELS.personaVersions]: (_event, input = {}) => {
       const profileId = safeRouteSegment(input.profileId, 'profileId');
@@ -319,13 +334,13 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       return apiRequest(`/api/v2/persona/${profileId}/versions?limit=${limit}`);
     },
     [CHANNELS.personaImport]: (_event, input = {}) => apiRequest(`/api/v2/persona/${safeRouteSegment(input.profileId,'profileId')}/import`, { method:'POST', body:jsonBody({ exportedPayload:input.exportedPayload }) }),
-    [CHANNELS.workspaceConversationArchive]: (_event, input = {}) => apiRequest(`/api/workspace/conversations/${safeRouteSegment(input.sessionKey,'sessionKey')}/archive`, { method:'PUT', body:jsonBody({ archived:input.archived===true, by:'product' }) }),
-    [CHANNELS.workspaceConversationPin]: (_event, input = {}) => apiRequest(`/api/workspace/conversations/${safeRouteSegment(input.sessionKey,'sessionKey')}/pin`, { method:'PUT', body:jsonBody({ pinned:input.pinned===true, by:'product' }) }),
-    [CHANNELS.workspaceContactMerge]: (_event, input = {}) => apiRequest(`/api/workspace/contacts/${safeRouteSegment(input.survivorId,'survivorId')}/merge`, { method:'POST', body:jsonBody({ mergedId:requiredIdentifier(input.mergedId,'mergedId'), by:'product', ...(input.expectedVersion==null?{}:{expectedVersion:input.expectedVersion}) }) }),
-    [CHANNELS.workspaceContactMergeUndo]: (_event, input = {}) => apiRequest(`/api/workspace/contacts/${safeRouteSegment(input.survivorId,'survivorId')}/merge/undo`, { method:'POST', body:jsonBody({ journalId:requiredIdentifier(input.journalId,'journalId'), by:'product' }) }),
-    [CHANNELS.workspaceProfileReview]: (_event, input = {}) => { const contactId=safeRouteSegment(input.contactId,'contactId'); const body={...input}; delete body.contactId; return apiRequest(`/api/workspace/contacts/${contactId}/profile-review`, {method:'POST',body:jsonBody(body)}); },
-    [CHANNELS.workspaceKeyNodeMark]: (_event, input = {}) => apiRequest(`/api/workspace/contacts/${safeRouteSegment(input.contactId,'contactId')}/key-nodes`, { method:'POST', body:jsonBody({ ...(clean(input.eventId)?{eventId:clean(input.eventId)}:{}), ...(clean(input.nodeKind)?{nodeKind:clean(input.nodeKind)}:{}), markedBy:'user', ...(input.expectedVersion==null?{}:{expectedVersion:input.expectedVersion}) }) }),
-    [CHANNELS.workspaceKeyNodeUnmark]: (_event, input = {}) => apiRequest(`/api/workspace/contacts/${safeRouteSegment(input.contactId,'contactId')}/key-nodes/${safeRouteSegment(input.eventId,'eventId')}`, { method:'DELETE', body:jsonBody({ ...(input.expectedVersion==null?{}:{expectedVersion:input.expectedVersion}) }) }),
+    [CHANNELS.workspaceConversationArchive]: (_event, input = {}) => apiRequest(`/api/r32/workspace/conversations/${safeRouteSegment(input.sessionKey,'sessionKey')}/archive`, { method:'PUT', body:jsonBody({ archived:input.archived===true, by:'product' }) }),
+    [CHANNELS.workspaceConversationPin]: (_event, input = {}) => apiRequest(`/api/r32/workspace/conversations/${safeRouteSegment(input.sessionKey,'sessionKey')}/pin`, { method:'PUT', body:jsonBody({ pinned:input.pinned===true, by:'product' }) }),
+    [CHANNELS.workspaceContactMerge]: (_event, input = {}) => apiRequest(`/api/r32/workspace/contacts/${safeRouteSegment(input.survivorId,'survivorId')}/merge`, { method:'POST', body:jsonBody({ mergedId:requiredIdentifier(input.mergedId,'mergedId'), by:'product', ...(input.expectedVersion==null?{}:{expectedVersion:input.expectedVersion}) }) }),
+    [CHANNELS.workspaceContactMergeUndo]: (_event, input = {}) => apiRequest(`/api/r32/workspace/contacts/${safeRouteSegment(input.survivorId,'survivorId')}/merge/undo`, { method:'POST', body:jsonBody({ journalId:requiredIdentifier(input.journalId,'journalId'), by:'product' }) }),
+    [CHANNELS.workspaceProfileReview]: (_event, input = {}) => { const contactId=safeRouteSegment(input.contactId,'contactId'); const body={...input}; delete body.contactId; return apiRequest(`/api/r32/workspace/contacts/${contactId}/profile-review`, {method:'POST',body:jsonBody(body)}); },
+    [CHANNELS.workspaceKeyNodeMark]: (_event, input = {}) => apiRequest(`/api/r32/workspace/contacts/${safeRouteSegment(input.contactId,'contactId')}/key-nodes`, { method:'POST', body:jsonBody({ ...(clean(input.eventId)?{eventId:clean(input.eventId)}:{}), ...(clean(input.nodeKind)?{nodeKind:clean(input.nodeKind)}:{}), markedBy:'user', ...(input.expectedVersion==null?{}:{expectedVersion:input.expectedVersion}) }) }),
+    [CHANNELS.workspaceKeyNodeUnmark]: (_event, input = {}) => apiRequest(`/api/r32/workspace/contacts/${safeRouteSegment(input.contactId,'contactId')}/key-nodes/${safeRouteSegment(input.eventId,'eventId')}`, { method:'DELETE', body:jsonBody({ ...(input.expectedVersion==null?{}:{expectedVersion:input.expectedVersion}) }) }),
     [CHANNELS.generateReply]: async (event, input = {}) => {
       const requestId = clean(input.__yanceBridgeRequestId);
       const body = { ...input };
@@ -416,7 +431,7 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         error.reasonCode = error.code;
         throw error;
       }
-      return apiRequest(`/api/workspace/conversations/${sessionKey}/outbound-prepare`, {
+      return apiRequest(`/api/r32/workspace/conversations/${sessionKey}/outbound-prepare`, {
         method: 'POST',
         body: jsonBody({
           text,
@@ -451,18 +466,16 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       const action = requiredAction(input.action, [
         'auth-challenge',
         'discard-pending',
-        'telegram-qr-start',
-        'telegram-phone-start',
-        'telegram-cancel',
-        'telegram-code',
-        'telegram-password',
+        'provisioning-login-flows',
+        'provisioning-login-start',
+        'provisioning-login-input',
+        'provisioning-login-wait',
+        'provisioning-login-cancel',
+        'facebook-page-inboxes',
+        'facebook-page-attach',
         'facebook-oauth-start',
         'facebook-oauth-status',
-        'facebook-oauth-cancel',
-        'facebook-messenger-start',
-        'facebook-messenger-input',
-        'facebook-messenger-wait',
-        'facebook-messenger-cancel'
+        'facebook-oauth-cancel'
       ], 'action');
 
       if (action === 'auth-challenge') {
@@ -477,37 +490,59 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
           })
         });
       }
-      if (action === 'telegram-qr-start') {
-        return apiRequest(`/api/r32/accounts/${id}/telegram/qr/start`, {
-          method: 'POST', body: '{}'
-        });
+      if (action === 'provisioning-login-flows') {
+        const matrixUserId = clean(input.matrixUserId);
+        return apiRequest(`/api/r32/accounts/${id}/provisioning/login/flows${matrixUserId ? `?matrixUserId=${encodeURIComponent(matrixUserId)}` : ''}`);
       }
-      if (action === 'telegram-phone-start') {
-        return apiRequest(`/api/r32/accounts/${id}/telegram/phone/start`, {
+      if (action === 'provisioning-login-start') {
+        return apiRequest(`/api/r32/accounts/${id}/provisioning/login/start`, {
           method: 'POST',
-          body: jsonBody({ phoneNumber: requiredIdentifier(input.phoneNumber, 'phoneNumber') })
+          body: jsonBody({
+            flowId: requiredIdentifier(input.flowId, 'flowId'),
+            matrixUserId: clean(input.matrixUserId)
+          })
         });
       }
-      if (action === 'telegram-cancel') {
-        return apiRequest(`/api/r32/accounts/${id}/telegram/cancel`, {
-          method: 'POST', body: '{}'
-        });
-      }
-      if (action === 'telegram-code') {
-        return apiRequest(`/api/r32/accounts/${id}/telegram/code`, {
+      if (action === 'provisioning-login-input') {
+        return apiRequest(`/api/r32/accounts/${id}/provisioning/login/input`, {
           method: 'POST',
-          body: jsonBody({ code: requiredIdentifier(input.code, 'code') })
+          body: jsonBody({
+            loginProcessId: requiredIdentifier(input.loginProcessId, 'loginProcessId'),
+            stepId: requiredIdentifier(input.stepId, 'stepId'),
+            input: objectRecord(input.input),
+            matrixUserId: clean(input.matrixUserId)
+          })
         });
       }
-      if (action === 'telegram-password') {
-        const password = String(input.password == null ? '' : input.password);
-        if (!password) throw Object.assign(new Error('password is required'), {
-          code: 'PASSWORD_REQUIRED',
-          reasonCode: 'PASSWORD_REQUIRED'
-        });
-        return apiRequest(`/api/r32/accounts/${id}/telegram/password`, {
+      if (action === 'provisioning-login-wait') {
+        return apiRequest(`/api/r32/accounts/${id}/provisioning/login/wait`, {
           method: 'POST',
-          body: jsonBody({ password })
+          body: jsonBody({
+            loginProcessId: requiredIdentifier(input.loginProcessId, 'loginProcessId'),
+            stepId: requiredIdentifier(input.stepId, 'stepId'),
+            matrixUserId: clean(input.matrixUserId)
+          })
+        });
+      }
+      if (action === 'provisioning-login-cancel') {
+        return apiRequest(`/api/r32/accounts/${id}/provisioning/login/cancel`, {
+          method: 'POST',
+          body: jsonBody({
+            loginProcessId: clean(input.loginProcessId),
+            matrixUserId: clean(input.matrixUserId)
+          })
+        });
+      }
+      if (action === 'facebook-page-inboxes') {
+        return apiRequest(`/api/r32/accounts/${id}/facebook/page/inboxes`);
+      }
+      if (action === 'facebook-page-attach') {
+        return apiRequest(`/api/r32/accounts/${id}/facebook/page/attach`, {
+          method: 'POST',
+          body: jsonBody({
+            inboxId: requiredIdentifier(input.inboxId, 'inboxId'),
+            pageId: requiredIdentifier(input.pageId, 'pageId')
+          })
         });
       }
       if (action === 'facebook-oauth-start') {
@@ -525,40 +560,18 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
           body: jsonBody({ flowId: requiredIdentifier(input.flowId, 'flowId') })
         });
       }
-      if (action === 'facebook-messenger-start') {
-        return apiRequest(`/api/r32/accounts/${id}/facebook/messenger/start`, {
-          method: 'POST', body: '{}'
-        });
-      }
-      if (action === 'facebook-messenger-input') {
-        return apiRequest(`/api/r32/accounts/${id}/facebook/messenger/input`, {
-          method: 'POST',
-          body: jsonBody({
-            loginProcessId: requiredIdentifier(input.loginProcessId, 'loginProcessId'),
-            stepId: requiredIdentifier(input.stepId, 'stepId'),
-            txnId: clean(input.txnId),
-            input: objectRecord(input.input)
-          })
-        });
-      }
-      if (action === 'facebook-messenger-wait') {
-        return apiRequest(`/api/r32/accounts/${id}/facebook/messenger/wait`, {
-          method: 'POST',
-          body: jsonBody({
-            loginProcessId: requiredIdentifier(input.loginProcessId, 'loginProcessId'),
-            stepId: requiredIdentifier(input.stepId, 'stepId'),
-            txnId: clean(input.txnId)
-          })
-        });
-      }
-      return apiRequest(`/api/r32/accounts/${id}/facebook/messenger/cancel`, {
-        method: 'POST',
-        body: jsonBody({
-          loginProcessId: clean(input.loginProcessId)
-        })
+      throw Object.assign(new Error('Unsupported platform account command'), {
+        code: 'PLATFORM_ACCOUNT_COMMAND_UNSUPPORTED',
+        reasonCode: 'PLATFORM_ACCOUNT_COMMAND_UNSUPPORTED'
       });
     },
-    [CHANNELS.platformAccountsList]: () => apiRequest('/api/r32/accounts'),
+    [CHANNELS.matrixDirectProjection]: (_event, input = {}) => apiRequest('/api/r32/workspace/matrix-direct-projection', {
+      method: 'POST',
+      body: jsonBody(input || {})
+    }),    [CHANNELS.platformAccountsList]: (_event, input = {}) => {
+      const matrixUserId = clean(input.matrixUserId);
+      return apiRequest(`/api/r32/accounts${matrixUserId ? `?matrixUserId=${encodeURIComponent(matrixUserId)}` : ''}`);
+    },
     [CHANNELS.platformAccountCapabilities]: () => apiRequest('/api/r32/accounts/capabilities'),
     [CHANNELS.platformAccountAudit]: (_event, input = {}) => {
       const limit = clean(input.limit);
@@ -566,15 +579,15 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
     },
     [CHANNELS.platformAccountConnect]: (_event, input = {}) => apiRequest(`/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/connect`, {
       method: 'POST',
-      body: '{}'
+      body: jsonBody({ matrixUserId: clean(input.matrixUserId) })
     }),
     [CHANNELS.platformAccountReconnect]: (_event, input = {}) => apiRequest(`/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/reconnect`, {
       method: 'POST',
-      body: '{}'
+      body: jsonBody({ matrixUserId: clean(input.matrixUserId) })
     }),
     [CHANNELS.platformAccountSync]: (_event, input = {}) => apiRequest(`/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/sync`, {
       method: 'POST',
-      body: '{}'
+      body: jsonBody({ matrixUserId: clean(input.matrixUserId) })
     }),
     [CHANNELS.platformAccountsSyncAll]: () => apiRequest('/api/r32/accounts/actions/sync-all', {
       method: 'POST',
@@ -711,6 +724,10 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         'cancel-ollama-pull',
         'scan-local-models',
         'configure-openrouter',
+        'set-model-brain-preferences',
+        'set-task-model-policy',
+        'qualify-model',
+        'validate-logical-task',
         'discover-compatible-cloud',
         'register-compatible-cloud'
       ]);
@@ -780,6 +797,61 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         return apiRequest('/api/r32/models/cloud/openrouter/auto-configure', {
           method: 'POST',
           body: jsonBody({ credentialRef: requiredIdentifier(input.credentialRef, 'credentialRef') })
+        });
+      }
+      if (action === 'set-model-brain-preferences') {
+        const reasoningLevel = requiredAction(input.reasoningLevel, [
+          'minimum', 'low', 'medium', 'high', 'very_high', 'maximum', 'ultra'
+        ], 'reasoningLevel');
+        return apiRequest('/api/r32/models/model-brain/preferences', {
+          method: 'PUT',
+          body: jsonBody({ reasoningLevel, fastMode: input.fastMode === true })
+        });
+      }
+      if (action === 'set-task-model-policy') {
+        const task = requiredAction(input.task, [
+          'translation', 'understanding', 'relationship', 'director',
+          'quick_reply', 'deep_reply', 'fact_extraction', 'memory_extraction'
+        ], 'task');
+        const mode = requiredAction(input.mode, ['auto', 'manual'], 'mode');
+        return apiRequest(`/api/r32/models/model-brain/preferences/${encodeURIComponent(task)}`, {
+          method: 'PUT',
+          body: jsonBody({
+            mode,
+            primaryModelId: mode === 'manual' ? requiredIdentifier(input.primaryModelId, 'primaryModelId') : '',
+            fallbackModelId: mode === 'manual' ? clean(input.fallbackModelId) : ''
+          })
+        });
+      }
+      if (action === 'qualify-model') {
+        const modelId = requiredIdentifier(input.modelId, 'modelId');
+        const tests = Array.isArray(input.tests) ? input.tests.map(clean).filter(Boolean) : undefined;
+        return apiRequest(`/api/r32/models/${encodeURIComponent(modelId)}/test`, {
+          method: 'POST',
+          body: jsonBody({ tests, timeoutMs: Math.max(1000, Number(input.timeoutMs || 180000)) })
+        });
+      }
+      if (action === 'validate-logical-task') {
+        const task = requiredAction(input.task, [
+          'translation', 'understanding', 'relationship', 'director',
+          'quick_reply', 'deep_reply', 'fact_extraction', 'memory_extraction'
+        ], 'task');
+        const messages = (Array.isArray(input.messages) ? input.messages : []).slice(0, 8).map(row => ({
+          role: ['system', 'user', 'assistant'].includes(clean(row?.role).toLowerCase()) ? clean(row.role).toLowerCase() : 'user',
+          content: String(row?.content || '').slice(0, 12000)
+        })).filter(row => row.content.trim());
+        if (!messages.length) throw Object.assign(new Error('messages are required'), { code: 'MESSAGES_REQUIRED', reasonCode: 'MESSAGES_REQUIRED' });
+        return apiRequest('/api/r32/models/execute', {
+          method: 'POST',
+          body: jsonBody({
+            task,
+            messages,
+            options: {
+              timeoutMs: Math.max(1000, Math.min(180000, Number(input.timeoutMs || 120000))),
+              maxTokens: Math.max(1, Math.min(1024, Number(input.maxTokens || 256))),
+              temperature: Math.max(0, Math.min(2, Number(input.temperature || 0)))
+            }
+          })
         });
       }
       if (action === 'discover-compatible-cloud') {

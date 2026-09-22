@@ -1,16 +1,14 @@
-import React, { useState } from "react";
-import { Popover } from "@base-ui/react/popover";
+import React from "react";
+import { AudioLines, Camera, ImagePlus, Radio } from "lucide-react";
 import { useExperiencePreferences } from "./experiencePreferences";
 import { playExperienceSound } from "./experienceSound";
 import { ReplyBrainCandidate } from "./ProductConversationProjection";
 import {
   captureExperienceFocus,
   requestRelationshipOverlay,
-  setSelectedConversationAutomationMode,
   useExperienceSession,
 } from "./experienceSession";
 import type {
-  ConversationAutomationMode,
   RelationshipOverlayKind,
 } from "./experienceTypes";
 
@@ -19,52 +17,17 @@ type ProductComposerAccessoryProps = {
   stageApprovedReply: (input: { outboxId: string; text: string; roomId: string }) => Promise<void>;
 };
 
-type DesktopConversationApi = {
-  setConversationAutomationMode?: (input: {
-    conversationId: string;
-    contactId?: string;
-    mode: ConversationAutomationMode;
-  }) => Promise<unknown>;
-};
-
-const ACTIONS: readonly Readonly<{
+const RICH_REPLY_ACTIONS: readonly Readonly<{
   label: string;
   kind: RelationshipOverlayKind;
   hint: string;
+  icon: React.ReactNode;
 }>[] = [
-  {
-    label: "照片",
-    kind: "photo",
-    hint: "照片库与智能编辑",
-  },
-  {
-    label: "语音",
-    kind: "voice",
-    hint: "语音能力",
-  },
-  {
-    label: "实时陪伴",
-    kind: "live",
-    hint: "实时空间",
-  },
+  { label: "发送照片", kind: "photo", hint: "从真实素材库选择", icon: <Camera aria-hidden="true" /> },
+  { label: "生成 / 编辑图片", kind: "photo", hint: "生成、编辑后再选择", icon: <ImagePlus aria-hidden="true" /> },
+  { label: "语音回复", kind: "voice", hint: "用我的声音预览回复", icon: <AudioLines aria-hidden="true" /> },
+  { label: "实时互动", kind: "live", hint: "进入当前关系的实时空间", icon: <Radio aria-hidden="true" /> },
 ];
-
-const MODES: readonly Readonly<{
-  mode: ConversationAutomationMode;
-  label: string;
-}>[] = [
-  { mode: "HUMAN", label: "由我回复" },
-  { mode: "AI_ASSIST", label: "建议我" },
-  { mode: "AI_AUTO", label: "自动处理" },
-];
-
-function desktopApi(): DesktopConversationApi | null {
-  return (
-    window as unknown as {
-      yanceDesktop?: DesktopConversationApi;
-    }
-  ).yanceDesktop || null;
-}
 
 export function ProductComposerAccessory({
   roomId,
@@ -72,9 +35,6 @@ export function ProductComposerAccessory({
 }: ProductComposerAccessoryProps): React.JSX.Element {
   const { soundMode } = useExperiencePreferences();
   const session = useExperienceSession();
-
-  const [modeBusy, setModeBusy] = useState(false);
-  const [modeStatus, setModeStatus] = useState("");
 
   const routeReady = Boolean(
     session.selectedConversationId
@@ -90,47 +50,6 @@ export function ProductComposerAccessory({
     playExperienceSound(soundMode, "open");
   };
 
-  const updateMode = async (
-    mode: ConversationAutomationMode,
-  ): Promise<void> => {
-    if (!routeReady || modeBusy) return;
-
-    const api = desktopApi();
-
-    if (
-      !api
-      || typeof api.setConversationAutomationMode !== "function"
-    ) {
-      setModeStatus("回复模式暂不可用");
-      return;
-    }
-
-    setModeBusy(true);
-    setModeStatus("正在保存回复模式");
-
-    try {
-      await api.setConversationAutomationMode({
-        conversationId: session.selectedConversationId,
-        contactId: session.selectedConversationContactId,
-        mode,
-      });
-
-      setSelectedConversationAutomationMode(mode);
-
-      setModeStatus(
-        mode === "HUMAN"
-          ? "已立即切回由我回复"
-          : mode === "AI_ASSIST"
-            ? "建议模式已启用；发送仍由你确认"
-            : "自动处理已启用；你可随时切回由我回复",
-      );
-    } catch {
-      setModeStatus("回复模式保存失败；保持原状态");
-    } finally {
-      setModeBusy(false);
-    }
-  };
-
   return (
     <div
       className="yance-action-dock"
@@ -138,76 +57,27 @@ export function ProductComposerAccessory({
       data-room-id={roomId}
       data-product-conversation-bound={routeReady || undefined}
     >
-      <div
-        className="yance-conversation-mode"
-        aria-label="回复方式"
-      >
-        {MODES.map((item) => (
-          <button
-            key={item.mode}
-            type="button"
-            aria-pressed={
-              session.selectedConversationAutomationMode === item.mode
-            }
-            disabled={!routeReady || modeBusy}
-            onClick={() => void updateMode(item.mode)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      <Popover.Root>
-        <Popover.Trigger
-          className="yance-action-trigger"
-          aria-label="打开照片、语音和实时陪伴工具"
-          disabled={!routeReady}
-        >
-          <span aria-hidden="true">＋</span>
-          <span>关系工具</span>
-        </Popover.Trigger>
-
-        <Popover.Portal>
-          <Popover.Positioner
-            sideOffset={8}
-            className="yance-action-positioner"
-          >
-            <Popover.Popup
-              className="yance-action-popover"
-              aria-label="关系工具面板"
-            >
-              <div className="yance-action-grid">
-                {ACTIONS.map((action) => (
-                  <Popover.Close
-                    key={action.label}
-                    className="yance-action-item"
-                    aria-label={`${action.label} · ${action.hint}`}
-                    onClick={() => open(action.kind)}
-                  >
-                    <strong>{action.label}</strong>
-                    <span>{action.hint}</span>
-                  </Popover.Close>
-                ))}
-              </div>
-            </Popover.Popup>
-          </Popover.Positioner>
-        </Popover.Portal>
-      </Popover.Root>
-
-
-      {modeStatus ? (
-        <span role="status">
-          {modeStatus}
-        </span>
-      ) : null}
-
-      {routeReady && session.selectedConversationAutomationMode === "AI_ASSIST" ? (
+      {routeReady ? (
         <ReplyBrainCandidate
           conversationId={session.selectedConversationId}
           contactId={session.selectedConversationContactId}
           stageApprovedReply={({ outboxId, text }) => stageApprovedReply({ outboxId, text, roomId })}
         />
       ) : null}
+
+      <div className="yance-rich-reply-tools" aria-label="丰富回复">
+        {RICH_REPLY_ACTIONS.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            disabled={!routeReady}
+            onClick={() => open(action.kind)}
+          >
+            <span className="yance-rich-reply-tools__icon">{action.icon}</span>
+            <span className="yance-rich-reply-tools__copy"><strong>{action.label}</strong><span>{action.hint}</span></span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

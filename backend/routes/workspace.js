@@ -30,6 +30,13 @@ function respondError(res, error) {
   res.status(status).json({ ok: false, error: { code: code || 'INTERNAL_ERROR', message: (error && error.message) ? error.message : 'internal error' } });
 }
 
+router.post('/matrix-direct-projection', (req, res, next) => {
+  try {
+    res.json(workspaceRepository.ensureMatrixDirectConversationProjection(req.body || {}));
+  } catch (error) {
+    respondError(res, error);
+  }
+});
 router.get('/bootstrap', (req, res, next) => {
   try {
     res.json(workspace.bootstrap({

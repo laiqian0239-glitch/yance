@@ -146,7 +146,8 @@ test('Product projection composes the desktop authority and Element public navig
 
   assert.doesNotMatch(product, /\bfetch\s*\(/u, 'Element Product code must not become a renderer-direct local API client');
   assert.doesNotMatch(product, /querySelector\([^)]*(?:timeline|composer)|mx_RoomView|mx_MessageComposer|RightPanelStore/u);
-  assert.doesNotMatch(product, /chatJid\s*(?:as|:)\s*(?:matrix|room)|sessionKey\s*(?:as|:)\s*(?:matrix|room)/iu, 'provider identifiers must not be re-labeled as Matrix identities');
+  assert.match(product, /chatJid:\s*room\.chatJid/u, 'the bridge-projected provider identifier must remain unchanged');
+  assert.match(product, /sessionKey:\s*room\.roomId/u, 'the Element room id remains the canonical navigation session key');
 });
 
 test('bilingual search panel renders evidence and truthful bounded translation lifecycle UX with Product polish seams', () => {

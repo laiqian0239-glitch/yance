@@ -121,8 +121,8 @@ class RuntimeArtifactBootstrapService {
       schemaVersion: 1,
       files: fileManifest(root, [
         'backend/services/facebookAdapter.js',
-        'backend/services/whatsappAdapter.js',
-        'backend/services/telegramAdapter.js',
+        'backend/services/platformDriverRegistry.js',
+        'backend/services/mautrixProvisioningAdapter.js',
         'backend/services/platformCapabilities.js',
         'backend/services/platformMessagingService.js'
       ])

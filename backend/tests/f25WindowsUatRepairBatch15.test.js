@@ -90,7 +90,7 @@ test('Node native fallback transport also sends the authorization header determi
   });
   const address = await listen(server);
   try {
-    await cloud.nativeRequestJson(`http://127.0.0.1:${address.port}/api/v1/models/user`, {
+    await cloud.nativeRequestJson(`http://127.0.0.1:${address.port}/api/v1/models`, {
       apiKey: 'test-native-key',
       timeoutMs: 5000
     });

@@ -865,21 +865,19 @@
 .yance-post-login-security-card {
   width: 100%;
   box-sizing: border-box;
-  padding: 16px 18px;
+  padding: 12px 14px;
   border: 1px solid rgb(42 15 74 / 12%);
-  border-radius: 20px;
+  border-radius: 16px;
   background: rgb(255 255 255 / 97%);
-  box-shadow: 0 16px 48px rgb(42 15 74 / 10%);
+  box-shadow: 0 12px 34px rgb(42 15 74 / 8%);
 }
 
-.yance-post-login-security-card .mx_CompleteSecurityBody,
-.yance-product-security-dialog .mx_CompleteSecurityBody {
+.yance-post-login-security-card .mx_CompleteSecurityBody {
   width: 100%;
   box-sizing: border-box;
 }
 
-.yance-post-login-security-card .mx_SetupEncryptionBody,
-.yance-product-security-dialog .mx_SetupEncryptionBody {
+.yance-post-login-security-card .mx_SetupEncryptionBody {
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -897,39 +895,28 @@
   right: 0;
 }
 
-.yance-post-login-security-card .mx_EncryptionCard_header,
-.yance-product-security-dialog .mx_EncryptionCard_header {
-  margin-bottom: 10px;
+.yance-post-login-security-card .mx_EncryptionCard_header {
+  margin-bottom: 8px;
 }
 
-.yance-post-login-security-card .mx_EncryptionCard_emphasisedContent,
-.yance-product-security-dialog .mx_EncryptionCard_emphasisedContent {
-  gap: 7px !important;
-  margin-block: 8px !important;
-  line-height: 1.42;
+.yance-post-login-security-card .mx_EncryptionCard_emphasisedContent {
+  gap: 6px !important;
+  margin-block: 6px !important;
+  line-height: 1.36;
 }
 
-.yance-post-login-security-card .mx_EncryptionCard_buttons,
-.yance-product-security-dialog .mx_EncryptionCard_buttons {
+.yance-post-login-security-card .mx_EncryptionCard_buttons {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 12px;
+  gap: 7px;
+  margin-top: 9px;
 }
 
-.yance-post-login-security-card .mx_EncryptionCard_buttons > *,
-.yance-product-security-dialog .mx_EncryptionCard_buttons > * {
+.yance-post-login-security-card .mx_EncryptionCard_buttons > * {
   min-width: 0;
-  min-height: 40px;
+  min-height: 36px;
   height: auto;
   white-space: normal;
-}
-
-.yance-product-security-dialog {
-  width: min(520px, calc(100vw - 32px)) !important;
-  max-width: min(520px, calc(100vw - 32px)) !important;
-  max-height: calc(100vh - 32px) !important;
-  box-sizing: border-box;
 }
 
 .yance-login-session-note {
@@ -989,9 +976,11 @@
   .yance-post-login-security {
     min-height: 0;
     height: 100%;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     justify-content: center;
-    padding: 14px 18px;
+    justify-content: safe center;
+    padding: 12px 16px;
   }
 
   .yance-post-login-security .yance-login-auth-inner {
@@ -1045,8 +1034,7 @@
 }
 
 @media (max-width: 520px) {
-  .yance-post-login-security-card .mx_EncryptionCard_buttons,
-  .yance-product-security-dialog .mx_EncryptionCard_buttons {
+  .yance-post-login-security-card .mx_EncryptionCard_buttons {
     grid-template-columns: 1fr;
   }
 }
@@ -1109,11 +1097,98 @@
   .yance-post-login-security-shell .yance-login-capabilities { gap: 4px; margin-top: 8px; }
   .yance-post-login-security-shell .yance-login-capabilities span { padding: 3px 6px; font-size: 8px; }
 
-  .yance-post-login-security { padding: 12px 16px; overflow: hidden; }
+  .yance-post-login-security {
+    padding: 12px 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
   .yance-post-login-security .yance-login-auth-copy { margin-bottom: 8px; }
   .yance-post-login-security .yance-login-auth-eyebrow { font-size: 8px; }
   .yance-post-login-security .yance-login-auth-copy h2 { margin: 4px 0; font-size: 23px; }
   .yance-post-login-security .yance-login-auth-copy p { font-size: 10.5px; line-height: 1.35; }
   .yance-post-login-security-card { padding: 9px 11px; border-radius: 15px; }
   .yance-post-login-security-note { margin-top: 5px; font-size: 9px; line-height: 1.3; }
+}
+
+/* YANCE_POST_LOGIN_SECURITY_COMPACT_PRODUCT_V3
+ * Geometry only. Element/Matrix keeps verification, recovery, session and crypto authority.
+ * Only Yance-owned decoration is removed; the mature security actions stay mounted unchanged.
+ */
+.yance-post-login-security-shell {
+  display: block;
+  width: min(520px, calc(100vw - 32px));
+  max-width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  min-height: 0;
+  margin: auto;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.yance-post-login-security-shell .yance-login-brand {
+  display: none;
+}
+
+.yance-post-login-security {
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  justify-content: start;
+  justify-content: safe start;
+  padding: 16px 18px;
+}
+
+.yance-post-login-security .yance-login-auth-inner {
+  width: 100%;
+  max-width: none;
+}
+
+.yance-post-login-security .yance-login-auth-copy {
+  margin-bottom: 10px;
+}
+
+.yance-post-login-security .yance-login-auth-copy h2 {
+  margin: 4px 0;
+  font-size: 22px;
+}
+
+.yance-post-login-security .yance-login-auth-copy p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.yance-post-login-security-card {
+  padding: 12px 14px;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.yance-post-login-security-note {
+  margin-top: 8px;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+@media (min-width: 960px) and (max-height: 680px) {
+  .yance-post-login-security-shell {
+    width: min(500px, calc(100vw - 32px));
+    max-width: min(500px, calc(100vw - 32px));
+    max-height: calc(100vh - 24px);
+  }
+
+  .yance-post-login-security {
+    padding: 14px 16px;
+  }
+
+  .yance-post-login-security-card .mx_EncryptionCard_buttons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .yance-post-login-security-card .mx_EncryptionCard_buttons > * {
+    min-height: 36px;
+  }
 }

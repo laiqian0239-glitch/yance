@@ -588,6 +588,115 @@ test('M2-AI-011 provider administration physical I/O starts one persisted AI ope
   assert.equal(calls[0][1], 'ai.provider-admin.cloud-list');
 });
 
+test('M2-AI-011B repeated provider administration creates a fresh durable invocation instead of conflicting with prior trace identity', async () => {
+  const gatewayPath = path.join(servicesRoot, 'aiGateway.js');
+  delete require.cache[require.resolve(gatewayPath)];
+  const { AiGateway } = require(gatewayPath);
+  const seen = new Map();
+  let physicalCalls = 0;
+  const authority = Object.freeze({
+    create(input) {
+      const key = `${input.operationType}:${input.scopeKey}:${input.objectFingerprint}`;
+      const previous = seen.get(key);
+      if (previous && previous.traceId !== input.traceId) {
+        const error = new Error('same durable provider-admin key changed trace identity');
+        error.code = 'WP_B_EXECUTION_IDEMPOTENCY_CONFLICT';
+        throw error;
+      }
+      const scheduled = Object.freeze({
+        operationId: input.operationId,
+        executionId: input.operationId,
+        operationType: input.operationType,
+        operationKind: 'AI_PROVIDER_EXECUTION',
+        scopeKey: input.scopeKey,
+        objectFingerprint: input.objectFingerprint,
+        state: 'SCHEDULED', stateVersion: 1, generation: 0,
+        ownerId: '', claimId: '', hostGeneration: 0, fencingToken: 0,
+        leaseExpiresAt: ''
+      });
+      const receipt = Object.freeze({ created: !previous, operation: scheduled });
+      seen.set(key, Object.freeze({ traceId: input.traceId, receipt }));
+      return receipt;
+    },
+    start(operationId) {
+      const record = [...seen.values()].find(row => row.receipt.operation.operationId === operationId);
+      const scheduled = record.receipt.operation;
+      return Object.freeze({ updated: true, operation: Object.freeze({
+        ...scheduled,
+        state: 'RUNNING', stateVersion: 2, generation: 1,
+        ownerId: 'write-host-1', claimId: `claim-${operationId}`,
+        hostGeneration: 7, fencingToken: 11,
+        leaseExpiresAt: '2026-08-18T08:30:00.000Z'
+      }) });
+    },
+    succeed() { return Object.freeze({ updated: true }); },
+    fail() { return Object.freeze({ updated: true }); }
+  });
+  const gateway = new AiGateway({
+    internalOperationAuthorityProvider: () => authority,
+    openAiClient: Object.freeze({
+      async listModels() { physicalCalls += 1; return ['model-a']; },
+      normalizeEndpoint(value) { return String(value); },
+      normalizeApiKey(value) { return String(value); }
+    }),
+    ollamaClient: Object.freeze({}),
+    securityGuard: Object.freeze({ credentials: Object.freeze({ get(ref) { return ref === 'credential-repeat' ? Object.freeze({ apiKey: 'secret', endpoint: 'https://example.invalid/v1' }) : null; } }) })
+  });
+
+  await gateway.listCloudModels({ endpoint: 'https://example.invalid/v1', credentialRef: 'credential-repeat', timeoutMs: 1000 });
+  await gateway.listCloudModels({ endpoint: 'https://example.invalid/v1', credentialRef: 'credential-repeat', timeoutMs: 1000 });
+  assert.equal(physicalCalls, 2);
+  assert.equal(seen.size, 2, 'each intentional provider-admin invocation must have a distinct durable identity');
+});
+
+test('M2-AI-011C provider admin success receipt stays inside the sealed reference-payload key set', async () => {
+  const gatewayPath = path.join(servicesRoot, 'aiGateway.js');
+  delete require.cache[require.resolve(gatewayPath)];
+  const { AiGateway } = require(gatewayPath);
+  let scheduled = null;
+  const authority = Object.freeze({
+    create(input) {
+      scheduled = Object.freeze({
+        operationId: input.operationId, executionId: input.operationId,
+        operationType: input.operationType, operationKind: 'AI_PROVIDER_EXECUTION',
+        scopeKey: input.scopeKey, objectFingerprint: input.objectFingerprint,
+        state: 'SCHEDULED', stateVersion: 1, generation: 0,
+        ownerId: '', claimId: '', hostGeneration: 0, fencingToken: 0, leaseExpiresAt: ''
+      });
+      return Object.freeze({ created: true, operation: scheduled });
+    },
+    start(operationId) {
+      assert.equal(operationId, scheduled.operationId);
+      return Object.freeze({ updated: true, operation: Object.freeze({
+        ...scheduled, state: 'RUNNING', stateVersion: 2, generation: 1,
+        ownerId: 'write-host-1', claimId: 'claim-admin-receipt', hostGeneration: 7,
+        fencingToken: 11, leaseExpiresAt: '2026-08-18T08:30:00.000Z'
+      }) });
+    },
+    succeed(_operationId, payload) {
+      assert.deepEqual(Object.keys(payload).sort(), ['status']);
+      assert.equal(payload.status, 'completed');
+      return Object.freeze({ updated: true });
+    },
+    fail() { return Object.freeze({ updated: true }); }
+  });
+  const gateway = new AiGateway({
+    internalOperationAuthorityProvider: () => authority,
+    openAiClient: Object.freeze({
+      async requestJson() { return { data: { ok: true } }; },
+      normalizeEndpoint(value) { return String(value); },
+      normalizeApiKey(value) { return String(value); }
+    }),
+    ollamaClient: Object.freeze({}),
+    securityGuard: Object.freeze({ credentials: Object.freeze({ get(ref) { return ref === 'credential-request' ? Object.freeze({ apiKey: 'secret', endpoint: 'https://example.invalid/v1' }) : null; } }) })
+  });
+
+  const result = await gateway.requestOpenAiJson({
+    url: 'https://example.invalid/v1/key', credentialRef: 'credential-request', timeoutMs: 1000
+  });
+  assert.deepEqual(result, { data: { ok: true } });
+});
+
 test('M2-AI-012 model route has no direct provider client ownership and request disconnect does not cancel durable execution truth', () => {
   const routeSource = fs.readFileSync(path.join(servicesRoot, '..', 'routes', 'models.js'), 'utf8');
   assert.doesNotMatch(routeSource, /require\(['"]\.\.\/services\/(?:ollamaClient|openAiCompatibleClient)['"]\)/u);

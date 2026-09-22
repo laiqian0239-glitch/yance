@@ -336,7 +336,11 @@ test('trusted Linux Matrix bootstrap keeps checkout native and scopes Git CRLF s
   assert.match(bootstrap, /run\(repoDir, 'git', \['apply', patchPath\]\);/u);
   assert.match(bootstrap, /run\(element, 'git', \['apply', '--check', MODULE_DELIVERY_PATCH\]\);/u);
   assert.match(bootstrap, /run\(element, 'git', \['apply', MODULE_DELIVERY_PATCH\]\);/u);
-  assert.match(bootstrap, /fs\.rmSync\(dir,\s*\{\s*recursive:\s*true,\s*force:\s*true\s*\}\)/u);
+  assert.match(
+    bootstrap,
+    /fs\.rmSync\(dir,\s*\{\s*recursive:\s*true,\s*force:\s*true,\s*maxRetries:\s*5,\s*retryDelay:\s*200\s*\}\)/u,
+    'Windows cleanup retry must remain owned by the Node fs.rmSync public seam'
+  );
   assert.match(bootstrap, /fs\.mkdirSync\(dir,\s*\{\s*recursive:\s*true\s*\}\)/u);
   assert.match(bootstrap, /run\(dir,\s*'git',\s*\['init'\]\)/u);
   assert.match(bootstrap, /run\(dir,\s*'git',\s*\['remote',\s*'add',\s*'origin',\s*upstream\.repository\]\)/u);
@@ -345,7 +349,12 @@ test('trusted Linux Matrix bootstrap keeps checkout native and scopes Git CRLF s
   assert.match(bootstrap, /assertExactCommit\(dir,\s*upstream\.commit\)/u);
   assert.doesNotMatch(bootstrap, /clone',\s*'--no-checkout'|git\s+clone\s+--no-checkout/u);
   assert.doesNotMatch(bootstrap, /checkout',\s*'--detach',\s*upstream\.commit|checkout[^\n]*(?:main|master|origin\/HEAD)/u);
-  assert.doesNotMatch(bootstrap, /retry|fallback|mirror/iu);
+  const materializeBlock = bootstrap.slice(
+    bootstrap.indexOf('function materialize(name, upstream)'),
+    bootstrap.indexOf('function materializeExactReleaseTag')
+  );
+  assert.doesNotMatch(materializeBlock, /\bfunction\s+\w*retry\w*\s*\(|\b(?:for|while)\s*\([^)]*(?:attempt|retry)/iu, 'Yance must not implement a custom cleanup retry owner');
+  assert.doesNotMatch(bootstrap, /\b(?:fallback|mirror)\b/iu);
   assert.doesNotMatch(bootstrap, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
   assert.doesNotMatch(bootstrap, /--ignore-whitespace|--ignore-space-change|--reject|--3way|--recount|--unidiff-zero/u);
   assert.doesNotMatch(source, /git\s+config\s+(?:--global|--local)[^\n]*core\.autocrlf/u);
@@ -787,8 +796,8 @@ test('production Matrix runtime keeps sealed resources read-only and projects on
   assert.doesNotMatch(main, /path\.join\(runtimeDir,\s*'runtime-(?:config|override|secrets)/u, 'sealed resources/matrix-runtime must not receive runtime projections');
   assert.match(main, /restoreMatrixRuntimeDynamicEnvironment/u, 'shutdown and relaunch must restore dynamic Matrix env before the new process starts');
   assert.doesNotMatch(main, /matrix-mautrix-port-discovery-failed[\s\S]{0,200}warn/u, 'mautrix-meta port discovery must fail closed, not warn and continue');
-  assert.match(main, /const metaPortResult = await dockerExec\(\[\.\.\.allArgs, 'port', 'mautrix-meta', '29319'\]/u);
-  assert.match(main, /const mautrixProvisioningUrl = `http:\/\/127\.0\.0\.1:\$\{metaHostPort\}\/_matrix\/provision`/u);
+  assert.match(main, /const \[metaPortResult, whatsappPortResult, telegramPortResult\] = await Promise\.all\(\[[\s\S]*dockerExec\(\[\.\.\.allArgs, 'port', 'mautrix-meta', '29319'\]/u);
+  assert.match(main, /const mautrixMetaProvisioningUrl = `http:\/\/127\.0\.0\.1:\$\{metaHostPort\}\/_matrix\/provision`/u);
   assert.match(main, /const MATRIX_COMPOSE_WAIT_TIMEOUT_SECONDS = 300/u);
   assert.match(main, /const MATRIX_COMPOSE_MIN_WAIT_AUTHORITY_VERSION_TEXT = '5\.5\.1'/u);
   assert.match(main, /dockerExec\(\['compose', 'version', '--short'\], \{ timeoutMs: 15000 \}\)/u);
@@ -824,8 +833,8 @@ test('production Matrix runtime keeps sealed resources read-only and projects on
   );
   assert.match(
     main,
-    /matrix-runtime-ready[\s\S]{0,700}\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',[\s\S]{0,180}'mautrix-meta', 'mautrix-whatsapp'/u,
-    'bridge health completion must be deferred until after core Matrix readiness and remain on the same Compose public seam'
+    /matrix-bridge-readiness-wait[\s\S]{0,500}\.\.\.allArgs, 'up', '-d', '--no-build', '--no-deps', '--no-recreate', '--wait',[\s\S]{0,220}'mautrix-meta', 'mautrix-whatsapp', 'mautrix-telegram'[\s\S]{0,260}matrix-runtime-ready/u,
+    'all three bridge health gates must complete through the same Compose public seam before Product runtime readiness is published'
   );
   assert.doesNotMatch(
     main,
@@ -1057,7 +1066,7 @@ test('backendEnvironment forwards the five Matrix backend authority env keys bef
 
 test('desktop first frame stays compact and begins before Matrix/backend materialization without shadow auth', () => {
   const main = read('electron/main.js');
-  assert.match(main, /width:\s*860[\s\S]*height:\s*580[\s\S]*minWidth:\s*760[\s\S]*minHeight:\s*520/u);
+  assert.match(main, /width:\s*1180[\s\S]*height:\s*760[\s\S]*minWidth:\s*960[\s\S]*minHeight:\s*680/u);
   assert.match(main, /mainWindow = createdWindow;\s*createdWindow\.center\(\);/u);
   assert.match(main, /let healthUrl = getElementHealthUrl\(\);[\s\S]*while \(Date\.now\(\) < deadline[\s\S]*healthUrl = getElementHealthUrl\(\);/u);
   const startup = main.indexOf('registerIpc();');

@@ -15,6 +15,7 @@ import {
 } from "./product-experience/ProductConversationProjection";
 import {
   RelationshipOverlayHost,
+  bridgeReceiverAliasesForAccount,
   resolveCanonicalConversationRoom,
   type CanonicalRoomResolution,
 } from "./product-experience/RelationshipOverlayHost";
@@ -29,6 +30,7 @@ import {
 import type {
   ConversationRef,
   GroupConversationProjection,
+  MatrixDirectRoomProjection,
   RelationshipProjection,
 } from "./product-experience/experienceTypes";
 
@@ -86,7 +88,8 @@ type ProductDesktop = DesktopActivationBridge & {
   setConversationAutomationMode?: (input: Record<string, unknown>) => Promise<unknown>;
   prepareOutboundMessage?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   storeConfirmSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
-  listPlatformAccounts?: () => Promise<Record<string, unknown>>;
+  listPlatformAccounts?: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
+  getPersonalAccessStatus?: (input?: { matrixOpenId?: MatrixOpenIdToken }) => Promise<Record<string, unknown>>;
   onOpenConversation?: (callback: (payload: Record<string, unknown>) => void | Promise<void>) => (() => void) | void;
   onOpenView?: (callback: (payload: Record<string, unknown>) => void | Promise<void>) => (() => void) | void;
 };
@@ -98,7 +101,12 @@ type YanceNavigationApi = Api["navigation"] & {
   openUserSettings?: (destination: "account" | "security" | "sessions") => void;
   requestLogout?: () => void;
 };
-type YanceClientApi = Api["client"] & { getRooms?: () => readonly { id: string }[] };
+type YanceClientApi = Api["client"] & {
+  getRooms?: () => readonly { id: string }[];
+  getSpaceHierarchyRoomIds?: (spaceRoomId: string) => Promise<string[]>;
+  ensureRoomJoined?: (roomId: string) => Promise<void>;
+  getUserId?: () => string | null;
+};
 type MatrixOpenIdToken = {
   access_token: string;
   token_type: string;
@@ -207,9 +215,36 @@ class YanceElementModule implements Module {
 
     const navigationApi = this.api.navigation as YanceNavigationApi;
     const clientApi = this.api.client as YanceOpenIdClientApi;
+    this.api.extras.getVisibleRoomBySpaceKey("home-space", () => {
+      const roomId = getExperienceSessionSnapshot().activeMatrixRoomId.trim();
+      return roomId ? [roomId] : [];
+    });
     const composerApi = (this.api as unknown as { composer?: YanceComposerApi }).composer;
     const messageComponentsApi = this.api.customComponents as unknown as ProductMessageComponentsApi;
     const desktop = (window as unknown as { yanceDesktop?: ProductDesktop }).yanceDesktop || {};
+    const resolveMatrixUserId = async (): Promise<string> => {
+      const direct = typeof clientApi.getUserId === "function" ? text(clientApi.getUserId()) : "";
+      if (direct) return direct;
+      if (typeof clientApi.getOpenIdToken !== "function" || typeof desktop.getPersonalAccessStatus !== "function") return "";
+      try {
+        const matrixOpenId = await clientApi.getOpenIdToken();
+        const entitlement = record(await desktop.getPersonalAccessStatus({ matrixOpenId }));
+        return entitlement.usable === true ? text(entitlement.subject) : "";
+      } catch {
+        return "";
+      }
+    };
+    const loadPlatformAccountRows = async (): Promise<readonly Record<string, unknown>[]> => {
+      if (typeof desktop.listPlatformAccounts !== "function") return [];
+      const matrixUserId = await resolveMatrixUserId();
+      if (!matrixUserId) return [];
+      try {
+        const payload = record(await desktop.listPlatformAccounts({ matrixUserId }));
+        return Array.isArray(payload.accounts) ? payload.accounts.map(record) : [];
+      } catch {
+        return [];
+      }
+    };
     let pendingAiAssistElementSend: PendingAiAssistElementSend | null = null;
     let conversationNavigationGeneration = 0;
     let conversationNavigationQueue: Promise<void> = Promise.resolve();
@@ -217,6 +252,139 @@ class YanceElementModule implements Module {
     const readRoomStateEvents = (roomId: string, eventType: string) => (
       this.api.client.getRoom(roomId)?.getStateEvents(eventType) ?? []
     );
+    const builtinsApi = this.api.builtins as Api["builtins"] & {
+      renderUserAvatar?: (userId: string, size?: string) => React.ReactNode;
+    };
+    const matrixRoomListStore = this.api.stores.roomListStore;
+    let matrixRoomsWatchable: ReturnType<typeof matrixRoomListStore.getRooms> | null = null;
+    let matrixRoomsReady: Promise<void> | null = null;
+    const ensureMatrixRoomsReady = async (): Promise<ReturnType<typeof matrixRoomListStore.getRooms>> => {
+      if (!matrixRoomsReady) matrixRoomsReady = matrixRoomListStore.waitForReady();
+      await matrixRoomsReady;
+      if (!matrixRoomsWatchable) matrixRoomsWatchable = matrixRoomListStore.getRooms();
+      return matrixRoomsWatchable;
+    };
+    const currentMatrixRooms = () => matrixRoomsWatchable?.value || [];
+    const subscribeMatrixRoomList = (listener: () => void): (() => void) => {
+      let active = true;
+      let watched: ReturnType<typeof matrixRoomListStore.getRooms> | null = null;
+      const onRooms = (): void => { if (active) listener(); };
+      void ensureMatrixRoomsReady().then((next) => {
+        if (!active) return;
+        watched = next;
+        watched.watch(onRooms);
+        onRooms();
+      }).catch(() => undefined);
+      return () => {
+        active = false;
+        watched?.unwatch(onRooms);
+      };
+    };
+    type BridgeRoomOwner = {
+      platformId: string;
+      platformName: string;
+      accountId: string;
+    };
+    const loadMatrixDirectRooms = async (): Promise<readonly MatrixDirectRoomProjection[]> => {
+      await ensureMatrixRoomsReady();
+      const projections = new Map<string, MatrixDirectRoomProjection>();
+      const roomById = new Map(
+        currentMatrixRooms()
+          .map((room) => [text(room.id), room] as const)
+          .filter(([roomId]) => Boolean(roomId)),
+      );
+      const ownerByRoomId = new Map<string, BridgeRoomOwner>();
+      const productAccountIdByBridgeReceiver = new Map<string, string>();
+
+      if (typeof desktop.listPlatformAccounts === "function"
+        && typeof clientApi.getSpaceHierarchyRoomIds === "function") {
+        const matrixUserId = await resolveMatrixUserId();
+        if (matrixUserId) {
+          const accountPayload = record(await desktop.listPlatformAccounts({ matrixUserId }));
+          const accounts = Array.isArray(accountPayload.accounts) ? accountPayload.accounts.map(record) : [];
+          for (const account of accounts) {
+            const authority = text(account.authority);
+            if (!authority.startsWith("mautrix-")) continue;
+            const platformId = text(account.platform).toLowerCase();
+            const platformName = text(account.displayName || account.label || account.name || platformId);
+            const productAccountId = text(account.id);
+            const logins = Array.isArray(account.bridgeLogins) ? account.bridgeLogins.map(record) : [];
+            for (const login of logins) {
+              const bridgeLoginId = text(login.id);
+              const spaceRoom = text(login.spaceRoom);
+              if (!platformId || !productAccountId || !bridgeLoginId || !spaceRoom) continue;
+              const existingProductAccountId = productAccountIdByBridgeReceiver.get(bridgeLoginId);
+              if (existingProductAccountId && existingProductAccountId !== productAccountId) {
+                throw new Error("MATRIX_BRIDGE_RECEIVER_ACCOUNT_AUTHORITY_AMBIGUOUS");
+              }
+              productAccountIdByBridgeReceiver.set(bridgeLoginId, productAccountId);
+              try { await clientApi.ensureRoomJoined?.(spaceRoom); } catch {}
+              const childRoomIds = await clientApi.getSpaceHierarchyRoomIds(spaceRoom);
+              for (const rawRoomId of childRoomIds) {
+                const roomId = text(rawRoomId);
+                if (!roomId) continue;
+                const nextOwner = { platformId, platformName, accountId: productAccountId };
+                const existingOwner = ownerByRoomId.get(roomId);
+                if (existingOwner
+                  && (existingOwner.platformId !== nextOwner.platformId || existingOwner.accountId !== nextOwner.accountId)) {
+                  throw new Error("MATRIX_SPACE_CHILD_ACCOUNT_AUTHORITY_AMBIGUOUS");
+                }
+                ownerByRoomId.set(roomId, nextOwner);
+                try { await clientApi.ensureRoomJoined?.(roomId); } catch {}
+              }
+            }
+          }
+        }
+      }
+
+      const projectRoom = (room: ReturnType<typeof currentMatrixRooms>[number], owner?: BridgeRoomOwner): void => {
+        const roomId = text(room.id);
+        if (!roomId || projections.has(roomId)) return;
+        const events = [
+          ...room.getStateEvents("m.bridge"),
+          ...room.getStateEvents("uk.half-shot.bridge"),
+        ];
+        let bridgePlatformId = "";
+        let bridgePlatformName = "";
+        let bridgeAccountId = "";
+        let chatJid = "";
+        let bridgeName = "";
+        for (const event of events) {
+          const content = record(event.content);
+          const protocol = record(content.protocol);
+          const channel = record(content.channel);
+          const roomType = text(content["com.beeper.room_type.v2"] || content["com.beeper.room_type"]).toLowerCase();
+          if (roomType !== "dm") continue;
+          bridgePlatformId = text(protocol.id).toLowerCase();
+          bridgePlatformName = text(protocol.displayname);
+          bridgeAccountId = text(channel["fi.mau.receiver"]);
+          chatJid = text(channel.id);
+          bridgeName = text(channel.displayname);
+          break;
+        }
+        const platformId = owner?.platformId || bridgePlatformId;
+        const accountId = owner?.accountId || productAccountIdByBridgeReceiver.get(bridgeAccountId) || "";
+        if (!platformId || !accountId) return;
+        if (!owner && !chatJid) return;
+        const stamp = Number(room.getLastActiveTimestamp?.() || 0);
+        projections.set(roomId, {
+          roomId,
+          name: bridgeName || text(room.name?.value) || roomId,
+          platformId,
+          platformName: bridgePlatformName || owner?.platformName || platformId,
+          accountId,
+          chatJid,
+          lastActiveAt: Number.isFinite(stamp) && stamp > 0 ? new Date(stamp).toISOString() : undefined,
+        });
+      };
+
+      for (const [roomId, owner] of ownerByRoomId) {
+        const room = roomById.get(roomId) || clientApi.getRoom(roomId);
+        if (room) projectRoom(room, owner);
+      }
+      for (const room of currentMatrixRooms()) projectRoom(room);
+      return [...projections.values()];
+    };
 
     const runConversationNavigation = async (
       generation: number,
@@ -270,22 +438,37 @@ class YanceElementModule implements Module {
       generation = ++conversationNavigationGeneration,
     ): Promise<boolean> => runConversationNavigation(generation, async () => {
       const sessionKey = conversation.sessionKey.trim();
-      if (!sessionKey || typeof clientApi.getRooms !== "function") {
-        return false;
-      }
-      const roomIds = clientApi.getRooms().map((room) => String(room.id || "").trim()).filter(Boolean);
-      const resolution: CanonicalRoomResolution = resolveCanonicalConversationRoom(conversation, roomIds, readRoomStateEvents);
-      if (resolution.status !== "resolved") {
-        return false;
-      }
+      if (!sessionKey) return false;
+
+      const explicitMatrixRoomId = text(conversation.matrixRoomId);
+      if (!explicitMatrixRoomId && typeof clientApi.getRooms !== "function") return false;
+      const candidateRoomIds = explicitMatrixRoomId
+        ? [explicitMatrixRoomId]
+        : clientApi.getRooms!().map((room) => String(room.id || "").trim()).filter(Boolean);
+      if (explicitMatrixRoomId && !clientApi.getRoom(explicitMatrixRoomId)) return false;
+      const accountRows = await loadPlatformAccountRows();
+      const bridgeReceiverAliases = bridgeReceiverAliasesForAccount(
+        conversation.platform,
+        conversation.accountId,
+        accountRows,
+      );
+      const resolution: CanonicalRoomResolution = resolveCanonicalConversationRoom(
+        conversation,
+        candidateRoomIds,
+        readRoomStateEvents,
+        bridgeReceiverAliases,
+      );
+      if (resolution.status !== "resolved") return false;
+      const resolvedRoomId = resolution.roomId;
+
       if (pendingAiAssistElementSend
         && !pendingAiAssistElementSend.elementSendAttemptId
-        && pendingAiAssistElementSend.roomId !== resolution.roomId) {
+        && pendingAiAssistElementSend.roomId !== resolvedRoomId) {
         pendingAiAssistElementSend = null;
       }
       await desktop.setActiveConversation?.(sessionKey);
       if (generation !== conversationNavigationGeneration) return false;
-      bindProductConversation(relationshipId.trim(), conversation, resolution.roomId);
+      bindProductConversation(relationshipId.trim(), conversation, resolvedRoomId);
       navigationApi.setProductConversationPresentation?.("default");
       navigationApi.navigateToLocation?.("yance");
       return true;
@@ -341,8 +524,17 @@ class YanceElementModule implements Module {
         navigateGroupConversation={activateProductGroupConversation}
         navigateProductHome={navigateProductHome}
         navigateRelationshipHome={navigateRelationshipHome}
+        renderRoomAvatar={(roomId, size) => this.api.builtins.renderRoomAvatar(roomId, size)}
+        renderUserAvatar={typeof builtinsApi.renderUserAvatar === "function"
+          ? builtinsApi.renderUserAvatar.bind(builtinsApi)
+          : undefined}
+        loadMatrixDirectRooms={loadMatrixDirectRooms}
+        subscribeMatrixRoomList={subscribeMatrixRoomList}
         renderRoomView={(roomId, props) => this.api.builtins.renderRoomView(roomId, props)}
         readRoomStateEvents={readRoomStateEvents}
+        getMatrixUserId={typeof clientApi.getUserId === "function"
+          ? () => text(clientApi.getUserId?.())
+          : undefined}
         getMatrixOpenIdToken={typeof clientApi.getOpenIdToken === "function"
           ? clientApi.getOpenIdToken.bind(clientApi)
           : undefined}
@@ -516,18 +708,40 @@ class YanceElementModule implements Module {
 
       const people = await loadPeopleProjections();
       if (!isCurrent()) return;
+      const accountRows = await loadPlatformAccountRows();
+      if (!isCurrent()) return;
 
       const matches: Array<{ relationshipId: string; conversation: ConversationRef }> = [];
       for (const relationship of people.relationships) {
         for (const conversation of relationship.conversations) {
-          const resolution = resolveCanonicalConversationRoom(conversation, [normalizedRoomId], readRoomStateEvents);
+          const bridgeReceiverAliases = bridgeReceiverAliasesForAccount(
+            conversation.platform,
+            conversation.accountId,
+            accountRows,
+          );
+          const resolution = resolveCanonicalConversationRoom(
+            conversation,
+            [normalizedRoomId],
+            readRoomStateEvents,
+            bridgeReceiverAliases,
+          );
           if (resolution.status === "resolved" && resolution.roomId === normalizedRoomId) {
             matches.push({ relationshipId: relationship.id.trim(), conversation });
           }
         }
       }
       for (const conversation of people.groups) {
-        const resolution = resolveCanonicalConversationRoom(conversation, [normalizedRoomId], readRoomStateEvents);
+        const bridgeReceiverAliases = bridgeReceiverAliasesForAccount(
+          conversation.platform,
+          conversation.accountId,
+          accountRows,
+        );
+        const resolution = resolveCanonicalConversationRoom(
+          conversation,
+          [normalizedRoomId],
+          readRoomStateEvents,
+          bridgeReceiverAliases,
+        );
         if (resolution.status === "resolved" && resolution.roomId === normalizedRoomId) {
           matches.push({ relationshipId: "", conversation });
         }
@@ -588,7 +802,8 @@ class YanceElementModule implements Module {
       const accountId = session.selectedConversationAccountId.trim();
       if (!accountId || typeof desktop.listPlatformAccounts !== "function") return false;
       try {
-        const payload = record(await desktop.listPlatformAccounts());
+        const matrixUserId = await resolveMatrixUserId();
+        const payload = record(await desktop.listPlatformAccounts({ matrixUserId }));
         const rows = Array.isArray(payload.accounts) ? payload.accounts.map(record) : [];
         const matches = rows.filter((row) => text(row.id || row.accountId) === accountId);
         if (matches.length !== 1) return false;
@@ -603,6 +818,8 @@ class YanceElementModule implements Module {
       (props, originalComponent) => (
         <ProductConversationMessage
           event={props.mxEvent}
+          currentUserId={typeof clientApi.getUserId === "function" ? text(clientApi.getUserId()) : ""}
+          renderUserAvatar={typeof builtinsApi.renderUserAvatar === "function" ? builtinsApi.renderUserAvatar.bind(builtinsApi) : undefined}
           originalComponent={originalComponent ? () => originalComponent() : undefined}
         />
       ),
@@ -667,9 +884,23 @@ class YanceElementModule implements Module {
       if (!activeRoomId || typeof clientApi.getRooms !== "function") return;
       const people = await loadPeopleProjections();
       if (restoreGeneration !== conversationNavigationGeneration) return;
+      const accountRows = await loadPlatformAccountRows();
+      if (restoreGeneration !== conversationNavigationGeneration) return;
       const roomIds = clientApi.getRooms().map((room) => String(room.id || "").trim()).filter(Boolean);
       const matches = matchingCanonicalConversations(people, (conversation) => {
-        const resolution = resolveCanonicalConversationRoom(conversation, roomIds, readRoomStateEvents);
+        const explicitMatrixRoomId = text(conversation.matrixRoomId);
+        const candidateRoomIds = explicitMatrixRoomId ? [explicitMatrixRoomId] : roomIds;
+        const bridgeReceiverAliases = bridgeReceiverAliasesForAccount(
+          conversation.platform,
+          conversation.accountId,
+          accountRows,
+        );
+        const resolution = resolveCanonicalConversationRoom(
+          conversation,
+          candidateRoomIds,
+          readRoomStateEvents,
+          bridgeReceiverAliases,
+        );
         return resolution.status === "resolved" && resolution.roomId === activeRoomId;
       });
       if (matches.length !== 1) return;

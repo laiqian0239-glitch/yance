@@ -2,6 +2,10 @@ x-mautrix-whatsapp-service: &mautrix-whatsapp-service
   build:
     context: ./.runtime/mautrix-whatsapp
 
+x-mautrix-telegram-service: &mautrix-telegram-service
+  build:
+    context: ./.runtime/mautrix-telegram
+
 services:
   matrix-secret-projection:
     build:
@@ -20,6 +24,12 @@ services:
         cp /bootstrap/mautrix-meta-provisioning-secret /projected/meta/yance_mautrix_meta_provisioning_secret
         chown 1337:1337 /projected/meta/yance_mautrix_meta_provisioning_secret
         chmod 0400 /projected/meta/yance_mautrix_meta_provisioning_secret
+        cp /bootstrap/mautrix-whatsapp-provisioning-secret /projected/whatsapp/yance_mautrix_whatsapp_provisioning_secret
+        chown 1337:1337 /projected/whatsapp/yance_mautrix_whatsapp_provisioning_secret
+        chmod 0400 /projected/whatsapp/yance_mautrix_whatsapp_provisioning_secret
+        cp /bootstrap/mautrix-telegram-provisioning-secret /projected/telegram/yance_mautrix_telegram_provisioning_secret
+        chown 1337:1337 /projected/telegram/yance_mautrix_telegram_provisioning_secret
+        chmod 0400 /projected/telegram/yance_mautrix_telegram_provisioning_secret
     volumes:
       - type: bind
         source: ${YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE:?required}
@@ -29,8 +39,18 @@ services:
         source: ${YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE:?required}
         target: /bootstrap/mautrix-meta-provisioning-secret
         read_only: true
+      - type: bind
+        source: ${YANCE_MAUTRIX_WHATSAPP_PROVISIONING_SECRET_FILE:?required}
+        target: /bootstrap/mautrix-whatsapp-provisioning-secret
+        read_only: true
+      - type: bind
+        source: ${YANCE_MAUTRIX_TELEGRAM_PROVISIONING_SECRET_FILE:?required}
+        target: /bootstrap/mautrix-telegram-provisioning-secret
+        read_only: true
       - synapse-secret-data:/projected/matrix
       - mautrix-meta-secret-data:/projected/meta
+      - mautrix-whatsapp-secret-data:/projected/whatsapp
+      - mautrix-telegram-secret-data:/projected/telegram
     restart: "no"
 
   synapse-data-init:
@@ -124,9 +144,42 @@ services:
         fi
         chown -R 1337:1337 /data
         chmod 0644 /data/config.yaml /data/registration.yaml
+    environment:
+      YANCE_MAUTRIX_WHATSAPP_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_whatsapp_provisioning_secret
     volumes:
       - ../../config/matrix/mautrix-whatsapp/config.yaml:/bootstrap/config.yaml:ro
+      - mautrix-whatsapp-secret-data:/run/secrets:ro
       - mautrix-whatsapp-data:/data
+    depends_on:
+      matrix-secret-projection:
+        condition: service_completed_successfully
+    restart: "no"
+
+  mautrix-telegram-registration:
+    <<: *mautrix-telegram-service
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        if [ ! -f /data/config.yaml ]; then
+          cp /bootstrap/config.yaml /data/config.yaml
+        fi
+        if [ ! -f /data/registration.yaml ]; then
+          /usr/bin/mautrix-telegram -g -c /data/config.yaml -r /data/registration.yaml
+        fi
+        chown -R 1337:1337 /data
+        chmod 0644 /data/config.yaml /data/registration.yaml
+    environment:
+      YANCE_MAUTRIX_TELEGRAM_NETWORK__API_ID: ${YANCE_TELEGRAM_API_ID:?required}
+      YANCE_MAUTRIX_TELEGRAM_NETWORK__API_HASH: ${YANCE_TELEGRAM_API_HASH:?required}
+      YANCE_MAUTRIX_TELEGRAM_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_telegram_provisioning_secret
+    volumes:
+      - ../../config/matrix/mautrix-telegram/config.yaml:/bootstrap/config.yaml:ro
+      - mautrix-telegram-secret-data:/run/secrets:ro
+      - mautrix-telegram-data:/data
+    depends_on:
+      matrix-secret-projection:
+        condition: service_completed_successfully
     restart: "no"
 
   synapse:
@@ -138,6 +191,7 @@ services:
       - synapse-data:/data
       - mautrix-meta-data:/mautrix-meta:ro
       - mautrix-whatsapp-data:/mautrix-whatsapp:ro
+      - mautrix-telegram-data:/mautrix-telegram:ro
       - synapse-secret-data:/run/secrets:ro
     ports:
       - "127.0.0.1:8008:8008"
@@ -149,6 +203,8 @@ services:
       mautrix-meta-registration:
         condition: service_completed_successfully
       mautrix-whatsapp-registration:
+        condition: service_completed_successfully
+      mautrix-telegram-registration:
         condition: service_completed_successfully
 
   element:
@@ -163,12 +219,38 @@ services:
 
   mautrix-whatsapp:
     <<: *mautrix-whatsapp-service
+    environment:
+      YANCE_MAUTRIX_WHATSAPP_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_whatsapp_provisioning_secret
     volumes:
+      - mautrix-whatsapp-secret-data:/run/secrets:ro
       - mautrix-whatsapp-data:/data
+    ports:
+      - "${YANCE_MATRIX_MAUTRIX_WHATSAPP_PORT_BINDING:-127.0.0.1::29318}"
     depends_on:
+      matrix-secret-projection:
+        condition: service_completed_successfully
       synapse:
         condition: service_started
       mautrix-whatsapp-registration:
+        condition: service_completed_successfully
+
+  mautrix-telegram:
+    <<: *mautrix-telegram-service
+    environment:
+      YANCE_MAUTRIX_TELEGRAM_NETWORK__API_ID: ${YANCE_TELEGRAM_API_ID:?required}
+      YANCE_MAUTRIX_TELEGRAM_NETWORK__API_HASH: ${YANCE_TELEGRAM_API_HASH:?required}
+      YANCE_MAUTRIX_TELEGRAM_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_telegram_provisioning_secret
+    volumes:
+      - mautrix-telegram-secret-data:/run/secrets:ro
+      - mautrix-telegram-data:/data
+    ports:
+      - "${YANCE_MATRIX_MAUTRIX_TELEGRAM_PORT_BINDING:-127.0.0.1::29317}"
+    depends_on:
+      matrix-secret-projection:
+        condition: service_completed_successfully
+      synapse:
+        condition: service_started
+      mautrix-telegram-registration:
         condition: service_completed_successfully
 
   mautrix-meta:
@@ -179,6 +261,8 @@ services:
     volumes:
       - mautrix-meta-secret-data:/run/secrets:ro
       - mautrix-meta-data:/data
+    ports:
+      - "${YANCE_MATRIX_MAUTRIX_META_PORT_BINDING:-127.0.0.1::29319}"
     depends_on:
       matrix-secret-projection:
         condition: service_completed_successfully
@@ -190,6 +274,9 @@ services:
 volumes:
   synapse-data:
   mautrix-whatsapp-data:
+  mautrix-telegram-data:
   mautrix-meta-data:
   synapse-secret-data:
   mautrix-meta-secret-data:
+  mautrix-whatsapp-secret-data:
+  mautrix-telegram-secret-data:

@@ -42,6 +42,7 @@ type DesktopEvent = {
 
 type ProductDesktopApi = {
   storeSnapshot: (input: { domains: string[]; includeRelationshipIntelligence?: boolean }) => Promise<Record<string, unknown>>;
+  resolveProductAvatar: (input: { avatarUrl: string }) => Promise<{ ok?: boolean; dataUrl?: string }>;
   storeSearchWorkspace: (input: { query: string; limit?: number }) => Promise<Record<string, unknown>>;
   storeCreateTranslationJob: (input: { messageId: string; force?: boolean; forceNew?: boolean; timeoutMs?: number }) => Promise<Record<string, unknown>>;
   storeGetTranslationJob: (input: { jobId: string }) => Promise<Record<string, unknown>>;
@@ -57,13 +58,13 @@ type ProductDesktopApi = {
   getLettaState: () => Promise<LettaState>;
   listLettaAgents: () => Promise<LettaAgent[]>;
   listLettaConversations: (input: { agentId: string; limit?: number }) => Promise<LettaConversation[]>;
-  listPlatformAccounts: () => Promise<Record<string, unknown>>;
+  listPlatformAccounts: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
   getPlatformAccountCapabilities: () => Promise<Record<string, unknown>>;
   createPlatformAccount: (input: { platform: string; displayName?: string }) => Promise<Record<string, unknown>>;
-  connectPlatformAccount: (input: { id: string }) => Promise<Record<string, unknown>>;
-  reconnectPlatformAccount: (input: { id: string }) => Promise<Record<string, unknown>>;
-  syncPlatformAccount: (input: { id: string }) => Promise<Record<string, unknown>>;
-  syncAllPlatformAccounts: () => Promise<Record<string, unknown>>;
+  connectPlatformAccount: (input: { id: string; matrixUserId?: string }) => Promise<Record<string, unknown>>;
+  reconnectPlatformAccount: (input: { id: string; matrixUserId?: string }) => Promise<Record<string, unknown>>;
+  syncPlatformAccount: (input: { id: string; matrixUserId?: string }) => Promise<Record<string, unknown>>;
+  syncAllPlatformAccounts: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
   runPlatformAccountCommand: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   previewPersonaCharacterCard: (input: { bytes: Uint8Array | ArrayBuffer }) => Promise<Record<string, unknown>>;
   storeGenerateReply: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
@@ -125,6 +126,17 @@ export type PlatformAccountProjection = {
   loginProcessId: string;
   stepId: string;
   txnId: string;
+  authority: string;
+  matrixUserId: string;
+  loginCount: number;
+  bridgeLogins: readonly Readonly<{
+    id: string;
+    name: string;
+    stateEvent: string;
+    spaceRoom: string;
+    remoteMatrixUserId: string;
+    identityReasonCode: string;
+  }>[];
 };
 
 export type PersonaCharacterCardPreview = {
@@ -340,13 +352,24 @@ function normalizePlatformAccount(value: unknown): PlatformAccountProjection | n
     loginProcessId: text(row.loginProcessId),
     stepId: text(row.stepId),
     txnId: text(row.txnId),
+    authority: text(row.authority),
+    matrixUserId: text(row.matrixUserId),
+    loginCount: Number(row.loginCount || 0),
+    bridgeLogins: objectArray(row.bridgeLogins).map((login) => ({
+      id: text(login.id),
+      name: text(login.name),
+      stateEvent: text(login.stateEvent),
+      spaceRoom: text(login.spaceRoom),
+      remoteMatrixUserId: text(login.remoteMatrixUserId),
+      identityReasonCode: text(login.identityReasonCode),
+    })).filter((login) => Boolean(login.id || login.name)),
   };
 }
 
-export async function loadPlatformAccounts(): Promise<readonly PlatformAccountProjection[]> {
+export async function loadPlatformAccounts(matrixUserId = ""): Promise<readonly PlatformAccountProjection[]> {
   const api = desktopApi();
   if (!api || typeof api.listPlatformAccounts !== "function") throw bridgeUnavailable("platform-accounts");
-  const payload = await api.listPlatformAccounts();
+  const payload = await api.listPlatformAccounts({ matrixUserId: matrixUserId.trim() });
   const root = objectRecord(payload);
   return objectArray(root.accounts).map(normalizePlatformAccount).filter((account): account is PlatformAccountProjection => Boolean(account));
 }
@@ -367,22 +390,22 @@ export async function createPlatformAccount(
   await api.createPlatformAccount({ platform, displayName });
 }
 
-export async function connectPlatformAccount(accountId: string): Promise<void> {
+export async function connectPlatformAccount(accountId: string, matrixUserId = ""): Promise<void> {
   const api = desktopApi();
   if (!api || typeof api.connectPlatformAccount !== "function") throw bridgeUnavailable("connect-platform-account");
-  await api.connectPlatformAccount({ id: accountId });
+  await api.connectPlatformAccount({ id: accountId, matrixUserId: matrixUserId.trim() });
 }
 
-export async function reconnectPlatformAccount(accountId: string): Promise<void> {
+export async function reconnectPlatformAccount(accountId: string, matrixUserId = ""): Promise<void> {
   const api = desktopApi();
   if (!api || typeof api.reconnectPlatformAccount !== "function") throw bridgeUnavailable("reconnect-platform-account");
-  await api.reconnectPlatformAccount({ id: accountId });
+  await api.reconnectPlatformAccount({ id: accountId, matrixUserId: matrixUserId.trim() });
 }
 
-export async function syncPlatformAccount(accountId: string): Promise<void> {
+export async function syncPlatformAccount(accountId: string, matrixUserId = ""): Promise<void> {
   const api = desktopApi();
   if (!api || typeof api.syncPlatformAccount !== "function") throw bridgeUnavailable("sync-platform-account");
-  await api.syncPlatformAccount({ id: accountId });
+  await api.syncPlatformAccount({ id: accountId, matrixUserId: matrixUserId.trim() });
 }
 
 export async function runPlatformAccountCommand(
@@ -752,6 +775,8 @@ function normalizeConversationRef(
     unreadCount: nonNegativeInteger(row.unreadCount || row.unread || 0),
     pinned: row.pinned === true,
     archived: row.archived === true,
+    lastMessage: optionalText(row.lastMessage || row.preview || row.snippet),
+    avatarUrl: optionalText(row.avatarUrl || row.avatar || row.photoUrl),
     lastMessageAt: asTimestamp(row.lastMessageAt),
     updatedAt: asTimestamp(
       row.updatedAt || row.lastMessageAt || row.modifiedAt || row.createdAt,
@@ -778,22 +803,25 @@ function relationshipFromEntry(
     || soleConversation?.platform;
   const accountId = optionalText(row.accountId || row.account)
     || soleConversation?.accountId;
-  const subtitleParts = [platform, accountId].filter(Boolean);
   const relationshipIntelligence = normalizeRelationshipIntelligence(relationshipIntelligenceValue);
   const unreadCount = conversations.reduce((total, conversation) => total + conversation.unreadCount, 0);
   const favorite = conversations.some((conversation) => conversation.pinned === true);
-  const recentAt = conversations
-    .map((conversation) => conversation.lastMessageAt || conversation.updatedAt)
-    .filter((value): value is string => Boolean(value))
-    .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
+  const recentConversations = [...conversations].sort((left, right) => {
+    const leftAt = Date.parse(left.lastMessageAt || left.updatedAt || "") || 0;
+    const rightAt = Date.parse(right.lastMessageAt || right.updatedAt || "") || 0;
+    return rightAt - leftAt;
+  });
+  const recentAt = recentConversations[0]?.lastMessageAt || recentConversations[0]?.updatedAt;
+  const lastMessage = recentConversations.find((conversation) => Boolean(conversation.lastMessage))?.lastMessage;
 
 
   return {
     id,
     name,
     conversations,
-    subtitle: subtitleParts.join(" · ") || "关系",
+    subtitle: platform || "已连接关系",
     avatarUrl: optionalText(row.avatarUrl || row.avatar || row.photoUrl),
+    lastMessage,
     platform,
     accountId,
     chatJid: optionalText(row.chatJid || row.jid)
@@ -962,7 +990,22 @@ export async function loadPeopleProjections(): Promise<PeopleProjection> {
       return a.name.localeCompare(b.name);
     });
 
-  return { relationships, groups };
+  const hydratedRelationships = typeof api.resolveProductAvatar === "function"
+    ? await Promise.all(relationships.map(async (relationship) => {
+      const source = text(relationship.avatarUrl).trim();
+      if (!source || source.startsWith("data:image/")) return relationship;
+      try {
+        const resolved = await api.resolveProductAvatar?.({ avatarUrl: source });
+        return { ...relationship, avatarUrl: text(resolved?.dataUrl) };
+      } catch {
+        return { ...relationship, avatarUrl: "" };
+      }
+    }))
+    : relationships.map((relationship) => (
+      text(relationship.avatarUrl).startsWith("/api/") ? { ...relationship, avatarUrl: "" } : relationship
+    ));
+
+  return { relationships: hydratedRelationships, groups };
 }
 
 export async function loadRelationshipProjections(): Promise<readonly RelationshipProjection[]> {

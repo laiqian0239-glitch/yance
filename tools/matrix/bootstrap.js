@@ -19,6 +19,7 @@ const COMPOSER_ACCESSORY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0
 const PRODUCT_CONVERSATION_CONTROL_PATCH = path.join(ROOT, 'upstream-patches/element-web/0017-yance-product-conversation-control.patch');
 const POST_LOGIN_SECURITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0018-yance-post-login-security-shell.patch');
 const MODULE_OPENID_TOKEN_PATCH = path.join(ROOT, 'upstream-patches/element-web/0019-yance-module-openid-token.patch');
+const PRODUCT_LIVE_ROOM_PUBLIC_SEAMS_PATCH = path.join(ROOT, 'upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
@@ -61,7 +62,10 @@ function applyPatch(repoDir, patchPath, label) {
 function materialize(name, upstream) {
   if (!/^[a-f0-9]{40}$/u.test(upstream.commit)) throw new Error(`${name}: mutable or short commit rejected`);
   const dir = path.join(RUNTIME, name);
-  fs.rmSync(dir, { recursive: true, force: true });
+  console.log(`Materializing ${name} at ${upstream.commit}.`);
+  // Windows can retain a just-exited Git handle briefly. Retrying only that
+  // filesystem removal preserves the clean exact-source materialization rule.
+  fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   fs.mkdirSync(RUNTIME, { recursive: true });
   fs.mkdirSync(dir, { recursive: true });
   run(dir, 'git', ['init']);
@@ -106,6 +110,7 @@ function main() {
   const element = materialize('element-web', LOCK.upstreams.elementWeb);
   materializeExactReleaseTag(element, LOCK.upstreams.elementWeb, 'Element');
   const mautrix = materialize('mautrix-whatsapp', LOCK.upstreams.mautrixWhatsapp);
+  const mautrixTelegram = materialize('mautrix-telegram', LOCK.upstreams.mautrixTelegram);
   const mautrixMeta = materialize('mautrix-meta', LOCK.externalRuntimes.mautrixMeta);
 
   applyPatch(element, ELEMENT_WORKSPACE_PATCH, 'Element workspace patch');
@@ -136,9 +141,11 @@ function main() {
   applyPatch(element, PRODUCT_CONVERSATION_CONTROL_PATCH, 'Element Product conversation control patch');
   applyPatch(element, POST_LOGIN_SECURITY_PATCH, 'Element post-login security shell patch');
   applyPatch(element, MODULE_OPENID_TOKEN_PATCH, 'Element module OpenID token patch');
+  applyPatch(element, PRODUCT_LIVE_ROOM_PUBLIC_SEAMS_PATCH, 'Element Product live-room public seams patch');
 
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);
+  assertExactCommit(mautrixTelegram, LOCK.upstreams.mautrixTelegram.commit);
   assertExactCommit(mautrixMeta, LOCK.externalRuntimes.mautrixMeta.commit);
   console.log('V2.1 Matrix/Element/mautrix exact-source runtimes materialized.');
 }

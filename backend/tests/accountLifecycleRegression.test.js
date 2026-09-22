@@ -389,83 +389,40 @@ test('Telegram and Facebook logout clear persisted account credentials even when
   assert.deepEqual(removed.sort(), ['credential:fb-logout', 'credential:tg-logout']);
 });
 
-test('connect persistence failure rolls back the already-started adapter instance', async t => {
+test('interactive connect delegates to the mature owner without a Yance connect saga or rollback owner', async t => {
   const { AccountManager } = accountManagerModule;
-  const account = { id: 'wa-connect-rollback', platform: 'whatsapp', adapterAccountId: 'wa-connect-rollback', displayName: 'WA', identityLabel: 'WA', metadata: {}, paused: false, autoReconnect: true, notificationsEnabled: true, lifecycleState: 'active' };
-  persistSagaFixture(t, account);
+  const account = { id: 'wa-direct-owner', platform: 'whatsapp', adapterAccountId: 'wa-direct-owner', displayName: 'WA', identityLabel: 'WA', metadata: {}, paused: false, autoReconnect: true, notificationsEnabled: true, lifecycleState: 'active' };
   const restore = [];
   function patch(object, key, value) { restore.push([object, key, object[key]]); object[key] = value; }
   t.after(() => { for (const [object, key, value] of restore.reverse()) object[key] = value; });
   let stopCalls = 0;
-  let failedRecordCalls = 0;
   patch(accountStore, 'get', () => account);
   patch(accountStore, 'getRaw', () => account);
   patch(accountStore, 'list', () => [account]);
   patch(accountStore, 'read', () => ({ schemaVersion: 4, accounts: [account], defaults: {}, bindings: {}, audit: [] }));
-  patch(accountStore, 'update', async (_id, patchValue) => Object.assign(account, patchValue));
   patch(canonicalIdentity, 'resolveCanonicalAccountId', id => id);
-  patch(accountStore, 'commitConnectedIdentityTx', async () => {
-    throw Object.assign(new Error('SQLITE_WRITE_FAILED'), { code: 'SQLITE_WRITE_FAILED' });
-  });
-  patch(accountStore, 'record', async (event) => {
-    if (event === 'account-connect-failed') failedRecordCalls += 1;
-    return {};
-  });
+  patch(accountLifecycleSaga, 'begin', async () => { throw new Error('SHADOW_CONNECT_SAGA_USED'); });
+  patch(accountLifecycleSaga, 'latest', () => null);
   patch(whatsapp, 'start', async () => ({ state: 'connected' }));
   patch(whatsapp, 'stop', async () => { stopCalls += 1; return { stopped: true }; });
-  patch(whatsapp, 'status', () => []);
-  patch(whatsapp, 'credentialState', () => ({ usable: false, accountKey: account.adapterAccountId, registered: false }));
+  patch(whatsapp, 'status', () => [{ accountId: account.adapterAccountId, state: 'online', user: null }]);
+  patch(whatsapp, 'credentialState', () => ({ usable: true, accountKey: account.adapterAccountId, registered: true }));
   patch(whatsapp, 'resolveAccountKey', () => account.adapterAccountId);
   patch(messageStore, 'listConversations', () => []);
   const manager = new AccountManager();
   manager.hydration = { phase: 'ready', ready: true, startedAt: '', completedAt: new Date().toISOString(), errorCode: '' };
-  await assert.rejects(manager.connect(account.id), error => error.code === 'SQLITE_WRITE_FAILED');
-  assert.equal(stopCalls, 1);
-  assert.equal(failedRecordCalls, 1);
-  assert.equal(manager.rawRuntime(account).state, 'error');
+  const result = await manager.connect(account.id);
+  assert.equal(result.state, 'connected');
+  assert.equal(stopCalls, 0);
 });
 
 
 
-test('connected adapter event and connect return share one durable Saga finalizer', async t => {
-  const { AccountManager } = accountManagerModule;
-  const account = { id: 'wa-finalizer-race', platform: 'whatsapp', adapterAccountId: 'wa-finalizer-race', displayName: 'WA', identityLabel: 'WA', metadata: {}, paused: false, lifecycleState: 'active' };
-  let saga = { operation_id: 'account-connect-finalizer-race', account_id: account.id, operation_type: 'connect', phase: 'adapter_connect_started', state: 'running' };
-  let commitCalls = 0;
-  const restore = [];
-  function patch(object, key, value) { restore.push([object, key, object[key]]); object[key] = value; }
-  t.after(() => { for (const [object, key, value] of restore.reverse()) object[key] = value; });
-  patch(accountLifecycleSaga, 'latest', () => ({ ...saga }));
-  patch(accountLifecycleSaga, 'get', () => ({ ...saga }));
-  patch(accountLifecycleSaga, 'setPhase', async (_operationId, expected, next) => {
-    if (saga.phase !== expected || !['running','compensating'].includes(saga.state)) {
-      throw Object.assign(new Error('stale'), { code: 'ACCOUNT_SAGA_STALE_TRANSITION' });
-    }
-    saga = { ...saga, phase: next };
-    return { ...saga };
-  });
-  patch(accountLifecycleSaga, 'finish', async (_operationId, state) => {
-    saga = { ...saga, phase: 'finished', state };
-    return { updated: true, saga: { ...saga } };
-  });
-  patch(accountLifecycleSaga, 'markCompensating', async () => { saga = { ...saga, phase: 'compensating', state: 'compensating' }; return { ...saga }; });
-  patch(accountStore, 'get', () => account);
-  patch(accountStore, 'commitConnectedIdentityTx', async () => {
-    commitCalls += 1;
-    await new Promise(resolve => setTimeout(resolve, 25));
-    return account;
-  });
-  const manager = new AccountManager();
-  manager.hydration = { phase: 'ready', ready: true, startedAt: '', completedAt: new Date().toISOString(), errorCode: '' };
-  const runtime = { state: 'connected', user: { id: 'wa-finalizer-race', name: 'WA' } };
-  const [eventResult, returnResult] = await Promise.all([
-    manager.finalizeConnectedSagaFromRuntime(account, runtime, { source: 'adapter-event' }),
-    manager.finalizeConnectedSagaFromRuntime(account, runtime, { source: 'connect-return' })
-  ]);
-  assert.equal(commitCalls, 1);
-  assert.equal(saga.state, 'succeeded');
-  assert.equal(eventResult.saga.state, 'succeeded');
-  assert.equal(returnResult.saga.state, 'succeeded');
+test('interactive auth source forbids the retired connect saga finalizer from returning', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'services', 'accountManagerCore.js'), 'utf8');
+  assert.doesNotMatch(source, /accountLifecycleSaga\.begin\(account,\s*['"]connect['"]/u);
+  assert.doesNotMatch(source, /finalizeConnectedSagaFromRuntime/u);
+  assert.doesNotMatch(source, /settleLatestFromAdapter\(account\.id,\s*runtime/u);
 });
 
 test('runtime shutdown stops adapters without persisting a user pause or poisoning next-start auto-connect', async t => {

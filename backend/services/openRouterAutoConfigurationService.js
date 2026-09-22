@@ -104,6 +104,35 @@ function validateApiKey(value = '') {
   }
   return apiKey;
 }
+function stageFailure(cause, stage) {
+  const status = Number(cause?.status || 0);
+  const causeCode = clean(cause?.code);
+  const rawMessage = clean(cause?.message);
+  const rejected = stage === 'key' && (
+    [401, 403, 404].includes(status)
+    || /user not found|invalid api key|invalid key|unauthorized|forbidden/iu.test(rawMessage)
+  );
+  const code = rejected
+    ? 'OPENROUTER_CREDENTIAL_REJECTED'
+    : (stage === 'key' ? 'OPENROUTER_KEY_STATUS_FAILED' : 'OPENROUTER_CATALOG_REQUEST_FAILED');
+  const message = rejected
+    ? 'OpenRouter 未识别当前 API Key，请重新保存新密钥后再验证。'
+    : (stage === 'key' ? 'OpenRouter API Key 验证失败，请稍后重试。' : 'OpenRouter 模型目录读取失败，请稍后重试。');
+  return Object.assign(new Error(message), {
+    code,
+    status,
+    testStage: stage,
+    causeCode,
+  });
+}
+async function requestStage(request, url, options, stage) {
+  try {
+    return await request(url, options);
+  } catch (cause) {
+    throw stageFailure(cause, stage);
+  }
+}
+
 function secureCredential(options = {}) {
   const securityGuard = options.securityGuard || require('../core/securityGuardSingleton').getSecurityGuard();
   const credentialRef = clean(options.credentialRef);
@@ -129,10 +158,18 @@ async function autoConfigure(options = {}) {
   const { credentialRef, apiKey } = secureCredential({ ...options, endpoint });
   const injectedRequest = typeof options.requestJson === 'function';
   const request = injectedRequest ? options.requestJson : ((url, requestOptions = {}) => aiGateway.requestOpenAiJson({ url, credentialRef, ...requestOptions }));
-  const [keyPayload, catalogPayload] = await Promise.all([
-    request(`${endpoint}/key`, { ...(injectedRequest ? { apiKey } : {}), timeoutMs: 30000, signal: options.signal }),
-    request(`${endpoint}/models/user`, { ...(injectedRequest ? { apiKey } : {}), timeoutMs: 60000, signal: options.signal })
-  ]);
+  const keyPayload = await requestStage(
+    request,
+    `${endpoint}/key`,
+    { ...(injectedRequest ? { apiKey } : {}), timeoutMs: 30000, signal: options.signal },
+    'key'
+  );
+  const catalogPayload = await requestStage(
+    request,
+    `${endpoint}/models`,
+    { ...(injectedRequest ? { apiKey } : {}), timeoutMs: 60000, signal: options.signal },
+    'catalog'
+  );
   const catalog = array(catalogPayload.data).map(normalizeCatalogModel).filter(model => model.id);
   const usable = catalog.filter(model => !isSpecialPurpose(model));
   if (!usable.length) throw Object.assign(new Error('OpenRouter当前账号没有返回可用于文本对话的模型目录'), { code: 'OPENROUTER_MODEL_CATALOG_EMPTY' });

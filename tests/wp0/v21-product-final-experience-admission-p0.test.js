@@ -42,12 +42,14 @@ test('People Home zero-data state guides users into the existing Accounts panel 
   const source = people();
   const product = shell();
   const styles = css();
-  assert.match(source, /visibleRelationships\.length/u);
-  assert.match(source, /还没有重要的人/u);
-  assert.match(source, /让言策先认识你在意的人/u);
+  assert.match(source, /emptyPeopleHome = relationships\.length === 0 && groups\.length === 0/u);
+  assert.match(source, /把重要的人，带进言策/u);
+  assert.match(source, /这里会出现你真正联系的人/u);
   assert.match(source, /连接聊天平台/u);
   assert.match(source, /onConnectAccounts:\s*\(\)\s*=>\s*void/u);
   assert.match(source, /onClick=\{onConnectAccounts\}/u);
+  assert.doesNotMatch(source, /yance-empty--roster[\s\S]{0,420}onConnectAccounts/u);
+  assert.doesNotMatch(source, /<aside className="yance-next-actions"[\s\S]{0,2800}onConnectAccounts/u);
   assert.match(product, /onConnectAccounts=\{\(\) => \{[\s\S]{0,320}setSettingsVisible\(true\);[\s\S]{0,180}setSettingsWindow\("accounts"\)/u);
   assert.match(styles, /\.yance-empty--onboarding,[\s\S]*\.yance-empty--hero\s*\{[\s\S]*justify-items:\s*center;/u);
   assert.match(source, /className="yance-people-filter"/u);
@@ -98,7 +100,7 @@ test('System settings keep mature categories while accounts, appearance and mode
   for (const panel of ['主题与外观', '通知与声音', '数据保护']) {
     assert.match(source, new RegExp(`className="yance-settings-panel-stack" aria-label="${panel}"`, 'u'));
   }
-  assert.match(product, /settingsWindow === "accounts"[\s\S]*<PlatformAccountsSurface \/>/u);
+  assert.match(product, /settingsWindow === "accounts"[\s\S]*<PlatformAccountsSurface getMatrixUserId=\{getMatrixUserId\} getMatrixOpenIdToken=\{getMatrixOpenIdToken\} renderUserAvatar=\{renderUserAvatar\} \/>/u);
   assert.match(product, /settingsWindow === "appearance"[\s\S]*<ProductSystemSettingsSurface category="appearance"/u);
   assert.match(product, /settingsWindow === "models"[\s\S]*<ProductModelRuntimeSupportSurface \/>/u);
   assert.match(product, /learningAdminVisible \? <LearningWorkspace \/> : null/u);
@@ -121,33 +123,39 @@ test('Desktop settings child panels and platform accounts keep the final desktop
 test('Platform accounts use mature auth seams without a second OAuth or retry lifecycle', () => {
   const source = accounts();
   for (const token of [
-    'facebook-personal-identity-official',
     'facebook-personal-messenger-mautrix-meta',
-    'Facebook 账号',
-    'Facebook Messenger',
-    'Facebook 公共主页',
+    'Facebook / Messenger',
+    'Facebook Page',
+    'WhatsApp',
+    'Telegram',
   ]) assert.equal(source.includes(token), true, `missing account-kind projection token: ${token}`);
   assert.match(source, /createPlatformAccount\(\{ platform, displayName: label, accountKind, driverId \}\)/u);
-  const pageStart = source.indexOf('if (account.accountKind === "page")');
-  const identityStart = source.indexOf('if (account.accountKind === "personal-identity")');
-  assert.ok(pageStart >= 0 && identityStart > pageStart);
-  const pageBranch = source.slice(pageStart, identityStart);
-  assert.match(pageBranch, /公共主页连接服务暂未就绪|连接已授权主页/u);
-  assert.doesNotMatch(pageBranch, /Chatwoot 是唯一|外部 Chatwoot|sidecar|Worker OAuth/u);
-  assert.doesNotMatch(pageBranch, /facebook-oauth-start|facebook-select-page|startMatureAuthorization\(account\)/u);
-  assert.match(source, /runPlatformAccountCommand\(account\.id, "facebook-oauth-start"\)/u);
-  assert.match(source, /authorizationUrl/u);
-  assert.match(source, /openAuthUrl\(state\.authorizationUrl, "facebook"\)/u);
-  assert.match(source, /account\.accountKind === "personal-identity"[\s\S]*startMatureAuthorization\(account\)/u);
-  assert.match(source, /Facebook Messenger 登录[\s\S]*facebook-messenger-start/u);
-  assert.match(source, /显示 WhatsApp 二维码 \/ 配对码/u);
-  assert.match(source, /WhatsApp 登录二维码/u);
-  assert.match(source, /Telegram 登录二维码/u);
-  assert.match(source, /readPublicChallenge\(account\.id, 15_000\)/u);
+  assert.doesNotMatch(source, /facebook-personal-identity-official|facebook-oauth-start|openAuthUrl\(|personal-identity/u);
+  assert.match(source, /source\.loginProcessId \|\| source\.login_id/u);
+  assert.match(source, /source\.stepId \|\| source\.step_id/u);
+  assert.match(source, /source\.user_input \|\| source\.userInput/u);
+  assert.match(source, /runPlatformAccountCommand\(account\.id, "provisioning-login-flows"/u);
+  assert.match(source, /runPlatformAccountCommand\(account\.id, "provisioning-login-start"/u);
+  assert.match(source, /ownerDefaultFlow[\s\S]*"messenger-lite"/u);
+  assert.match(source, /Facebook 邮箱地址或用户名/u);
+  assert.match(source, /runPlatformAccountCommand\(account\.id, "provisioning-login-wait"/u);
+  assert.doesNotMatch(source, /facebook-messenger-start|telegram-qr-start|\bconnectPlatformAccount\(/u);
+  assert.doesNotMatch(source, /while \(!cancelled\)|selectedQrAccountId|setTimeout\(resolve, 900\)/u);
+  assert.match(source, /projected\.filter\(\(account\) => ownerIsConnected\(account\)\)/u);
+  assert.match(source, /selectedAccount && ownerIsConnected\(selectedAccount\)/u);
+  assert.match(source, /alt=\{`\$\{accountTypeLabel\(account\)\} 登录二维码`\}/u);
+  assert.match(source, /provisioningPanel\(account, "Telegram → 设置 → 设备 → 连接桌面设备"\)/u);
+  assert.match(source, /provisioningPanel\(account, "手机 WhatsApp → 已连接的设备 → 连接设备"\)/u);
   assert.match(source, /source\.qrCode \|\| source\.qr \|\| source\.qrDataUrl \|\| source\.dataUrl/u);
-  assert.doesNotMatch(source, /authorizationStartedRef|pollPublicChallenge/u);
-  assert.match(source, /CONNECTABLE_ACCOUNT_TYPES\.map/u);
-  assert.doesNotMatch(source, />[^<]*(?:Chatwoot|mautrix|Worker OAuth|成熟平台授权|授权续接|个人身份)[^<]*</u);
+  assert.match(source, /source\.code \|\| source\.displayCode \|\| source\.pairingCode/u);
+  assert.match(source, /className="yance-connection-services"/u);
+  assert.match(source, /className="yance-connection-canvas(?:\s+yance-account-manager__detail)?"/u);
+  assert.match(source, /selectedPlatform === "whatsapp"/u);
+  assert.match(source, /selectedPlatform === "telegram"/u);
+  assert.match(source, /selectedPlatform === "facebook-messenger"/u);
+  assert.match(source, /selectedPlatform === "facebook-page"/u);
+  assert.doesNotMatch(source, /readPublicChallenge\(account\.id, 15_000\)|authorizationStartedRef|pollPublicChallenge/u);
+  assert.doesNotMatch(source, />[^<]*(?:Chatwoot|mautrix|Worker OAuth|materialize|成熟平台授权|授权续接)[^<]*</u);
   assert.doesNotMatch(source, /!accounts\.length\s*\?/u);
 });
 
@@ -198,19 +206,46 @@ test('Mature Element conversation composer and post-login security remain the on
   assert.doesNotMatch(elementConfig, /"force_verification"\s*:\s*true/u);
 });
 
-test('Final Conversation composes People + mature Element timeline/composer + user-facing relationship insight without shadow messaging authority', () => {
+test('Final Conversation matches the accepted desktop composition while mature owners retain physical authority', () => {
   const source = shell();
   const styles = css();
+  const projection = read('integration/element-module/src/product-experience/ProductConversationProjection.tsx');
+
   assert.match(source, /yance-product-conversation__workspace/u);
   assert.match(source, /aria-label="对话联系人"/u);
   assert.match(source, /aria-label="关系洞察"/u);
-  assert.match(source, /onOpenRelationshipConversation/u);
+  assert.match(source, /className="yance-native-pane-toggle"/u);
+  assert.match(source, /PanelLeft/u);
+  assert.match(source, /PanelRight/u);
+  assert.doesNotMatch(source, /yance-product-conversation__topbar/u);
+  assert.doesNotMatch(source, /yance-product-conversation__hero/u);
+  assert.match(source, /\["ai", "AI"\]/u);
+  assert.match(source, /\["relationship", "关系"\]/u);
+  assert.match(source, /\["memory", "记忆"\]/u);
+  assert.match(source, /\["goal", "目标"\]/u);
+  assert.match(source, /storeSocialContext/u);
+  assert.match(source, /loadPersonaEffective/u);
+  assert.match(source, /loadRelationshipAssistant/u);
+  assert.match(source, /loadDailyChatGoal/u);
+  assert.match(source, /getProductModelRuntimeState/u);
   assert.match(source, /renderRoomView\(session\.activeMatrixRoomId/u);
   assert.match(source, /消息、发送与安全继续由现有消息系统处理/u);
-  assert.match(styles, /\.yance-product-conversation__workspace\s*\{[\s\S]*grid-template-columns:\s*minmax\(188px, 236px\) minmax\(0, 1fr\) minmax\(224px, 286px\)/u);
-  assert.match(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-product-conversation__workspace\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/u);
-  assert.doesNotMatch(source, />Relationship Insight<|真实 timeline|composer · send|crypto · retry/u);
-  assert.doesNotMatch(source, /sendEvent\(|sendMessage\(|createMessageComposer|replaceComposer/u);
+
+  assert.match(styles, /YANCE_FINAL_CONVERSATION_AUTHORITY_V3/u);
+  assert.match(styles, /\.yance-product-conversation--immersive\s*>\s*\.yance-product-conversation__workspace\s*\{[\s\S]*grid-template-columns:\s*minmax\(214px, 250px\) minmax\(0, 1fr\) minmax\(236px, 292px\)/u);
+  assert.match(styles, /\[data-left-collapsed\][\s\S]*grid-template-columns:\s*58px minmax\(0, 1fr\)/u);
+  assert.match(styles, /\[data-right-collapsed\][\s\S]*58px/u);
+  assert.match(styles, /@media \(max-width: 1000px\)[\s\S]*grid-template-columns:\s*56px minmax\(0, 1fr\) 56px/u);
+
+  for (const label of ['轻松接住', '好奇引导', '制造期待', '更暧昧', '更温柔', '更简短', '深度想想', '和闺蜜大脑聊聊']) {
+    assert.match(projection, new RegExp(label, 'u'));
+  }
+  assert.match(projection, /storeGenerateReply/u);
+  assert.match(projection, /approveReplyCandidate/u);
+  assert.match(projection, /stageApprovedReply/u);
+  assert.match(projection, /aria-label="中文理解"[\s\S]*<p>\{projection\.translatedZh\}<\/p>/u);
+  assert.doesNotMatch(projection, />中文理解<\/span>/u);
+  assert.doesNotMatch(source + projection, /sendEvent\(|sendMessage\(|createMessageComposer|replaceComposer/u);
 });
 
 test('Windows main window keeps native Electron titlebar movement authority without a Product drag shim', () => {

@@ -18,7 +18,8 @@ test('Facebook Personal Messenger resolves to the production mautrix/meta Matrix
   assert.equal(driver.isolationModel, 'matrix-application-service');
   assert.notEqual(driver.riskDisclosureRequired, true);
   const source = read('backend/services/platformDriverRegistry.js');
-  assert.match(source, /facebookPersonalMessengerMautrixAdapter/u);
+  assert.match(source, /mautrixProvisioningAdapter/u);
+  assert.doesNotMatch(source, /facebookPersonalMessengerMautrixAdapter/u);
   assert.doesNotMatch(source, /facebookPersonalMessengerExperimentalAdapter/u);
   assert.doesNotMatch(source, /isolated-browser-session/u);
 });
@@ -50,4 +51,12 @@ test('forward migration owns stale experimental driver retirement at schema 24 w
   assert.match(migration, /facebook-personal-messenger-experimental/u);
   assert.match(migration, /facebook-personal-messenger-mautrix-meta/u);
   assert.match(migration, /isolated-browser-session/u);
+});
+test('mature mautrix account sync reads readiness from observed bridge state and carries the signed Matrix user identity into sync', () => {
+  const manager = read('backend/services/accountManagerCore.js');
+  assert.match(manager, /const matureBridge = \/\^mautrix-\/u\.test\(String\(driver\.protocolAuthority \|\| ''\)\)/u);
+  assert.match(manager, /await driver\.observe\(account, \{ matrixUserId: clean\(options\.matrixUserId\), signal: options\.signal \|\| null \}\)/u);
+  assert.match(manager, /const publicAccount = this\.publicAccount\(account, observedRuntime\)/u);
+  assert.match(manager, /driver\.sync\(account, \{[\s\S]*?matrixUserId: clean\(options\.matrixUserId\)/u);
+  assert.doesNotMatch(manager, /matureBridge[\s\S]{0,500}(?:connect|reconnect|beginLogin)\(/u);
 });

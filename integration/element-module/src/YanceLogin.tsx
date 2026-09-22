@@ -221,8 +221,8 @@ export function YancePostLoginSecurity({ children }: { children: React.ReactNode
   return (
     <div
       className="yance-login-shell yance-post-login-security-shell"
-      data-yance-post-login-security-authority="product"
-      data-yance-post-login-security-owner="yance"
+      data-yance-post-login-security-projection="yance"
+      data-yance-post-login-security-owner="element-matrix"
     >
       <section className="yance-login-brand" aria-label="言策品牌">
         <div className="yance-login-brand-inner">

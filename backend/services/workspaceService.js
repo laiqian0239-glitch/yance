@@ -147,12 +147,14 @@ function messageTimestamp(row = {}) {
 }
 
 function personConversationIds(context = {}, fallbackId = '') {
-  return [...new Set([
+  const canonical = [...new Set([
     ...(Array.isArray(context.person?.conversationIds) ? context.person.conversationIds : []),
     ...(Array.isArray(context.personContext?.conversationIds) ? context.personContext.conversationIds : []),
-    context.conversationId,
-    fallbackId
-  ].map(clean).filter(Boolean))];
+    context.conversationId
+  ].map(value => clean(value)).filter(Boolean))];
+  if (canonical.length) return canonical;
+  const fallback = clean(fallbackId);
+  return fallback ? [fallback] : [];
 }
 
 function messagesForPersonContext(context = {}, fallbackId = '', options = {}) {
@@ -252,7 +254,7 @@ function validDailyReviewTimeZone(value) {
 
 function dailyReview(contactId, options = {}) {
   const requestedContactId = clean(contactId);
-  const context = options.context || workspaceData.getContextByConversation(requestedContactId);
+  const context = options.context || workspaceData.getContactContext(requestedContactId);
   const conversationIds = personConversationIds(context, requestedContactId);
   const timeZone = validDailyReviewTimeZone(options.timeZone);
   const localDate = validDailyReviewLocalDate(options.localDate);

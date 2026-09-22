@@ -4,6 +4,8 @@ const { randomUUID, createHash } = require('crypto');
 const registry = require('./modelRegistry');
 const modelBrainRuntime = require('./modelBrainRuntime');
 const modelBrainProjection = require('./modelBrainProjection');
+const modelBrainUserPolicy = require('./modelBrainUserPolicy');
+const { CORE_AI_TASKS } = require('./aiTaskRoleReadinessAuthority');
 const eventBus = require('./eventBus');
 const logger = require('./logger');
 const { getSecurityGuard } = require('../core/securityGuardSingleton');
@@ -177,12 +179,12 @@ function validatePersistedAiPhysicalInput(input = {}) {
   });
 }
 
-function credentialEnvelope(candidates = []) {
+function credentialEnvelope(candidates = [], credentialAuthority = securityGuard) {
   const result = {};
   for (const model of candidates) {
     const ref = clean(model.credentialRef);
     if (!ref || Object.prototype.hasOwnProperty.call(result, ref)) continue;
-    const row = this.securityGuard.credentials.get(ref) || {};
+    const row = credentialAuthority.credentials.get(ref) || {};
     result[ref] = {
       apiKey: clean(row.apiKey || row.key || row.token),
       endpoint: clean(row.endpoint || row.baseUrl || model.endpoint),
@@ -407,16 +409,28 @@ class AiGateway {
   }
   projection(task, options = {}, modelId = '') {
     const state = this.registry.read();
+    const taskKey = clean(task);
     const projection = modelBrainProjection.project(state, {
-      task,
+      task: taskKey,
       constraints: {
         ...(options.constraints || {}),
         localOnly: options.localOnly === true || options.constraints?.localOnly === true
       }
     });
-    if (clean(task) !== 'probe' || !clean(modelId)) return projection;
-    const candidates = projection.catalog.filter(row => row.id === clean(modelId) && row.enabled);
-    return Object.freeze({ ...projection, candidates: Object.freeze(candidates), catalog: Object.freeze(candidates) });
+    if (taskKey === 'probe' && clean(modelId)) {
+      const candidates = projection.catalog.filter(row => row.id === clean(modelId) && row.enabled);
+      return Object.freeze({ ...projection, candidates: Object.freeze(candidates), catalog: Object.freeze(candidates) });
+    }
+    if (!CORE_AI_TASKS.includes(taskKey)) return projection;
+    const resolved = modelBrainUserPolicy.resolve(taskKey, state);
+    const routePreference = Object.freeze({
+      mode: resolved.taskPolicy.mode,
+      primaryModelId: clean(resolved.primary?.id),
+      fallbackModelId: clean(resolved.fallback?.id),
+      fastMode: resolved.document.fastMode === true,
+      reasoningLevel: resolved.document.reasoningLevel
+    });
+    return Object.freeze({ ...projection, candidates: Object.freeze(resolved.candidates), routePreference });
   }
   _internalOperationAuthority() {
     const authority = this.internalOperationAuthorityProvider();
@@ -433,7 +447,11 @@ class AiGateway {
     if (typeof work !== 'function') throw new TypeError('Durable provider administration requires physical work');
     const authority = this._internalOperationAuthority();
     const operationId = `ai-provider-admin-${randomUUID()}`;
-    const objectFingerprint = this._providerAdminFingerprint(operationType, fingerprintParts);
+    // A provider-admin call is a fresh physical I/O invocation even when it targets the
+    // same provider resource. Keep the stable scope for diagnostics, but bind the WP-B
+    // idempotency identity to this invocation so a later intentional re-check cannot
+    // reuse an older execution with a different trace identity.
+    const objectFingerprint = this._providerAdminFingerprint(operationType, [...fingerprintParts, operationId]);
     const persisted = authority.create({
       operationId,
       operationType,
@@ -497,7 +515,7 @@ class AiGateway {
       scopeKey: `cloud-request:${credential.credentialRef}`,
       fingerprintParts: [url, method, credential.credentialRef],
       work: () => this.openAiClient.requestJson(url, { apiKey: credential.apiKey, timeoutMs, method, body, signal }),
-      receipt: () => ({ status: 'completed', provider: 'openai-compatible' })
+      receipt: () => ({ status: 'completed' })
     });
   }
   async discoverLocalModels() {
@@ -539,9 +557,13 @@ class AiGateway {
   async _run({ jobId, task, messages, modelId = '', options = {}, signal, context = {}, persistedOperation = null }) {
     validateRuntimePersistedOperation(persistedOperation);
     assertExecutionCommitAllowed({ signal, executionId: jobId, expectedGeneration: context.generation, currentGeneration: () => this.latestContextGenerations.get(context.scopeKey) || context.generation });
-    const projection = this.projection(task, options, modelId);
+    const taskKey = clean(task);
+    const effectiveOptions = CORE_AI_TASKS.includes(taskKey)
+      ? modelBrainUserPolicy.requestOptions(taskKey, options)
+      : options;
+    const projection = this.projection(taskKey, effectiveOptions, modelId);
     if (!projection.candidates.length) {
-      throw Object.assign(new Error(`任务 ${task} 没有满足硬资格条件的 Model Brain deployment`), {
+      throw Object.assign(new Error(`任务 ${taskKey} 没有满足硬资格条件的 Model Brain deployment`), {
         code: 'MODEL_BRAIN_NO_ELIGIBLE_DEPLOYMENT',
         status: 503,
         hardEligibility: projection.hardEligibility
@@ -553,21 +575,22 @@ class AiGateway {
       logicalModel: projection.logicalModel,
       tags: projection.tags,
       catalog: projection.candidates,
-      credentials: credentialEnvelope(projection.candidates),
+      credentials: credentialEnvelope(projection.candidates, this.securityGuard),
       messages,
-      complexity: options.complexity || null,
+      complexity: effectiveOptions.complexity || null,
+      routePreference: projection.routePreference || null,
       options: {
-        timeoutMs: Number(options.timeoutMs || TASK_QUEUE_TIMEOUT_FLOORS[clean(task)] || 180000),
-        maxTokens: options.maxTokens,
-        temperature: options.temperature,
-        json: options.json === true,
-        numRetries: options.numRetries,
-        maxFallbacks: options.maxFallbacks
+        timeoutMs: Number(effectiveOptions.timeoutMs || TASK_QUEUE_TIMEOUT_FLOORS[taskKey] || 180000),
+        maxTokens: effectiveOptions.maxTokens,
+        temperature: effectiveOptions.temperature,
+        json: effectiveOptions.json === true,
+        numRetries: effectiveOptions.numRetries,
+        maxFallbacks: effectiveOptions.maxFallbacks
       }
     };
-    eventBus.publish('ai:job-started', { jobId, task, modelBrain: true, logicalModel: projection.logicalModel, candidateCount: projection.candidates.length });
-    const raw = clean(task) === 'probe' ? await this.runtime.probe(payload) : await this.runtime.execute(payload);
-    const result = normalizeRuntimeResult(raw, task);
+    eventBus.publish('ai:job-started', { jobId, task: taskKey, modelBrain: true, logicalModel: projection.logicalModel, candidateCount: projection.candidates.length, routeMode: projection.routePreference?.mode || 'auto' });
+    const raw = taskKey === 'probe' ? await this.runtime.probe(payload) : await this.runtime.execute(payload);
+    const result = normalizeRuntimeResult(raw, taskKey);
     try {
       assertExecutionCommitAllowed({ signal, executionId: jobId, expectedGeneration: context.generation, currentGeneration: () => this.latestContextGenerations.get(context.scopeKey) || context.generation });
     } catch (error) {
@@ -853,5 +876,6 @@ module.exports.staleContextError = staleContextError;
 module.exports.assertExecutionCommitAllowed = assertExecutionCommitAllowed;
 module.exports.validateRuntimePersistedOperation = validateRuntimePersistedOperation;
 module.exports.durableAiOperationFingerprint = durableAiOperationFingerprint;
+module.exports.credentialEnvelope = credentialEnvelope;
 
 module.exports.PQueueSchedulerAdapter = PQueueSchedulerAdapter;

@@ -823,16 +823,20 @@ jobs:
           test -d services/matrix/.runtime/synapse
           test -d services/matrix/.runtime/element-web
           test -d services/matrix/.runtime/mautrix-whatsapp
+          test -d services/matrix/.runtime/mautrix-telegram
           test -d services/matrix/.runtime/mautrix-meta
           grep -q 'nx build yance-element-module' services/matrix/.runtime/element-web/apps/web/Dockerfile
           grep -q '/modules/yance/package.json' services/matrix/.runtime/element-web/apps/web/Dockerfile
           docker build --file services/matrix/.runtime/synapse/docker/Dockerfile --tag "yance-product-uat-synapse:${CANDIDATE_SHA}" services/matrix/.runtime/synapse
           docker build --file services/matrix/.runtime/element-web/apps/web/Dockerfile --tag "yance-product-uat-element:${CANDIDATE_SHA}" services/matrix/.runtime/element-web
           docker build --tag "yance-product-uat-mautrix-whatsapp:${CANDIDATE_SHA}" services/matrix/.runtime/mautrix-whatsapp
+          docker build --tag "yance-product-uat-mautrix-telegram:${CANDIDATE_SHA}" services/matrix/.runtime/mautrix-telegram
           docker build --tag "yance-product-uat-mautrix-meta:${CANDIDATE_SHA}" services/matrix/.runtime/mautrix-meta
           docker image inspect "yance-product-uat-element:${CANDIDATE_SHA}" >/dev/null
+          docker image inspect "yance-product-uat-mautrix-whatsapp:${CANDIDATE_SHA}" >/dev/null
+          docker image inspect "yance-product-uat-mautrix-telegram:${CANDIDATE_SHA}" >/dev/null
           docker image inspect "yance-product-uat-mautrix-meta:${CANDIDATE_SHA}" >/dev/null
-          echo 'GREEN: Element and mautrix-meta images built from the existing pinned Matrix runtime seams'
+          echo 'GREEN: Element and pinned mautrix bridge images built from the existing Matrix runtime seams'
 
           # Sealed Element image V2 inspection before artifact seal/upload (Root Cause A: ELEMENT_AUTH_SURFACE)
           docker run --rm --entrypoint sh "yance-product-uat-element:${CANDIDATE_SHA}" -c 'test -f /modules/yance/package.json && test -f /modules/yance/lib/index.js && grep -q data-yance-login-authority /modules/yance/lib/index.js'
@@ -845,34 +849,48 @@ jobs:
           set -euo pipefail
           bundle="$RUNNER_TEMP/product-experience-materialized-matrix-uat"
           rm -rf "$bundle"
-          mkdir -p "$bundle/matrix-config/synapse" "$bundle/matrix-config/mautrix-whatsapp" "$bundle/matrix-config/mautrix-meta"
+          mkdir -p "$bundle/matrix-config/synapse" "$bundle/matrix-config/mautrix-whatsapp" "$bundle/matrix-config/mautrix-telegram" "$bundle/matrix-config/mautrix-meta"
           docker save --output "$bundle/matrix-images.tar" \
             "yance-product-uat-synapse:${CANDIDATE_SHA}" \
             "yance-product-uat-element:${CANDIDATE_SHA}" \
             "yance-product-uat-mautrix-whatsapp:${CANDIDATE_SHA}" \
+            "yance-product-uat-mautrix-telegram:${CANDIDATE_SHA}" \
             "yance-product-uat-mautrix-meta:${CANDIDATE_SHA}"
           cp tools/product-experience/materialized-matrix-compose.yml "$bundle/materialized-matrix-compose.yml"
           cp config/matrix/synapse/homeserver.yaml "$bundle/matrix-config/synapse/homeserver.yaml"
           cp config/matrix/element-config.json "$bundle/matrix-config/element-config.json"
           cp config/matrix/mautrix-whatsapp/config.yaml "$bundle/matrix-config/mautrix-whatsapp/config.yaml"
+          cp config/matrix/mautrix-telegram/config.yaml "$bundle/matrix-config/mautrix-telegram/config.yaml"
           cp config/matrix/mautrix-meta/config.yaml "$bundle/matrix-config/mautrix-meta/config.yaml"
           YANCE_UAT_CANDIDATE_SHA="$CANDIDATE_SHA" \
           YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE="$RUNNER_TEMP/yance-mautrix-meta-provisioning-secret" \
+          YANCE_MAUTRIX_WHATSAPP_PROVISIONING_SECRET_FILE="$RUNNER_TEMP/yance-mautrix-whatsapp-provisioning-secret" \
+          YANCE_MAUTRIX_TELEGRAM_PROVISIONING_SECRET_FILE="$RUNNER_TEMP/yance-mautrix-telegram-provisioning-secret" \
           YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE="$RUNNER_TEMP/yance-matrix-registration-shared-secret" \
+          YANCE_TELEGRAM_API_ID=1 \
+          YANCE_TELEGRAM_API_HASH=00000000000000000000000000000000 \
           docker compose -f "$bundle/materialized-matrix-compose.yml" config >/dev/null
 
           matrix_secret="$RUNNER_TEMP/yance-matrix-registration-shared-secret"
           meta_secret="$RUNNER_TEMP/yance-mautrix-meta-provisioning-secret"
+          whatsapp_secret="$RUNNER_TEMP/yance-mautrix-whatsapp-provisioning-secret"
+          telegram_secret="$RUNNER_TEMP/yance-mautrix-telegram-provisioning-secret"
           umask 077
           head -c 32 /dev/urandom | base64 > "$matrix_secret"
           head -c 32 /dev/urandom | base64 > "$meta_secret"
+          head -c 32 /dev/urandom | base64 > "$whatsapp_secret"
+          head -c 32 /dev/urandom | base64 > "$telegram_secret"
           project="yance-pf-${CANDIDATE_SHA:0:12}-${GITHUB_RUN_ID}"
           export YANCE_UAT_CANDIDATE_SHA="$CANDIDATE_SHA"
           export YANCE_MAUTRIX_META_PROVISIONING_SECRET_FILE="$meta_secret"
+          export YANCE_MAUTRIX_WHATSAPP_PROVISIONING_SECRET_FILE="$whatsapp_secret"
+          export YANCE_MAUTRIX_TELEGRAM_PROVISIONING_SECRET_FILE="$telegram_secret"
           export YANCE_MATRIX_REGISTRATION_SHARED_SECRET_FILE="$matrix_secret"
+          export YANCE_TELEGRAM_API_ID=1
+          export YANCE_TELEGRAM_API_HASH=00000000000000000000000000000000
           cleanup_matrix_smoke() {
             docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" down --volumes --remove-orphans || true
-            rm -f "$matrix_secret" "$meta_secret"
+            rm -f "$matrix_secret" "$meta_secret" "$whatsapp_secret" "$telegram_secret"
           }
           trap cleanup_matrix_smoke EXIT
           docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" up -d --no-build
@@ -883,7 +901,8 @@ jobs:
             completed="$(docker compose --project-name "$project" --project-directory "$bundle" -f "$bundle/materialized-matrix-compose.yml" ps --all --status exited --services)"
             if printf '%s\n' "$completed" | grep -qx 'synapse-data-init' && \
                printf '%s\n' "$completed" | grep -qx 'mautrix-meta-registration' && \
-               printf '%s\n' "$completed" | grep -qx 'mautrix-whatsapp-registration'; then
+               printf '%s\n' "$completed" | grep -qx 'mautrix-whatsapp-registration' && \
+               printf '%s\n' "$completed" | grep -qx 'mautrix-telegram-registration'; then
               init_ready=1
               break
             fi
@@ -903,6 +922,7 @@ jobs:
             if printf '%s\n' "$running" | grep -qx 'synapse' && \
                printf '%s\n' "$running" | grep -qx 'element' && \
                printf '%s\n' "$running" | grep -qx 'mautrix-whatsapp' && \
+               printf '%s\n' "$running" | grep -qx 'mautrix-telegram' && \
                printf '%s\n' "$running" | grep -qx 'mautrix-meta' && \
                curl -fsS http://127.0.0.1:8008/_matrix/client/versions >/dev/null && \
                curl -fsS http://127.0.0.1:8080/config.json >/dev/null; then

@@ -1,12 +1,9 @@
 'use strict';
 
-const whatsapp = require('./whatsappAdapter');
-const telegram = require('./telegramAdapter');
+const mautrix = require('./mautrixProvisioningAdapter');
 const facebookChatwoot = require('./facebookChatwootMatrixBridge');
 const facebookPersonalIdentity = require('./facebookPersonalIdentityAdapter');
-const facebookPersonalMessengerMautrixAdapter = require('./facebookPersonalMessengerMautrixAdapter');
 const facebookRelayClient = require('./facebookRelayClient');
-const { validatePersistedEgressContext } = require('./platformAdapterPorts');
 const syncCheckpoint = require('./syncCheckpointService');
 
 const PLATFORMS = Object.freeze(['whatsapp', 'telegram', 'facebook']);
@@ -14,12 +11,14 @@ const PLATFORMS = Object.freeze(['whatsapp', 'telegram', 'facebook']);
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function assertSignalActive(signal, code = 'PLATFORM_DRIVER_OPERATION_ABORTED') {
   if (!signal?.aborted) return;
-  const reason = signal.reason instanceof Error ? signal.reason : Object.assign(new Error('Platform driver operation aborted'), { code });
+  const reason = signal.reason instanceof Error
+    ? signal.reason
+    : Object.assign(new Error('Platform driver operation aborted'), { code });
   if (!reason.code) reason.code = code;
   throw reason;
 }
 function unsupported(platform, operation) {
-  const error = new Error(`${platform || 'unknown'} 不支持平台运行操作：${operation}`);
+  const error = new Error(String(platform || 'unknown') + ' unsupported platform runtime operation: ' + String(operation || ''));
   error.code = 'PLATFORM_DRIVER_OPERATION_UNSUPPORTED';
   error.status = 409;
   error.platform = clean(platform).toLowerCase();
@@ -34,77 +33,50 @@ function normalizePlatform(value) {
   if (!PLATFORMS.includes(platform)) throw unsupported(platform, 'resolve-driver');
   return platform;
 }
-function mapWhatsAppState(value) {
-  return ({ online: 'connected', qr: 'waiting-verification', connecting: 'connecting', offline: 'error', 'logged-out': 'logged-out', stopped: 'logged-out' })[value] || 'logged-out';
-}
-function requirePersistedPlatformEgressAttempt(platform, context = {}, input = {}) {
-  const attempt = input?.physicalAttemptContext;
-  return validatePersistedEgressContext(attempt, {
-    accountId: clean(context.accountId || context.adapterAccountId),
-    idempotencyKey: clean(attempt?.idempotencyKey)
-  }, platform);
-}
-function requirePersistedEgressAttempt(context = {}, input = {}) {
-  return requirePersistedPlatformEgressAttempt('telegram', context, input);
-}
-function requirePersistedWhatsAppEgressAttempt(context = {}, input = {}) {
-  return requirePersistedPlatformEgressAttempt('whatsapp', context, input);
-}
-function requirePersistedFacebookEgressAttempt(context = {}, input = {}) {
-  return requirePersistedPlatformEgressAttempt('facebook', context, input);
+
+function mautrixDriver(platform, adapter) {
+  return Object.freeze({
+    platform,
+    adapter,
+    protocolAuthority: adapter.protocolAuthority,
+    resolveAccountKey(account) { return adapter.resolveAccountKey(account); },
+    credentialState(account) { return adapter.credentialState(account); },
+    status(account) { return adapter.status(account); },
+    credentialReady(account) { return adapter.credentialReady(account); },
+    async observe(account, options = {}) { return adapter.observe(account, options); },
+    async connect(account, options = {}) { return adapter.connect(account, options); },
+    async disconnect(account, options = {}) { return adapter.disconnect(account, options); },
+    async sync(account, options = {}) {
+      return withPersistedOperationContext(options, () => adapter.sync(account, options));
+    },
+    externalTarget(value) { return adapter.externalTarget(value); },
+    adapterAccountId(account, requestedId = '') { return adapter.adapterAccountId(account, requestedId); },
+    async getLoginFlows(account, options = {}) { return adapter.getLoginFlows(account, options); },
+    async beginLogin(account, flowId, options = {}) { return adapter.beginLogin(account, flowId, options); },
+    async submitLoginInput(account, loginProcessId, stepId, input, options = {}) {
+      return adapter.submitLoginInput(account, loginProcessId, stepId, input, options);
+    },
+    async waitLoginStep(account, loginProcessId, stepId, options = {}) {
+      return adapter.waitLoginStep(account, loginProcessId, stepId, options);
+    },
+    async cancelLogin(account, loginProcessId, options = {}) {
+      return adapter.cancelLogin(account, loginProcessId, options);
+    },
+    isCompleteLoginResult(result) { return adapter.isCompleteLoginResult(result); },
+    loginId(result) { return adapter.loginId(result); },
+    async sendText(context, input) { return adapter.sendText(context, input); },
+    async sendMedia(context, input) { return adapter.sendMedia(context, input); },
+    async sendReaction(context, input) { return adapter.sendReaction(context, input); },
+    async revokeMessage(context, input) { return adapter.revokeMessage(context, input); },
+    async sendNativeExpression(context, input) { return adapter.sendNativeExpression(context, input); },
+    async sendPresence(context, input) { return adapter.sendPresence(context, input); },
+    async markRead(context, input) { return adapter.markRead(context, input); }
+  });
 }
 
 const drivers = Object.freeze({
-  whatsapp: Object.freeze({
-    platform: 'whatsapp',
-    adapter: whatsapp,
-    resolveAccountKey(account) { return whatsapp.resolveAccountKey(account); },
-    credentialState(account) { return whatsapp.credentialState(account); },
-    status(account) {
-      const key = whatsapp.resolveAccountKey(account);
-      const row = whatsapp.status().find(item => item.accountId === key);
-      return row ? { ...row, state: mapWhatsAppState(row.state), step: row.state === 'qr' ? 'qr' : '' } : null;
-    },
-    credentialReady(account) { return whatsapp.credentialState(account).usable === true; },
-    async connect(account, options = {}) { return withPersistedOperationContext(options, () => whatsapp.start(account, { manual: options.manual === true, attemptId: options.attemptId || '', signal: options.signal || null, executionGeneration: options.executionGeneration || options.operationGeneration || '', physicalOperationContext: options.physicalOperationContext })); },
-    async disconnect(account, options = {}) { assertSignalActive(options.signal, 'WHATSAPP_DISCONNECT_ABORTED'); const result = await whatsapp.stop(account, options.logout === true); assertSignalActive(options.signal, 'WHATSAPP_DISCONNECT_ABORTED'); return result; },
-    async sync(account, options = {}) { return withPersistedOperationContext(options, () => whatsapp.sync(account, options)); },
-    externalTarget(value) { return clean(value); },
-    adapterAccountId(account, requestedId = '') { return clean(account?.adapterAccountId || requestedId || account?.id); },
-    async sendText(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendText({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
-    async sendMedia(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendMedia({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
-    async sendReaction(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendReaction({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
-    async revokeMessage(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.revokeMessage({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
-    async sendPresence(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.sendPresence({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
-    async markRead(context, input) { const physicalAttemptContext = requirePersistedWhatsAppEgressAttempt(context, input); return whatsapp.markRead({ ...input, accountId: context.adapterAccountId, chatJid: context.target, physicalAttemptContext }); },
-    async retryMedia(input = {}) { return whatsapp.retryMedia(input); }
-  }),
-  telegram: Object.freeze({
-    platform: 'telegram',
-    adapter: telegram,
-    resolveAccountKey(account) { return clean(account?.id); },
-    credentialState() { return null; },
-    status(account) { return telegram.status(account.id); },
-    credentialReady(_account, secret = {}) { return Boolean(secret.session); },
-    async connect(account, options = {}) { return withPersistedOperationContext(options, () => telegram.connect(account, options)); },
-    async disconnect(account, options = {}) { assertSignalActive(options.signal, 'TELEGRAM_DISCONNECT_ABORTED'); const result = await telegram.disconnect(account.id, options.logout === true, options); assertSignalActive(options.signal, 'TELEGRAM_DISCONNECT_ABORTED'); return result; },
-    async sync(account, options = {}) { return withPersistedOperationContext(options, () => telegram.sync(account, options)); },
-    externalTarget(value) { return clean(value).replace(/^telegram:/i, ''); },
-    adapterAccountId(account, requestedId = '') { return clean(account?.id || requestedId); },
-    async sendText(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendText(context.accountId, context.target, input.text, { quoted: input.quoted, localMessageId: input.localMessageId, sessionKey: input.sessionKey, signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
-    async sendMedia(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendMedia(context.accountId, context.target, { ...input, physicalAttemptContext }); },
-    async sendReaction(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendReaction(context.accountId, context.target, input.targetId, input.emoji, { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
-    async revokeMessage(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.revokeMessage(context.accountId, context.target, input.targetId, { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
-    async sendNativeExpression(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendNativeExpression(context.accountId, context.target, input.reference, { kind: clean(input.kind).toLowerCase(), caption: input.caption, quoted: input.quoted, sessionKey: input.sessionKey, localMessageId: input.localMessageId, signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
-    async sendPresence(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.sendPresence(context.accountId, context.target, input.state, { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
-    async markRead(context, input) { const physicalAttemptContext = requirePersistedEgressAttempt(context, input); return telegram.markRead(context.accountId, context.target, input.messageKeys || input.messageIds || [], { signal: input.signal, executionGeneration: input.executionGeneration, physicalAttemptContext }); },
-    async listNativeExpressions(account, kind, options = {}) { return telegram.listNativeExpressions(clean(account?.id || account), kind, options); },
-    async beginQrLogin(account, options = {}) { return telegram.beginQrLogin(account, options); },
-    async beginPhoneLogin(account, phoneNumber, options = {}) { return telegram.beginPhoneLogin(account, phoneNumber, options); },
-    async cancelLogin(account, options = {}) { return telegram.cancelLogin(account.id, options); },
-    async submitCode(account, code, options = {}) { return telegram.submitCode(account.id, code, options); },
-    async submitPassword(account, password, options = {}) { return telegram.submitPassword(account.id, password, options); }
-  }),
+  whatsapp: mautrixDriver('whatsapp', mautrix.whatsapp),
+  telegram: mautrixDriver('telegram', mautrix.telegram),
   facebook: Object.freeze({
     platform: 'facebook',
     adapter: facebookChatwoot,
@@ -113,16 +85,31 @@ const drivers = Object.freeze({
     status(account) { return facebookChatwoot.status(account); },
     credentialReady(account) { return facebookChatwoot.credentialReady(account); },
     async connect(account, options = {}) { return facebookChatwoot.connect(account, options); },
-    async disconnect(account, options = {}) { assertSignalActive(options.signal, 'FACEBOOK_DISCONNECT_ABORTED'); const result = await facebookChatwoot.disconnect(account, options); assertSignalActive(options.signal, 'FACEBOOK_DISCONNECT_ABORTED'); return result; },
-    async sync(account, options = {}) { return withPersistedOperationContext(options, () => facebookChatwoot.sync(account, options)); },
+    async disconnect(account, options = {}) {
+      assertSignalActive(options.signal, 'FACEBOOK_DISCONNECT_ABORTED');
+      const result = await facebookChatwoot.disconnect(account, options);
+      assertSignalActive(options.signal, 'FACEBOOK_DISCONNECT_ABORTED');
+      return result;
+    },
+    async sync(account, options = {}) {
+      return withPersistedOperationContext(options, () => facebookChatwoot.sync(account, options));
+    },
+    async listFacebookPageInboxes(options = {}) {
+      assertSignalActive(options.signal, 'FACEBOOK_CHATWOOT_DISCOVERY_ABORTED');
+      return facebookChatwoot.discoverFacebookPageInboxes(options);
+    },
+    async resolveFacebookPageInbox(identity = {}, options = {}) {
+      assertSignalActive(options.signal, 'FACEBOOK_CHATWOOT_DISCOVERY_ABORTED');
+      return facebookChatwoot.resolveFacebookPageInbox(identity, options);
+    },
     externalTarget(value) { return facebookChatwoot.externalTarget(value); },
-    adapterAccountId(account, requestedId = '') { return facebookChatwoot.adapterAccountId(account, requestedId); },
+    adapterAccountId(account, requestedId = '') {
+      return facebookChatwoot.adapterAccountId(account, requestedId);
+    },
     async sendText(context, input) { return facebookChatwoot.sendText(context, input); },
     async sendMedia(context, input) { return facebookChatwoot.sendMedia(context, input); },
     async sendPresence(context, input) { return facebookChatwoot.sendPresence(context, input); },
     async markRead(context, input = {}) { return facebookChatwoot.markRead(context, input); },
-    // Worker-backed webhook media materialization is owned by the sealed relay client (registered
-    // MEDIA_TRANSFER authority); the registry delegates rather than importing the legacy Page adapter.
     async cacheWebhookAttachments(account, baseMessage, rawAttachments = [], options = {}) {
       return facebookRelayClient.cacheWebhookAttachments(account, baseMessage, rawAttachments, options);
     }
@@ -130,36 +117,60 @@ const drivers = Object.freeze({
 });
 
 const driverById = Object.freeze({
-  'whatsapp-web-multidevice': Object.freeze({
+  'whatsapp-personal-mautrix-whatsapp': Object.freeze({
     ...drivers.whatsapp,
-    driverId: 'whatsapp-web-multidevice', accountKind: 'personal-multidevice', official: false,
-    supportLevel: 'experimental', messagingSupported: true, riskDisclosureRequired: true,
-    isolationModel: 'isolated-auth-directory'
+    driverId: 'whatsapp-personal-mautrix-whatsapp',
+    accountKind: 'personal-multidevice',
+    official: false,
+    supportLevel: 'production',
+    messagingSupported: true,
+    riskDisclosureRequired: false,
+    protocolAuthority: 'mautrix-whatsapp',
+    isolationModel: 'matrix-application-service',
+    preserveLocalRuntimeCredentialOnLogout: true
   }),
-  'telegram-personal-mtproto': Object.freeze({
+  'telegram-personal-mautrix-telegram': Object.freeze({
     ...drivers.telegram,
-    driverId: 'telegram-personal-mtproto', accountKind: 'personal', official: true,
-    supportLevel: 'production', messagingSupported: true, riskDisclosureRequired: false,
-    isolationModel: 'isolated-session-worker'
+    driverId: 'telegram-personal-mautrix-telegram',
+    accountKind: 'personal',
+    official: false,
+    supportLevel: 'production',
+    messagingSupported: true,
+    riskDisclosureRequired: false,
+    protocolAuthority: 'mautrix-telegram',
+    isolationModel: 'matrix-application-service',
+    preserveLocalRuntimeCredentialOnLogout: true
   }),
   'facebook-page-official': Object.freeze({
     ...drivers.facebook,
     adapter: facebookChatwoot,
-    driverId: 'facebook-page-official', accountKind: 'page', official: true,
-    supportLevel: 'production', messagingSupported: true, riskDisclosureRequired: false,
+    driverId: 'facebook-page-official',
+    accountKind: 'page',
+    official: true,
+    supportLevel: 'production',
+    messagingSupported: true,
+    riskDisclosureRequired: false,
     isolationModel: 'chatwoot-facebook-page-sidecar'
   }),
   'facebook-personal-identity-official': Object.freeze({
-    platform: 'facebook', adapter: facebookPersonalIdentity,
-    driverId: 'facebook-personal-identity-official', accountKind: 'personal-identity', official: true,
-    supportLevel: 'identity-only', messagingSupported: false, riskDisclosureRequired: false,
+    platform: 'facebook',
+    adapter: facebookPersonalIdentity,
+    driverId: 'facebook-personal-identity-official',
+    accountKind: 'personal-identity',
+    official: true,
+    supportLevel: 'identity-only',
+    messagingSupported: false,
+    riskDisclosureRequired: false,
     isolationModel: 'oauth-identity',
-    resolveAccountKey(account) { return clean(account?.id); }, credentialState() { return null; },
+    resolveAccountKey(account) { return clean(account?.id); },
+    credentialState() { return null; },
     status(account) { return facebookPersonalIdentity.status(account); },
     credentialReady(account, secret = {}) { return facebookPersonalIdentity.credentialReady(account, secret); },
     async connect(account, options = {}) { return facebookPersonalIdentity.connect(account, options); },
     async disconnect(account, options = {}) { return facebookPersonalIdentity.disconnect(account, options); },
-    async sync(account, options = {}) { return withPersistedOperationContext(options, () => facebookPersonalIdentity.sync(account, options)); },
+    async sync(account, options = {}) {
+      return withPersistedOperationContext(options, () => facebookPersonalIdentity.sync(account, options));
+    },
     externalTarget(value) { return clean(value).replace(/^facebook:/i, ''); },
     adapterAccountId(account, requestedId = '') { return clean(account?.id || requestedId); },
     sendText(context, input) { return facebookPersonalIdentity.sendText(context, input); },
@@ -168,26 +179,16 @@ const driverById = Object.freeze({
     markRead(context, input) { return facebookPersonalIdentity.markRead(context, input); }
   }),
   'facebook-personal-messenger-mautrix-meta': Object.freeze({
-    platform: 'facebook', adapter: facebookPersonalMessengerMautrixAdapter,
-    driverId: 'facebook-personal-messenger-mautrix-meta', accountKind: 'personal-messenger', official: false,
-    supportLevel: 'production', messagingSupported: true, riskDisclosureRequired: false,
-    protocolAuthority: 'mautrix-meta', isolationModel: 'matrix-application-service', preserveLocalRuntimeCredentialOnLogout: true,
-    resolveAccountKey(account) { return clean(account?.id); }, credentialState() { return null; },
-    status(account) { return facebookPersonalMessengerMautrixAdapter.status(account); },
-    credentialReady(account, secret = {}) { return facebookPersonalMessengerMautrixAdapter.credentialReady(account, secret); },
-    async connect(account, options = {}) { return facebookPersonalMessengerMautrixAdapter.connect(account, options); },
-    async disconnect(account, options = {}) { return facebookPersonalMessengerMautrixAdapter.disconnect(account, options); },
-    async sync(account, options = {}) { return withPersistedOperationContext(options, () => facebookPersonalMessengerMautrixAdapter.sync(account, options)); },
-    externalTarget(value) { return facebookPersonalMessengerMautrixAdapter.externalTarget(value); },
-    adapterAccountId(account, requestedId = '') { return facebookPersonalMessengerMautrixAdapter.adapterAccountId(account, requestedId); },
-    async sendText(context, input) { const physicalAttemptContext = requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessengerMautrixAdapter.sendText(context, { ...input, physicalAttemptContext }); },
-    async sendMedia(context, input) { const physicalAttemptContext = requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessengerMautrixAdapter.sendMedia(context, { ...input, physicalAttemptContext }); },
-    async sendPresence(context, input) { const physicalAttemptContext = requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessengerMautrixAdapter.sendPresence(context, { ...input, physicalAttemptContext }); },
-    async markRead(context, input) { const physicalAttemptContext = requirePersistedFacebookEgressAttempt(context, input); return facebookPersonalMessengerMautrixAdapter.markRead(context, { ...input, physicalAttemptContext }); },
-    async beginLogin(account, username, options = {}) { return facebookPersonalMessengerMautrixAdapter.beginLogin(account, username, options); },
-    async submitLoginInput(account, loginProcessId, stepId, input, options = {}) { return facebookPersonalMessengerMautrixAdapter.submitLoginInput(account, loginProcessId, stepId, input, options); },
-    async waitLoginStep(account, loginProcessId, stepId, options = {}) { return facebookPersonalMessengerMautrixAdapter.waitLoginStep(account, loginProcessId, stepId, options); },
-    async cancelLogin(account, loginProcessId, options = {}) { return facebookPersonalMessengerMautrixAdapter.cancelLogin(account, loginProcessId, options); }
+    ...mautrixDriver('facebook', mautrix.facebook),
+    driverId: 'facebook-personal-messenger-mautrix-meta',
+    accountKind: 'personal-messenger',
+    official: false,
+    supportLevel: 'production',
+    messagingSupported: true,
+    riskDisclosureRequired: false,
+    protocolAuthority: 'mautrix-meta',
+    isolationModel: 'matrix-application-service',
+    preserveLocalRuntimeCredentialOnLogout: true
   })
 });
 
@@ -195,7 +196,7 @@ function resolveDriverId(account = {}) {
   const platform = normalizePlatform(account.platform);
   const explicit = clean(account?.metadata?.driverId || account?.driverId);
   if (explicit) {
-    if (!driverById[explicit]) throw unsupported(platform, `resolve-driver:${explicit}`);
+    if (!driverById[explicit]) throw unsupported(platform, 'resolve-driver:' + explicit);
     return explicit;
   }
   const kind = clean(account?.metadata?.accountKind || account?.accountKind).toLowerCase();
@@ -204,17 +205,28 @@ function resolveDriverId(account = {}) {
     if (kind === 'personal-messenger') return 'facebook-personal-messenger-mautrix-meta';
     return 'facebook-page-official';
   }
-  if (platform === 'telegram') return 'telegram-personal-mtproto';
-  return 'whatsapp-web-multidevice';
+  if (platform === 'telegram') return 'telegram-personal-mautrix-telegram';
+  return 'whatsapp-personal-mautrix-whatsapp';
 }
-function getForAccount(account = {}) { return driverById[resolveDriverId(account)]; }
+function getForAccount(account = {}) {
+  return driverById[resolveDriverId(account)];
+}
+
 function driverContracts() {
   return Object.fromEntries(Object.entries(driverById).map(([driverId, driver]) => {
-    const featureEnabled = typeof driver.adapter?.enabled === 'function' ? driver.adapter.enabled() : true;
+    const featureEnabled = typeof driver.adapter?.enabled === 'function'
+      ? driver.adapter.enabled()
+      : true;
     return [driverId, {
-      driverId, platform: driver.platform, accountKind: driver.accountKind, official: driver.official === true,
-      supportLevel: driver.supportLevel, messagingSupported: driver.messagingSupported === true,
-      riskDisclosureRequired: driver.riskDisclosureRequired === true, isolationModel: driver.isolationModel,
+      driverId,
+      platform: driver.platform,
+      accountKind: driver.accountKind,
+      official: driver.official === true,
+      supportLevel: driver.supportLevel,
+      messagingSupported: driver.messagingSupported === true,
+      riskDisclosureRequired: driver.riskDisclosureRequired === true,
+      isolationModel: driver.isolationModel,
+      protocolAuthority: clean(driver.protocolAuthority),
       featureEnabled,
       onboardingAvailable: featureEnabled,
       onboardingReason: !featureEnabled ? 'FEATURE_FLAG_DISABLED' : '',
@@ -222,7 +234,6 @@ function driverContracts() {
     }];
   }));
 }
-
 function get(platform) { return drivers[normalizePlatform(platform)]; }
 function call(platform, operation, ...args) {
   const driver = get(platform);
@@ -232,8 +243,23 @@ function call(platform, operation, ...args) {
 function contracts() {
   return Object.fromEntries(Object.entries(drivers).map(([platform, driver]) => [platform, {
     platform,
-    operations: Object.keys(driver).filter(key => typeof driver[key] === 'function' && !['externalTarget','adapterAccountId','resolveAccountKey','credentialState','credentialReady','status'].includes(key)).sort()
+    operations: Object.keys(driver)
+      .filter(key => typeof driver[key] === 'function'
+        && !['externalTarget', 'adapterAccountId', 'resolveAccountKey', 'credentialState', 'credentialReady', 'status'].includes(key))
+      .sort()
   }]));
 }
 
-module.exports = { PLATFORMS, drivers, driverById, get, getForAccount, resolveDriverId, call, contracts, driverContracts, unsupported, normalizePlatform, mapWhatsAppState };
+module.exports = {
+  PLATFORMS,
+  drivers,
+  driverById,
+  get,
+  getForAccount,
+  resolveDriverId,
+  call,
+  contracts,
+  driverContracts,
+  unsupported,
+  normalizePlatform
+};

@@ -1,0 +1,735 @@
+diff --git a/apps/web/res/css/structures/_RoomView.pcss b/apps/web/res/css/structures/_RoomView.pcss
+index e3342f6..1b24b23 100644
+--- a/apps/web/res/css/structures/_RoomView.pcss
++++ b/apps/web/res/css/structures/_RoomView.pcss
+@@ -211,3 +211,223 @@ Please see LICENSE files in the repository root for full details.
+         min-height: 42px;
+     }
+ }
++
++/* YANCE_PRODUCT_CONVERSATION_PRESENTATION_V1 */
++.mx_RoomView_yanceProductConversation {
++    background: transparent;
++}
++.mx_RoomView_yanceProductConversation .mx_RoomView_body,
++.mx_RoomView_yanceProductConversation .mx_MainSplit,
++.mx_RoomView_yanceProductConversation .mx_MainSplit_timeline,
++.mx_RoomView_yanceProductConversation .mx_RoomView_timeline,
++.mx_RoomView_yanceProductConversation .mx_ScrollPanel,
++.mx_RoomView_yanceProductConversation .mx_RoomView_messagePanel,
++.mx_RoomView_yanceProductConversation .mx_RoomView_messageListWrapper,
++.mx_RoomView_yanceProductConversation .mx_RoomView_MessageList {
++    background: transparent;
++}
++.mx_RoomView_yanceProductConversation .mx_RoomView_messagePanel {
++    padding-inline: 16px;
++    padding-bottom: 18px;
++}
++.mx_RoomView_yanceProductConversation .mx_NewRoomIntro {
++    width: min(560px, calc(100% - 42px));
++    margin: 22px auto 14px;
++    padding: 14px 18px;
++    border: 1px solid color-mix(in srgb, var(--yance-theme-border, var(--cpd-color-gray-500)) 72%, transparent);
++    border-radius: 18px;
++    background: color-mix(in srgb, var(--yance-theme-card-raised, var(--cpd-color-bg-subtle-secondary)) 64%, transparent);
++    box-shadow: 0 18px 44px color-mix(in srgb, var(--yance-theme-shadow-source, black) 15%, transparent);
++    backdrop-filter: blur(20px) saturate(1.08);
++}
++.mx_RoomView_yanceProductConversation .mx_NewRoomIntro h2 {
++    margin-block: 4px 8px;
++    font-size: 1.22rem;
++    letter-spacing: -.025em;
++}
++.mx_RoomView_yanceProductConversation .mx_NewRoomIntro_buttons {
++    margin-block: 10px 4px;
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"] {
++    margin-block: 7px 12px;
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile:has([data-yance-bridge-control-hidden="true"]) {
++    display: none;
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"] .mx_EventTile_line {
++    border: 1px solid color-mix(in srgb, var(--yance-theme-border, var(--cpd-color-gray-500)) 72%, transparent);
++    border-radius: 20px;
++    box-shadow: 0 12px 28px color-mix(in srgb, var(--yance-theme-shadow-source, black) 13%, transparent);
++    backdrop-filter: blur(16px) saturate(1.08);
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"][data-self="false"] .mx_EventTile_line {
++    background: linear-gradient(145deg,
++        color-mix(in srgb, var(--yance-theme-card-raised, var(--cpd-color-bg-subtle-secondary)) 86%, var(--yance-theme-highlight, white) 5%),
++        color-mix(in srgb, var(--yance-theme-control, var(--cpd-color-bg-subtle-primary)) 88%, transparent));
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"][data-self="true"] .mx_EventTile_line {
++    border-color: color-mix(in srgb, var(--yance-final-intimacy, var(--cpd-color-purple-500)) 38%, var(--yance-theme-border, var(--cpd-color-gray-500)));
++    background: linear-gradient(145deg,
++        color-mix(in srgb, var(--yance-final-intimacy, var(--cpd-color-purple-500)) 21%, var(--yance-theme-card-raised, var(--cpd-color-bg-subtle-secondary))),
++        color-mix(in srgb, var(--yance-final-violet, var(--cpd-color-purple-600)) 16%, var(--yance-theme-control, var(--cpd-color-bg-subtle-primary))));
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile_avatar .mx_BaseAvatar {
++    box-shadow:
++        0 0 0 2px color-mix(in srgb, var(--yance-theme-panel, var(--cpd-color-bg-canvas-default)) 92%, transparent),
++        0 0 0 3px color-mix(in srgb, var(--yance-theme-accent, var(--cpd-color-purple-500)) 38%, transparent),
++        0 8px 20px color-mix(in srgb, var(--yance-theme-shadow-source, black) 18%, transparent);
++}
++.mx_RoomView_yanceProductConversation .mx_DisambiguatedProfile_displayName {
++    color: color-mix(in srgb, var(--yance-theme-text, var(--cpd-color-text-primary)) 88%, var(--yance-theme-text-muted, var(--cpd-color-text-secondary)));
++    font-size: .68rem;
++    font-weight: 760;
++}
++.mx_RoomView_yanceProductConversation .mx_MessageTimestamp {
++    color: var(--yance-theme-text-muted, var(--cpd-color-text-secondary));
++    font-size: .58rem;
++}
++.mx_RoomView_yanceProductConversation .mx_MessageComposer {
++    padding: 0 12px 10px;
++    background: transparent;
++}
++.mx_RoomView_yanceProductConversation .mx_MessageComposer_wrapper {
++    border: 1px solid color-mix(in srgb, var(--yance-theme-border, var(--cpd-color-gray-500)) 76%, transparent);
++    border-radius: 16px;
++    background: color-mix(in srgb, var(--yance-theme-panel, var(--cpd-color-bg-canvas-default)) 80%, transparent);
++    box-shadow: 0 16px 40px color-mix(in srgb, var(--yance-theme-shadow-source, black) 16%, transparent);
++    backdrop-filter: blur(22px) saturate(1.12);
++}
++.mx_RoomView_yanceProductConversation .mx_BasicMessageComposer_input {
++    min-height: 42px;
++    padding-block: 9px;
++}
++
++.mx_RoomView_yanceProductConversation .mx_RoomView_MessageList {
++    padding-block: 10px 14px;
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"] .mx_EventTile_line {
++    position: relative;
++    width: fit-content;
++    max-width: min(78%, 700px);
++    padding: 10px 13px;
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"][data-self="false"] .mx_EventTile_line::after,
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"][data-self="true"] .mx_EventTile_line::after {
++    content: "";
++    position: absolute;
++    bottom: 8px;
++    width: 10px;
++    height: 13px;
++    pointer-events: none;
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"][data-self="false"] .mx_EventTile_line::after {
++    left: -7px;
++    clip-path: polygon(100% 0, 100% 100%, 0 100%);
++    background: color-mix(in srgb,
++        var(--yance-theme-card-raised, var(--cpd-color-bg-subtle-secondary)) 91%,
++        var(--yance-theme-highlight, white) 4%);
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"][data-self="true"] .mx_EventTile_line::after {
++    right: -7px;
++    clip-path: polygon(0 0, 100% 100%, 0 100%);
++    background: color-mix(in srgb,
++        var(--yance-final-intimacy, var(--cpd-color-purple-500)) 24%,
++        var(--yance-theme-card-raised, var(--cpd-color-bg-subtle-secondary)));
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"][data-self="true"] .mx_EventTile_line {
++    margin-left: auto; margin-right: 42px;
++    box-shadow:
++        inset 0 1px 0 color-mix(in srgb, white 7%, transparent),
++        0 13px 30px color-mix(in srgb, var(--yance-final-intimacy, black) 17%, transparent);
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"][data-self="false"] .mx_EventTile_line {
++    margin-right: auto;
++    box-shadow:
++        inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
++        0 13px 30px color-mix(in srgb, var(--yance-theme-shadow-source, black) 17%, transparent);
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile_content .mx_MTextBody {
++    font-size: .88rem;
++    line-height: 1.46;
++}
++.mx_RoomView_yanceProductConversation .yance-product-message__translation {
++    margin: 0;
++    padding: 0;
++    border: 0;
++    color: var(--yance-theme-text, var(--cpd-color-text-primary));
++    font-size: .9rem;
++    font-weight: 610;
++    line-height: 1.5;
++    letter-spacing: -.006em;
++}
++.mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="irc"],
++.mx_RoomView_yanceProductConversation .mx_RoomView_MessageList > li:not(.mx_EventTile) {
++    color: var(--yance-theme-text-muted, var(--cpd-color-text-secondary));
++    font-size: .68rem;
++}
++.mx_RoomView_yanceProductConversation .mx_NewRoomIntro {
++    width: min(610px, calc(100% - 36px));
++    margin: 14px auto 10px;
++    padding: 11px 14px;
++    border-radius: 16px;
++    background: color-mix(in srgb,
++        var(--yance-theme-card-raised, var(--cpd-color-bg-subtle-secondary)) 57%,
++        transparent);
++}
++.mx_RoomView_yanceProductConversation .mx_NewRoomIntro .mx_cryptoEvent {
++    margin-block: 0 9px;
++    border-radius: 12px;
++    background: color-mix(in srgb,
++        var(--cpd-color-bg-critical-subtle, #2f101d) 72%,
++        transparent);
++}
++.mx_RoomView_yanceProductConversation .mx_NewRoomIntro > h2 {
++    margin-block: 5px 6px;
++    font-size: 1rem;
++}
++.mx_RoomView_yanceProductConversation .mx_NewRoomIntro > p {
++    font-size: .76rem;
++    line-height: 1.4;
++}
++.mx_RoomView_yanceProductConversation .mx_NewRoomIntro_buttons {
++    margin-top: 9px;
++    gap: 7px;
++}
++.mx_RoomView_yanceProductConversation .mx_MessageComposer {
++    padding: 0 10px 8px;
++}
++.mx_RoomView_yanceProductConversation .mx_MessageComposer_wrapper {
++    border-radius: 17px;
++    background: color-mix(in srgb,
++        var(--yance-theme-panel, var(--cpd-color-bg-canvas-default)) 72%,
++        transparent);
++    box-shadow:
++        inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
++        0 18px 44px color-mix(in srgb, var(--yance-theme-shadow-source, black) 22%, transparent);
++}
++.mx_RoomView_yanceProductConversation .mx_MessageComposer_row {
++    min-height: 46px;
++}
++.mx_RoomView_yanceProductConversation .mx_BasicMessageComposer_input {
++    min-height: 44px;
++    font-size: .85rem;
++}
++
++@media (max-width: 1000px) {
++    .mx_RoomView_yanceProductConversation .mx_RoomView_messagePanel {
++        padding-inline: 10px;
++    }
++    .mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"] .mx_EventTile_line {
++        max-width: 84%;
++    }
++}
++
++@media (max-height: 700px) {
++    .mx_RoomView_yanceProductConversation .mx_NewRoomIntro {
++        margin-block: 8px 6px;
++        padding-block: 8px;
++    }
++    .mx_RoomView_yanceProductConversation .mx_EventTile[data-layout="bubble"] {
++        margin-block: 4px 7px;
++    }
++}
+diff --git a/apps/web/src/components/structures/MessagePanel.tsx b/apps/web/src/components/structures/MessagePanel.tsx
+index a22d829..b4c9f93 100644
+--- a/apps/web/src/components/structures/MessagePanel.tsx
++++ b/apps/web/src/components/structures/MessagePanel.tsx
+@@ -211,6 +211,11 @@ interface IProps {
+ 
+     hideThreadedMessages?: boolean;
+     disableGrouping?: boolean;
++    /**
++     * Optional mature-owner presentation preset for embedded Product room views.
++     * This affects rendering only; Matrix events remain in the authoritative timeline.
++     */
++    productPresentation?: "yance-conversation";
+ 
+     callEventGroupers: Map<string, LegacyCallEventGrouper>;
+ }
+@@ -484,6 +489,10 @@ export default class MessagePanel extends React.Component<IProps, IState> {
+ 
+     // TODO: Implement granular (per-room) hide options
+     public shouldShowEvent(mxEv: MatrixEvent, forceHideEvents = false): boolean {
++        if (this.props.productPresentation === "yance-conversation" && mxEv.isState()) {
++            return false;
++        }
++
+         if (this.props.hideThreadedMessages && this.props.room) {
+             const { shouldLiveInRoom } = this.props.room.eventShouldLiveIn(mxEv, this.props.events);
+             if (!shouldLiveInRoom) {
+@@ -703,6 +712,12 @@ export default class MessagePanel extends React.Component<IProps, IState> {
+             }
+ 
+             for (const Grouper of groupers) {
++                if (
++                    this.props.productPresentation === "yance-conversation" &&
++                    Grouper === CreationGrouper
++                ) {
++                    continue;
++                }
+                 if (Grouper.canStartGroup(this, wrappedEvent) && !this.props.disableGrouping) {
+                     grouper = new Grouper(
+                         this,
+diff --git a/apps/web/src/components/structures/RoomView.tsx b/apps/web/src/components/structures/RoomView.tsx
+index 729aa14..8ccb153 100644
+--- a/apps/web/src/components/structures/RoomView.tsx
++++ b/apps/web/src/components/structures/RoomView.tsx
+@@ -2579,6 +2579,7 @@ export class RoomView extends React.Component<IRoomProps, IRoomState> {
+                         layout={this.state.layout}
+                         editState={this.state.editState}
+                         enableReadReceiptsAndMarkersOnActivity={this.props.enableReadReceiptsAndMarkersOnActivity}
++                        productPresentation={this.props.productPresentation}
+                     />
+                 </EventPresentationContextProvider>
+             );
+@@ -2631,6 +2632,7 @@ export class RoomView extends React.Component<IRoomProps, IRoomState> {
+         const mainClasses = classNames("mx_RoomView", {
+             mx_RoomView_inCall: Boolean(activeCall),
+             mx_RoomView_immersive: mainSplitContentType !== MainSplitContentType.Timeline,
++            mx_RoomView_yanceProductConversation: this.props.productPresentation === "yance-conversation",
+         });
+ 
+         const showChatEffects = SettingsStore.getValue("showChatEffects");
+diff --git a/apps/web/src/components/structures/TimelinePanel.tsx b/apps/web/src/components/structures/TimelinePanel.tsx
+index 51bce16..43bf4e5 100644
+--- a/apps/web/src/components/structures/TimelinePanel.tsx
++++ b/apps/web/src/components/structures/TimelinePanel.tsx
+@@ -140,6 +140,11 @@ interface IProps {
+ 
+     hideThreadedMessages?: boolean;
+     disableGrouping?: boolean;
++    /**
++     * Optional mature-owner presentation preset for embedded Product room views.
++     * Element remains the owner of event visibility and timeline rendering.
++     */
++    productPresentation?: "yance-conversation";
+ 
+     /**
+      * Enable updating the read receipts and markers on user activity.
+@@ -1876,6 +1881,7 @@ class TimelinePanel extends React.Component<IProps, IState> {
+                 layout={this.props.layout}
+                 hideThreadedMessages={this.props.hideThreadedMessages}
+                 disableGrouping={this.props.disableGrouping}
++                productPresentation={this.props.productPresentation}
+                 callEventGroupers={this.callEventGroupers}
+             />
+         );
+diff --git a/apps/web/src/modules/BuiltinsApi.tsx b/apps/web/src/modules/BuiltinsApi.tsx
+index 83d4c2a..4570f5b 100644
+--- a/apps/web/src/modules/BuiltinsApi.tsx
++++ b/apps/web/src/modules/BuiltinsApi.tsx
+@@ -24,15 +24,23 @@ interface RoomAvatarProps {
+     size?: string;
+ }
+ 
++interface UserAvatarProps {
++    userId: string;
++    roomId?: string;
++    size?: string;
++}
++
+ interface Components {
+     roomView: React.ComponentType<RoomViewPropsWithRoomId>;
+     roomAvatar: React.ComponentType<RoomAvatarProps>;
++    userAvatar: React.ComponentType<UserAvatarProps>;
+     notificationDecoration: React.ComponentType<ModuleNotificationDecorationProps>;
+ }
+ 
+ export class ElementWebBuiltinsApi implements BuiltinsApi {
+     private _roomView?: Components["roomView"];
+     private _roomAvatar?: Components["roomAvatar"];
++    private _userAvatar?: Components["userAvatar"];
+     private _notificationDecoration?: Components["notificationDecoration"];
+ 
+     /**
+@@ -47,6 +55,7 @@ export class ElementWebBuiltinsApi implements BuiltinsApi {
+     public setComponents(components: Components): void {
+         this._roomView = components.roomView;
+         this._roomAvatar = components.roomAvatar;
++        this._userAvatar = components.userAvatar;
+         this._notificationDecoration = components.notificationDecoration;
+     }
+ 
+@@ -64,6 +73,13 @@ export class ElementWebBuiltinsApi implements BuiltinsApi {
+         return this._roomAvatar;
+     }
+ 
++    public getUserAvatarComponent(): React.ComponentType<UserAvatarProps> {
++        if (!this._userAvatar) {
++            throw new Error("No UserAvatar component has been set");
++        }
++        return this._userAvatar;
++    }
++
+     public getNotificationDecorationComponent(): React.ComponentType<ModuleNotificationDecorationProps> {
+         if (!this._notificationDecoration) {
+             throw new Error("No NotificationDecoration component has been set");
+@@ -85,6 +101,16 @@ export class ElementWebBuiltinsApi implements BuiltinsApi {
+         return <Component room={room} size={size} />;
+     }
+ 
++    public renderUserAvatar(userId: string, size?: string): React.ReactNode {
++        const Component = this.getUserAvatarComponent();
++        return <Component userId={userId} size={size} />;
++    }
++
++    public renderRoomMemberAvatar(roomId: string, userId: string, size?: string): React.ReactNode {
++        const Component = this.getUserAvatarComponent();
++        return <Component roomId={roomId} userId={userId} size={size} />;
++    }
++
+     public renderNotificationDecoration(roomId: string): React.ReactNode {
+         const room = MatrixClientPeg.safeGet().getRoom(roomId);
+         if (!room) {
+diff --git a/apps/web/src/modules/ClientApi.ts b/apps/web/src/modules/ClientApi.ts
+index c5ff6ac..56c4c1e 100644
+--- a/apps/web/src/modules/ClientApi.ts
++++ b/apps/web/src/modules/ClientApi.ts
+@@ -23,6 +23,23 @@ export class ClientApi implements IClientApi {
+             .map((sdkRoom) => new ModuleRoom(sdkRoom));
+     }
+ 
++    public async getSpaceHierarchyRoomIds(spaceRoomId: string): Promise<string[]> {
++        const canonicalSpaceRoomId = String(spaceRoomId || "").trim();
++        if (!canonicalSpaceRoomId) return [];
++        const hierarchy = await MatrixClientPeg.safeGet().getRoomHierarchy(canonicalSpaceRoomId, 1000, 1, false);
++        return hierarchy.rooms
++            .map((room) => String(room.room_id || "").trim())
++            .filter((roomId) => Boolean(roomId) && roomId !== canonicalSpaceRoomId);
++    }
++
++    public async ensureRoomJoined(roomId: string): Promise<void> {
++        const canonicalRoomId = String(roomId || "").trim();
++        if (!canonicalRoomId) return;
++        const client = MatrixClientPeg.safeGet();
++        if (client.getRoom(canonicalRoomId)?.getMyMembership() === "join") return;
++        await client.joinRoom(canonicalRoomId);
++    }
++
+     public async getOpenIdToken(): Promise<{
+         access_token: string;
+         token_type: string;
+diff --git a/apps/web/src/stores/MultiRoomViewStore.ts b/apps/web/src/stores/MultiRoomViewStore.ts
+index 2014589..5ea5220 100644
+--- a/apps/web/src/stores/MultiRoomViewStore.ts
++++ b/apps/web/src/stores/MultiRoomViewStore.ts
+@@ -49,6 +49,10 @@ export class MultiRoomViewStore {
+         return store;
+     }
+ 
++    public hasRoomViewStore(roomId: string): boolean {
++        return this.stores.has(roomId);
++    }
++
+     /**
+      * Remove a RVS instance that was created by {@link getRoomViewStoreForRoom}.
+      */
+diff --git a/apps/web/src/stores/RoomViewStore.tsx b/apps/web/src/stores/RoomViewStore.tsx
+index 407213d..ccd759a 100644
+--- a/apps/web/src/stores/RoomViewStore.tsx
++++ b/apps/web/src/stores/RoomViewStore.tsx
+@@ -206,7 +206,28 @@ export class RoomViewStore extends EventEmitter {
+     }
+ 
+     private onDispatch(payload: ActionPayload): void {
+-        if (this.lockedToRoomId && payload.room_id && this.lockedToRoomId !== payload.room_id) {
++        const roomScopedPayload = payload as ActionPayload & { room_id?: string; roomId?: string };
++        const targetRoomId = roomScopedPayload.room_id ?? roomScopedPayload.roomId;
++
++        if (
++            this.lockedToRoomId
++            && (payload.action === Action.ViewHomePage || payload.action === "view_welcome_page")
++        ) {
++            return;
++        }
++        if (this.lockedToRoomId && targetRoomId && this.lockedToRoomId !== targetRoomId) {
++            return;
++        }
++        if (
++            !this.lockedToRoomId
++            && targetRoomId
++            && (
++                payload.action === Action.JoinRoom
++                || payload.action === Action.JoinRoomError
++                || payload.action === Action.JoinRoomReady
++            )
++            && this.stores.multiRoomViewStore.hasRoomViewStore(targetRoomId)
++        ) {
+             return;
+         }
+ 
+@@ -544,8 +565,11 @@ export class RoomViewStore extends EventEmitter {
+             joining: true,
+         });
+ 
+-        // take a copy of roomAlias, roomId & viaServers as they may change by the time the join is complete
+-        const { roomAlias, roomId = payload.roomId, viaServers = [] } = this.state;
++        // Take a target-scoped copy. A join routed to a module RoomViewStore must not reuse alias/via state from another room.
++        const roomId = payload.roomId || this.state.roomId;
++        const stateMatchesTarget = this.state.roomId === roomId;
++        const roomAlias = stateMatchesTarget ? this.state.roomAlias : null;
++        const viaServers = stateMatchesTarget ? this.state.viaServers : [];
+         // prefer the room alias if we have one as it allows joining over federation even with no viaServers
+         const address = roomAlias || roomId!;
+ 
+diff --git a/apps/web/src/vector/app.tsx b/apps/web/src/vector/app.tsx
+index 48907eb..bdc114a 100644
+--- a/apps/web/src/vector/app.tsx
++++ b/apps/web/src/vector/app.tsx
+@@ -14,7 +14,7 @@ Please see LICENSE files in the repository root for full details.
+ import "matrix-js-sdk/src/browser-index";
+ import React, { type ReactElement, StrictMode } from "react";
+ import { logger } from "matrix-js-sdk/src/logger";
+-import { AutoDiscovery, type ClientConfig } from "matrix-js-sdk/src/matrix";
++import { AutoDiscovery, MatrixEvent, RoomMember, RoomStateEvent, type ClientConfig, type RoomState } from "matrix-js-sdk/src/matrix";
+ import { WrapperLifecycle, type WrapperOpts } from "@matrix-org/react-sdk-module-api/lib/lifecycles/WrapperLifecycle";
+ 
+ import PlatformPeg from "../PlatformPeg";
+@@ -30,7 +30,9 @@ import { getInitialScreenAfterLogin, getScreenFromLocation, init as initRouting,
+ import { type URLParams } from "./url_utils.ts";
+ import { UserFriendlyError } from "../languageHandler";
+ import { ModuleApi } from "../modules/Api";
++import { MatrixClientPeg } from "../MatrixClientPeg";
+ import { RoomView } from "../components/structures/RoomView";
++import MemberAvatar from "../components/views/avatars/MemberAvatar";
+ import RoomAvatar from "../components/views/avatars/RoomAvatar";
+ import { ModuleNotificationDecoration } from "../modules/components/ModuleNotificationDecoration";
+ import Login from "../Login.ts";
+@@ -40,6 +42,50 @@ logger.log(`Application is running in ${process.env.NODE_ENV} mode`);
+ 
+ window.matrixLogger = logger;
+ 
++type ModuleUserAvatarProps = {
++    userId: string;
++    roomId?: string;
++    size?: string;
++};
++
++function ModuleUserAvatar({ userId, roomId, size = "32px" }: ModuleUserAvatarProps): React.JSX.Element {
++    const [member, setMember] = React.useState<RoomMember | null>(null);
++
++    React.useEffect(() => {
++        let cancelled = false;
++        const client = MatrixClientPeg.safeGet();
++        if (roomId) {
++            const updateRoomMember = (state?: RoomState): void => {
++                if (state && state.roomId !== roomId) return;
++                if (!cancelled) setMember(client.getRoom(roomId)?.getMember(userId) ?? null);
++            };
++            updateRoomMember();
++            client.on(RoomStateEvent.Update, updateRoomMember);
++            return () => {
++                cancelled = true;
++                client.removeListener(RoomStateEvent.Update, updateRoomMember);
++            };
++        }
++        void client
++            .getProfileInfo(userId)
++            .then((profileInfo) => {
++                if (cancelled) return;
++                const event = new MatrixEvent({ type: "m.room.member", content: profileInfo });
++                const nextMember = new RoomMember("", userId);
++                nextMember.setMembershipEvent(event);
++                setMember(nextMember);
++            })
++            .catch(() => {
++                if (!cancelled) setMember(null);
++            });
++        return () => {
++            cancelled = true;
++        };
++    }, [roomId, userId]);
++
++    return <MemberAvatar member={member} fallbackUserId={userId} size={size} hideTitle />;
++}
++
+ function onTokenLoginCompleted(urlParams: URLParams, fragmentAfterLogin: string): void {
+     const url = new URL(window.location.href);
+ 
+@@ -94,6 +140,7 @@ export async function loadApp(urlParams: URLParams, matrixChatRef: React.Ref<Mat
+     ModuleApi.instance.builtins.setComponents({
+         roomView: RoomView,
+         roomAvatar: RoomAvatar,
++        userAvatar: ModuleUserAvatar,
+         notificationDecoration: ModuleNotificationDecoration,
+     });
+ 
+diff --git a/packages/module-api/element-web-module-api.api.md b/packages/module-api/element-web-module-api.api.md
+index 3b036f0..05db4f1 100644
+--- a/packages/module-api/element-web-module-api.api.md
++++ b/packages/module-api/element-web-module-api.api.md
+@@ -78,7 +78,9 @@ export interface Api extends LegacyModuleApiExtension, LegacyCustomisationsApiEx
+ export interface BuiltinsApi {
+     renderNotificationDecoration(roomId: string): React.ReactNode;
+     renderRoomAvatar(roomId: string, size?: string): React.ReactNode;
++    renderRoomMemberAvatar(roomId: string, userId: string, size?: string): React.ReactNode;
+     renderRoomView(roomId: string, props?: RoomViewProps): React.ReactNode;
++    renderUserAvatar(userId: string, size?: string): React.ReactNode;
+ }
+ 
+ // @alpha
+@@ -98,19 +100,14 @@ export interface ChatExportCustomisations<ExportFormat, ExportType> {
+ // @public
+ export interface ClientApi {
+     accountData: AccountDataApi;
++    // (undocumented)
++    getOpenIdToken: () => Promise<MatrixOpenIdToken>;
+     getRoom: (id: string) => Room | null;
+     getRooms: () => Room[];
+-    getOpenIdToken: () => Promise<MatrixOpenIdToken>;
++    // (undocumented)
++    getSpaceHierarchyRoomIds: (spaceRoomId: string) => Promise<string[]>;
++    ensureRoomJoined: (roomId: string) => Promise<void>;
+ }
+ 
+-// @public
+-export type MatrixOpenIdToken = {
+-    access_token: string;
+-    token_type: string;
+-    matrix_server_name: string;
+-    expires_in: number;
+-};
+-
+ // @alpha @deprecated (undocumented)
+ export interface ComponentVisibilityCustomisations {
+     shouldShowComponent?(component: "UIComponent.sendInvites" | "UIComponent.roomCreation" | "UIComponent.spaceCreation" | "UIComponent.exploreRooms" | "UIComponent.addIntegrations" | "UIComponent.filterContainer" | "UIComponent.roomOptionsMenu"): boolean;
+@@ -120,10 +117,10 @@ export interface ComponentVisibilityCustomisations {
+ export interface ComposerApi {
+     addFileUploadOption(option: ComposerApiFileUploadOption): void;
+     completeOutgoingMessage(input: {
+-        eventId?: string;
+         roomId: string;
+-        success: boolean;
+         text: string;
++        success: boolean;
++        eventId?: string;
+     }): Promise<void>;
+     insertPlaintextIntoComposer(plaintext: string, view: ComposerApiTarget): void;
+     openFileUploadConfirmation(files: File[], view: ComposerApiTarget): void;
+@@ -135,10 +132,10 @@ export interface ComposerApi {
+         transformed?: boolean;
+     }>;
+     registerOutgoingMessageCompletion(handler: (input: {
+-        eventId?: string;
+         roomId: string;
+-        success: boolean;
+         text: string;
++        success: boolean;
++        eventId?: string;
+     }) => Promise<void> | void): void;
+     registerOutgoingMessagePrepare(handler: (input: {
+         roomId: string;
+@@ -236,8 +233,8 @@ export type CustomLoginComponentProps = {
+     serverConfig: CustomLoginComponentPropsServerConfig;
+     fragmentAfterLogin?: string;
+     children?: ReactNode;
+-    onLoggedIn(data: AccountAuthInfo): void;
+-    onServerConfigChange(config: CustomLoginComponentPropsServerConfig): void;
++    onLoggedIn(this: void, data: AccountAuthInfo): void;
++    onServerConfigChange(this: void, config: CustomLoginComponentPropsServerConfig): void;
+ };
+ 
+ // @alpha
+@@ -298,7 +295,7 @@ export type DialogHandle<M> = {
+         ok: boolean;
+         model: M | null;
+     }>;
+-    close(): void;
++    close(this: void): void;
+ };
+ 
+ // @public
+@@ -308,8 +305,8 @@ export interface DialogOptions {
+ 
+ // @public
+ export type DialogProps<M> = {
+-    onSubmit(model: M): void;
+-    onCancel(): void;
++    onSubmit(this: void, model: M): void;
++    onCancel(this: void): void;
+ };
+ 
+ // @alpha @deprecated (undocumented)
+@@ -396,6 +393,14 @@ export interface MatrixEvent {
+     unsigned: Record<string, unknown>;
+ }
+ 
++// @public (undocumented)
++export type MatrixOpenIdToken = {
++    access_token: string;
++    token_type: string;
++    matrix_server_name: string;
++    expires_in: number;
++};
++
+ // @public
+ export type MaybePromise<T> = T | PromiseLike<T>;
+ 
+@@ -477,9 +482,9 @@ export interface NavigationApi {
+     navigateToLocation(path: string): void;
+     openRoom(roomIdOrAlias: string, opts?: OpenRoomOptions): void;
+     openUserSettings(destination: "account" | "security" | "sessions"): void;
+-    requestLogout(): void;
+     // @alpha
+     registerLocationRenderer(path: string, renderer: LocationRenderFunction): void;
++    requestLogout(): void;
+     setProductConversationPresentation(mode: "default" | "relationship-room"): void;
+     toMatrixToLink(link: string, join?: boolean): Promise<void>;
+ }
+@@ -551,6 +556,7 @@ export interface RoomViewProps {
+     hidePinnedMessageBanner?: boolean;
+     hideRightPanel?: boolean;
+     hideWidgets?: boolean;
++    productPresentation?: "yance-conversation";
+ }
+ 
+ // @alpha @deprecated (undocumented)
+diff --git a/packages/module-api/src/api/builtins.ts b/packages/module-api/src/api/builtins.ts
+index d4c461d..005805b 100644
+--- a/packages/module-api/src/api/builtins.ts
++++ b/packages/module-api/src/api/builtins.ts
+@@ -36,6 +36,11 @@ export interface RoomViewProps {
+      * @defaultValue true
+      */
+     enableReadReceiptsAndMarkersOnActivity?: boolean;
++    /**
++     * Optional mature-owner presentation preset for an embedded Product room view.
++     * Element remains the owner of RoomView DOM, timeline, composer and styles.
++     */
++    productPresentation?: "yance-conversation";
+ }
+ 
+ /**
+@@ -55,6 +60,25 @@ export interface BuiltinsApi {
+      */
+     renderRoomAvatar(roomId: string, size?: string): React.ReactNode;
+ 
++    /**
++     * Render a user avatar using Element's existing Matrix profile/avatar authority.
++     *
++     * @alpha
++     * @param userId - Matrix user ID
++     * @param size - Size of the avatar to render
++     */
++    renderUserAvatar(userId: string, size?: string): React.ReactNode;
++
++    /**
++     * Render a user avatar from the membership state of a specific room.
++     *
++     * @alpha
++     * @param roomId - Matrix room containing the authoritative membership event
++     * @param userId - Matrix user ID
++     * @param size - Size of the avatar to render
++     */
++    renderRoomMemberAvatar(roomId: string, userId: string, size?: string): React.ReactNode;
++
+     /**
+      * Render room view component from element-web.
+      *
+diff --git a/packages/module-api/src/api/client.ts b/packages/module-api/src/api/client.ts
+index 73270f5..7128085 100644
+--- a/packages/module-api/src/api/client.ts
++++ b/packages/module-api/src/api/client.ts
+@@ -49,6 +49,8 @@ export interface ClientApi {
+      * @returns Room objects projected through the existing module Room wrapper.
+      */
+     getRooms: () => Room[];
++    getSpaceHierarchyRoomIds: (spaceRoomId: string) => Promise<string[]>;
+     getOpenIdToken: () => Promise<MatrixOpenIdToken>;
+ }

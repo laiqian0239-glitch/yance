@@ -13,7 +13,12 @@ function project(state = {}, options = {}) {
   const taskReadiness = aiTaskRoleReadinessAuthority.evaluate({ models: state.models || [], modelBrainRuntime: runtime });
   const replyBrain = replyBrainAuthority.evaluate(models);
   const rawOpenRouter = state.openRouter && typeof state.openRouter === 'object' ? state.openRouter : {};
-  const { credentialRef: _secretRef, ...openRouterSnapshot } = rawOpenRouter;
+  const { credentialRef: _secretRef, ...rawOpenRouterSnapshot } = rawOpenRouter;
+  const smokePassed = String(rawOpenRouter.onboardingSmokeStatus || '').trim().toLowerCase() === 'passed'
+    || rawOpenRouter.logicalModelBrainSmoke === true;
+  const openRouterSnapshot = smokePassed
+    ? { ...rawOpenRouterSnapshot, onboardingSmokeErrorCode: '', onboardingSmokeError: '' }
+    : rawOpenRouterSnapshot;
   // totalCostUsd is a registry accounting field and is intentionally read from the
   // raw state models: the normalizeModel shape projection does not carry it, so summing
   // normalized models would always yield zero.
@@ -54,7 +59,7 @@ function project(state = {}, options = {}) {
       coreTasksReady: taskReadiness.pass,
       coreTasksMissing: taskReadiness.missing.map(row => ({ task: row.task, reason: row.reason })),
       trackedCloudCostUsd: Number(trackedCloudCostUsd.toFixed(12)),
-      openRouterConnected: Boolean(rawOpenRouter.credentialRef)
+      openRouterConnected: String(rawOpenRouter.connectionState || '').trim().toLowerCase() === 'ready'
     }
   };
 }

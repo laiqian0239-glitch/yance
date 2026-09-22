@@ -1,0 +1,41 @@
+homeserver:
+  address: http://synapse:8008
+  domain: yance.local
+
+network:
+  api_id: 0
+  api_hash: disabled
+
+appservice:
+  address: http://mautrix-telegram:29317
+  hostname: 0.0.0.0
+  port: 29317
+  id: yance-mautrix-telegram
+  bot:
+    username: yance_telegram_bot
+    displayname: Yance Telegram Bridge
+  username_template: telegram_{{.}}
+
+database:
+  type: sqlite3-fk-wal
+  uri: /data/mautrix-telegram.db
+bridge:
+  command_prefix: '!tg'
+  personal_filtering_spaces: true
+  private_chat_portal_meta: true
+  unknown_error_auto_reconnect: 5m
+  unknown_error_max_auto_reconnects: 10
+  permissions:
+    '*': relay
+    'yance.local': user
+
+provisioning:
+  shared_secret: disable
+  allow_matrix_auth: false
+  debug_endpoints: false
+  enable_session_transfers: false
+
+env_config_prefix: YANCE_MAUTRIX_TELEGRAM_
+
+logging:
+  min_level: info

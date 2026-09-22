@@ -13,6 +13,7 @@ const modelAutoActivation = require('../services/modelAutoActivationService');
 const replyBrainAuthority = require('../services/replyBrainModelAuthority');
 const openRouterAutoConfiguration = require('../services/openRouterAutoConfigurationService');
 const openRouterOnboardingSmoke = require('../services/openRouterOnboardingSmokeService');
+const modelBrainUserPolicy = require('../services/modelBrainUserPolicy');
 
 const securityGuard = getSecurityGuard();
 const router = express.Router();
@@ -84,6 +85,26 @@ router.get('/model-brain/status', (_req, res) => {
 router.get('/audit', (_req, res) => {
   const state = modelStatus.read();
   res.json({ ok: true, ...replyBrainAuthority.audit(state.models || []) });
+});
+
+router.put('/model-brain/preferences', async (req, res, next) => {
+  try {
+    await modelBrainUserPolicy.updatePreferences({
+      reasoningLevel: req.body?.reasoningLevel,
+      fastMode: req.body?.fastMode
+    });
+    res.json({ ok: true, userPolicy: modelBrainUserPolicy.project(registry.read()) });
+  } catch (error) { next(error); }
+});
+router.put('/model-brain/preferences/:task', async (req, res, next) => {
+  try {
+    await modelBrainUserPolicy.setTaskPolicy(req.params.task, {
+      mode: req.body?.mode,
+      primaryModelId: req.body?.primaryModelId,
+      fallbackModelId: req.body?.fallbackModelId
+    }, registry.read());
+    res.json({ ok: true, userPolicy: modelBrainUserPolicy.project(registry.read()) });
+  } catch (error) { next(error); }
 });
 
 router.patch('/:id/lifecycle', async (req, res, next) => {

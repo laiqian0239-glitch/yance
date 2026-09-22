@@ -6,8 +6,6 @@ const queueRepository = require('../repositories/sendQueueRepository');
 const sendPolicyAuthority = require('./sendPolicyAuthority').singleton;
 const platformDeliveryAuthority = require('./platformDeliveryAuthority').singleton;
 const { currentRuntimeInternalOperationAuthority } = require('./durableInternalOperationAuthority');
-const { TERMINAL_STATES } = require('./durableExecutionLifecycle');
-const platformAuthWorkflowAuthority = require('./platformAuthWorkflowAuthority').singleton;
 const outboxRouteAuthority = require('./outboxRouteAuthority').singleton;
 const { sha256 } = require('./domainEventLogService');
 const { executeWithDeadline } = require('./executionDeadline');
@@ -17,7 +15,6 @@ const ADAPTER_SCHEMA_VERSION = 1;
 const PORTS = Object.freeze(['auth', 'ingress', 'egress', 'reconcile']);
 const PLATFORMS = Object.freeze(['facebook', 'whatsapp', 'telegram']);
 const FORBIDDEN_DTO_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
-const INTERNAL_OPERATION_TERMINAL_STATES = new Set([...TERMINAL_STATES, 'SUPERSEDED']);
 const EGRESS_DEADLINES_MS = Object.freeze({
   text: 45_000,
   media: 120_000,
@@ -151,6 +148,14 @@ function executePortWithDeadline(executor, context = {}) {
 
 function clean(value) { return String(value == null ? '' : value).trim(); }
 function error(code, message, status = 400, details = {}) { return Object.assign(new Error(message), { code, status, ...details }); }
+function referenceFailurePayload(cause, accountId = '') {
+  return Object.freeze({
+    status: 'failed',
+    errorCode: clean(cause?.code || cause?.reasonCode || 'PLATFORM_OPERATION_FAILED'),
+    reasonCode: clean(cause?.reasonCode || cause?.code || 'PLATFORM_OPERATION_FAILED'),
+    accountId: clean(accountId)
+  });
+}
 
 function requirePlatform(value) {
   const platform = clean(value).toLowerCase();
@@ -588,51 +593,33 @@ class PlatformAdapterFacade {
   }
   async executeAuth(input = {}) {
     assertDomainDto(input, 'AuthCommand');
-    const lifecycle = this.operationLifecycle || currentRuntimeInternalOperationAuthority();
     const operation = clean(input.operation);
-    if (!operation) throw error('PLATFORM_AUTH_OPERATION_REQUIRED', 'AuthPort 必须声明认证操作。');
+    if (!operation) throw error('PLATFORM_AUTH_OPERATION_REQUIRED', 'AuthPort \u5fc5\u987b\u58f0\u660e\u8ba4\u8bc1\u64cd\u4f5c\u3002');
     const accountId = clean(input.accountId);
-    const requestedDeadlineAt = clean(input.deadlineAt);
-    const deadlineAt = requestedDeadlineAt || persistedAuthorityDeadlineAt(lifecycle, 'auth', this.platform, operation, input.timeoutMs);
-    const workflow = platformAuthWorkflowAuthority.begin(lifecycle, {
-      ...input, platform: this.platform, accountId, operation, deadlineAt
-    });
-    const created = workflow.operation;
-    const physicalOperationContext = projectPhysicalOperationContext(created, this.platform, accountId);
-    try {
-      let result;
-      if (this.authHandler?.execute) result = await executePortWithDeadline(
-        ({ signal, generation }) => this.authHandler.execute({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
-        { kind: 'auth', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, deadlineAt: created.deadlineAt, timeoutMs: input.timeoutMs, signal: input.signal }
-      );
-      else {
-        const direct = this.authHandler?.[operation];
-        if (typeof direct !== 'function') throw error('PLATFORM_AUTH_OPERATION_NOT_BOUND', `${this.platform} AuthPort 尚未绑定操作：${operation}`, 501);
-        result = await executePortWithDeadline(
-          ({ signal, generation }) => direct({ ...input, platform: this.platform, operationId: created.operationId, operationGeneration: generation, physicalOperationContext, signal }),
-          { kind: 'auth', platform: this.platform, accountId, operation, operationId: created.operationId, generation: created.generation, deadlineAt: created.deadlineAt, timeoutMs: input.timeoutMs, signal: input.signal }
-        );
-      }
-      const normalized = assertDomainDto(result, 'AuthCommandResult');
-      const completion = platformAuthWorkflowAuthority.afterCommand(lifecycle, {
-        platform: this.platform, accountId, operation, operationId: created.operationId
-      }, normalized);
-      return assertDomainDto({
-        ...normalized,
-        operationId: created.operationId,
-        operationGeneration: created.generation,
-        operationState: completion.operation?.state || 'RUNNING',
-        workflowPending: completion.pending === true
-      }, 'AuthCommandResult');
-    } catch (cause) {
-      const current = lifecycle.read(created.operationId);
-      if (current && !INTERNAL_OPERATION_TERMINAL_STATES.has(current.state)) {
-        lifecycle.fail(created.operationId, cause, { generation: created.generation, objectFingerprint: created.objectFingerprint });
-      }
-      cause.operationId = created.operationId;
-      cause.operationGeneration = created.generation;
-      throw cause;
+    const authInput = Object.fromEntries(Object.entries(input).filter(([key]) =>
+      !['operationId', 'operationGeneration', 'physicalOperationContext', 'deadlineAt', 'generation'].includes(key)
+    ));
+    let result;
+    if (this.authHandler?.execute) {
+      result = await this.authHandler.execute({
+        ...authInput,
+        platform: this.platform,
+        accountId,
+        operation,
+        signal: input.signal || null
+      });
+    } else {
+      const direct = this.authHandler?.[operation];
+      if (typeof direct !== 'function') throw error('PLATFORM_AUTH_OPERATION_NOT_BOUND', this.platform + ' AuthPort \u5c1a\u672a\u7ed1\u5b9a\u64cd\u4f5c\uff1a' + operation, 501);
+      result = await direct({
+        ...authInput,
+        platform: this.platform,
+        accountId,
+        operation,
+        signal: input.signal || null
+      });
     }
+    return assertDomainDto(result, 'AuthCommandResult');
   }
   async authStart(input = {}) {
     assertDomainDto(input, 'AuthStartRequest');
@@ -802,7 +789,7 @@ class PlatformAdapterFacade {
         if (/sync|history/i.test(operation)) recordOperationalDomainEvent({ platform: this.platform, accountId, eventType: 'history.sync.completed', externalEventId: requestId, idempotencyKey: ['history-sync-completed', this.platform, accountId, requestId].join(':'), correlationId: requestId, projection: normalized, targetRefs: [{ table: 'r32_accounts', id: accountId }] }, this.eventLog);
         return normalized;
       } catch (cause) {
-        lifecycle.fail(created.operationId, cause, { generation: created.generation, objectFingerprint: created.objectFingerprint });
+        lifecycle.fail(created.operationId, referenceFailurePayload(cause, accountId), { generation: created.generation, objectFingerprint: created.objectFingerprint });
         const normalized = {
           schemaVersion: ADAPTER_SCHEMA_VERSION,
           platform: this.platform,

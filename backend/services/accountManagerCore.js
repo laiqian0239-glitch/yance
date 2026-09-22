@@ -29,7 +29,26 @@ const RECEIVE_DEPENDENT_CAPABILITIES = new Set(['incomingTyping', 'terminalPrese
 const BIDIRECTIONAL_CAPABILITIES = new Set(['sticker', 'animatedSticker']);
 
 function driverFor(account) { return platformDrivers.getForAccount ? platformDrivers.getForAccount(account) : platformDrivers.get(account.platform); }
+function matureLifecycleAuthority(driver = {}) {
+  return Boolean(String(driver.protocolAuthority || '').trim())
+    || String(driver.isolationModel || '').trim() === 'chatwoot-facebook-page-sidecar';
+}
 
+function observedMatureBridgeLoginId(row = {}, platform = '') {
+  const metadata = row?.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+  const explicit = String(metadata.mautrixLoginId || metadata.mautrixMetaLoginId || '').trim();
+  if (explicit) return explicit;
+  if (String(platform || row.platform || '').trim().toLowerCase() === 'telegram') {
+    return String(metadata.liveUser?.id || '').trim();
+  }
+  return '';
+}
+
+function isSyntheticMatureBridgeProjection(row = {}) {
+  const metadata = row?.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+  return String(row.source || '').trim() === 'mature-bridge-projection'
+    || String(metadata.projectionSource || '').trim() === 'mautrix-whoami';
+}
 
 function logCriticalFailure(operation, error, detail = {}) {
   logger.warn('accounts', 'critical-operation-failed', {
@@ -88,7 +107,6 @@ function assertOperationActive(signal, fallbackCode = 'ACCOUNT_OPERATION_ABORTED
 class AccountManager {
   constructor() {
     this.runtime = new Map();
-    this.connectedFinalizers = new Map();
     this.hydration = { phase: 'booting', ready: false, startedAt: new Date().toISOString(), completedAt: '', errorCode: '' };
     eventBus.on('whatsapp:state', event => this.onWhatsAppEvent(event.payload || {}));
     eventBus.on('whatsapp:qr', event => this.onWhatsAppEvent({ ...(event.payload || {}), state: 'qr' }));
@@ -104,12 +122,12 @@ class AccountManager {
   async hydrateAndRecover() {
     if (this.hydration.ready && this.hydration.phase === 'ready') return { ...this.hydration };
     try {
+      await accountStore.migrateRetiredDriverIds?.();
       for (const account of accountStore.listAll()) {
-        let runtime;
-        try { runtime = driverFor(account).status(account); }
-        catch (error) { runtime = { state: 'recovering', reasonCode: error.code || 'ADAPTER_STATUS_RECOVERY_PENDING', lastError: error.message }; }
-        this.runtime.set(account.id, runtime || { state: 'recovering', reasonCode: 'ADAPTER_STATUS_RECOVERY_PENDING' });
-        await accountLifecycleSaga.settleLatestFromAdapter(account.id, runtime?.state || 'recovering', runtime || {});
+        try { driverFor(account).status(account); }
+        catch (error) {
+          logCriticalFailure('platformDriver.status.hydration', error, { accountId: account.id, platform: account.platform });
+        }
       }
       this.hydration = { ...this.hydration, phase: 'ready', ready: true, completedAt: new Date().toISOString(), errorCode: '' };
       this.publishSummary();
@@ -132,28 +150,20 @@ class AccountManager {
 
   rawRuntime(account) {
     try {
-      const row = driverFor(account).status(account);
-      const authoritative = this.runtime.get(account.id) || null;
-      const adapterAttemptId = String(row?.attemptId || row?.connectionAttemptId || '');
-      const activeAttemptId = String(authoritative?.connectionAttemptId || authoritative?.attemptId || '');
-      if (row && authoritative && activeAttemptId && adapterAttemptId && activeAttemptId !== adapterAttemptId) {
-        logger.warn('accounts', 'stale-adapter-status-ignored', {
-          accountId: account.id,
-          platform: account.platform,
-          adapterAttemptId,
-          activeAttemptId,
-          state: String(row.state || '')
-        });
-        return authoritative;
-      }
-      return row || authoritative || { state: account.paused ? 'paused' : 'logged-out', lastError: '', connectedAt: '', user: null };
+      const ownerState = driverFor(account).status(account);
+      return ownerState || this.runtime.get(account.id) || {
+        state: account.paused ? 'paused' : 'logged-out',
+        lastError: '',
+        connectedAt: '',
+        user: null
+      };
     } catch (error) {
       logCriticalFailure('platformDriver.status', error, { accountId: account?.id || '', platform: account?.platform || '' });
       return this.runtime.get(account.id) || { state: 'unconfigured', lastError: error.message || '' };
     }
   }
 
-  publicAccount(account) {
+  publicAccount(account, runtimeOverride = null) {
     if (!this.hydration.ready) {
       return {
         ...account,
@@ -170,13 +180,16 @@ class AccountManager {
         hydrationErrorCode: this.hydration.errorCode || ''
       };
     }
-    const runtime = this.rawRuntime(account);
+    const runtime = runtimeOverride || this.rawRuntime(account);
     const runtimeState = String(runtime.state || 'unconfigured').trim().toLowerCase();
     const explicitlyLoggedOut = ['logged-out', 'logged_out'].includes(runtimeState) || account.metadata?.loggedOut === true;
     const state = explicitlyLoggedOut ? 'logged-out' : (account.paused ? 'paused' : runtimeState);
     const authorizationPending = account.lifecycleState === 'pending-auth' || account.metadata?.authorizationPending === true;
     const latestSaga = accountLifecycleSaga.latest(account.id);
-    const lifecycleAuthorityPending = Boolean(latestSaga && ['running', 'compensating', 'manual_review'].includes(latestSaga.state));
+    const projectedLifecycleSaga = latestSaga && !['connect', 'disconnect', 'logout'].includes(String(latestSaga.operation_type || latestSaga.operationType || '').toLowerCase())
+      ? latestSaga
+      : null;
+    const lifecycleAuthorityPending = Boolean(projectedLifecycleSaga && ['running', 'compensating', 'manual_review'].includes(projectedLifecycleSaga.state));
     const authorityPending = authorizationPending || lifecycleAuthorityPending;
     const unread = this.accountUnread(account.id);
     const driver = driverFor(account);
@@ -191,9 +204,7 @@ class AccountManager {
     const personalMessenger = account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || '').toLowerCase() === 'personal-messenger';
     const directChallenge = ['whatsapp', 'telegram'].includes(account.platform)
       ? authChallenges.status(account.id)
-      : personalMessenger && runtime.authStep
-        ? { ready: true, expiresAt: String(runtime.authStep.expires_at || runtime.authStep.expiresAt || ''), version: Number(runtime.authStep.version || 1) }
-        : { ready: false, expiresAt: '', version: 0 };
+      : { ready: false, expiresAt: '', version: 0 };
     const challengeStatus = directChallenge.ready || account.platform !== 'whatsapp'
       ? directChallenge
       : authChallenges.status(this.whatsappAuthKey(account));
@@ -227,12 +238,25 @@ class AccountManager {
       authorizationPending,
       authorityPending,
       lifecycleAuthorityPending,
-      lifecycleOperation: latestSaga ? { operationId: latestSaga.operation_id, operationType: latestSaga.operation_type, phase: latestSaga.phase, state: latestSaga.state, lastError: latestSaga.last_error || '' } : null,
+      lifecycleOperation: projectedLifecycleSaga ? { operationId: projectedLifecycleSaga.operation_id, operationType: projectedLifecycleSaga.operation_type, phase: projectedLifecycleSaga.phase, state: projectedLifecycleSaga.state, lastError: projectedLifecycleSaga.last_error || '' } : null,
       state,
-      stateLabel: authorizationPending ? '等待平台授权' : latestSaga?.state === 'manual_review' ? '账号状态需要人工恢复' : lifecycleAuthorityPending ? '正在恢复账号状态' : stateLabel(state),
+      stateLabel: authorizationPending ? '等待平台授权' : projectedLifecycleSaga?.state === 'manual_review' ? '账号状态需要人工恢复' : lifecycleAuthorityPending ? '正在恢复账号状态' : stateLabel(state),
       health: healthFromState(state),
       lastError: runtime.lastError || runtime.error || '',
       reasonCode: runtime.reasonCode || runtime.code || '',
+      authority: runtime.authority || driver.protocolAuthority || '',
+      matrixUserId: runtime.matrixUserId || '',
+      loginCount: Number(runtime.loginCount || 0),
+      bridgeLogins: Array.isArray(runtime.bridgeLogins)
+        ? runtime.bridgeLogins.map(row => ({
+          id: String(row?.id || '').trim(),
+          name: String(row?.name || '').trim(),
+          stateEvent: String(row?.stateEvent || '').trim(),
+          spaceRoom: String(row?.spaceRoom || '').trim(),
+          remoteMatrixUserId: String(row?.remoteMatrixUserId || '').trim(),
+          identityReasonCode: String(row?.identityReasonCode || '').trim()
+        })).filter(row => row.id || row.name)
+        : [],
       connectionAttemptId: runtime.connectionAttemptId || runtime.attemptId || '',
       connectionStartedAt: runtime.connectionStartedAt || '',
       connectionFinishedAt: runtime.connectionFinishedAt || '',
@@ -298,6 +322,10 @@ class AccountManager {
   list() {
     const data = accountStore.read();
     const accounts = data.accounts.map(account => this.publicAccount(account));
+    return this.listPayload(data, accounts);
+  }
+
+  listPayload(data, accounts) {
     return {
       schemaVersion: data.schemaVersion,
       accounts,
@@ -313,6 +341,219 @@ class AccountManager {
       platformAuth: platformAuthConfig.publicState(),
       driverContracts: platformDrivers.driverContracts()
     };
+  }
+
+  async materializeMatureBridgeAccounts(matrixUserId = '') {
+    const subject = String(matrixUserId || '').trim();
+    if (!subject) return [];
+    const definitions = [
+      { platform: 'whatsapp', accountKind: 'personal-multidevice', driverId: 'whatsapp-personal-mautrix-whatsapp', label: 'WhatsApp' },
+      { platform: 'telegram', accountKind: 'personal', driverId: 'telegram-personal-mautrix-telegram', label: 'Telegram' },
+      { platform: 'facebook', accountKind: 'personal-messenger', driverId: 'facebook-personal-messenger-mautrix-meta', label: 'Facebook Messenger' }
+    ];
+    const created = [];
+    for (const definition of definitions) {
+      const probe = {
+        platform: definition.platform,
+        accountKind: definition.accountKind,
+        driverId: definition.driverId,
+        metadata: { accountKind: definition.accountKind, driverId: definition.driverId }
+      };
+      const driver = driverFor(probe);
+      if (typeof driver.observe !== 'function' || !/^mautrix-/u.test(String(driver.protocolAuthority || ''))) continue;
+      let observed;
+      try {
+        observed = await driver.observe(probe, { matrixUserId: subject });
+      } catch (_) {
+        continue;
+      }
+      const logins = Array.isArray(observed?.bridgeLogins) ? observed.bridgeLogins : [];
+      const rowMatchesDefinition = row => {
+        const metadata = row?.metadata || {};
+        const accountKind = String(row?.accountKind || metadata.accountKind || '').trim().toLowerCase();
+        const driverId = String(row?.driverId || metadata.driverId || '').trim();
+        return row?.platform === definition.platform
+          && accountKind === definition.accountKind
+          && driverId === definition.driverId;
+      };
+      for (const login of logins) {
+        const loginId = String(login?.id || '').trim();
+        if (!loginId) continue;
+        const rows = accountStore.list();
+        const loginIdentityMatches = rows.filter(row =>
+          rowMatchesDefinition(row)
+          && observedMatureBridgeLoginId(row, definition.platform) === loginId);
+        const canonicalCandidates = loginIdentityMatches.filter(row => !isSyntheticMatureBridgeProjection(row));
+        const projectionCandidates = loginIdentityMatches.filter(row => isSyntheticMatureBridgeProjection(row));
+        const existing = projectionCandidates.length === 1 ? projectionCandidates[0] : undefined;
+        const compatiblePending = rows.filter(row => {
+          if (!rowMatchesDefinition(row) || row.id === existing?.id) return false;
+          const metadata = row.metadata || {};
+          const ownerLoginId = observedMatureBridgeLoginId(row, definition.platform);
+          if (ownerLoginId) return false;
+          return row.lifecycleState === 'pending-auth' || metadata.authorizationPending === true;
+        });
+        const projectionMetadata = {
+          accountKind: definition.accountKind,
+          driverId: definition.driverId,
+          matrixUserId: subject,
+          mautrixLoginId: loginId,
+          ...(definition.platform === 'facebook' ? { mautrixMetaLoginId: loginId } : {}),
+          protocolAuthority: driver.protocolAuthority,
+          projectionSource: 'mautrix-whoami'
+        };
+        if (canonicalCandidates.length > 1 || projectionCandidates.length > 1) {
+          logCriticalFailure('accounts.materializeMatureBridgeAccounts', Object.assign(new Error('Mature bridge login identity is ambiguous'), {
+            code: 'MATURE_BRIDGE_LOGIN_IDENTITY_AMBIGUOUS'
+          }), {
+            platform: definition.platform,
+            loginId,
+            canonicalCandidates: canonicalCandidates.map(row => row.id),
+            projectionCandidates: projectionCandidates.map(row => row.id)
+          });
+          continue;
+        }
+        if (canonicalCandidates.length === 1) {
+          const canonical = canonicalCandidates[0];
+          await accountStore.commitConnectedIdentityTx(canonical.id, {
+            metadata: {
+              ...(canonical.metadata || {}),
+              ...projectionMetadata,
+              projectionSource: 'mautrix-whoami-adopted'
+            }
+          }, {
+            resultState: 'connected',
+            recovered: true
+          });
+          const aliases = rows.filter(row => {
+            if (row.id === canonical.id || !rowMatchesDefinition(row)) return false;
+            const metadata = row.metadata || {};
+            const observedLoginId = observedMatureBridgeLoginId(row, definition.platform);
+            const pending = row.lifecycleState === 'pending-auth' || metadata.authorizationPending === true;
+            return observedLoginId === loginId || (pending && !observedLoginId);
+          });
+          for (const alias of aliases) {
+            await accountStore.commitLifecycleTx(alias.id, {
+              paused: true,
+              autoReconnect: false,
+              lifecycleState: 'merged',
+              canonicalAccountId: canonical.id,
+              mergedIntoId: canonical.id,
+              metadata: {
+                ...(alias.metadata || {}),
+                authorizationPending: false,
+                matrixUserId: subject,
+                protocolAuthority: driver.protocolAuthority,
+                projectionSource: isSyntheticMatureBridgeProjection(alias) ? 'mautrix-whoami' : String(alias.metadata?.projectionSource || ''),
+                projectionMergeReason: 'mature-bridge-login-identity-canonicalized'
+              }
+            }, {
+              action: 'account-mature-bridge-projection-merged',
+              detail: { canonicalAccountId: canonical.id, authority: driver.protocolAuthority, loginId }
+            });
+          }
+          continue;
+        }
+        if (existing) {
+          if (compatiblePending.length === 1) {
+            const alias = compatiblePending[0];
+            await accountStore.commitLifecycleTx(alias.id, {
+              paused: true,
+              autoReconnect: false,
+              lifecycleState: 'merged',
+              canonicalAccountId: existing.id,
+              mergedIntoId: existing.id,
+              metadata: {
+                ...(alias.metadata || {}),
+                authorizationPending: false,
+                matrixUserId: subject,
+                protocolAuthority: driver.protocolAuthority,
+                projectionSource: 'mautrix-whoami',
+                projectionMergeReason: 'mature-bridge-login-observed'
+              }
+            }, {
+              action: 'account-mature-bridge-projection-merged',
+              detail: { canonicalAccountId: existing.id, authority: driver.protocolAuthority }
+            });
+          }
+          continue;
+        }
+        if (logins.length === 1 && compatiblePending.length === 1) {
+          const pending = compatiblePending[0];
+          const account = await accountStore.commitConnectedIdentityTx(pending.id, {
+            displayName: String(login?.name || definition.label).trim() || definition.label,
+            identityLabel: String(login?.name || loginId).trim() || loginId,
+            source: 'mature-bridge-projection',
+            metadata: {
+              ...(pending.metadata || {}),
+              ...projectionMetadata
+            }
+          }, {
+            resultState: 'connected',
+            recovered: true
+          });
+          created.push(account);
+          continue;
+        }
+        const digest = crypto.createHash('sha256')
+          .update([definition.platform, subject, loginId].join('\n'))
+          .digest('hex')
+          .slice(0, 24);
+        const id = definition.platform.slice(0, 2) + '-mautrix-' + digest;
+        try {
+          const account = await this.create({
+            id,
+            platform: definition.platform,
+            accountKind: definition.accountKind,
+            driverId: definition.driverId,
+            adapterAccountId: id,
+            displayName: String(login?.name || definition.label).trim() || definition.label,
+            identityLabel: String(login?.name || loginId).trim() || loginId,
+            source: 'mature-bridge-projection',
+            metadata: projectionMetadata
+          });
+          created.push(account);
+        } catch (error) {
+          if (error?.code !== 'ACCOUNT_EXISTS') throw error;
+        }
+      }
+    }
+    return created;
+  }
+
+  async listObserved(options = {}) {
+    const matrixUserId = String(options.matrixUserId || '').trim();
+    await this.materializeMatureBridgeAccounts(matrixUserId);
+    const data = accountStore.read();
+    const accounts = await Promise.all(data.accounts.map(async account => {
+      const driver = driverFor(account);
+      const matureBridge = /^mautrix-/u.test(String(driver.protocolAuthority || ''));
+      if (!matureBridge) return this.publicAccount(account);
+      if (!matrixUserId) {
+        return this.publicAccount(account, {
+          state: account.paused ? 'paused' : 'logged-out',
+          canAttemptSend: false,
+          canReceive: false,
+          authority: driver.protocolAuthority || '',
+          reasonCode: 'MATRIX_HUMAN_IDENTITY_REQUIRED',
+          observationRequired: true
+        });
+      }
+      try {
+        const observed = await driver.observe(account, { matrixUserId });
+        return this.publicAccount(account, observed);
+      } catch (error) {
+        return this.publicAccount(account, {
+          state: account.paused ? 'paused' : 'logged-out',
+          canAttemptSend: false,
+          canReceive: false,
+          authority: driver.protocolAuthority || '',
+          reasonCode: error?.reasonCode || error?.code || 'MAUTRIX_OBSERVATION_UNAVAILABLE',
+          observationRequired: true
+        });
+      }
+    }));
+    return this.listPayload(data, accounts);
   }
 
   summaryFrom(accounts) { return buildAccountSummary(accounts); }
@@ -334,11 +575,14 @@ class AccountManager {
     }
     const adapterAccountId = account.platform === 'whatsapp' ? this.whatsappAuthKey(account) : account.id;
     const challenge = personalMessenger
-      ? (this.runtime.get(account.id)?.authStep || null)
+      ? null
       : (authChallenges.read(account.id, { includeSecret: true }) || authChallenges.read(adapterAccountId, { includeSecret: true }));
+    const owner = this.publicAccount(account);
     return {
       accountId: account.id,
-      state: this.publicAccount(account).state,
+      state: owner.state,
+      step: owner.step || '',
+      prompt: owner.lastError || '',
       challenge
     };
   }
@@ -357,7 +601,13 @@ class AccountManager {
   }
 
   async create(input) {
-    platformAuthConfig.assertAvailable(input?.platform, 'create');
+    const prospectiveDriver = driverFor({
+      platform: input?.platform,
+      accountKind: input?.accountKind || input?.metadata?.accountKind,
+      driverId: input?.driverId || input?.metadata?.driverId,
+      metadata: input?.metadata || {}
+    });
+    if (!matureLifecycleAuthority(prospectiveDriver)) platformAuthConfig.assertAvailable(input?.platform, 'create');
     const authorizationPending = input?.authorizationPending === true;
     const account = await accountStore.create({
       ...input,
@@ -483,92 +733,54 @@ class AccountManager {
 
   async connect(id, options = {}) {
     let account = accountStore.get(id);
-    if (!account) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
+    if (!account) throw Object.assign(new Error('\u8d26\u53f7\u4e0d\u5b58\u5728'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
     accountLifecycle.assertEligible(account, { manual: true });
-    platformAuthConfig.assertAvailable(account.platform, 'connect');
-    if (account.paused) { await accountStore.update(account.id, { paused: false, lifecycleState: 'active' }); account = accountStore.get(account.id); }
-    const canonicalId = canonicalIdentity.resolveCanonicalAccountId(account.id);
-    if (canonicalId !== account.id) throw Object.assign(new Error('重复账号已合并，不能独立连接'), { code: 'ACCOUNT_IDENTITY_ALIAS', status: 409, canonicalAccountId: canonicalId });
-    assertOperationActive(options.signal, 'ACCOUNT_CONNECT_ABORTED');
-    const attemptId = String(options.attemptId || '').trim() || crypto.randomUUID();
-    const connectionStartedAt = new Date().toISOString();
-    const saga = await accountLifecycleSaga.begin(account, 'connect', { operationId: `account-connect-${attemptId}` });
-    await accountLifecycleSaga.setPhase(saga.operation_id, 'prepared', 'adapter_connect_started');
-    this.runtime.set(account.id, { state: 'connecting', lastError: '', reasonCode: '', connectedAt: '', connectionAttemptId: attemptId, connectionStartedAt, connectionFinishedAt: '' });
-    this.publishSummary();
-    let result;
-    let adapterStarted = false;
     const driver = driverFor(account);
-    try {
-      result = await withAbortSignal(
-        driver.connect(account, {
-          manual: true,
-          attemptId,
-          signal: options.signal || null,
-          executionGeneration: options.operationGeneration || attemptId,
-          physicalOperationContext: options.physicalOperationContext,
-          secret: securityGuard.credentials.get(account.credentialRef) || {}
-        }),
-        options.signal,
-        'ACCOUNT_CONNECT_ABORTED'
-      );
-      adapterStarted = true;
-      assertOperationActive(options.signal, 'ACCOUNT_CONNECT_ABORTED');
-      const state = String(result?.state || '').toLowerCase();
-      const currentRuntime = this.runtime.get(account.id) || {};
-      if (String(currentRuntime.connectionAttemptId || '') !== attemptId) {
-        throw Object.assign(new Error('Account connect completion belongs to a stale generation'), {
-          code: 'ACCOUNT_CONNECT_GENERATION_STALE',
-          accountId: account.id,
-          expectedAttemptId: String(currentRuntime.connectionAttemptId || ''),
-          receivedAttemptId: attemptId
-        });
-      }
-      this.runtime.set(account.id, { ...currentRuntime, ...(result || {}), connectionAttemptId: attemptId, connectionStartedAt, connectionFinishedAt: ['connected', 'limited', 'error', 'logged-out'].includes(state) ? new Date().toISOString() : '' });
-      if (['connected','limited'].includes(state)) {
-        await this.finalizeConnectedSagaFromRuntime(account, result, { resultState: state, attemptId, connectionStartedAt, source: 'connect-return' });
-      } else {
-        await accountLifecycleSaga.setPhase(saga.operation_id, 'adapter_connect_started', 'adapter_waiting_authorization', { adapterReceipt: result });
-      }
-      this.publishSummary();
-      return this.publicAccount(accountStore.get(id));
-    } catch (error) {
-      if (!adapterStarted) {
-        try { adapterStarted = Boolean(driver.status(account)); }
-        catch (statusError) { logCriticalFailure('account.connect.driverStatus', statusError, { accountId: id, platform: account.platform, attemptId }); }
-      }
-      const currentSaga = accountLifecycleSaga.get(saga.operation_id);
-      if (currentSaga && currentSaga.state === 'running') await accountLifecycleSaga.markCompensating(saga.operation_id, currentSaga.phase, error);
-      let rollbackFailed = false;
-      if (adapterStarted) {
-        try { await withTimeout(driverFor(account).disconnect(account, { logout: false }), 5000, 'ACCOUNT_CONNECT_ROLLBACK_TIMEOUT'); }
-        catch (rollbackError) {
-          rollbackFailed = true;
-          logger.error('accounts', 'account-connect-adapter-rollback-failed', { accountId: id, platform: account.platform, errorCode: rollbackError.code || rollbackError.message });
-        }
-      }
-      await accountLifecycleSaga.finish(saga.operation_id, rollbackFailed ? 'manual_review' : 'failed', { lastError: error.message, adapterReceipt: result || {} });
-      const expiredAttemptId = options.signal?.aborted
-        ? `expired:${attemptId}:${crypto.randomUUID()}`
-        : attemptId;
-      this.runtime.set(id, { state: 'error', lastError: error.message || String(error), reasonCode: error.code || 'ACCOUNT_CONNECT_FAILED', connectedAt: '', connectionAttemptId: expiredAttemptId, connectionStartedAt, connectionFinishedAt: new Date().toISOString() });
-      await accountStore.record('account-connect-failed', { accountId: id, platform: account.platform, code: error.code || '', adapterRolledBack: adapterStarted && !rollbackFailed, attemptId, connectionStartedAt });
-      logger.warn('accounts', 'account-connect-failed', { accountId: id, platform: account.platform, errorCode: error.code || error.message, adapterRolledBack: adapterStarted && !rollbackFailed, attemptId, connectionStartedAt });
-      this.publishSummary();
-      if (account.lifecycleState === 'pending-auth' || account.metadata?.authorizationPending === true) {
-        await this.discardPendingAuthorization(account.id, error.code || 'connect-failed', { skipAdapterStop: adapterStarted && !rollbackFailed });
-      }
-      throw error;
+    if (!matureLifecycleAuthority(driver)) platformAuthConfig.assertAvailable(account.platform, 'connect');
+    if (account.paused) {
+      await accountStore.update(account.id, { paused: false, lifecycleState: 'active' });
+      account = accountStore.get(account.id);
     }
+    const canonicalId = canonicalIdentity.resolveCanonicalAccountId(account.id);
+    if (canonicalId !== account.id) {
+      throw Object.assign(new Error('\u91cd\u590d\u8d26\u53f7\u5df2\u5408\u5e76\uff0c\u4e0d\u80fd\u72ec\u7acb\u8fde\u63a5'), {
+        code: 'ACCOUNT_IDENTITY_ALIAS', status: 409, canonicalAccountId: canonicalId
+      });
+    }
+    assertOperationActive(options.signal, 'ACCOUNT_CONNECT_ABORTED');
+    const result = await withAbortSignal(
+      driver.connect(account, {
+        manual: true,
+        signal: options.signal || null,
+        matrixUserId: String(options.matrixUserId || '').trim(),
+        secret: securityGuard.credentials.get(account.credentialRef) || {}
+      }),
+      options.signal,
+      'ACCOUNT_CONNECT_ABORTED'
+    );
+    assertOperationActive(options.signal, 'ACCOUNT_CONNECT_ABORTED');
+    if (result && ['connected', 'limited'].includes(String(result.state || '').toLowerCase())) {
+      await this.updateIdentityFromRuntime(accountStore.get(id) || account, result);
+    }
+    this.publishSummary();
+    return this.publicAccount(accountStore.get(id));
   }
 
   async sync(id, options = {}) {
     assertOperationActive(options.signal, 'ACCOUNT_SYNC_ABORTED');
     const account = accountStore.get(id);
     if (!account) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
-    const publicAccount = this.publicAccount(account);
+    const driver = driverFor(account);
+    const matureBridge = /^mautrix-/u.test(String(driver.protocolAuthority || ''));
+    const observedRuntime = matureBridge && clean(options.matrixUserId) && typeof driver.observe === 'function'
+      ? await driver.observe(account, { matrixUserId: clean(options.matrixUserId), signal: options.signal || null })
+      : null;
+    assertOperationActive(options.signal, 'ACCOUNT_SYNC_ABORTED');
+    const publicAccount = this.publicAccount(account, observedRuntime);
     if (!publicAccount.canReceive) throw Object.assign(new Error(`账号不可同步：${publicAccount.stateLabel}`), { code: 'ACCOUNT_CANNOT_SYNC', status: 409 });
-    if (account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || 'page').toLowerCase() === 'page' && publicAccount.historySyncAvailable !== true) {
+    const pageKind = account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || 'page').toLowerCase() === 'page';
+    const chatwootPageOwner = pageKind && String(driver.driverId || '').trim() === 'facebook-page-official';
+    if (pageKind && !chatwootPageOwner && publicAccount.historySyncAvailable !== true) {
       const reason = publicAccount.historySyncReason || 'pages_read_engagement 尚未授权，无法读取 Meta Business Suite 最近会话';
       throw Object.assign(new Error(reason), {
         code: 'FACEBOOK_HISTORY_PERMISSION_MISSING',
@@ -577,8 +789,9 @@ class AccountManager {
       });
     }
     const result = await withAbortSignal(
-      driverFor(account).sync(account, {
+      driver.sync(account, {
         signal: options.signal || null,
+        matrixUserId: clean(options.matrixUserId),
         executionGeneration: options.executionGeneration || options.operationGeneration || '',
         physicalOperationContext: options.physicalOperationContext
       }),
@@ -692,73 +905,115 @@ class AccountManager {
     if (!account) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
     const logout = options.logout === true;
     const transient = options.transient === true;
-    const operationType = logout ? 'logout' : 'disconnect';
-    const saga = transient ? null : await accountLifecycleSaga.begin(account, operationType);
-    let result = null;
-    try {
-      if (saga) {
-        await accountStore.update(id, {
-          paused: true,
-          lifecycleState: 'paused',
-          metadata: { lifecyclePending: true, lifecycleOperationId: saga.operation_id, lifecycleOperation: operationType }
-        });
-        await accountLifecycleSaga.setPhase(saga.operation_id, 'prepared', 'sqlite_mark_disconnect_pending');
-        await accountLifecycleSaga.setPhase(saga.operation_id, 'sqlite_mark_disconnect_pending', 'adapter_disconnect_started');
-      }
-      result = await withAbortSignal(
-        driverFor(account).disconnect(account, {
-          logout,
-          signal: options.signal || null,
-          executionGeneration: options.operationGeneration || ''
-        }),
-        options.signal,
-        logout ? 'ACCOUNT_LOGOUT_ABORTED' : 'ACCOUNT_DISCONNECT_ABORTED'
-      );
-      assertOperationActive(options.signal, logout ? 'ACCOUNT_LOGOUT_ABORTED' : 'ACCOUNT_DISCONNECT_ABORTED');
-      if (saga) await accountLifecycleSaga.setPhase(saga.operation_id, 'adapter_disconnect_started', 'adapter_disconnected', { adapterReceipt: result });
-      const activeDriver = driverFor(account);
-      const preserveLocalRuntimeCredential = logout && activeDriver?.preserveLocalRuntimeCredentialOnLogout === true;
-      if (logout && ['telegram', 'facebook'].includes(account.platform) && !preserveLocalRuntimeCredential) {
-        assertOperationActive(options.signal, 'ACCOUNT_LOGOUT_ABORTED');
-        await securityGuard.credentials.remove(account.credentialRef, { actor: 'platform-adapter' });
-        assertOperationActive(options.signal, 'ACCOUNT_LOGOUT_ABORTED');
-        if (saga) await accountLifecycleSaga.setPhase(saga.operation_id, 'adapter_disconnected', 'credential_delete_committed');
-      }
-      this.runtime.set(id, { state: logout ? 'logged-out' : (transient ? 'offline' : 'paused'), lastError: '', connectedAt: '' });
-      if (!transient) {
-        await accountStore.commitLifecycleTx(id, {
-          paused: true,
-          lifecycleState: 'paused',
-          metadata: { lifecyclePending: false, lifecycleOperationId: '', lifecycleOperation: '', loggedOut: logout, ...(logout && activeDriver?.driverId === 'facebook-personal-messenger-mautrix-meta' ? { mautrixMetaLoginId: '' } : {}) }
-        }, {
-          action: logout ? 'account-logout' : 'account-paused',
-          detail: { operationId: saga.operation_id }
-        });
-        const current = accountLifecycleSaga.get(saga.operation_id);
-        await accountLifecycleSaga.setPhase(saga.operation_id, current.phase, 'sqlite_lifecycle_committed');
-        await accountLifecycleSaga.finish(saga.operation_id, 'succeeded', { adapterReceipt: result });
-      } else {
-        logger.info('accounts', 'account-runtime-stopped', { accountId: id, platform: account.platform, reason: String(options.reason || 'transient-stop') });
-      }
-      this.publishSummary();
-      return { ...result, transient, account: this.publicAccount(accountStore.get(id)) };
-    } catch (error) {
-      if (saga) await accountLifecycleSaga.finish(saga.operation_id, 'manual_review', { lastError: error.message, adapterReceipt: result || {} });
-      const outcomeUnknown = options.signal?.aborted || /(?:DEADLINE|ABORT)/u.test(String(error?.code || ''));
-      this.runtime.set(id, {
-        state: outcomeUnknown ? 'error' : 'paused',
-        lastError: error.message || String(error),
-        reasonCode: outcomeUnknown ? 'ACCOUNT_DISCONNECT_OUTCOME_UNKNOWN' : (error.code || 'ACCOUNT_DISCONNECT_REQUIRES_RECONCILIATION'),
-        connectedAt: '', connectionAttemptId: outcomeUnknown ? `expired:disconnect:${crypto.randomUUID()}` : ''
-      });
-      this.publishSummary();
-      throw error;
+    const activeDriver = driverFor(account);
+    const result = await withAbortSignal(
+      activeDriver.disconnect(account, {
+        logout,
+        signal: options.signal || null
+      }),
+      options.signal,
+      logout ? 'ACCOUNT_LOGOUT_ABORTED' : 'ACCOUNT_DISCONNECT_ABORTED'
+    );
+    assertOperationActive(options.signal, logout ? 'ACCOUNT_LOGOUT_ABORTED' : 'ACCOUNT_DISCONNECT_ABORTED');
+    const preserveLocalRuntimeCredential = logout && activeDriver?.preserveLocalRuntimeCredentialOnLogout === true;
+    if (logout && ['telegram', 'facebook'].includes(account.platform) && !preserveLocalRuntimeCredential) {
+      await securityGuard.credentials.remove(account.credentialRef, { actor: 'platform-adapter' });
+      assertOperationActive(options.signal, 'ACCOUNT_LOGOUT_ABORTED');
     }
+    if (!transient) {
+      await accountStore.commitLifecycleTx(id, {
+        paused: true,
+        lifecycleState: 'paused',
+        metadata: {
+          lifecyclePending: false,
+          lifecycleOperationId: '',
+          lifecycleOperation: '',
+          loggedOut: logout,
+          ...(logout && activeDriver?.driverId === 'facebook-personal-messenger-mautrix-meta' ? { mautrixMetaLoginId: '' } : {})
+        }
+      }, {
+        action: logout ? 'account-logout' : 'account-paused',
+        detail: { owner: activeDriver?.driverId || account.platform }
+      });
+    }
+    this.runtime.delete(id);
+    if (transient) {
+      logger.info('accounts', 'account-runtime-stopped', {
+        accountId: id,
+        platform: account.platform,
+        reason: String(options.reason || 'transient-stop')
+      });
+    }
+    this.publishSummary();
+    return { ...result, transient, account: this.publicAccount(accountStore.get(id)) };
   }
 
   async resume(id, options = {}) {
     await accountStore.update(id, { paused: false });
     return this.connect(id, options);
+  }
+
+  facebookPageAccount(id) {
+    const account = accountStore.get(id);
+    const kind = String(account?.accountKind || account?.metadata?.accountKind || '').trim().toLowerCase();
+    if (!account || account.platform !== 'facebook' || kind !== 'page') {
+      throw Object.assign(new Error('Facebook Page 账号不存在'), { code: 'FACEBOOK_PAGE_ACCOUNT_NOT_FOUND', status: 404 });
+    }
+    const driver = driverFor(account);
+    if (String(driver.driverId || '').trim() !== 'facebook-page-official') {
+      throw Object.assign(new Error('Facebook Page 必须由 Chatwoot 官方 Page authority 管理'), { code: 'FACEBOOK_PAGE_CHATWOOT_AUTHORITY_REQUIRED', status: 409 });
+    }
+    return { account, driver };
+  }
+
+  async listFacebookPageInboxes(id, options = {}) {
+    const { driver } = this.facebookPageAccount(id);
+    if (typeof driver.listFacebookPageInboxes !== 'function') {
+      throw Object.assign(new Error('Facebook Page Chatwoot discovery unavailable'), { code: 'FACEBOOK_CHATWOOT_DISCOVERY_UNAVAILABLE', status: 503 });
+    }
+    const inboxes = await withAbortSignal(
+      driver.listFacebookPageInboxes({ signal: options.signal || null }),
+      options.signal,
+      'FACEBOOK_CHATWOOT_DISCOVERY_ABORTED'
+    );
+    return { authority: 'chatwoot-facebook-page-sidecar', inboxes };
+  }
+
+  async attachFacebookPageInbox(id, input = {}, options = {}) {
+    const { account, driver } = this.facebookPageAccount(id);
+    if (typeof driver.resolveFacebookPageInbox !== 'function') {
+      throw Object.assign(new Error('Facebook Page Chatwoot selection unavailable'), { code: 'FACEBOOK_CHATWOOT_DISCOVERY_UNAVAILABLE', status: 503 });
+    }
+    const page = await withAbortSignal(
+      driver.resolveFacebookPageInbox({ inboxId: String(input.inboxId || '').trim(), pageId: String(input.pageId || '').trim() }, { signal: options.signal || null }),
+      options.signal,
+      'FACEBOOK_CHATWOOT_DISCOVERY_ABORTED'
+    );
+    if (!page?.pageId || !page?.inboxId) {
+      throw Object.assign(new Error('Facebook Page 必须精确匹配一个 Chatwoot Facebook inbox'), { code: 'FACEBOOK_CHATWOOT_INBOX_IDENTITY_AMBIGUOUS', status: 409 });
+    }
+    await accountStore.update(id, {
+      adapterAccountId: `facebook_ads:${page.pageId}`,
+      identityLabel: page.name || account.identityLabel || account.displayName || 'Facebook Page',
+      lifecycleState: 'pending-auth',
+      metadata: {
+        ...(account.metadata || {}),
+        accountKind: 'page',
+        driverId: 'facebook-page-official',
+        pageId: page.pageId,
+        facebookPageId: page.pageId,
+        chatwootInboxId: page.inboxId,
+        pageName: page.name || '',
+        authorizationPending: true,
+        authorizationAuthority: 'chatwoot-facebook-page-sidecar'
+      }
+    });
+    const connected = await this.connect(id, options);
+    await accountStore.record('facebook-page-chatwoot-attached', {
+      accountId: id, pageId: page.pageId, inboxId: page.inboxId, authority: 'chatwoot-facebook-page-sidecar'
+    });
+    this.publishSummary();
+    return { account: connected, page, authority: 'chatwoot-facebook-page-sidecar' };
   }
 
   async beginFacebookOAuth(id, options = {}) {
@@ -798,139 +1053,130 @@ class AccountManager {
     return flow;
   }
 
-  assertFacebookPersonalMessengerAccount(id) {
+  mautrixProvisioningAccount(id) {
     const account = accountStore.get(id);
     const kind = String(account?.accountKind || account?.metadata?.accountKind || '').trim().toLowerCase();
-    if (!account || account.platform !== 'facebook' || kind !== 'personal-messenger') {
-      throw Object.assign(new Error('Facebook Personal Messenger账号不存在'), { code: 'FACEBOOK_PERSONAL_MESSENGER_ACCOUNT_NOT_FOUND', status: 404 });
+    const supported = Boolean(account) && (
+      account.platform === 'whatsapp'
+      || account.platform === 'telegram'
+      || (account.platform === 'facebook' && kind === 'personal-messenger')
+    );
+    if (!supported) {
+      throw Object.assign(new Error('This account is not owned by a mautrix provisioning bridge'), {
+        code: 'MAUTRIX_PROVISIONING_ACCOUNT_REQUIRED',
+        status: 409
+      });
     }
-    return account;
+    const driver = driverFor(account);
+    if (typeof driver.getLoginFlows !== 'function'
+        || typeof driver.beginLogin !== 'function'
+        || typeof driver.submitLoginInput !== 'function'
+        || typeof driver.waitLoginStep !== 'function'
+        || typeof driver.cancelLogin !== 'function') {
+      throw Object.assign(new Error('The mature provisioning owner is unavailable for this account'), {
+        code: 'MAUTRIX_PROVISIONING_OWNER_UNAVAILABLE',
+        status: 503
+      });
+    }
+    return { account, driver };
   }
 
-  async startFacebookMessengerLogin(id, username = '', options = {}) {
-    const account = this.assertFacebookPersonalMessengerAccount(id);
-    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_START_ABORTED');
-    const result = await withAbortSignal(driverFor(account).beginLogin(account, username, options), options.signal, 'FACEBOOK_PERSONAL_LOGIN_START_ABORTED');
-    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_START_ABORTED');
-    this.runtime.set(id, { ...this.rawRuntime(account), state: 'pending-user-action', authStep: result, lastError: '', reasonCode: '' });
-    this.publishSummary();
-    return { account: this.publicAccount(accountStore.get(id)), flow: result };
+  async listProvisioningLoginFlows(id, options = {}) {
+    const { account, driver } = this.mautrixProvisioningAccount(id);
+    assertOperationActive(options.signal, 'MAUTRIX_LOGIN_FLOWS_ABORTED');
+    const flows = await withAbortSignal(
+      driver.getLoginFlows(account, options),
+      options.signal,
+      'MAUTRIX_LOGIN_FLOWS_ABORTED'
+    );
+    assertOperationActive(options.signal, 'MAUTRIX_LOGIN_FLOWS_ABORTED');
+    return { account: this.publicAccount(account), flows };
   }
 
-  async settleFacebookMessengerLoginStep(id, account, result, options = {}) {
-    const state = String(result?.state || result?.status || result?.step?.type || result?.type || '').trim().toLowerCase();
-    const completeLoginId = String(
-      result?.complete?.user_login_id || result?.complete?.userLoginId
-      || result?.login_id || result?.loginId || result?.user_login_id || result?.userLoginId || ''
-    ).trim();
-    const complete = state === 'complete' || state === 'completed' || Boolean(result?.complete || completeLoginId);
-    if (complete) {
-      if (!completeLoginId) {
-        throw Object.assign(new Error('mautrix/meta completed login without user_login_id'), { code: 'FACEBOOK_PERSONAL_LOGIN_ID_MISSING', status: 502 });
-      }
-      await accountStore.update(id, { metadata: { ...(account.metadata || {}), mautrixMetaLoginId: completeLoginId } });
-      const connected = await this.connect(id, { ...options, attemptId: options.operationGeneration || options.attemptId });
-      this.runtime.set(id, { ...this.rawRuntime(accountStore.get(id)), authStep: null });
+  async ensureProvisioningDirectChat(id, identifier, options = {}) {
+    const { account, driver } = this.mautrixProvisioningAccount(id);
+    if (typeof driver.ensureDirectChat !== 'function') {
+      throw Object.assign(new Error('The mature bridge does not expose direct-chat provisioning'), {
+        code: 'MAUTRIX_DIRECT_CHAT_OWNER_UNAVAILABLE', status: 503
+      });
+    }
+    const loginId = observedMatureBridgeLoginId(account, account.platform);
+    if (!loginId) {
+      throw Object.assign(new Error('The exact mautrix login identity is unavailable for this account'), {
+        code: 'MAUTRIX_LOGIN_ID_REQUIRED', status: 409
+      });
+    }
+    assertOperationActive(options.signal, 'MAUTRIX_DIRECT_CHAT_ABORTED');
+    const result = await withAbortSignal(
+      driver.ensureDirectChat(account, identifier, loginId, options),
+      options.signal,
+      'MAUTRIX_DIRECT_CHAT_ABORTED'
+    );
+    assertOperationActive(options.signal, 'MAUTRIX_DIRECT_CHAT_ABORTED');
+    return { account: this.publicAccount(account), ...result };
+  }
+
+  async settleProvisioningLoginStep(id, account, driver, result, options = {}) {
+    if (driver.isCompleteLoginResult(result)) {
+      const connected = await this.connect(id, options);
       this.publishSummary();
       return { account: connected, flow: result, completed: true };
     }
-    this.runtime.set(id, { ...this.rawRuntime(account), state: 'pending-user-action', authStep: result, lastError: '', reasonCode: '' });
     this.publishSummary();
     return { account: this.publicAccount(accountStore.get(id)), flow: result, completed: false };
   }
 
-  async submitFacebookMessengerInput(id, loginProcessId, stepId, input = {}, options = {}) {
-    const account = this.assertFacebookPersonalMessengerAccount(id);
-    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_INPUT_ABORTED');
-    const result = await withAbortSignal(driverFor(account).submitLoginInput(account, loginProcessId, stepId, input, options), options.signal, 'FACEBOOK_PERSONAL_LOGIN_INPUT_ABORTED');
-    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_INPUT_ABORTED');
-    return this.settleFacebookMessengerLoginStep(id, account, result, options);
+  async startProvisioningLogin(id, flowId, options = {}) {
+    const { account, driver } = this.mautrixProvisioningAccount(id);
+    assertOperationActive(options.signal, 'MAUTRIX_LOGIN_START_ABORTED');
+    const result = await withAbortSignal(
+      driver.beginLogin(account, flowId, options),
+      options.signal,
+      'MAUTRIX_LOGIN_START_ABORTED'
+    );
+    assertOperationActive(options.signal, 'MAUTRIX_LOGIN_START_ABORTED');
+    return this.settleProvisioningLoginStep(id, account, driver, result, options);
   }
 
-  async waitFacebookMessengerLogin(id, loginProcessId, stepId, options = {}) {
-    const account = this.assertFacebookPersonalMessengerAccount(id);
-    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_WAIT_ABORTED');
-    const result = await withAbortSignal(driverFor(account).waitLoginStep(account, loginProcessId, stepId, options), options.signal, 'FACEBOOK_PERSONAL_LOGIN_WAIT_ABORTED');
-    assertOperationActive(options.signal, 'FACEBOOK_PERSONAL_LOGIN_WAIT_ABORTED');
-    return this.settleFacebookMessengerLoginStep(id, account, result, options);
+  async submitProvisioningLoginInput(id, loginProcessId, stepId, input = {}, options = {}) {
+    const { account, driver } = this.mautrixProvisioningAccount(id);
+    assertOperationActive(options.signal, 'MAUTRIX_LOGIN_INPUT_ABORTED');
+    const result = await withAbortSignal(
+      driver.submitLoginInput(account, loginProcessId, stepId, input, options),
+      options.signal,
+      'MAUTRIX_LOGIN_INPUT_ABORTED'
+    );
+    assertOperationActive(options.signal, 'MAUTRIX_LOGIN_INPUT_ABORTED');
+    return this.settleProvisioningLoginStep(id, account, driver, result, options);
   }
 
-  async cancelFacebookMessengerLogin(id, loginProcessId, options = {}) {
-    const account = this.assertFacebookPersonalMessengerAccount(id);
-    const result = await withAbortSignal(driverFor(account).cancelLogin(account, loginProcessId, options), options.signal, 'FACEBOOK_PERSONAL_LOGIN_CANCEL_ABORTED');
-    this.runtime.set(id, { state: 'logged-out', authStep: null, lastError: '', reasonCode: 'FACEBOOK_PERSONAL_LOGIN_CANCELLED', connectedAt: '' });
+  async waitProvisioningLogin(id, loginProcessId, stepId, options = {}) {
+    const { account, driver } = this.mautrixProvisioningAccount(id);
+    assertOperationActive(options.signal, 'MAUTRIX_LOGIN_WAIT_ABORTED');
+    const result = await withAbortSignal(
+      driver.waitLoginStep(account, loginProcessId, stepId, options),
+      options.signal,
+      'MAUTRIX_LOGIN_WAIT_ABORTED'
+    );
+    assertOperationActive(options.signal, 'MAUTRIX_LOGIN_WAIT_ABORTED');
+    return this.settleProvisioningLoginStep(id, account, driver, result, options);
+  }
+
+  async cancelProvisioningLogin(id, loginProcessId, options = {}) {
+    const { account, driver } = this.mautrixProvisioningAccount(id);
+    assertOperationActive(options.signal, 'MAUTRIX_LOGIN_CANCEL_ABORTED');
+    const result = await withAbortSignal(
+      driver.cancelLogin(account, loginProcessId, options),
+      options.signal,
+      'MAUTRIX_LOGIN_CANCEL_ABORTED'
+    );
+    assertOperationActive(options.signal, 'MAUTRIX_LOGIN_CANCEL_ABORTED');
     if (account.lifecycleState === 'pending-auth' || account.metadata?.authorizationPending === true) {
-      await this.discardPendingAuthorization(id, 'facebook-personal-login-cancelled', { skipAdapterStop: true });
+      await this.discardPendingAuthorization(id, 'mautrix-login-cancelled', { skipAdapterStop: true });
       return { flow: result, removed: true, cancelled: true };
     }
     this.publishSummary();
     return { flow: result, account: this.publicAccount(accountStore.get(id)), cancelled: true };
-  }
-
-  async startTelegramQr(id, options = {}) {
-    const account = accountStore.get(id);
-    if (!account || account.platform !== 'telegram') throw Object.assign(new Error('Telegram账号不存在'), { code: 'TELEGRAM_ACCOUNT_NOT_FOUND', status: 404 });
-    const result = await withAbortSignal(
-      driverFor(account).beginQrLogin(account, options),
-      options.signal,
-      'TELEGRAM_QR_START_ABORTED'
-    );
-    this.runtime.set(id, result);
-    this.publishSummary();
-    return this.publicAccount(accountStore.get(id));
-  }
-
-  async startTelegramPhone(id, phoneNumber, options = {}) {
-    const account = accountStore.get(id);
-    if (!account || account.platform !== 'telegram') throw Object.assign(new Error('Telegram账号不存在'), { code: 'TELEGRAM_ACCOUNT_NOT_FOUND', status: 404 });
-    const result = await withAbortSignal(
-      driverFor(account).beginPhoneLogin(account, phoneNumber, options),
-      options.signal,
-      'TELEGRAM_PHONE_START_ABORTED'
-    );
-    this.runtime.set(id, result);
-    this.publishSummary();
-    return this.publicAccount(accountStore.get(id));
-  }
-
-  async cancelTelegramLogin(id, options = {}) {
-    const account = accountStore.get(id);
-    if (!account || account.platform !== 'telegram') throw Object.assign(new Error('Telegram账号不存在'), { code: 'TELEGRAM_ACCOUNT_NOT_FOUND', status: 404 });
-    assertOperationActive(options.signal, 'TELEGRAM_LOGIN_CANCEL_ABORTED');
-    const result = await withAbortSignal(driverFor(account).cancelLogin(account, options), options.signal, 'TELEGRAM_LOGIN_CANCEL_ABORTED');
-    assertOperationActive(options.signal, 'TELEGRAM_LOGIN_CANCEL_ABORTED');
-    this.runtime.set(id, result);
-    if (account.lifecycleState === 'pending-auth' || account.metadata?.authorizationPending === true) {
-      await this.discardPendingAuthorization(id, 'telegram-login-cancelled', { skipAdapterStop: true });
-      assertOperationActive(options.signal, 'TELEGRAM_LOGIN_CANCEL_ABORTED');
-      return { ...account, state: 'cancelled', stateLabel: '已取消授权', removed: true, authorizationPending: false };
-    }
-    this.publishSummary();
-    return this.publicAccount(accountStore.get(id));
-  }
-
-  async submitTelegramCode(id, code, options = {}) {
-    const account = accountStore.get(id);
-    if (!account || account.platform !== 'telegram') throw Object.assign(new Error('Telegram账号不存在'), { code: 'TELEGRAM_ACCOUNT_NOT_FOUND', status: 404 });
-    assertOperationActive(options.signal, 'TELEGRAM_CODE_SUBMIT_ABORTED');
-    const result = await withAbortSignal(driverFor(account).submitCode(account, code, options), options.signal, 'TELEGRAM_CODE_SUBMIT_ABORTED');
-    assertOperationActive(options.signal, 'TELEGRAM_CODE_SUBMIT_ABORTED');
-    await this.updateIdentityFromRuntime(accountStore.get(id), result).catch(error => logCriticalFailure('telegram.submitCode.updateIdentityFromRuntime', error, { accountId: id }));
-    assertOperationActive(options.signal, 'TELEGRAM_CODE_SUBMIT_ABORTED');
-    this.publishSummary();
-    return this.publicAccount(accountStore.get(id));
-  }
-
-  async submitTelegramPassword(id, password, options = {}) {
-    const account = accountStore.get(id);
-    if (!account || account.platform !== 'telegram') throw Object.assign(new Error('Telegram账号不存在'), { code: 'TELEGRAM_ACCOUNT_NOT_FOUND', status: 404 });
-    assertOperationActive(options.signal, 'TELEGRAM_PASSWORD_SUBMIT_ABORTED');
-    const result = await withAbortSignal(driverFor(account).submitPassword(account, password, options), options.signal, 'TELEGRAM_PASSWORD_SUBMIT_ABORTED');
-    assertOperationActive(options.signal, 'TELEGRAM_PASSWORD_SUBMIT_ABORTED');
-    await this.updateIdentityFromRuntime(accountStore.get(id), result).catch(error => logCriticalFailure('telegram.submitPassword.updateIdentityFromRuntime', error, { accountId: id }));
-    assertOperationActive(options.signal, 'TELEGRAM_PASSWORD_SUBMIT_ABORTED');
-    this.publishSummary();
-    return this.publicAccount(accountStore.get(id));
   }
 
   identityPatchFromRuntime(account, result) {
@@ -969,77 +1215,6 @@ class AccountManager {
       metadata.avatarSource = result.page.avatarSource || metadata.avatarSource || '';
     }
     return { identityLabel: label, metadata };
-  }
-
-  async commitConnectedIdentityFromRuntime(account, result, detail = {}) {
-    const patch = this.identityPatchFromRuntime(account, result) || {};
-    return accountStore.commitConnectedIdentityTx(account.id, patch, {
-      ...detail,
-      resultState: String(detail.resultState || result.state || '')
-    });
-  }
-
-  async finalizeConnectedSagaFromRuntime(account, result, detail = {}) {
-    if (!account || !result) return null;
-    const saga = accountLifecycleSaga.latest(account.id, 'connect');
-    if (!saga || !['running','compensating'].includes(saga.state)) {
-      return this._finalizeConnectedSagaFromRuntime(account, result, detail);
-    }
-    const key = saga.operation_id;
-    if (this.connectedFinalizers.has(key)) return await this.connectedFinalizers.get(key);
-    const task = this._finalizeConnectedSagaFromRuntime(account, result, detail);
-    this.connectedFinalizers.set(key, task);
-    try { return await task; }
-    finally { if (this.connectedFinalizers.get(key) === task) this.connectedFinalizers.delete(key); }
-  }
-
-  async _finalizeConnectedSagaFromRuntime(account, result, detail = {}) {
-    if (!account || !result) return null;
-    let saga = accountLifecycleSaga.latest(account.id, 'connect');
-    if (!saga || !['running','compensating'].includes(saga.state)) {
-      await this.updateIdentityFromRuntime(account, result);
-      return { updated: false, saga, account: accountStore.get(account.id) };
-    }
-    try {
-      if (['adapter_connect_started','adapter_waiting_authorization'].includes(saga.phase)) {
-        try {
-          saga = await accountLifecycleSaga.setPhase(saga.operation_id, saga.phase, 'adapter_connected', { adapterReceipt: result });
-        } catch (error) {
-          if (error.code !== 'ACCOUNT_SAGA_STALE_TRANSITION') throw error;
-          saga = accountLifecycleSaga.get(saga.operation_id);
-        }
-      }
-      if (saga?.phase === 'adapter_connected') {
-        let ownsCommit = false;
-        try {
-          saga = await accountLifecycleSaga.setPhase(saga.operation_id, 'adapter_connected', 'sqlite_identity_committing', { adapterReceipt: result });
-          ownsCommit = true;
-        } catch (error) {
-          if (error.code !== 'ACCOUNT_SAGA_STALE_TRANSITION') throw error;
-          saga = accountLifecycleSaga.get(saga.operation_id);
-        }
-        if (ownsCommit) {
-          await this.commitConnectedIdentityFromRuntime(accountStore.get(account.id) || account, result, { ...detail, operationId: saga.operation_id });
-          saga = await accountLifecycleSaga.setPhase(saga.operation_id, 'sqlite_identity_committing', 'sqlite_identity_committed', { adapterReceipt: result });
-        }
-      }
-      saga = accountLifecycleSaga.get(saga.operation_id);
-      if (saga?.phase === 'sqlite_identity_committed' && ['running','compensating'].includes(saga.state)) {
-        await accountLifecycleSaga.finish(saga.operation_id, 'succeeded', { adapterReceipt: result });
-      }
-      return { updated: true, saga: accountLifecycleSaga.get(saga.operation_id), account: accountStore.get(account.id) };
-    } catch (error) {
-      const current = accountLifecycleSaga.get(saga.operation_id);
-      if (current && ['running','compensating'].includes(current.state)) {
-        try {
-          if (current.state === 'running') await accountLifecycleSaga.markCompensating(current.operation_id, current.phase, error);
-          await accountLifecycleSaga.finish(current.operation_id, 'manual_review', { lastError: error.code || error.message, adapterReceipt: result });
-        } catch (settleError) {
-          logCriticalFailure('accountSaga.connectedRuntime.settleFailure', settleError, { accountId: account.id, operationId: current.operation_id });
-        }
-      }
-      throw error;
-    }
   }
 
   async updateIdentityFromRuntime(account, result) {
@@ -1184,51 +1359,27 @@ class AccountManager {
   }
 
   onWhatsAppEvent(payload) {
-    const accounts = accountStore.list().filter(row => row.platform === 'whatsapp' && accountLifecycle.eligibility(row, { manual: true }).eligible && this.whatsappAuthKey(row) === payload.accountId);
+    const accounts = accountStore.list().filter(row =>
+      row.platform === 'whatsapp'
+      && accountLifecycle.eligibility(row, { manual: true }).eligible
+      && this.whatsappAuthKey(row) === payload.accountId
+    );
     if (!accounts.length) return;
     for (const account of accounts) {
       const previous = this.runtime.get(account.id) || {};
-      const eventAttemptId = String(payload.attemptId || '');
-      const activeAttemptId = String(previous.connectionAttemptId || '');
-      if (eventAttemptId && activeAttemptId && eventAttemptId !== activeAttemptId) {
-        logger.warn('accounts', 'stale-whatsapp-state-ignored', {
-          accountId: account.id,
-          adapterAccountId: String(payload.accountId || ''),
-          eventAttemptId,
-          activeAttemptId,
-          state: String(payload.state || '')
-        });
-        continue;
-      }
       const normalizedState = platformDrivers.mapWhatsAppState(payload.state);
       const runtime = {
         ...previous,
         ...payload,
         state: normalizedState,
         lastError: payload.lastError || payload.error || (['connected', 'waiting-verification', 'connecting'].includes(normalizedState) ? '' : previous.lastError || ''),
-        reasonCode: payload.reasonCode || payload.code || (['connected', 'waiting-verification', 'connecting'].includes(normalizedState) ? '' : previous.reasonCode || ''),
-        connectionAttemptId: payload.attemptId || previous.connectionAttemptId || '',
-        connectionFinishedAt: ['connected', 'error', 'logged-out'].includes(normalizedState) ? new Date().toISOString() : previous.connectionFinishedAt || ''
+        reasonCode: payload.reasonCode || payload.code || (['connected', 'waiting-verification', 'connecting'].includes(normalizedState) ? '' : previous.reasonCode || '')
       };
       this.runtime.set(account.id, runtime);
-      if (['connected','limited'].includes(runtime.state)) {
-        void this.finalizeConnectedSagaFromRuntime(account, runtime, {
-          resultState: runtime.state,
-          attemptId: runtime.connectionAttemptId || '',
-          connectionStartedAt: previous.connectionStartedAt || '',
-          source: 'whatsapp-state-event'
-        }).then(() => this.publishSummary())
-          .catch(error => logCriticalFailure('accountSaga.finalizeConnected.whatsapp', error, { accountId: account.id }));
-      } else {
-        void accountLifecycleSaga.settleLatestFromAdapter(account.id, runtime.state, runtime)
-          .catch(error => logCriticalFailure('accountSaga.settleLatestFromAdapter.whatsapp', error, { accountId: account.id }));
-        if (payload.user) this.updateIdentityFromRuntime(account, runtime)
+      if (['connected', 'limited'].includes(runtime.state) || payload.user) {
+        this.updateIdentityFromRuntime(account, runtime)
           .then(() => this.publishSummary())
           .catch(error => logCriticalFailure('whatsapp.event.updateIdentityFromRuntime', error, { accountId: account.id }));
-      }
-      if (runtime.state === 'error' && (account.lifecycleState === 'pending-auth' || account.metadata?.authorizationPending === true)) {
-        this.discardPendingAuthorization(account.id, runtime.reasonCode || runtime.lastError || 'whatsapp-authorization-failed')
-          .catch(error => logCriticalFailure('whatsapp.event.discardPendingAuthorization', error, { accountId: account.id }));
       }
     }
     this.publishSummary();
@@ -1237,36 +1388,21 @@ class AccountManager {
   onAdapterState(payload) {
     if (!payload.accountId) return;
     const previous = this.runtime.get(payload.accountId) || {};
-    const eventAttemptId = String(payload.attemptId || '');
-    const activeAttemptId = String(previous.connectionAttemptId || '');
-    if (eventAttemptId && activeAttemptId && eventAttemptId !== activeAttemptId) {
-      logger.warn('accounts', 'stale-adapter-state-ignored', {
-        accountId: String(payload.accountId || ''),
-        eventAttemptId,
-        activeAttemptId,
-        state: String(payload.state || '')
-      });
-      return;
-    }
-    const normalized = { ...previous, ...payload, lastError: payload.lastError || payload.error || previous.lastError || '', reasonCode: payload.reasonCode || payload.code || previous.reasonCode || '' };
+    const normalized = {
+      ...previous,
+      ...payload,
+      lastError: payload.lastError || payload.error || previous.lastError || '',
+      reasonCode: payload.reasonCode || payload.code || previous.reasonCode || ''
+    };
     this.runtime.set(payload.accountId, normalized);
     const account = accountStore.get(payload.accountId);
-    if (account && ['connected','limited'].includes(String(normalized.state || '').toLowerCase())) {
-      void this.finalizeConnectedSagaFromRuntime(account, normalized, {
-        resultState: normalized.state,
-        attemptId: normalized.attemptId || normalized.connectionAttemptId || '',
-        connectionStartedAt: previous.connectionStartedAt || '',
-        source: 'adapter-state-event'
-      }).then(() => this.publishSummary())
-        .catch(error => { logCriticalFailure('accountSaga.finalizeConnected.adapter', error, { accountId: account.id }); this.publishSummary(); });
-      return;
-    }
-    void accountLifecycleSaga.settleLatestFromAdapter(payload.accountId, normalized.state || '', normalized)
-      .catch(error => logCriticalFailure('accountSaga.settleLatestFromAdapter.adapter', error, { accountId: payload.accountId }));
-    if (account && (payload.user || payload.page)) {
+    if (account && (['connected', 'limited'].includes(String(normalized.state || '').toLowerCase()) || payload.user || payload.page)) {
       this.updateIdentityFromRuntime(account, normalized)
         .then(() => this.publishSummary())
-        .catch(error => { logCriticalFailure('adapter.state.updateIdentityFromRuntime', error, { accountId: account.id }); this.publishSummary(); });
+        .catch(error => {
+          logCriticalFailure('adapter.state.updateIdentityFromRuntime', error, { accountId: account.id });
+          this.publishSummary();
+        });
       return;
     }
     this.publishSummary();

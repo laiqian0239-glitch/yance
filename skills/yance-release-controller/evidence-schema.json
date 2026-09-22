@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yance.local/schemas/release-controller-fresh-state-v2.json",
+  "title": "Yance Release Controller Fresh State Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recovery",
+    "git",
+    "frozenHeads",
+    "consumedRuns",
+    "knownReds",
+    "knownGreens",
+    "currentRootCause",
+    "currentCausalBatch",
+    "prerequisites",
+    "allowedPaths",
+    "forbiddenPaths",
+    "riskSurface",
+    "localAcceptance",
+    "unknownBlockers",
+    "nextAllowedAction",
+    "evidence"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["continuityBreakId", "capturedAt", "source"],
+      "properties": {
+        "continuityBreakId": { "$ref": "#/$defs/id" },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["issueNumber", "controllerStateVersion", "commentId", "commentUrl", "bodySha256", "evidenceId", "snapshotEvidenceId"],
+          "properties": {
+            "issueNumber": { "const": 1051 },
+            "controllerStateVersion": { "type": "string", "pattern": "^V[0-9]+(?:\\.[0-9]+)+$" },
+            "commentId": { "type": "string", "minLength": 1 },
+            "commentUrl": { "type": "string", "pattern": "^https://github\\.com/[^/]+/[^/]+/issues/1051#issuecomment-[0-9]+$" },
+            "bodySha256": { "$ref": "#/$defs/sha256" },
+            "evidenceId": { "$ref": "#/$defs/id" },
+            "snapshotEvidenceId": { "$ref": "#/$defs/id" }
+          }
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repositoryRoot", "currentMainRef", "currentMain", "exactHead", "branch", "worktreeDirty", "pr"],
+      "properties": {
+        "repositoryRoot": { "type": "string", "minLength": 1 },
+        "currentMainRef": { "type": "string", "pattern": "^refs/(heads|remotes)/" },
+        "currentMain": { "$ref": "#/$defs/gitSha" },
+        "exactHead": { "$ref": "#/$defs/gitSha" },
+        "branch": { "type": "string", "minLength": 1 },
+        "worktreeDirty": { "type": "boolean" },
+        "pr": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["state", "number", "url", "head", "base"],
+              "properties": {
+                "state": { "const": "NONE" },
+                "number": { "type": "null" },
+                "url": { "type": "null" },
+                "head": { "type": "null" },
+                "base": { "type": "null" }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["state", "number", "url", "head", "base"],
+              "properties": {
+                "state": { "enum": ["OPEN", "CLOSED", "MERGED"] },
+                "number": { "type": "integer", "minimum": 1 },
+                "url": { "type": "string", "pattern": "^https://github\\.com/[^/]+/[^/]+/pull/[0-9]+$" },
+                "head": { "$ref": "#/$defs/gitSha" },
+                "base": { "$ref": "#/$defs/gitSha" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "frozenHeads": { "type": "array", "items": { "$ref": "#/$defs/frozenHead" } },
+    "consumedRuns": { "type": "array", "items": { "$ref": "#/$defs/consumedRun" } },
+    "knownReds": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "knownGreens": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "currentRootCause": { "$ref": "#/$defs/causalClaim" },
+    "currentCausalBatch": { "$ref": "#/$defs/causalBatch" },
+    "prerequisites": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/check" } },
+    "allowedPaths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/repoPath" } },
+    "forbiddenPaths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/repoPath" } },
+    "riskSurface": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/risk" } },
+    "localAcceptance": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/check" } },
+    "unknownBlockers": { "type": "integer", "minimum": 0 },
+    "nextAllowedAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "statement", "prerequisiteIds"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["EVIDENCE_READ", "PRODUCTION_MUTATION", "LOCAL_CLOSURE", "EXTERNAL_BOUNDARY", "NONE"] },
+        "statement": { "type": "string", "minLength": 1 },
+        "prerequisiteIds": { "type": "array", "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "gitSha": { "type": "string", "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "repoPath": { "type": "string", "minLength": 1, "pattern": "^(?![A-Za-z]:)(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$" },
+    "evidenceRefs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/id" } },
+    "frozenHead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha", "reason", "evidenceRefs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "sha": { "$ref": "#/$defs/gitSha" },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceRefs" }
+      }
+    },
+    "consumedRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "provider", "runId", "head", "conclusion", "purpose", "evidenceRefs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "provider": { "enum": ["GITHUB_ACTIONS", "LOCAL", "WINDOWS_UAT", "FINAL_BUILDER", "OTHER"] },
+        "runId": { "type": "string", "minLength": 1 },
+        "head": { "$ref": "#/$defs/gitSha" },
+        "conclusion": { "enum": ["GREEN", "RED", "CANCELLED", "SKIPPED", "IN_PROGRESS"] },
+        "purpose": { "type": "string", "minLength": 1 },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceRefs" }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "summary", "evidenceRefs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "summary": { "type": "string", "minLength": 1 },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceRefs" }
+      }
+    },
+    "causalClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "evidenceRefs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "statement": { "type": "string", "minLength": 1 },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceRefs" }
+      }
+    },
+    "causalBatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "evidenceRefs", "paths"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "statement": { "type": "string", "minLength": 1 },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceRefs" },
+        "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/repoPath" } }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "status", "evidenceRefs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "statement": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["GREEN", "RED", "PENDING", "BLOCKED"] },
+        "evidenceRefs": { "type": "array", "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "owner", "evidenceRefs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "statement": { "type": "string", "minLength": 1 },
+        "owner": { "type": "string", "minLength": 1 },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceRefs" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "subjectId", "locator", "sha256", "capturedAt"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["ISSUE_COMMENT", "ISSUE_COMMENTS_SNAPSHOT", "GIT", "RUN", "LOG", "TEST", "SCREENSHOT", "SOURCE", "OTHER"] },
+        "subjectId": { "type": "string", "minLength": 1 },
+        "locator": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "capturedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

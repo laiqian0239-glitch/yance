@@ -55,6 +55,50 @@ function clean(value: unknown): string {
   return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
 }
 
+export function canonicalPlatformChatId(platformValue: unknown, chatJidValue: unknown): string {
+  const platform = clean(platformValue).toLowerCase();
+  let normalized = clean(chatJidValue);
+  if (!platform || !normalized) return normalized;
+  const platformPrefix = `${platform}:`;
+  if (normalized.toLowerCase().startsWith(platformPrefix)) {
+    normalized = normalized.slice(platformPrefix.length);
+  }
+  if (platform === "telegram" && normalized.toLowerCase().startsWith("user:")) {
+    normalized = normalized.slice("user:".length);
+  }
+  return normalized;
+}
+
+export function bridgeReceiverAliasesForAccount(
+  platformValue: unknown,
+  accountIdValue: unknown,
+  accountRows: readonly unknown[],
+): readonly string[] {
+  const platform = clean(platformValue).toLowerCase();
+  const accountId = clean(accountIdValue);
+  const aliases = new Set<string>();
+  if (accountId) aliases.add(accountId);
+  if (!platform || !accountId) return [...aliases];
+
+  for (const value of accountRows) {
+    const row = record(value);
+    if (clean(row.platform).toLowerCase() !== platform) continue;
+    const canonicalAccountId = clean(row.canonicalAccountId || row.mergedIntoId || row.id || row.accountId);
+    if (canonicalAccountId !== accountId) continue;
+    const metadata = record(row.metadata);
+    for (const candidate of [metadata.mautrixLoginId, metadata.mautrixMetaLoginId]) {
+      const receiver = clean(candidate);
+      if (receiver) aliases.add(receiver);
+    }
+    const bridgeLogins = Array.isArray(row.bridgeLogins) ? row.bridgeLogins : [];
+    for (const rawLogin of bridgeLogins) {
+      const receiver = clean(record(rawLogin).id);
+      if (receiver) aliases.add(receiver);
+    }
+  }
+  return [...aliases];
+}
+
 function bridgeIdentity(value: unknown): BridgeIdentity | null {
   const content = record(value);
   const protocol = record(content.protocol);
@@ -74,20 +118,27 @@ export type CanonicalRoomResolution =
 function conversationMatchesBridgeIdentity(
   conversation: ConversationRef,
   identity: BridgeIdentity,
+  bridgeReceiverAliases: readonly string[] = [],
 ): boolean {
   const platform = clean(conversation.platform).toLowerCase();
-  const chatJid = clean(conversation.chatJid);
+  const chatJid = canonicalPlatformChatId(platform, conversation.chatJid);
+  const identityChatJid = canonicalPlatformChatId(identity.platform, identity.chatJid);
   const accountId = clean(conversation.accountId);
-  if (!platform || !chatJid || !accountId) return false;
+  const receiver = clean(identity.receiver);
+  if (!platform || !chatJid || !accountId || !receiver) return false;
+  const acceptedReceivers = new Set(
+    [accountId, ...bridgeReceiverAliases].map(clean).filter(Boolean),
+  );
   return platform === identity.platform
-    && chatJid === identity.chatJid
-    && (!identity.receiver || accountId === identity.receiver);
+    && chatJid === identityChatJid
+    && acceptedReceivers.has(receiver);
 }
 
 export function resolveCanonicalConversationRoom(
   conversation: ConversationRef,
   roomIds: readonly string[],
   readRoomStateEvents?: ReadRoomStateEvents,
+  bridgeReceiverAliases: readonly string[] = [],
 ): CanonicalRoomResolution {
   if (!readRoomStateEvents) {
     return { status: "unresolved", reason: "当前会话路由读取接口不可用" };
@@ -121,16 +172,20 @@ export function resolveCanonicalConversationRoom(
       );
     }
 
-    const matchingIdentities = [...identities.values()]
-      .filter((identity) => conversationMatchesBridgeIdentity(conversation, identity));
+    const routeMatches = [...identities.values()]
+      .filter((identity) => conversationMatchesBridgeIdentity(
+        conversation,
+        identity,
+        bridgeReceiverAliases,
+      ));
 
-    if (matchingIdentities.length > 1) {
+    if (routeMatches.length > 1) {
       return {
         status: "ambiguous",
         reason: "同一房间存在多个匹配的 bridge identity",
       };
     }
-    if (matchingIdentities.length === 1) matches.add(roomId);
+    if (routeMatches.length === 1) matches.add(roomId);
   }
 
   if (matches.size === 1) {
@@ -167,9 +222,13 @@ function normalizedStoreRoute(key: string, value: unknown): StoreRoute | null {
 
 function productDesktop(): {
   storeSnapshot?: (input: { domains: string[] }) => Promise<unknown>;
+  listPlatformAccounts?: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
 } | null {
   return (window as unknown as {
-    yanceDesktop?: { storeSnapshot?: (input: { domains: string[] }) => Promise<unknown> };
+    yanceDesktop?: {
+      storeSnapshot?: (input: { domains: string[] }) => Promise<unknown>;
+      listPlatformAccounts?: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
+    };
   }).yanceDesktop || null;
 }
 
@@ -224,14 +283,34 @@ export async function resolveRelationshipToolRoute(
   const snapshot = record(root.snapshot || root);
   const conversations = record(snapshot.conversations);
   const byId = record(conversations.byId);
+  if (!identity.receiver) {
+    return { status: "unresolved", reason: "当前会话 bridge identity 缺少 receiver 账号身份" };
+  }
+
+  let accountRows: readonly unknown[] = [];
+  if (typeof api.listPlatformAccounts === "function") {
+    try {
+      const accountPayload = record(await api.listPlatformAccounts());
+      accountRows = Array.isArray(accountPayload.accounts) ? accountPayload.accounts : [];
+    } catch {
+      accountRows = [];
+    }
+  }
+
+  const identityChatJid = canonicalPlatformChatId(identity.platform, identity.chatJid);
   const matches = Object.entries(byId)
     .map(([key, value]) => normalizedStoreRoute(key, value))
     .filter((route): route is StoreRoute => Boolean(route))
-    .filter((route) => (
-      route.platformKey === identity.platform
-      && route.chatJid === identity.chatJid
-      && (!identity.receiver || route.accountId === identity.receiver)
-    ));
+    .filter((route) => {
+      if (route.platformKey !== identity.platform) return false;
+      if (canonicalPlatformChatId(route.platformKey, route.chatJid) !== identityChatJid) return false;
+      const aliases = bridgeReceiverAliasesForAccount(
+        route.platformKey,
+        route.accountId,
+        accountRows,
+      );
+      return aliases.includes(identity.receiver);
+    });
 
   if (matches.length !== 1) {
     return matches.length > 1

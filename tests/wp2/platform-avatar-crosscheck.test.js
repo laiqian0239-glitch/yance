@@ -13,16 +13,21 @@ const ui = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-ui-runtime.js'), 'ut
 const safeRenderers = fs.readFileSync(path.join(ROOT, 'frontend/js/r32-contact-safe-renderers.js'), 'utf8');
 const avatarRuntime = fs.readFileSync(path.join(ROOT, 'frontend/js/sqliteConversationRuntime.js'), 'utf8');
 
-test('shared command contract covers WhatsApp/Telegram challenge, avatar failure and Facebook OAuth lifecycle', () => {
+test('shared command contract covers mature provisioning login, avatar failure and Facebook OAuth lifecycle', () => {
   const required = [
     COMMANDS.ACCOUNT_GET_AUTH_CHALLENGE,
     COMMANDS.ACCOUNT_AVATAR_LOAD_FAILURE,
-    COMMANDS.ACCOUNT_TELEGRAM_QR_START,
+    COMMANDS.ACCOUNT_PROVISIONING_LOGIN_FLOWS,
+    COMMANDS.ACCOUNT_PROVISIONING_LOGIN_START,
+    COMMANDS.ACCOUNT_PROVISIONING_LOGIN_INPUT,
+    COMMANDS.ACCOUNT_PROVISIONING_LOGIN_WAIT,
+    COMMANDS.ACCOUNT_PROVISIONING_LOGIN_CANCEL,
     COMMANDS.ACCOUNT_FACEBOOK_OAUTH_START,
     COMMANDS.ACCOUNT_FACEBOOK_OAUTH_STATUS,
     COMMANDS.ACCOUNT_FACEBOOK_OAUTH_CANCEL
   ];
   for (const command of required) assert.equal(isKnownCommand(command), true, command);
+  assert.equal(COMMANDS.ACCOUNT_TELEGRAM_QR_START, undefined);
 });
 
 test('Facebook commands remain wired through route and account context after shared contract edits', () => {

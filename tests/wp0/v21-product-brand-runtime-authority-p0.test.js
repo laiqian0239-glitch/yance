@@ -222,23 +222,21 @@ test('Yance owns post-login security presentation while Element keeps crypto and
 
   assert.match(moduleIndex, /registerPostLoginSecurityComponent\?\.\(/u);
   assert.match(moduleIndex, /<YancePostLoginSecurity>\{content\}<\/YancePostLoginSecurity>/u);
-  assert.match(login, /data-yance-post-login-security-authority="product"/u);
+  assert.match(login, /data-yance-post-login-security-projection="yance"/u);
+  assert.match(login, /data-yance-post-login-security-owner="element-matrix"/u);
   assert.match(login, /data-yance-post-login-security-content="element"/u);
   assert.match(login, /验证此设备/u);
   assert.match(login, /普通重启不会创建新的 Matrix 设备/u);
   assert.match(login, /“使用另一设备”、恢复密钥、“无法确认？”与退出均保持 Element 原生安全语义/u);
   assert.match(styles, /YANCE_POST_LOGIN_SECURITY_PROJECTION_V2/u);
-  assert.match(styles, /\.yance-product-security-dialog\s*\{[^}]*max-width:\s*min\(520px/u);
-  assert.match(styles, /\.yance-product-security-dialog \.mx_EncryptionCard_buttons[\s\S]*grid-template-columns:\s*repeat\(2/u);
+  assert.match(styles, /\.yance-post-login-security-shell\s*\{[^}]*width:\s*min\(520px/u);
+  assert.match(styles, /\.yance-post-login-security-card \.mx_EncryptionCard_buttons[\s\S]*grid-template-columns:\s*repeat\(2/u);
   assert.match(styles, /\.yance-post-login-security-card\s*\{/u);
-  assert.match(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-post-login-security-shell\s*\{[\s\S]*display:\s*grid;[\s\S]*grid-template-columns:\s*minmax\(220px, 31vw\) minmax\(0, 1fr\);[\s\S]*grid-template-rows:\s*minmax\(0, 1fr\);[\s\S]*height:\s*100vh;[\s\S]*overflow:\s*hidden;/u);
-  assert.match(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-post-login-security-shell \.yance-login-brand-inner\s*\{[\s\S]*min-height:\s*0;[\s\S]*height:\s*100%;/u);
-  assert.match(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-post-login-security\s*\{[\s\S]*height:\s*100%;[\s\S]*overflow:\s*hidden;/u);
-  assert.doesNotMatch(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-post-login-security[^}]*overflow-y:\s*auto/u);
-  assert.doesNotMatch(styles, /@media \(max-width: 860px\)[\s\S]*\.yance-post-login-security-shell\s*\{[\s\S]*display:\s*block/u);
+  assert.match(styles, /YANCE_POST_LOGIN_SECURITY_COMPACT_PRODUCT_V3/u);
+  assert.match(styles, /\.yance-post-login-security-shell\s*\{[\s\S]*width:\s*min\(520px, calc\(100vw - 32px\)\);[\s\S]*max-height:\s*calc\(100vh - 32px\);/u);
   assert.match(
     styles,
-    /\.yance-post-login-security-card \.mx_SetupEncryptionBody,[\s\S]*?\.yance-product-security-dialog \.mx_SetupEncryptionBody\s*\{[^}]*width:\s*100%[^}]*max-width:\s*100%[^}]*min-width:\s*0/u,
+    /\.yance-post-login-security-card \.mx_SetupEncryptionBody\s*\{[^}]*width:\s*100%[^}]*max-width:\s*100%[^}]*min-width:\s*0/u,
     'Element mature security content must project fluidly inside the Yance card without changing its lifecycle'
   );
   assert.doesNotMatch(styles, /yance-post-login-security[^\n{]*mx_AuthPage|:has\([^)]*mx_CompleteSecurity|:has\([^)]*mx_AuthPage/iu);

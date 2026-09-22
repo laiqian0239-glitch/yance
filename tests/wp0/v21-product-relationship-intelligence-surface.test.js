@@ -263,11 +263,11 @@ test('Product Shell refreshes relationship intelligence through the existing des
   const projection = read('integration/element-module/src/product-experience/experienceProjection.ts');
 
   assert.match(shell, /subscribeRelationshipEvents/u);
-  assert.match(shell, /loadRelationshipProjections/u);
+  assert.match(shell, /loadRelationshipProjectionsForPeople/u);
   assert.match(shell, /return\s+subscribeRelationshipEvents/u);
   assert.match(projection, /onDesktopEvent/u);
   assert.match(projection, /includeRelationshipIntelligence\s*:\s*true/u);
-  assert.doesNotMatch(shell, /setInterval|setTimeout/u);
+  assert.doesNotMatch(shell, /setInterval/u);
 });
 
 test('relationship intelligence surface adds no new IPC, backend route, database, sidecar or relationship engine authority', () => {

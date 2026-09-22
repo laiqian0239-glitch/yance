@@ -23,9 +23,10 @@ test('active Element Product keeps mature Model Brain authority while normal Pro
   assert.match(shell, /ProductModelRuntimeSupportSurface/u);
   assert.match(shell, /const \[settingsWindow, setSettingsWindow\] = useState<"accounts" \| "appearance" \| "models" \| null>\(null\)/u);
   assert.match(shell, /settingsWindow === "models"[\s\S]{0,420}<ProductModelRuntimeSupportSurface \/>/u);
-  assert.match(shell, /setSettingsWindow\("models"\)[\s\S]{0,80}>模型中心<\/button>/u);
+  assert.match(shell, /setSettingsWindow\("models"\)/u);
+  assert.match(shell, /<strong>模型中心<\/strong>/u);
   assert.match(shell, /Mature authority: backend Model Brain \/ LiteLLM remains the sole physical provider\/model\/retry\/fallback owner\./u);
-  for (const label of ['AI 服务', '云端 AI', '本地 AI', '使用记录', '高级连接设置']) {
+  for (const label of ['AI 服务', '云端 AI', '本地 AI', '使用记录', 'OpenAI 兼容 API']) {
     assert.match(shell, new RegExp(label, 'u'), `missing Product model label: ${label}`);
   }
   assert.match(shell, /className="yance-model-advanced"/u);
@@ -38,23 +39,16 @@ test('active Element Product keeps mature Model Brain authority while normal Pro
   assert.match(preload, /getProductModelRuntimeState/u);
 });
 
-test('cloud models and API key entry are directly discoverable without creating a second routing authority', () => {
-  const html = read('frontend/index.html');
-  const ui = read('frontend/js/r32-ai-workbench-runtime.js');
-  const systemCenter = read('frontend/r32-system-center.js');
+test('active Element Product exposes cloud-model credentials without creating a second routing authority', () => {
+  const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+  const preload = read('electron/preload.js');
 
-  assert.match(html, /id="aiwCloudKey" type="password"/u);
-  assert.match(html, /API 密钥（只写入系统安全存储）/u);
-  assert.match(ui, /连接 OpenRouter \/ API Key/u);
-  assert.match(ui, /id="aiwAddCompatibleCloud"/u);
-  assert.match(ui, /openCompatibleCloudModelDialog/u);
-  assert.match(ui, /openAIModelServices/u);
-  assert.match(ui, /window\.yanceDesktop\.saveCredential/u);
-  assert.match(systemCenter, /云端模型与 API Key/u);
-  assert.match(systemCenter, /open-ai-models/u);
-  assert.match(systemCenter, /open-ai-openrouter/u);
-  assert.match(systemCenter, /open-ai-compatible/u);
-  assert.doesNotMatch(ui + systemCenter, /primaryModelId|fallbackModelId|replyBrainScore/iu);
+  assert.match(shell, /OpenRouter API Key/u);
+  assert.match(shell, /OpenAI 兼容 API/u);
+  assert.match(shell, /密钥只保存到 Windows 安全存储/u);
+  assert.match(shell, /saveCredential/u);
+  assert.match(preload, /saveCredential/u);
+  assert.doesNotMatch(shell, /primaryModelId|fallbackModelId|replyBrainScore/iu);
 });
 
 test('route-draft and ranked OpenRouter presentation authorities remain retired', () => {
@@ -111,5 +105,10 @@ test('active Product uses fixed authenticated model capabilities, not Yance scor
   assert.doesNotMatch(bridge, /input\.(?:url|method)|apiRequest\(\s*clean\(input/iu);
   assert.doesNotMatch(shell, /score slider|质量评分|成本评分|速度评分|首选主模型|备用模型|replyBrainScore/iu);
   assert.match(shell, /本地模型不会在你不知情时替代正式回复/u);
+  assert.match(shell, /功能与模型/u);
+  assert.match(shell, /当前没有通过资格验证的可用模型/u);
+  assert.match(shell, /快速回复/u);
+  assert.match(shell, /深度回复/u);
+  assert.doesNotMatch(shell, />AI MODELS<|>RECENT AI<|>AUTO SELECT<|>CONVERSATIONS<|>REPLY BRAIN</u);
   assert.doesNotMatch(surface, /getProductModelRuntimeState|mutateProductModelRuntime|requestId|endpoint/iu);
 });

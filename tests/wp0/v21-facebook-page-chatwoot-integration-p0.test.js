@@ -25,7 +25,7 @@ function readJson(relativePath) {
 
 test('Facebook Page pins Chatwoot CE v4.16.2 as a separate external runtime authority without mutating the three existing comms upstream authorities', () => {
   const lock = readJson('config/upstreams/v21-comms-p0.json');
-  assert.deepEqual(Object.keys(lock.upstreams).sort(), ['elementWeb', 'mautrixWhatsapp', 'synapse']);
+  assert.deepEqual(Object.keys(lock.upstreams).sort(), ['elementWeb', 'mautrixTelegram', 'mautrixWhatsapp', 'synapse']);
   assert.deepEqual(lock.externalRuntimes?.chatwootFacebookPage, {
     repository: 'https://github.com/chatwoot/chatwoot.git',
     version: 'v4.16.2',

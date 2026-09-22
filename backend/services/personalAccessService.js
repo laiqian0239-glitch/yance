@@ -354,7 +354,18 @@ class PersonalAccessService {
   }
 
   async status(input = {}) {
-    if (this.ownerMarkerPresent()) return stableEntitlement({ role: 'OWNER', usable: true, reasonCode: 'OWNER_PERMANENT_ACCESS' });
+    if (this.ownerMarkerPresent()) {
+      const proof = record(input.matrixOpenId);
+      if (!clean(proof.access_token || proof.accessToken)) {
+        return stableEntitlement({ role: 'OWNER', usable: true, reasonCode: 'OWNER_PERMANENT_ACCESS' });
+      }
+      try {
+        const subject = await this.matrixSubject(proof);
+        return stableEntitlement({ role: 'OWNER', usable: true, reasonCode: 'OWNER_PERMANENT_ACCESS', subject });
+      } catch (_) {
+        return stableEntitlement({ role: 'OWNER', usable: true, reasonCode: 'OWNER_PERMANENT_ACCESS' });
+      }
+    }
     const keyId = this.storedEntitlementKeyId();
     if (!keyId) return stableEntitlement({ reasonCode: 'INVITATION_REQUIRED' });
     let subject;

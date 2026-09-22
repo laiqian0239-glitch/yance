@@ -115,80 +115,117 @@ test('Persona runtime retries and replaces raw Failed to fetch with actionable C
   assert.doesNotMatch(persona, />Failed to fetch</u);
 });
 
-test('OpenRouter onboarding no longer blocks the modal on the full commercial benchmark', () => {
+test('Product model center uses the single canonical OpenRouter credential and recovers readiness from trusted runtime projection', () => {
+  const shell = source('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+  assert.match(shell, /const OPENROUTER_CREDENTIAL_REF = "model:openrouter:default"/u);
+  const configureStart = shell.indexOf('const configureOpenRouter = async');
+  const configureEnd = shell.indexOf('const discoverCompatibleCloud = async', configureStart);
+  const configure = shell.slice(configureStart, configureEnd);
+  assert.match(configure, /const credentialRef = OPENROUTER_CREDENTIAL_REF/u);
+  assert.doesNotMatch(configure, /model:openrouter:\$\{/u);
+  assert.match(shell, /OPENROUTER_CREDENTIAL_MISSING: "OpenRouter 密钥尚未生效/u);
+  const projectionStart = shell.indexOf('const applyProjection = (payload: unknown)');
+  const projectionEnd = shell.indexOf('const applyHealth =', projectionStart);
+  assert.match(shell.slice(projectionStart, projectionEnd), /setRuntimeBackendReady\(true\)/u);
+});
+
+test('desktop startup canonicalizes exactly one legacy OpenRouter ref through the existing credential authority transaction', () => {
+  const main = source('electron/main.js');
+  assert.match(main, /const OPENROUTER_CANONICAL_CREDENTIAL_REF = 'model:openrouter:default'/u);
+  assert.match(main, /desktopCredentialApplicationCoordinator\.runExclusive\('LEGACY_CREDENTIAL_MIGRATION'/u);
+  assert.match(main, /canonicalizeOpenRouterCredentialRef\(applicationLeaseToken\)/u);
+  const start = main.indexOf('async function canonicalizeOpenRouterCredentialRef');
+  const end = main.indexOf('async function saveCredentialFromDesktop', start);
+  const migration = main.slice(start, end);
+  assert.match(migration, /legacyRefs\.length !== 1/u);
+  assert.match(migration, /host\.persistFromMigration\(OPENROUTER_CANONICAL_CREDENTIAL_REF, value/u);
+  assert.match(migration, /host\.executeCustodyTransaction\('remove', legacyRef, undefined/u);
+  assert.doesNotMatch(migration, /writeFileSync|credentials\.safe\.json|replaceRaw/u);
+});
+
+test('OpenRouter onboarding delegates physical model choice to Model Brain and keeps formal qualification separate', () => {
   const ui = source('frontend/js/r32-ai-workbench-runtime.js');
   const route = source('backend/routes/models.js');
-  assert.doesNotMatch(ui.slice(ui.indexOf('async function autoConfigureOpenRouter'), ui.indexOf('async function runOpenRouterCommercialBenchmark')), /commercial-benchmark/u);
-  assert.match(ui, /runOpenRouterCommercialBenchmark/u);
+  const configureStart = ui.indexOf('async function autoConfigureOpenRouter');
+  const configureEnd = ui.indexOf('async function discoverCloudModels', configureStart);
+  const configure = ui.slice(configureStart, configureEnd);
+  assert.match(configure, /model:openrouter:default/u);
+  assert.match(configure, /cloud\/openrouter\/auto-configure/u);
+  assert.doesNotMatch(configure, /commercial-benchmark|runOpenRouterCommercialBenchmark|conditionalRoutes/u);
   assert.match(route, /openRouterOnboardingSmoke\.run/u);
-  assert.match(route, /connectionState: 'conditional-ready'/u);
+  assert.match(route, /connectionState: 'ready'/u);
+  assert.match(route, /qualificationStatus: 'pending'/u);
   assert.match(route, /OPENROUTER_ONBOARDING_SMOKE_FAILED/u);
   assert.match(route, /router\.get\('\/cloud\/openrouter\/status'/u);
 });
 
-test('two different OpenRouter models must pass real JSON/director/candidate/translation smoke before conditional routes are created', async () => {
+test('OpenRouter onboarding smoke uses only the Model Brain probe seam and does not own production routes', async () => {
   const registry = fakeRegistry();
+  const calls = [];
   const result = await smoke.run({
-    snapshot: {
-      selections: {
-        quick_reply: [{ id: 'vendor/model-a' }, { id: 'vendor/model-b' }],
-        director: [{ id: 'vendor/model-a' }, { id: 'vendor/model-b' }]
-      }
-    },
+    snapshot: { credentialRef: 'model:openrouter:default' },
     registry,
-    executeModel: async model => validInference(model)
+    aiGateway: {
+      execute: async input => {
+        calls.push(input);
+        return {
+          text: 'YANCE_MODEL_BRAIN_OK',
+          evidence: { selectedModel: input.modelId, provider: 'openrouter', requestId: 'probe-1' }
+        };
+      }
+    }
   });
   assert.equal(result.pass, true);
-  assert.equal(result.state, 'conditional-ready');
-  assert.notEqual(result.primaryModelId, result.fallbackModelId);
-  assert.equal(result.results.length, 2);
-  assert.equal(result.results.every(row => row.pass), true);
-  for (const task of ['director', 'quick_reply', 'deep_reply', 'translation', 'learning_synthesis']) {
-    assert.equal(registry.state.routes[task].primary, 'cloud-a');
-    assert.equal(registry.state.routes[task].fallback, 'cloud-b');
-    assert.equal(registry.state.routes[task].humanReviewRequired, true);
-  }
-  assert.equal(registry.state.routes.translation.allowConditional, true);
-  assert.equal(registry.state.routes.translation.humanReviewRequired, true);
+  assert.equal(result.passedModelId, 'cloud-a');
+  assert.equal(result.results.length, 1);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].task, 'probe');
+  assert.equal(calls[0].modelId, 'cloud-a');
+  assert.deepEqual(registry.state.routes, {});
+  assert.deepEqual(smoke.ALLOWED_TASKS, ['probe']);
+  assert.equal(typeof smoke.conditionalRoutes, 'undefined');
 });
 
-test('OpenRouter onboarding refuses to claim success when the independent fallback model fails', async () => {
+test('OpenRouter onboarding fails closed when no Model Brain probe can execute', async () => {
   const registry = fakeRegistry();
   await assert.rejects(
     smoke.run({
-      snapshot: { selections: { quick_reply: [{ id: 'vendor/model-a' }, { id: 'vendor/model-b' }] } },
+      snapshot: { credentialRef: 'model:openrouter:default' },
       registry,
-      executeModel: async model => model.id === 'cloud-a' ? validInference(model) : ({ ...validInference(model), text: '{"candidates":[]}' })
+      aiGateway: {
+        execute: async () => { throw Object.assign(new Error('probe unavailable'), { code: 'MODEL_BRAIN_PROBE_UNAVAILABLE' }); }
+      }
     }),
-    error => error.code === 'OPENROUTER_ONBOARDING_SMOKE_INCOMPLETE'
+    error => error.code === 'OPENROUTER_ONBOARDING_SMOKE_FAILED'
+      && Array.isArray(error.results)
+      && error.results.length === 2
   );
   assert.deepEqual(registry.state.routes, {});
 });
 
 
-test('OpenRouter diagnostics distinguishes no configuration, conditional human-review readiness and formal qualification', () => {
+test('OpenRouter diagnostics reports credential, authentication, catalog and logical-smoke readiness without shadow route status', () => {
   const none = diagnostics.openRouterReadiness({ openRouter: {} });
   assert.equal(none.configured, false);
-  assert.equal(none.conditionalReady, false);
+  assert.equal(none.ready, false);
+  assert.equal(none.smokePassed, false);
 
-  const conditional = diagnostics.openRouterReadiness({
+  const connected = diagnostics.openRouterReadiness({
     openRouter: {
       credentialConfigured: true,
       authenticationStatus: 'passed',
       catalogStatus: 'passed',
       onboardingSmokeStatus: 'passed',
-      routeStatus: 'conditional-ready',
-      formalQualificationStatus: 'pending',
-      onboardingPrimaryModelSlug: 'vendor/a',
-      onboardingFallbackModelSlug: 'vendor/b',
-      onboardingSmokeResults: [{ pass: true, modelSlug: 'vendor/a' }, { pass: true, modelSlug: 'vendor/b' }]
+      onboardingSmokeResults: [{ pass: true, returnedModel: 'vendor/a', requestId: 'probe-1' }]
     }
   });
-  assert.equal(conditional.conditionalReady, true);
-  assert.equal(conditional.formallyQualified, false);
-
-  const qualified = diagnostics.openRouterReadiness({ openRouter: { ...conditional, credentialConfigured: true, authenticationStatus: 'passed', catalogStatus: 'passed', onboardingSmokeStatus: 'passed', routeStatus: 'ready', formalQualificationStatus: 'passed', onboardingPrimaryModelSlug: 'vendor/a', onboardingFallbackModelSlug: 'vendor/b', onboardingSmokeResults: [{ pass: true }, { pass: true }] } });
-  assert.equal(qualified.formallyQualified, true);
+  assert.equal(connected.configured, true);
+  assert.equal(connected.authenticated, true);
+  assert.equal(connected.catalogReady, true);
+  assert.equal(connected.smokePassed, true);
+  assert.equal(connected.ready, true);
+  assert.equal(Object.prototype.hasOwnProperty.call(connected, 'conditionalReady'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(connected, 'formallyQualified'), false);
 });
 
 test('candidate generation backend records an observable operation and never reports an untracked permanent wait', () => {
@@ -216,40 +253,11 @@ test('current FIX6D source retains the full real-Chromium typography and reflow 
 });
 
 
-test('conditional OpenRouter primary and independent fallback survive the real routing-integrity repair', () => {
-  const model = id => ({
-    id,
-    name: `vendor/${id}`,
-    provider: 'openai-compatible',
-    source: 'openrouter-auto',
-    available: true,
-    qualification: 'experimental',
-    onboardingSmokeStatus: 'passed',
-    openRouterOnboardingSmoke: { pass: true },
-    allowedTasks: ['director', 'quick_reply', 'deep_reply', 'translation', 'persona_rewrite', 'learning_synthesis'],
-    lastSuccessfulInvocation: { at: new Date().toISOString(), returnedModel: `vendor/${id}` },
-    lastQualificationTest: { scores: { json: { pass: true }, persona: { pass: true }, hallucination: { pass: true }, translation: { pass: true } } },
-    lastReplyBrainBenchmark: {
-      authority: 'YanceReplyBrainOnboardingSmoke', completed: true, pass: false, status: 'REPLY_BRAIN_CONDITIONAL', score: 82,
-      scenarios: [
-        { id: 'german_whatsapp', pass: true, weight: 30, score: 30, issues: [] },
-        { id: 'german_alternative', pass: true, weight: 15, score: 15, issues: [] },
-        { id: 'persona_boundary', pass: true, weight: 25, score: 25, issues: [] },
-        { id: 'director_schema', pass: true, weight: 20, score: 20, issues: [] },
-        { id: 'latency', pass: true, weight: 10, score: 8, issues: [] }
-      ]
-    }
-  });
-  const routes = smoke.conditionalRoutes(model('cloud-a'), model('cloud-b'));
-  const repaired = routingIntegrity.repairRegistryDocument({ models: [model('cloud-a'), model('cloud-b')], routes }, { autoSelectVerified: false, rebalanceAutoRoutes: false });
-  assert.equal(repaired.quarantine.length, 0);
-  for (const task of ['director', 'quick_reply', 'deep_reply', 'translation', 'learning_synthesis']) {
-    assert.equal(repaired.document.routes[task].primary, 'cloud-a');
-    assert.equal(repaired.document.routes[task].fallback, 'cloud-b');
-    assert.equal(repaired.document.routes[task].humanReviewRequired, true);
-  }
-  assert.equal(Object.prototype.hasOwnProperty.call(routes, 'translation'), true, 'minimal onboarding smoke must create a human-review translation candidate route');
-  assert.equal(smoke.ALLOWED_TASKS.includes('translation'), true, 'minimal onboarding smoke may grant candidate-only translation eligibility');
-  assert.equal(repaired.document.routes.translation.allowConditional, true);
-  assert.equal(repaired.document.routes.translation.humanReviewRequired, true);
+test('OpenRouter onboarding smoke cannot create or repair production routing authority', () => {
+  const smokeSource = source('backend/services/openRouterOnboardingSmokeService.js');
+  assert.deepEqual(smoke.ALLOWED_TASKS, ['probe']);
+  assert.equal(typeof smoke.conditionalRoutes, 'undefined');
+  assert.doesNotMatch(smokeSource, /applyOpenRouterConditionalRoutes|repairRegistryDocument|humanReviewRequired|quick_reply|deep_reply|director|translation/u);
+  assert.equal(typeof routingIntegrity.repairRegistryDocument, 'function');
+  assert.match(source('backend/services/modelRoutingIntegrityService.js'), /replyChampionAuthority|workloadPlacementAuthority|routeResolutionAuthority/u);
 });

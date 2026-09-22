@@ -7,7 +7,8 @@ const { PlatformAdapterFacade } = require('../../backend/services/platformAdapte
 const { driverById } = require('../../backend/services/platformDriverRegistry');
 
 const MESSAGING_DRIVERS = [
-  'telegram-personal-mtproto',
+  'whatsapp-personal-mautrix-whatsapp',
+  'telegram-personal-mautrix-telegram',
   'facebook-page-official',
   'facebook-personal-messenger-mautrix-meta'
 ];

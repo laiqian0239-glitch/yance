@@ -17,6 +17,12 @@ function physicalOperationOptions(request = {}) {
     physicalOperationContext: request.physicalOperationContext
   };
 }
+function interactiveAuthOptions(request = {}) {
+  return {
+    signal: request.signal || null,
+    matrixUserId: clean(request.matrixUserId)
+  };
+}
 
 class AccountContext {
   constructor({
@@ -58,23 +64,14 @@ class AccountContext {
         const operation = clean(request.operation);
         const accountId = clean(request.accountId);
         switch (operation) {
-          case 'connect': return this.lifecycle.start(accountId, { action: 'connect', ...physicalOperationOptions(request) });
-          case 'reconnect': return this.lifecycle.restart(accountId, { action: 'reconnect', ...physicalOperationOptions(request) });
-          case 'pause': return this.lifecycle.operationResult('pause', await this.accountManager.disconnect(accountId, { logout: false, ...physicalOperationOptions(request) }));
-          case 'resume': return this.lifecycle.start(accountId, { action: 'resume', ...physicalOperationOptions(request) });
-          case 'logout': return this.lifecycle.operationResult('logout', await this.accountManager.disconnect(accountId, { logout: true, ...physicalOperationOptions(request) }));
-          case 'telegram.qr.start': return { account: await this.accountManager.startTelegramQr(accountId, physicalOperationOptions(request)) };
-          case 'telegram.phone.start': return { account: await this.accountManager.startTelegramPhone(accountId, request.phoneNumber, physicalOperationOptions(request)) };
-          case 'telegram.code': return { account: await this.accountManager.submitTelegramCode(accountId, request.code, physicalOperationOptions(request)) };
-          case 'telegram.password': return { account: await this.accountManager.submitTelegramPassword(accountId, request.password, physicalOperationOptions(request)) };
-          case 'telegram.cancel': return { account: await this.accountManager.cancelTelegramLogin(accountId, physicalOperationOptions(request)) };
-          case 'facebook.oauth.start': return { flow: await this.accountManager.beginFacebookOAuth(accountId, physicalOperationOptions(request)) };
-          case 'facebook.oauth.status': return { flow: await this.accountManager.pollFacebookOAuth(accountId, request.flowId, physicalOperationOptions(request)) };
-          case 'facebook.oauth.cancel': return { flow: await this.accountManager.cancelFacebookOAuth(accountId, request.flowId, physicalOperationOptions(request)) };
-          case 'facebook.messenger.start': return this.accountManager.startFacebookMessengerLogin(accountId, request.username, physicalOperationOptions(request));
-          case 'facebook.messenger.input': return this.accountManager.submitFacebookMessengerInput(accountId, request.loginProcessId, request.stepId, request.input || {}, { ...physicalOperationOptions(request), txnId: request.txnId });
-          case 'facebook.messenger.wait': return this.accountManager.waitFacebookMessengerLogin(accountId, request.loginProcessId, request.stepId, { ...physicalOperationOptions(request), txnId: request.txnId });
-          case 'facebook.messenger.cancel': return this.accountManager.cancelFacebookMessengerLogin(accountId, request.loginProcessId, physicalOperationOptions(request));
+          case 'connect': return this.lifecycle.start(accountId, { action: 'connect', ...interactiveAuthOptions(request) });
+          case 'reconnect': return this.lifecycle.restart(accountId, { action: 'reconnect', ...interactiveAuthOptions(request) });
+          case 'pause': return this.lifecycle.operationResult('pause', await this.accountManager.disconnect(accountId, { logout: false, ...interactiveAuthOptions(request) }));
+          case 'resume': return this.lifecycle.start(accountId, { action: 'resume', ...interactiveAuthOptions(request) });
+          case 'logout': return this.lifecycle.operationResult('logout', await this.accountManager.disconnect(accountId, { logout: true, ...interactiveAuthOptions(request) }));
+          case 'facebook.oauth.start': return { flow: await this.accountManager.beginFacebookOAuth(accountId, interactiveAuthOptions(request)) };
+          case 'facebook.oauth.status': return { flow: await this.accountManager.pollFacebookOAuth(accountId, request.flowId, interactiveAuthOptions(request)) };
+          case 'facebook.oauth.cancel': return { flow: await this.accountManager.cancelFacebookOAuth(accountId, request.flowId, interactiveAuthOptions(request)) };
           default: throw new CoreError('PLATFORM_AUTH_OPERATION_UNSUPPORTED', `AuthPort 不支持操作：${operation}`, { status: 404 });
         }
       }
@@ -83,7 +80,7 @@ class AccountContext {
       const operation = clean(request.operation) || 'sync';
       const accountId = clean(request.accountId);
       switch (operation) {
-        case 'sync': return this.accountManager.sync(accountId, { ...physicalOperationOptions(request), executionGeneration: request.operationGeneration });
+        case 'sync': return this.accountManager.sync(accountId, { ...physicalOperationOptions(request), matrixUserId: clean(request.matrixUserId), executionGeneration: request.operationGeneration });
         case 'facebook.avatar-import.start': return { session: this.accountManager.startFacebookBusinessSuiteAvatarImport(accountId, physicalOperationOptions(request)) };
         case 'facebook.avatar-import.status': return { session: this.accountManager.getFacebookBusinessSuiteAvatarImportStatus(accountId, physicalOperationOptions(request)) };
         case 'facebook.avatar-import.stop': return { session: this.accountManager.stopFacebookBusinessSuiteAvatarImport(accountId, physicalOperationOptions(request)) };
@@ -225,7 +222,7 @@ class AccountContext {
 
   async execute(command, payload = {}, context = {}) {
     switch (command) {
-      case 'account.list': return this.accountManager.list();
+      case 'account.list': return this.accountManager.listObserved({ matrixUserId: clean(payload.matrixUserId) });
       case 'account.audit': {
         const limit = Math.max(1, Math.min(Number(payload.limit || 100), 500));
         return { audit: this.accountStore.read().audit.slice(0, limit) };
@@ -239,9 +236,9 @@ class AccountContext {
         const account = this.getAccount(payload.id);
         return { account: await this.accountManager.setDefault(account.platform, account.id) };
       });
-      case 'account.connect': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'connect'));
-      case 'account.reconnect': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'reconnect'));
-      case 'account.sync': return this.secured(command, context, async () => this.executePlatformReconcile(payload.id, 'sync'));
+      case 'account.connect': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'connect', { matrixUserId: clean(payload.matrixUserId) }));
+      case 'account.reconnect': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'reconnect', { matrixUserId: clean(payload.matrixUserId) }));
+      case 'account.sync': return this.secured(command, context, async () => this.executePlatformReconcile(payload.id, 'sync', { matrixUserId: clean(payload.matrixUserId) }));
       case 'account.syncAll': return this.secured(command, context, async () => ({ results: await this.reconcileAllAccounts() }));
       case 'account.reconnectAll': return this.secured(command, context, async () => ({ results: await this.reconnectAllAccounts() }));
       case 'account.pause': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'pause'));
@@ -254,18 +251,16 @@ class AccountContext {
       case 'account.facebook.avatarImport.stop': return this.secured(command, context, async () => this.executePlatformReconcile(payload.id, 'facebook.avatar-import.stop'));
       case 'account.migration.scan': return { plan: this.accountMigration.scan(payload.sourceDir) };
       case 'account.migration.import': return this.secured(command, context, async () => this.accountMigration.execute(payload.confirmToken, payload.selectedIds || []));
-      case 'account.telegram.qr.start': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'telegram.qr.start'));
-      case 'account.telegram.phone.start': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'telegram.phone.start', { phoneNumber: payload.phoneNumber }));
-      case 'account.telegram.code': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'telegram.code', { code: payload.code }));
-      case 'account.telegram.password': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'telegram.password', { password: payload.password }));
-      case 'account.telegram.cancel': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'telegram.cancel'));
+      case 'account.provisioning.login.flows': return this.accountManager.listProvisioningLoginFlows(payload.id, interactiveAuthOptions(payload));
+      case 'account.provisioning.login.start': return this.secured(command, context, async () => this.accountManager.startProvisioningLogin(payload.id, payload.flowId, interactiveAuthOptions(payload)));
+      case 'account.provisioning.login.input': return this.secured(command, context, async () => this.accountManager.submitProvisioningLoginInput(payload.id, payload.loginProcessId, payload.stepId, payload.input || {}, interactiveAuthOptions(payload)));
+      case 'account.provisioning.login.wait': return this.secured(command, context, async () => this.accountManager.waitProvisioningLogin(payload.id, payload.loginProcessId, payload.stepId, interactiveAuthOptions(payload)));
+      case 'account.provisioning.login.cancel': return this.secured(command, context, async () => this.accountManager.cancelProvisioningLogin(payload.id, payload.loginProcessId, interactiveAuthOptions(payload)));
+      case 'account.facebook.page.inboxes': return this.accountManager.listFacebookPageInboxes(payload.id, { signal: payload.signal || null });
+      case 'account.facebook.page.attach': return this.secured(command, context, async () => this.accountManager.attachFacebookPageInbox(payload.id, payload, { signal: payload.signal || null }));
       case 'account.facebook.oauth.start': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.oauth.start'));
       case 'account.facebook.oauth.status': return this.executePlatformAuth(payload.id, 'facebook.oauth.status', { flowId: payload.flowId });
       case 'account.facebook.oauth.cancel': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.oauth.cancel', { flowId: payload.flowId }));
-      case 'account.facebook.messenger.start': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.messenger.start', { username: payload.username }));
-      case 'account.facebook.messenger.input': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.messenger.input', { loginProcessId: payload.loginProcessId, stepId: payload.stepId, txnId: payload.txnId, input: payload.input || {} }));
-      case 'account.facebook.messenger.wait': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.messenger.wait', { loginProcessId: payload.loginProcessId, stepId: payload.stepId, txnId: payload.txnId }));
-      case 'account.facebook.messenger.cancel': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'facebook.messenger.cancel', { loginProcessId: payload.loginProcessId }));
       case 'account.facebook.webhook.verify': return this.verifyFacebookWebhook(payload);
       case 'account.facebook.webhook.handle': return this.handleFacebookWebhook(payload);
       case 'account.bindConversation': return this.secured(command, context, async () => this.bindConversation(payload));

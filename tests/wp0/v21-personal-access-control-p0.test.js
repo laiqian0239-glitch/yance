@@ -116,6 +116,8 @@ test('initial Personal Access refresh waits for the existing desktop backend sea
   assert.doesNotMatch(index, /matrixProfile=\{this\.api\.profile\}/u);
   assert.doesNotMatch(workspace, /matrixProfile/);
   assert.doesNotMatch(surface, /useWatchable|matrixProfile|matrixIdentity/u);
+  assert.doesNotMatch(surface, /requestLogout|logoutRequested|navigationApi\.requestLogout/u, 'Product entitlement projection must never own Element / Matrix session logout');
+  assert.doesNotMatch(workspace, /<PersonalAccessSurface[^>]*requestLogout/u, 'Personal Access gate must not receive the Element logout seam');
   assert.match(surface, /getState\?: \(\) => Promise<\{ backend\?: \{ ready\?: boolean \} \}>/u);
   assert.match(surface, /onBackendState\?: \(callback: \(state: \{ ready\?: boolean \}\) => void\)/u);
   assert.match(surface, /const \[backendReady, setBackendReady\] = useState\(false\)/u);
@@ -125,6 +127,7 @@ test('initial Personal Access refresh waits for the existing desktop backend sea
   assert.match(surface, /if \(window\.yancePersonalAccessHandoff\?\.keyId \|\| !backendReady \|\| automaticRefreshAttempted\.current\) return;/u);
   assert.match(surface, /automaticRefreshAttempted\.current = true;[\s\S]*?void refresh\(\)/u);
   assert.match(surface, /getMatrixOpenIdToken/u);
+  assert.equal((surface.match(/reasonCode: "MATRIX_OPENID_REQUIRED"/gu) || []).length, 2, 'Element OpenID acquisition failure must remain Matrix-owned and must not be misreported as Unkey authority failure');
   assert.doesNotMatch(surface, /setTimeout|1500|clearTimeout/u);
   assert.equal((surface.match(/void refresh\(\)/gu) || []).length, 2, 'one backend-readiness refresh plus the explicit refresh button only');
 });

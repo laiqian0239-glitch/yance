@@ -353,41 +353,44 @@ test('M2-MSG-004 reconciliation performs lookup only and returns bounded remote 
 });
 
 
-test('M2-WA-003 AccountContext preserves persisted platform operation context through auth and reconcile bindings', () => {
+test('M2-WA-003 AccountContext keeps interactive auth stateless while reconcile preserves persisted operation context', () => {
   const source = fs.readFileSync(accountContextPath, 'utf8');
-  assert.match(source, /function\s+physicalOperationOptions\(request\s*=\s*\{\}\)[\s\S]*?signal:\s*request\.signal[\s\S]*?operationGeneration:[\s\S]*?request\.operationGeneration[\s\S]*?physicalOperationContext:\s*request\.physicalOperationContext/u, 'M2-WA-003:PHYSICAL_OPTIONS_REQUIRED');
-  for (const pattern of [
-    /this\.lifecycle\.start\(accountId,\s*\{\s*action:\s*'connect',\s*\.\.\.physicalOperationOptions\(request\)\s*\}\)/u,
-    /this\.lifecycle\.restart\(accountId,\s*\{\s*action:\s*'reconnect',\s*\.\.\.physicalOperationOptions\(request\)\s*\}\)/u,
-    /this\.accountManager\.beginFacebookOAuth\(accountId,\s*physicalOperationOptions\(request\)\)/u,
-    /this\.accountManager\.pollFacebookOAuth\(accountId,\s*request\.flowId,\s*physicalOperationOptions\(request\)\)/u,
-    /this\.accountManager\.cancelFacebookOAuth\(accountId,\s*request\.flowId,\s*physicalOperationOptions\(request\)\)/u,
-    /this\.accountManager\.sync\(accountId,\s*\{[\s\S]*?\.\.\.physicalOperationOptions\(request\)[\s\S]*?executionGeneration:\s*request\.operationGeneration[\s\S]*?\}\)/u
-  ]) assert.match(source, pattern, `M2-WA-003:CONTEXT_PROPAGATION_REQUIRED:${pattern}`);
+  assert.match(source, /function\s+interactiveAuthOptions\(request\s*=\s*\{\}\)[\s\S]*?signal:\s*request\.signal/u, 'M2-WA-003:AUTH_SIGNAL_ONLY_REQUIRED');
+  const authBlock = source.slice(source.indexOf('const authHandler ='), source.indexOf('const reconcileHandler ='));
+  assert.doesNotMatch(authBlock, /physicalOperationOptions\(request\)|physicalOperationContext|operationGeneration|attemptId/u, 'M2-WA-003:AUTH_PERSISTED_CONTEXT_FORBIDDEN');
+  const reconcileBlock = source.slice(source.indexOf('const reconcileHandler ='), source.indexOf("for (const platform of ['facebook', 'whatsapp', 'telegram'])"));
+  assert.match(reconcileBlock, /physicalOperationOptions\(request\)/u, 'M2-WA-003:RECONCILE_PERSISTED_CONTEXT_REQUIRED');
 });
 
-test('M2-WA-004 platform driver preserves persisted WhatsApp operation context into the physical adapter', () => {
+test('M2-WA-004 WhatsApp connect delegates directly to Baileys while history sync preserves persisted context', () => {
   const source = fs.readFileSync(platformDriverRegistryPath, 'utf8');
+  const whatsappDriver = source.slice(source.indexOf('whatsapp: Object.freeze({'), source.indexOf('telegram: Object.freeze({'));
   assert.match(
-    source,
-    /async\s+connect\(account,\s*options\s*=\s*\{\}\)\s*\{[\s\S]*?whatsapp\.start\(account,\s*\{[\s\S]*?physicalOperationContext:\s*options\.physicalOperationContext[\s\S]*?\}\)/u,
-    'M2-WA-004:CONNECT_CONTEXT_REQUIRED'
+    whatsappDriver,
+    /async\s+connect\(account,\s*options\s*=\s*\{\}\)\s*\{\s*return\s+whatsapp\.start\(account,\s*\{[\s\S]*?signal:\s*options\.signal\s*\|\|\s*null[\s\S]*?\}\);\s*\}/u,
+    'M2-WA-004:CONNECT_DIRECT_OWNER_REQUIRED'
   );
+  const connectBlock = whatsappDriver.slice(whatsappDriver.indexOf('async connect('), whatsappDriver.indexOf('async disconnect('));
+  assert.doesNotMatch(connectBlock, /physicalOperationContext|operationGeneration|attemptId/u, 'M2-WA-004:CONNECT_CONTEXT_FORBIDDEN');
   assert.match(
-    source,
+    whatsappDriver,
     /async\s+sync\(account,\s*options\s*=\s*\{\}\)\s*\{\s*return\s+withPersistedOperationContext\(options,\s*\(\)\s*=>\s*whatsapp\.sync\(account,\s*options\)\);\s*\}/u,
     'M2-WA-004:SYNC_CONTEXT_REQUIRED'
   );
 });
 
-test('M2-WA-001 WhatsApp physical adapter is fail-closed behind persisted WP-B operation contexts', () => {
+test('M2-WA-001 WhatsApp interactive login is mature-owner controlled while sync and egress remain fail-closed', () => {
   const source = fs.readFileSync(whatsappAdapterPath, 'utf8');
-  assert.match(source, /validatePersistedEgressContext/u, 'M2-WA-001:PERSISTED_CONTEXT_VALIDATOR_REQUIRED');
-  assert.match(source, /requirePersistedWhatsAppOperation/u, 'M2-WA-001:ADAPTER_BOUNDARY_REQUIRED');
-  assert.match(source, /async\s+start\([^)]*options[^)]*\)[\s\S]*?requirePersistedWhatsAppOperation\(options\.physicalOperationContext/u, 'M2-WA-001:start:CONTEXT_REQUIRED');
-  assert.match(source, /async\s+sync\([^)]*options[^)]*\)[\s\S]*?requirePersistedWhatsAppOperation\(options\.physicalOperationContext/u, 'M2-WA-001:sync:CONTEXT_REQUIRED');
+  assert.match(source, /validatePersistedEgressContext/u, 'M2-WA-001:PERSISTED_EGRESS_VALIDATOR_REQUIRED');
+  const startIndex = source.indexOf('async start(');
+  const syncIndex = source.indexOf('async sync(', startIndex);
+  const startBlock = source.slice(startIndex, syncIndex);
+  assert.doesNotMatch(startBlock, /requirePersistedWhatsAppOperation\(options\.physicalOperationContext/u, 'M2-WA-001:start:SHADOW_CONTEXT_FORBIDDEN');
+  const nextAfterSync = source.indexOf('\n  async ', syncIndex + 10);
+  const syncBlock = source.slice(syncIndex, nextAfterSync > syncIndex ? nextAfterSync : source.length);
+  assert.match(syncBlock, /requirePersistedWhatsAppOperation\(options\.physicalOperationContext/u, 'M2-WA-001:sync:CONTEXT_REQUIRED');
   for (const method of ['sendText', 'sendMedia', 'sendReaction', 'revokeMessage', 'sendPresence', 'markRead']) {
-    assert.match(source, new RegExp(`async\\s+${method}\\(\\{[^}]*physicalAttemptContext`, 'u'), `M2-WA-001:${method}:CONTEXT_REQUIRED`);
+    assert.match(source, new RegExp('async\\s+' + method + '\\(\\{[^}]*physicalAttemptContext', 'u'), 'M2-WA-001:' + method + ':CONTEXT_REQUIRED');
   }
 });
 
@@ -470,7 +473,7 @@ test('M2-SYNC-002 sync checkpoint compatibility service rejects stale begin vers
   assert.equal(observations[0].executionClaim.fencingToken, 7, 'M2-SYNC-002:FENCING_REQUIRED');
 });
 
-test('M2-DEADLINE-001 port-level deadlines are persisted absolute authority timestamps and local timeout cannot prove remote failure', async () => {
+test('M2-DEADLINE-001 durable deadlines stay on reconcile and physical work while interactive auth remains mature-owner controlled', async () => {
   const deadlinePath = path.join(servicesRoot, 'executionDeadline.js');
   const lifecyclePath = path.join(servicesRoot, 'durableInternalOperationAuthority.js');
   const portSource = fs.readFileSync(path.join(servicesRoot, 'platformAdapterPorts.js'), 'utf8');
@@ -478,9 +481,11 @@ test('M2-DEADLINE-001 port-level deadlines are persisted absolute authority time
   const lifecycleSource = fs.readFileSync(lifecyclePath, 'utf8');
   assert.match(lifecycleSource, /deadlineAt:\s*optionalString\(input\.deadlineAt/u, 'M2-DEADLINE-001:DURABLE_CREATE_MUST_PERSIST_DEADLINE');
   assert.match(lifecycleSource, /deadlineAt:\s*execution\.deadlineAt/u, 'M2-DEADLINE-001:DURABLE_SNAPSHOT_MUST_EXPOSE_DEADLINE');
-  assert.match(portSource, /persistedAuthorityDeadlineAt\(lifecycle,\s*'auth'/u, 'M2-DEADLINE-001:AUTH_PERSISTED_DEADLINE_REQUIRED');
+  assert.doesNotMatch(portSource, /persistedAuthorityDeadlineAt\(lifecycle,\s*'auth'/u, 'M2-DEADLINE-001:AUTH_MUST_NOT_CREATE_SHADOW_DEADLINE_AUTHORITY');
   assert.match(portSource, /persistedAuthorityDeadlineAt\(lifecycle,\s*'reconcile'/u, 'M2-DEADLINE-001:RECONCILE_PERSISTED_DEADLINE_REQUIRED');
-  assert.match(portSource, /deadlineAt:\s*created\.deadlineAt/u, 'M2-DEADLINE-001:PHYSICAL_PORT_MUST_CONSUME_PERSISTED_DEADLINE');
+  const authBody = portSource.slice(portSource.indexOf('async executeAuth(input = {})'), portSource.indexOf('async authStart(input = {})'));
+  assert.doesNotMatch(authBody, /executePortWithDeadline|operationLifecycle/u, 'M2-DEADLINE-001:AUTH_MUST_BE_STATELESS_DELEGATION');
+  assert.match(authBody, /!\['operationId', 'operationGeneration', 'physicalOperationContext', 'deadlineAt', 'generation'\]\.includes\(key\)/u, 'M2-DEADLINE-001:CALLER_AUTHORITY_FIELDS_MUST_BE_STRIPPED');
   assert.match(deadlineSource, /deadlineAuthority:\s*deadlineAt\s*\?\s*'PERSISTED_AUTHORITY_TIMESTAMP'/u, 'M2-DEADLINE-001:DEADLINE_AUTHORITY_CLASSIFICATION_REQUIRED');
   assert.match(deadlineSource, /outcomeUnknown:\s*options\.outcomeKnownLocal\s*===\s*true\s*\?\s*false\s*:\s*true/u, 'M2-DEADLINE-001:TIMEOUT_REMOTE_TRUTH_UNKNOWN_REQUIRED');
   assert.match(deadlineSource, /automaticRetryBlocked:[\s\S]*?true/u, 'M2-DEADLINE-001:TIMEOUT_AUTORETRY_BLOCK_REQUIRED');

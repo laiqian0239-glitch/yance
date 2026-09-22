@@ -35,12 +35,11 @@ function quotedFromBody(body = {}) {
   };
 }
 
-router.get('/', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.list')) }); } catch (error) { next(error); } });
+router.get('/', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.list', { matrixUserId: req.query.matrixUserId })) }); } catch (error) { next(error); } });
 router.get('/audit', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.audit', { limit: req.query.limit })) }); } catch (error) { next(error); } });
 router.get('/capabilities', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.capabilities')) }); } catch (error) { next(error); } });
 router.post('/migration/scan', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.migration.scan', req.body || {})) }); } catch (error) { next(error); } });
 router.post('/migration/import', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.migration.import', req.body || {})) }); } catch (error) { next(error); } });
-
 router.post('/', async (req, res, next) => { try { res.status(201).json({ ok: true, ...(await execute(req, 'account.create', req.body || {})) }); } catch (error) { next(error); } });
 router.patch('/:id', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.update', { id: req.params.id, patch: req.body || {} })) }); } catch (error) { next(error); } });
 router.delete('/:id', async (req, res, next) => {
@@ -50,11 +49,11 @@ router.delete('/:id', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 router.post('/:id/default', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.setDefault', { id: req.params.id })) }); } catch (error) { next(error); } });
-router.post('/:id/connect', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.connect', { id: req.params.id })) }); } catch (error) { next(error); } });
+router.post('/:id/connect', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.connect', { id: req.params.id, matrixUserId: req.body?.matrixUserId })) }); } catch (error) { next(error); } });
 router.post('/:id/authorization/discard-pending', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.authorization.discardPending', { id: req.params.id, reason: req.body?.reason })) }); } catch (error) { next(error); } });
-router.post('/:id/reconnect', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.reconnect', { id: req.params.id })) }); } catch (error) { next(error); } });
+router.post('/:id/reconnect', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.reconnect', { id: req.params.id, matrixUserId: req.body?.matrixUserId })) }); } catch (error) { next(error); } });
 router.post('/actions/sync-all', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.syncAll')) }); } catch (error) { next(error); } });
-router.post('/:id/sync', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.sync', { id: req.params.id })) }); } catch (error) { next(error); } });
+router.post('/:id/sync', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.sync', { id: req.params.id, matrixUserId: req.body?.matrixUserId })) }); } catch (error) { next(error); } });
 router.post('/actions/reconnect-all', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.reconnectAll')) }); } catch (error) { next(error); } });
 router.post('/:id/pause', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.pause', { id: req.params.id })) }); } catch (error) { next(error); } });
 router.post('/:id/resume', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.resume', { id: req.params.id })) }); } catch (error) { next(error); } });
@@ -70,19 +69,49 @@ router.get('/:id/auth-challenge', async (req, res, next) => { try {
 router.get('/:id/credential-state', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.getCredentialState', { id: req.params.id })) }); } catch (error) { next(error); } });
 router.post('/:id/avatar-load-failure', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.avatarLoadFailure', { id: req.params.id, ...(req.body || {}) })) }); } catch (error) { next(error); } });
 
-router.post('/:id/telegram/qr/start', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.telegram.qr.start', { id: req.params.id })) }); } catch (error) { next(error); } });
-router.post('/:id/telegram/phone/start', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.telegram.phone.start', { id: req.params.id, phoneNumber: req.body?.phoneNumber })) }); } catch (error) { next(error); } });
-router.post('/:id/telegram/cancel', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.telegram.cancel', { id: req.params.id })) }); } catch (error) { next(error); } });
-router.post('/:id/telegram/code', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.telegram.code', { id: req.params.id, code: req.body?.code })) }); } catch (error) { next(error); } });
-router.post('/:id/telegram/password', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.telegram.password', { id: req.params.id, password: req.body?.password })) }); } catch (error) { next(error); } });
+router.get('/:id/provisioning/login/flows', async (req, res, next) => { try {
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, ...(await execute(req, 'account.provisioning.login.flows', { id: req.params.id, matrixUserId: req.query.matrixUserId })) });
+} catch (error) { next(error); } });
+router.post('/:id/provisioning/login/start', async (req, res, next) => { try {
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, ...(await execute(req, 'account.provisioning.login.start', { id: req.params.id, flowId: req.body?.flowId, matrixUserId: req.body?.matrixUserId })) });
+} catch (error) { next(error); } });
+router.post('/:id/provisioning/login/input', async (req, res, next) => { try {
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, ...(await execute(req, 'account.provisioning.login.input', {
+    id: req.params.id, loginProcessId: req.body?.loginProcessId, stepId: req.body?.stepId, input: req.body?.input || {}, matrixUserId: req.body?.matrixUserId
+  })) });
+} catch (error) { next(error); } });
+router.post('/:id/provisioning/login/wait', async (req, res, next) => { try {
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, ...(await execute(req, 'account.provisioning.login.wait', {
+    id: req.params.id, loginProcessId: req.body?.loginProcessId, stepId: req.body?.stepId, matrixUserId: req.body?.matrixUserId
+  })) });
+} catch (error) { next(error); } });
+router.post('/:id/provisioning/login/cancel', async (req, res, next) => { try {
+  res.json({ ok: true, ...(await execute(req, 'account.provisioning.login.cancel', {
+    id: req.params.id, loginProcessId: req.body?.loginProcessId, matrixUserId: req.body?.matrixUserId
+  })) });
+} catch (error) { next(error); } });
+router.post('/:id/provisioning/direct-chat/ensure', async (req, res, next) => { try {
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, ...(await execute(req, 'account.provisioning.directChat.ensure', {
+    id: req.params.id, identifier: req.body?.identifier, matrixUserId: req.body?.matrixUserId
+  })) });
+} catch (error) { next(error); } });
 
+router.get('/:id/facebook/page/inboxes', async (req, res, next) => { try {
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, ...(await execute(req, 'account.facebook.page.inboxes', { id: req.params.id })) });
+} catch (error) { next(error); } });
+router.post('/:id/facebook/page/attach', async (req, res, next) => { try {
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, ...(await execute(req, 'account.facebook.page.attach', { id: req.params.id, inboxId: req.body?.inboxId, pageId: req.body?.pageId })) });
+} catch (error) { next(error); } });
 router.post('/:id/facebook/oauth/start', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.oauth.start', { id: req.params.id })) }); } catch (error) { next(error); } });
 router.get('/:id/facebook/oauth/status', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.oauth.status', { id: req.params.id, flowId: req.query.flowId })) }); } catch (error) { next(error); } });
 router.post('/:id/facebook/oauth/cancel', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.oauth.cancel', { id: req.params.id, flowId: req.body?.flowId })) }); } catch (error) { next(error); } });
-router.post('/:id/facebook/messenger/start', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.messenger.start', { id: req.params.id, username: req.body?.username })) }); } catch (error) { next(error); } });
-router.post('/:id/facebook/messenger/input', async (req, res, next) => { try { res.set('Cache-Control', 'no-store'); res.json({ ok: true, ...(await execute(req, 'account.facebook.messenger.input', { id: req.params.id, loginProcessId: req.body?.loginProcessId, stepId: req.body?.stepId, txnId: req.body?.txnId, input: req.body?.input || {} })) }); } catch (error) { next(error); } });
-router.post('/:id/facebook/messenger/wait', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.messenger.wait', { id: req.params.id, loginProcessId: req.body?.loginProcessId, stepId: req.body?.stepId, txnId: req.body?.txnId })) }); } catch (error) { next(error); } });
-router.post('/:id/facebook/messenger/cancel', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.messenger.cancel', { id: req.params.id, loginProcessId: req.body?.loginProcessId })) }); } catch (error) { next(error); } });
 router.post('/:id/facebook/avatar-closure/diagnose', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.avatarClosure.diagnose', { id: req.params.id, limit: req.body?.limit })) }); } catch (error) { next(error); } });
 router.get('/:id/facebook/avatar-import/session', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.avatarImport.status', { id: req.params.id })) }); } catch (error) { next(error); } });
 router.post('/:id/facebook/avatar-import/session', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.avatarImport.start', { id: req.params.id })) }); } catch (error) { next(error); } });

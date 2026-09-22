@@ -414,45 +414,6 @@ class TelegramAdapter {
     return this.publicState(row);
   }
 
-  async waitForQrAuthorization(account, row, timeoutMs = 125000) {
-    const startedAt = Date.now();
-    while (Date.now() - startedAt < timeoutMs && this.isCurrentRow(account.id, row) && row.state === 'waiting-verification') {
-      try {
-        const authorized = await executeWithDeadline(
-          () => row.client.checkAuthorization(),
-          {
-            timeoutMs: Math.min(5_000, Math.max(process.env.NODE_ENV === 'test' ? 20 : 1_000, timeoutMs - (Date.now() - startedAt))),
-            code: 'TELEGRAM_QR_AUTHORIZATION_CHECK_TIMEOUT',
-            operation: 'telegram-qr-authorization-check',
-            platform: 'telegram',
-            accountId: account.id
-          }
-        );
-        if (authorized) {
-          const user = await executeWithDeadline(
-            () => row.client.getMe(),
-            {
-              timeoutMs: Math.min(10_000, Math.max(process.env.NODE_ENV === 'test' ? 20 : 1_000, timeoutMs - (Date.now() - startedAt))),
-              code: 'TELEGRAM_QR_GET_ME_TIMEOUT',
-              operation: 'telegram-qr-get-me',
-              platform: 'telegram',
-              accountId: account.id
-            }
-          ).catch(() => null);
-          if (user) return user;
-        }
-      } catch (error) {
-        if (['TELEGRAM_QR_AUTHORIZATION_CHECK_TIMEOUT', 'TELEGRAM_QR_GET_ME_TIMEOUT'].includes(error?.code)) {
-          logger.warn('telegram', 'qr-poll-call-timeout', { accountId: account.id, code: error.code });
-        }
-      }
-      const remainingMs = timeoutMs - (Date.now() - startedAt);
-      if (remainingMs <= 0) break;
-      await new Promise(resolve => setTimeout(resolve, Math.min(750, remainingMs)));
-    }
-    throw Object.assign(new Error('Telegram 二维码等待确认超时，请刷新二维码或使用手机号登录'), { code: 'TELEGRAM_QR_CONFIRM_TIMEOUT' });
-  }
-
   makeRow(account, client, mode, attemptId = '') {
     const row = {
       account, client, authMode: mode, state: 'connecting', step: 'connecting', lastError: '',
@@ -575,7 +536,7 @@ class TelegramAdapter {
           },
           onError: this.authErrorHandler(account, row)
         });
-        const user = await Promise.race([sdkLogin, this.waitForQrAuthorization(account, row)]);
+        const user = await sdkLogin;
         return await this.completeLogin(account, row, secret, user, options);
       } catch (error) {
         if (!this.isCurrentRow(account.id, row)) {

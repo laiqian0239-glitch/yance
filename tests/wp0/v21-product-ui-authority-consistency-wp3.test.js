@@ -135,7 +135,11 @@ test('WP3-B RED: current Chinese Product controls must not leak English-only nat
 test('WP3-C RED: current Product relationship labels and facts must remain visually readable without ellipsis clipping', () => {
   const css = read('integration/element-module/src/product-experience/ProductExperienceShell.css');
 
-  assert.doesNotMatch(css, /text-overflow\s*:\s*ellipsis/u, 'current Product labels/facts must not be clipped to ellipsis');
+  const personNameRule = css.match(/\.yance-person-copy__line strong\s*\{([^}]*)\}/u);
+  assert.ok(personNameRule, 'relationship roster primary-name rule must remain present');
+  assert.match(personNameRule[1], /white-space\s*:\s*normal/u, 'relationship primary names must wrap instead of being clipped');
+  assert.doesNotMatch(personNameRule[1], /text-overflow\s*:\s*ellipsis/u, 'relationship primary names must not ellipsize');
+  assert.match(css, /\.yance-person-preview,[\s\S]*?text-overflow:\s*ellipsis;[\s\S]*?white-space:\s*nowrap;/u, 'secondary preview text may stay bounded to preserve desktop density');
 
   const personCopyRule = css.match(/\.yance-person-copy strong,\s*\.yance-person-copy span\s*\{([^}]*)\}/u);
   assert.ok(personCopyRule, 'relationship list label rule must remain present');
@@ -175,7 +179,8 @@ test('WP3 preserve: authenticated security state projects through Yance Product 
   const patch = read('upstream-patches/element-web/0018-yance-post-login-security-shell.patch');
 
   assert.match(index, /registerPostLoginSecurityComponent/u);
-  assert.match(login, /data-yance-post-login-security-authority=["']product["']/u);
+  assert.match(login, /data-yance-post-login-security-projection=["']yance["']/u);
+  assert.match(login, /data-yance-post-login-security-owner=["']element-matrix["']/u);
   assert.match(login, /data-yance-post-login-security-content=["']element["']/u);
   assert.match(patch, /renderPostLoginSecurity/u);
   assert.match(patch, /AuthPage/u, 'Element AuthPage must remain the fallback presentation when Product renderer is unavailable');

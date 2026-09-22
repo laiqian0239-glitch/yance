@@ -6,16 +6,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '../..');
-const META_COMMIT = 'ed37c9e6ce47e83dc75b9abea7b636302715b9bc';
 const MATRIX_JS_COMMIT = '85362b92fabe6009bc1a86b63d046263b1dc66b3';
 function read(relative) { return fs.readFileSync(path.join(ROOT, ...relative.split('/')), 'utf8'); }
 function json(relative) { return JSON.parse(read(relative)); }
+const META_COMMIT = json('config/upstreams/v21-comms-p0.json').externalRuntimes.mautrixMeta.commit;
 
-test('Facebook Personal production closure pins stable mautrix/meta v0.2607.0 and official matrix-js-sdk 42.0.0 exactly', () => {
+test('Facebook Personal production closure pins stable mautrix/meta v0.2609.0 and official matrix-js-sdk 42.0.0 exactly', () => {
   const lock = json('config/upstreams/v21-comms-p0.json');
   assert.deepEqual(lock.externalRuntimes?.mautrixMeta, {
     repository: 'https://github.com/mautrix/meta.git',
-    version: 'v0.2607.0',
+    version: 'v0.2609.0',
     commit: META_COMMIT,
     license: 'AGPL-3.0',
     adoptionMode: 'sidecar-service',
@@ -32,13 +32,16 @@ test('Facebook Personal production closure pins stable mautrix/meta v0.2607.0 an
   assert.match(read('third_party/licenses/matrix-js-sdk-Apache-2.0.txt'), /Apache License/u);
 });
 
-test('V1 keeps unpublished v26.08 Android native flow out of production authority while retaining stable messenger-lite username/password', () => {
+test('production keeps messenger-lite as the Yance-selected mature login flow without retired v26.07 mode overrides', () => {
   const upstream = json('config/upstreams/v21-comms-p0.json').externalRuntimes?.mautrixMeta;
-  assert.equal(upstream.version, 'v0.2607.0');
+  assert.equal(upstream.version, 'v0.2609.0');
   assert.equal(upstream.nativeLoginFlow, 'messenger-lite');
-  const combined = [read('config/matrix/mautrix-meta/config.yaml'), read('services/matrix/docker-compose.yml')].join('\n');
-  assert.doesNotMatch(combined, /messenger-lite-android/u);
-  assert.doesNotMatch(combined, /9e6484d7bb46078fda661b03e2aa28c0a1b4db70/u);
+  const metaConfig = read('config/matrix/mautrix-meta/config.yaml');
+  const materializedCompose = read('tools/product-experience/materialized-matrix-compose.yml');
+  assert.match(metaConfig, /network:[\s\S]*cache_connection_state:\s*true[\s\S]*send_presence_on_typing:\s*true[\s\S]*thread_backfill:/u);
+  assert.doesNotMatch(metaConfig, /^\s*mode:\s*/mu);
+  assert.doesNotMatch(metaConfig, /^\s*allowed_modes:\s*/mu);
+  assert.doesNotMatch(materializedCompose, /YANCE_MAUTRIX_META_NETWORK__MODE/u);
 });
 
 test('production source contains no Yance browser automation, cookie harvesting, direct Meta protocol client or hand-written Matrix sync engine', () => {

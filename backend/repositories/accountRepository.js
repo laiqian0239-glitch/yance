@@ -18,10 +18,15 @@ function clone(value) { return value == null ? value : JSON.parse(JSON.stringify
 function now() { return new Date().toISOString(); }
 function idFor(platform) { return `${platform.slice(0, 2)}-${crypto.randomUUID()}`; }
 function defaultAccountKind(platform) { return platform === 'facebook' ? 'page' : platform === 'telegram' ? 'personal' : 'personal-multidevice'; }
+const RETIRED_DRIVER_SUCCESSORS = Object.freeze({
+  'whatsapp-web-multidevice': 'whatsapp-personal-mautrix-whatsapp',
+  'telegram-personal-mtproto': 'telegram-personal-mautrix-telegram'
+});
+
 function defaultDriverId(platform, accountKind) {
   if (platform === 'facebook') return accountKind === 'personal-identity' ? 'facebook-personal-identity-official' : accountKind === 'personal-messenger' ? 'facebook-personal-messenger-mautrix-meta' : 'facebook-page-official';
-  if (platform === 'telegram') return 'telegram-personal-mtproto';
-  return 'whatsapp-web-multidevice';
+  if (platform === 'telegram') return 'telegram-personal-mautrix-telegram';
+  return 'whatsapp-personal-mautrix-whatsapp';
 }
 
 function readState(store = getStore()) {
@@ -424,6 +429,37 @@ async function bindConversation(conversationId, accountId, platform, externalCon
   return clone(binding);
 }
 
+async function migrateRetiredDriverIds() {
+  const store = getStore();
+  const migrated = [];
+  await store.transactionAsync(() => {
+    const state = readState(store);
+    for (const before of listWithStore(store, { includeAliases: true })) {
+      const retiredDriverId = String(before.driverId || before.metadata?.driverId || '').trim();
+      const driverId = RETIRED_DRIVER_SUCCESSORS[retiredDriverId];
+      if (!driverId) continue;
+      const updated = sanitizeAccount({
+        id: before.id,
+        platform: before.platform,
+        driverId,
+        metadata: {
+          ...(before.metadata || {}),
+          driverId,
+          retiredDriverId,
+          driverAuthorityMigratedAt: now()
+        }
+      }, before);
+      persistAccount(store, updated);
+      migrated.push({ accountId: before.id, platform: before.platform, retiredDriverId, driverId });
+    }
+    if (migrated.length) {
+      addAudit(state, 'retired-platform-driver-authority-migrated', { migrated });
+      writeState(store, state);
+    }
+  });
+  return Object.freeze({ migratedCount: migrated.length, migrated: Object.freeze(migrated.map(row => Object.freeze({ ...row }))) });
+}
+
 async function record(action, detail) {
   const store = getStore();
   await store.transactionAsync(() => {
@@ -435,4 +471,5 @@ async function record(action, detail) {
 }
 
 module.exports = { read, list, listAll, get, getRaw, create, update, remove, setDefault, bindConversation, canonicalBindings, record,
-  persistAccount, recordWithinTransaction, promoteAuthorizationTx, commitConnectedIdentityTx, commitLifecycleTx, tombstone };
+  persistAccount, recordWithinTransaction, promoteAuthorizationTx, commitConnectedIdentityTx, commitLifecycleTx, tombstone,
+  migrateRetiredDriverIds, RETIRED_DRIVER_SUCCESSORS };

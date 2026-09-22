@@ -65,18 +65,15 @@ function accessMessage(status: PersonalAccessStatus | null): string {
 export function PersonalAccessSurface({
   children,
   getMatrixOpenIdToken,
-  requestLogout,
 }: {
   children: React.ReactNode;
   getMatrixOpenIdToken?: () => Promise<MatrixOpenIdToken>;
-  requestLogout?: () => Promise<void> | void;
 }): React.JSX.Element {
   const api = useMemo(() => desktopApi(), []);
   const [status, setStatus] = useState<PersonalAccessStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [backendReady, setBackendReady] = useState(false);
   const [feedback, setFeedback] = useState("正在读取个人使用权限");
-  const logoutRequested = useRef(false);
   const automaticRefreshAttempted = useRef(false);
   const automaticHandoffAttempted = useRef(false);
 
@@ -120,7 +117,13 @@ export function PersonalAccessSurface({
         applyStatus(first);
         return;
       }
-      const matrixOpenId = await readMatrixProof();
+      let matrixOpenId: MatrixOpenIdToken | null;
+      try {
+        matrixOpenId = await readMatrixProof();
+      } catch {
+        applyStatus({ role: "TESTER", usable: false, reasonCode: "MATRIX_OPENID_REQUIRED" });
+        return;
+      }
       if (!matrixOpenId) {
         applyStatus({ role: "TESTER", usable: false, reasonCode: "ELEMENT_MATRIX_OPENID_SEAM_MISSING" });
         return;
@@ -146,7 +149,13 @@ export function PersonalAccessSurface({
     if (!keyId) return;
     setBusy(true);
     try {
-      const matrixOpenId = await readMatrixProof();
+      let matrixOpenId: MatrixOpenIdToken | null;
+      try {
+        matrixOpenId = await readMatrixProof();
+      } catch {
+        applyStatus({ role: "TESTER", usable: false, reasonCode: "MATRIX_OPENID_REQUIRED" });
+        return;
+      }
       if (!matrixOpenId) {
         applyStatus({ role: "TESTER", usable: false, reasonCode: "ELEMENT_MATRIX_OPENID_SEAM_MISSING" });
         return;
@@ -169,25 +178,6 @@ export function PersonalAccessSurface({
     void activateHandoff();
   }, [activateHandoff, status?.usable]);
 
-  useEffect(() => {
-    const terminal = new Set([
-      "INVITATION_REQUIRED",
-      "UNKEY_ENTITLEMENT_INVALID",
-      "UNKEY_ENTITLEMENT_DISABLED",
-      "UNKEY_ENTITLEMENT_EXPIRED",
-      "UNKEY_ENTITLEMENT_EXPIRY_INVALID",
-      "UNKEY_KEY_ID_MISMATCH",
-      "MATRIX_INVITATION_EXTERNAL_ID_INVALID",
-      "MATRIX_SUBJECT_MISMATCH",
-    ]);
-    if (status?.usable === true
-      || !terminal.has(String(status?.reasonCode || ""))
-      || window.yancePersonalAccessHandoff?.keyId
-      || logoutRequested.current
-      || typeof requestLogout !== "function") return;
-    logoutRequested.current = true;
-    void Promise.resolve(requestLogout());
-  }, [requestLogout, status?.reasonCode, status?.usable]);
 
   const usable = status?.usable === true;
   const isOwner = status?.role === "OWNER";

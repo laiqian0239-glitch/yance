@@ -49,11 +49,14 @@ export type ConversationRef = {
   accountId: string;
   chatJid: string;
   sessionKey: string;
+  matrixRoomId?: string;
   conversationKind?: ConversationKind;
   automationMode: ConversationAutomationMode;
   unreadCount: number;
   pinned: boolean;
   archived: boolean;
+  lastMessage?: string;
+  avatarUrl?: string;
   lastMessageAt?: string;
   updatedAt?: string;
   relationshipIntelligence?: RelationshipIntelligenceProjection;
@@ -63,12 +66,23 @@ export type GroupConversationProjection = ConversationRef & {
   conversationKind: "group";
 };
 
+export type MatrixDirectRoomProjection = {
+  roomId: string;
+  name: string;
+  platformId: string;
+  platformName: string;
+  accountId: string;
+  chatJid: string;
+  lastActiveAt?: string;
+};
+
 export type RelationshipProjection = {
   id: string;
   name: string;
   conversations: readonly ConversationRef[];
   subtitle: string;
   avatarUrl?: string;
+  lastMessage?: string;
   platform?: string;
   accountId?: string;
   chatJid?: string;
