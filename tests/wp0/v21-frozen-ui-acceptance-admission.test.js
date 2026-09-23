@@ -35,6 +35,7 @@ test("acceptance guard cannot mutate Docker lifecycle or install toolchains", ()
   assert.doesNotMatch(guard, /corepack\s+enable/u);
 });
 test("runtime admission proves frozen owner/session/materialization before acceptance", () => {
+  assert.ok(guard.includes('fetchJson(backendUrl + "/api/health", readyTimeoutMs)'));
   assert.match(guard, /health\?\.readiness\?\.ready !== true/u);
   assert.match(guard, /health\?\.runtimeMode !== "production"/u);
   assert.match(guard, /ELEMENT_HOMESERVER_ORIGIN_DRIFT/u);
@@ -57,7 +58,7 @@ test("runtime admission proves frozen owner/session/materialization before accep
   assert.match(guard, /conversationIdentityCard === true/u);
   assert.match(guard, /conversationInspectorTabCount === 4/u);
   assert.match(guard, /conversationPaneToggleCount === 2/u);
-  assert.match(guard, /conversationRichReplyToolCount === 3/u);
+  assert.match(guard, /conversationRichReplyToolCount === 4/u);
   assert.match(guard, /conversationComposerPresent === true/u);
   assert.match(guard, /conversationNewRoomIntroCount === 0/u);
   assert.match(guard, /conversationCryptoEventCount === 0/u);

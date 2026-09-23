@@ -62,6 +62,9 @@ function mautrixDriver(platform, adapter) {
     async cancelLogin(account, loginProcessId, options = {}) {
       return adapter.cancelLogin(account, loginProcessId, options);
     },
+    async ensureDirectChat(account, identifier, loginId, options = {}) {
+      return adapter.ensureDirectChat(account, identifier, loginId, options);
+    },
     isCompleteLoginResult(result) { return adapter.isCompleteLoginResult(result); },
     loginId(result) { return adapter.loginId(result); },
     async sendText(context, input) { return adapter.sendText(context, input); },

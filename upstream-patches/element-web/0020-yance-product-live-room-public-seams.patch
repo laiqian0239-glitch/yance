@@ -564,7 +564,7 @@ index 3b036f0..05db4f1 100644
  }
  
  // @alpha
-@@ -98,19 +100,14 @@ export interface ChatExportCustomisations<ExportFormat, ExportType> {
+@@ -98,19 +100,15 @@ export interface ChatExportCustomisations<ExportFormat, ExportType> {
  // @public
  export interface ClientApi {
      accountData: AccountDataApi;
@@ -726,7 +726,7 @@ diff --git a/packages/module-api/src/api/client.ts b/packages/module-api/src/api
 index 73270f5..7128085 100644
 --- a/packages/module-api/src/api/client.ts
 +++ b/packages/module-api/src/api/client.ts
-@@ -49,6 +49,8 @@ export interface ClientApi {
+@@ -49,5 +49,6 @@ export interface ClientApi {
       * @returns Room objects projected through the existing module Room wrapper.
       */
      getRooms: () => Room[];

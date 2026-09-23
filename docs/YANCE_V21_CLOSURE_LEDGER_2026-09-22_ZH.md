@@ -84,3 +84,43 @@
 - Product final admission：仍为 **17 tests / 14 pass / 3 fail**；三个既有 admission RED 未被本轮 wiring 变更冒充为 GREEN。
 - `git diff --check` GREEN。
 - 当前状态仅为 **CODE-GREEN**；尚未声明 DATA-GREEN / HUMAN-ACCEPTED / CLOSED。
+
+## 2026-09-22 Owner correction / new-chat handoff checkpoint
+
+This checkpoint supersedes the stale “next task = R2 command wiring” wording in earlier sections, but does not rewrite history and does not authorize promotion.
+
+- R2 command/IPC/driver direct-chat wiring remains **CODE-GREEN**, not HUMAN-ACCEPTED/CLOSED.
+- Current bounded Product RED is contact-directory completeness: Facebook mature Matrix space has **26** `m.space.child` room edges (not yet a proven unique-contact count), while current Yance People projection only exposes the subset with materialized/joined `Room` objects.
+- Current runtime evidence after mature bridge observation recovery: Product People shows **14** relationships; Facebook contributes the currently materialized/joined subset, not all hierarchy children.
+- Fresh focused test `tests/wp0/v21-product-contact-directory-authority-local.test.js`: **4 total / 2 PASS / 2 RED**. The RED requires a mature-owner hierarchy summary seam plus thin Product projection; it must not be weakened.
+- RED H remains OPEN. RED I (`添加联系人 / 新建联系`) remains OPEN and follows directory identity/projection closure.
+- User explicitly rejected further rule drift. New chat must execute `AGENTS.md` repository skill routing first, including one-shot release-controller recovery and mature-authority admission before any production mutation.
+
+## R2 DATA-GREEN fresh evidence — current frozen runtime
+
+- Frode Amundsen now resolves to exact Matrix room `!cuBzJhZKiBqXQKnuAQ:yance.local`; clicking the invite-only contact no longer retains Marc Rotte or falls into `NO_UNIQUE`.
+- Synapse current membership for `@tester01:yance.local` in that room is `join`; the prior `invite` event remains historical evidence only.
+- Mature-owner room state contains both `m.bridge` and `uk.half-shot.bridge`: Telegram receiver `8638095739`, exact peer `user:6472340049`, bridge bot `@yance_telegram_bot:yance.local`.
+- Frozen Element host bundle now exposes mature `ensureRoomJoined -> MatrixClient.joinRoom`; live `init.js` SHA-256 is `b2e63161e64bdfa3476447d991756a240b33526e410c28c828e1b9a738fcb394`.
+- Frozen Yance module `index.js` host/container/HTTP SHA-256 is `f9549fbefc90792f85abb2a1e70b80af8cfd2bb667f08fa9683ad56b90af28f3`.
+- Runtime admission is fresh GREEN on the active Frode RoomView: Product conversation presentation active, real Element Composer present, 4 rich-reply actions present, no New Room intro / crypto event / generic system summary, authenticated contact media loaded.
+- The admission helper's stale `richReplyToolCount === 3` expectation was corrected to the current 4-action Product contract via RED→GREEN test; no Product visual behavior was changed.
+- Telegram mature bridge currently has `backfill.enabled: false`; therefore zero historical `m.room.message` events in this newly joined portal is not treated as an R2 P06/P07 failure and no fake history/backfill authority was introduced.
+- Fresh focused direct-chat wiring test: **6 / 6 GREEN**. Frozen acceptance admission test: **6 / 6 GREEN**. `git diff --check`: GREEN (line-ending advisories only).
+- R2 status is now **DATA-GREEN**. **HUMAN-ACCEPTED is still pending**; no CLOSED claim is authorized. Windows visual closure requires real owner-approved evidence/receipts and synthetic or hand-authored receipts are forbidden.
+
+## 2026-09-23 RED H / People-Relationship closure continuation
+
+This continuation supersedes the earlier RED-H runtime counts without rewriting their historical evidence.
+
+- Persistent mature-owner seam is now `upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch`; `tools/matrix/bootstrap.js` applies it during Element materialization.
+- Element exposes read-only `getSpaceHierarchyRooms(spaceRoomId)` summaries. Product enumeration does not bulk-join child rooms; exact-room join remains lazy on contact selection.
+- Fresh focused closure suite covering direct-chat authority, hierarchy projection, pending conversation handoff, Home return, and frozen admission: **32 / 32 GREEN**.
+- Fresh Yance Element module `lint:types`: GREEN.
+- Frozen runtime admission and repository safe renderer reload: GREEN; materialized Yance module SHA-256 is `c7fa5451375811d748eab8c4c800cc1d90dd29662175eb18035fa36ab971bc98`.
+- Real Product regression is closed at DATA level: enter Relationship World -> click Home -> People mounts; stale Relationship World unmounts; Home becomes the active destination.
+- People authority reconciliation is exact: 8 backend direct relationships + 35 mature Matrix hierarchy-owned rooms - 6 canonical route overlaps = **37 Product relationships**, matching the rendered People count of 37.
+- Matrix authority evidence: 2 bridge spaces, 35 hierarchy children, 35 / 35 joined at observation time, zero hierarchy-read failures.
+- `/api/health` is a large diagnostic projection (~435 KB in the observed runtime) and returned in 3174 ms during diagnosis. Frozen admission now reuses its existing `YANCE_ACCEPTANCE_READY_TIMEOUT_MS` boundary for this health projection instead of the generic 4-second fetch default; the admission regression is GREEN.
+- Unrelated/unadmitted Telegram backfill configuration remains outside this closure commit and must not be treated as part of RED H or R2 evidence.
+- Status: **RED H = DATA-GREEN; R2 = DATA-GREEN; HUMAN-ACCEPTED remains pending.** No CLOSED / release / merge claim is authorized by this note alone.

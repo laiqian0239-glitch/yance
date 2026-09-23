@@ -111,8 +111,7 @@ function directRouteKey(value: Pick<ConversationRef, "platform" | "accountId" | 
 }
 
 function matrixDirectRelationship(room: MatrixDirectRoomProjection): RelationshipProjection {
-  const contactRouteId = room.chatJid || room.roomId;
-  const contactId = `matrix:${room.platformId}:${room.accountId}:${contactRouteId}`;
+  const contactId = `matrix:${room.platformId}:${room.accountId}:${room.roomId}`;
   const conversation: ConversationRef = {
     id: `matrix-room:${room.roomId}`,
     contactId,
@@ -147,36 +146,68 @@ function matrixDirectRelationship(room: MatrixDirectRoomProjection): Relationshi
   };
 }
 
+function roomIdentity(value: { matrixRoomId?: string }): string {
+  return String(value.matrixRoomId || "").trim();
+}
+
 function mergeMatrixDirectRelationships(
   stored: readonly RelationshipProjection[],
   rooms: readonly MatrixDirectRoomProjection[],
 ): readonly RelationshipProjection[] {
   const merged = [...stored];
   const routeToRelationship = new Map<string, number>();
-  merged.forEach((relationship, index) => {
-    for (const conversation of relationship.conversations) {
-      const key = directRouteKey(conversation);
-      if (key && !routeToRelationship.has(key)) routeToRelationship.set(key, index);
+  const roomIdentityToRelationship = new Map<string, number>();
+  const bindRelationshipKeys = (relationship: RelationshipProjection, index: number): void => {
+    const relationshipRoomId = roomIdentity(relationship);
+    if (relationshipRoomId && !roomIdentityToRelationship.has(relationshipRoomId)) {
+      roomIdentityToRelationship.set(relationshipRoomId, index);
     }
-  });
+    for (const conversation of relationship.conversations) {
+      const routeKey = directRouteKey(conversation);
+      if (routeKey && !routeToRelationship.has(routeKey)) routeToRelationship.set(routeKey, index);
+      const conversationRoomId = roomIdentity(conversation);
+      if (conversationRoomId && !roomIdentityToRelationship.has(conversationRoomId)) {
+        roomIdentityToRelationship.set(conversationRoomId, index);
+      }
+    }
+  };
+  merged.forEach(bindRelationshipKeys);
 
   for (const room of rooms) {
     const live = matrixDirectRelationship(room);
-    const key = directRouteKey(live.conversations[0]);
-    if (!key) continue;
-    const index = routeToRelationship.get(key);
+    const liveConversation = live.conversations[0];
+    const routeKey = directRouteKey(liveConversation);
+    const exactRoomIdentity = roomIdentity(live);
+    const index = (routeKey ? routeToRelationship.get(routeKey) : undefined)
+      ?? (exactRoomIdentity ? roomIdentityToRelationship.get(exactRoomIdentity) : undefined);
     if (index == null) {
-      routeToRelationship.set(key, merged.length);
+      const nextIndex = merged.length;
       merged.push(live);
+      bindRelationshipKeys(live, nextIndex);
       continue;
     }
     const current = merged[index];
+    const conversations = current.conversations.length
+      ? current.conversations.map((conversation, conversationIndex) => (
+        conversationIndex === 0
+          ? {
+            ...conversation,
+            matrixRoomId: conversation.matrixRoomId || liveConversation.matrixRoomId,
+            chatJid: conversation.chatJid || liveConversation.chatJid,
+          }
+          : conversation
+      ))
+      : live.conversations;
     merged[index] = {
       ...current,
+      conversations,
       matrixRoomId: current.matrixRoomId || live.matrixRoomId,
+      chatJid: current.chatJid || live.chatJid,
+      sessionKey: current.sessionKey || live.sessionKey,
       updatedAt: current.updatedAt || live.updatedAt,
       recentAt: current.recentAt || live.recentAt,
     };
+    bindRelationshipKeys(merged[index], index);
   }
 
   return merged.sort((left, right) => {
@@ -1331,7 +1362,7 @@ export function ProductConversationSurface({
     </article>;
   };
 
-  if (!session.activeMatrixRoomId) {
+  if (!session.activeMatrixRoomId && !session.conversationNavigationPending && !session.selectedConversationId) {
     return <section className="yance-product-conversation yance-product-conversation--empty" aria-label="言策对话">
       <div className="yance-empty" role="status">
         <strong>没有已绑定的真实对话</strong>
@@ -1346,6 +1377,7 @@ export function ProductConversationSurface({
     aria-label={"与 " + title + " 的言策对话"}
     data-left-collapsed={leftCollapsed || undefined}
     data-right-collapsed={rightCollapsed || undefined}
+    data-navigation-pending={session.conversationNavigationPending || undefined}
   >
     <nav className="yance-conversation-rail" aria-label="对话工作区导航">
       <div className="yance-conversation-rail__brand" aria-label="Yance 言策">
@@ -1513,14 +1545,17 @@ export function ProductConversationSurface({
           <span>真实对话</span>
           <strong>消息、发送与安全继续由现有消息系统处理</strong>
         </div>
-        <div className="yance-product-conversation__room-view" key={session.activeMatrixRoomId}>
-          {renderRoomView(session.activeMatrixRoomId, {
+        <div className="yance-product-conversation__room-view" key={session.activeMatrixRoomId || `pending:${session.selectedConversationId}`}>
+          {session.activeMatrixRoomId ? renderRoomView(session.activeMatrixRoomId, {
             hideHeader: true,
             hideRightPanel: true,
             hideWidgets: true,
             enableReadReceiptsAndMarkersOnActivity: true,
             productPresentation: "yance-conversation",
-          })}
+          }) : <div className="yance-empty yance-product-conversation__room-transition" role="status">
+            <strong>{session.conversationNavigationPending ? "正在打开真实对话…" : "真实对话暂未就绪"}</strong>
+            <span>{session.conversationNavigationPending ? "正在连接目标联系人对应的真实消息房间。" : "当前目标没有可用的真实聊天房间；言策不会猜测性跳转。"}</span>
+          </div>}
         </div>
       </main>
 
@@ -1892,6 +1927,9 @@ export function ProductExperienceShell({
     || relationships.find((row) => row.id === focusedRelationshipId)
     || relationships[0]
     || null;
+  const conversationSurfaceActive = Boolean(
+    session.activeMatrixRoomId || session.conversationNavigationPending || session.selectedConversationId,
+  );
 
   const runtimeSafetyBanner = useMemo(
     () => projectRuntimeSafety(
@@ -1986,6 +2024,7 @@ export function ProductExperienceShell({
       data-theme-id={appearance.themeId || undefined}
       data-font-scale={appearance.available ? appearance.fontScale : undefined}
       data-conversation-active={!settingsVisible && session.activeMatrixRoomId ? session.activeMatrixRoomId : undefined}
+      data-conversation-surface-active={!settingsVisible && session.conversationNavigationPending ? "true" : undefined}
       data-settings-active={settingsVisible || undefined}
       aria-label="言策"
     >
@@ -2013,7 +2052,7 @@ export function ProductExperienceShell({
         </div>
       ) : null}
 
-      {!session.activeMatrixRoomId || settingsVisible ? <nav className="yance-desktop-rail" aria-label="言策桌面功能">
+      {!conversationSurfaceActive || settingsVisible ? <nav className="yance-desktop-rail" aria-label="言策桌面功能">
         <div className="yance-desktop-rail__brand" aria-label="Yance 言策">
           <span aria-hidden="true"><YanceMark /></span>
           <strong>言策</strong>
@@ -2034,11 +2073,11 @@ export function ProductExperienceShell({
           void refreshRelationships();
           if (selectedRelationship) returnToPeople();
         }}><span aria-hidden="true"><Orbit /></span><strong>关系宇宙</strong></button>
-        <button type="button" aria-current={!settingsVisible && !session.activeMatrixRoomId && Boolean(selectedRelationship) ? "page" : undefined} disabled={!homeRelationship} onClick={() => {
+        <button type="button" aria-current={!settingsVisible && !conversationSurfaceActive && Boolean(selectedRelationship) ? "page" : undefined} disabled={!homeRelationship} onClick={() => {
           if (!homeRelationship) return;
           playExperienceSound(preferences.soundMode, "confirm");
           setSettingsVisible(false);
-          if (session.activeMatrixRoomId && navigateRelationshipHome) {
+          if (conversationSurfaceActive && navigateRelationshipHome) {
             void Promise.resolve(navigateRelationshipHome())
               .then(() => setStatus("已返回关系世界"))
               .catch(() => setStatus("返回关系世界失败；当前对话保持不变"));
@@ -2046,7 +2085,7 @@ export function ProductExperienceShell({
           }
           chooseRelationship(homeRelationship.id);
         }}><span aria-hidden="true"><Heart /></span><strong>关系世界</strong></button>
-        <button type="button" aria-current={session.activeMatrixRoomId ? "page" : undefined} disabled={!homeRelationship?.conversations.length} onClick={() => {
+        <button type="button" aria-current={conversationSurfaceActive ? "page" : undefined} disabled={!homeRelationship?.conversations.length} onClick={() => {
           const conversation = homeRelationship?.conversations.find((row) => !row.archived) || homeRelationship?.conversations[0];
           if (!homeRelationship || !conversation || !navigateConversation) return;
           playExperienceSound(preferences.soundMode, "confirm");
@@ -2071,7 +2110,7 @@ export function ProductExperienceShell({
         }}><span aria-hidden="true"><Settings /></span><strong>设置</strong></button>
       </nav> : null}
 
-      {!session.activeMatrixRoomId ? <header className="yance-product-nav" aria-label="言策主导航">
+      {!conversationSurfaceActive ? <header className="yance-product-nav" aria-label="言策主导航">
         <div className="yance-product-nav__identity">
           <span className="yance-product-nav__mark" aria-hidden="true"><YanceMark /></span>
           <span className="yance-eyebrow">言策</span>
@@ -2091,7 +2130,7 @@ export function ProductExperienceShell({
       </header> : null}
 
       {!settingsVisible ? (
-        session.activeMatrixRoomId && renderRoomView ? (
+        conversationSurfaceActive && renderRoomView ? (
           <motion.div
             key="conversation"
             className="yance-shell-scene yance-shell-scene--conversation"
@@ -2131,7 +2170,7 @@ export function ProductExperienceShell({
             />
           </motion.div>
         ) : (
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence initial={false}>
         {!selectedRelationship ? (
           <motion.div
             key="people"

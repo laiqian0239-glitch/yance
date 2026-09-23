@@ -290,7 +290,7 @@ async function waitForReady(cdp) {
         last.conversationIdentityCard === true &&
         last.conversationInspectorTabCount === 4 &&
         last.conversationPaneToggleCount === 2 &&
-        last.conversationRichReplyToolCount === 3 &&
+        last.conversationRichReplyToolCount === 4 &&
         last.conversationComposerPresent === true &&
         last.conversationNewRoomIntroCount === 0 &&
         last.conversationCryptoEventCount === 0 &&
@@ -334,7 +334,7 @@ async function waitForReady(cdp) {
       !last.conversationIdentityCard ||
       last.conversationInspectorTabCount !== 4 ||
       last.conversationPaneToggleCount !== 2 ||
-      last.conversationRichReplyToolCount !== 3 ||
+      last.conversationRichReplyToolCount !== 4 ||
       !last.conversationComposerPresent
     ) {
       fail("PRODUCT_RED", "ACCEPTANCE_CONVERSATION_PRESENTATION_NOT_READY", last);
@@ -368,7 +368,7 @@ async function waitForReady(cdp) {
 async function runtimeBoundaryAdmission() {
   let health;
   try {
-    health = await fetchJson(backendUrl + "/api/health");
+    health = await fetchJson(backendUrl + "/api/health", readyTimeoutMs);
   } catch (error) {
     fail("HARNESS_RED", "BACKEND_HEALTH_UNREACHABLE", { error: String(error.message || error) });
   }

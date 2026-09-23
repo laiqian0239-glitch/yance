@@ -20,6 +20,7 @@ const PRODUCT_CONVERSATION_CONTROL_PATCH = path.join(ROOT, 'upstream-patches/ele
 const POST_LOGIN_SECURITY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0018-yance-post-login-security-shell.patch');
 const MODULE_OPENID_TOKEN_PATCH = path.join(ROOT, 'upstream-patches/element-web/0019-yance-module-openid-token.patch');
 const PRODUCT_LIVE_ROOM_PUBLIC_SEAMS_PATCH = path.join(ROOT, 'upstream-patches/element-web/0020-yance-product-live-room-public-seams.patch');
+const SPACE_HIERARCHY_SUMMARY_PATCH = path.join(ROOT, 'upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch');
 const RUNTIME = path.join(ROOT, 'services/matrix/.runtime');
 
 function run(cwd, command, args) {
@@ -57,6 +58,15 @@ function applyPatch(repoDir, patchPath, label) {
   if (!fs.existsSync(patchPath)) throw new Error(`${label} missing: ${path.relative(ROOT, patchPath)}`);
   run(repoDir, 'git', ['apply', '--check', patchPath]);
   run(repoDir, 'git', ['apply', patchPath]);
+}
+
+function syncYanceModuleSource(element) {
+  const source = path.join(ROOT, 'integration/element-module/src/index.tsx');
+  const target = path.join(element, 'modules/yance/src/index.tsx');
+  if (!fs.existsSync(source) || !fs.existsSync(target)) {
+    throw new Error('Yance module source sync requires existing source and materialized target bytes');
+  }
+  fs.copyFileSync(source, target);
 }
 
 function materialize(name, upstream) {
@@ -142,6 +152,7 @@ function main() {
   applyPatch(element, POST_LOGIN_SECURITY_PATCH, 'Element post-login security shell patch');
   applyPatch(element, MODULE_OPENID_TOKEN_PATCH, 'Element module OpenID token patch');
   applyPatch(element, PRODUCT_LIVE_ROOM_PUBLIC_SEAMS_PATCH, 'Element Product live-room public seams patch');
+  applyPatch(element, SPACE_HIERARCHY_SUMMARY_PATCH, 'Element space hierarchy summary patch');
 
   assertExactCommit(synapse, LOCK.upstreams.synapse.commit);
   assertExactCommit(mautrix, LOCK.upstreams.mautrixWhatsapp.commit);
@@ -151,4 +162,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { applyPatch, assertExactCommit, main, run, materializeExactReleaseTag };
+module.exports = { applyPatch, assertExactCommit, main, run, materializeExactReleaseTag, syncYanceModuleSource };

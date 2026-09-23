@@ -116,13 +116,19 @@ test('Product resolves mature portal rooms through bridge state and delegates re
   assert.match(resolver, /readRoomStateEvents\(roomId, "m\.bridge"\)/u);
   assert.match(resolver, /readRoomStateEvents\(roomId, "uk\.half-shot\.bridge"\)/u);
   assert.match(resolver, /const receiver = clean\(identity\.receiver\)/u);
-  assert.match(resolver, /receiver === accountId/u);
+  assert.match(resolver, /const acceptedReceivers = new Set\(/u);
+  assert.match(resolver, /\[accountId, \.\.\.bridgeReceiverAliases\]\.map\(clean\)\.filter\(Boolean\)/u);
+  assert.match(resolver, /acceptedReceivers\.has\(receiver\)/u);
+  assert.match(resolver, /metadata\.mautrixLoginId/u);
+  assert.match(resolver, /bridgeLogins/u);
+  assert.match(resolver, /if \(!platform \|\| !chatJid \|\| !accountId \|\| !receiver\) return false/u);
+  assert.doesNotMatch(resolver, /receiver === accountId/u);
   assert.doesNotMatch(resolver, /receiverMatches\.length \? receiverMatches : platformMatches/u);
   assert.doesNotMatch(resolver, /!identity\.receiver \|\| route\.accountId === identity\.receiver/u);
   assert.match(resolver, /if \(!identity\.receiver\)[\s\S]*status: "unresolved"/u);
   assert.match(resolver, /matches\.size === 1/u);
   assert.match(entry, /builtins\.renderRoomView\(roomId, props\)/u);
-  assert.match(entry, /resolveCanonicalConversationRoom\(conversation, roomIds, readRoomStateEvents\)/u);
+  assert.match(entry, /resolveCanonicalConversationRoom\(\s*conversation,\s*candidateRoomIds,\s*readRoomStateEvents,\s*bridgeReceiverAliases,\s*\)/u);
 });
 
 test('Element OpenID is projected transiently into mautrix provisioning without a second Matrix session owner', () => {
@@ -182,4 +188,19 @@ test('Facebook Page remains on the existing Chatwoot production authority while 
   assert.match(accounts, /facebook-page-inboxes/u);
   assert.match(accounts, /facebook-page-attach/u);
   assert.doesNotMatch(accounts, /Facebook Page 请使用现有官方渠道完成授权/u);
+});
+
+test('Telegram conversation history is materialized by mautrix backfill for Element RoomView, not by a Yance shadow timeline', () => {
+  const compose = read('services/matrix/docker-compose.yml');
+  const config = read('config/matrix/mautrix-telegram/config.yaml');
+  const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
+
+  assert.match(config, /(?:^|\n)backfill:\s*\n\s+enabled:\s*true\b/u,
+    'fresh Telegram bridge data must enable mature-owner initial/catch-up history materialization');
+  assert.match(compose, /YANCE_MAUTRIX_TELEGRAM_BACKFILL__ENABLED:\s*["']?true["']?/u,
+    'the frozen named-volume runtime must receive the same mature-owner backfill setting through its supported env-config seam');
+  assert.match(shell, /renderRoomView\(session\.activeMatrixRoomId/u,
+    'Element RoomView remains the only Product timeline renderer');
+  assert.doesNotMatch(shell, /recentMessages\.map\([\s\S]*yance-product-conversation__room-view/u,
+    'stored Product context must not become a second chat-history renderer');
 });

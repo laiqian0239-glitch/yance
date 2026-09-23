@@ -21,7 +21,9 @@ import {
 } from "./product-experience/RelationshipOverlayHost";
 import { loadPeopleProjections } from "./product-experience/experienceProjection";
 import {
+  beginProductConversationNavigation,
   bindProductConversation,
+  cancelProductConversationNavigation,
   clearProductConversationBinding,
   clearSelectedRelationship,
   getExperienceSessionSnapshot,
@@ -104,7 +106,7 @@ type YanceNavigationApi = Api["navigation"] & {
 };
 type YanceClientApi = Api["client"] & {
   getRooms?: () => readonly { id: string }[];
-  getSpaceHierarchyRoomIds?: (spaceRoomId: string) => Promise<string[]>;
+  getSpaceHierarchyRooms?: (spaceRoomId: string) => Promise<readonly { roomId: string; name: string }[]>;
   ensureRoomJoined?: (roomId: string) => Promise<void>;
   getUserId?: () => string | null;
 };
@@ -295,10 +297,11 @@ class YanceElementModule implements Module {
           .filter(([roomId]) => Boolean(roomId)),
       );
       const ownerByRoomId = new Map<string, BridgeRoomOwner>();
+      const hierarchySummariesByRoomId = new Map<string, { name: string }>();
       const productAccountIdByBridgeReceiver = new Map<string, string>();
 
       if (typeof desktop.listPlatformAccounts === "function"
-        && typeof clientApi.getSpaceHierarchyRoomIds === "function") {
+        && typeof clientApi.getSpaceHierarchyRooms === "function") {
         const matrixUserId = await resolveMatrixUserId();
         if (matrixUserId) {
           const accountPayload = record(await desktop.listPlatformAccounts({ matrixUserId }));
@@ -320,10 +323,11 @@ class YanceElementModule implements Module {
               }
               productAccountIdByBridgeReceiver.set(bridgeLoginId, productAccountId);
               try { await clientApi.ensureRoomJoined?.(spaceRoom); } catch {}
-              const childRoomIds = await clientApi.getSpaceHierarchyRoomIds(spaceRoom);
-              for (const rawRoomId of childRoomIds) {
-                const roomId = text(rawRoomId);
+              const childRooms = await clientApi.getSpaceHierarchyRooms(spaceRoom);
+              for (const childRoom of childRooms) {
+                const roomId = text(childRoom.roomId);
                 if (!roomId) continue;
+                hierarchySummariesByRoomId.set(roomId, { name: text(childRoom.name) || roomId });
                 const nextOwner = { platformId, platformName, accountId: productAccountId };
                 const existingOwner = ownerByRoomId.get(roomId);
                 if (existingOwner
@@ -331,7 +335,6 @@ class YanceElementModule implements Module {
                   throw new Error("MATRIX_SPACE_CHILD_ACCOUNT_AUTHORITY_AMBIGUOUS");
                 }
                 ownerByRoomId.set(roomId, nextOwner);
-                try { await clientApi.ensureRoomJoined?.(roomId); } catch {}
               }
             }
           }
@@ -381,7 +384,19 @@ class YanceElementModule implements Module {
 
       for (const [roomId, owner] of ownerByRoomId) {
         const room = roomById.get(roomId) || clientApi.getRoom(roomId);
-        if (room) projectRoom(room, owner);
+        const summary = hierarchySummariesByRoomId.get(roomId);
+        if (room) {
+          projectRoom(room, owner);
+        } else if (summary) {
+          projections.set(roomId, {
+            roomId,
+            name: summary.name,
+            platformId: owner.platformId,
+            platformName: owner.platformName,
+            accountId: owner.accountId,
+            chatJid: "",
+          });
+        }
       }
       for (const room of currentMatrixRooms()) projectRoom(room);
       return [...projections.values()];
@@ -438,36 +453,62 @@ class YanceElementModule implements Module {
       conversation: ConversationRef,
       generation = ++conversationNavigationGeneration,
     ): Promise<boolean> => runConversationNavigation(generation, async () => {
+      if (conversation.conversationKind === "group") {
+        clearProductConversationBinding();
+      } else {
+        beginProductConversationNavigation(relationshipId.trim(), conversation);
+      }
+      const failCurrentConversationNavigation = (): false => {
+        if (generation === conversationNavigationGeneration) cancelProductConversationNavigation();
+        return false;
+      };
+      try {
       const sessionKey = conversation.sessionKey.trim();
-      if (!sessionKey) return false;
+      if (!sessionKey) return failCurrentConversationNavigation();
 
       const explicitMatrixRoomId = text(conversation.matrixRoomId);
-      if (!explicitMatrixRoomId && typeof clientApi.getRooms !== "function") return false;
+      if (!explicitMatrixRoomId && typeof clientApi.getRooms !== "function") return failCurrentConversationNavigation();
       const candidateRoomIds = explicitMatrixRoomId
         ? [explicitMatrixRoomId]
         : clientApi.getRooms!().map((room) => String(room.id || "").trim()).filter(Boolean);
       const accountRows = await loadPlatformAccountRows();
+      const accountRow = accountRows.find((row) => text(row.id) === text(conversation.accountId));
+      const authority = text(accountRow?.authority).toLowerCase();
+      const matrixUserId = await resolveMatrixUserId();
       const bridgeReceiverAliases = bridgeReceiverAliasesForAccount(
         conversation.platform,
         conversation.accountId,
         accountRows,
       );
+      const joinedCandidateRoomIds = conversation.conversationKind !== "group"
+        && authority.startsWith("mautrix-")
+        && matrixUserId
+        ? candidateRoomIds.filter((roomId) => readRoomStateEvents(roomId, "m.room.member").some((event) => (
+          text(event.stateKey) === matrixUserId && text(event.content?.membership) === "join"
+        )))
+        : candidateRoomIds;
       let resolution: CanonicalRoomResolution = resolveCanonicalConversationRoom(
         conversation,
-        candidateRoomIds,
+        joinedCandidateRoomIds,
         readRoomStateEvents,
         bridgeReceiverAliases,
       );
+      if (resolution.status !== "resolved"
+        && explicitMatrixRoomId
+        && conversation.conversationKind !== "group"
+        && authority.startsWith("mautrix-")
+        && matrixUserId) {
+        await clientApi.ensureRoomJoined?.(explicitMatrixRoomId);
+        if (generation !== conversationNavigationGeneration) return false;
+        resolution = { status: "resolved", roomId: explicitMatrixRoomId };
+      }
       if (resolution.status !== "resolved") {
-        const accountRow = accountRows.find((row) => text(row.id) === text(conversation.accountId));
-        const authority = text(accountRow?.authority).toLowerCase();
         const identifier = text(conversation.chatJid);
-        const matrixUserId = await resolveMatrixUserId();
         if (conversation.conversationKind === "group"
           || !authority.startsWith("mautrix-")
           || !identifier
           || !matrixUserId
-          || typeof desktop.runPlatformAccountCommand !== "function") return false;
+          || typeof desktop.runPlatformAccountCommand !== "function") return failCurrentConversationNavigation();
         const ensured = record(await desktop.runPlatformAccountCommand({
           id: conversation.accountId,
           action: "provisioning-direct-chat-ensure",
@@ -475,18 +516,12 @@ class YanceElementModule implements Module {
           matrixUserId,
         }));
         const ensuredRoomId = text(ensured.roomId);
-        if (!ensuredRoomId) return false;
-        await navigationApi.openRoom(ensuredRoomId, { autoJoin: true });
+        if (!ensuredRoomId) return failCurrentConversationNavigation();
         await clientApi.ensureRoomJoined?.(ensuredRoomId);
         if (generation !== conversationNavigationGeneration) return false;
-        resolution = resolveCanonicalConversationRoom(
-          conversation,
-          [ensuredRoomId],
-          readRoomStateEvents,
-          bridgeReceiverAliases,
-        );
+        resolution = { status: "resolved", roomId: ensuredRoomId };
       }
-      if (resolution.status !== "resolved") return false;
+      if (resolution.status !== "resolved") return failCurrentConversationNavigation();
       const resolvedRoomId = resolution.roomId;
 
       if (pendingAiAssistElementSend
@@ -500,6 +535,10 @@ class YanceElementModule implements Module {
       navigationApi.setProductConversationPresentation?.("default");
       navigationApi.navigateToLocation?.("yance");
       return true;
+      } catch (error) {
+        if (generation === conversationNavigationGeneration) cancelProductConversationNavigation();
+        throw error;
+      }
     });
 
     const activateProductConversation = async (

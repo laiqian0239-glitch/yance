@@ -56,3 +56,16 @@ test('account manager fails closed when canonical account has no exact mautrix l
   );
   assert.equal(getCall(), null);
 });
+
+test('registered Telegram mautrix driver exposes direct-chat provisioning authority', () => {
+  const registry = require('../services/platformDriverRegistry');
+  const driver = registry.getForAccount({
+    id: 'te-canonical',
+    platform: 'telegram',
+    metadata: { driverId: 'telegram-personal-mautrix-telegram' },
+  });
+
+  assert.equal(driver.protocolAuthority, 'mautrix-telegram');
+  assert.equal(typeof driver.adapter.ensureDirectChat, 'function');
+  assert.equal(typeof driver.ensureDirectChat, 'function');
+});

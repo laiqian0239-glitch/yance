@@ -15,6 +15,7 @@ export type ExperienceSessionSnapshot = {
   selectedConversationChatJid: string;
   selectedConversationAutomationMode: ConversationAutomationMode;
   activeMatrixRoomId: string;
+  conversationNavigationPending: boolean;
   overlay: RelationshipOverlayKind | null;
 };
 
@@ -28,6 +29,7 @@ let snapshot: ExperienceSessionSnapshot = {
   selectedConversationChatJid: "",
   selectedConversationAutomationMode: "HUMAN",
   activeMatrixRoomId: "",
+  conversationNavigationPending: false,
   overlay: null,
 };
 
@@ -51,6 +53,7 @@ function update(next: Partial<ExperienceSessionSnapshot>): void {
     && candidate.selectedConversationChatJid === snapshot.selectedConversationChatJid
     && candidate.selectedConversationAutomationMode === snapshot.selectedConversationAutomationMode
     && candidate.activeMatrixRoomId === snapshot.activeMatrixRoomId
+    && candidate.conversationNavigationPending === snapshot.conversationNavigationPending
     && candidate.overlay === snapshot.overlay
   ) {
     return;
@@ -70,6 +73,7 @@ function emptyConversationBinding(): Pick<
   | "selectedConversationChatJid"
   | "selectedConversationAutomationMode"
   | "activeMatrixRoomId"
+  | "conversationNavigationPending"
 > {
   return {
     selectedConversationId: "",
@@ -80,6 +84,7 @@ function emptyConversationBinding(): Pick<
     selectedConversationChatJid: "",
     selectedConversationAutomationMode: "HUMAN",
     activeMatrixRoomId: "",
+    conversationNavigationPending: false,
   };
 }
 
@@ -112,6 +117,29 @@ export function selectRelationship(relationshipId: string): void {
   });
 }
 
+export function beginProductConversationNavigation(
+  relationshipId: string,
+  conversation: ConversationRef,
+): void {
+  update({
+    selectedRelationshipId: relationshipId.trim(),
+    selectedConversationId: conversation.id.trim(),
+    selectedConversationSessionKey: conversation.sessionKey.trim(),
+    selectedConversationContactId: conversation.contactId.trim(),
+    selectedConversationPlatform: conversation.platform.trim(),
+    selectedConversationAccountId: conversation.accountId.trim(),
+    selectedConversationChatJid: conversation.chatJid.trim(),
+    selectedConversationAutomationMode: conversation.automationMode,
+    activeMatrixRoomId: "",
+    conversationNavigationPending: true,
+    overlay: null,
+  });
+}
+
+export function cancelProductConversationNavigation(): void {
+  update({ conversationNavigationPending: false });
+}
+
 export function bindProductConversation(
   relationshipId: string,
   conversation: ConversationRef,
@@ -127,6 +155,7 @@ export function bindProductConversation(
     selectedConversationChatJid: conversation.chatJid.trim(),
     selectedConversationAutomationMode: conversation.automationMode,
     activeMatrixRoomId: roomId.trim(),
+    conversationNavigationPending: false,
     overlay: null,
   });
 }
