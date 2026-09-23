@@ -124,3 +124,21 @@ This continuation supersedes the earlier RED-H runtime counts without rewriting 
 - `/api/health` is a large diagnostic projection (~435 KB in the observed runtime) and returned in 3174 ms during diagnosis. Frozen admission now reuses its existing `YANCE_ACCEPTANCE_READY_TIMEOUT_MS` boundary for this health projection instead of the generic 4-second fetch default; the admission regression is GREEN.
 - Unrelated/unadmitted Telegram backfill configuration remains outside this closure commit and must not be treated as part of RED H or R2 evidence.
 - Status: **RED H = DATA-GREEN; R2 = DATA-GREEN; HUMAN-ACCEPTED remains pending.** No CLOSED / release / merge claim is authorized by this note alone.
+
+## 2026-09-23 Final chat-cutover checkpoint
+
+This is the current ledger checkpoint for the next chat and supersedes stale earlier execution targets without rewriting historical evidence.
+
+- Exact branch: `checkpoint/yance-v21-closure-20260922`.
+- Exact checkpoint HEAD: `fbd0cec65755668ec6acd714fa611b855af0d7ce` (`fix(yance): close v21 direct-chat and people hierarchy`).
+- Exact remote checkpoint already contains that HEAD.
+- R2 direct-chat path: **DATA-GREEN → HUMAN-ACCEPTED pending**.
+- RED H contact-directory / hierarchy projection: **DATA-GREEN → HUMAN-ACCEPTED pending**.
+- People ↔ Relationship World return regression: **DATA-GREEN → HUMAN-ACCEPTED pending**.
+- RED I Add Contact: still OPEN and must be treated as a separate future causal batch, not folded into the already-closed implementation batch.
+
+Current Product data reconciliation remains exact: `8 + 35 - 6 = 37`, matching the rendered People count of 37. The mature Matrix hierarchy remains the directory authority and Element remains the real room/timeline/composer authority.
+
+Tracked local changes intentionally left outside this checkpoint are only Telegram backfill enablement in `config/matrix/mautrix-telegram/config.yaml` and `services/matrix/docker-compose.yml`. These are not admitted/validated closure bytes. Preserve them locally, but do not stage/commit/ship them without separate authority admission.
+
+The next chat must begin with repository-owned Fresh State Recovery and fresh Controller verification. Do not repeat contact census, Docker recreation, Matrix re-login, SQLite cleanup, ad-hoc acceptance-runtime restart/reload, or any other broad recovery. HUMAN acceptance remains the final standard before CLOSED.

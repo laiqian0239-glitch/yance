@@ -197,3 +197,64 @@ The earlier sections remain historical recovery context. The current causal-batc
 - Current status language: **R2 DATA-GREEN; RED H DATA-GREEN; HUMAN-ACCEPTED pending.** The owner still decides final real-UI acceptance.
 
 Next allowed work after this checkpoint is not another broad contact census. Continue from owner visual/behavior acceptance or the next separately admitted Product RED (including RED I Add Contact) only after current bytes/branch/controller state are freshly recovered.
+
+## 2026-09-23 FINAL CHAT CUTOVER — 新聊天以本节为当前执行权威
+
+本节覆盖上文所有较早的 HEAD、RED-H 待实现、People=14 等历史执行目标；历史内容保留仅用于追溯，不得据此重新打开已完成 causal batch。
+
+### A. Exact Git / remote state
+
+- Worktree: `C:\Users\Public\Documents\yance-product-final-ui-local-20260919`
+- Branch: `checkpoint/yance-v21-closure-20260922`
+- Current HEAD: `fbd0cec65755668ec6acd714fa611b855af0d7ce`
+- Commit: `fix(yance): close v21 direct-chat and people hierarchy`
+- `origin/checkpoint/yance-v21-closure-20260922` already contains this exact HEAD.
+- Do not reset / clean / stash / discard existing user workspace state.
+
+### B. Current Product status — do not downgrade or reopen broadly
+
+- **R2 direct-chat / exact-room path = DATA-GREEN; HUMAN-ACCEPTED pending.**
+- **RED H contact-directory / mature hierarchy projection = DATA-GREEN; HUMAN-ACCEPTED pending.**
+- People ↔ Relationship scene return regression is DATA-GREEN in the same frozen runtime.
+- **RED I First-class Add Contact remains OPEN** and is the next separate Product RED only if Fresh State Recovery / Controller still authorizes it.
+- No item above is CLOSED until owner real-UI acceptance. Automated GREEN is evidence, not final acceptance.
+
+### C. Exact current data / runtime evidence already obtained
+
+- Product People rendered count: **37**.
+- Authority reconciliation: `8 backend direct relationships + 35 hierarchy-owned Matrix rooms - 6 canonical route overlaps = 37`.
+- Matrix observation: 2 bridge spaces, 35 hierarchy children, 35/35 joined at observation time, zero hierarchy-read failures.
+- Relationship World → Home returns to a mounted People scene; stale Relationship World unmounts instead of blocking Home.
+- Frozen runtime admission and repository safe renderer reload were GREEN after the affected bytes were materialized.
+### D. Deliberately excluded local changes — DO NOT accidentally stage
+
+The only tracked unstaged changes visible at cutover are:
+- `config/matrix/mautrix-telegram/config.yaml`
+- `services/matrix/docker-compose.yml`
+
+Both are unrelated Telegram historical-backfill enablement changes. They were explicitly excluded from the admitted/validated R2/RED-H closure and must not be staged, committed, shipped, or used as closure evidence unless a future separately admitted causal batch authorizes them. Do not reset them either; preserve the workspace.
+
+There are also many existing untracked `.tmp-*`, `.controller-recovery`, `.local-corepack-shims`, runtime/cache/materialization directories. Do not clean them as part of Product work.
+
+### E. Persisted closure bytes in HEAD
+
+HEAD includes the narrow mature-owner hierarchy-summary seam and its persistent materialization path:
+- `upstream-patches/element-web/0021-yance-space-hierarchy-summary.patch`
+- `tools/matrix/bootstrap.js`
+- `integration/element-module/src/index.tsx`
+- Product merge/navigation/scene-transition changes and focused regressions.
+
+The frozen acceptance helper also now uses the existing acceptance-ready timeout for the large `/api/health` diagnostic projection, rather than the generic 4-second fetch default. This was a HARNESS boundary fix, not a Product behavior change.
+
+### F. New chat exact execution order
+
+1. Read `AGENTS.md` and repository-owned `skills/yance-release-controller/SKILL.md` first.
+2. Perform exactly one Fresh State Recovery; fresh-verify GitHub Issue #1051 Controller State and exact local Git state. Do not trust this document instead of recovery.
+3. If production bytes will change, run `yance-mature-authority-audit` admission before mutation; if real Windows/UI acceptance is performed, follow `yance-windows-visual-closure`.
+4. Do **not** broad-audit contacts, rebuild Docker, re-login Matrix, clear SQLite, or ad-hoc restart/reload the frozen runtime.
+5. First finish owner HUMAN acceptance for current DATA-GREEN behaviors if still pending. Only then continue to the next Controller-authorized Product RED, expected to be RED I Add Contact if Controller has not changed.
+6. Keep Element/Matrix as timeline/composer/send/session/crypto/membership/retry/recovery authority; Yance must not create a shadow messaging authority.
+
+### G. Paste this into the new chat
+
+`@Superpowers @GitHub @Remote Desktop Commander 继续言策项目收尾。先严格读取仓库 AGENTS.md、repository-owned yance-release-controller skill，并对 checkpoint/yance-v21-closure-20260922 当前 HEAD 做一次且仅一次 Fresh State Recovery；不要相信旧聊天正文里的历史 RED，不要重新泛化盘点。当前已知远端 checkpoint HEAD 为 fbd0cec65755668ec6acd714fa611b855af0d7ce，R2 与 RED H 都已到 DATA-GREEN、HUMAN-ACCEPTED pending，People authority 对账为 8+35-6=37，Relationship World→Home 回 People 已在 frozen runtime DATA-GREEN。config/matrix/mautrix-telegram/config.yaml 与 services/matrix/docker-compose.yml 的 Telegram backfill 本地改动明确不属于已验收 batch，禁止顺手 stage/commit，也不要 reset。恢复 Controller 后严格执行 NEXT ALLOWED ACTION；优先完成人工验收，再进入下一 separately admitted Product RED（若 Controller 未变化则 RED I Add Contact）。冻结 acceptance runtime，不准 ad-hoc restart/reload、Docker 重建、Matrix 重登、清 SQLite；人工验收仍是最终标准。`
