@@ -206,9 +206,9 @@ Next allowed work after this checkpoint is not another broad contact census. Con
 
 - Worktree: `C:\Users\Public\Documents\yance-product-final-ui-local-20260919`
 - Branch: `checkpoint/yance-v21-closure-20260922`
-- Current HEAD: `fbd0cec65755668ec6acd714fa611b855af0d7ce`
-- Commit: `fix(yance): close v21 direct-chat and people hierarchy`
-- `origin/checkpoint/yance-v21-closure-20260922` already contains this exact HEAD.
+- Product closure baseline commit: `fbd0cec65755668ec6acd714fa611b855af0d7ce` (`fix(yance): close v21 direct-chat and people hierarchy`).
+- The branch may have docs-only handoff commits on top of that Product baseline. Do **not** hard-code this file's own branch-tip hash; Fresh State Recovery must resolve the exact local/remote HEAD at chat start.
+- `origin/checkpoint/yance-v21-closure-20260922` contains the Product closure baseline and the subsequent handoff-document updates.
 - Do not reset / clean / stash / discard existing user workspace state.
 
 ### B. Current Product status — do not downgrade or reopen broadly
@@ -257,4 +257,4 @@ The frozen acceptance helper also now uses the existing acceptance-ready timeout
 
 ### G. Paste this into the new chat
 
-`@Superpowers @GitHub @Remote Desktop Commander 继续言策项目收尾。先严格读取仓库 AGENTS.md、repository-owned yance-release-controller skill，并对 checkpoint/yance-v21-closure-20260922 当前 HEAD 做一次且仅一次 Fresh State Recovery；不要相信旧聊天正文里的历史 RED，不要重新泛化盘点。当前已知远端 checkpoint HEAD 为 fbd0cec65755668ec6acd714fa611b855af0d7ce，R2 与 RED H 都已到 DATA-GREEN、HUMAN-ACCEPTED pending，People authority 对账为 8+35-6=37，Relationship World→Home 回 People 已在 frozen runtime DATA-GREEN。config/matrix/mautrix-telegram/config.yaml 与 services/matrix/docker-compose.yml 的 Telegram backfill 本地改动明确不属于已验收 batch，禁止顺手 stage/commit，也不要 reset。恢复 Controller 后严格执行 NEXT ALLOWED ACTION；优先完成人工验收，再进入下一 separately admitted Product RED（若 Controller 未变化则 RED I Add Contact）。冻结 acceptance runtime，不准 ad-hoc restart/reload、Docker 重建、Matrix 重登、清 SQLite；人工验收仍是最终标准。`
+`@Superpowers @GitHub @Remote Desktop Commander 继续言策项目收尾。先严格读取仓库 AGENTS.md、repository-owned yance-release-controller skill，并对 checkpoint/yance-v21-closure-20260922 当前 HEAD 做一次且仅一次 Fresh State Recovery；不要相信旧聊天正文里的历史 RED，不要重新泛化盘点。当前 Product closure baseline 为 fbd0cec65755668ec6acd714fa611b855af0d7ce，但必须 fresh resolve 当前 branch tip；R2 与 RED H 都已到 DATA-GREEN、HUMAN-ACCEPTED pending，People authority 对账为 8+35-6=37，Relationship World→Home 回 People 已在 frozen runtime DATA-GREEN。config/matrix/mautrix-telegram/config.yaml 与 services/matrix/docker-compose.yml 的 Telegram backfill 本地改动明确不属于已验收 batch，禁止顺手 stage/commit，也不要 reset。恢复 Controller 后严格执行 NEXT ALLOWED ACTION；优先完成人工验收，再进入下一 separately admitted Product RED（若 Controller 未变化则 RED I Add Contact）。冻结 acceptance runtime，不准 ad-hoc restart/reload、Docker 重建、Matrix 重登、清 SQLite；人工验收仍是最终标准。`

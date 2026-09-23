@@ -130,8 +130,8 @@ This continuation supersedes the earlier RED-H runtime counts without rewriting 
 This is the current ledger checkpoint for the next chat and supersedes stale earlier execution targets without rewriting historical evidence.
 
 - Exact branch: `checkpoint/yance-v21-closure-20260922`.
-- Exact checkpoint HEAD: `fbd0cec65755668ec6acd714fa611b855af0d7ce` (`fix(yance): close v21 direct-chat and people hierarchy`).
-- Exact remote checkpoint already contains that HEAD.
+- Product closure baseline commit: `fbd0cec65755668ec6acd714fa611b855af0d7ce` (`fix(yance): close v21 direct-chat and people hierarchy`).
+- The checkpoint branch may contain docs-only handoff commits on top; do not hard-code a self-referential branch-tip hash here. Fresh State Recovery must resolve exact local/remote HEAD.
 - R2 direct-chat path: **DATA-GREEN → HUMAN-ACCEPTED pending**.
 - RED H contact-directory / hierarchy projection: **DATA-GREEN → HUMAN-ACCEPTED pending**.
 - People ↔ Relationship World return regression: **DATA-GREEN → HUMAN-ACCEPTED pending**.
