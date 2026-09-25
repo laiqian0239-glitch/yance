@@ -44,7 +44,13 @@ type DesktopProjectionApi = {
     text: string; sourceLanguage?: string; timeoutMs?: number; dedupeKey?: string; fingerprint?: string;
   }) => Promise<Record<string, unknown>>;
   prepareOutboundMessage?: (input: { sessionKey: string; text: string; idempotencyKey?: string }) => Promise<{
-    ok?: boolean; prepared?: { text?: string; translationApplied?: boolean; translationStatus?: string; targetLanguage?: string };
+    ok?: boolean; prepared?: {
+      text?: string;
+      translationApplied?: boolean;
+      translationStatus?: string;
+      targetLanguage?: string;
+      targetLanguageCode?: string;
+    };
   }>;
   setConversationAutomationMode?: (input: { conversationId: string; contactId?: string; mode: "HUMAN" }) => Promise<unknown>;
   setUpdateWorkState?: (input: { unsavedChanges: boolean; pendingReplyApproval: boolean; detail?: string }) => Promise<unknown>;
@@ -280,13 +286,19 @@ export function ProductComposerPreview({
   text: composerText, roomId, originalComponent,
 }: { text: string; roomId: string; originalComponent?: () => React.JSX.Element }): React.JSX.Element {
   const session = useExperienceSession();
-  const [status, setStatus] = useState("正在准备发送语言");
+  const [status, setStatus] = useState("正在确认发送语言");
   const [preview, setPreview] = useState("");
+  const [targetLanguage, setTargetLanguage] = useState("");
+  const [translationApplied, setTranslationApplied] = useState(false);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
+  const [blockedDetail, setBlockedDetail] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     const desktop = api();
     const draft = composerText.trim();
+    setPreviewExpanded(false);
+    setBlockedDetail("");
     void desktop?.setUpdateWorkState?.({
       unsavedChanges: Boolean(draft), pendingReplyApproval: false,
       detail: draft ? "当前真实对话输入框存在尚未发送的文本" : "",
@@ -294,11 +306,18 @@ export function ProductComposerPreview({
     const prepare = async (): Promise<void> => {
       if (!desktop || typeof desktop.prepareOutboundMessage !== "function" || !draft
         || !session.selectedConversationSessionKey || session.activeMatrixRoomId !== roomId) {
-        setPreview(""); setStatus(""); return;
+        setPreview("");
+        setTargetLanguage("");
+        setTranslationApplied(false);
+        setStatus("");
+        return;
       }
       if (session.selectedConversationAutomationMode === "AI_AUTO") {
         if (typeof desktop.setConversationAutomationMode !== "function") {
-          setStatus("无法切换为人工回复；发送保持关闭"); setPreview(""); return;
+          setStatus("发送已阻止");
+          setBlockedDetail("无法切换为人工回复；真实发送保持关闭。");
+          setPreview("");
+          return;
         }
         try {
           await desktop.setConversationAutomationMode({
@@ -308,26 +327,46 @@ export function ProductComposerPreview({
           });
           if (cancelled) return;
           setSelectedConversationAutomationMode("HUMAN");
-        } catch {
-          if (!cancelled) { setStatus("切换人工回复失败；发送保持关闭"); setPreview(""); }
+        } catch (error) {
+          if (!cancelled) {
+            setStatus("发送已阻止");
+            setBlockedDetail(error instanceof Error ? error.message : "切换人工回复失败；真实发送保持关闭。");
+            setPreview("");
+          }
           return;
         }
       }
       try {
+        setStatus("正在确认发送语言");
         const payload = await desktop.prepareOutboundMessage({
-          sessionKey: session.selectedConversationSessionKey, text: composerText,
+          sessionKey: session.selectedConversationSessionKey,
+          text: composerText,
         });
         if (cancelled) return;
         const preparedText = text(payload?.prepared?.text);
         if (!payload?.ok || !preparedText) {
-          setPreview(""); setStatus("发送准备未返回可发送文本"); return;
+          setPreview("");
+          setTranslationApplied(false);
+          setStatus("发送已阻止");
+          setBlockedDetail("发送准备没有返回经过验证的可发送文本。");
+          return;
         }
+        const nextTarget = text(payload.prepared?.targetLanguage || payload.prepared?.targetLanguageCode);
+        const translated = payload.prepared?.translationApplied === true;
         setPreview(preparedText);
-        setStatus(payload.prepared?.translationApplied === true
-          ? `发送时将使用 ${text(payload.prepared.targetLanguage) || "目标语言"}`
+        setTargetLanguage(nextTarget);
+        setTranslationApplied(translated);
+        setBlockedDetail("");
+        setStatus(translated
+          ? `将以 ${nextTarget || "目标语言"} 发送`
           : "将按当前文本发送");
       } catch {
-        if (!cancelled) { setPreview(""); setStatus("发送准备失败；实际发送会继续关闭"); }
+        if (!cancelled) {
+          setPreview("");
+          setTranslationApplied(false);
+          setStatus("发送已阻止");
+          setBlockedDetail("发送语言或翻译校验未通过；请稍后重试或检查翻译设置。真实发送保持关闭。");
+        }
       }
     };
     const timer = window.setTimeout(() => void prepare(), 280);
@@ -337,13 +376,50 @@ export function ProductComposerPreview({
     session.selectedConversationSessionKey, session.selectedConversationAutomationMode, session.activeMatrixRoomId,
   ]);
 
+  const draft = composerText.trim();
+  const hasTranslationPreview = translationApplied && Boolean(preview) && preview !== draft;
+
   return (
     <div className="yance-composer-preview" aria-label="发送语言预览">
       {originalComponent?.()}
-      <div className="yance-composer-preview__translation">
-        <span>{status}</span>
-        {preview && preview !== composerText.trim() ? <p>{preview}</p> : null}
-      </div>
+      <section className="yance-translation-hint" data-blocked={Boolean(blockedDetail) || undefined}>
+        <div className="yance-translation-hint__copy">
+          <strong>发送语言</strong>
+          <span>{status}</span>
+        </div>
+        {hasTranslationPreview ? (
+          <button type="button" onClick={() => setPreviewExpanded(true)}>查看预览</button>
+        ) : null}
+        {targetLanguage ? <small>目标：{targetLanguage}</small> : null}
+      </section>
+
+      {blockedDetail ? (
+        <div className="yance-translation-hint__blocked" role="alert">
+          <strong>发送已阻止</strong>
+          <span>{blockedDetail}</span>
+        </div>
+      ) : null}
+
+      {previewExpanded && hasTranslationPreview ? (
+        <section className="yance-translation-preview" role="dialog" aria-modal="false" aria-label="翻译预览">
+          <header>
+            <div><strong>翻译预览</strong><span>原文仍保留；发送前会再次完成翻译与完整性校验。</span></div>
+            <button type="button" aria-label="关闭翻译预览" onClick={() => setPreviewExpanded(false)}>×</button>
+          </header>
+          <div className="yance-translation-preview__body">
+            <label><span>原文</span><p>{draft}</p></label>
+            <label><span>{targetLanguage || "目标语言"}</span><p>{preview}</p></label>
+          </div>
+          <div className="yance-translation-preview__checks" aria-label="翻译检查">
+            <span>✓ 目标语言已确认</span>
+            <span>✓ 完整性校验已通过</span>
+          </div>
+          <footer>
+            <span>实际发送仍通过当前真实会话的发送链完成。</span>
+            <button type="button" onClick={() => setPreviewExpanded(false)}>检查并继续</button>
+          </footer>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -367,8 +443,9 @@ export function ReplyBrainCandidate({
   const [reviewCandidateId, setReviewCandidateId] = useState("");
   const [reviewText, setReviewText] = useState("");
   const [brainDraft, setBrainDraft] = useState("");
+  const [learningMode, setLearningMode] = useState<"send_and_learn" | "send_only">("send_and_learn");
   const [batchSerial, setBatchSerial] = useState(0);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const activeConversationId = conversationId || session.selectedConversationId;
   const activeContactId = contactId || session.selectedConversationContactId;
   if (!activeConversationId) return null;
@@ -407,14 +484,20 @@ export function ReplyBrainCandidate({
     if (!desktop?.storeGenerateReply) {
       return generateReplyCandidate({ conversationId: activeConversationId, contactId: activeContactId });
     }
-    const styleWeights = adjustment === "更暧昧"
+    const styleWeights = adjustment === "暧昧"
       ? { flirtation: 0.78, warmth: 0.66 }
-      : adjustment === "更温柔"
-        ? { warmth: 0.86, flirtation: 0.28 }
-        : undefined;
+      : undefined;
+    const adjustmentInstruction: Record<string, string> = {
+      "更自然": "表达更自然、更像真实聊天，不要有模板感或刻意设计感。",
+      "成熟": "表达更成熟、稳重、有分寸，不说教，也不过度解释。",
+      "暧昧": "在尊重关系边界的前提下增加一点吸引力和余味，但不要越界。",
+      "少问": "减少提问；能用陈述自然承接时就不要追问，最多保留一个真正必要的问题。",
+      "别太主动": "降低主动推进感，给对方空间，不连续抛话题，也不追着要回应。",
+      "更像我": "优先贴近当前人物设定、既有表达习惯和这段关系里已经形成的说话方式。",
+    };
     const instruction = [
       strategy.instruction,
-      adjustment === "更简短" ? "这次尽量更简短，只保留最自然的一层意思。" : "",
+      adjustmentInstruction[adjustment] || "",
       customInstruction ? "用户这次补充：" + customInstruction : "",
       serial > 1 ? "这是第 " + serial + " 轮候选，请换一种真实自然的表达，不要机械复述上一轮。" : "",
     ].filter(Boolean).join("\n");
@@ -481,7 +564,7 @@ export function ReplyBrainCandidate({
     if (busy || !selected.candidateId || !finalText.trim()) return;
     setBusy(true);
     try {
-      const receipt = await approveReplyCandidate(selected.candidateId);
+      const receipt = await approveReplyCandidate(selected.candidateId, learningMode);
       if (!receipt.outboxId || receipt.requiresSendConfirmation !== true) {
         throw new Error("REPLY_APPROVAL_RECEIPT_INVALID");
       }
@@ -496,7 +579,9 @@ export function ReplyBrainCandidate({
       setCandidates([]);
       setReviewCandidateId("");
       setReviewText("");
-      setStatus("已放入输入框；请检查后使用真实发送按钮发送");
+      setStatus(learningMode === "send_and_learn"
+        ? "已放入输入框；真实发送成功后会作为学习证据"
+        : "已放入输入框；本次发送不会进入学习证据");
     } catch {
       setStatus("放入输入框失败；尚未发送");
     } finally {
@@ -543,7 +628,7 @@ export function ReplyBrainCandidate({
       <header className="yance-reply-brain__header">
         <div>
           <span className="yance-eyebrow">人物设定 · 当前关系</span>
-          <strong>闺蜜回复大脑</strong>
+          <strong>言策 · 回复大脑</strong>
           <small>{expanded ? "关系、记忆、目标与当前语境一起参与" : "有个想法，不打断你聊天"}</small>
         </div>
         <button
@@ -566,6 +651,18 @@ export function ReplyBrainCandidate({
       </header>
 
       {status ? <span className="yance-reply-brain__status" role="status" aria-live="polite">{status}</span> : null}
+
+      <label className="yance-reply-brain__learning-mode">
+        <span>AI 发送后</span>
+        <select
+          value={learningMode}
+          disabled={busy}
+          onChange={(event) => setLearningMode(event.target.value === "send_only" ? "send_only" : "send_and_learn")}
+        >
+          <option value="send_and_learn">发送并学习</option>
+          <option value="send_only">仅发送 · 本次不学习</option>
+        </select>
+      </label>
 
       {candidates.length ? <div className="yance-reply-brain__candidates" data-candidate-count={candidates.length}>
         {candidates.map((item) => (
@@ -613,10 +710,12 @@ export function ReplyBrainCandidate({
       </div> : null}
 
       <div className="yance-reply-brain__refine" aria-label="这一次怎么调整">
-        <button type="button" disabled={busy} onClick={() => void generateBatch("更暧昧")}>更有感觉</button>
-        <button type="button" disabled={busy} onClick={() => void generateBatch("更温柔")}>更温柔</button>
-        <button type="button" disabled={busy} onClick={() => void generateBatch("更简短")}>短一点</button>
-        <button type="button" disabled={busy} onClick={() => void generateBatch("深度想想")}>深度想想</button>
+        <button type="button" disabled={busy} onClick={() => void generateBatch("更自然")}>更自然</button>
+        <button type="button" disabled={busy} onClick={() => void generateBatch("成熟")}>成熟</button>
+        <button type="button" disabled={busy} onClick={() => void generateBatch("暧昧")}>暧昧</button>
+        <button type="button" disabled={busy} onClick={() => void generateBatch("少问")}>少问</button>
+        <button type="button" disabled={busy} onClick={() => void generateBatch("别太主动")}>别太主动</button>
+        <button type="button" disabled={busy} onClick={() => void generateBatch("更像我")}>更像我</button>
       </div>
 
       <form className="yance-reply-brain__chat" onSubmit={(event) => {
@@ -626,7 +725,7 @@ export function ReplyBrainCandidate({
         setBrainDraft("");
         void generateBatch("", instruction);
       }}>
-        <label htmlFor={"reply-brain-chat-" + activeConversationId}>和闺蜜聊聊</label>
+        <label htmlFor={"reply-brain-chat-" + activeConversationId}>和闺蜜大脑聊聊</label>
         <div>
           <input
             id={"reply-brain-chat-" + activeConversationId}

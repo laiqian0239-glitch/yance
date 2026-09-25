@@ -66,9 +66,14 @@ type ProductDesktopApi = {
   syncPlatformAccount: (input: { id: string; matrixUserId?: string }) => Promise<Record<string, unknown>>;
   syncAllPlatformAccounts: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
   runPlatformAccountCommand: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  loadAiWorkspace: () => Promise<Record<string, unknown>>;
+  createAiWorkspaceTask: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  updateAiWorkspaceTask: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  runAiWorkspaceTask: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  getProductModelRuntimeState: () => Promise<Record<string, unknown>>;
   previewPersonaCharacterCard: (input: { bytes: Uint8Array | ArrayBuffer }) => Promise<Record<string, unknown>>;
   storeGenerateReply: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
-  storeApproveReply: (input: { candidateId: string }) => Promise<Record<string, unknown>>;
+  storeApproveReply: (input: { candidateId: string; learningMode: "send_and_learn" | "send_only" }) => Promise<Record<string, unknown>>;
   storeRejectReply: (input: { candidateId: string }) => Promise<Record<string, unknown>>;
   storeReviseOutbox: (input: { outboxId:string; text:string; userConfirmedRevision:true }) => Promise<Record<string, unknown>>;
   storeConfirmSend: (input: { outboxId:string; confirmSend:true }) => Promise<Record<string, unknown>>;
@@ -85,6 +90,10 @@ type ProductDesktopApi = {
   clearPersonaScope:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   listPersonaVersions:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   importPersona:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
+  initializeDefaultPersona:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
+  updatePersonaAuthoritative:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
+  diffPersonaVersions:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
+  rollbackPersona:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   setConversationArchived:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   setConversationPinned:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   mergeContacts:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
@@ -145,6 +154,7 @@ export type PersonaCharacterCardPreview = {
   name: string;
   description: string;
   reasonCode: string;
+  characterCard?: Readonly<Record<string, unknown>>;
 };
 
 const RELATIONSHIP_INTELLIGENCE_STATES = new Set([
@@ -428,12 +438,14 @@ export async function previewPersonaCharacterCard(
   try {
     const payload = objectRecord(await api.previewPersonaCharacterCard({ bytes }));
     const preview = objectRecord(payload.preview || payload);
+    const characterCard = objectRecord(preview.characterCard || preview);
     return {
       available: true,
       ok: payload.ok === true,
-      name: text(preview.name || preview.characterName || preview.displayName),
-      description: text(preview.description || preview.personality || preview.greeting),
+      name: text(characterCard.name || preview.name || preview.characterName || preview.displayName),
+      description: text(characterCard.description || characterCard.personality || preview.description || preview.greeting),
       reasonCode: "",
+      characterCard,
     };
   } catch (error) {
     const reasonCode = text((error as { reasonCode?: string; code?: string })?.reasonCode)
@@ -477,10 +489,10 @@ export async function generateReplyCandidate(
   };
 }
 
-export async function approveReplyCandidate(candidateId: string): Promise<{outboxId:string;requiresSendConfirmation:boolean}> {
+export async function approveReplyCandidate(candidateId: string, learningMode: "send_and_learn" | "send_only" = "send_and_learn"): Promise<{outboxId:string;requiresSendConfirmation:boolean}> {
   const api = desktopApi();
   if (!api || typeof api.storeApproveReply !== "function") throw bridgeUnavailable("approve-reply");
-  const payload=objectRecord(await api.storeApproveReply({ candidateId }));
+  const payload=objectRecord(await api.storeApproveReply({ candidateId, learningMode }));
   return { outboxId:text(payload.outboxId || objectRecord(payload.outbox).id), requiresSendConfirmation:payload.requiresSendConfirmation===true };
 }
 
@@ -531,7 +543,7 @@ export async function listPersonaProfiles(): Promise<readonly PersonaProfileProj
     currentVersion: optionalText(row.currentVersion || row.version),
   })).filter((row) => Boolean(row.id));
 }
-export async function loadPersonaEffective(input: { contactId?: string; conversationId?: string }): Promise<PersonaEffectiveProjection> {
+export async function loadPersonaEffective(input: { contactId?: string; conversationId?: string; globalScopeId?: string }): Promise<PersonaEffectiveProjection> {
   const api = desktopApi();
   if (!api || typeof api.getPersonaEffective !== "function") throw bridgeUnavailable("persona-effective");
   const payload = objectRecord(await api.getPersonaEffective(input));
@@ -560,12 +572,12 @@ export async function listPersonaScopes(input: Record<string, unknown> = {}): Pr
   const payload = objectRecord(await api.listPersonaScopes(input));
   return objectArray(payload.bindings);
 }
-export async function setPersonaScope(scopeType: "contact" | "conversation", scopeId: string, profileId: string): Promise<Record<string, unknown>> {
+export async function setPersonaScope(scopeType: "global" | "contact" | "conversation", scopeId: string, profileId: string): Promise<Record<string, unknown>> {
   const api = desktopApi();
   if (!api || typeof api.setPersonaScope !== "function") throw bridgeUnavailable("persona-set-scope");
   return objectRecord(await api.setPersonaScope({ scopeType, scopeId, profileId }));
 }
-export async function clearPersonaScope(scopeType: "contact" | "conversation", scopeId: string): Promise<Record<string, unknown>> {
+export async function clearPersonaScope(scopeType: "global" | "contact" | "conversation", scopeId: string): Promise<Record<string, unknown>> {
   const api = desktopApi();
   if (!api || typeof api.clearPersonaScope !== "function") throw bridgeUnavailable("persona-clear-scope");
   return objectRecord(await api.clearPersonaScope({ scopeType, scopeId }));
@@ -574,6 +586,26 @@ export async function importPersona(profileId: string, exportedPayload: unknown)
   const api = desktopApi();
   if (!api || typeof api.importPersona !== "function") throw bridgeUnavailable("persona-import");
   return objectRecord(await api.importPersona({ profileId, exportedPayload }));
+}
+export async function initializeDefaultPersona(profileId: string): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.initializeDefaultPersona !== "function") throw bridgeUnavailable("persona-initialize-default");
+  return objectRecord(await api.initializeDefaultPersona({ profileId }));
+}
+export async function updatePersonaAuthoritative(profileId: string, patch: Record<string, unknown>, expectedVersion?: number): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.updatePersonaAuthoritative !== "function") throw bridgeUnavailable("persona-update-authoritative");
+  return objectRecord(await api.updatePersonaAuthoritative({ profileId, patch, expectedVersion }));
+}
+export async function diffPersonaVersions(profileId: string, fromVersion: number, toVersion: number): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.diffPersonaVersions !== "function") throw bridgeUnavailable("persona-version-diff");
+  return objectRecord(await api.diffPersonaVersions({ profileId, fromVersion, toVersion }));
+}
+export async function rollbackPersona(profileId: string, targetVersion: number, expectedVersion?: number): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.rollbackPersona !== "function") throw bridgeUnavailable("persona-rollback");
+  return objectRecord(await api.rollbackPersona({ profileId, targetVersion, expectedVersion }));
 }
 export async function exportConversation(conversationId: string): Promise<Record<string, unknown>> {
   const api = desktopApi();
@@ -1010,6 +1042,36 @@ export async function loadPeopleProjections(): Promise<PeopleProjection> {
 
 export async function loadRelationshipProjections(): Promise<readonly RelationshipProjection[]> {
   return (await loadPeopleProjections()).relationships;
+}
+
+export async function loadAiWorkspace(): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.loadAiWorkspace !== "function") throw bridgeUnavailable("ai-workspace-load");
+  return objectRecord(await api.loadAiWorkspace());
+}
+
+export async function createAiWorkspaceTask(input: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.createAiWorkspaceTask !== "function") throw bridgeUnavailable("ai-workspace-create-task");
+  return objectRecord(await api.createAiWorkspaceTask(input));
+}
+
+export async function updateAiWorkspaceTask(id: string, input: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.updateAiWorkspaceTask !== "function") throw bridgeUnavailable("ai-workspace-update-task");
+  return objectRecord(await api.updateAiWorkspaceTask({ id: id.trim(), task: input }));
+}
+
+export async function runAiWorkspaceTask(id: string): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.runAiWorkspaceTask !== "function") throw bridgeUnavailable("ai-workspace-run-task");
+  return objectRecord(await api.runAiWorkspaceTask({ id: id.trim() }));
+}
+
+export async function getProductModelRuntimeState(): Promise<Record<string, unknown>> {
+  const api = desktopApi();
+  if (!api || typeof api.getProductModelRuntimeState !== "function") throw bridgeUnavailable("model-runtime-state");
+  return objectRecord(await api.getProductModelRuntimeState());
 }
 
 export async function searchWorkspace(query: string, limit = 80): Promise<WorkspaceSearchProjection> {

@@ -277,18 +277,18 @@ export function BilingualSearchPanel({
       try {
         const navigated = await onNavigateRelationship(relationship);
         if (navigated) {
-          setStatus("已打开可信的 Element 会话。");
+          setStatus("已打开真实会话。");
           return;
         }
       } catch (error) {
-        navigationError = errorText(error, "Element 导航暂不可用。");
+        navigationError = errorText(error, "会话导航暂不可用。");
       }
     }
 
     onSelectRelationship(relationship.id);
     setStatus(navigationError
-      ? `已打开关系上下文。Element 导航失败：${navigationError}`
-      : "已打开关系上下文；这条结果暂时无法精确跳转到 Element 消息。 ");
+      ? `已打开关系上下文。会话导航失败：${navigationError}`
+      : "已打开关系上下文；这条结果暂时无法精确跳转到原消息。");
   };
 
   const clearSearch = (): void => {
@@ -415,7 +415,7 @@ export function BilingualSearchPanel({
                         <span>{[result.platform, formatTime(result.sentAt)].filter(Boolean).join(" · ")}</span>
                       </div>
                       <span className="yance-bilingual-search__nav-state">
-                        {exactNavigationAvailable ? "Element 可定位" : "关系上下文"}
+                        {exactNavigationAvailable ? "可精确定位" : "关系上下文"}
                       </span>
                     </div>
                     <button

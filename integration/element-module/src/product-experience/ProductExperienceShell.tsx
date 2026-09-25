@@ -1,13 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LearningWorkspace } from "../LearningWorkspace";
+import { MediaWorkspace } from "../MediaWorkspace";
+import { VoiceWorkspace } from "../VoiceWorkspace";
 import { AnimatePresence, motion } from "motion/react";
-import { BrainCircuit, Cable, Heart, Home, Info, MessageCircle, MoreHorizontal, Orbit, Palette, PanelLeft, PanelRight, Search, Settings, Sparkles, Target, Users } from "lucide-react";
+import { BrainCircuit, Cable, Heart, Home, Info, MessageCircle, MoreHorizontal, Palette, PanelLeft, PanelRight, Search, Settings, Sparkles, Target, Users } from "lucide-react";
 import { BilingualSearchPanel } from "./BilingualSearchPanel";
+import { AIWorkspace } from "./AIWorkspace";
 import { PeopleSurface, type PeopleHomeView } from "./PeopleSurface";
+import { PersonaManagement } from "./PersonaManagement";
 import { RelationshipAssistant } from "./RelationshipAssistant";
 import { RelationshipOverlayHost } from "./RelationshipOverlayHost";
 import { RelationshipWorld } from "./RelationshipWorld";
-import { ProductSystemSettingsSurface, type ProductSettingsCategory } from "./ProductSystemSettingsSurface";
+import { ProductSystemSettingsSurface } from "./ProductSystemSettingsSurface";
 import { PlatformAccountsSurface } from "./PlatformAccountsSurface";
 
 import {
@@ -43,6 +47,34 @@ type ReadRoomStateEvents = (
   roomId: string,
   eventType: string,
 ) => readonly { stateKey: string; content: Record<string, unknown> }[];
+
+
+type SettingsSectionV4 =
+  | "general"
+  | "appearance"
+  | "persona-learning"
+  | "input-typing"
+  | "language"
+  | "models"
+  | "platforms"
+  | "voice-media"
+  | "data-privacy"
+  | "backup"
+  | "diagnostics";
+
+const SETTINGS_SECTIONS_V4: readonly { id: SettingsSectionV4; label: string; hint: string; group: string }[] = [
+  { id: "general", label: "常规", hint: "全局默认与关系行为", group: "基础" },
+  { id: "appearance", label: "外观与氛围", hint: "主题、字体、动效与关系氛围", group: "基础" },
+  { id: "persona-learning", label: "人格管理", hint: "全局、联系人、对话人格与版本", group: "基础" },
+  { id: "input-typing", label: "输入与真人打字", hint: "输入体验与统一发送层边界", group: "基础" },
+  { id: "language", label: "语言与翻译", hint: "真实对话内联理解与发送", group: "基础" },
+  { id: "models", label: "模型与路由", hint: "已验证模型、服务商与路由", group: "能力与连接" },
+  { id: "platforms", label: "平台连接", hint: "WhatsApp、Telegram 与 Meta 账号", group: "能力与连接" },
+  { id: "voice-media", label: "语音与媒体", hint: "声音档案、媒体库与生成", group: "能力与连接" },
+  { id: "data-privacy", label: "数据、隐私与学习", hint: "学习证据、记忆边界与隐私治理", group: "数据与系统" },
+  { id: "backup", label: "同步与备份", hint: "备份、验证与恢复", group: "数据与系统" },
+  { id: "diagnostics", label: "高级诊断", hint: "安全、恢复、版本与更新", group: "数据与系统" },
+];
 
 export type ProductAppearanceHost = {
   setFontScale: (percent: number) => Promise<void>;
@@ -668,7 +700,7 @@ function ProductModelRuntimeSupportSurface(): React.JSX.Element {
       fallbackModelId: fallbackDraft,
     }, mode === "auto"
       ? `${modelRuntimeTaskLabel(selectedTask)}已恢复自动选择。`
-      : `${modelRuntimeTaskLabel(selectedTask)}已绑定主模型${fallbackDraft ? "和备用模型" : ""}；失败切换仍由 LiteLLM 执行。`);
+      : `${modelRuntimeTaskLabel(selectedTask)}已绑定主模型${fallbackDraft ? "和备用模型" : ""}；备用模型仅在主模型不可用时启用。`);
   };
 
   const qualifyCatalogModel = async (model: ProductModelRuntimeRecord): Promise<void> => {
@@ -683,7 +715,7 @@ function ProductModelRuntimeSupportSurface(): React.JSX.Element {
         <div>
           <span className="yance-eyebrow">模型服务</span>
           <h3>模型中心</h3>
-          <p>把模型直接绑定到言策功能：可让 Model Brain 自动选择，也可为每个功能指定已验证的主模型与备用模型；真实请求、重试和失败切换仍由 LiteLLM 执行。</p>
+          <p>把模型直接绑定到言策功能：可让言策自动选择，也可为每个功能指定已验证的主模型与备用模型；请求、重试与备用切换会按当前配置自动处理。</p>
         </div>
         <button type="button" onClick={() => void refreshModelRuntime()} disabled={busy}>刷新</button>
       </header>
@@ -694,11 +726,12 @@ function ProductModelRuntimeSupportSurface(): React.JSX.Element {
         <span><strong>本地 AI</strong>{localModels.length ? `${localModels.length} 个已安装` : "未安装"}</span>
         <span><strong>正式可用</strong>{verifiedModels.length ? `${verifiedModels.length} 个已验证` : "等待验证"}</span>
       </div>
+      <p className="yance-model-center__trust-note">本地模型不会在你不知情时替代正式回复；你的手动选择始终高于自动推荐。</p>
 
       <section className="yance-model-capabilities yance-model-control-plane" aria-label="言策功能与模型绑定">
         <header>
           <div><span>言策功能与模型</span><strong>{taskRows.length ? `${readyTaskCount} / ${taskRows.length} 个能力已就绪` : "正在读取能力状态"}</strong></div>
-          <p>自动模式让 Model Brain 在通过资格的模型中选择；指定模式固定主模型，并把备用模型交给 LiteLLM 在失败时切换。</p>
+          <p>自动模式会在通过资格的模型中选择；指定模式固定主模型，并在需要时使用你设置的备用模型。</p>
         </header>
         <div className="yance-model-preferences">
           <label><span>推理强度</span><select value={reasoningLevel} disabled={busy} onChange={(event) => void saveBrainPreferences(event.target.value, userPolicy.fastMode === true)}>
@@ -707,7 +740,7 @@ function ProductModelRuntimeSupportSurface(): React.JSX.Element {
           <button type="button" className="yance-model-fast-toggle" aria-pressed={userPolicy.fastMode === true} disabled={busy} onClick={() => void saveBrainPreferences(reasoningLevel, userPolicy.fastMode !== true)}>
             <span>快速</span><em>{userPolicy.fastMode === true ? "优先低延迟" : "标准路由"}</em>
           </button>
-          <p>推理强度控制言策的生成预算与等待预算；“快速”会让 LiteLLM 优先采用低延迟路由，不绕过资格门禁。</p>
+          <p>推理强度控制言策的生成预算与等待预算；“快速”会优先低延迟选择，不绕过资格验证。</p>
         </div>
         <div className="yance-model-task-workspace">
           <nav className="yance-model-task-nav" aria-label="言策功能">{taskRows.map((row) => {
@@ -772,7 +805,7 @@ function ProductModelRuntimeSupportSurface(): React.JSX.Element {
                   <div><button type="button" disabled={busy || !openRouterKey.trim()} onClick={() => void configureOpenRouter()}>{openRouterConnected ? "重新验证连接" : "连接并读取模型"}</button><small>密钥只保存到 Windows 安全存储；页面和日志不会显示密钥。</small></div>
                 </div>
                 <section className="yance-model-catalog" aria-label="OpenRouter 模型目录">
-                  <header><div><strong>已发现模型</strong><span>{openRouterModels.length ? `${openRouterModels.length} 个已注册 · 按 Provider 分组` : "连接后自动显示"}</span></div><input className="yance-model-search" value={modelSearch} onChange={(event) => setModelSearch(event.target.value)} placeholder="搜索模型，例如 GPT / Claude / Gemini" aria-label="搜索 OpenRouter 模型" /></header>
+                  <header><div><strong>已发现模型</strong><span>{openRouterModels.length ? `${openRouterModels.length} 个已注册 · 按服务商分组` : "连接后自动显示"}</span></div><input className="yance-model-search" value={modelSearch} onChange={(event) => setModelSearch(event.target.value)} placeholder="搜索模型，例如 GPT / Claude / Gemini" aria-label="搜索 OpenRouter 模型" /></header>
                   {openRouterModels.length ? <div className="yance-model-catalog__groups">{openRouterGroups.map(([providerGroup, rows]) => <section key={providerGroup} className="yance-model-provider-group"><header><strong>{providerGroup}</strong><span>{rows.length}</span></header><div className="yance-model-catalog__list">{rows.map((model) => {
                     const id = modelRuntimeText(model.id, modelRuntimeText(model.name));
                     const name = modelRuntimeText(model.displayName || model.name || model.id, id);
@@ -1012,9 +1045,10 @@ type ProductConversationSurfaceProps = {
   onOpenModels: () => void;
   onOpenLearning: () => void;
   onOpenSettings: () => void;
+  onAddContact: () => void;
 };
 
-type ConversationInspectorTab = "ai" | "relationship" | "memory" | "goal";
+type ConversationInspectorTab = "ai" | "persona" | "relationship" | "memory" | "goal";
 type ConversationListFilter = "all" | "unread" | "important" | "favorite";
 
 type ProductConversationReadApi = {
@@ -1108,6 +1142,7 @@ export function ProductConversationSurface({
   onReturnToRelationship,
   onOpenModels,
   onOpenSettings,
+  onAddContact,
 }: ProductConversationSurfaceProps): React.JSX.Element {
   const session = useExperienceSession();
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -1373,43 +1408,37 @@ export function ProductConversationSurface({
   }
 
   return <section
-    className="yance-product-conversation yance-product-conversation--immersive"
+    className="yance-product-conversation yance-product-conversation--immersive yance-conversation-workspace-v4"
     aria-label={"与 " + title + " 的言策对话"}
     data-left-collapsed={leftCollapsed || undefined}
     data-right-collapsed={rightCollapsed || undefined}
     data-navigation-pending={session.conversationNavigationPending || undefined}
   >
-    <nav className="yance-conversation-rail" aria-label="对话工作区导航">
-      <div className="yance-conversation-rail__brand" aria-label="Yance 言策">
+    <header className="yance-conversation-workspace-v4__topbar" aria-label="Yance Conversation Workspace v4">
+      <div className="yance-conversation-workspace-v4__brand">
         <span aria-hidden="true"><YanceMark /></span>
-        <strong>言策</strong>
-        <small>YANCE</small>
+        <strong>Yance</strong>
+        <small>Conversation Workspace v4</small>
+        <em>情感的会对话 · 专为成熟理性打造</em>
       </div>
-      <div className="yance-conversation-rail__primary">
-        <button type="button" aria-current="page" onClick={() => {
+      <div className="yance-conversation-workspace-v4__top-actions">
+        <span>智能状态：{automationModeLabel}</span>
+        <button type="button" aria-label="搜索联系人或消息" onClick={() => {
           setLeftCollapsed(false);
-          setProjectionStatus("");
-        }}><MessageCircle aria-hidden="true" /><strong>对话</strong></button>
-        <button type="button" onClick={() => void onReturnToRelationship()}><Heart aria-hidden="true" /><strong>关系世界</strong></button>
+          window.setTimeout(() => searchRef.current?.focus(), 0);
+        }}><Search aria-hidden="true" /></button>
+        <button type="button" aria-label="查看智能面板" onClick={() => openInspector("ai")}><Sparkles aria-hidden="true" /></button>
+        <button type="button" aria-label="打开设置" onClick={onOpenSettings}><Settings aria-hidden="true" /></button>
       </div>
-      <div className="yance-conversation-rail__spacer" />
-      <button type="button" className="yance-conversation-rail__settings" onClick={onOpenSettings}><Settings aria-hidden="true" /><strong>设置</strong></button>
-      <div className="yance-conversation-rail__profile" aria-label="当前言策用户">
-        <span aria-hidden="true"><Users /></span>
-        <strong>当前用户</strong>
-      </div>
-    </nav>
+    </header>
     <section className="yance-product-conversation__workspace" aria-label="联系人、真实对话与关系洞察">
       <aside className="yance-product-conversation__people" aria-label="对话联系人" data-collapsed={leftCollapsed || undefined}>
-        <header className="yance-product-conversation__pane-header">
-          <div><span className="yance-eyebrow">对话列表</span><strong>对话</strong></div>
-          <button
-            type="button"
-            className="yance-native-pane-toggle"
-            aria-label={leftCollapsed ? "展开对话列表" : "隐藏对话列表"}
-            aria-pressed={leftCollapsed}
-            onClick={() => setLeftCollapsed((value) => !value)}
-          ><PanelLeft aria-hidden="true" /></button>
+        <header className="yance-product-conversation__pane-header yance-conversation-list-header">
+          <div><strong>对话列表</strong></div>
+          <div className="yance-conversation-list-header__actions">
+            <button type="button" className="yance-conversation-add-contact" onClick={onAddContact}><span aria-hidden="true">＋</span>添加联系人</button>
+            <button type="button" className="yance-native-pane-toggle" aria-label={leftCollapsed ? "展开对话列表" : "隐藏对话列表"} aria-pressed={leftCollapsed} onClick={() => setLeftCollapsed((value) => !value)}><PanelLeft aria-hidden="true" /></button>
+          </div>
         </header>
         {!leftCollapsed ? <>
           <label className="yance-product-conversation__search">
@@ -1557,6 +1586,13 @@ export function ProductConversationSurface({
             <span>{session.conversationNavigationPending ? "正在连接目标联系人对应的真实消息房间。" : "当前目标没有可用的真实聊天房间；言策不会猜测性跳转。"}</span>
           </div>}
         </div>
+        <button type="button" className="yance-conversation-model-control" onClick={onOpenModels} aria-label="选择当前对话模型">
+          <span className="yance-conversation-model-control__label"><BrainCircuit aria-hidden="true" />模型</span>
+          <strong>{modelSummary.quickMode === "manual" && modelSummary.quickPrimary ? `快速：${modelSummary.quickPrimary}` : "快速：自动选择"}</strong>
+          <span aria-hidden="true">·</span>
+          <strong>{modelSummary.deepMode === "manual" && modelSummary.deepPrimary ? `深度：${modelSummary.deepPrimary}` : "深度：自动选择"}</strong>
+          <em>推理 {modelSummary.reasoningLabel}</em>
+        </button>
       </main>
 
       <aside className="yance-product-conversation__insight" aria-label="关系洞察" data-collapsed={rightCollapsed || undefined}>
@@ -1564,6 +1600,7 @@ export function ProductConversationSurface({
           {!rightCollapsed ? <nav className="yance-conversation-inspector__tabs" aria-label="关系智能分区">
             {([
               ["ai", "AI"],
+              ["persona", "人格"],
               ["relationship", "关系"],
               ["memory", "记忆"],
               ["goal", "目标"],
@@ -1625,6 +1662,17 @@ export function ProductConversationSurface({
               <strong>和闺蜜大脑聊聊</strong>
               <p>这一次的调整会先作用于当前回复；只有发送成功后的有效反馈才进入学习证据。</p>
             </div>
+          </> : null}
+
+          {inspectorTab === "persona" ? <>
+            <section className="yance-conversation-inspector__lead">
+              <span className="yance-eyebrow">当前生效人格</span>
+              <h3>{personaLabel || "使用当前生效人物设定"}</h3>
+              <p>人格来自现有人格系统；这里仅展示当前对话真正生效的设定，不创建第二份人格状态。</p>
+            </section>
+            <article><span>沟通基调</span><strong>{modelRuntimeText(replyStrategy.recommendedTone, "根据关系上下文动态调整")}</strong><p>会继续结合边界、最近互动和当前关系阶段。</p></article>
+            <article><span>表达深度</span><strong>{modelRuntimeText(replyStrategy.recommendedDepth, "自适应深度")}</strong><p>人物设定只影响表达策略，不接管真实消息发送。</p></article>
+            <button type="button" onClick={onOpenSettings}>管理人物设定</button>
           </> : null}
 
           {inspectorTab === "relationship" ? <>
@@ -1700,10 +1748,9 @@ export function ProductExperienceShell({
   const [appearance, setAppearance] = useState<ProductAppearanceProjection>(EMPTY_APPEARANCE);
   const [appearanceStatus, setAppearanceStatus] = useState("正在同步外观设置");
   const [assistantVisible, setAssistantVisible] = useState(false);
+  const [aiWorkspaceVisible, setAiWorkspaceVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<ProductSettingsCategory | "learning">("security");
-  const [settingsWindow, setSettingsWindow] = useState<"accounts" | "appearance" | "models" | null>(null);
-  const [learningAdminVisible, setLearningAdminVisible] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<SettingsSectionV4>("general");
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
   const [peopleHomeView, setPeopleHomeView] = useState<PeopleHomeView>("list");
   const [focusedRelationshipId, setFocusedRelationshipId] = useState("");
@@ -2014,6 +2061,38 @@ export function ProductExperienceShell({
   };
 
   const conversationRouteFeedback = status.startsWith("对话未就绪：") || status.startsWith("群聊未就绪：") ? status : "";
+  const desktopTopbarTitle = aiWorkspaceVisible
+    ? "AI 工作台"
+    : settingsVisible
+      ? "设置"
+      : selectedRelationship
+        ? "关系世界"
+        : peopleHomeView === "universe"
+          ? "关系视图"
+          : "首页 · People";
+  const desktopTopbarSubtitle = aiWorkspaceVisible
+    ? "深层任务与跨关系分析"
+    : settingsVisible
+      ? "安静地管理默认行为与高级能力"
+      : selectedRelationship
+        ? "深入看一个人，不复制聊天"
+        : peopleHomeView === "universe"
+          ? "从真实人物与关系中定位当前重点"
+          : "先看人，再进入关系与对话";
+  const intelligenceStateLabel = aiState === "thinking"
+    ? "深度思考中"
+    : aiState === "listening"
+      ? "正在倾听"
+      : aiState === "ready"
+        ? "建议已就绪"
+        : aiState === "speaking"
+          ? "正在回应"
+          : aiState === "error"
+            ? "需要检查"
+            : aiState === "wake"
+              ? "已唤醒"
+              : "待命";
+  const currentMatrixUserId = getMatrixUserId?.().trim() || "";
 
   return (
     <main
@@ -2034,9 +2113,8 @@ export function ProductExperienceShell({
           <div><strong>对话尚未就绪</strong><span>{conversationRouteFeedback}</span></div>
           <button type="button" onClick={() => {
             setSettingsVisible(true);
-            setSettingsWindow("accounts");
-            setLearningAdminVisible(false);
-            setAssistantVisible(false);
+            setSettingsSection("platforms");
+              setAssistantVisible(false);
           }}>检查账号连接</button>
         </aside>
       ) : null}
@@ -2052,31 +2130,21 @@ export function ProductExperienceShell({
         </div>
       ) : null}
 
-      {!conversationSurfaceActive || settingsVisible ? <nav className="yance-desktop-rail" aria-label="言策桌面功能">
-        <div className="yance-desktop-rail__brand" aria-label="Yance 言策">
-          <span aria-hidden="true"><YanceMark /></span>
-          <strong>言策</strong>
-        </div>
+      <nav className="yance-desktop-rail" aria-label="言策桌面功能">
         <button type="button" aria-current={!settingsVisible && !selectedRelationship && peopleHomeView === "list" ? "page" : undefined} onClick={() => {
           playExperienceSound(preferences.soundMode, "open");
           setSettingsVisible(false);
+          setAiWorkspaceVisible(false);
           setPeopleHomeView("list");
           setAssistantVisible(false);
           void refreshRelationships();
           if (selectedRelationship) returnToPeople();
         }}><span aria-hidden="true"><Home /></span><strong>首页</strong></button>
-        <button type="button" aria-current={!settingsVisible && !selectedRelationship && peopleHomeView === "universe" ? "page" : undefined} onClick={() => {
-          playExperienceSound(preferences.soundMode, "open");
-          setSettingsVisible(false);
-          setPeopleHomeView("universe");
-          setAssistantVisible(false);
-          void refreshRelationships();
-          if (selectedRelationship) returnToPeople();
-        }}><span aria-hidden="true"><Orbit /></span><strong>关系宇宙</strong></button>
-        <button type="button" aria-current={!settingsVisible && !conversationSurfaceActive && Boolean(selectedRelationship) ? "page" : undefined} disabled={!homeRelationship} onClick={() => {
+                <button type="button" aria-current={!settingsVisible && !conversationSurfaceActive && Boolean(selectedRelationship) ? "page" : undefined} disabled={!homeRelationship} onClick={() => {
           if (!homeRelationship) return;
           playExperienceSound(preferences.soundMode, "confirm");
           setSettingsVisible(false);
+          setAiWorkspaceVisible(false);
           if (conversationSurfaceActive && navigateRelationshipHome) {
             void Promise.resolve(navigateRelationshipHome())
               .then(() => setStatus("已返回关系世界"))
@@ -2085,51 +2153,51 @@ export function ProductExperienceShell({
           }
           chooseRelationship(homeRelationship.id);
         }}><span aria-hidden="true"><Heart /></span><strong>关系世界</strong></button>
-        <button type="button" aria-current={conversationSurfaceActive ? "page" : undefined} disabled={!homeRelationship?.conversations.length} onClick={() => {
-          const conversation = homeRelationship?.conversations.find((row) => !row.archived) || homeRelationship?.conversations[0];
-          if (!homeRelationship || !conversation || !navigateConversation) return;
-          playExperienceSound(preferences.soundMode, "confirm");
-          void navigateConversation(homeRelationship, conversation)
-            .then((opened) => setStatus(opened ? "已进入对话" : "对话未就绪：当前平台账号还没有同步出可用的真实聊天房间。请先到“账号与连接”完成登录与同步。"))
-            .catch(() => setStatus("对话未就绪：真实聊天房间解析失败；言策没有执行猜测性跳转。"));
-        }}><span aria-hidden="true"><MessageCircle /></span><strong>对话</strong></button>
-        <button type="button" disabled={!homeRelationship} aria-pressed={assistantVisible} onClick={() => {
-          if (!homeRelationship) return;
-          playExperienceSound(preferences.soundMode, "open");
-          setSettingsVisible(false);
-          chooseRelationship(homeRelationship.id);
-          setAssistantVisible(true);
-          setAiState("wake");
-        }}><span aria-hidden="true"><Sparkles /></span><strong>AI 助手</strong></button>
-        <button type="button" aria-current={settingsVisible ? "page" : undefined} aria-controls="yance-secondary-settings" aria-expanded={settingsVisible} onClick={() => {
+                <button type="button" aria-current={settingsVisible ? "page" : undefined} aria-controls="yance-secondary-settings" aria-expanded={settingsVisible} onClick={() => {
           playExperienceSound(preferences.soundMode, "open");
           setSettingsVisible(true);
-          setLearningAdminVisible(false);
-          setSettingsWindow(null);
+          setAiWorkspaceVisible(false);
+          setSettingsSection("general");
           setAssistantVisible(false);
         }}><span aria-hidden="true"><Settings /></span><strong>设置</strong></button>
-      </nav> : null}
+      </nav>
 
-      {!conversationSurfaceActive ? <header className="yance-product-nav" aria-label="言策主导航">
-        <div className="yance-product-nav__identity">
-          <span className="yance-product-nav__mark" aria-hidden="true"><YanceMark /></span>
-          <span className="yance-eyebrow">言策</span>
-          <strong>{settingsVisible
-            ? (settingsWindow === "accounts" ? "账号与连接" : settingsWindow === "appearance" ? "主题与外观" : settingsWindow === "models" ? "模型中心" : "设置")
-            : selectedRelationship ? selectedRelationship.name : "关系"}</strong>
+      {!conversationSurfaceActive ? <header className="yance-desktop-topbar yance-product-nav" aria-label="言策主导航">
+        <div className="yance-desktop-topbar__brand">
+          <span aria-hidden="true"><YanceMark /></span>
+          <strong>Yance</strong>
+          <small>Conversation Workspace v4</small>
         </div>
-        {!settingsVisible ? (
-          <BilingualSearchPanel
-            relationships={relationships}
-            reducedMotion={preferences.reducedMotion}
-            onSelectRelationship={chooseRelationship}
-            onNavigateRelationship={navigateSearchResult}
-          />
-        ) : null}
-
+        <div className="yance-desktop-topbar__context">
+          <strong>{desktopTopbarTitle}</strong>
+          <span>{desktopTopbarSubtitle}</span>
+        </div>
+        <div className="yance-desktop-topbar__tools">
+          <span className="yance-desktop-topbar__intelligence">智能状态：{intelligenceStateLabel}</span>
+          {!settingsVisible && !aiWorkspaceVisible ? (
+            <div className="yance-desktop-topbar__search">
+              <BilingualSearchPanel
+                relationships={relationships}
+                reducedMotion={preferences.reducedMotion}
+                onSelectRelationship={chooseRelationship}
+                onNavigateRelationship={navigateSearchResult}
+              />
+            </div>
+          ) : null}
+          <button type="button" aria-label="打开设置" aria-current={settingsVisible ? "page" : undefined} onClick={() => {
+            playExperienceSound(preferences.soundMode, "open");
+            setSettingsVisible(true);
+            setAiWorkspaceVisible(false);
+            setSettingsSection("general");
+            setAssistantVisible(false);
+          }}><Settings aria-hidden="true" /></button>
+          {currentMatrixUserId && renderUserAvatar ? (
+            <span className="yance-desktop-topbar__avatar" aria-label="当前账号">{renderUserAvatar(currentMatrixUserId, "36px")}</span>
+          ) : null}
+        </div>
       </header> : null}
 
-      {!settingsVisible ? (
+      {!settingsVisible && !aiWorkspaceVisible ? (
         conversationSurfaceActive && renderRoomView ? (
           <motion.div
             key="conversation"
@@ -2150,22 +2218,24 @@ export function ProductExperienceShell({
               onReturnToRelationship={() => navigateRelationshipHome?.()}
               onOpenModels={() => {
                 setSettingsVisible(true);
-                setSettingsWindow("models");
-                setLearningAdminVisible(false);
-                setAssistantVisible(false);
+                setSettingsSection("models");
+                      setAssistantVisible(false);
               }}
               onOpenLearning={() => {
                 setSettingsVisible(true);
-                setSettingsWindow(null);
-                setSettingsSection("learning");
-                setLearningAdminVisible(true);
+                setSettingsSection("general");
+                setSettingsSection("persona-learning");
                 setAssistantVisible(false);
               }}
               onOpenSettings={() => {
                 setSettingsVisible(true);
-                setSettingsWindow(null);
-                setLearningAdminVisible(false);
-                setAssistantVisible(false);
+                setSettingsSection("general");
+                      setAssistantVisible(false);
+              }}
+              onAddContact={() => {
+                setSettingsVisible(true);
+                setSettingsSection("platforms");
+                      setAssistantVisible(false);
               }}
             />
           </motion.div>
@@ -2195,6 +2265,7 @@ export function ProductExperienceShell({
                 viewMode={peopleHomeView}
                 reducedMotion={preferences.reducedMotion}
                 soundMode={preferences.soundMode}
+                getMatrixUserId={getMatrixUserId}
                 onViewModeChange={setPeopleHomeView}
                 onFocus={setFocusedRelationshipId}
                 onSelect={chooseRelationship}
@@ -2210,12 +2281,12 @@ export function ProductExperienceShell({
                 onSelectGroup={(conversation) => {
                   void openGroupConversation(conversation);
                 }}
+                onRefreshRelationships={refreshRelationships}
                 onConnectAccounts={() => {
                   playExperienceSound(preferences.soundMode, "open");
                   setSettingsVisible(true);
-                  setSettingsWindow("accounts");
-                  setLearningAdminVisible(false);
-                  setAssistantVisible(false);
+                  setSettingsSection("platforms");
+                          setAssistantVisible(false);
                 }}
               />
             )}
@@ -2231,11 +2302,13 @@ export function ProductExperienceShell({
           >
             <RelationshipWorld
               relationship={selectedRelationship}
+              relationships={relationships}
               aiState={aiState}
               reducedMotion={preferences.reducedMotion}
               assistantVisible={assistantVisible}
               onBack={returnToPeople}
               onToggleAssistant={toggleAssistant}
+              onSelectRelationship={chooseRelationship}
               onOpenConversation={(conversationId) => {
                 void openConversation(conversationId);
               }}
@@ -2263,132 +2336,231 @@ export function ProductExperienceShell({
         )
       ) : null}
 
-      {settingsVisible ? (
-        <section id="yance-secondary-settings" className="yance-secondary-settings"
-          data-settings-window={settingsWindow || undefined} aria-label="设置">
-          <header className="yance-secondary-settings__header" data-child={settingsWindow || undefined}>
-            {!settingsWindow ? (
-              <div>
-                <span className="yance-eyebrow">YANCE SETTINGS</span>
-                <h2>设置</h2>
-                <p>账号、外观与 AI 独立管理，其余系统设置按分类收纳。</p>
-              </div>
-            ) : null}
+      {aiWorkspaceVisible ? (
+        <AIWorkspace
+          relationships={relationships}
+          onClose={() => {
+            setAiWorkspaceVisible(false);
+            setSettingsVisible(true);
+            setSettingsSection("general");
+          }}
+          onOpenRelationship={(contactId) => {
+            setAiWorkspaceVisible(false);
+            setSettingsVisible(false);
+            chooseRelationship(contactId);
+          }}
+          onOpenConversation={(contactId, conversationId) => {
+            const relationship = relationships.find((row) => row.id === contactId);
+            const conversation = relationship?.conversations.find((row) => row.id === conversationId || row.sessionKey === conversationId);
+            if (!relationship || !conversation || !navigateConversation) {
+              setStatus("对话未就绪：AI 工作台返回的真实对话当前不可导航。");
+              return;
+            }
+            setAiWorkspaceVisible(false);
+            setSettingsVisible(false);
+            void navigateConversation(relationship, conversation)
+              .then((opened) => setStatus(opened ? "已从 AI 工作台进入真实对话" : "对话未就绪：当前平台尚未同步该真实房间。"))
+              .catch(() => setStatus("对话未就绪：真实房间导航失败。"));
+          }}
+        />
+      ) : null}
+
+      {settingsVisible && !aiWorkspaceVisible ? (
+        <section id="yance-secondary-settings" className="yance-secondary-settings yance-settings-v4-shell"
+          data-settings-section={settingsSection} aria-label="设置">
+          <header className="yance-secondary-settings__header yance-settings-v4__header">
+            <div>
+              <span className="yance-eyebrow">YANCE SETTINGS</span>
+              <h2>{SETTINGS_SECTIONS_V4.find((item) => item.id === settingsSection)?.label || "设置"}</h2>
+              <p>安静地管理默认行为与高级能力；复杂度集中在这里，不进入真实聊天主链。</p>
+            </div>
             <div className="yance-secondary-settings__header-actions">
-              {settingsWindow ? (
-                <button type="button" onClick={() => setSettingsWindow(null)}>返回设置</button>
-              ) : (
-                <button type="button" onClick={() => {
-                  playExperienceSound(preferences.soundMode, "confirm");
-                  setSettingsVisible(false);
-                  setLearningAdminVisible(false);
-                  void refreshRelationships();
-                }}>返回关系</button>
-              )}
+              <button type="button" onClick={() => {
+                playExperienceSound(preferences.soundMode, "confirm");
+                setSettingsVisible(false);
+                void refreshRelationships();
+              }}>返回关系</button>
             </div>
           </header>
 
-          {settingsWindow ? (
-            <div className="yance-settings-workspace yance-settings-workspace--child">
-              <div className="yance-settings-workspace__content" tabIndex={-1}>
-                <div className="yance-settings-workspace__panel">
-                  {settingsWindow === "accounts" ? <PlatformAccountsSurface getMatrixUserId={getMatrixUserId} getMatrixOpenIdToken={getMatrixOpenIdToken} renderUserAvatar={renderUserAvatar} /> : null}
-                  {settingsWindow === "appearance" ? (
-                    <ProductSystemSettingsSurface category="appearance" openUserSettings={openUserSettings} requestLogout={requestLogout} />
-                  ) : null}
-                  {settingsWindow === "models" ? <ProductModelRuntimeSupportSurface /> : null}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="yance-settings-home">
-              <section className="yance-settings-launcher-grid" aria-label="设置工作区">
-                <button type="button" className="yance-settings-launcher" onClick={() => setSettingsWindow("accounts")}>
-                  <span className="yance-settings-launcher__glyph" aria-hidden="true"><Cable /></span>
-                  <span className="yance-settings-launcher__copy">
-                    <strong>账号与连接</strong>
-                    <span>WhatsApp、Telegram、Facebook 与 Messenger</span>
-                  </span>
-                  <em>管理账号</em>
-                </button>
-                <button type="button" className="yance-settings-launcher" onClick={() => setSettingsWindow("appearance")}>
-                  <span className="yance-settings-launcher__glyph" aria-hidden="true"><Palette /></span>
-                  <span className="yance-settings-launcher__copy">
-                    <strong>主题与外观</strong>
-                    <span>主题、字体、动效、声音与背景效果</span>
-                  </span>
-                  <em>个性化</em>
-                </button>
-                <button type="button" className="yance-settings-launcher" onClick={() => setSettingsWindow("models")}>
-                  <span className="yance-settings-launcher__glyph" aria-hidden="true"><BrainCircuit /></span>
-                  <span className="yance-settings-launcher__copy">
-                    <strong>模型中心</strong>
-                    <span>云端 AI、离线 AI 与最近使用状态</span>
-                  </span>
-                  <em>打开模型中心</em>
-                </button>
-              </section>
-              <div className="yance-settings-workspace">
-              <nav className="yance-settings-workspace__nav" aria-label="设置分类">
-                {([
-                  ["security", "安全与设备", "账号安全、设备与会话"],
-                  ["desktop", "桌面行为", "启动、托盘与桌面运行"],
-                  ["notifications", "通知与声音", "通知、隐私与声音"],
-                  ["data", "数据保护", "备份、恢复与数据保护"],
-                  ["learning", "学习与成长", "学习记录、回顾与成长建议"],
-                  ["about", "关于", "版本、更新与许可信息"],
-                ] as const).map(([id, label, hint]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    aria-current={settingsSection === id ? "page" : undefined}
-                    onClick={() => {
-                      playExperienceSound(preferences.soundMode, "open");
-                      setSettingsSection(id);
-                      if (id !== "learning") setLearningAdminVisible(false);
-                    }}
-                  >
-                    <strong>{label}</strong>
-                    <span>{hint}</span>
-                  </button>
-                ))}
-              </nav>
+          <div className="yance-settings-v4" data-settings-section={settingsSection}>
+            <nav className="yance-settings-v4__nav" aria-label="设置分类">
+              {["基础", "能力与连接", "数据与系统"].map((group) => (
+                <section key={group} className="yance-settings-v4__nav-group" aria-label={group}>
+                  <span>{group}</span>
+                  {SETTINGS_SECTIONS_V4.filter((item) => item.group === group).map((item) => (
+                    <button key={item.id} type="button"
+                      aria-current={settingsSection === item.id ? "page" : undefined}
+                      onClick={() => {
+                        playExperienceSound(preferences.soundMode, "open");
+                        setSettingsSection(item.id);
+                      }}>
+                      <strong>{item.label}</strong><small>{item.hint}</small>
+                    </button>
+                  ))}
+                </section>
+              ))}
+            </nav>
 
-              <div className="yance-settings-workspace__content" tabIndex={-1}>
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={settingsSection}
-                    className="yance-settings-workspace__panel"
-                    initial={preferences.reducedMotion ? false : { opacity: 0, x: 8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={preferences.reducedMotion ? undefined : { opacity: 0, x: -6 }}
-                    transition={{ duration: preferences.reducedMotion ? 0 : 0.15 }}
-                  >
-                    {settingsSection === "learning" ? (
-                      <section className="yance-learning-disclosure yance-settings-desktop-section" aria-label="学习与成长">
-                        <header>
-                          <div><span className="yance-eyebrow">Learning</span><h3>学习与成长</h3><p>仅在需要复盘学习记录与反馈时打开，不占据日常设置空间。</p></div>
-                        </header>
-                        <button type="button" aria-expanded={learningAdminVisible} onClick={() => setLearningAdminVisible((value) => !value)}>
-                          {learningAdminVisible ? "收起学习与成长" : "打开学习与成长"}
-                        </button>
-                        {learningAdminVisible ? <LearningWorkspace /> : null}
-                      </section>
-                    ) : (
-                      <section className="yance-settings-desktop-section" aria-label="系统设置">
-                        <ProductSystemSettingsSurface
-                          category={settingsSection}
-                          openUserSettings={openUserSettings}
-                          requestLogout={requestLogout}
-                        />
-                      </section>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+            <div className="yance-settings-v4__content" tabIndex={-1}>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div key={settingsSection} className="yance-settings-v4__panel"
+                  initial={preferences.reducedMotion ? false : { opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={preferences.reducedMotion ? undefined : { opacity: 0, x: -6 }}
+                  transition={{ duration: preferences.reducedMotion ? 0 : 0.15 }}>
+                  {settingsSection === "general" ? (
+                    <section className="yance-settings-v4__general" aria-label="常规">
+                      <header className="yance-settings-v4__section-heading">
+                        <div><span className="yance-eyebrow">常规</span><h3>全局默认与关系行为</h3>
+                          <p>设置全局基线；联系人和单次对话仍可保留各自的局部设置。</p></div>
+                      </header>
+                      <div className="yance-settings-v4__general-grid">
+                        <article className="yance-settings-v4__general-card">
+                          <header><span>对话默认</span><strong>会话状态优先</strong></header>
+                          <p>真实消息、回复策略和发送模式继续由当前真实对话管理；设置页不复制会话状态。</p>
+                          <button type="button" onClick={() => setSettingsSection("models")}>查看模型与路由</button>
+                        </article>
+                        <article className="yance-settings-v4__general-card">
+                          <header><span>AI 工作台</span><strong>跨关系深度分析</strong></header>
+                          <p>按需进入真实关系分析任务；它不会成为一级导航，也不会接管消息发送。</p>
+                          <button type="button" onClick={() => {
+                            setSettingsVisible(false);
+                            setAiWorkspaceVisible(true);
+                            setAssistantVisible(false);
+                          }}>打开 AI 工作台</button>
+                        </article>
+                        <article className="yance-settings-v4__general-card">
+                          <header><span>真人打字</span><strong>统一发送层</strong></header>
+                          <p>真人打字由统一发送层执行；设置页不创建第二套延迟、队列或发送状态。</p>
+                          <button type="button" onClick={() => setSettingsSection("input-typing")}>查看输入边界</button>
+                        </article>
+                        <article className="yance-settings-v4__general-card">
+                          <header><span>人格管理</span><strong>现有人格系统</strong></header>
+                          <p>联系人绑定、对话覆盖与版本记录保持在现有人格链；学习证据治理独立进入数据、隐私与学习。</p>
+                          <button type="button" onClick={() => setSettingsSection("persona-learning")}>管理人格</button>
+                        </article>
+                        <article className="yance-settings-v4__general-card">
+                          <header><span>外观与关系氛围</span><strong>{preferences.atmosphere}</strong></header>
+                          <div className="yance-settings-v4__segmented" aria-label="关系氛围">
+                            {([['Quiet','Quiet'],['Warm','Warm'],['Vivid','Vivid']] as const).map(([value,label]) =>
+                              <button key={value} type="button" aria-pressed={preferences.atmosphere === value}
+                                onClick={() => preferences.setAtmosphere(value)}>{label}</button>)}
+                          </div>
+                          <div className="yance-settings-v4__segmented" aria-label="动效">
+                            {([['Standard','标准'],['Reduced','减少动效']] as const).map(([value,label]) =>
+                              <button key={value} type="button" aria-pressed={preferences.motionMode === value}
+                                onClick={() => preferences.setMotionMode(value)}>{label}</button>)}
+                          </div>
+                        </article>
+                        <article className="yance-settings-v4__general-card yance-settings-v4__general-card--wide">
+                          <header><span>隐私与学习边界</span><strong>真实发送结果生效</strong></header>
+                          <p>学习只使用真实发送成功后的确认结果；关系事实、记忆与人物设定不会由设置页伪造。</p>
+                          <button type="button" onClick={() => setSettingsSection("data-privacy")}>查看数据与隐私</button>
+                        </article>
+                        <article className="yance-settings-v4__general-card yance-settings-v4__general-card--wide">
+                          <header><span>其他设置</span><strong>按需进入，不占聊天空间</strong></header>
+                          <div className="yance-settings-v4__quick-links">
+                            <button type="button" onClick={() => setSettingsSection("platforms")}>平台连接</button>
+                            <button type="button" onClick={() => setSettingsSection("voice-media")}>语音与媒体</button>
+                            <button type="button" onClick={() => setSettingsSection("backup")}>同步与备份</button>
+                            <button type="button" onClick={() => setSettingsSection("diagnostics")}>高级诊断</button>
+                          </div>
+                        </article>
+                      </div>
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "appearance" ? (
+                    <section className="yance-settings-v4__capability" aria-label="外观与氛围">
+                      <ProductSystemSettingsSurface category="appearance" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "persona-learning" ? (
+                    <section className="yance-settings-v4__capability" aria-label="人格管理">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Persona</span>
+                        <h3>人格管理</h3><p>稳定人格、联系人绑定、单次对话覆盖与版本记录继续由现有人格系统管理；单次风格调整不会偷偷固化为长期人格。</p></div>
+                        <button type="button" disabled={!homeRelationship} onClick={() => {
+                          if (!homeRelationship) return;
+                          setSettingsVisible(false);
+                          chooseRelationship(homeRelationship.id);
+                        }}>到关系世界查看人物上下文</button></header>
+                      <PersonaManagement relationships={relationships} />
+                    </section>
+                  ) : null}
+                  {settingsSection === "input-typing" ? (
+                    <section className="yance-settings-v4__capability" aria-label="输入与真人打字">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Input</span>
+                        <h3>输入与真人打字</h3><p>真人打字由统一发送层控制。这里不保存独立打字延迟、发送队列或会话副本。</p></div></header>
+                      <div className="yance-settings-v4__boundary-note">
+                        <strong>发送边界</strong><p>手写、AI 回复与翻译后的最终文本都必须回到同一真实发送层；具体进度与取消状态只在当前对话显示。</p>
+                      </div>
+                      <ProductSystemSettingsSurface category="desktop" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "language" ? (
+                    <section className="yance-settings-v4__capability" aria-label="语言与翻译">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Language</span>
+                        <h3>语言与翻译</h3><p>翻译在真实对话内联完成；原始消息永远保留，发送前先形成最终文本再翻译与校验。</p></div></header>
+                      <div className="yance-settings-v4__boundary-note">
+                        <strong>没有第二套翻译策略</strong>
+                        <p>入站翻译只辅助理解，出站翻译只处理当前 Composer 的最终文本。设置页不会创建影子语言状态或绕过完整性校验。</p>
+                      </div>
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "models" ? (
+                    <section className="yance-settings-v4__capability" aria-label="模型与路由">
+                      <ProductModelRuntimeSupportSurface />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "platforms" ? (
+                    <section className="yance-settings-v4__capability" aria-label="平台连接">
+                      <PlatformAccountsSurface getMatrixUserId={getMatrixUserId} getMatrixOpenIdToken={getMatrixOpenIdToken} renderUserAvatar={renderUserAvatar} />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "voice-media" ? (
+                    <section className="yance-settings-v4__capability" aria-label="语音与媒体">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Voice & Media</span>
+                        <h3>语音与媒体</h3><p>管理声音档案、媒体库和生成能力；发送入口在此隐藏，真实发送只能从已绑定对话进入。</p></div></header>
+                      <div className="yance-settings-v4__capability-split">
+                        <div className="yance-settings-v4__capability-pane yance-settings-v4__capability--voice"><VoiceWorkspace managementOnly /></div>
+                        <div className="yance-settings-v4__capability-pane yance-settings-v4__capability--media"><MediaWorkspace managementOnly /></div>
+                      </div>
+                    </section>
+                  ) : null}
+                  {settingsSection === "data-privacy" ? (
+                    <section className="yance-settings-v4__capability" aria-label="数据、隐私与学习">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Data · Privacy · Learning</span>
+                        <h3>数据、隐私与学习</h3><p>学习只消费真实发送结果与受治理证据；人物事实、记忆和隐私边界仍按现有治理规则管理，不由设置页推断或复制。</p></div>
+                        <button type="button" onClick={() => setSettingsSection("backup")}>同步与备份</button></header>
+                      <LearningWorkspace />
+                      <ProductSystemSettingsSurface category="notifications" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "backup" ? (
+                    <section className="yance-settings-v4__capability" aria-label="同步与备份">
+                      <ProductSystemSettingsSurface category="data" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+
+                  {settingsSection === "diagnostics" ? (
+                    <section className="yance-settings-v4__capability" aria-label="高级诊断">
+                      <header className="yance-settings-v4__section-heading"><div><span className="yance-eyebrow">Diagnostics</span>
+                        <h3>高级诊断</h3><p>仅在安全、恢复或版本维护时使用；不会替代正常关系与对话流程。</p></div></header>
+                      <ProductSystemSettingsSurface category="security" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                      <ProductSystemSettingsSurface category="about" openUserSettings={openUserSettings} requestLogout={requestLogout} />
+                    </section>
+                  ) : null}
+                </motion.div>
+              </AnimatePresence>
             </div>
-            </div>
-          )}
+          </div>
         </section>
       ) : null}
 

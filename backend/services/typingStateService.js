@@ -100,6 +100,7 @@ class TypingStateService {
     for (const timer of this.incomingTimers.values()) clearTimeout(timer.timer);
     this.incomingTimers.clear();
     for (const run of this.approvedRuns.values()) {
+      clearTimeout(run.externalExpiry);
       run.controller?.abort?.('TYPING_SERVICE_STOPPED');
     }
     this.approvedRuns.clear();
@@ -370,6 +371,11 @@ class TypingStateService {
         isTyping: true,
         activity: 'composing',
         phase,
+        operationId: clean(input.operationId),
+        progress: Number.isFinite(Number(input.progress)) ? Math.max(0, Math.min(100, Number(input.progress))) : 0,
+        canRelease: input.canRelease === true,
+        canCancel: input.canCancel === true,
+        sourceKind: clean(input.sourceKind),
         lastUpdated,
         ttlMs: Math.max(this.policy.outboundHeartbeatMs * 2, 4000)
       }
@@ -471,6 +477,7 @@ class TypingStateService {
     const reason = clean(input.reason) || 'TYPING_SIMULATION_CANCELLED';
     const runs = [...this.approvedRuns.values()].filter(run => this._runMatches(run, input));
     for (const run of runs) {
+      clearTimeout(run.externalExpiry);
       run.controller.abort(reason);
       if (run.typingPhase) {
         await this.endSelfTyping({
@@ -499,6 +506,223 @@ class TypingStateService {
   async notifyUserCancel(input = {}) {
     if (!this.policy.cancelOnUserCancel) return { cancelled: 0, reason: 'POLICY_DISABLED' };
     return this.cancelApprovedSend({ ...input, reason: clean(input.reason) || 'USER_CANCELLED_SEND' });
+  }
+
+  _externalRunByOperationId(operationId) {
+    const id = clean(operationId);
+    if (!id) return null;
+    for (const run of this.approvedRuns.values()) {
+      if (clean(run.operationId) === id) return run;
+    }
+    return null;
+  }
+
+  async _waitForExternalRelease(run, ms) {
+    if (run.releaseRequested === true || ms <= 0) return run.releaseRequested === true;
+    let releaseResolver = null;
+    const released = new Promise(resolve => {
+      releaseResolver = () => resolve(true);
+      run.releaseWaiters.add(releaseResolver);
+    });
+    try {
+      return await Promise.race([
+        this.waitFn(ms, run.controller.signal).then(() => false),
+        released
+      ]);
+    } finally {
+      if (releaseResolver) run.releaseWaiters.delete(releaseResolver);
+    }
+  }
+
+  async releaseExternalTextSend(input = {}) {
+    const run = this._externalRunByOperationId(input.operationId);
+    if (!run) return { released: false, reason: 'TYPING_OPERATION_NOT_FOUND' };
+    run.releaseRequested = true;
+    for (const resolve of [...run.releaseWaiters]) {
+      try { resolve(); } catch (_) {}
+    }
+    run.releaseWaiters.clear();
+    return { released: true, operationId: run.operationId, ready: run.ready === true };
+  }
+
+  async completeExternalTextSend(input = {}) {
+    const run = this._externalRunByOperationId(input.operationId);
+    if (!run) return { completed: false, reason: 'TYPING_OPERATION_NOT_FOUND' };
+    clearTimeout(run.externalExpiry);
+    if (run.typingPhase) {
+      await this.endSelfTyping({
+        contactId: run.target.contactId,
+        phase: run.typingPhase,
+        source: 'element-human-typing-handoff',
+        reason: input.success === true
+          ? clean(input.reason) || 'element_send_success'
+          : clean(input.reason) || 'element_send_failed'
+      }).catch(() => {});
+      run.typingPhase = '';
+    }
+    if (this.approvedRuns.get(run.key) === run) this.approvedRuns.delete(run.key);
+    return {
+      completed: true,
+      operationId: run.operationId,
+      success: input.success === true
+    };
+  }
+
+  async prepareExternalTextSend(input = {}) {
+    const operationId = clean(input.operationId);
+    if (!operationId) {
+      const error = new Error('External typing handoff requires operationId');
+      error.code = 'TYPING_OPERATION_ID_REQUIRED';
+      throw error;
+    }
+    const sourceKind = clean(input.sourceKind || input.source || 'external').toLowerCase();
+    if (sourceKind === 'manual') {
+      return { ready: true, simulated: false, bypassed: true, reason: 'MANUAL_TEXT_DIRECT_SEND', operationId };
+    }
+
+    const text = String(input.text == null ? '' : input.text);
+    const target = this._resolveTarget(input);
+    if (!target.contactId || !target.conversationId) return { ready: false, simulated: false, reason: 'TARGET_NOT_RESOLVED', operationId };
+
+    const humanBurstEnabled = this.policy.humanBurstPlatforms.includes(target.platform);
+    const plan = humanBurstEnabled
+      ? buildHumanTypingPlan(text, this.policy, {
+          tier: input.tier,
+          complexityHint: input.complexityHint,
+          random: input.random || this.random
+        })
+      : buildSingleTypingPlan(text, this.policy, { random: input.random || this.random });
+
+    const key = this._approvedRunKey(target);
+    await this.cancelApprovedSend({
+      contactId: target.contactId,
+      conversationId: target.conversationId,
+      reason: 'TYPING_SIMULATION_REPLACED'
+    });
+
+    const controller = new AbortController();
+    const unlinkAbort = this._linkAbortSignal(input.signal, controller);
+    const run = {
+      key,
+      target,
+      controller,
+      plan,
+      operationId,
+      sourceKind,
+      typingPhase: '',
+      releaseRequested: false,
+      releaseWaiters: new Set(),
+      ready: false,
+      externalExpiry: null,
+      startedAt: new Date().toISOString()
+    };
+    this.approvedRuns.set(key, run);
+
+    const beginPhase = async (phase, progress, sendPlatform) => {
+      const session = await this.beginSelfTyping({
+        ...target,
+        phase,
+        source: 'element-human-typing-handoff',
+        sourceKind,
+        operationId,
+        progress,
+        canRelease: true,
+        canCancel: true,
+        sendPlatform
+      });
+      if (!session.started) {
+        const error = new Error(session.reason || 'TYPING_SESSION_NOT_STARTED');
+        error.code = session.reason || 'TYPING_SESSION_NOT_STARTED';
+        throw error;
+      }
+      run.typingPhase = phase;
+    };
+
+    const endPhase = async reason => {
+      if (!run.typingPhase) return;
+      await this.endSelfTyping({
+        contactId: target.contactId,
+        phase: run.typingPhase,
+        source: 'element-human-typing-handoff',
+        reason
+      });
+      run.typingPhase = '';
+    };
+
+    try {
+      if (plan.silentDelayMs > 0 && !run.releaseRequested) {
+        await beginPhase('approved_send_silent', 6, false);
+        await this._waitForExternalRelease(run, plan.silentDelayMs);
+        await endPhase(run.releaseRequested ? 'immediate_send_requested' : 'silent_read_complete');
+      }
+
+      const finalIndex = Math.max(0, plan.bursts.length - 1);
+      for (let index = 0; index < finalIndex && !run.releaseRequested; index += 1) {
+        const burst = plan.bursts[index];
+        const progress = Math.max(12, Math.min(72, Math.round(((index + 1) / Math.max(1, plan.bursts.length)) * 72)));
+        await beginPhase('approved_send_burst', progress, this.policy.platformAfterApproval);
+        await this._waitForExternalRelease(run, burst.durationMs);
+        await endPhase(run.releaseRequested ? 'immediate_send_requested' : 'human_typing_pause');
+        if (!run.releaseRequested && burst.pauseAfterMs > 0) {
+          await this._waitForExternalRelease(run, burst.pauseAfterMs);
+        }
+      }
+
+      const finalBurst = plan.bursts[finalIndex] || { durationMs: 0, pauseAfterMs: 0 };
+      await beginPhase('approved_send_burst', run.releaseRequested ? 96 : 82, this.policy.platformAfterApproval);
+      if (!run.releaseRequested) {
+        await this._waitForExternalRelease(run, finalBurst.durationMs);
+        if (!run.releaseRequested && plan.finalSendDelayMs > 0) {
+          await this._waitForExternalRelease(run, plan.finalSendDelayMs);
+        }
+      }
+
+      if (controller.signal.aborted) throw abortError(controller.signal.reason || 'TYPING_SIMULATION_ABORTED');
+      run.ready = true;
+      await this.storeManager.dispatch({
+        type: 'UPDATE_SELF_TYPING_STATE',
+        source: 'element-human-typing-handoff',
+        payload: {
+          ...target,
+          isTyping: true,
+          activity: 'composing',
+          phase: 'approved_send_ready',
+          operationId,
+          progress: 100,
+          canRelease: false,
+          canCancel: true,
+          sourceKind,
+          lastUpdated: new Date().toISOString(),
+          ttlMs: Math.max(this.policy.outboundHeartbeatMs * 2, 4000),
+          reason: run.releaseRequested ? 'immediate_send_ready' : 'element_send_ready'
+        }
+      });
+
+      run.externalExpiry = setTimeout(() => {
+        this.completeExternalTextSend({
+          operationId,
+          success: false,
+          reason: 'ELEMENT_SEND_HANDOFF_TIMEOUT'
+        }).catch(() => {});
+      }, Math.max(1000, Number(this.policy.finalDeliveryWaitMaxMs || 60000)));
+      run.externalExpiry.unref?.();
+
+      return {
+        ready: true,
+        simulated: true,
+        operationId,
+        plan,
+        delayMs: plan.totalMs,
+        releasedEarly: run.releaseRequested === true
+      };
+    } catch (error) {
+      clearTimeout(run.externalExpiry);
+      if (run.typingPhase) await endPhase(clean(error?.code || error?.message) || 'typing_cancelled').catch(() => {});
+      if (this.approvedRuns.get(key) === run) this.approvedRuns.delete(key);
+      throw error;
+    } finally {
+      unlinkAbort();
+    }
   }
 
   async simulateApprovedSend(input = {}) {

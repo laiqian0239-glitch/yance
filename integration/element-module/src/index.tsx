@@ -89,6 +89,10 @@ type ProductDesktop = DesktopActivationBridge & {
   setActiveConversation?: (id: string) => Promise<unknown>;
   setConversationAutomationMode?: (input: Record<string, unknown>) => Promise<unknown>;
   prepareOutboundMessage?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  prepareHumanTypingElementSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  releaseHumanTypingElementSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  cancelHumanTypingElementSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  completeHumanTypingElementSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   storeConfirmSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   listPlatformAccounts?: (input?: { matrixUserId?: string }) => Promise<Record<string, unknown>>;
   runPlatformAccountCommand?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
@@ -144,7 +148,17 @@ type PendingAiAssistElementSend = {
   contactId: string;
   accountId: string;
   reviewedText: string;
+  humanTypingOperationId: string;
   elementSendAttemptId: string;
+  finalText: string;
+};
+type PendingElementHumanTypingSend = {
+  operationId: string;
+  roomId: string;
+  conversationId: string;
+  contactId: string;
+  accountId: string;
+  sourceKind: "ai_assist" | "translation";
   finalText: string;
 };
 type ProductMessageComponentsApi = {
@@ -249,6 +263,7 @@ class YanceElementModule implements Module {
       }
     };
     let pendingAiAssistElementSend: PendingAiAssistElementSend | null = null;
+    let pendingElementHumanTypingSend: PendingElementHumanTypingSend | null = null;
     let conversationNavigationGeneration = 0;
     let conversationNavigationQueue: Promise<void> = Promise.resolve();
 
@@ -653,6 +668,7 @@ class YanceElementModule implements Module {
         contactId: session.selectedConversationContactId,
         accountId: session.selectedConversationAccountId,
         reviewedText,
+        humanTypingOperationId: `element:${outboxId}`,
         elementSendAttemptId: "",
         finalText: "",
       };
@@ -702,33 +718,117 @@ class YanceElementModule implements Module {
           || staged.accountId !== afterPrepare.selectedConversationAccountId) {
           throw new Error("AI_ASSIST_ELEMENT_STAGE_BINDING_STALE");
         }
-        if (typeof desktop.storeConfirmSend !== "function") {
-          throw new Error("PRODUCT_OUTBOX_ELEMENT_SEND_AUTHORITY_MISSING");
+      }
+
+      const typingSourceKind: PendingElementHumanTypingSend["sourceKind"] | "" = staged
+        ? "ai_assist"
+        : prepared.translationApplied === true ? "translation" : "";
+      let humanTypingReady = false;
+      if (typingSourceKind) {
+        if (typeof desktop.prepareHumanTypingElementSend !== "function"
+          || typeof desktop.completeHumanTypingElementSend !== "function") {
+          throw new Error("PRODUCT_HUMAN_TYPING_AUTHORITY_MISSING");
         }
-        const preflight = record(await desktop.storeConfirmSend({
-          outboxId: staged.outboxId,
-          phase: "element-preflight",
-          confirmElementSend: true,
-          conversationId: staged.conversationId,
-          contactId: staged.contactId,
-          accountId: staged.accountId,
-          matrixRoomId: roomId,
-          finalText: preparedText,
-        }));
-        const elementSendAttemptId = text(preflight.elementSendAttemptId);
-        if (preflight.ok !== true || !elementSendAttemptId
-          || text(preflight.matrixRoomId) !== roomId
-          || text(preflight.text) !== preparedText) {
-          throw new Error("PRODUCT_OUTBOX_ELEMENT_PREFLIGHT_INVALID");
+        const operationId = staged?.humanTypingOperationId
+          || `element:translation:${afterPrepare.selectedConversationId}:${globalThis.crypto?.randomUUID?.() || String(performance.now())}`;
+        try {
+          const typing = record(await desktop.prepareHumanTypingElementSend({
+            operationId,
+            contactId: afterPrepare.selectedConversationContactId,
+            conversationId: afterPrepare.selectedConversationId,
+            accountId: afterPrepare.selectedConversationAccountId,
+            platform: afterPrepare.selectedConversationPlatform,
+            chatJid: afterPrepare.selectedConversationChatJid,
+            text: preparedText,
+            sourceKind: typingSourceKind,
+          }));
+          if (typing.ready !== true) throw new Error(text(typing.reason) || "PRODUCT_HUMAN_TYPING_PREPARE_FAILED");
+          humanTypingReady = true;
+
+          const afterTyping = getExperienceSessionSnapshot();
+          if (afterTyping.activeMatrixRoomId !== roomId
+            || afterTyping.selectedConversationSessionKey !== session.selectedConversationSessionKey
+            || afterTyping.selectedConversationId !== session.selectedConversationId
+            || afterTyping.selectedConversationContactId !== session.selectedConversationContactId
+            || afterTyping.selectedConversationAccountId !== session.selectedConversationAccountId) {
+            throw new Error("PRODUCT_CONVERSATION_BINDING_STALE_AFTER_HUMAN_TYPING");
+          }
+          if (staged && afterTyping.selectedConversationAutomationMode !== "AI_ASSIST") {
+            throw new Error("AI_ASSIST_ELEMENT_STAGE_BINDING_STALE_AFTER_HUMAN_TYPING");
+          }
+
+          pendingElementHumanTypingSend = {
+            operationId,
+            roomId,
+            conversationId: afterTyping.selectedConversationId,
+            contactId: afterTyping.selectedConversationContactId,
+            accountId: afterTyping.selectedConversationAccountId,
+            sourceKind: typingSourceKind,
+            finalText: preparedText,
+          };
+
+          if (staged) {
+            if (typeof desktop.storeConfirmSend !== "function") {
+              throw new Error("PRODUCT_OUTBOX_ELEMENT_SEND_AUTHORITY_MISSING");
+            }
+            const preflight = record(await desktop.storeConfirmSend({
+              outboxId: staged.outboxId,
+              phase: "element-preflight",
+              confirmElementSend: true,
+              conversationId: staged.conversationId,
+              contactId: staged.contactId,
+              accountId: staged.accountId,
+              matrixRoomId: roomId,
+              finalText: preparedText,
+            }));
+            const elementSendAttemptId = text(preflight.elementSendAttemptId);
+            if (preflight.ok !== true || !elementSendAttemptId
+              || text(preflight.matrixRoomId) !== roomId
+              || text(preflight.text) !== preparedText) {
+              throw new Error("PRODUCT_OUTBOX_ELEMENT_PREFLIGHT_INVALID");
+            }
+            staged.elementSendAttemptId = elementSendAttemptId;
+            staged.finalText = preparedText;
+          }
+        } catch (error) {
+          pendingElementHumanTypingSend = null;
+          if (humanTypingReady) {
+            await desktop.completeHumanTypingElementSend?.({
+              operationId,
+              success: false,
+              reason: error instanceof Error ? error.message : "PRODUCT_HUMAN_TYPING_ABORTED",
+            }).catch(() => undefined);
+          }
+          throw error;
         }
-        staged.elementSendAttemptId = elementSendAttemptId;
-        staged.finalText = preparedText;
+      } else if (staged) {
+        throw new Error("PRODUCT_HUMAN_TYPING_SOURCE_UNRESOLVED");
       }
 
       return { text: preparedText, transformed: prepared.translationApplied === true };
     });
 
     composerApi.registerOutgoingMessageCompletion(async ({ roomId, text: sentText, success, eventId }) => {
+      const finalText = sentText.trim();
+      const typing = pendingElementHumanTypingSend;
+      if (typing?.roomId === roomId) {
+        if (typeof desktop.completeHumanTypingElementSend !== "function") {
+          throw new Error("PRODUCT_HUMAN_TYPING_AUTHORITY_MISSING");
+        }
+        const textMatches = Boolean(finalText && finalText === typing.finalText);
+        await desktop.completeHumanTypingElementSend({
+          operationId: typing.operationId,
+          success: success === true && textMatches,
+          reason: success === true && textMatches
+            ? "element_send_success"
+            : success === true ? "element_send_text_mismatch" : "element_send_failed",
+        }).catch(() => undefined);
+        pendingElementHumanTypingSend = null;
+        if (success === true && !textMatches) {
+          throw new Error("PRODUCT_HUMAN_TYPING_COMPLETION_STALE");
+        }
+      }
+
       const staged = pendingAiAssistElementSend;
       if (!staged || staged.roomId !== roomId || !staged.elementSendAttemptId) return;
       if (success !== true) {
@@ -737,7 +837,6 @@ class YanceElementModule implements Module {
         return;
       }
       const matrixEventId = String(eventId || "").trim();
-      const finalText = sentText.trim();
       if (!matrixEventId || !finalText || finalText !== staged.finalText) {
         throw new Error("AI_ASSIST_ELEMENT_COMPLETION_STALE");
       }

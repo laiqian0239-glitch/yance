@@ -611,6 +611,13 @@ function registerRuntimeStateCommands(storeManager) {
       isTyping,
       activity,
       phase: clean(command.payload.phase || previous.self?.phase),
+      operationId: isTyping ? clean(command.payload.operationId || previous.self?.operationId) : '',
+      progress: isTyping
+        ? Math.max(0, Math.min(100, Number.isFinite(Number(command.payload.progress)) ? Number(command.payload.progress) : Number(previous.self?.progress || 0)))
+        : 0,
+      canRelease: isTyping && command.payload.canRelease === true,
+      canCancel: isTyping && command.payload.canCancel === true,
+      sourceKind: isTyping ? clean(command.payload.sourceKind || previous.self?.sourceKind) : '',
       lastUpdated,
       expiresAt: isTyping ? new Date(timestamp + ttlMs).toISOString() : '',
       conversationId: clean(command.payload.conversationId || previous.self?.conversationId || previous.conversationId),
@@ -656,6 +663,11 @@ function registerRuntimeStateCommands(storeManager) {
           isTyping,
           activity,
           phase: self.phase,
+          operationId: self.operationId,
+          progress: self.progress,
+          canRelease: self.canRelease,
+          canCancel: self.canCancel,
+          sourceKind: self.sourceKind,
           lastUpdated,
           expiresAt: self.expiresAt,
           reason: self.reason

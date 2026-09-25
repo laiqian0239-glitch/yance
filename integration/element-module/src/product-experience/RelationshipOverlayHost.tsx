@@ -144,7 +144,7 @@ export function resolveCanonicalConversationRoom(
     return { status: "unresolved", reason: "当前会话路由读取接口不可用" };
   }
   if (!conversation.platform || !conversation.accountId || !conversation.chatJid) {
-    return { status: "unresolved", reason: "canonical conversation 缺少平台路由身份" };
+    return { status: "unresolved", reason: "当前对话缺少平台路由身份" };
   }
 
   const matches = new Set<string>();
@@ -182,7 +182,7 @@ export function resolveCanonicalConversationRoom(
     if (routeMatches.length > 1) {
       return {
         status: "ambiguous",
-        reason: "同一房间存在多个匹配的 bridge identity",
+        reason: "同一房间存在多个匹配的连接身份",
       };
     }
     if (routeMatches.length === 1) matches.add(roomId);
@@ -194,7 +194,7 @@ export function resolveCanonicalConversationRoom(
   if (matches.size > 1) {
     return {
       status: "ambiguous",
-      reason: "canonical conversation 匹配到多个 Matrix room",
+      reason: "当前对话匹配到多个真实会话房间",
     };
   }
   return {
@@ -237,7 +237,7 @@ export async function resolveRelationshipToolRoute(
   readRoomStateEvents?: ReadRoomStateEvents,
 ): Promise<RelationshipToolRouteBinding> {
   const roomId = activeMatrixRoomId.trim();
-  if (!roomId) return { status: "unresolved", reason: "当前 Element 会话尚未就绪" };
+  if (!roomId) return { status: "unresolved", reason: "当前真实会话尚未就绪" };
   if (!readRoomStateEvents) return { status: "unresolved", reason: "当前会话路由读取接口不可用" };
 
   let rawBridgeEvents: readonly { stateKey: string; content: Record<string, unknown> }[];
@@ -247,36 +247,36 @@ export async function resolveRelationshipToolRoute(
       ...readRoomStateEvents(roomId, "uk.half-shot.bridge"),
     ];
   } catch {
-    return { status: "unresolved", reason: "无法读取当前会话的 bridge identity" };
+    return { status: "unresolved", reason: "无法读取当前会话的连接身份" };
   }
 
   if (!rawBridgeEvents.length) {
-    return { status: "unresolved", reason: "当前会话没有可用的 bridge identity" };
+    return { status: "unresolved", reason: "当前会话没有可用的连接身份" };
   }
 
   const identities = new Map<string, BridgeIdentity>();
   for (const event of rawBridgeEvents) {
     const identity = bridgeIdentity(event.content);
-    if (!identity) return { status: "unresolved", reason: "当前会话 bridge identity 格式无效" };
+    if (!identity) return { status: "unresolved", reason: "当前会话的连接身份无效" };
     const key = `${identity.platform}\u0000${identity.chatJid}\u0000${identity.receiver}`;
     identities.set(key, identity);
   }
 
   if (identities.size !== 1) {
-    return { status: "ambiguous", reason: "当前会话存在多个不同的 bridge identity" };
+    return { status: "ambiguous", reason: "当前会话存在多个不同的连接身份" };
   }
   const identity = [...identities.values()][0];
 
   const api = productDesktop();
   if (!api || typeof api.storeSnapshot !== "function") {
-    return { status: "unresolved", reason: "Store conversation authority 不可用" };
+    return { status: "unresolved", reason: "当前会话路由服务不可用" };
   }
 
   let payload: unknown;
   try {
     payload = await api.storeSnapshot({ domains: ["conversations"] });
   } catch {
-    return { status: "unresolved", reason: "无法读取 Store conversations" };
+    return { status: "unresolved", reason: "无法读取当前会话路由" };
   }
 
   const root = record(payload);
@@ -284,7 +284,7 @@ export async function resolveRelationshipToolRoute(
   const conversations = record(snapshot.conversations);
   const byId = record(conversations.byId);
   if (!identity.receiver) {
-    return { status: "unresolved", reason: "当前会话 bridge identity 缺少 receiver 账号身份" };
+    return { status: "unresolved", reason: "当前会话缺少可确认的账号身份" };
   }
 
   let accountRows: readonly unknown[] = [];
@@ -314,8 +314,8 @@ export async function resolveRelationshipToolRoute(
 
   if (matches.length !== 1) {
     return matches.length > 1
-      ? { status: "ambiguous", reason: "Store 中存在多个匹配的 canonical conversation" }
-      : { status: "unresolved", reason: "Store 中没有唯一匹配的 canonical conversation" };
+      ? { status: "ambiguous", reason: "当前账号存在多个匹配的真实会话" }
+      : { status: "unresolved", reason: "当前账号没有唯一匹配的真实会话" };
   }
 
   const [{ platform, accountId, chatJid, sessionKey }] = matches;

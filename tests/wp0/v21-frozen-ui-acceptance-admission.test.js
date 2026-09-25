@@ -48,8 +48,8 @@ test("runtime admission proves frozen owner/session/materialization before accep
     /last\.productShell && !last\.personalAccess && last\.userId && last\.deviceId/u,
   );
   assert.match(guard, /ACCEPTANCE_CONVERSATION_GEOMETRY_NOT_READY/u);
-  assert.match(guard, /conversationRailCount === 1/u);
-  assert.match(guard, /outerRailCount === 0/u);
+  assert.match(guard, /conversationRailCount === 0/u);
+  assert.match(guard, /outerRailCount === 1/u);
   assert.match(guard, /conversationWorkspaceHeight >= Math\.max\(320, last\.viewportHeight \* 0\.75\)/u);
   assert.match(guard, /conversationPeopleHeight >= Math\.max\(180, last\.viewportHeight \* 0\.35\)/u);
   assert.match(guard, /conversationRoomHeight >= Math\.max\(240, last\.viewportHeight \* 0\.55\)/u);

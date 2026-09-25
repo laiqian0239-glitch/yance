@@ -37,5 +37,10 @@ provisioning:
 
 env_config_prefix: YANCE_MAUTRIX_TELEGRAM_
 
+backfill:
+  enabled: true
+  max_initial_messages: 50
+  max_catchup_messages: 500
+
 logging:
   min_level: info

@@ -100,3 +100,18 @@ test('Product Shell keeps mature domain workspaces as child authorities', () => 
   assert.match(overlay, /PresenceWorkspace/u);
   assert.doesNotMatch(overlay, /ComfyUI|ImmichClient|new\s+Room\s*\(|LiveKitClient|CosyVoice|SenseVoice/u);
 });
+
+test('People Home v4 is a real-data relationship workspace rather than the legacy portrait dashboard', () => {
+  const people = read('integration/element-module/src/product-experience/PeopleSurface.tsx');
+  const styles = read('integration/element-module/src/product-experience/ProductExperienceShell.css');
+
+  assert.match(people, /yance-people-home-v4/u);
+  assert.match(people, /今天值得关注/u);
+  assert.match(people, /今日关系导航/u);
+  assert.match(people, /添加联系人/u);
+  assert.match(people, /onConnectAccounts/u);
+  assert.match(people, /onContinueConversation/u);
+  assert.doesNotMatch(people, /createContact|insertContact|new\s+Room\s*\(|localStorage\.setItem\([^\n]*(?:contact|relationship)/iu);
+  assert.match(styles, /yance-people-home-v4/u);
+  assert.match(styles, /--yance-v4-app/u);
+});

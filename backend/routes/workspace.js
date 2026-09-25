@@ -9,6 +9,7 @@ const workspaceData = require('../services/workspaceDataService');
 const workspaceRepository = require('../repositories/workspaceRepository');
 const chatExport = require('../services/chatExportService');
 const outboundTranslationAuthority = require('../services/outboundTranslationAuthority');
+const productAiWorkspace = require('../services/productAiWorkspaceService');
 
 // P0-B integration is bound once by AppRuntimeComposition to the broker-owned
 // database capability. HTTP routes never acquire a primary store.
@@ -23,7 +24,8 @@ function buildKeyNodeService() { return getWorkspaceIdentityCommandFacade().keyN
 // 把稳定契约的 CoreError.code 映射到 HTTP 状态，便于前端接线。
 function respondError(res, error) {
   const code = error && error.code;
-  let status = 500;
+  let status = Number(error?.status || 500);
+  if (!Number.isInteger(status) || status < 400 || status > 599) status = 500;
   if (code === 'VERSION_CONFLICT' || code === 'STORE_VERSION_CONFLICT' || code === 'ALREADY_MERGED' || code === 'NOT_APPLIED' || code === 'CUSTOMER_PROFILE_ASSOCIATION_CONFLICT' || code === 'CUSTOMER_PERSONA_ASSOCIATION_CONFLICT' || code === 'CONTACT_REFERENCE_AMBIGUOUS' || code === 'CONVERSATION_REFERENCE_AMBIGUOUS') status = 409;
   else if (code === 'INVALID_INPUT' || code === 'KEY_NODE_KIND_INVALID' || code === 'UNSAFE_CUSTOMER_ASSOCIATION_EVIDENCE') status = 400;
   else if (code === 'CONTACT_NOT_FOUND' || code === 'SURVIVOR_NOT_FOUND' || code === 'MERGED_NOT_FOUND' || code === 'KEY_NODE_EVENT_NOT_FOUND' || code === 'JOURNAL_NOT_FOUND') status = 404;
@@ -150,6 +152,25 @@ router.post('/conversations/:sessionKey/message-projection', async (req, res, ne
       translated:translationStatus === 'success' && Boolean(translatedZh)
     });
   } catch (error) { next(error); }
+});
+
+router.get('/ai-workspace', (_req, res) => {
+  try { res.json({ ok: true, tasks: productAiWorkspace.listTasks() }); } catch (error) { respondError(res, error); }
+});
+router.post('/ai-workspace/tasks', (req, res) => {
+  try { res.status(201).json({ ok: true, task: productAiWorkspace.createTask(req.body || {}) }); } catch (error) { respondError(res, error); }
+});
+router.put('/ai-workspace/tasks/:taskId', (req, res) => {
+  try { res.json({ ok: true, task: productAiWorkspace.updateTask(req.params.taskId, req.body || {}) }); } catch (error) { respondError(res, error); }
+});
+router.post('/ai-workspace/tasks/:taskId/run', async (req, res, next) => {
+  try {
+    systemPolicy.assertWriteAllowed('cross-module-ai-analysis');
+    res.json({ ok: true, result: await productAiWorkspace.runTask(req.params.taskId) });
+  } catch (error) {
+    if (error?.status) respondError(res, error);
+    else next(error);
+  }
 });
 
 router.get('/contacts', (req, res, next) => {

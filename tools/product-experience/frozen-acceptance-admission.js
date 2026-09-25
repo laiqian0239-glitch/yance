@@ -278,8 +278,8 @@ async function waitForReady(cdp) {
         fail("PRODUCT_RED", "ACCEPTANCE_LOGIN_ROUTE_FORBIDDEN", last);
       }
       const conversationGeometryReady = !last.conversationActive || (
-        last.conversationRailCount === 1 &&
-        last.outerRailCount === 0 &&
+        last.conversationRailCount === 0 &&
+        last.outerRailCount === 1 &&
         last.conversationRootHeight >= Math.max(320, last.viewportHeight * 0.75) &&
         last.conversationWorkspaceHeight >= Math.max(320, last.viewportHeight * 0.75) &&
         last.conversationPeopleHeight >= Math.max(180, last.viewportHeight * 0.35) &&
@@ -322,8 +322,8 @@ async function waitForReady(cdp) {
   }
   if (last.productShell && !last.personalAccess && last.userId && last.deviceId && last.conversationActive) {
     const geometryFailed =
-      last.conversationRailCount !== 1 ||
-      last.outerRailCount !== 0 ||
+      last.conversationRailCount !== 0 ||
+      last.outerRailCount !== 1 ||
       last.conversationRootHeight < Math.max(320, last.viewportHeight * 0.75) ||
       last.conversationWorkspaceHeight < Math.max(320, last.viewportHeight * 0.75) ||
       last.conversationPeopleHeight < Math.max(180, last.viewportHeight * 0.35) ||

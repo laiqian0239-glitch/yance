@@ -239,7 +239,7 @@ export function PlatformAccountsSurface({
     setStatus(`正在准备 ${accountTypeLabel(account)} 登录…`);
     try {
       const matrixUserId = await resolveMatrixUserId();
-      if (!matrixUserId) throw new Error("Matrix 会话尚未就绪，请确认当前设备登录状态");
+      if (!matrixUserId) throw new Error("当前设备登录尚未就绪，请确认登录状态");
       const published = await runPlatformAccountCommand(account.id, "provisioning-login-flows", { matrixUserId });
       const ownerDefaultFlow = account.platform === "whatsapp" || account.platform === "telegram"
         ? "qr"
@@ -473,7 +473,6 @@ export function PlatformAccountsSurface({
     : undefined) || selectedOwnerLogins[0];
   const selectedOwnerName = text(selectedOwnerLogin?.name);
   const selectedOwnerId = text(selectedOwnerLogin?.id);
-  const selectedOwnerState = text(selectedOwnerLogin?.stateEvent);
   const ownerAvatar = (login: PlatformAccountProjection["bridgeLogins"][number] | undefined, size = "40px"): React.ReactNode | null => {
     const userId = text(login?.remoteMatrixUserId);
     if (!userId || !renderUserAvatar) return null;
@@ -498,7 +497,7 @@ export function PlatformAccountsSurface({
       ? ["打开 Telegram", "进入“设备”或扫描二维码", "无法扫码时使用手机号登录", "完成后自动创建真实会话"]
       : selectedPlatform === "facebook-messenger"
         ? ["选择 Facebook 或 Messenger 登录方式", "按登录提示完成认证", "等待平台确认真实登录状态", "完成后同步真实 Messenger 会话"]
-        : ["从 Chatwoot 读取已授权 Facebook Page", "选择唯一对应的 Facebook Page inbox", "言策绑定主页身份但不复制 Meta 凭据", "连接后公共主页会话进入统一工作区"];
+        : ["读取已授权 Facebook Page", "选择对应的公共主页", "言策绑定主页身份但不复制 Meta 凭据", "连接后公共主页会话进入统一工作区"];
   const capabilityLabels = selectedPlatform === "whatsapp"
     ? ["扫码连接", "多设备", "会话恢复", "消息同步"]
     : selectedPlatform === "telegram"
@@ -528,8 +527,8 @@ export function PlatformAccountsSurface({
   }
 
   const discoverFacebookPageInboxes = async (accountId = selectedAccount?.id || ""): Promise<void> => {
-    if (busy || !accountId) { setStatus("请先保留现有 Facebook Page 账号记录，再读取 Chatwoot 已授权主页"); return; }
-    setBusy(true); setStatus("正在读取 Chatwoot 已授权 Facebook Page…");
+    if (busy || !accountId) { setStatus("请先保留现有 Facebook Page 账号记录，再读取已授权主页"); return; }
+    setBusy(true); setStatus("正在读取已授权 Facebook Page…");
     try {
       const result = record(await runPlatformAccountCommand(accountId, "facebook-page-inboxes"));
       const rows = (Array.isArray(result.inboxes) ? result.inboxes : []).map(record).map((row) => ({
@@ -537,7 +536,7 @@ export function PlatformAccountsSurface({
       })).filter((row) => Boolean(row.inboxId && row.pageId));
       setFacebookPageInboxes(rows);
       setSelectedFacebookPageId((current) => current && rows.some((row) => row.pageId === current) ? current : rows[0]?.pageId || "");
-      setStatus(rows.length ? `已读取 ${rows.length} 个 Chatwoot 已授权主页` : "Chatwoot 当前没有可用的 Facebook Page inbox");
+      setStatus(rows.length ? `已读取 ${rows.length} 个已授权主页` : "当前没有可用的 Facebook Page");
     } catch (error) { setStatus(operationFailureStatus(error)); }
     finally { setBusy(false); }
   };
@@ -548,7 +547,7 @@ export function PlatformAccountsSurface({
     try {
       await runPlatformAccountCommand(account.id, "facebook-page-attach", { inboxId: page.inboxId, pageId: page.pageId });
       setFacebookPageInboxes([]); setSelectedFacebookPageId("");
-      setStatus(`${page.name} 已通过 Chatwoot 官方 Page authority 连接`);
+      setStatus(`${page.name} 已通过现有 Facebook Page 连接`);
       await refresh();
     } catch (error) { setStatus(operationFailureStatus(error)); }
     finally { setBusy(false); }
@@ -572,12 +571,12 @@ export function PlatformAccountsSurface({
       return <div className="yance-account-manager__page-readiness" role="status">
         <ShieldCheck aria-hidden="true" />
         <div>
-          <strong>选择 Chatwoot 已授权主页</strong>
-          <p>言策直接读取现有 Chatwoot Facebook Page inbox；不会恢复旧 OAuth，也不会保存第二份 Meta 凭据。</p>
+          <strong>选择已授权主页</strong>
+          <p>言策直接读取现有 Facebook Page 授权；不会恢复旧登录流程，也不会保存第二份平台凭据。</p>
           <button type="button" className="yance-platform-auth-primary" disabled={busy}
             onClick={() => void discoverFacebookPageInboxes(selectedAccount?.id || "")}>读取已授权主页</button>
           {facebookPageInboxes.length ? <div className="yance-facebook-page-picker">
-            <select aria-label="Chatwoot 已授权 Facebook Page" value={selectedFacebookPageId}
+            <select aria-label="已授权 Facebook Page" value={selectedFacebookPageId}
               onChange={(event) => setSelectedFacebookPageId(event.target.value)}>
               {facebookPageInboxes.map((page) => <option key={`${page.inboxId}:${page.pageId}`} value={page.pageId}>{page.name} · {page.pageId}</option>)}
             </select>
@@ -608,7 +607,7 @@ export function PlatformAccountsSurface({
         <div>
           <strong>{selectedOwnerName || selectedMeta.label + " 已连接"}</strong>
           <p>{selectedOwnerId
-            ? `${selectedMeta.label} · ID ${selectedOwnerId}${selectedOwnerState ? ` · ${selectedOwnerState}` : ""}`
+            ? `${selectedMeta.label} · ID ${selectedOwnerId}`
             : "当前连接已由平台确认，可以继续同步真实会话。"}</p>
         </div>
         {connectedActions(selectedAccount)}
@@ -722,7 +721,7 @@ export function PlatformAccountsSurface({
             <span className="yance-eyebrow">{selectedPlatform === "facebook-page" ? "官方渠道" : "连接步骤"}</span>
             <h4>{selectedPlatform === "facebook-page" ? "连接 Facebook Page" : "连接 " + selectedMeta.label}</h4>
             <p>{selectedPlatform === "facebook-page"
-              ? "公共主页授权由 Chatwoot 官方 Page/Inbox authority 持有；这里直接选择已授权主页，不创建第二套 OAuth 或账号状态。"
+              ? "公共主页授权继续由现有官方连接持有；这里直接选择已授权主页，不创建第二套登录流程或账号状态。"
               : "完成真实平台登录后，言策会读取平台连接状态，并在真实对话就绪后开放聊天。"}</p>
             <ol>{loginGuide.map((step, index) => <li key={step}><span>{index + 1}</span><strong>{step}</strong></li>)}</ol>
           </div>

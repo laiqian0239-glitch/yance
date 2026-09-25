@@ -74,7 +74,8 @@ const LANGUAGES = [
 
 export function VoiceWorkspace({
   routeBinding,
-}: { routeBinding?: RelationshipToolRouteBinding }): React.JSX.Element {
+  managementOnly = false,
+}: { routeBinding?: RelationshipToolRouteBinding; managementOnly?: boolean }): React.JSX.Element {
   const [health, setHealth] = useState<VoiceHealth>({ available: false, degraded: true });
   const [profiles, setProfiles] = useState<VoiceProfile[]>([]);
   const [profile, setProfile] = useState<VoiceProfile | null>(null);
@@ -88,7 +89,7 @@ export function VoiceWorkspace({
   const [chatJid, setChatJid] = useState("");
   const [sessionKey, setSessionKey] = useState("");
   const productRouteResolved = routeBinding?.status === "resolved";
-  const standaloneMode = routeBinding === undefined;
+  const standaloneMode = !managementOnly && routeBinding === undefined;
   const resolvedRoute = productRouteResolved ? routeBinding.route : null;
 
   const api = useMemo(() => voiceApi(), []);
@@ -202,6 +203,7 @@ export function VoiceWorkspace({
   };
 
   const send = async (): Promise<void> => {
+    if (managementOnly) { setStatus("设置页只管理声音；请从真实对话进入后发送。"); return; }
     if (!api || !output?.audioArtifact || busy) return;
     if (routeBinding && routeBinding.status !== "resolved") {
       setStatus(routeBinding.reason || "当前关系会话路由不可用，暂时无法发送");
@@ -231,7 +233,116 @@ export function VoiceWorkspace({
     }
   };
 
-  const routeReady = standaloneMode ? Boolean(accountId.trim() && chatJid.trim()) : productRouteResolved;
+  const routeReady = managementOnly ? false : standaloneMode ? Boolean(accountId.trim() && chatJid.trim()) : productRouteResolved;
+  const routeBoundMiniFlow = !managementOnly && routeBinding !== undefined;
+  const voicePhase = status === "声音已交给现有发送通道"
+    ? "sent"
+    : busy && status.includes("重新生成")
+      ? "regenerating"
+      : busy && (status.includes("生成声音") || status.includes("测试声音"))
+        ? "generating"
+        : output
+          ? "preview"
+          : "select";
+  const voicePhaseLabel = voicePhase === "sent"
+    ? "真实会话发送"
+    : voicePhase === "regenerating"
+      ? "重新生成"
+      : voicePhase === "generating"
+        ? "生成中"
+        : voicePhase === "preview"
+          ? "试听 / 可发送"
+          : "选择我的声音";
+
+  if (routeBoundMiniFlow) {
+    return (
+      <section
+        className="yance-voice-workspace yance-voice-workspace--m02"
+        aria-label="我的声音"
+        data-voice-phase={voicePhase}
+        data-yance-route-bound={productRouteResolved || undefined}
+      >
+        <header className="yance-voice-mini-header">
+          <div>
+            <strong>我的声音</strong>
+            <p>当前文字 → 选择声音 → 生成 → 试听 → 真实会话发送</p>
+          </div>
+          <span className="yance-voice-mini-phase">{voicePhaseLabel}</span>
+        </header>
+
+        <div className="yance-voice-mini-flow">
+          <label className="yance-voice-current-text">
+            <span>当前文字</span>
+            <textarea
+              value={replyText}
+              maxLength={20000}
+              rows={2}
+              onChange={(event) => {
+                setReplyText(event.target.value);
+                setOutput(null);
+              }}
+              placeholder="输入要转换成声音的当前文字；真实输入框保持不变。"
+              disabled={busy}
+            />
+          </label>
+
+          <div className="yance-voice-mini-controls">
+            <label>声音档案
+              <select
+                value={profile?.voiceProfileId || ""}
+                onChange={(event) => {
+                  const next = profiles.find((item) => item.voiceProfileId === event.target.value) || null;
+                  setProfile(next);
+                  setOutput(null);
+                }}
+                disabled={busy || profiles.length === 0}
+              >
+                {profiles.length === 0 ? <option value="">尚未录入</option> : null}
+                {profiles.map((item) => <option key={item.voiceProfileId} value={item.voiceProfileId}>{item.label || item.voiceProfileId}</option>)}
+              </select>
+            </label>
+            <label>语言
+              <select value={language} onChange={(event) => setLanguage(event.target.value)} disabled={busy}>
+                {LANGUAGES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+          </div>
+
+          {voicePhase === "generating" || voicePhase === "regenerating" ? (
+            <div className="yance-voice-generating" role="status">
+              <progress aria-label={voicePhaseLabel} />
+              <span>{voicePhase === "regenerating" ? "正在重新生成声音…" : "正在生成声音…"}</span>
+            </div>
+          ) : null}
+
+          {output ? (
+            <div className="yance-voice-preview" aria-label="声音预览">
+              <div><strong>试听</strong><span>已生成 · {output.language || language}</span></div>
+              {output.previewDataUrl ? <audio controls preload="metadata" src={output.previewDataUrl} /> : <p>声音已生成；当前运行时未提供内联试听地址。</p>}
+            </div>
+          ) : null}
+
+          <div className="yance-voice-mini-actions">
+            {!output ? (
+              <button type="button" className="yance-voice-primary" onClick={() => { void generate("generate"); }} disabled={busy || !profile || !replyText.trim() || !health.available}>
+                生成我的声音
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={() => { void generate("regenerate"); }} disabled={busy || !profile || !replyText.trim()}>重新生成</button>
+                <button type="button" className="yance-voice-primary" title="真实会话发送" onClick={() => { void send(); }} disabled={busy || !routeReady}>发送</button>
+              </>
+            )}
+          </div>
+
+          <footer className="yance-voice-mini-footer">
+            <span aria-live="polite">{status}</span>
+            <span>{productRouteResolved ? "已绑定当前关系会话" : routeBinding?.reason || "当前关系会话路由不可用"}</span>
+          </footer>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="yance-voice-workspace" aria-label="声音">
@@ -305,28 +416,33 @@ export function VoiceWorkspace({
           </div>
         </fieldset>
 
-        <fieldset>
-          <legend>发送</legend>
-          {standaloneMode ? (
-            <>
-              <label>平台
-                <select value={platform} onChange={(event) => setPlatform(event.target.value)}>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="telegram">Telegram</option>
-                  <option value="facebook">Facebook</option>
-                </select>
-              </label>
-              <label>账号 ID<input value={accountId} onChange={(event) => setAccountId(event.target.value)} /></label>
-              <label>会话 JID<input value={chatJid} onChange={(event) => setChatJid(event.target.value)} /></label>
-              <label>会话键<input value={sessionKey} onChange={(event) => setSessionKey(event.target.value)} /></label>
-            </>
-          ) : (
-            <p role="status" aria-live="polite">
-              {productRouteResolved ? "已绑定当前关系会话" : routeBinding?.reason || "当前关系会话路由不可用"}
-            </p>
-          )}
-          <button type="button" title="发送声音" onClick={() => { void send(); }} disabled={busy || !output || !routeReady}>发送</button>
-        </fieldset>
+        {managementOnly ? (
+          <aside className="yance-voice-management-boundary">
+            <strong>管理模式</strong>
+            <p>这里仅管理声音档案、转写、生成与预览。真实发送只能从已绑定对话进入。</p>
+          </aside>
+        ) : (
+          <fieldset>
+            <legend>发送</legend>
+            {standaloneMode ? (
+              <>
+                <label>平台
+                  <select value={platform} onChange={(event) => setPlatform(event.target.value)}>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="telegram">Telegram</option>
+                    <option value="facebook">Facebook</option>
+                  </select>
+                </label>
+                <label>账号 ID<input value={accountId} onChange={(event) => setAccountId(event.target.value)} /></label>
+                <label>会话 JID<input value={chatJid} onChange={(event) => setChatJid(event.target.value)} /></label>
+                <label>会话键<input value={sessionKey} onChange={(event) => setSessionKey(event.target.value)} /></label>
+              </>
+            ) : (
+              <p role="status" aria-live="polite">{productRouteResolved ? "已绑定当前关系会话" : routeBinding?.reason || "当前关系会话路由不可用"}</p>
+            )}
+            <button type="button" title="发送声音" onClick={() => { void send(); }} disabled={busy || !output || !routeReady}>发送</button>
+          </fieldset>
+        )}
       </div>
     </section>
   );

@@ -184,7 +184,8 @@ test('Facebook Page remains on the existing Chatwoot production authority while 
   assert.match(contracts, /account\.facebook\.page\.attach/u);
   assert.match(routes, /facebook\/page\/inboxes/u);
   assert.match(routes, /facebook\/page\/attach/u);
-  assert.match(accounts, /选择 Chatwoot 已授权主页/u);
+  assert.match(accounts, /选择已授权主页/u);
+  assert.doesNotMatch(accounts, />[^<]*Chatwoot[^<]*</u);
   assert.match(accounts, /facebook-page-inboxes/u);
   assert.match(accounts, /facebook-page-attach/u);
   assert.doesNotMatch(accounts, /Facebook Page 请使用现有官方渠道完成授权/u);

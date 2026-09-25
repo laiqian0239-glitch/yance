@@ -240,6 +240,7 @@ services:
       YANCE_MAUTRIX_TELEGRAM_NETWORK__API_ID: ${YANCE_TELEGRAM_API_ID:?required}
       YANCE_MAUTRIX_TELEGRAM_NETWORK__API_HASH: ${YANCE_TELEGRAM_API_HASH:?required}
       YANCE_MAUTRIX_TELEGRAM_PROVISIONING__SHARED_SECRET_FILE: /run/secrets/yance_mautrix_telegram_provisioning_secret
+      YANCE_MAUTRIX_TELEGRAM_BACKFILL__ENABLED: "true"
     volumes:
       - mautrix-telegram-secret-data:/run/secrets:ro
       - mautrix-telegram-data:/data

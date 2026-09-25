@@ -25,6 +25,10 @@ const CHANNELS = Object.freeze({
   notificationSoundDelete: 'store:notification-sound-delete',
   personaVersions: 'store:persona-versions',
   personaImport: 'store:persona-import',
+  personaInitializeDefault: 'store:persona-initialize-default',
+  personaUpdateAuthoritative: 'store:persona-update-authoritative',
+  personaVersionDiff: 'store:persona-version-diff',
+  personaRollback: 'store:persona-rollback',
   workspaceConversationArchive: 'store:workspace-conversation-archive',
   workspaceConversationPin: 'store:workspace-conversation-pin',
   workspaceContactMerge: 'store:workspace-contact-merge',
@@ -58,6 +62,10 @@ const CHANNELS = Object.freeze({
   productRuntimeSafeExitPrepare: 'store:product-system-runtime-safe-exit-prepare',
   conversationAutomationMode: 'store:conversation-automation-mode',
   outboundPrepare: 'store:outbound-prepare',
+  humanTypingPrepare: 'store:human-typing-prepare',
+  humanTypingRelease: 'store:human-typing-release',
+  humanTypingCancel: 'store:human-typing-cancel',
+  humanTypingComplete: 'store:human-typing-complete',
   platformAccountCreate: 'store:platform-account-create',
   platformAccountCommand: 'store:platform-account-command',
   platformAccountsList: 'store:platform-accounts-list',
@@ -67,6 +75,10 @@ const CHANNELS = Object.freeze({
   platformAccountReconnect: 'store:platform-account-reconnect',
   platformAccountSync: 'store:platform-account-sync',
   platformAccountsSyncAll: 'store:platform-accounts-sync-all',
+  aiWorkspaceLoad: 'store:ai-workspace-load',
+  aiWorkspaceCreateTask: 'store:ai-workspace-create-task',
+  aiWorkspaceUpdateTask: 'store:ai-workspace-update-task',
+  aiWorkspaceRunTask: 'store:ai-workspace-run-task',
   personaCharacterCardPreview: 'store:persona-character-card-preview'
 });
 
@@ -334,6 +346,24 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       return apiRequest(`/api/v2/persona/${profileId}/versions?limit=${limit}`);
     },
     [CHANNELS.personaImport]: (_event, input = {}) => apiRequest(`/api/v2/persona/${safeRouteSegment(input.profileId,'profileId')}/import`, { method:'POST', body:jsonBody({ exportedPayload:input.exportedPayload }) }),
+    [CHANNELS.personaInitializeDefault]: (_event, input = {}) => apiRequest(
+      `/api/v2/persona/${safeRouteSegment(input.profileId,'profileId')}/initialize-default`,
+      { method:'POST', body:jsonBody({ presetId:clean(input.presetId), metadata:objectRecord(input.metadata) }) }
+    ),
+    [CHANNELS.personaUpdateAuthoritative]: (_event, input = {}) => apiRequest(
+      `/api/v2/persona/${safeRouteSegment(input.profileId,'profileId')}/authoritative`,
+      { method:'PATCH', body:jsonBody({ patch:objectRecord(input.patch), expectedVersion:input.expectedVersion, reason:clean(input.reason) || 'product-persona-management' }) }
+    ),
+    [CHANNELS.personaVersionDiff]: (_event, input = {}) => {
+      const profileId=safeRouteSegment(input.profileId,'profileId');
+      const fromVersion=Number(input.fromVersion); const toVersion=Number(input.toVersion);
+      if(!Number.isInteger(fromVersion)||fromVersion<1||!Number.isInteger(toVersion)||toVersion<1) throw Object.assign(new Error('Persona version diff requires positive versions'),{code:'PERSONA_VERSION_DIFF_INVALID'});
+      return apiRequest(`/api/v2/persona/${profileId}/diff?fromVersion=${fromVersion}&toVersion=${toVersion}`);
+    },
+    [CHANNELS.personaRollback]: (_event, input = {}) => apiRequest(
+      `/api/v2/persona/${safeRouteSegment(input.profileId,'profileId')}/rollback`,
+      { method:'POST', body:jsonBody({ targetVersion:Number(input.targetVersion), expectedVersion:input.expectedVersion, reason:clean(input.reason) || 'product-persona-management', actor:'user' }) }
+    ),
     [CHANNELS.workspaceConversationArchive]: (_event, input = {}) => apiRequest(`/api/r32/workspace/conversations/${safeRouteSegment(input.sessionKey,'sessionKey')}/archive`, { method:'PUT', body:jsonBody({ archived:input.archived===true, by:'product' }) }),
     [CHANNELS.workspaceConversationPin]: (_event, input = {}) => apiRequest(`/api/r32/workspace/conversations/${safeRouteSegment(input.sessionKey,'sessionKey')}/pin`, { method:'PUT', body:jsonBody({ pinned:input.pinned===true, by:'product' }) }),
     [CHANNELS.workspaceContactMerge]: (_event, input = {}) => apiRequest(`/api/r32/workspace/contacts/${safeRouteSegment(input.survivorId,'survivorId')}/merge`, { method:'POST', body:jsonBody({ mergedId:requiredIdentifier(input.mergedId,'mergedId'), by:'product', ...(input.expectedVersion==null?{}:{expectedVersion:input.expectedVersion}) }) }),
@@ -441,6 +471,22 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         })
       });
     },
+    [CHANNELS.humanTypingPrepare]: (_event, input = {}) => apiRequest('/api/r32/messages/typing/element/prepare', {
+      method: 'POST',
+      body: jsonBody(input || {})
+    }),
+    [CHANNELS.humanTypingRelease]: (_event, input = {}) => apiRequest('/api/r32/messages/typing/element/release', {
+      method: 'POST',
+      body: jsonBody(input || {})
+    }),
+    [CHANNELS.humanTypingCancel]: (_event, input = {}) => apiRequest('/api/r32/messages/typing/element/cancel', {
+      method: 'POST',
+      body: jsonBody(input || {})
+    }),
+    [CHANNELS.humanTypingComplete]: (_event, input = {}) => apiRequest('/api/r32/messages/typing/element/complete', {
+      method: 'POST',
+      body: jsonBody(input || {})
+    }),
     [CHANNELS.platformAccountCreate]: (_event, input = {}) => {
       const platform = requiredAction(input.platform, ['whatsapp', 'telegram', 'facebook'], 'platform');
       const displayName = clean(input.displayName) || `${platform} 账号`;
@@ -603,6 +649,19 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       method: 'POST',
       body: '{}'
     }),
+    [CHANNELS.aiWorkspaceLoad]: () => apiRequest('/api/r32/workspace/ai-workspace'),
+    [CHANNELS.aiWorkspaceCreateTask]: (_event, input = {}) => apiRequest('/api/r32/workspace/ai-workspace/tasks', {
+      method: 'POST',
+      body: jsonBody(input || {})
+    }),
+    [CHANNELS.aiWorkspaceUpdateTask]: (_event, input = {}) => apiRequest(
+      `/api/r32/workspace/ai-workspace/tasks/${safeRouteSegment(input.id, 'id')}`,
+      { method: 'PUT', body: jsonBody(input.task || input || {}) }
+    ),
+    [CHANNELS.aiWorkspaceRunTask]: (_event, input = {}) => apiRequest(
+      `/api/r32/workspace/ai-workspace/tasks/${safeRouteSegment(input.id, 'id')}/run`,
+      { method: 'POST', body: '{}' }
+    ),
     [CHANNELS.personaCharacterCardPreview]: (_event, input = {}) => {
       // Correction E: renderer ships raw bytes only — never a filesystem path.
       // The bridge converts the structured-cloned payload to a Buffer and calls the
