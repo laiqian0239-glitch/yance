@@ -12173,7 +12173,7 @@
   --yance-theme-on-accent: var(--yance-home-app);
   --yance-theme-highlight: var(--yance-home-teal);
   --yance-theme-shadow-source: #02070c;
-  grid-template-columns: minmax(210px, 220px) minmax(0, 1fr) minmax(220px, 236px);
+  grid-template-columns: minmax(246px, 260px) minmax(0, 1fr) minmax(244px, 260px);
   gap: 8px;
   overflow: hidden;
   background: var(--yance-home-app);
@@ -12183,26 +12183,29 @@
 .yance-v4-search { border-radius: 7px; background: #091e30; }
 .yance-v4-search input { min-height: 34px; }
 .yance-v4-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; overflow: visible; }
-.yance-v4-filters button { min-width: 0; min-height: 32px; padding: 4px 3px; overflow: hidden; font-size: .65rem; text-overflow: ellipsis; white-space: nowrap; }
+.yance-v4-filters button { min-width: 0; min-height: 32px; padding: 5px 7px; overflow: visible; font-size: .68rem; line-height: 1.15; text-overflow: clip; white-space: normal; }
 .yance-v4-contact-list { gap: 0; }
-.yance-v4-contact { min-height: 56px; padding: 6px 5px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--yance-home-line) 72%, transparent); border-radius: 0; }
+.yance-v4-contact { min-height: 76px; height: auto; padding: 7px 5px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--yance-home-line) 72%, transparent); border-radius: 0; align-items: start; }
 .yance-v4-contact:hover { background: color-mix(in srgb, var(--yance-home-gold) 5%, transparent); }
 .yance-v4-contact[data-selected] { border: 0; border-bottom: 1px solid var(--yance-home-gold-soft); border-radius: 8px; background: linear-gradient(90deg, color-mix(in srgb, var(--yance-home-gold) 14%, var(--yance-home-panel)), color-mix(in srgb, var(--yance-home-gold) 3%, var(--yance-home-panel))); box-shadow: inset 2px 0 0 var(--yance-home-gold); }
 .yance-v4-contact__avatar { width: 38px; height: 38px; }
 .yance-v4-contact { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 7px; }
 .yance-v4-contact__copy { gap: 2px; }
+.yance-v4-contact__copy strong { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.18; }
+.yance-v4-contact__copy span { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; }
 .yance-v4-contact__copy span, .yance-v4-contact__action, .yance-v4-contact__unread { font-size: .66rem; }
 .yance-v4-main { padding: 12px 14px 16px; background: var(--yance-home-app); }
 .yance-v4-page-title--compact { align-items: baseline; margin-bottom: 8px; }
 .yance-v4-page-title__line { display: flex; min-width: 0; align-items: baseline; gap: 10px; }
 .yance-v4-page-title--compact h1 { margin: 0; font-size: 1.28rem; line-height: 1.2; white-space: nowrap; }
-.yance-v4-page-title--compact p { margin: 0; overflow: hidden; font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+.yance-v4-page-title--compact p { margin: 0; overflow: visible; font-size: .72rem; text-overflow: clip; white-space: normal; }
 .yance-v4-page-title--compact time { flex: 0 0 auto; font-size: .68rem; }
 .yance-v4-focus-card { grid-template-columns: minmax(0, 1fr) minmax(176px, .52fr); gap: 8px 12px; padding: 10px 12px; border-color: color-mix(in srgb, var(--yance-home-gold) 52%, var(--yance-home-line)); border-radius: 12px; background: linear-gradient(115deg, color-mix(in srgb, var(--yance-home-panel-raised) 94%, var(--yance-home-gold) 6%), var(--yance-home-panel)); box-shadow: none; }
 .yance-v4-focus-card__identity { gap: 11px; }
 .yance-v4-focus-card__avatar { width: 58px; height: 58px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--yance-home-gold) 8%, transparent); }
 .yance-v4-focus-card h2 { margin: 3px 0; font-size: 1.3rem; }
 .yance-v4-focus-card p { line-height: 1.38; }
+.yance-v4-focus-card__message { margin: 6px 0 0; padding: 0; border: 0; color: var(--yance-home-text); font-size: .76rem; line-height: 1.4; opacity: .92; }
 .yance-v4-focus-card dl { gap: 5px; }
 .yance-v4-focus-card dl div { padding-bottom: 5px; }
 .yance-v4-focus-card dt, .yance-v4-focus-card dd { font-size: .72rem; }
@@ -12219,7 +12222,9 @@
 .yance-v4-recent > div { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .yance-v4-recent button { padding: 8px; border-radius: 8px; background: transparent; }
 .yance-v4-guide { display: block; padding: 12px 10px; background: var(--yance-home-panel); }
-.yance-v4-guide > header { align-items: baseline; }
+.yance-v4-guide > header h2 { white-space: nowrap; }
+.yance-v4-guide > header span { white-space: normal; line-height: 1.25; }
+.yance-v4-guide > header { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; align-items: baseline; }
 .yance-v4-guide section { margin-top: 0; padding: 10px 0; border: 0; border-top: 1px solid var(--yance-home-line); border-radius: 0; background: transparent; }
 .yance-v4-guide__persona { margin-top: 8px !important; padding: 10px !important; border: 1px solid var(--yance-home-line) !important; border-radius: 8px !important; background: color-mix(in srgb, var(--yance-home-panel-raised) 72%, transparent) !important; }
 .yance-v4-guide__persona span { color: var(--yance-home-gold); font-size: .7rem; }
@@ -12229,10 +12234,32 @@
 .yance-v4-guide ul { gap: 6px; }
 .yance-v4-guide li { padding-bottom: 6px; }
 .yance-v4-guide__environment p + p { color: var(--yance-home-teal); }
+
+.yance-product-shell:has(.yance-people-home-v4) > .yance-desktop-topbar { background: #06111d; border-bottom-color: var(--yance-home-line); color: var(--yance-home-text); }
+.yance-product-shell:has(.yance-people-home-v4) > .yance-desktop-topbar .yance-desktop-topbar__brand > span { color: var(--yance-home-gold); }
+.yance-product-shell:has(.yance-people-home-v4) > .yance-desktop-topbar .yance-desktop-topbar__brand small,
+.yance-product-shell:has(.yance-people-home-v4) > .yance-desktop-topbar .yance-desktop-topbar__context span { color: var(--yance-home-muted); }
+.yance-product-shell:has(.yance-people-home-v4) .yance-desktop-topbar__intelligence { display: inline-flex; color: var(--yance-home-gold); border-color: color-mix(in srgb, var(--yance-home-gold) 60%, var(--yance-home-line)); background: color-mix(in srgb, var(--yance-home-gold) 7%, transparent); box-shadow: none; }
+.yance-product-shell:has(.yance-people-home-v4) > .yance-desktop-rail { background: #081a2a; border-right-color: var(--yance-home-line); }
+.yance-product-shell:has(.yance-people-home-v4) > .yance-desktop-rail button { color: var(--yance-home-muted); }
+.yance-product-shell:has(.yance-people-home-v4) > .yance-desktop-rail button[aria-current="page"] { color: var(--yance-home-text); border-color: var(--yance-home-gold-soft); background: linear-gradient(180deg, color-mix(in srgb, var(--yance-home-gold) 19%, var(--yance-home-panel)), color-mix(in srgb, var(--yance-home-gold) 7%, var(--yance-home-panel))); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--yance-home-gold) 16%, transparent); }
+.yance-product-shell:has(.yance-people-home-v4) > .yance-desktop-rail button[aria-current="page"] svg { color: var(--yance-home-gold); }
+@media (max-width: 1280px) {
+  .yance-v4-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .yance-v4-recent > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .yance-v4-recent button { display: grid; grid-template-columns: 34px minmax(0, 1fr); min-height: 66px; padding: 6px 8px; gap: 2px 7px; }
+  .yance-v4-recent .yance-v4-contact__avatar { grid-row: 1 / span 2; width: 34px; height: 34px; }
+  .yance-v4-recent strong, .yance-v4-recent small { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.18; }
+}
 @media (max-width: 1120px) {
+  .yance-product-shell:has(.yance-people-home-v4) .yance-desktop-topbar__brand small,
+  .yance-product-shell:has(.yance-people-home-v4) .yance-desktop-topbar__context span,
+  .yance-product-shell:has(.yance-people-home-v4) .yance-desktop-topbar__intelligence { display: none; }
   .yance-product-shell:has(.yance-people-home-v4) { padding: 0 0 0 102px; }
   .yance-people-home-v4 { grid-template-columns: minmax(190px, 220px) minmax(0, 1fr); grid-template-rows: max-content max-content; height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; align-content: start; }
   .yance-v4-contacts { grid-row: 1; height: calc(100vh - 84px); min-height: 0; align-self: start; overflow: hidden; }
+  .yance-v4-contact { min-height: 82px; }
+  .yance-v4-contact__action { display: none; }
   .yance-v4-main { height: max-content; min-height: max-content; overflow: visible; }
   .yance-v4-guide { display: grid; grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; overflow: visible; border-top: 1px solid var(--yance-home-line); border-left: 0; }
   .yance-v4-guide > header { grid-column: 1 / -1; }

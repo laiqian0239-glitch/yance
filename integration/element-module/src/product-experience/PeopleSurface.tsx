@@ -123,6 +123,24 @@ function relationshipPlatformFilter(relationship: RelationshipProjection): Exclu
   return "";
 }
 
+function relationshipRecentMessage(relationship: RelationshipProjection): string {
+  const blocked = new Set(
+    [
+      relationship.name,
+      relationship.platform,
+      relationship.subtitle,
+      ...relationship.conversations.flatMap((conversation) => [conversation.title, conversation.platform]),
+    ]
+      .map((value) => String(value || "").trim().toLocaleLowerCase())
+      .filter(Boolean),
+  );
+  const candidates = [
+    ...relationship.conversations.map((conversation) => String(conversation.lastMessage || "").trim()),
+    String(relationship.lastMessage || "").trim(),
+  ];
+  return candidates.find((candidate) => candidate && !blocked.has(candidate.toLocaleLowerCase())) || "";
+}
+
 function personaScopeLabel(value?: string): string {
   const scope = String(value || "").trim().toLowerCase();
   if (scope.includes("conversation")) return "本次对话";
@@ -192,6 +210,7 @@ export function PeopleSurface({
   const primaryConversation = focusedRelationship?.conversations.find((row) => !row.archived)
     || focusedRelationship?.conversations[0]
     || null;
+  const focusedRecentMessage = focusedRelationship ? relationshipRecentMessage(focusedRelationship) : "";
   const platformCounts = useMemo(() => ({
     facebook: relationships.filter((row) => relationshipPlatformFilter(row) === "facebook").length,
     telegram: relationships.filter((row) => relationshipPlatformFilter(row) === "telegram").length,
@@ -427,13 +446,13 @@ export function PeopleSurface({
         <header className="yance-v4-page-title yance-v4-page-title--compact"><div className="yance-v4-page-title__line"><h1>今天值得关注</h1><p>不是看数据，而是知道现在最值得处理哪段关系</p></div><time dateTime={new Date().toISOString().slice(0, 10)}>{new Date().toLocaleDateString()}</time></header>
         {focusedRelationship ? <>
           <article className="yance-v4-focus-card">
-            <div className="yance-v4-focus-card__identity"><span className="yance-v4-focus-card__avatar" aria-hidden="true">{relationshipAvatar(focusedRelationship, renderRoomAvatar, "72px")}</span><div><span>继续对话 · 当前最值得接住</span><h2>{focusedRelationship.name}</h2><p>{focusedIntelligence?.summary || focusedRelationship.lastMessage || focusedRelationship.subtitle || "这段关系正在基于真实互动形成可靠画像。"}</p></div></div>
-            <dl><div><dt>最近互动</dt><dd>{relativeDate(focusedRelationship.recentAt || focusedRelationship.updatedAt)}</dd></div><div><dt>关系状态</dt><dd>{relationshipInsightState(focusedIntelligence?.state)}</dd></div><div><dt>当前人格</dt><dd>{effectivePersonaLabel}</dd></div></dl>
+            <div className="yance-v4-focus-card__identity"><span className="yance-v4-focus-card__avatar" aria-hidden="true">{relationshipAvatar(focusedRelationship, renderRoomAvatar, "72px")}</span><div><span>继续对话 · 当前最值得接住</span><h2>{focusedRelationship.name}</h2><p className="yance-v4-focus-card__summary">{focusedIntelligence?.summary || focusedRelationship.subtitle || "这段关系正在基于真实互动形成可靠画像。"}</p>{focusedRecentMessage ? <blockquote className="yance-v4-focus-card__message">“{focusedRecentMessage}”</blockquote> : null}</div></div>
+            <dl><div><dt>最近互动</dt><dd>{relativeDate(focusedRelationship.recentAt || focusedRelationship.updatedAt)}</dd></div><div><dt>关系状态</dt><dd>{relationshipInsightState(focusedIntelligence?.state)}</dd></div><div><dt>当前人格</dt><dd>{effectivePersonaLabel}{effectivePersonaScope !== "待形成" ? ` · ${effectivePersonaScope}` : ""}</dd></div></dl>
             <div className="yance-v4-focus-card__next"><span>言策建议的下一步</span><strong>{focusedIntelligence?.next || "保持温度，先回应真实对话，再决定是否继续话题。"}</strong></div>
             <div className="yance-v4-focus-card__actions"><button type="button" onClick={continueConversation} disabled={!primaryConversation}>继续 {focusedRelationship.name} 的对话</button><button type="button" onClick={enterWorld}>查看关系上下文</button></div>
           </article>
           <section className="yance-v4-section" aria-labelledby="yance-v4-attention"><header><h2 id="yance-v4-attention">我现在最应该关注谁</h2><span>按未完成对话、关系节奏与近期互动排序</span></header><div className="yance-v4-attention-list">
-            {visibleRelationships.slice(0, 3).map((relationship) => <button key={relationship.id} type="button" onClick={() => chooseFocus(relationship)}><span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar, "38px")}</span><span><strong>{relationship.name}</strong><small>{relationship.unreadCount ? `有 ${relationship.unreadCount} 条消息等待回应` : relationship.lastMessage || relationship.subtitle || "最近有真实互动"}</small></span><em>{relationship.id === focusedRelationship.id ? "当前关注" : "查看关系 ›"}</em></button>)}
+            {visibleRelationships.slice(0, 3).map((relationship) => <button key={relationship.id} type="button" onClick={() => chooseFocus(relationship)}><span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar, "38px")}</span><span><strong>{relationship.name}</strong><small>{relationship.unreadCount ? `有 ${relationship.unreadCount} 条消息等待回应` : relationshipRecentMessage(relationship) || relationship.subtitle || "最近有真实互动"}</small></span><em>{relationship.id === focusedRelationship.id ? "当前关注" : "查看关系 ›"}</em></button>)}
           </div></section>
           <section className="yance-v4-section yance-v4-recent" aria-labelledby="yance-v4-recent"><header><h2 id="yance-v4-recent">最近的人</h2><span>来自现有联系人投影</span></header><div>{visibleRelationships.slice(0, 4).map((relationship) => <button key={relationship.id} type="button" onClick={() => chooseFocus(relationship)}><span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar, "38px")}</span><strong>{relationship.name}</strong><small>{relationship.platform || "真实联系人"} · {relativeDate(relationship.recentAt || relationship.updatedAt)}</small></button>)}</div></section>
         </> : <div className="yance-v4-empty" role="status"><h2>{query.trim() ? "没有匹配的真实联系人" : "从真实关系开始"}</h2><p>{query.trim() ? "当前筛选不会生成虚构人物；换一个搜索词即可返回。" : "没有联系人时，言策不会编造演示人物或对话。"}</p>{!query.trim() ? <button type="button" onClick={onConnectAccounts}>连接聊天平台</button> : null}</div>}

@@ -58,6 +58,60 @@ test('Home minimum-width layout gives main and guide natural-height rows without
 
 test('Home narrow contacts stay viewport-bound and do not stretch both content rows', () => {
   const css = read(CSS); const home = css.slice(css.indexOf('/* Home v4 Premium Calm authority */'));
-  assert.doesNotMatch(home, /grid-row:\s*1\s*\/\s*span\s*2/u);
+  assert.doesNotMatch(home, /\.yance-v4-contacts\s*\{[^}]*grid-row:\s*1\s*\/\s*span\s*2/su);
   assert.match(home, /@media\s*\(max-width:\s*1120px\)[\s\S]*\.yance-v4-contacts\s*\{[^}]*grid-row:\s*1[^}]*height:\s*calc\(100vh\s*-\s*84px\)[^}]*overflow:\s*hidden/su);
+});
+
+test('Home default window never truncates platform filters or contact names', () => {
+  const css = read(CSS); const home = css.slice(css.indexOf('/* Home v4 Premium Calm authority */'));
+  assert.match(home, /@media\s*\(max-width:\s*1280px\)[\s\S]*\.yance-v4-filters\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/su);
+  assert.doesNotMatch(home, /\.yance-v4-filters button\s*\{[^}]*text-overflow:\s*ellipsis/su);
+  assert.match(home, /\.yance-v4-contact__copy strong\s*\{[^}]*white-space:\s*normal[^}]*text-overflow:\s*clip/su);
+});
+
+test('Home default window uses two-by-two recent people cards and a readable guide header', () => {
+  const css = read(CSS); const home = css.slice(css.indexOf('/* Home v4 Premium Calm authority */'));
+  assert.match(home, /@media\s*\(max-width:\s*1280px\)[\s\S]*\.yance-v4-recent > div\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/su);
+  assert.match(home, /\.yance-v4-guide > header h2\s*\{[^}]*white-space:\s*nowrap/su);
+  assert.match(home, /\.yance-v4-guide > header\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/su);
+});
+
+test('Home chrome inherits Premium Calm instead of purple navigation styling', () => {
+  const css = read(CSS); const home = css.slice(css.indexOf('/* Home v4 Premium Calm authority */'));
+  assert.match(home, /\.yance-product-shell:has\(\.yance-people-home-v4\) > \.yance-desktop-topbar\s*\{[^}]*background:\s*#06111d/su);
+  assert.match(home, /\.yance-product-shell:has\(\.yance-people-home-v4\) > \.yance-desktop-rail\s*\{[^}]*background:\s*#081a2a/su);
+  assert.match(home, /\.yance-product-shell:has\(\.yance-people-home-v4\) > \.yance-desktop-rail button\[aria-current="page"\][\s\S]*var\(--yance-home-gold\)/su);
+  assert.match(home, /\.yance-product-shell:has\(\.yance-people-home-v4\) \.yance-desktop-topbar__intelligence\s*\{[^}]*display:\s*inline-flex/su);
+});
+
+test('Home focus card projects recent relationship context separately from intelligence summary', () => {
+  const people = read(PEOPLE);
+  assert.match(people, /yance-v4-focus-card__message/u);
+  assert.match(people, /focusedRecentMessage \? <blockquote className="yance-v4-focus-card__message">/u);
+});
+
+test('Home contact rows grow with wrapped names instead of overlapping the next contact', () => {
+  const css = read(CSS); const home = css.slice(css.indexOf('/* Home v4 Premium Calm authority */'));
+  assert.match(home, /\.yance-v4-contact\s*\{[^}]*min-height:\s*76px[^}]*height:\s*auto/su);
+});
+
+test('Home recent context rejects platform labels and only quotes real message-like text', () => {
+  const people = read(PEOPLE);
+  assert.match(people, /function relationshipRecentMessage\(/u);
+  assert.match(people, /conversation\.lastMessage/u);
+  assert.match(people, /blocked\.has\(candidate\.toLocaleLowerCase\(\)\)/u);
+  assert.match(people, /const focusedRecentMessage = focusedRelationship \? relationshipRecentMessage\(focusedRelationship\) : ""/u);
+  assert.match(people, /focusedRecentMessage \? <blockquote className="yance-v4-focus-card__message">/u);
+});
+
+test('Home minimum width frees contact copy from decorative action text', () => {
+  const css = read(CSS); const home = css.slice(css.indexOf('/* Home v4 Premium Calm authority */'));
+  assert.match(home, /@media\s*\(max-width:\s*1120px\)[\s\S]*\.yance-v4-contact__action\s*\{[^}]*display:\s*none/su);
+  assert.match(home, /@media\s*\(max-width:\s*1120px\)[\s\S]*\.yance-v4-contact\s*\{[^}]*min-height:\s*82px/su);
+});
+
+test('Home default recent people use compact horizontal tiles so the first screen stays complete', () => {
+  const css = read(CSS); const home = css.slice(css.indexOf('/* Home v4 Premium Calm authority */'));
+  assert.match(home, /@media\s*\(max-width:\s*1280px\)[\s\S]*\.yance-v4-recent button\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*34px\s+minmax\(0,\s*1fr\)[^}]*min-height:\s*66px/su);
+  assert.match(home, /@media\s*\(max-width:\s*1280px\)[\s\S]*\.yance-v4-recent \.yance-v4-contact__avatar\s*\{[^}]*grid-row:\s*1\s*\/\s*span\s*2[^}]*width:\s*34px[^}]*height:\s*34px/su);
 });
