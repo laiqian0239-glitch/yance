@@ -178,3 +178,33 @@ F-01 已证明“唯一、窄 Global Rail”结构必须保留；但母版 Conve
 - 它不替代 2026-09-23 正式母版，不降低任何功能 non-regression 标准。
 - “测试 GREEN”仍不等于完成；每个 causal batch 必须完成 materialized runtime proof。
 - 当前不得因为记录了这些问题就宣布全项目 ACCEPTED。
+
+## 12. F-01 runtime closure 与局部重判（2026-09-26）
+
+本轮在同一 frozen acceptance runtime / profile / Matrix session 上完成 F-01 真实 Windows renderer 复验；未 Docker rebuild、未重登、未清 SQLite、未换 profile/session。
+
+### F-01 核心证据
+
+- frozen runtime admission：GREEN；Matrix 身份仍为 `@tester01:yance.local / VVSOCENLTA`；materialized Yance bundle SHA-256 仍为 `ba17d313c031788dc5c6e6874c80eb16672debf3674e9628b17c533e26e849d4`。
+- AL MA Conversation 通过真实 Home 两步 UI 路径进入，没有直接改 hash。
+- 唯一 Global Rail：`railCount=1`；Conversation 内第二 rail：`0`；rail 实测总宽约 `98px`，仍为窄 rail。
+- Conversation scene 从 rail 后方展开并占满剩余 client area；不再出现全屏 blur / NAV overlay。
+- timeline 可滚动（probe 中 `scrollTop 18 -> 0`）。
+- composer 可真实 focus，插入 `__F01_PROBE__` 后成功撤销清理，没有发送消息。
+- timeline / composer / Reply Brain 三建议 / tone / model row 的 `elementFromPoint` 均未命中 Global Rail / NAV。
+- Inspector tab 可见且可命中自身 tab navigation；5 个 tab 为 `AI / 人格 / 关系 / 记忆 / 目标`，与正式 Conversation 母版一致。
+- ActionDock 自身存在 `65px` 可滚动余量；滚到底后“发送照片 / 生成编辑图片 / 语音回复”中心点均命中自身按钮。Live 中心点仍被 model control 局部覆盖，归入已记录的 Conversation composition / P2，不重新扩大 F-01 rail causal batch。
+### v2 acceptance 局部重判
+
+依据 `Yance_v4_ACCEPTANCE_REPORT_v2_2026-09-26.md` 原始 Screen Verdicts，Desktop Shell 与 Conversation 的 FAIL 均由 F-01 全屏 rail 遮罩直接造成；F-02 / F-03 单列于 Functional Non-Regression。
+
+因此本轮只重判这两个 F-01 相关结论：
+
+- **Desktop Shell：F-01 PASS** — 唯一窄 Global Rail 恢复，核心工作面不再被 NAV 接管；已记录的 laptop-first 默认窗口与视觉母版问题仍按后续 P2/独立 causal batch 处理。
+- **Conversation：F-01 PASS** — timeline / composer / Reply Brain / tone / model / Inspector 不再因 Global Rail 不可达；ActionDock 不再被 Global Rail 覆盖。已记录的 Reply Brain composition、Inspector 信息密度、Composer/ActionDock 母版偏差仍保留，不据此宣称整屏 design authority GREEN。
+- **Functional Non-Regression：仍 FAIL / 未重判** — F-02 真人打字投影与 F-03 “真实对话”计数语义仍待后续 causal batch。
+- **全项目：仍 NOT ACCEPTED**。
+
+### admission harness 对齐说明
+
+`frozen-acceptance-admission.js` 原先硬编码 `conversationInspectorTabCount === 4`，与正式母版和本轮 owner 已确认的 5-tab `AI / 人格 / 关系 / 记忆 / 目标` 冲突。该 harness 实现已通过 TDD 从 4 修正为 5；这是把工具恢复到既有验收标准，不是修改验收标准，也没有改变 Product 字节。

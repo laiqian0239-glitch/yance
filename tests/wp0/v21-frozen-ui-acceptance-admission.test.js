@@ -56,7 +56,7 @@ test("runtime admission proves frozen owner/session/materialization before accep
   assert.match(guard, /ACCEPTANCE_CONVERSATION_PRESENTATION_NOT_READY/u);
   assert.match(guard, /conversationPresentation === true/u);
   assert.match(guard, /conversationIdentityCard === true/u);
-  assert.match(guard, /conversationInspectorTabCount === 4/u);
+  assert.match(guard, /conversationInspectorTabCount === 5/u);
   assert.match(guard, /conversationPaneToggleCount === 2/u);
   assert.match(guard, /conversationRichReplyToolCount === 4/u);
   assert.match(guard, /conversationComposerPresent === true/u);

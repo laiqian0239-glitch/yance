@@ -288,7 +288,7 @@ async function waitForReady(cdp) {
       const conversationPresentationReady = !last.conversationActive || (
         last.conversationPresentation === true &&
         last.conversationIdentityCard === true &&
-        last.conversationInspectorTabCount === 4 &&
+        last.conversationInspectorTabCount === 5 &&
         last.conversationPaneToggleCount === 2 &&
         last.conversationRichReplyToolCount === 4 &&
         last.conversationComposerPresent === true &&
@@ -332,7 +332,7 @@ async function waitForReady(cdp) {
     if (
       !last.conversationPresentation ||
       !last.conversationIdentityCard ||
-      last.conversationInspectorTabCount !== 4 ||
+      last.conversationInspectorTabCount !== 5 ||
       last.conversationPaneToggleCount !== 2 ||
       last.conversationRichReplyToolCount !== 4 ||
       !last.conversationComposerPresent
