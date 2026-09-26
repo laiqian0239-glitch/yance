@@ -4062,7 +4062,7 @@
   overflow: hidden;
   background: var(--yance-theme-app);
 }
-.yance-product-shell[data-conversation-active] > * {
+.yance-product-shell[data-conversation-active] > .yance-shell-scene--conversation {
   width: 100%;
   max-width: none;
   margin: 0;

@@ -51,3 +51,21 @@ test('Conversation keeps the same persistent Global Rail instead of mounting a c
   assert.doesNotMatch(SHELL, /!conversationSurfaceActive\s*\|\|\s*settingsVisible/u);
   assert.doesNotMatch(CSS, /\.yance-product-shell\[data-conversation-(?:active|surface-active)\]\s*>\s*\.yance-desktop-rail\s*\{[\s\S]{0,100}display:\s*none/u);
 });
+
+
+test('Conversation keeps Global Rail narrow while only the workspace fills the remaining client area', () => {
+  assert.match(CSS, /\.yance-product-shell\s*>\s*\.yance-desktop-rail\s*\{\s*width:\s*82px;/u);
+  assert.match(
+    CSS,
+    /YANCE_FINAL_CONVERSATION_AUTHORITY_V3[\s\S]*?\.yance-product-shell\[data-conversation-active\]\s*\{[\s\S]{0,180}padding-left:\s*102px;/u,
+  );
+  assert.match(
+    CSS,
+    /\.yance-product-shell\[data-conversation-active\]\s*>\s*\.yance-shell-scene--conversation\s*\{[\s\S]{0,180}width:\s*100%;[\s\S]{0,120}min-width:\s*0;/u,
+  );
+  assert.doesNotMatch(
+    CSS,
+    /\.yance-product-shell\[data-conversation-active\]\s*>\s*\*\s*\{[\s\S]{0,180}width:\s*100%/u,
+    'Conversation must never stretch every direct child because that turns the Global Rail into a fullscreen hit-test overlay',
+  );
+});
