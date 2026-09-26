@@ -6,6 +6,8 @@
 
 > 核心原则：**减少一级页面，不减少能力；隐藏复杂度，不隐藏能力。**
 
+> 最新 owner 真实运行时对账：eview/YANCE_V4_OWNER_ACCEPTANCE_RECONCILIATION_2026-09-26_ZH.md。该 review 记录最新截图差异与执行顺序，不替代本目录正式母版或功能 non-regression authority。
+
 ## 权威边界与优先级
 
 1. `AGENTS.md`、repository-owned skills、最新有效 Controller State 继续拥有工程执行/发布治理权；本设计基线不能授权 CI、PR、merge、RC、UAT 或 Release。

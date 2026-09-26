@@ -2,6 +2,8 @@
 
 状态：`RUNTIME VISUAL / INTERACTION REVIEW`
 
+> 2026-09-26 owner 后续真实截图对账已固化到 YANCE_V4_OWNER_ACCEPTANCE_RECONCILIATION_2026-09-26_ZH.md；后续视觉/运行时差异以该 successor review 继续，本文保留为 09-25 原始证据。
+
 本记录依据用户提供的三张真实 Windows 截图，与仓库设计基线 `docs/design/yance-v4-final-2026-09-23/` 对账。截图本身不入库，避免把真实联系人/头像等用户数据持久化进仓库。
 
 ## 对账权威
