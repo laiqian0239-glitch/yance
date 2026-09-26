@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
+  loadHumanTypingProjection,
   loadPlatformAccounts,
   runPlatformAccountCommand,
   type PlatformAccountProjection,
@@ -145,6 +146,15 @@ export function PeopleSurface({
   const [selectedAddContactAccountId, setSelectedAddContactAccountId] = useState("");
   const [addContactIdentifier, setAddContactIdentifier] = useState("");
   const [addContactStatus, setAddContactStatus] = useState("");
+  const [humanTypingModeLabel, setHumanTypingModeLabel] = useState("读取中");
+
+  useEffect(() => {
+    let current = true;
+    void loadHumanTypingProjection()
+      .then((projection) => { if (current) setHumanTypingModeLabel(projection.modeLabel); })
+      .catch(() => { if (current) setHumanTypingModeLabel("不可用"); });
+    return () => { current = false; };
+  }, []);
 
   const visibleRelationships = useMemo(() => {
     const normalizedQuery = query.trim();
@@ -393,7 +403,7 @@ export function PeopleSurface({
           <section className="yance-v4-guide__current"><span>当前关系</span><strong>{focusedRelationship.name}</strong><p>{focusedRelationship.platform || "真实联系人"} · {focusedRelationship.conversations.length} 个真实对话</p></section>
           <section><h3>关系提醒</h3><ul>{focusedRelationship.unreadCount ? <li>有 {focusedRelationship.unreadCount} 条消息尚未回应</li> : null}<li>{latestEvidence?.title || "继续互动后会形成下一条可信关系时刻"}</li><li>关系洞察：{focusedIntelligence?.analysisStatusLabel || "待形成"}</li></ul></section>
           <section><h3>今日目标</h3><p>{focusedIntelligence?.next || "保持关系节奏，优先处理未完成的真实对话。"}</p></section>
-          <section className="yance-v4-guide__environment"><h3>全局环境</h3><p>真人打字 · 当前关系投影</p><p>{relationships.length} 位联系人 · {groups.length} 个群聊</p></section>
+          <section className="yance-v4-guide__environment"><h3>全局环境</h3><p>真人打字 · 全局：{humanTypingModeLabel}</p><p>{relationships.length} 位联系人 · {groups.length} 个群聊</p></section>
         </> : null}
       </aside>
 

@@ -208,3 +208,25 @@ F-01 已证明“唯一、窄 Global Rail”结构必须保留；但母版 Conve
 ### admission harness 对齐说明
 
 `frozen-acceptance-admission.js` 原先硬编码 `conversationInspectorTabCount === 4`，与正式母版和本轮 owner 已确认的 5-tab `AI / 人格 / 关系 / 记忆 / 目标` 冲突。该 harness 实现已通过 TDD 从 4 修正为 5；这是把工具恢复到既有验收标准，不是修改验收标准，也没有改变 Product 字节。
+
+## 13. F-02 真人打字 Product projection closure（2026-09-26）
+
+F-02 只恢复 mature typing/send owner 的 Product 可见投影，不新增第二套 timer、queue、send state 或 composer authority。
+
+### F-02 mature owner / source 证据
+
+- mature owner 仍为 `TypingStateService / StoreManager / Element send`；Product 只通过现有 `storeSnapshot({ domains: ["typingState"] })` 与 release/cancel bridge 读取/调用真实状态。
+- focused regression + mature typing owner：`12 tests / 12 pass / 0 fail`。
+- mature-authority proof：`GREEN`，无 second owner / shadow authority / parallel lifecycle / mirror state。
+- `yance-element-module:lint:types --skip-nx-cache`：GREEN；`yance-element-module:build --skip-nx-cache`：GREEN。
+
+### F-02 materialized runtime 证据
+
+- 本轮 F-02-only materialized Yance bundle SHA-256：`30f2c6dc85be880d611f1fe24e8a4e37e571464a622b8c16637bdb0b37fcb835`，built / mounted / container 三处一致。
+- mature runtime `typingState`：`ready=true`、`platformAfterApproval=true`、`platformDuringGeneration=false`，因此当前全局 mode 为“自然”。
+- 真实 Electron 最大化验收窗口 `1920×1032` 下，Home 右侧“全局环境”可见显示：`真人打字 · 全局：自然`；旧错误文案“当前关系投影”不存在。
+- 通过真实 Home UI 进入 AL MA Conversation 后，真实 composer accessory 静态态持续显示：`真人打字 · 全局：自然`，并说明 `AI、手写与翻译后的最终文本统一经过真实发送层。`
+- 静态态 `data-state=ready`，没有“立即发送 / 取消”伪控制；这些按钮仍只在 mature owner 返回真实 active send state 时出现。
+- runtime proof 未发送消息、未改 Matrix 数据、未修改 typing policy。
+
+因此：**F-02 PASS**。Functional Non-Regression 中真人打字投影项由 FAIL 重判为 PASS；F-03 “真实对话”计数语义及其独立导航/恢复 RED 仍未关闭。全项目仍 `NOT ACCEPTED`。

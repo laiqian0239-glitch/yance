@@ -2,6 +2,7 @@ import React from "react";
 import { AudioLines, Camera, ImagePlus, Radio } from "lucide-react";
 import { useExperiencePreferences } from "./experiencePreferences";
 import { playExperienceSound } from "./experienceSound";
+import { loadHumanTypingProjection } from "./experienceProjection";
 import { ReplyBrainCandidate } from "./ProductConversationProjection";
 import {
   captureExperienceFocus,
@@ -18,7 +19,6 @@ type ProductComposerAccessoryProps = {
 };
 
 type HumanTypingDesktopApi = {
-  storeSnapshot?: (input: { domains: string[] }) => Promise<Record<string, unknown>>;
   releaseHumanTypingElementSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   cancelHumanTypingElementSend?: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
   onDesktopEvent?: (callback: (event: Record<string, unknown>) => void) => (() => void) | void;
@@ -26,14 +26,6 @@ type HumanTypingDesktopApi = {
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function typingProjectionFromSnapshot(payload: unknown, contactId: string): Record<string, unknown> {
-  const root = record(payload);
-  const snapshot = record(root.snapshot || root);
-  const typingState = record(snapshot.typingState);
-  const byContactId = record(typingState.byContactId);
-  return record(record(byContactId[contactId]).self);
 }
 
 const RICH_REPLY_ACTIONS: readonly Readonly<{
@@ -55,6 +47,7 @@ export function ProductComposerAccessory({
   const { soundMode } = useExperiencePreferences();
   const session = useExperienceSession();
   const [typingState, setTypingState] = React.useState<Record<string, unknown>>({});
+  const [humanTypingModeLabel, setHumanTypingModeLabel] = React.useState("读取中");
 
   React.useEffect(() => {
     const contactId = session.selectedConversationContactId.trim();
@@ -62,19 +55,22 @@ export function ProductComposerAccessory({
     const api = (window as unknown as { yanceDesktop?: HumanTypingDesktopApi }).yanceDesktop;
     if (!contactId || !conversationId || !api) {
       setTypingState({});
+      setHumanTypingModeLabel("不可用");
       return () => {};
     }
 
     let current = true;
-    if (typeof api.storeSnapshot === "function") {
-      void api.storeSnapshot({ domains: ["typingState"] })
-        .then((payload) => {
-          if (current) setTypingState(typingProjectionFromSnapshot(payload, contactId));
-        })
-        .catch(() => {
-          if (current) setTypingState({});
-        });
-    }
+    void loadHumanTypingProjection(contactId)
+      .then((projection) => {
+        if (!current) return;
+        setHumanTypingModeLabel(projection.modeLabel);
+        setTypingState({ ...projection.typingState });
+      })
+      .catch(() => {
+        if (!current) return;
+        setHumanTypingModeLabel("不可用");
+        setTypingState({});
+      });
 
     const unsubscribe = typeof api.onDesktopEvent === "function"
       ? api.onDesktopEvent((event) => {
@@ -156,11 +152,17 @@ export function ProductComposerAccessory({
         />
       ) : null}
 
-      {typingActive || typingOutcome ? (
-        <section className="yance-human-typing" data-state={typingActive ? "typing" : typingOutcome} aria-live="polite">
+      {routeReady ? (
+        <section className="yance-human-typing" data-state={typingActive ? "typing" : typingOutcome || "ready"} aria-live="polite">
           <div className="yance-human-typing__copy">
-            <strong>{typingActive ? "真人打字 · 正在输入…" : typingOutcome === "sent" ? "已发送" : "已取消，未发送"}</strong>
-            <span>{typingActive ? "由真实发送层控制节奏；你可以立即发送或取消。" : "状态来自真实发送结果，没有本地伪进度。"}</span>
+            <strong>真人打字 · 全局：{humanTypingModeLabel}</strong>
+            <span>{typingActive
+              ? "正在输入 · 由真实发送层控制节奏；你可以立即发送或取消。"
+              : typingOutcome === "sent"
+                ? "已发送 · 状态来自真实发送结果。"
+                : typingOutcome === "cancelled"
+                  ? "已取消，未发送 · 状态来自真实发送结果。"
+                  : "AI、手写与翻译后的最终文本统一经过真实发送层。"}</span>
           </div>
           {typingActive ? (
             <div className="yance-human-typing__progress" aria-label="真人打字进度">

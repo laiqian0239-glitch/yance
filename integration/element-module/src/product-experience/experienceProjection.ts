@@ -122,6 +122,13 @@ export type ProductAppearanceProjection = {
   themes: readonly ProductAppearanceTheme[];
 };
 
+export type HumanTypingProjection = {
+  available: boolean;
+  scopeLabel: "全局";
+  modeLabel: string;
+  typingState: Readonly<Record<string, unknown>>;
+};
+
 export type PlatformAccountProjection = {
   id: string;
   label: string;
@@ -327,6 +334,24 @@ export async function loadProductAppearance(): Promise<ProductAppearanceProjecti
     themeId,
     themes,
   };
+}
+
+export async function loadHumanTypingProjection(contactId = ""): Promise<HumanTypingProjection> {
+  const api = desktopApi();
+  if (!api || typeof api.storeSnapshot !== "function") {
+    return { available: false, scopeLabel: "全局", modeLabel: "不可用", typingState: {} };
+  }
+  const payload = objectRecord(await api.storeSnapshot({ domains: ["typingState"] }));
+  const snapshot = objectRecord(payload.snapshot || payload);
+  const typingState = objectRecord(snapshot.typingState);
+  const policy = objectRecord(typingState.policy);
+  const available = typingState.ready === true;
+  const modeLabel = available ? (policy.platformAfterApproval === true ? "自然" : "关闭") : "不可用";
+  const byContactId = objectRecord(typingState.byContactId);
+  const contactTyping = contactId.trim()
+    ? objectRecord(objectRecord(byContactId[contactId.trim()]).self)
+    : {};
+  return { available, scopeLabel: "全局", modeLabel, typingState: contactTyping };
 }
 
 export async function updateProductAppearance(
