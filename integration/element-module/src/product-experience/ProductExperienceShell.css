@@ -12137,3 +12137,115 @@
   .yance-desktop-topbar__context > span { display: none; }
   .yance-desktop-topbar__search:focus-within { width: min(240px, 42vw); }
 }
+
+/* Home v4 Premium Calm authority */
+.yance-product-shell:has(.yance-people-home-v4),
+.yance-people-home-v4 {
+  --yance-home-app: #06111d;
+  --yance-home-panel: #081a2a;
+  --yance-home-panel-raised: #0c2236;
+  --yance-home-graphite: #101923;
+  --yance-home-line: #17344a;
+  --yance-home-text: #f4f0e6;
+  --yance-home-muted: #8fa2b4;
+  --yance-home-gold: #d7ad4a;
+  --yance-home-gold-soft: #8c6b22;
+  --yance-home-teal: #55c7b0;
+  --yance-v4-app: var(--yance-home-app);
+  --yance-v4-panel: var(--yance-home-panel);
+  --yance-v4-panel-raised: var(--yance-home-panel-raised);
+  --yance-v4-line: var(--yance-home-line);
+  --yance-v4-text: var(--yance-home-text);
+  --yance-v4-muted: var(--yance-home-muted);
+  --yance-v4-gold: var(--yance-home-gold);
+  --yance-v4-gold-deep: var(--yance-home-gold-soft);
+}
+.yance-people-home-v4 {
+  --yance-theme-app: var(--yance-home-app);
+  --yance-theme-panel: var(--yance-home-panel);
+  --yance-theme-card-raised: var(--yance-home-panel-raised);
+  --yance-theme-control: #091e30;
+  --yance-theme-border: var(--yance-home-line);
+  --yance-theme-text: var(--yance-home-text);
+  --yance-theme-text-muted: var(--yance-home-muted);
+  --yance-theme-accent: var(--yance-home-gold);
+  --yance-theme-accent-alt: #e2bd63;
+  --yance-theme-on-accent: var(--yance-home-app);
+  --yance-theme-highlight: var(--yance-home-teal);
+  --yance-theme-shadow-source: #02070c;
+  grid-template-columns: minmax(210px, 220px) minmax(0, 1fr) minmax(220px, 236px);
+  gap: 8px;
+  overflow: hidden;
+  background: var(--yance-home-app);
+}
+.yance-v4-contacts { gap: 9px; padding: 12px 10px; background: var(--yance-home-panel); }
+.yance-v4-contacts > header button { min-height: 32px; padding: 5px 9px; box-shadow: none; }
+.yance-v4-search { border-radius: 7px; background: #091e30; }
+.yance-v4-search input { min-height: 34px; }
+.yance-v4-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; overflow: visible; }
+.yance-v4-filters button { min-width: 0; min-height: 32px; padding: 4px 3px; overflow: hidden; font-size: .65rem; text-overflow: ellipsis; white-space: nowrap; }
+.yance-v4-contact-list { gap: 0; }
+.yance-v4-contact { min-height: 56px; padding: 6px 5px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--yance-home-line) 72%, transparent); border-radius: 0; }
+.yance-v4-contact:hover { background: color-mix(in srgb, var(--yance-home-gold) 5%, transparent); }
+.yance-v4-contact[data-selected] { border: 0; border-bottom: 1px solid var(--yance-home-gold-soft); border-radius: 8px; background: linear-gradient(90deg, color-mix(in srgb, var(--yance-home-gold) 14%, var(--yance-home-panel)), color-mix(in srgb, var(--yance-home-gold) 3%, var(--yance-home-panel))); box-shadow: inset 2px 0 0 var(--yance-home-gold); }
+.yance-v4-contact__avatar { width: 38px; height: 38px; }
+.yance-v4-contact { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 7px; }
+.yance-v4-contact__copy { gap: 2px; }
+.yance-v4-contact__copy span, .yance-v4-contact__action, .yance-v4-contact__unread { font-size: .66rem; }
+.yance-v4-main { padding: 12px 14px 16px; background: var(--yance-home-app); }
+.yance-v4-page-title--compact { align-items: baseline; margin-bottom: 8px; }
+.yance-v4-page-title__line { display: flex; min-width: 0; align-items: baseline; gap: 10px; }
+.yance-v4-page-title--compact h1 { margin: 0; font-size: 1.28rem; line-height: 1.2; white-space: nowrap; }
+.yance-v4-page-title--compact p { margin: 0; overflow: hidden; font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+.yance-v4-page-title--compact time { flex: 0 0 auto; font-size: .68rem; }
+.yance-v4-focus-card { grid-template-columns: minmax(0, 1fr) minmax(176px, .52fr); gap: 8px 12px; padding: 10px 12px; border-color: color-mix(in srgb, var(--yance-home-gold) 52%, var(--yance-home-line)); border-radius: 12px; background: linear-gradient(115deg, color-mix(in srgb, var(--yance-home-panel-raised) 94%, var(--yance-home-gold) 6%), var(--yance-home-panel)); box-shadow: none; }
+.yance-v4-focus-card__identity { gap: 11px; }
+.yance-v4-focus-card__avatar { width: 58px; height: 58px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--yance-home-gold) 8%, transparent); }
+.yance-v4-focus-card h2 { margin: 3px 0; font-size: 1.3rem; }
+.yance-v4-focus-card p { line-height: 1.38; }
+.yance-v4-focus-card dl { gap: 5px; }
+.yance-v4-focus-card dl div { padding-bottom: 5px; }
+.yance-v4-focus-card dt, .yance-v4-focus-card dd { font-size: .72rem; }
+.yance-v4-focus-card__next { padding: 8px 10px; border-radius: 7px; background: color-mix(in srgb, var(--yance-home-panel-raised) 82%, transparent); }
+.yance-v4-focus-card__next strong { margin-top: 3px; font-size: .78rem; line-height: 1.35; }
+.yance-v4-focus-card__actions { gap: 7px; }
+.yance-v4-focus-card__actions button { min-height: 32px; padding: 5px 10px; }
+.yance-v4-focus-card__actions button:first-child { border-color: var(--yance-home-gold); color: var(--yance-home-app); background: linear-gradient(180deg, #e2bd63, var(--yance-home-gold)); box-shadow: 0 5px 14px color-mix(in srgb, var(--yance-home-gold) 14%, transparent); }
+.yance-v4-section { margin-top: 10px; }
+.yance-v4-section > header { margin-bottom: 6px; }
+.yance-v4-attention-list { border-radius: 8px; background: transparent; }
+.yance-v4-attention-list button { min-height: 48px; padding: 5px 9px; }
+.yance-v4-attention-list small { font-size: .7rem; }
+.yance-v4-recent > div { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.yance-v4-recent button { padding: 8px; border-radius: 8px; background: transparent; }
+.yance-v4-guide { display: block; padding: 12px 10px; background: var(--yance-home-panel); }
+.yance-v4-guide > header { align-items: baseline; }
+.yance-v4-guide section { margin-top: 0; padding: 10px 0; border: 0; border-top: 1px solid var(--yance-home-line); border-radius: 0; background: transparent; }
+.yance-v4-guide__persona { margin-top: 8px !important; padding: 10px !important; border: 1px solid var(--yance-home-line) !important; border-radius: 8px !important; background: color-mix(in srgb, var(--yance-home-panel-raised) 72%, transparent) !important; }
+.yance-v4-guide__persona span { color: var(--yance-home-gold); font-size: .7rem; }
+.yance-v4-guide__persona strong { display: block; margin: 4px 0; color: var(--yance-home-text); font-size: .92rem; }
+.yance-v4-guide section h3 { margin-bottom: 6px; font-size: .82rem; }
+.yance-v4-guide section p, .yance-v4-guide ul { font-size: .7rem; line-height: 1.4; }
+.yance-v4-guide ul { gap: 6px; }
+.yance-v4-guide li { padding-bottom: 6px; }
+.yance-v4-guide__environment p + p { color: var(--yance-home-teal); }
+@media (max-width: 1120px) {
+  .yance-product-shell:has(.yance-people-home-v4) { padding: 0 0 0 102px; }
+  .yance-people-home-v4 { grid-template-columns: minmax(190px, 220px) minmax(0, 1fr); grid-template-rows: max-content max-content; height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; align-content: start; }
+  .yance-v4-contacts { grid-row: 1; height: calc(100vh - 84px); min-height: 0; align-self: start; overflow: hidden; }
+  .yance-v4-main { height: max-content; min-height: max-content; overflow: visible; }
+  .yance-v4-guide { display: grid; grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; overflow: visible; border-top: 1px solid var(--yance-home-line); border-left: 0; }
+  .yance-v4-guide > header { grid-column: 1 / -1; }
+  .yance-v4-guide__persona { grid-column: 1 / -1; }
+  .yance-v4-recent > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-height: 700px) {
+  .yance-v4-contacts { gap: 6px; padding: 8px; }
+  .yance-v4-main { padding: 8px 10px 12px; }
+  .yance-v4-page-title--compact { margin-bottom: 6px; }
+  .yance-v4-focus-card { gap: 7px 10px; padding: 9px 10px; }
+  .yance-v4-focus-card__avatar { width: 50px; height: 50px; }
+  .yance-v4-section { margin-top: 9px; }
+  .yance-v4-attention-list button { min-height: 44px; padding-block: 4px; }
+  .yance-v4-guide { padding: 8px; }
+}

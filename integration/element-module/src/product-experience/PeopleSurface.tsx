@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
   loadHumanTypingProjection,
+  loadPersonaEffective,
   loadPlatformAccounts,
   runPlatformAccountCommand,
   type PlatformAccountProjection,
@@ -15,7 +16,7 @@ import type {
 } from "./experienceTypes";
 
 export type PeopleHomeView = "list" | "universe";
-type PeopleFilter = "all" | "unread" | "favorite" | "recent";
+type PeopleFilter = "all" | "facebook" | "telegram" | "whatsapp";
 
 type PeopleSurfaceProps = {
   relationships: readonly RelationshipProjection[];
@@ -113,6 +114,23 @@ function relationshipMatchesQuery(relationship: RelationshipProjection, query: s
   return haystack.includes(query.toLocaleLowerCase());
 }
 
+function relationshipPlatformFilter(relationship: RelationshipProjection): Exclude<PeopleFilter, "all"> | "" {
+  const conversation = relationship.conversations.find((row) => !row.archived) || relationship.conversations[0];
+  const platform = String(relationship.platform || conversation?.platform || "").trim().toLowerCase();
+  if (platform.includes("facebook")) return "facebook";
+  if (platform.includes("telegram")) return "telegram";
+  if (platform.includes("whatsapp")) return "whatsapp";
+  return "";
+}
+
+function personaScopeLabel(value?: string): string {
+  const scope = String(value || "").trim().toLowerCase();
+  if (scope.includes("conversation")) return "本次对话";
+  if (scope.includes("contact")) return "联系人覆盖";
+  if (scope.includes("global")) return "全局默认";
+  return scope ? "现有人格系统" : "待形成";
+}
+
 function errorText(error: unknown): string {
   return error instanceof Error && error.message.trim()
     ? error.message.trim()
@@ -147,6 +165,8 @@ export function PeopleSurface({
   const [addContactIdentifier, setAddContactIdentifier] = useState("");
   const [addContactStatus, setAddContactStatus] = useState("");
   const [humanTypingModeLabel, setHumanTypingModeLabel] = useState("读取中");
+  const [effectivePersonaLabel, setEffectivePersonaLabel] = useState("待形成");
+  const [effectivePersonaScope, setEffectivePersonaScope] = useState("待形成");
 
   useEffect(() => {
     let current = true;
@@ -159,9 +179,7 @@ export function PeopleSurface({
   const visibleRelationships = useMemo(() => {
     const normalizedQuery = query.trim();
     let rows = [...relationships].filter((row) => relationshipMatchesQuery(row, normalizedQuery));
-    if (filter === "unread") rows = rows.filter((row) => row.unreadCount > 0);
-    if (filter === "favorite") rows = rows.filter((row) => row.favorite === true);
-    if (filter === "recent") rows.sort((a, b) => String(b.recentAt || "").localeCompare(String(a.recentAt || "")));
+    if (filter !== "all") rows = rows.filter((row) => relationshipPlatformFilter(row) === filter);
     return rows;
   }, [relationships, filter, query]);
 
@@ -174,6 +192,30 @@ export function PeopleSurface({
   const primaryConversation = focusedRelationship?.conversations.find((row) => !row.archived)
     || focusedRelationship?.conversations[0]
     || null;
+  const platformCounts = useMemo(() => ({
+    facebook: relationships.filter((row) => relationshipPlatformFilter(row) === "facebook").length,
+    telegram: relationships.filter((row) => relationshipPlatformFilter(row) === "telegram").length,
+    whatsapp: relationships.filter((row) => relationshipPlatformFilter(row) === "whatsapp").length,
+  }), [relationships]);
+
+  useEffect(() => {
+    let current = true;
+    if (!focusedRelationship) {
+      setEffectivePersonaLabel("待形成");
+      setEffectivePersonaScope("待形成");
+      return () => { current = false; };
+    }
+    void loadPersonaEffective({ contactId: focusedRelationship.id, conversationId: primaryConversation?.id })
+      .then((persona) => {
+        if (!current) return;
+        setEffectivePersonaLabel(persona.available ? ([persona.profileName, persona.version].filter(Boolean).join(" · ") || "已生效") : "待形成");
+        setEffectivePersonaScope(persona.available ? personaScopeLabel(persona.sourceScope) : "待形成");
+      })
+      .catch(() => {
+        if (current) { setEffectivePersonaLabel("待形成"); setEffectivePersonaScope("待形成"); }
+      });
+    return () => { current = false; };
+  }, [focusedRelationship?.id, primaryConversation?.id]);
   const emptyPeopleHome = relationships.length === 0 && groups.length === 0;
   const universeRelationships = visibleRelationships.slice(0, 36);
   const denseUniverse = universeRelationships.length >= 8;
@@ -360,7 +402,7 @@ export function PeopleSurface({
         <header><h2>联系人</h2><button type="button" onClick={openAddContact}>＋ 添加联系人</button></header>
         <label className="yance-v4-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="搜索联系人、平台或消息…" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="搜索联系人" /></label>
         <div className="yance-v4-filters" aria-label="关系筛选">
-          {([["all", `全部 ${relationships.length}`], ["unread", `未读 ${relationships.filter((row) => row.unreadCount > 0).length}`], ["favorite", "收藏"], ["recent", "最近"]] as const).map(([value, label]) => (
+          {([["all", `全部 ${relationships.length}`], ["facebook", `Facebook ${platformCounts.facebook}`], ["telegram", `Telegram ${platformCounts.telegram}`], ["whatsapp", `WhatsApp ${platformCounts.whatsapp}`]] as const).map(([value, label]) => (
             <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>
           ))}
         </div>
@@ -382,25 +424,25 @@ export function PeopleSurface({
       </aside>
 
       <main className="yance-v4-main" aria-label="今天值得关注">
-        <header className="yance-v4-page-title"><div><span>首页 · People</span><h1>今天值得关注</h1><p>先看人，再进入关系与对话</p></div><time dateTime={new Date().toISOString().slice(0, 10)}>{new Date().toLocaleDateString()}</time></header>
+        <header className="yance-v4-page-title yance-v4-page-title--compact"><div className="yance-v4-page-title__line"><h1>今天值得关注</h1><p>不是看数据，而是知道现在最值得处理哪段关系</p></div><time dateTime={new Date().toISOString().slice(0, 10)}>{new Date().toLocaleDateString()}</time></header>
         {focusedRelationship ? <>
           <article className="yance-v4-focus-card">
             <div className="yance-v4-focus-card__identity"><span className="yance-v4-focus-card__avatar" aria-hidden="true">{relationshipAvatar(focusedRelationship, renderRoomAvatar, "72px")}</span><div><span>继续对话 · 当前最值得接住</span><h2>{focusedRelationship.name}</h2><p>{focusedIntelligence?.summary || focusedRelationship.lastMessage || focusedRelationship.subtitle || "这段关系正在基于真实互动形成可靠画像。"}</p></div></div>
-            <dl><div><dt>最近互动</dt><dd>{relativeDate(focusedRelationship.recentAt || focusedRelationship.updatedAt)}</dd></div><div><dt>真实对话</dt><dd>{focusedRelationship.conversations.length}</dd></div><div><dt>关系状态</dt><dd>{relationshipInsightState(focusedIntelligence?.state)}</dd></div></dl>
+            <dl><div><dt>最近互动</dt><dd>{relativeDate(focusedRelationship.recentAt || focusedRelationship.updatedAt)}</dd></div><div><dt>关系状态</dt><dd>{relationshipInsightState(focusedIntelligence?.state)}</dd></div><div><dt>当前人格</dt><dd>{effectivePersonaLabel}</dd></div></dl>
             <div className="yance-v4-focus-card__next"><span>言策建议的下一步</span><strong>{focusedIntelligence?.next || "保持温度，先回应真实对话，再决定是否继续话题。"}</strong></div>
             <div className="yance-v4-focus-card__actions"><button type="button" onClick={continueConversation} disabled={!primaryConversation}>继续 {focusedRelationship.name} 的对话</button><button type="button" onClick={enterWorld}>查看关系上下文</button></div>
           </article>
           <section className="yance-v4-section" aria-labelledby="yance-v4-attention"><header><h2 id="yance-v4-attention">我现在最应该关注谁</h2><span>按未完成对话、关系节奏与近期互动排序</span></header><div className="yance-v4-attention-list">
-            {visibleRelationships.slice(0, 4).map((relationship) => <button key={relationship.id} type="button" onClick={() => chooseFocus(relationship)}><span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar, "38px")}</span><span><strong>{relationship.name}</strong><small>{relationship.unreadCount ? `有 ${relationship.unreadCount} 条消息等待回应` : relationship.lastMessage || relationship.subtitle || "最近有真实互动"}</small></span><em>{relationship.id === focusedRelationship.id ? "当前关注" : "查看关系 ›"}</em></button>)}
+            {visibleRelationships.slice(0, 3).map((relationship) => <button key={relationship.id} type="button" onClick={() => chooseFocus(relationship)}><span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar, "38px")}</span><span><strong>{relationship.name}</strong><small>{relationship.unreadCount ? `有 ${relationship.unreadCount} 条消息等待回应` : relationship.lastMessage || relationship.subtitle || "最近有真实互动"}</small></span><em>{relationship.id === focusedRelationship.id ? "当前关注" : "查看关系 ›"}</em></button>)}
           </div></section>
-          <section className="yance-v4-section yance-v4-recent" aria-labelledby="yance-v4-recent"><header><h2 id="yance-v4-recent">最近的人</h2><span>来自现有联系人投影</span></header><div>{visibleRelationships.slice(0, 5).map((relationship) => <button key={relationship.id} type="button" onClick={() => chooseFocus(relationship)}><span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar, "38px")}</span><strong>{relationship.name}</strong><small>{relationship.platform || "真实联系人"} · {relativeDate(relationship.recentAt || relationship.updatedAt)}</small></button>)}</div></section>
+          <section className="yance-v4-section yance-v4-recent" aria-labelledby="yance-v4-recent"><header><h2 id="yance-v4-recent">最近的人</h2><span>来自现有联系人投影</span></header><div>{visibleRelationships.slice(0, 4).map((relationship) => <button key={relationship.id} type="button" onClick={() => chooseFocus(relationship)}><span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar, "38px")}</span><strong>{relationship.name}</strong><small>{relationship.platform || "真实联系人"} · {relativeDate(relationship.recentAt || relationship.updatedAt)}</small></button>)}</div></section>
         </> : <div className="yance-v4-empty" role="status"><h2>{query.trim() ? "没有匹配的真实联系人" : "从真实关系开始"}</h2><p>{query.trim() ? "当前筛选不会生成虚构人物；换一个搜索词即可返回。" : "没有联系人时，言策不会编造演示人物或对话。"}</p>{!query.trim() ? <button type="button" onClick={onConnectAccounts}>连接聊天平台</button> : null}</div>}
       </main>
 
       <aside className="yance-v4-guide" aria-label="今日关系导航">
         <header><h2>今日关系导航</h2><span>只显示需要处理的事</span></header>
         {focusedRelationship ? <>
-          <section className="yance-v4-guide__current"><span>当前关系</span><strong>{focusedRelationship.name}</strong><p>{focusedRelationship.platform || "真实联系人"} · {focusedRelationship.conversations.length} 个真实对话</p></section>
+          <section className="yance-v4-guide__persona"><span>当前生效人格</span><strong>{effectivePersonaLabel}</strong><p>{effectivePersonaScope} · 当前关注 {focusedRelationship.name}</p></section>
           <section><h3>关系提醒</h3><ul>{focusedRelationship.unreadCount ? <li>有 {focusedRelationship.unreadCount} 条消息尚未回应</li> : null}<li>{latestEvidence?.title || "继续互动后会形成下一条可信关系时刻"}</li><li>关系洞察：{focusedIntelligence?.analysisStatusLabel || "待形成"}</li></ul></section>
           <section><h3>今日目标</h3><p>{focusedIntelligence?.next || "保持关系节奏，优先处理未完成的真实对话。"}</p></section>
           <section className="yance-v4-guide__environment"><h3>全局环境</h3><p>真人打字 · 全局：{humanTypingModeLabel}</p><p>{relationships.length} 位联系人 · {groups.length} 个群聊</p></section>
