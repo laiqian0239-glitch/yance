@@ -30,6 +30,7 @@ const platformCapabilityAuthority = require('../services/platformCapabilityAutho
 const round12ArchitectureStatus = require('../services/round12ArchitectureStatusService');
 const architectureRuntimeHealth = require('../services/architectureRuntimeHealthService');
 const architectureRuntimeEvidence = require('../services/architectureRuntimeEvidenceService');
+const berlinWeatherService = require('../services/berlinWeatherService');
 
 const router = express.Router();
 
@@ -77,6 +78,10 @@ function releaseIdentityDocument() {
 }
 router.get('/release-identity', (_req, res) => res.json(releaseIdentityDocument()));
 router.get('/runtime', (_req, res) => res.json({ ok: true, runtime: runtimeRecovery.status() }));
+router.get('/weather/berlin', async (_req, res, next) => {
+  try { res.json({ ok: true, weather: await berlinWeatherService.getCurrent() }); }
+  catch (error) { next(error); }
+});
 router.get('/update-preflight', async (req, res, next) => { try { const output = await getAppRuntime().executeBusinessCommand({ command: 'update.preflight', payload: {}, context: { actor: 'system-route', correlationId: req.get('x-correlation-id') || '' } }); res.json(output.result); } catch (error) { next(error); } });
 router.post('/runtime/recover', async (req, res, next) => { try { res.json({ ok: true, runtime: await runtimeRecovery.recover(req.body?.reason || 'manual') }); } catch (error) { next(error); } });
 router.get('/overview', (_req, res) => res.json(systemCenter.snapshot()));

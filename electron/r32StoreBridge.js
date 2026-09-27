@@ -12,6 +12,7 @@ const CHANNELS = Object.freeze({
   retryTranslationJob: 'store:retry-translation-job',
   productMessageProjection: 'store:product-message-projection',
   productDailyReview: 'store:product-daily-review',
+  systemBerlinWeather: 'store:system-berlin-weather',
   platformAccountLogout: 'store:platform-account-logout',
   personaProfiles: 'store:persona-profiles',
   personaEffective: 'store:persona-effective',
@@ -278,6 +279,7 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
       const timeZone = requiredIdentifier(input.timeZone, 'timeZone');
       return apiRequest(`/api/r32/workspace/contacts/${contactId}/daily-review?localDate=${encodeURIComponent(localDate)}&timeZone=${encodeURIComponent(timeZone)}`);
     },
+    [CHANNELS.systemBerlinWeather]: () => apiRequest('/api/r32/system/weather/berlin'),
     [CHANNELS.platformAccountLogout]: (_event, input = {}) => apiRequest(
       `/api/r32/accounts/${safeRouteSegment(input.id, 'id')}/logout`,
       { method: 'POST', body: '{}' }

@@ -137,6 +137,7 @@ contextBridge.exposeInMainWorld('yanceDesktop', Object.freeze({
   storeRetryTranslationJob: input => invokeStore('store:retry-translation-job', input),
   getProductMessageProjection: input => invokeStore('store:product-message-projection', input || {}),
   getProductDailyReview: input => invokeStore('store:product-daily-review', input || {}),
+  getBerlinWeather: () => invokeStore('store:system-berlin-weather'),
   logoutPlatformAccount: input => invokeStore('store:platform-account-logout', input || {}),
   listPersonaProfiles: input => invokeStore('store:persona-profiles', input || {}),
   getPersonaEffective: input => invokeStore('store:persona-effective', input || {}),
