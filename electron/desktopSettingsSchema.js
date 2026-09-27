@@ -38,6 +38,16 @@ function normalizeDesktopSettings(value = {}) {
     if (value[key] === null || value[key] === undefined || value[key] === '') { out[key] = DEFAULTS[key]; continue; }
     const n = Number(value[key]); out[key] = Number.isFinite(n) ? Math.trunc(n) : DEFAULTS[key];
   }
+  const legacyDefaultGeometry = String(value.updatedAt || '').trim() === ''
+    && out.windowWidth === 1520
+    && out.windowHeight === 940;
+  if (legacyDefaultGeometry) {
+    out.windowX = null;
+    out.windowY = null;
+    out.windowWidth = DEFAULTS.windowWidth;
+    out.windowHeight = DEFAULTS.windowHeight;
+    out.windowMaximized = false;
+  }
   out.windowWidth = Math.max(980, Math.min(10000, Number(out.windowWidth || DEFAULTS.windowWidth)));
   out.windowHeight = Math.max(680, Math.min(10000, Number(out.windowHeight || DEFAULTS.windowHeight)));
   const theme = String(value.theme || out.theme);

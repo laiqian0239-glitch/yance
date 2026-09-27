@@ -58,3 +58,20 @@ test('desktop settings preserve null first-run position so work-area centering r
   assert.equal(normalized.windowX, null);
   assert.equal(normalized.windowY, null);
 });
+
+test('legacy default geometry migrates to the compact first-run window without overriding later user bounds', () => {
+  const migrated = schema.normalizeDesktopSettings({
+    windowX: 0, windowY: 0, windowWidth: 1520, windowHeight: 940, windowMaximized: false, updatedAt: '',
+  });
+  assert.deepEqual(
+    { x: migrated.windowX, y: migrated.windowY, width: migrated.windowWidth, height: migrated.windowHeight },
+    { x: null, y: null, width: 1060, height: 720 },
+  );
+  const explicit = schema.normalizeDesktopSettings({
+    windowX: 120, windowY: 80, windowWidth: 1520, windowHeight: 940, updatedAt: '2026-09-27T06:00:00.000Z',
+  });
+  assert.deepEqual(
+    { x: explicit.windowX, y: explicit.windowY, width: explicit.windowWidth, height: explicit.windowHeight },
+    { x: 120, y: 80, width: 1520, height: 940 },
+  );
+});
