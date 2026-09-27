@@ -52,3 +52,9 @@ test('main process consumes compact bounds policy and persists only normal geome
   assert.match(main, /createdWindow\.on\('move'/u);
   assert.match(main, /settingsStore\.update\(normalBounds\)/u);
 });
+
+test('desktop settings preserve null first-run position so work-area centering remains authoritative', () => {
+  const normalized = schema.normalizeDesktopSettings(schema.DEFAULTS);
+  assert.equal(normalized.windowX, null);
+  assert.equal(normalized.windowY, null);
+});

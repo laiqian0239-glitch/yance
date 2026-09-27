@@ -35,6 +35,7 @@ function normalizeDesktopSettings(value = {}) {
   // readable for settings-file compatibility, but migrate every stored value off.
   out.minimizeToTray = false;
   for (const key of NUMBER_KEYS) if (Object.prototype.hasOwnProperty.call(value,key)) {
+    if (value[key] === null || value[key] === undefined || value[key] === '') { out[key] = DEFAULTS[key]; continue; }
     const n = Number(value[key]); out[key] = Number.isFinite(n) ? Math.trunc(n) : DEFAULTS[key];
   }
   out.windowWidth = Math.max(980, Math.min(10000, Number(out.windowWidth || DEFAULTS.windowWidth)));
