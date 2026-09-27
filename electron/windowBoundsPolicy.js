@@ -1,7 +1,7 @@
 'use strict';
 
-const DEFAULT_WIDTH = 1060;
-const DEFAULT_HEIGHT = 720;
+const DEFAULT_WIDTH = 1186;
+const DEFAULT_HEIGHT = 758;
 const MIN_WIDTH = 980;
 const MIN_HEIGHT = 680;
 

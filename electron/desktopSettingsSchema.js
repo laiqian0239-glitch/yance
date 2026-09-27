@@ -14,7 +14,7 @@ const BUSINESS_SETTING_KEYS = Object.freeze([
 ]);
 const DEFAULTS = Object.freeze({
   schemaVersion: 2,
-  windowX: null, windowY: null, windowWidth: 1060, windowHeight: 720, windowMaximized: false,
+  windowX: null, windowY: null, windowWidth: 1186, windowHeight: 758, windowMaximized: false,
   autoLaunch: false, minimizeToTray: false, closeToTray: true, startMinimized: false, theme: 'system', productSoundMode: 'Essential only',
   gifAutoplay: true, stickerAutoplay: true, pauseAnimationWhenHidden: true,
   autoCheckUpdates: true, autoDownloadUpdates: false, updatedAt: ''

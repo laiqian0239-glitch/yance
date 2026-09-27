@@ -11,18 +11,20 @@ const policyPath = path.join(ROOT, 'electron/windowBoundsPolicy.js');
 const policy = fs.existsSync(policyPath) ? require(policyPath) : {};
 const read = relative => fs.readFileSync(path.join(ROOT, relative), 'utf8');
 
-test('desktop settings default to the compact supported normal window', () => {
-  assert.equal(schema.DEFAULTS.windowWidth, 1060);
-  assert.equal(schema.DEFAULTS.windowHeight, 720);
+test('desktop settings preserve the owner-approved 1186x758 normal window default', () => {
+  assert.equal(schema.DEFAULTS.windowWidth, 1186);
+  assert.equal(schema.DEFAULTS.windowHeight, 758);
+  assert.equal(policy.DEFAULT_WIDTH, 1186);
+  assert.equal(policy.DEFAULT_HEIGHT, 758);
   assert.equal(schema.normalizeDesktopSettings({ windowWidth: 700, windowHeight: 500 }).windowWidth, 980);
   assert.equal(schema.normalizeDesktopSettings({ windowWidth: 700, windowHeight: 500 }).windowHeight, 680);
 });
 
 test('window bounds policy clamps first-run geometry and restores persisted normal bounds', () => {
   assert.equal(typeof policy.resolveInitialWindowBounds, 'function');
-  const firstRun = policy.resolveInitialWindowBounds({ windowX: null, windowY: null, windowWidth: 1060, windowHeight: 720 }, { x: 0, y: 0, width: 1920, height: 1040 });
-  assert.deepEqual(firstRun, { x: 430, y: 160, width: 1060, height: 720, maximized: false });
-  const compactWorkArea = policy.resolveInitialWindowBounds({ windowX: null, windowY: null, windowWidth: 1060, windowHeight: 720 }, { x: 0, y: 0, width: 1366, height: 728 });
+  const firstRun = policy.resolveInitialWindowBounds({ windowX: null, windowY: null, windowWidth: 1186, windowHeight: 758 }, { x: 0, y: 0, width: 1920, height: 1040 });
+  assert.deepEqual(firstRun, { x: 367, y: 141, width: 1186, height: 758, maximized: false });
+  const compactWorkArea = policy.resolveInitialWindowBounds({ windowX: null, windowY: null, windowWidth: 1186, windowHeight: 758 }, { x: 0, y: 0, width: 1366, height: 728 });
   assert.deepEqual(compactWorkArea, { x: 192, y: 24, width: 983, height: 680, maximized: false });
   const restored = policy.resolveInitialWindowBounds({ windowX: 2500, windowY: -500, windowWidth: 1000, windowHeight: 690, windowMaximized: true }, { x: 0, y: 0, width: 1920, height: 1040 });
   assert.deepEqual(restored, { x: 920, y: 0, width: 1000, height: 690, maximized: true });
@@ -45,6 +47,8 @@ test('main process consumes compact bounds policy and persists only normal geome
   const main = read('electron/main.js');
   assert.match(main, /resolveInitialWindowBounds/);
   assert.match(main, /captureNormalWindowBounds/);
+  assert.match(main, /Number\(settings\.windowWidth\) \|\| 1186/u);
+  assert.match(main, /Number\(settings\.windowHeight\) \|\| 758/u);
   assert.match(main, /minWidth:\s*980/u);
   assert.match(main, /minHeight:\s*680/u);
   assert.match(main, /backgroundColor:\s*'#06111D'/u);
@@ -65,7 +69,7 @@ test('legacy default geometry migrates to the compact first-run window without o
   });
   assert.deepEqual(
     { x: migrated.windowX, y: migrated.windowY, width: migrated.windowWidth, height: migrated.windowHeight },
-    { x: null, y: null, width: 1060, height: 720 },
+    { x: null, y: null, width: 1186, height: 758 },
   );
   const explicit = schema.normalizeDesktopSettings({
     windowX: 120, windowY: 80, windowWidth: 1520, windowHeight: 940, updatedAt: '2026-09-27T06:00:00.000Z',

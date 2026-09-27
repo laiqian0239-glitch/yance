@@ -12281,7 +12281,7 @@
 /*
  * Formal Conversation presentation follows the navy/gold v4 design authority even when
  * an older persisted host theme is violet. The 2048 master remains the large-screen
- * reference; the default desktop product is designed first for a 1060 × 720 laptop window.
+ * reference; the default desktop product preserves the owner-approved 1186 × 758 app window.
  */
 .yance-product-shell[data-conversation-active],
 .yance-product-shell[data-conversation-surface-active="true"] {

@@ -3714,7 +3714,7 @@ function createWindow() {
   const hasStoredPosition = settings.windowX !== null && settings.windowY !== null
     && Number.isFinite(Number(settings.windowX)) && Number.isFinite(Number(settings.windowY));
   const targetDisplay = hasStoredPosition
-    ? screen.getDisplayMatching({ x: Number(settings.windowX), y: Number(settings.windowY), width: Math.max(1, Number(settings.windowWidth) || 1060), height: Math.max(1, Number(settings.windowHeight) || 720) })
+    ? screen.getDisplayMatching({ x: Number(settings.windowX), y: Number(settings.windowY), width: Math.max(1, Number(settings.windowWidth) || 1186), height: Math.max(1, Number(settings.windowHeight) || 758) })
     : screen.getPrimaryDisplay();
   const initialBounds = resolveInitialWindowBounds(settings, targetDisplay.workArea);
   const createdWindow = new BrowserWindow({

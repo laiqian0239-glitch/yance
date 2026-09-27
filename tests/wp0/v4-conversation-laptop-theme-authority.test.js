@@ -9,12 +9,12 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const main = () => fs.readFileSync(path.join(ROOT, 'electron/main.js'), 'utf8');
 const styles = () => fs.readFileSync(path.join(ROOT, 'integration/element-module/src/product-experience/ProductExperienceShell.css'), 'utf8');
 
-test('desktop defaults to the canonical 1060x720 non-fullscreen work window with the approved ink background', () => {
+test('desktop preserves the owner-approved 1186x758 non-fullscreen work window with the approved ink background', () => {
   const source = main();
   const createWindow = source.slice(source.indexOf('function createWindow()'), source.indexOf('function createWindow()') + 2200);
   const schema = require('../../electron/desktopSettingsSchema');
-  assert.equal(schema.DEFAULTS.windowWidth, 1060);
-  assert.equal(schema.DEFAULTS.windowHeight, 720);
+  assert.equal(schema.DEFAULTS.windowWidth, 1186);
+  assert.equal(schema.DEFAULTS.windowHeight, 758);
   assert.match(createWindow, /resolveInitialWindowBounds/u);
   assert.match(createWindow, /width:\s*initialBounds\.width/u);
   assert.match(createWindow, /height:\s*initialBounds\.height/u);
@@ -32,7 +32,7 @@ test('Conversation v4 locks the formal navy-gold authority instead of inheriting
   assert.match(authority, /--yance-theme-text:\s*#f4f0e6/u);
 });
 
-test('Conversation v4 prioritizes the compact 1060x720 authority over 2048 desktop pane widths', () => {
+test('Conversation v4 prioritizes the compact 1186x758 authority over 2048 desktop pane widths', () => {
   const css = styles();
   const marker = '/* YANCE_COMPACT_CONVERSATION_WORKSPACE_20260927 */';
   const authority = css.slice(css.indexOf(marker));
