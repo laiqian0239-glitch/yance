@@ -21,6 +21,7 @@ test('Conversation presentation intent can open an empty workspace without fabri
   const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
   assert.match(shell, /conversationWorkspaceRequested,\s*setConversationWorkspaceRequested/u);
   assert.match(shell, /conversationSurfaceActive\s*=\s*Boolean\([\s\S]{0,220}conversationWorkspaceRequested/u);
+  assert.match(shell, /data-conversation-surface-active=\{!settingsVisible && conversationSurfaceActive \? "true" : undefined\}/u);
   assert.doesNotMatch(shell, /setSelectedConversationId\([^)]*conversationWorkspaceRequested/u);
 });
 
