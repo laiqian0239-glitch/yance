@@ -558,6 +558,55 @@ function applyReplyLanguageQuality(validation = {}, text = '', authority = {}) {
   };
 }
 
+function elapsedBucketForSeconds(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < 0) return 'unknown';
+  if (seconds < 5 * 60) return 'lt_5m';
+  if (seconds < 60 * 60) return 'lt_1h';
+  if (seconds < 4 * 60 * 60) return 'lt_4h';
+  if (seconds < 12 * 60 * 60) return 'lt_12h';
+  if (seconds < 24 * 60 * 60) return 'lt_24h';
+  return 'gte_1d';
+}
+
+function validateTemporalCandidate(value, temporalContext = {}) {
+  const text = clean(value);
+  const mode = clean(temporalContext.replyTemporalMode) || 'current';
+  if (!text || mode === 'current') return { pass: true, reasonCode: '', mode };
+  const directGreeting = /^\s*(?:早上好|早安|下午好|晚上好|good\s*morning\b|good\s*afternoon\b|good\s*evening\b)/iu.test(text);
+  const acknowledgesPast = /(?:刚看到|才看到|现在才看到|早上的消息|你早上|你上午|之前的消息|earlier|your\s+morning\s+message|saw\s+your.*message)/iu.test(text);
+  let invalid = false;
+  if (mode === 'acknowledge_previous_time') invalid = directGreeting && !acknowledgesPast;
+  if (mode === 'neutral_due_to_unknown_zone') invalid = directGreeting && !acknowledgesPast;
+  if (mode === 'cross_day' || mode === 'expired_plan_reference') {
+    const original = new Set(Array.isArray(temporalContext.temporalExpressions) ? temporalContext.temporalExpressions : []);
+    const repeatsTonight = original.has('tonight') && /(?:今晚|tonight)/iu.test(text);
+    const repeatsTomorrow = original.has('tomorrow') && /(?:明天|tomorrow)/iu.test(text);
+    const repeatsGoodNight = original.has('good_night') && /^\s*(?:晚安|good\s*night\b)/iu.test(text);
+    invalid = (repeatsTonight || repeatsTomorrow || repeatsGoodNight) && !acknowledgesPast;
+  }
+  if (!invalid) return { pass: true, reasonCode: '', mode };
+  return {
+    pass: false,
+    reasonCode: 'AI_REPLY_TEMPORAL_MISMATCH',
+    mode,
+    message: '候选回复与当前真实时间语境不一致，需要自然承接旧时段或使用中性表达。'
+  };
+}
+
+function applyTemporalQuality(validation = {}, text = '', temporalContext = {}) {
+  const temporalValidation = validateTemporalCandidate(text, temporalContext);
+  if (temporalValidation.pass) return { ...validation, temporalValidation };
+  const issue = { code: temporalValidation.reasonCode, message: temporalValidation.message, replyTemporalMode: temporalValidation.mode };
+  return {
+    ...validation,
+    pass: false,
+    issues: [...(validation.issues || []), issue],
+    blockers: [...(validation.blockers || []), issue],
+    temporalValidation
+  };
+}
+
 function clampNumber(value, min, max, fallback) {
   const number = Number(value);
   return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
@@ -752,7 +801,7 @@ function buildModelMessages(packet, options = {}) {
     '当前联系人上下文是唯一来源；不得串用其他联系人的姓名、经历、称呼或私人信息。',
     'confirmedFacts 可以作为事实使用；userNotes 和 AI 推测不能被当作确定事实。',
     '候选文本不得反向修改出生、家庭、创伤、医疗、职业、财富、旅行或机构履历；上下文未明确确认的内容必须保持未知。',
-    'temporalContext 只提供真实本地日期、时间、星期与时段用于自然措辞；不得根据时间编造用户当前活动、地点、作息、行程或状态。',
+    '时间语境规则：temporalContext 只提供真实日期、时间与时段；当 replyTemporalMode 不是 current 时，不得机械镜像原消息中的旧问候或已过期时间表达，应承认时间已经过去、自然过渡，或在联系人时区未知时使用中性表达。',
     'persona.lifeStatus 仅来自 authoritative.personaProfile.lifeStatus；不得根据 temporalContext 推断或改写 lifeStatus。',
     '不得声称去过未确认地点，也不得把推测、玩笑、导演指令或其他联系人的经历写成当前人物的真实经历。',
     '导演参数用于调整语气、直接程度、暧昧程度和长度，最终判断由用户完成。',
@@ -1337,7 +1386,7 @@ function createContextAwareReplyBrain({
         context: taskContext,
         priority: 100
       });
-      let quality = applyReplyLanguageQuality(validateReplyCandidate(modelResult.text, directedPromptPacket), modelResult.text, languageAuthority);
+      let quality = applyTemporalQuality(applyReplyLanguageQuality(validateReplyCandidate(modelResult.text, directedPromptPacket), modelResult.text, languageAuthority), modelResult.text, directedPromptPacket.temporalContext);
       let repaired = false;
       if (!quality.pass) {
         activeStage = 'candidate_repair';
@@ -1358,10 +1407,13 @@ function createContextAwareReplyBrain({
           context: taskContext,
           priority: 100
         });
-        quality = applyReplyLanguageQuality(validateReplyCandidate(modelResult.text, directedPromptPacket), modelResult.text, languageAuthority);
+        quality = applyTemporalQuality(applyReplyLanguageQuality(validateReplyCandidate(modelResult.text, directedPromptPacket), modelResult.text, languageAuthority), modelResult.text, directedPromptPacket.temporalContext);
         if (!quality.pass) {
           const languageMismatch = (quality.issues || []).some(issue => issue.code === 'AI_REPLY_LANGUAGE_MISMATCH');
-          throw createBrainError(languageMismatch ? 'AI_REPLY_LANGUAGE_MISMATCH' : 'AI_REPLY_QUALITY_REJECTED', languageMismatch ? 'Generated reply used the wrong customer language after one controlled repair' : 'Generated reply failed quality validation after one controlled repair', {
+          const temporalMismatch = (quality.issues || []).some(issue => issue.code === 'AI_REPLY_TEMPORAL_MISMATCH');
+          const rejectionCode = languageMismatch ? 'AI_REPLY_LANGUAGE_MISMATCH' : temporalMismatch ? 'AI_REPLY_TEMPORAL_MISMATCH' : 'AI_REPLY_QUALITY_REJECTED';
+          const rejectionMessage = languageMismatch ? 'Generated reply used the wrong customer language after one controlled repair' : temporalMismatch ? 'Generated reply remained inconsistent with the current temporal context after one controlled repair' : 'Generated reply failed quality validation after one controlled repair';
+          throw createBrainError(rejectionCode, rejectionMessage, {
             task: replyTask,
             issues: quality.blockers,
             metrics: quality.metrics,
@@ -1499,6 +1551,10 @@ function createContextAwareReplyBrain({
         targetLanguageCode: languageAuthority.code,
         languageAuthority,
         languageValidation: quality.languageValidation,
+        replyTemporalMode: clean(temporalContext.replyTemporalMode) || 'current',
+        elapsedBucket: elapsedBucketForSeconds(temporalContext.elapsedSeconds),
+        contactTimeZoneConfidence: clean(temporalContext.contactTimeZoneConfidence) || 'unknown',
+        temporalValidation: { ...(quality.temporalValidation || { pass: true, reasonCode: '', mode: clean(temporalContext.replyTemporalMode) || 'current' }) },
         performanceMode,
         personaProfileId: personaCtx.profileId || 'owner',
         personaVersionId: personaCtx.personaVersionId,
@@ -1706,6 +1762,7 @@ module.exports = {
   personaContactScope,
   buildTemporalContext,
   extractTemporalExpressions,
+  validateTemporalCandidate,
   selectReplyTask,
   resolveReplyGenerationOptions,
   parseDirectorJson,
