@@ -32,6 +32,7 @@ type PeopleSurfaceProps = {
   onFocus: (relationshipId: string) => void;
   onSelect: (relationshipId: string) => void;
   onContinueConversation: (relationship: RelationshipProjection, conversation: ConversationRef) => void;
+  onOpenConversationWorkspace: () => void;
   onSelectGroup: (conversation: GroupConversationProjection) => void;
   onConnectAccounts: () => void;
   onRefreshRelationships: () => Promise<void>;
@@ -169,6 +170,7 @@ export function PeopleSurface({
   onFocus,
   onSelect,
   onContinueConversation,
+  onOpenConversationWorkspace,
   onSelectGroup,
   onConnectAccounts,
   onRefreshRelationships,
@@ -418,7 +420,7 @@ export function PeopleSurface({
     <section className="yance-people yance-people-home yance-people-home-v4" data-empty={emptyPeopleHome || undefined} aria-label="People 首页">
 
       <aside className="yance-v4-contacts" aria-label="联系人">
-        <header><h2>联系人</h2><button type="button" onClick={openAddContact}>＋ 添加联系人</button></header>
+        <header><h2>联系人</h2><div className="yance-v4-contacts__actions"><button type="button" className="yance-v4-open-conversation" onClick={() => (primaryConversation ? continueConversation() : onOpenConversationWorkspace())}>对话</button><button type="button" onClick={openAddContact}>＋ 添加联系人</button></div></header>
         <label className="yance-v4-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="搜索联系人、平台或消息…" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="搜索联系人" /></label>
         <div className="yance-v4-filters" aria-label="关系筛选">
           {([["all", `全部 ${relationships.length}`], ["facebook", `Facebook ${platformCounts.facebook}`], ["telegram", `Telegram ${platformCounts.telegram}`], ["whatsapp", `WhatsApp ${platformCounts.whatsapp}`]] as const).map(([value, label]) => (

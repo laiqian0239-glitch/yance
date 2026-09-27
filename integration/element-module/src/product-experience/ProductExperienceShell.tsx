@@ -1042,6 +1042,7 @@ type ProductConversationSurfaceProps = {
   renderRoomView: (roomId: string, props?: ProductRoomViewProjectionProps) => React.ReactNode;
   onOpenRelationshipConversation: (relationship: RelationshipProjection, conversation: ConversationRef) => Promise<boolean>;
   onReturnToRelationship: () => Promise<void> | void;
+  onReturnHome: () => void;
   onOpenModels: () => void;
   onOpenLearning: () => void;
   onOpenSettings: () => void;
@@ -1140,6 +1141,7 @@ export function ProductConversationSurface({
   renderRoomView,
   onOpenRelationshipConversation,
   onReturnToRelationship,
+  onReturnHome,
   onOpenModels,
   onOpenSettings,
   onAddContact,
@@ -1402,7 +1404,7 @@ export function ProductConversationSurface({
       <div className="yance-empty" role="status">
         <strong>没有已绑定的真实对话</strong>
         <span>言策不会猜测真实会话；请返回关系页重新选择一个已解析会话。</span>
-        <button type="button" onClick={() => void onReturnToRelationship()}>返回关系世界</button>
+        <button type="button" aria-label="返回首页" onClick={onReturnHome}>返回首页</button>
       </div>
     </section>;
   }
@@ -1415,6 +1417,7 @@ export function ProductConversationSurface({
     data-navigation-pending={session.conversationNavigationPending || undefined}
   >
     <header className="yance-conversation-workspace-v4__topbar" aria-label="Yance Conversation Workspace v4">
+      <button type="button" className="yance-conversation-home-button" aria-label="返回首页" onClick={onReturnHome}>返回首页</button>
       <div className="yance-conversation-workspace-v4__brand">
         <span aria-hidden="true"><YanceMark /></span>
         <strong>Yance</strong>
@@ -1750,6 +1753,7 @@ export function ProductExperienceShell({
   const [assistantVisible, setAssistantVisible] = useState(false);
   const [aiWorkspaceVisible, setAiWorkspaceVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [conversationWorkspaceRequested, setConversationWorkspaceRequested] = useState<boolean | null>(null);
   const [settingsSection, setSettingsSection] = useState<SettingsSectionV4>("general");
   const [aiState, setAiState] = useState<RelationshipAiState>("idle");
   const [peopleHomeView, setPeopleHomeView] = useState<PeopleHomeView>("list");
@@ -1975,8 +1979,13 @@ export function ProductExperienceShell({
     || relationships[0]
     || null;
   const conversationSurfaceActive = Boolean(
-    session.activeMatrixRoomId || session.conversationNavigationPending || session.selectedConversationId,
+    conversationWorkspaceRequested === true
+      || (conversationWorkspaceRequested !== false
+        && (session.activeMatrixRoomId || session.conversationNavigationPending || session.selectedConversationId)),
   );
+  const homePresentationRequested = conversationWorkspaceRequested === false;
+  const homeSurfaceActive = !settingsVisible && !aiWorkspaceVisible && !conversationSurfaceActive
+    && (homePresentationRequested || (!selectedRelationship && peopleHomeView === "list"));
 
   const runtimeSafetyBanner = useMemo(
     () => projectRuntimeSafety(
@@ -1990,6 +1999,7 @@ export function ProductExperienceShell({
   );
 
   const chooseRelationship = (relationshipId: string): void => {
+    setConversationWorkspaceRequested(null);
     selectRelationship(relationshipId);
     setStatus("已打开关系");
   };
@@ -2014,6 +2024,7 @@ export function ProductExperienceShell({
     }
 
     try {
+      setConversationWorkspaceRequested(null);
       const opened = await navigateConversation(selectedRelationship, conversation);
       setStatus(opened
         ? "已进入对话"
@@ -2032,6 +2043,7 @@ export function ProductExperienceShell({
     }
 
     try {
+      setConversationWorkspaceRequested(null);
       const opened = await navigateGroupConversation(conversation);
       setStatus(opened
         ? "已进入群聊"
@@ -2039,6 +2051,15 @@ export function ProductExperienceShell({
     } catch {
       setStatus("群聊未就绪：真实群聊房间解析失败；言策没有执行猜测性跳转。");
     }
+  };
+
+  const returnToHomeFromConversation = (): void => {
+    setConversationWorkspaceRequested(false);
+    setSettingsVisible(false);
+    setAiWorkspaceVisible(false);
+    setPeopleHomeView("list");
+    setAssistantVisible(false);
+    setStatus("已返回首页");
   };
 
   const returnToPeople = (): void => {
@@ -2104,6 +2125,7 @@ export function ProductExperienceShell({
       data-font-scale={appearance.available ? appearance.fontScale : undefined}
       data-conversation-active={!settingsVisible && session.activeMatrixRoomId ? session.activeMatrixRoomId : undefined}
       data-conversation-surface-active={!settingsVisible && session.conversationNavigationPending ? "true" : undefined}
+      data-home-surface-active={homeSurfaceActive ? "true" : undefined}
       data-settings-active={settingsVisible || undefined}
       aria-label="言策"
     >
@@ -2130,17 +2152,17 @@ export function ProductExperienceShell({
         </div>
       ) : null}
 
-      <nav className="yance-desktop-rail" aria-label="言策桌面功能">
-        <button type="button" aria-current={!settingsVisible && !selectedRelationship && peopleHomeView === "list" ? "page" : undefined} onClick={() => {
+      {!conversationSurfaceActive ? <nav className="yance-desktop-rail" aria-label="言策桌面功能">
+        <button type="button" aria-current={homeSurfaceActive ? "page" : undefined} onClick={() => {
           playExperienceSound(preferences.soundMode, "open");
           setSettingsVisible(false);
           setAiWorkspaceVisible(false);
           setPeopleHomeView("list");
           setAssistantVisible(false);
+          setConversationWorkspaceRequested(false);
           void refreshRelationships();
-          if (selectedRelationship) returnToPeople();
         }}><span aria-hidden="true"><Home /></span><strong>首页</strong></button>
-                <button type="button" aria-current={!settingsVisible && !conversationSurfaceActive && Boolean(selectedRelationship) ? "page" : undefined} disabled={!homeRelationship} onClick={() => {
+                <button type="button" aria-current={!settingsVisible && !homeSurfaceActive && !conversationSurfaceActive && Boolean(selectedRelationship) ? "page" : undefined} disabled={!homeRelationship} onClick={() => {
           if (!homeRelationship) return;
           playExperienceSound(preferences.soundMode, "confirm");
           setSettingsVisible(false);
@@ -2160,7 +2182,7 @@ export function ProductExperienceShell({
           setSettingsSection("general");
           setAssistantVisible(false);
         }}><span aria-hidden="true"><Settings /></span><strong>设置</strong></button>
-      </nav>
+      </nav> : null}
 
       {!conversationSurfaceActive ? <header className="yance-desktop-topbar yance-product-nav" aria-label="言策主导航">
         <div className="yance-desktop-topbar__brand">
@@ -2216,6 +2238,7 @@ export function ProductExperienceShell({
                 return navigateConversation(targetRelationship, targetConversation);
               }}
               onReturnToRelationship={() => navigateRelationshipHome?.()}
+              onReturnHome={returnToHomeFromConversation}
               onOpenModels={() => {
                 setSettingsVisible(true);
                 setSettingsSection("models");
@@ -2241,7 +2264,7 @@ export function ProductExperienceShell({
           </motion.div>
         ) : (
         <AnimatePresence initial={false}>
-        {!selectedRelationship ? (
+        {conversationWorkspaceRequested === false || !selectedRelationship ? (
           <motion.div
             key="people"
             className="yance-shell-scene"
@@ -2269,11 +2292,19 @@ export function ProductExperienceShell({
                 onViewModeChange={setPeopleHomeView}
                 onFocus={setFocusedRelationshipId}
                 onSelect={chooseRelationship}
+                onOpenConversationWorkspace={() => {
+                  setConversationWorkspaceRequested(true);
+                  setSettingsVisible(false);
+                  setAiWorkspaceVisible(false);
+                  setAssistantVisible(false);
+                  setStatus("已打开对话工作台");
+                }}
                 onContinueConversation={(relationship, conversation) => {
                   if (!navigateConversation) {
                     setStatus("真实对话导航暂不可用");
                     return;
                   }
+                  setConversationWorkspaceRequested(null);
                   void navigateConversation(relationship, conversation)
                     .then((opened) => setStatus(opened ? "已进入对话" : "对话未就绪：当前平台账号还没有同步出可用的真实聊天房间。请先到“账号与连接”完成登录与同步。"))
                     .catch(() => setStatus("对话未就绪：真实聊天房间解析失败；言策没有执行猜测性跳转。"));
@@ -2358,6 +2389,7 @@ export function ProductExperienceShell({
             }
             setAiWorkspaceVisible(false);
             setSettingsVisible(false);
+            setConversationWorkspaceRequested(null);
             void navigateConversation(relationship, conversation)
               .then((opened) => setStatus(opened ? "已从 AI 工作台进入真实对话" : "对话未就绪：当前平台尚未同步该真实房间。"))
               .catch(() => setStatus("对话未就绪：真实房间导航失败。"));
