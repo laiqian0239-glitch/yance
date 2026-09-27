@@ -12276,3 +12276,177 @@
   .yance-v4-attention-list button { min-height: 44px; padding-block: 4px; }
   .yance-v4-guide { padding: 8px; }
 }
+
+/* YANCE_CONVERSATION_LAPTOP_AUTHORITY_20260927 */
+/*
+ * Formal Conversation presentation follows the navy/gold v4 design authority even when
+ * an older persisted host theme is violet. The 2048 master remains the large-screen
+ * reference; the default desktop product is designed first for a 1060 × 720 laptop window.
+ */
+.yance-product-shell[data-conversation-active],
+.yance-product-shell[data-conversation-surface-active="true"] {
+  --yance-theme-app: #06111d;
+  --yance-theme-panel: #081a2a;
+  --yance-theme-card: #091e30;
+  --yance-theme-card-raised: #0c2236;
+  --yance-theme-control: #091e30;
+  --yance-theme-control-hover: #0c2940;
+  --yance-theme-text: #f4f0e6;
+  --yance-theme-text-muted: #8fa2b4;
+  --yance-theme-border: #17344a;
+  --yance-theme-accent: #d7ad4a;
+  --yance-theme-accent-alt: #e2bd63;
+  --yance-theme-on-accent: #06111d;
+  --yance-theme-highlight: #55c7b0;
+  --yance-theme-shadow-source: #02070c;
+  --yance-theme-deep: #06111d;
+  --yance-v4-app: #06111d;
+  --yance-v4-panel: #081a2a;
+  --yance-v4-panel-raised: #0c2236;
+  --yance-v4-line: #17344a;
+  --yance-v4-text: #f4f0e6;
+  --yance-v4-muted: #8fa2b4;
+  --yance-v4-gold: #d7ad4a;
+  --yance-v4-gold-deep: #8c6b22;
+}
+
+/* YANCE_COMPACT_CONVERSATION_WORKSPACE_20260927 */
+.yance-product-shell[data-conversation-active],
+.yance-product-shell[data-conversation-surface-active="true"] {
+  padding-left: 0;
+  overflow: hidden;
+}
+.yance-conversation-workspace-v4 {
+  --yance-conversation-v4-contacts: 220px;
+  --yance-conversation-v4-insight-expanded: 270px;
+  --yance-conversation-v4-insight-summary: 210px;
+  --yance-conversation-v4-topbar: 46px;
+  grid-template-rows: var(--yance-conversation-v4-topbar) minmax(0, 1fr);
+  overflow: hidden;
+}
+.yance-conversation-workspace-v4 > .yance-product-conversation__workspace {
+  grid-template-columns: var(--yance-conversation-v4-contacts) minmax(0, 1fr) var(--yance-conversation-v4-insight-expanded);
+  min-width: 0;
+  overflow: hidden;
+}
+.yance-conversation-workspace-v4[data-right-collapsed] > .yance-product-conversation__workspace {
+  grid-template-columns: var(--yance-conversation-v4-contacts) minmax(0, 1fr) var(--yance-conversation-v4-insight-summary);
+}
+.yance-conversation-workspace-v4[data-left-collapsed] > .yance-product-conversation__workspace {
+  grid-template-columns: 52px minmax(0, 1fr) var(--yance-conversation-v4-insight-expanded);
+}
+.yance-conversation-workspace-v4[data-left-collapsed][data-right-collapsed] > .yance-product-conversation__workspace {
+  grid-template-columns: 52px minmax(0, 1fr) var(--yance-conversation-v4-insight-summary);
+}
+.yance-conversation-workspace-v4__topbar {
+  min-height: var(--yance-conversation-v4-topbar);
+  height: var(--yance-conversation-v4-topbar);
+  gap: 8px;
+  padding: 0 12px;
+  border-bottom-color: color-mix(in srgb, var(--yance-v4-gold) 28%, var(--yance-v4-line));
+  box-shadow: none;
+}
+.yance-conversation-home-button {
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--yance-v4-line);
+  border-radius: 8px;
+  color: var(--yance-v4-text);
+  background: transparent;
+  font: inherit;
+  font-size: .68rem;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.yance-conversation-workspace-v4__identity {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  margin-right: auto;
+}
+.yance-conversation-workspace-v4__identity strong {
+  overflow: hidden;
+  color: var(--yance-v4-text);
+  font-size: .88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yance-conversation-workspace-v4__identity small {
+  overflow: hidden;
+  color: var(--yance-v4-muted);
+  font-size: .64rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yance-conversation-workspace-v4__top-actions { gap: 5px; }
+.yance-conversation-workspace-v4__top-actions > span {
+  padding: 4px 8px;
+  font-size: .62rem;
+}
+.yance-conversation-workspace-v4__top-actions button {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+}
+.yance-conversation-workspace-v4 .yance-product-conversation__insight[data-collapsed] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+}
+.yance-conversation-inspector__summary {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+}
+.yance-conversation-inspector__summary > p {
+  margin: 0;
+  color: var(--yance-v4-muted);
+  font-size: .64rem;
+  line-height: 1.35;
+}
+.yance-conversation-inspector__summary-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.yance-conversation-inspector__summary-counts span {
+  padding: 3px 6px;
+  border: 1px solid var(--yance-v4-line);
+  border-radius: 999px;
+  color: var(--yance-v4-text);
+  font-size: .6rem;
+}
+.yance-conversation-inspector__summary > button {
+  justify-self: start;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--yance-v4-gold) 58%, var(--yance-v4-line));
+  border-radius: 8px;
+  color: var(--yance-v4-gold);
+  background: transparent;
+  font: inherit;
+  font-size: .62rem;
+  cursor: pointer;
+}
+@media (max-width: 1000px) {
+  .yance-conversation-workspace-v4 {
+    --yance-conversation-v4-contacts: 210px;
+    --yance-conversation-v4-insight-expanded: 260px;
+    --yance-conversation-v4-insight-summary: 200px;
+  }
+  .yance-conversation-workspace-v4__identity small { display: none; }
+  .yance-conversation-workspace-v4__top-actions > span { display: none; }
+}
+@media (max-height: 760px) {
+  .yance-conversation-workspace-v4 {
+    --yance-conversation-v4-topbar: 44px;
+  }
+  .yance-conversation-list-header { min-height: 42px; padding-block: 5px; }
+  .yance-conversation-workspace-v4 .yance-product-conversation__chat-header {
+    min-height: 52px;
+    flex-basis: 52px;
+  }
+}

@@ -32,15 +32,15 @@ test('Conversation v4 locks the formal navy-gold authority instead of inheriting
   assert.match(authority, /--yance-theme-text:\s*#f4f0e6/u);
 });
 
-test('Conversation v4 prioritizes a 14-inch 1186x758 window over the 2048 desktop pane widths', () => {
+test('Conversation v4 prioritizes the compact 1060x720 authority over 2048 desktop pane widths', () => {
   const css = styles();
-  const marker = '/* YANCE_CONVERSATION_LAPTOP_AUTHORITY_20260927 */';
+  const marker = '/* YANCE_COMPACT_CONVERSATION_WORKSPACE_20260927 */';
   const authority = css.slice(css.indexOf(marker));
-  assert.match(authority, /@media\s*\(max-width:\s*1280px\),\s*\(max-height:\s*800px\)/u);
-  assert.match(authority, /--yance-conversation-v4-contacts:\s*230px/u);
-  assert.match(authority, /--yance-conversation-v4-insight:\s*250px/u);
-  assert.match(authority, /--yance-conversation-v4-topbar:\s*54px/u);
-  assert.match(authority, /\.yance-conversation-workspace-v4 \.yance-product-conversation__people-list > button\s*\{[\s\S]{0,160}min-height:\s*56px/u);
-  assert.match(authority, /\.yance-conversation-workspace-v4 \.yance-product-conversation__chat-header\s*\{[\s\S]{0,180}min-height:\s*60px/u);
-  assert.match(authority, /@media\s*\(max-height:\s*800px\)[\s\S]{0,360}\.yance-conversation-workspace-v4 \.yance-action-dock\s*\{[\s\S]{0,120}max-height:\s*220px/u);
+  assert.notEqual(css.indexOf(marker), -1, 'missing compact Conversation authority marker');
+  assert.match(authority, /--yance-conversation-v4-contacts:\s*220px/u);
+  assert.match(authority, /--yance-conversation-v4-insight-summary:\s*210px/u);
+  assert.match(authority, /--yance-conversation-v4-insight-expanded:\s*270px/u);
+  assert.match(authority, /--yance-conversation-v4-topbar:\s*46px/u);
+  assert.match(authority, /@media \(max-width:\s*1000px\)[\s\S]{0,320}--yance-conversation-v4-contacts:\s*210px/u);
+  assert.match(authority, /@media \(max-height:\s*760px\)[\s\S]{0,220}--yance-conversation-v4-topbar:\s*44px/u);
 });

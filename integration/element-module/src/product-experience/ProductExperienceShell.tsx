@@ -1152,7 +1152,7 @@ export function ProductConversationSurface({
   const [projectionStatus, setProjectionStatus] = useState("");
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [leftCollapsed, setLeftCollapsed] = useState(false);
-  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(true);
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState<ConversationListFilter>("all");
   const [inspectorTab, setInspectorTab] = useState<ConversationInspectorTab>("ai");
@@ -1172,8 +1172,7 @@ export function ProductConversationSurface({
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1000px)");
     const apply = (matches: boolean): void => {
-      setLeftCollapsed(matches);
-      setRightCollapsed(matches);
+      if (matches) setRightCollapsed(true);
     };
     apply(media.matches);
     const onChange = (event: MediaQueryListEvent): void => apply(event.matches);
@@ -1339,6 +1338,9 @@ export function ProductConversationSurface({
 
   const selectedContext = contextByContactId[relationship?.id || ""] || {};
   const memory = modelRuntimeRecord(selectedContext.memory);
+  const memoryCount = ["confirmedFacts", "recurringInterests", "openLoops", "promises", "boundaries", "sensitiveTopics", "importantEvents"]
+    .reduce((total, key) => total + modelRuntimeRows(memory[key]).length, 0);
+  const goalCount = [dailyGoal, longGoal].filter((value) => value.trim()).length;
   const replyStrategy = modelRuntimeRecord(selectedContext.replyStrategy);
   const filteredRelationships = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
@@ -1416,13 +1418,11 @@ export function ProductConversationSurface({
     data-right-collapsed={rightCollapsed || undefined}
     data-navigation-pending={session.conversationNavigationPending || undefined}
   >
-    <header className="yance-conversation-workspace-v4__topbar" aria-label="Yance Conversation Workspace v4">
+    <header className="yance-conversation-workspace-v4__topbar" aria-label="对话工具栏">
       <button type="button" className="yance-conversation-home-button" aria-label="返回首页" onClick={onReturnHome}>返回首页</button>
-      <div className="yance-conversation-workspace-v4__brand">
-        <span aria-hidden="true"><YanceMark /></span>
-        <strong>Yance</strong>
-        <small>Conversation Workspace v4</small>
-        <em>情感的会对话 · 专为成熟理性打造</em>
+      <div className="yance-conversation-workspace-v4__identity">
+        <strong>对话 · {title}</strong>
+        <small>{[platform, automationModeLabel].filter(Boolean).join(" · ")}</small>
       </div>
       <div className="yance-conversation-workspace-v4__top-actions">
         <span>智能状态：{automationModeLabel}</span>
@@ -1623,7 +1623,20 @@ export function ProductConversationSurface({
           ><PanelRight aria-hidden="true" /></button>
         </header>
 
-        {!rightCollapsed ? <div className="yance-conversation-inspector__body">
+        {rightCollapsed ? <div className="yance-conversation-inspector__summary">
+          <section className="yance-conversation-inspector__identity" aria-label="当前联系人摘要">
+            <span className="yance-conversation-inspector__identity-avatar" aria-hidden="true">
+              {relationship ? conversationRelationshipAvatar(relationship, renderRoomAvatar, "44px") : conversationInitials(title)}
+            </span>
+            <div><strong>{title}</strong><span>{platform || "真实联系人"}</span></div>
+          </section>
+          <p>{intelligence?.stage || summary || "关系状态待形成"}</p>
+          <div className="yance-conversation-inspector__summary-counts">
+            {memoryCount > 0 ? <span>记忆 {memoryCount}</span> : null}
+            {goalCount > 0 ? <span>目标 {goalCount}</span> : null}
+          </div>
+          <button type="button" onClick={() => setRightCollapsed(false)}>展开</button>
+        </div> : <div className="yance-conversation-inspector__body">
           <section className="yance-conversation-inspector__identity" aria-label="当前联系人">
             <span className="yance-conversation-inspector__identity-avatar" aria-hidden="true">
               {relationship ? conversationRelationshipAvatar(relationship, renderRoomAvatar, "52px") : conversationInitials(title)}
@@ -1720,7 +1733,7 @@ export function ProductConversationSurface({
             <article><span>现在值得做什么</span><strong>{intelligence?.next || "继续真实互动后形成下一步"}</strong></article>
             <button type="button" onClick={() => void onReturnToRelationship()}>管理目标与关系</button>
           </> : null}
-        </div> : <div className="yance-conversation-inspector__collapsed-mark" aria-hidden="true"><Sparkles /></div>}
+        </div>}
       </aside>
     </section>
   </section>;
