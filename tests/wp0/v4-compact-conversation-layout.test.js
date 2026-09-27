@@ -42,7 +42,7 @@ test('compact Conversation authority prioritizes center width at desktop minimum
   assert.match(block, /--yance-conversation-v4-topbar:\s*46px/u);
   assert.match(block, /grid-template-columns:\s*var\(--yance-conversation-v4-contacts\) minmax\(0,\s*1fr\) var\(--yance-conversation-v4-insight-expanded\)/u);
   assert.match(block, /\[data-right-collapsed\][\s\S]{0,180}grid-template-columns:\s*var\(--yance-conversation-v4-contacts\) minmax\(0,\s*1fr\) var\(--yance-conversation-v4-insight-summary\)/u);
-  assert.match(block, /data-conversation-surface-active="true"[\s\S]{0,120}padding-left:\s*0/u);
+  assert.match(block, /data-conversation-surface-active="true"[\s\S]{0,120}padding-left:\s*0\s*!important/u);
 });
 
 test('980px and short-height rules remove chrome before typography', () => {
@@ -53,7 +53,7 @@ test('980px and short-height rules remove chrome before typography', () => {
   assert.match(block, /@media \(max-width:\s*1000px\)[\s\S]{0,380}--yance-conversation-v4-insight-summary:\s*200px/u);
   assert.match(block, /@media \(max-height:\s*760px\)[\s\S]{0,260}--yance-conversation-v4-topbar:\s*44px/u);
   assert.doesNotMatch(block, /font-size:\s*[0-5](?:\.\d+)?px/u);
-  assert.match(block, /\.yance-product-shell\[data-conversation-active\],[\s\S]{0,140}data-conversation-surface-active="true"[\s\S]{0,140}padding-left:\s*0/u);
+  assert.match(block, /\.yance-product-shell\[data-conversation-active\],[\s\S]{0,140}data-conversation-surface-active="true"[\s\S]{0,140}padding-left:\s*0\s*!important/u);
   const shellSource = shell();
   const mediaStart = shellSource.indexOf('const media = window.matchMedia(\"(max-width: 1000px)\")');
   const mediaBlock = shellSource.slice(mediaStart, mediaStart + 520);

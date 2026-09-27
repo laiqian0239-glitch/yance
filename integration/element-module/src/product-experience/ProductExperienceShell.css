@@ -12313,7 +12313,7 @@
 /* YANCE_COMPACT_CONVERSATION_WORKSPACE_20260927 */
 .yance-product-shell[data-conversation-active],
 .yance-product-shell[data-conversation-surface-active="true"] {
-  padding-left: 0;
+  padding-left: 0 !important;
   overflow: hidden;
 }
 .yance-conversation-workspace-v4 {
