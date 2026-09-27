@@ -65,9 +65,10 @@ authority
 联系人时区只从已有可信事实读取，优先级：
 
 1. 联系人 canonical social context 的显式 `timezone`；
-2. Persona/truth-safe residence 的已确认 timezone；
-3. 现有联系人事实中明确且可验证的 timezone；
-4. 否则 `unknown`。
+2. 同一联系人 canonical fact projection 中明确且可验证的 timezone；
+3. 否则 `unknown`。
+
+Owner Persona/truth-safe residence 只属于用户自己的身份事实，不能作为联系人时区来源。
 
 不得仅凭姓名、语言、电话号码、平台或一次聊天内容猜时区。
 
