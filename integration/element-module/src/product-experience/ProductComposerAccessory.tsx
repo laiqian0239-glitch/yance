@@ -146,6 +146,7 @@ export function ProductComposerAccessory({
     >
       {routeReady ? (
         <ReplyBrainCandidate
+          key={session.selectedConversationId || roomId}
           conversationId={session.selectedConversationId}
           contactId={session.selectedConversationContactId}
           stageApprovedReply={({ outboxId, text }) => stageApprovedReply({ outboxId, text, roomId })}

@@ -445,10 +445,10 @@ export function ReplyBrainCandidate({
   const [brainDraft, setBrainDraft] = useState("");
   const [learningMode, setLearningMode] = useState<"send_and_learn" | "send_only">("send_and_learn");
   const [batchSerial, setBatchSerial] = useState(0);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const activeConversationId = conversationId || session.selectedConversationId;
   const activeContactId = contactId || session.selectedConversationContactId;
-  if (!activeConversationId) return null;
+  const initialCandidateConversationRef = React.useRef("");
 
   const strategySet = [
     {
@@ -557,6 +557,27 @@ export function ReplyBrainCandidate({
     }
   };
 
+  React.useEffect(() => {
+    if (!activeConversationId) {
+      initialCandidateConversationRef.current = "";
+      return;
+    }
+    if (initialCandidateConversationRef.current === activeConversationId) return;
+    initialCandidateConversationRef.current = activeConversationId;
+    void generateBatch();
+  }, [activeConversationId]);
+
+  React.useEffect(() => {
+    if (!expanded) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [expanded]);
+
+  if (!activeConversationId) return null;
+
   const stageCandidate = async (
     selected: ReplyBrainCandidateProjection,
     finalText: string,
@@ -626,30 +647,18 @@ export function ReplyBrainCandidate({
       data-expanded={expanded || undefined}
     >
       <header className="yance-reply-brain__header">
-        <div>
-          <span className="yance-eyebrow">人物设定 · 当前关系</span>
+        <div className="yance-reply-brain__summary-line">
           <strong>言策 · 回复大脑</strong>
-          <small>{expanded ? "关系、记忆、目标与当前语境一起参与" : "有个想法，不打断你聊天"}</small>
+          <span>{busy ? (status || "生成中…") : candidates.length ? candidates.length + " 条已生成" : "尚未生成"}</span>
+          <small className="yance-reply-brain__preview">{candidates[0]?.candidate.text || "需要时展开查看完整回复建议"}</small>
         </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            if (!expanded) {
-              setExpanded(true);
-              return;
-            }
-            if (candidates.length) {
-              void generateBatch();
-              return;
-            }
-            setExpanded(false);
-          }}
-        >
-          {!expanded ? "展开" : candidates.length ? "换一批" : "收起"}
-        </button>
+        <div className="yance-reply-brain__header-actions">
+          <button type="button" onClick={() => setExpanded((value) => !value)}>{expanded ? "收起" : "展开"}</button>
+          <button type="button" disabled={busy} onClick={() => void generateBatch()}>{candidates.length ? "换一批" : "生成"}</button>
+        </div>
       </header>
 
+      {expanded ? <div className="yance-reply-brain__workbench">
       {status ? <span className="yance-reply-brain__status" role="status" aria-live="polite">{status}</span> : null}
 
       <label className="yance-reply-brain__learning-mode">
@@ -681,18 +690,12 @@ export function ReplyBrainCandidate({
             </footer>
           </article>
         ))}
-      </div> : <div className="yance-reply-brain__candidates yance-reply-brain__candidates--preview" aria-label="回复策略预览">
-        {strategySet.map((strategy) => <button
-          key={strategy.id}
-          type="button"
-          data-strategy={strategy.id}
-          disabled={busy}
-          onClick={() => void generateBatch()}
-        >
-          <strong>{strategy.label}</strong>
-          <span>{strategy.hint}</span>
-          <em>{busy ? "正在生成" : "生成真实建议"}</em>
-        </button>)}
+      </div> : <div className="yance-reply-brain__empty" data-state={busy ? "loading" : "empty"} aria-live="polite">
+        <div>
+          <strong>{busy ? "正在生成真实回复建议…" : "暂时没有可用建议"}</strong>
+          <span>{busy ? "关系、记忆、目标与当前语境正在一起参与。" : "没有生成虚拟占位内容，可以重新生成真实候选。"}</span>
+        </div>
+        {!busy ? <button type="button" onClick={() => void generateBatch()}>重新生成</button> : null}
       </div>}
 
       {selectedForReview ? <div className="yance-reply-brain__review">
@@ -737,6 +740,7 @@ export function ReplyBrainCandidate({
           <button type="submit" disabled={busy || !brainDraft.trim()}>调整建议</button>
         </div>
       </form>
+      </div> : null}
     </section>
   );
 }
