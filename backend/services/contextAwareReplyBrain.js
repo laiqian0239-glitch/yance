@@ -157,38 +157,108 @@ function personaContactScope(contactId, socialContext = {}) {
   return clean(socialContext?.customer?.canonicalContactId || socialContext?.customer?.customerProfileId || contactId);
 }
 
-function buildTemporalContext(input = {}) {
-  const candidateZone = clean(input.timeZone || input.timezone || input.temporalContext?.timeZone);
-  let timeZone = candidateZone;
-  if (!timeZone) {
-    try { timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (_) { timeZone = 'UTC'; }
-  }
-  const nowValue = input.now instanceof Date ? input.now : new Date(input.now || Date.now());
-  const now = Number.isNaN(nowValue.getTime()) ? new Date() : nowValue;
-  let parts;
+const OWNER_TIME_ZONE = 'Europe/Berlin';
+
+function daypartForHour(hour) {
+  return hour < 5 ? 'late_night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 22 ? 'evening' : 'late_night';
+}
+
+function validTimeZone(value) {
+  const timeZone = clean(value);
+  if (!timeZone) return '';
   try {
-    parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', weekday: 'long'
-    }).formatToParts(now);
+    new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(0));
+    return timeZone;
   } catch (_) {
-    timeZone = 'UTC';
-    parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', weekday: 'long'
-    }).formatToParts(now);
+    return '';
   }
+}
+
+function zonedClockParts(instant, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', weekday: 'long'
+  }).formatToParts(instant);
   const byType = Object.fromEntries(parts.map(part => [part.type, part.value]));
   const hour = Number(byType.hour || 0);
-  const daypart = hour < 5 ? 'late_night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 22 ? 'evening' : 'late_night';
-  return Object.freeze({
+  return {
     localDate: `${byType.year}-${byType.month}-${byType.day}`,
     localTime: `${byType.hour}:${byType.minute}:${byType.second}`,
     weekday: byType.weekday || '',
-    daypart,
-    timeZone,
+    daypart: daypartForHour(hour)
+  };
+}
+
+function extractTemporalExpressions(value) {
+  const text = clean(value);
+  if (!text) return [];
+  const patterns = [
+    ['morning_greeting', /(?:早上好|早安|good\s*morning)/iu],
+    ['afternoon_greeting', /(?:下午好|good\s*afternoon)/iu],
+    ['evening_greeting', /(?:晚上好|good\s*evening)/iu],
+    ['good_night', /(?:晚安|good\s*night)/iu],
+    ['tonight', /(?:今晚|tonight)/iu],
+    ['tomorrow', /(?:明天|tomorrow)/iu],
+    ['today', /(?:今天|today)/iu],
+    ['later', /(?:一会儿|一会|待会儿|待会|later|in\s+a\s+bit)/iu],
+    ['weekend', /(?:周末|weekend)/iu],
+    ['just_off_work', /(?:刚下班|just\s+got\s+off\s+work)/iu]
+  ];
+  return patterns.filter(([, regex]) => regex.test(text)).map(([id]) => id);
+}
+
+function buildTemporalContext(input = {}) {
+  const nowValue = input.now instanceof Date ? input.now : new Date(input.now || Date.now());
+  const now = Number.isNaN(nowValue.getTime()) ? new Date() : nowValue;
+  const owner = zonedClockParts(now, OWNER_TIME_ZONE);
+  const contactTimeZone = validTimeZone(input.contactTimeZone || input.temporalContext?.contactTimeZone) || null;
+  const contactTimeZoneConfidence = contactTimeZone
+    ? (['high', 'medium'].includes(clean(input.contactTimeZoneConfidence)) ? clean(input.contactTimeZoneConfidence) : 'high')
+    : 'unknown';
+  const incomingMessage = input.incomingMessage && typeof input.incomingMessage === 'object' ? input.incomingMessage : {};
+  const temporalExpressions = extractTemporalExpressions(incomingMessage.text || input.incomingText);
+  const rawIncomingInstant = clean(incomingMessage.sentAt || incomingMessage.timestamp || input.incomingMessageInstant);
+  const incomingValue = rawIncomingInstant ? new Date(rawIncomingInstant) : null;
+  const incomingInstant = incomingValue && !Number.isNaN(incomingValue.getTime()) ? incomingValue : null;
+  const elapsedSeconds = incomingInstant ? Math.max(0, Math.floor((now.getTime() - incomingInstant.getTime()) / 1000)) : null;
+  const contactNow = contactTimeZone ? zonedClockParts(now, contactTimeZone) : null;
+  const contactIncoming = contactTimeZone && incomingInstant ? zonedClockParts(incomingInstant, contactTimeZone) : null;
+  const greetingExpressions = new Set(['morning_greeting', 'afternoon_greeting', 'evening_greeting', 'good_night']);
+  const hasGreeting = temporalExpressions.some(value => greetingExpressions.has(value));
+  const crossDay = Boolean(contactNow && contactIncoming && contactNow.localDate !== contactIncoming.localDate);
+  const staleGreeting = Boolean(
+    hasGreeting && elapsedSeconds != null && elapsedSeconds >= 4 * 60 * 60
+    && (!contactNow || !contactIncoming || contactNow.daypart !== contactIncoming.daypart)
+  );
+  const temporalMismatch = crossDay || staleGreeting;
+  let replyTemporalMode = 'current';
+  if (!contactTimeZone && hasGreeting && elapsedSeconds != null) replyTemporalMode = 'neutral_due_to_unknown_zone';
+  else if (crossDay) replyTemporalMode = 'cross_day';
+  else if (staleGreeting) replyTemporalMode = 'acknowledge_previous_time';
+  return Object.freeze({
+    nowInstant: now.toISOString(),
+    ownerTimeZone: OWNER_TIME_ZONE,
+    ownerLocalDate: owner.localDate,
+    ownerLocalTime: owner.localTime,
+    ownerDaypart: owner.daypart,
+    contactTimeZone,
+    contactTimeZoneConfidence,
+    contactLocalDate: contactNow?.localDate || null,
+    contactLocalTime: contactNow?.localTime || null,
+    contactDaypart: contactNow?.daypart || null,
+    incomingMessageInstant: incomingInstant ? incomingInstant.toISOString() : null,
+    incomingDaypart: contactIncoming?.daypart || null,
+    elapsedSeconds,
+    temporalExpressions,
+    temporalMismatch,
+    replyTemporalMode,
+    localDate: owner.localDate,
+    localTime: owner.localTime,
+    weekday: owner.weekday,
+    daypart: owner.daypart,
+    timeZone: OWNER_TIME_ZONE,
     observedAt: now.toISOString(),
-    authority: 'runtime-clock-only'
+    authority: 'runtime-clock-message-time-v2'
   });
 }
 
@@ -944,7 +1014,7 @@ function createContextAwareReplyBrain({
     const performanceMode = replyPerformancePolicy.inferMode(input, basePacket);
     const performancePolicy = replyPerformancePolicy.policyFor({ ...input, performanceMode }, basePacket);
     const contactLanguage = contactLanguageAuthority.read({ contactId, conversationId });
-    const temporalContext = buildTemporalContext(input);
+    const temporalContext = buildTemporalContext({ ...input, incomingMessage, contactTimeZone: socialContext.customer?.timezone, contactTimeZoneConfidence: socialContext.customer?.timezone ? 'high' : 'unknown' });
     const packet = Object.assign({}, basePacket, {
       persona: personaCtx.context.persona,
       contactLanguage,
@@ -1635,6 +1705,7 @@ module.exports = {
   applyReplyLanguageQuality,
   personaContactScope,
   buildTemporalContext,
+  extractTemporalExpressions,
   selectReplyTask,
   resolveReplyGenerationOptions,
   parseDirectorJson,
