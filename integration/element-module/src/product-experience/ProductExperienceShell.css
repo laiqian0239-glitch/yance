@@ -12284,7 +12284,8 @@
  * reference; the default desktop product preserves the owner-approved 1186 × 758 app window.
  */
 .yance-product-shell[data-conversation-active],
-.yance-product-shell[data-conversation-surface-active="true"] {
+.yance-product-shell[data-conversation-surface-active="true"],
+.yance-product-shell[data-conversation-presentation-active="true"] {
   --yance-theme-app: #06111d;
   --yance-theme-panel: #081a2a;
   --yance-theme-card: #091e30;
@@ -12312,7 +12313,8 @@
 
 /* YANCE_COMPACT_CONVERSATION_WORKSPACE_20260927 */
 .yance-product-shell[data-conversation-active],
-.yance-product-shell[data-conversation-surface-active="true"] {
+.yance-product-shell[data-conversation-surface-active="true"],
+.yance-product-shell[data-conversation-presentation-active="true"] {
   padding-left: 0 !important;
   overflow: hidden;
 }

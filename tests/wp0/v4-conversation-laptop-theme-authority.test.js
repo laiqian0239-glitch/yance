@@ -26,7 +26,7 @@ test('Conversation v4 locks the formal navy-gold authority instead of inheriting
   const marker = '/* YANCE_CONVERSATION_LAPTOP_AUTHORITY_20260927 */';
   const authority = css.slice(css.indexOf(marker));
   assert.notEqual(css.indexOf(marker), -1, 'missing laptop authority marker');
-  assert.match(authority, /\.yance-product-shell\[data-conversation-active\][\s\S]{0,120}--yance-theme-app:\s*#06111d/u);
+  assert.match(authority, /\.yance-product-shell\[data-conversation-active\][\s\S]{0,240}--yance-theme-app:\s*#06111d/u);
   assert.match(authority, /--yance-theme-panel:\s*#081a2a/u);
   assert.match(authority, /--yance-theme-accent:\s*#d7ad4a/u);
   assert.match(authority, /--yance-theme-text:\s*#f4f0e6/u);

@@ -21,7 +21,11 @@ test('Conversation presentation intent can open an empty workspace without fabri
   const shell = read('integration/element-module/src/product-experience/ProductExperienceShell.tsx');
   assert.match(shell, /conversationWorkspaceRequested,\s*setConversationWorkspaceRequested/u);
   assert.match(shell, /conversationSurfaceActive\s*=\s*Boolean\([\s\S]{0,220}conversationWorkspaceRequested/u);
-  assert.match(shell, /data-conversation-surface-active=\{!settingsVisible && conversationSurfaceActive \? "true" : undefined\}/u);
+  assert.match(shell, /data-conversation-surface-active=\{!settingsVisible && session\.conversationNavigationPending \? "true" : undefined\}/u);
+  assert.match(shell, /data-conversation-presentation-active=\{!settingsVisible && conversationSurfaceActive \? "true" : undefined\}/u);
+  const styles = read('integration/element-module/src/product-experience/ProductExperienceShell.css');
+  const compact = styles.slice(styles.indexOf('/* YANCE_COMPACT_CONVERSATION_WORKSPACE_20260927 */'));
+  assert.match(compact, /data-conversation-presentation-active="true"[\s\S]{0,180}padding-left:\s*0\s*!important/u);
   assert.doesNotMatch(shell, /setSelectedConversationId\([^)]*conversationWorkspaceRequested/u);
 });
 

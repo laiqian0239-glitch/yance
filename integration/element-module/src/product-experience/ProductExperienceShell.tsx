@@ -2137,7 +2137,8 @@ export function ProductExperienceShell({
       data-theme-id={appearance.themeId || undefined}
       data-font-scale={appearance.available ? appearance.fontScale : undefined}
       data-conversation-active={!settingsVisible && session.activeMatrixRoomId ? session.activeMatrixRoomId : undefined}
-      data-conversation-surface-active={!settingsVisible && conversationSurfaceActive ? "true" : undefined}
+      data-conversation-surface-active={!settingsVisible && session.conversationNavigationPending ? "true" : undefined}
+      data-conversation-presentation-active={!settingsVisible && conversationSurfaceActive ? "true" : undefined}
       data-home-surface-active={homeSurfaceActive ? "true" : undefined}
       data-settings-active={settingsVisible || undefined}
       aria-label="言策"
