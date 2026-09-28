@@ -30,10 +30,11 @@ Current SHA256:
 
 This spec is mandatory before every implementation mutation.
 
-Accepted visual baseline:
-- gen_id: `a81bd20e-1cd5-4152-b3ea-59aef9e64d47`
-- artifact name in accepted conversation: `暮色露台上的暧昧对话.png`
-- implementation may improve it, but may not reduce features or visual hierarchy.
+Current V5 visual baseline（2026-09-28 override）:
+- canonical Golden: `docs/design/yance-v4-final-2026-09-23/screens/core/Yance_V5_Conversation_920x620_Golden.png`
+- canonical V5 spec: `docs/design/yance-v4-final-2026-09-23/spec/YANCE_V5_CONVERSATION_WORKSPACE_920X620_CLOUD_FIRST_2026-09-28_ZH.md`
+- Golden vs Actual 只比较图中的中间主窗口；左侧说明框是文档标注，右侧闺蜜大脑是打开态示意，底部菜单是交互展开态示意。
+- 2026-09-20 的 `暮色露台上的暧昧对话.png` 仅保留历史参考价值，不再作为 V5 Conversation 920×620 Golden。
 
 ## 4. Final Visual Details — Frozen
 - Both sides of chat show avatars: peer left, owner right.

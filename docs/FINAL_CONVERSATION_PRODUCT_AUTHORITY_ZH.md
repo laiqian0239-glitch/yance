@@ -399,11 +399,13 @@ AI_AUTO 的授权边界必须清晰可见，并支持按行为类别控制。
 
 设计接受后，按本文件逐项对账执行，禁止重新退回“普通聊天软件 + AI按钮”或新增 Shadow Authority。
 
-## 15. FINAL VISUAL ACCEPTANCE — 2026-09-20
+## 15. LEGACY VISUAL ACCEPTANCE — 2026-09-20（V5 已取代）
 
-状态：**ACCEPTED / FROZEN**。
+状态：**SUPERSEDED FOR V5 / HISTORICAL ONLY**。
 
-用户已明确接受本轮最终效果图作为 Conversation 实现视觉基准。
+> 2026-09-28 V5 override：当前 V5 Conversation 920×620 唯一视觉 authority 为 `docs/design/yance-v4-final-2026-09-23/screens/core/Yance_V5_Conversation_920x620_Golden.png`；验收规则以 `docs/design/yance-v4-final-2026-09-23/spec/YANCE_V5_CONVERSATION_WORKSPACE_920X620_CLOUD_FIRST_2026-09-28_ZH.md` 为准。以下 2026-09-20 图与结构说明仅保留历史参考价值，不得再作为 V5 Golden vs Actual 输入。
+
+用户曾接受本轮效果图作为当时的 Conversation 实现视觉基准。
 会话内生成图标识：
 - gen_id: `a81bd20e-1cd5-4152-b3ea-59aef9e64d47`
 - artifact name: `暮色露台上的暧昧对话.png`
