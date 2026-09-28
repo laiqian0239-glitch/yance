@@ -593,18 +593,13 @@ test('M2-FB-007 legacy Facebook Page adapter retains projection helpers but owns
   assert.doesNotMatch(source, /this\.scheduleWebhookContactEnrichment\(/u, 'M2-FB-007:WEBHOOK_PROFILE_BACKGROUND_IO_FORBIDDEN');
 });
 
-test('M2-FB-008 retired Facebook Personal experimental adapter owns zero session or physical authority', () => {
-  const source = fs.readFileSync(path.join(servicesRoot, 'facebookPersonalMessengerExperimentalAdapter.js'), 'utf8');
-  assert.doesNotMatch(source, /facebookRelayClient/u, 'M2-FB-008:RETIRED_ADAPTER_MUST_NOT_IMPORT_PHYSICAL_RELAY');
-  assert.doesNotMatch(source, /validatePersistedEgressContext|persistedEgressAttempt|sessions\s*=\s*new\s+Map/u, 'M2-FB-008:RETIRED_ADAPTER_MUST_NOT_OWN_SESSION_OR_EGRESS_STATE');
-  assert.match(source, /const\s+RETIRED_CODE\s*=\s*'FACEBOOK_PERSONAL_MESSENGER_EXPERIMENTAL_RETIRED'/u, 'M2-FB-008:EXACT_RETIRED_CODE_REQUIRED');
-  assert.match(source, /function\s+retired\(\)[\s\S]*?error\.status\s*=\s*410[\s\S]*?throw\s+error/u, 'M2-FB-008:RETIRED_ENTRYPOINTS_MUST_FAIL_CLOSED');
-  assert.match(source, /supportLevel:\s*'retired'/u, 'M2-FB-008:RETIRED_SUPPORT_LEVEL_REQUIRED');
-  assert.match(source, /messagingSupported:\s*false/u, 'M2-FB-008:RETIRED_MESSAGING_MUST_BE_FALSE');
-  assert.match(source, /replacementDriverId:\s*'facebook-personal-messenger-mautrix-meta'/u, 'M2-FB-008:MAUTRIX_REPLACEMENT_AUTHORITY_REQUIRED');
-  for (const method of ['connect', 'disconnect', 'sync', 'sendText', 'sendMedia', 'sendPresence', 'markRead']) {
-    assert.match(source, new RegExp(`${method}:\\s*retired`, 'u'), `M2-FB-008:${method}:ZERO_AUTHORITY_REQUIRED`);
-  }
+test('M2-FB-008 retired Facebook Personal experimental adapter is deleted and mautrix-meta is the only Personal Messenger authority', () => {
+  const retiredPath = path.join(servicesRoot, 'facebookPersonalMessengerExperimentalAdapter.js');
+  assert.equal(fs.existsSync(retiredPath), false, 'M2-FB-008:LEGACY_ADAPTER_MUST_NOT_EXIST');
+  const registrySource = fs.readFileSync(platformDriverRegistryPath, 'utf8');
+  assert.doesNotMatch(registrySource, /facebookPersonalMessengerExperimentalAdapter/u, 'M2-FB-008:LEGACY_ADAPTER_IMPORT_FORBIDDEN');
+  assert.match(registrySource, /'facebook-personal-messenger-mautrix-meta'/u, 'M2-FB-008:MAUTRIX_DRIVER_REQUIRED');
+  assert.match(registrySource, /protocolAuthority:\s*'mautrix-meta'/u, 'M2-FB-008:MAUTRIX_AUTHORITY_REQUIRED');
 });
 
 test('M2-FB-009 Facebook Worker observations echo signed provider request IDs on success as well as failure', () => {
