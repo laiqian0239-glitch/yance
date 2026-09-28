@@ -7,6 +7,9 @@ const path = require('node:path');
 
 const servicesRoot = path.join(__dirname, '..', '..', '..', 'services');
 const whatsappAdapterPath = path.join(servicesRoot, 'whatsappAdapter.js');
+const mautrixProvisioningAdapterPath = path.join(servicesRoot, 'mautrixProvisioningAdapter.js');
+const accountManagerCorePath = path.join(servicesRoot, 'accountManagerCore.js');
+const mautrixWhatsAppClientPath = path.join(__dirname, '..', '..', '..', '..', 'services', 'matrix', '.runtime', 'mautrix-whatsapp', 'pkg', 'connector', 'client.go');
 const platformDriverRegistryPath = path.join(servicesRoot, 'platformDriverRegistry.js');
 const accountContextPath = path.join(__dirname, '..', '..', '..', 'core', 'accountContext.js');
 const registryPath = path.join(servicesRoot, 'durableOperationRegistry.js');
@@ -362,44 +365,33 @@ test('M2-WA-003 AccountContext keeps interactive auth stateless while reconcile 
   assert.match(reconcileBlock, /physicalOperationOptions\(request\)/u, 'M2-WA-003:RECONCILE_PERSISTED_CONTEXT_REQUIRED');
 });
 
-test('M2-WA-004 WhatsApp connect delegates directly to Baileys while history sync preserves persisted context', () => {
+test('M2-WA-004 WhatsApp connect delegates to mautrix-whatsapp while sync preserves persisted context', () => {
   const source = fs.readFileSync(platformDriverRegistryPath, 'utf8');
-  const whatsappDriver = source.slice(source.indexOf('whatsapp: Object.freeze({'), source.indexOf('telegram: Object.freeze({'));
-  assert.match(
-    whatsappDriver,
-    /async\s+connect\(account,\s*options\s*=\s*\{\}\)\s*\{\s*return\s+whatsapp\.start\(account,\s*\{[\s\S]*?signal:\s*options\.signal\s*\|\|\s*null[\s\S]*?\}\);\s*\}/u,
-    'M2-WA-004:CONNECT_DIRECT_OWNER_REQUIRED'
-  );
-  const connectBlock = whatsappDriver.slice(whatsappDriver.indexOf('async connect('), whatsappDriver.indexOf('async disconnect('));
+  assert.match(source, /whatsapp:\s*mautrixDriver\('whatsapp',\s*mautrix\.whatsapp\)/u, 'M2-WA-004:MAUTRIX_DRIVER_REQUIRED');
+  const matureDriver = source.slice(source.indexOf('function mautrixDriver('), source.indexOf('const drivers ='));
+  assert.match(matureDriver, /async\s+connect\(account,\s*options\s*=\s*\{\}\)\s*\{\s*return\s+adapter\.connect\(account,\s*options\);\s*\}/u, 'M2-WA-004:CONNECT_MATURE_OWNER_REQUIRED');
+  const connectBlock = matureDriver.slice(matureDriver.indexOf('async connect('), matureDriver.indexOf('async disconnect('));
   assert.doesNotMatch(connectBlock, /physicalOperationContext|operationGeneration|attemptId/u, 'M2-WA-004:CONNECT_CONTEXT_FORBIDDEN');
-  assert.match(
-    whatsappDriver,
-    /async\s+sync\(account,\s*options\s*=\s*\{\}\)\s*\{\s*return\s+withPersistedOperationContext\(options,\s*\(\)\s*=>\s*whatsapp\.sync\(account,\s*options\)\);\s*\}/u,
-    'M2-WA-004:SYNC_CONTEXT_REQUIRED'
-  );
+  assert.match(matureDriver, /async\s+sync\(account,\s*options\s*=\s*\{\}\)\s*\{[\s\S]*withPersistedOperationContext\(options,\s*\(\)\s*=>\s*adapter\.sync\(account,\s*options\)\)/u, 'M2-WA-004:SYNC_CONTEXT_REQUIRED');
 });
 
-test('M2-WA-001 WhatsApp interactive login is mature-owner controlled while sync and egress remain fail-closed', () => {
-  const source = fs.readFileSync(whatsappAdapterPath, 'utf8');
-  assert.match(source, /validatePersistedEgressContext/u, 'M2-WA-001:PERSISTED_EGRESS_VALIDATOR_REQUIRED');
-  const startIndex = source.indexOf('async start(');
-  const syncIndex = source.indexOf('async sync(', startIndex);
-  const startBlock = source.slice(startIndex, syncIndex);
-  assert.doesNotMatch(startBlock, /requirePersistedWhatsAppOperation\(options\.physicalOperationContext/u, 'M2-WA-001:start:SHADOW_CONTEXT_FORBIDDEN');
-  const nextAfterSync = source.indexOf('\n  async ', syncIndex + 10);
-  const syncBlock = source.slice(syncIndex, nextAfterSync > syncIndex ? nextAfterSync : source.length);
-  assert.match(syncBlock, /requirePersistedWhatsAppOperation\(options\.physicalOperationContext/u, 'M2-WA-001:sync:CONTEXT_REQUIRED');
-  for (const method of ['sendText', 'sendMedia', 'sendReaction', 'revokeMessage', 'sendPresence', 'markRead']) {
-    assert.match(source, new RegExp('async\\s+' + method + '\\(\\{[^}]*physicalAttemptContext', 'u'), 'M2-WA-001:' + method + ':CONTEXT_REQUIRED');
-  }
+test('M2-WA-001 WhatsApp interactive login is mature-owner controlled and legacy protocol owner is absent', () => {
+  assert.equal(fs.existsSync(whatsappAdapterPath), false, 'M2-WA-001:LEGACY_ADAPTER_MUST_NOT_EXIST');
+  const source = fs.readFileSync(mautrixProvisioningAdapterPath, 'utf8');
+  assert.match(source, /\/v3\/whoami/u, 'M2-WA-001:MATURE_WHOAMI_REQUIRED');
+  assert.match(source, /connect:\s*observe/u, 'M2-WA-001:MATURE_OBSERVE_CONNECT_REQUIRED');
+  assert.match(source, /Messages for mautrix-backed accounts must be sent through the active Element Matrix RoomView/u, 'M2-WA-001:ELEMENT_MATRIX_SEND_AUTHORITY_REQUIRED');
+  assert.doesNotMatch(source, /@whiskeysockets\/baileys|makeWASocket|useMultiFileAuthState/u, 'M2-WA-001:YANCE_PROTOCOL_OWNER_FORBIDDEN');
 });
 
-test('M2-WA-002 WhatsApp connection close returns an observation and owns no reconnect retry timer', () => {
-  const source = fs.readFileSync(whatsappAdapterPath, 'utf8');
-  assert.doesNotMatch(source, /reconnectTimers/u, 'M2-WA-002:RECONNECT_TIMER_MAP_FORBIDDEN');
-  assert.doesNotMatch(source, /reconnect-blocked-by-lifecycle|reconnect-cancelled-by-lifecycle|reconnect-failed/u, 'M2-WA-002:LOCAL_RECONNECT_AUTHORITY_FORBIDDEN');
-  assert.doesNotMatch(source, /this\.start\(latest\)/u, 'M2-WA-002:LOCAL_RESTART_FORBIDDEN');
-  assert.match(source, /whatsapp:state/u, 'M2-WA-002:CLOSE_OBSERVATION_REQUIRED');
+test('M2-WA-002 WhatsApp restart/reconnect authority remains in mautrix-whatsapp with no Yance reconnect state bus', () => {
+  assert.equal(fs.existsSync(whatsappAdapterPath), false, 'M2-WA-002:LEGACY_ADAPTER_MUST_NOT_EXIST');
+  const manager = fs.readFileSync(accountManagerCorePath, 'utf8');
+  assert.doesNotMatch(manager, /reconnectTimers|whatsapp:state|whatsapp:qr|mapWhatsAppState|onWhatsAppEvent/u, 'M2-WA-002:LOCAL_RECONNECT_OR_STATE_AUTHORITY_FORBIDDEN');
+  const owner = fs.readFileSync(mautrixWhatsAppClientPath, 'utf8');
+  assert.match(owner, /func \(wa \*WhatsAppConnector\) LoadUserLogin/u, 'M2-WA-002:MATURE_LOGIN_RESTORE_REQUIRED');
+  assert.match(owner, /InitialAutoReconnect\s*=\s*wa\.Config\.InitialAutoReconnect/u, 'M2-WA-002:MATURE_AUTO_RECONNECT_REQUIRED');
+  assert.match(owner, /func \(wa \*WhatsAppClient\) Connect\(ctx context\.Context\)/u, 'M2-WA-002:MATURE_CONNECT_REQUIRED');
 });
 
 test('M2-SYNC-001 legacy sync repository is read-only and durable checkpoint mutation delegates to the canonical CAS authority', () => {
@@ -414,8 +406,10 @@ test('M2-SYNC-001 legacy sync repository is read-only and durable checkpoint mut
   assert.match(serviceSource, /AsyncLocalStorage/u, 'M2-SYNC-001:EXECUTION_SCOPE_REQUIRED');
   assert.match(serviceSource, /applyHistoryCheckpointObservation/u, 'M2-SYNC-001:CANONICAL_CHECKPOINT_AUTHORITY_REQUIRED');
   assert.match(serviceSource, /batchExpectedVersion/u, 'M2-SYNC-001:BEGIN_VERSION_MUST_FLOW_TO_COMMIT');
-  assert.match(driverSource, /withPersistedOperationContext\(options,[\s\S]*?telegram\.sync/u, 'M2-SYNC-001:TELEGRAM_SYNC_SCOPE_REQUIRED');
-  assert.match(driverSource, /withPersistedOperationContext\(options,[\s\S]*?whatsapp\.sync/u, 'M2-SYNC-001:WHATSAPP_SYNC_SCOPE_REQUIRED');
+  const matureDriver = driverSource.slice(driverSource.indexOf('function mautrixDriver('), driverSource.indexOf('const drivers ='));
+  assert.match(matureDriver, /withPersistedOperationContext\(options,\s*\(\)\s*=>\s*adapter\.sync\(account,\s*options\)\)/u, 'M2-SYNC-001:MAUTRIX_SYNC_SCOPE_REQUIRED');
+  assert.match(driverSource, /whatsapp:\s*mautrixDriver\('whatsapp',\s*mautrix\.whatsapp\)/u, 'M2-SYNC-001:WHATSAPP_MATURE_DRIVER_REQUIRED');
+  assert.match(driverSource, /telegram:\s*mautrixDriver\('telegram',\s*mautrix\.telegram\)/u, 'M2-SYNC-001:TELEGRAM_MATURE_DRIVER_REQUIRED');
 });
 
 test('M2-SYNC-002 sync checkpoint compatibility service rejects stale begin versions through canonical CAS', () => {

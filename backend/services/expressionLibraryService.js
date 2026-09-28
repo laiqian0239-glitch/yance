@@ -15,7 +15,7 @@ function normalizedKind(value) {
 }
 function firstAttachment(payload = {}) {
   const rows = Array.isArray(payload.attachments) ? payload.attachments : [];
-  return rows.find(row => row && (row.mediaUrl || row.url || row.localUrl || row.thumbnailDataUrl || row.localFile || row.filePath || row.mediaKey || row.directPath)) || {};
+  return rows.find(row => row && (row.mediaUrl || row.url || row.localUrl || row.thumbnailDataUrl || row.localFile || row.filePath)) || {};
 }
 
 function safePreviewUrl(value = '') {
@@ -36,9 +36,11 @@ function localPreview(row = {}, attachment = {}) {
 }
 function recoveryState(payload = {}, attachment = {}) {
   const status = clean(attachment.downloadStatus || attachment.status || payload.mediaStatus || payload.downloadStatus, 80).toLowerCase();
-  const hasEnvelope = Boolean(attachment.mediaKey || attachment.directPath || payload.mediaEnvelope || payload.baileysMediaEnvelope);
-  if (hasEnvelope) return { status: status || 'recoverable', recoverable: true, reason: '素材尚未缓存，可从 WhatsApp 重新恢复' };
-  return { status: status || 'missing-envelope', recoverable: false, reason: '旧素材缺少恢复凭证，不能继续使用过期下载地址' };
+  return {
+    status: status || 'owner-managed',
+    recoverable: false,
+    reason: '????? mautrix-whatsapp / Matrix ?????????????? WhatsApp ???'
+  };
 }
 
 function mimeFromName(value = '') {

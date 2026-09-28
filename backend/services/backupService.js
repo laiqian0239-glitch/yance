@@ -13,7 +13,6 @@ const backupRetention = require('./backupRetentionAuthority');
 const ROOTS = Object.freeze({
   store: PATHS.db,
   models: PATHS.models,
-  whatsappAuth: PATHS.whatsappAuth,
   secure: PATHS.secure,
   aiAssets: PATHS.aiAssets,
   notificationSounds: PATHS.notificationSounds
@@ -24,7 +23,6 @@ const ALL_ROOTS = Object.freeze({ ...ROOTS, ...OPTIONAL_ROOTS });
 const ROOT_LABELS = Object.freeze({
   store: '核心数据与系统设置',
   models: '模型注册、路由与验证记录',
-  whatsappAuth: 'WhatsApp本地认证',
   secure: '系统加密凭据文件',
   aiAssets: '提示词、知识库与轻量AI资产',
   notificationSounds: '用户自定义提示音',

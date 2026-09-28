@@ -5,9 +5,6 @@ const path = require('path');
 const crypto = require('crypto');
 const { CONFIG, PATHS } = require('../config');
 const eventBus = require('./eventBus');
-const logger = require('./logger');
-const { reconstructBaileysMessageInfo } = require('./whatsappMediaEnvelope');
-const { unwrap, stableJid } = require('./messageNormalizer');
 const defaultDurableExecutionAuthority = require('./durableExecutionAuthority');
 const defaultOutboxAuthority = require('./externalActionOutboxAuthority');
 const {
@@ -156,7 +153,7 @@ function verifyBuffer(buffer, maxBytes = CONFIG.mediaMaxBytes) {
 
 function mediaFailureRetryable(error = {}) {
   const code = String(error?.code || error?.message || error || '').toUpperCase();
-  return !/(MEDIA_TOO_LARGE|MEDIA_EMPTY|MEDIA_HASH_MISMATCH|MEDIA_ENVELOPE_MISSING|BAILEYS_DOWNLOAD_MEDIA_UNAVAILABLE|UNSUPPORTED)/u.test(code);
+  return !/(MEDIA_TOO_LARGE|MEDIA_EMPTY|MEDIA_HASH_MISMATCH|UNSUPPORTED)/u.test(code);
 }
 
 function verifyFile(file, maxBytes = CONFIG.mediaMaxBytes) {
@@ -236,62 +233,6 @@ function saveFile({ accountId, conversationId, messageId, filePath, descriptor =
   return row;
 }
 
-function canonicalBaileysMediaInfo(info = {}) {
-  const chatJid = stableJid(info);
-  return {
-    ...info,
-    key: { ...(info.key || {}), remoteJid: chatJid || info.key?.remoteJid || '' },
-    message: unwrap(info.message || {})
-  };
-}
-
-async function materializeBaileys({ accountId, conversationId, messageId, info, socket, descriptor, persistedAttempt, timeoutMs = 45000 }) {
-  persistedMediaAttempt(persistedAttempt);
-  if (descriptor?.downloadable === false) {
-    return { ...descriptor, downloadStatus: 'unsupported', cachedAt: new Date().toISOString() };
-  }
-  const rawMessageInfo = info || reconstructBaileysMessageInfo(descriptor?.mediaEnvelope);
-  const messageInfo = rawMessageInfo?.message ? canonicalBaileysMediaInfo(rawMessageInfo) : rawMessageInfo;
-  if (!messageInfo?.message) throw Object.assign(new Error('媒体恢复缺少可重建的 WhatsApp 消息信封'), { code: 'MEDIA_ENVELOPE_MISSING' });
-  const controller = new AbortController();
-  const baileysLogger = {
-    info(details, message) { logger.info('media', 'baileys-download', { message: String(message || ''), details: details || {} }); },
-    warn(details, message) { logger.warn('media', 'baileys-download-warning', { message: String(message || ''), details: details || {} }); },
-    error(details, message) { logger.error('media', 'baileys-download-error', { message: String(message || ''), details: details || {} }); },
-    debug() {}, trace() {}, child() { return this; }
-  };
-  const timer = setTimeout(() => controller.abort(new Error('MEDIA_DOWNLOAD_TIMEOUT')), timeoutMs);
-  try {
-    const baileys = await import('@whiskeysockets/baileys');
-    if (typeof baileys.downloadMediaMessage !== 'function') throw new Error('BAILEYS_DOWNLOAD_MEDIA_UNAVAILABLE');
-    const download = baileys.downloadMediaMessage(
-      messageInfo,
-      'buffer',
-      {},
-      socket && typeof socket.updateMediaMessage === 'function'
-        ? { reuploadRequest: socket.updateMediaMessage.bind(socket), logger: baileysLogger }
-        : undefined
-    );
-    const buffer = await Promise.race([
-      download,
-      new Promise((_, reject) => controller.signal.addEventListener('abort', () => reject(Object.assign(new Error('媒体下载超时'), { code: 'MEDIA_DOWNLOAD_TIMEOUT' })), { once: true }))
-    ]);
-    const saved = saveBuffer({ accountId, conversationId, messageId, buffer, descriptor });
-    const mime = String(saved.mimeType || '').toLowerCase();
-    if (/tgsticker|lottie|gzip/.test(mime) || String(saved.localFile || '').toLowerCase().endsWith('.tgs')) {
-      return { ...saved, stickerFormat: 'lottie', isAnimated: true, isAnimatedSticker: true, renderable: false, supportState: 'thumbnail-fallback' };
-    }
-    return saved;
-  } catch (error) {
-    const failed = { ...descriptor, downloadStatus: 'failed', downloadError: error.code || error.message || String(error), failedAt: new Date().toISOString(), retryable: mediaFailureRetryable(error) };
-    logger.warn('media', 'materialize-failed', { accountId, conversationId, messageId, error: failed.downloadError });
-    eventBus.publish('media:failed', { accountId, conversationId, messageId, attachment: failed });
-    return failed;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 function resolveFile(accountId, conversationId, fileName) {
   const full = path.resolve(PATHS.media, safePart(accountId), safePart(conversationId), safePart(fileName, ''));
   const base = path.resolve(PATHS.media) + path.sep;
@@ -326,8 +267,6 @@ module.exports = {
   extension,
   saveBuffer,
   saveFile,
-  canonicalBaileysMediaInfo,
-  materializeBaileys,
   persistedMediaAttempt,
   resolveFile,
   cleanup,

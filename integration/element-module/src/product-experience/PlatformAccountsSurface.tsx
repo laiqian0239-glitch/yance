@@ -39,7 +39,7 @@ type PlatformAccountsDesktopApi = {
 
 type PublicContinuation = {
   flowId?: string; authorizationUrl?: string; pages?: readonly Record<string, unknown>[]; selectedPageId?: string;
-  loginProcessId?: string; stepId?: string; txnId?: string; prompt?: string;
+  loginProcessId?: string; stepId?: string; stepType?: string; txnId?: string; prompt?: string;
   requirements?: readonly unknown[]; state?: string; step?: string; waiting?: boolean; qrCode?: string; code?: string;
 };
 type AccountInputs = { challenge: Record<string, string> };
@@ -75,6 +75,7 @@ function publicContinuation(value: unknown): PublicContinuation {
     selectedPageId: text(source.selectedPageId || source.selected_page_id) || undefined,
     loginProcessId: text(source.loginProcessId || source.login_id) || undefined,
     stepId: text(source.stepId || source.step_id) || undefined,
+    stepType: text(source.stepType || source.step_type || source.type) || undefined,
     txnId: text(source.txnId || source.txn_id) || undefined,
     prompt: text(source.prompt || source.message || source.instruction || source.instructions) || undefined,
     requirements: Array.isArray(source.requirements)
@@ -250,7 +251,8 @@ export function PlatformAccountsSurface({
         flowId: flow.id,
         matrixUserId,
       }));
-      if (state.waiting && state.loginProcessId && state.stepId && !state.qrCode && !state.requirements?.length) {
+      setContinuations((current) => ({ ...current, [account.id]: state }));
+      if (state.waiting && state.loginProcessId && state.stepId && state.stepType === "display_and_wait") {
         state = publicContinuation(await runPlatformAccountCommand(account.id, "provisioning-login-wait", {
           loginProcessId: state.loginProcessId,
           stepId: state.stepId,
@@ -558,6 +560,14 @@ export function PlatformAccountsSurface({
     if (selectedPlatform === "facebook-messenger") { beginType("facebook", "personal-messenger"); return; }
     void discoverFacebookPageInboxes(selectedAccount?.id || "");
   };
+  const addSelectedConnection = (): void => {
+    if (selectedPlatform === "facebook-page") { void discoverFacebookPageInboxes(selectedAccount?.id || ""); return; }
+    const item = selectedPlatform === "facebook-messenger"
+      ? connectableType("facebook", "personal-messenger")
+      : connectableType(selectedPlatform, selectedMeta.accountKind);
+    if (!item) return;
+    void createTypedAccount(item.platform, item.accountKind, item.driverId, item.label);
+  };
 
   const renderSelectedOwner = (): React.JSX.Element => {
     if (selectedPlatform === "facebook-page") {
@@ -634,7 +644,7 @@ export function PlatformAccountsSurface({
       </div>
       <div className="yance-account-manager__top-actions">
         <button type="button" onClick={() => void refresh()} disabled={busy}><RefreshCw aria-hidden="true" />刷新状态</button>
-        <button type="button" className="yance-account-manager__add" onClick={startSelectedConnection}
+        <button type="button" className="yance-account-manager__add" onClick={addSelectedConnection}
           disabled={busy}><Plus aria-hidden="true" />新增连接</button>
       </div>
     </div>

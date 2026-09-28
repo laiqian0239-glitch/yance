@@ -3,7 +3,6 @@
 const mautrix = require('./mautrixProvisioningAdapter');
 const facebookChatwoot = require('./facebookChatwootMatrixBridge');
 const facebookPersonalIdentity = require('./facebookPersonalIdentityAdapter');
-const facebookRelayClient = require('./facebookRelayClient');
 const syncCheckpoint = require('./syncCheckpointService');
 
 const PLATFORMS = Object.freeze(['whatsapp', 'telegram', 'facebook']);
@@ -86,6 +85,7 @@ const drivers = Object.freeze({
     resolveAccountKey(account) { return facebookChatwoot.resolveAccountKey(account); },
     credentialState(account) { return facebookChatwoot.credentialState(account); },
     status(account) { return facebookChatwoot.status(account); },
+    async observe(account, options = {}) { return facebookChatwoot.observe(account, options); },
     credentialReady(account) { return facebookChatwoot.credentialReady(account); },
     async connect(account, options = {}) { return facebookChatwoot.connect(account, options); },
     async disconnect(account, options = {}) {
@@ -112,10 +112,7 @@ const drivers = Object.freeze({
     async sendText(context, input) { return facebookChatwoot.sendText(context, input); },
     async sendMedia(context, input) { return facebookChatwoot.sendMedia(context, input); },
     async sendPresence(context, input) { return facebookChatwoot.sendPresence(context, input); },
-    async markRead(context, input = {}) { return facebookChatwoot.markRead(context, input); },
-    async cacheWebhookAttachments(account, baseMessage, rawAttachments = [], options = {}) {
-      return facebookRelayClient.cacheWebhookAttachments(account, baseMessage, rawAttachments, options);
-    }
+    async markRead(context, input = {}) { return facebookChatwoot.markRead(context, input); }
   })
 });
 

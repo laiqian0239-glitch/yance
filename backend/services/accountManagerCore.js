@@ -49,6 +49,23 @@ function isSyntheticMatureBridgeProjection(row = {}) {
     || String(metadata.projectionSource || '').trim() === 'mautrix-whoami';
 }
 
+function scopeMatureBridgeObservation(account, observed = {}) {
+  const ownerLoginId = observedMatureBridgeLoginId(account, account.platform);
+  const bridgeLogins = Array.isArray(observed?.bridgeLogins) ? observed.bridgeLogins : [];
+  const scopedLogins = ownerLoginId
+    ? bridgeLogins.filter(row => String(row?.id || '').trim() === ownerLoginId)
+    : [];
+  const connected = scopedLogins.length > 0;
+  return {
+    ...observed,
+    state: connected ? observed.state : 'logged-out',
+    canAttemptSend: connected ? Boolean(observed.canAttemptSend) : false,
+    canReceive: connected ? Boolean(observed.canReceive) : false,
+    loginCount: scopedLogins.length,
+    bridgeLogins: scopedLogins
+  };
+}
+
 function logCriticalFailure(operation, error, detail = {}) {
   logger.warn('accounts', 'critical-operation-failed', {
     operation,
@@ -107,8 +124,6 @@ class AccountManager {
   constructor() {
     this.runtime = new Map();
     this.hydration = { phase: 'booting', ready: false, startedAt: new Date().toISOString(), completedAt: '', errorCode: '' };
-    eventBus.on('whatsapp:state', event => this.onWhatsAppEvent(event.payload || {}));
-    eventBus.on('whatsapp:qr', event => this.onWhatsAppEvent({ ...(event.payload || {}), state: 'qr' }));
     eventBus.on('account:state', event => this.onAdapterState(event.payload || {}));
     securityGuard.onCredentialChanged( () => this.publishSummary());
   }
@@ -137,14 +152,10 @@ class AccountManager {
     }
   }
 
-  whatsappAuthKey(account) {
-    try { return platformDrivers.get('whatsapp').resolveAccountKey(account); } catch (error) { logCriticalFailure('whatsapp.resolveAccountKey', error, { accountId: account?.id || account?.adapterAccountId || '' }); return account?.adapterAccountId || ''; }
-  }
 
   accountUnread(accountId) {
     const account = accountStore.get(accountId);
-    const authKey = account?.platform === 'whatsapp' ? this.whatsappAuthKey(account) : '';
-    return messageStore.listConversations().filter(row => row.accountId === accountId || row.accountId === account?.adapterAccountId || (authKey && row.accountId === authKey)).reduce((sum, row) => sum + Number(row.unread || 0), 0);
+    return messageStore.listConversations().filter(row => row.accountId === accountId || row.accountId === account?.adapterAccountId).reduce((sum, row) => sum + Number(row.unread || 0), 0);
   }
 
   rawRuntime(account) {
@@ -204,9 +215,7 @@ class AccountManager {
     const directChallenge = ['whatsapp', 'telegram'].includes(account.platform)
       ? authChallenges.status(account.id)
       : { ready: false, expiresAt: '', version: 0 };
-    const challengeStatus = directChallenge.ready || account.platform !== 'whatsapp'
-      ? directChallenge
-      : authChallenges.status(this.whatsappAuthKey(account));
+    const challengeStatus = directChallenge;
     const connectedNow = state === 'connected' || state === 'limited';
     const runtimeSendReady = typeof runtime.canAttemptSend === 'boolean'
       ? runtime.canAttemptSend
@@ -375,6 +384,14 @@ class AccountManager {
           && accountKind === definition.accountKind
           && driverId === definition.driverId;
       };
+      const observedRows = accountStore.list();
+      const boundLoginIds = new Set(observedRows
+        .filter(rowMatchesDefinition)
+        .map(row => observedMatureBridgeLoginId(row, definition.platform))
+        .filter(Boolean));
+      const unmatchedLoginIds = logins
+        .map(login => String(login?.id || '').trim())
+        .filter(loginId => loginId && !boundLoginIds.has(loginId));
       for (const login of logins) {
         const loginId = String(login?.id || '').trim();
         if (!loginId) continue;
@@ -426,10 +443,8 @@ class AccountManager {
           });
           const aliases = rows.filter(row => {
             if (row.id === canonical.id || !rowMatchesDefinition(row)) return false;
-            const metadata = row.metadata || {};
             const observedLoginId = observedMatureBridgeLoginId(row, definition.platform);
-            const pending = row.lifecycleState === 'pending-auth' || metadata.authorizationPending === true;
-            return observedLoginId === loginId || (pending && !observedLoginId);
+            return observedLoginId === loginId;
           });
           for (const alias of aliases) {
             await accountStore.commitLifecycleTx(alias.id, {
@@ -453,31 +468,8 @@ class AccountManager {
           }
           continue;
         }
-        if (existing) {
-          if (compatiblePending.length === 1) {
-            const alias = compatiblePending[0];
-            await accountStore.commitLifecycleTx(alias.id, {
-              paused: true,
-              autoReconnect: false,
-              lifecycleState: 'merged',
-              canonicalAccountId: existing.id,
-              mergedIntoId: existing.id,
-              metadata: {
-                ...(alias.metadata || {}),
-                authorizationPending: false,
-                matrixUserId: subject,
-                protocolAuthority: driver.protocolAuthority,
-                projectionSource: 'mautrix-whoami',
-                projectionMergeReason: 'mature-bridge-login-observed'
-              }
-            }, {
-              action: 'account-mature-bridge-projection-merged',
-              detail: { canonicalAccountId: existing.id, authority: driver.protocolAuthority }
-            });
-          }
-          continue;
-        }
-        if (logins.length === 1 && compatiblePending.length === 1) {
+        if (existing) continue;
+        if (unmatchedLoginIds.length === 1 && unmatchedLoginIds[0] === loginId && compatiblePending.length === 1) {
           const pending = compatiblePending[0];
           const account = await accountStore.commitConnectedIdentityTx(pending.id, {
             displayName: String(login?.name || definition.label).trim() || definition.label,
@@ -527,8 +519,10 @@ class AccountManager {
     const accounts = await Promise.all(data.accounts.map(async account => {
       const driver = driverFor(account);
       const matureBridge = /^mautrix-/u.test(String(driver.protocolAuthority || ''));
-      if (!matureBridge) return this.publicAccount(account);
-      if (!matrixUserId) {
+      const pageObservation = String(driver.driverId || '').trim() === 'facebook-page-official'
+        && typeof driver.observe === 'function';
+      if (!matureBridge && !pageObservation) return this.publicAccount(account);
+      if (matureBridge && !matrixUserId) {
         return this.publicAccount(account, {
           state: account.paused ? 'paused' : 'logged-out',
           canAttemptSend: false,
@@ -539,9 +533,10 @@ class AccountManager {
         });
       }
       try {
-        const observed = await driver.observe(account, { matrixUserId });
-        return this.publicAccount(account, observed);
+        const observed = await driver.observe(account, { ...(matureBridge ? { matrixUserId } : {}), signal: options.signal || null });
+        return this.publicAccount(account, matureBridge ? scopeMatureBridgeObservation(account, observed) : observed);
       } catch (error) {
+        if (pageObservation) return this.publicAccount(account);
         return this.publicAccount(account, {
           state: account.paused ? 'paused' : 'logged-out',
           canAttemptSend: false,
@@ -572,10 +567,9 @@ class AccountManager {
     if (!['whatsapp', 'telegram'].includes(account.platform) && !personalMessenger) {
       throw Object.assign(new Error('当前平台不使用交互式认证挑战'), { code: 'AUTH_CHALLENGE_UNSUPPORTED', status: 409 });
     }
-    const adapterAccountId = account.platform === 'whatsapp' ? this.whatsappAuthKey(account) : account.id;
     const challenge = personalMessenger
       ? null
-      : (authChallenges.read(account.id, { includeSecret: true }) || authChallenges.read(adapterAccountId, { includeSecret: true }));
+      : authChallenges.read(account.id, { includeSecret: true });
     const owner = this.publicAccount(account);
     return {
       accountId: account.id,
@@ -592,10 +586,8 @@ class AccountManager {
     const account = accountStore.get(id);
     const personalMessenger = account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || '').toLowerCase() === 'personal-messenger';
     if (personalMessenger) return immediate;
-    const adapterAccountId = account.platform === 'whatsapp' ? this.whatsappAuthKey(account) : account.id;
     const timeoutMs = Math.max(0, Math.min(Number(waitMs || 0), 30_000));
-    await authChallenges.wait(account.id, { includeSecret: true, timeoutMs, signal: options.signal || null })
-      || await authChallenges.wait(adapterAccountId, { includeSecret: true, timeoutMs: 0, signal: options.signal || null });
+    await authChallenges.wait(account.id, { includeSecret: true, timeoutMs, signal: options.signal || null });
     return this.getAuthChallenge(id);
   }
 
@@ -770,9 +762,12 @@ class AccountManager {
     const account = accountStore.get(id);
     if (!account) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
     const driver = driverFor(account);
+    const matrixUserId = String(options.matrixUserId || '').trim();
     const matureBridge = /^mautrix-/u.test(String(driver.protocolAuthority || ''));
-    const observedRuntime = matureBridge && clean(options.matrixUserId) && typeof driver.observe === 'function'
-      ? await driver.observe(account, { matrixUserId: clean(options.matrixUserId), signal: options.signal || null })
+    const pageObservation = String(driver.driverId || '').trim() === 'facebook-page-official'
+      && typeof driver.observe === 'function';
+    const observedRuntime = ((matureBridge && matrixUserId) || pageObservation) && typeof driver.observe === 'function'
+      ? await driver.observe(account, { ...(matureBridge ? { matrixUserId } : {}), signal: options.signal || null })
       : null;
     assertOperationActive(options.signal, 'ACCOUNT_SYNC_ABORTED');
     const publicAccount = this.publicAccount(account, observedRuntime);
@@ -790,7 +785,7 @@ class AccountManager {
     const result = await withAbortSignal(
       driver.sync(account, {
         signal: options.signal || null,
-        matrixUserId: clean(options.matrixUserId),
+        matrixUserId,
         executionGeneration: options.executionGeneration || options.operationGeneration || '',
         physicalOperationContext: options.physicalOperationContext
       }),
@@ -804,75 +799,6 @@ class AccountManager {
     return { account: this.publicAccount(accountStore.get(id)), result };
   }
 
-  async mediaTransfer(id, input = {}) {
-    assertOperationActive(input.signal, 'ACCOUNT_MEDIA_TRANSFER_ABORTED');
-    const account = accountStore.get(id);
-    if (!account || account.platform !== 'facebook') {
-      throw Object.assign(new Error('Facebook媒体账号不存在'), { code: 'FACEBOOK_MEDIA_ACCOUNT_NOT_FOUND', status: 404 });
-    }
-    if (String(input.transferKind || '').trim().toUpperCase() !== 'FETCH') {
-      throw Object.assign(new Error('Facebook Worker媒体物化仅支持FETCH'), { code: 'FACEBOOK_MEDIA_TRANSFER_KIND_UNSUPPORTED', status: 409 });
-    }
-    const messageId = String(input.mediaReference || '').trim();
-    const persisted = messageStore.getExternalMessage({ accountId: id, targetId: messageId });
-    if (!persisted) {
-      throw Object.assign(new Error('Facebook媒体引用未解析到已持久化消息'), { code: 'FACEBOOK_MEDIA_MESSAGE_NOT_FOUND', status: 404, accountId: id, messageId });
-    }
-    const conversationId = String(persisted.conversationId || persisted.sessionKey || '').trim();
-    const externalMessageId = String(persisted.externalMessageId || messageId).trim();
-    if (!conversationId || externalMessageId !== messageId) {
-      throw Object.assign(new Error('Facebook媒体持久化消息作用域与冻结命令不一致'), {
-        code: 'FACEBOOK_MEDIA_TRANSFER_SCOPE_MISMATCH', status: 409, accountId: id, messageId
-      });
-    }
-    const expectedSourceScopeReference = `facebook:${id}:webhook:${externalMessageId}`;
-    const expectedDestinationScopeReference = `conversation:${conversationId}:message:${externalMessageId}`;
-    const expectedMetadataSha256 = crypto.createHash('sha256')
-      .update(['facebook', id, conversationId, externalMessageId].join('\n'))
-      .digest('hex');
-    if (String(input.sourceScopeReference || '').trim() !== expectedSourceScopeReference
-        || String(input.destinationScopeReference || '').trim() !== expectedDestinationScopeReference
-        || String(input.metadataSha256 || '').trim() !== expectedMetadataSha256) {
-      throw Object.assign(new Error('Facebook媒体冻结命令与持久化消息证据不一致'), {
-        code: 'FACEBOOK_MEDIA_TRANSFER_SCOPE_MISMATCH', status: 409, accountId: id, messageId
-      });
-    }
-    const attachments = Array.isArray(persisted.attachments) ? persisted.attachments : [];
-    const hasWorkerMedia = attachments.some(attachment => {
-      const worker = attachment?.workerMedia || attachment?.payload?.worker_media || null;
-      return Boolean(String(worker?.eventId || worker?.event_id || '').trim());
-    });
-    if (!hasWorkerMedia) {
-      throw Object.assign(new Error('已持久化Facebook消息没有Worker媒体引用；Windows直连Meta CDN仍保持退役'), {
-        code: 'FACEBOOK_WORKER_MEDIA_REFERENCE_NOT_FOUND', status: 409, accountId: id, messageId
-      });
-    }
-    const facebookDriver = driverFor(account);
-    await withAbortSignal(
-      facebookDriver.cacheWebhookAttachments(account, {
-        ...persisted,
-        accountId: id,
-        platform: 'facebook',
-        externalMessageId,
-        conversationId
-      }, attachments, {
-        signal: input.signal || null,
-        physicalOperationContext: input.physicalOperationContext
-      }),
-      input.signal,
-      'ACCOUNT_MEDIA_TRANSFER_ABORTED'
-    );
-    assertOperationActive(input.signal, 'ACCOUNT_MEDIA_TRANSFER_ABORTED');
-    return {
-      status: 'completed',
-      remoteTransferId: '',
-      providerRequestId: '',
-      outputReference: `message:${id}:${externalMessageId}`,
-      evidenceReference: `facebook-worker-media:${String(input.operationId || messageId).trim()}`,
-      failureCode: '',
-      uncertain: false
-    };
-  }
 
   async syncAll() {
     const results = [];
@@ -1014,6 +940,7 @@ class AccountManager {
     this.publishSummary();
     return { account: connected, page, authority: 'chatwoot-facebook-page-sidecar' };
   }
+
 
   async beginFacebookOAuth(id, options = {}) {
     const account = accountStore.get(id);
@@ -1254,25 +1181,6 @@ class AccountManager {
     return { recorded: true, conversation: updated };
   }
 
-
-  async diagnoseFacebookAvatarClosure(id, options = {}) {
-    const account = accountStore.get(id);
-    if (!account || account.platform !== 'facebook') throw Object.assign(new Error('Facebook账号不存在'), { code: 'FACEBOOK_ACCOUNT_NOT_FOUND', status: 404 });
-    assertOperationActive(options.signal, 'FACEBOOK_AVATAR_DIAGNOSE_ABORTED');
-    const report = await withAbortSignal(platformDrivers.get('facebook').adapter.diagnoseAvatarClosure(account, options), options.signal, 'FACEBOOK_AVATAR_DIAGNOSE_ABORTED');
-    assertOperationActive(options.signal, 'FACEBOOK_AVATAR_DIAGNOSE_ABORTED');
-    await accountStore.record('facebook-avatar-closure-diagnosed', {
-      accountId: id,
-      conversationsScanned: report.summary?.conversationsScanned || 0,
-      identityResolved: report.summary?.identityResolved || 0,
-      workerAvatarReady: report.summary?.workerAvatarReady || 0,
-      fullyReady: report.summary?.fullyReady || 0,
-      rootCauses: report.summary?.rootCauses || {}
-    });
-    assertOperationActive(options.signal, 'FACEBOOK_AVATAR_DIAGNOSE_ABORTED');
-    return report;
-  }
-
   async diagnose(id) {
     const account = accountStore.get(id);
     if (!account) throw Object.assign(new Error('账号不存在'), { code: 'ACCOUNT_NOT_FOUND', status: 404 });
@@ -1281,9 +1189,12 @@ class AccountManager {
     if (!['connected', 'limited'].includes(before.state) && !account.paused) {
       try { after = await this.connect(id); } catch (error) { after = { ...before, state: 'error', lastError: error.message }; }
     }
+    const matureWhatsAppLoginObserved = account.platform !== 'whatsapp'
+      ? false
+      : Boolean(String(account.metadata?.mautrixLoginId || '').trim() || Number(after.loginCount || before.loginCount || 0) > 0);
     const tests = [
       { id: 'metadata', name: '账号资料存在', pass: Boolean(account.displayName && account.platform), detail: account.displayName },
-      { id: 'credentials', name: '登录凭据可用', pass: before.credentialReady, detail: account.platform === 'whatsapp' ? (platformDrivers.get('whatsapp').adapter.hasCredentials(account) ? 'Baileys多设备凭据已识别，等待真实连接确认' : '尚未完成二维码或配对登录') : (before.credentialReady ? account.platform === 'facebook' ? (String(account.accountKind || account.metadata?.accountKind || 'page').toLowerCase() === 'personal-messenger' ? '隔离 Matrix 身份凭据已进入桌面安全存储；Facebook 密码不持久化' : '云端主页授权与本机设备身份已进入安全存储（Page Token 不下发）') : '正式授权凭据已进入桌面安全存储' : '尚未完成正式授权') },
+      { id: 'credentials', name: '??????', pass: account.platform === 'whatsapp' ? matureWhatsAppLoginObserved : before.credentialReady, detail: account.platform === 'whatsapp' ? (matureWhatsAppLoginObserved ? 'mautrix-whatsapp ??????? bridge login' : '???? mautrix-whatsapp ??') : (before.credentialReady ? '?????????' : '????????') },
       { id: 'service', name: '平台服务可访问', pass: !['error', 'unconfigured'].includes(after.state), detail: after.lastError || after.stateLabel },
       { id: 'session', name: '登录会话有效', pass: ['connected', 'limited'].includes(after.state), detail: after.stateLabel },
       ...(account.platform === 'facebook' && String(account.accountKind || account.metadata?.accountKind || 'page').toLowerCase() === 'page' ? [
@@ -1337,33 +1248,6 @@ class AccountManager {
     });
     const terminal = sendQueue.status().started ? await sendQueue.waitForTerminal(queue.id, 7000) : { queue };
     return { ...terminal, queue: terminal.queue || queue };
-  }
-
-  onWhatsAppEvent(payload) {
-    const accounts = accountStore.list().filter(row =>
-      row.platform === 'whatsapp'
-      && accountLifecycle.eligibility(row, { manual: true }).eligible
-      && this.whatsappAuthKey(row) === payload.accountId
-    );
-    if (!accounts.length) return;
-    for (const account of accounts) {
-      const previous = this.runtime.get(account.id) || {};
-      const normalizedState = platformDrivers.mapWhatsAppState(payload.state);
-      const runtime = {
-        ...previous,
-        ...payload,
-        state: normalizedState,
-        lastError: payload.lastError || payload.error || (['connected', 'waiting-verification', 'connecting'].includes(normalizedState) ? '' : previous.lastError || ''),
-        reasonCode: payload.reasonCode || payload.code || (['connected', 'waiting-verification', 'connecting'].includes(normalizedState) ? '' : previous.reasonCode || '')
-      };
-      this.runtime.set(account.id, runtime);
-      if (['connected', 'limited'].includes(runtime.state) || payload.user) {
-        this.updateIdentityFromRuntime(account, runtime)
-          .then(() => this.publishSummary())
-          .catch(error => logCriticalFailure('whatsapp.event.updateIdentityFromRuntime', error, { accountId: account.id }));
-      }
-    }
-    this.publishSummary();
   }
 
   onAdapterState(payload) {

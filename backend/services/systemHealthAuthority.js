@@ -73,16 +73,6 @@ const CATALOG = Object.freeze([
     actionZh: '核对请求条件后重试',
     retryable: false
   },
-  {
-    match: row => row.channel === 'media' && row.message === 'baileys-download-error',
-    code: 'MEDIA_DOWNLOAD_PROVIDER_ERROR',
-    domain: 'media',
-    severity: 'medium',
-    titleZh: '媒体下载组件报告错误',
-    messageZh: '媒体下载组件返回错误，系统将保留消息记录并按可恢复性决定是否重试。',
-    actionZh: '查看媒体任务和平台连接',
-    retryable: true
-  }
 ]);
 
 function clean(value, max = 600) {

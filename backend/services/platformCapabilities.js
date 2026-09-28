@@ -26,7 +26,7 @@ const CONTRACTS = Object.freeze({
     gif: contract(STATE.SUPPORTED, 'POST /api/r32/messages/whatsapp/:accountId/send-media-stream', 'sendMedia', '真实 GIF 发送'),
     sticker: contract(STATE.PARTIAL, 'POST /api/r32/messages/whatsapp/:accountId/send-media-stream', 'sendMedia', '仅发送已转换完成的 WebP 贴纸；PNG/GIF 不会伪装成贴纸', ['真实账号与平台版本仍需 UAT']),
     animatedSticker: contract(STATE.PARTIAL, 'POST /api/r32/messages/whatsapp/:accountId/send-media-stream', 'sendMedia', '动态 WebP 可接收并识别；发送仅接受预编码 WebP，缺少格式转换', ['前端播放受桌面动画策略控制']),
-    lottieSticker: contract(STATE.PARTIAL, 'WhatsApp receive pipeline', 'downloadMediaMessage', 'FutureProof/Lottie 包装会解包并恢复；内层动态 WebP 可播放，原始 TGS/Lottie 当前使用缩略图回退', ['真实账号消息形态仍需 UAT']),
+    lottieSticker: contract(STATE.PARTIAL, 'mautrix-whatsapp ? Matrix event ? Element RoomView', '', 'WhatsApp ?????????? bridge ? Matrix timeline ????????????????', ['?????????? UAT']),
     animatedEmojiDisplay: contract(STATE.PARTIAL, 'renderer', 'animatedEmojiDisplay', '单 Emoji 文本可收发；言策仅为常用表情提供本地轻量动画，不保证与官方客户端完全一致'),
     voice: contract(STATE.SUPPORTED, 'POST /api/r32/messages/whatsapp/:accountId/send-media-stream', 'sendMedia', '语音发送'),
     file: contract(STATE.SUPPORTED, 'POST /api/r32/messages/whatsapp/:accountId/send-media-stream', 'sendMedia', '文件发送'),
@@ -40,7 +40,7 @@ const CONTRACTS = Object.freeze({
     contacts: contract(STATE.PARTIAL, 'POST /api/r32/accounts/:accountId/sync', 'sync', '联系人与头像按需同步'),
     groups: contract(STATE.SUPPORTED, 'conversation target', 'sendText', '群聊消息能力'),
     proactiveSend: contract(STATE.SUPPORTED, 'POST /api/r32/messages/whatsapp/:accountId/send-text', 'sendText', '主动发送'),
-    historySync: contract(STATE.PARTIAL, 'Baileys history append', 'messages.upsert', '受 WhatsApp 历史同步范围限制')
+    historySync: contract(STATE.PARTIAL, 'mautrix-whatsapp backfill ? Matrix timeline', '', '????? mautrix-whatsapp ? Matrix timeline ??')
   }),
   telegram: Object.freeze({
     text: contract(STATE.SUPPORTED, 'POST /api/r32/messages/telegram/:accountId/send-text', 'sendText'),
@@ -161,9 +161,14 @@ const FACEBOOK_ACCOUNT_CAPABILITIES = Object.freeze({
   })
 });
 
+const MATURE_ACCOUNT_CAPABILITIES = Object.freeze({
+  whatsapp: Object.freeze({ authority: 'mautrix-whatsapp', ...(MATRIX.whatsapp || {}) }),
+  telegram: Object.freeze({ authority: 'mautrix-telegram', ...(MATRIX.telegram || {}) })
+});
+
 function resolveForAccount(account = {}) {
   const platform = String(account.platform || '').trim().toLowerCase();
-  if (platform !== 'facebook') return Object.freeze({ authority: `${platform || 'unknown'}-platform-driver`, ...(MATRIX[platform] || {}) });
+  if (platform !== 'facebook') return MATURE_ACCOUNT_CAPABILITIES[platform] || Object.freeze({ authority: `${platform || 'unknown'}-platform-driver`, ...(MATRIX[platform] || {}) });
   const kind = String(account.accountKind || account.metadata?.accountKind || 'page').trim().toLowerCase();
   return FACEBOOK_ACCOUNT_CAPABILITIES[kind] || FACEBOOK_ACCOUNT_CAPABILITIES.page;
 }
@@ -174,4 +179,4 @@ function mediaCapability(kind) {
   return canonicalOperation(value);
 }
 
-module.exports = { STATE, CONTRACTS, MATRIX, FACEBOOK_ACCOUNT_CAPABILITIES, getContract, publicContracts, resolveForAccount, supports, mediaCapability, canonicalOperation };
+module.exports = { STATE, CONTRACTS, MATRIX, FACEBOOK_ACCOUNT_CAPABILITIES, MATURE_ACCOUNT_CAPABILITIES, getContract, publicContracts, resolveForAccount, supports, mediaCapability, canonicalOperation };

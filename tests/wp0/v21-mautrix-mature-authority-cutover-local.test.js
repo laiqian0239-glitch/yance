@@ -205,3 +205,18 @@ test('Telegram conversation history is materialized by mautrix backfill for Elem
   assert.doesNotMatch(shell, /recentMessages\.map\([\s\S]*yance-product-conversation__room-view/u,
     'stored Product context must not become a second chat-history renderer');
 });
+
+test('retired Yance-owned WhatsApp and Telegram protocol shadows are absent from source authority', () => {
+  for (const relative of [
+    'backend/services/whatsappAdapter.js',
+    'backend/services/telegramAdapter.js',
+    'backend/services/whatsappHistoryMediaRecovery.js',
+  ]) {
+    assert.equal(fs.existsSync(path.join(ROOT, relative)), false, `${relative} must be retired instead of kept as a shadow protocol owner`);
+  }
+
+  const mediaPipeline = read('backend/services/mediaPipeline.js');
+  for (const token of ['canonicalBaileysMediaInfo', 'materializeBaileys', '@whiskeysockets/baileys', 'downloadMediaMessage']) {
+    assert.doesNotMatch(mediaPipeline, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'), `${token} must not remain in the shared media pipeline`);
+  }
+});

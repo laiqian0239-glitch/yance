@@ -8,7 +8,6 @@ const DEFAULTS = Object.freeze({
   realModelQualification: true,
   desktopNotifications: true,
   trayMenu: true,
-  whatsappBaileysV2: true,
   voiceTranscription: false,
   cloudModels: false
 });

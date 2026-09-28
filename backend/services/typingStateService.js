@@ -84,7 +84,6 @@ class TypingStateService {
     this._bind('conversation:presence', event => this._handleIncomingPresence(event));
     this._bind('message:inserted', event => this._handleMessageInserted(event));
     this._bind('account:state', event => this._handleAccountState(event));
-    this._bind('whatsapp:state', event => this._handleAccountState(event));
     this.storeManager.dispatch({
       type: 'UPDATE_TYPING_POLICY',
       source: 'typing-state-service',
@@ -209,7 +208,7 @@ class TypingStateService {
     const state = clean(payload.state || payload.status);
     if (accountStateIsConnected(state)) return;
     const accountId = clean(payload.accountId || payload.id);
-    const platform = clean(payload.platform || (wrapperEvent?.type === 'whatsapp:state' ? 'whatsapp' : '')).toLowerCase();
+    const platform = clean(payload.platform).toLowerCase();
     if (!accountId && !platform) return;
 
     if (this.policy.cancelOnAccountChange) {

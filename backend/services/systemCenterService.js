@@ -180,8 +180,8 @@ function sendQueueSummary() {
 function accountSummary() {
   const data = accountManager.list();
   const engineLabel = {
-    whatsapp: { label: 'WhatsApp实时连接引擎', technical: 'Baileys本地直连' },
-    telegram: { label: 'Telegram个人账号引擎', technical: 'MTProto本地会话' },
+    whatsapp: { label: 'WhatsApp实时连接引擎', technical: 'mautrix-whatsapp / Matrix Application Service' },
+    telegram: { label: 'Telegram个人账号引擎', technical: 'mautrix-telegram / Matrix Application Service' },
     facebook: { label: 'Facebook公共主页引擎', technical: 'Graph API + Webhook' }
   };
   return {
@@ -304,7 +304,6 @@ function dataSummary(privacyMode) {
   const roots = [
     ['store', '核心数据与设置', PATHS.db, true],
     ['models', '模型目录与资格', PATHS.models, true],
-    ['whatsappAuth', 'WhatsApp本地认证', PATHS.whatsappAuth, true],
     ['secure', '系统加密凭据', PATHS.secure, true],
     ['aiAssets', 'AI成果与知识资产', PATHS.aiAssets, true],
     ['notificationSounds', '用户自定义提示音', PATHS.notificationSounds, true],

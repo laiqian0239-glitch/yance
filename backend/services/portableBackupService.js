@@ -148,7 +148,7 @@ async function buildArchive(backupDir, backupManifest, archiveFile, profile) {
     portable: true,
     credentialPolicy: profile === 'data-only'
       ? 'no-account-credentials'
-      : 'whatsapp-auth-included-device-bound-safe-storage-excluded',
+      : 'device-bound-safe-storage-excluded',
     sourceBackup: {
       schemaVersion: backupManifest.schemaVersion,
       profile: backupManifest.profile,

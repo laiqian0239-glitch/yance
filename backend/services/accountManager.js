@@ -50,6 +50,13 @@ function defaultAuthorityTimestamp() {
   return new Date().toISOString();
 }
 
+function matureBridgeOwnsSession(account = {}) {
+  const metadata = account.metadata && typeof account.metadata === 'object' ? account.metadata : {};
+  const driverId = clean(account.driverId || metadata.driverId);
+  const protocolAuthority = clean(account.protocolAuthority || metadata.protocolAuthority);
+  return /-mautrix-/u.test(driverId) || /^mautrix-/u.test(protocolAuthority);
+}
+
 function parseCanonicalAccountPayload(value) {
   try {
     const parsed = JSON.parse(String(value || '{}'));
@@ -235,6 +242,7 @@ function requestPersistedSessionRestores(input = {}) {
   for (const account of state.accountList()) {
     if (!account || account.metadata?.loggedOut === true) continue;
     if (!accountLifecycle.eligibility(account).eligible) continue;
+    if (matureBridgeOwnsSession(account)) continue;
     const credentialReference = clean(account.credentialRef || account.credential_ref);
     if (!credentialReference) continue;
     const requestedSessionGeneration = positiveGeneration(

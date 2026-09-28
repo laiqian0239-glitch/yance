@@ -151,7 +151,7 @@ class StoreProjectionCoordinator {
     // Raw adapter state is allowed to update connectivity/receive state, but the
     // authoritative account projection is the only source of send-attempt and
     // real-ACK truth.
-    for (const type of ['account:state', 'whatsapp:state', 'account:authority-state']) this.bindBus(type, accountProjection);
+    for (const type of ['account:state', 'account:authority-state']) this.bindBus(type, accountProjection);
 
     const modelProjection = event => {
       const registry = event?.payload?.registry || this.modelRegistry.read();

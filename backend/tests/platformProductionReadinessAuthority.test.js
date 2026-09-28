@@ -4,8 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const authority = require('../services/platformProductionReadinessAuthority');
 const { accountReadiness } = require('../services/diagnosticReadiness');
-const { WhatsAppAdapter } = require('../services/whatsappAdapter');
-const { TelegramAdapter } = require('../services/telegramAdapter');
+const platformDrivers = require('../services/platformDriverRegistry');
 
 test('unconfigured Telegram accounts remain onboarding and never become a global critical failure', () => {
   const state = {
@@ -78,30 +77,14 @@ test('Telegram readiness records history sync degradation without disabling basi
   assert.equal(projection.accounts[0].checks.find(row => row.id === 'history').status, 'warning');
 });
 
-test('WhatsApp adapter status exposes the latest identity reconciliation evidence', () => {
-  const adapter = new WhatsAppAdapter();
-  adapter.accounts.set('wa-adapter', {
-    state: 'online', databaseAccountId: 'wa-database', connectedAt: '2026-07-26T00:00:00.000Z',
-    identityReconciliationRunning: false,
-    identityReconciliationLastAt: '2026-07-26T00:01:00.000Z',
-    identityReconciliationLastError: '',
-    identityReconciliationLastResult: { scanned: 3, resolved: 3, failed: 0 }
-  });
-  const status = adapter.status()[0];
-  assert.equal(status.identityReconciliationLastAt, '2026-07-26T00:01:00.000Z');
-  assert.equal(status.identityReconciliationLastResult.resolved, 3);
+test('WhatsApp production readiness is owned by the mautrix-whatsapp driver', () => {
+  const driver = platformDrivers.getForAccount({ platform: 'whatsapp', accountKind: 'personal-multidevice' });
+  assert.equal(driver.driverId, 'whatsapp-personal-mautrix-whatsapp');
+  assert.equal(driver.protocolAuthority, 'mautrix-whatsapp');
 });
 
-test('Telegram adapter status exposes history synchronization evidence', () => {
-  const adapter = new TelegramAdapter();
-  adapter.sessions.set('tg-adapter', {
-    account: { id: 'tg-adapter' }, state: 'connected', connectedAt: '2026-07-26T00:00:00.000Z',
-    historySyncRunning: false,
-    historySyncLastAt: '2026-07-26T00:02:00.000Z',
-    historySyncLastError: '',
-    historySyncLastResult: { conversations: 5, messagesInserted: 9, failedConversations: 0, failedMessages: 0 }
-  });
-  const status = adapter.status('tg-adapter');
-  assert.equal(status.historySyncLastAt, '2026-07-26T00:02:00.000Z');
-  assert.equal(status.historySyncLastResult.messagesInserted, 9);
+test('Telegram production readiness is owned by the mautrix-telegram driver', () => {
+  const driver = platformDrivers.getForAccount({ platform: 'telegram', accountKind: 'personal' });
+  assert.equal(driver.driverId, 'telegram-personal-mautrix-telegram');
+  assert.equal(driver.protocolAuthority, 'mautrix-telegram');
 });
