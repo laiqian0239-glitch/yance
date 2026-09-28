@@ -4,7 +4,6 @@ const CHANNELS = Object.freeze({
   snapshot: 'store:get-snapshot',
   socialContext: 'store:get-social-context',
   searchWorkspace: 'store:search-workspace',
-  matrixDirectProjection: 'store:matrix-direct-projection',
   translateChinese: 'store:translate-chinese',
   createTranslationJob: 'store:create-translation-job',
   getTranslationJob: 'store:get-translation-job',
@@ -623,10 +622,7 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         reasonCode: 'PLATFORM_ACCOUNT_COMMAND_UNSUPPORTED'
       });
     },
-    [CHANNELS.matrixDirectProjection]: (_event, input = {}) => apiRequest('/api/r32/workspace/matrix-direct-projection', {
-      method: 'POST',
-      body: jsonBody(input || {})
-    }),    [CHANNELS.platformAccountsList]: (_event, input = {}) => {
+    [CHANNELS.platformAccountsList]: (_event, input = {}) => {
       const matrixUserId = clean(input.matrixUserId);
       return apiRequest(`/api/r32/accounts${matrixUserId ? `?matrixUserId=${encodeURIComponent(matrixUserId)}` : ''}`);
     },
@@ -877,21 +873,6 @@ function installR32StoreBridge({ ipcMain, apiRequest }) {
         return apiRequest('/api/r32/models/model-brain/preferences', {
           method: 'PUT',
           body: jsonBody({ reasoningLevel, fastMode: input.fastMode === true })
-        });
-      }
-      if (action === 'set-task-model-policy') {
-        const task = requiredAction(input.task, [
-          'translation', 'understanding', 'relationship', 'director',
-          'quick_reply', 'deep_reply', 'fact_extraction', 'memory_extraction'
-        ], 'task');
-        const mode = requiredAction(input.mode, ['auto', 'manual'], 'mode');
-        return apiRequest(`/api/r32/models/model-brain/preferences/${encodeURIComponent(task)}`, {
-          method: 'PUT',
-          body: jsonBody({
-            mode,
-            primaryModelId: mode === 'manual' ? requiredIdentifier(input.primaryModelId, 'primaryModelId') : '',
-            fallbackModelId: mode === 'manual' ? clean(input.fallbackModelId) : ''
-          })
         });
       }
       if (action === 'qualify-model') {

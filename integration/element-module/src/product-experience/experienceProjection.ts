@@ -1,4 +1,5 @@
 import type {
+  BerlinWeatherProjection,
   BilingualSearchResult,
   ConversationRef,
   DailyReviewProjection,
@@ -72,14 +73,15 @@ type ProductDesktopApi = {
   getProductModelRuntimeState: () => Promise<Record<string, unknown>>;
   previewPersonaCharacterCard: (input: { bytes: Uint8Array | ArrayBuffer }) => Promise<Record<string, unknown>>;
   storeGenerateReply: (input: Record<string, unknown>) => Promise<Record<string, unknown>>;
-  storeApproveReply: (input: { candidateId: string; learningMode: "send_and_learn" | "send_only" }) => Promise<Record<string, unknown>>;
-  storeRejectReply: (input: { candidateId: string }) => Promise<Record<string, unknown>>;
+  storeApproveReply: (input: { candidateId: string; learningMode: ConversationLearningMode }) => Promise<Record<string, unknown>>;
+  storeRejectReply: (input: { candidateId: string; reason: string }) => Promise<Record<string, unknown>>;
   storeReviseOutbox: (input: { outboxId:string; text:string; userConfirmedRevision:true }) => Promise<Record<string, unknown>>;
   storeConfirmSend: (input: { outboxId:string; confirmSend:true }) => Promise<Record<string, unknown>>;
   getParlantDailyChatGoal: (input:{contactId:string;localDate:string})=>Promise<Record<string,unknown>>;
   upsertParlantDailyChatGoal: (input:{contactId:string;localDate:string;goalText:string})=>Promise<Record<string,unknown>>;
   deleteParlantDailyChatGoal: (input:{contactId:string;localDate:string})=>Promise<Record<string,unknown>>;
   getProductDailyReview: (input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
+  getBerlinWeather: () => Promise<Record<string, unknown>>;
   logoutPlatformAccount: (input:{id:string})=>Promise<Record<string,unknown>>;
   listPersonaProfiles:(input?:Record<string,unknown>)=>Promise<Record<string,unknown>>;
   getPersonaEffective:(input:Record<string,unknown>)=>Promise<Record<string,unknown>>;
@@ -513,17 +515,21 @@ export async function generateReplyCandidate(
   };
 }
 
-export async function approveReplyCandidate(candidateId: string, learningMode: "send_and_learn" | "send_only" = "send_and_learn"): Promise<{outboxId:string;requiresSendConfirmation:boolean}> {
+export type ConversationLearningMode = "send_and_learn" | "send_only" | "exception" | "do_not_learn";
+
+export async function approveReplyCandidate(candidateId: string, learningMode: ConversationLearningMode = "send_and_learn"): Promise<{outboxId:string;requiresSendConfirmation:boolean}> {
   const api = desktopApi();
   if (!api || typeof api.storeApproveReply !== "function") throw bridgeUnavailable("approve-reply");
   const payload=objectRecord(await api.storeApproveReply({ candidateId, learningMode }));
   return { outboxId:text(payload.outboxId || objectRecord(payload.outbox).id), requiresSendConfirmation:payload.requiresSendConfirmation===true };
 }
 
-export async function rejectReplyCandidate(candidateId: string): Promise<void> {
+export async function rejectReplyCandidate(candidateId: string, reason: string): Promise<void> {
   const api = desktopApi();
   if (!api || typeof api.storeRejectReply !== "function") throw bridgeUnavailable("reject-reply");
-  await api.storeRejectReply({ candidateId });
+  const normalizedReason = reason.trim();
+  if (!normalizedReason) throw new Error("REPLY_REJECTION_REASON_REQUIRED");
+  await api.storeRejectReply({ candidateId, reason: normalizedReason });
 }
 
 
@@ -557,6 +563,29 @@ export async function loadDailyReview(
   };
 }
 
+export async function loadBerlinWeather(): Promise<BerlinWeatherProjection> {
+  const api = desktopApi();
+  if (!api || typeof api.getBerlinWeather !== "function") throw bridgeUnavailable("berlin-weather");
+  const payload = objectRecord(await api.getBerlinWeather());
+  const weather = objectRecord(payload.weather || payload);
+  const available = weather.available === true;
+  const temperature = Number(weather.temperatureC);
+  const weatherCode = Number(weather.weatherCode);
+  const isDay = weather.isDay;
+  return {
+    available,
+    city: "Berlin",
+    timeZone: "Europe/Berlin",
+    observedAt: text(weather.observedAt),
+    fetchedAt: text(weather.fetchedAt),
+    stale: weather.stale === true,
+    temperatureC: available && Number.isFinite(temperature) ? temperature : null,
+    weatherCode: available && Number.isFinite(weatherCode) ? weatherCode : null,
+    conditionLabelZh: available ? text(weather.conditionLabelZh) : "",
+    isDay: available && typeof isDay === "boolean" ? isDay : null,
+    source: "open-meteo",
+  };
+}
 export async function listPersonaProfiles(): Promise<readonly PersonaProfileProjection[]> {
   const api = desktopApi();
   if (!api || typeof api.listPersonaProfiles !== "function") throw bridgeUnavailable("persona-profiles");
@@ -821,6 +850,7 @@ function normalizeConversationRef(
     accountId,
     chatJid,
     sessionKey,
+    matrixRoomId: optionalText(row.matrixRoomId),
     conversationKind,
     automationMode: conversationAutomationMode(
       row.automationMode
@@ -876,13 +906,17 @@ function relationshipFromEntry(
     conversations,
     subtitle: platform || "已连接关系",
     lastMessage,
+    avatarUrl: optionalText(row.avatarUrl),
     platform,
     accountId,
     chatJid: optionalText(row.chatJid || row.jid)
       || soleConversation?.chatJid,
-    sessionKey: optionalText(row.sessionKey || row.sessionId)
+    sessionKey: optionalText(row.conversationId || row.sessionKey || row.sessionId)
       || soleConversation?.sessionKey,
-    matrixRoomId: optionalText(row.matrixRoomId),
+    matrixRoomId: optionalText(row.matrixRoomId)
+      || (text(row.source) === "matrix-direct-projection" && text(row.externalId).startsWith("!")
+        ? optionalText(row.externalId)
+        : undefined),
     matrixPermalink: optionalText(row.matrixPermalink),
     updatedAt: asTimestamp(row.updatedAt || row.lastInteractionAt || row.lastMessageAt || row.modifiedAt),
     unreadCount,
@@ -1014,8 +1048,19 @@ export async function loadPeopleProjections(): Promise<PeopleProjection> {
       const directConversationIds = conversationIds.filter(
         (conversationId) => !groupConversationIds.has(conversationId),
       );
+      const ownedDirectConversationIds = directConversationIds.filter((conversationId) => {
+        const conversationRow = objectRecord(conversationsById[conversationId]);
+        const routeScope = objectRecord(conversationRow.routeScope);
+        const conversationOwnerId = text(
+          conversationRow.canonicalContactId
+            || conversationRow.contactId
+            || routeScope.canonicalContactId,
+        );
+        if (conversationOwnerId && conversationOwnerId !== stableContactId) return false;
+        return true;
+      });
       if (conversationIds.length > 0 && directConversationIds.length === 0) return null;
-      const conversations = directConversationIds
+      const conversations = ownedDirectConversationIds
         .map((conversationId) => normalizeConversationRef(
           conversationId,
           conversationsById[conversationId],

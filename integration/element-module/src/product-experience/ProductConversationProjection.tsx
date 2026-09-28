@@ -7,6 +7,7 @@ import {
   readTranslationJob,
   rejectReplyCandidate,
   reviseReplyOutbox,
+  type ConversationLearningMode,
   type ReplyBrainCandidate as ReplyBrainCandidateProjection,
 } from "./experienceProjection";
 import {
@@ -35,6 +36,17 @@ type MessageProjection = {
 };
 const TRANSLATION_POLL_INTERVAL_MS = 250;
 const TRANSLATION_POLL_ATTEMPTS = 60;
+const REPLY_GENERATION_TIMEOUT_MS = 12000;
+
+function withReplyGenerationTimeout<T>(task: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error("REPLY_GENERATION_TIMEOUT")), REPLY_GENERATION_TIMEOUT_MS);
+    task.then(
+      (value) => { window.clearTimeout(timer); resolve(value); },
+      (error) => { window.clearTimeout(timer); reject(error); },
+    );
+  });
+}
 
 type DesktopProjectionApi = {
   getProductMessageProjection?: (input: {
@@ -133,25 +145,23 @@ export function productMessageFilter(event: ProductModuleMessageEvent): boolean 
 }
 
 export function ProductConversationMessage({
-  event, originalComponent, currentUserId = "", renderUserAvatar,
+  event, originalComponent,
 }: {
   event: ProductModuleMessageEvent;
   originalComponent?: () => React.JSX.Element;
-  currentUserId?: string;
-  renderUserAvatar?: (userId: string, size?: string) => React.ReactNode;
 }): React.JSX.Element {
   const session = useExperienceSession();
   const normalizedEventId = eventId(event);
   const normalizedRoomId = eventRoomId(event);
   const sourceMessageText = text(eventContent(event).body);
   const senderId = eventSender(event);
-  const ownEvent = Boolean(currentUserId && senderId && senderId === currentUserId);
   const suppressBridgeControl = isBridgeControlMessage(event);
   const identities = useMemo(
     () => exactMessageIdentities(event),
     [event, normalizedEventId, normalizedRoomId],
   );
   const [projection, setProjection] = useState<MessageProjection | null>(null);
+  const [messageAiOpen, setMessageAiOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -263,16 +273,21 @@ export function ProductConversationMessage({
     <div
       className="yance-product-message"
       data-yance-original-message-preserved="true"
-      data-yance-own-event={ownEvent || undefined}
       data-yance-translation-state={translatedZh ? "translated" : projection?.found ? "pending" : "unavailable"}
     >
+      <div className="yance-product-message__original" aria-label="原文">{originalComponent?.()}</div>
       {translatedZh ? (
         <div className="yance-product-message__translation" aria-label="中文译文"><p>{translatedZh}</p></div>
       ) : null}
-      <div className="yance-product-message__original" aria-label="原文">{originalComponent?.()}</div>
-      {ownEvent && currentUserId && renderUserAvatar ? (
-        <span className="yance-product-message__self-avatar" aria-hidden="true">{renderUserAvatar(currentUserId, "30px")}</span>
-      ) : null}
+      <div className="yance-product-message__ai-anchor">
+        <button type="button" className="yance-product-message__ai-action" aria-label="消息 AI 动作" aria-expanded={messageAiOpen} onClick={() => setMessageAiOpen((value) => !value)}>✨</button>
+        {messageAiOpen ? <div className="yance-product-message__ai-menu" role="menu" aria-label="当前消息 AI 动作">
+          {MESSAGE_AI_ACTIONS.map((action) => <button key={action.label} type="button" role="menuitem" onClick={() => {
+            window.dispatchEvent(new CustomEvent<MessageAiActionDetail>(MESSAGE_AI_ACTION_EVENT, { detail: { action: action.action, roomId: normalizedRoomId, eventId: normalizedEventId, messageText: sourceMessageText } }));
+            setMessageAiOpen(false);
+          }}>{action.label}</button>)}
+        </div> : null}
+      </div>
     </div>
   );
 }
@@ -424,12 +439,34 @@ export function ProductComposerPreview({
   );
 }
 
+export type ReplyBrainAction = "generate" | "regenerate" | "polish" | "translate" | "tone" | "more_like_me" | "less_question" | "less_pushy" | "why" | "brain_chat";
+export const MESSAGE_AI_ACTION_EVENT = "yance:conversation-message-ai-action";
+export type MessageAiActionDetail = { action: ReplyBrainAction; roomId: string; eventId: string; messageText: string };
+
+const MESSAGE_AI_ACTIONS: readonly Readonly<{ label: string; action: ReplyBrainAction }>[] = [
+  { label: "生成回复", action: "generate" }, { label: "换一组", action: "regenerate" },
+  { label: "润色", action: "polish" }, { label: "翻译", action: "translate" },
+  { label: "改语气", action: "tone" }, { label: "更像我", action: "more_like_me" },
+  { label: "少问一句", action: "less_question" }, { label: "别太主动", action: "less_pushy" },
+  { label: "为什么这样回", action: "why" }, { label: "问闺蜜大脑", action: "brain_chat" },
+];
+
 export function ReplyBrainCandidate({
-  conversationId, contactId, stageApprovedReply,
+  conversationId, contactId, matrixRoomId, platform, accountId, chatJid, stageApprovedReply, actionRequest, learningMode, openVoice, openPhoto, openLive, openFile,
 }: {
   conversationId: string;
   contactId?: string;
+  matrixRoomId?: string;
+  platform?: string;
+  accountId?: string;
+  chatJid?: string;
   stageApprovedReply: (input: { outboxId: string; text: string }) => Promise<void>;
+  actionRequest?: { id: number; action: ReplyBrainAction; messageText?: string };
+  learningMode: ConversationLearningMode;
+  openVoice: () => void;
+  openPhoto: () => void;
+  openLive: () => void;
+  openFile: () => void;
 }): React.JSX.Element | null {
   const session = useExperienceSession();
   const [candidates, setCandidates] = useState<readonly Readonly<{
@@ -443,77 +480,41 @@ export function ReplyBrainCandidate({
   const [reviewCandidateId, setReviewCandidateId] = useState("");
   const [reviewText, setReviewText] = useState("");
   const [brainDraft, setBrainDraft] = useState("");
-  const [learningMode, setLearningMode] = useState<"send_and_learn" | "send_only">("send_and_learn");
-  const [batchSerial, setBatchSerial] = useState(0);
-  const [expanded, setExpanded] = useState(false);
+  const [reasonCandidateId, setReasonCandidateId] = useState("");
+  const [expanded, setExpanded] = useState(true);
+  const [showAllCandidates, setShowAllCandidates] = useState(false);
   const activeConversationId = conversationId || session.selectedConversationId;
   const activeContactId = contactId || session.selectedConversationContactId;
   const initialCandidateConversationRef = React.useRef("");
-
-  const strategySet = [
-    {
-      id: "easy",
-      label: "轻松接住",
-      hint: "自然、有温度，不抢节奏",
-      variant: "自然",
-      instruction: "轻松接住对方此刻的情绪和话题，让回复自然、有温度，不抢节奏。",
-    },
-    {
-      id: "curious",
-      label: "好奇引导",
-      hint: "延续话题，留一个自然入口",
-      variant: "screen",
-      instruction: "延续对方刚说的内容，用自然的好奇心把话题往前带；需要提问时最多一个问题。",
-    },
-    {
-      id: "spark",
-      label: "制造期待",
-      hint: "更有感觉，但不过界",
-      variant: "暧昧",
-      instruction: "在尊重关系边界的前提下增加一点吸引力和余味，让对方愿意继续靠近。",
-    },
-  ] as const;
+  const brainInputRef = React.useRef<HTMLInputElement | null>(null);
+  const resolveGenerationRoute = async (): Promise<{ conversationId: string; contactId: string }> => {
+    const route = { conversationId: activeConversationId.trim(), contactId: activeContactId.trim() };
+    if (route.conversationId.startsWith("matrix-room:")) {
+      throw new Error("MATRIX_DIRECT_CANONICAL_ROUTE_REQUIRED");
+    }
+    return route;
+  };
 
   const generateOne = async (
-    strategy: (typeof strategySet)[number],
     adjustment: string,
     customInstruction: string,
-    serial: number,
+    route: { conversationId: string; contactId: string },
   ): Promise<ReplyBrainCandidateProjection> => {
     const desktop = api();
-    if (!desktop?.storeGenerateReply) {
-      return generateReplyCandidate({ conversationId: activeConversationId, contactId: activeContactId });
+    if (!adjustment && !customInstruction) {
+      return withReplyGenerationTimeout(generateReplyCandidate({ conversationId: route.conversationId, contactId: route.contactId }));
     }
-    const styleWeights = adjustment === "暧昧"
-      ? { flirtation: 0.78, warmth: 0.66 }
-      : undefined;
-    const adjustmentInstruction: Record<string, string> = {
-      "更自然": "表达更自然、更像真实聊天，不要有模板感或刻意设计感。",
-      "成熟": "表达更成熟、稳重、有分寸，不说教，也不过度解释。",
-      "暧昧": "在尊重关系边界的前提下增加一点吸引力和余味，但不要越界。",
-      "少问": "减少提问；能用陈述自然承接时就不要追问，最多保留一个真正必要的问题。",
-      "别太主动": "降低主动推进感，给对方空间，不连续抛话题，也不追着要回应。",
-      "更像我": "优先贴近当前人物设定、既有表达习惯和这段关系里已经形成的说话方式。",
-    };
-    const instruction = [
-      strategy.instruction,
-      adjustmentInstruction[adjustment] || "",
-      customInstruction ? "用户这次补充：" + customInstruction : "",
-      serial > 1 ? "这是第 " + serial + " 轮候选，请换一种真实自然的表达，不要机械复述上一轮。" : "",
-    ].filter(Boolean).join("\n");
-    const payload = await desktop.storeGenerateReply({
-      conversationId: activeConversationId,
-      contactId: activeContactId,
+    if (!desktop?.storeGenerateReply) {
+      return withReplyGenerationTimeout(generateReplyCandidate({ conversationId: route.conversationId, contactId: route.contactId }));
+    }
+    const instruction = customInstruction || adjustment;
+    const payload = await withReplyGenerationTimeout(desktop.storeGenerateReply({
+      conversationId: route.conversationId,
+      contactId: route.contactId,
       source: "product-final-conversation-reply-brain",
-      performanceMode: adjustment === "深度想想" ? "deep" : "quick",
       aggregateIncoming: true,
-      director: {
-        quickAdjustment: strategy.variant,
-        instruction,
-        ...(styleWeights ? { styleWeights } : {}),
-        ...(adjustment === "更简短" ? { brevity: 0.9 } : {}),
-      },
-    });
+      director: { quickAdjustment: adjustment || undefined, instruction },
+    }));
     return replyCandidateFromPayload(payload);
   };
 
@@ -522,40 +523,41 @@ export function ReplyBrainCandidate({
     setBusy(true);
     setReviewCandidateId("");
     setReviewText("");
-    const serial = batchSerial + 1;
-    setBatchSerial(serial);
-    const next: Array<{
-      id: string;
-      label: string;
-      hint: string;
-      candidate: ReplyBrainCandidateProjection;
-    }> = [];
+    setShowAllCandidates(false);
     try {
-      for (let index = 0; index < strategySet.length; index += 1) {
-        const strategy = strategySet[index];
-        setStatus("正在生成建议 " + (index + 1) + "/" + strategySet.length);
-        try {
-          const candidate = await generateOne(strategy, adjustment, customInstruction, serial);
-          if (candidate.text && candidate.candidateId && candidate.automaticSend !== true) {
-            next.push({
-              id: strategy.id,
-              label: strategy.label,
-              hint: strategy.hint,
-              candidate,
-            });
-          }
-        } catch {
-          // Keep the other real candidates; Product does not invent fallback text.
-        }
+      const route = await resolveGenerationRoute();
+      setStatus("");
+      const candidate = await generateOne(adjustment, customInstruction, route);
+      if (candidate.text && candidate.candidateId && candidate.automaticSend !== true) {
+        setCandidates([{ id: "text", label: "文字回复", hint: "基于当前关系与语境", candidate }]);
+      } else {
+        setCandidates([]);
+        setStatus("暂未形成可用文字建议");
       }
-      setCandidates(next);
-      setStatus(next.length
-        ? "已生成 " + next.length + " 条真实候选；使用后仍由你在输入框确认发送"
-        : "没有生成可用候选；发送保持关闭");
+    } catch {
+      setCandidates([]);
+      setStatus("文字建议暂不可用；真实发送保持不变");
     } finally {
       setBusy(false);
     }
   };
+
+  React.useEffect(() => {
+    if (!actionRequest?.id) return;
+    const messageInstruction = actionRequest.messageText ? "围绕这条真实消息回复：" + actionRequest.messageText : "";
+    if (actionRequest.action === "generate" || actionRequest.action === "regenerate") void generateBatch("", messageInstruction);
+    else if (actionRequest.action === "polish") void generateBatch("更自然", messageInstruction);
+    else if (actionRequest.action === "tone") void generateBatch("成熟", messageInstruction);
+    else if (actionRequest.action === "more_like_me") void generateBatch("更像我", messageInstruction);
+    else if (actionRequest.action === "less_question") void generateBatch("少问", messageInstruction);
+    else if (actionRequest.action === "less_pushy") void generateBatch("别太主动", messageInstruction);
+    else if (actionRequest.action === "translate") setStatus("当前消息翻译由现有双语翻译能力自动处理");
+    else if (actionRequest.action === "why") { setExpanded(true); setReasonCandidateId(candidates[0]?.candidate.candidateId || ""); }
+    else if (actionRequest.action === "brain_chat") {
+      setExpanded(true); if (actionRequest.messageText) setBrainDraft("结合这条消息：" + actionRequest.messageText);
+      window.setTimeout(() => brainInputRef.current?.focus(), 0);
+    }
+  }, [actionRequest?.id]);
 
   React.useEffect(() => {
     if (!activeConversationId) {
@@ -564,6 +566,8 @@ export function ReplyBrainCandidate({
     }
     if (initialCandidateConversationRef.current === activeConversationId) return;
     initialCandidateConversationRef.current = activeConversationId;
+    setExpanded(true);
+    setShowAllCandidates(false);
     void generateBatch();
   }, [activeConversationId]);
 
@@ -595,7 +599,7 @@ export function ReplyBrainCandidate({
         candidates
           .map((item) => item.candidate)
           .filter((item) => item.candidateId && item.candidateId !== selected.candidateId)
-          .map((item) => rejectReplyCandidate(item.candidateId)),
+          .map((item) => rejectReplyCandidate(item.candidateId, "用户选择了另一条回复候选")),
       );
       setCandidates([]);
       setReviewCandidateId("");
@@ -610,11 +614,11 @@ export function ReplyBrainCandidate({
     }
   };
 
-  const rejectCandidate = async (candidateId: string): Promise<void> => {
-    if (busy || !candidateId) return;
+  const rejectCandidate = async (candidateId: string, reason = "用户明确移除这条回复候选"): Promise<void> => {
+    if (busy || !candidateId || !reason.trim()) return;
     setBusy(true);
     try {
-      await rejectReplyCandidate(candidateId);
+      await rejectReplyCandidate(candidateId, reason.trim());
       setCandidates((current) => current.filter((item) => item.candidate.candidateId !== candidateId));
       if (reviewCandidateId === candidateId) {
         setReviewCandidateId("");
@@ -638,6 +642,7 @@ export function ReplyBrainCandidate({
   };
 
   const selectedForReview = candidates.find((item) => item.candidate.candidateId === reviewCandidateId) || null;
+  const primaryCandidate = candidates[0]?.candidate || null;
 
   return (
     <section
@@ -647,56 +652,24 @@ export function ReplyBrainCandidate({
       data-expanded={expanded || undefined}
     >
       <header className="yance-reply-brain__header">
-        <div className="yance-reply-brain__summary-line">
-          <strong>言策 · 回复大脑</strong>
-          <span>{busy ? (status || "生成中…") : candidates.length ? candidates.length + " 条已生成" : "尚未生成"}</span>
-          <small className="yance-reply-brain__preview">{candidates[0]?.candidate.text || "需要时展开查看完整回复建议"}</small>
-        </div>
-        <div className="yance-reply-brain__header-actions">
-          <button type="button" onClick={() => setExpanded((value) => !value)}>{expanded ? "收起" : "展开"}</button>
-          <button type="button" disabled={busy} onClick={() => void generateBatch()}>{candidates.length ? "换一批" : "生成"}</button>
-        </div>
+        <div className="yance-reply-brain__summary-line"><strong>✨ 言策建议</strong><span>{busy ? "形成中" : primaryCandidate ? "下一步" : "待建议"}</span>
+          <div className="yance-next-interaction-brain__quick" aria-label="Next Interaction Brain"><button type="button" onClick={() => setExpanded(true)}>文字</button><button type="button" onClick={openVoice}>语音</button><button type="button" onClick={openPhoto}>照片</button></div>
+          <small className="yance-reply-brain__preview">基于最新消息和关系，推荐下一步互动方式</small></div>
+        <div className="yance-reply-brain__header-actions"><button type="button" onClick={() => setExpanded((value) => !value)}>{expanded ? "收起" : "展开"}</button>
+          {expanded ? <button type="button" className="yance-reply-brain__more" onClick={() => setShowAllCandidates((value) => !value)}>{showAllCandidates ? "收回 3 条" : "查看 5 条 ›"}</button> : null}
+          <button type="button" disabled={busy} onClick={() => void generateBatch()}>{primaryCandidate ? "换一组建议" : "生成建议"}</button></div>
       </header>
-
       {expanded ? <div className="yance-reply-brain__workbench">
       {status ? <span className="yance-reply-brain__status" role="status" aria-live="polite">{status}</span> : null}
-
-      <label className="yance-reply-brain__learning-mode">
-        <span>AI 发送后</span>
-        <select
-          value={learningMode}
-          disabled={busy}
-          onChange={(event) => setLearningMode(event.target.value === "send_only" ? "send_only" : "send_and_learn")}
-        >
-          <option value="send_and_learn">发送并学习</option>
-          <option value="send_only">仅发送 · 本次不学习</option>
-        </select>
-      </label>
-
-      {candidates.length ? <div className="yance-reply-brain__candidates" data-candidate-count={candidates.length}>
-        {candidates.map((item) => (
-          <article key={item.candidate.candidateId} className="yance-reply-brain__candidate" data-strategy={item.id} data-candidate-ready="true">
-            <header><strong>{item.label}</strong><span>{item.hint}</span></header>
-            <p>{item.candidate.text}</p>
-            {item.candidate.reasonZh ? <small>{item.candidate.reasonZh}</small> : null}
-            <footer>
-              <button type="button" disabled={busy} onClick={() => void copyCandidate(item.candidate.text)}>复制</button>
-              <button type="button" disabled={busy} onClick={() => {
-                setReviewCandidateId(item.candidate.candidateId);
-                setReviewText(item.candidate.text);
-              }}>调整</button>
-              <button type="button" disabled={busy} onClick={() => void stageCandidate(item.candidate, item.candidate.text)}>使用</button>
-              <button type="button" disabled={busy} aria-label={"移除 " + item.label} onClick={() => void rejectCandidate(item.candidate.candidateId)}>×</button>
-            </footer>
-          </article>
-        ))}
-      </div> : <div className="yance-reply-brain__empty" data-state={busy ? "loading" : "empty"} aria-live="polite">
-        <div>
-          <strong>{busy ? "正在生成真实回复建议…" : "暂时没有可用建议"}</strong>
-          <span>{busy ? "关系、记忆、目标与当前语境正在一起参与。" : "没有生成虚拟占位内容，可以重新生成真实候选。"}</span>
-        </div>
-        {!busy ? <button type="button" onClick={() => void generateBatch()}>重新生成</button> : null}
-      </div>}
+      <div className="yance-next-interaction-deck" data-card-count={showAllCandidates ? 5 : 3}>
+        <article className="yance-next-interaction-card" data-kind="text" data-ready={Boolean(primaryCandidate) || undefined}><header><strong>💬 文字回复</strong><span>基于当前关系与语境</span></header><p>{primaryCandidate?.text || (busy ? "正在形成真实回复…" : "暂未形成文字建议")}</p>
+          {primaryCandidate?.reasonZh ? <div className="yance-reply-brain__reason"><button type="button" onClick={() => setReasonCandidateId((current) => current === primaryCandidate.candidateId ? "" : primaryCandidate.candidateId)}>为什么这样回</button>{reasonCandidateId === primaryCandidate.candidateId ? <small>{primaryCandidate.reasonZh}</small> : null}</div> : null}
+          <footer><button type="button" disabled={!primaryCandidate || busy} onClick={() => primaryCandidate ? void copyCandidate(primaryCandidate.text) : undefined}>复制</button><button type="button" disabled={!primaryCandidate || busy} onClick={() => { if (!primaryCandidate) return; setReviewCandidateId(primaryCandidate.candidateId); setReviewText(primaryCandidate.text); }}>调整</button><button type="button" disabled={!primaryCandidate || busy} onClick={() => primaryCandidate ? void stageCandidate(primaryCandidate, primaryCandidate.text) : undefined}>使用这条</button></footer></article>
+        <article className="yance-next-interaction-card" data-kind="voice"><header><strong>🎙 语音回复</strong><span>使用现有语音能力</span></header><p>打开现有语音能力，录制真实语音回复。</p><footer><button type="button" onClick={openVoice}>打开语音</button></footer></article>
+        <article className="yance-next-interaction-card" data-kind="photo"><header><strong>🖼 场景照片</strong><span>使用现有图片与素材能力</span></header><p>从现有真实素材中选择照片，不生成虚假内容。</p><footer><button type="button" onClick={openPhoto}>选择照片</button></footer></article>
+        {showAllCandidates ? <article className="yance-next-interaction-card" data-kind="live"><header><strong>● Live 陪伴</strong><span>现有实时陪伴能力</span></header><p>打开现有实时陪伴入口。</p><footer><button type="button" onClick={openLive}>打开 Live</button></footer></article> : null}
+        {showAllCandidates ? <article className="yance-next-interaction-card" data-kind="file"><header><strong>▣ 文件</strong><span>Element 原生附件上传</span></header><p>继续使用成熟 Element 附件发送能力。</p><footer><button type="button" onClick={openFile}>选择文件</button></footer></article> : null}
+      </div>
 
       {selectedForReview ? <div className="yance-reply-brain__review">
         <label>
@@ -725,13 +698,25 @@ export function ReplyBrainCandidate({
         event.preventDefault();
         const instruction = brainDraft.trim();
         if (!instruction || busy) return;
+        const currentCandidateId = primaryCandidate?.candidateId || "";
         setBrainDraft("");
-        void generateBatch("", instruction);
+        void (async () => {
+          if (currentCandidateId) {
+            try {
+              await rejectReplyCandidate(currentCandidateId, instruction);
+            } catch {
+              setStatus("纠正暂未写入学习证据；当前候选保持不变");
+              return;
+            }
+          }
+          await generateBatch("", instruction);
+        })();
       }}>
         <label htmlFor={"reply-brain-chat-" + activeConversationId}>和闺蜜大脑聊聊</label>
         <div>
           <input
             id={"reply-brain-chat-" + activeConversationId}
+            ref={brainInputRef}
             value={brainDraft}
             onChange={(event) => setBrainDraft(event.target.value)}
             placeholder="例如：这句哪里不对？再自然一点，别太主动…"

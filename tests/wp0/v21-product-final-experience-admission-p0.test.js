@@ -43,33 +43,29 @@ test('Relationship World keeps real conversation primary and advanced workbench 
 test('People Home zero-data state guides users into the existing Accounts panel instead of a blank lane', () => {
   const source = people();
   const product = shell();
-  assert.match(source, /emptyPeopleHome = relationships\.length === 0 && groups\.length === 0/u);
-  assert.match(source, /这里还没有关系/u);
-  assert.match(source, /真实联系人和对话会逐步出现在这里/u);
-  assert.match(source, /连接聊天平台/u);
+  assert.match(source, /className="yance-people yance-home-dashboard"/u);
+  for (const label of ['已连接平台', '联系人总数', '今日新增消息', '待回复', '今天值得关注', '最近对话', '更多能力', '去连接平台']) {
+    assert.match(source, new RegExp(label, 'u'));
+  }
   assert.match(source, /onConnectAccounts:\s*\(\)\s*=>\s*void/u);
   assert.match(source, /onClick=\{onConnectAccounts\}/u);
   assert.match(product, /onConnectAccounts=\{\(\) => \{[\s\S]{0,420}setSettingsVisible\(true\);[\s\S]{0,220}setSettingsSection\("platforms"\)/u);
-  assert.match(source, /className="yance-v4-search"/u);
   assert.doesNotMatch(source, /示例联系人|demo relationship|mock relationship|fake relationship/iu);
 });
-test('Final People Home uses the approved desktop People + Relationship Portrait + Next Action composition', () => {
+test('Final People Home keeps the approved real-data desktop dashboard composition', () => {
   const source = people();
   const product = shell();
   const rail = product.match(/<nav className="yance-desktop-rail"[\s\S]*?<\/nav>/u)?.[0] || '';
-  assert.match(source, /className="yance-people yance-people-home yance-people-home-v4"/u);
-  assert.doesNotMatch(source, /className="yance-v4-rail"/u);
+  assert.match(source, /className="yance-people yance-home-dashboard"/u);
+  assert.match(source, /className="yance-home-hero"/u);
   assert.match(rail, />\u9996\u9875<[\s\S]*>\u5173\u7cfb\u4e16\u754c<[\s\S]*>\u8bbe\u7f6e</u);
-  assert.match(source, /className="yance-v4-contacts"/u);
-  assert.match(source, /className="yance-v4-main"/u);
-  assert.match(source, /className="yance-v4-guide"/u);
-  for (const label of ['\u8054\u7cfb\u4eba', '\u4eca\u5929\u503c\u5f97\u5173\u6ce8', '\u4eca\u65e5\u5173\u7cfb\u5bfc\u822a']) {
+  for (const label of ['继续对话', '新建对话', '今天值得关注', '最近对话', '更多能力']) {
     assert.match(source, new RegExp(label, 'u'));
   }
-  assert.match(source, /\u7ee7\u7eed .* \u7684\u5bf9\u8bdd/u);
-  assert.match(source, /\u67e5\u770b\u5173\u7cfb\u4e0a\u4e0b\u6587/u);
-  assert.match(source, /\u6211\u73b0\u5728\u6700\u5e94\u8be5\u5173\u6ce8\u8c01/u);
+  assert.match(source, /homeConversationRelationships/u);
+  assert.match(source, /onSelect\(relationship\.id\)|onContinueConversation\(relationship,/u);
   assert.doesNotMatch(source, /affection\s*score|relationship\s*score|\u4eb2\u5bc6\u5ea6\u5206\u6570/iu);
+  assert.doesNotMatch(source, /示例联系人|demo relationship|mock relationship|fake relationship/iu);
 });
 test('System settings keep mature categories while Settings v4 composes them through one deep workspace', () => {
   const source = settings();
@@ -142,19 +138,16 @@ test('Platform accounts use mature auth seams without a second OAuth or retry li
   assert.doesNotMatch(source, /!accounts\.length\s*\?/u);
 });
 
-test('Final model support keeps mature route evidence internal while Product preserves manual primary/fallback choice', () => {
+test('Final model support keeps mature route evidence internal and removes Product physical routing authority', () => {
   const source = shell();
   for (const token of ['routeEvidence', 'selectedModel', 'selectedProvider', 'logicalModel', 'costUsd', 'retryCount', 'fallbackCount']) {
     assert.equal(source.includes(token), true, 'missing mature route evidence token: ' + token);
   }
   assert.match(source, /Mature authority: backend Model Brain \/ LiteLLM remains the sole physical provider\/model\/retry\/fallback owner\./u);
-  assert.match(source, /言策会自动选择合适的模型/u);
   assert.match(source, /还没有可展示的 AI 使用记录/u);
   assert.match(source, /<details className="yance-model-advanced">/u);
-  assert.match(source, /主模型/u);
-  assert.match(source, /备用模型/u);
-  assert.match(source, /primaryDraft/u);
-  assert.match(source, /fallbackDraft/u);
+  assert.match(source, /物理模型选择、重试与故障恢复继续由现有模型服务负责/u);
+  assert.doesNotMatch(source, /primaryModelId|fallbackModelId|primaryDraft|fallbackDraft|set-task-model-policy/u);
   assert.doesNotMatch(source, />Authority<|>Model Brain<|>运行证据/u);
 });
 test('Mature Element conversation composer and post-login security remain the only physical owners', () => {
@@ -162,6 +155,7 @@ test('Mature Element conversation composer and post-login security remain the on
   const productConversation = shell();
   const composerPatch = read('upstream-patches/element-web/0016-yance-composer-accessory-slot.patch');
   const conversationPatch = read('upstream-patches/element-web/0017-yance-product-conversation-control.patch');
+  const presentationPatch = read('upstream-patches/element-web/0025-yance-product-conversation-presentation-successor.patch');
   const securityPatch = read('upstream-patches/element-web/0018-yance-post-login-security-shell.patch');
   assert.match(entry, /registerComposerAccessory/u);
   assert.doesNotMatch(entry, /createMessageComposer|replaceComposer|new\s+Composer/u);
@@ -176,6 +170,9 @@ test('Mature Element conversation composer and post-login security remain the on
   assert.match(composerPatch, /mx_MessageComposer_row/u);
   assert.match(conversationPatch, /productConversationMode/u);
   assert.match(conversationPatch, /PageTypes\.HomePage \|\| this\.props\.page_type === "yance"/u);
+  assert.match(presentationPatch, /mx_RoomView_yanceProductConversation/u);
+  assert.match(presentationPatch, /mx_MessageComposer_wrapper/u);
+  assert.match(presentationPatch, /mx_EventTile/u);
   assert.match(securityPatch, /renderPostLoginSecurity/u);
   assert.match(securityPatch, /return originalComponent\(props\)/u);
   assert.match(securityPatch, /yance-product-security-toast/u);
@@ -191,34 +188,44 @@ test('Mature Element conversation composer and post-login security remain the on
   assert.doesNotMatch(elementConfig, /"force_verification"\s*:\s*true/u);
 });
 
-test('Final Conversation matches the accepted desktop composition while mature owners retain physical authority', () => {
+test('Final Conversation matches the frozen V5 920x620 composition while mature owners retain physical authority', () => {
   const source = shell();
   const projection = read('integration/element-module/src/product-experience/ProductConversationProjection.tsx');
   const styles = css();
   assert.match(source, /renderRoomView\(session\.activeMatrixRoomId/u);
   assert.match(source, /消息、发送与安全继续由现有消息系统处理/u);
-  assert.match(styles, /YANCE_CONVERSATION_WORKSPACE_V4/u);
+  assert.match(styles, /YANCE_V5_CONVERSATION/u);
   assert.match(styles, /\[data-left-collapsed\]/u);
   assert.match(styles, /\[data-right-collapsed\]/u);
-  for (const label of ['轻松接住', '好奇引导', '制造期待', '更自然', '成熟', '暧昧', '少问', '别太主动', '更像我', '和闺蜜大脑聊聊']) {
-    assert.match(projection, new RegExp(label, 'u'));
-  }
+  for (const label of ['为什么这样回', '和闺蜜大脑聊聊']) assert.match(projection, new RegExp(label, 'u'));
+  assert.match(projection, /showAllCandidates \? 5 : 3/u);
+  assert.match(projection, /data-card-count=\{showAllCandidates \? 5 : 3\}/u);
   assert.match(projection, /storeGenerateReply/u);
   assert.match(projection, /approveReplyCandidate/u);
+  assert.match(projection, /rejectReplyCandidate\(currentCandidateId, instruction\)/u);
   assert.match(projection, /stageApprovedReply/u);
+  const experienceProjection = read('integration/element-module/src/product-experience/experienceProjection.ts');
+  assert.match(experienceProjection, /storeRejectReply\(\{ candidateId, reason: normalizedReason \}\)/u);
   assert.match(projection, /aria-label="中文译文"[\s\S]*<p>\{translatedZh\}<\/p>/u);
   assert.doesNotMatch(source + projection, /sendEvent\(|sendMessage\(|createMessageComposer|replaceComposer/u);
 });
-test('Windows main window keeps native Electron titlebar movement authority without a Product drag shim', () => {
+test('Windows Product chrome keeps Electron caption ownership while exposing a safe draggable header', () => {
   const main = electronMain();
   const styles = css();
-  assert.match(main, /titleBarStyle:\s*process\.platform === 'darwin' \? 'hiddenInset' : 'default'/u);
-  const createWindowStart = main.indexOf('function createWindow()');
-  const createWindowEnd = main.indexOf('createdWindow.center()', createWindowStart);
-  assert.ok(createWindowStart >= 0 && createWindowEnd > createWindowStart);
-  const browserWindowBlock = main.slice(createWindowStart, createWindowEnd);
-  assert.doesNotMatch(browserWindowBlock, /frame:\s*false|titleBarOverlay|setMovable\(false\)|setResizable\(false\)/u);
-  assert.doesNotMatch(styles, /-webkit-app-region\s*:/u);
+  assert.match(main, /backgroundColor:\s*'#06111D'/u);
+  assert.match(main, /titleBarStyle:\s*process\.platform === 'darwin' \? 'hiddenInset' : process\.platform === 'win32' \? 'hidden' : 'default'/u);
+  assert.match(main, /titleBarOverlay:\s*process\.platform === 'win32'/u);
+  assert.match(main, /color:\s*'#06111D'/u);
+  assert.match(main, /symbolColor:\s*'#F4F0E6'/u);
+  assert.match(main, /height:\s*48/u);
+  assert.doesNotMatch(main, /frame:\s*false|setMovable\(false\)|setResizable\(false\)/u);
+  assert.match(styles, /\.yance-product-shell:not\(\[data-conversation-surface-active\]\) > \.yance-desktop-topbar[\s\S]*-webkit-app-region:\s*drag/u);
+  assert.match(styles, /\.yance-desktop-topbar button,[\s\S]*\.yance-desktop-topbar__avatar \{ -webkit-app-region:\s*no-drag; \}/u);
+  assert.match(styles, /padding:\s*0 156px 0 18px/u);
+  assert.match(styles, /\.yance-conversation-workspace-v4__topbar[\s\S]*-webkit-app-region:\s*drag/u);
+  assert.match(styles, /\.yance-conversation-workspace-v4__top-actions[\s\S]*-webkit-app-region:\s*no-drag/u);
+  assert.match(styles, /\.yance-product-shell\[data-conversation-surface-active\] \.yance-conversation-workspace-v4__topbar \{[^}]*padding-right:\s*156px/u);
+  assert.match(styles, /@media \(max-width: 1120px\), \(max-height: 680px\)[\s\S]*padding:\s*0 156px 0 12px/u);
 });
 
 test('Product Final presentation explicitly covers focus, reduced motion and compact geometry', () => {

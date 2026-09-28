@@ -33,8 +33,7 @@ test('active Element Product keeps mature Model Brain authority while normal Pro
   assert.match(shell, /className="yance-model-advanced"/u);
   assert.doesNotMatch(shell, />Model Brain<|>LiteLLM<|>Authority<|>运行证据</u);
   assert.doesNotMatch(shell, /replyBrainScore|质量评分|成本评分|速度评分|score slider/iu);
-  assert.match(shell, /primaryModelId/u, 'final v4 keeps explicit user primary-model selection');
-  assert.match(shell, /fallbackModelId/u, 'final v4 keeps explicit user fallback selection');
+  assert.doesNotMatch(shell, /primaryModelId|fallbackModelId|set-task-model-policy/u, 'Product must not retain a second physical model route authority');
   assert.doesNotMatch(surface, /LiteLLM|Ollama|GPU|Model Brain|API Key|SHA-?256/iu);
 
   assert.match(bridge, /\/api\/r32\/models\/model-brain\/status/u);
@@ -52,8 +51,7 @@ test('active Element Product exposes cloud-model credentials without creating a 
   assert.match(shell, /saveCredential/u);
   assert.match(preload, /saveCredential/u);
   assert.doesNotMatch(shell, /replyBrainScore|质量评分|成本评分|速度评分/iu);
-  assert.match(shell, /primaryModelId/u);
-  assert.match(shell, /fallbackModelId/u);
+  assert.doesNotMatch(shell, /primaryModelId|fallbackModelId|set-task-model-policy/u);
 });
 
 test('route-draft and ranked OpenRouter presentation authorities remain retired', () => {

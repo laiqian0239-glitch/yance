@@ -422,15 +422,12 @@ class AiGateway {
       return Object.freeze({ ...projection, candidates: Object.freeze(candidates), catalog: Object.freeze(candidates) });
     }
     if (!CORE_AI_TASKS.includes(taskKey)) return projection;
-    const resolved = modelBrainUserPolicy.resolve(taskKey, state);
+    const userPolicy = modelBrainUserPolicy.read();
     const routePreference = Object.freeze({
-      mode: resolved.taskPolicy.mode,
-      primaryModelId: clean(resolved.primary?.id),
-      fallbackModelId: clean(resolved.fallback?.id),
-      fastMode: resolved.document.fastMode === true,
-      reasoningLevel: resolved.document.reasoningLevel
+      fastMode: userPolicy.fastMode === true,
+      reasoningLevel: userPolicy.reasoningLevel
     });
-    return Object.freeze({ ...projection, candidates: Object.freeze(resolved.candidates), routePreference });
+    return Object.freeze({ ...projection, routePreference });
   }
   _internalOperationAuthority() {
     const authority = this.internalOperationAuthorityProvider();
@@ -583,9 +580,7 @@ class AiGateway {
         timeoutMs: Number(effectiveOptions.timeoutMs || TASK_QUEUE_TIMEOUT_FLOORS[taskKey] || 180000),
         maxTokens: effectiveOptions.maxTokens,
         temperature: effectiveOptions.temperature,
-        json: effectiveOptions.json === true,
-        numRetries: effectiveOptions.numRetries,
-        maxFallbacks: effectiveOptions.maxFallbacks
+        json: effectiveOptions.json === true
       }
     };
     eventBus.publish('ai:job-started', { jobId, task: taskKey, modelBrain: true, logicalModel: projection.logicalModel, candidateCount: projection.candidates.length, routeMode: projection.routePreference?.mode || 'auto' });
@@ -661,9 +656,7 @@ class AiGateway {
         timeoutMs,
         maxTokens: optionSnapshot.maxTokens,
         temperature: optionSnapshot.temperature,
-        json: optionSnapshot.json === true,
-        numRetries: optionSnapshot.numRetries,
-        maxFallbacks: optionSnapshot.maxFallbacks
+        json: optionSnapshot.json === true
       })
     });
     const queued = this.queue.add(async ({ signal }) => {

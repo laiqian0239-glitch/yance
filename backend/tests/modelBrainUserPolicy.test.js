@@ -45,37 +45,27 @@ test('user policy persists reasoning level and fast routing preference', async (
   assert.ok(options.timeoutMs >= 180000);
 });
 
-test('manual policy accepts only formally qualified task-capable deployments', async () => {
-  await policy.setTaskPolicy('quick_reply', {
-    mode: 'manual', primaryModelId: 'primary', fallbackModelId: 'fallback'
-  }, state);
-  const resolved = policy.resolve('quick_reply', state);
-  assert.equal(resolved.taskPolicy.mode, 'manual');
-  assert.deepEqual(resolved.candidates.map(row => row.id), ['primary', 'fallback']);
-  assert.equal(resolved.primary.id, 'primary');
-  assert.equal(resolved.fallback.id, 'fallback');
-});
-test('manual policy rejects an untested physical model instead of bypassing qualification', async () => {
-  await assert.rejects(
-    policy.setTaskPolicy('quick_reply', { mode: 'manual', primaryModelId: 'untested' }, state),
-    error => error.code === 'MODEL_BRAIN_USER_POLICY_PRIMARY_INELIGIBLE' && error.status === 409
-  );
-});
-
-test('projected policy exposes main/fallback binding without becoming physical execution authority', () => {
+test('projected policy contains only user intent and derived eligibility, never physical route bindings', () => {
   const projected = policy.project(state);
-  assert.equal(projected.authority, 'User preference → Model Brain → LiteLLM');
-  assert.equal(projected.tasks.quick_reply.mode, 'manual');
-  assert.equal(projected.tasks.quick_reply.primaryModel.id, 'primary');
-  assert.equal(projected.tasks.quick_reply.fallbackModel.id, 'fallback');
+  assert.equal(projected.authority, 'User intent → Model Brain → LiteLLM');
+  assert.equal(projected.tasks.quick_reply.logicalModel.length > 0, true);
+  assert.equal(projected.tasks.quick_reply.eligibleModelCount, 2);
+  assert.equal('mode' in projected.tasks.quick_reply, false);
+  assert.equal('primaryModel' in projected.tasks.quick_reply, false);
+  assert.equal('fallbackModel' in projected.tasks.quick_reply, false);
+  assert.equal(typeof policy.setTaskPolicy, 'undefined');
+  assert.equal(typeof policy.resolve, 'undefined');
 });
 
-test('Model Brain worker keeps user choice inside LiteLLM Router authority', () => {
+test('Model Brain worker delegates physical selection retry and fallback to LiteLLM Router', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', '..', 'runtime', 'model-brain', 'yance_litellm_worker.py'), 'utf8');
-  assert.match(source, /routePreference/u);
+  assert.match(source, /Router\(/u);
   assert.match(source, /routing_strategy="latency-based-routing"/u);
-  assert.match(source, /fallbacks=fallbacks/u);
   assert.match(source, /router\.acompletion\(/u);
+  assert.doesNotMatch(source, /primaryModelId|fallbackModelId|fallbacks=fallbacks|max_fallbacks/u);
+  const routerConfig = source.slice(source.indexOf("router = Router("), source.indexOf("complexity = ", source.indexOf("router = Router(")));
+  assert.doesNotMatch(routerConfig, /num_retries|max_fallbacks/u);
+  assert.match(source, /"retryCount": int\(hidden\.get\("retry_count", hidden\.get\("num_retries", 0\)\)/u);
 });
 
 test('normal product execution still routes by logical task rather than accepting a physical model override', () => {

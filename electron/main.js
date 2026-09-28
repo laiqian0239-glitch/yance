@@ -3699,7 +3699,7 @@ function createWindow() {
   const hasStoredPosition = settings.windowX !== null && settings.windowY !== null
     && Number.isFinite(Number(settings.windowX)) && Number.isFinite(Number(settings.windowY));
   const targetDisplay = hasStoredPosition
-    ? screen.getDisplayMatching({ x: Number(settings.windowX), y: Number(settings.windowY), width: Math.max(1, Number(settings.windowWidth) || 1186), height: Math.max(1, Number(settings.windowHeight) || 758) })
+    ? screen.getDisplayMatching({ x: Number(settings.windowX), y: Number(settings.windowY), width: Math.max(1, Number(settings.windowWidth) || 920), height: Math.max(1, Number(settings.windowHeight) || 620) })
     : screen.getPrimaryDisplay();
   const initialBounds = resolveInitialWindowBounds(settings, targetDisplay.workArea);
   const createdWindow = new BrowserWindow({
@@ -3707,12 +3707,13 @@ function createWindow() {
     y: initialBounds.y,
     width: initialBounds.width,
     height: initialBounds.height,
-    minWidth: 980,
-    minHeight: 680,
+    minWidth: 860,
+    minHeight: 580,
     show: false,
     backgroundColor: '#06111D',
     title: STATIC_RELEASE_SOURCE.publicProductName,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : process.platform === 'win32' ? 'hidden' : 'default',
+    titleBarOverlay: process.platform === 'win32' ? { color: '#06111D', symbolColor: '#F4F0E6', height: 48 } : false,
     icon: iconPath(),
     autoHideMenuBar: true,
     webPreferences: {

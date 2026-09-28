@@ -124,8 +124,6 @@ def _router_structure_key(payload: dict[str, Any]) -> str:
         "logicalNames": _logical_names(payload),
         "catalog": [item for item in _as_list(payload.get("catalog")) if isinstance(item, dict)],
         "routerOptions": {
-            "numRetries": options.get("numRetries", 2),
-            "maxFallbacks": options.get("maxFallbacks", 5),
             "timeoutMs": options.get("timeoutMs", 180000),
         },
         "complexity": payload.get("complexity") if isinstance(payload.get("complexity"), dict) else {},
@@ -172,37 +170,20 @@ def _build_router(payload: dict[str, Any]) -> tuple[Router, str, ComplexityRoute
     credentials = payload.get("credentials") if isinstance(payload.get("credentials"), dict) else {}
     names = _logical_names(payload)
     route_preference = payload.get("routePreference") if isinstance(payload.get("routePreference"), dict) else {}
-    manual = _clean(route_preference.get("mode")).lower() == "manual"
-    primary_id = _clean(route_preference.get("primaryModelId"))
-    fallback_id = _clean(route_preference.get("fallbackModelId"))
     model_list: list[dict[str, Any]] = []
-    fallbacks: list[dict[str, list[str]]] = []
     for logical_name in names:
-        fallback_group = f"{logical_name}.__fallback"
-        fallback_added = False
         for model in catalog:
-            model_id = _clean(model.get("id"))
-            if manual and model_id not in {primary_id, fallback_id}:
-                continue
-            deployment_name = fallback_group if manual and fallback_id and model_id == fallback_id else logical_name
             ref = _clean(model.get("credentialRef"))
             credential = credentials.get(ref, {}) if ref else {}
-            model_list.append(_deployment(model, deployment_name, credential if isinstance(credential, dict) else {}))
-            if deployment_name == fallback_group:
-                fallback_added = True
-        if manual and fallback_added:
-            fallbacks.append({logical_name: [fallback_group]})
+            model_list.append(_deployment(model, logical_name, credential if isinstance(credential, dict) else {}))
 
     options = payload.get("options") if isinstance(payload.get("options"), dict) else {}
     router = Router(
         model_list=model_list,
         enable_tag_filtering=True,
         tag_filtering_match_any=False,
-        num_retries=max(0, int(options.get("numRetries", 2) or 0)),
-        max_fallbacks=max(0, int(options.get("maxFallbacks", 5) or 0)),
         timeout=max(1.0, float(options.get("timeoutMs", 180000) or 180000) / 1000.0),
         routing_strategy="latency-based-routing" if route_preference.get("fastMode") is True else "simple-shuffle",
-        fallbacks=fallbacks,
     )
     complexity = payload.get("complexity") if isinstance(payload.get("complexity"), dict) else {}
     complexity_router: ComplexityRouter | None = None

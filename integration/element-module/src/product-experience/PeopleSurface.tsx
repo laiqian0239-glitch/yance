@@ -1,14 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
+import homeHeroImage from "./assets/conversation-terrace-dusk.png?inline";
 import {
+  loadBerlinWeather,
   loadHumanTypingProjection,
   loadPersonaEffective,
   loadPlatformAccounts,
+  loadRelationshipAssistant,
   runPlatformAccountCommand,
   type PlatformAccountProjection,
 } from "./experienceProjection";
 import { playExperienceSound } from "./experienceSound";
 import type {
+  BerlinWeatherProjection,
   ConversationRef,
   GroupConversationProjection,
   RelationshipProjection,
@@ -17,6 +21,11 @@ import type {
 
 export type PeopleHomeView = "list" | "universe";
 type PeopleFilter = "all" | "facebook" | "telegram" | "whatsapp";
+
+type HomePlatformDesktopApi = {
+  getPersonalAccessStatus?: (input: { matrixOpenId: unknown }) => Promise<{ usable?: boolean; subject?: string }>;
+  onBackendState?: (callback: (state: { ready?: boolean }) => void) => (() => void) | void;
+};
 
 type PeopleSurfaceProps = {
   relationships: readonly RelationshipProjection[];
@@ -28,6 +37,7 @@ type PeopleSurfaceProps = {
   reducedMotion: boolean;
   soundMode: SoundMode;
   getMatrixUserId?: () => string;
+  getMatrixOpenIdToken?: () => Promise<{ access_token: string; token_type: string; matrix_server_name: string; expires_in: number }>;
   onViewModeChange: (view: PeopleHomeView) => void;
   onFocus: (relationshipId: string) => void;
   onSelect: (relationshipId: string) => void;
@@ -35,10 +45,59 @@ type PeopleSurfaceProps = {
   onOpenConversationWorkspace: () => void;
   onSelectGroup: (conversation: GroupConversationProjection) => void;
   onConnectAccounts: () => void;
+  onOpenPersona: () => void;
   onRefreshRelationships: () => Promise<void>;
 };
 
 type UniversePosition = { x: number; y: number; ring: number };
+type HomeCapabilityTile = { icon: string; label: string; state: string; enabled: boolean };
+
+const BERLIN_TIME_ZONE = "Europe/Berlin";
+
+function formatBerlinTime(value: Date): string {
+  return new Intl.DateTimeFormat("de-DE", {
+    timeZone: BERLIN_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(value);
+}
+
+function berlinWeatherGlyph(weather: BerlinWeatherProjection | null): string {
+  if (!weather?.available || weather.weatherCode == null) return "";
+  const code = weather.weatherCode;
+  if (code === 0) return weather.isDay === false ? "☾" : "☀";
+  if (code <= 3) return "◒";
+  if (code >= 45 && code <= 48) return "≋";
+  if (code >= 71 && code <= 77) return "✣";
+  if (code >= 95) return "ϟ";
+  return "⌁";
+}
+
+async function loadHomeCapabilityProjection(): Promise<readonly HomeCapabilityTile[]> {
+  const [typingResult, personaResult, assistantResult] = await Promise.allSettled([
+    loadHumanTypingProjection(),
+    loadPersonaEffective({ globalScopeId: "global" }),
+    loadRelationshipAssistant(""),
+  ]);
+  const typingEnabled = typingResult.status === "fulfilled"
+    && typingResult.value.available === true
+    && typingResult.value.modeLabel !== "关闭";
+  const personaEnabled = personaResult.status === "fulfilled" && personaResult.value.available === true;
+  const assistantEnabled = assistantResult.status === "fulfilled" && assistantResult.value.agentReady === true;
+  const state = (enabled: boolean, unsupported = false): string => enabled ? "已启用" : unsupported ? "待配置" : "未启用";
+  return [
+    { icon: "♡", label: "拜访提醒", state: state(false, true), enabled: false },
+    { icon: "◉", label: "记忆应用", state: state(assistantEnabled), enabled: assistantEnabled },
+    { icon: "♙", label: "热搜剪写", state: state(false, true), enabled: false },
+    { icon: "⌘", label: "关系推演", state: state(assistantEnabled), enabled: assistantEnabled },
+    { icon: "✹", label: "风格推荐", state: state(personaEnabled && assistantEnabled), enabled: personaEnabled && assistantEnabled },
+    { icon: "⌁", label: "实时优化", state: state(typingEnabled), enabled: typingEnabled },
+    { icon: "◌", label: "语音自适应", state: state(false, true), enabled: false },
+    { icon: "◔", label: "Live", state: state(false, true), enabled: false },
+    { icon: "▣", label: "圈层学习", state: state(assistantEnabled), enabled: assistantEnabled },
+  ];
+}
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/u).filter(Boolean);
@@ -50,6 +109,8 @@ function relationshipAvatar(
   renderRoomAvatar?: (roomId: string, size?: string) => React.ReactNode,
   size = "40px",
 ): React.ReactNode {
+  const avatarUrl = String(relationship.avatarUrl || "").trim();
+  if (avatarUrl) return <img src={avatarUrl} alt="" />;
   const roomId = String(relationship.matrixRoomId || "").trim();
   const roomAvatar = roomId && renderRoomAvatar ? renderRoomAvatar(roomId, size) : null;
   return roomAvatar || <span>{initials(relationship.name)}</span>;
@@ -117,6 +178,37 @@ function relationshipPlatformFilter(relationship: RelationshipProjection): Exclu
   return "";
 }
 
+type PlatformKey = Exclude<PeopleFilter, "all">;
+type HomePlatformCardKey = PlatformKey | "facebook-ads";
+
+function homePlatformGlyph(key: HomePlatformCardKey): React.ReactNode {
+  if (key === "facebook") return <svg viewBox="0 0 24 24"><path d="M14.2 8.2h2.7V4.3c-.5-.1-2.1-.2-4-.2-3.9 0-6.6 2.4-6.6 6.9v3.8H2v4.4h4.3V30h5.3V19.2H16l.7-4.4h-5.1v-3.4c0-1.3.4-2.2 2.6-2.2Z" transform="scale(.75)" fill="currentColor"/></svg>;
+  if (key === "telegram") return <svg viewBox="0 0 24 24"><path d="m3.3 11.2 16-6.2c.7-.3 1.4.2 1.1 1.3l-2.7 12.8c-.2.9-.8 1.1-1.5.7l-4.1-3-2 1.9c-.2.2-.4.4-.8.4l.3-4.2 7.6-6.9c.3-.3-.1-.5-.5-.2l-9.4 5.9-4-.9c-.9-.2-.9-.9 0-1.6Z" fill="currentColor"/></svg>;
+  if (key === "whatsapp") return <svg viewBox="0 0 24 24"><path d="M12 3.2a8.6 8.6 0 0 0-7.5 12.8L3 21l5.1-1.4A8.6 8.6 0 1 0 12 3.2Zm0 15.6c-1.3 0-2.5-.4-3.5-1l-.3-.2-3 .8.8-2.9-.2-.3A7 7 0 1 1 12 18.8Zm3.8-5.2c-.2-.1-1.2-.6-1.4-.7-.2-.1-.3-.1-.5.1l-.7.8c-.1.2-.3.2-.5.1-1.3-.7-2.2-1.6-2.8-2.9-.1-.2 0-.4.1-.5l.5-.6c.1-.2.2-.3.2-.5l-.7-1.6c-.2-.4-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.7.7-1.1 1.7-.8 2.7.4 1.8 1.5 3.4 3 4.5 1.6 1.2 3.4 2 5.3 2.1.6 0 1.7-.3 2-1.1.2-.6.2-1.1.1-1.2-.1-.2-.2-.2-.4-.3Z" fill="currentColor"/></svg>;
+  return <svg viewBox="0 0 24 24"><path d="M4 10v4h3l7 4V6L7 10H4Zm12-1.5v7a4.5 4.5 0 0 0 0-7Zm0-3v2a6.5 6.5 0 0 1 0 9v2a8.5 8.5 0 0 0 0-13Z" fill="currentColor"/></svg>;
+}
+
+function platformKey(value?: string): PlatformKey | "" {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized.includes("facebook") || normalized.includes("messenger")) return "facebook";
+  if (normalized.includes("telegram")) return "telegram";
+  if (normalized.includes("whatsapp")) return "whatsapp";
+  return "";
+}
+
+function relationshipPlatformKeys(relationship: RelationshipProjection): readonly PlatformKey[] {
+  const keys = [relationship.platform, ...relationship.conversations.map((conversation) => conversation.platform)]
+    .map((value) => platformKey(String(value || "")))
+    .filter((value): value is PlatformKey => Boolean(value));
+  return [...new Set(keys)];
+}
+
+function platformBadge(key: PlatformKey): React.ReactNode {
+  const label = key === "facebook" ? "Facebook" : key === "telegram" ? "Telegram" : "WhatsApp";
+  const glyph = key === "facebook" ? "f" : key === "telegram" ? "➤" : "◉";
+  return <span key={key} className="yance-v4-platform-badge" data-platform={key} aria-label={label} title={label}>{glyph}</span>;
+}
+
 function relationshipRecentMessage(relationship: RelationshipProjection): string {
   const blocked = new Set(
     [
@@ -159,6 +251,7 @@ export function PeopleSurface({
   reducedMotion,
   soundMode,
   getMatrixUserId,
+  getMatrixOpenIdToken,
   onViewModeChange,
   onFocus,
   onSelect,
@@ -166,6 +259,7 @@ export function PeopleSurface({
   onOpenConversationWorkspace,
   onSelectGroup,
   onConnectAccounts,
+  onOpenPersona,
   onRefreshRelationships,
 }: PeopleSurfaceProps): React.JSX.Element {
   const [filter, setFilter] = useState<PeopleFilter>("all");
@@ -180,6 +274,59 @@ export function PeopleSurface({
   const [humanTypingModeLabel, setHumanTypingModeLabel] = useState("读取中");
   const [effectivePersonaLabel, setEffectivePersonaLabel] = useState("待形成");
   const [effectivePersonaScope, setEffectivePersonaScope] = useState("待形成");
+  const [homePlatformAccounts, setHomePlatformAccounts] = useState<readonly PlatformAccountProjection[]>([]);
+  const [homeCapabilities, setHomeCapabilities] = useState<readonly HomeCapabilityTile[]>([]);
+  const [berlinNow, setBerlinNow] = useState(() => new Date());
+  const [berlinWeather, setBerlinWeather] = useState<BerlinWeatherProjection | null>(null);
+
+  useEffect(() => {
+    let timerId: number | undefined;
+    const syncClock = (): void => setBerlinNow(new Date());
+    const scheduleNextMinute = (): void => {
+      const delay = Math.max(250, 60_000 - (Date.now() % 60_000) + 25);
+      timerId = window.setTimeout(() => {
+        syncClock();
+        scheduleNextMinute();
+      }, delay);
+    };
+    const handleFocus = (): void => syncClock();
+    syncClock();
+    scheduleNextMinute();
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      if (timerId !== undefined) window.clearTimeout(timerId);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    let current = true;
+    const refreshWeather = (): void => {
+      void loadBerlinWeather()
+        .then((projection) => { if (current) setBerlinWeather(projection); })
+        .catch(() => { if (current) setBerlinWeather(null); });
+    };
+    refreshWeather();
+    window.addEventListener("focus", refreshWeather);
+    return () => {
+      current = false;
+      window.removeEventListener("focus", refreshWeather);
+    };
+  }, []);
+
+  const resolveMatrixUserId = async (): Promise<string> => {
+    const direct = getMatrixUserId?.().trim() || "";
+    if (direct) return direct;
+    const desktop = (window as unknown as { yanceDesktop?: HomePlatformDesktopApi }).yanceDesktop;
+    if (!getMatrixOpenIdToken || typeof desktop?.getPersonalAccessStatus !== "function") return "";
+    try {
+      const matrixOpenId = await getMatrixOpenIdToken();
+      const entitlement = await desktop.getPersonalAccessStatus({ matrixOpenId });
+      return entitlement.usable === true ? String(entitlement.subject || "").trim() : "";
+    } catch {
+      return "";
+    }
+  };
 
   useEffect(() => {
     let current = true;
@@ -188,6 +335,37 @@ export function PeopleSurface({
       .catch(() => { if (current) setHumanTypingModeLabel("不可用"); });
     return () => { current = false; };
   }, []);
+
+  useEffect(() => {
+    let current = true;
+    void loadHomeCapabilityProjection()
+      .then((tiles) => { if (current) setHomeCapabilities(tiles); })
+      .catch(() => { if (current) setHomeCapabilities([]); });
+    return () => { current = false; };
+  }, []);
+
+  useEffect(() => {
+    let current = true;
+    const desktop = (window as unknown as { yanceDesktop?: HomePlatformDesktopApi }).yanceDesktop;
+    const refreshHomePlatformAccounts = (): void => {
+      void resolveMatrixUserId()
+        .then((matrixUserId) => matrixUserId ? loadPlatformAccounts(matrixUserId) : [])
+        .then((accounts) => { if (current) setHomePlatformAccounts(accounts); })
+        .catch(() => { if (current) setHomePlatformAccounts([]); });
+    };
+    refreshHomePlatformAccounts();
+    const unsubscribe = desktop?.onBackendState?.((state) => {
+      if (state?.ready === true) refreshHomePlatformAccounts();
+    });
+    return () => {
+      current = false;
+      if (typeof unsubscribe === "function") unsubscribe();
+    };
+  }, [getMatrixUserId, getMatrixOpenIdToken]);
+
+  const connectedAccounts = useMemo(() => homePlatformAccounts.filter((account) => account.connectionState === "connected"), [homePlatformAccounts]);
+  const liveRelationships = relationships;
+  const homeConversationRelationships = useMemo(() => liveRelationships.filter((relationship) => relationship.conversations.some((row) => !row.archived)), [liveRelationships]);
 
   const visibleRelationships = useMemo(() => {
     const normalizedQuery = query.trim();
@@ -206,11 +384,24 @@ export function PeopleSurface({
     || focusedRelationship?.conversations[0]
     || null;
   const focusedRecentMessage = focusedRelationship ? relationshipRecentMessage(focusedRelationship) : "";
+  const focusedSummary = focusedRelationship
+    ? String(focusedIntelligence?.summary || "").trim() || (platformKey(focusedRelationship.subtitle) ? "" : String(focusedRelationship.subtitle || "").trim())
+    : "";
+  const focusedPlatformKeys = focusedRelationship ? relationshipPlatformKeys(focusedRelationship) : [];
   const platformCounts = useMemo(() => ({
     facebook: relationships.filter((row) => relationshipPlatformFilter(row) === "facebook").length,
     telegram: relationships.filter((row) => relationshipPlatformFilter(row) === "telegram").length,
     whatsapp: relationships.filter((row) => relationshipPlatformFilter(row) === "whatsapp").length,
   }), [relationships]);
+  const reminderItems = useMemo(() => {
+    if (!focusedRelationship) return [] as readonly { text: string; meta: string; tone: "gold" | "teal" | "blue" }[];
+    const items: { text: string; meta: string; tone: "gold" | "teal" | "blue" }[] = [];
+    if (focusedRelationship.unreadCount > 0) items.push({ text: focusedRelationship.name + " · " + focusedRelationship.unreadCount + " 条消息待回应", meta: relativeDate(focusedRelationship.recentAt || focusedRelationship.updatedAt), tone: "gold" });
+    if (latestEvidence?.title) items.push({ text: latestEvidence.title, meta: "最近关系时刻", tone: "teal" });
+    else if (focusedRecentMessage) items.push({ text: focusedRecentMessage, meta: "最近真实互动", tone: "teal" });
+    items.push({ text: "关系洞察 · " + (focusedIntelligence?.analysisStatusLabel || "待形成"), meta: "基于已有关系证据", tone: "blue" });
+    return items.slice(0, 3);
+  }, [focusedIntelligence?.analysisStatusLabel, focusedRecentMessage, focusedRelationship, latestEvidence?.title]);
 
   useEffect(() => {
     let current = true;
@@ -268,7 +459,7 @@ export function PeopleSurface({
     setAddContactStatus("正在读取当前真实账号连接…");
     setAddContactIdentifier("");
     try {
-      const matrixUserId = getMatrixUserId?.().trim() || "";
+      const matrixUserId = await resolveMatrixUserId();
       if (!matrixUserId) {
         setAddContactAccounts([]);
         setSelectedAddContactAccountId("");
@@ -294,7 +485,7 @@ export function PeopleSurface({
 
   const submitAddContact = async (): Promise<void> => {
     if (addContactBusy) return;
-    const matrixUserId = getMatrixUserId?.().trim() || "";
+    const matrixUserId = await resolveMatrixUserId();
     const identifier = addContactIdentifier.trim();
     if (!matrixUserId) {
       setAddContactStatus("当前账号连接尚未就绪，暂时不能定位真实直聊。");
@@ -370,7 +561,7 @@ export function PeopleSurface({
                     whileTap={reducedMotion ? undefined : { scale: 0.97 }}
                   >
                     <span id={`relationship-avatar-${relationship.id}`} className="yance-relationship-universe__node-avatar" aria-hidden="true">
-                      {relationshipAvatar(relationship, renderRoomAvatar, "42px")}
+                      {relationshipAvatar(relationship, renderRoomAvatar)}
                     </span>
                     <span className="yance-relationship-universe__node-copy">
                       <strong>{relationship.name}</strong>
@@ -409,84 +600,126 @@ export function PeopleSurface({
     );
   }
 
+  const platformCards = [
+    { key: "whatsapp", label: "WhatsApp", glyph: "◉", connected: connectedAccounts.some((account) => platformKey(account.platform) === "whatsapp") },
+    { key: "telegram", label: "Telegram", glyph: "➤", connected: connectedAccounts.some((account) => platformKey(account.platform) === "telegram") },
+    { key: "facebook", label: "Facebook", glyph: "f", connected: connectedAccounts.some((account) => platformKey(account.platform) === "facebook" && !/\bads?\b|广告/iu.test(`${account.label} ${account.authority} ${account.id}`)) },
+    { key: "facebook-ads", label: "Facebook Page", glyph: "▸", connected: connectedAccounts.some((account) => platformKey(account.platform) === "facebook" && /\bads?\b|广告/iu.test(`${account.label} ${account.authority} ${account.id}`)) },
+  ] as const;
+  const connectedPlatformCount = platformCards.filter((card) => card.connected).length;
+  const homePrimaryRelationship = liveRelationships[0] || null;
+  const homePrimaryConversation = homePrimaryRelationship?.conversations.find((row) => !row.archived)
+    || homePrimaryRelationship?.conversations[0]
+    || null;
+  const newMessageCount = liveRelationships.reduce((total, relationship) => total + Math.max(0, relationship.unreadCount || 0), 0);
+  const pendingReplyCount = liveRelationships.filter((relationship) => (relationship.unreadCount || 0) > 0).length;
+  const capabilityTiles = homeCapabilities.length ? homeCapabilities : [
+    { icon: "♡", label: "拜访提醒", state: "检测中", enabled: false },
+    { icon: "◉", label: "记忆应用", state: "检测中", enabled: false },
+    { icon: "♙", label: "热搜剪写", state: "检测中", enabled: false },
+    { icon: "⌘", label: "关系推演", state: "检测中", enabled: false },
+    { icon: "✹", label: "风格推荐", state: "检测中", enabled: false },
+    { icon: "⌁", label: "实时优化", state: "检测中", enabled: false },
+    { icon: "◌", label: "语音自适应", state: "检测中", enabled: false },
+    { icon: "◔", label: "Live", state: "检测中", enabled: false },
+    { icon: "▣", label: "圈层学习", state: "检测中", enabled: false },
+  ];
+  const enabledCapabilityCount = capabilityTiles.filter((tile) => tile.enabled).length;
+  const allCapabilitiesOnline = enabledCapabilityCount === capabilityTiles.length && capabilityTiles.length > 0;
+
   return (
-    <section className="yance-people yance-people-home yance-people-home-v4" data-empty={emptyPeopleHome || undefined} aria-label="People 首页">
-
-      <aside className="yance-v4-contacts" aria-label="联系人">
-        <header><h2>联系人</h2><div className="yance-v4-contacts__actions"><button type="button" className="yance-v4-open-conversation" onClick={() => (primaryConversation ? continueConversation() : onOpenConversationWorkspace())}>对话</button><button type="button" onClick={openAddContact}>＋ 添加联系人</button></div></header>
-        <label className="yance-v4-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="搜索联系人、平台或消息…" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="搜索联系人" /></label>
-        <div className="yance-v4-filters" aria-label="关系筛选">
-          {([["all", `全部 ${relationships.length}`], ["facebook", `Facebook ${platformCounts.facebook}`], ["telegram", `Telegram ${platformCounts.telegram}`], ["whatsapp", `WhatsApp ${platformCounts.whatsapp}`]] as const).map(([value, label]) => (
-            <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>
-          ))}
+    <section className="yance-people yance-home-dashboard" data-empty={!liveRelationships.length || undefined} aria-label="言策首页">
+      <section className="yance-home-hero" aria-label="首页欢迎区">
+        <div className="yance-home-hero__copy">
+          <img className="yance-home-hero__image" src={homeHeroImage} alt="" aria-hidden="true" />
+          <div className="yance-home-hero__temporal">
+            <strong className="yance-home-hero__time">{formatBerlinTime(berlinNow)}</strong>
+            <span className="yance-home-hero__weather">
+              {berlinWeather?.available
+                ? <>Berlin · <span aria-hidden="true">{berlinWeatherGlyph(berlinWeather)}</span>{berlinWeather.conditionLabelZh} · {Math.round(berlinWeather.temperatureC ?? 0)}°</>
+                : <>Berlin · 天气暂不可用</>}
+            </span>
+          </div>
+          <div className="yance-home-hero__actions">            <button type="button" className="yance-home-primary" onClick={() => {
+              if (homePrimaryRelationship && homePrimaryConversation) onContinueConversation(homePrimaryRelationship, homePrimaryConversation);
+              else onOpenConversationWorkspace();
+            }}><span aria-hidden="true">◯</span><strong>继续对话</strong><small>与最近联系人对话</small></button>
+            <button type="button" className="yance-home-secondary" onClick={() => void openAddContact()}><span aria-hidden="true">＋</span><strong>新建对话</strong><small>选择联系人开始</small></button>
+          </div>
+          <blockquote>好的关系<br />让人生更宽阔。<small>— Yance</small></blockquote>
         </div>
-        <div className="yance-v4-contact-list" role="list">
-          {visibleRelationships.map((relationship) => {
-            const active = relationship.id === focusedRelationship?.id;
-            const conversation = relationship.conversations.find((row) => !row.archived) || relationship.conversations[0];
-            return <motion.button key={relationship.id} type="button" role="listitem" className="yance-v4-contact" data-selected={active || undefined}
-              onClick={() => chooseFocus(relationship)} onFocus={() => onFocus(relationship.id)} whileTap={reducedMotion ? undefined : { scale: 0.985 }}>
-              <span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar, "44px")}</span>
-              <span className="yance-v4-contact__copy"><strong>{relationship.name}</strong><span>{relationship.platform || "已连接关系"} · {relativeDate(relationship.recentAt || relationship.updatedAt)}</span></span>
-              {conversation ? <span className="yance-v4-contact__action" aria-hidden="true">继续对话</span> : null}
-              {relationship.unreadCount > 0 ? <span className="yance-v4-contact__unread">{relationship.unreadCount}</span> : null}
-            </motion.button>;
-          })}
-          {!visibleRelationships.length ? <div className="yance-v4-empty" role="status"><strong>{query.trim() ? "没有匹配的真实联系人" : "这里会出现真实联系人"}</strong><span>{query.trim() ? "换一个姓名、平台或对话标识继续搜索。" : "连接平台后，已有会话会安全地投影到 People。"}</span>{!query.trim() ? <button type="button" onClick={onConnectAccounts}>连接聊天平台</button> : null}</div> : null}
-        </div>
-        {groups.length ? <details className="yance-v4-groups"><summary>群聊 · {groups.length}</summary>{groups.map((group) => <button key={group.id} type="button" onClick={() => onSelectGroup(group)}>{group.title}</button>)}</details> : null}
-      </aside>
+        <aside className="yance-home-status-card">
+          <h2><span aria-hidden="true">◎</span> 今日状态</h2>
+          <dl>
+            <div><dt>已连接平台</dt><dd>{connectedPlatformCount}/4</dd><button type="button" onClick={onConnectAccounts}>去连接</button></div>
+            <div><dt>联系人总数</dt><dd>{liveRelationships.length}</dd></div>
+            <div><dt>今日新增消息</dt><dd>{newMessageCount}</dd></div>
+            <div><dt>待回复</dt><dd>{pendingReplyCount}</dd></div>
+          </dl>
+        </aside>
+      </section>
 
-      <main className="yance-v4-main" aria-label="今天值得关注">
-        <header className="yance-v4-page-title yance-v4-page-title--compact"><div className="yance-v4-page-title__line"><h1>今天值得关注</h1><p>不是看数据，而是知道现在最值得处理哪段关系</p></div><time dateTime={new Date().toISOString().slice(0, 10)}>{new Date().toLocaleDateString()}</time></header>
-        {focusedRelationship ? <>
-          <article className="yance-v4-focus-card">
-            <div className="yance-v4-focus-card__identity"><span className="yance-v4-focus-card__avatar" aria-hidden="true">{relationshipAvatar(focusedRelationship, renderRoomAvatar, "72px")}</span><div><span>继续对话 · 当前最值得接住</span><h2>{focusedRelationship.name}</h2><p className="yance-v4-focus-card__summary">{focusedIntelligence?.summary || focusedRelationship.subtitle || "这段关系正在基于真实互动形成可靠画像。"}</p>{focusedRecentMessage ? <blockquote className="yance-v4-focus-card__message">“{focusedRecentMessage}”</blockquote> : null}</div></div>
-            <dl><div><dt>最近互动</dt><dd>{relativeDate(focusedRelationship.recentAt || focusedRelationship.updatedAt)}</dd></div><div><dt>关系状态</dt><dd>{relationshipInsightState(focusedIntelligence?.state)}</dd></div><div><dt>当前人格</dt><dd>{effectivePersonaLabel}{effectivePersonaScope !== "待形成" ? ` · ${effectivePersonaScope}` : ""}</dd></div></dl>
-            <div className="yance-v4-focus-card__next"><span>言策建议的下一步</span><strong>{focusedIntelligence?.next || "保持温度，先回应真实对话，再决定是否继续话题。"}</strong></div>
-            <div className="yance-v4-focus-card__actions"><button type="button" onClick={continueConversation} disabled={!primaryConversation}>继续 {focusedRelationship.name} 的对话</button><button type="button" onClick={enterWorld}>查看关系上下文</button></div>
-          </article>
-          <section className="yance-v4-section" aria-labelledby="yance-v4-attention"><header><h2 id="yance-v4-attention">我现在最应该关注谁</h2><span>按未完成对话、关系节奏与近期互动排序</span></header><div className="yance-v4-attention-list">
-            {visibleRelationships.slice(0, 3).map((relationship) => <button key={relationship.id} type="button" onClick={() => chooseFocus(relationship)}><span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar, "38px")}</span><span><strong>{relationship.name}</strong><small>{relationship.unreadCount ? `有 ${relationship.unreadCount} 条消息等待回应` : relationshipRecentMessage(relationship) || relationship.subtitle || "最近有真实互动"}</small></span><em>{relationship.id === focusedRelationship.id ? "当前关注" : "查看关系 ›"}</em></button>)}
-          </div></section>
-          <section className="yance-v4-section yance-v4-recent" aria-labelledby="yance-v4-recent"><header><h2 id="yance-v4-recent">最近的人</h2><span>来自现有联系人投影</span></header><div>{visibleRelationships.slice(0, 4).map((relationship) => <button key={relationship.id} type="button" onClick={() => chooseFocus(relationship)}><span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar, "38px")}</span><strong>{relationship.name}</strong><small>{relationship.platform || "真实联系人"} · {relativeDate(relationship.recentAt || relationship.updatedAt)}</small></button>)}</div></section>
-        </> : <div className="yance-v4-empty" role="status"><h2>{query.trim() ? "没有匹配的真实联系人" : "从真实关系开始"}</h2><p>{query.trim() ? "当前筛选不会生成虚构人物；换一个搜索词即可返回。" : "没有联系人时，言策不会编造演示人物或对话。"}</p>{!query.trim() ? <button type="button" onClick={onConnectAccounts}>连接聊天平台</button> : null}</div>}
-      </main>
+      <section className="yance-home-grid">
+        <article className="yance-home-card yance-home-platforms">
+          <header><span className="yance-home-card__icon" aria-hidden="true">↗</span><div><h2>平台连接</h2><p>连接社交平台，获取真实对话</p></div></header>
+          <div className="yance-home-platforms__grid">
+            {platformCards.map((card) => <div key={card.key} className="yance-home-platform" data-connected={card.connected || undefined}>
+              <span className="yance-home-platform__glyph" data-platform={card.key} aria-hidden="true">{homePlatformGlyph(card.key)}</span>
+              <strong>{card.label}</strong><small>{card.connected ? "已连接" : "未连接"}</small>
+              <button type="button" onClick={onConnectAccounts}>{card.connected ? "管理" : "连接"}</button>            </div>)}
+          </div>
+        </article>
 
-      <aside className="yance-v4-guide" aria-label="今日关系导航">
-        <header><h2>今日关系导航</h2><span>只显示需要处理的事</span></header>
-        {focusedRelationship ? <>
-          <section className="yance-v4-guide__persona"><span>当前生效人格</span><strong>{effectivePersonaLabel}</strong><p>{effectivePersonaScope} · 当前关注 {focusedRelationship.name}</p></section>
-          <section><h3>关系提醒</h3><ul>{focusedRelationship.unreadCount ? <li>有 {focusedRelationship.unreadCount} 条消息尚未回应</li> : null}<li>{latestEvidence?.title || "继续互动后会形成下一条可信关系时刻"}</li><li>关系洞察：{focusedIntelligence?.analysisStatusLabel || "待形成"}</li></ul></section>
-          <section><h3>今日目标</h3><p>{focusedIntelligence?.next || "保持关系节奏，优先处理未完成的真实对话。"}</p></section>
-          <section className="yance-v4-guide__environment"><h3>全局环境</h3><p>真人打字 · 全局：{humanTypingModeLabel}</p><p>{relationships.length} 位联系人 · {groups.length} 个群聊</p></section>
-        </> : null}
-      </aside>
+        <article className="yance-home-card yance-home-attention">
+          <header><span className="yance-home-card__icon" aria-hidden="true">☆</span><div><h2>今天值得关注</h2><p>连接账号后，将基于真实互动为你筛选重要关系</p></div></header>
+          {homeConversationRelationships.length ? (
+            <div className="yance-home-attention__rows">
+              {homeConversationRelationships.slice(0, 3).map((relationship) => <button key={relationship.id} type="button" onClick={() => chooseFocus(relationship)}>
+                <span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar)}</span>
+                <span><strong>{relationship.name}</strong><small>{relationshipRecentMessage(relationship) || relativeDate(relationship.recentAt || relationship.updatedAt)}</small></span>
+              </button>)}
+            </div>
+          ) : <div className="yance-home-empty"><span aria-hidden="true">♧</span><strong>暂无联系人</strong><p>请先连接至少一个社交平台<br />连接后将自动分析并显示今天值得关注的联系人。</p><button type="button" onClick={onConnectAccounts}>去连接平台</button></div>}
+        </article>
+
+        <article className="yance-home-card yance-home-recent">
+          <header><span className="yance-home-card__icon" aria-hidden="true">◷</span><div><h2>最近对话</h2><p>连接账号后显示真实对话记录</p></div></header>
+          {homeConversationRelationships.length ? (
+            <div className="yance-home-recent__rows">{homeConversationRelationships.slice(0, 4).map((relationship) => {
+              const conversation = relationship.conversations.find((row) => !row.archived) || relationship.conversations[0];
+              return <button key={relationship.id} type="button" disabled={!conversation} onClick={() => conversation && onContinueConversation(relationship, conversation)}>
+                <span className="yance-v4-contact__avatar" aria-hidden="true">{relationshipAvatar(relationship, renderRoomAvatar)}</span>
+                <span><strong>{relationship.name}</strong><small>{relationshipRecentMessage(relationship) || "最近有真实互动"}</small></span>
+              </button>;
+            })}</div>
+          ) : <div className="yance-home-empty"><span aria-hidden="true">▢</span><strong>暂无对话记录</strong><p>请先连接社交平台<br />连接后将在这里显示最近的对话。</p><button type="button" onClick={onConnectAccounts}>去连接平台</button></div>}
+        </article>
+        <article className="yance-home-card yance-home-capabilities">
+          <header><span className="yance-home-card__icon" aria-hidden="true">♡</span><div><h2>更多能力 <em>（{allCapabilitiesOnline ? "全部在线" : `${enabledCapabilityCount}/${capabilityTiles.length} 已启用`}）</em></h2></div><span className="yance-home-capabilities__online">● {allCapabilitiesOnline ? "全部在线" : `${enabledCapabilityCount}/${capabilityTiles.length} 已启用`} ›</span></header>
+          <div className="yance-home-capabilities__grid">
+            {capabilityTiles.map((tile) => <div key={tile.label} data-enabled={tile.enabled || undefined}><span aria-hidden="true">{tile.icon}</span><strong>{tile.label}</strong><small>{tile.state}</small></div>)}
+          </div>
+          <footer><span>更懂你，也更懂重要的人</span><strong>Yance</strong></footer>
+        </article>
+      </section>
 
       {addContactOpen ? (
         <div className="yance-v4-dialog-backdrop" onMouseDown={(event) => {
           if (event.target === event.currentTarget && !addContactBusy) setAddContactOpen(false);
         }}>
           <aside className="yance-v4-add-contact" role="dialog" aria-modal="true" aria-labelledby="yance-v4-add-contact-title">
-            <header>
-              <div><span className="yance-eyebrow">真实账号能力</span><h2 id="yance-v4-add-contact-title">添加联系人</h2></div>
-              <button type="button" onClick={() => setAddContactOpen(false)} disabled={addContactBusy} aria-label="关闭添加联系人">×</button>
-            </header>
-            <p>言策不会建立本地假联系人。提交后会通过所选平台账号定位真实会话，再刷新 People。</p>
-            {addContactLoading ? <div className="yance-v4-add-contact__loading" role="status">正在读取真实账号…</div> : (
-              <>
-                {directChatAccounts.length ? (
-                  <label className="yance-v4-field"><span>平台账号</span><select value={selectedAddContactAccountId} onChange={(event) => setSelectedAddContactAccountId(event.target.value)} disabled={addContactBusy}>
-                    {directChatAccounts.map((account) => <option key={account.id} value={account.id}>{account.label} · {account.platform || "已连接平台"}</option>)}
-                  </select></label>
-                ) : (
-                  <div className="yance-v4-add-contact__owner-empty"><strong>没有可用的真实直聊账号</strong><span>当前账号没有提供可用的真实直聊能力。</span><button type="button" onClick={onConnectAccounts}>管理账号连接</button></div>
-                )}
-                <label className="yance-v4-field"><span>联系人标识</span><input value={addContactIdentifier} onChange={(event) => setAddContactIdentifier(event.target.value)} disabled={addContactBusy || !directChatAccounts.length} placeholder="例如 Telegram 用户 ID / 平台支持的精确标识" autoComplete="off" /></label>
-                <div className="yance-v4-add-contact__status" role="status" aria-live="polite">{addContactStatus}</div>
-                <footer><button type="button" onClick={() => setAddContactOpen(false)} disabled={addContactBusy}>取消</button><button type="button" className="yance-button-primary" onClick={() => void submitAddContact()} disabled={addContactBusy || !selectedAddContactAccount || !addContactIdentifier.trim()}>{addContactBusy ? "正在定位真实会话…" : "添加并刷新 People"}</button></footer>
-              </>
-            )}
+            <header><div><span className="yance-eyebrow">真实账号能力</span><h2 id="yance-v4-add-contact-title">新建对话</h2></div><button type="button" onClick={() => setAddContactOpen(false)} disabled={addContactBusy} aria-label="关闭新建对话">×</button></header>
+            <p>言策不会建立本地假联系人。请通过真实已连接账号定位会话。</p>
+            {addContactLoading ? <div className="yance-v4-add-contact__loading" role="status">正在读取真实账号…</div> : <>
+              {directChatAccounts.length ? (
+                <label className="yance-v4-field"><span>平台账号</span><select value={selectedAddContactAccountId} onChange={(event) => setSelectedAddContactAccountId(event.target.value)} disabled={addContactBusy}>
+                  {directChatAccounts.map((account) => <option key={account.id} value={account.id}>{account.label} · {account.platform || "已连接平台"}</option>)}
+                </select></label>
+              ) : <div className="yance-v4-add-contact__owner-empty"><strong>没有可用的真实直聊账号</strong><span>请先完成平台账号连接。</span><button type="button" onClick={onConnectAccounts}>管理账号连接</button></div>}
+              <label className="yance-v4-field"><span>联系人标识</span><input value={addContactIdentifier} onChange={(event) => setAddContactIdentifier(event.target.value)} disabled={addContactBusy || !directChatAccounts.length} placeholder="输入平台支持的精确联系人标识" autoComplete="off" /></label>
+              <div className="yance-v4-add-contact__status" role="status" aria-live="polite">{addContactStatus}</div>
+              <footer><button type="button" onClick={() => setAddContactOpen(false)} disabled={addContactBusy}>取消</button><button type="button" className="yance-button-primary" onClick={() => void submitAddContact()} disabled={addContactBusy || !selectedAddContactAccount || !addContactIdentifier.trim()}>{addContactBusy ? "正在定位真实会话…" : "新建真实对话"}</button></footer>
+            </>}
           </aside>
         </div>
       ) : null}

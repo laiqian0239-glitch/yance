@@ -96,17 +96,6 @@ router.put('/model-brain/preferences', async (req, res, next) => {
     res.json({ ok: true, userPolicy: modelBrainUserPolicy.project(registry.read()) });
   } catch (error) { next(error); }
 });
-router.put('/model-brain/preferences/:task', async (req, res, next) => {
-  try {
-    await modelBrainUserPolicy.setTaskPolicy(req.params.task, {
-      mode: req.body?.mode,
-      primaryModelId: req.body?.primaryModelId,
-      fallbackModelId: req.body?.fallbackModelId
-    }, registry.read());
-    res.json({ ok: true, userPolicy: modelBrainUserPolicy.project(registry.read()) });
-  } catch (error) { next(error); }
-});
-
 router.patch('/:id/lifecycle', async (req, res, next) => {
   try {
     const model = findModel(req.params.id);
