@@ -153,7 +153,6 @@ const messagesRouter = require('./routes/messages');
 const systemRouter = require('./routes/system');
 const { releaseIdentityDocument } = systemRouter;
 const accountsRouter = require('./routes/accounts');
-const facebookAvatarImportBridge = require('./routes/facebookAvatarImportBridge');
 const ollama = require('./services/ollamaClient');
 const modelRegistry = require('./services/modelRegistry');
 const modelAutoActivation = require('./services/modelAutoActivationService');
@@ -437,9 +436,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// User-enabled, time-limited bridge for the official Business Suite avatar importer.
-// It has its own loopback/origin/rate/size gate and exposes no application session token.
-app.use('/api/bridge/facebook-avatar-import', facebookAvatarImportBridge);
 
 app.use(createR32LocalApiSecurity({
   maxJsonBytes: 2 * 1024 * 1024,

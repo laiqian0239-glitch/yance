@@ -51,9 +51,6 @@ const COMMANDS = Object.freeze({
   ACCOUNT_FACEBOOK_OAUTH_STATUS: 'account.facebook.oauth.status',
   ACCOUNT_FACEBOOK_OAUTH_CANCEL: 'account.facebook.oauth.cancel',
   ACCOUNT_FACEBOOK_AVATAR_CLOSURE_DIAGNOSE: 'account.facebook.avatarClosure.diagnose',
-  ACCOUNT_FACEBOOK_AVATAR_IMPORT_START: 'account.facebook.avatarImport.start',
-  ACCOUNT_FACEBOOK_AVATAR_IMPORT_STATUS: 'account.facebook.avatarImport.status',
-  ACCOUNT_FACEBOOK_AVATAR_IMPORT_STOP: 'account.facebook.avatarImport.stop',
   ACCOUNT_FACEBOOK_WEBHOOK_VERIFY: 'account.facebook.webhook.verify',
   ACCOUNT_FACEBOOK_WEBHOOK_HANDLE: 'account.facebook.webhook.handle',
 
@@ -90,7 +87,7 @@ const WRITE_PREFIXES = Object.freeze([
   'account.resume', 'account.logout', 'account.bindConversation', 'account.migration.import',
   'account.provisioning.login.start', 'account.provisioning.login.input', 'account.provisioning.login.wait', 'account.provisioning.login.cancel',
   'account.provisioning.directChat.ensure',
-  'account.facebook.oauth.', 'account.facebook.avatarImport.start', 'account.facebook.avatarImport.stop', 'message.send', 'message.revoke',
+  'account.facebook.oauth.', 'message.send', 'message.revoke',
   'message.presence', 'message.markRead',
   'security.saveCredential', 'security.deleteCredential', 'update.prepareInstall',
   'lifecycle.enterSafeMode', 'lifecycle.exitSafeMode', 'recovery.enterSafeMode', 'recovery.clearSafeMode',

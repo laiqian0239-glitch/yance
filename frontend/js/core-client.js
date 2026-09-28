@@ -146,8 +146,6 @@ async function accountRequest(path = '', options = {}) {
       'facebook/messenger/start':'account.facebook.messenger.start','facebook/messenger/input':'account.facebook.messenger.input',
       'facebook/messenger/wait':'account.facebook.messenger.wait','facebook/messenger/cancel':'account.facebook.messenger.cancel',
       'facebook/avatar-closure/diagnose':'account.facebook.avatarClosure.diagnose',
-      'facebook/avatar-import/session':method === 'GET' ? 'account.facebook.avatarImport.status' : 'account.facebook.avatarImport.start',
-      'facebook/avatar-import/session/stop':'account.facebook.avatarImport.stop',
       'send-text':'message.sendText'
     };
     if (!tail) name = method === 'PATCH' ? 'account.update' : method === 'DELETE' ? 'account.remove' : 'account.getRuntime';

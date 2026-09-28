@@ -44,8 +44,6 @@ const state = Object.assign({
   data: { accounts: [], summary: {}, defaults: {}, bindings: {}, audit: [], capabilityMatrix: {} },
   diagnostics: {},
   avatarDiagnostics: {},
-  avatarImportSessions: {},
-  avatarImportStatusLoading: {},
   loading: false,
   lastError: '',
   socket: null,
@@ -404,7 +402,6 @@ function renderWorkbench() {
   root.querySelectorAll('[data-tab]').forEach(button => button.onclick = () => { state.tab = button.dataset.tab; state.scrollByView ||= {}; state.scrollByView[accountCenterScrollKey(state.selectedId, state.tab)] = 0; saveLocal(); renderWorkbench(); });
   root.querySelectorAll('[data-action]').forEach(button => button.onclick = () => accountAction(button.dataset.action, account));
   renderPanel(account);
-  if (account.platform === 'facebook' && state.tab === 'diagnostics' && !state.avatarImportSessions?.[account.id]) setTimeout(() => refreshFacebookAvatarImportSession(account, true), 0);
   restoreAccountCenterScroll(account.id, state.tab);
 }
 
@@ -548,25 +545,11 @@ function avatarDiagnosticRows(report = {}) {
   }).join('');
 }
 
-function facebookAvatarImportMarkup(account) {
-  const session = state.avatarImportSessions?.[account.id] || { active:false };
-  const preview = session.preview || {};
-  const reconciliation = session.reconciliation || {};
-  const imported = session.imported || {};
-  const active = session.active === true;
-  return `<article class="ac32-section wide"><header><h3>言策网页伴侣 · Facebook</h3><span>头像补全 · 增量扫描 · 会话差异预览</span></header><div class="ac32-section-body">
-    <div class="ac32-hint ${htmlAttr(active?'':'warn')}">${active?`网页伴侣窗口已开启。到 Meta Business Suite 收件箱点击“言策网页伴侣”，扩展会自动滚动当前联系人列表，对比头像和最近消息摘要，只导入新增或变化头像。窗口将在 ${htmlText(fmtDate(session.expiresAt))} 到期。`:'首次使用请运行材料包中的 INSTALL_FACEBOOK_AVATAR_IMPORTER.cmd 安装扩展，然后在这里开启 10 分钟网页伴侣窗口。扩展只处理你主动扫描到的网页可见内容，不读取登录凭据，也不会直接把网页消息写入数据库。'}</div>
-    <div class="ac32-health" style="margin-top:10px"><article><span>伴侣窗口</span><b>${htmlText(active?'已开启':'未开启')}</b></article><article><span>扩展连接</span><b>${htmlText(session.extensionConnected?'已连接':active?'等待连接':'未连接')}</b></article><article><span>扫描</span><b>${htmlText(preview.scanned||0)}</b></article><article><span>新增头像</span><b>${htmlText(preview.new||0)}</b></article><article><span>头像变化</span><b>${htmlText(preview.changed||0)}</b></article><article><span>无需更新</span><b>${htmlText(preview.unchanged||0)}</b></article><article><span>潜在新会话</span><b>${htmlText(reconciliation.potentialNewConversations||preview.unmatched||0)}</b></article><article><span>消息摘要差异</span><b>${htmlText(reconciliation.messagePreviewDifferences||0)}</b></article><article><span>歧义</span><b>${htmlText(preview.ambiguous||0)}</b></article><article><span>累计导入</span><b>${htmlText(imported.imported||0)}</b></article><article><span>跳过</span><b>${htmlText(imported.skipped||0)}</b></article><article><span>失败</span><b>${htmlText(imported.failed||0)}</b></article></div>
-    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px"><button class="ac32-button primary" data-panel-action="facebook-avatar-import-start">${htmlText(active?'延长网页伴侣窗口':'开启网页伴侣')}</button><button class="ac32-button" data-panel-action="facebook-avatar-import-refresh">刷新伴侣状态</button>${active?'<button class="ac32-button danger" data-panel-action="facebook-avatar-import-stop">关闭网页伴侣窗口</button>':''}</div>
-    <div class="ac32-hint" style="margin-top:10px"><b>数据治理：</b>头像写入本地缓存和 SQLite，并记录网页来源、导入时间、匹配依据与用户确认状态；网页最近消息仅用于差异预览，正式消息仍由 Meta API / Worker 对账确认。</div>
-  </div></article>`;
-}
-
 function renderDiagnostics(account) {
   const report = state.diagnostics[account.id];
   const avatar = state.avatarDiagnostics[account.id];
   const baseMarkup = `<article class="ac32-section wide"><header><h3>账号健康诊断</h3><span>凭据、平台、会话、收发、通知和路由</span></header><div class="ac32-section-body"><div style="display:flex;gap:7px;margin-bottom:10px"><button class="ac32-button primary" data-panel-action="diagnose">运行真实诊断</button><button class="ac32-button" data-panel-action="connect">先连接再诊断</button></div>${report?`<div class="ac32-health"><article><span>健康等级</span><b>${htmlText(report.health)}</b></article><article><span>通过</span><b>${htmlText(report.pass)}</b></article><article><span>需处理</span><b>${htmlText(report.fail)}</b></article><article><span>平台</span><b>${htmlText(platformInfo(report.platform).label)}</b></article><article><span>检测时间</span><b>${htmlText(new Date(report.at).toLocaleTimeString('zh-CN',{hour12:false}))}</b></article></div><div class="ac32-diagnostic-list" style="margin-top:9px">${report.tests.map(test=>`<article class="ac32-diagnostic-row ${htmlAttr(test.pass?'':'fail')}"><i>${htmlText(test.pass?'✓':'×')}</i><div><b>${htmlText(test.name)}</b><p>${htmlText(test.detail)}</p></div><em>${htmlText(test.pass?'通过':'失败')}</em></article>`).join('')}</div>`:'<div class="ac32-empty ui-empty-state-fill"><b>尚未运行诊断</b><p>诊断会真实检查凭据、平台服务、登录会话、接收、发送、同步、通知和会话路由。</p></div>'}</div></article>`;
-  const facebook = account.platform === 'facebook' ? `<article class="ac32-section wide"><header><h3>Facebook Avatar Closure 专项诊断</h3><span>身份 → Worker → 图片字节 → SQLite → 本地缓存</span></header><div class="ac32-section-body"><div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px"><button class="ac32-button primary" data-panel-action="facebook-avatar-diagnose">诊断并生成证据</button>${avatar?'<button class="ac32-button" data-panel-action="facebook-avatar-export">导出本次证据</button>':''}</div>${avatar?`<div class="ac32-health"><article><span>公共主页头像</span><b>${htmlText(avatar.worker?.pageProbe?.ok?'正常':'失败')}</b></article><article><span>联系人身份</span><b>${htmlText(`${avatar.summary?.identityResolved||0}/${avatar.summary?.conversationsScanned||0} 已解析`)}</b></article><article><span>联系人头像访问</span><b>${htmlText(avatar.summary?.contactAvatarCapability==='meta-access-denied'?'Meta 拒绝':avatar.summary?.contactAvatarCapability==='meta-api-unavailable'?'Meta 不支持':avatar.summary?.contactAvatarCapability==='ready'?'正常':'降级')}</b></article><article><span>Worker返回头像</span><b>${htmlText(avatar.summary?.workerAvatarReady||0)}</b></article><article><span>SQLite有头像</span><b>${htmlText(avatar.summary?.sqliteAvatarPresent||0)}</b></article><article><span>本地缓存有效</span><b>${htmlText(avatar.summary?.localCacheValid||0)}</b></article><article><span>完整通过</span><b>${htmlText(avatar.summary?.fullyReady||0)}</b></article><article><span>身份不一致</span><b>${htmlText(avatar.summary?.persistedIdentityDiffers||0)}</b></article></div><div class="ac32-hint ${htmlAttr(avatar.summary?.contactAvatarCapability==='ready'?'':'bad')}" style="margin-top:9px">消息收发与公共主页头像可正常时，联系人头像仍可能被 Meta 单独限制。当前：Worker 合同 ${htmlText(avatar.worker?.publicHealth?.contract?.version??'未返回')} · 签名 ${htmlText(avatar.worker?.signedHealth?.ok?'通过':avatar.worker?.signedHealth?.error||'失败')} · 联系人头像 ${htmlText(avatar.summary?.contactAvatarCapability==='meta-access-denied'?'Meta missing_permission；重新连接通常无效':avatar.summary?.contactAvatarCapability==='meta-api-unavailable'?'Meta unsupported_get；不再自动重试':avatar.summary?.contactAvatarCapability||'未判定')}</div>${avatar.summary?.contactAvatarCapability==='meta-access-denied'?'<div class="ac32-hint warn" style="margin-top:9px"><b>账号不是整体失效：</b>消息收发、历史、公共主页头像与联系人头像访问必须分开判断。请检查 Meta 应用 Advanced Access、业务验证及当前 Graph 联系人资料接口。</div>':avatar.summary?.contactAvatarCapability==='meta-api-unavailable'?'<div class="ac32-hint warn" style="margin-top:9px"><b>确定性限制：</b>Meta 对当前联系人身份返回 unsupported_get。言策不会自动重复请求，也不会清空已有历史头像；只有人工诊断会再次探测。</div>':''}<div class="ac32-diagnostic-list" style="margin-top:9px">${avatarDiagnosticRows(avatar)}</div>`:'<div class="ac32-empty ui-empty-state-fill"><b>尚未采集头像专项证据</b><p>该诊断会使用本机设备签名真实请求生产 Worker，但不会写入头像、不会改数据库，也不会导出 Token、Cookie、完整 PSID 或凭据。</p></div>'}</div></article>${facebookAvatarImportMarkup(account)}` : '';
+  const facebook = account.platform === 'facebook' ? `<article class="ac32-section wide"><header><h3>Facebook Avatar Closure 专项诊断</h3><span>身份 → Worker → 图片字节 → SQLite → 本地缓存</span></header><div class="ac32-section-body"><div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px"><button class="ac32-button primary" data-panel-action="facebook-avatar-diagnose">诊断并生成证据</button>${avatar?'<button class="ac32-button" data-panel-action="facebook-avatar-export">导出本次证据</button>':''}</div>${avatar?`<div class="ac32-health"><article><span>公共主页头像</span><b>${htmlText(avatar.worker?.pageProbe?.ok?'正常':'失败')}</b></article><article><span>联系人身份</span><b>${htmlText(`${avatar.summary?.identityResolved||0}/${avatar.summary?.conversationsScanned||0} 已解析`)}</b></article><article><span>联系人头像访问</span><b>${htmlText(avatar.summary?.contactAvatarCapability==='meta-access-denied'?'Meta 拒绝':avatar.summary?.contactAvatarCapability==='meta-api-unavailable'?'Meta 不支持':avatar.summary?.contactAvatarCapability==='ready'?'正常':'降级')}</b></article><article><span>Worker返回头像</span><b>${htmlText(avatar.summary?.workerAvatarReady||0)}</b></article><article><span>SQLite有头像</span><b>${htmlText(avatar.summary?.sqliteAvatarPresent||0)}</b></article><article><span>本地缓存有效</span><b>${htmlText(avatar.summary?.localCacheValid||0)}</b></article><article><span>完整通过</span><b>${htmlText(avatar.summary?.fullyReady||0)}</b></article><article><span>身份不一致</span><b>${htmlText(avatar.summary?.persistedIdentityDiffers||0)}</b></article></div><div class="ac32-hint ${htmlAttr(avatar.summary?.contactAvatarCapability==='ready'?'':'bad')}" style="margin-top:9px">消息收发与公共主页头像可正常时，联系人头像仍可能被 Meta 单独限制。当前：Worker 合同 ${htmlText(avatar.worker?.publicHealth?.contract?.version??'未返回')} · 签名 ${htmlText(avatar.worker?.signedHealth?.ok?'通过':avatar.worker?.signedHealth?.error||'失败')} · 联系人头像 ${htmlText(avatar.summary?.contactAvatarCapability==='meta-access-denied'?'Meta missing_permission；重新连接通常无效':avatar.summary?.contactAvatarCapability==='meta-api-unavailable'?'Meta unsupported_get；不再自动重试':avatar.summary?.contactAvatarCapability||'未判定')}</div>${avatar.summary?.contactAvatarCapability==='meta-access-denied'?'<div class="ac32-hint warn" style="margin-top:9px"><b>账号不是整体失效：</b>消息收发、历史、公共主页头像与联系人头像访问必须分开判断。请检查 Meta 应用 Advanced Access、业务验证及当前 Graph 联系人资料接口。</div>':avatar.summary?.contactAvatarCapability==='meta-api-unavailable'?'<div class="ac32-hint warn" style="margin-top:9px"><b>确定性限制：</b>Meta 对当前联系人身份返回 unsupported_get。言策不会自动重复请求，也不会清空已有历史头像；只有人工诊断会再次探测。</div>':''}<div class="ac32-diagnostic-list" style="margin-top:9px">${avatarDiagnosticRows(avatar)}</div>`:'<div class="ac32-empty ui-empty-state-fill"><b>尚未采集头像专项证据</b><p>该诊断会使用本机设备签名真实请求生产 Worker，但不会写入头像、不会改数据库，也不会导出 Token、Cookie、完整 PSID 或凭据。</p></div>'}</div></article>` : '';
   return `<div class="ac32-grid">${baseMarkup}${facebook}</div>`;
 }
 
@@ -576,10 +559,6 @@ function accountAuditActionLabel(action = '') {
     'account-connect': '账号连接完成',
     'account-updated': '账号资料已更新',
     'facebook-avatar-closure-diagnosed': 'Facebook 头像专项诊断完成',
-    'facebook-business-suite-avatar-import-session-started': 'Facebook 网页伴侣窗口已开启',
-    'facebook-business-suite-avatar-import-session-stopped': 'Facebook 网页伴侣窗口已关闭',
-    'facebook-business-suite-avatar-import-completed': 'Facebook 网页伴侣头像补全完成',
-    'facebook-web-companion-preview-completed': 'Facebook 网页伴侣对账预览完成',
     'account-reconnect': '账号重新连接',
     'account-logout': '账号已退出',
     'account-created': '账号已创建',
@@ -592,8 +571,6 @@ function accountAuditSummary(row = {}, account = {}) {
   if (row.action === 'account-connect' || row.action === 'account-reconnect') return `连接结果：${detail.resultState || detail.state || '已完成'} · ${platformInfo(detail.platform || account.platform).label}`;
   if (row.action === 'account-updated') return `更新内容：${Array.isArray(detail.fields) ? detail.fields.join('、') : '账号资料'}`;
   if (row.action === 'facebook-avatar-closure-diagnosed') return `扫描会话 ${detail.conversationsScanned ?? 0} · 身份解析 ${detail.identityResolved ?? 0} · Worker 返回头像 ${detail.workerAvatarReady ?? 0} · 完整通过 ${detail.fullyReady ?? 0}`;
-  if (row.action === 'facebook-business-suite-avatar-import-completed') return `导入 ${detail.imported ?? 0} · 跳过 ${detail.skipped ?? 0} · 失败 ${detail.failed ?? 0}`;
-  if (row.action === 'facebook-web-companion-preview-completed') return `扫描 ${detail.scanned ?? 0} · 新增头像 ${detail.new ?? 0} · 头像变化 ${detail.changed ?? 0} · 潜在新会话 ${detail.potentialNewConversations ?? 0} · 消息摘要差异 ${detail.messagePreviewDifferences ?? 0}`;
   return `${account.displayName || platformInfo(account.platform).label} · 操作已记录`;
 }
 function renderHistory(account) {
@@ -704,9 +681,6 @@ async function panelAction(action, account) {
   if (action === 'facebook-sync-now') return mutate(`/${encodeURIComponent(account.id)}/sync`, 'POST', {}, '正在读取 Meta Business Suite 最近会话并执行对账…');
   if (action === 'facebook-avatar-diagnose') return runFacebookAvatarDiagnostics(account);
   if (action === 'facebook-avatar-export') return exportFacebookAvatarDiagnostics(account);
-  if (action === 'facebook-avatar-import-start') return startFacebookAvatarImportSession(account);
-  if (action === 'facebook-avatar-import-refresh') return refreshFacebookAvatarImportSession(account, true);
-  if (action === 'facebook-avatar-import-stop') return stopFacebookAvatarImportSession(account);
   if (action === 'save-notifications') return saveNotificationSettings(account);
   if (action === 'test-notification') return testNotification(account);
 }
@@ -892,42 +866,6 @@ function exportFacebookAvatarDiagnostics(account) {
   link.download = `Yance-Facebook-Avatar-Closure-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
   link.style.display='none'; document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
   toast('Facebook 头像专项证据已导出');
-}
-
-async function refreshFacebookAvatarImportSession(account, rerender = false) {
-  if (!account || account.platform !== 'facebook') return null;
-  state.avatarImportStatusLoading ||= {};
-  if (state.avatarImportStatusLoading[account.id]) return state.avatarImportSessions?.[account.id] || null;
-  state.avatarImportStatusLoading[account.id] = true;
-  try {
-    const data = await api(`/${encodeURIComponent(account.id)}/facebook/avatar-import/session`);
-    state.avatarImportSessions ||= {};
-    state.avatarImportSessions[account.id] = data.session || { active:false };
-    if (rerender && state.view && state.selectedId === account.id && state.tab === 'diagnostics') renderPanel(accountById(account.id) || account);
-    return data.session;
-  } catch (error) {
-    if (rerender) toast(error.message || '读取 Facebook 网页伴侣状态失败', 'error');
-    return null;
-  } finally { state.avatarImportStatusLoading[account.id] = false; }
-}
-async function startFacebookAvatarImportSession(account) {
-  try {
-    toast('正在开启 10 分钟 Facebook 网页伴侣窗口…', 'warning');
-    const data = await api(`/${encodeURIComponent(account.id)}/facebook/avatar-import/session`, { method:'POST', body:{} });
-    state.avatarImportSessions ||= {};
-    state.avatarImportSessions[account.id] = data.session;
-    renderPanel(account);
-    toast('网页伴侣已开启，请到 Business Suite 点击“言策网页伴侣”');
-  } catch (error) { toast(error.message || '开启导入窗口失败', 'error'); }
-}
-async function stopFacebookAvatarImportSession(account) {
-  try {
-    const data = await api(`/${encodeURIComponent(account.id)}/facebook/avatar-import/session/stop`, { method:'POST', body:{} });
-    state.avatarImportSessions ||= {};
-    state.avatarImportSessions[account.id] = data.session || { active:false };
-    renderPanel(account);
-    toast('Facebook 网页伴侣窗口已关闭');
-  } catch (error) { toast(error.message || '关闭导入窗口失败', 'error'); }
 }
 
 async function startTelegramQr(account) {

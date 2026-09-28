@@ -31,16 +31,15 @@ test('runtime bootstrap records current commercial product artifacts and makes t
     write(root, 'frontend/assets/sounds/message.wav', 'sound');
     write(root, 'backend/persona/presets/yeonhee-kim-v1.json', JSON.stringify({ profileId: 'owner' }));
     for (const file of ['facebookAdapter.js', 'platformDriverRegistry.js', 'mautrixProvisioningAdapter.js', 'platformCapabilities.js', 'platformMessagingService.js']) write(root, `backend/services/${file}`, file);
-    write(root, 'tools/facebook-business-suite-avatar-importer/manifest.json', JSON.stringify({ version: '1.1.0' }));
     const fakeModels = {
       read: () => ({ models: [{ id: 'm1', provider: 'openrouter', name: 'model', qualification: 'verified', allowedTasks: ['director'] }], routes: { director: { enabled: true, primaryModelId: 'm1', fallbackModelId: '' } } })
     };
     const service = new RuntimeArtifactBootstrapService({ registry, root, cacheRoot, modelRegistry: fakeModels, logger: { warn() {} } });
     const first = await service.bootstrap();
     assert.equal(first.ok, true);
-    assert.equal(first.registered.length, 8);
+    assert.equal(first.registered.length, 7);
     assert.deepEqual(Object.keys(registry.snapshot().current).sort(), [
-      'ai-routing', 'application', 'facebook-web-companion', 'frontend-static', 'notification-sound-catalog', 'persona-assets', 'platform-adapter', 'theme-catalog'
+      'ai-routing', 'application', 'frontend-static', 'notification-sound-catalog', 'persona-assets', 'platform-adapter', 'theme-catalog'
     ]);
     assert.deepEqual(registry.snapshot().lastKnownGood, {});
     const platformArtifact = registry.snapshot().current['platform-adapter'];

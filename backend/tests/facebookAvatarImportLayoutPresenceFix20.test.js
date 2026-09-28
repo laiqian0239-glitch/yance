@@ -8,12 +8,6 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 
-test('account core client maps Business Suite avatar import session commands', () => {
-  const source = read('frontend/js/core-client.js');
-  assert.match(source, /'facebook\/avatar-import\/session':method === 'GET' \? 'account\.facebook\.avatarImport\.status' : 'account\.facebook\.avatarImport\.start'/u);
-  assert.match(source, /'facebook\/avatar-import\/session\/stop':'account\.facebook\.avatarImport\.stop'/u);
-});
-
 test('conversation header grows with wrapped route controls instead of clipping content', () => {
   const css = read('frontend/r32-conversation-center-v2.css');
   assert.match(css, /\.chat\{grid-template-rows:minmax\(72px,auto\) minmax\(0,1fr\) auto/u);

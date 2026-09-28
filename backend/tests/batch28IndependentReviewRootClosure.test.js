@@ -404,9 +404,6 @@ test('B28-P0-15 every AccountManager auth/reconcile operation receives the autho
     beginFacebookOAuth: (...args) => record('beginFacebookOAuth', args), pollFacebookOAuth: (...args) => record('pollFacebookOAuth', args),
     cancelFacebookOAuth: (...args) => record('cancelFacebookOAuth', args),
     sync: (...args) => record('sync', args),
-    startFacebookBusinessSuiteAvatarImport: (...args) => record('startFacebookBusinessSuiteAvatarImport', args),
-    getFacebookBusinessSuiteAvatarImportStatus: (...args) => record('getFacebookBusinessSuiteAvatarImportStatus', args),
-    stopFacebookBusinessSuiteAvatarImport: (...args) => record('stopFacebookBusinessSuiteAvatarImport', args),
     diagnoseFacebookAvatarClosure: (...args) => record('diagnoseFacebookAvatarClosure', args)
   };
   const auth = createAccountManagerAuthHandler(() => manager);
@@ -427,12 +424,9 @@ test('B28-P0-15 every AccountManager auth/reconcile operation receives the autho
 
   const reconcile = createAccountManagerReconcileHandler(() => manager);
   await reconcile({ ...base, operation: 'sync' });
-  await reconcile({ ...base, operation: 'facebook.avatar-import.start' });
-  await reconcile({ ...base, operation: 'facebook.avatar-import.status' });
-  await reconcile({ ...base, operation: 'facebook.avatar-import.stop' });
   await reconcile({ ...base, operation: 'facebook.avatar-closure.diagnose', limit: 4 });
 
-  assert.equal(calls.length, 18);
+  assert.equal(calls.length, 15);
   for (const call of calls) {
     const options = [...call.args].reverse().find(value => value && typeof value === 'object' && !Array.isArray(value) && ('signal' in value || 'operationGeneration' in value));
     assert.ok(options, `${call.name} must receive operation options`);

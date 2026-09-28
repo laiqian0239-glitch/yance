@@ -20,7 +20,6 @@ const platformAuthConfig = require('./platformAuthConfig');
 const authChallenges = require('./authChallengeService');
 const { buildAccountSummary } = require('./accountSummaryProjection');
 const { evaluateAccountDiagnostic } = require('./accountDiagnosticPolicy');
-const facebookBusinessSuiteAvatarImport = require('./facebookBusinessSuiteAvatarImportService');
 const platformDeliveryAuthority = require('./platformDeliveryAuthority').singleton;
 const accountLifecycleSaga = require('./accountLifecycleSagaService').singleton;
 
@@ -1255,24 +1254,6 @@ class AccountManager {
     return { recorded: true, conversation: updated };
   }
 
-  startFacebookBusinessSuiteAvatarImport(id, options = {}) {
-    assertOperationActive(options.signal, 'FACEBOOK_AVATAR_IMPORT_START_ABORTED');
-    const result = facebookBusinessSuiteAvatarImport.start(id);
-    assertOperationActive(options.signal, 'FACEBOOK_AVATAR_IMPORT_START_ABORTED');
-    return result;
-  }
-
-  getFacebookBusinessSuiteAvatarImportStatus(id, options = {}) {
-    assertOperationActive(options.signal, 'FACEBOOK_AVATAR_IMPORT_STATUS_ABORTED');
-    return facebookBusinessSuiteAvatarImport.statusForAccount(id);
-  }
-
-  stopFacebookBusinessSuiteAvatarImport(id, options = {}) {
-    assertOperationActive(options.signal, 'FACEBOOK_AVATAR_IMPORT_STOP_ABORTED');
-    const result = facebookBusinessSuiteAvatarImport.stop(id);
-    assertOperationActive(options.signal, 'FACEBOOK_AVATAR_IMPORT_STOP_ABORTED');
-    return result;
-  }
 
   async diagnoseFacebookAvatarClosure(id, options = {}) {
     const account = accountStore.get(id);

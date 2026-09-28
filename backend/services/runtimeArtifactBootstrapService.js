@@ -132,7 +132,6 @@ class RuntimeArtifactBootstrapService {
       { type: 'application', rootPath: releaseFile, version, releaseId, critical: true, source: 'verified-release-manifest' },
       { type: 'frontend-static', rootPath: path.join(root, 'frontend'), version, releaseId, critical: true, source: 'runtime-source' },
       { type: 'platform-adapter', rootPath: adapterManifest, version, releaseId, critical: true, source: 'generated-runtime-manifest' },
-      { type: 'facebook-web-companion', rootPath: path.join(root, 'tools', 'facebook-business-suite-avatar-importer'), version, releaseId, critical: false, source: 'runtime-source' },
       { type: 'ai-routing', rootPath: modelBrainManifest, version, releaseId, critical: true, source: 'generated-model-brain-snapshot' },
       { type: 'persona-assets', rootPath: path.join(root, 'backend', 'persona', 'presets'), version, releaseId, critical: true, source: 'runtime-source' },
       { type: 'theme-catalog', rootPath: path.join(root, 'frontend', 'theme-catalog.json'), version, releaseId, critical: true, source: 'runtime-source' },

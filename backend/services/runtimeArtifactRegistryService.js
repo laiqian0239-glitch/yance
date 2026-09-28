@@ -5,7 +5,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const ARTIFACT_TYPES = Object.freeze([
-  'application', 'frontend-static', 'platform-adapter', 'facebook-web-companion',
+  'application', 'frontend-static', 'platform-adapter',
   'ai-routing', 'persona-assets', 'theme-catalog', 'notification-sound-catalog'
 ]);
 
@@ -184,7 +184,7 @@ class RuntimeArtifactRegistryService {
       const previous = object(document.current)[candidate.type] || null;
       document.current = { ...object(document.current), [candidate.type]: { ...candidate, status: 'current', promotedAt: timestamp, health } };
       if (previous) document.lastKnownGood = { ...object(document.lastKnownGood), [candidate.type]: { ...previous, status: 'last-known-good', markedAt: timestamp } };
-      document.pendingApply = { ...object(document.pendingApply), [candidate.type]: { artifactId: candidate.artifactId, action: 'activate', requestedAt: timestamp, requiresRestart: ['application', 'frontend-static', 'platform-adapter', 'facebook-web-companion'].includes(candidate.type) } };
+      document.pendingApply = { ...object(document.pendingApply), [candidate.type]: { artifactId: candidate.artifactId, action: 'activate', requestedAt: timestamp, requiresRestart: ['application', 'frontend-static', 'platform-adapter'].includes(candidate.type) } };
       document.history = [{ action: 'candidate-promoted', artifactId: id, type: candidate.type, previousArtifactId: previous?.artifactId || '', at: timestamp, health }, ...array(document.history)].slice(0, 500);
       return document;
     });
@@ -204,7 +204,7 @@ class RuntimeArtifactRegistryService {
       if (verification.sha256 !== fallback.sha256) throw Object.assign(new Error('Last-known-good artifact failed hash verification'), { code: 'ARTIFACT_LKG_HASH_MISMATCH' });
       const previous = object(document.current)[target] || null;
       document.current = { ...object(document.current), [target]: { ...fallback, status: 'current', rolledBackAt: timestamp, rollbackReason: clean(options.reason || 'capability-health-failed') } };
-      document.pendingApply = { ...object(document.pendingApply), [target]: { artifactId: fallback.artifactId, action: 'rollback', requestedAt: timestamp, requiresRestart: ['application', 'frontend-static', 'platform-adapter', 'facebook-web-companion'].includes(target) } };
+      document.pendingApply = { ...object(document.pendingApply), [target]: { artifactId: fallback.artifactId, action: 'rollback', requestedAt: timestamp, requiresRestart: ['application', 'frontend-static', 'platform-adapter'].includes(target) } };
       document.history = [{ action: 'artifact-rollback', type: target, fromArtifactId: previous?.artifactId || '', artifactId: fallback.artifactId, reason: clean(options.reason), at: timestamp }, ...array(document.history)].slice(0, 500);
       return document;
     });

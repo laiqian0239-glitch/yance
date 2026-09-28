@@ -81,9 +81,6 @@ class AccountContext {
       const accountId = clean(request.accountId);
       switch (operation) {
         case 'sync': return this.accountManager.sync(accountId, { ...physicalOperationOptions(request), matrixUserId: clean(request.matrixUserId), executionGeneration: request.operationGeneration });
-        case 'facebook.avatar-import.start': return { session: this.accountManager.startFacebookBusinessSuiteAvatarImport(accountId, physicalOperationOptions(request)) };
-        case 'facebook.avatar-import.status': return { session: this.accountManager.getFacebookBusinessSuiteAvatarImportStatus(accountId, physicalOperationOptions(request)) };
-        case 'facebook.avatar-import.stop': return { session: this.accountManager.stopFacebookBusinessSuiteAvatarImport(accountId, physicalOperationOptions(request)) };
         case 'facebook.avatar-closure.diagnose': return { report: await this.accountManager.diagnoseFacebookAvatarClosure(accountId, { limit: request.limit, ...physicalOperationOptions(request) }) };
         default: throw new CoreError('PLATFORM_RECONCILE_OPERATION_UNSUPPORTED', `ReconcilePort 不支持操作：${operation}`, { status: 404 });
       }
@@ -246,9 +243,6 @@ class AccountContext {
       case 'account.logout': return this.secured(command, context, async () => this.executePlatformAuth(payload.id, 'logout'));
       case 'account.diagnose': return { report: await this.accountManager.diagnose(payload.id) };
       case 'account.facebook.avatarClosure.diagnose': return this.executePlatformReconcile(payload.id, 'facebook.avatar-closure.diagnose', { limit: payload.limit });
-      case 'account.facebook.avatarImport.start': return this.secured(command, context, async () => this.executePlatformReconcile(payload.id, 'facebook.avatar-import.start'));
-      case 'account.facebook.avatarImport.status': return this.executePlatformReconcile(payload.id, 'facebook.avatar-import.status');
-      case 'account.facebook.avatarImport.stop': return this.secured(command, context, async () => this.executePlatformReconcile(payload.id, 'facebook.avatar-import.stop'));
       case 'account.migration.scan': return { plan: this.accountMigration.scan(payload.sourceDir) };
       case 'account.migration.import': return this.secured(command, context, async () => this.accountMigration.execute(payload.confirmToken, payload.selectedIds || []));
       case 'account.provisioning.login.flows': return this.accountManager.listProvisioningLoginFlows(payload.id, interactiveAuthOptions(payload));

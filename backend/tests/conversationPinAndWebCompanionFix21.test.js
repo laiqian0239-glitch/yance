@@ -74,18 +74,3 @@ test('contact context menu exposes persistent pin and pinned-first rendering', (
   assert.match(html, /contact-card\.pinned/);
   assert.match(routes, /conversations\/:sessionKey\/pin/);
 });
-
-test('Facebook web companion presents incremental avatar and conversation-difference governance', () => {
-  const accountCenter = read('frontend/r32-account-center.js');
-  const content = read('tools/facebook-business-suite-avatar-importer/content.js');
-  const service = read('backend/services/facebookBusinessSuiteAvatarImportService.js');
-  assert.match(accountCenter, /言策网页伴侣 · Facebook/);
-  assert.match(accountCenter, /潜在新会话/);
-  assert.match(accountCenter, /消息摘要差异/);
-  assert.match(content, /新增头像/);
-  assert.match(content, /无需更新/);
-  assert.match(content, /不会直接写入消息/);
-  assert.match(service, /AVATAR_IMPORT_UNCHANGED/);
-  assert.match(service, /automaticMessageWrites: false/);
-  assert.match(service, /webCompanion/);
-});

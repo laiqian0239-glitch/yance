@@ -113,9 +113,6 @@ router.post('/:id/facebook/oauth/start', async (req, res, next) => { try { res.j
 router.get('/:id/facebook/oauth/status', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.oauth.status', { id: req.params.id, flowId: req.query.flowId })) }); } catch (error) { next(error); } });
 router.post('/:id/facebook/oauth/cancel', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.oauth.cancel', { id: req.params.id, flowId: req.body?.flowId })) }); } catch (error) { next(error); } });
 router.post('/:id/facebook/avatar-closure/diagnose', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.avatarClosure.diagnose', { id: req.params.id, limit: req.body?.limit })) }); } catch (error) { next(error); } });
-router.get('/:id/facebook/avatar-import/session', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.avatarImport.status', { id: req.params.id })) }); } catch (error) { next(error); } });
-router.post('/:id/facebook/avatar-import/session', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.avatarImport.start', { id: req.params.id })) }); } catch (error) { next(error); } });
-router.post('/:id/facebook/avatar-import/session/stop', async (req, res, next) => { try { res.json({ ok: true, ...(await execute(req, 'account.facebook.avatarImport.stop', { id: req.params.id })) }); } catch (error) { next(error); } });
 
 router.get('/facebook/webhook', (_req, res) => {
   res.status(405).json({

@@ -47,9 +47,6 @@ const AUTH_DEADLINES_MS = Object.freeze({
 const RECONCILE_DEADLINES_MS = Object.freeze({
   sync: 300_000,
   'media-transfer': 120_000,
-  'facebook.avatar-import.start': 60_000,
-  'facebook.avatar-import.status': 20_000,
-  'facebook.avatar-import.stop': 30_000,
   'facebook.avatar-closure.diagnose': 300_000
 });
 
@@ -452,9 +449,6 @@ function createAccountManagerReconcileHandler(managerProvider = defaultAccountMa
         operationGeneration: input.operationGeneration,
         physicalOperationContext: input.physicalOperationContext
       });
-      case 'facebook.avatar-import.start': return { session: manager.startFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
-      case 'facebook.avatar-import.status': return { session: manager.getFacebookBusinessSuiteAvatarImportStatus(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
-      case 'facebook.avatar-import.stop': return { session: manager.stopFacebookBusinessSuiteAvatarImport(accountId, { signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
       case 'facebook.avatar-closure.diagnose': return { report: await manager.diagnoseFacebookAvatarClosure(accountId, { limit: input.limit, signal: input.signal, operationGeneration: input.operationGeneration, physicalOperationContext: input.physicalOperationContext }) };
       default: throw error('PLATFORM_RECONCILE_OPERATION_UNSUPPORTED', `ReconcilePort 不支持操作：${operation}`, 404);
     }

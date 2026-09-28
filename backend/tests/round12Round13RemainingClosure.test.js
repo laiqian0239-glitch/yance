@@ -236,7 +236,7 @@ test('production source has no auth or reconcile bypass outside the four-port im
     /accountManager\.(?:connect|reconnect|sync|syncAll|reconnectAll)\s*\(/u,
     /accountManager\.(?:startTelegramQr|startTelegramPhone|submitTelegramCode|submitTelegramPassword|cancelTelegramLogin)\s*\(/u,
     /accountManager\.(?:beginFacebookOAuth|pollFacebookOAuth|cancelFacebookOAuth)\s*\(/u,
-    /accountManager\.(?:startFacebookBusinessSuiteAvatarImport|getFacebookBusinessSuiteAvatarImportStatus|stopFacebookBusinessSuiteAvatarImport|diagnoseFacebookAvatarClosure)\s*\(/u
+    /accountManager\.diagnoseFacebookAvatarClosure\s*\(/u
   ];
   const bypasses = [];
   const walk = root => {
