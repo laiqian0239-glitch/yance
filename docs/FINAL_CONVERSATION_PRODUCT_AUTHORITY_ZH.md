@@ -410,8 +410,8 @@ AI_AUTO 的授权边界必须清晰可见，并支持按行为类别控制。
 - gen_id: `a81bd20e-1cd5-4152-b3ea-59aef9e64d47`
 - artifact name: `暮色露台上的暧昧对话.png`
 
-该图不是“功能展示参考”，而是后续 Production UI 的最低视觉/功能验收基准：
-实现可以更好，但不得减少能力、退回网页化按钮或普通 AI Chat UI。
+该图在 2026-09-20 当时不是“功能展示参考”，而是当时 Production UI 的最低视觉/功能验收基准；该视觉地位现已被 2026-09-28 V5 Golden 取代。
+其功能非降级原则仍保留：实现可以更好，但不得减少能力、退回网页化按钮或普通 AI Chat UI。
 
 ### 15.1 必须保留的主结构
 - 左：Yance App Rail + Conversation List；
